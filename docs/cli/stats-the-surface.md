@@ -19,8 +19,10 @@ subject prints is the `input_tokens` Anthropic's count endpoint answered, and th
 interface clause of its own (`EI-11` in the specification).
 
 **No number where no count was taken.** The model is the caller's decision and has no default: a
-figure counted for one model and read against another's is worse than none. The key is the one
-every Anthropic client reads from the environment. Without either, every token figure reads *not
+figure counted for one model and read against another's is worse than none. The key is this
+machine's own, saved with `forge doctor --anthropic-key` beside every other harness credential and
+read from nowhere else — not the environment, and not a gateway's profile, whose count would be
+another provider's. Without either, every token figure reads *not
 measured* and names the one thing that would measure it, and nothing is sent. Where the endpoint
 refused one text, that row prints no number, and neither does the total: a sum missing a text is not
 the total, and printing it would be exactly the figure this subject exists not to print.

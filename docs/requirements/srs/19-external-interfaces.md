@@ -603,7 +603,7 @@ Rev: 1 · Enforces: BR-13, BR-14 · Reached from: `plugin/src/stats/surface/coun
 
 The provider that bills a Claude token is the only thing that can count one, so the texts this
 product serves an agent are sent to that provider's count endpoint, one text a request, under the
-model the caller names and a key the caller's environment holds. Nothing is estimated in its place:
+model the caller names and a key this machine's own configuration holds. Nothing is estimated in its place:
 where the model, the key or a single answer is missing, the figure it would have been is reported
 as not measured, with what would measure it, and never as a number. What the reading walks and what
 a priced read means is `docs/cli/stats-the-surface.md`'s.

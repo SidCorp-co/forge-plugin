@@ -2,7 +2,7 @@
    that bills them, and what repeats across them. Why a count and never an estimate, which texts are
    walked, and what a priced read means: docs/cli/stats-the-surface.md. */
 import { GUIDE, pooled, readNodes, surfaceNodes } from "./nodes.mjs";
-import { KEY_VARIABLE, counterFor, originOf, unmeasuredWhy } from "./count.mjs";
+import { countSettings, counterFor, unmeasuredWhy } from "./count.mjs";
 import { checkoutFrom, profileOf, runsUnder, windowFrom } from "../runs.mjs";
 import { classesFor } from "../corpus/classes.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
@@ -15,8 +15,8 @@ export const SURFACE_USAGE = [
   "Usage: forge stats surface [--model <id>] [--since 3d] [--checkout <dir>] [--json]",
   "What the texts this copy serves an agent cost: every name's -h and every guide part it serves",
   "as its own, each read by running it. Tokens are counted by Anthropic's count endpoint, one",
-  `request per text under ${KEY_VARIABLE}, and never estimated: a figure it could not count`,
-  "reads `not measured` and says what would measure it. Nothing is written.",
+  "request per text under the key `forge doctor --anthropic-key` saved, and never estimated: a",
+  "figure it could not count reads `not measured` and says what would measure it. Nothing is written.",
   "",
   "  --model <id>   the model whose tokenizer counts, named in the output; no default",
   "  --since 3d     the window the guide-part reads are priced over; the whole corpus otherwise",
@@ -119,11 +119,10 @@ const partsFor = (options, texts) => {
 
 /** Walk, count and join: everything the CLI prints, with each outside reach passed in so a case can stand in for it. */
 export const surfaceReading = async (options, reach = {}) => {
-  const env = reach.env ?? process.env;
   const read = await readNodes(await (reach.nodes ?? surfaceNodes)(), process.cwd(), reach.read);
-  const why = unmeasuredWhy({ model: options.model, key: env[KEY_VARIABLE] });
-  const origin = originOf(env);
-  const count = why ? null : counterFor({ model: options.model, key: env[KEY_VARIABLE], origin, fetchImpl: reach.fetch });
+  const { key, origin } = (reach.settings ?? countSettings)();
+  const why = unmeasuredWhy({ model: options.model, key });
+  const count = why ? null : counterFor({ model: options.model, key, origin, fetchImpl: reach.fetch });
   const texts = count ? await counted(read, count) : read;
   const repeated = repetitionOf(texts);
   /* No printing past the first is nought tokens exactly, and the endpoint takes no empty message. */

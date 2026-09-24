@@ -2,13 +2,15 @@
    what a caller pays for is what was printed, project state included, and no module constant carries
    that. Which texts are walked and which are not: docs/cli/stats-the-surface.md. */
 import { spawn } from "node:child_process";
+import { join } from "node:path";
 
 import { VERB_NAMES } from "../../resolve/visibility.mjs";
 import { SLUG as CONTRACT, partsOf, readContract } from "../../guides/contract.mjs";
 import { localSlugs } from "../../guides/guides.mjs";
 import { referencesOf } from "../../guides/skill-guides.mjs";
+import { PLUGIN_ROOT } from "../../tools/plugin-copy.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = join(PLUGIN_ROOT, "bin", "forge");
 const AT_ONCE = 8;
 export const HELP = "help";
 export const GUIDE = "guide";

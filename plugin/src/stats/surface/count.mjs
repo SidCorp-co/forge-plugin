@@ -3,9 +3,9 @@
    model. So every token this subject prints is an `input_tokens` answered here, and every way one
    could not be taken is a reason by name. docs/cli/stats-the-surface.md. */
 import { clockFor, deadlineOf, parsedOr, ranOut } from "../../wire/request.mjs";
+import { machineValue } from "../../resolve/machine/stores.mjs";
 
-export const KEY_VARIABLE = "ANTHROPIC_API_KEY";
-const ORIGIN_VARIABLE = "ANTHROPIC_BASE_URL";
+const STORE = "anthropic";
 const ORIGIN = "https://api.anthropic.com";
 const ROUTE = "/v1/messages/count_tokens";
 const VERSION = "2023-06-01";
@@ -23,6 +23,12 @@ const waitFor = (headers, attempt) => {
   return Math.min(seconds, MAX_WAIT_SECONDS);
 };
 
+/** The key this machine saved for the count, and the origin it is asked at: the store's own, read at the call. */
+export const countSettings = () => ({
+  key: machineValue(STORE, "key").value,
+  origin: (machineValue(STORE, "url").value ?? ORIGIN).replace(/\/+$/u, ""),
+});
+
 /** What would measure the figures, or null where the counter can be built: checked before anything is sent. */
 export const unmeasuredWhy = ({ model, key }) => {
   if (!model) {
@@ -30,14 +36,11 @@ export const unmeasuredWhy = ({ model, key }) => {
       + "forge stats surface --model <id>";
   }
   if (!key) {
-    return `${KEY_VARIABLE} is not set, and a Claude token is counted by Anthropic's own count endpoint `
-      + `and nothing else: export ${KEY_VARIABLE}=<key>, then run this again`;
+    return "this machine holds no key for Anthropic's count endpoint, and a Claude token is counted "
+      + "there and nowhere else: forge doctor --anthropic-key <key>, then run this again";
   }
   return null;
 };
-
-/** Where the counts are asked, named in the output so a figure is never read against another's. */
-export const originOf = (env = process.env) => (env[ORIGIN_VARIABLE] || ORIGIN).replace(/\/+$/u, "");
 
 const failureOf = (status, text) => {
   const said = parsedOr(text)?.error?.message ?? String(text).slice(0, 200);

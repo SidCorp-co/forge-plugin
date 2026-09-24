@@ -56,7 +56,7 @@ const endpoint = async ({ failing = [], limited = 0 } = {}) => {
   });
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  return { asked, origin, env: { ANTHROPIC_API_KEY: "sk-test", ANTHROPIC_BASE_URL: origin }, close: () => server.close() };
+  return { asked, origin, settings: () => ({ key: "sk-test", origin }), close: () => server.close() };
 };
 
 const TEXTS = {
@@ -80,7 +80,7 @@ test("the walk holds every help name and every guide part this copy serves, one 
 
 test("each row carries its characters, and without --model every token figure is not measured and nothing is sent", async () => {
   const served = await endpoint();
-  const held = await surfaceReading({}, { ...reading(TEXTS), env: served.env });
+  const held = await surfaceReading({}, { ...reading(TEXTS), settings: served.settings });
   served.close();
   assert.deepEqual(held.texts.map((one) => [one.name, one.chars, one.tokens]),
     Object.entries(TEXTS).map(([name, text]) => [name, text.length, null]));
@@ -93,11 +93,11 @@ test("each row carries its characters, and without --model every token figure is
     "and no text row ends in a token number");
 });
 
-test("without the key every token figure is not measured, the variable is named, and nothing is sent", async () => {
+test("without the key every token figure is not measured, the key's flag is named, and nothing is sent", async () => {
   const served = await endpoint();
-  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), env: { ANTHROPIC_BASE_URL: served.origin } });
+  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), settings: () => ({ key: null, origin: served.origin }) });
   served.close();
-  assert.match(held.unmeasured, /ANTHROPIC_API_KEY is not set/u);
+  assert.match(held.unmeasured, /holds no key for Anthropic's count endpoint.*forge doctor --anthropic-key <key>/u);
   assert.equal(held.tokens, null);
   assert.equal(held.repeated.tokens, null);
   assert.equal(served.asked.length, 0);
@@ -105,7 +105,7 @@ test("without the key every token figure is not measured, the variable is named,
 
 test("a counted row is the endpoint's input_tokens for that text under the named model, and the total is their sum", async () => {
   const served = await endpoint();
-  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), env: served.env });
+  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), settings: served.settings });
   served.close();
   assert.deepEqual(held.texts.map((one) => one.tokens), [11, 12, 5]);
   assert.equal(held.tokens, 28);
@@ -122,7 +122,7 @@ test("a counted row is the endpoint's input_tokens for that text under the named
 
 test("a text whose count failed prints no number, and the total is not measured with how many failed and why", async () => {
   const served = await endpoint({ failing: [TEXTS["forge b -h"]] });
-  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), env: served.env });
+  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), settings: served.settings });
   served.close();
   assert.equal(held.texts[1].tokens, null);
   assert.equal(held.texts[0].tokens, 11);
@@ -151,7 +151,7 @@ test("a rate-limited count waits what the endpoint said and is asked again", asy
 
 test("what repeats is the lines two texts both print, their printings past the first, and those printings counted", async () => {
   const served = await endpoint();
-  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), env: served.env });
+  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), settings: served.settings });
   served.close();
   assert.deepEqual({ lines: held.repeated.lines, beyond: held.repeated.beyond, chars: held.repeated.chars },
     { lines: 2, beyond: 2, chars: "shared line one here".length + "shared line two here".length });
@@ -162,7 +162,7 @@ test("what repeats is the lines two texts both print, their printings past the f
 
 test("a block copied into a second text raises the repetition, and a text added raises the total", async () => {
   const served = await endpoint();
-  const measure = (texts) => surfaceReading({ model: "claude-x" }, { ...reading(texts), env: served.env });
+  const measure = (texts) => surfaceReading({ model: "claude-x" }, { ...reading(texts), settings: served.settings });
   const before = await measure(TEXTS);
   const copied = await measure({ ...TEXTS, "guide skill ref": `${TEXTS["guide skill ref"]}\nshared line one here\nshared line two here` });
   const added = await measure({ ...TEXTS, "forge c -h": "Usage: forge c and nothing else" });
@@ -220,7 +220,7 @@ test("the guide parts a corpus run read print beside what each read cost", async
   Object.assign(process.env, { HOME: room, TMPDIR: room });
   const served = await endpoint();
   /* The stand-in join left out, so the reading's own is what reads the corpus above. */
-  const held = await surfaceReading({ model: "claude-x", checkout: project }, { ...reading(TEXTS), parts: undefined, env: served.env });
+  const held = await surfaceReading({ model: "claude-x", checkout: project }, { ...reading(TEXTS), parts: undefined, settings: served.settings });
   served.close();
   Object.assign(process.env, kept);
   assert.equal(held.parts.runs, 1);
@@ -234,7 +234,7 @@ test("--json prints the whole reading, with null for every figure not measured",
   const log = console.log;
   console.log = (line) => printed.push(line);
   try {
-    await printSurface(["--json"], { ...reading(TEXTS), env: {} });
+    await printSurface(["--json"], { ...reading(TEXTS), settings: () => ({ key: null, origin: "https://api.anthropic.com" }) });
   } finally {
     console.log = log;
   }
@@ -246,6 +246,26 @@ test("--json prints the whole reading, with null for every figure not measured",
   assert.deepEqual(held.texts.map((one) => one.tokens), [null, null, null]);
   assert.equal(held.texts.length, 3);
   assert.equal(held.parts.flow, "default");
+});
+
+/* Read in a process of its own, the configuration being read once a process. */
+const settingsUnder = (config) => {
+  const home = tempRoom("surface-settings-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "config.json"), JSON.stringify(config));
+  const count = new URL("../../src/stats/surface/count.mjs", import.meta.url).href;
+  const run = spawnSync(process.execPath, ["--input-type=module", "-e",
+    `const { countSettings } = await import(${JSON.stringify(count)}); console.log(JSON.stringify(countSettings()));`],
+  { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home } });
+  assert.equal(run.status, 0, run.stderr);
+  return JSON.parse(run.stdout);
+};
+
+test("the key and the origin are this machine's saved anthropic store, Anthropic's own origin where none is saved", () => {
+  assert.deepEqual(settingsUnder({ anthropic: { key: "sk-saved", url: "https://count.example/" } }),
+    { key: "sk-saved", origin: "https://count.example" });
+  assert.deepEqual(settingsUnder({ anthropic: { key: "sk-saved" } }), { key: "sk-saved", origin: "https://api.anthropic.com" });
+  assert.deepEqual(settingsUnder({}), { key: null, origin: "https://api.anthropic.com" });
 });
 
 test("a flag the subject has not got is refused before anything is walked", () => {
