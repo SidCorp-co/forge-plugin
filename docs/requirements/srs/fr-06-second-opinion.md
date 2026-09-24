@@ -254,6 +254,20 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
   SHALL resolve back to the review the finding was made by, and WHERE no such set does the CLI SHALL
   name the form that records the disposition directly instead, because a command that runs and
   verifies a different review is worse than no route at all.
+- **AC-06-5-10** · Rev: 1 · Proof: plugin/test/codex/log/repository.test.mjs "a flagless verdict from the primary checkout lands on this run's consult taken in a sibling worktree"
+  WHEN a disposition is sent without naming the review it answers THEN the CLI SHALL record it
+  against the calling run's own last open review in any worktree of the repository, and SHALL never
+  record it against a review another run made, because a disposition landing on a stranger's review
+  discards a finding while the record reads as complete.
+- **AC-06-5-11** · Rev: 1 · Proof: plugin/test/codex/log/repository.test.mjs "a flagless verdict from a run with no consult here refuses, naming the open one, its run and the form"
+  IF the calling run has made no review in the repository THEN the CLI SHALL refuse the disposition
+  and SHALL name the repository's open review, the run that made it and the command that names that
+  review, because the run asking may be the same one under another identity.
+- **AC-06-5-12** · Rev: 1 · Proof: plugin/test/codex/log/repository.test.mjs "--of reaches a consult another run took in a sibling worktree of the same repository"
+  WHEN a disposition names the review it answers THEN the CLI SHALL find that review in any worktree
+  of the repository whichever run made it, and WHERE the review is found only outside the repository
+  or nowhere the refusal SHALL say which, because a refusal worded as though the identifier were
+  unknown sends the caller to read the raw log for it.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 
