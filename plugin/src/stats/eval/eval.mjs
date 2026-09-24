@@ -318,10 +318,19 @@ const said = (figure) => {
     : `${figure.count}/${figure.over} ${unit}(s)`;
 };
 
+/* A held reading written before the split carries none, and says only the total it had. */
+const unpairedWhy = (by) => {
+  const parts = [
+    by?.unnamed ? `${by.unnamed} naming no run` : null,
+    by?.unmatched ? `${by.unmatched} whose run no single entry answered` : null,
+  ].filter(Boolean);
+  return parts.length ? `: ${parts.join(", ")}` : "";
+};
+
 const notesOn = (figure) => [
   figure?.later ? `${figure.later} later than the horizon, counted apart` : null,
   figure?.unattributed ? `${figure.unattributed} park(s) no owner's call answers for` : null,
-  figure?.unpaired ? `${figure.unpaired} ruling call(s) unpaired` : null,
+  figure?.unpaired ? `${figure.unpaired} ruling call(s) unpaired${unpairedWhy(figure.unpairedBy)}` : null,
 ].filter(Boolean).join("; ");
 
 /* Both sides and each said whose it is: one window's fraction beside the other's is comparable only

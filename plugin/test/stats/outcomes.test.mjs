@@ -388,6 +388,33 @@ test("a ruling paired to a verdict on a finding its consult never made counts no
   assert.equal(ruled.get(spans[1]).rejected, 1, "a verdict on a finding the reply made still counts");
 });
 
+test("the eval pairs each run's ruling to the verdict its own run logged, and says why a call went unpaired", () => {
+  const verdict = (ms, over = {}) => ({ kind: "verdict", at: new Date(ms).toISOString(), accepted: 1, rejected: 1, ...over });
+  const entries = [
+    verdict(1050, { run: "iss-1-aaaaaaaa", runFrom: "asked", rejected: 2 }),
+    verdict(1060, { run: "iss-2-bbbbbbbb", runFrom: "worktree", rejected: 0 }),
+    verdict(5050, { run: "wave", runFrom: "inherited" }),
+    verdict(5060, { run: "wave", runFrom: "inherited" }),
+  ];
+  const mine = { at: 1000, endedAt: 1100, of: null, run: "iss-1-aaaaaaaa" };
+  const theirs = { at: 1010, endedAt: 1110, of: null, run: "iss-2-bbbbbbbb" };
+  const lost = { at: 5000, endedAt: 5100, of: null, run: "iss-3-cccccccc" };
+  const bare = { at: 5010, endedAt: 5110, of: null, run: null };
+  const runs = [{ ...run(), rulings: [mine, lost] }, { ...run(), rulings: [theirs, bare] }];
+
+  const ruled = ruledOver(runs, entries);
+  assert.equal(ruled.get(mine).rejected, 2, "the call pairs with the verdict its run logged, over the neighbour's inside its span");
+  assert.equal(ruled.get(theirs).rejected, 0, "and the neighbour's call with its own");
+  assert.equal(ruled.has(lost), false, "two verdicts logged under the wave's id are nobody's, so neither pairs by identity");
+  assert.equal(ruled.has(bare), false);
+
+  const figure = figureOf(heldOf(runs, read({ ruled })), "consult findings rejected");
+  assert.equal(figure.paired, 2);
+  assert.equal(figure.unpaired, 2, "the total stays on the figure");
+  assert.deepEqual(figure.unpairedBy, { unnamed: 1, unmatched: 1 },
+    "and says how many named no run and how many named one no single entry answered");
+});
+
 test("the rejected-findings figure counts findings, needs no tracker, and is unavailable where nothing was ruled", () => {
   const span = { at: 1000, endedAt: 1100, of: "abc" };
   const owner = { ...run({ endedAt: NOW - 5 * DAY }), issues: ["ISS-1"], rulings: [span] };

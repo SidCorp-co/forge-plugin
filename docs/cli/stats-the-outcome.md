@@ -54,13 +54,20 @@ keying on the issue rather than the call is what lets one call that parked two a
 and it reads the transcripts and the consult log rather than the tracker — so a refused or
 budget-stopped tracker read leaves it printed while the other three go unavailable. A ruling pairs to
 the log by the `--of` the call names and otherwise by the log's own entry inside that call's span, and
-the pairing is one-to-one. Both this and the park attribution above are resolved **over the whole
+the pairing is one-to-one. Where the call's own command grants its run an id, the one entry that run
+wrote among those the call reaches is its, and an entry another run wrote is never its. An entry is a
+run's only where its `runFrom` says the id was asked for or found in the run's own tree: an inherited
+id names the wave that dispatched it and a saved one the machine, so neither tells two runs apart. A
+call naming an entry's run wins that entry over any call carrying no id. A call or an entry with no identity
+pairs as it did before identity existed, except that a call with no id loses an entry to the call that names
+that entry's run. Both this and the park attribution above are resolved **over the whole
 corpus, before either window is cut**: a competitor outside the displayed windows still spoils a
 match, and two owners either side of a boundary would each be the only candidate its own window could
 see. So `--size` cannot decide what paired, or what a park was counted against.
-Under a wave of concurrent runs most spans overlap and most calls therefore go unpaired, which the
-screen prints as a count rather than hiding; a row of the log now says which run wrote it and this
-pairing does not read that yet, which is why (ISS-853).
+Under a wave of concurrent runs the spans overlap, so a call with no id still goes unpaired wherever a
+neighbour's entry lands inside its span. The screen prints the unpaired count rather than hiding it,
+and splits it by cause: calls that named no run, and calls whose run had no single entry to answer
+them.
 
 **`unavailable` is not zero.** A figure whose population is empty — no pair it could read, or no
 finding ruled — prints `unavailable`; one with a population and no outcome in it prints `0` over that
