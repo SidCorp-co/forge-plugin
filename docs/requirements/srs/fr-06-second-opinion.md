@@ -317,6 +317,16 @@ alone.
   mechanism apart from the share kept, and SHALL count it only over findings ruled one way or the
   other on their mechanism, because a disposition recorded before that ruling existed says nothing
   about a mechanism and would read as sound if it were counted.
+- **AC-06-6-9** · Rev: 1 · Proof: plugin/test/codex/stats/comparability.test.mjs "a consult reading short of two full windows is judged not a comparison, and two full ones are not"
+  WHERE either window holds fewer than a hundred consults the CLI SHALL judge the comparison not a
+  comparison on a line of its own naming each window that fell short, and SHALL print no such
+  judgement where both windows are full, because the window counts alone leave the reader to decide
+  whether what was selected is evidence.
+- **AC-06-6-10** · Rev: 1 · Proof: plugin/test/codex/stats/comparability.test.mjs "a consult reading held deeper than the log reaches is what tells a lost log from a young one"
+  WHEN a comparison is judged not a comparison THEN the CLI SHALL say how far back the log reaches,
+  SHALL name the deepest consult reading held on this device that reached further back, and SHALL
+  say where no such reading is held that none records an earlier reach, because a log that lost its
+  depth prints the same window counts as a young one.
 
 ### UC-06-7 — A call the project names waits for the same reading the commit waits for
 
