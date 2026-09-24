@@ -148,7 +148,8 @@ const headLines = (held) => [
     + `${held.texts.filter((one) => one.kind === GUIDE).length} of them guide parts, ${figure(held.chars)} characters.`,
   tokenLine(held),
   `repeated    ${held.repeated.lines} line(s) printed by more than one text, ${held.repeated.beyond} printing(s) `
-    + `past the first, ${held.repeated.chars} characters, ${figure(held.repeated.tokens)} tokens`,
+    + `past the first, ${held.repeated.chars} characters, ${figure(held.repeated.tokens)} tokens`
+    + `${held.repeated.unmeasured ? `: ${held.repeated.unmeasured}` : ""}`,
 ];
 
 const textRow = (one) => `  ${one.name.padEnd(NAME_WIDTH)}${String(one.chars).padStart(7)}${figure(one.tokens).padStart(14)}`;

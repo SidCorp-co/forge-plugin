@@ -133,6 +133,16 @@ test("a text whose count failed prints no number, and the total is not measured 
     "and the figures that were counted still name what counted them");
 });
 
+test("a repetition count that failed says why beside the figure, and the total it did not touch stands", async () => {
+  const served = await endpoint({ failing: ["shared line one here\nshared line two here", "shared line two here\nshared line one here"] });
+  const held = await surfaceReading({ model: "claude-x" }, { ...reading(TEXTS), settings: served.settings });
+  served.close();
+  assert.equal(held.tokens, 28);
+  assert.equal(held.repeated.tokens, null);
+  assert.match(surfaceLines(held).join("\n"),
+    /not measured tokens: the count endpoint answered 500: overloaded/u);
+});
+
 test("a body that never arrives is that text's count not taken, and every other text's count stands", async () => {
   const count = counterFor({ model: "claude-x", key: "sk-test", origin: "http://stand.in",
     fetchImpl: async () => ({ status: 200, ok: true, headers: new Map(), text: async () => { throw new Error("body dropped"); } }) });
