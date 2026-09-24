@@ -12,7 +12,7 @@ import { scopeFor } from "../../src/stats/corpus/release.mjs";
 import { profileOf } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { UNRECORDED, copyAt, installedCopies, servedCopies, spansInstall } from "../../src/stats/versions.mjs";
-import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
+import { NO_WINDOW_BEFORE, shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { SAYS } from "../../src/stats/stats.mjs";
 import { scopeOf, writeMark } from "../../src/stats/marks/marks.mjs";
@@ -207,8 +207,11 @@ test("a reading held deeper than the corpus reaches is what tells a swept corpus
 
   const held = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--json"], home).stdout);
   assert.equal(held.comparability.comparable, false);
-  assert.deepEqual(held.comparability.short,
-    ["the recent window holds 9 of 50", "there is no window before it"]);
+  /* The wording is windows.mjs's and pinned where it is composed; what is this eval's own is that
+     the judgement reads the runs the recent window holds and finds no window before it. */
+  assert.equal(held.comparability.short.length, 2, held.comparability.short.join("; "));
+  assert.match(held.comparability.short[0], / 9 of 50$/u, "the recent window is judged on the runs it holds");
+  assert.equal(held.comparability.short[1], NO_WINDOW_BEFORE);
   assert.equal(held.comparability.reach.earlier.by, "mark 100",
     "criterion 5: the judgement is a field of the reading, so a mark can be read back for it");
 });

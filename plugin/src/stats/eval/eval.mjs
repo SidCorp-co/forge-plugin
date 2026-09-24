@@ -10,7 +10,7 @@ import { deviceOf } from "../../resolve/machine/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
 import { stamp } from "../figures.mjs";
 import { UNRECORDED, copyAt, servedCopies, spansInstall } from "../versions.mjs";
-import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
+import { WHEN, comparabilityOf, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
 import {
   RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
   releaseSaid, scopeOf, sinceReleaseIn, writeMark, wroteSaid,
@@ -213,18 +213,6 @@ const overlapIn = (recent, reading, size) => {
   return overlapOf(shared, recent.length, size, ahead);
 };
 
-/** Why a first reading is no comparison: nothing was measured ahead of its window. */
-export const NO_WINDOW_BEFORE = "there is no window before it";
-
-/** Whether the reading is a comparison, and each way it falls short — docs/cli/stats-the-eval.md. */
-const comparabilityOf = ({ size, now, before, reach }) => {
-  const short = [];
-  if (now.runs < size) short.push(`the recent window holds ${now.runs} of ${size}`);
-  if (!before) short.push(NO_WINDOW_BEFORE);
-  else if (before.runs < size) short.push(`the window before it holds ${before.runs} of ${size}`);
-  return { comparable: !short.length, short, reach };
-};
-
 /** The comparison, every cost figure of it one `profileOf` computes over a window or a group. With a
  *  stored reading, its recent window stands where the earlier one would, through the same lines; a
  *  reading held before the outcome figures existed carries none, which is not the same as zeroes. */
@@ -240,7 +228,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
     overlap: against ? overlapIn(now, against, size) : undefined,
     now: nowHeld,
     before: beforeHeld,
-    comparability: comparabilityOf({ size, now: nowHeld, before: beforeHeld, reach }),
+    comparability: comparabilityOf({ size, now: nowHeld.runs, before: beforeHeld?.runs ?? null, reach }),
     moved: beforeHeld
       ? { rungs: movedIn(nowHeld.profile.rungs, beforeHeld.profile.rungs, "rung"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
