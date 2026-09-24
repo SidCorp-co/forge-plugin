@@ -162,6 +162,13 @@ export const movedTo = (text, before) => {
   return typeof first === "string" || first === NOWHERE ? first : null;
 };
 
+/** The directory the command at this offset stands in, placed against `base`: `base` itself where nothing moved, `NOWHERE` where the move names no directory the text carries. With no base, what the text spells comes back unplaced — `null` for no move — for a caller that places it later. What `NOWHERE` costs a command is the caller's decision, and stated where it is made. */
+export const directoryAt = (text, before, base = null) => {
+  const moved = movedTo(text, before);
+  if (moved === NOWHERE || base === null) return moved;
+  return resolve(base, moved ?? ".");
+};
+
 /* A loop opens where a command does, past a `!` that inverts one or a `time` that measures it. `for` and `select` stand beside the two waits because a `done` cannot tell them apart, and one left off the list has that `done` close the wait around it instead. */
 const LOOPS = /^(?:[({]\s*|!\s*|\btime\s+(?:-\S+\s+)*|\b(?:if|elif|then|else|do)\s+)*(while|until|for|select)(?=\s|$)/u;
 const WAITS = /^(?:while|until)$/u;

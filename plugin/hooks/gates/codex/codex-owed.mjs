@@ -1,7 +1,5 @@
 // The calls a project lists wait for what a consult owes on what they would judge: unread documents, unruled findings. how/codex-owed.md.
 
-import { resolve } from "node:path";
-
 import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
@@ -9,7 +7,7 @@ import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
-import { NOWHERE, deny, how, movedTo, shellText, spans, typed, done } from "../../_hook.mjs";
+import { NOWHERE, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
 
 const ESCAPE = "For the session: `forge hooks --off codex-owed` — an inline `FORGE_CODEX_DISABLE=1` "
   + "prefix never reaches a hook.";
@@ -41,8 +39,8 @@ const heldBy = (text, cwd) => {
   const found = [];
   let unreadable = false;
   for (const { start } of spans(text, { pipes: true })) {
-    const stood = movedTo(text, start);
-    const tree = stood === NOWHERE ? null : resolve(cwd, stood ?? ".");
+    const stood = directoryAt(text, start, cwd);
+    const tree = stood === NOWHERE ? null : stood;
     /* A destination no reading can name leaves the shell's own list to say whether this asks at all,
        which settles the asking and never the answer: a tree that never chose this is refused nothing. */
     const asks = tree ?? cwd;
@@ -50,6 +48,7 @@ const heldBy = (text, cwd) => {
     const { classes, unknown } = seen.get(asks);
     const here = text.slice(start);
     if (!classes.some(([, match]) => match.exec(here)?.index === 0)) continue;
+    /* This gate's answer to a door behind that destination: the tree is unreadable, and the call is refused below. */
     if (!tree) {
       unreadable = true;
       continue;

@@ -14,8 +14,8 @@ import {
   COMMITS,
   committing,
   deny,
+  directoryAt,
   gitTreeOf,
-  movedTo,
   NOWHERE,
   shellText,
   spans,
@@ -40,7 +40,7 @@ const TWICE = new RegExp(COMMITS.source, "gu");
    `-C` still answers, and the sentinel travels on: `resolve` would throw on it. */
 const treeAt = (text, one) => {
   const named = gitTreeOf(one[0]);
-  const moved = movedTo(text, one.index);
+  const moved = directoryAt(text, one.index);
   if (moved === NOWHERE) return named && isAbsolute(named) ? named : NOWHERE;
   return named && !isAbsolute(named) && moved ? resolve(moved, named) : named ?? moved;
 };
@@ -126,7 +126,8 @@ export const run = (ev) => {
 
   /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
   const aim = commitAim(ev);
-  /* No tree to pick and no way to ask about one: the event's cwd is a different repository's answer.
+  /* This gate's answer to a directory no reading can settle is a refusal, never the event's cwd: that
+     is a different repository's answer, and no tree means no way to ask what the commit stages.
      Ahead of the door key, which is that tree's to set and unreadable while the tree is. */
   if (aim.tree === NOWHERE) {
     deny(

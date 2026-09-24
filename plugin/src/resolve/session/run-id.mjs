@@ -2,11 +2,11 @@
    because every agent of a wave inherits one session id and the tree is the one thing each has to
    itself (ISS-467). The file's name is spelt here; the rest of the why: docs/cli/claim.md. */
 import { readFileSync } from "node:fs";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { CALLS_THE_WRITER, runsACommand } from "./granted-id.mjs";
-import { NOWHERE, spans, standsIn } from "../../hooks/shell-spans.mjs";
+import { NOWHERE, directoryAt, spans } from "../../hooks/shell-spans.mjs";
 
 export const RUN_ID = "forge-run-id";
 export const RUN_ID_VAR = "FORGE_SESSION_ID";
@@ -63,7 +63,7 @@ export const runNames = (id, key) => runsFor(id).includes(String(key ?? "").trim
 const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
 
 /** The tree the write this event carries will stand in, which is not the one the hook stands in.
- *  `standsIn` puts the all-moves-applied reading first and that is the one taken; two `forge` calls
+ *  `directoryAt` is the reading taken, the one with every move applied; two `forge` calls
  *  answering differently, or a text carrying an opener, name none. docs/cli/the-granted-id.md. */
 export const runHeldWhere = (ev = null) => {
   const here = ev?.cwd || process.cwd();
@@ -72,9 +72,8 @@ export const runHeldWhere = (ev = null) => {
   const found = new Map();
   for (const { start, end } of spans(text, { pipes: true })) {
     if (!CALLS_THE_WRITER.test(text.slice(start, end))) continue;
-    const [first] = standsIn(text, start);
-    if (first === NOWHERE) return { id: null, at: here };
-    const at = typeof first === "string" ? resolve(here, first) : here;
+    const at = directoryAt(text, start, here);
+    if (at === NOWHERE) return { id: null, at: here };
     found.set(runIdAt(at), at);
   }
   if (!found.size) return { id: runIdAt(here), at: here };
