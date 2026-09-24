@@ -168,7 +168,7 @@ test("a declaration the readers refuse withholds no usage, and is refused where 
 
   const help = runIn(work, ["-h"], BARE);
   assert.equal(help.status, 0, `the help exited on a configuration fault:\n${help.stderr}`);
-  assert.match(help.stdout, /^Usage: node \S*run\.mjs <start\|relink\|finish\|ship\|land\|land-ready\|review>/mu, help.stdout);
+  assert.match(help.stdout, /^Usage: node \S*run\.mjs <start\|relink\|finish\|ship\|land\|land-ready\|wait\|review>/mu, help.stdout);
   assert.ok(help.stdout.includes("whose declaration every reader of it refuses: "
     + `\`review.lines\` in ${recordOf(work)} is a whole number`),
   `the usage says nothing of the declaration it could not read:\n${help.stdout}`);
