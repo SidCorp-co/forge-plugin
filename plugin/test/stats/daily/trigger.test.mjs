@@ -90,14 +90,18 @@ test("the report key takes daily or off and refuses anything else", () => {
 test("a spawn that fails on a later tick is heard, and gives the mark back", async () => {
   const held = device({ project: { report: "daily" } });
   const day = new Date(NOON - 86_400_000).toISOString().slice(0, 10);
-  const start = () => {
-    const child = new EventEmitter();
+  const failing = (pid) => () => {
+    const child = Object.assign(new EventEmitter(), { pid, unref: () => {} });
     setTimeout(() => child.emit("error", new Error("spawn EAGAIN")), 0);
     return child;
   };
-  assert.equal(under(held, () => dailyDue("/plugin", { start, now: NOON, cwd: held.checkout })), null);
-  await new Promise((done) => setTimeout(done, 20));
+  assert.equal(under(held, () => dailyDue("/plugin", { start: failing(undefined), now: NOON, cwd: held.checkout })), null);
   assert.equal(existsSync(join(held.reports, `${day}.writing`)), false);
+  await new Promise((done) => setTimeout(done, 20));
+  const other = device({ project: { report: "daily" } });
+  assert.deepEqual(under(other, () => dailyDue("/plugin", { start: failing(424242), now: NOON, cwd: other.checkout })), { day, pid: 424242 });
+  await new Promise((done) => setTimeout(done, 20));
+  assert.equal(existsSync(join(other.reports, `${day}.writing`)), false);
 });
 
 test("a path that walks out of an allowed root through .. is masked", () => {

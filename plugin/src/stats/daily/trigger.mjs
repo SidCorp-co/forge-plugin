@@ -45,8 +45,11 @@ export const dailyDue = (root, { start = spawn, now = Date.now(), cwd = process.
     }
     /* A spawn that fails does so on a later tick, as an event: heard, and the mark this process took
        given back, or the session start dies of it and the day stays held by nobody. */
-    child.on?.("error", () => clearMark(where.dir, day));
-    if (!child.pid) return null;
+    child.on?.("error", () => clearMark(where.dir, day, child.pid ?? process.pid));
+    if (!child.pid) {
+      clearMark(where.dir, day);
+      return null;
+    }
     writeFileSync(markPath(where.dir, day), `${child.pid}\n`);
     child.unref();
     return { day, pid: child.pid };
