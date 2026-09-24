@@ -316,12 +316,10 @@ test("a ruling entry two calls could claim is attributed to neither, and the pai
     call("forge codex verdict", { at: 1, endedAt: 2, shell: "forge codex verdict --of ab12 --accepted F1" }),
     call("forge codex verdict", { at: 3, endedAt: 4, shell: "forge codex verdict --accepted F1" }),
     call("gate", { at: 5, endedAt: 6, shell: "forge codex verdict --of zz" }),
-  ]), [{ at: 1, endedAt: 2, of: "ab12" }, { at: 3, endedAt: 4, of: null }],
+  ]), [{ at: 1, endedAt: 2, of: "ab12", run: null }, { at: 3, endedAt: 4, of: null, run: null }],
   "the consult a ruling names, where it names one, and only off a ruling call");
 });
 
-/* The run corpus's figure and `forge codex log --score` read one helper, so the two cannot disagree
-   about a verdict on a finding the consult never made (ISS-1680). */
 test("a ruling paired to a verdict on a finding its consult never made counts no finding", () => {
   const phantom = { kind: "verdict", of: "z", at: new Date(1050).toISOString(), accepted: 1, rejected: 0, kept: ["F1"], dropped: {} };
   const real = { kind: "verdict", of: "r", at: new Date(2050).toISOString(), accepted: 0, rejected: 1, kept: [], dropped: { F1: "no" } };

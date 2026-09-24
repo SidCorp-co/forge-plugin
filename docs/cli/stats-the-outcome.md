@@ -54,13 +54,16 @@ keying on the issue rather than the call is what lets one call that parked two a
 and it reads the transcripts and the consult log rather than the tracker — so a refused or
 budget-stopped tracker read leaves it printed while the other three go unavailable. A ruling pairs to
 the log by the `--of` the call names and otherwise by the log's own entry inside that call's span, and
-the pairing is one-to-one. Both this and the park attribution above are resolved **over the whole
+the pairing is one-to-one. A call whose own command grants its run an id takes that run's one entry
+among those it reaches, over any call carrying no id, and never an entry another run wrote; an id
+counts as a run's only where `runFrom` says it was asked for or found in the run's own tree, since an
+inherited one names a wave and a saved one a machine. Both this and the park attribution above are resolved **over the whole
 corpus, before either window is cut**: a competitor outside the displayed windows still spoils a
 match, and two owners either side of a boundary would each be the only candidate its own window could
 see. So `--size` cannot decide what paired, or what a park was counted against.
-Under a wave of concurrent runs most spans overlap and most calls therefore go unpaired, which the
-screen prints as a count rather than hiding; a row of the log now says which run wrote it and this
-pairing does not read that yet, which is why (ISS-853).
+A call naming no run still goes unpaired wherever a neighbour's entry lands inside its span, so the
+screen prints the unpaired count split by cause: calls naming no run, and calls whose run no single
+entry answered.
 
 **`unavailable` is not zero.** A figure whose population is empty — no pair it could read, or no
 finding ruled — prints `unavailable`; one with a population and no outcome in it prints `0` over that

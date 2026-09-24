@@ -262,7 +262,13 @@ export const ruledOver = (runs, entries) => {
   const consults = new Map(answered(entries).map((one) => [one.id ?? one.at, one]));
   const timed = entries
     .filter((one) => one.kind === "verdict")
-    .map((one) => ({ at: Date.parse(one.at) || 0, of: one.of ?? null, ...ruledOn(one, consults.get(one.of)) }));
+    .map((one) => ({
+      at: Date.parse(one.at) || 0,
+      of: one.of ?? null,
+      run: one.run ?? null,
+      runFrom: one.runFrom ?? null,
+      ...ruledOn(one, consults.get(one.of)),
+    }));
   const spans = runs.flatMap((run) => run.rulings);
   const { pairs } = pairedOneToOne(spans, timed, SLACK);
   return new Map(pairs.map((one) => [one.span, one.entry]));
@@ -277,11 +283,14 @@ const rejectedFor = (runs, ruled) => {
   let over = 0;
   let paired = 0;
   let unpaired = 0;
+  /* Why a call went unpaired, off the call alone: it named no run, or it named one no single entry of that run answered. */
+  const unpairedBy = { unnamed: 0, unmatched: 0 };
   for (const run of runs) {
     for (const span of run.rulings) {
       const entry = ruled.get(span);
       if (!entry) {
         unpaired += 1;
+        unpairedBy[span.run ? "unmatched" : "unnamed"] += 1;
         continue;
       }
       paired += 1;
@@ -296,6 +305,7 @@ const rejectedFor = (runs, ruled) => {
     unit: "finding",
     paired,
     unpaired,
+    unpairedBy,
   };
 };
 

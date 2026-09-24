@@ -293,6 +293,16 @@ test("each outcome figure discloses both windows' coverage, and says which windo
     "and the before window's own coverage loss is printed, not only the recent window's");
 });
 
+test("the unpaired note says why each unpaired ruling call went unpaired", () => {
+  const runs = runsOf(4);
+  const spans = runs.map((one, n) => ({ at: one.startedAt + n, endedAt: one.startedAt + n + 1, of: null, run: n % 2 ? `iss-${n}-aaaaaaaa` : null }));
+  const withRulings = runs.map((one, n) => ({ ...one, rulings: [spans[n]] }));
+  const read = { threads: new Map(), ruled: new Map(), parks: { owned: new Map(), loose: new Map() }, horizon: 86_400_000, now: Date.now() };
+  const lines = evalLines(evalRuns(withRulings, [], 2, null, read)).join("\n");
+  assert.match(lines, /now 2 ruling call\(s\) unpaired: 1 naming no run, 1 whose run no single entry answered/u);
+  assert.doesNotMatch(lines, /: 0 naming|, 0 whose/u, "a reason that left nothing unpaired is not printed");
+});
+
 test("the tracker read of a named checkout is scoped to the project that checkout declares, not the shell's", () => {
   const elsewhere = projectRoom(tempRoom("stats-eval-other-"), process.env.XDG_CONFIG_HOME,
     { slug: "another-project" });
