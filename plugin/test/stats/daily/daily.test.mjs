@@ -1,0 +1,211 @@
+/* `forge stats daily` end to end over a device made small: what it refuses, what it writes and
+   where, what it leaves alone, and what each section of the day's content holds. */
+import assert from "node:assert/strict";
+import test from "node:test";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { NAME, consult, daily, daysAgo, device, today } from "./fixture-daily.mjs";
+import { contentOf } from "../../../src/stats/daily/store.mjs";
+
+const written = (held) => (existsSync(held.reports) ? readdirSync(held.reports) : []);
+
+test("a day that does not parse is refused with the form and the days held, and nothing is written", () => {
+  const held = device({ days: [daysAgo(3)] });
+  const run = daily(held, "--day", "2026-13-40");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--day takes a calendar day as YYYY-MM-DD, not `2026-13-40`/u);
+  assert.ok(run.stderr.includes(`The days held run from ${daysAgo(3)} to ${daysAgo(1)}.`), run.stderr);
+  assert.deepEqual(written(held), []);
+});
+
+test("a day earlier than anything held is refused with the days held, and nothing is written", () => {
+  const held = device({ days: [daysAgo(3)] });
+  const run = daily(held, "--day", daysAgo(6));
+  assert.equal(run.status, 1, run.stdout);
+  assert.ok(run.stderr.includes(`${daysAgo(6)} is earlier than anything this device still holds`), run.stderr);
+  assert.ok(run.stderr.includes(`from ${daysAgo(3)} to ${daysAgo(1)}`), run.stderr);
+  assert.deepEqual(written(held), []);
+});
+
+test("a day that has not ended is refused with the days held, and nothing is written", () => {
+  const held = device({ days: [daysAgo(3)] });
+  const run = daily(held, "--day", today());
+  assert.equal(run.status, 1, run.stdout);
+  assert.ok(run.stderr.includes(`${today()} has not ended in this device's zone`), run.stderr);
+  assert.ok(run.stderr.includes(`from ${daysAgo(3)} to ${daysAgo(1)}`), run.stderr);
+  assert.deepEqual(written(held), []);
+});
+
+test("no --day writes yesterday's page in the reports directory and prints its path", () => {
+  const held = device({ days: [daysAgo(1)] });
+  const run = daily(held);
+  assert.equal(run.status, 0, run.stderr);
+  const path = join(held.reports, `${daysAgo(1)}.html`);
+  assert.ok(existsSync(path), run.stdout);
+  assert.ok(run.stdout.includes(`Wrote ${daysAgo(1)}: ${path}`), run.stdout);
+  assert.ok(existsSync(join(held.reports, "index.html")));
+});
+
+test("--open prints the page's path on one line and nothing else", () => {
+  const held = device({ days: [daysAgo(1)] });
+  const run = daily(held, "--open");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout, `${join(held.reports, `${daysAgo(1)}.html`)}\n`);
+});
+
+test("a day already written is left byte for byte without --force, and --force rewrites it and says so", () => {
+  const held = device({ days: [daysAgo(1)] });
+  assert.equal(daily(held).status, 0);
+  const path = join(held.reports, `${daysAgo(1)}.html`);
+  writeFileSync(path, "held by hand");
+  const again = daily(held);
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(readFileSync(path, "utf8"), "held by hand");
+  assert.ok(again.stdout.includes(`forge stats daily --day ${daysAgo(1)} --force`), again.stdout);
+  const forced = daily(held, "--force");
+  assert.equal(forced.status, 0, forced.stderr);
+  assert.notEqual(readFileSync(path, "utf8"), "held by hand");
+  assert.ok(forced.stdout.includes(`Rewrote the page held for ${daysAgo(1)}`), forced.stdout);
+});
+
+test("--json prints the content as one object and writes nothing", () => {
+  const held = device({ days: [daysAgo(1)] });
+  const run = daily(held, "--json");
+  assert.equal(run.status, 0, run.stderr);
+  const content = JSON.parse(run.stdout);
+  assert.equal(content.day, daysAgo(1));
+  assert.deepEqual(written(held), []);
+});
+
+const contentFor = (held, day) => JSON.parse(daily(held, "--day", day, "--json").stdout);
+
+test("every registered project a store names is a row with its runs, and one no store names is said unread", () => {
+  const held = device({ days: [daysAgo(1), daysAgo(1)] });
+  mkdirSync(join(held.home, "forge", "projects", "ghost"), { recursive: true });
+  writeFileSync(join(held.home, "forge", "projects", "ghost", "config.json"), JSON.stringify({ slug: "ghost" }));
+  const content = contentFor(held, daysAgo(1));
+  assert.deepEqual(content.projects.map((one) => one.name), [NAME]);
+  assert.deepEqual(content.runs.projects.map((one) => [one.name, one.runs]), [[NAME, 2]]);
+  assert.deepEqual(content.unread.map((one) => one.name), ["ghost"]);
+});
+
+test("the runs headline stands beside the day before and the seven days before, each with its runs", () => {
+  const held = device({ days: [daysAgo(1), daysAgo(1), daysAgo(2), daysAgo(4), daysAgo(4), daysAgo(4)] });
+  const { headline } = contentFor(held, daysAgo(1)).runs;
+  assert.equal(headline.day.runs, 2);
+  assert.equal(headline.day.medianMinutes, 41.7);
+  assert.equal(headline.day.medianCalls, 16);
+  assert.equal(headline.before.runs, 1);
+  /* Seven days holding 1, 0, 3, 0, 0, 0, 0 runs: a median of none, and two days held a run. */
+  assert.equal(headline.week.runs, 0);
+  assert.equal(headline.week.days, 2);
+  assert.equal(headline.week.medianMinutes, 41.7);
+});
+
+test("the runs split by phase, rung and model, a row under ten runs marked thin", () => {
+  const content = contentFor(device({ days: [daysAgo(1)] }), daysAgo(1));
+  const ship = content.runs.phases.find((one) => one.name === "7 Ship");
+  assert.equal(ship.runs, 1);
+  assert.equal(ship.thin, "thin");
+  assert.deepEqual(content.runs.rungs.map((one) => [one.name, one.runs, one.thin]), [["unknown", 1, "thin"]]);
+  assert.deepEqual(content.runs.models.map((one) => [one.name, one.runs, one.thin]), [["claude-opus-5", 1, "thin"]]);
+});
+
+test("a figure no reader computes names the missing reading and its issue", () => {
+  const held = device({ days: [daysAgo(1)] });
+  assert.equal(daily(held).status, 0);
+  const page = readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8");
+  for (const [reading, issue] of [["issue-flow runs by the effort they ran at", "ISS-2424"],
+    ["hand-backs by cause", "ISS-2425"], ["gate minutes lost", "ISS-2425"],
+    ["consult calls lost to transport failures", "ISS-2426"]]) {
+    assert.ok(page.includes(`missing: ${reading} — no reader computes it yet (${issue})`), reading);
+  }
+});
+
+test("the landings are the profile's ship and gate figures for the day", () => {
+  const { headline } = contentFor(device({ days: [daysAgo(1)] }), daysAgo(1)).landings;
+  assert.deepEqual(headline, { passes: 1, resumed: 0, rejectedRuns: 0, gateCalls: 1, gateMinutes: 2 });
+});
+
+test("consults are counted for the day, one row per model and prompt version", () => {
+  const on = `${daysAgo(1)}T10:00:00.000Z`;
+  const held = device({ days: [daysAgo(1)], consults: [consult(on), consult(on, { id: "c-2", prompt: { v: 4, sha: "def456" } }),
+    consult(`${daysAgo(2)}T10:00:00.000Z`, { id: "c-3" })] });
+  const { consults } = contentFor(held, daysAgo(1));
+  assert.equal(consults.headline.answered, 2);
+  assert.equal(consults.headline.atBudget, 2);
+  assert.deepEqual(consults.groups.map((one) => one.prompt).sort(), ["v3 abc123", "v4 def456"]);
+  assert.deepEqual(consults.trend.map((one) => one.answered).slice(-2), [1, 2]);
+});
+
+test("friction lists refusals, errors, repeats and long waits with the runs behind each, and stand-downs with their sessions", () => {
+  const on = `${daysAgo(1)}T10:00:00.000Z`;
+  const held = device({ days: [daysAgo(1), daysAgo(1)], hooks: [
+    { at: on, hook: "learning-gate", decision: "error", session: "s1" },
+    { at: on, hook: "learning-gate", decision: "error", session: "s2" },
+    { at: on, hook: "bash-guard", decision: "deny", session: "s1" },
+  ] });
+  const { friction } = contentFor(held, daysAgo(1));
+  assert.deepEqual(friction.refusals.map((one) => [one.calls, one.runs]), [[2, 2]]);
+  assert.ok(friction.repeats.some((one) => one.key === "forge issue ISS-99 --full" && one.calls === 6 && one.runs === 2));
+  assert.ok(friction.waits.some((one) => one.waits === 2 && one.runs === 2 && one.minutes === 30));
+  assert.deepEqual(friction.standDowns, [{ hook: "learning-gate", count: 2, sessions: 2 }]);
+});
+
+test("a release reading of the day is listed with its version, commit, time and issues", () => {
+  const on = `${daysAgo(1)}T12:00:00.000Z`;
+  const held = device({ days: [daysAgo(1)], marks: [{ kind: "releases", version: "3.9.1", head: "abcdef1234567890",
+    issues: ["ISS-7"], at: on, scope: "forge-plugin" }] });
+  const [release] = contentFor(held, daysAgo(1)).releases.landed;
+  assert.equal(release.version, "3.9.1");
+  assert.equal(release.head, "abcdef1234567890");
+  assert.equal(release.at, Date.parse(on));
+  assert.deepEqual(release.issues.map((one) => one.key), ["ISS-7"]);
+  /* No endpoint in this home: the row says why it could not be read, and the report carries on. */
+  assert.match(release.issues[0].unread, /no Forge endpoint/u);
+});
+
+test("the page carries no credential and no path outside the reports directory and the checkouts read", () => {
+  const held = device({ days: [daysAgo(1)] });
+  const store = readdirSync(join(held.room, ".claude", "projects"))[0];
+  const leaked = ["cx1", "cx2", "cx3"].map((id, index) => [
+    JSON.stringify({ timestamp: `${daysAgo(1)}T01:0${index}:00.000Z`, message: { role: "assistant", model: "claude-opus-5",
+      content: [{ type: "tool_use", id, name: "Bash", input: { command: "forge claim ISS-5 --token sekrit-value /home/elsewhere/x" } }] } }),
+    JSON.stringify({ timestamp: `${daysAgo(1)}T01:0${index}:05.000Z`, message: { role: "user",
+      content: [{ type: "tool_result", tool_use_id: id, content: "claimed" }] } }),
+  ].join("\n")).join("\n");
+  const agents = join(held.room, ".claude", "projects", store, "session-leak", "subagents");
+  mkdirSync(agents, { recursive: true });
+  writeFileSync(join(agents, "agent-leak.jsonl"), `${JSON.stringify({ timestamp: `${daysAgo(1)}T01:00:00.000Z`, type: "user",
+    message: { role: "user", content: "Skill forge:issue-flow ISS-5" } })}\n${leaked}\n`);
+  assert.equal(daily(held).status, 0);
+  const page = readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8");
+  assert.ok(!page.includes("sekrit-value"));
+  assert.ok(!page.includes("/home/elsewhere"));
+  for (const path of page.match(/(?<![\w.~<-])\/[^\s"'`<>()[\]{}|;,&]+/gu) ?? []) {
+    assert.ok(path.startsWith(held.reports) || path.startsWith(held.checkout), path);
+  }
+});
+
+test("the index lists every held day newest first, each with the line its own summary names", () => {
+  const held = device({ days: [daysAgo(1), daysAgo(2)] });
+  assert.equal(daily(held, "--day", daysAgo(2)).status, 0);
+  assert.equal(daily(held, "--day", daysAgo(1)).status, 0);
+  const index = readFileSync(join(held.reports, "index.html"), "utf8");
+  assert.ok(index.indexOf(`${daysAgo(1)}.html`) < index.indexOf(`${daysAgo(2)}.html`), index);
+  const content = contentOf(readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8"));
+  assert.ok(index.includes("no release written"), index);
+  assert.equal(content.day, daysAgo(1));
+});
+
+test("the reports directory is the device key where it is set, and a relative one is refused", () => {
+  const elsewhere = join(device().room, "pages");
+  const held = device({ days: [daysAgo(1)], config: { reports: elsewhere } });
+  const run = daily(held, "--open");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.trim(), join(elsewhere, `${daysAgo(1)}.html`));
+  const refused = daily(device({ days: [daysAgo(1)], config: { reports: "pages" } }));
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /`reports` in .*config\.json is an absolute directory, not `"pages"`/u);
+});

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 import { writeStubs } from "../tools/services/skill-stubs.mjs";
 import { hookOff } from "./hook-switch.mjs";
+import { dailyDue } from "../stats/daily/trigger.mjs";
 
 const stubSaid = ({ slug, dropped }) => (dropped.length
   ? `${slug}'s description no longer names ${dropped.join(", ")}, which this machine has saved nothing for`
@@ -56,6 +57,9 @@ export const linkCli = (root) => {
       /* a link we cannot write is not worth failing a session start over */
     }
   }
+
+  /* Yesterday's report, where this project asked for one: started and never waited on. */
+  dailyDue(root);
 
   /* Said at the start because it cannot be noticed later: the registration is this copy's. */
   const copy = pluginCopy(root);

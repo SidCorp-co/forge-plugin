@@ -124,7 +124,7 @@ const groupsOf = (rows, declared, act) =>
 
 /* Over rows present on both sides with runs on both: a row one window never reached has no median to
    move, and reading its zero as a fall is the mistake the phase table was built against. */
-const movedIn = (nowRows, beforeRows, key) => {
+export const movedIn = (nowRows, beforeRows, key) => {
   const pairs = nowRows
     .map((row) => [row, beforeRows.find((one) => one[key] === row[key])])
     .filter(([now, before]) => before && now.runs > 0 && before.runs > 0)
