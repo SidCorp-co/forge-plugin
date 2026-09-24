@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NOWHERE, directoryAt } from "../../src/hooks/shell-spans.mjs";
+import { NOWHERE, directoryAt } from "../../../src/hooks/shell-spans.mjs";
 
 const at = (text, word) => text.indexOf(word);
 

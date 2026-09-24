@@ -7,10 +7,10 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { NOWHERE, movedTo, standsIn } from "../../hooks/_hook.mjs";
-import { callHook, cleanRepo, dirtyRepo, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
+import { NOWHERE, movedTo, standsIn } from "../../../hooks/_hook.mjs";
+import { callHook, cleanRepo, dirtyRepo, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
 
-const HOOK = new URL("../../hooks/entries/bash-guard.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../../hooks/entries/bash-guard.mjs", import.meta.url).pathname;
 const HOME = homeEnv("bash-guard-trees");
 /* The git rules stand down on a clean tree, so the fixtures bring their own dirty one. */
 const DIRTY = dirtyRepo();
