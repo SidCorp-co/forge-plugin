@@ -31,13 +31,16 @@ const stagesEverything = (one) => {
   return paths.includes(".") || (paths.length === 0 && flags.some((t) => /^(?:--all|-[a-zA-Z]*A[a-zA-Z]*)$/u.test(t)));
 };
 
-/* Every stash subcommand that pushes to or takes from the stack; the bare form is a push. */
-const READS_THE_STACK = new Set(["list", "show", "create"]);
-const movesTheStack = (one) => {
+/* The stash subcommands that leave the working tree and the stack as they were: `create` writes a
+   commit object and stores it nowhere. Every other one, the bare form a push, moves one of the two. */
+const LEAVES_BOTH = new Set(["list", "show", "create"]);
+const LEFT_ALONE = [...LEAVES_BOTH].map((sub) => `\`git stash ${sub}\``).join(", ").replace(/, (?=[^,]*$)/u, " and ");
+/* The word after the verb, so `show>out` is `show`; a flag, a redirect or nothing is the bare push. */
+const movesTheStash = (one) => {
   const rest = new RegExp(`${GIT}["']?stash["']?(?![\\w-])(.*)$`, "u").exec(one)?.[1];
   if (rest === undefined) return false;
-  const next = rest.split(/\s+/u).filter(Boolean)[0]?.replace(/['"]/gu, "");
-  return next === undefined || !READS_THE_STACK.has(next);
+  const next = /^\s*["']?([\w-]*)/u.exec(rest)[1];
+  return !LEAVES_BOTH.has(next);
 };
 
 const RULES = [
@@ -72,7 +75,7 @@ const RULES = [
     instead: "Stage the paths you changed, explicitly.",
   },
   {
-    pattern: { test: movesTheStack },
+    pattern: { test: movesTheStash },
     atStake: "shared",
     cause:
       "The stash stack belongs to the repository, not to this worktree, and this repository has " +
@@ -80,11 +83,10 @@ const RULES = [
       "call can hand your work to a session working elsewhere, or apply theirs over your files.",
     instead:
       "Cut a second `git worktree` at the base for a clean baseline, or copy the one file aside and " +
-      "restore it afterwards. `git stash list` and `git stash show` read the stack and stay allowed.",
+      `restore it afterwards. ${LEFT_ALONE} move nothing and stay allowed.`,
   },
   {
-    // `list` and `show` read the stash and revert nothing, and refusing one cost a whole line.
-    pattern: new RegExp(`${GIT}["']?stash\\b(?!\\s+["']?(?:list|show)\\b)`, "u"),
+    pattern: { test: movesTheStash },
     atStake: "dirty",
     cause:
       "git stash silently reverts the working tree, so everything read afterwards reports about " +
