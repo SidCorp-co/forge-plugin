@@ -135,12 +135,19 @@ export const surfaceReading = async (options, reach = {}) => {
 const figure = (value) => (value === null ? NOT_MEASURED : String(value));
 const NAME_WIDTH = 46;
 
+/* Where some texts were counted the model and origin still name those figures, whatever the total. */
+const tokenLine = (held) => {
+  if (held.model === null) return `tokens      ${NOT_MEASURED}: ${held.unmeasured}`;
+  const against = `counted against ${held.model} at ${held.origin}, one request per text`;
+  return held.unmeasured
+    ? `tokens      ${NOT_MEASURED} in all: ${held.unmeasured}; every other figure ${against}`
+    : `tokens      ${held.tokens} in all, ${against}`;
+};
+
 const headLines = (held) => [
   `The surface this copy serves an agent: ${held.texts.length} text(s), `
     + `${held.texts.filter((one) => one.kind === GUIDE).length} of them guide parts, ${figure(held.chars)} characters.`,
-  held.unmeasured
-    ? `tokens      ${NOT_MEASURED}: ${held.unmeasured}`
-    : `tokens      ${held.tokens} in all, counted against ${held.model} at ${held.origin}, one request per text`,
+  tokenLine(held),
   `repeated    ${held.repeated.lines} line(s) printed by more than one text, ${held.repeated.beyond} printing(s) `
     + `past the first, ${held.repeated.chars} characters, ${figure(held.repeated.tokens)} tokens`,
 ];

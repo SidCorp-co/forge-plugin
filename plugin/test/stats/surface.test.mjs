@@ -129,6 +129,14 @@ test("a text whose count failed prints no number, and the total is not measured 
   assert.equal(held.tokens, null);
   assert.equal(held.unmeasured, "1 of 3 text(s) could not be counted, first forge b -h: "
     + "the count endpoint answered 500: overloaded");
+  assert.match(surfaceLines(held).join("\n"), new RegExp(`not measured in all: .*every other figure counted against claude-x at ${served.origin}`, "u"),
+    "and the figures that were counted still name what counted them");
+});
+
+test("a body that never arrives is that text's count not taken, and every other text's count stands", async () => {
+  const count = counterFor({ model: "claude-x", key: "sk-test", origin: "http://stand.in",
+    fetchImpl: async () => ({ status: 200, ok: true, headers: new Map(), text: async () => { throw new Error("body dropped"); } }) });
+  assert.deepEqual(await count("a text"), { unmeasured: "the count endpoint gave no answer: body dropped" });
 });
 
 test("a rate-limited count waits what the endpoint said and is asked again", async () => {

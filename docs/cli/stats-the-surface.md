@@ -33,9 +33,11 @@ compared across two readings is compared like for like.
 
 **What a caller is printed, by running the command that prints it.** A module constant is not the
 text: several help texts add what the project's state chooses, and a guide part is rendered for the
-flow and the rung it is served under. So every text is read by spawning this copy's own `forge`,
-stdout and stderr together, from the directory the caller stands in — the same measure the per-text
-cap takes.
+flow and the rung it is served under. So every text is read by spawning this copy's own `forge`, from
+the directory the caller stands in. What is kept is stdout, and stderr beside it only where the
+command exited non-zero: a zero exit's stderr carries transient notices alone — a tracker call
+retried — and measured twice, one copy's surface differed by exactly those lines, which is the one
+thing a figure meant to be compared across readings cannot do.
 
 The texts are `forge -h`, every verb's `-h`, every subject's `-h`, the contract's contents and each of
 its parts, and each skill's method and each of its references. A contract part answering to two
@@ -53,7 +55,8 @@ would count its lines twice.
 A line — trimmed, and holding at least one letter — that more than one text prints. The figure is the
 number of such lines, their printings past the first, and the characters of those printings; where
 tokens are counted, those printings are sent together as one text and counted. The first printing is
-the one a reader needed, so only the rest is repetition. The line is the unit because it is what a
+the one a reader needed, so only the rest is repetition. Where nothing repeats, the tokens are nought
+without a request: there is no text to count, and the endpoint takes no empty message. The line is the unit because it is what a
 copied block is made of, and it is also what makes the figure fire: a block copied into a second text
 raises it, and the case holding that is the one that says this reading is not green by construction.
 

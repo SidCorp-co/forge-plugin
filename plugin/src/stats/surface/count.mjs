@@ -49,6 +49,9 @@ export const counterFor = ({ model, key, origin, fetchImpl = fetch, waits = slee
   const deadline = deadlineOf();
   for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
     let answer;
+    let body;
+    /* The body read inside the same guard: a stalled or dropped body is as much a count not taken
+       as a refused connection, and escaping here would take every other text's count with it. */
     try {
       answer = await fetchImpl(`${origin}${ROUTE}`, {
         method: "POST",
@@ -56,10 +59,10 @@ export const counterFor = ({ model, key, origin, fetchImpl = fetch, waits = slee
         body: JSON.stringify({ model, messages: [{ role: "user", content: text }] }),
         signal: clockFor(deadline),
       });
+      body = await answer.text();
     } catch (dropped) {
-      return { unmeasured: `the count endpoint was not reached: ${ranOut(dropped, deadline)}` };
+      return { unmeasured: `the count endpoint gave no answer: ${ranOut(dropped, deadline)}` };
     }
-    const body = await answer.text();
     if (answer.status === RATE_LIMITED && attempt < ATTEMPTS) {
       await waits(waitFor(answer.headers, attempt));
       continue;

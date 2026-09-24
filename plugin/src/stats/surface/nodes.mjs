@@ -74,8 +74,9 @@ export const surfaceNodes = async () => [
   ...localSlugs().filter((slug) => slug !== CONTRACT).flatMap(skillNodes),
 ];
 
-/* Both streams, in the order a caller's terminal gets them near enough: the help cap measures the
-   two together for the same reason. A non-zero exit is kept, since a refusal is also what was read. */
+/* The text on stdout, and stderr beside it only where the command refused: a zero exit's stderr holds
+   transient notices alone — a retried tracker call — and counting those would move the figure between
+   two readings of one copy. A refusal is kept whole, since that is what was read. */
 const ranText = (argv, cwd) => new Promise((done) => {
   const child = spawn(FORGE, argv, { cwd, stdio: ["ignore", "pipe", "pipe"] });
   const out = [];
@@ -83,7 +84,7 @@ const ranText = (argv, cwd) => new Promise((done) => {
   child.stdout.on("data", (chunk) => out.push(chunk));
   child.stderr.on("data", (chunk) => err.push(chunk));
   child.on("error", (dropped) => done({ text: "", unread: dropped.message }));
-  child.on("close", (code) => done({ text: `${Buffer.concat(out)}${Buffer.concat(err)}`, code }));
+  child.on("close", (code) => done({ text: `${Buffer.concat(out)}${code === 0 ? "" : Buffer.concat(err)}`, code }));
 });
 
 /** Each item through `each`, `AT_ONCE` at a time, answered in the order given. */
