@@ -12,6 +12,7 @@ import { dirname } from "node:path";
 import { compiles } from "../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
+import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import {
   CHECK_MS_AT_MOST,
@@ -281,6 +282,7 @@ export const PROJECT_KEYS = {
   ship: { paths: { "": "text" }, judge: (given) => outside("ship", given, SHIP_MODES) },
   shape: { paths: { "": "text" }, judge: (given) => outside("shape", given, PROJECT_SHAPES) },
   release: { paths: { "": "text" }, judge: (given) => outside("release", given, RELEASE_MODES) },
+  report: { paths: { "": "text" }, judge: (given) => outside("report", given, REPORT_MODES) },
   lease: {
     paths: { workingRe: "text" },
     judge: (given) => (workPatternOf(given?.workingRe).unreadable

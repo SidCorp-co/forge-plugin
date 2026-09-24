@@ -95,3 +95,16 @@ What each row of the profile is — the classifier and the wrong rows it was bui
 [`stats-rows.md`](stats-rows.md); the refusals listing keyed by it:
 [`stats-the-refusals.md`](stats-the-refusals.md). The phase table and the rung table:
 [`stats-the-tables.md`](stats-the-tables.md).
+
+## The daily report
+
+**Every figure on the page is another reader's.** `forge stats daily` cuts what `stats runs`,
+`codex stats` and the hook log already compute to one calendar day, and computes nothing of its own,
+so a number on the page and the same number on a verb's screen cannot disagree. Where the page wants
+a figure no reader computes, it names the missing reading and the issue that owes it rather than
+printing a nought, and the fix is that reader, never a second count here.
+
+**A session start is the schedule.** A cron entry or a timer is a change to the person's own
+machine. The first session start after a day ends, in a project whose `report` key is `daily`,
+starts a detached writer for that day and does not wait for it; a mark naming the writer's process
+stops a second one, and a mark whose process is gone stops nothing.

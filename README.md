@@ -58,6 +58,9 @@ forge doctor --vi-url <endpoint> --vi-key <key> --vi-model <id>
 forge doctor --chatgpt-url <endpoint> --chatgpt-key <key> --chatgpt-prefix <framing>
 ```
 
+Beside them, `reports` is the absolute directory `forge stats daily` writes its pages to, set by
+hand; unset, they go to `reports` under the forge config directory.
+
 Two of those services had a file of their own before this one did and still answer from it where the
 key here is unset: the reviewer's gateway from `~/.claude/claude-proxy.env`, the Vietnamese gateway
 from the file `vi-natural login` writes. That is the one precedence rule this product keeps, and
@@ -114,6 +117,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "ship": "ready",
   "shape": "staged",
   "release": "manual",
+  "report": "daily",
   "lease": { "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)" },
   "stats": { "commands": { "gate": "npm run check" } }
 }
@@ -137,6 +141,9 @@ consult with it instead of coming back as a call that was stopped. `stop.agents`
 plugin's prefix; absent, no subagent's stop is judged, and the main agent's is judged regardless. A
 plugin's hooks reach every session on the machine, so which delegated agents answer to this one is
 the project's to say, and this repository names the four roles its dispatch sets up.
+
+`report` is `daily` where this project's session starts write yesterday's harness report when it
+is missing, and off unless set: `forge stats daily -h` says what the page holds.
 
 `runs` is how many runs this project carries at once, whoever dispatched them, and absent it
 resolves to no number at all — every reader then behaves as it did before the key existed, which is
