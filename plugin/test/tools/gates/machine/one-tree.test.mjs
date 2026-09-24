@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { closeSync, openSync, readFileSync, rmSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { DECLINED, gatesOn, heldSaid, outputOf, placeFor, treeHeldBy } from "../../../../../tools/gates/machine.mjs";
@@ -14,6 +14,7 @@ import { configHome, entryNames, HANGS_IN, HOLDING, procTable, RUNNER, runsFile,
   from "../scratch.mjs";
 import { heard, waited } from "../wait/waiting.mjs";
 import { patience } from "../../../patience.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
 
 const TREE = "/w/one";
 const OTHER = "/w/two";
@@ -50,15 +51,21 @@ test("a wait for a verdict and a wait for a place are counted as no gate, by the
   }
 });
 
-test("where a gate's output goes is named only where it is a file", () => {
-  const rows = [["/tmp/gate.log", "/tmp/gate.log"], ["pipe:[4242]", null], ["socket:[4242]", null],
-    ["/dev/null", null], ["/dev/pts/3", null]];
+/* By what the descriptor opens, never by its name: a regular file under /dev/shm is a log, and /dev/null is not one. */
+test("where a gate's output goes is named only where it is a regular file", () => {
+  const room = tempRoom("gate-out-");
+  const log = join(room, "gate.log");
+  writeFileSync(log, "");
+  const shm = existsSync("/dev/shm") ? join("/dev/shm", `gate-${process.pid}.log`) : null;
+  if (shm) writeFileSync(shm, "");
+  const rows = [[log, log], ...(shm ? [[shm, shm]] : []), ["pipe:[4242]", null], ["socket:[4242]", null],
+    ["/dev/null", null], [room, null]];
   const at = procTable(rows.map(([out], nth) => ({ ...gate(10 + nth, 4000 + nth), out })));
   try {
     for (const [nth, [out, named]] of rows.entries()) assert.equal(outputOf(4000 + nth, at), named, out);
     assert.equal(outputOf(4999, at), null, "a process with no descriptor to read named a file");
   } finally {
-    rmSync(at, { recursive: true, force: true });
+    for (const one of [at, room, shm].filter(Boolean)) rmSync(one, { recursive: true, force: true });
   }
 });
 

@@ -3,7 +3,7 @@
    two gates can both win, where a process is its own record and a killed gate has none. A wait of the same runner is not one
    of them: counted, it would decline a gate that could have run and look like a run to a second wait (`gates.mjs -h`). Two
    gates of one tree are refused outright rather than counted, since they share one record and the later judges nothing. */
-import { readFileSync, readdirSync, readlinkSync } from "node:fs";
+import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { gitOut, lines } from "../checkout.mjs";
@@ -107,15 +107,15 @@ export const treeHeldBy = (root, ours, { proc = PROC, pid = process.pid } = {}) 
   return ahead.find((one) => one.tree === root && one.pid !== pid) ?? null;
 };
 
-/** The file a process's standard output is written to, or null where it reaches none: a pipe, a socket, a terminal or `/dev/null`. */
+/** The file a process's standard output is written to, or null where it reaches none: a pipe, a socket, a terminal or `/dev/null`.
+    Judged by what the descriptor opens and never by the name, a regular file under `/dev/shm` being a log like any other. */
 export const outputOf = (pid, proc = PROC) => {
-  let target;
+  const fd = join(proc, String(pid), "fd", "1");
   try {
-    target = readlinkSync(join(proc, String(pid), "fd", "1"));
+    return statSync(fd).isFile() ? readlinkSync(fd) : null;
   } catch {
     return null;
   }
-  return target.startsWith("/") && !target.startsWith("/dev/") ? target : null;
 };
 
 /** The refusal of a second gate over one tree, its route the one-call wait on the gate already running. */
