@@ -1,9 +1,7 @@
 // Three refusals, three pages: how/issue-read-first.md for where the write's reading sits,
 // how/issue-shape.md for a filing read before it is made, how/wrapped-route.md for a verb's action.
 
-import { resolve as resolvePath } from "node:path";
-
-import { NOWHERE, deny, done, how, movedTo, shellText, startsAt } from "../_hook.mjs";
+import { NOWHERE, deny, directoryAt, done, how, shellText, startsAt } from "../_hook.mjs";
 import { owedFor, refusalOf } from "../../src/tracker/comments.mjs";
 import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
@@ -31,11 +29,11 @@ const aimedAt = (directory) => {
   return slug;
 };
 
-/* A move this reading cannot settle — `cd -`, a path from a variable — names no directory at all. */
+/* This gate's answer to a move no reading can settle — `cd -`, a path from a variable: no directory,
+   so that command start aims at no project and is dropped from the groups rather than refused. */
 const directoryOf = (text, at, here) => {
-  const moved = movedTo(text, at);
-  if (moved === null) return here;
-  return moved === NOWHERE ? null : resolvePath(here, moved);
+  const stood = directoryAt(text, at, here);
+  return stood === NOWHERE ? null : stood;
 };
 
 /* One walk per key per project however many command starts name it, and one group's keys walked

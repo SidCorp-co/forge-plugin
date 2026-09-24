@@ -72,6 +72,20 @@ test("a command whose directory names no project draws no lookup and refuses not
   oneProject();
 });
 
+/* This gate's own answer to a directory no reading can settle, where codex-second's is a refusal:
+   the command start aims at no project, so it is dropped rather than resolved in the event's cwd
+   (ISS-1455). */
+test("a write behind `cd -` draws no lookup and refuses nothing", async () => {
+  twoProjects();
+  state.comments = { [UUID]: [comment("own", "unread and unquoted")] };
+  state.calls = [];
+  const run = await gate(`cd - && ${edgeWrite()}`);
+  assert.equal(run.out, null, "the event's own project is not the one `cd -` lands in");
+  assert.equal(run.status, 0);
+  assert.deepEqual(issueCalls(0), [], "and no issue is looked up under a project nobody named");
+  oneProject();
+});
+
 test("a command that moves nowhere is resolved in the event's own directory", async () => {
   twoProjects();
   state.comments = {
