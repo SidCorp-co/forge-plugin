@@ -42,7 +42,7 @@ const SURFACE = {
   attach: [],
   next: ["count", "graph", "holding", "checkout"],
   baseline: ["commit", "result", "scope", "gate", "version"],
-  brief: ["tree"],
+  brief: ["batch", "tree"],
   /* No row of its own for a subject-taking verb: `record`, `advance` and `resume` end theirs in
      `[...]`, and their arguments are their own help's, which this walk does not read. */
   guide: ["for", "rung"],

@@ -40,7 +40,11 @@ exists for is unreachable in the only situation where more than one run exists a
 Nothing ambient separates them: the process id and the socket both name the parent, and a plain
 working directory is no run's for the length of a run — unless the tree names one, in a
 `forge-run-id` file its git directory holds (ISS-467). So a run is given an id, in
-`FORGE_SESSION_ID` or in that file, by whatever creates it.
+`FORGE_SESSION_ID` or in that file, by whatever creates it. Only an id of the form
+`iss-<n>[+<n>...]-<8 hex>` names the issues its run was dispatched to, and `forge brief ISS-nn
+--tree <tree>` writes one into a tree that has none: the brief is what every dispatch sends, so a
+dispatcher outside this repository binds its run where the lease reads it rather than in a record of
+its own the plugin cannot see (ISS-1682).
 
 **Write it where the gate can read it.** The read-before-write gate runs in the harness's process,
 handed no `FORGE_SESSION_ID`, so what it learns which run this is from is the command it judges:

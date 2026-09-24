@@ -1,7 +1,8 @@
 /* The id a run holds by standing in the tree it was given, kept in that tree's own git directory
    because every agent of a wave inherits one session id and the tree is the one thing each has to
    itself (ISS-467). The file's name is spelt here; the rest of the why: docs/cli/claim.md. */
-import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
 import { basename, isAbsolute, join } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
@@ -48,6 +49,15 @@ export const runsFor = (id) => {
 };
 
 export const runFor = (id) => runsFor(id)[0] ?? null;
+
+/** The id a run holds, written beside the tree's git directory: the head's key, then each batchmate's number. The one writer of the form `MINTED_FOR` reads, called by the workspace start and by the brief a dispatch sends (ISS-1682). */
+export const mintRunId = (path, keys) => {
+  const [head, ...batch] = keys.map((one) => one.toLowerCase());
+  const id = `${[head, ...batch.map((one) => one.slice(4))].join("+")}-${randomUUID().slice(0, 8)}`;
+  const at = besideGit(path, RUN_ID);
+  if (at) writeFileSync(at, `${id}\n`);
+  return id;
+};
 
 /** The directory `start` made, off the record it wrote and never derived again: `start` prints that path as the run's
  *  own `TMPDIR`, so a run doing what it is told moves the root a second derivation reads. Null unless the record is absolute and named as this mints them; past that it is trusted — a forged record is a write to the git directory. */
