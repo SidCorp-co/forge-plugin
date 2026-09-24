@@ -81,6 +81,31 @@ test("a case that fails however it is run refuses the gate, and the refusal name
   }
 });
 
+/* Red under the gate's read audit and green without it, which is what a shim the runtime's sync did
+   not reach made of one case: its re-run reproduces only where it carries the instrument the step
+   did, and says where that instrument wrote (ISS-2419). */
+const UNDER_THE_AUDIT = `  if (globalThis[Symbol.for("forge.gate.reads")]) {
+    throw new Error(\`under the audit, recording to \${process.env.GATE_READS} in the room \${process.env.TMPDIR} end\`);
+  }`;
+
+test("a case red under the read audit alone reproduces alone, its re-run recording inside its own room", () => {
+  const { at, work } = withCase("attributed-audited-", UNDER_THE_AUDIT);
+  try {
+    const said = run(work);
+    assert.equal(said.status, 1, said.stdout);
+    assert.match(said.stderr, /Gate failed: test — 1 of 1 case\(s\) reproduced alone/u,
+      `criterion 6: the re-run carries the audit the step ran under\n${said.stderr}`);
+    const rerun = [...said.stdout.matchAll(/recording to (\S+) in the room (\S+) end/gu)]
+      .filter(([, , room]) => /\/isolation-[^/]+$/u.test(room));
+    assert.ok(rerun.length > 0, `no re-run said where it recorded:\n${said.stdout}`);
+    for (const [, records, room] of rerun) {
+      assert.ok(records.startsWith(`${room}/`), `criterion 7: the re-run recorded to ${records}, outside ${room}`);
+    }
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
 test("a case that does not reproduce alone does not refuse, and the run says what it knows", () => {
   const { at, work } = withCase("attributed-quiet-", ONLY_IN_THE_STEP);
   try {

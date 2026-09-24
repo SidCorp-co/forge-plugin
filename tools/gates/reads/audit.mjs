@@ -113,7 +113,7 @@ export const shimSource = (name, real) => {
   ];
   const nested = name === "node:fs" && real.promises ? Object.keys(real.promises).filter((one) => NAMED.test(one)) : [];
   if (nested.length > 0) {
-    out.push(`const promises = { ...real.promises };`);
+    out.push(`let promises = { ...real.promises };`);
     for (const key of nested) {
       const how = wrapping(key, "real.promises");
       if (how) out.push(`promises.${key} = ${how};`);
@@ -121,11 +121,14 @@ export const shimSource = (name, real) => {
   }
   for (const key of keys) {
     if (key === "promises" && nested.length > 0) out.push(`export { promises };`);
-    else out.push(`export const ${key} = ${wrapping(key, "real") ?? `real.${key}`};`);
+    else out.push(`export let ${key} = ${wrapping(key, "real") ?? `real.${key}`};`);
   }
   out.push(`const held = { ...real };`);
   for (const key of keys) out.push(`held.${key} = ${key};`);
   out.push(`export default held;`);
+  /* The default object stands where the builtin's CommonJS exports do, so a sync copies from it into
+     each name bound here, as the runtime's own sync does for a builtin nothing redirected. */
+  out.push(`audit.synced(() => {`, ...keys.map((key) => `  if (held.${key} !== ${key}) ${key} = held.${key};`), `});`);
   return out.join("\n");
 };
 
@@ -134,7 +137,8 @@ const HERE = Symbol.for("forge.gate.reads");
 // Once per process: a second audit would take the global the first writes its record through.
 const start = (out, root) => {
   if (globalThis[HERE]) return;
-  const { registerHooks } = process.getBuiltinModule("node:module");
+  const builtins = process.getBuiltinModule("node:module");
+  const { registerHooks } = builtins;
   const { lstatSync, mkdirSync, writeFileSync } = process.getBuiltinModule("node:fs");
   const { join } = process.getBuiltinModule("node:path");
   const { fileURLToPath, pathToFileURL } = process.getBuiltinModule("node:url");
@@ -145,6 +149,7 @@ const start = (out, root) => {
   const whole = new Set();
   const spawned = [];
   const blind = new Set();
+  const syncs = [];
   let issued = 0;
 
   const inside = (one) => insideOf(root, one);
@@ -200,6 +205,10 @@ const start = (out, root) => {
     },
     blind(why) {
       blind.add(why);
+    },
+    // Each shim's own copy from its default object into its names, run after the runtime's sync.
+    synced(sync) {
+      syncs.push(sync);
     },
     /* One told to follow its links reads a target no claim here models, and blinds. Left to itself
        `cp` keeps a link handed to it, so only one above the last component moved where it looked. */
@@ -264,6 +273,19 @@ const start = (out, root) => {
     },
   };
   globalThis[HERE] = audit;
+
+  /* The names a shim exports are its own bindings and not the builtin's, so the runtime's sync never
+     reaches them: a case that replaces a function on the default object and syncs would have every
+     module importing it by name go on calling the original, under the audit alone, and the gate
+     would read that case red while the case run without it reads green (ISS-2419). So the sync
+     runs the runtime's first and then each shim's, and the one call the runtime's own export makes
+     here is what hands every later import of it this one. */
+  const sync = builtins.syncBuiltinESMExports;
+  builtins.syncBuiltinESMExports = function syncBuiltinESMExports() {
+    sync();
+    for (const one of syncs) one();
+  };
+  sync();
 
   /* This repository's own code and no one else's: `graceful-fs`, which npm loads, defines a property
      on the fs module object and a namespace has none to give. What a dependency reads for repository
