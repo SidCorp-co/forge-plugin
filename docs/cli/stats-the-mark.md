@@ -61,9 +61,9 @@ readable once it is said. A shared row is counted where each harness orders its 
 it ended, capped at what the stored window held, and a consult by its place in the answered log, so
 one logged later under an equal clock is not taken for the mark's own.
 
-**A bare `--against` or `--since-release` takes the newest reading sharing none of the recent
-window**, not the newest held — that is the one someone reading a harness change wants, and the one
-a run doing this by hand went looking for. Where none shares none it is refused the same way. The
+**An anchor flag given no value resolves to the last reading wholly apart from what is being judged**,
+because the newest held is the one most likely to be that same window, and the apart one is what a
+run doing this by hand went looking for. With no such reading held, it is refused the same way. The
 lines a release and a crossing print when they write a reading say, for the same reason, that
 nothing has arrived after it yet and how many rows must before its command can be read.
 
