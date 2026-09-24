@@ -3,7 +3,7 @@
    reading is the device's and is held under nothing. docs/cli/stats-the-mark.md. */
 import { join } from "node:path";
 
-import { copyFileSync, existsSync, renameSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, renameSync, statSync, writeFileSync } from "node:fs";
 
 import { appendJsonl, jsonlAt, jsonlBack, jsonlBytes, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
@@ -62,13 +62,46 @@ export const scopeOf = (directory) => {
 
 const readAll = () => jsonlAt(marksPath());
 
+/* The store's bytes as this process last read them, and which file in which state they were read
+   from. One command asks the store for several kinds and scopes, and each asking re-read the whole
+   file (ISS-1510). Keyed on the file's identity and its size and times rather than held for the
+   process: another process appends to the same store, and a reading served from before that append
+   would be a reading of a store that no longer exists. `forget` is what this process's own writes
+   call, since a write here is the one change this process is certain of. */
+let held = null;
+
+const stateOf = (path) => {
+  try {
+    const at = statSync(path, { bigint: true });
+    return `${at.dev}:${at.ino}:${at.size}:${at.mtimeNs}:${at.ctimeNs}`;
+  } catch {
+    return null;
+  }
+};
+
+/* Stated before the read, so bytes read after a concurrent append are newer than the state they are
+   held under, and the next asking sees a state that moved and reads again rather than serving less
+   than the file holds. */
+const storeBytes = () => {
+  const path = marksPath();
+  const state = stateOf(path);
+  if (state !== null && held?.path === path && held.state === state) return held.bytes;
+  const bytes = jsonlBytes(path);
+  held = state === null ? null : { path, state, bytes };
+  return bytes;
+};
+
+const forget = () => {
+  held = null;
+};
+
 /** The readings of one kind, oldest first, for one scope — or for every scope where none is named,
  *  which is what a consult reading is held under. Only the records carrying that scope are parsed:
  *  the store is a file every reading ever taken is appended to, and parsing all of it to answer for
  *  one project is what made every reading pay for every reading (ISS-1984). */
 const scanOf = (kind, scope) => {
   const every = scope === null ? [] : [jsonlMark("scope", scope)];
-  return [...jsonlBack(jsonlBytes(marksPath()), [jsonlMark("kind", kind)], every)].reverse();
+  return [...jsonlBack(storeBytes(), [jsonlMark("kind", kind)], every)].reverse();
 };
 
 export const marksOf = (kind, scope = null, waits) => {
@@ -161,6 +194,7 @@ const onePass = ({ marker, issue, over }) => {
     /* Renamed rather than written over: a rewrite interrupted half way would leave the store torn,
        and the copy beside it is the way back only if the store it answers for is whole. */
     renameSync(next, marksPath());
+    forget();
   }
   writeFileSync(donePath(marker), `${JSON.stringify({
     at: new Date().toISOString(), records: held.length, ...made.report,
@@ -217,6 +251,7 @@ export const writeMark = (record, waits) => {
       passHeld();
       if (scanOf(record.kind, record.scope ?? null).some((one) => sameMark(one, record))) return HELD;
       appendJsonl(marksPath(), withoutDead(record), configDir("forge"));
+      forget();
       return WRITTEN;
     }, guarded(waits));
   } catch (error) {
