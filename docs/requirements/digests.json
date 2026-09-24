@@ -2857,6 +2857,18 @@
       "rev": 1,
       "digest": "aad40c73f50dd26c4d2f149bb4a33513c45433d0b803048a701974c2f96df4d5"
     },
+    "AC-06-5-10": {
+      "rev": 1,
+      "digest": "d6ab6c376da3eceaaed7bb89b930cfaaa67558447ed5dc516c4bcc7716705f18"
+    },
+    "AC-06-5-11": {
+      "rev": 1,
+      "digest": "7facc47a3098bd6608a6a8330b115daf12305ee487c4e95c433d19b09392a0ac"
+    },
+    "AC-06-5-12": {
+      "rev": 1,
+      "digest": "c3af63f47244671ac94c27f26c4417a48470f117851933be3ec52183ac157981"
+    },
     "UC-06-6": {
       "rev": 1,
       "digest": "14d9aca978d0ba8c6ac8c5b7e38c76d16f5df944c0adfa038553fd06a4c6e111"

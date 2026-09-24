@@ -1,6 +1,7 @@
 /* The log is codex's memory and its eval set at once. It has no session of its own — one HTTPS request knows nothing of the last — so continuity is these entries replayed, and scoring the advice later is the same file read a different way. This half is the file itself: what is written to it, what is read back, and every question answerable off the rows without reading a word of what the reviewer wrote. docs/cli/codex-the-log.md. */
 import { isAbsolute, join } from "node:path";
 
+import { checkoutAt } from "../git/checkout-at.mjs";
 import { appendJsonl, jsonlAt, jsonlBytes } from "../hooks/log/hook-log-file.mjs";
 import { configDir, NO_SESSION, sessionSourced } from "../resolve/config.mjs";
 import { masked } from "../hooks/log/scrub.mjs";
@@ -21,6 +22,19 @@ const writingRun = () => {
   const held = sessionSourced();
   return held.id ? { run: held.id, runFrom: held.source } : { runFrom: NO_SESSION };
 };
+
+/** The run a row written now would name, or null where none resolves: what a reader compares a row's `run` with to ask whether this caller wrote it. */
+export const runOf = () => writingRun().run ?? null;
+
+/** Whether this caller wrote a row: its run and the row's are the same id, or both are none. */
+export const byRun = (one, run) => (one.run ?? null) === run;
+
+/** A checkout root beside the repository it belongs to: every worktree of one repository shares a git common directory, and the primary checkout that directory sits in names it, so a consult taken in one worktree is found from another (ISS-898). */
+export const hereOf = (root) => ({ root, repo: root ? checkoutAt(root)?.repository ?? null : null });
+
+/** Whether a row was written in the checkout standing here or in any worktree of its repository. A row from before rows carried `repo` answers by its root, which from the primary checkout is the repository's own path: one from a sibling worktree then matches only from that worktree, a gap stated rather than backfilled, most of those directories being gone. */
+export const inRepo = (one, here) =>
+  one.root === here.root || (here.repo !== null && (one.repo ?? one.root) === here.repo);
 
 /* It warns and carries on: failing closed would mean a full disk costs the review itself. */
 export const logConsult = (record) => {

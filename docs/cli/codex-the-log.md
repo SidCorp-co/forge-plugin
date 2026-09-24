@@ -9,7 +9,7 @@ on every call. A recheck's REFUTED rulings record themselves as the verdict on t
 (CONFIRMED stays open) over every finding the author has not ruled on; one they have keeps the ruling
 and the reason they gave it, and the recheck's word on it is stored and printed beside that ruling
 rather than over it. The record says finding by finding which of its rulings a recheck wrote, so a
-later recheck revises its own word and never the author's. A verdict lands by default on the last
+later recheck revises its own word and never the author's. A verdict lands by default on this run's last
 consult that made findings and heard nothing, and `--of` names another. The commit gate waits on
 both: [the commit gate](codex-the-commit.md), and its how document carries the counts. Usage is summed over a consult's calls; logged from the
 last call alone, `log --score` counted a third of the input. A consult that recorded no duration is left
@@ -49,6 +49,16 @@ append-only eval set nothing backs up, on a file already at 0600 in the config d
 stays, and every route that prints an entry back to the caller is masked (ISS-266). What a consult
 replays into its *next request* is masked at the emission too, and before the clips: a shape a clip
 cuts in half is one no pattern knows (ISS-268).
+
+**A consult belongs to a repository and to a run, not to a directory.** Every delegated run stands
+in a worktree of its own while the checkout it came from sends commands too, so a row carries the
+repository its checkout belongs to beside the checkout itself, and the verdict verb, the review
+capture and a stats `--root` read every worktree of it. The flagless verdict is also scoped to the
+calling run: a guess landing on another run's open consult discarded a real finding with nothing in
+the record showing it, and a verdict is corrected rather than removed, so refusing is the cheaper
+failure. `--of` reaches any run's consult in the repository, a later run owing a verdict on an
+earlier one's being the ordinary case. A row written before the field answers by its checkout path,
+so one from a worktree since removed stays unreachable from elsewhere (ISS-898).
 
 **A harness with no numbers on itself is tuned by memory.** `forge codex stats` reads a window —
 `--last n`, `--days n`, `--root p` or `--here` — and answers the questions a change to the harness is

@@ -12,6 +12,7 @@ import { pluginCopy } from "../tools/plugin-copy.mjs";
 const consultLog = () => import("../codex/codex-log.mjs");
 const replies = () => import("../codex/log/replies.mjs");
 import { jsonLines } from "../hooks/log/hook-log-file.mjs";
+import { repoRoot } from "../git/repo-root.mjs";
 import { SHAPES, atMinute } from "./machine.mjs";
 
 export const KEY = "worklog";
@@ -100,10 +101,10 @@ export const stampedNow = (shape) => Object.fromEntries(shape.fields
 /** The head the baseline write would stamp, asked for through that write's own stamp so the two cannot disagree about which commit is in hand — a dirty checkout and no checkout both answer with none, which is the head that write would fail to stamp too. */
 export const headNow = () => stampedNow(SHAPES.baseline).head ?? null;
 
-export const owedOn = async (bytes, entries, last) => {
+export const owedOn = async (bytes, entries, last, scope = null) => {
   const { numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted, verdictForm } = await replies();
   const { verdictsBy } = await consultLog();
-  const open = unverdicted(bytes, last.root);
+  const open = unverdicted(bytes, last.root, scope);
   if (open) return `verdict owed on ${open.open.join(", ")} of consult ${open.id} \u2014 ${verdictForm(open.id)}`;
   const ids = numbered(last.reply).map((one) => one.id);
   if (undecidedIn(ids, verdictsBy(entries).get(last.id ?? last.at)).length) return "verdict owed";
@@ -112,19 +113,23 @@ export const owedOn = async (bytes, entries, last) => {
 };
 
 /* The consult id is the round: the log numbers no rounds, and a streak rule only this code knew
-   would be a number nobody could check. `forge codex log --id <id>` expands it. */
-const reviewNow = async (root = process.cwd()) => {
-  const { answered, logBytes } = await consultLog();
+   would be a number nobody could check. `forge codex log --id <id>` expands it. This run's consults
+   in any worktree of the repository, as the verdict verb reads them, so what the capture says is
+   owed is what that verb would land on (ISS-898). */
+const reviewNow = async (root = repoRoot(process.cwd())) => {
+  const { answered, byRun, hereOf, inRepo, logBytes, runOf } = await consultLog();
   const { countedIn, numbered } = await replies();
   const bytes = logBytes();
   const entries = jsonLines(bytes.toString("utf8"));
-  const last = answered(entries).filter((one) => one.root === root).at(-1);
+  const here = hereOf(root);
+  const run = runOf();
+  const last = answered(entries).filter((one) => inRepo(one, here) && byRun(one, run)).at(-1);
   if (!last) return null;
   return {
     consult: String(last.id ?? last.at),
     recheck: Boolean(last.recheck),
     findings: countedIn(last.reply)?.total ?? numbered(last.reply).length,
-    owed: await owedOn(bytes, entries, last),
+    owed: await owedOn(bytes, entries, last, { repo: here.repo, run }),
   };
 };
 

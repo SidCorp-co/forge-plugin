@@ -7,7 +7,7 @@ import { escaped } from "../../markdown.mjs";
 import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
 import { median } from "../../stats/median.mjs";
-import { answered, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
+import { answered, byRun, inRepo, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
 
 /* A row of the older shape folded its composed clause into its note, and `composedAt` says where — read as a whole clause and never as a substring of the author's prose, which "Evidence from recheck r7 supports my rejection" is; the composed form was always clauses joined by the same separator, so the boundary is the format. `authorNote` is what is left for the next write to carry, because carrying the whole would say the earlier recheck's status on the next recheck's row. */
 const composedAt = (held) => (held?.from ? (held.note ?? "").split(CLAUSE).indexOf(`from recheck ${held.from}`) : -1);
@@ -469,15 +469,28 @@ export const undecidedIn = (ids, held) => {
 
 export const verdictForm = (id) => `forge codex verdict --of ${id} --accepted <ids> --rejected <id>=<why>`;
 
-/* For the commit gate, with the one command that clears it: two gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. */
-export const unverdicted = (bytes, root) => {
+/* The marks that reach a row of this scope, and the test each reached row still has to pass: a mark is a byte match anywhere in the line, so it only narrows. */
+const scoped = (root, scope) => {
+  if (!scope) return { marks: [jsonlMark("root", root)], keeps: (one) => one.root === root };
+  const here = { root, repo: scope.repo ?? null };
+  const repo = here.repo === null ? [] : [jsonlMark("repo", here.repo), jsonlMark("root", here.repo)];
+  const run = "run" in scope;
+  return {
+    marks: [jsonlMark("root", root), ...repo],
+    keeps: (one) => inRepo(one, here) && (!run || byRun(one, scope.run)),
+  };
+};
+
+/* For the commit gate, with the one command that clears it: two gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. A `scope` of `{ repo, run }` reads every worktree of the repository and, where `run` is given, that run's consults alone — the verdict verb's and the review capture's question; the gates ask without one and read this checkout (ISS-898). */
+export const unverdicted = (bytes, root, scope = null) => {
   const scored = new Map();
-  for (const one of jsonlBack(bytes, [jsonlMark("root", root), jsonlMark("kind", "verdict")])) {
+  const { marks, keeps } = scoped(root, scope);
+  for (const one of jsonlBack(bytes, [...marks, jsonlMark("kind", "verdict")])) {
     if (one.kind === "verdict") {
       if (one.of && !scored.has(one.of)) scored.set(one.of, one);
       continue;
     }
-    if (!isAnswered(one) || one.root !== root) continue;
+    if (!isAnswered(one) || !keeps(one)) continue;
     const ids = numbered(one.reply).map((held) => held.id);
     if (!ids.length) continue;
     const id = one.id ?? one.at;

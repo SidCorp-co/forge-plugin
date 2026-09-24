@@ -46,6 +46,7 @@ import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, print
 import {
   logPath,
   consults,
+  hereOf,
   logBytes,
   logConsult,
   logEntries,
@@ -394,6 +395,7 @@ const consult = async (given) => {
     id,
     at: new Date().toISOString(),
     root,
+    repo: hereOf(root).repo,
     slot: modelSlot(),
     model,
     files: rels,

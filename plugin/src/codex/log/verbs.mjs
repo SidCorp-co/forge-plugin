@@ -1,11 +1,14 @@
 /* `forge codex log` and `forge codex verdict`: where a person reads the log back and writes what
    became of a review. This is the piece with no module above it, so it is the one that may import
    both the rows and the grammar, and the only import of it is the verb table's. docs/cli/codex-the-log.md. */
+import { existsSync } from "node:fs";
+
 import { jsonLines } from "../../hooks/log/hook-log-file.mjs";
 import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";
-import { DIAGNOSTIC, PROPOSAL, answered, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
+import { DIAGNOSTIC, PROPOSAL, answered, byRun, hereOf, inRepo, isAnswered, logBytes, logConsult, logEntries, logPath, maskedDeep,
+  pairedLog, runOf, verdictsBy } from "../codex-log.mjs";
 import { budgetMs } from "../../resolve/settings.mjs";
 import { countedIn, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
 
@@ -137,8 +140,43 @@ export const VERDICT_USAGE = [
   "  --accepted F1,F3   the findings taken; repeatable",
   "  --rejected F2=why  the findings turned down, each with its reason; repeatable",
   "  --note t           one line about the consult as a whole",
-  "  --of <id>          the consult this verdict is about, where it is not the open one",
+  "  --of <id>          the consult this verdict is about, any run's in this repository; without it,",
+  "                     this run's open one in any worktree of the repository, and never another run's",
 ].join("\n");
+
+const whose = (one) => `by ${one.run ?? "no run id"}`;
+
+/* Where an answered consult outside this repository's reach was taken, and why it is out of reach: a row carrying its repository names another one, and a row from before rows carried it is reached from its own checkout alone. */
+const whereSaid = (one) => {
+  const root = one.root ?? "no checkout";
+  if (one.repo) return `${root}, of the repository ${one.repo}`;
+  const there = one.root && existsSync(one.root) ? `: \`cd ${one.root}\` and send it there` : ", which is gone";
+  return `${root}, logged before a consult carried its repository, so reached from that checkout alone${there}`;
+};
+
+/* An id `--of` did not find in this repository, said by where it is instead: a refusal reading as though the id were unknown sent a run to the raw log for one it could see a line away (ISS-898). */
+const missing = (of, entries, here) => {
+  const elsewhere = answered(entries).filter((one) => one.id === of);
+  if (elsewhere.length) {
+    return `codex: consult ${of} is out of this repository's reach${here.repo ? ` (${here.repo})` : ""}; it answered in `
+      + `${[...new Set(elsewhere.map(whereSaid))].join("; ")}.`;
+  }
+  const started = entries.some((one) => one.kind === "started" && one.id === of);
+  return started
+    ? `codex: consult ${of} started and never answered, so it made no findings to rule on.`
+    : `codex: no answered consult in ${logPath()} carries the id ${of}; \`forge codex log --last 10\` lists the ones it holds.`;
+};
+
+/* The flagless form lands on this run's consult or on none: a verdict is a record, and one on another run's consult is corrected rather than removed, so refusing costs a retyped command where guessing cost a finding (ISS-898). */
+const notOurs = (bytes, root, here, run) => {
+  const open = unverdicted(bytes, root, { repo: here.repo });
+  const who = run ?? "no run id";
+  if (!open) return `codex: no consult by this run (${who}) has answered${root ? " in this repository" : ""} yet.`;
+  const writer = jsonLines(bytes.toString("utf8")).findLast((one) => isAnswered(one) && (one.id ?? one.at) === open.id);
+  return `codex: no consult by this run (${who}) has answered${root ? " in this repository" : ""}, and the open one, `
+    + `${open.id} on ${open.files.join(", ")}, was written ${whose(writer ?? {})}. Where it is yours under another id: `
+    + `\`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`.`;
+};
 
 /* The reply is half an eval set. Which findings survived contact with the work is the other half,
    and only the caller knows it — so it is recorded, not inferred. */
@@ -147,16 +185,20 @@ export const verdict = (rest, root) => {
   const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict", { usage: VERDICT_USAGE });
   const { note, of } = flags(r2, "codex verdict", [], { usage: VERDICT_USAGE });
   if (!accepted.length && !rejected.length && !note) fail(VERDICT_USAGE);
-  /* This repository's last consult that made findings and heard nothing back, not the last answer:
-     after a converged recheck the last answer found nothing, and a verdict landed on it twice. */
+  /* This run's last consult in this repository that made findings and heard nothing back, not the
+     last answer: after a converged recheck the last answer found nothing, and a verdict landed on it
+     twice. Every worktree of the repository is one place here, and `--of` reaches any run's. */
   const bytes = logBytes();
   const entries = jsonLines(bytes.toString("utf8"));
-  const own = answered(entries).filter((one) => !root || one.root === root);
-  const open = unverdicted(bytes, root);
+  const here = hereOf(root);
+  const local = answered(entries).filter((one) => !root || inRepo(one, here));
+  const run = runOf();
+  const own = local.filter((one) => byRun(one, run));
+  const open = unverdicted(bytes, root, { repo: here.repo, run });
   const last = of
-    ? own.find((one) => one.id === of)
-    : open && own.find((one) => one.id === open.id) || own.at(-1);
-  if (!last) fail(of ? `codex: no consult ${of} has answered here.` : `codex: no consult has answered${root ? " for this repository" : ""} yet.`);
+    ? local.findLast((one) => one.id === of)
+    : open && own.find((one) => (one.id ?? one.at) === open.id) || own.at(-1);
+  if (!last) fail(of ? missing(of, entries, here) : notOurs(bytes, root, here, run));
   const held = verdictRecord(last, {
     accepted: accepted.length ? accepted.join(",") : undefined,
     rejected: rejected.length ? rejected.join(",") : undefined,
@@ -164,6 +206,6 @@ export const verdict = (rest, root) => {
   }, verdictsBy(entries).get(last.id ?? last.at) ?? null);
   if (held.problem) fail(`codex: ${held.problem}`);
   logConsult(held.record);
-  console.log(`recorded against consult ${last.id ?? last.at} on ${(last.files ?? []).join(", ")}`);
+  console.log(`recorded against consult ${last.id ?? last.at} (${whose(last)}) on ${(last.files ?? []).join(", ")}`);
   if (held.undecided > 0) console.error(`codex: ${held.undecided} finding(s) undecided — say what happened to them.`);
 };

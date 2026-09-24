@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute } from "node:path";
 
 import { DIFF_CHARS, digest } from "./codex-api.mjs";
-import { MARK, answered, logEntries, logPath } from "./codex-log.mjs";
+import { MARK, answered, hereOf, inRepo, logEntries, logPath } from "./codex-log.mjs";
 import { modelKey, numbered, scoreOf } from "./log/replies.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
@@ -39,10 +39,12 @@ const wasIncomplete = (row) => (row.incomplete === undefined ? incompleteIn(row.
 const newFindingsOf = (row) =>
   (row.newFindings === undefined ? newFindingsIn(numbered(row.reply, row.files)) : row.newFindings);
 
+/* A checkout named is its repository: a consult taken in a worktree of it is that repository's (ISS-898). */
 export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) => {
   const since = days ? Date.now() - days * 86_400_000 : null;
+  const here = root ? hereOf(root) : null;
   const own = answered(entries)
-    .filter((one) => !root || one.root === root)
+    .filter((one) => !here || inRepo(one, here))
     .filter((one) => !since || (Date.parse(one.at) || 0) >= since);
   return since ? own : own.slice(-last);
 };
@@ -262,7 +264,8 @@ export const STATS_USAGE = [
   "",
   "  --last n       consults back from the newest",
   "  --days n       consults inside that many days instead",
-  "  --root p       the checkout whose consults are read; every one the log holds unless you say",
+  "  --root p       a checkout, whose repository's consults are read from every worktree of it;",
+  "                 every one the log holds unless you say",
   "  --here         the working directory as that checkout",
 ].join("\n");
 
@@ -273,7 +276,7 @@ export const REPLAY_USAGE = [
   "",
   "  --prompt <file>  the candidate prompt to score",
   "  --last n         consults back from the newest",
-  "  --root p         the checkout whose consults are read",
+  "  --root p         a checkout, whose repository's consults are read from every worktree of it",
 ].join("\n");
 
 export const EVAL_USAGE = [
