@@ -255,8 +255,21 @@ test("a line that writes a file and then reads a deployment is the deploy, and t
     assert.ok(MOVED_AT.has(was) && DECIDED_BY_RELEASE.includes(was),
       `${was} is named in both halves, or a reading taken without this row compares two populations`);
   }
-  assert.deepEqual(SHELL_EDITS, EDIT_ROUTES.slice(2),
-    "and the three are read off the routes rather than spelled a second time");
+});
+
+/* Off what the classifier answers for a line and for a tool, never off the expression the list is
+   defined by: a case asserting `EDIT_ROUTES.slice(2)` against a list defined as that could not fail,
+   and the position it rested on was a coincidence nothing stated (ISS-2139). */
+test("the shell edit routes are the ones a shell line is classed into and no tool mints", () => {
+  const typed = [["python3 - <<PY\npass\nPY", "edit heredoc"], ["cat > notes.md", "edit file"],
+    ["sed -i s/a/b/ notes.md", "edit sed"]];
+  for (const [line, route] of typed) assert.equal(said(line, null), route, `${line} is an edit a shell types`);
+  assert.deepEqual([...SHELL_EDITS].sort(), typed.map(([, route]) => route).sort(),
+    "every edit route a shell line takes is in the list, and nothing else is");
+  const minted = ["Edit", "Write", "NotebookEdit"].map((tool) => classOf(tool, ""));
+  for (const route of EDIT_ROUTES.filter((one) => minted.includes(one))) {
+    assert.equal(SHELL_EDITS.includes(route), false, `${route} is a tool's route, not a shell's`);
+  }
 });
 
 test("the verb's own row and git keep their calls", () => {

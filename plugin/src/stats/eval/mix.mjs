@@ -1,8 +1,9 @@
 /* The covariates this corpus carries, and how unusual it is for two of its populations to differ on
    one of them by as much as these two do. What this reference licenses and what it does not —
    docs/cli/stats-the-change.md. */
-import { median } from "../median.mjs";
-import { POSITIONS, atRank } from "./angles.mjs";
+import { percent } from "../figures.mjs";
+import { countBy } from "../windows.mjs";
+import { POSITIONS, positionsOver, slid } from "./angles.mjs";
 
 /** The two a run row carries. Each is one dimension of the work a window did, not of what it cost:
  *  the rung is the kind of work the method ran at, the model is who ran it. Nothing else on a run is
@@ -15,14 +16,7 @@ const COVARIATES = {
 
 const NAMES = Object.keys(COVARIATES);
 
-export const tallyOf = (rows, of) => {
-  const held = {};
-  for (const row of rows) {
-    const value = of(row) ?? "unstated";
-    held[value] = (held[value] ?? 0) + 1;
-  }
-  return held;
-};
+export const tallyOf = (rows, of) => countBy(rows, (row) => of(row) ?? "unstated");
 
 /** Total variation distance between two tallies: half the sum, over every value either side holds, of
  *  the difference in shares. **A value one side never saw counts as nought on that side** rather than
@@ -39,14 +33,6 @@ export const distanceOf = (before, now) => {
   return apart / 2;
 };
 
-/* The rows of each block, in the order handed over; `blocksOf` gives profiles and a tally needs the
-   runs themselves. One pass per size, as the angle floor takes one. */
-const rowsOf = (ordered, size) => {
-  const held = [];
-  for (let at = 0; at + size <= ordered.length; at += 1) held.push(ordered.slice(at, at + size));
-  return held;
-};
-
 /** The reference for each covariate, built over the positions `floorsOver` in `angles.mjs` builds an
  *  angle's floor over, with a tally distance where that takes a figure. A position whose either side is
  *  empty yields none and is counted as yielding none, so every quantile and the `POSITIONS` minimum are
@@ -55,29 +41,15 @@ const rowsOf = (ordered, size) => {
  *  **This is not a null and it is not an equivalence bound.** The corpus's own adjacent positions
  *  cross real releases and real drift, so what it measures is how unusual a mix shift of this size is
  *  here, and nothing more. It is read one way only: past it withholds, inside it licenses nothing. */
-export const mixFloorsOver = (ordered, beforeSize, nowSize, names = NAMES) => {
-  const befores = rowsOf(ordered, beforeSize);
-  const nows = beforeSize === nowSize ? befores : rowsOf(ordered, nowSize);
-  const last = ordered.length - beforeSize - nowSize;
-  return new Map(names.map((name) => {
+export const mixFloorsOver = (ordered, beforeSize, nowSize) => {
+  const befores = slid(ordered, beforeSize);
+  const nows = beforeSize === nowSize ? befores : slid(ordered, nowSize);
+  return new Map(NAMES.map((name) => {
     const { of } = COVARIATES[name];
-    const distances = [];
-    let dropped = 0;
-    for (let at = 0; at <= last; at += 1) {
-      const one = distanceOf(tallyOf(befores[at], of), tallyOf(nows[at + beforeSize], of));
-      if (one === null) dropped += 1;
-      else distances.push(one);
-    }
-    distances.sort((left, right) => left - right);
-    return [name, {
-      before: beforeSize,
-      now: nowSize,
-      over: distances.length,
-      dropped,
-      median: median(distances),
-      p90: distances.length ? atRank(distances, 0.9) : null,
-      p95: distances.length ? atRank(distances, 0.95) : null,
-    }];
+    const was = befores.map((rows) => tallyOf(rows, of));
+    const is = nows === befores ? was : nows.map((rows) => tallyOf(rows, of));
+    return [name, positionsOver(beforeSize, nowSize, ordered.length,
+      (at) => distanceOf(was[at], is[at + beforeSize])).floor];
   }));
 };
 
@@ -98,10 +70,8 @@ export const mixOf = (name, beforeRows, nowRows, floor) => {
   return distance > floor.p95 ? held(PAST) : held(null, false);
 };
 
-export const mixOver = (beforeRows, nowRows, floors, names = NAMES) =>
-  names.map((name) => mixOf(name, beforeRows, nowRows, floors.get(name) ?? null));
-
-const percent = (value) => `${(value * 100).toFixed(1)}%`;
+export const mixOver = (beforeRows, nowRows, floors) =>
+  NAMES.map((name) => mixOf(name, beforeRows, nowRows, floors.get(name) ?? null));
 
 /** Why one covariate held a comparison ineligible, in the words the verdict carries. Off the reason
  *  the reading already decided rather than a second test of the same numbers.
