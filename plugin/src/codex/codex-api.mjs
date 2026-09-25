@@ -109,7 +109,7 @@ ${named.map((one) => `- ${one}`).join("\n")}
 
 FORM
 - Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
-- Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop there.
+- Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\`, and nothing numbered follows it: only the unnumbered lines a rule below asks for may.
 - Anchor every finding to \`path:line\` — the path as you were given it, the line as numbered in the text you were given. A finding you cannot place is a finding you cannot ground.
 - Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.${named.length > 1 ? BOARD : ""}${recheck ? "" : `\n${CLAUSES}`}
 

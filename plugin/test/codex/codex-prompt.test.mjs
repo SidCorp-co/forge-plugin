@@ -159,6 +159,7 @@ test("the debt angle carries its rules, and a consult without it carries none of
   assert.match(said, /never supply a goal of your own/u);
   assert.match(said, /they follow `CODEX: 0 findings` as an OUT OF SCOPE section may/u,
     "the stop after zero findings would otherwise forbid the lines this angle owes");
+  assert.match(roleFor(["tech"]), /that line is `CODEX: 0 findings`, and nothing numbered follows it: only the unnumbered lines a rule below asks for may\./u);
   assert.match(said, /A Debt Reviewer finding opens with the numbered bullet every finding opens with/u);
   assert.match(said, /Another angle's finding on the same line does not stand in for a debt finding/u);
   assert.ok(!roleFor(["tech"]).includes("Debt Reviewer"), "the tech angle alone sends no debt rules");
