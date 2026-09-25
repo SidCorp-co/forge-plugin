@@ -18,6 +18,10 @@ export const BEHIND = "FORGE_LANDING_BEHIND";
 const POLL_MS = 250;
 const TOLD_MS = 5 * 60_000;
 
+/* A landing killed by a signal records no end of its own; its caller writes the signal a moment
+   later. Gone with no end is only an answer once it has stayed so for this long. */
+const GONE_MS = 2000;
+
 const pause = new Int32Array(new SharedArrayBuffer(4));
 
 const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
@@ -100,14 +104,17 @@ export const waitedBehind = (ahead, { dir, record, verb, argv, tree, files, scri
     + `for it to end rather than refusing. It holds no lock and no gate place while it waits, so this is a `
     + `wait and not a hang.`);
   let told = waitedFrom;
+  let gone = null;
   for (;;) {
     const was = read(record);
-    if (!stillLanding(was)) {
-      if (was && !was.ended) refused(dir, goneSaid(was));
+    const now = Date.now();
+    const over = !stillLanding(was);
+    gone = over && was && !was.ended ? gone ?? now : null;
+    if (gone !== null && now - gone >= GONE_MS) refused(dir, goneSaid(was));
+    if (over && gone === null) {
       const mine = tookOver(ahead, { dir, record, files, started, waitedFrom });
       if (mine) return mine;
     }
-    const now = Date.now();
     if (now >= until) refused(dir, stillSaid(ahead, minutes, wait));
     if (now - told >= TOLD_MS) {
       console.log(`  still waiting behind pid ${ahead.pid}, ${spent(now - waitedFrom)} of ${minutes} minute(s)`);

@@ -155,6 +155,24 @@ test("a waiter whose landing ahead is gone having recorded no end is refused nam
   }
 });
 
+/* Killed by a signal, the landing ahead records no end of its own and its caller writes the signal a
+   moment later, so a waiter reading the record in that moment has not met a landing gone silent. */
+test("a waiter whose landing ahead was ended by a signal its caller recorded takes the tree", async () => {
+  const { work, first, ahead, second, waiter } = await behindShip("behind-signal", 30_000, ["land", "--wait", "1"]);
+  try {
+    process.kill(ahead, "SIGTERM");
+    await first.exited;
+    await second.exited;
+    assert.ok(second.said.out.includes(`behind pid ${ahead}, whose ship was ended by SIGTERM; this land now holds the tree`),
+      second.said.out + second.said.err);
+    assert.ok(!second.said.err.includes("gone having recorded no end"), second.said.err);
+    assert.equal(recordOf(work).pid, waiter, JSON.stringify(recordOf(work)));
+  } finally {
+    await endAll({ pid: ahead, exited: first.exited }, { pid: waiter, exited: second.exited });
+    rmSync(inGit(work, LOCK), { force: true });
+  }
+});
+
 test("-h says a second landing of a running tree waits given --wait and is refused without it", () => {
   const run = runIn(ROOT, ["-h"]);
   for (const said of ["unless the second is given --wait M", "up to M minutes for that one", "One waits at a time."]) {
