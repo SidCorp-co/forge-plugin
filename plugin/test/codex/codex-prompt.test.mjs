@@ -170,8 +170,8 @@ test("a board asks each angle to open with its own heading, and one angle is ask
 test("the goals travel in the opening with their own words, or the reason there are none", () => {
   const held = promptFor("intent", [], [], { goals: { goals: [{ id: "G-12", text: "Read from the project's configuration." }], why: null } });
   assert.match(held, /GOALS — this project's live goals, from its brief, for the Debt Reviewer to rule the change against:\n\nG-12 — Read from the project's configuration\./u);
-  const none = promptFor("intent", [], [], { goals: { goals: [], why: "this project has no brief stored" } });
-  assert.match(none, /GOALS — this project states none: this project has no brief stored\. The Debt Reviewer judges debt alone, says it found no goals to rule against and why, and supplies none of its own\./u);
+  const none = promptFor("intent", [], [], { goals: { goals: [], why: "the reason the brief gave" } });
+  assert.match(none, /GOALS — this project states none: the reason the brief gave\. The Debt Reviewer judges debt alone, says it found no goals to rule against and why, and supplies none of its own\./u);
   const unread = promptFor("intent", [], [], { goals: { goals: [], why: "the store would not answer", unread: true } });
   assert.match(unread, /GOALS — none could be read: the store would not answer\. The Debt Reviewer judges debt alone/u);
   assert.ok(!unread.includes("states none"), "a brief nobody reached is not one stating nothing");

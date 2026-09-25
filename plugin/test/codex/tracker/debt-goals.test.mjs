@@ -24,6 +24,7 @@ after(() => tracker.close());
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 projectRecord(process.cwd(), tracker.env.XDG_CONFIG_HOME, { slug: OWN.slug });
 const { goalsFor, promptFor } = await import("../../../src/codex/codex-api.mjs");
+const { WHY } = await import("../../../src/goals.mjs");
 
 test("a consult the debt angle reviews is handed the brief's goals, each with its own words", async () => {
   store.set("project-brief", { slug: "project-brief", kind: "overview", title: "the map", body: BRIEF });
@@ -40,10 +41,10 @@ test("a project with no brief hands the debt angle the reason, and the block say
   store.delete("project-brief");
   const held = await goalsFor(["debt"]);
   assert.deepEqual(held.goals, []);
-  assert.match(held.why, /has no brief stored/u);
+  assert.equal(held.why, WHY.stored);
   assert.equal(held.unread, false, "no brief stored is the project's own answer");
-  assert.match(promptFor("intent", [], [], { goals: held }),
-    /GOALS — this project states none: this project has no brief stored\. The Debt Reviewer judges debt alone/u);
+  assert.ok(promptFor("intent", [], [], { goals: held }).includes(`GOALS — this project states none: ${WHY.stored}. `
+    + "The Debt Reviewer judges debt alone"));
 });
 
 test("a store that would not answer is told apart from a project stating no goals", async () => {
@@ -53,7 +54,7 @@ test("a store that would not answer is told apart from a project stating no goal
     assert.deepEqual(held.goals, []);
     assert.equal(held.unread, true);
     const said = promptFor("intent", [], [], { goals: held });
-    assert.match(said, /GOALS — none could be read: the store would not answer for this project's brief\./u, said);
+    assert.ok(said.includes(`GOALS — none could be read: ${WHY.unread}.`), said);
     assert.ok(!said.includes("states none"));
   } finally {
     state.down = false;
