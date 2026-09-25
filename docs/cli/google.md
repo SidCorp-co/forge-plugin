@@ -122,9 +122,6 @@ not serve or no longer holds, and 5 for a local failure it did not anticipate, b
 branches on the class should not have to parse the sentence. Each says on stderr what clears it; an
 authentication failure names the command.
 
-What clears a 403 is read off the reason Google's body states, never off the status. One status
-covers an API the Cloud project never enabled, a token short of the scope a method asks and a
-refusal of the item itself, and a sign-in clears only the second: advising one for the first costs a
-consent round trip that changes nothing. So an API that is not enabled is named with its project and
-enable page, a short scope names the scope the method's carried document lists, and a reason this
-verb does not know is left to Google's message and `forge google auth status` rather than guessed at.
+A 403's hint follows the reason Google states, not the status: only a short scope is cleared by a
+sign-in, so a disabled API is named with its enable page, and an unknown reason is left to
+`forge google auth status` rather than guessed at.
