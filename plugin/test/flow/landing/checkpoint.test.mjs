@@ -13,7 +13,7 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
 const { takeRefusal } = await import("../../../src/flow/lease/takeover.mjs");
-const { readyCheckpoint, recaptureRefusal, reworkRefusal } = await import("../../../src/flow/landing/written.mjs");
+const { answerRefusal, readyCheckpoint, recaptureRefusal, reworkRefusal } = await import("../../../src/flow/landing/written.mjs");
 const { refusing } = await import("../../../src/resolve/settings.mjs");
 const {
   LANDING_READY, LANDING_STATES, landingLine, landingOf, landingTurn, landingVoided,
@@ -55,8 +55,9 @@ test("every state is reachable from ready, names exactly one turn, and ends at d
   assert.equal(names.filter((one) => LANDING_STATES[one].turn === null).length, 1, "and the only state with no turn");
   assert.ok(names.every((one) => one === LANDING_READY || names.some((two) => LANDING_STATES[two].next.includes(one))),
     "every state but the first is some state's successor");
-  assert.deepEqual(LANDING_STATES["builder-owed"], { turn: "builder", next: ["reconciled"] },
-    "the turn a moved path hands back, and the one state it leads to");
+  /* A reading answers for the candidate or finds it wrong, and the second is a new head (ISS-2514). */
+  assert.deepEqual(LANDING_STATES["builder-owed"], { turn: "builder", next: ["reconciled", "ready"] },
+    "the turn a moved path hands back, and the two states it leads to");
   /* Left by the capture alone, which writes the checkpoint whole, so its one successor is the first
      state; and entered from the three a landing holds before anything was judged (ISS-2299). */
   assert.deepEqual(LANDING_STATES["head-owed"], { turn: "builder", next: ["ready", "done"] },
@@ -348,6 +349,30 @@ test("where the builder judges, every criterion's latest verdict has to pass the
   ] }), false), null, "a head every criterion judged is the head the capture takes");
 });
 
+/* The capture out of builder-owed: the head the candidate was built from answers nothing, and every
+   other head is held to what the capture out of head-owed asks, the reconciliation named beside it
+   (ISS-2514). */
+const OWED = landingOf(at("builder-owed", { head: HANDED, candidate: "c0ffee10000000000000000000000000000beef" }));
+
+test("the capture out of builder-owed refuses the candidate's own head and names the reconciliation beside every refusal", () => {
+  const same = answerRefusal("ISS-673", HANDED, OWED, viewOf({ review: { commit: HANDED, outcome: "approved" } }), true);
+  assert.match(same, /captures 9e24c2a as the answer to the candidate c0ffee1, which is the head that candidate was built from/u, same);
+  assert.match(same, /forge claim ISS-673 --reconciled c0ffee1\n  forge claim ISS-673 --pushed --ready$/u, same);
+  const unreviewed = answerRefusal("ISS-673", NEW, OWED, viewOf(), true);
+  assert.match(unreviewed, /ISS-673 carries no review/u, unreviewed);
+  assert.match(unreviewed, /forge claim ISS-673 --pushed --ready\nWhere the candidate is answered for as it stands/u, unreviewed);
+  assert.match(unreviewed, /--reconciled c0ffee1$/u, unreviewed);
+  assert.equal(answerRefusal("ISS-673", NEW, OWED, viewOf({ review: APPROVED }), true), null,
+    "under an independent judge an approved review of the new head is the whole of the license");
+  const unjudged = answerRefusal("ISS-673", NEW, OWED, viewOf({ review: APPROVED, verdicts: [[1, { commit: NEW, verdict: "pass" }]] }), false);
+  assert.match(unjudged, /criterion 2 unjudged/u, unjudged);
+  const failed = answerRefusal("ISS-673", NEW, OWED, viewOf({ review: APPROVED, verdicts: [
+    [1, { commit: NEW, verdict: "pass" }], [2, { commit: NEW, verdict: "fail" }],
+  ] }), false);
+  assert.match(failed, /2 at 5a1b2c3 \(fail\)/u, failed);
+  assert.match(failed, /--reconciled c0ffee1$/u, failed);
+});
+
 /* A refusal naming only the resume sent the builder to read what the refusal already knew, so each
    state a capture cannot write over names its own way out (ISS-2406). */
 const CAPTURE = { head: NEW, base: HANDED, touched: "plugin/src/flow/claim.mjs", branch: "iss-673-6", at: AT };
@@ -356,16 +381,13 @@ const readyAt = (state, over = {}, status = "in_progress") =>
     .then(() => null, (error) => error.message);
 
 test("a capture refused at a turn state names the command that ends that turn", async () => {
-  const builder = await readyAt("builder-owed", { candidate: "c0ffee10000000000000000000000000000beef" });
-  assert.match(builder, /reads `builder-owed`/u, builder);
-  assert.match(builder, /forge claim ISS-673 --take\n  forge claim ISS-673 --reconciled c0ffee1$/u, builder);
   const judge = await readyAt("qa-owed");
   assert.match(judge, /reads `qa-owed`: the turn is the judge's/u, judge);
   assert.match(judge, /forge claim ISS-673 --judged$/u, judge);
   const lander = await readyAt("promoting");
   assert.match(lander, /a landing in flight whose next move is the lander's/u, lander);
   assert.match(lander, /forge resume ISS-673$/u, lander);
-  for (const state of ["ready", "head-owed", "records-owed"]) {
+  for (const state of ["ready", "head-owed", "records-owed", "builder-owed"]) {
     assert.equal(await readyAt(state), null, `${state} is a state the capture writes over`);
   }
 });
@@ -378,7 +400,7 @@ const PAST = ["developed", "testing", "awaiting_release", "closed", "on_hold", "
 
 test("a finished landing gives way to a capture once the issue is built again, and a live one never does", async () => {
   for (const status of [...REBUILT, ...PAST]) {
-    for (const state of Object.keys(LANDING_STATES).filter((one) => !["ready", "head-owed", "records-owed", "done"].includes(one))) {
+    for (const state of Object.keys(LANDING_STATES).filter((one) => !["ready", "head-owed", "records-owed", "builder-owed", "done"].includes(one))) {
       assert.ok(await readyAt(state, {}, status), `${state} is a landing in flight at ${status}, and the capture is refused`);
     }
   }

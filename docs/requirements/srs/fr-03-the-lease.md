@@ -437,6 +437,13 @@ a wait no party can end.
   CLI SHALL refuse it, because the two are contradictory statements about one fact and taking either
   would put on the record a reading nobody made.
 
+- **AC-03-6-26** · Rev: 1 · Proof: plugin/test/run/landing/handed-back/builder-owed.test.mjs "a builder who reads the candidate wrong answers with a new head, and that head lands"
+  WHILE the checkpoint names the builder's turn for a reading of a candidate the landing built, the
+  CLI SHALL accept a capture of a new head the builder pushed, reviewed as approved and, where the
+  builder is the project's judge, passing every criterion, and SHALL leave the checkpoint at the
+  state a landing starts from at that head, because a reading that finds the candidate wrong is
+  answered by a head and a reconciliation of the candidate it refused is a judgement nobody made.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

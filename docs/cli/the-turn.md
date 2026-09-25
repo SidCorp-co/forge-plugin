@@ -38,8 +38,8 @@ refused at the write rather than at the promotion, and the same independence `--
 holds here: at that state the turn is the builder the checkpoint names, and an id a whole wave carries
 is not proof of being it.
 
-The branch under that turn is not the builder's to move, and the rule is enforced at the answer
-rather than at the promotion, for the reason the candidate is compared there: a refusal written here
+The branch under that turn is not the builder's to move while the answer is a reconciliation, and
+the rule is enforced at the answer rather than at the promotion, for the reason the candidate is compared there: a refusal written here
 reaches a run with the tree still in hand, where the same trouble met by the landing reaches somebody
 else, in another checkout, days later.
 
@@ -48,6 +48,13 @@ may not wait on a remote. So the guard refuses only what a local ref proves and 
 outcome through — a history too shallow to settle it, an object it cannot read, a call that failed —
 since the cost of the two mistakes is not the same: one landing stops at a state somebody can still
 answer from, and the other leaves a builder with a branch that was right and no write left to make.
+
+`--pushed --ready` is that turn's other way out, where the reading finds the candidate wrong. The
+answer is then a head and not a reading, and reconciling a candidate the builder has just refused
+would put a judgement on the record that nobody made. The capture is held to what the one out of
+`head-owed` asks, below, and refuses the head the candidate was built from, since landing it again
+builds the same candidate; every refusal of it names the reconciliation beside it, so a builder
+turned away from one route is not left to find the other.
 
 `--pushed --ready` is the way out of `head-owed`, the state a landing leaves where the fault is the
 branch's own: its gate red over a candidate of that branch alone, a conflict with the pin, or a branch

@@ -21,7 +21,8 @@ export const LANDING_STATES = {
   /* `done` because a release is a landing that built no candidate for a second one to read. */
   ready: { turn: "lander", next: ["candidate", "done", "head-owed"] },
   candidate: { turn: "lander", next: ["reconciled", "builder-owed", "head-owed"] },
-  "builder-owed": { turn: "builder", next: ["reconciled"] },
+  /* `ready` where the reading finds the candidate wrong: that answer is a head, captured whole. */
+  "builder-owed": { turn: "builder", next: ["reconciled", "ready"] },
   /* Left by `--pushed --ready`, which writes the checkpoint whole rather than moving it, or ended by
      `--landed` where the answering head reached the branch by another route. */
   "head-owed": { turn: "builder", next: ["ready", "done"] },

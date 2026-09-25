@@ -34,10 +34,13 @@ writes none of them.
 **What the landing does with it is not this run's to do**, and one outcome comes back: a merge that
 touched a path the change owns, which leaves the checkpoint at `builder-owed` for the run that built
 it to take, read the candidate named there, and answer for that candidate by its sha — `forge claim
-ISS-nn --take`, then `forge claim ISS-nn --reconciled <sha>`. The branch is left where it stands:
-what lands is the head the checkpoint already names, so moving the branch adds nothing to the
-landing and can leave that head hanging off no ref for the checkout that fetches it. Anything else
-the landing settles itself, and `forge resume ISS-nn` says which happened.
+ISS-nn --take`, then `forge claim ISS-nn --reconciled <sha>`. The branch is left where it stands
+while that is the answer: what lands is the head the checkpoint already names, so moving the branch
+adds nothing to the landing and can leave that head hanging off no ref for the checkout that
+fetches it. A reading that finds the candidate wrong is answered by a new head instead, reviewed and
+judged as any capture is, and `forge claim ISS-nn --pushed --ready` hands it back for the landing to
+build its candidate from again. Anything else the landing settles itself, and `forge resume ISS-nn`
+says which happened.
 
 **Where the project asks for an independent judge**, the landing stops for one and the judgement is
 another run's: this run neither writes those verdicts nor waits for them. Whether that stop sits
