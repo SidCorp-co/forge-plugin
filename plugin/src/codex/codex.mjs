@@ -244,7 +244,8 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
 /* Read where `show` reads it, and a name not on the list is refused rather than sent, because a role
    the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
-  const { angles } = anglesInEffect(raw);
+  const { angles, from } = anglesInEffect(raw);
+  if (!angles.length) fail(`codex: ${from} names no angle. Name some of ${Object.keys(ANGLES).join(", ")}, or drop the key for tech,debt.`);
   for (const one of angles) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
   return angles;
 };

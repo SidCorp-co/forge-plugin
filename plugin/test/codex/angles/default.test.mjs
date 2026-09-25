@@ -39,3 +39,10 @@ test("show says whether the debt angle is on and where the list was read, and ho
   assert.match(kept, /^angles {4}: tech {2}← codex\.angles in \S+ — debt is available and off here: add it to that list, as tech,debt$/mu, kept);
   assert.match(shownIn({ slug: "own", codex: { angles: ["tech", "debt"] } }), /^angles {4}: tech, debt {2}← codex\.angles in \S+ — debt is on$/mu);
 });
+
+test("a list naming no angle is refused where a consult reads it, and show says so", () => {
+  assert.match(shownIn({ slug: "own", codex: { angles: [] } }), /^angles {4}: none {2}← codex\.angles in \S+ — a list naming no angle, so a consult here is refused$/mu);
+  const run = spawnSync(process.execPath, [CLI, "codex", "consult", "a.mjs", "--angles", ","], { encoding: "utf8" });
+  assert.match(run.stderr, /codex: --angles names no angle\. Name some of tech, ba, user, ux, debt, or drop the key for tech,debt\./u, run.stderr);
+  assert.notEqual(run.status, 0);
+});

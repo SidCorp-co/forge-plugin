@@ -10,16 +10,15 @@ const listed = (given) =>
 const DEFAULT_FROM = "the plugin's default";
 
 /** The angles in effect and where they were read: the flag, else the checkout's file, else the
- *  machine's, else the default. An empty list is no choice and reads as the default. Names are returned
- *  as given, because refusing one the set does not hold is the consult's to do. */
+ *  machine's, else the default. Names are returned as given, an empty list included, because refusing
+ *  what no consult can run under is the consult's to do. */
 export const anglesInEffect = (raw) => {
   const said = [
     [raw, "--angles"],
     [projectCodex().angles, `codex.angles in ${fromProject()}`],
     [userConfig().codex?.angles, `codex.angles in ${configPath()}`],
   ].find(([value]) => value !== undefined);
-  const asked = said ? listed(said[0]) : [];
-  return asked.length ? { angles: asked, from: said[1] } : { angles: DEFAULT_ANGLES, from: DEFAULT_FROM };
+  return said ? { angles: listed(said[0]), from: said[1] } : { angles: DEFAULT_ANGLES, from: DEFAULT_FROM };
 };
 
 /* A list a project wrote before debt existed is its own choice and is kept. What it is owed is to
@@ -31,5 +30,6 @@ const debtSaid = ({ angles }) => (angles.includes("debt")
 /** The line `show` and `doctor` print, whether the debt angle is among them said on it. */
 export const anglesShown = (raw) => {
   const held = anglesInEffect(raw);
+  if (!held.angles.length) return `none  ← ${held.from} — a list naming no angle, so a consult here is refused`;
   return `${held.angles.join(", ")}  ← ${held.from} — ${debtSaid(held)}`;
 };
