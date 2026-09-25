@@ -93,9 +93,10 @@ const wholeOutput = (code, first, commands) => {
 /** An argument with every pair of parentheses wrapping it whole taken off, so `((a || b))` is read
  *  as `a || b` is. */
 const unwrapped = (code, { from, to }) => {
-  let span = { from: from + code.slice(from, to).search(/\S/u), to: from + code.slice(from, to).trimEnd().length };
+  const trimmed = (at, end) => ({ from: at + code.slice(at, end).search(/\S|$/u), to: at + code.slice(at, end).trimEnd().length });
+  let span = trimmed(from, to);
   while (code[span.from] === "(" && argumentsAt(code, span.from).close === span.to - 1) {
-    span = { from: span.from + 1, to: span.to - 1 };
+    span = trimmed(span.from + 1, span.to - 1);
   }
   return span;
 };

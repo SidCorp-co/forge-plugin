@@ -31,8 +31,9 @@ test("the suite holds no more vacuous assertions than its standing count, and no
 });
 
 test("a disjunction a truthiness assert takes whole is named, grouped or not, with what to write instead", () => {
-  const found = planted("assert.ok(a || b);\nassert((a || b), \"m\");\n");
-  assert.deepEqual(found.map(({ line, shape }) => `${line} ${shape}`), ["1 disjunction", "2 disjunction"]);
+  const found = planted("assert.ok(a || b);\nassert((a || b), \"m\");\nassert.ok(( (a || b) ));\nassert.ok(\n  (\n    a || b\n  ),\n);\n");
+  assert.deepEqual(found.map(({ line, shape }) => `${line} ${shape}`),
+    ["1 disjunction", "2 disjunction", "3 disjunction", "4 disjunction"]);
   const said = vacuousProblems(found);
   assert.match(said[0], /^plugin\/test\/made-up\.test\.mjs:1 holds a disjunction inside a truthiness assert, /u);
   assert.match(said[0], /Instead, assert the one outcome the contract names/u);
