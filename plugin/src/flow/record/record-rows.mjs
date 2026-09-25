@@ -11,6 +11,7 @@ import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 import { proseHelp } from "./prose-route.mjs";
+import { bodyCap } from "../../tracker/comment-cap.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
@@ -139,7 +140,7 @@ const MERGED_BLOCKS = [
    reached the criterion, which is why it alone owes no evidence, and a reader who cannot tell it
    from a shortfall somebody released on purpose can count neither (ISS-1875). */
 const VERDICT_BLOCKS = [
-  "What each value records, which is what a later reader of this issue gets:",
+  "What each value records:",
   "  pass     the criterion was met as it is written",
   "  fail     it was exercised and not met, and the shortfall holds the rung until it is answered",
   "  short    it was exercised, met short of its wording, and the shortfall judged not to block:",
@@ -149,12 +150,18 @@ const VERDICT_BLOCKS = [
   "it. It belongs to `short` alone and is refused on any other value.",
 ];
 
+/* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.
+   Read when the help is, the reader importing the tracker's writer (ISS-489, ISS-652). */
+const capBlocks = (cap = bodyCap()) => (cap === null ? [] : [
+  `A write whose comment is over ${cap} code points is refused before any file goes up, naming the`,
+  "writes to split it into.",
+]);
+
 const CRITERION_BLOCKS = [
   "--criterion repeats: each one opens a block, and one write judges every criterion it names.",
-  "What stands before the first --criterion is every block's. A block's own value of a flag taking",
-  "one replaces the shared one and a repeatable flag adds to it. Where another --criterion follows,",
-  "that value stands directly after the block's own --criterion; after the block's other flags it",
-  "reads as the next block's, and is refused:",
+  "What stands before the first --criterion is every block's: a block's own value replaces it, and a",
+  "repeatable flag adds to it. Where another --criterion follows, that value stands directly after the",
+  "block's own --criterion; after the block's other flags it reads as the next block's, and is refused:",
   "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
   "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
   "A file two criteria cite goes up once. Each block reads back as the record a single write makes.",
@@ -288,7 +295,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
     ...(kind === "answer" ? ["", ...ANSWER_BLOCKS] : []),
     ...(SHAPES[kind]?.finder ? ["", ...WAVE_BLOCKS] : []),
-    ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
+    ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS, ...capBlocks()] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
     ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),
     ...(formsTaken(kind).length ? ["", ...formsTaken(kind)] : []),

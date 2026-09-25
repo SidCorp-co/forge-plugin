@@ -28,8 +28,9 @@ attached twice resolves to two documents (ISS-55) — and `forge attach` refuses
 because the ambiguity belongs to the name and not to the route that sent it; where the comment page
 is cut at its cap that verb says so and sends anyway, having no citation to make instead of the
 upload the way this one has (ISS-137). Every file is scanned before the first request goes, and the
-upload comes after every refusal the record's shape can earn, so a fixable shape costs no attachment;
-a name the tracker will not type costs that one file's request, there being no way to ask first. What
+upload comes after every refusal the record's shape can earn, so a fixable shape costs no attachment.
+The comment's length against the tracker's cap is one of them (ISS-489).
+A name the tracker will not type costs that one file's request, there being no way to ask first. What
 is up cannot be undone, there being no delete for an upload — a lease lost mid-command, a request
 failing behind one that landed, a comment gate refusing the record after the first file up. Each
 names what it sent and the `--evidence` line that cites it, sending the path again colliding with the

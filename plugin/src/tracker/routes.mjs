@@ -198,6 +198,13 @@ export const DECLARES = {
       reason: { self: 10000, halves: {} },
     },
   },
+  /* The body's cap, as the tracker's refusal of a longer one prints it: a record measured against it
+     before its evidence goes up is refused while nothing it sends can be taken back (ISS-489). */
+  forge_comments: {
+    caps: {
+      body: { self: 10000, halves: {} },
+    },
+  },
   forge_knowledge: {
     kind: ["overview", "scenario", "workflow", "rule", "guide", "reference", "glossary"],
     injection: ["always", "on_demand", "none"],

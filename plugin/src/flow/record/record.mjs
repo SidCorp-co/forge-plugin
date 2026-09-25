@@ -8,7 +8,8 @@ import { answersByComment } from "../earned/park-status.mjs";
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
 import { CLOSES_FROM, SHAPES, criterionNumber, handleOf, heldSaid, planTyped, unwrap } from "../machine.mjs";
-import { assemble, parseAll, printRecord, render } from "./page.mjs";
+import { assemble, parseAll, printRecord } from "./page.mjs";
+import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "./record-rows.mjs";
@@ -417,7 +418,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
-  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: render(kind, blocks, stamp) };
+  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: renderedWithin(kind, blocks, stamp, { reference, uploads: plan?.upload }) };
 };
 
 const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
