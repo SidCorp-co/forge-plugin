@@ -280,8 +280,7 @@ export function deny(reason) {
 /** Where the argument for a rule lives. What a refusal prints costs context on every tool use, so
  *  it carries the shape and the action and ends with this. The name is the gate's, or a topic's
  *  where one gate refuses two unrelated things and each argument wants its own page. `cause` is the
- *  gate's name for this one refusal, kept when its wording changes: the harness report follows a
- *  refusal by it, so two wordings under one name are one cause there and an unnamed one is its own. */
+ *  gate's name for this one refusal, kept when its wording changes; `refusalCauseIn` is its reader. */
 export const how = (topic = null, cause = null) =>
   `\n\nHow: \`forge hooks --how ${topic || gateName()}\`${cause ? ` (cause: ${gateName()}/${cause})` : ""}`;
 

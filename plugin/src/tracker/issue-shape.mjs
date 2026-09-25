@@ -577,8 +577,8 @@ const SHAPE_HEAD = "Hold — run the command each line below names under `clear:
 export const shapeRefusal = ({ gaps }) =>
   (gaps.length ? [SHAPE_HEAD, rendered(gaps)].join("\n\n") : null);
 
-/* The name the harness report follows this refusal by, whatever its wording: the first line the
-   refusal lists, the duplicate being put ahead of the gaps, or the route where nothing else refused. */
+/* Which of the three refusals this is, as its gate names it: the first line it lists, the duplicate
+   being put ahead of the gaps, or the route where nothing else refused. */
 const causeOf = (duplicate, gaps) => {
   if (duplicate) return "duplicate-filing";
   return gaps.length ? "filing-shape" : "filing-route";
