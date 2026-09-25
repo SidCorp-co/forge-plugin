@@ -469,8 +469,10 @@ test("a merge carrying the judged head's own tree refuses a list of moved paths,
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--moved says docs\/a\.md, plugin\/src\/flow\/record\/merged\.mjs, and git reads nothing/u,
     run.stderr);
-  assert.match(run.stderr, /Run the same command without --moved and the clause is git's reading\./u,
-    "and the command that clears it, which types no value to guess at");
+  assert.match(run.stderr, new RegExp(`Run it without --moved and the clause is git's reading:\\n {2}`
+    + `forge record merged ISS-99 --at ${AT} --reviewed ${REVIEWED} --judged ${JUDGED} `
+    + `--wrote 'docs/a\\.md, plugin/src/flow/record/merged\\.mjs'$`, "mu"),
+    "and the whole command that clears it, which types no value to guess at");
   assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false, "and no mark went up");
   assert.deepEqual(page(), []);
 });
@@ -499,7 +501,8 @@ test("a landing that moved a file of the change refuses `nothing`, naming that f
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--moved says nothing, and git reads docs\/a\.md: those are the paths of --wrote/u,
     run.stderr);
-  assert.match(run.stderr, /Run the same command without --moved/u, "and the command that clears it");
+  const again = /^ {2}(forge record merged .*)$/mu.exec(run.stderr)?.[1];
+  assert.ok(again && !again.includes("--moved"), `the command that clears it carries no --moved:\n${run.stderr}`);
   assert.deepEqual(page(), []);
 });
 

@@ -2,7 +2,7 @@
    reading each earns, and the one route that hangs a mark or takes it down. Together because the
    note is prose on the wire, and a second spelling of a clause puts a sha in the slot the next
    status reads for another one. docs/cli/record-merged.md. */
-import { refuse } from "../../refusal.mjs";
+import { refuse, typedBack } from "../../refusal.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
 import { isCommit } from "../../tracker/evidence.mjs";
@@ -306,7 +306,7 @@ const sameReading = (read, moved) =>
    (ISS-2485). What is read is the change's own paths and not the whole tree: a neighbour the landing
    moved is the review's and the reconcile's to read at the landed head, never a verdict's. The
    directory a typed entry may name is kept in the note, since the value written is the value given. */
-const movedRead = (clauses, tree) => {
+const movedRead = (clauses, tree, again) => {
   const { at, judged, moved, wrote } = clauses;
   const gone = unreadableIn(tree, [judged, at]);
   if (gone) {
@@ -323,8 +323,13 @@ const movedRead = (clauses, tree) => {
   return refuse(`--moved says ${pathsSaid(moved)}, and git reads ${pathsSaid(read)}: those are the paths `
     + `of --wrote whose bytes differ between the judged head ${judged} and ${at}. The clause is that `
     + `reading, since it is what lets the verdicts at the judged head stand, so nothing was written. `
-    + `Run the same command without --moved and the clause is git's reading.`);
+    + `Run it without --moved and the clause is git's reading:\n  ${again()}`);
 };
+
+/* The call a refused `--moved` is re-sent as: every flag the caller typed, as typed, and that one left out. */
+const withoutMoved = (reference, given) => [`forge record merged ${typedBack(reference)}`,
+  ...[...TYPED.map((one) => one.flag), "to"].filter((flag) => given[flag] !== undefined)
+    .map((flag) => `--${flag} ${typedBack(given[flag])}`)].join(" ");
 
 const branchFor = async (given) => {
   if (given.to !== undefined) return given.to;
@@ -361,7 +366,8 @@ const marked = async (documentId, ref, note, clauses, { next, patch }) => {
  *  `-h`, handed in: the rows read this module's clauses, and a read back would be a cycle. */
 export const mergedPrepared = async (argv, { reference, issue, page, next, patch, usage } = {}) => {
   const given = flags(argv, "record merged", ["--undo"], { usage });
-  const clauses = given.undo ? null : movedRead(clausesFrom(given), process.cwd());
+  const clauses = given.undo ? null
+    : movedRead(clausesFrom(given), process.cwd(), () => withoutMoved(reference, given));
   const { documentId, body } = await issue();
   const { comments } = await page();
   if (given.undo) {
