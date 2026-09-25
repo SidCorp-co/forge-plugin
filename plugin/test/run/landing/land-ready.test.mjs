@@ -20,6 +20,7 @@ const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
 const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 const { publishedFor, publishedPath } = await import("../../../src/flow/earned/published.mjs");
+const { parse } = await import("../../../src/flow/record/page.mjs");
 
 test.after(() => tracker.close());
 
@@ -344,6 +345,17 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   assert.ok(park.body.includes(`forge claim ${KEY} --take`), `the park names the take:\n${park.body}`);
   assert.ok(park.body.includes(`forge claim ${KEY} --pushed --ready`), `and the capture:\n${park.body}`);
   assert.doesNotMatch(park.body, /rebases it/u, `and no rebase that orphans the judged head:\n${park.body}`);
+  /* The paths in the reason and the two commits as the evidence, which is what the park reader keeps
+     and pairs with the move, so the builder lifts it with a step rather than a set (ISS-2449). */
+  const record = parse(park.body);
+  assert.deepEqual(record.fields.evidence, [head, pinned], `the two commits the merge was taken between:\n${park.body}`);
+  assert.ok(record.fields.why.includes(`${OWNED} conflict`), `the paths stay in the reason:\n${park.body}`);
+  const took = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+  const lifted = await asBuilder(["advance", KEY, "--to", "in_progress"]);
+  assert.equal(lifted.status, 0, `${lifted.stdout}${lifted.stderr}`);
+  assert.doesNotMatch(`${lifted.stdout}${lifted.stderr}`, /--set/u, "no status write is offered");
+  assert.equal(issue().status, "in_progress", `the park is lifted by a step:\n${lifted.stdout}${lifted.stderr}`);
   assert.equal(sha(join(at, "origin.git"), `refs/heads/${BRANCH}`), head, `no ref of the branch was written:\n${said}`);
   assert.equal(git(work, "status", "--porcelain").stdout, clean, "no file was edited");
   const held = readFileSync(join(work, OWNED), "utf8");

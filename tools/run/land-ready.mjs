@@ -36,6 +36,7 @@ import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/track
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
 import { DECLINED, SLOT, WAIT } from "../gates/machine.mjs";
+import { takenBack } from "./land-ready/taken-back.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
 const BEFORE_MERGE = "before-merge";
@@ -131,10 +132,7 @@ const mergeStep = async (one) => {
     /* Kept on the member: the candidate step reads the same merge rather than writing it twice. */
     member.merged = mergedTree(root, at.pin, landing.head);
     const { conflicts } = member.merged;
-    if (!conflicts.length) {
-      console.log(`  ${landing.branch} merges clean onto ${shortly(at.pin)}`);
-      return;
-    }
+    if (!conflicts.length) return takenBack(member, at.pin, root);
     /* Handed back before the park, so the reason the park carries names a write the state accepts. */
     const back = handsBack(member);
     if (back) await saveOn(member, { state: LANDING_HEAD_OWED });
@@ -145,7 +143,9 @@ const mergeStep = async (one) => {
         : `, and the checkpoint reads \`${landing.state}\`, past the states a branch is handed back `
           + `from. Read where it is:\n  forge resume ${key}`}`;
     const view = await asked(() => viewOf(documentId));
-    await asked(() => parkAs(view, key, "blocked", why, conflicts));
+    /* The two commits the merge was taken between, and not the paths: the reader keeps a park whose
+       evidence is a commit, and the paths are in the reason already (ISS-2449). */
+    await asked(() => parkAs(view, key, "blocked", why, [landing.head, at.pin]));
     stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`);
   });
 };

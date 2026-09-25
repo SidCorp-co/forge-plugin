@@ -96,12 +96,12 @@ test("a run dispatched to the issue takes a live lease its dispatcher is only ho
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed");
 });
 
-test("a claim handed to the run the issue was dispatched to brings the crash park no closer", async () => {
+test("a claim handed to the run the issue was dispatched to is counted as no reclaim", async () => {
   const handed = (at) => ({ holder: RUNNER, at, how: "handed", status: "confirmed", next: null });
   heldBy(DISPATCHER, { history: [handed("2026-09-11T01:00:00.000Z"), handed("2026-09-11T02:00:00.000Z")] });
   const third = await claim();
   assert.equal(third.status, 0, `a third handoff is not a third crash:\n${third.stdout}${third.stderr}`);
-  assert.doesNotMatch(third.stdout, /parks the issue as crashed|kept crashing/u,
+  assert.doesNotMatch(third.stdout, /forge record park|Reclaim \d/u,
     "the count reads reclaims, and a run that never held the issue did not die at this status");
 });
 

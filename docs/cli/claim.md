@@ -29,7 +29,10 @@ the same three calls. That read is the last call before the write: the comment g
 passes was a round trip sitting between the two, and a review of this issue's own change caught it
 there, widening a window nothing in this CLI could close by as long as a comments list takes. A
 reclaim is a handoff between two holders, though, so a holder taking its own lapsed lease back
-appends nothing to the history and brings no park closer.
+appends nothing to the history and counts as no reclaim.
+
+**A claim writes the lease and never parks**: only the caller knows it is alive, so the reclaim
+count is said to it (ISS-693).
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
 process tree. Outside a harness it is a file under the config directory, which names a machine
@@ -64,8 +67,7 @@ names the source of the id it holds, so a wave sharing one is visible before it 
 after.
 
 Each payload write costs the lease a read and a write, and a read back on top of them where the far
-end refuses no stale write; and every one of them pays, because a park is three writes and an upload
-of four files is four: a run reclaimed halfway through has to be refused at the next of them rather
+end refuses no stale write; and every one of them pays, because an upload of four files is four writes: a run reclaimed halfway through has to be refused at the next of them rather
 than carried to the end.
 
 What the lease records beside the holder, and the two readings that settle a lease its duration

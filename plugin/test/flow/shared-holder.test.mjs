@@ -128,13 +128,12 @@ test("the notice is about this reader's own id, and not about another run's", as
   assert.match(own.stdout, /every agent it dispatched/u, "and what it is really matching");
 });
 
-/* The notice sits above every route out of the claim: a claim that parks the issue as crashed
-   returns before the advisory, and the run would take the lease told nothing about what it matched. */
-test("a claim that parks the issue as crashed is still told what it matched on", async () => {
+/* The notice sits beside the lease line on every route, the reclaim past the threshold among them. */
+test("a claim that names the park to its caller is still told what it matched on", async () => {
   const reclaims = [1, 2, 3].map((one) => ({ holder: SHARED, at: `2026-09-0${one}T10:00:00.000Z`, how: "reclaim", status: "open" }));
   heldBy(SHARED, reclaims);
   const run = await takeLease(null);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /every agent it dispatched/u, run.stdout);
-  assert.match(run.stdout, /on_hold/u, "and the park that returns before the advisory still happened");
+  assert.doesNotMatch(run.stdout, /on_hold/u, "and nothing was parked");
 });

@@ -314,10 +314,10 @@ export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lea
 /** The word a take made by a payload write keeps in the claim history, which no other claim writes: a first claim typed by hand is `claim` and an anomaly taken past the dispatch statuses is `unheld`, so a reader counting how an issue was picked up can tell a run that took it from a write that did. */
 const TAKEN_BY_WRITING = "write";
 
-/** And the word both a typed reclaim and a write that reclaims for itself keep, which is what the crash park counts. */
+/** And the word both a typed reclaim and a write that reclaims for itself keep, which is what the count a reclaim prints reads. */
 export const RECLAIM = "reclaim";
 
-/** Beside it, the word a take the record calls a handoff keeps, counting toward no park. */
+/** Beside it, the word a take the record calls a handoff keeps, which that count leaves out. */
 export const HANDED = "handed";
 
 /* Which of the two a payload write owes a field holding no lease, and the only place the question is answered: take it where a bare `forge claim` would have granted it, refuse in that claim's own words where the claim is itself refused (ISS-1260, ISS-1252). Past the dispatch statuses the empty field names three readings — a run that died, a write that erased one, a filing sent straight there — and a silent take would pick one of them; that judgement is what the flag exists to ask a person for. */
@@ -430,7 +430,7 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
     /* Where a lease was displaced the line is handled as any reclaim handles it — silence carries the dead run's step forward and a transition clears it — because the two calls this replaces did exactly that, and a run that came back to read where its predecessor died would find the step gone instead (codex F1). The derived line is the empty field's alone, which had no step to carry. */
     next: over ? next : derived,
     worklog: worklogFor(context, patch),
-    /* The word a typed reclaim writes, because that is the call this replaces: the crash park counts the reclaims of a status to find where runs die, and a pickup that stopped being typed is no less a run that died there. */
+    /* The word a typed reclaim writes, because that is the call this replaces: the count a reclaim prints reads the reclaims of a status to show where runs stop, and a pickup that stopped being typed is no less a run that died there. */
     how: over ? (handed ? HANDED : RECLAIM) : TAKEN_BY_WRITING,
     status,
     over,

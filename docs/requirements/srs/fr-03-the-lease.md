@@ -223,9 +223,9 @@ history keeps a word of its own for that claim rather than the one an ordinary f
 - **AC-03-3-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "the states the clock decides, and a lease past its duration is another run's to take"
   IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, by the route the age of
   the lapse decides, and SHALL refuse the former holder's next write as stale.
-- **AC-03-3-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
+- **AC-03-3-2** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN a holder retakes its own lapsed lease THEN the CLI SHALL append no handoff and SHALL count it
-  toward no park.
+  as no reclaim.
 - **AC-03-3-3** · Rev: 2 · Proof: plugin/test/flow/claim/fresh-lapse.test.mjs "a reclaim of a lease that has only just lapsed is refused, and the flag is what takes it"
   IF a lease is past its duration by less than that duration THEN the CLI SHALL refuse a reclaim by
   another run, unless that run is one the same exception admits against a live lease, and SHALL name
@@ -263,21 +263,23 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   word a reclaim keeps, except where the record already calls that take a handoff or where work
   standing in that lease's own tree is what stops the record proving it gone.
 
-### UC-03-4 — A status that keeps dying reaches a person
+### UC-03-4 — A status that keeps dying is named to the run that claims it
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-05
 
-Repeated reclaims of one status mean the work is not merely slow. Past a threshold the issue parks
-for a person with the claim history as its evidence, rather than being picked up again by a run
-that will die the same way.
+Repeated reclaims of one status may mean the work is not merely slow, and they may equally be a
+dispatch retried, a reading that took a short lease, or a job that never started. The claim cannot
+tell those apart and the caller can, being the one process that knows it is alive, so the claim
+takes the lease and moves nothing: it names the count, and past a threshold the claim history and
+the park that would set the issue down for a person, and the caller decides.
 
-- **AC-03-4-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the third reclaim of one status parks the issue, and other statuses do not count"
-  WHEN one status has been reclaimed past the threshold THEN the CLI SHALL park the issue for a
-  person and SHALL cite the claim history.
-- **AC-03-4-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the third reclaim of one status parks the issue, and other statuses do not count"
-  IF the reclaims are spread across different statuses THEN the CLI SHALL not park, since progress
-  between crashes is progress.
-- **AC-03-4-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a park older than the crashes it would answer answers none of them"
+- **AC-03-4-1** · Rev: 2 · Proof: plugin/test/flow/park/claim-parks-nothing.test.mjs "the third reclaim of one status moves no status, posts nothing, and names the park to its caller"
+  WHEN one status has been reclaimed past the threshold THEN the CLI SHALL name the claim history
+  and the park command to the caller, and SHALL move no status and post no record.
+- **AC-03-4-2** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "reclaims are counted per status, and a first claim counts for none"
+  IF the reclaims are spread across different statuses THEN the CLI SHALL not count them together,
+  since progress between crashes is progress.
+- **AC-03-4-3** · Rev: 1 · Status: retired (ISS-693)
   IF a park already answered is older than the crashes it would answer THEN the CLI SHALL park
   again rather than treat the old answer as covering them.
 - **AC-03-4-4** · Rev: 1 · Proof: none yet — ISS-35

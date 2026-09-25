@@ -96,7 +96,7 @@ test("a write meeting a lease the record proves dead reclaims it and lands, in o
 
   const row = onTheRecord().history.at(-1);
   assert.equal(row.how, "reclaim",
-    "the history keeps the word a typed reclaim writes, so the crash park still counts this pickup");
+    "the history keeps the word a typed reclaim writes, so the count of reclaims still counts this pickup");
   assert.equal(row.status, "awaiting_release", "at the status the issue stood at when it was taken");
   assert.equal(row.from, THEIRS, "and names the run it went over, which no earlier row has to survive for");
   assert.equal(row.ranOut, ranOutOf(),
