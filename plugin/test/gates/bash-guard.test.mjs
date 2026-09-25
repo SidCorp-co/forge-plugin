@@ -9,6 +9,7 @@ import test from "node:test";
 
 import { waitsIn } from "../../src/hooks/shell-spans.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
+import { appendedLine } from "../../src/refusal.mjs";
 import { callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
@@ -397,6 +398,36 @@ test("a stash that moves a shared stack is refused in a clean worktree too", () 
   assert.match(refused, /`git stash list`, `git stash show` and `git stash create` move nothing/u, "the route out names every form it allows");
   assert.match(from(cleanRepo(), `git -C ${room} ${verb} pop`), /stack belongs to the repository/u, "counted in the tree named");
   assert.match(from(DIRTY, `git ${verb}`), /silently reverts/u, "and a dirty single worktree reads as it did");
+});
+
+/* ISS-2501. The harness report follows a refusal by the name its How line gives it, so a rule
+   reworded keeps its history; two rules sharing a name would be read as one cause there. */
+test("every rule names its own cause on the How line, and the two under polling name two", () => {
+  const verb = "stash";
+  const nap = `sl${"eep"}`;
+  const reasons = {
+    "lint-fix": decide("npx eslint --fix .").reason,
+    "kill-by-name": decide(BY_NAME).reason,
+    "stage-everything": decide(STAGE_ALL).reason,
+    "shared-stash": JSON.parse(from(sharedStack().second, `git ${verb} pop`)).hookSpecificOutput.permissionDecisionReason,
+    "stash-reverts": decide(`git ${verb}`).reason,
+    "checkout-path": decide("git checkout -- tracked.txt").reason,
+    "reset-hard": decide("git reset --hard").reason,
+    "sleep-in-wait": decide(`until curl -sf localhost:3000; do ${nap} 5; done`).reason,
+  };
+  const session = randomUUID();
+  decideIn(session, "tail -50 /tmp/ship.log");
+  reasons["read-again"] = decideIn(session, "tail -50 /tmp/ship.log").reason;
+  const named = Object.entries(reasons).map(([name, reason]) => {
+    const how = reason.trimEnd().split("\n").findLast((line) => line.trim() && !appendedLine(line));
+    const found = /^How: `forge hooks --how (\S+)` \(cause: bash-guard\/([\w-]+)\)$/u.exec(how);
+    assert.ok(found, `${name}: the How line names no cause: ${how}`);
+    assert.equal(found[2], name, `${name}: named ${found[2]}`);
+    return [found[1], found[2]];
+  });
+  assert.equal(new Set(named.map(([, cause]) => cause)).size, named.length, "no two rules share a name");
+  assert.deepEqual(named.filter(([topic]) => topic === "polling").map(([, cause]) => cause), ["sleep-in-wait", "read-again"],
+    "and the two refusals under polling name two causes");
 });
 
 /* The wait taken out of the loop and one read typed per turn, which the rule above cannot see: over

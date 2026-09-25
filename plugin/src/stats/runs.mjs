@@ -25,11 +25,11 @@ import {
   conditionLines, countIn, declareLines, failureLines, foldPhases, helpLine, helpOver, listing, perRung,
   phaseLines, readHeader, readRow, rungLines, shipLine, tokenLines, unrecognisedIn,
 } from "./tables.mjs";
-import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
+import { add, medianOrZero, minutes, share, stamp, unionSeconds } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { scopeOf } from "./marks/marks.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
-import { refusalIn } from "./corpus/refusals.mjs";
+import { refusalCauseIn } from "./corpus/refusals.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -89,25 +89,6 @@ export const segmented = (calls) => {
     }
     return { ...call, phase, cursor: phase };
   });
-};
-
-/* Waits overlap: the host issues several calls in one turn and they run at once, so their durations
-   summed exceed the wall clock they shared and would report more waiting than the run took. The
-   union is what the wall time is split by; a class's own row stays a sum of its calls, which is
-   tool-seconds and says so. */
-export const unionSeconds = (spans) => {
-  const sorted = [...spans].sort((left, right) => left.at - right.at);
-  let total = 0;
-  let openedAt = null;
-  let closesAt = null;
-  for (const span of sorted) {
-    if (closesAt === null || span.at > closesAt) {
-      total += closesAt === null ? 0 : closesAt - openedAt;
-      openedAt = span.at;
-      closesAt = span.endedAt;
-    } else closesAt = Math.max(closesAt, span.endedAt);
-  }
-  return (closesAt === null ? total : total + closesAt - openedAt) / 1000;
 };
 
 /* An advance that follows a record is the flow working as the contract describes; one that follows
@@ -181,6 +162,8 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
   const endedAt = read.lastAt;
   const byClass = new Map();
   const refusals = new Map();
+  const refusalCauses = new Map();
+  const refusalSaid = new Map();
   const forms = new Map();
   const errors = new Map();
   const answered = new Map();
@@ -205,9 +188,13 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
     if (help) add(helpReads, help);
     const form = formIn(call);
     if (form) add(forms, form);
-    const refusal = refusalIn(call);
-    if (refusal) add(refusals, refusal);
-    else if (call.error) {
+    const refusal = refusalCauseIn(call);
+    if (refusal) {
+      add(refusals, refusal.met);
+      add(refusalCauses, refusal.key);
+      /* The latest wording a cause was met under is the one a reader recognizes now. */
+      refusalSaid.set(refusal.key, { met: refusal.met, gate: refusal.gate });
+    } else if (call.error) {
       const answer = answerOf(call, answers);
       if (answer) add(answered, answer);
       else add(errors, errorKeyOf(call));
@@ -262,6 +249,8 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
     edits: editsIn(calls),
     byClass,
     refusals,
+    refusalCauses,
+    refusalSaid,
     forms,
     errors,
     answers: answered,
@@ -492,6 +481,7 @@ export const profileOf = (runs, declared = null, act = null) => {
     byClass,
     unrecognised: unrecognisedIn(byClass, declared),
     refusals: mergedCounts(runs, (run) => run.refusals),
+    refusalCauses: mergedCounts(runs, (run) => run.refusalCauses),
     forms: mergedCounts(runs, (run) => run.forms),
     errors: mergedCounts(runs, (run) => run.errors),
     answers: mergedCounts(runs, (run) => run.answers),

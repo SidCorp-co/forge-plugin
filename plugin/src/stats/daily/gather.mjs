@@ -173,10 +173,17 @@ const standDownsOn = (entries, day) => {
 
 const refusalsOn = (all, day) => profileOf(runsOn(all, day)).refusals.reduce((sum, [, many]) => sum + many, 0);
 
+/* What the latest run to meet a cause said of it: the wording it was met under and its gate. */
+const saidOf = (runs, key) => runs.filter((run) => run.refusalSaid.has(key))
+  .reduce((latest, run) => (latest && latest.endedAt > run.endedAt ? latest : run), null).refusalSaid.get(key);
+
 /** The friction listings of a set of runs, each row with the runs behind it, off the runs' own
- *  profile: what a day's page lists and what the current report reads day by day. */
+ *  profile: what a day's page lists and what the current report reads day by day. A refusal is
+ *  listed twice: by its line, and by the cause it is followed under, which can hold several lines. */
 export const frictionOf = (runs, profile = profileOf(runs)) => ({
   refusals: listed(profile.refusals, runs, (run) => run.refusals),
+  refusalCauses: listed(profile.refusalCauses, runs, (run) => run.refusalCauses)
+    .map((one) => ({ ...one, ...saidOf(runs, one.key) })),
   errorRows: profile.errorRows,
   errors: listed(profile.errors, runs, (run) => run.errors),
   answers: listed(profile.answers, runs, (run) => run.answers),

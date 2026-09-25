@@ -9,9 +9,18 @@ off the source that writes it: a gate's `Hold —` or `Refused —` opener (`Ref
 the `How:` line every gate's refusal ends with, a tracker refusal's `<name> refused:` with its reason
 inline or on the next line, and a verb's own refusal sentence, which opens with a verb this CLI has.
 A gate's refusal leads with its route, so for a gate the row is the route line, which is as much
-one rule's as the shape line was; a window spanning the change reads one rule under two rows. Where a body carries more
+one rule's as the shape line was; a window spanning the change reads one rule under two rows here. Where a body carries more
 than one, the last is the row: a `forge` command prints its provenance banner before it refuses, and
 keying on the body's first line filed 187 of those banners under a row that named nothing.
+
+**The harness report follows a cause, not a line.** A refusal's wording is the thing a gate
+changes most often, so a report keyed on it reads every rewording as a fix and a new cause from
+zero. There a refusal is keyed on the gate that wrote it, read off its `How:` line or the page a
+repeat names, beside the name the gate gave that refusal: two wordings under one name are one cause,
+because the gate said so. A gate that names nothing keeps one cause per wording, since one topic can
+cover several different refusals, and a refusal no gate wrote keeps its line. What the gate did not
+name may still be a reworded cause, so a row whose gate refused after its fix under any key the row
+does not carry is not read as fixed.
 
 **A marked line beats a verb sentence wherever each of them sits**, which is a precedence rather
 than an ordering, and it has a cost either way. A marked refusal quotes the lines it was refused

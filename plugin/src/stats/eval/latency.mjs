@@ -101,7 +101,7 @@ const rowOf = (label, before, now, crossed) => {
     now,
     crossed,
     shift,
-    /* A difference of two means times a call count, and what `unionSeconds` in runs.mjs states of
+    /* A difference of two means times a call count, and what `unionSeconds` in figures.mjs states of
        the sums it is built from carries into the product: an attribution derived from them is no
        more subtractable from the clock than they are. So the figure is labelled where it prints
        rather than left to be added to a wall-time saving, which is the one thing it cannot be. */

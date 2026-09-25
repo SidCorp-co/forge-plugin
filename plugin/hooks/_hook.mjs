@@ -182,13 +182,16 @@ export const remaining = () => Math.floor(deadline - (Date.now() - startedAt));
 /** One gate on its own, as the suite and a hand-run call it. */
 export const alone = (name) => dispatch([name]);
 
+/** The gate running now: the one the hook log files a decision under and a refusal names. */
+const gateName = () => current || basename(process.argv[1] ?? "", ".mjs");
+
 /* Refusals are the only entries — a false positive from outside. `target` is what a caller reading
    the log back matches on, so a gate whose subject is one path inside a longer command names it. */
 export const logged = (decision, reason, target = null) => {
   const ti = event.tool_input ?? {};
   logHook({
     at: new Date().toISOString(),
-    hook: current || basename(process.argv[1] ?? "", ".mjs"),
+    hook: gateName(),
     decision,
     tool: event.tool_name ?? "",
     session: event.session_id ?? "",
@@ -276,9 +279,11 @@ export function deny(reason) {
 
 /** Where the argument for a rule lives. What a refusal prints costs context on every tool use, so
  *  it carries the shape and the action and ends with this. The name is the gate's, or a topic's
- *  where one gate refuses two unrelated things and each argument wants its own page. */
-export const how = (topic = null) =>
-  `\n\nHow: \`forge hooks --how ${topic || current || basename(process.argv[1] ?? "", ".mjs")}\``;
+ *  where one gate refuses two unrelated things and each argument wants its own page. `cause` is the
+ *  gate's name for this one refusal, kept when its wording changes: the harness report follows a
+ *  refusal by it, so two wordings under one name are one cause there and an unnamed one is its own. */
+export const how = (topic = null, cause = null) =>
+  `\n\nHow: \`forge hooks --how ${topic || gateName()}\`${cause ? ` (cause: ${gateName()}/${cause})` : ""}`;
 
 export function block(reason) {
   logged("block", reason);

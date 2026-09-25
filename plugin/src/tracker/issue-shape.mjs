@@ -577,9 +577,17 @@ const SHAPE_HEAD = "Hold — run the command each line below names under `clear:
 export const shapeRefusal = ({ gaps }) =>
   (gaps.length ? [SHAPE_HEAD, rendered(gaps)].join("\n\n") : null);
 
+/* The name the harness report follows this refusal by, whatever its wording: the first line the
+   refusal lists, the duplicate being put ahead of the gaps, or the route where nothing else refused. */
+const causeOf = (duplicate, gaps) => {
+  if (duplicate) return "duplicate-filing";
+  return gaps.length ? "filing-shape" : "filing-route";
+};
+
 /** Why a filing is refused, as the parts a caller branches on beside the text a person reads: the
- *  key it duplicates, whether the shape refused the body, and whether a route is owed. `fresh` is
- *  `--new`, and `declined` the duplicate it waved through, with `text` null where nothing else refused. Reading any
+ *  key it duplicates, whether the shape refused the body, whether a route is owed, and the `cause` a
+ *  gate names the refusal by. `fresh` is `--new`, and `declined` the duplicate it waved through,
+ *  with `text` null where nothing else refused. Reading any
  *  of those off the text is matching a paragraph written for somebody else. The read is handed in
  *  rather than taken: a body scanned twice for one filing is the reading done twice, and this asks
  *  the tracker what else is open where the `shapeOf` line owes no such read. `routed` is a route the
@@ -625,11 +633,13 @@ export const filingRefusal = async (filing, { gaps, fix, tokens },
       + "review, a verdict per criterion, a verification, a release note and eight transitions, and the mark "
       + "is what drops the decision, the plan and the note."
     : SHAPE_HEAD;
+  const duplicate = declined ? null : same?.key ?? null;
   return {
     text: [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n"),
-    duplicate: declined ? null : same?.key ?? null,
+    duplicate,
     shaped: gaps.length > 0,
     declined,
+    cause: causeOf(duplicate, gaps),
   };
 };
 

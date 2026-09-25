@@ -18,8 +18,9 @@ export const PER_CAUSE_MISSING = {
   issue: "ISS-2477",
 };
 
-/** The key a cause is followed by: the entry's kind and what the runs met, as the day's page names it. */
-const causeKey = (entry) => `${entry.kind} · ${entry.met}`;
+/** The key a cause is followed by: the entry's kind and the cause the day's page names, which for a
+ *  refusal is its gate's and holds every wording the gate named as one. */
+const causeKey = (entry) => `${entry.kind} · ${entry.cause ?? entry.met}`;
 
 /** Every day from the first one held through today, oldest first. */
 export const heldDaysFrom = (first, now) => {
@@ -29,7 +30,8 @@ export const heldDaysFrom = (first, now) => {
   return days;
 };
 
-const blank = (entry) => ({ key: causeKey(entry), kind: entry.kind, met: entry.met, firstAt: Infinity, byDay: new Map(), runs: [] });
+const blank = (entry) => ({ key: causeKey(entry), kind: entry.kind, met: entry.met, gate: entry.gate ?? null,
+  firstAt: Infinity, lastAt: -Infinity, byDay: new Map(), runs: [] });
 
 /** Each cause the runs met, with what it cost each day and each run that met it. */
 export const causesOf = (runs) => {
@@ -43,6 +45,8 @@ export const causesOf = (runs) => {
         minutes: Math.round((was.minutes + (entry.minutes ?? 0)) * 10) / 10 });
       cause.runs.push({ startedAt: run.startedAt, endedAt: run.endedAt, calls: entry.calls, minutes: entry.minutes ?? 0 });
       cause.firstAt = Math.min(cause.firstAt, run.endedAt);
+      /* The wording of the latest run to meet it, which is the one a reader meets now. */
+      if (run.endedAt >= cause.lastAt) Object.assign(cause, { lastAt: run.endedAt, met: entry.met });
       held.set(cause.key, cause);
     }
   }
@@ -79,6 +83,18 @@ export const scoreOf = (figures, settings) => {
 export const recurrenceAfter = (causes, at) => {
   const after = causes.flatMap((one) => one.runs).filter((run) => run.startedAt > at);
   return { calls: sumOver(after, (one) => one.calls), days: new Set(after.map((one) => dayOf(one.endedAt))).size };
+};
+
+/** What a row's gates refused in runs begun after a moment under a key the row does not carry: the
+ *  gates, how many such keys and the days they fell on; null where nothing did. A gate's other
+ *  wording may be this cause reworded, so a row is never read as fixed past one. */
+export const gateAfter = (causes, all, at) => {
+  const gates = new Set(causes.map((one) => one.gate).filter(Boolean));
+  const carried = new Set(causes.map((one) => one.key));
+  const after = all.filter((one) => gates.has(one.gate) && !carried.has(one.key))
+    .flatMap((one) => one.runs.filter((run) => run.startedAt > at).map((run) => ({ key: one.key, day: dayOf(run.endedAt) })));
+  if (!after.length) return null;
+  return { gates: [...gates], keys: new Set(after.map((one) => one.key)).size, days: new Set(after.map((one) => one.day)).size };
 };
 
 const sideOf = (series, runsADay, pick) => {
@@ -125,10 +141,11 @@ const isNew = (figures, { previousAt, now }) =>
 export const daysSince = (at, now) => Math.floor((now - at) / DAY_MS);
 
 /** Where a row stands: new, fixed, left (fixed and followed for the configured days with no
- *  recurrence), recurring, or one-off. A row that recurred after its fix is recurring whatever else. */
+ *  recurrence), recurring, or one-off. A row that recurred after its fix, or whose gate refused after
+ *  it under a key the row does not carry, is recurring whatever else. */
 export const sectionOf = (row, { previousAt, now, followDays }) => {
-  if (row.release && !row.recurred) return daysSince(row.release.at, now) >= followDays ? "left" : "fixed";
-  if (row.recurred) return "recurring";
+  if (row.recurred || row.unsettled) return "recurring";
+  if (row.release) return daysSince(row.release.at, now) >= followDays ? "left" : "fixed";
   if (isNew(row.figures, { previousAt, now })) return "new";
   return row.figures.daysSeen > 1 ? "recurring" : "one-off";
 };

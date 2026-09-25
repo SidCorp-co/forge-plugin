@@ -7,7 +7,7 @@ import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
 import { filingsOf, joined, ownChecked, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
-import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";
+import { filingRefusal, shapeOf } from "../../src/tracker/issue-shape.mjs";
 import { documentIdIfAny } from "../../src/tracker/issues.mjs";
 import { accountCredentials, fail, projectAt, useProject } from "../../src/resolve/settings.mjs";
 
@@ -70,11 +70,11 @@ export const run = async (ev) => {
   // The shape first: a filing refused never happened, and its scope is the event's own directory.
   if (canAskTracker && aimedAt(here)) {
     for (const filing of filings) {
-      const refused = await refusalFrom(filing, shapeOf(filing));
-      if (refused) deny(refused + how(SHAPE));
+      const refused = await filingRefusal(filing, shapeOf(filing));
+      if (refused?.text) deny(refused.text + how(SHAPE, refused.cause));
     }
   }
-  if (wrapped) deny(wrapped + how("wrapped-route"));
+  if (wrapped) deny(wrapped + how("wrapped-route", "raw-call"));
   if (!canAskTracker) done();
   /* One group per command start: a compound may cross checkouts, and a tool call moves nowhere. */
   const groups = call.name === "Bash"
@@ -97,6 +97,6 @@ export const run = async (ev) => {
   const looked = await owedFor([...targets.values()], keysFor);
   if (!looked.first.length && ownChecked(call, said)) done();
   const refusal = await refusalOf(looked, keysFor);
-  if (refusal) deny(refusal + how());
+  if (refusal) deny(refusal + how(null, looked.owed.length ? "unread-comments" : "thread-unaccounted"));
   done();
 };

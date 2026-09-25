@@ -4,7 +4,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { dayOf } from "../daily/day.mjs";
-import { byRank, causesOf, daysSince, figuresOf, heldDaysFrom, PER_CAUSE_MISSING, projectedOf, realizedOf,
+import { byRank, causesOf, daysSince, figuresOf, gateAfter, heldDaysFrom, PER_CAUSE_MISSING, projectedOf, realizedOf,
   recurrenceAfter, scoreOf, sectionOf } from "./causes.mjs";
 import { familiesOf, MATCHED, matchesOf, trackerOf } from "./families.mjs";
 import { corporaOf, dayFiguresOf, readingOf, runsOn, within } from "../daily/gather.mjs";
@@ -40,14 +40,15 @@ const statusOf = (issues, release) => {
 
 /** The row a family of causes reads as, with every figure the page and `--json` carry. */
 const rowOf = (family, context) => {
-  const { days, marks, settings, now, previousAt, runsADay, today } = context;
+  const { days, marks, settings, now, previousAt, runsADay, today, causes } = context;
   const figures = figuresOf(family.causes, days);
   const release = releaseOf(family.issues, marks);
   const again = release ? recurrenceAfter(family.causes, release.at) : null;
   const recurred = again?.days
     ? { version: release.version, calls: again.calls, days: again.days, reopen: release.issue } : null;
-  const row = { causes: family.causes.map((one) => ({ kind: one.kind, met: one.met, key: one.key })),
-    issues: family.issues, unmatched: family.unmatched, status: statusOf(family.issues, release), release, recurred, figures };
+  const unsettled = release && !recurred ? gateAfter(family.causes, causes, release.at) : null;
+  const row = { causes: family.causes.map((one) => ({ kind: one.kind, met: one.met, key: one.key, gate: one.gate })),
+    issues: family.issues, unmatched: family.unmatched, status: statusOf(family.issues, release), release, recurred, unsettled, figures };
   const section = sectionOf(row, { previousAt, now, followDays: settings.followDays });
   return {
     ...row,
@@ -112,7 +113,7 @@ export const currentOf = async (reading, { dir, unread = [], tracker, settings, 
   const matches = await matchesOf(alone, tracker, previous?.followed ?? {});
   const families = await familiesOf(causes, tracker, matches);
   const runsADay = new Map(days.map((day) => [day, runsOn(reading.all, day).length]));
-  const context = { days, marks, settings, now, previousAt, runsADay, today };
+  const context = { days, marks, settings, now, previousAt, runsADay, today, causes };
   const rows = families.map((one) => rowOf(one, context));
   const sections = Object.fromEntries(["new", "recurring", "one-off", "fixed"].map((one) => [one, listed(rows, one)]));
   return {
