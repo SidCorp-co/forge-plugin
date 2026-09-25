@@ -106,6 +106,15 @@ record stops there for every issue; and a reopened issue stands at `open` holdin
 the cycle before, which read forward would be told it owes the ship. A case holds no phase to
 appearing in both lists: passed and owed at once contradicts the line above them.
 
+One cell is read inside itself. `in_progress` names the review, the proof and the landing, and a
+run that finished the first two stays at that status until the landing moves it, so a phase read
+off the status alone told a finished run to review and judge again (ISS-2439). The records narrow
+that cell, and only records bound to the head the landing takes: the checkpoint's, at a turn that
+is the lander's or the judge's, judged by the same two predicates the capture out of `head-owed`
+refuses on. A review of any other commit — the release a records turn reads, a head the landing
+handed back — ends nothing here, and a builder's turn keeps the whole cell, since the builder owes a
+head or a reading there.
+
 `--for` is the only part of a guide's answer that is not on this disk. So it is answered where the
 tracker is already reached and not by the guide registry, which stays offline: asking for a slug's
 text still costs no call at all, and the cut costs the issue and its comments — the same reads this

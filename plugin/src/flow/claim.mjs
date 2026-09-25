@@ -13,7 +13,7 @@ import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
 import { namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
-import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
+import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld } from "./record/page.mjs";
 import { buildsAt } from "./earned.mjs";
@@ -75,8 +75,8 @@ const MAX_MINUTES = 24 * 60;
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
-export const advisory = (status, fields, held, work = null) => {
-  for (const line of openingLines(status, held, work)) console.log(line);
+export const advisory = (status, fields, held, work = null, finished = []) => {
+  for (const line of openingLines(status, held, work, finished)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
   console.log(`\n${MECHANISM} ${heldBy()}`);
@@ -97,7 +97,7 @@ const advise = async (documentId, issue, held = null) => {
   }
   const view = viewFrom(documentId, issue, page.comments, cutIn(page));
   scopeFrom(issue.status, issue.issueId, namedIn(view));
-  return advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work);
+  return advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view));
 };
 
 export const USAGE = [

@@ -6,18 +6,28 @@ import { CLOSES_FROM, atMinute } from "../flow/machine.mjs";
 import { POINTER } from "../flow/worklog.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { lighterRows, rungOf } from "../ladder.mjs";
+import { approvedAt, landingTurn, unjudgedAt } from "../flow/landing/checkpoint.mjs";
 
 /* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
 export const PHASES = [
   "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Clean up",
 ];
 
+/* The one cell naming phases a record ends inside the status, in the order they are worked: a run finishes the review and the proof at `in_progress`, the landing moving the status past both, so each part names the kind that ends it and the reference its method lives in. `after` is the part's phrase behind another. */
+const IN_PROGRESS = [
+  { ends: "review", said: `${PHASES[4]}, to the review`, reference: "verification" },
+  { ends: "verdict", said: PHASES[5], reference: "verification" },
+  { said: `${PHASES[7]}, the landing`, after: "then 7's landing", reference: null },
+];
+const PARTS = { in_progress: IN_PROGRESS };
+const cellOf = (parts) => parts.map((one, at) => (at ? one.after ?? one.said : one.said)).join("; ");
+
 /* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `ORDER`, the sequence being what a record earns and this what the method owes at each rung. A cell names as many phases as are worked while the status is held, so a rung the ladder folded two into names both and holds the records that earn the status above it across the pair. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
 export const PHASE = {
   open: [PHASES[1], null],
   confirmed: [`${PHASES[2]}; ${PHASES[3]}`, null],
   approved: [`${PHASES[4]}, to the branch`, "verification"],
-  in_progress: [`${PHASES[4]}, to the review; ${PHASES[5]}; then 7's landing`, "verification"],
+  in_progress: [cellOf(IN_PROGRESS), "verification"],
   developed: [PHASES[5], "verification"],
   testing: [`6, ${PHASES[7]}`, null],
   /* The contract's cells and this table's are mirrored, so `forge guide contract awaiting_release` is what a reader is held to: the close is the tail of the ship's own phase and the row names it there. */
@@ -27,10 +37,39 @@ export const PHASE = {
   reopen: [`${PHASES[1]}, of the person's finding`, null],
 };
 
-export const methodOf = (status) => {
-  const held = PHASE[status];
-  if (!held) return null;
-  return { phase: held[0], reference: held[1] ? `forge guide issue-flow ${held[1]}` : "forge guide issue-flow" };
+/* The turns at which the checkpoint's head is the one the landing takes: the builder's turns owe a new head or a reading, and `done` has taken it. */
+const AT_THE_LANDING = new Set(["lander", "qa"]);
+
+/** The kinds that ended a phase at the checkpoint's head, in the order `IN_PROGRESS` names them: the
+ *  review where the latest one approved that head, and the verdicts where every criterion's latest
+ *  passes it too. Read by the capture's own predicates, so the resume says a phase is done exactly
+ *  where the landing takes the head. A review of any other commit — the release a records turn
+ *  reads, a head the landing handed back — ends nothing here (ISS-2439). `view` is `viewFrom`'s. */
+export const finishedAtHead = ({ landing, latest, verdicts, criteria }) => {
+  const head = landing?.head;
+  if (!head || !AT_THE_LANDING.has(landingTurn(landing)) || !approvedAt(head, latest)) return [];
+  return criteria?.length && !unjudgedAt(head, { verdicts, criteria }).length ? ["review", "verdict"] : ["review"];
+};
+
+/* A status's cell with the leading parts the head's records ended taken off it and listed as passed.
+   A prefix only: a part is worked after the one before it, so a later one ends nothing alone. */
+const narrowed = (status, finished = []) => {
+  const parts = PARTS[status];
+  if (!parts) return { phase: PHASE[status]?.[0], reference: PHASE[status]?.[1], passed: [] };
+  let at = 0;
+  while (parts[at]?.ends && finished.includes(parts[at].ends)) at += 1;
+  const left = parts.slice(at);
+  return {
+    phase: cellOf(left),
+    reference: left[0].reference,
+    passed: parts.slice(0, at).map((one) => ({ status, phase: one.said, cites: one.ends })),
+  };
+};
+
+export const methodOf = (status, finished = []) => {
+  if (!PHASE[status]) return null;
+  const { phase, reference } = narrowed(status, finished);
+  return { phase, reference: reference ? `forge guide issue-flow ${reference}` : "forge guide issue-flow" };
 };
 
 const NUMBERED = /^(\d+)/u;
@@ -96,24 +135,26 @@ const passedIn = (status, held) => ORDER.slice(0, ORDER.indexOf(status)).filter(
 
 /* What is ahead is the status's alone, the waiver below being the only reading that needs a rung. A
    status off `ORDER` — a reopen, a park's side — owes its own row's phase and is not completion. */
-const behind = (status, held) => {
+const behind = (status, held, finished = []) => {
   const aside = !ORDER.includes(status) && numbered(status);
   const owing = aside ? [status] : owedFrom(status).filter(numbered);
+  const own = narrowed(status, finished);
   return {
     aside: aside ? status : null,
     owing,
-    passed: aside ? [] : passedIn(status, held),
-    first: owing.length ? PHASE[owing[0]][0] : null,
+    passed: aside ? [] : [...passedIn(status, held), ...own.passed],
+    first: owing.length ? own.phase : null,
+    own: own.phase,
   };
 };
 
-export const phaseIndex = ({ status, fields, held }) => {
-  const { aside, owing, passed, first } = behind(status, held);
+export const phaseIndex = ({ status, fields, held, finished = [] }) => {
+  const { aside, owing, passed, first, own } = behind(status, held, finished);
   return {
     passed,
     owed: owing.map((one) => ({
       status: one,
-      phase: PHASE[one][0],
+      phase: one === status ? own : PHASE[one][0],
       waivers: aside ? [] : waiversFor(one, fields),
     })),
     first,
@@ -168,8 +209,8 @@ export const READ_OFF_THE_RECORD =
 
 /** The opening on an issue somebody else opened: one line per phase behind, none where none is, and one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
 /* And the work under the record, gated on a phase being owed — a closed issue's branch is nobody's next step — and on the branch, so a phase owed with nothing behind it reads exactly as it did (ISS-1183). */
-export const openingLines = (status, held, work = null) => {
-  const { passed, first } = behind(status, held);
+export const openingLines = (status, held, work = null, finished = []) => {
+  const { passed, first } = behind(status, held, finished);
   const earned = first ? passed.filter((one) => one.cites) : [];
   const lines = earned.length
     ? [READ_OFF_THE_RECORD, ...earned.map((one) => `  passed: ${one.phase}  —  ${one.cites}`)]

@@ -3,13 +3,13 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import {
-  CITED, PHASE, READ_OFF_THE_RECORD, dischargedBy, indexLines, laneLines, openingLines, phaseIndex,
-  phaseNumber, workLines,
+  CITED, PHASE, READ_OFF_THE_RECORD, dischargedBy, finishedAtHead, indexLines, laneLines, methodOf,
+  openingLines, phaseIndex, phaseNumber, workLines,
 } from "../../src/guides/phases.mjs";
 import { CHECKS, ORDER, viewFrom } from "../../src/flow/earned.mjs";
 import { LIGHTER } from "../../src/ladder.mjs";
 import { KINDS } from "../../src/flow/record/record-rows.mjs";
-import { kindsHeld } from "../../src/flow/record/page.mjs";
+import { kindsHeld, render } from "../../src/flow/record/page.mjs";
 
 const fieldsOf = (complexity, moved = []) =>
   ({ description: "a defect", plan: null, moved, whole: true, complexity });
@@ -292,4 +292,60 @@ test("every status the flow table gives a phase is on the order or named as besi
   for (const status of off) {
     assert.equal(phaseIndex({ status, fields: fieldsOf("s"), held: EVERY_KIND }).aside, status, `${status} reads as finished`);
   }
+});
+
+/* The status's own cell narrowed by the records at the checkpoint's head, and by no others: a run
+   that finished the review and the proof stays at `in_progress` until the landing, and was told to
+   do both again by a phase read off the status alone (ISS-2439). */
+const HEAD = "c3d676c0000000000000000000000000000000aa";
+const RELEASE = "9f0e1d2000000000000000000000000000000bbb";
+const atHead = (state, reviewed, verdicts) => viewFrom("the-uuid", {
+  status: "in_progress", plan: PLAN, acceptanceCriteria: "1. The first outcome.\n2. The second outcome.",
+  sessionContext: { landing: { state, head: HEAD, base: "84a2d82", branch: "iss-1", files: ["a.mjs"] } },
+}, [
+  { createdAt: "2026-09-24T21:01:00.000Z", body: render("review", { reviewer: "codex", commit: reviewed, outcome: "approved", finding: [] }) },
+  ...verdicts.map(([criterion, verdict, commit], at) => ({
+    createdAt: `2026-09-24T21:0${2 + at}:00.000Z`,
+    body: render("verdict", { criterion: String(criterion), verdict, commit, evidence: "abc1234", why: "the case asserts it" }),
+  })),
+]);
+const cutAt = (view) => phaseIndex({
+  status: "in_progress", fields: fieldsOf("m"), held: kindsHeld(view), finished: finishedAtHead(view),
+});
+const PASSING = [[1, "pass", HEAD], [2, "pass", HEAD]];
+
+test("a review and every verdict at the checkpoint's head leave the landing as the phase owed", () => {
+  const view = atHead("ready", HEAD, PASSING);
+  assert.deepEqual(finishedAtHead(view), ["review", "verdict"]);
+  const index = cutAt(view);
+  assert.equal(index.first, "7 Ship, the landing", "the review and the proof are behind the run");
+  assert.deepEqual(index.passed.filter((one) => one.status === "in_progress").map((one) => [one.phase, one.cites]),
+    [["4 Implement, to the review", "review"], ["5 Prove", "verdict"]], "each listed passed, by the kind that ended it");
+  assert.deepEqual(methodOf("in_progress", finishedAtHead(view)),
+    { phase: "7 Ship, the landing", reference: "forge guide issue-flow" }, "and the method is the ship's");
+  const lines = openingLines("in_progress", kindsHeld(view), null, finishedAtHead(view));
+  assert.ok(lines.includes("  passed: 4 Implement, to the review  —  review"), lines.join("\n"));
+  assert.ok(lines.includes("  passed: 5 Prove  —  verdict"), lines.join("\n"));
+  assert.match(indexLines("issue-flow", "ISS-9", index)[0], /phase owed: 7 Ship, the landing$/u);
+  assert.equal(PHASE.in_progress[0], "4 Implement, to the review; 5 Prove; then 7's landing",
+    "while the cell itself reads as it did, every reader of its numbers reading the same phases");
+});
+
+test("a verdict that fails or judges another commit leaves the proof owed behind the review", () => {
+  for (const verdicts of [[[1, "pass", HEAD], [2, "fail", HEAD]], [[1, "pass", HEAD], [2, "pass", RELEASE]], [[1, "pass", HEAD]]]) {
+    const view = atHead("ready", HEAD, verdicts);
+    assert.deepEqual(finishedAtHead(view), ["review"], JSON.stringify(verdicts));
+    assert.equal(cutAt(view).first, "5 Prove; then 7's landing", JSON.stringify(verdicts));
+  }
+});
+
+test("a review of another commit, or a head the builder owes, leaves the whole cell owed", () => {
+  /* The release a records turn reviews is by design no review of the head the landing takes. */
+  for (const view of [atHead("ready", RELEASE, PASSING), atHead("head-owed", HEAD, PASSING),
+    atHead("builder-owed", HEAD, PASSING), atHead("records-owed", HEAD, PASSING), atHead("done", HEAD, PASSING)]) {
+    assert.deepEqual(finishedAtHead(view), [], view.landing.state);
+    assert.equal(cutAt(view).first, PHASE.in_progress[0], view.landing.state);
+  }
+  const bare = viewFrom("the-uuid", { status: "in_progress", plan: PLAN, acceptanceCriteria: "1. The outcome." }, []);
+  assert.deepEqual(finishedAtHead(bare), [], "and no checkpoint names no head at all");
 });
