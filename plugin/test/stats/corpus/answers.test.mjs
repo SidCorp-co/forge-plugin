@@ -46,6 +46,9 @@ test("an exit is the command's answer only where that command certainly ran and 
     "while /dev/null and a duplicated descriptor open nothing that can fail");
   assert.equal(answerOf(failed('test -z "$(pgrep -x forge)"', "Exit code 1\n")), null,
     "a pgrep inside a substitution answers for nothing; the test around it returned the 1");
+  assert.equal(answerOf(failed("test -z \"$(printf ''; pgrep -x forge)\"", "Exit code 1\n")), null,
+    "nor one a separator inside the substitution sets at the head of a segment");
+  assert.equal(answerOf(failed("test -z `pgrep -x forge`", "Exit code 1\n")), null, "and a backtick substitutes the same way");
   assert.equal(answerOf(failed("(pgrep -x forge)", "Exit code 1\n")), "pgrep, exit 1", "while a subshell's own last command still does");
   assert.equal(answerOf(failed("cd /w && export A=b && pgrep -x forge", "Exit code 1\n")), "pgrep, exit 1",
     "a cd and an export of literal words leave it certain to have run");

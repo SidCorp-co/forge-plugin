@@ -150,9 +150,13 @@ export const returningOf = (shell, body = "") => {
    `pgrep` inside `test -z "$(pgrep x)"` would answer for the `test` around it. */
 const leads = (match, command) => match.exec(command.replace(/^[\s({]+/u, ""))?.index === 0;
 
+/* A line that substitutes a command's output has commands of its own inside that output, whose
+   separators this split cannot tell from the line's; so no command of it answers for the line. */
+const SUBSTITUTES = /\$\(|`/u;
+
 /** The answer row a failed call is counted under, or null where its exit was no command's answer. */
 export const answerOf = (call, table = BUILT_IN_TABLE) => {
-  if (call.name !== "Bash" || !call.error) return null;
+  if (call.name !== "Bash" || !call.error || SUBSTITUTES.test(call.shell)) return null;
   const code = exitCodeOf(call.body);
   if (code === null) return null;
   const commands = returningOf(call.shell, call.body);
