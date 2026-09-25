@@ -42,7 +42,10 @@ export const owedTo = (value) => OWED_TO.exec(String(value ?? "").trim())?.[1] ?
 
 const lineOf = (text, id) => lineAt(text, text.indexOf(`**${id}**`));
 
-const criteriaOf = ({ file, text }) =>
+/** Every criterion of one document that carries a Proof, as `{ id, proof, file, line }` with the
+ *  field as written: the one reading of the tree's Proof lines, which the checker and the report
+ *  reading them backwards both take, so neither can count a line the other does not. */
+export const criteriaOf = ({ file, text }) =>
   clausesOf(text)
     .filter((clause) => clause.prefix === "AC" && clause.fields.Proof)
     .map((clause) => ({ id: clause.id, proof: clause.fields.Proof, file, line: lineOf(text, clause.id) }));

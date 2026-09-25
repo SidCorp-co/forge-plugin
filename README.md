@@ -110,6 +110,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "jobs": { "ba": { "verbs": ["issue", "new", "comment"], "skills": ["forge"] } },
   "rank": { "agePerDay": 2, "kind": { "bug": 20 } },
   "review": { "lines": 1500, "paths": ["plugin/src", "plugin/hooks", "plugin/bin"] },
+  "tests": { "root": "spec", "pattern": "*.spec.js" },
   "feedback": { "plugin": "bugs", "project": "all" },
   "flow": "default",
   "drainedBy": "dispatcher",
@@ -177,7 +178,9 @@ own repository, which the project plants and moves itself, so two checkouts on o
 read each other's. A project that sets one of them and whose counted paths its repository does not
 hold is told so rather than counted at zero, because a trigger configured and never firing is worse
 than one refused where it is read; a `review.paths` that is present and is not a list of paths
-inside the repository is refused for the same reason, never quietly taking the shipped three. `feedback` says which channel each of the two feedback
+inside the repository is refused for the same reason, never quietly taking the shipped three.
+`tests` is where the project's test files are, for `forge spec proofs`: a `root` inside the
+checkout and a file-name `pattern`, both demanded and neither defaulted. `feedback` says which channel each of the two feedback
 kinds takes, and each of them defaults on its own. `flow` names which of the served method sets
 this project runs, and `method` is retired: with no `flow` beside it, the one value that key ever
 took resolves to the default set and any other is refused with the route off the key. `drainedBy` says which master claims this project's issues once they are developed. `landing`

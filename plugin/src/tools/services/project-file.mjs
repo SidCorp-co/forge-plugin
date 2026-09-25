@@ -35,6 +35,7 @@ import {
   checkMsOf,
   slugRouteHere,
   chosen,
+  testsProblem,
   codexOwedOf,
   compiles,
   jobsOf,
@@ -288,6 +289,13 @@ export const PROJECT_KEYS = {
     judge: (given) => foldWeights(given).refusal,
   },
   review: { paths: { lines: "number", paths: "list" }, judge: reviewRefusalOf },
+  tests: {
+    paths: { root: "text", pattern: "text" },
+    judge: (given) => {
+      const problem = testsProblem(given);
+      return problem ? said(problem.key, problem.takes, problem.given) : null;
+    },
+  },
   feedback: {
     paths: { plugin: "text", project: "text" },
     judge: (given) => outside("feedback.plugin", given?.plugin, FEEDBACK_CHANNELS)
