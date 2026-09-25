@@ -2610,16 +2610,20 @@
       "digest": "8f4813a5a3dbe37750b5b6df611a95d86d53b950ce042b63e683e289c68a6863"
     },
     "AC-05-10-7": {
+      "rev": 2,
+      "digest": "d0e9b664e79c38417e062626dc97dc4113eef5fa932b4072546b6803e4898b34"
+    },
+    "AC-05-10-14": {
       "rev": 1,
-      "digest": "83812768ca2a20e176eab155bd9ffbd88b01c2e93cd423c04d93db92ea4b4210"
+      "digest": "d694d038a90625b161bc26839c2b49240bdbfa8b37e0c9386ef027ac16745298"
     },
     "AC-05-10-11": {
       "rev": 1,
       "digest": "b1ae25b26f3279780dd8f2c66fb5237c95df48c7634b079581f93fe0b2bbb78d"
     },
     "AC-05-10-12": {
-      "rev": 1,
-      "digest": "518f2f437502fa3e0513d8630760662334eaad15ffe3d1c1c918c95ee5aa6fe2"
+      "rev": 2,
+      "digest": "4c8d31e61c14c7ab7ed8e6e4a2f3f0a2a8989012d14202fa70b8b12ccc5591a1"
     },
     "AC-05-10-8": {
       "rev": 1,

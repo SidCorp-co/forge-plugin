@@ -389,19 +389,24 @@ so a death between the two is recovered by reading back rather than by doing aga
 - **AC-05-10-6** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the landing writes the checkpoint, the mark and the statuses, and no judgement of its own"
   WHEN a landing writes THEN it SHALL write only the checkpoint, the merged mark, the release
   verification, the park it owes and the status moves the flow table allows on the builder's records.
-- **AC-05-10-7** · Rev: 1 · Proof: plugin/test/run/landing/batch.test.mjs "a combination the gate refuses lands one branch and refuses the other against the new base"
-  WHEN two ready changes each pass alone and fail together THEN the landing SHALL land a passing
-  compatible subset, SHALL refuse the rest against the new base naming the failing step, and SHALL
-  blame neither alone.
+- **AC-05-10-7** · Rev: 2 · Proof: plugin/test/run/landing/batch.test.mjs "a combination the gate refuses hands both branches back together, each naming the other"
+  WHEN ready changes each pass alone as candidates on the pin and fail together THEN the landing
+  SHALL hand them back together, each hand-back naming the others and the failing step, SHALL land
+  the rest of the set as one candidate, and SHALL blame none of them alone.
+- **AC-05-10-14** · Rev: 1 · Proof: plugin/test/run/landing/red-batch/search.test.mjs "a red set whose failing step names one member's path alone hands that member back and lands the rest after one gate"
+  WHEN every failing case of a set's red candidate reaches the paths of exactly one member THEN the
+  landing SHALL hand that member back with the failing step and cases, SHALL spend no gate to find
+  it, and SHALL gate the rest once as one candidate on the same pin.
 - **AC-05-10-11** · Rev: 1 · Proof: plugin/test/run/landing/batch.test.mjs "two ready branches make one candidate, one gate, one version and one update to the base"
   WHEN several ready changes are landed together THEN the landing SHALL build one candidate over one
   pinned base, SHALL spend one gate, one version and one push on it, and SHALL write each change's
   own mark and statuses against that release.
-- **AC-05-10-12** · Rev: 1 · Proof: plugin/test/run/landing/batch.test.mjs "the bound on the gate runs a set may spend is named before the first of them is spent"
+- **AC-05-10-12** · Rev: 2 · Proof: plugin/test/run/landing/batch.test.mjs "the bound on the gate runs a set may spend is named before the first of them is spent"
   WHERE a landing takes several ready changes as one candidate, the gate runs it may spend SHALL be
-  named before the first of them is spent, SHALL be one for the candidate and one for each change in
-  it while the base at the server holds under the landing, and SHALL add, for a base that moves, no
-  run beyond the rebuild one change's own landing is already allowed.
+  named before the first of them is spent, SHALL be one for a green candidate, SHALL be, for a red
+  one, none to find a member the failing cases' paths name alone and two per halving of the suspects
+  otherwise, SHALL gate at once no more halves than the project's runs leaves places for, and SHALL
+  add, for a base that moves, no run beyond the rebuild one change's own landing is already allowed.
 - **AC-05-10-8** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the install after that promotion holds the version the release commit carries"
   WHEN the candidate is promoted THEN the landing SHALL install from the tree that shipped.
 - **AC-05-10-9** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the merged mark names the judged head, the landed head and that the landing moved nothing"
