@@ -5,13 +5,15 @@
    stopping the caller stops nothing of the landing, and what the landing did is kept where a later
    call finds it. */
 import { spawn } from "node:child_process";
-import { closeSync, existsSync, openSync, readFileSync, readSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, readSync, rmSync } from "node:fs";
 import { constants } from "node:os";
 import { join } from "node:path";
 import { clearInterval, setInterval } from "node:timers";
 
 import { read, stop } from "../../checkout.mjs";
-import { gitDir, recordIn, reservationIn, startOf, stillLanding, waitCommand } from "./record.mjs";
+import { BEHIND, waitedBehind, waiterSaid, waitGiven } from "./behind.mjs";
+import { gitDir, liveWaiter, recordIn, recorded, reservationIn, reserved, startOf, stillLanding, waitCommand, waitingIn }
+  from "./record.mjs";
 
 /** The verbs that hold the landing lock, and so the ones whose death strands it. */
 export const DETACHES = new Set(["ship", "land", "land-ready"]);
@@ -34,15 +36,8 @@ const where = (files) => `its output is kept in ${files.out} and ${files.err}, a
 
 const busySaid = (was, wait) => `a ${was.verb ?? "landing"} of this tree is still running as pid ${was.pid}, `
   + `since ${was.since}, and one landing per tree is what keeps its files its own: ${where(was)}. Wait on it `
-  + `in one call, which answers how it ended: ${wait}`;
-
-/* Renamed into place, so a wait woken by the write never reads the record half-written and takes an
-   empty file for a tree that holds none. */
-const recorded = (path, body) => {
-  const next = `${path}.${process.pid}`;
-  writeFileSync(next, `${JSON.stringify(body, null, 2)}\n`);
-  renameSync(next, path);
-};
+  + `in one call, which answers how it ended: ${wait}\nOr give this landing --wait M, and it waits up to M `
+  + `minute(s) for that one to end and then runs.`;
 
 /* How long the landing waits for its caller's record naming it before writing its own: the caller
    writes it the moment the spawn returns, so this only runs out where the caller died in between. */
@@ -62,18 +57,25 @@ const callersRecord = (path) => {
 };
 
 /** In the landing itself: take the mark off, keep every ordinary end beside the start its caller
- *  recorded, and ignore the hangup a closed terminal sends — nohup's half of the old route. A signal
+ *  recorded — or, launched behind a running landing, the start it recorded itself once that one
+ *  ended — and ignore the hangup a closed terminal sends — nohup's half of the old route. A signal
  *  ends it as it always did, since a gate step is a `spawnSync` no handler here could interrupt. */
 export const asDetached = (verb, argv) => {
   const caller = process.env[MARK];
+  const behind = process.env[BEHIND];
   if (!caller) return false;
   delete process.env[MARK];
-  const dir = gitDir(process.cwd());
+  delete process.env[BEHIND];
+  const tree = process.cwd();
+  const dir = gitDir(tree);
   if (!dir) return true;
   const record = recordIn(dir);
-  const started = callersRecord(record) ?? { verb, argv, tree: process.cwd(), pid: process.pid,
-    start: startOf(process.pid), since: new Date().toISOString(), ...outputsIn(dir, caller), record };
-  recorded(record, started);
+  const files = outputsIn(dir, caller);
+  const started = behind
+    ? waitedBehind(JSON.parse(behind), { dir, record, verb, argv, tree, files, script: process.argv[1] })
+    : callersRecord(record) ?? { verb, argv, tree, pid: process.pid, start: startOf(process.pid),
+      since: new Date().toISOString(), ...files, record };
+  if (!behind) recorded(record, started);
   process.on("SIGHUP", () => {});
   /* The step it stopped at beside the code, so a wait says where a failed landing failed without
      reading its output. */
@@ -122,19 +124,6 @@ const leftSaid = (pid, signal, files, wait) => `\nthis call was stopped by ${sig
 
 const CALLER_STOPS = ["SIGTERM", "SIGINT", "SIGHUP"];
 
-/* Created exclusively and held only from the check to the record naming the new landing, so two
-   callers of one tree in the same instant cannot both pass the check: one launches and the other is
-   refused. */
-const reserved = (path) => {
-  try {
-    writeFileSync(path, `${process.pid}\n`, { flag: "wx" });
-    return true;
-  } catch (error) {
-    if (error.code === "EEXIST") return false;
-    throw error;
-  }
-};
-
 const startingSaid = (path) => {
   const pid = Number.parseInt(existsSync(path) ? readFileSync(path, "utf8") : "", 10);
   if (Number.isInteger(pid) && pid > 1 && startOf(pid) !== null) {
@@ -146,26 +135,36 @@ const startingSaid = (path) => {
     + `taken over silently is one that was never held. Clear it, then run this landing again:\n  rm ${path}`;
 };
 
-/* Past the check, under the reservation: the previous landing's output goes, and only the two files
-   its record names, the record being what a later call reads and about to name this one. The
-   record is written here before the reservation is dropped, and the landing waits for it. */
+/* Past the check, under the reservation (held while two callers of one tree in the same instant each
+   try it, so one launches and the other is refused). A tree whose landing still runs is refused, or
+   waited behind by a landing given `--wait`, which the waiting file names rather than the record:
+   the record is the running landing's until it records its end. Otherwise the previous landing's
+   output goes, and only the two files its record names, and the record names this one before the
+   reservation is dropped, the landing waiting for it. */
 const launched = ({ verb, argv, script, tree, dir, record }) => {
   const was = read(record);
-  if (stillLanding(was)) stop(busySaid(was, waitCommand(script, tree)));
-  for (const one of [was?.out, was?.err]) if (typeof one === "string" && one.startsWith(dir)) rmSync(one, { force: true });
+  const wait = waitCommand(script, tree);
+  const waiter = liveWaiter(dir);
+  if (waiter) stop(waiterSaid(waiter, wait));
+  const busy = stillLanding(was);
+  const minutes = busy ? waitGiven(argv) : undefined;
+  if (busy && minutes === undefined) stop(busySaid(was, wait));
+  if (!busy) for (const one of [was?.out, was?.err]) if (typeof one === "string" && one.startsWith(dir)) rmSync(one, { force: true });
   const files = { ...outputsIn(dir, process.pid), record };
+  const ahead = busy ? { [BEHIND]: JSON.stringify({ pid: was.pid, verb: was.verb, since: was.since, minutes }) } : {};
   const [out, err] = [openSync(files.out, "w"), openSync(files.err, "w")];
   let child;
   try {
     child = spawn(process.execPath, [...process.execArgv, script, verb, ...argv], {
-      cwd: tree, detached: true, stdio: ["ignore", out, err], env: { ...process.env, [MARK]: String(process.pid) },
+      cwd: tree, detached: true, stdio: ["ignore", out, err], env: { ...process.env, [MARK]: String(process.pid), ...ahead },
     });
   } finally {
     closeSync(out);
     closeSync(err);
   }
   if (child.pid) {
-    recorded(record, { verb, argv, tree, pid: child.pid, start: startOf(child.pid), since: new Date().toISOString(), ...files });
+    const mine = { verb, argv, tree, pid: child.pid, start: startOf(child.pid), since: new Date().toISOString(), ...files };
+    recorded(busy ? waitingIn(dir) : record, busy ? { ...mine, behind: was.pid, minutes } : mine);
   }
   return { child, files };
 };
@@ -232,7 +231,9 @@ export const DETACH_HELP = [
   "stopped caller no longer can: `wait` is that call. A landing ended by a signal leaves the lock",
   "naming its pid, refused with the command that clears it, and a second landing of a tree whose",
   "landing is still running — the pid that record names, begun at the moment it records — is",
-  "refused with the wait that answers how that one ended.",
+  "refused with the wait that answers how that one ended, unless the second is given --wait M: it then",
+  "waits in its own detached session, holding no lock and no gate place, up to M minutes for that one",
+  "to record its end, and then runs; past M it is refused having run no step. One waits at a time.",
   "Two calls of one tree in the same instant launch one landing: forge-landing.starting is held from",
   "that check to the record, and one a dead call left is refused with the command that clears it.",
 ];
