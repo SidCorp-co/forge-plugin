@@ -9,9 +9,9 @@ import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 
-import { tempRoom } from "../../../fixtures.mjs";
-import { openAddress, openerFor } from "../../../../src/tools/services/google/auth/browser.mjs";
-import { FORGE_BIN, clientFile, googleEnv, googleHome, startFake } from "./fake.mjs";
+import { tempRoom } from "../../../../fixtures.mjs";
+import { openAddress, openerFor } from "../../../../../src/tools/services/google/auth/browser.mjs";
+import { FORGE_BIN, clientFile, googleEnv, googleHome, startFake } from "../fake.mjs";
 
 const ADDRESS = "https://accounts.example.com/o/oauth2/auth?client_id=c&scope=a%20b&state=s";
 

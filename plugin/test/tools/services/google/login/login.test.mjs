@@ -8,8 +8,8 @@ import { spawn } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../../fixtures.mjs";
-import { ACCESS, FORGE_BIN, LOGIN_EMAIL, SENTINELS, clientFile, filesUnder, google, googleEnv, googleHome, startFake } from "./fake.mjs";
+import { tempRoom } from "../../../../fixtures.mjs";
+import { ACCESS, FORGE_BIN, LOGIN_EMAIL, SENTINELS, clientFile, filesUnder, google, googleEnv, googleHome, startFake } from "../fake.mjs";
 
 let fake = null;
 let home = null;

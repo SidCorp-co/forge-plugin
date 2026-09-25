@@ -5,8 +5,8 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
-import { tempRoom } from "../../../fixtures.mjs";
-import { CLIENT_ID, SENTINELS, clientFile, filesUnder, google, googleHome, startFake } from "./fake.mjs";
+import { tempRoom } from "../../../../fixtures.mjs";
+import { CLIENT_ID, SENTINELS, clientFile, filesUnder, google, googleHome, startFake } from "../fake.mjs";
 
 let fake = null;
 let home = null;
