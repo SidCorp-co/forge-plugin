@@ -75,6 +75,9 @@ test("a gate the project named waits for the documents it would judge, and says 
     "the same command the commit refusal names, so one reading is asked for and not two");
   assert.match(because(out), /forge codex pending --drop/u, "and the route out that needs no consult");
   assert.match(because(out), /forge hooks --off codex-owed/u, "and the switch a refused session can reach");
+  assert.match(because(out), /off for every project and every session on this account until `forge hooks --on codex-owed`/u,
+    "which is the account's, with the way back on (ISS-45)");
+  assert.doesNotMatch(because(out), /for the session/iu);
 });
 
 test("a door the project did not name holds nothing, and the key absent holds only the commit", () => {
@@ -174,6 +177,7 @@ test("a value the key does not take is refused with the key named, and nothing i
     assert.match(out, /^Name only doors out of .* in `codex\.owed`, or drop the key/u, "the key is named, in the route");
     assert.match(out, /is a list of the doors a consult is demanded at/u, "and what it holds, after the route");
     assert.match(out, /gate, commit, ship/u, "with what it takes");
+    assert.match(out, /until `forge hooks --on codex-owed`/u, "and the switch, as every other refusal names it");
   }
 });
 

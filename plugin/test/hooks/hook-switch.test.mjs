@@ -66,9 +66,12 @@ test("the CLI writes the switch and answers with the new state", () => {
   const home = room("{}");
   const off = forge(home, "hooks", "--off", "bash-guard");
   assert.match(off.stdout, /bash-guard \(PreToolUse\) is now off/, "the answer names the hook type");
+  assert.match(off.stdout, /off for every project and every session on this account until `forge hooks --on bash-guard`/u,
+    "and what the switch reaches, with the way back on (ISS-45)");
   assert.equal(refused(home, {}, ["bash-guard"]), false, "the hook process reads what the CLI wrote");
   const on = forge(home, "hooks", "--on", "bash-guard");
   assert.match(on.stdout, /Every hook is on/);
+  assert.match(on.stdout, /^bash-guard \(PreToolUse\) is now on\.$/mu, "turning one back on owes no reach");
   assert.equal(refused(home), true);
 });
 

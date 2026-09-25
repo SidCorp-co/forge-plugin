@@ -93,6 +93,19 @@ test("each document opens with its claim, argues briefly, and points nowhere unr
   }
 });
 
+/* `hooksOff` is the account's, so a page handing out its own gate's switch owes that reach and the undo:
+   "for the session" handed one agent a gate down for every project and agent beside it (ISS-45). */
+test("a page that hands out its own gate's switch says it is account-wide and names the way back on", () => {
+  const handing = documented.filter((name) =>
+    readFileSync(join(HOW, `${name}.md`), "utf8").includes(`forge hooks --off ${name}`));
+  assert.ok(handing.length >= 4, `${handing.length} pages hand out their switch`);
+  for (const name of handing) {
+    const text = readFileSync(join(HOW, `${name}.md`), "utf8").replace(/\s+/gu, " ");
+    assert.match(text, /account-wide until `--on`/u, `how/${name}.md names no reach and no undo`);
+    assert.doesNotMatch(text, /for the session/iu, `how/${name}.md calls an account switch the session's`);
+  }
+});
+
 const forge = (...argv) => spawnSync(process.execPath, [CLI, "hooks", ...argv], { encoding: "utf8" });
 
 test("the reasoning is what --how prints, and a near miss is named", () => {

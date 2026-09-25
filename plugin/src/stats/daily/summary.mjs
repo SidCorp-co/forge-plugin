@@ -38,11 +38,22 @@ const runsSentence = (content) => {
     + `the day before and a median of ${min(week.runs)} run(s) a day at ${min(week.medianMinutes)} min over the seven days before.`;
 };
 
+/* The article each kind the opportunities list names takes, keyed on that name rather than guessed
+   from its spelling: a kind added there without a row here is refused, not given the wrong word. */
+const ARTICLE = { refusal: "a", error: "an", repeat: "a", "guide part": "a", wait: "a" };
+
+const articled = (kind) => {
+  if (!Object.hasOwn(ARTICLE, kind)) {
+    throw new Error(`the daily summary has no article for the opportunity kind "${kind}": add it to ARTICLE in plugin/src/stats/daily/summary.mjs`);
+  }
+  return `${ARTICLE[kind]} ${kind}`;
+};
+
 const opportunitySentence = (opportunities) => {
   const [top] = opportunities.listed;
   if (!top) return "The day holds no opportunity: no refusal, error, repeat, re-read or long wait was recorded.";
   const owner = top.match ? `open as ${top.match.key}` : top.unmatched ? `not matched against the backlog (${top.unmatched})` : "with no filing yet";
-  return `The largest opportunity was a ${top.kind} — ${top.met.slice(0, 140)} — which ${top.runs} run(s) paid ${top.calls} call(s) for, ${owner}.`;
+  return `The largest opportunity was ${articled(top.kind)} — ${top.met.slice(0, 140)} — which ${top.runs} run(s) paid ${top.calls} call(s) for, ${owner}.`;
 };
 
 /** Three to five sentences: the runs, what moved and what it followed, the largest opportunity, and

@@ -7,16 +7,17 @@ import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
+import { offReach } from "../../../src/hooks/hook-switch.mjs";
 import { NOWHERE, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
 
-const ESCAPE = "For the session: `forge hooks --off codex-owed` — an inline `FORGE_CODEX_DISABLE=1` "
-  + "prefix never reaches a hook.";
+const ESCAPE = `Past the gate: \`forge hooks --off codex-owed\`, ${offReach("codex-owed")} — an inline `
+  + "`FORGE_CODEX_DISABLE=1` prefix never reaches a hook.";
 
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
 
 const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, or drop `
-  + `the key and the commit alone asks.\n\n${unknown} is no door this reads: that key in this project's `
+  + `the key and the commit alone asks. ${ESCAPE}\n\n${unknown} is no door this reads: that key in this project's `
   + "configuration is a list of the doors a consult is demanded at.";
 
 /* One read of a tree's project file answers both halves: which commands that project calls its gate

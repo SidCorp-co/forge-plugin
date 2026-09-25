@@ -1,7 +1,6 @@
 /* The landing, from the tree the fold works in: the checkpoints and pushed branches it is given as
    one candidate onto one pinned base that moved nothing of any change out, gated, versioned and
    pushed once. It repairs no conflict and re-judges nothing. docs/cli/the-checkpoint.md. */
-import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 
 import { gitOut, loud, REMOTE, stop, Stop } from "../checkout.mjs";
@@ -28,14 +27,14 @@ import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_HEAD_OWED, LANDING_JUDGED,
-  LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE, landingNext,
+  LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE,
   landingOf, landingVoided,
 } from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
-import { DECLINED, SLOT, WAIT } from "../gates/machine.mjs";
+import { gateStep, handsBack } from "./land-ready/gate.mjs";
 import { takenBack } from "./land-ready/taken-back.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
@@ -118,10 +117,6 @@ const pinStep = async (one) => {
     await voidedAt(root, member, at.pin);
   });
 };
-
-/* Whether the table leads this member's state to the builder's new head: past a judgement it does
-   not, and a stop there says what it met without writing a move the save would refuse. */
-const handsBack = (member) => landingNext(member.landing, LANDING_HEAD_OWED) === null;
 
 /* Against the pin and not against the branches beside it: a conflict here is the base's own, which
    is what a park as blocked claims. The chain's own conflicts are the candidate step's. */
@@ -353,44 +348,6 @@ const installStep = async (one) => {
     publishes(at.room, base, release);
   }
   for (const member of at.members) await saveOn(member, { state: "installed" });
-};
-
-/* Spent on the combination and on no subset of it: what the branches are landed as instead, and the
-   runs that bounds, is the-checkpoint.md's. */
-const gateStep = async (one) => {
-  const { at, ctx: { root } } = one;
-  at.room = roomFor(root, at.candidate);
-  const run = spawnSync("npm", ["run", "check"], { cwd: at.room, encoding: "utf8", stdio: "inherit" });
-  /* A gate that never ran says nothing about any branch, so nothing is handed to anybody over it. */
-  if (run.error) stop(`npm could not be run: ${run.error.message}. Nothing of any branch was judged.`);
-  if (run.status === 0) return;
-  /* Declined for want of a place, the gate ran no step either, so no set is split and no branch handed back over it. */
-  if (run.status === DECLINED) {
-    stop(`npm run check declined the candidate ${shortly(at.candidate)} for want of a gate place and ran no step, `
-      + `so no branch of ${keysOf(at)} was judged and nothing was handed back: each checkpoint is still the `
-      + `landing's turn. Wait for a place, then land again:\n    node tools/gates.mjs ${WAIT} ${SLOT}`);
-  }
-  const said = `npm run check exited ${run.status} over the candidate ${shortly(at.candidate)}.`;
-  if (at.members.length > 1) {
-    at.split = true;
-    stop(`${said} ${keysOf(at)} are green apart and red together, and the gate says nothing about `
-      + `which of them the combination is. No subset is searched for: every reading taken at this `
-      + `candidate is void and each branch is landed alone, against the base as it moves, so the one `
-      + `that fails there fails on its own account and the failing step goes back to whoever built it.`);
-  }
-  /* The branch's own fault against what landed since, answered by a new head: the one the gate
-     refused stays where it is, the landing writing no ref of a branch it did not build. */
-  const [member] = at.members;
-  if (!handsBack(member)) {
-    stop(`${said} The checkpoint on ${member.key} reads \`${member.landing.state}\`, past the states a `
-      + `branch is handed back from, so nothing of it moved. Read where it is:\n    forge resume ${member.key}`);
-  }
-  await saveOn(member, { state: LANDING_HEAD_OWED });
-  stop(`${said} The candidate is ${member.landing.branch} merged onto what landed since, so the `
-    + `failure is that branch's own and it goes back to the run that built it: the checkpoint is at `
-    + `\`${LANDING_HEAD_OWED}\`, and nothing of ${member.key} is pushed or installed. That run commits `
-    + `the answer on top of ${shortly(member.landing.head)} and captures the head it makes:\n`
-    + RECAPTURE(member.key, "    "));
 };
 
 /* The table the resume points into, one row per name in ORDER. */

@@ -1,6 +1,6 @@
 /* The landing checkpoint, read as a table. Nothing here reads a lease or reaches the tracker, which
    is what lets the lease import it and not the other way about. docs/cli/the-turn.md. */
-import { shortSha } from "../../tracker/evidence.mjs";
+import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { HAND_WRITTEN, handWrittenOf, rebuiltSaid } from "./reconstruction.mjs";
 
 export const LANDING = "landing";
@@ -56,6 +56,21 @@ export const landingOf = (context) => {
 };
 
 export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
+
+/** Whether the latest review on the record approved this head. With `unjudgedAt`, the one reading of
+ *  which records a head carries: the capture out of `head-owed` refuses on it and the resume narrows
+ *  the phase owed by it, so the two cannot disagree about one head (ISS-2439). */
+export const approvedAt = (head, latest) => {
+  const review = latest?.review?.record.fields;
+  return Boolean(review?.commit && sameCommit(review.commit, head) && review.outcome === "approved");
+};
+
+/** The criteria whose latest verdict does not pass this head: none, one at another commit, or a fail. */
+export const unjudgedAt = (head, { verdicts, criteria }) => criteria.map((one) => one.number)
+  .filter((number) => {
+    const held = verdicts.get(number)?.record.fields;
+    return !held?.commit || !sameCommit(held.commit, head) || held.verdict === "fail";
+  });
 
 const READ_ON = ["state", "branch", "head"];
 

@@ -1,7 +1,8 @@
 /* Everything this gate's help says about the gates already running when it starts: the second gate of one tree it
    refuses, the ceiling it declines at, what it counts and what the number sizes. Its own file because the runner's is at
    the line limit its own checker sets, and this is the section ISS-1705 grew. `tools/gates.mjs -h` prints it in place. */
-import { DECLINED, RAISE, WAIT } from "../machine.mjs";
+import { DECLINED, LANDING_ENV, RAISE, WAIT } from "../machine.mjs";
+import { LANDING_WAIT_ENV } from "../landing/wait.mjs";
 import { DEFAULT_MINUTES } from "../verdict.mjs";
 import { WAIT_COMMAND } from "../../../plugin/src/hooks/wait-idiom.mjs";
 
@@ -21,6 +22,16 @@ rather than 1, names each gate it counted and the tree that gate is judging, rec
 figure, and says no verdict about this tree: a run that spent twenty-five minutes and then reported
 the tree is what this exists to stop, and a refusal costing the caller a step has already lost the
 argument.
+
+A landing's gate is ahead of a builder's for the next free place, because what lands is ahead of
+what is being readied (ISS-2461). land-ready starts it with ${LANDING_ENV} naming its issue keys and
+${LANDING_WAIT_ENV} its minutes, and a gate reads the first off every other gate's environment: a
+builder's gate counts each landing's gate as ahead of it whenever that one started, and names the
+landing where it took a place the gates started earlier had left free. A landing's gate counts only
+the gates started before it, so it never adds a gate past the number; declined, it waits for a
+place up to its minutes instead of exiting, and past them exits ${DECLINED} saying how long it
+waited and which gates held the places. Neither variable reaches a step, so a gate a step starts is
+never a landing's, and a wait of the same runner is counted by no gate, a landing's included.
 
 What it counts is gates, not load. Four whole runs of this gate at one-minute loads of 5.6, 5.9,
 10.5 and 24.7 did not order by whether they passed (ISS-917), and three whole gates at once, at load

@@ -138,6 +138,7 @@ export const procTable = (rows) => {
     writeFileSync(join(dir, "stat"), `${pid} (node) R 1 ${pid} ${pid} `
       + `${new Array(16).fill("0").join(" ")} ${row.start * TICK}\n`);
     symlinkSync(row.cwd ?? at, join(dir, "cwd"));
+    if (row.env) writeFileSync(join(dir, "environ"), Object.entries(row.env).map(([name, value]) => `${name}=${value}\0`).join(""));
     if (row.out) {
       mkdirSync(join(dir, "fd"));
       symlinkSync(row.out, join(dir, "fd", "1"));

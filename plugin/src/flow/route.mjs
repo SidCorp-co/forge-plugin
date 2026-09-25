@@ -211,7 +211,9 @@ const OUTCOME_OWED = {
 const reopenTarget = (view, ref) => {
   const landed = landedOn(view, ref);
   const missing = reopenOwed(view, ref);
-  if (missing.length) return { next: landed, missing, resumed: false };
+  /* The landed status is only the ceiling the triage falls under: printed as the next status, it
+     told the reader of a destination nobody had chosen yet (ISS-45). */
+  if (missing.length) return { next: landed, missing, resumed: false, undecided: true };
   const ruling = rulingAtThisReopen(view);
   const held = ruling.record.fields;
   if (held.outcome !== TRIAGES[2]) {
@@ -336,13 +338,17 @@ export const targetOf = (view, ref) => {
 /* A reading that died where `targetOf` refuses would be useless exactly where it is needed most. */
 export const owedIn = (view, ref) => {
   try {
-    const { next, missing, resumed } = targetOf(view, ref);
-    return { next, missing, resumed };
+    const { next, missing, resumed, undecided = false } = targetOf(view, ref);
+    return { next, missing, resumed, undecided };
   } catch (error) {
     if (error instanceof Refused) return { next: null, missing: [], refused: error.message };
     throw error;
   }
 };
+
+/** Where a reopen goes back to while its finding or triage is missing, said for the owed line and the refused move alike. */
+export const undecidedSaid = (ceiling) =>
+  `where it goes back to is undecided until this reopen's finding and triage are written, and no higher than ${ceiling}`;
 
 /* Where the issue stands, in one line and one place — `advance` heads its answer with it, `resume`
    prints it, a record write ends with it (ISS-285); a refusal gives its first line, not the command. */
@@ -350,6 +356,7 @@ const owedLine = (view, ref, held) => {
   if (held.refused) return held.refused.split("\n")[0].replace(/:$/u, ".");
   const at = `${ref} is ${view.issue.status}`;
   if (!held.next) return `${at}; nothing advances from it.`;
+  if (held.undecided) return `${at}; ${undecidedSaid(held.next)}: ${held.missing.length} item(s) owed.`;
   return held.missing.length
     ? `${at}; ${held.next} is next and the record does not earn it: ${held.missing.length} item(s) owed.`
     : `${at}; ${held.next} is next and the record earns it. \`forge advance ${ref}\` moves it.`;

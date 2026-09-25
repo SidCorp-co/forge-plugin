@@ -5,6 +5,7 @@ import { stop, Stop } from "../../checkout.mjs";
 import { shortly } from "../install.mjs";
 import { releaseReadings } from "../release/readings.mjs";
 import { stillReads } from "./candidate.mjs";
+import { movedBetween } from "../../../plugin/src/git/moved.mjs";
 import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
@@ -158,6 +159,14 @@ export const markStep = async (one) => {
       console.log(`  the mark at ${shortly(landed)} is up already`);
     } else {
       const judged = landing.moved ? landing.candidate : landing.head;
+      /* git's reading of the judged head against the candidate the change landed as, which is what the
+         clause says, rather than the paths the reconcile read: beside a judged head that is that
+         candidate, those stood down the verdicts the builder took there (ISS-1362). The release's own
+         version commit above the candidate is no movement of the change. */
+      const over = landing.candidate ?? landed;
+      const moved = movedBetween(root, judged, over, landing.files)
+        ?? stop(`git in ${root} could not diff ${shortly(judged)} against ${shortly(over)}, so the `
+          + `mark's \`landing moved\` has no reading and ${key} is not marked.`);
       const named = await asked(() => namedFor(documentId, comments ?? []));
       /* Through `asked` because the composer refuses: a note it cannot fit under the tracker's cap is a correction this issue owes, and the run reads it as this step's own stop with the resume line under it rather than as an exception thrown past a landing that has already pushed. */
       const note = await asked(() => markNote({
@@ -165,7 +174,7 @@ export const markStep = async (one) => {
         at: landed,
         reviewed: judged,
         judged,
-        moved: landing.moved ? landing.moved.split(", ") : [],
+        moved,
         wrote: landing.files,
         named,
         ref: key,

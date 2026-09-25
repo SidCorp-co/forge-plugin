@@ -13,7 +13,7 @@ import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
 import { namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
-import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
+import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld } from "./record/page.mjs";
 import { buildsAt } from "./earned.mjs";
@@ -48,6 +48,7 @@ import {
   claimed,
   describe,
   expiryOf,
+  FIELD,
   freeRefusal,
   heldBy,
   landingSaved,
@@ -75,8 +76,8 @@ const MAX_MINUTES = 24 * 60;
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
-export const advisory = (status, fields, held, work = null) => {
-  for (const line of openingLines(status, held, work)) console.log(line);
+export const advisory = (status, fields, held, work = null, finished = []) => {
+  for (const line of openingLines(status, held, work, finished)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
   console.log(`\n${MECHANISM} ${heldBy()}`);
@@ -87,7 +88,9 @@ export const advisory = (status, fields, held, work = null) => {
 const UNREAD = { plan: null, moved: [], whole: false, complexity: null };
 
 /* The worklog is handed in and not read off the issue, which was fetched before this claim's own write: each route passes what it wrote, the two hand-backs writing none, and a page that did not read back still names the branch. */
-const advise = async (documentId, issue, held = null) => {
+/* `landing` is the checkpoint this call wrote, where it wrote one: the issue was fetched before the write, and the opening narrows the phase owed by the head that checkpoint names (ISS-2439). */
+const advise = async (documentId, fetched, held = null, landing = undefined) => {
+  const issue = landing === undefined ? fetched : { ...fetched, [FIELD]: { ...fetched[FIELD], [LANDING]: landing } };
   const work = workNow(held);
   const page = await commentPage(documentId, true);
   if (page?.refused) {
@@ -97,7 +100,7 @@ const advise = async (documentId, issue, held = null) => {
   }
   const view = viewFrom(documentId, issue, page.comments, cutIn(page));
   scopeFrom(issue.status, issue.issueId, namedIn(view));
-  return advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work);
+  return advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view));
 };
 
 export const USAGE = [
@@ -195,9 +198,10 @@ const handBack = async (documentId, ref, status, context, holder) => {
   const saved = await landingSaved(documentId, ref, { state: LANDING_JUDGED, judge: holder });
   oweRelease(documentId, ref);
   console.log(`${ref}  judged: ${landingLine(saved)}`);
-  return console.log(`The verdicts on the record are the judgement, so nothing more of ${ref} is `
+  console.log(`The verdicts on the record are the judgement, so nothing more of ${ref} is `
     + `this run's. The lease goes back as this call ends, and the landing takes it from here:\n`
     + `  ${takeRoute(ref)}`);
+  return saved;
 };
 
 /* The other route out, the same shape as the hand-back above. What is its own is the sha: the
@@ -247,9 +251,10 @@ const reconcile = async (documentId, ref, context, holder, given) => {
   const saved = await landingSaved(documentId, ref,
     { state: LANDING_RECONCILED, reconciled: landing.candidate });
   console.log(`${ref}  reconciled: ${landingLine(saved)}`);
-  return console.log(`The candidate ${shortSha(landing.candidate)} is what this run says it read, `
+  console.log(`The candidate ${shortSha(landing.candidate)} is what this run says it read, `
     + `and the landing promotes that commit and no other, so nothing more of ${ref} is this run's. `
     + `The landing takes it from here:\n  ${takeRoute(ref)}`);
+  return saved;
 };
 
 /* The two states a records turn returns to, written out one apiece rather than composed, because the
@@ -285,8 +290,9 @@ const handRecords = async (documentId, ref, context, holder) => {
   if (refused) fail(refused);
   const saved = await landingSaved(documentId, ref, back);
   console.log(`${ref}  recorded: ${landingLine(saved)}`);
-  return console.log(`The records this turn was handed back for are on the issue, so nothing more `
+  console.log(`The records this turn was handed back for are on the issue, so nothing more `
     + `of ${ref} is this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
+  return saved;
 };
 
 /* The turn is read before anything is written, because this is the one claim that may take a live
@@ -372,16 +378,13 @@ export const claim = async (argv) => {
     return advise(documentId, issue, merged(worklog, patch).worklog);
   }
   if (given.judged) {
-    await handBack(documentId, ref, issue.status, context, holder);
-    return advise(documentId, issue, worklog);
+    return advise(documentId, issue, worklog, await handBack(documentId, ref, issue.status, context, holder));
   }
   if (given.reconciled) {
-    await reconcile(documentId, ref, context, holder, given.reconciled);
-    return advise(documentId, issue, worklog);
+    return advise(documentId, issue, worklog, await reconcile(documentId, ref, context, holder, given.reconciled));
   }
   if (given.recorded) {
-    await handRecords(documentId, ref, context, holder);
-    return advise(documentId, issue, worklog);
+    return advise(documentId, issue, worklog, await handRecords(documentId, ref, context, holder));
   }
   if (given.landed) {
     await finishLanded(documentId, ref, issue, context);
@@ -459,6 +462,6 @@ export const claim = async (argv) => {
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   if (sharedHolder(taken, mine)) console.log(SHARED_HOLDER);
   if (how === RECLAIM) for (const one of reclaimLines(ref, taken, issue.status)) console.log(one);
-  return advise(documentId, issue, worklogOf(next));
+  return advise(documentId, issue, worklogOf(next), next?.[LANDING]);
 };
 claim.answersHelp = true;

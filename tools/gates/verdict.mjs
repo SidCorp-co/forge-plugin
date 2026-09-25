@@ -20,7 +20,7 @@ export const DEFAULT_MINUTES = heldMinutes();
 export const TERMINAL = "gate verdict:";
 export const WAITED = "gate wait:";
 // A killed gate changes no file and so wakes no watcher: this tick re-reads the table, spending a syscall inside one call and no turn, which is what NFR-11 prices.
-const TICK_MS = 3000;
+export const TICK_MS = 3000;
 
 export const verdictPath = (root) => join(recordDir(root), `verdict-${treeKey(root)}`);
 
@@ -71,7 +71,7 @@ export const gateStarted = (root, { full }) => wrote(root, {
 export const gateDecided = (root, started, decided) =>
   wrote(root, { ...started, ...decided, at: new Date().toISOString() });
 
-const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
+export const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
 
 const steps = (record) => {
   if (Number.isInteger(record.ran)) {

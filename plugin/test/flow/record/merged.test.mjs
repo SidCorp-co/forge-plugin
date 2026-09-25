@@ -4,8 +4,11 @@
    than written as a gap nobody can see. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
-import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { git, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged").path;
@@ -13,11 +16,44 @@ const {
   judgedHead, landingMoved, landingWrote, lastMark, markNote, markedCommit, reviewedHead,
 } = await import("../../../src/flow/record/merged.mjs");
 const { capsOf, lengthOf } = await import("../../../src/tracker/field-write.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
+const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const AT = "c8c3550c1b7e1a3f4d5e6f708192a3b4c5d6e7f8";
-const REVIEWED = "43b811e0000000000000000000000000000000ab";
-const JUDGED = "bc40edc0000000000000000000000000000000cd";
+
+/* The clause `landing moved` is git's reading of the judged head against the landed commit, so the
+   verb runs in a checkout whose commits are real (ISS-1362). The change writes two files off a base; a
+   `--no-ff` merge onto a base that had not moved carries the judged head's own tree; one commit above
+   the head moves a file of the change, another moves only a neighbour. */
+const ROOM = tempRoom("record-merged-repo-");
+spawnSync("git", ["init", "-q", "-b", "master", ROOM], { cwd: ROOM, encoding: "utf8" });
+const wrote = (files) => {
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(ROOM, path)), { recursive: true });
+    writeFileSync(join(ROOM, path), text);
+  }
+  git(ROOM, "add", "-A");
+};
+const commit = (message) => {
+  git(ROOM, "commit", "-qm", message);
+  return git(ROOM, "rev-parse", "HEAD").stdout.trim();
+};
+wrote({ "docs/a.md": "one\n", "plugin/src/flow/record/merged.mjs": "zero\n", "neighbour.md": "zero\n" });
+commit("base");
+git(ROOM, "checkout", "-qb", "change");
+wrote({ "docs/a.md": "one, as the change has it\n", "plugin/src/flow/record/merged.mjs": "one\n" });
+const JUDGED = commit("the change");
+git(ROOM, "checkout", "-q", "master");
+git(ROOM, "merge", "-q", "--no-ff", "-m", "merge the change", "change");
+const AT = git(ROOM, "rev-parse", "HEAD").stdout.trim();
+git(ROOM, "checkout", "-q", "change");
+wrote({ "docs/a.md": "one, as a later commit has it\n" });
+const MOVED = commit("a commit that moves a file of the change");
+git(ROOM, "checkout", "-q", JUDGED);
+wrote({ "neighbour.md": "one\n" });
+const NEIGHBOUR = commit("a commit that moves only a neighbour");
+const REVIEWED = JUDGED;
+const CHANGE = "docs/a.md, plugin/src/flow/record/merged.mjs";
 
 let clock = 0;
 const stamped = () => `2026-09-08T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -68,15 +104,15 @@ const state = {
     },
   },
 };
-const { tracker, env: ENV } = await trackerFor(state);
+const { tracker, env: ENV } = await trackerFor(state, [ROOM]);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], ENV);
+await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], ENV, ROOM);
 
-const marked = (...argv) => ranAsync(FORGE, ["record", "merged", "ISS-99", ...argv], ENV);
+const marked = (...argv) => ranAsync(FORGE, ["record", "merged", "ISS-99", ...argv], ENV, ROOM);
 const page = () => state.comments[ISSUE.documentId] ?? [];
 const whole = (over = []) => [
-  "--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
-  "--moved", "docs/a.md, plugin/src/flow/earned.mjs", "--wrote", "plugin/src/flow/record/merged.mjs",
+  "--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
+  "--moved", "docs/a.md", "--wrote", CHANGE,
   ...over,
 ];
 
@@ -84,16 +120,16 @@ test("the five flags compose the note, and every reader of it parses what they w
   state.comments[ISSUE.documentId] = [];
   const run = await marked(...whole());
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, new RegExp(`^ISS-99 {2}marked merged at ${AT}\\. Its note:$`, "mu"),
+  assert.match(run.stdout, new RegExp(`^ISS-99 {2}marked merged at ${MOVED}\\. Its note:$`, "mu"),
     "the reply says which commit it marked, off the flag it was given");
   const sent = state.calls.find((one) => one.args.action === "mark_merged");
   assert.equal(sent.args.data.target, "base", "the target a landing takes, no flag having named another");
   const held = page();
-  assert.equal(markedCommit(held), AT, "the commit `developed` reads");
+  assert.equal(markedCommit(held), MOVED, "the commit `developed` reads");
   assert.equal(reviewedHead(held), REVIEWED, "the head the review is measured against");
   assert.equal(judgedHead(held), JUDGED, "the head the verdicts are measured against");
-  assert.deepEqual(landingMoved(held), ["docs/a.md", "plugin/src/flow/earned.mjs"]);
-  assert.deepEqual(landingWrote(held), ["plugin/src/flow/record/merged.mjs"]);
+  assert.deepEqual(landingMoved(held), ["docs/a.md"]);
+  assert.deepEqual(landingWrote(held), ["docs/a.md", "plugin/src/flow/record/merged.mjs"]);
   assert.match(lastMark(held), /merged to master at /u, "and the branch it landed on opens the note");
 });
 
@@ -266,7 +302,7 @@ test("--undo takes the mark down and reads back the note it removed", async () =
   const run = await marked("--undo");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stdout, /the merged mark is removed\. What it said:/u);
-  assert.match(run.stdout, new RegExp(`merged to master at ${AT}`, "u"),
+  assert.match(run.stdout, new RegExp(`merged to master at ${MOVED}`, "u"),
     "the note goes back to whoever removed it, that being the only copy of what it claimed");
   assert.ok(state.calls.some((one) => one.args.action === "unmark"), "the route back is its own action");
   assert.equal(markedCommit(page()), null, "and the mark is gone from the page");
@@ -416,5 +452,116 @@ test("a project whose config names no base branch is refused, and told the flag 
     assert.match(lastMark(page()), /merged to release-1 at /u, "and the branch named by hand is the one written");
   } finally {
     state.config = held;
+  }
+});
+
+/* ISS-304's landing, marked with every path the merge touched: twenty-six verdicts re-owed about
+   identical bytes. */
+test("a merge carrying the judged head's own tree refuses a list of moved paths, and git reads nothing", async () => {
+  state.comments[ISSUE.documentId] = [];
+  state.calls = [];
+  assert.equal(git(ROOM, "rev-parse", `${AT}^{tree}`).stdout, git(ROOM, "rev-parse", `${JUDGED}^{tree}`).stdout,
+    "the fixture's merge is the no-op the issue describes");
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", CHANGE, "--wrote", CHANGE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--moved says docs\/a\.md, plugin\/src\/flow\/record\/merged\.mjs, and git reads nothing/u,
+    run.stderr);
+  assert.match(run.stderr, /Run the same command with:\n {2}--moved nothing/u, "and the value that clears it");
+  assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false, "and no mark went up");
+  assert.deepEqual(page(), []);
+});
+
+test("the mark the verb writes for that merge leaves the verdicts at the judged head standing", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing", "--wrote", CHANGE);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const verdicts = [1, 2].map((number, at) => ({
+    documentId: `v-${number}`,
+    createdAt: `2026-09-08T11:0${at}:00.000Z`,
+    authorId: "agent",
+    body: render("verdict", { criterion: `${number} — text`, verdict: "pass", commit: JUDGED, evidence: ["run.txt"] }),
+  }));
+  const issue = { acceptanceCriteria: "1. The first.\n2. The second.", mergedAt: "2026-09-08T10:59:00.000Z",
+    attachments: [{ name: "run.txt" }] };
+  const owed = judgedOwed(viewFrom("merged-uuid", issue, [...page(), ...verdicts]), "ISS-99");
+  assert.deepEqual(owed.map((one) => one.what), [], "testing owes no second write of either verdict");
+});
+
+test("a landing that moved a file of the change refuses `nothing`, naming that file", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing", "--wrote", CHANGE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--moved says nothing, and git reads docs\/a\.md: those are the paths of --wrote/u,
+    run.stderr);
+  assert.match(run.stderr, /--moved docs\/a\.md$/mu, "and the value that clears it");
+  assert.deepEqual(page(), []);
+});
+
+/* What the verdicts judged is the change's own paths; the tree around them is the review's and the
+   reconcile's to read at the landed head. */
+test("a landing that moved only a neighbour of the change takes `nothing`", async () => {
+  state.comments[ISSUE.documentId] = [];
+  assert.notEqual(git(ROOM, "rev-parse", `${NEIGHBOUR}^{tree}`).stdout, git(ROOM, "rev-parse", `${JUDGED}^{tree}`).stdout,
+    "the trees differ");
+  const run = await marked("--at", NEIGHBOUR, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing", "--wrote", CHANGE);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(landingMoved(page()), [], "and the mark says no path of the change moved");
+});
+
+test("a commit git cannot read in this checkout refuses the mark, and names the fetch", async () => {
+  state.comments[ISSUE.documentId] = [];
+  state.calls = [];
+  const absent = "c8c3550c1b7e1a3f4d5e6f708192a3b4c5d6e7f8";
+  const run = await marked("--at", absent, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing", "--wrote", CHANGE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`cannot read ${absent}, which --at names`, "u"), run.stderr);
+  assert.match(run.stderr, /no mark is written on a run's word for it/u);
+  assert.match(run.stderr, /\n {2}git fetch$/mu, "the one command that clears it");
+  assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false);
+});
+
+/* Git reads a pathspec relative to the directory it is asked from, so a mark written from a
+   subdirectory would have matched none of the change's repository-relative paths. */
+test("a mark written from a subdirectory of the checkout reads the change's paths from its top", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await ranAsync(FORGE, ["record", "merged", "ISS-99", "--at", MOVED, "--reviewed", REVIEWED,
+    "--judged", JUDGED, "--moved", "nothing", "--wrote", CHANGE], ENV, join(ROOM, "docs"));
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--moved says nothing, and git reads docs\/a\.md/u, run.stderr);
+  assert.deepEqual(page(), []);
+});
+
+/* A directory is how a path the note cannot carry is named, so it answers for the paths under it. */
+test("a directory typed for the paths git read under it agrees with git, and one holding none does not", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "docs", "--wrote", CHANGE);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(landingMoved(page()), ["docs"]);
+  state.comments[ISSUE.documentId] = [];
+  const wide = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "docs, plugin/src", "--wrote", CHANGE);
+  assert.equal(wide.status, 1, wide.stdout);
+  assert.match(wide.stderr, /--moved says docs, plugin\/src, and git reads docs\/a\.md/u, wide.stderr);
+});
+
+/* Git quotes a name holding a non-ASCII byte unless asked for NUL-delimited output, and the quoted form
+   is no path a run could type. */
+test("a moved path holding a non-ASCII name agrees with the same name typed, and with its directory", async () => {
+  git(ROOM, "checkout", "-q", JUDGED);
+  wrote({ "docs/café.md": "one\n" });
+  const judged = commit("the change's file with an accent");
+  wrote({ "docs/café.md": "two\n" });
+  const landed = commit("a commit that moves it");
+  for (const moved of ["docs/café.md", "docs"]) {
+    state.comments[ISSUE.documentId] = [];
+    const run = await marked("--at", landed, "--reviewed", judged, "--judged", judged,
+      "--moved", moved, "--wrote", "docs/café.md");
+    assert.equal(run.status, 0, `${moved}:\n${run.stdout}${run.stderr}`);
   }
 });

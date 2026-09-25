@@ -18,7 +18,8 @@ import { fieldChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
 import { commentPage, cutIn, cutLine, mustBeShown, postComment } from "../../tracker/comments.mjs";
 import {
-  TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine, uploadAll,
+  attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine, unreadNames,
+  uploadAll,
 } from "../../tracker/evidence.mjs";
 import { personOwedForRelease, releaseLine, releasePolicy, releaseAnswer } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
@@ -205,11 +206,6 @@ export const post = async (documentId, body, { ref = documentId, next = undefine
 const citedBy = (comments, kind) =>
   comments.flatMap((one) => parseAll(one.body ?? "")).filter((one) => one.kind === kind).at(-1)?.fields.evidence ?? [];
 
-/* Refused where the page was cut rather than risked past it: the name it must be unique against may be on a comment the cut held back, and one attached twice is two documents. */
-const CROWDED = (kind, cut) => `record ${kind} would put a file up, and the names already on this `
-  + `issue cannot be read whole. ${cut} ${TWICE} Every record citing it is then ambiguous. Cite a `
-  + `URL or a commit, or attach the file under a name nothing else could carry and cite that.`;
-
 /* A default is the latest of its kind; found nowhere on a read that stopped short, it may be past where that read stopped, so the flag is asked for (ISS-131). */
 const BEHIND = (kind, flag, cut) => `record ${kind} reads --${flag} off this issue and the page `
   + `carries none to read. ${cut} The one that would answer may be a comment behind the cut, so `
@@ -352,13 +348,14 @@ const blocksOf = (kind, argv) => {
 };
 
 /* One plan over what every block cites: a document three criteria prove goes up once under the one
-   name all three carry, so the collision `attachPlan` refuses is never this write citing its own. */
-const citeOnce = (kind, blocks, { held, cut }) => {
+   name all three carry, so the collision `attachPlan` refuses is never this write citing its own.
+   A cut walk is carried as the line `forge attach` says for it, and said only where the uploads go. */
+const citeOnce = (blocks, { held, read, cut, reference }) => {
   const refs = [...new Set(blocks.flatMap((one) => one.evidence ?? []))];
   if (!refs.length) return null;
   const plan = attachPlan(refs, held, (ref) => evidenceHeld(ref, held));
   if (plan.refusal) refuse(plan.refusal);
-  if (cut && plan.upload.length) refuse(CROWDED(kind, cut));
+  plan.said = plan.upload.length ? unreadNames(reference, read, cut) : null;
   const cited = new Map(refs.map((one, at) => [one, plan.cite[at]]));
   for (const one of blocks) one.evidence = one.evidence.map((ref) => cited.get(ref));
   return plan;
@@ -388,8 +385,10 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   answerChecked(kind, reference, body);
   const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
   finderChecked(kind, reference, body, { comments, cut });
-  const held = [...attachmentNames(body, comments), ...planned];
-  const plan = citeOnce(kind, blocks, { held, cut });
+  const onIssue = attachmentNames(body, comments);
+  const held = [...onIssue, ...planned];
+  /* The count is of names read off the issue, as `forge attach` gives it; a rung's earlier kind's pending upload is no name read. */
+  const plan = citeOnce(blocks, { held, read: onIssue.length, cut, reference });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
     /* Every block fills from one record; three copies of a line is reading the write spared. */
   const spoken = new Set();
@@ -418,7 +417,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
-  return { uploads: plan?.upload ?? [], rendered: render(kind, blocks, stamp) };
+  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: render(kind, blocks, stamp) };
 };
 
 const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
@@ -503,6 +502,7 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   await uploadAll("issue", documentId, uploads.map((one) => one.path), {
     renewing: () => renew(documentId, reference),
     sending: sent.push.bind(sent),
+    said: [...new Set(prepared.map((one) => one.said).filter(Boolean))].join("\n") || null,
   });
   const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
   const posted = [];

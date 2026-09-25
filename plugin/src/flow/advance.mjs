@@ -19,7 +19,8 @@ import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
-import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, targetOf } from "./route.mjs";
+import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, targetOf,
+  undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 export const USAGE = [
@@ -477,12 +478,14 @@ const run = async (argv, readAs) => {
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence, given.needs);
   }
-  const { next, missing, resumed, park: routed } = targetOf(view, ref);
+  const { next, missing, resumed, park: routed, undecided = false } = targetOf(view, ref);
   checkTarget(given.to, next, view, ref);
   if (missing.length) {
-    shortfall(ref, view, { next, missing });
+    shortfall(ref, view, { next, missing, undecided });
     /* Asked what is owed, the answer is the answer; asked to move, the same list is a refusal. */
-    if (!given.owed) return fail(`${missing.length} item(s) owed before ${next}.`);
+    if (!given.owed) {
+      return fail(`${missing.length} item(s) owed ${undecided ? `first: ${undecidedSaid(next)}` : `before ${next}`}.`);
+    }
     return sayAhead(view, ref, next);
   }
   if (given.owed) {

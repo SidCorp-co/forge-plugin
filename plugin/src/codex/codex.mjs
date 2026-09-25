@@ -120,7 +120,7 @@ const CONSULT_USAGE = [
 
 const SHOW_USAGE = [
   "Usage: forge codex show",
-  "Profile, model, records, rounds, effort, angles, check, pending and log, in effect here.",
+  "Profile, model, records, rounds, effort, angles, check, recorded files and log, in effect here.",
 ].join("\n");
 
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
@@ -522,7 +522,8 @@ const show = (rest = []) => {
     : "none — a codex.check in the project's own settings names one"}`);
   console.log(`per call  : ${Math.round(budgetMs() / 1000)}s of budget, and the tool list is `
     + `${keepsTools() ? "kept on the last call with none asked for" : "dropped for the last call"}`);
-  console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
+  /* The record whole and not a commit's demand, which `pending` prints: one word had two answers (ISS-45). */
+  console.log(`recorded  : ${waiting.length ? `${waiting.join(", ")} — \`forge codex pending\` says which of them a commit is asked for` : "nothing"}`);
   console.log(`log       : ${logPath()}  (${consults(entries).length} consult(s))`);
 };
 

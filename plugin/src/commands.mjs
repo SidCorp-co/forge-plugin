@@ -378,6 +378,7 @@ const own = {
     /* One name on one issue names one document (ISS-137), and the read comes before the first
        request: what is up can be neither deleted nor replaced, so a collision seen afterwards is one
        nobody can clear. A comment id names no issue, so that route reads no names and refuses none. */
+    let said = null;
     if (target === "issue") {
       const [page, body] = await Promise.all([
         commentPage(targetId),
@@ -386,11 +387,12 @@ const own = {
       const cut = cutIn(page);
       const read = uploadRead(paths, attachmentNames(body, page.comments), { reference: targetRef, cut });
       if (read.refusal) fail(read.refusal);
-      if (read.said) console.error(read.said);
+      said = read.said ?? null;
     }
     /* The renewal rides the sending pass; a comment id names no issue to read a lease from. */
     await uploadAll(target, targetId, paths, {
       renewing: target === "issue" ? () => renew(targetId, targetRef) : undefined,
+      said,
     });
   },
   /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A held slug is answered as one the tracker never served, through that refusal's own call site so the two cannot drift, and its body is never fetched: a line saying a page exists and is stale is what sends an agent to read it.
