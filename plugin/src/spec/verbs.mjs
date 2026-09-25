@@ -12,6 +12,7 @@ import { identifierProblems } from "./rules.mjs";
 import { entriesOf, movedIn, recordProblems } from "./recorded.mjs";
 import { shapeProblems } from "./shape.mjs";
 import { specTree, specTreeRead, writeSpecRecord } from "./tree.mjs";
+import { PROOFS, PROOFS_USAGE, proofs } from "./proofs/verb.mjs";
 
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
 
@@ -38,6 +39,8 @@ export const USAGE = [
   "              stored nowhere — the one thing here that asks the tracker",
   `  ${CHECK}       the whole tree against the rules its own index states; \`forge spec ${CHECK} -h\``,
   `  ${CHECK} ${RECORDING}  writes the digest of every clause to the file those rules compare a citation against`,
+  `  ${PROOFS}      the Proof lines read backwards: unproven criteria, unnamed test files, shared cases;`,
+  `              \`forge spec ${PROOFS} -h\``,
   "",
   "An unknown identifier is refused with the nearest ones, and one that two documents define is",
   "refused as ambiguous. The rules, the notation and what a citation claims: docs/requirements/.",
@@ -236,10 +239,21 @@ const checked = (rest) => {
     + "Every rule named above is stated in docs/requirements/README.md, one row each.";
 };
 
-const run = async (argv, readStatus) => {
-  /* `check` is the only subject this verb has; every other word in that slot is an identifier, so a help word after one is the stray argument `read` already refuses rather than a question. */
-  const help = helpAskedOf(argv, [CHECK]);
-  if (help || !argv.length) return console.log(help?.subject === CHECK ? CHECK_USAGE : USAGE);
+const SUBJECTS = { [CHECK]: CHECK_USAGE, [PROOFS]: PROOFS_USAGE };
+
+const proofsRun = (argv, readOwing) => {
+  if (!readOwing) {
+    refuse(`spec ${PROOFS} was wired without the reader its unproven list spends: whichever module`
+      + " registers this verb passes `readOwing`, which plugin/src/commands.mjs builds.");
+  }
+  return proofs(argv, readOwing);
+};
+
+const run = async (argv, { readStatus, readOwing }) => {
+  /* `check` and `proofs` are the only subjects this verb has; every other word in that slot is an identifier, so a help word after one is the stray argument `read` already refuses rather than a question. */
+  const help = helpAskedOf(argv, Object.keys(SUBJECTS));
+  if (help || !argv.length) return console.log(SUBJECTS[help?.subject] ?? USAGE);
+  if (argv[0] === PROOFS) return proofsRun(argv.slice(1), readOwing);
   if (argv[0] === CHECK) {
     const said = checked(argv.slice(1));
     return said === null ? undefined : fail(said);
@@ -269,9 +283,9 @@ const run = async (argv, readStatus) => {
   }, null, 2));
 };
 
-export const spec = async (argv, { readStatus = null } = {}) => {
+export const spec = async (argv, { readStatus = null, readOwing = null } = {}) => {
   try {
-    await run(argv, readStatus);
+    await run(argv, { readStatus, readOwing });
   } catch (error) {
     if (error instanceof Refused) fail(error.message);
     throw error;

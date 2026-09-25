@@ -43,6 +43,7 @@ how many topics there may be.
 | [the wave](cli/the-wave.md) | Why a dispatcher's two record kinds take no lease, and what a resume reads on a wave's headline. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation narrowed rather than guessed. |
 | [spec — a clause read backwards](cli/spec-the-status.md) | Why the issues citing a clause are a search narrowed rather than a store walked, why the ask is per clause, what a criterion proves that a mention does not, and why a cut set earns no rung. |
+| [spec — the Proof lines read backwards](cli/spec-proofs.md) | Why the map from test to criterion is derived from the Proof lines and stored nowhere, why the test root is a declaration with no default, and why no list is a finding. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, why the read-back compares the copy the boundary sent, and why the count a reply answers to is read off argv, not at the layer reporting. |
 | [the entry checks](cli/the-entry-checks.md) | The obligations a plugin holds a project to without reading its tree, and why `--scope` is both asked for and excused. |
 | [the judge and the deploy](cli/the-judge-and-the-deploy.md) | Why `testing` reads the judge and `awaiting_release` the deployment, which half of that reading a project's own declaration buys, and why a citation is asked for where an identity is there and demanded of nobody. |

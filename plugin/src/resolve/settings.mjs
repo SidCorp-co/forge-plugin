@@ -2,9 +2,10 @@
    ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
    resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
 import { existsSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
 
 import { checkoutAt } from "../git/checkout-at.mjs";
+import { escaped } from "../markdown.mjs";
 import { configDir, configPath, once, readJson, userConfig } from "./config.mjs";
 
 /* Registered by a caller holding something no exit may lose — a body that arrived on stdin, or a
@@ -375,6 +376,51 @@ export const declaredJobs = () => jobsOf(forgeJson().parsed?.jobs);
 
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
+
+/* Where a project keeps its tests is its own decision and never a guess of this plugin's: a root
+   written relative to the checkout, and a pattern matched against a file's own name, `*` standing for
+   any run of characters and `?` for one. Both are demanded, since a list computed off either half
+   guessed would be a built-in by another name (ISS-2503). */
+const TESTS_TAKES = {
+  root: "a directory relative to the checkout that stays inside it",
+  pattern: "a file-name pattern with no slash in it, `*` and `?` its only wildcards",
+};
+
+const rootProblem = (given) => typeof given !== "string" || !given.trim() || isAbsolute(given)
+  || normalize(given).split(/[\\/]/u)[0] === "..";
+
+const patternProblem = (given) => typeof given !== "string" || !given.trim() || /[\\/]/u.test(given);
+
+/** The first half of `tests` a reader cannot take, as `{ key, takes, given }`, or null: the write
+ *  refuses on it and the reading reports it, so the two cannot disagree about what the key takes. */
+export const testsProblem = (given) => {
+  if (given === undefined) return null;
+  if (!given || typeof given !== "object" || Array.isArray(given)) return { key: "tests", takes: "a table", given };
+  if (given.root !== undefined && rootProblem(given.root)) return { key: "tests.root", takes: TESTS_TAKES.root, given: given.root };
+  if (given.pattern !== undefined && patternProblem(given.pattern)) {
+    return { key: "tests.pattern", takes: TESTS_TAKES.pattern, given: given.pattern };
+  }
+  return null;
+};
+
+const globRe = (pattern) => new RegExp(`^${[...pattern].map((one) => {
+  if (one === "*") return ".*";
+  if (one === "?") return ".";
+  return escaped(one);
+}).join("")}$`, "u");
+
+/** The project's test files as it declared them: `root`, and `named` testing a file's own name;
+ *  or `missing`, the halves it has not set; or `problem`, a value the file holds that the key does
+ *  not take. */
+const testsOf = (given) => {
+  const problem = testsProblem(given);
+  if (problem) return { problem, from: fromProject() };
+  const missing = ["root", "pattern"].filter((one) => given?.[one] === undefined);
+  if (missing.length) return { missing: missing.map((one) => `tests.${one}`), from: fromProject() };
+  return { root: normalize(given.root), pattern: given.pattern, named: globRe(given.pattern), from: fromProject() };
+};
+
+export const projectTests = () => testsOf(forgeJson().parsed?.tests);
 
 const PLUGIN_DEFAULT = "the plugin's default";
 

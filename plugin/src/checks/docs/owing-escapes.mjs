@@ -12,7 +12,8 @@ import { TREE, specTreeRead } from "../../spec/tree.mjs";
  *  so it stands with the closed and the dropped rather than with the ones still owing. */
 export const MISSING = "no such issue";
 
-const ended = (status) => status === MISSING || NO_LONGER_OWES.includes(status);
+/** Whether an issue at this status keeps no promise, the key naming no issue at all included. */
+export const ended = (status) => status === MISSING || NO_LONGER_OWES.includes(status);
 
 const LABEL = "proof escapes";
 
@@ -77,15 +78,20 @@ const whyShort = (read) => {
   return null;
 };
 
-/** The escapes of this checkout's tree against one whole-project issue reading. A key the reading
- *  holds no row for is `MISSING`; every key is unjudged where the reading itself was short. */
-export const owingEscapesFrom = (read, held = specTreeRead()) => {
-  if (!held) return { read: null, why: null };
+/** One whole-project issue reading as `statusOf`, a key to its status: `MISSING` where the reading
+ *  holds no row for it, and null on every key where the reading itself was short, `why` saying so. */
+export const statusesFrom = (read) => {
   const whole = Boolean(read?.whole) && !read?.refused;
   const status = new Map((read?.rows ?? [])
     .map((row) => [String(row?.issueId ?? "").toUpperCase(), row?.status]));
-  const statusOf = (key) => (whole ? status.get(key.toUpperCase()) ?? MISSING : null);
-  return { read: owingRead(held.documents, statusOf), why: whyShort(read) };
+  return { statusOf: (key) => (whole ? status.get(key.toUpperCase()) ?? MISSING : null), why: whyShort(read) };
+};
+
+/** The escapes of this checkout's tree against one whole-project issue reading. */
+export const owingEscapesFrom = (read, held = specTreeRead()) => {
+  if (!held) return { read: null, why: null };
+  const { statusOf, why } = statusesFrom(read);
+  return { read: owingRead(held.documents, statusOf), why };
 };
 
 /** What a move into a status that owes nothing leaves behind: every criterion of this checkout's
