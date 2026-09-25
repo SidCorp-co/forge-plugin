@@ -18,7 +18,6 @@ import { CEILINGS, climbForm, overCeiling } from "../../plugin/src/ladder.mjs";
 import { REPLAYED, replaySays, replayedBy } from "./replayed.mjs";
 import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./land.mjs";
 import { checkpointsFinished, keysHere } from "./ship/checkpoint.mjs";
-import { movedBy } from "./land-ready/candidate.mjs";
 import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
@@ -83,11 +82,11 @@ export const shipHelp = () => [
   "It names beside those the sha the change landed as, which is not the pushed head the push printed:",
   "the rebase rewrote the commit the run reviewed and the version commit sits above it, so a mark that",
   "is about the change rather than about the release reads its sha from there and not off a log by eye.",
-  "That same step is the one place either of the mark's two path clauses is computed, and it prints the",
-  "flag each is typed into: what this change wrote, over the range's commits that are the change rather",
-  "than the version bump, and what the landing moved of those paths, above the sha a mark takes. Both",
-  "there and neither earlier, because a clause answered before the version commit exists is answered",
-  "about a landing that has not happened.",
+  "That same step prints the flag each of the mark's two path clauses is typed into: what this change",
+  "wrote, computed over the range's commits that are the change rather than the version bump, and not",
+  "earlier, because a clause answered before the version commit exists is answered about a landing",
+  "that has not happened. What the landing moved of those paths is `forge record merged`'s own reading",
+  "of git between the judged head and the sha a mark takes, which it checks the typed value against.",
   "",
   "The same step finishes the landing checkpoint each issue this tree was started for left, because a",
   "release is a landing and this one wrote no landing state at all: a branch its own run released read",
@@ -168,14 +167,6 @@ const releaseSays = (tree, base) => {
   return own.at(-1) ?? null;
 };
 
-/* Said with the value because it bounds it: the replay step proved the base moved none of this change's
-   paths, so above the sha a mark takes only the release's own commit is left to move one. That is movement
-   the landing caused — a fix committed after judging leaves the comparison from the judged head the run's own. */
-const measuredOn = (landed) => (landed
-  ? `measured over what landed above ${landed.slice(0, 7)}, the sha a mark takes, so a run whose `
-    + "verdicts judged an earlier commit of this change owes that comparison itself"
-  : "this release landed no commit of this change, so there is nothing of it to have moved");
-
 /** The flags that write the merged mark's two path clauses, printed at the step that knows what landed —
  *  the flags and not the clauses, whose wording a run typed whole into the value (ISS-1023). By commit and
  *  not by filename: a dependency lives in the manifest a bump also writes. Both here and neither earlier,
@@ -187,13 +178,16 @@ const clauseFlags = (tree, own) => {
   }
   const said = [...wrote].sort();
   const landed = own.at(-1) ?? null;
-  const moved = landed ? movedBy(tree, landed, "HEAD", said) : [];
   console.log("  the clause of the mark's note that says what this change wrote, which `developed` "
     + "reads against the plan, is written by this flag:");
   console.log(`    --wrote ${said.length ? typed(said.join(", ")) : "nothing"}`);
   console.log("  and the clause that says what the landing moved of this change, which is what lets the "
-    + `verdicts stand at the head they were taken at, by this one — ${measuredOn(landed)}:`);
-  console.log(`    --moved ${moved.length ? typed(moved.join(", ")) : "nothing"}`);
+    + "verdicts stand at the head they were taken at, by --moved: `forge record merged` reads it from "
+    + `git itself, as the paths above whose bytes differ between --judged and --at${landed
+      ? ` ${landed.slice(0, 7)}` : ""}, and refuses any other value, naming the one it read. The replay `
+    + "step proved the base moved none of those paths, so for verdicts taken at the head this ship "
+    + "rebased that reading is:");
+  console.log("    --moved nothing");
   console.log("  type each flag and its value whole, any quotes on it being the shell's: the note is built "
     + "to the room the tracker gives it, and one too long to store leaves out paths the plan names "
     + "and says so in a clause of its own");

@@ -13,6 +13,7 @@ import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 import { commitProblem } from "./content.mjs";
+import { movedBetween, unreadableIn } from "../../git/moved.mjs";
 
 /* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
 const MARK = /^mark_merged\b/u;
@@ -31,7 +32,7 @@ export const CLAUSES = [
   { flag: "at", said: "at", label: "the sha the change landed at", commit: true },
   { flag: "reviewed", said: "reviewed head", label: "the head the review judged", commit: true },
   { flag: "judged", said: "judged head", label: "the head the verdicts judged", commit: true },
-  { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved" },
+  { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved, as git reads --wrote between --judged and --at" },
   { flag: "wrote", said: "landing wrote", label: "the paths this change itself landed" },
 ].map((one) => ({ ...one, reads: one.commit ? shaOf(one.said) : clauseOf(one.said) }));
 
@@ -284,6 +285,32 @@ const clausesFrom = (given) => {
   return Object.fromEntries(CLAUSES.map((one) => [one.flag, valueOf(one, given[one.flag])]));
 };
 
+/* The clause that stands the verdicts down or lets them stand is git's reading and never the run's:
+   a run listing every path a no-op merge touched re-owed twenty-six verdicts about identical bytes,
+   and a run saying `nothing` over a merge that moved its file would have kept them (ISS-1362). The
+   typed value stays, checked, because the help promising every clause is owed is printed from
+   record-rows.mjs. What is read is the change's own paths and not the whole tree: a neighbour the
+   landing moved is the review's and the reconcile's to read at the landed head, never a verdict's. */
+const movedProblem = (clauses, tree) => {
+  const { at, judged, moved, wrote } = clauses;
+  const gone = unreadableIn(tree, [judged, at]);
+  if (gone) {
+    const flag = gone === judged ? "--judged" : "--at";
+    return `git in ${tree} cannot read ${gone}, which ${flag} names, and \`landing moved\` is git's `
+      + "reading of the --wrote paths between --judged and --at: no mark is written on a run's word for "
+      + "it. Fetch that commit into this checkout, or mark from the one that holds it, then run this "
+      + "again:\n  git fetch";
+  }
+  const read = movedBetween(tree, judged, at, wrote);
+  if (read === null) return `git in ${tree} could not diff ${judged} against ${at}, so nothing was written.`;
+  const same = read.length === moved.length && read.every((one) => moved.includes(one));
+  if (same) return null;
+  return `--moved says ${pathsSaid(moved)}, and git reads ${pathsSaid(read)}: those are the paths of `
+    + `--wrote whose bytes differ between the judged head ${judged} and ${at}. The clause is that `
+    + `reading, since it is what lets the verdicts at the judged head stand, so nothing was written. `
+    + `Run the same command with:\n  --moved ${pathsSaid(read)}`;
+};
+
 const branchFor = async (given) => {
   if (given.to !== undefined) return given.to;
   const held = (await releasePolicy())?.staging;
@@ -319,6 +346,8 @@ const marked = async (documentId, ref, note, at, { next, patch }) => {
 export const mergedPrepared = async (argv, { reference, issue, page, next, patch, usage } = {}) => {
   const given = flags(argv, "record merged", ["--undo"], { usage });
   const clauses = given.undo ? null : clausesFrom(given);
+  const wrong = clauses && movedProblem(clauses, process.cwd());
+  if (wrong) refuse(wrong);
   const { documentId, body } = await issue();
   const { comments } = await page();
   if (given.undo) {
