@@ -156,6 +156,11 @@ const CRITERION_BLOCKS = [
   "repeatable flag adds to it, so a criterion whose evidence is its own cites that too:",
   "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
   "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
+  "Inside a block another --criterion follows, a flag the part before the first --criterion also",
+  "names stands directly after that block's own --criterion. Written after one of the block's other",
+  "flags it reads as opening the next block while it binds to this one, so it is refused:",
+  "    --criterion 5 --why \"<reason>\" --verdict fail --criterion 6   refused",
+  "    --criterion 5 --verdict fail --why \"<reason>\" --criterion 6   criterion 5 fails",
   "A file two criteria cite goes up once, under the one name both of them carry. Each block reads",
   "back as the record a single write makes, so nothing downstream can tell one write from three.",
 ];
