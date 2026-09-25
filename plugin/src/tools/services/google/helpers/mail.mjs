@@ -55,10 +55,16 @@ const send = async (argv) => {
 const headerIn = (message, name) => (message.payload?.headers ?? [])
   .find((one) => one.name.toLowerCase() === name.toLowerCase())?.value ?? null;
 
+/* What a preview composes from in place of the message it did not read: each header named for the
+   message it would have come from, so the send it prints shows where every value comes from. */
+const standIn = (id, headers) => ({ threadId: `<threadId of ${id}>`,
+  payload: { headers: headers.map((name) => ({ name, value: `<${name} of ${id}>` })) } });
+
 const readMetadata = async (id, headers, options) => {
   const method = methodById("gmail.users.messages.get");
   const request = requestFor(method, { params: { format: "metadata", metadataHeaders: headers }, positionals: [id] });
-  return invoke(method, request, { ...options, dryRun: false });
+  const answer = await invoke(method, request, options);
+  return options.dryRun ? standIn(id, headers) : answer;
 };
 
 const reply = async (argv) => {

@@ -15,9 +15,12 @@ const printed = (answer) => {
   if (answer !== null) say(JSON.stringify(answer, null, 2));
 };
 
+/* A preview prints the settings read and names the zone it would have answered, since no zone guessed
+   here would be the account's. */
 const zoneOf = async (options) => {
   const method = methodById("calendar.settings.get");
-  const setting = await invoke(method, requestFor(method, { positionals: ["timezone"] }), { ...options, dryRun: false });
+  const setting = await invoke(method, requestFor(method, { positionals: ["timezone"] }), options);
+  if (options.dryRun) return "<the account's calendar time zone>";
   return setting?.value ?? "UTC";
 };
 

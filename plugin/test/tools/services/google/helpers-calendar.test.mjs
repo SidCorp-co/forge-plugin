@@ -86,6 +86,16 @@ test("+schedule --meet asks Calendar to attach a Meet link", async () => {
   assert.equal(JSON.parse(sent.body.toString("utf8")).conferenceData.createRequest.conferenceSolutionKey.type, "hangoutsMeet");
 });
 
+test("+schedule --dry-run sends nothing, and prints the zone read and then the insert in a zone it names as the account's", async () => {
+  const answer = await ran("+schedule", "--title", "Review", "--start", "2026-10-01T10:00", "--end", "2026-10-01T10:30", "--dry-run");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.equal(fake.requests.length, 0);
+  const read = answer.stdout.search(/^GET http:\/\/127\.0\.0\.1:\d+\/calendar\/v3\/users\/me\/settings\/timezone$/mu);
+  const insert = answer.stdout.search(new RegExp(`^POST http://127\\.0\\.0\\.1:\\d+${EVENTS}$`, "mu"));
+  assert.ok(read >= 0 && insert > read, answer.stdout);
+  assert.match(answer.stdout, /"timeZone": "<the account's calendar time zone>"/u);
+});
+
 test("+meet creates a Meet space and prints its link", async () => {
   fake.answers["POST /v2/spaces"] = () => [200, { name: "spaces/s1", meetingUri: "https://meet.google.com/xyz-abcd-efg", meetingCode: "xyz-abcd-efg" }];
   const answer = await ran("+meet");

@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { basename } from "node:path";
 
 import { ACCOUNT_VALUES, PREVIEW_SWITCHES, invoke, optionsOf } from "../invocation.mjs";
-import { VALIDATION, refuse, say } from "../exits.mjs";
+import { VALIDATION, note, refuse, say } from "../exits.mjs";
 import { pagingOf, parseFlags, requestFor } from "../request.mjs";
 import { methodById } from "../surface.mjs";
 
@@ -52,13 +52,22 @@ const exportMime = (file, asked) => {
   return { mime, extension: asked ? "" : EXPORTS[kind][1] };
 };
 
+/* A preview cannot know the file's type without the lookup it only prints, so it shows the download of
+   a file that is not Google-native, and the export under --mime, the one case --mime applies to. */
+const looked = async (id, options, flags) => {
+  const get = methodById("drive.files.get");
+  const file = await invoke(get, requestFor(get, { params: { fields: "id,name,mimeType" }, positionals: [id] }), options);
+  if (!options.dryRun) return file;
+  if (!flags.mime) note(`google +download: a dry run does not read ${id}'s type; a Google-native file is exported instead of downloaded.`);
+  return { name: `<name of ${id}>`, mimeType: flags.mime ? `${NATIVE}<type of ${id}>` : `<mimeType of ${id}>` };
+};
+
 const download = async (argv) => {
   const { flags, positionals } = parseFlags(argv, { values: ["--output", "--mime", ...ACCOUNT_VALUES], switches: PREVIEW_SWITCHES, verb: "google +download" });
   if (positionals.length !== 1) invalid("+download takes one file id: +download <id> [--output F] [--mime M]");
   if (flags.output && existsSync(flags.output)) refuseTaken(flags.output);
   const options = optionsOf(flags, ["+download", ...argv]);
-  const get = methodById("drive.files.get");
-  const file = await invoke(get, requestFor(get, { params: { fields: "id,name,mimeType" }, positionals }), { ...options, dryRun: false });
+  const file = await looked(positionals[0], options, flags);
   const native = file.mimeType.startsWith(NATIVE);
   if (!native && flags.mime) invalid(`+download: --mime converts a Google-native file, and ${file.name} is ${file.mimeType}.`);
   const exported = native ? exportMime(file, flags.mime) : null;
