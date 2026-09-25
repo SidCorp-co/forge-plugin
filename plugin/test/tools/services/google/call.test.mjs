@@ -83,6 +83,18 @@ test("an unknown --params key is refused with 3 naming the nearest, and nothing 
   assert.equal(fake.requests.length, 0);
 });
 
+test("under --dry-run an unknown --params key is refused with 3 all the same, and nothing is sent", async () => {
+  const answer = await ran("drive", "files", "list", "--params", '{"pageSiz":2}', "--dry-run");
+  assert.equal(answer.status, 3);
+  assert.match(answer.stderr, /No --params key named pageSiz/u);
+  assert.equal(fake.requests.length, 0);
+});
+
+test("the help's --dry-run line is the one it always carried", async () => {
+  const help = await ran("-h");
+  assert.ok(help.stdout.split("\n").includes("  --dry-run        print the request, credential masked, and send nothing"), help.stdout);
+});
+
 test("an unknown flag and a positional past the path are each refused with 3 before a send", async () => {
   const flag = await ran("drive", "files", "list", "--page-size", "2");
   assert.equal(flag.status, 3);
@@ -168,6 +180,7 @@ test("--dry-run prints the request with the credential masked and sends nothing;
   const preview = await ran("drive", "files", "create", "--json", '{"name":"x"}', "--dry-run");
   assert.equal(preview.status, 0, preview.stderr);
   assert.match(preview.stdout, /^POST http:\/\/127\.0\.0\.1:\d+\/drive\/v3\/files$/mu);
+  assert.match(preview.stdout, /^Credential: FORGE_GOOGLE_ACCESS_TOKEN$/mu);
   assert.match(preview.stdout, new RegExp(`^Authorization: Bearer set \\(${ENV_ACCESS.length} chars\\)$`, "mu"));
   assert.match(preview.stdout, /^Content-Type: application\/json$/mu);
   assert.match(preview.stdout, /"name": "x"/u);

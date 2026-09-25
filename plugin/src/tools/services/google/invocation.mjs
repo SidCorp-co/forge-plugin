@@ -1,11 +1,10 @@
 /* One call, typed or made by a helper, in the one order every call runs: which account answers, whose
-   data it acts on, whether it owes `--yes`, the token, then the preview or the send. A helper that
+   data it acts on, whether it owes `--yes`, then the preview, or the token and the send. A helper that
    took a second route would be a second place consent and masking have to be right. */
 import { readFileSync, writeFileSync } from "node:fs";
 
-import { masked } from "../masked.mjs";
 import { chooseAccount } from "./auth/accounts.mjs";
-import { accessToken, subjectFor } from "./auth/credential.mjs";
+import { accessToken, previewedCredential, subjectFor } from "./auth/credential.mjs";
 import { API, AUTH, INTERNAL, VALIDATION, refuse, say, struck } from "./exits.mjs";
 import { READS_THE_EVENT, consentOwed } from "./consent.mjs";
 import { clearedBy } from "./refused.mjs";
@@ -45,9 +44,10 @@ const payloadOf = (request) => {
   return { contentType: "application/json", body: text, shown: JSON.stringify(request.body, null, 2) };
 };
 
-const preview = (method, url, token, payload) => {
+const preview = (method, url, credential, payload) => {
   say(`${method.entry.http} ${url}`);
-  say(`Authorization: Bearer ${masked(token, false)}`);
+  say(`Credential: ${credential.account}`);
+  say(`Authorization: Bearer ${credential.bearer}`);
   if (payload.contentType) say(`Content-Type: ${payload.contentType}`);
   if (payload.shown) say(payload.shown);
 };
@@ -121,14 +121,14 @@ export const invoke = async (method, request, options) => {
   const owed = !options.yes && !options.dryRun;
   const reason = owed ? consentOwed(method, request) : null;
   if (reason) refuseWithoutConsent(method, reason, options.argv);
+  if (options.dryRun) {
+    preview(method, addressOf(method, request, null), previewedCredential(choice, method.service, subject), payloadOf(request));
+    return null;
+  }
   const token = await accessToken(choice, method.service, subject);
   if (owed && READS_THE_EVENT.includes(method.id)) {
     const late = consentOwed(method, request, await eventOf(method, request, token, choice));
     if (late) refuseWithoutConsent(method, late, options.argv);
-  }
-  if (options.dryRun) {
-    preview(method, addressOf(method, request, null), token, payloadOf(request));
-    return null;
   }
   if (request.paging) return paged(method, request, token, choice).then(() => null);
   const answer = await sent(method, request, token, choice);

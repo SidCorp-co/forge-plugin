@@ -4,6 +4,7 @@
    docs/cli/google.md. */
 import { createSign } from "node:crypto";
 
+import { masked } from "../../masked.mjs";
 import { SCOPES, SERVED_SERVICES } from "../surface.mjs";
 import { AUTH, VALIDATION, holdSecret, refuse } from "../exits.mjs";
 import { jsonOf, reach } from "../wire.mjs";
@@ -98,14 +99,32 @@ const loginToken = async (choice) => {
     + ` -s ${servicesOf(choice.record).join(",")}`);
 };
 
+/* What a saved account is checked for before any token exists, so a preview refuses what a send would. */
+const grantable = (choice, service) => {
+  if (choice.route === LOGIN && !servicesOf(choice.record).includes(service)) {
+    refuse(AUTH, `google: the login \`${choice.name}\` did not ask for ${service}.\n  add it: ${addsService(choice, service)}`);
+  }
+};
+
+export const NOT_FETCHED = "not fetched (dry run)";
+
+/** The account a preview names and the bearer it shows, with nothing sent to mint one. */
+export const previewedCredential = (choice, service, subject) => {
+  if (choice.route === ENV) return { account: ENV_TOKEN, bearer: masked(choice.token, false) };
+  grantable(choice, service);
+  accountFile(choice.name);
+  const account = choice.route === LOGIN
+    ? `login ${choice.record.address ?? "(no address)"}`
+    : `service account ${choice.record.clientEmail} key ${choice.record.keyId}${subject ? ` as ${subject}` : ""}`;
+  return { account, bearer: NOT_FETCHED };
+};
+
 const minted = new Map();
 
 /** The bearer for one call, minted once a process for each account, service and subject. */
 export const accessToken = async (choice, service, subject) => {
   if (choice.route === ENV) return choice.token;
-  if (choice.route === LOGIN && !servicesOf(choice.record).includes(service)) {
-    refuse(AUTH, `google: the login \`${choice.name}\` did not ask for ${service}.\n  add it: ${addsService(choice, service)}`);
-  }
+  grantable(choice, service);
   const key = `${choice.name}|${choice.route === SERVICE ? service : "login"}|${subject ?? ""}`;
   if (!minted.has(key)) minted.set(key, choice.route === SERVICE ? await serviceToken(choice, service, subject) : await loginToken(choice));
   return minted.get(key);
