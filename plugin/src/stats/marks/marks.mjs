@@ -20,6 +20,8 @@ export const CONSULTS = "consults";
 export const RELEASES = "releases";
 /* What a change said it would move, written before that change lands and keyed to the issue that made it. */
 export const CLAIMS = "claims";
+/* How a landing resolved a red set: an opening record and a resolution record per set, docs/cli/stats-the-landing.md. */
+export const BATCHES = "red-batches";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
@@ -235,6 +237,7 @@ const identityOf = (record) => {
   /* A claim is one issue's latest word and two claims about one issue are two records, so its identity
      carries the moment: holding them by issue alone would make a revised claim a no-op write. */
   if (record.kind === CLAIMS) return `${record.issue}@${record.at}`;
+  if (record.kind === BATCHES) return `${record.batch}:${record.phase}`;
   return record.mark;
 };
 

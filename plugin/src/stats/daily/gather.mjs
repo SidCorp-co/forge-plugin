@@ -9,6 +9,7 @@ import { corpusOf } from "../corpus/read.mjs";
 import { profileOf } from "../runs.mjs";
 import { landingsOver, landingsUnder } from "../corpus/landings.mjs";
 import { classesFor } from "../corpus/classes.mjs";
+import { redBatchesOver } from "../marks/red-batches.mjs";
 import { movedIn } from "../eval/eval.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";
 import { median } from "../median.mjs";
@@ -108,8 +109,10 @@ const passesOn = (passes, day) => passes.filter((one) => within(one.at, day));
 /** Where the page's landings begin: the first day its trend draws. */
 export const landingsFrom = (day) => boundsOf(trendDays(day)[0]).from;
 
+/* Every project's red sets, as the page's landings are every project's passes. */
 const landingsSection = (all, passes, day) => ({
   headline: landingsOf(runsOn(all, day), passesOn(passes, day)),
+  redBatches: redBatchesOver(null, boundsOf(day).from, boundsOf(day).to),
   trend: trendDays(day).map((one) => ({ day: one,
     passes: landingsOf(runsOn(all, one), passesOn(passes, one))?.passes ?? null })),
   missing: [MISSING.firstGate, MISSING.causes, MISSING.gateLost],

@@ -4,6 +4,7 @@
    Colour only ever repeats what the words beside it say: docs/cli/stats.md. */
 import { contentBlock } from "./store.mjs";
 import { summaryOf } from "./summary.mjs";
+import { redBatchSaid } from "../marks/red-batches.mjs";
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export const esc = (value) => String(value ?? "").replace(/[&<>"']/gu, (one) => ESCAPES[one]);
@@ -84,6 +85,7 @@ const landingsHtml = (landings, days) => {
       + `a push rejected in ${esc(held.rejectedRuns)} run(s), ${esc(held.gateMinutes)} gate minute(s) spent over ${esc(held.gateCalls)} gate call(s).</p>`
     : `<p class="headline"><strong>No landing pass</strong> was typed and no run ended on this day, so no landing figure is read.</p>`;
   return `<section id="landings"><h2>Landings</h2>${head}`
+    + (landings.redBatches ? `<p>Red batches: ${esc(redBatchSaid(landings.redBatches))}.</p>` : "")
     + trendSvg("landing passes a day", days, landings.trend.map((one) => one.passes))
     + `<ul>${landings.missing.map((one) => `<li>${missing(one)}</li>`).join("")}</ul></section>`;
 };
