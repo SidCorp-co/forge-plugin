@@ -85,6 +85,43 @@ const bodyAt = (code, from, to) => {
   return null;
 };
 
+const CONTROL = new Set(["if", "for", "while", "switch", "catch", "with"]);
+
+/* Where each `return` of the function whose body opens at `open` hands back its value: quoted text
+   is skipped, and so is the body of every function nested in it — an arrow's block, a `function`,
+   a method — whose returns are its own. Null where the body does not close. */
+const ownReturns = (code, open) => {
+  const shut = closing(code, open);
+  if (shut === -1) return null;
+  const found = [];
+  const parens = [];
+  const skipBlock = (from) => {
+    const brace = from + code.slice(from).search(/\S/u);
+    return code[brace] === "{" ? closing(code, brace) : -1;
+  };
+  for (let at = open + 1; at < shut; at += 1) {
+    const one = code[at];
+    if (one === "'" || one === '"' || one === "`") {
+      let end = at + 1;
+      while (end < shut && code[end] !== one) end += code[end] === "\\" ? 2 : 1;
+      at = end;
+    } else if (one === "(") parens.push(at);
+    else if (one === ")") {
+      const from = parens.pop() ?? at;
+      const named = /([A-Za-z_$][\w$]*)\s*$/u.exec(code.slice(Math.max(open, from - 40), from));
+      const block = named && !CONTROL.has(named[1]) ? skipBlock(at + 1) : -1;
+      if (block !== -1) at = block;
+    } else if (code.startsWith("=>", at)) {
+      const block = skipBlock(at + 2);
+      if (block !== -1) at = block;
+    } else if (/[\w$]/u.test(code[at - 1] ?? "")) continue;
+    else if (/^return\b/u.test(code.slice(at, at + 7))) {
+      found.push(at + 6 + code.slice(at + 6).search(/\S/u));
+    }
+  }
+  return found;
+};
+
 /* Every object literal a right-hand side answers with: itself, a concise arrow's, or each return of
    a function body. Any return that is not an object literal leaves the answer unread. */
 export const shapeOf = (code, from, to) => {
@@ -93,12 +130,10 @@ export const shapeOf = (code, from, to) => {
   const body = bodyAt(code, lead, to);
   if (!body || body.open === -1) return null;
   if (body.concise) return entriesAt(code, body.open);
-  const shut = closing(code, body.open);
-  const returns = [...code.slice(body.open, shut === -1 ? to : shut).matchAll(/\breturn\b\s*/gu)];
-  if (!returns.length) return null;
+  const returns = ownReturns(code, body.open);
+  if (!returns?.length) return null;
   const entries = [];
-  for (const one of returns) {
-    const open = body.open + one.index + one[0].length;
+  for (const open of returns) {
     const found = code[open] === "{" ? entriesAt(code, open) : null;
     if (!found) return null;
     entries.push(...found);
