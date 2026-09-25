@@ -3553,6 +3553,22 @@
       "rev": 1,
       "digest": "613371050abcbcf8b072172a994c28a7c7dfc6c0c4a4ae2f5ad22a7147df74d3"
     },
+    "UC-11-5": {
+      "rev": 1,
+      "digest": "505fdae08e4fad078995293e933ad63eb16c3daa6abb68225453c32fb8cb004e"
+    },
+    "AC-11-5-1": {
+      "rev": 1,
+      "digest": "4d070b638cee1a3b8ba211299a5b98ed907e46a8dab933a2acb5edddb5ebaeac"
+    },
+    "AC-11-5-2": {
+      "rev": 1,
+      "digest": "5a7c0173ff97774ffb7a6ee511573ca1bd516dcb699718f21ff4bb548ece3e3f"
+    },
+    "AC-11-5-3": {
+      "rev": 1,
+      "digest": "feb965ed4ad5ada6340202bd8951ce5d78c81dc365321894ae323f12c0d5fcd0"
+    },
     "FR-12": {
       "rev": 1,
       "digest": "87dbaa2adccbeded6b4ee3addf0993fd3c0f547f17842b2db8829da6fa2778ba"

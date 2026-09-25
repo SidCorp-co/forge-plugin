@@ -126,6 +126,28 @@ sentence pinned twice and nothing of a claim restated in other words.
   the two as one wording whatever pattern kind spells each, a fragment being what is left once most
   of a sentence is cut away.
 
+### UC-11-5 — A case matches a path it did not choose as characters, never as a pattern
+
+Rev: 1 · Actors: agent · Enforces: BR-12
+
+A run's scratch root is named after the id its run was given, and a batch id joins its keys with
+`+`, so a case building a `RegExp` from a path it was handed reads an operator where the path has a
+character and goes red for a tree nobody changed. The check follows a name to where it got its value,
+and a check that over-reaches is as costly as one that misses: a finding on a commit sha a case
+compared is compliance paid for nothing, and the next case written beside a room is refused again.
+
+- **AC-11-5-1** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "no case in either test tree puts a path it did not choose into a RegExp source"
+  IF a case in any test tree puts a path it did not choose into a `RegExp` source without the
+  escape the fixtures export, THEN the check SHALL fail naming the file, the line and the path.
+- **AC-11-5-2** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "a name destructured beside a path is no path, and a call to it makes none"
+  WHERE a name is destructured from a call to a function whose every return is an object literal
+  the check SHALL read that name as a path only when its own property's value makes one, a sibling
+  property of the same object being no evidence about it.
+- **AC-11-5-3** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "a name off a source nothing here can read is a path as a value, and a call to it makes none"
+  WHERE a name is destructured from a source whose shape the check cannot read, the check SHALL read
+  it as a path where that source makes one and SHALL NOT read a call to it as making one, a path
+  being a value nobody calls.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

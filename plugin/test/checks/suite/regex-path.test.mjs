@@ -28,7 +28,7 @@ const files = () => {
   return out;
 };
 
-const borrowed = (walked) => walked.reduce((all, one) => new Set([...all, ...exportsIn(one.text)]), new Set());
+const borrowed = (walked) => new Map(walked.flatMap((one) => [...exportsIn(one.text)]));
 
 test("the walk reaches every test tree, so a clean answer is clean suites and not an empty selector", () => {
   const walked = files();
@@ -54,6 +54,11 @@ test("no case in either test tree puts a path it did not choose into a RegExp so
 
 const MADE = "const work = join(tmpdir(), \"made\");\n";
 const BORROWED = "import { tempRoom } from \"../fixtures.mjs\";\nconst work = tempRoom(\"borrowed \");\n";
+/* Shaped like the helper ISS-2539 met: one property is a room, its siblings a runner and a sha. */
+const REPO = "const repo = () => {\n  const room = join(tmpdir(), \"r\");\n"
+  + "  const as = (...args) => spawnSync(\"git\", [\"-C\", room, ...args]);\n"
+  + "  return { room, as, at: as(\"rev-parse\").stdout };\n};\n";
+const UNREAD = "import { tempRoom } from \"../fixtures.mjs\";\nconst { work, as } = made(tempRoom(\"x\"));\n";
 
 /* One per route a path takes to an interpolation, because a rule reaching one of them reads exactly
    like a clean tree to whoever writes the next case by another. */
@@ -68,6 +73,16 @@ const REFUSED = {
   "a path concatenated between two spelt-out ends": `${MADE}assert.match(said, new RegExp("^" + work + "$", "u"));\n`,
   "a path beside an escaped one in the same interpolation": `${MADE}const at = tmpdir();\nassert.match(said, new RegExp(\`in \${escaped(at) + work}\`, "u"));\n`,
   "a path beside an escape whose own argument carries a bracket": `${MADE}assert.match(said, new RegExp(\`\${escaped("(") + work}\`, "u"));\n`,
+  "a path destructured as its own property off a function that returns it": `${REPO}const { room, at } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path renamed off its own property": `${REPO}const { room: dir } = repo();\nassert.match(said, new RegExp(\`in \${dir}\`, "u"));\n`,
+  "a path destructured off a concise arrow's object": `const make = () => ({ room: tmpdir(), n: 1 });\nconst { room } = make();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path destructured off a function whose nested helper returns a string of its own": `const repo = () => {\n  const sha = () => { return "abc"; };\n  return { room: tmpdir(), at: sha() };\n};\nconst { room } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path returned by a second object an operator joins to the first": `const repo = () => {\n  return { room: "unused" } && { room: tmpdir() };\n};\nconst { room } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path a concise arrow answers from a second object an operator joins": `const repo = () => ({ room: "unused" } && { room: tmpdir() });\nconst { room } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path an object literal joined by an operator answers": `const { room } = { room: "unused" } && { room: tmpdir() };\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path bound off a quoted key of its own property": `${REPO}const { "room": dir } = repo();\nassert.match(said, new RegExp(\`in \${dir}\`, "u"));\n`,
+  "a path an accessor answers, which the check does not read": `const make = () => ({ get room() { return tmpdir(); } });\nconst { room } = make();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a name taken by position off a path-making source": `const [work, n] = [tmpdir(), 1];\nassert.match(said, new RegExp(\`over \${n}\`, "u"));\n`,
 };
 
 for (const [route, source] of Object.entries(REFUSED)) {
@@ -94,6 +109,7 @@ const ACCEPTED = {
   "a list joined into a pattern, which is no directory": `const RUNGS = ["a", "b"];\nassert.match(said, new RegExp(\`one of \${RUNGS.join("|")}\`, "u"));\n`,
   "a whole concatenation put through the escape": `${MADE}const at = tmpdir();\nassert.match(said, new RegExp(\`in \${escaped(at + work)}\`, "u"));\n`,
   "a whole pattern put through the escape, interpolation and all": `${MADE}assert.match(said, new RegExp(escaped(\`^\${work}$\`), "u"));\n`,
+  "a sha destructured off a function whose nested helper returns a string of its own": `const repo = () => {\n  const sha = () => { return "abc"; };\n  function name() { return "x"; }\n  if (ok) { return { room: tmpdir(), at: sha() }; }\n  return { room: tmpdir(), at: "return" };\n};\nconst { at } = repo();\nassert.match(said, new RegExp(\`at \${at}\`, "u"));\n`,
   "the same name, a path in one block and a count in the next": `test("one", () => {\n${MADE}assert.match(said, new RegExp(\`in \${escaped(work)}\`, "u"));\n});\ntest("two", () => {\n  const work = rows.length;\n  assert.match(said, new RegExp(\`over \${work} rows\`, "u"));\n});\n`,
 };
 
@@ -102,6 +118,37 @@ for (const [what, source] of Object.entries(ACCEPTED)) {
     assert.deepEqual(pathsIn(source, "plugin/test/made-up.test.mjs", new Set(["tempRoom"])), []);
   });
 }
+
+const MADE_UP = "plugin/test/made-up.test.mjs";
+const found = (source) => pathsIn(source, MADE_UP, new Set(["tempRoom"])).length;
+
+/* The helper ISS-2539 met: the sha beside the room, and the sha read off the runner beside it. */
+test("a name destructured beside a path is no path, and a call to it makes none", () => {
+  const pattern = (name) => `\nassert.match(said, new RegExp(\`in \${${name}}\`, "u"));\n`;
+  assert.equal(found(`${REPO}const { room, as, at } = repo();${pattern("at")}`), 0, "the sha beside the room");
+  assert.equal(found(`${REPO}const { room, as } = repo();\nconst moved = as("rev-parse").stdout;${pattern("moved")}`), 0,
+    "a value read off the runner beside the room");
+  assert.equal(found(`${REPO}const { room, as, at } = repo();${pattern("room")}`), 1, "the room itself");
+});
+
+test("a name off a source nothing here can read is a path as a value, and a call to it makes none", () => {
+  const pattern = (name) => `assert.match(said, new RegExp(\`in \${${name}}\`, "u"));\n`;
+  assert.equal(found(`${UNREAD}${pattern("as")}`), 1, "the name itself is read as the path its source makes");
+  assert.equal(found(`${UNREAD}const moved = as("rev-parse");\n${pattern("moved")}`), 0, "a value read off a call to it");
+});
+
+/* A fixture's answer is read in the file that exports it, so the file importing it is judged by
+   which property holds the room rather than by the room sitting beside it. */
+const EXPORTED = "export const repo = () => {\n  const room = join(tmpdir(), \"r\");\n  return { room, at: \"sha\" };\n};\n";
+const IMPORTING = (name) => `import { repo } from "./one.mjs";\nconst { room, at } = repo();\n`
+  + `assert.match(said, new RegExp(\`in \${${name}}\`, "u"));\n`;
+
+test("a borrowed function's answer is read property by property, its path refused and its sibling not", () => {
+  const known = exportsIn(EXPORTED);
+  assert.deepEqual([...known.get("repo")], ["room"], "the export carries which of its properties is a path");
+  assert.equal(pathsIn(IMPORTING("room"), "plugin/test/made-up.test.mjs", known).length, 1);
+  assert.deepEqual(pathsIn(IMPORTING("at"), "plugin/test/made-up.test.mjs", known), []);
+});
 
 /* The escape the refusal names, held to what a caller does with it: a fragment that matches the
    one string it was made from, embedded in a pattern the caller anchors itself. */
