@@ -24,7 +24,7 @@ import { landingOf } from "./landing/checkpoint.mjs";
 import { holdersOf } from "./landing/reconstruction.mjs";
 import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
-import { criteriaLines } from "./record/record.mjs";
+import { criteriaLines } from "./record/fields.mjs";
 import { assemble, parse } from "./record/page.mjs";
 import { SHAPES_AT, contractGap, shapesAt } from "./machine/contracts.mjs";
 import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";

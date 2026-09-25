@@ -10,7 +10,6 @@ import { closeSync, existsSync, fchmodSync, mkdirSync, openSync, readFileSync, r
 import { dirname } from "node:path";
 
 import { anglesRefusal } from "../../codex/angles/refusal.mjs";
-import { compiles } from "../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { answersProblem } from "../../stats/corpus/answers.mjs";
@@ -37,6 +36,7 @@ import {
   slugRouteHere,
   chosen,
   codexOwedOf,
+  compiles,
   jobsOf,
   runsOf,
   workPatternOf,

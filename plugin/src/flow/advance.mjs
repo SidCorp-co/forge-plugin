@@ -12,15 +12,15 @@ import { CLOSES_FROM, PARKS } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { issueOf, post } from "./record/record.mjs";
+import { issueOf, post } from "./record/thread/posting.mjs";
 import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, waitsFor } from "./park/compose.mjs";
 import { ANSWERED_BY_COMMENT, ORDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
-import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, targetOf,
-  undecidedSaid } from "./route.mjs";
+import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
+  targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 export const USAGE = [
@@ -242,10 +242,6 @@ const countSays = (said) =>
   `${said} What the rows read earn, they earn, and anything they say is owed on rows the tracker `
   + "called whole, so write it again for this status: a record written now is in the rows the next "
   + "read hands back.";
-
-export const shortfall = (ref, view, held) => {
-  for (const line of owedBlock(view, ref, held)) console.log(line);
-};
 
 const pageFor = async (documentId, held) =>
   held ?? await commentPage(documentId).then((page) => ({ comments: page.comments, cut: cutIn(page) }));

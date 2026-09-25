@@ -390,6 +390,11 @@ export const unaskedLines = (view, ref) => {
 export const owedBlock = (view, ref, held) =>
   [owedLine(view, ref, held), ...missingLines(held.missing), ...unaskedLines(view, ref)];
 
+/** That block printed, for `advance` and `resume` alike. */
+export const shortfall = (ref, view, held) => {
+  for (const line of owedBlock(view, ref, held)) console.log(line);
+};
+
 /* The line and the items it counts, said together and held together: the line carries a number and
    not the names, so a second shortfall of the same size would be deduped away whole (ISS-1103). */
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {

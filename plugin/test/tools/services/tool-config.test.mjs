@@ -82,6 +82,24 @@ test("a machine that saved every one of them sees the verbs it saw before", () =
   }
 });
 
+/* The two answers of the question every invocation asks about Google without loading the service:
+   the environment's token is a whole credential, and two saved accounts with no default are none,
+   since a call naming no account would be refused. */
+test("google is offered on the environment's token alone, and withheld where no saved account is the default", () => {
+  const home = (google) => {
+    const root = tempRoom("tool-config-google-");
+    mkdirSync(join(root, "forge"), { recursive: true });
+    writeFileSync(join(root, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0, google }));
+    return root;
+  };
+  const usage = (root, token) => spawnSync(FORGE, ["-h"], { encoding: "utf8", env: { ...process.env,
+    XDG_CONFIG_HOME: root, CLAUDE_PROXY_ENV: join(root, "absent.env"), FORGE_GOOGLE_ACCESS_TOKEN: token } }).stdout.split("\n")[0];
+  assert.ok(usage(home(undefined), "ya29.token").includes("|google|"), "the environment's token offers the verb");
+  const two = { accounts: { one: { kind: "login", address: "a@example.com" }, two: { kind: "login", address: "b@example.com" } } };
+  assert.ok(!usage(home(two), "").includes("|google|"), "two accounts and no default withhold it");
+  assert.ok(usage(home({ ...two, default: "two" }), "").includes("|google|"), "and naming a default offers it again");
+});
+
 test("the verb typed still runs and refuses in its own words", () => {
   const run = bare("cloudflare", "zones");
   assert.notEqual(run.status, 0, "an unusable verb still fails");

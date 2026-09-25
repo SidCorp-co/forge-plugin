@@ -5,31 +5,17 @@
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, saveNested, userConfig, writeJsonPrivate } from "../../../../resolve/config.mjs";
+import { configDir, saveNested, writeJsonPrivate } from "../../../../resolve/config.mjs";
 import { AUTH, INTERNAL, holdSecret, refuse } from "../exits.mjs";
+import { ENV_TOKEN, defaultAccount, environmentToken, googleConfig, savedAccounts } from "./configured.mjs";
 
-export const ENV_TOKEN = "FORGE_GOOGLE_ACCESS_TOKEN";
 export const SERVICE = "service";
 export const LOGIN = "login";
 export const ENV = "env";
 
-const googleConfig = () => userConfig().google ?? {};
-
-/* Read by name, being the one value here a configuration file cannot hold: a CI run has none. */
-export const environmentToken = () => process.env.FORGE_GOOGLE_ACCESS_TOKEN || null;
-
 const accountsDir = () => join(configDir("forge"), "google");
 
 const fileOf = (name) => join(accountsDir(), `${name}.json`);
-
-export const savedAccounts = () => googleConfig().accounts ?? {};
-
-export const defaultAccount = () => {
-  const names = Object.keys(savedAccounts());
-  const named = googleConfig().default;
-  if (named && names.includes(named)) return named;
-  return names.length === 1 ? names[0] : null;
-};
 
 const SECRET_FIELDS = ["private_key", "private_key_id", "client_secret", "refresh_token"];
 

@@ -1,14 +1,14 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
-import { fail, slugIfAny, translateTo } from "../../resolve/settings.mjs";
+import { fail, slugIfAny } from "../../resolve/settings.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { citationProblem } from "../earned/published.mjs";
 import { answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
-import { CLOSES_FROM, SHAPES, criterionNumber, handleOf, heldSaid, planTyped, unwrap } from "../machine.mjs";
-import { assemble, parseAll, printRecord } from "./page.mjs";
+import { SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
+import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
@@ -17,35 +17,26 @@ import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./f
 import { RUN_FLAGS, kindBlocks, pullRun } from "./rung.mjs";
 import { fieldChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
-import { commentPage, cutIn, cutLine, mustBeShown, postComment } from "../../tracker/comments.mjs";
+import { commentPage, cutIn } from "../../tracker/comments.mjs";
 import {
   attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine, unreadNames,
   uploadAll,
 } from "../../tracker/evidence.mjs";
-import { personOwedForRelease, releaseLine, releasePolicy, releaseAnswer } from "../../tracker/project-config.mjs";
+import { releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
-import { documentIdOf } from "../../tracker/issues.mjs";
 import { capsOf, writeFields } from "../../tracker/field-write.mjs";
-import { scoped } from "../../tracker/rest.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
-import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";
 import { scopeFrom, scopePath } from "./plan-scope.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
-import { workLines } from "../../guides/phases.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
-import { FIELD as SESSION, finderSaid, renew, writtenBy } from "../lease.mjs";
+import { renew, writtenBy } from "../lease.mjs";
+import { issueOf, post, sayStored } from "./thread/posting.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
-import { stampedNow, uncommittedOver, worklogLines, worklogOf, workNow } from "../worklog.mjs";
-
-export const issueOf = async (reference) => {
-  const documentId = await documentIdOf(reference);
-  const body = await scoped("forge_issues", { action: "get", documentId });
-  return { documentId, body };
-};
+import { stampedNow, uncommittedOver } from "../worklog.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -161,46 +152,12 @@ const declinedChecked = (kind, reference, blocks, read) => {
   }
 };
 
-/* What the stored copy will be, said where the write is made: the payload block is the record and
-   travels as written, and everything a rewrite reaches is prose around it. */
-const REWRITTEN = {
-  record: "the payload block is stored as written; the heading above it is rewritten",
-  criteria: "the criteria are rewritten, and the numbers a verdict names are what survives",
-  plan: "the plan is rewritten, and the three declaration lines a later reader takes a value off are what have to survive it",
-  note: "the user-facing half is rewritten and the technical half is stored as written",
-};
-
-export const sayStored = (which, language = translateTo()) => {
-  if (!language) return null;
-  const said = `prose ${language}: ${REWRITTEN[which]}.`;
-  console.error(said);
-  return said;
-};
-
 /* Stamped by the tracker or no earlier than the newest row it sorts under, so the ladder read at the end of a call counts the record that call made (ISS-285). */
 const stampedLast = (comments, written) => String(written?.createdAt
   ?? [new Date().toISOString(), ...comments.map((one) => String(one.createdAt ?? ""))].sort().at(-1));
 
 /* On stderr, beside what the write owes and not on the stream carrying the record: a caller reading a payload back is not reading the method. A record ends its phase's work, so the part is that phase's. */
 const sayPart = (kind, rung) => partForRecord(kind, (part) => console.error(`\n${part}`), rung);
-
-/* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it. */
-export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false, finder = false } = {}) => {
-  refuseIfGated("forge_comments");
-  sayStored("record");
-  /* A finder's write renews the caller's own lease and touches no other, as `forge comment` does, and
-     so makes the thread's read check itself: a renewal that takes no lease makes none. */
-  if (finder) {
-    await mustBeShown([{ ref, documentId }]);
-    console.error(finderSaid(ref, await renew(documentId, ref, undefined, null, { finder: true })));
-  } else if (!renewed) await renew(documentId, ref, next, patch);
-  const answer = await postComment(documentId, body, null, soft);
-  /* Asked softly by a caller that has something to say about the failure: the tracker's own refusal
-     exits the process, and the body would be lost with it. */
-  if (answer?.refused) return answer;
-  console.log(body);
-  return answer;
-};
 
 /* Off the record and not the issue: whoever wrote the first of the kind cited it, and the rest of a
    loop inherit that rather than a guess. Not per criterion — one document answers twenty. */
@@ -481,7 +438,7 @@ const writeRung = async (reference, blocks, { next, patch }) => {
   for (const one of blocks) sayPart(one.kind, rung);
 };
 
-/* Taken as each write lands rather than once this call returns: a correction the tracker holds whose call failed after it would otherwise leave a cache that still refuses the retry (ISS-411). The import is at the call, `earned.mjs` reading this module for its criteria; a scope this cannot read is a gate that says nothing, never a record write that failed, so the catch is empty. A write outside a repository has no scope to keep and says nothing, and a false from `plan-scope.mjs` is a write or a removal the filesystem refused, the one state that module cannot leave on its own: the run is told rather than left to meet it. */
+/* Taken as each write lands rather than once this call returns: a correction the tracker holds whose call failed after it would otherwise leave a cache that still refuses the retry (ISS-411). A scope this cannot read is a gate that says nothing, never a record write that failed, so the catch is empty. A write outside a repository has no scope to keep and says nothing, and a false from `plan-scope.mjs` is a write or a removal the filesystem refused, the one state that module cannot leave on its own: the run is told rather than left to meet it. */
 const scopeNoted = async (documentId, reference, issue, comments) => {
   const tree = repoRoot(process.cwd());
   if (!tree) return;
@@ -551,53 +508,6 @@ const criteriaCount = (body) => {
     return `${criteriaLines(unwrap(body.acceptanceCriteria)).length} criteria`;
   } catch {
     return "no numbered criteria";
-  }
-};
-
-export const recordReport = async (reference) => {
-  const { documentId, body } = await issueOf(reference);
-  let criteria = [];
-  try {
-    criteria = criteriaLines(unwrap(body.acceptanceCriteria));
-  } catch { criteria = []; }
-  const page = await commentPage(documentId);
-  const { comments } = page;
-  if (cutIn(page)) console.error(`${cutLine(page)} This report was assembled from those rows and `
-    + "from no others.");
-  const { latest, verdicts, owed, repeated, unreadable } = assemble(comments, criteria);
-  for (const kind of Object.keys(SHAPES)) {
-    if (SHAPES[kind].repeats) {
-      const held = repeated[kind] ?? [];
-      const said = heldSaid(kind, held.length);
-      if (said) console.log(`${said}, oldest first`);
-      for (const one of held) printRecord(one);
-    } else if (latest[kind]) printRecord(latest[kind]);
-  }
-  for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
-  for (const one of unreadable) printRecord(one);
-  /* Whole rather than summarised: the plan is what every later phase was built against, and a
-     report that names it without carrying it sends its reader back to the issue. */
-  const held = unwrap(body.plan);
-  if (held) console.log(`Plan  (${planTyped(held) ? "typed" : "untyped"})\n${held}`);
-  if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
-  /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
-  /* The pointer with the block, this report opening on no phase line to carry it (ISS-1183). */
-  const work = worklogOf(body[SESSION]);
-  const lines = [...workLines(workNow(work)), ...worklogLines(work)];
-  if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
-  console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
-  console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
-  /* Wherever the issue stands, because this report is where the method sends a run for the policy's answer, and one that first reads it at the rung it is already standing on has read it a phase late. Printed in the answer that owes nobody too: a run told only that the close is owed cannot tell a policy this CLI read from one it never consulted, and a run holding this line beside `forge doctor`'s own rows can settle which of them moved (ISS-1656). */
-  const policy = await releasePolicy();
-  console.log(`\nRelease policy  ${releaseAnswer(policy)}`);
-  /* Where a run stops, and the route it leaves for whoever picks the issue up from here: a set, which is the only move out of this rung the entry check `earned.mjs` holds for `closed` admits (ISS-105, ISS-1147, ISS-1918). The act itself is named once, on the line above, and this one says only whose the next move is. The import is late for the reason the one above it is. */
-  if (body.status === CLOSES_FROM) {
-    const { CLOSES_AT, setForm } = await import("../earned.mjs");
-    console.log(personOwedForRelease(policy)
-      ? `Owed: the release, which is a person's. The line above says whose act it is and what would `
-        + `end the rung, so this run ends at ${CLOSES_FROM} and the close is theirs, made once it is `
-        + `out and with the release named:\n  ${setForm(reference, CLOSES_AT)}`
-      : `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
   }
 };
 

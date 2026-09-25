@@ -209,6 +209,17 @@ export const projectTarget = () => aimed ?? projectScope();
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
 export const projectRecordPattern = () => sourced(fromProject(), forgeJson().parsed?.codex?.pathRe);
 
+/** Whether a `codex.pathRe` source compiles with no flags, the way the consult's record pattern is
+ *  compiled: the consult passes over one that does not, and a write of the key refuses exactly those. */
+export const compiles = (source) => {
+  try {
+    new RegExp(source);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /* No plugin default, and an unreadable pattern is no declaration: docs/two-levels.md, README. */
 const declaredWork = (at) => (at ? projectFileAt(at)?.lease?.workingRe : forgeJson().parsed?.lease?.workingRe);
 

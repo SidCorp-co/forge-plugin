@@ -7,7 +7,8 @@ import { createSign } from "node:crypto";
 import { SCOPES, SERVED_SERVICES } from "../surface.mjs";
 import { AUTH, VALIDATION, holdSecret, refuse } from "../exits.mjs";
 import { jsonOf, reach } from "../wire.mjs";
-import { ENV, ENV_TOKEN, LOGIN, SERVICE, accountFile } from "./accounts.mjs";
+import { ENV, LOGIN, SERVICE, accountFile } from "./accounts.mjs";
+import { ENV_TOKEN } from "./configured.mjs";
 
 /* Mail, calendars and meetings are a user's; a service account reaches them only as that user. */
 const PERSONAL = ["gmail", "calendar", "meet"];
