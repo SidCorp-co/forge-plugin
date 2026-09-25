@@ -133,17 +133,25 @@ const declinedLine = (nearest, foldable, routed) => {
     + " rather than as an issue of its own.";
 };
 
+/* The hold `--new` declined is a second thing it did, so a fold it had nothing to decline goes
+   unsaid beside it rather than reading as the flag having done nothing. */
+const heldLine = ({ where, key, title, score }) =>
+  `--new declined the duplicate hold: ${where} of this filing reads like ${key} \`${title}\` at`
+  + ` ${score.toFixed(2)}, so it files as an issue of its own rather than as a comment there.`;
+
 /** Under every filing: the empty answer, the failed search and the folded one. `fresh` is `--new`,
- *  which closes the block on every outcome rather than only where it acted. */
+ *  which closes the block on every outcome rather than only where it acted, and `declined` the
+ *  duplicate it waved through. */
 export const suggestionLines = ({ suggestions, notes, place, dropped = [], closed = [] },
-  { nearest = null, foldable = false, routed = false, fresh = false } = {}) => {
+  { nearest = null, foldable = false, routed = false, fresh = false, declined = null } = {}) => {
   const settled = settledLines({ dropped, closed }, NO_SCORE);
   const out = [
     ...(suggestions.length ? [HEAD, ...suggestions.map(row), SHOWN] : [emptyLine(place, !notes.length, settled.length > 0)]),
     ...settled,
   ];
   for (const note of notes) out.push(`${note} — this filing was made as it would have been without it.`);
-  if (fresh) out.push(declinedLine(nearest, foldable, routed));
+  if (declined) out.push(heldLine(declined));
+  if (fresh && (!declined || (nearest && foldable))) out.push(declinedLine(nearest, foldable, routed));
   return out;
 };
 
@@ -163,11 +171,11 @@ export const foldedInto = (joined, answer = null) =>
 
 /** The fold, decided and done here so a rule whose act nothing takes back is not enforced twice. `onBeside` is called between the decision and the act, and on every outcome: the read this owes its destination ends in a refusal that exits, so a block printed after it is one a held fold never prints. */
 export const foldFiling = async (beside,
-  { title, body, kind = null, routed = false, fresh = false, soft = false, onBeside = null }) => {
+  { title, body, kind = null, routed = false, fresh = false, declined = null, soft = false, onBeside = null }) => {
   const nearest = foldOnto(beside.suggestions);
   const foldable = !routed && owesCause(kind);
   /* Handed to the callback and nowhere else: printing off a return value is the double print ISS-628 removed, so the decision leaves by the one seam that has a reader. */
-  onBeside?.(beside, { nearest, foldable, routed, fresh: Boolean(fresh) });
+  onBeside?.(beside, { nearest, foldable, routed, fresh: Boolean(fresh), declined });
   if (!foldable || fresh || !nearest) return { joined: null, answer: null };
   await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);
   const answer = await postComment(nearest.documentId, foldedBody(title, body), null, soft);
