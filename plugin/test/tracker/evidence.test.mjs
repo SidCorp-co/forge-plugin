@@ -31,6 +31,35 @@ test("an empty value is a problem like any value that is none of the three, wher
   assert.equal(evidenceProblem(["c8c3550", "a.md"], ["a.md"]), null);
 });
 
+/* A mistyped path was sent to `forge attach`, which then failed on the same missing file (ISS-2506). */
+test("a path naming no file is refused as a missing file, with the directory to read the name off", () => {
+  const typed = join(DIR, "iss65-evidenc.md");
+  const said = evidenceProblem([typed], ["a.md"]) ?? "";
+  assert.match(said, new RegExp(`^Evidence \`${escaped(typed)}\` names no readable file`, "u"));
+  assert.doesNotMatch(said, /no attachment|forge attach|Attached:/u);
+  assert.match(said, new RegExp(`\n  ls -- '${escaped(DIR)}'$`, "u"));
+});
+
+test("a path under a directory that does not exist says so, and lists the nearest one that does", () => {
+  const typed = join(DIR, "gone", "deeper", "x.txt");
+  const said = evidenceProblem([typed], []) ?? "";
+  assert.match(said, new RegExp(`${escaped(join(DIR, "gone", "deeper"))} is no directory here`, "u"));
+  assert.match(said, new RegExp(`\n  ls -- '${escaped(DIR)}'$`, "u"));
+});
+
+test("a relative path is named as typed and as resolved", () => {
+  const said = evidenceProblem(["no-such-dir/x.txt"], []) ?? "";
+  assert.match(said, new RegExp(`^Evidence \`no-such-dir/x\\.txt\` \\(${escaped(join(process.cwd(), "no-such-dir", "x.txt"))}\\) names no readable file`, "u"));
+});
+
+test("a bare name and a readable file keep the refusal that sends the caller to attach", () => {
+  for (const ref of ["missing.md", FILE]) {
+    const said = evidenceProblem([ref], ["a.md"]) ?? "";
+    assert.match(said, new RegExp(`^Evidence \`${escaped(ref)}\` is no attachment on this issue`, "u"));
+    assert.match(said, /Attach it first \(forge attach issue <ref> <file>\)/u);
+  }
+});
+
 test("a file on disk is put up under its base name and cited by it", () => {
   const plan = attachPlan([FILE], [], held([]));
   assert.deepEqual(plan.upload, [{ path: FILE, name: "iss65-evidence.md" }]);
