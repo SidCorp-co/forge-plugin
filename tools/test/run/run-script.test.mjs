@@ -262,8 +262,9 @@ test("a commit that raises the version and changes something is named as the cha
 /* A release commit of an earlier attempt among the change's puts more in the range than the count. */
 test("a release commit among the change's leaves the range saying more than the count", () => {
   const { work } = pushed("landed-interleaved");
-  writeFileSync(join(work, "package.json"),
-    JSON.stringify({ name: "scratch", version: "1.0.1", scripts: { check: GATE } }, null, 2));
+  /* Every other field as it stood, since a bump that moved one more is the change and not a release (ISS-2520). */
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  writeFileSync(join(work, "package.json"), JSON.stringify({ ...held, version: "1.0.1" }, null, 2));
   git(work, "add", "package.json");
   git(work, "commit", "-m", "chore(release): 1.0.1, the bump an earlier attempt left");
   landIn(work, join("plugin", "src", "one.mjs"), 4, "the first commit of the change (ISS-169)");
