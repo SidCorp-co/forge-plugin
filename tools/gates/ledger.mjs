@@ -2,10 +2,10 @@
    content, never on a sha: a rebase rewrites the sha, and the tree a session gates most has none. */
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { git } from "../checkout.mjs";
-import { RELEASE_FILES } from "../run/landing.mjs";
+import { RELEASE_FIELDS, RELEASE_FILES } from "../run/landing.mjs";
 import { derivationFiles, under } from "./scope.mjs";
 import { recordDir } from "./timing.mjs";
 
@@ -82,9 +82,6 @@ const permissionOf = (root, rel) => {
   return mode === EXECUTABLE ? "x" : "-";
 };
 
-// Where a release writes a version and nowhere else: the file's own field, and in a lock file the root package's second copy at `packages[""]`.
-const LOCK = "package-lock.json";
-const versionLocations = (one) => basename(one) === LOCK ? [["version"], ["packages", "", "version"]] : [["version"]];
 
 // The number this file's own package is at, by the ownership `sync-manifest-version.mjs` writes under and `shipped-version` reads back — the nearest package.json at or above it, which for the lock file and for a manifest with no package of its own is the root's. Agreement with some other package is not the agreement any step tests. And a release number this repository cannot have written is no release number: a string outside the grammar takes the raw-byte path, so nothing a checker over the text can see is struck out as though it were a version.
 const VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
@@ -127,7 +124,7 @@ const besideVersion = (root, rel) => {
     const raw = bytes.toString("latin1");
     if (quoted === null) return `${UNOWNED}\u0000${raw}`;
     try {
-      const values = versionLocations(rel)
+      const values = RELEASE_FIELDS[rel]
         .reduce((found, at) => masked(found, at, was), JSON.parse(bytes.toString("utf8")));
       return `${OWNED}\u0000${JSON.stringify(values)}\u0000${raw.split(quoted).join("")}`;
     } catch {
