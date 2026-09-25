@@ -9,7 +9,8 @@ import { closeSync, existsSync, fchmodSync, mkdirSync, openSync, readFileSync, r
   renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { anglesRefusal, compiles } from "../../codex/codex.mjs";
+import { anglesRefusal } from "../../codex/angles.mjs";
+import { compiles } from "../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { answersProblem } from "../../stats/corpus/answers.mjs";

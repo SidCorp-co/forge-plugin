@@ -18,6 +18,7 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { budgetMs, codexCheck, fail, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
+import { anglesRefusal } from "./angles.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
@@ -27,7 +28,6 @@ import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
-  ANGLES,
   askApi,
   bundle,
   cannotCarry,
@@ -238,16 +238,6 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
   if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
   if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
   if (crossing) console.error(crossingSaid(crossing));
-};
-
-/** Why a list of angles cannot review a consult, or null. One judgement for the consult that reads the
- *  list and the `--set` that writes it, so a write never stores what the next consult refuses, and
- *  the names are the shipped table's keys, so an angle added to it needs no second list. */
-export const anglesRefusal = (angles, from) => {
-  const names = Object.keys(ANGLES);
-  if (!angles.length) return `${from} names no angle. Name some of ${names.join(", ")}, or drop the key for all five.`;
-  const unknown = angles.find((one) => !Object.hasOwn(ANGLES, one));
-  return unknown === undefined ? null : didYouMean("angle", unknown, names);
 };
 
 /* Read where `show` reads it, and a name not on the list is refused rather than sent, because a role
