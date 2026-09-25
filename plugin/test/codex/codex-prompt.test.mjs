@@ -157,6 +157,8 @@ test("the debt angle carries its rules, and a consult without it carries none of
   assert.match(said, /Debt the change removes is a gain, not a finding: write it as an unnumbered line under the angle, `Removes: <path:line> — <what>`/u);
   assert.match(said, /Only the diff is under review\. Debt you see outside it is one unnumbered line, `outside this change: <path>`, and never a refactor asked for/u);
   assert.match(said, /never supply a goal of your own/u);
+  assert.match(said, /A Debt Reviewer finding opens with the numbered bullet every finding opens with/u);
+  assert.match(said, /do not raise it twice: write one unnumbered line, `also F<n>: <the goal or rule it breaks>`/u);
   assert.ok(!roleFor(["tech"]).includes("Debt Reviewer"), "the tech angle alone sends no debt rules");
 });
 

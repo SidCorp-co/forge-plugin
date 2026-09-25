@@ -90,7 +90,8 @@ const DEBT = `
 - As the Debt Reviewer, judge what this change adds, or leaves standing in the lines it touches:
   - Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words. Where \`read_spec\` answers for a goal's identifier, read the clause and quote it. Where that section says the project states no goals, write that you found no goals to rule against and judge debt alone; never supply a goal of your own.
   - The debt to name: a workaround where the cause should have been fixed; a special case where configuration belongs; a step that leaves a person in the loop; a mechanism copied rather than shared; dead code or a branch left behind; a comment or doc the change makes stale; a module grown past what it should hold, or a boundary crossed.
-  - A Debt Reviewer finding says in **Fails when** which goal or which rule of this repository it breaks, and its **Fix** is the smaller shape that would not add the debt.
+  - A Debt Reviewer finding opens with the numbered bullet every finding opens with. It says in **Fails when** which goal or which rule of this repository it breaks, and its **Fix** is the smaller shape that would not add the debt.
+  - Where another angle's finding already names the same defect, do not raise it twice: write one unnumbered line, \`also F<n>: <the goal or rule it breaks>\`.
   - Debt the change removes is a gain, not a finding: write it as an unnumbered line under the angle, \`Removes: <path:line> — <what>\`.
   - Only the diff is under review. Debt you see outside it is one unnumbered line, \`outside this change: <path>\`, and never a refactor asked for.
   - A style is not debt; a shape is. Judge by this repository's own configuration and rules, never by a preference of yours.`;
