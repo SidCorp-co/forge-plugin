@@ -91,3 +91,11 @@ test("forge new -h says --new declines the duplicate hold as well as the fold", 
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /--new {10}file it even where it reads like an open issue — the duplicate hold or the fold\n\s+onto a neighbour — and say which/u);
 });
+
+test("--new leaves the route hold standing: a fix-shaped body is still asked for its route", async () => {
+  const run = await filed("`plugin/src/commands.mjs` should take the dry-run route.", "--category", "feature", "--new");
+  assert.equal(run.status, 1);
+  assert.equal(created(), undefined, "nothing was filed");
+  assert.match(run.stderr, /--complexity xs\|s\|m\|l\|xl/u, "the route the refusal owes is named");
+  assert.doesNotMatch(run.stderr, /overlapping at/u, "and the declined duplicate is not among its lines");
+});
