@@ -941,6 +941,30 @@
       "rev": 1,
       "digest": "a62e8b4fdd79d5aa2889a90dbecdce484915df1a3236686a15ecaf58499491e4"
     },
+    "EI-12": {
+      "rev": 1,
+      "digest": "70dbe4118800f6c55277fd4748e70ab9ef41c6700129e9c803dbadf34ffa0eca"
+    },
+    "AC-19-12-1": {
+      "rev": 1,
+      "digest": "2749f819e3733e522b3c1754ba1fb2958e49053b5b50e5b745ecce84009b9acb"
+    },
+    "AC-19-12-2": {
+      "rev": 1,
+      "digest": "edb769578e0e106b9495926906d2d066fa9023ca7e0ab47433f0584cba2cae59"
+    },
+    "AC-19-12-3": {
+      "rev": 1,
+      "digest": "a3986f0e76d0b3f978e3502dcd25c4d005b737fd23dfb8b6d813a3fb3eeea665"
+    },
+    "AC-19-12-4": {
+      "rev": 1,
+      "digest": "d5f6369bdab3967550a1d632eabb63e08156b2cebb33fdc80864877ddd7de092"
+    },
+    "AC-19-12-5": {
+      "rev": 1,
+      "digest": "63cb058ce976c1eac56112bf444fe8056fd2b4d5224b00143b71c2d9e156f943"
+    },
     "FR-01": {
       "rev": 1,
       "digest": "b53bdf79d2534a15b4bf611a1fc770437865c15903f992af9598fefc74c54f57"
