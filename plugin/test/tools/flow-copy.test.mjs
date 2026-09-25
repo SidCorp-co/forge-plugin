@@ -127,6 +127,15 @@ test("a checkout changing what a flow verb loads is told which copy answered and
   }
 });
 
+test("a module the flow imports and the checkout deleted is a change to what the verb loads", () => {
+  inWorld({}, ({ room, repo, checkout, home, record }) => {
+    git(repo, "rm", "-q", join("plugin", "src", "flow.mjs"));
+    const run = ran(join(room, "bin", "forge"), { cwd: checkout, home }, "claim", "ISS-1");
+    assert.ok(run.stderr.includes("this checkout changes what it runs (src/flow.mjs)"), `the deletion is named:\n${run.stderr}`);
+    assert.match(flowRow({ cwd: checkout, root: PLUGIN, record }), /this checkout changes what they load \(src\/flow\.mjs\)/u);
+  });
+});
+
 test("doctor's row for the flow names the copy, why that one, and a change it would not run", () => {
   inWorld({}, ({ checkout, installed, record }) => {
     const where = { cwd: checkout, root: PLUGIN, record };

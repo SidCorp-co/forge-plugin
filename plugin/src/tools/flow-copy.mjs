@@ -47,12 +47,14 @@ const text = (path) => {
 
 const IMPORTED = /(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.{1,2}\/[^"']+)["']/gu;
 
-/* Relative specifiers only, followed statically: a package or a builtin is not this checkout's. */
+/* Relative specifiers only, followed statically: a package or a builtin is not this checkout's. A
+   file imported and gone is still loaded by the call, which is how its deletion reaches the answer. */
 const graphOf = (starts) => {
   const seen = new Set();
   const walk = (file) => {
-    if (seen.has(file) || !existsSync(file)) return;
+    if (seen.has(file)) return;
     seen.add(file);
+    if (!existsSync(file)) return;
     for (const [, spec] of (text(file) ?? "").matchAll(IMPORTED)) walk(resolve(dirname(file), spec));
   };
   starts.forEach(walk);
