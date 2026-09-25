@@ -178,10 +178,10 @@ export const anglesInEffect = (raw) => {
 };
 
 /* A list a project wrote before debt existed is its own choice and is kept. What it is owed is to
-   learn the angle exists and what adding it takes. */
+   learn the angle exists, and the one write that adds it. */
 const debtSaid = ({ angles }) => (angles.includes("debt")
   ? "debt is on"
-  : `debt is available and off here: add it to that list, as ${[...angles, "debt"].join(",")}`);
+  : `debt is available and off here: \`forge doctor --set project.codex.angles=${[...angles, "debt"].join(",")}\` adds it`);
 
 /** The line `show` and `doctor` print, whether the debt angle is among them said on it. */
 export const anglesShown = (raw) => {

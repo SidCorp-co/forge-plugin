@@ -9,7 +9,7 @@ import { closeSync, existsSync, fchmodSync, mkdirSync, openSync, readFileSync, r
   renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { compiles } from "../../codex/codex.mjs";
+import { anglesRefusal, compiles } from "../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { answersProblem } from "../../stats/corpus/answers.mjs";
@@ -217,6 +217,12 @@ const codexRefusal = (given) => {
   if (clock.over !== undefined) {
     return said("codex.checkMs", CHECK_MS_AT_MOST(), given.checkMs);
   }
+  if (given.angles !== undefined) {
+    const angles = given.angles;
+    const refusal = Array.isArray(angles) && angles.every((one) => typeof one === "string")
+      ? anglesRefusal(angles, `\`codex.angles\` in ${fromProject()}`) : said("codex.angles", "a list of angle names", angles);
+    if (refusal) return refusal;
+  }
   return codexOwedOf(given).unknown === undefined
     ? null : said("codex.owed", `a list of ${OWED_DOORS.join(", ")}`, given.owed);
 };
@@ -266,7 +272,7 @@ export const PROJECT_KEYS = {
   },
   deps: { paths: { "*": "text" }, judge: (given) => eachString("deps", given) },
   codex: {
-    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list" },
+    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list", angles: "list" },
     judge: codexRefusal,
   },
   stop: { paths: { agents: "list" }, judge: (given) => listOfNames("stop.agents", given?.agents) },

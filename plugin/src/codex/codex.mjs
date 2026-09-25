@@ -240,12 +240,22 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
   if (crossing) console.error(crossingSaid(crossing));
 };
 
+/** Why a list of angles cannot review a consult, or null. One judgement for the consult that reads the
+ *  list and the `--set` that writes it, so a write never stores what the next consult refuses, and
+ *  the names are the shipped table's keys, so an angle added to it needs no second list. */
+export const anglesRefusal = (angles, from) => {
+  const names = Object.keys(ANGLES);
+  if (!angles.length) return `${from} names no angle. Name some of ${names.join(", ")}, or drop the key for all five.`;
+  const unknown = angles.find((one) => !Object.hasOwn(ANGLES, one));
+  return unknown === undefined ? null : didYouMean("angle", unknown, names);
+};
+
 /* Read where `show` reads it, and a name not on the list is refused rather than sent, because a role
    the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
   const { angles, from } = anglesInEffect(raw);
-  if (!angles.length) fail(`codex: ${from} names no angle. Name some of ${Object.keys(ANGLES).join(", ")}, or drop the key for all five.`);
-  for (const one of angles) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
+  const refusal = anglesRefusal(angles, from);
+  if (refusal) fail(`codex: ${refusal}`);
   return angles;
 };
 

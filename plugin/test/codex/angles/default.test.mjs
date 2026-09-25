@@ -38,7 +38,7 @@ const shownIn = (config) => {
 test("show says whether the debt angle is on and where the list was read, and how to add it where it is off", () => {
   assert.match(shownIn({ slug: "own" }), /^angles {4}: tech, ba, user, ux, debt {2}← the plugin's default — debt is on$/mu);
   const kept = shownIn({ slug: "own", codex: { angles: ["tech"] } });
-  assert.match(kept, /^angles {4}: tech {2}← codex\.angles in \S+ — debt is available and off here: add it to that list, as tech,debt$/mu, kept);
+  assert.match(kept, /^angles {4}: tech {2}← codex\.angles in \S+ — debt is available and off here: `forge doctor --set project\.codex\.angles=tech,debt` adds it$/mu, kept);
   assert.match(shownIn({ slug: "own", codex: { angles: ["tech", "debt"] } }), /^angles {4}: tech, debt {2}← codex\.angles in \S+ — debt is on$/mu);
 });
 
