@@ -114,6 +114,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "flow": "default",
   "drainedBy": "dispatcher",
   "landing": "after-merge",
+  "redBatch": "one-by-one",
   "ship": "ready",
   "shape": "staged",
   "release": "manual",
@@ -152,6 +153,10 @@ The device's own `report` table in config.json sets that page's score: `score.fo
 `product` or `sum`, the weights `score.days`, `score.calls` and `score.minutes`, and the windows
 `followDays` and `earlyDays`. Each member is set by hand, and an omitted one takes its default:
 `forge stats daily -h` says what the page does with them.
+
+`redBatch` is what this repository's landing does with a set whose combined gate is red:
+`attribute-then-split`, the default, hands back the members the failing cases name and halves what
+they do not, and `one-by-one` lands every member alone. `node tools/run.mjs -h` says the rest.
 
 `runs` is how many runs this project carries at once, whoever dispatched them, and absent it
 resolves to no number at all — every reader then behaves as it did before the key existed, which is

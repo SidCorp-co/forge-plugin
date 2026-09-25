@@ -41,3 +41,16 @@ test("the landing refuses a redBatch word the key does not take before it takes 
   assert.match(run.stderr, /this project's `redBatch` is `bisect`, which is no value of that key: it takes attribute-then-split or one-by-one/u,
     run.stderr);
 });
+
+test("--set writes one-by-one into the project's record, and refuses a word the key does not take", () => {
+  const home = tempRoom("doctor-red-batch-set-");
+  const cwd = projectRoom(tempRoom("doctor-red-batch-set-cwd-"), home, { slug: "demo" });
+  const env = envOf(home);
+  const wrote = spawnSync(process.execPath, [CLI, "doctor", "--set", "redBatch=one-by-one"], { encoding: "utf8", cwd, env });
+  assert.equal(wrote.status, 0, wrote.stderr);
+  const refused = spawnSync(process.execPath, [CLI, "doctor", "--set", "redBatch=bisect"], { encoding: "utf8", cwd, env });
+  assert.notEqual(refused.status, 0, refused.stdout);
+  assert.match(refused.stderr + refused.stdout, /is one of attribute-then-split, one-by-one, not `"bisect"`\. Nothing was written/u);
+  const back = spawnSync(process.execPath, [CLI, "doctor", "project"], { encoding: "utf8", cwd, env });
+  assert.match(back.stdout, /\[ {2}ok {2}\] redBatch\s+one-by-one {2}← \S+config\.json/u, "the refused write left the first in place");
+});
