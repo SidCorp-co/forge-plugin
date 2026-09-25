@@ -208,9 +208,10 @@ in `docs/cli/spec-proofs.md`, and this use case states the duties alone.
   WHEN the lists are read THEN the CLI SHALL derive them from the tree's Proof lines at that read,
   through the reading the gate uses, and SHALL store them nowhere.
 - **AC-14-9-2** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "a project that set no test root is told the call that sets it, and still gets the other two lists"
-  IF the project's configuration does not declare where its tests live THEN the CLI SHALL report the
-  list of unnamed test files unread with the call that declares it, SHALL assume no location of its
-  own, and SHALL still print the other two lists.
+  IF the project's configuration leaves either the test root or the file-name pattern undeclared
+  THEN the CLI SHALL report the list of unnamed test files unread with the call that declares each
+  one missing, SHALL assume no value of its own for either, and SHALL still print the other two
+  lists.
 - **AC-14-9-3** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "an issue list the tracker refused leaves every status unread and the verb exits 0"
   IF the tracker's issue list does not come back whole THEN the CLI SHALL report the status of every
   issue an escape names as unread and SHALL exit 0.
