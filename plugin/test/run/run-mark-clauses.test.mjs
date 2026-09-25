@@ -73,62 +73,26 @@ test("a release that landed nothing of its own says so in the value the flag tak
   assert.match(out, /^ {4}--wrote nothing$/mu, `a release of the bump alone named paths:\n${out}`);
 });
 
-/* The clause `testing` reads to decide whether the verdicts survived the landing. Before ISS-1896 the flag was
-   printed six steps earlier, before the version commit existed, so a run reconstructed it from the judged head
-   against the landed one and named the bump's own three files, standing every verdict down. */
-test("the last step prints what the landing moved of this change, and a bump over none of its paths moved none", () => {
+/* The clause `testing` reads to decide whether the verdicts survived the landing is git's reading, taken by
+   `forge record merged` between the judged head and the sha a mark takes, which the release step cannot
+   know the first of (ISS-1362). Before, it printed a value measured above that sha, and a run whose verdicts
+   judged an earlier commit was left to compare the heads itself. */
+test("the last step prints the moved flag, saying the write reads that clause from git", () => {
   const { work } = pushed("landing-moved-nothing");
   stubbed(work);
   landIn(work, join("plugin", "src", "flow", "entered.mjs"), 1, "the entry check");
   const out = lastStep(work).stdout;
   const said = MOVED.exec(out);
   assert.ok(said, `no flag and value for what the landing moved:\n${out}`);
-  assert.equal(said[1], "nothing",
-    `the release's own version commit is read as a path this change touched:\n${out}`);
-  assert.match(out, /measured over what landed above [0-9a-f]{7}, the sha a mark takes/u,
-    `the value does not say which commit it was measured from:\n${out}`);
+  assert.equal(said[1], "nothing", `the replay proved the base moved none of the change's paths:\n${out}`);
+  assert.match(out, /by --moved: `forge record merged` reads it from git itself, as the paths above whose bytes differ between --judged and --at [0-9a-f]{7}, and refuses any other value/u,
+    `the line does not say who reads the clause:\n${out}`);
 });
 
-/* The other half: a change that wrote a manifest really does have that path moved by the bump above it, and
-   the refusal at `testing` is right to fire. Which commit wrote it is the question, not the filename. */
-test("a path the change wrote and the bump writes too is named as moved, so the refusal still fires", () => {
-  const { work } = pushed("landing-moved-manifest");
-  stubbed(work);
-  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
-  writeFileSync(join(work, "package.json"), JSON.stringify({ ...held, dependencies: { left: "1.0.0" } }, null, 2));
-  git(work, "add", "package.json");
-  git(work, "commit", "-m", "the dependency this change needs");
-  const out = lastStep(work).stdout;
-  const said = MOVED.exec(out);
-  assert.ok(said, `no flag and value for what the landing moved:\n${out}`);
-  assert.ok(said[1].includes("package.json"),
-    `the bump moved a manifest this change wrote and the clause says nothing moved:\n${out}`);
-});
-
-/* Two paths in one value is the hazard the quoting is for, the clause's separator being `, `. The release
-   writes three fixed paths, so no odd character reaches this clause and the separator is the whole test. */
-test("the moved value survives the shell it is typed into when the bump moved more than one path", () => {
-  const { work } = pushed("landing-moved-shell");
-  stubbed(work);
-  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
-  writeFileSync(join(work, "package.json"), JSON.stringify({ ...held, dependencies: { left: "1.0.0" } }, null, 2));
-  writeFileSync(join(work, "package-lock.json"), JSON.stringify({ name: held.name, version: held.version, lockfileVersion: 3 }, null, 2));
-  git(work, "add", "package.json", "package-lock.json");
-  git(work, "commit", "-m", "the dependency this change needs, and its lock");
-  const out = lastStep(work).stdout;
-  const said = MOVED.exec(out);
-  assert.ok(said, `no flag and value for what the landing moved:\n${out}`);
-  const back = execFileSync("sh", ["-c", `printf %s ${said[1]}`], { encoding: "utf8" }).split(", ");
-  for (const one of ["package-lock.json", "package.json"]) {
-    assert.ok(back.includes(one), `the shell the run types this into changed the value the flag takes: ${back}`);
-  }
-});
-
-/* A bump alone has no commit of the change under it, so the line says that rather than naming a sha. */
-test("a release that landed nothing of its own says so where the measurement would be", () => {
+/* A bump alone has no commit of the change under it, so the line names no sha to measure against. */
+test("a release that landed nothing of its own names no sha for the moved flag", () => {
   const { work } = pushed("landing-moved-nothing-landed");
   const out = lastStep(work).stdout;
   assert.match(out, /^ {4}--moved nothing$/mu, `a release of the bump alone named paths as moved:\n${out}`);
-  assert.match(out, /this release landed no commit of this change, so there is nothing of it to have moved/u,
-    `the line names a measurement over a change that did not land:\n${out}`);
+  assert.match(out, /differ between --judged and --at, and refuses/u, `the line names a sha over a change that did not land:\n${out}`);
 });
