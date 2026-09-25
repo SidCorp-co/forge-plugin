@@ -10,7 +10,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /* Decided, not derived: where config lives, what the platform passes in, a kill switch for when
    config broke, a run's identity, and which record a process this CLI spawned of itself is settling
-   — no file names a run, its kind or its pid (ISS-4, ISS-22). */
+   — no file names a run, its kind or its pid (ISS-4, ISS-22) — and the one credential a CI run holds
+   where no configuration file exists, the route `forge google` names for it (ISS-2460). */
 const ALLOWED = new Set([
   "AI_AGENT",
   "CLAUDE_PID",
@@ -22,6 +23,7 @@ const ALLOWED = new Set([
   "CLAUDE_CODE_SESSION_ID",
   "FORGE_CHATGPT_TURN",
   "FORGE_CODEX_DISABLE",
+  "FORGE_GOOGLE_ACCESS_TOKEN",
   "FORGE_SESSION_ID",
   "FORGE_STOP_DISABLE",
 ]);

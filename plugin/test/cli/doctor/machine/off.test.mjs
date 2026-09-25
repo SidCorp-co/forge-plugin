@@ -25,6 +25,7 @@ const TOOLS = {
   cloudflare: { accounts: [{ name: "one", accountId: "acct", apiToken: "cf" }] },
   coolify: { url: "https://coolify.example", apiToken: "co" },
   chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
+  google: { accounts: { robot: { kind: "service", clientEmail: "robot@example.iam.gserviceaccount.com", keyId: "k" } }, default: "robot" },
 };
 
 /* A port nothing listens on, refused at once: every case here is answered before the endpoint. */

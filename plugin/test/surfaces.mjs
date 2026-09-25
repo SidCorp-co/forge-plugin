@@ -6,6 +6,7 @@ import { USAGE as RESUME } from "../src/flow/resume.mjs";
 import { SAYS as CLOUDFLARE, USAGE as CLOUDFLARE_USAGE } from "../src/tools/services/cloudflare.mjs";
 import { SAYS as COOLIFY, USAGE as COOLIFY_USAGE } from "../src/tools/services/coolify/coolify.mjs";
 import { ALIASES as COOLIFY_ALIASES } from "../src/tools/services/coolify/routes.mjs";
+import { SAYS as GOOGLE, USAGE as GOOGLE_USAGE } from "../src/tools/services/google/google.mjs";
 import { SAYS as CHATGPT, USAGE as CHATGPT_USAGE } from "../src/tools/services/chatgpt.mjs";
 import { SAYS as CODEX, USAGE as CODEX_USAGE } from "../src/codex/codex.mjs";
 import { SAYS as KNOWLEDGE, USAGE as KNOWLEDGE_USAGE } from "../src/tools/knowledge.mjs";
@@ -17,7 +18,7 @@ import { usageOf } from "../src/resolve/visibility.mjs";
 /** The verb's own `-h` text, for a row on `forge -h` that names no flag because it delegates. */
 export const OWN = {
   advance: ADVANCE, chatgpt: CHATGPT_USAGE, claim: CLAIM, cloudflare: CLOUDFLARE_USAGE,
-  coolify: COOLIFY_USAGE,
+  coolify: COOLIFY_USAGE, google: GOOGLE_USAGE,
   codex: CODEX_USAGE, knowledge: KNOWLEDGE_USAGE, record: RECORD, resume: RESUME, spec: SPEC,
 };
 
@@ -26,6 +27,7 @@ const CLOSED = {
   chatgpt: CHATGPT,
   cloudflare: CLOUDFLARE,
   coolify: COOLIFY,
+  google: GOOGLE,
   codex: CODEX,
   knowledge: KNOWLEDGE,
   record: Object.fromEntries(KINDS.map((kind) => [kind, kindUsage(kind)])),

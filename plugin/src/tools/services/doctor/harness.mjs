@@ -9,6 +9,7 @@ import { accountCredentials } from "../../../resolve/settings.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "../coolify/config.mjs";
 import { INSTANCE, coolifyRoute } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
+import { doctorSaid } from "../google/auth/status.mjs";
 
 const cloudflareRow = (full) => {
   const { accounts, from } = cloudflareAccounts();
@@ -81,9 +82,13 @@ const trackerRow = async () => ({ level: "ok",
 
 const coolifyRow = (full) => (coolifyRoute().mode === INSTANCE ? instanceRow(full) : trackerRow());
 
+/* The account a call would take, as `forge google auth status` describes it, and the file it was read from. */
+const googleRow = () => ({ level: "ok", detail: `${doctorSaid()}  ← ${configPath()}` });
+
 const SAVED = {
   cloudflare: cloudflareRow,
   coolify: coolifyRow,
+  google: googleRow,
   codex: codexRow,
 };
 

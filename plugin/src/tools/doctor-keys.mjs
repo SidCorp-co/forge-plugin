@@ -145,6 +145,7 @@ const RECORDED = [
   { owns: ["retrySeconds"], route: "forge doctor, which names the retry ladder and where it was read" },
   { owns: ["cloudflare"], route: "forge cloudflare, which holds its own accounts" },
   { owns: ["coolify"], route: "forge coolify login" },
+  { owns: ["google"], route: "forge google auth, which holds its own accounts" },
 ];
 
 /* A key this store held and no longer decides anything by. It is deliberately outside MACHINE_KEYS:

@@ -14,7 +14,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 /* The tools whose verb this machine has to save something for. `coolify` is not one of them: the
    route it takes where nothing was chosen asks for nothing this machine has not already got, so it
    is an ordinary verb here and has a case of its own below. */
-const TOOLS = ["cloudflare", "codex", "chatgpt"];
+const TOOLS = ["cloudflare", "google", "codex", "chatgpt"];
 
 const BARE = tempRoom("tool-config-bare-");
 const SAVED = tempRoom("tool-config-saved-");
@@ -38,6 +38,7 @@ writeFileSync(join(SAVED, "forge", "config.json"), JSON.stringify({
   cloudflare: { accounts: [{ name: "one", accountId: "acct", apiToken: "cf" }] },
   coolify: { url: "https://coolify.example", apiToken: "co" },
   chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
+  google: { accounts: { robot: { kind: "service", clientEmail: "robot@example.iam.gserviceaccount.com", keyId: "k" } }, default: "robot" },
 }));
 writeFileSync(PROFILE, "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AUTH_TOKEN=tok\n");
 
@@ -93,6 +94,7 @@ test("doctor names each unconfigured tool with the one thing that configures it"
   const said = bare("doctor").stdout;
   const configures = {
     cloudflare: "forge cloudflare login",
+    google: "forge google auth add",
     codex: "ANTHROPIC_AUTH_TOKEN",
     chatgpt: "forge doctor --chatgpt-url",
   };
