@@ -45,6 +45,6 @@ test("show says whether the debt angle is on and where the list was read, and ho
 test("a list naming no angle is refused where a consult reads it, and show says so", () => {
   assert.match(shownIn({ slug: "own", codex: { angles: [] } }), /^angles {4}: none {2}← codex\.angles in \S+ — a list naming no angle, so a consult here is refused$/mu);
   const run = spawnSync(process.execPath, [CLI, "codex", "consult", "a.mjs", "--angles", ","], { encoding: "utf8" });
-  assert.match(run.stderr, /codex: --angles names no angle\. Name some of tech, ba, user, ux, debt, or drop the key for all five\./u, run.stderr);
+  assert.match(run.stderr, /codex: --angles names no angle\. Name some of tech, ba, user, ux, debt, or drop the key for the default, tech, ba, user, ux, debt\./u, run.stderr);
   assert.notEqual(run.status, 0);
 });
