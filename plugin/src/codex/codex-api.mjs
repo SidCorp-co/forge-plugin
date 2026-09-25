@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { defaultEffort, rungIn } from "./codex-plan.mjs";
+import { DEFAULT_ANGLES, defaultEffort, rungIn } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { userConfig } from "../resolve/config.mjs";
@@ -22,18 +22,20 @@ export const TOTAL_CHARS = 320_000;
 const ERROR_CHARS = 400;
 const HASH_CHARS = 12;
 
-/* Four angles, and a checkout picks which review it: on a CLI three of them wrote "nothing material"
+/* A checkout picks which angles review it: on a CLI three of the first four wrote "nothing material"
    in every one of 92 consults, output paid for and a reader's attention spent on the one that mattered. */
 export const ANGLES = {
   tech: "Tech Lead — feasibility, architectural consistency, hidden coupling, what this forces or breaks downstream.",
   ba: "Business Analyst — missing rules, contradictions, ambiguity, behaviour asserted without a source, untestable criteria.",
   user: "End User — whether this serves the person actually doing the job; steps that confuse, cases nobody accounted for.",
   ux: "UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.",
+  debt: "Debt Reviewer — what the change leaves behind, and whether it moves the code toward the project's live goals.",
 };
+
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
-const PROMPT_VERSION = 5;
+const PROMPT_VERSION = 6;
 
 export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
 
@@ -78,7 +80,23 @@ const SPEC = "\n- `read_spec` reads a clause of this checkout's requirements tre
   + "what the citing line needs it to, quoting the clause's own words you ruled on; a citation of a clause "
   + "that does not serve its line is a finding.";
 
-export const roleFor = (angles = Object.keys(ANGLES), { check = false, recheck = false, tracker = false, spec = false } = {}) => {
+/* Its own block rather than a longer angle line: the other angles' text stays byte for byte what it was,
+   and a checkout that leaves the angle off sends none of it. The goals are the opening's GOALS block,
+   because they are one project's and this text is every project's. */
+const DEBT = `
+- As the Debt Reviewer, judge what this change adds, or leaves standing in the lines it touches:
+  - Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words. Where \`read_spec\` answers for a goal's identifier, read the clause and quote it. Where that section gives no goals, say in the angle that you found none to rule against, and why the section says there are none, and judge debt alone; never supply a goal of your own.
+  - The debt to name: a workaround where the cause should have been fixed; a special case where configuration belongs; a step that leaves a person in the loop; a mechanism copied rather than shared; dead code or a branch left behind; a comment or doc the change makes stale; a module grown past what it should hold, or a boundary crossed.
+  - A Debt Reviewer finding opens with the numbered bullet every finding opens with. It says in **Fails when** which goal or which rule of this repository it breaks, and its **Fix** is the smaller shape that would not add the debt.
+  - Another angle's finding on the same line does not stand in for a debt finding: that angle judged whether the code works, and the debt is what the shape leaves behind even where it works.
+  - Debt the change removes is a gain, not a finding: write it as an unnumbered line under the angle, \`Removes: <path:line> — <what>\`.
+  - Only the diff is under review. Debt you see outside it is one unnumbered line, \`outside this change: <path>\`, and never a refactor asked for.
+  - A style is not debt; a shape is. Judge by this repository's own configuration and rules, never by a preference of yours.`;
+
+const BOARD = "\n- Open each angle's part with a heading line carrying its name, `### <the angle's name>`, and write "
+  + "that angle's findings under it.";
+
+export const roleFor = (angles = DEFAULT_ANGLES, { check = false, recheck = false, tracker = false, spec = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
   const board = named.length === 1
     ? `Reply as the ${named[0].split(" — ")[0]}:`
@@ -92,13 +110,13 @@ FORM
 - Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
 - Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop there.
 - Anchor every finding to \`path:line\` — the path as you were given it, the line as numbered in the text you were given. A finding you cannot place is a finding you cannot ground.
-- Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.${recheck ? "" : `\n${CLAUSES}`}
+- Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.${named.length > 1 ? BOARD : ""}${recheck ? "" : `\n${CLAUSES}`}
 
 RULES
 ${SCOPED}
 - You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
 - You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${
-  check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}${tracker ? TRACKER : ""}${spec ? SPEC : ""}
+  check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}${tracker ? TRACKER : ""}${spec ? SPEC : ""}${angles.includes("debt") ? DEBT : ""}
 ${UNTRUSTED}
 - You are given the coding agent's intent. Judge the work against that intent as well as against the repository's own rules, and say so plainly where the two disagree.
 - Severity: blocker, major, minor. At most 4 findings per angle. An angle with nothing real to add writes "nothing material".
@@ -395,7 +413,30 @@ const issuesBlock = (keys) =>
   `THE ISSUES this consult is about: ${keys.join(", ")}. Read each one with \`read_issue\`; what follows `
   + "is my intent and not a copy of them.";
 
-const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false, scope = "", checks = "", issues = [] } = {}) => {
+/* The brief's words travel with each identifier: a project keeping no requirements tree has no clause
+   `read_spec` could answer, and its goals are still what the change is ruled against. */
+const goalsBlock = ({ goals, why, unread = false }) => {
+  if (goals.length) {
+    return "GOALS — this project's live goals, from its brief, for the Debt Reviewer to rule the change "
+      + `against:\n\n${goals.map((one) => `${one.id} — ${one.text}`).join("\n")}`;
+  }
+  /* A brief nobody could read is not a brief stating nothing: the reviewer says which it was. */
+  const head = unread ? `GOALS — none could be read: ${why}` : `GOALS — this project states none: ${why}`;
+  return `${head}. The Debt Reviewer judges debt alone, says it found no goals to rule against and `
+    + "why, and supplies none of its own.";
+};
+
+/** The goals a consult the debt angle reviews is owed, or null: the read is a tracker call, and a
+ *  consult without the angle owes it none. Imported here so a hook loading codex.mjs pays nothing.
+ *  `unread` marks the reasons that say nothing about the project, only that its brief was not reached. */
+export const goalsFor = async (angles) => {
+  if (!angles.includes("debt")) return null;
+  const [{ briefGoals }, { WHY }] = await Promise.all([import("../tracker/knowledge/brief.mjs"), import("../goals.mjs")]);
+  const read = await briefGoals();
+  return { ...read, unread: [WHY.endpoint, WHY.aimed, WHY.unread].includes(read.why) };
+};
+
+const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false, scope = "", checks = "", issues = [], goals = null } = {}) => {
   /* Derived, not passed: a caller that says "anchored" while sending no diffs would be asking the
      reviewer to anchor to nothing. */
   const anchored = parts.some((part) => part.diff);
@@ -419,6 +460,7 @@ const promptSections = (intent, parts, history = [], { risks = [], only = [], bo
       : "I have not described my intent. Say so if a finding turns on it.",
     ...(scope ? [scopeBlock(scope)] : []),
     ...(checks ? [checksBlock(checks)] : []),
+    ...(goals ? [goalsBlock(goals)] : []),
     ...(risks.length ? [verifyBlock(risks)] : []),
     ...(anchored ? [ANCHORED] : []),
     ...(only.length ? [floorBlock(only)] : []),

@@ -21,6 +21,15 @@ once for itself. The verdicts are the whole log's, as the eval's are, because a 
 its consult. `log --score` printed the per-model half over every consult the log held, and is now
 refused with the `forge codex stats --by model --last <n>` that reads those same rows (ISS-349).
 
+**An angle is kept only while its row says it pays.** The window prints one row per angle: how many
+consults asked for it, how many findings sit under it, and how many of those the verdicts kept and
+dropped. A finding is placed from the reply itself, because the log records which angles reviewed a
+consult and not which angle raised each finding. With one angle, every finding is that angle's. On a
+board, a finding belongs to the heading it sits under, which the prompt asks each angle to open with.
+A finding under no heading goes in a row of its own and is never given to the first angle, since that
+guess would move one angle's figure with another's findings. Kept and dropped are counted by id only.
+A verdict written as counts says how many were kept but not which, so it rules on no angle's row.
+
 **A pass and a recheck are two shapes of round, so `stats` prices them apart.** Each gets its own
 count, cache share and calls histogram, read off the row's own `recheck`, which a pass leaves absent:
 one cache figure over both kinds read rechecks shifting from three calls to one as the harness

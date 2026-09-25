@@ -182,12 +182,12 @@ test("pending work is dated in words", () => {
 
 /* Three of four angles wrote "nothing material" in every one of 92 consults on a CLI. */
 test("the checkout picks the angles, and one angle is not a board", () => {
-  assert.match(roleFor(), /board of 4/u);
-  assert.match(roleFor(), /Business Analyst/u);
+  assert.match(roleFor(["tech", "ba", "user", "ux"]), /board of 4/u);
+  assert.match(roleFor(["tech", "ba", "user", "ux"]), /Business Analyst/u);
   const one = roleFor(["tech"]);
   assert.match(one, /Reply as the Tech Lead:/u);
   assert.ok(!one.includes("Business Analyst") && !one.includes("UI/UX"), one.slice(0, 300));
-  assert.deepEqual(Object.keys(ANGLES), ["tech", "ba", "user", "ux"]);
+  assert.deepEqual(Object.keys(ANGLES), ["tech", "ba", "user", "ux", "debt"]);
   assert.deepEqual(consultArgs(["a.mjs", "--angles", "tech,ux"]).angles, ["tech", "ux"]);
   assert.equal(consultArgs(["a.mjs", "--recheck"]).recheck, true);
   /* HEAD from `--diff` is this end's guess at a base and a recheck may improve on it with the head

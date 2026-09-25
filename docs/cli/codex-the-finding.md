@@ -55,3 +55,15 @@ finding was right about both. So `eval` puts the share right about how beside th
 counts it only over findings ruled one way or the other. A finding accepted before the ruling
 existed, or taken by a recheck, has no mechanism ruling and adds nothing to that share. Guessing
 which of those were right would invent the very data the share measures (ISS-1823).
+
+**The debt angle is on unless a project's list leaves it out.** It asks what a change leaves behind
+and whether it moves the code toward the project's goals, which no other angle asks, so that debt
+reached review only by accident. The owner put it on by default (2026-09-25, ISS-2466): with no
+`codex.angles` set a consult reviews under the four angles it had and `debt`, and a list without
+`debt`, or `--angles` on one consult, turns it off. A list a project wrote before the angle existed is kept, because the project
+chose it, and `forge codex show` and `forge doctor` tell it the angle is there and how to add it. Its
+rules are a block of their own rather than a longer line under another angle: every angle has the same
+four-finding cap, and debt set against correctness in one list would crowd one of the two out. The
+goals it rules against are the brief's, sent as words and not only as identifiers, because a project
+with no requirements tree has nothing `read_spec` could answer. What it finds is a finding like any
+other angle's, and no gate refuses on it.
