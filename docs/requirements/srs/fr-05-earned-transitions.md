@@ -233,6 +233,10 @@ superseded history and the check simply stops being met.
   IF the merged mark records that the landing wrote a path which neither the plan's text nor a
   correction names THEN the CLI SHALL refuse `developed`, name that path, and print the correction
   that clears it.
+- **AC-05-6-7** · Rev: 1 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "a whole fail standing on a criterion refuses awaiting_release and closed, naming the criterion"
+  IF a criterion's latest verdict is a failed one THEN the CLI SHALL refuse `awaiting_release` and
+  `closed` as it refuses `testing`, and name that criterion, because a rung past the judging that
+  ignores a fail releases a change its own record says does not work.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 
@@ -298,16 +302,14 @@ for.
 
 ### UC-05-8 — A record too large to read whole
 
-Rev: 3 · Actors: agent · Enforces: BR-02
+Rev: 4 · Actors: agent · Enforces: BR-02
 
 The check reads the whole record, so a record that cannot be read whole cannot be judged. Today such
-an issue is refused outright, and ISS-17 and ISS-18 own what replaces that. One status asks the
-record for nothing — what it is entered on is the status below it and the project's own declaration
-about who releases — so no page is fetched to judge it, and the exemption is as narrow as that: a
-park or a drop from the same status is judged on the record like any other move, and the project is
-read whichever way the page falls, being no part of what a page could hold. The exemption is the
-judgement's and not the whole command's, because the write that follows carries an obligation of its
-own to deliver a thread nobody has been shown (`FR-10`).
+an issue is refused outright, and ISS-17 and ISS-18 own what replaces that. Every plain advance is
+judged on the page, the advance into `closed` included: that rung is entered on the verdicts and the
+folded findings as well as on the project's own declaration about who releases, so a page skipped
+there reads a failed verdict as none. The project is read whichever way the page falls, being no
+part of what a page could hold.
 
 - **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-2124
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
