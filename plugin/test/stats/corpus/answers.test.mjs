@@ -38,6 +38,11 @@ test("an exit is the command's answer only where that command is the one whose s
 test("an exit is the command's answer only where that command certainly ran and its status was not inverted", () => {
   assert.equal(answerOf(failed("false && pgrep -x forge", "Exit code 1\n")), null, "false's 1, the pgrep never having run");
   assert.equal(answerOf(failed("! pgrep -x forge", "Exit code 1\n")), null, "a negated pgrep that found its process");
+  assert.equal(answerOf(failed("! printf 'hit\\n' | grep -q hit", "Exit code 1\n")), null, "a negation inverts the whole pipeline");
+  assert.equal(answerOf(failed("pgrep -x forge > /gone/out", "Exit code 1\nbash: line 1: /gone/out: No such file or directory")), null,
+    "a file the shell could not open stops the command before it runs");
+  assert.equal(answerOf(failed("pgrep -x forge 2>/dev/null >&2", "Exit code 1\n")), "pgrep, exit 1",
+    "while /dev/null and a duplicated descriptor open nothing that can fail");
   assert.equal(answerOf(failed("cd /w && export A=b && pgrep -x forge", "Exit code 1\n")), "pgrep, exit 1",
     "a cd and an export of literal words leave it certain to have run");
   assert.equal(answerOf(failed("cd /gone && pgrep -x forge", "Exit code 1\nbash: line 1: cd: /gone: No such file or directory")), null,

@@ -93,8 +93,15 @@ const LITERAL = "[^\\s$`*?[\\]<>{}~]+";
 const PRELUDE = new RegExp(String.raw`^(?:cd(?:[ \t]+${LITERAL})*|export(?:[ \t]+[A-Za-z_]\w*(?:=${LITERAL})?)+)$`, "u");
 const PRELUDE_FAILED = /\b(?:cd|export): /u;
 
-/* A negated command's status is the opposite of its own, so its exit is never its answer. */
+/* A negated command's status is the opposite of its own, so its exit is never its answer; and a
+   negation opening a pipeline inverts the pipeline, its last member included. */
 const NEGATED = /^[\s({]*!/u;
+
+/* A redirection the shell has to open before the command runs, which fails with the command never
+   having run: every one but a descriptor duplicated and `/dev/null`. A heredoc opens nothing. */
+const REDIRECTION = /(?<![<>])(?:>>?|<(?![<(]))(&?)[ \t]*([^\s;|&()]*)/gu;
+const opensAFile = (command) => [...command.matchAll(REDIRECTION)]
+  .some(([, duplicated, target]) => !(duplicated && /^(?:\d+|-)$/u.test(target)) && target !== "/dev/null");
 
 /* The commands of a line whose status can be the line's: the last one, and each one before it that is
    followed only by `&&`-joined inert commands. Indices into the split, each a command. */
@@ -115,6 +122,7 @@ const ran = (parts, index, body) => {
   let at = index;
   while (at >= 2 && ["|", "&&"].includes(parts[at - 1])) {
     const before = parts[at - 2].trim();
+    if (parts[at - 1] === "|" && NEGATED.test(before)) return false;
     if (parts[at - 1] === "&&" && (!PRELUDE.test(before) || PRELUDE_FAILED.test(body))) return false;
     at -= 2;
   }
@@ -132,7 +140,8 @@ const splitOf = (shell) => {
  *  command failed is not among them, since both would exit 1 and nothing here says which did. */
 export const returningOf = (shell, body = "") => {
   const parts = splitOf(shell);
-  return returning(parts).filter((index) => !NEGATED.test(parts[index]) && ran(parts, index, body))
+  return returning(parts)
+    .filter((index) => !NEGATED.test(parts[index]) && !opensAFile(parts[index]) && ran(parts, index, body))
     .map((index) => parts[index]);
 };
 
