@@ -357,3 +357,78 @@ test("a pair with no edge between them is refused with the read that prints what
   assert.match(run.stderr, /forge issue ISS-45 --fields relations/u);
   assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
 });
+
+/* ISS-1724. The verb delivers what the end it writes on owes, ahead of the write and whether or not
+   a gate is watching, which is why the read-first gate stands down for it. Each case is a run of its
+   own, so what one was shown is nothing another was. */
+const ranAs = (session, ...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: session }, ROOT);
+const said = (id, text) => ({ documentId: id, createdAt: "2026-09-25T10:00:00.000Z", body: text });
+
+const withThreads = async (threads, run) => {
+  const before = { ...state.comments };
+  Object.assign(state.comments, threads);
+  try {
+    return await run();
+  } finally {
+    state.comments = before;
+    delete state.cut;
+  }
+};
+
+test("an edge write prints the written end's unshown thread and writes the edge in the same call", async () => {
+  await withThreads({ "u-ISS-45": [said("d1", "a person asked for this edge an hour ago")] }, async () => {
+    state.calls = [];
+    const run = await ranAs("iss-edges-delivered", "issue", "ISS-45", "--relates", "ISS-47");
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stderr, /^Delivering — this writes to ISS-45/mu, "a delivery, not a hold to send again");
+    assert.ok(run.stderr.includes("a person asked for this edge an hour ago"), "the comment itself, whole");
+    assert.equal(sentTo("/api/issues/u-ISS-45/dependencies", "POST").length, 1, "and the edge went out");
+    const again = await ranAs("iss-edges-delivered", "issue", "ISS-45", "--relates", "ISS-46");
+    assert.equal(again.status, 0, again.stderr);
+    assert.doesNotMatch(again.stderr, /Delivering/u, "what this run was shown is not delivered to it twice");
+  });
+});
+
+test("--blocks delivers the thread of the end it is written on, and not the subject's", async () => {
+  await withThreads({
+    "u-ISS-45": [said("d2", "the blocking end's own thread")],
+    "u-ISS-46": [said("d3", "the blocked end's own thread")],
+  }, async () => {
+    const run = await ranAs("iss-edges-blocks", "issue", "ISS-45", "--blocks", "ISS-46");
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(run.stderr.includes("the blocked end's own thread"), run.stderr);
+    assert.ok(!run.stderr.includes("the blocking end's own thread"), "the subject is not the row this writes");
+  });
+});
+
+test("--unlink delivers the subject's thread before the removal is sent", async () => {
+  rows[0].relations = {
+    blocks: [{ edgeId: "e-1", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" }],
+    blockedBy: [],
+  };
+  await withThreads({
+    "u-ISS-45": [said("d4", "the subject's thread, owed to the removal")],
+    "u-ISS-47": [said("d5", "the other end's thread")],
+  }, async () => {
+    state.calls = [];
+    const run = await ranAs("iss-edges-unlink", "issue", "ISS-45", "--unlink", "ISS-47");
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(run.stderr.includes("the subject's thread, owed to the removal"), run.stderr);
+    assert.ok(!run.stderr.includes("the other end's thread"));
+    const listed = state.calls.findIndex((one) => one.path === "/api/issues/u-ISS-45/comments");
+    const removed = state.calls.findIndex((one) => one.method === "DELETE");
+    assert.ok(listed >= 0 && listed < removed, "the thread was read before the edge was removed");
+  });
+  delete rows[0].relations;
+});
+
+test("an edge write whose written end cannot be read whole is refused before any edge is sent", async () => {
+  await withThreads({ "u-ISS-45": [said("d6", "one page of a thread with more behind it")] }, async () => {
+    state.cut = ["u-ISS-45"];
+    state.calls = [];
+    const run = await ranAs("iss-edges-cut", "issue", "ISS-45", "--relates", "ISS-47");
+    assert.equal(run.status, 1, run.stdout);
+    assert.ok(run.stderr.includes("one page of a thread with more behind it"), "the refusal carries the thread");
+    assert.equal((state.calls ?? []).filter((one) => one.method === "POST").length, 0, "and nothing was written");
+  });
+});

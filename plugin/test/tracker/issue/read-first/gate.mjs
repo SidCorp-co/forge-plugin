@@ -72,10 +72,20 @@ export const raw = async (input,
   return { ...run, out: answered(run, { exit, skipped }) };
 };
 
-/* The write shape this gate still answers for, so a case about the key it reads has something to
-   read it off: a shape whose own verb makes the comment check is left to make it and this stands
-   down saying nothing, where an edge write makes none. `ISS-31` is the other end, which an edge is
-   never taken against, so nothing resolves it (ISS-1715). */
+/* A shell write for a case about the key the gate reads. Every write verb delivers the thread
+   itself, so the gate stands down for a thread owed only as a delivery (ISS-1715, ISS-1724), and the
+   hold a shell write still meets is a thread that cannot be accounted for: `owed` stands one up, a
+   walk that cannot finish, and its deny carries the comments with it. `whole` is the thread the
+   walk finishes. `ISS-31` is the other end, which an edge is never taken against, so nothing
+   resolves it. */
 export const edgeWrite = (ref = "ISS-29") => `forge issue ${ref} --relates ISS-31`;
+export const owed = (threads) => {
+  state.comments = threads;
+  state.cut = Object.keys(threads);
+};
+export const whole = (threads) => {
+  state.comments = threads;
+  state.cut = [];
+};
 
 export const issueCalls = (from) => (state.calls ?? []).slice(from).filter((one) => /\/issues(\?|$)/u.test(one.path));

@@ -9,7 +9,7 @@ import test from "node:test";
 
 import { OWN } from "../../../fixtures/own-project.mjs";
 import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
-import { HOME, UUID, because, comment, edgeWrite, gate, issueCalls, raw, state }
+import { HOME, UUID, because, comment, edgeWrite, gate, issueCalls, owed, raw, state, whole }
   from "./gate.mjs";
 
 /* ISS-1190. Every key resolved under the session's own project, so a command run in a second
@@ -45,10 +45,10 @@ const oneProject = () => {
 
 test("a write in a second checkout is held on that checkout's own thread for the key it names", async () => {
   twoProjects();
-  state.comments = {
+  owed({
     [UUID]: [comment("own", "the thread of the project this session stands in")],
     [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
-  };
+  });
   state.calls = [];
   const run = await gate(`cd ${pathed(SECOND)} && ${edgeWrite()}`);
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
@@ -63,7 +63,7 @@ test("a write in a second checkout is held on that checkout's own thread for the
 
 test("a command whose directory names no project draws no lookup and refuses nothing", async () => {
   twoProjects();
-  state.comments = { [UUID]: [comment("own", "unread and unquoted")] };
+  whole({ [UUID]: [comment("own", "unread and unquoted")] });
   state.calls = [];
   const run = await gate(`cd ${pathed(NOWHERE_AT_ALL)} && ${edgeWrite()}`);
   assert.equal(run.out, null, "a hold on no evidence is worse than no hold");
@@ -77,7 +77,7 @@ test("a command whose directory names no project draws no lookup and refuses not
    (ISS-1455). */
 test("a write behind `cd -` draws no lookup and refuses nothing", async () => {
   twoProjects();
-  state.comments = { [UUID]: [comment("own", "unread and unquoted")] };
+  whole({ [UUID]: [comment("own", "unread and unquoted")] });
   state.calls = [];
   const run = await gate(`cd - && ${edgeWrite()}`);
   assert.equal(run.out, null, "the event's own project is not the one `cd -` lands in");
@@ -88,10 +88,10 @@ test("a write behind `cd -` draws no lookup and refuses nothing", async () => {
 
 test("a command that moves nowhere is resolved in the event's own directory", async () => {
   twoProjects();
-  state.comments = {
+  owed({
     [UUID]: [comment("own", "the thread of the project this session stands in")],
     [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
-  };
+  });
   state.calls = [];
   const run = await gate(edgeWrite());
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
@@ -106,7 +106,7 @@ test("a command that moves nowhere is resolved in the event's own directory", as
    starts the walks overran the ten seconds `hooks.json` registers for the line, which kills the gate
    and lands the tracker write with nothing judging it. */
 test("a key several command starts name is walked once, however many name it", async () => {
-  state.comments = {};
+  whole({});
   const walks = async (starts) => {
     state.calls = [];
     assert.equal((await gate(Array.from({ length: starts }, () => edgeWrite()).join(" && "))).out, null);
@@ -122,7 +122,7 @@ test("a key several command starts name is walked once, however many name it", a
 /* The other half of the same defect: the walks one call does make waited on each other. The raw
    surface is where one group names two keys, a verb naming at most one. */
 test("two keys one call names are walked together, never one after the other", async () => {
-  state.comments = {};
+  whole({});
   state.holds = [];
   state.hold = 150;
   const run = await raw({ action: "archive", documentId: "ISS-29", data: { issueId: "ISS-30" } },
@@ -140,10 +140,10 @@ test("two keys one call names are walked together, never one after the other", a
    two command starts can stand in two checkouts, and one key text there is two issues. */
 test("one key text in two checkouts is two issues, and both are judged", async () => {
   twoProjects();
-  state.comments = {
+  owed({
     [UUID]: [comment("own", "the thread of the project this session stands in")],
     [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
-  };
+  });
   state.calls = [];
   const run = await gate(`${edgeWrite()} && cd ${pathed(SECOND)} && ${edgeWrite()}`);
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");

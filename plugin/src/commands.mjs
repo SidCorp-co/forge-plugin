@@ -231,6 +231,8 @@ const wroteEdge = async (subject, asked) => {
   const written = row?.writtenOn === "other"
     ? { id: otherId, ref: other, dependsOnId: subjectId }
     : { id: subjectId, ref: subject, dependsOnId: otherId };
+  /* The end written on is the end the read-first gate resolves, and it stands down for this verb because the thread goes out here, ahead of the write, whether or not a gate is watching (ISS-1724). */
+  await mustBeShown([{ ref: written.ref, documentId: written.id }]);
   const renewed = await renew(written.id, written.ref, undefined, null, { finder: true });
   await notAnothers(written.id, written.ref);
   console.log(finderSaid(written.ref, renewed));
