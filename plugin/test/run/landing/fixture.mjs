@@ -3,12 +3,13 @@
    rather than through the script, because half of these cases are a death in the middle of a
    landing and what a second run resumes from is the checkpoint — which has to be written first. */
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 import { fakeTracker, pathed, projectRecord, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 import { noteShown } from "../../../src/tracker/comments.mjs";
+import { developerCorepack, lendCorepack } from "./room/corepack.mjs";
 
 export const LANDER = "the-lander-run";
 export const BUILDER = "the-builder-run";
@@ -169,31 +170,9 @@ if (argv[1] === "update") {
 process.exit(0);
 `;
 
-/* Where `npm` is Corepack's shim, the npm it runs is the one its home already holds, and that home is
-   read off HOME: a room of its own would start with none and fetch npm from the registry before
-   every gate, so the suite's answer would be the network's. So the room gets a Corepack home of its
-   own, its directories real and its pin a copy, with each version the developer's holds linked in:
-   a pin Corepack moves or a version it installs lands in the room, and the developer's is only
-   read. Resolved the way Corepack resolves it, and before HOME is replaced below. */
-export const DEVELOPER_COREPACK = process.env.COREPACK_HOME
-  ?? join(process.env.XDG_CACHE_HOME ?? join(process.env.HOME, ".cache"), "node", "corepack");
+/* Read before HOME is replaced below, so the room lends what the developer's own Corepack home holds. */
+export const DEVELOPER_COREPACK = developerCorepack();
 export const COREPACK = join(ROOM, "corepack");
-const dirsIn = (dir) => (existsSync(dir) ? readdirSync(dir, { withFileTypes: true }) : [])
-  .filter((one) => one.isDirectory()).map((one) => one.name);
-/** A Corepack home at `to` lending the versions installed at `from`, which it never writes. */
-export const lendCorepack = (from, to) => {
-  mkdirSync(to, { recursive: true });
-  const pin = join(from, "lastKnownGood.json");
-  if (existsSync(pin)) copyFileSync(pin, join(to, "lastKnownGood.json"));
-  for (const layout of dirsIn(from)) {
-    for (const manager of dirsIn(join(from, layout))) {
-      mkdirSync(join(to, layout, manager), { recursive: true });
-      for (const version of dirsIn(join(from, layout, manager))) {
-        symlinkSync(join(from, layout, manager, version), join(to, layout, manager, version));
-      }
-    }
-  }
-};
 lendCorepack(DEVELOPER_COREPACK, COREPACK);
 
 mkdirSync(BIN, { recursive: true });

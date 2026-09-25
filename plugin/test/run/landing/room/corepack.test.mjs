@@ -1,14 +1,13 @@
-/* The Corepack home a landing's gate runs `npm` under. Where `npm` is Corepack's shim, a room with
-   no Corepack home of its own fetches npm from the registry before every gate, so a land-ready case
-   went red whenever the network did (ISS-2512); and a room pointed at the developer's own would let
-   Corepack write there. */
+/* The Corepack home a landing's gate runs `npm` under: inside the case's room, lending the
+   developer's installed versions without ever writing the developer's cache (ISS-2512). */
 import assert from "node:assert/strict";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, writeFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
-import { COREPACK, DEVELOPER_COREPACK, lendCorepack, tracker } from "./fixture.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
+import { COREPACK, DEVELOPER_COREPACK, tracker } from "../fixture.mjs";
+import { lendCorepack } from "./corepack.mjs";
 
 /* No case here asks the tracker anything, so it is let go rather than closed and read for its routes. */
 tracker.unref();
