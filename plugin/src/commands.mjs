@@ -166,8 +166,7 @@ const NEW_FLAGS = [
   "  --priority P   the tracker's own set; absent, the filing is unranked and the reply says so",
   `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
   "  --with ISS-45  file it with a `relates` edge to that issue, or to several separated by commas",
-  "  --new          file it even where it reads like an open issue — the duplicate hold or the fold",
-  "                 onto a neighbour — and say which",
+  "  --new          file it past the duplicate hold and the fold, and say which",
 ].join("\n");
 
 /* The kinds table comes before the goals list: every filing reads the table to pick a category and

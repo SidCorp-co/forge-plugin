@@ -89,7 +89,7 @@ test("--new declines the duplicate line alone: a body the shape refuses is still
 test("forge new -h says --new declines the duplicate hold as well as the fold", async () => {
   const run = await ranAsync(FORGE, ["new", "-h"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /--new {10}file it even where it reads like an open issue — the duplicate hold or the fold\n\s+onto a neighbour — and say which/u);
+  assert.match(run.stdout, /--new {10}file it past the duplicate hold and the fold, and say which/u);
 });
 
 test("--new leaves the route hold standing: a fix-shaped body is still asked for its route", async () => {
