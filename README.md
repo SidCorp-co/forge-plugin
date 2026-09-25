@@ -117,6 +117,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "landing": "after-merge",
   "redBatch": "one-by-one",
   "ship": "ready",
+  "ready": { "checks": ["npm run lint", "npm test"] },
   "shape": "staged",
   "release": "manual",
   "report": "daily",
@@ -188,7 +189,11 @@ says where the merge sits relative to the judging. `ship` says how far a run of 
 `self` lands its own change, `ready` stops at a pushed branch and a landing checkpoint for another
 actor — and absent it is `self`, which is what every run did before the key existed. It sits beside
 the other two because it decides whether the landing they describe happens at all, and it is the
-project's rather than the box's so two projects on one machine may answer differently. `shape` says
+project's rather than the box's so two projects on one machine may answer differently.
+`ready.checks` names the checks a run of this project spends before it arms a landing with `forge
+claim <ref> --pushed --ready`, and every capture that arms nothing prints them with the file they were
+read from; absent, nothing is printed, the served method naming the cheap checkers without naming
+any project's. `shape` says
 what kind of project this is — `storefront` keeps no repository and the store is its own source of
 truth, `staged` has a preview deployment somebody opens before live, `direct` is live only, so
 preview is this box and a criterion needing a running product is answered by standing it up here.

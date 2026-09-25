@@ -125,6 +125,12 @@ test("a read of the project file by a route the walk does not know is refused", 
   assert.deepEqual(known.keys, ["codex"]);
 });
 
+test("a value read off the parse and bound is a read of that key, never a second parse", () => {
+  const read = keysRead([{ path: "a.mjs", text: "const ready = projectFileAt(tree)?.ready;\nsend(ready?.checks);\n" }]);
+  assert.deepEqual(read.keys, ["ready"]);
+  assert.deepEqual(read.unexplained, []);
+});
+
 test("one recognised read off a bound value says nothing about the rest of its uses", () => {
   const text = "const file = projectFileAt(tree);\nsend(file?.codex);\nsend(file[\"future\"]);\n";
   const read = keysRead([{ path: "a.mjs", text }]);

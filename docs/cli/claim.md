@@ -109,3 +109,12 @@ call, for the tracker's own tool and for a `forge` write in a shell command alik
 session loads and the `forge` on its PATH are separately installed and can be different versions, so
 neither is trusted to be the other — one list twice on the path where both hold is the price, and a
 gate switched off leaves the verb, which cannot be.
+
+**A capture that arms nothing prints the checks the project spends before one**, where its record
+declares `ready.checks`, and nothing where it does not. The served method says the cheap checkers go
+before a landing is armed and names none, because it is every project's; a run left to pick its own
+set armed a landing a directory-count lint then refused, the per-file linter it had run being green
+on the same tree (ISS-2515). The plain `--pushed` is the place because Phase 4 takes it before the
+status moves and at every push, so it is read before `--pushed --ready`; the arming call itself is
+past the moment the list was for, and says nothing of it. A value the key does not take is said on
+that capture rather than read as no list.

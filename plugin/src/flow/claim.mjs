@@ -34,6 +34,7 @@ import {
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
+import { readyChecks, readyChecksLines } from "./landing/ready-checks.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -462,6 +463,9 @@ export const claim = async (argv) => {
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   if (sharedHolder(taken, mine)) console.log(SHARED_HOLDER);
   if (how === RECLAIM) for (const one of reclaimLines(ref, taken, issue.status)) console.log(one);
+  /* A capture that arms nothing, which Phase 4 takes before the status moves and at each push, so the
+     project's own pre-ready checks are read before the call that arms the landing (ISS-2515). */
+  if (given.pushed && !turns.length) for (const one of readyChecksLines(ref, readyChecks())) console.log(one);
   return advise(documentId, issue, worklogOf(next), next?.[LANDING]);
 };
 claim.answersHelp = true;
