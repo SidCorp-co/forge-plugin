@@ -22,8 +22,7 @@ const tokensIn = (text) => [...new Set([...text.matchAll(PATH_TOKEN)]
   .map(([one]) => one.replace(/(?::\d+)+$/u, "").replace(/^\.\//u, ""))
   .filter((one) => one.includes("/") || one.includes(".")))];
 
-/* A name printed relative to the directory the step was pointed at, or absolute in a room this
-   landing made, still names that file: the dup check prints `src/markdown.mjs` for `plugin/src/markdown.mjs`. */
+// A tail of the file or the file as a tail: the dup check prints `src/markdown.mjs` for `plugin/src/markdown.mjs`.
 const names = (token, file) => token === file || file.endsWith(`/${token}`) || token.endsWith(`/${file}`);
 
 const inTree = (file, tree) => tree === "" || tree === "." || file === tree || file.startsWith(`${tree}/`);
