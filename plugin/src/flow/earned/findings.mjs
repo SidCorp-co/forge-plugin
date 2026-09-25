@@ -43,13 +43,14 @@ const carrierOf = (criteria, handle) => criteria.find((one) => naming(handle).te
 const answerForm = (ref, handle) => `forge record criteria ${ref} <criteria.md>, with a line naming \`finding ${handle}\` — `
   + `or forge record declined ${ref} --finding ${handle} --why "<why it is not fixed here>"`;
 
-/* Past the judging rung a carrier's verdict is read here too, because nothing above `testing` reads
-   verdicts and a finding may land after the judging. `whole` is the caller's shape test. */
+/* Past the judging rung a carrier's verdict is read here too, because a finding may land after the
+   judging and those rungs owe no verdict of their own. A failed one is left to the rungs' own reading
+   of failed verdicts, which names it once whether or not it carries a finding (ISS-2511). `whole` is
+   the caller's shape test. */
 const verdictOwed = (view, ref, { handle, carrier }, whole) => {
   const held = view.verdicts?.get(carrier.number);
   const said = !held ? "has no verdict"
-    : !whole("verdict", held.record) ? "has a verdict that is not a whole payload"
-      : held.record.fields.verdict === "fail" ? "failed its verdict" : null;
+    : !whole("verdict", held.record) ? "has a verdict that is not a whole payload" : null;
   if (!said) return [];
   return [need(
     `criterion ${carrier.number} carries finding ${handle} and ${said}, so the finding it carries stands unjudged`,

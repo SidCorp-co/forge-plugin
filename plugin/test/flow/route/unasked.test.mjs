@@ -121,15 +121,15 @@ test("a page the read could not finish is asked nothing, a routing past the cut 
     "the block says what the record does not hold, which a partial read cannot know");
 });
 
-/* The rung the close is taken from reads no page for a plain move, so a block asked for there would
-   claim the record holds no routing over a page nothing walked — and buying the claim with a read
-   puts a thread too long to walk in front of the close. The span stops below it instead. */
-test("the rung the close is taken from is asked nothing, and its rehearsal still reads no page", async () => {
+/* The rung the close is taken from is asked nothing: the span stops below it, so a thread too long to
+   walk is never what holds a close for a routing. The page itself is read there, once, because the
+   close is judged on the verdicts and the folded findings it holds (ISS-2511). */
+test("the rung the close is taken from is asked nothing, and its rehearsal reads the page once", async () => {
   Object.assign(working, { status: "awaiting_release" });
   project.comments["working-uuid"] = [];
   const before = listed();
   const owed = await ranAsync(FORGE, ["advance", "ISS-7", "--owed"], inSession("unasked-end-owed"));
   assert.equal(owed.status, 0, owed.stderr);
   assert.equal(promptIn(owed.stdout), "", `nothing is asked at this rung: ${owed.stdout}`);
-  assert.equal(listed(), before, "and no page was fetched to say so");
+  assert.equal(listed(), before + 1, "and the one page fetched is the entry check's");
 });

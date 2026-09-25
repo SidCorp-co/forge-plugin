@@ -79,7 +79,11 @@ test("past the judging, a carrying criterion owes a verdict that did not fail", 
   for (const status of ["awaiting_release", "closed"]) {
     const owed = findingItems(owedAt(status, [folded(), verdict(1, "pass")], carried));
     assert.deepEqual(owed, [`criterion 2 carries finding ${HANDLE} and has no verdict, so the finding it carries stands unjudged`], status);
-    assert.match(findingItems(owedAt(status, [folded(), verdict(2, "fail")], carried))[0] ?? "", /criterion 2 carries finding 6bd04311 and failed its verdict/u);
+    /* A carrier that failed is held by the rung's own reading of failed verdicts, once, rather than a second time for the finding it carries (ISS-2511). */
+    const failing = owedAt(status, [folded(), verdict(2, "fail")], carried);
+    assert.deepEqual(findingItems(failing), [], `${status}: the finding adds no item of its own`);
+    assert.deepEqual(failing.filter((one) => one.includes("criterion 2")), ["criterion 2 failed its verdict"],
+      `${status}: and the failed carrier is named by exactly one item`);
     assert.deepEqual(findingItems(owedAt(status, [folded(), verdict(2, "pass")], carried)), [], `${status}: a pass answers it`);
     /* The standard `testing` holds every criterion to: a whole skipped or short verdict stands, a gappy one does not. */
     const skipped = { ...verdict(2, "skipped"), body: render("verdict", { criterion: 2, verdict: "skipped", commit: "43b811e", evidence: [], why: "no route reached it" }) };
