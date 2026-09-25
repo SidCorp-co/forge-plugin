@@ -643,7 +643,3 @@ export const filingRefusal = async (filing, { gaps, fix, tokens },
   };
 };
 
-/** The same refusal as the one line a verb prints, for the caller that wants no more than that. */
-export const refusalFrom = async (filing, shape, options) =>
-  (await filingRefusal(filing, shape, options))?.text ?? null;
-

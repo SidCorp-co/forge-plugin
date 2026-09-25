@@ -15,8 +15,10 @@ process.env.XDG_CONFIG_HOME = home.path;
 /* The in-process readers below resolve this checkout's project, whose record is this machine's and
    so has to be written into the home this process runs against. */
 projectRecord(ROOT, home.path, OWN);
-const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor, refusalFrom,
+const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor,
   shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
+/* The refusal's text, as the gate prints it. */
+const refusalFrom = async (filing, shape, options) => (await filingRefusal(filing, shape, options))?.text ?? null;
 const { COMPLEXITY_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
 /* Prose now: `markFor` went with the second source (ISS-701), and a body already on the tracker still carries the line the emptiness strip reads. */
 const SIZE_LINE = "Size: fix.";
