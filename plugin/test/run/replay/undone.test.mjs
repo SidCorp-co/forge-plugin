@@ -114,7 +114,8 @@ test("a branch nothing landed under since it was cut is said to be, and costs no
   commit(room, "the change on its own base", SOURCE);
   const found = judged(room, cutAt);
   assert.deepEqual([found.judged, found.landed, found.undone], [true, 0, []]);
-  assert.match(undoneLine(found), new RegExp(`nothing landed under this change since it was cut at ${cutAt.slice(0, 7)}`, "u"));
+  assert.ok(undoneLine(found).includes(`nothing landed under this change since it was cut at ${cutAt.slice(0, 7)}`),
+    undoneLine(found));
 });
 
 test("a branch with no reflog is not judged, and the line says why", () => {

@@ -69,7 +69,7 @@ test("a member taking back landed work goes back at head-owed and the member bes
   assert.match(said, /takes back work that landed under it/u, said);
   assert.ok(said.includes(`${landed.slice(0, 7)} another run's line 9 — ${OWNED}`), said);
   assert.equal(landingOf(context()).state, "head-owed", said);
-  assert.match(said, new RegExp(`forge claim ${KEY} --pushed --ready`, "u"), `no recapture line:\n${said}`);
+  assert.ok(said.includes(`forge claim ${KEY} --pushed --ready`), `no recapture line:\n${said}`);
   assert.ok(!onBase(at, head), `the refused member landed:\n${said}`);
   assert.ok(onBase(at, next), `the member beside it did not land:\n${said}`);
   assert.notEqual(landingOf(context(NEXT_UUID)).state, "head-owed", said);
