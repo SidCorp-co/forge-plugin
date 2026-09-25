@@ -209,9 +209,9 @@ test("a project that switched the hook off is not linted on edit", () => {
   assert.equal(runHook(root, "src/fail.js").status, 2);
 });
 
-test("the project's prettier runs first, so the rules judge the formatted file", () => {
-  const root = makeConsumer();
-  // A stand-in for prettier, exercising the same three API calls the hook makes on the real one.
+// A stand-in for prettier, exercising the same three API calls the hook makes on the real one.
+// `config` is what resolveConfig answers, and null is prettier's word for a project with none.
+function installPrettier(root, config) {
   const home = path.join(root, "node_modules", "prettier");
   mkdirSync(home, { recursive: true });
   writeFileSync(
@@ -222,10 +222,15 @@ test("the project's prettier runs first, so the rules judge the formatted file",
     path.join(home, "index.cjs"),
     "module.exports = {\n" +
       "  getFileInfo: async (f) => ({ ignored: /ignored/.test(f), inferredParser: 'babel' }),\n" +
-      "  resolveConfig: async () => ({}),\n" +
+      `  resolveConfig: async () => (${JSON.stringify(config)}),\n` +
       "  format: async (text) => text.split('\\n').filter((l) => !l.startsWith('// Previously')).join('\\n'),\n" +
       "};\n",
   );
+}
+
+test("the project's prettier runs first, so the rules judge the formatted file", () => {
+  const root = makeConsumer();
+  installPrettier(root, {});
 
   const file = write(root, "src/formatted.js", "// Previously this returned zero.\nexport const a = 1;\n");
   const result = runHook(root, "src/formatted.js");
@@ -237,6 +242,19 @@ test("the project's prettier runs first, so the rules judge the formatted file",
   const ignored = write(root, "src/ignored.js", "// Previously this returned zero.\nexport const b = 1;\n");
   assert.equal(runHook(root, "src/ignored.js").status, 2);
   assert.match(readFileSync(ignored, "utf8"), /Previously/);
+});
+
+test("a prettier with no configuration to read formats nothing, and the rules still run", () => {
+  const root = makeConsumer();
+  installPrettier(root, null);
+
+  const source = "// Previously this returned zero.\nexport const a = 1;\n";
+  const file = write(root, "src/unconfigured.js", source);
+  const result = runHook(root, "src/unconfigured.js");
+  // Byte-identical: the project chose no style, so prettier's defaults do not stand in for one.
+  assert.equal(readFileSync(file, "utf8"), source);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /no-historical-narration/);
 });
 
 test("stays silent in a project without ESLint", () => {
