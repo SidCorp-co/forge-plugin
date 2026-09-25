@@ -3,7 +3,7 @@
    went red whenever the network did (ISS-2512); and a room pointed at the developer's own would let
    Corepack write there. */
 import assert from "node:assert/strict";
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, writeFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import test from "node:test";
 
@@ -18,7 +18,7 @@ const entries = (root, at = root) => readdirSync(at).flatMap((name) => {
   const path = join(at, name);
   const seen = lstatSync(path);
   const kind = seen.isSymbolicLink() ? "link" : seen.isDirectory() ? "dir" : "file";
-  const body = kind === "file" ? readFileSync(path, "utf8") : "";
+  const body = kind === "file" ? readFileSync(path, "utf8") : kind === "link" ? readlinkSync(path) : "";
   const own = `${path.slice(root.length)} ${kind} ${seen.mode} ${seen.mtimeMs} ${body}`;
   return kind === "dir" ? [own, ...entries(root, path)] : [own];
 }).sort();
