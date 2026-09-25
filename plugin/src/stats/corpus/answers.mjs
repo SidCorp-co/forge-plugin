@@ -145,13 +145,17 @@ export const returningOf = (shell, body = "") => {
     .map((index) => parts[index]);
 };
 
+/* The pattern where the command itself starts, past a subshell's opening: matched anywhere later, a
+   `pgrep` inside `test -z "$(pgrep x)"` would answer for the `test` around it. */
+const leads = (match, command) => match.exec(command.replace(/^[\s({]+/u, ""))?.index === 0;
+
 /** The answer row a failed call is counted under, or null where its exit was no command's answer. */
 export const answerOf = (call, table = BUILT_IN_TABLE) => {
   if (call.name !== "Bash" || !call.error) return null;
   const code = exitCodeOf(call.body);
   if (code === null) return null;
   const commands = returningOf(call.shell, call.body);
-  const entry = table.find((one) => one.code === code && commands.some((command) => one.match.test(command)));
+  const entry = table.find((one) => one.code === code && commands.some((command) => leads(one.match, command)));
   return entry ? `${entry.name}, exit ${code}` : null;
 };
 
