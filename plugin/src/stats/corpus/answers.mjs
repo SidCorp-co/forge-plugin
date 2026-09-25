@@ -86,19 +86,52 @@ const SEPARATOR = /(&&|\|\||(?<![<>&|])&(?![>&])|\||;|\n)/u;
    no expansion, glob or redirection to go wrong, and these three return 0 whatever words they hold. */
 const INERT = /^(?:echo|true|:)(?:[ \t]+[^\s$`*?[\]<>{}~]+)*$/u;
 
-/** The commands of a line whose status can be the line's: the last one, and each one before it that
- *  is followed only by `&&`-joined inert commands. A pgrep earlier in a line whose last command
- *  failed is not among them, since both would exit 1 and nothing here says which did. */
-export const returningOf = (shell) => {
-  const parts = String(shell).split(SEPARATOR);
-  while (parts.length > 2 && !parts.at(-1).trim()) parts.splice(-2, 2);
+/* What may stand ahead of a command through `&&` and still leave it certain to have run: a `cd` or an
+   `export` of literal words. Only the `cd` can fail, and a `cd` that failed says so in the body. */
+const PRELUDE = /^(?:cd|export)(?:[ \t]+[^\s$`*?[\]<>{}~]+)*$/u;
+const CD_FAILED = /\bcd: /u;
+
+/* A negated command's status is the opposite of its own, so its exit is never its answer. */
+const NEGATED = /^[\s({]*!/u;
+
+/* The commands of a line whose status can be the line's: the last one, and each one before it that is
+   followed only by `&&`-joined inert commands. Indices into the split, each a command. */
+const returning = (parts) => {
   let index = parts.length - 1;
-  const found = [parts[index]];
+  const found = [index];
   while (index >= 2 && parts[index - 1] === "&&" && INERT.test(parts[index].trim())) {
     index -= 2;
-    found.push(parts[index]);
+    found.push(index);
   }
   return found;
+};
+
+/* Whether the command at `index` certainly ran. Behind `;`, a newline, `&` or `||` it did — after
+   `||` a non-zero status means the right side ran. Behind a pipe the earlier members decide nothing;
+   behind `&&` only a prelude that did not fail leaves it certain: `false && pgrep` returns false's 1. */
+const ran = (parts, index, body) => {
+  let at = index;
+  while (at >= 2 && ["|", "&&"].includes(parts[at - 1])) {
+    const before = parts[at - 2].trim();
+    if (parts[at - 1] === "&&" && (!PRELUDE.test(before) || (before.startsWith("cd") && CD_FAILED.test(body)))) return false;
+    at -= 2;
+  }
+  return true;
+};
+
+const splitOf = (shell) => {
+  const parts = String(shell).split(SEPARATOR);
+  while (parts.length > 2 && !parts.at(-1).trim()) parts.splice(-2, 2);
+  return parts;
+};
+
+/** The commands whose status is certainly the line's, for the one failed call's body: those
+ *  `returning` names, not negated and certain to have run. A pgrep earlier in a line whose last
+ *  command failed is not among them, since both would exit 1 and nothing here says which did. */
+export const returningOf = (shell, body = "") => {
+  const parts = splitOf(shell);
+  return returning(parts).filter((index) => !NEGATED.test(parts[index]) && ran(parts, index, body))
+    .map((index) => parts[index]);
 };
 
 /** The answer row a failed call is counted under, or null where its exit was no command's answer. */
@@ -106,8 +139,8 @@ export const answerOf = (call, table = BUILT_IN_TABLE) => {
   if (call.name !== "Bash" || !call.error) return null;
   const code = exitCodeOf(call.body);
   if (code === null) return null;
-  const returning = returningOf(call.shell);
-  const entry = table.find((one) => one.code === code && returning.some((command) => one.match.test(command)));
+  const commands = returningOf(call.shell, call.body);
+  const entry = table.find((one) => one.code === code && commands.some((command) => one.match.test(command)));
   return entry ? `${entry.name}, exit ${code}` : null;
 };
 

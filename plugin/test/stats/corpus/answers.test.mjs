@@ -31,8 +31,21 @@ test("an exit is the command's answer only where that command is the one whose s
     "an echo with an expansion can fail, so it does not carry the status back");
   assert.equal(answerOf(failed("pgrep -x forge | head -1", "Exit code 1\n")), null, "a pipeline returns its last command's status");
   assert.equal(answerOf(failed("pgrep -x forge", "Exit code 2\n")), null, "and only the exit the table names is an answer");
-  assert.deepEqual(returningOf("a; b && echo done && true").map((one) => one.trim()), ["true", "echo done", "b"],
-    "b, and the two inert commands after it, and never the `a` a `;` closed");
+  assert.deepEqual(returningOf("a; b && echo done && true").map((one) => one.trim()), ["b"],
+    "b, whose status the inert commands after it carry back, and never the `a` a `;` closed");
+});
+
+test("an exit is the command's answer only where that command certainly ran and its status was not inverted", () => {
+  assert.equal(answerOf(failed("false && pgrep -x forge", "Exit code 1\n")), null, "false's 1, the pgrep never having run");
+  assert.equal(answerOf(failed("! pgrep -x forge", "Exit code 1\n")), null, "a negated pgrep that found its process");
+  assert.equal(answerOf(failed("cd /w && export A=b && pgrep -x forge", "Exit code 1\n")), "pgrep, exit 1",
+    "a cd and an export of literal words leave it certain to have run");
+  assert.equal(answerOf(failed("cd /gone && pgrep -x forge", "Exit code 1\nbash: line 1: cd: /gone: No such file or directory")), null,
+    "unless the cd says it failed");
+  assert.equal(answerOf(failed("test -f x || pgrep -x forge", "Exit code 1\n")), "pgrep, exit 1",
+    "after `||` a non-zero status means the right side ran");
+  assert.equal(answerOf(failed("cat /tmp/gate.log | grep -q '^exit '", "Exit code 1\n")), "grep -q, exit 1",
+    "and a pipe's earlier members decide nothing about it");
 });
 
 test("an error is keyed on its class, its exit and the first line printed, held steady across days", () => {
