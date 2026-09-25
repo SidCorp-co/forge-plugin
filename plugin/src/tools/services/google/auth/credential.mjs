@@ -106,7 +106,7 @@ const grantable = (choice, service) => {
   }
 };
 
-export const NOT_FETCHED = "not fetched (dry run)";
+const NOT_FETCHED = "not fetched (dry run)";
 
 /** The account a preview names and the bearer it shows, with nothing sent to mint one. */
 export const previewedCredential = (choice, service, subject) => {
