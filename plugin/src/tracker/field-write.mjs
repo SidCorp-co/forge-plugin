@@ -75,7 +75,7 @@ const mismatch = (row, field, ref, back) =>
 export const lengthOf = (value) => [...String(value)].length;
 
 /* The routes refuse a bad length without naming the number, so the number is declared beside them. */
-export const capsOf = () => declaredFor("forge_issues", "caps");
+export const capsOf = (tool = "forge_issues") => declaredFor(tool, "caps");
 
 /* Both lengths where a rewrite moved it, the tracker measuring what it was sent (ISS-430). */
 const NOTHING_SENT = " Nothing was sent.";
