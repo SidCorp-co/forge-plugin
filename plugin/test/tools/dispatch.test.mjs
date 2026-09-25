@@ -197,13 +197,8 @@ test("the chosen copy carries why it was chosen", () => {
 test("the dispatcher imports nothing but node builtins and the choosers", () => {
   const imports = (path) =>
     [...readFileSync(path, "utf8").matchAll(/from\s+"([^"]+)"/gu)].map(([, one]) => one);
-  for (const one of imports(join(PLUGIN, "src", "dispatch.mjs"))) {
-    assert.ok(one.startsWith("node:") || one === "./tools/flow-copy.mjs", `dispatch.mjs imports ${one}`);
-  }
-  for (const one of imports(join(PLUGIN, "src", "tools", "flow-copy.mjs"))) {
-    assert.ok(one.startsWith("node:") || one === "./plugin-copy.mjs", `flow-copy.mjs imports ${one}`);
-  }
-  for (const one of imports(join(PLUGIN, "src", "tools", "plugin-copy.mjs"))) {
-    assert.ok(one.startsWith("node:"), `plugin-copy.mjs imports ${one}`);
-  }
+  const own = (path) => imports(path).filter((one) => !one.startsWith("node:"));
+  assert.deepEqual(own(join(PLUGIN, "src", "dispatch.mjs")), ["./tools/flow-copy.mjs"]);
+  assert.deepEqual(own(join(PLUGIN, "src", "tools", "flow-copy.mjs")), ["./plugin-copy.mjs"]);
+  assert.deepEqual(own(join(PLUGIN, "src", "tools", "plugin-copy.mjs")), []);
 });

@@ -26,7 +26,7 @@
     "sync:skills:check": "node tools/sync-skills.mjs --check"
   },
   "standing": {
-    "vacuousAssertions": 19,
+    "vacuousAssertions": 18,
     "sourcePins": 20,
     "testOnlyExports": 40
   }

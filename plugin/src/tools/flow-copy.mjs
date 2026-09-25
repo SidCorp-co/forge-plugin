@@ -71,7 +71,7 @@ const moduleOf = (dir, verb) => {
 /** The files under `tree` a call of any of `verbs` loads that this checkout changed since it and
  *  the installed copy's commit parted: the CLI's static graph, each verb's own, and the guides
  *  every flow verb serves or judges by. Empty where nothing says which commit that is. */
-export const flowChanges = (chosen, verbs) => {
+const flowChanges = (chosen, verbs) => {
   const sha = chosen?.tree && chosen.installed?.sha;
   if (!sha) return [];
   const dir = chosen.tree.dir;
