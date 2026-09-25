@@ -560,19 +560,16 @@ test("a newer field is asked for at the write and excused at the read-back", () 
    same words, and `record`'s route reads them from `evidence.mjs` rather than keeping a second
    copy that goes stale without failing anything (ISS-155). */
 test("the record route's collision refusal carries the one sentence evidence.mjs holds", async () => {
-  project.answer.forge_comments = (args) =>
-    (args.action === "list"
-      ? { comments: project.comments["shipped-uuid"] ?? [], returned: 1, hasMore: true, truncatedBy: "cursor" }
-      : { documentId: "comment-uuid" });
+  shipped.attachments = [{ name: "shot.png" }];
   const path = join(tempRoom("crowded-"), "shot.png");
   writeFileSync(path, "not really a screenshot");
   const run = await ranAsync(FORGE, ["record", "verdict", "ISS-3", "--criterion", "1",
     "--verdict", "pass", "--commit", "43b811e", "--evidence", path], ENV);
-  delete project.answer.forge_comments;
+  delete shipped.attachments;
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /^record verdict would put a file up/mu, run.stderr);
+  assert.match(run.stderr, /shot\.png is already on this issue/u, run.stderr);
   assert.ok(run.stderr.includes(TWICE), `the sentence itself, verbatim: ${run.stderr}`);
-  assert.match(run.stderr, /Every record citing it is then ambiguous\./u, "and the record route's own words after it");
+  assert.match(run.stderr, /Cite the one that is there:\n {2}--evidence shot\.png/u, "and the record route's own words after it");
 });
 
 /* The count has to sit above the records it counts, which is the half a unit case on the assembly
