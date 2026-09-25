@@ -7,7 +7,7 @@ import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { copyForVerb, flowNote } from "./tools/flow-copy.mjs";
+import { copyForVerb, flowNote } from "./tools/copies/flow-copy.mjs";
 
 const [entry, ...rest] = process.argv.slice(2);
 const chosen = copyForVerb({ entry, verb: rest[0] });

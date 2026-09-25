@@ -33,7 +33,7 @@ import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
-import { flowRow } from "./flow-copy.mjs";
+import { flowRow } from "./copies/flow-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";

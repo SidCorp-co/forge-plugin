@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { copyToRun } from "./plugin-copy.mjs";
+import { copyToRun } from "../plugin-copy.mjs";
 
 /** The verbs whose rules are the installed flow's: the ones reading or writing an issue's record,
  *  and the one serving the contract that record is judged against. The only list of them. */

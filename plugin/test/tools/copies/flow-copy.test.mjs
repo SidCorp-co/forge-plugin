@@ -7,12 +7,12 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FLOW_VERBS, copyForVerb, flowRow } from "../../src/tools/flow-copy.mjs";
-import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { FLOW_VERBS, copyForVerb, flowRow } from "../../../src/tools/copies/flow-copy.mjs";
+import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const BIN = new URL("../../bin/", import.meta.url).pathname;
-const PLUGIN = new URL("../..", import.meta.url).pathname;
+const BIN = new URL("../../../bin/", import.meta.url).pathname;
+const PLUGIN = new URL("../../..", import.meta.url).pathname;
 const NAME = JSON.parse(readFileSync(join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).name;
 
 const wrote = (path, body) => {
