@@ -37,12 +37,15 @@ log --id <id>` expands it.
 holder itself may all read it; the printer and the brief import none of the writing functions, which
 is what a case asserts rather than a comment claiming it. It prints, in reading order: the status
 with the phase it owes, the plan bounded with a pointer to the whole field, every criterion with its
-verdict mark, one line each of the latest confirmation, decision and correction with a count of any
-kind holding more than one under them, the worklog, the
+verdict mark, one line each of the latest confirmation, decision, baseline, review and correction
+with a count of any kind holding more than one under them, the worklog, the
 parks and the blocking edges with the kind of each and whether it holds the status back — one
 answer, the entry check's own, never worked out a second time for the screen — the command the next
-status is owed in the same words `advance --owed` uses and from the same function, and the path of
-the reference holding that phase's method. `--json` is the assembled object the screen was printed
+status is owed in the same words `advance --owed` uses and from the same function, the path of
+the reference holding that phase's method, and how many typed records it read with how many of them
+it gave no line. The baseline and the review are headlined because a run resuming at `in_progress`
+needs the result the gate gave and the head that was judged before anything else, and the count is
+there because three headlines read as the whole record to a reader nothing told otherwise. `--json` is the assembled object the screen was printed
 from, so a tool and a reader cannot be told different things.
 
 `--report` is the other end of the same reading: every record whole rather than one line of each,
