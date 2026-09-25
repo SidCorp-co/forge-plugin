@@ -25,7 +25,7 @@ const BARE = new RegExp(`^${NAME}$`, "u");
    point; an imported helper is out of this reading's reach. */
 const SPAWNS = ["spawnSync", "execFileSync", "execSync", "spawn", "execFile", "exec", "fork", "callHook"];
 
-export const SHAPES = {
+const SHAPES = {
   disjunction: "a disjunction inside a truthiness assert",
   output: "a bare truthiness assert on a whole command output",
   empty: "an assert inside a loop over an empty array",
