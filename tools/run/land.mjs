@@ -39,7 +39,6 @@ export const pushing = (tree, base, rejected) => {
   if (run.status !== 0) stop(`git push ${REMOTE} HEAD:${base} exited ${run.status}. ${rejected()}`);
 };
 
-/** One landing's steps, in the order given: the span is the roles', never the caller's to decide. */
 /* A stop may carry its own code, which is what tells a caller a landing that never got a gate place from one that was
    refused; a run that met two kinds of stop is 1, since retrying it as the first kind would rerun the second. */
 const exitOf = (error) => {
@@ -47,6 +46,7 @@ const exitOf = (error) => {
   return process.exitCode && process.exitCode !== code ? 1 : code;
 };
 
+/** One landing's steps, in the order given: the span is the roles', never the caller's to decide. */
 export const runLanding = async (steps, order, tree, { ms, held, again }) => {
   let drop = null;
   const last = [...order].reverse().find((at) => SHARED.has(steps[at][2]));

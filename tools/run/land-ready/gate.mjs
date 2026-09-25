@@ -16,9 +16,9 @@ import { LANDING_HEAD_OWED, RECAPTURE, landingNext } from "../../../plugin/src/f
 export const handsBack = (member) => landingNext(member.landing, LANDING_HEAD_OWED) === null;
 
 /* Spent on the combination and on no subset of it: what the branches are landed as instead, and the
-   runs that bounds, is the-checkpoint.md's. */
-/* The minutes are the landing's `--wait`, the one number both of its waits take: a landing stopped for a place it was
-   never asked to wait for is the person in the loop G-11 rules out (ISS-2461). */
+   runs that bounds, is the-checkpoint.md's. The minutes are the landing's `--wait`, the one number both of
+   its waits take: a landing stopped for a place it was never asked to wait for is the person in the loop
+   G-11 rules out (ISS-2461). */
 export const gateStep = async (one) => {
   const { at, ctx: { root, ms, self } } = one;
   at.room = roomFor(root, at.candidate);
