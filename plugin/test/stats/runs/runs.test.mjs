@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { callsIn, shellOf } from "../../../src/stats/corpus/transcripts.mjs";
 import { refusalIn } from "../../../src/stats/corpus/refusals.mjs";
-import { FILES_IT, WHOLE } from "../../../src/hooks/appended.mjs";
+import { FILES_IT, WHOLE } from "../../../src/refusal.mjs";
 import { held } from "../../../src/shown/ledger.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";

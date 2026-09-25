@@ -6,13 +6,13 @@ import { WAITS_ON_PID } from "../../hooks/wait-idiom.mjs";
 import { fail, projectFileAt } from "../../resolve/settings.mjs";
 
 /** Where a project declares its own table, beside `stats.commands`. */
-export const ANSWERS_KEY = "stats.answers";
+const ANSWERS_KEY = "stats.answers";
 
 /** The table every project that declares none is read by: under each exit code, the commands that
  *  answer with it. A declaration REPLACES it rather than joining it, as `stats.commands` replaces the
  *  built-in commands: one table says what an answer is. Keyed by the code first so one write sets one
  *  whole entry, a pattern with no code being no answer at all. */
-export const BUILT_IN_ANSWERS = {
+const BUILT_IN_ANSWERS = {
   1: {
     pgrep: String.raw`pgrep[ \t]`,
     "grep -q": String.raw`grep(?:[ \t]+\S+)*?[ \t]+(?:-[A-Za-z]*q[A-Za-z]*|--quiet|--silent)(?![\w-])`,
@@ -48,7 +48,7 @@ export const answersProblem = (given) => {
 };
 
 /** A table as the classifier reads it: each pattern anchored where a command starts. */
-export const answersTable = (given = BUILT_IN_ANSWERS) => Object.entries(given)
+const answersTable = (given = BUILT_IN_ANSWERS) => Object.entries(given)
   .flatMap(([code, commands]) => Object.entries(commands)
     .map(([name, command]) => ({ name, code: Number(code), match: at(command) })));
 
@@ -57,8 +57,7 @@ export const BUILT_IN_TABLE = answersTable();
 /** The table a checkout's project declared, or the built-in one where it declared none. A table
  *  that cannot be read is refused rather than passed over: counted by the built-in table instead, a
  *  project's answers would read as its errors with nothing said. */
-export const answersIn = (directory) => {
-  const given = projectFileAt(directory)?.stats?.answers;
+const declaredTable = (given, directory) => {
   if (given === undefined) return BUILT_IN_TABLE;
   const problem = answersProblem(given);
   if (problem) {
@@ -70,10 +69,12 @@ export const answersIn = (directory) => {
   return answersTable(given);
 };
 
+export const answersIn = (directory) => declaredTable(projectFileAt(directory)?.stats?.answers, directory);
+
 const HEADER = /^Exit code (?<code>\d+)[ \t]*$/u;
 
 /** The exit code the host wrote at the head of a failed shell call's result, or null. */
-export const exitCodeOf = (body) => {
+const exitCodeOf = (body) => {
   const code = HEADER.exec(String(body).split("\n")[0].trim())?.groups.code;
   return code === undefined ? null : Number(code);
 };
@@ -164,13 +165,13 @@ export const answerOf = (call, table = BUILT_IN_TABLE) => {
 export const ERROR_ROWS = 2;
 
 /** How much of the first line a key keeps: enough to tell two failures of one class apart. */
-export const KEY_CHARS = 80;
+const KEY_CHARS = 80;
 
 const TAGS = /<\/?tool_use_error>/gu;
 
 /* What changes from one day to the next in a line that says the same thing: where, which commit,
    which issue, and every count or time. The key is what a reading follows a failure by across days. */
-export const steady = (line) => line
+const steady = (line) => line
   .replaceAll(/(?<![\w.])(?:~|\.{1,2})?\/[^\s'"`:,;)]+/gu, "<path>")
   .replaceAll(/ISS-\d+/gu, "ISS-nn")
   .replaceAll(/\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/gu, "<sha>")

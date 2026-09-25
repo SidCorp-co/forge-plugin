@@ -1,7 +1,7 @@
 /* The refusal reader `stats runs` and the waves share: docs/cli/stats-the-refusals.md */
 import { VERB_NAMES } from "../../resolve/visibility.mjs";
 import { escaped } from "../../markdown.mjs";
-import { WHOLE, appendedLine } from "../../hooks/appended.mjs";
+import { WHOLE, appendedLine } from "../../refusal.mjs";
 import { held } from "../../shown/ledger.mjs";
 
 /* The harness's own sentence is cut off the line it shares, so a repeat keys on the rule it names. */
