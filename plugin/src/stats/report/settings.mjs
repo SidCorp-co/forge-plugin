@@ -4,13 +4,13 @@
 import { configPath, readJson } from "../../resolve/config.mjs";
 
 /** The device key the report's score and windows are read from, beside `reports`. */
-export const REPORT_KEY = "report";
+const REPORT_KEY = "report";
 
 /** The project key naming the acts that rewrite the current report, and the acts it may name. */
 export const TRIGGERS_KEY = "reportOn";
 export const SESSION = "session";
 export const RELEASE = "release";
-export const TRIGGERS = [SESSION, RELEASE];
+const TRIGGERS = [SESSION, RELEASE];
 
 /** The two formulas a score may be made by. `product` makes the days seen a power of the cost, so a
  *  cause seen on twice the days at the same daily cost scores twice as much; `sum` adds them. */
@@ -65,11 +65,8 @@ export const reportSettings = () => {
   return held;
 };
 
-/** The acts a project's record names, where its report is on: both where the key is unset. */
-export const triggersOf = (record) => {
-  const named = record?.[TRIGGERS_KEY];
-  return Array.isArray(named) ? named.filter((one) => TRIGGERS.includes(one)) : TRIGGERS;
-};
+/** The acts a project's `reportOn` names, where its report is on: both where the key is unset. */
+export const triggersOf = (named) => (Array.isArray(named) ? named.filter((one) => TRIGGERS.includes(one)) : TRIGGERS);
 
 /** What the project file's writer says of a `reportOn` value, or null where it holds. */
 export const triggersRefusal = (given, said) => (Array.isArray(given) && given.every((one) => TRIGGERS.includes(one))

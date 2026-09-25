@@ -97,7 +97,7 @@ const followedOf = (rows) => Object.fromEntries(rows.filter((one) => one.section
   .flatMap((row) => row.causes.map((one) => [one.key, row.issues.map((issue) => issue.key)])));
 
 /** The snapshot lines, newest first, each as that day's own summary keeps it. */
-export const snapshotsIn = (dir) => heldDays(dir).map((day) => {
+const snapshotsIn = (dir) => heldDays(dir).map((day) => {
   const held = heldContentOf(readPage(dir, day) ?? "");
   return { day, line: held ? indexLineOf(held) : null };
 });
@@ -160,7 +160,7 @@ export const currentOf = async (reading, { dir, unread = [], tracker, settings, 
 };
 
 /** The current report's content off a reading already made, masked. */
-export const contentFrom = async (dir, reading, found) => {
+const contentFrom = async (dir, reading, found) => {
   const settings = reportSettings();
   if (settings.refused) fail(settings.refused);
   const tracker = await trackerOf(registered());

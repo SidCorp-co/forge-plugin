@@ -19,7 +19,7 @@ export const PER_CAUSE_MISSING = {
 };
 
 /** The key a cause is followed by: the entry's kind and what the runs met, as the day's page names it. */
-export const causeKey = (entry) => `${entry.kind} · ${entry.met}`;
+const causeKey = (entry) => `${entry.kind} · ${entry.met}`;
 
 /** Every day from the first one held through today, oldest first. */
 export const heldDaysFrom = (first, now) => {
@@ -118,7 +118,7 @@ export const projectedOf = (figures, heldCount) => {
 };
 
 /** Whether a row is new: first met since the report was last written, or within the last day. */
-export const isNew = (figures, { previousAt, now }) =>
+const isNew = (figures, { previousAt, now }) =>
   figures.firstAt > now - DAY_MS || (previousAt !== null && figures.firstAt > previousAt);
 
 /** The days since a release, counted whole. */

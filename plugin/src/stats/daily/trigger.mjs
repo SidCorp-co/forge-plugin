@@ -6,24 +6,21 @@
 import { spawn } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { yesterday } from "./day.mjs";
 import { RELEASE, SESSION, triggersOf } from "../report/settings.mjs";
 import { clearMark, markPath, pagePath, reportsWhere, takeMark, writerHolds } from "./store.mjs";
 import { projectFileAt } from "../../resolve/settings.mjs";
+import { PLUGIN_ROOT } from "../../tools/plugin-copy.mjs";
 
 /** The project key's values: `off`, where a project that never set it stands, and `daily`. */
 export const REPORT_MODES = ["off", "daily"];
 const ON = "daily";
 
-/* The plugin directory this module ships in, whose `bin/forge` a release reading starts. */
-const PLUGIN = fileURLToPath(new URL("../../../", import.meta.url));
-
 /* Whether the project standing at a directory asked for the reports and names this act. */
 const asked = (cwd, act) => {
   const record = projectFileAt(cwd);
-  return record?.report === ON && triggersOf(record).includes(act);
+  return record?.report === ON && triggersOf(record?.reportOn).includes(act);
 };
 
 /* The writer, detached; null where it could not be started. A spawn that fails does so on a later
@@ -79,7 +76,7 @@ export const dailyDue = (root, { start = spawn, now = Date.now(), cwd = process.
 
 /** After a release reading is written for a checkout: the current report's writer, where that
  *  checkout's project asked for it. Never throws: the release it follows has already gone out. */
-export const releaseDue = (cwd, { start = spawn, root = PLUGIN } = {}) => {
+export const releaseDue = (cwd, { start = spawn, root = PLUGIN_ROOT } = {}) => {
   try {
     if (!asked(cwd, RELEASE) || reportsWhere().refused) return null;
     return currentWriter({ start, root, cwd });

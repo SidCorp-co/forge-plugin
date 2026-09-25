@@ -17,7 +17,7 @@ const SETTLED = new Set(["closed", "dropped"]);
 const CLOSED = "closed";
 const MARKER = /\[gate-recurrence(?:-group)? [0-9a-f]+\]/u;
 
-export const BEYOND = `past the first ${MATCHED} causes by score this write matched`;
+const BEYOND = `past the first ${MATCHED} causes by score this write matched`;
 export const NONE_NEAR = `no issue reads like it at the search's floor of ${FLOOR}`;
 
 const endpointHeld = () => Boolean(accountCredentials().url.value && accountCredentials().token.value);

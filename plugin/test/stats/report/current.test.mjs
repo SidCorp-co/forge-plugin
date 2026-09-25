@@ -21,7 +21,7 @@ test("stats report writes the current report as index.html in the reports direct
   const run = report(held);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(existsSync(index(held)));
-  assert.match(run.stdout, new RegExp(`Wrote the current report: ${index(held).replaceAll("/", "\\/")}\\n`, "u"));
+  assert.ok(run.stdout.includes(`Wrote the current report: ${index(held)}\n`), run.stdout);
   assert.equal(contentOf(readFileSync(index(held), "utf8")).kind, "current");
 });
 
