@@ -5,6 +5,7 @@ import { COMPLEXITY_NAMES } from "../ladder.mjs";
 import { UNSET } from "./weights.mjs";
 import { DRAINS, drainScope } from "../resolve/settings.mjs";
 import { JUDGING } from "./eligible.mjs";
+import { ageOf } from "../codex/codex-state.mjs";
 
 const KEY = 8;
 const TITLE = 96;
@@ -18,7 +19,21 @@ const costSaid = (cost) =>
   (cost.minutes === null ? "cost —" : `cost ~${cost.minutes}m`);
 
 const marks = (candidate) =>
-  [candidate.restart ? "restart" : null, candidate.warm ? "warm" : null].filter(Boolean).join(" ");
+  [candidate.restart ? "restart" : null, candidate.warm ? "warm" : null,
+    candidate.row.mergedAt ? "merged" : null].filter(Boolean).join(" ");
+
+/* The tracker's stamp to the minute, as the row holds it. A merge mark is asserted by whichever call
+   moved the issue, so the row shows it and neither drops nor scores on it: hiding claimable work on a
+   caller's word is the silent shrink this verb exists without. The facts beside it are what tell a
+   reopened issue's first landing from work that shipped, and a run working the issue is already left
+   out by its live lease (ISS-629). */
+const stampOf = (at) => String(at).replace(/:\d{2}(?:\.\d+)?Z$/u, "Z");
+
+const mergedSaid = (row) => `merge mark set ${stampOf(row.mergedAt)}, ${ageOf(Date.parse(row.mergedAt))}`;
+
+const mergedLine = (candidate) =>
+  `  merged ${mergedSaid(candidate.row)}, while the status reads ${candidate.row.status ?? "(none)"}`
+  + ` and the issue has been reopened ${candidate.row.reopenCount ?? 0} time(s)`;
 
 const headRow = (candidate) =>
   [
@@ -65,7 +80,8 @@ const servesLine = (candidate) =>
     : "unknown — this candidate's body was not read at this depth"}`;
 
 const memberLine = (member) =>
-  `  + ${member.issueId.padEnd(KEY)} ${member.said.padEnd(44)} ${cut(member.row.title, TITLE)}`;
+  `  + ${member.issueId.padEnd(KEY)} ${member.said.padEnd(44)} ${cut(member.row.title, TITLE)}`
+  + `${member.row.mergedAt ? ` · ${mergedSaid(member.row)}` : ""}`;
 
 /* Three reasons to sit beside a batch, and the third is not relatedness: saying nothing where the
    only shared path resolves to nothing would replace a wrong reason with no reason. */
@@ -150,6 +166,7 @@ export const judgingShort = (judging, weights) => (judging?.unreached
 /** Every line of one candidate, so the caller composes the answer out of whole candidates. */
 export const candidateLines = (batch, { why = false } = {}) => [
   headRow(batch.head),
+  ...(batch.head.row.mergedAt ? [mergedLine(batch.head)] : []),
   ...(why ? [whyLine(batch.head), signalLine(batch.head), servesLine(batch.head)] : []),
   ...(why && batch.head.score.complexity === UNSET ? [unsetLine(batch.head)] : []),
   ...batch.members.map(memberLine),
