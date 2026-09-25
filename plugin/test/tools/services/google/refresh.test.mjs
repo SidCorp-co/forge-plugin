@@ -1,9 +1,10 @@
 /* The refresh against Discovery documents the fake serves, rebuilt from the carried indexes so the
-   case controls exactly what moved: one method added, one unserved one dropped, one changed, and in
-   the last case a served one dropped. Every write goes to a directory of the case's own. */
+   case controls exactly what moved: one method added, one of an unserved service dropped, one changed,
+   and in the last cases a served one dropped, refused until its line is out of the index compared
+   against. Every write goes to a directory of the case's own. */
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../../../fixtures.mjs";
@@ -66,11 +67,12 @@ test("--write writes one index a service from the fetched documents", async () =
 });
 
 const MOVED = {
-  drive: (methods) => {
-    const { "drive.files.emptyTrash": gone, ...rest } = methods;
+  drive: (methods) => ({ ...methods, "drive.files.brandNew": { http: "GET", path: "files/new" },
+    "drive.about.get": { ...methods["drive.about.get"], path: "about/moved" } }),
+  chat: (methods) => {
+    const { "chat.customEmojis.create": gone, ...rest } = methods;
     assert.ok(gone);
-    return { ...rest, "drive.files.brandNew": { http: "GET", path: "files/new" },
-      "drive.about.get": { ...rest["drive.about.get"], path: "about/moved" } };
+    return rest;
   },
 };
 
@@ -82,23 +84,36 @@ test("without --write it prints, per service, what was added, removed and change
   const lines = answer.stdout.trim().split("\n").map((one) => JSON.parse(one));
   const drive = lines.find((one) => one.service === "drive");
   assert.deepEqual(drive.added, ["drive.files.brandNew"]);
-  assert.deepEqual(drive.removed, ["drive.files.emptyTrash"]);
+  assert.deepEqual(drive.removed, []);
   assert.deepEqual(drive.changed, ["drive.about.get"]);
+  assert.deepEqual(lines.find((one) => one.service === "chat").removed, ["chat.customEmojis.create"]);
   assert.deepEqual(lines.find((one) => one.service === "gmail"), { service: "gmail",
     revision: { carried: "29990101", fetched: "29990101" }, added: [], removed: [], changed: [] });
   assert.deepEqual(written(), before);
 });
 
+const WITHOUT_LIST = { drive: (methods) => {
+  const { "drive.files.list": gone, ...rest } = methods;
+  assert.ok(gone);
+  return rest;
+} };
+
 test("a fetch that drops a served method is refused with 4 naming it, and nothing is written", async () => {
   const before = written();
-  serve({ drive: (methods) => {
-    const { "drive.files.list": gone, ...rest } = methods;
-    assert.ok(gone);
-    return rest;
-  } });
+  serve(WITHOUT_LIST);
   const answer = await ran("--write");
   assert.equal(answer.status, 4);
   assert.match(answer.stderr, /drop 1 served method\(s\): drive\.files\.list\./u);
+  assert.ok(answer.stderr.includes(`take each one's line out of ${join(into, "drive.json")} in a commit first`), answer.stderr);
   assert.match(answer.stderr, /nothing was written/u);
   assert.deepEqual(written(), before);
+});
+
+test("once the dropped method's line is out of the index compared against, the same write writes", async () => {
+  const at = join(into, "drive.json");
+  writeFileSync(at, readFileSync(at, "utf8").split("\n").filter((line) => !line.startsWith('  "drive.files.list":')).join("\n"));
+  serve(WITHOUT_LIST);
+  const answer = await ran("--write");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.ok(!readFileSync(at, "utf8").includes('"drive.files.list"'));
 });

@@ -1,12 +1,11 @@
-/* Which Google methods this verb serves, resolved against the indexes carried beside it. The index
-   holds every method of each document; SERVED is the subset a caller may type, so adding one is a line
-   here and never a design. A served id the carried index no longer holds is refused by that name
-   rather than vanishing. docs/cli/google.md. */
+/* Which Google services this verb serves, and the indexes carried beside it. Every method of a served
+   service's document answers, so a method Google adds is served the day its document is refreshed and
+   judged by the consent table rather than by a list somebody keeps; serving another service is a
+   line here and its scopes. docs/cli/google.md. */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { didYouMean } from "../../../suggest.mjs";
 import { DISCOVERY, refuse } from "./exits.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -28,25 +27,8 @@ export const SERVICES = {
   admin: { discovery: LISTED("admin", "directory_v1") },
 };
 
-export const SERVED = [
-  "drive.files.list", "drive.files.get", "drive.files.create", "drive.files.update", "drive.files.copy",
-  "drive.files.export", "drive.permissions.list", "drive.permissions.create", "drive.permissions.delete",
-  "drive.about.get",
-  "sheets.spreadsheets.get", "sheets.spreadsheets.values.get", "sheets.spreadsheets.values.update",
-  "sheets.spreadsheets.values.append",
-  "docs.documents.get", "docs.documents.create", "docs.documents.batchUpdate",
-  "gmail.users.messages.list", "gmail.users.messages.get", "gmail.users.messages.send",
-  "gmail.users.messages.modify", "gmail.users.messages.trash", "gmail.users.threads.list",
-  "gmail.users.threads.get", "gmail.users.labels.list", "gmail.users.drafts.create", "gmail.users.drafts.send",
-  "calendar.events.list", "calendar.events.get", "calendar.events.insert", "calendar.events.patch",
-  "calendar.events.delete", "calendar.calendarList.list", "calendar.freebusy.query",
-  "meet.spaces.create", "meet.spaces.get", "meet.conferenceRecords.list", "meet.conferenceRecords.get",
-  "meet.conferenceRecords.participants.list", "meet.conferenceRecords.participants.get",
-  "meet.conferenceRecords.recordings.list", "meet.conferenceRecords.recordings.get",
-  "meet.conferenceRecords.transcripts.list", "meet.conferenceRecords.transcripts.get",
-];
-
-export const SERVED_SERVICES = [...new Set(SERVED.map((id) => id.split(".")[0]))];
+/* Chat and Admin are carried so `schema` can read them, and answer no call: neither has its scopes here. */
+export const SERVED_SERVICES = ["drive", "sheets", "docs", "gmail", "calendar", "meet"];
 
 const AUTH = "https://www.googleapis.com/auth/";
 
@@ -80,46 +62,14 @@ export const carriedIndex = (service, from = CARRIED) => {
   return loaded.get(key);
 };
 
-const methodIds = (service) => Object.keys(carriedIndex(service)?.methods ?? {});
-
-/** One method by id, served or not: the helpers read a method no caller may type. */
+/** One method by id off its carried index, served or not: the route the tree and every helper take to one. */
 export const methodById = (id) => {
   const [service] = id.split(".");
   const index = carriedIndex(service);
   const entry = index?.methods?.[id];
   if (!entry) {
-    refuse(DISCOVERY, `google: \`${id}\` is served, and the carried ${service} document no longer holds it.\n`
-      + "  a refresh dropped it: `forge google discovery` says what moved, and SERVED in surface.mjs is where it leaves");
+    refuse(DISCOVERY, `google: \`${id}\` is called by a helper, and the carried ${service} document no longer holds it.\n`
+      + "  a refresh dropped it: `forge google discovery` says what moved, and the helper calling it changes with it");
   }
   return { id, service, index, entry };
-};
-
-const refuseUnserved = (id) => {
-  const [service] = id.split(".");
-  const served = SERVED.filter((one) => one.startsWith(`${service}.`));
-  refuse(DISCOVERY, `google: \`${id}\` is in the carried document and is not served.\n  `
-    + (served.length ? `what ${service} serves: ${served.join(", ")}` : `${service} is carried and serves nothing yet; a method is served by adding its id to SERVED in surface.mjs`));
-};
-
-/** The id a typed method or a `schema` argument names, refused unless it is served. */
-const servedMethod = (id) => {
-  if (!SERVED.includes(id)) {
-    if (methodIds(id.split(".")[0]).includes(id)) refuseUnserved(id);
-    refuse(DISCOVERY, `google: ${didYouMean("method", id, SERVED)}`);
-  }
-  return methodById(id);
-};
-
-/* The longest run of words that names a method, so `values get` inside `spreadsheets` is one id. */
-export const resolveTyped = ([service, ...words]) => {
-  if (!Object.hasOwn(SERVICES, service ?? "")) {
-    refuse(DISCOVERY, `google: ${didYouMean("service", service ?? "", Object.keys(SERVICES))}`);
-  }
-  const known = new Set([...methodIds(service), ...SERVED.filter((id) => id.startsWith(`${service}.`))]);
-  for (let length = words.length; length > 0; length -= 1) {
-    const id = [service, ...words.slice(0, length)].join(".");
-    if (known.has(id)) return { ...servedMethod(id), rest: words.slice(length) };
-  }
-  const typed = [service, ...words.filter((one) => !one.startsWith("-"))].join(".");
-  return refuse(DISCOVERY, `google: ${didYouMean("method", typed, SERVED.filter((id) => id.startsWith(`${service}.`)))}`);
 };

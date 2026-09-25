@@ -56,13 +56,14 @@ test("+agenda --week asks for the seven days from the start of today", async () 
   assert.equal(dayOf(asked.to) - dayOf(asked.from), 7 * 24 * 3600 * 1000);
 });
 
-test("+agenda reads the zone through Calendar settings get, a method no caller may type", async () => {
+test("+agenda reads the zone through Calendar settings get, the method a caller types for it too", async () => {
   fake.answers[`GET ${EVENTS}`] = () => [200, { items: [] }];
   await ran("+agenda");
   assert.equal(fake.sent("GET", "/calendar/v3/users/me/settings/timezone").length, 1);
+  fake.answers["GET /calendar/v3/users/me/settings/timezone"] = () => [200, { value: ZONE }];
   const typed = await ran("calendar", "settings", "get", "timezone");
-  assert.equal(typed.status, 4);
-  assert.match(typed.stderr, /`calendar\.settings\.get` is in the carried document and is not served/u);
+  assert.equal(typed.status, 0, typed.stderr);
+  assert.equal(JSON.parse(typed.stdout).value, ZONE);
 });
 
 test("+schedule inserts an event with that title, those times in the account's zone, and that attendee", async () => {

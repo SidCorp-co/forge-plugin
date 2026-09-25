@@ -59,11 +59,21 @@ test("a Gmail call with no userId is sent for me, and a Calendar call with no ca
   assert.deepEqual(decodedPaths(), ["/calendar/v3/calendars/primary/events"]);
 });
 
-test("a carried method the served list leaves out is refused by name with 4, and nothing is sent", async () => {
-  const answer = await ran("drive", "files", "delete", "F1");
-  assert.equal(answer.status, 4);
-  assert.match(answer.stderr, /`drive\.files\.delete` is in the carried document and is not served/u);
+test("too few positionals are refused with 3 naming how many the method takes and how many came", async () => {
+  const answer = await ran("sheets", "spreadsheets", "values", "get", "S1");
+  assert.equal(answer.status, 3);
+  assert.match(answer.stderr, /sheets\.spreadsheets\.values\.get takes 2 positional\(s\), <spreadsheetId> <range>, and was given 1: give <range>/u);
   assert.equal(fake.requests.length, 0);
+});
+
+test("a parameter in --params fills its slot, and the positionals take the slots left in parameterOrder", async () => {
+  fake.answers["GET /v4/spreadsheets/S1/values/A1%3AB2"] = () => [200, { values: [] }];
+  const answer = await ran("sheets", "spreadsheets", "values", "get", "A1:B2", "--params", '{"spreadsheetId":"S1"}');
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.deepEqual(decodedPaths(), ["/v4/spreadsheets/S1/values/A1:B2"]);
+  fake.answers["GET /gmail/v1/users/me/messages/M1"] = () => [200, { id: "M1" }];
+  assert.equal((await ran("gmail", "users", "messages", "get", "--params", '{"id":"M1"}')).status, 0);
+  assert.deepEqual(decodedPaths(), ["/gmail/v1/users/me/messages/M1"]);
 });
 
 test("an unknown --params key is refused with 3 naming the nearest, and nothing is sent", async () => {
@@ -79,7 +89,7 @@ test("an unknown flag and a positional past the path are each refused with 3 bef
   assert.match(flag.stderr, /No flag named --page-size/u);
   const extra = await ran("drive", "files", "get", "F1", "F2");
   assert.equal(extra.status, 3);
-  assert.match(extra.stderr, /unexpected argument `F2`/u);
+  assert.match(extra.stderr, /drive\.files\.get takes 1 positional\(s\), <fileId>, and was given 2; unexpected argument `F2`/u);
   assert.equal(fake.requests.length, 0);
 });
 

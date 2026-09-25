@@ -1,6 +1,6 @@
 /* Every flag, positional and `--params` key a Google call is given is either consumed by the resolved
    method or refused here, before anything is sent: a key Google does not know would otherwise come
-   back as a 400 naming nothing of ours. The consent a destructive write owes is decided here too. */
+   back as a 400 naming nothing of ours. What a write owes before it is sent is consent.mjs's. */
 import { existsSync, statSync } from "node:fs";
 
 import { didYouMean } from "../../../suggest.mjs";
@@ -63,14 +63,25 @@ export const expanded = (path, values) => path.replace(/\{(\+?)([^}]+)\}/gu, (wh
 
 const pathNames = (entry) => Object.entries(entry.params ?? {}).filter(([, one]) => one.in === "path").map(([name]) => name);
 
+/** The slots a positional fills, in the Discovery parameterOrder: every path parameter, and a query one it lists. */
+export const slotsOf = (entry) => (entry.order ?? pathNames(entry)).filter((name) => entry.params?.[name]);
+
+const placedCount = (names) => `${names.length} positional(s)${names.length ? `, ${names.map((one) => `<${one}>`).join(" ")}` : ""}`;
+
 const placed = (method, params, positionals) => {
   const { entry, service } = method;
   const defaulted = Object.keys(PATH_DEFAULTS[service] ?? {});
-  const every = (entry.order ?? pathNames(entry)).filter((name) => entry.params?.[name]?.in === "path" && !(name in params));
+  const every = slotsOf(entry).filter((name) => !(name in params));
   /* Fewer positionals than slots: the ones with a default are the ones left out, so `messages get <id>` is the id. */
   const open = positionals.length < every.length ? every.filter((name) => !defaulted.includes(name)) : every;
   if (positionals.length > open.length) {
-    invalid(`${method.id}: unexpected argument \`${positionals[open.length]}\`; its path takes ${open.map((one) => `<${one}>`).join(" ") || "nothing"}.`);
+    invalid(`${method.id} takes ${placedCount(every)}, and was given ${positionals.length}; unexpected argument \`${positionals[open.length]}\`.`);
+  }
+  const needed = open.filter((name) => entry.params[name].required);
+  if (positionals.length < needed.length) {
+    const left = needed.slice(positionals.length);
+    invalid(`${method.id} takes ${placedCount(open)}, and was given ${positionals.length}: give ${left.map((one) => `<${one}>`).join(" ")} `
+      + `positionally or in --params '{"${left[0]}": "…"}'.`);
   }
   open.forEach((name, at) => {
     if (at < positionals.length) params[name] = positionals[at];
@@ -79,10 +90,7 @@ const placed = (method, params, positionals) => {
     if (entry.params?.[name] && !(name in params)) params[name] = value;
   }
   const missing = Object.entries(entry.params ?? {}).filter(([name, one]) => one.required && !(name in params)).map(([name]) => name);
-  if (missing.length) {
-    invalid(`${method.id} needs ${missing.join(", ")}: pass it in --params '{"${missing[0]}": "…"}'`
-      + `${missing.every((one) => pathNames(entry).includes(one)) ? " or as a positional" : ""}.`);
-  }
+  if (missing.length) invalid(`${method.id} needs ${missing.join(", ")}: pass it in --params '{"${missing[0]}": "…"}'.`);
 };
 
 const checkedKeys = (method, params) => {
@@ -143,25 +151,3 @@ export const requestOf = (method, flags, positionals) => {
     paging: pagingOf(flags),
   });
 };
-
-const SENDS = ["gmail.users.messages.send", "gmail.users.drafts.send"];
-const OVERWRITES = ["docs.documents.batchUpdate"];
-const INVITES = ["calendar.events.insert", "calendar.events.patch"];
-
-const invites = (event) => Array.isArray(event?.attendees) && event.attendees.length > 0;
-
-/** Why this request is refused without `--yes`, or null. `event` is the event a patch changes, read first. */
-export const consentOwed = (method, request, event = null) => {
-  const { entry, id } = method;
-  const [, resource] = id.split(".");
-  if (entry.http === "DELETE") return "deletes";
-  if (id.endsWith(".trash") || request.body?.trashed === true) return "trashes";
-  if (resource === "permissions" && entry.http !== "GET") return "changes a permission";
-  if (entry.http === "PUT" || OVERWRITES.includes(id)) return "overwrites content";
-  if (request.upload && entry.http === "PATCH") return "overwrites a file's content";
-  if (SENDS.includes(id)) return "sends mail";
-  if (INVITES.includes(id) && (invites(request.body) || invites(event))) return "invites to an event";
-  return null;
-};
-
-export const PATCHES_AN_EVENT = "calendar.events.patch";

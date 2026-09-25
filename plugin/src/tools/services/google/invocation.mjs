@@ -7,7 +7,9 @@ import { masked } from "../masked.mjs";
 import { chooseAccount } from "./auth/accounts.mjs";
 import { accessToken, clearedBy, subjectFor } from "./auth/credential.mjs";
 import { API, AUTH, INTERNAL, VALIDATION, refuse, say, struck } from "./exits.mjs";
-import { PATCHES_AN_EVENT, consentOwed, expanded } from "./request.mjs";
+import { READS_THE_EVENT, consentOwed } from "./consent.mjs";
+import { expanded } from "./request.mjs";
+import { methodById } from "./surface.mjs";
 import { endpointed, jsonOf, mimeOf, multipart, reach, withQuery } from "./wire.mjs";
 
 const shellWord = (word) => (/^[\w@%+=:,./-]+$/u.test(word) ? word : `'${word.replace(/'/gu, "'\\''")}'`);
@@ -98,9 +100,11 @@ const paged = async (method, request, token, choice) => {
   }
 };
 
-/* A patch reaches invitees only if the event has some, which only the event itself can say. */
+/* A patch or a move reaches invitees only if the event has some, which only the event itself can say,
+   read at the event's own path rather than at the path of the call that changes it. */
 const eventOf = async (method, request, token, choice) => {
-  const url = withQuery(`${originOf(method.index)}/${method.index.servicePath}${request.path}`, { fields: "attendees" });
+  const at = expanded(methodById("calendar.events.get").entry.path, request.params);
+  const url = withQuery(`${originOf(method.index)}/${method.index.servicePath}${at}`, { fields: "attendees" });
   const answer = await reach("GET", url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
   if (!answer.ok) failed(method, answer, choice);
   return jsonOf(answer);
@@ -117,7 +121,7 @@ export const invoke = async (method, request, options) => {
   const reason = owed ? consentOwed(method, request) : null;
   if (reason) refuseWithoutConsent(method, reason, options.argv);
   const token = await accessToken(choice, method.service, subject);
-  if (owed && method.id === PATCHES_AN_EVENT) {
+  if (owed && READS_THE_EVENT.includes(method.id)) {
     const late = consentOwed(method, request, await eventOf(method, request, token, choice));
     if (late) refuseWithoutConsent(method, late, options.argv);
   }

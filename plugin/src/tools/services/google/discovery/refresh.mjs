@@ -1,11 +1,12 @@
 /* `forge google discovery`: fetch every carried service's Discovery document, say method by method
-   what moved against the index carried here, and write the new index only when asked. A served method
-   a fresh document drops refuses the whole write by name, because a served method that silently went
-   is a command that changed meaning between two releases. docs/cli/google.md. */
+   what moved against the index carried here, and write the new index only when asked. A method of a
+   served service that a fresh document drops refuses the whole write by name, because a served method
+   that silently went is a command that changed meaning between two releases; the carried index is the
+   served set, so taking its line out in a commit is the decision to stop serving it. docs/cli/google.md. */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { CARRIED, SERVED, SERVICES, carriedIndex } from "../surface.mjs";
+import { CARRIED, SERVED_SERVICES, SERVICES, carriedIndex } from "../surface.mjs";
 import { DISCOVERY, refuse, say } from "../exits.mjs";
 import { endpointed, jsonOf, reach } from "../wire.mjs";
 import { deriveIndex, moved, serialize } from "./derive.mjs";
@@ -43,10 +44,11 @@ export const discovery = async (argv) => {
     ...moved(carriedIndex(service, dir), index),
   }));
   for (const line of lines) say(JSON.stringify(line));
-  const dropped = SERVED.filter((id) => !fresh[id.split(".")[0]].methods[id]);
+  const dropped = lines.filter((line) => SERVED_SERVICES.includes(line.service)).flatMap((line) => line.removed);
   if (dropped.length) {
+    const files = [...new Set(dropped.map((id) => join(dir, `${id.split(".")[0]}.json`)))];
     refuse(DISCOVERY, `google discovery: the fetched documents drop ${dropped.length} served method(s): ${dropped.join(", ")}.\n`
-      + "  nothing was written; take each out of SERVED in surface.mjs first, which is the decision to stop serving it");
+      + `  nothing was written; take each one's line out of ${files.join(", ")} in a commit first, which is the decision to stop serving it`);
   }
   if (!flags.write) return;
   mkdirSync(dir, { recursive: true });

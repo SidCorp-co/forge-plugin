@@ -8,7 +8,9 @@ in, and failures that exit by class.
 
 Google describes every API in a Discovery document, and the verb's surface is derived from those
 documents rather than typed: a method is `<service> <resource...> <method>`, its parameters are the
-document's, and adding one is a line in the served list rather than a design. What is carried is an
+document's, and every method of a served service's document is served. What gets served is a
+service, not a method, because a list of methods is a list somebody has to keep, and every method
+it leaves out is a workaround somebody else has to invent. What is carried is an
 index cut from each document — every method's HTTP method, path, parameters with their first
 sentence, body and answer names, upload path, download flag and scopes — one file per service, about
 a quarter of a megabyte for eight services where the documents whole are eight times that. Nothing
@@ -21,14 +23,24 @@ own, prints method by method what a fresh fetch added, removed and changed, and 
 to. A served method a fresh fetch drops refuses the whole write by name: dropping it from the served
 list is a decision, and a refresh taking it silently would be the decision made by nobody.
 
-Every method of a carried document is present and only the served ones answer a caller. Chat and
-Admin are carried and serve nothing, so a run that needs one of their methods is a one-line change
-plus the scope, not a new integration. A helper may reach a carried method that is not served —
-the agenda reads the account's time zone that way — through the same account, consent and preview
-path a typed call takes, so the path that has to be right is one path.
+Drive, Sheets, Docs, Gmail, Calendar and Meet are served. Chat and Admin are carried and serve
+nothing, so a run that needs one of them is a one-line change plus the scope, not a new
+integration. The scopes are the same six whatever is served, so a method needing more than they
+grant — Gmail's settings writes and its permanent deletes among them — answers with the scope hint
+rather than being refused here. Every helper reaches its methods through the same account, consent
+and preview path a typed call takes, so the path that has to be right is one path.
 
-`schema` prints a method's parameters off the carried index, served or not, which is what a caller
-reads before a call rather than after a 400.
+The carried index being the served set, the refresh's refusal of a dropped method is lifted by
+taking that method's line out of the carried index in a commit, which is the decision made by
+somebody.
+
+The words after a service walk the document's tree by position: a resource goes a level down, a
+method ends the walk. So every level is something a caller can list — `-h` at a service or a
+resource prints its resources and its methods, each with its HTTP verb, the positionals it takes in
+the document's parameter order and what `--yes` it owes — and a word that names nothing is answered
+from the level it failed at. It works because no method of a carried document is also a resource.
+`schema` prints a method's parameters, or a level's whole subtree, off the carried index, served or
+not, which is what a caller reads before a call rather than after a 400.
 
 ## Every input is used or refused
 
@@ -45,11 +57,19 @@ being the values those APIs document for one's own data.
 ## A write is a flag, never a prompt
 
 A prompt answers itself where no terminal is attached, which is every call an agent makes, so consent
-is `--yes` typed on the call. It is owed by a delete, a trash, a permission change, an overwrite of a
-file's or a sheet's or a document's content, sending mail, and an event that invites anyone — the
-writes a person cannot take back or that reach somebody else. A patch of an event reads the event
-first, because whether it reaches invitees is something only the event can say. The refusal carries
-the same command with `--yes` and the same command with `--dry-run`, so the preview is one paste away.
+is `--yes` typed on the call. It is owed by the writes a person cannot take back or that reach
+somebody else: a delete or a PUT, a trash, a removal or a clear, a change of who has access or of
+where mail goes, sending mail, an event that invites anyone, and a batch update carrying a request
+that deletes, clears, replaces or writes over cells. A patch or a move of an event reads the event first, because
+whether it reaches invitees is something only the event can say. The refusal names the rule that
+fired and carries the same command with `--yes` and with `--dry-run`, so the preview is one paste
+away.
+
+Serving every method means consent cannot be a list of methods either, so it is one table of shapes.
+The writes that owe nothing are listed too, with why: they only add, read through a POST, watch for
+changes, or are undone by a call of their own. A write the table names neither way owes `--yes` as
+unclassified, and the suite fails on it, so a method a refresh brings in is either judged or asked
+about, never sent unjudged.
 
 `--dry-run` prints the request whole with the credential masked by the rule every saved credential
 here is shown by, and sends nothing; what goes on the wire is never masked.
