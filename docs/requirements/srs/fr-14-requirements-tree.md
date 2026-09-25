@@ -195,6 +195,29 @@ the act that ends the owing, which needs none.
 - **AC-14-8-7** · Rev: 1 · Proof: plugin/test/flow/advance/gone-escapes.test.mjs "a move from a checkout that keeps no requirements tree says nothing about escapes"
   WHERE the project keeps no requirements tree that move SHALL say nothing about escapes.
 
+### UC-14-9 — The Proof lines read backwards
+
+Rev: 1 · Actors: developer, agent · Enforces: BR-09
+
+The gate reads R-11's map from a clause to its case. This reading runs it the other way, from the
+test files back to the criteria, and lists the criteria still owed a case, the test files no Proof
+cites and the cases more than one criterion cites. Why each duty below is the right one is argued
+in `docs/cli/spec-proofs.md`, and this use case states the duties alone.
+
+- **AC-14-9-1** · Rev: 1 · Proof: none yet — ISS-2549
+  WHEN the lists are read THEN the CLI SHALL derive them from the tree's Proof lines at that read,
+  through the reading the gate uses, and SHALL store them nowhere.
+- **AC-14-9-2** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "a project that set no test root is told the call that sets it, and still gets the other two lists"
+  IF the project's configuration does not declare where its tests live THEN the CLI SHALL report the
+  list of unnamed test files unread with the call that declares it, SHALL assume no location of its
+  own, and SHALL still print the other two lists.
+- **AC-14-9-3** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "an issue list the tracker refused leaves every status unread and the verb exits 0"
+  IF the tracker's issue list does not come back whole THEN the CLI SHALL report the status of every
+  issue an escape names as unread and SHALL exit 0.
+- **AC-14-9-4** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "a tree no criterion of which carries a Proof prints one line and no list"
+  IF no criterion of the tree carries a Proof line THEN the CLI SHALL answer with one line saying so
+  and SHALL print no list.
+
 ## The way back
 
 *What undoes a change here?*
