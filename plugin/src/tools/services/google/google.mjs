@@ -2,13 +2,14 @@
    beside it `schema`, `auth`, `discovery` and the `+` helpers, which a leading `+` keeps from ever
    colliding with a method Google adds. docs/cli/google.md. */
 import { didYouMean } from "../../../suggest.mjs";
-import { helpAskedOf } from "../../../resolve/flags.mjs";
+import { HELP_WORDS, helpAskedOf } from "../../../resolve/help-word.mjs";
 import { AUTH_USAGE, auth } from "./auth/login.mjs";
 import { DISCOVERY_USAGE, discovery } from "./discovery/refresh.mjs";
 import { invoke } from "./invocation.mjs";
-import { DISCOVERY, INTERNAL, VALIDATION, refuse, say, struck } from "./exits.mjs";
+import { INTERNAL, VALIDATION, refuse, say, struck } from "./exits.mjs";
 import { CALL_SWITCHES, CALL_VALUES, parseFlags, requestOf } from "./request.mjs";
-import { COMMON, SERVED, SERVED_SERVICES, carriedIndex, resolveTyped } from "./surface.mjs";
+import { SERVED_SERVICES } from "./surface.mjs";
+import { levelText, methodText, resolveTyped, schema, treeOf } from "./tree.mjs";
 import { DRIVE_HELPERS } from "./helpers/drive.mjs";
 import { SHEETS_HELPERS } from "./helpers/sheets.mjs";
 import { MAIL_HELPERS } from "./helpers/mail.mjs";
@@ -18,7 +19,7 @@ const HELPERS = { ...DRIVE_HELPERS, ...SHEETS_HELPERS, ...MAIL_HELPERS, ...CALEN
 
 export const USAGE = [
   "Usage: forge google <service> <resource...> <method> | schema | auth | discovery | +<helper>",
-  `Google Workspace through carried Discovery documents: ${SERVED_SERVICES.join(", ")}. JSON on stdout.`,
+  `Google Workspace through carried Discovery documents: every method of ${SERVED_SERVICES.join(", ")} is served. JSON on stdout.`,
   "",
   "  --params JSON    query and path parameters, checked against the method",
   "  --json JSON      the request body",
@@ -26,13 +27,15 @@ export const USAGE = [
   "  --output FILE    where a download or an export writes its bytes",
   "  --page-all       every page, one JSON line each; --page-limit n (10), --page-delay ms (100)",
   "  --dry-run        print the request, credential masked, and send nothing",
-  "  --yes            carry out a delete, trash, permission change, overwrite, mail send or invitation",
+  "  --yes            carry out a write that deletes, trashes, removes or clears, overwrites, changes who has",
+  "                   access or where mail goes, sends mail, invites, or has a shape no rule classifies",
   "  --account N      which saved account answers; --as user@domain whose data a service account acts on",
   "",
-  "  schema <service.resource.method>   a method's parameters, from the carried document",
+  "  <service> [<resource>...] -h       a level's resources and methods, with the --yes each owes",
+  "  schema <id>                        a method's parameters, or a level's subtree, as JSON",
   "  auth <add|login|set|remove|status> the accounts that answer: `forge google auth -h`",
   "  discovery [--write]                what a fresh fetch of the documents moved",
-  "  +upload +download +find +read +append +send +reply +triage +agenda +schedule +meet",
+  "  +upload +download +find +read +append +addtab +copytab +send +reply +triage +agenda +schedule +meet",
   "",
   "Exit codes: 1 API error, 2 auth, 3 validation, 4 discovery, 5 internal.",
 ].join("\n");
@@ -43,6 +46,8 @@ const HELPER_SAYS = {
   "+find": "+find <text> [--page-all]  (files whose name contains the text, not trashed)",
   "+read": "+read <spreadsheet> <range>",
   "+append": "+append <spreadsheet> <range> --values '[[\"a\",\"b\"]]'",
+  "+addtab": "+addtab <spreadsheet> <title> [--rows n] [--cols n]  (a new tab)",
+  "+copytab": "+copytab <spreadsheet> <sheetId> --to <spreadsheet>  (a tab copied into another spreadsheet)",
   "+send": "+send --to A --subject S --body B [--attach F] --yes",
   "+reply": "+reply <message-id> --body B --yes",
   "+triage": "+triage [--max n]  (unread mail: sender, subject, date)",
@@ -51,32 +56,33 @@ const HELPER_SAYS = {
   "+meet": "+meet  (a new Meet space and its link)",
 };
 
-const servedBy = (service) => SERVED.filter((id) => id.startsWith(`${service}.`)).map((id) => id.split(".").slice(1).join(" "));
-
-export const SAYS = { ...Object.fromEntries(SERVED_SERVICES.map((service) => [service,
-  `Usage: forge google ${service} <resource...> <method> [<path args>] [flags]\nServed: ${servedBy(service).join(", ")}.\n`
-  + `\`forge google schema ${service}.<resource>.<method>\` prints one method's parameters.`])),
-auth: AUTH_USAGE, discovery: DISCOVERY_USAGE, schema: "Usage: forge google schema <service.resource.method>",
+export const SAYS = { auth: AUTH_USAGE, discovery: DISCOVERY_USAGE,
+  schema: "Usage: forge google schema <service[.resource...][.method]>",
   ...Object.fromEntries(Object.entries(HELPER_SAYS).map(([name, line]) => [name, `Usage: forge google ${line}\n  --account N, --as user@domain, --dry-run and --yes as on every call`])) };
 
-const schema = (argv) => {
-  const [id, ...rest] = argv;
-  if (!id || rest.length) refuse(VALIDATION, `google schema takes one method id: forge google schema ${SERVED[0]}`);
-  const service = id.split(".")[0];
-  const entry = carriedIndex(service)?.methods?.[id];
-  if (!entry) refuse(DISCOVERY, `google schema: ${didYouMean("method", id, Object.keys(carriedIndex(service)?.methods ?? {}).concat(SERVED))}`);
-  say(JSON.stringify({ id, served: SERVED.includes(id), http: entry.http, path: entry.path, parameters: entry.params ?? {},
-    body: entry.body ?? null, returns: entry.returns ?? null, upload: Boolean(entry.upload), download: Boolean(entry.download),
-    scopes: entry.scopes ?? [], about: entry.about ?? null, common: COMMON }, null, 2));
+/* A service's listing is read off its tree only when asked for, so a call that never asks grows no tree. */
+for (const service of SERVED_SERVICES) {
+  Object.defineProperty(SAYS, service, { enumerable: true, get: () => levelText(treeOf(service)) });
+}
+
+const asksHelp = (words) => words.some((word) => HELP_WORDS.includes(word));
+
+/* A walk that stopped at a level answers with that level: on stdout where help was asked, refused where a method was. */
+const atLevel = ({ level, rest }) => {
+  if (asksHelp(rest.slice(0, 1))) return say(levelText(level));
+  return refuse(VALIDATION, `google: ${level.id} is a level, not a method; name one of its resources or methods.\n${levelText(level)}`);
 };
 
 const typed = async (argv) => {
   const method = resolveTyped(argv);
+  if (method.level) return atLevel(method);
+  if (asksHelp(method.rest)) return say(methodText(method));
   const { flags, positionals } = parseFlags(method.rest, { values: CALL_VALUES, switches: CALL_SWITCHES, verb: `google ${method.id}` });
   const request = requestOf(method, flags, positionals);
   const answer = await invoke(method, request, { account: flags.account, as: flags.as, yes: Boolean(flags.yes),
     dryRun: Boolean(flags["dry-run"]), argv });
   if (answer !== null) say(JSON.stringify(answer, null, 2));
+  return null;
 };
 
 const helper = (name, rest) => {
