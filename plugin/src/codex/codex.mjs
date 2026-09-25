@@ -18,6 +18,7 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { budgetMs, codexCheck, fail, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
+import { anglesRefusal } from "./angles/refusal.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
@@ -27,7 +28,6 @@ import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
-  ANGLES,
   askApi,
   bundle,
   cannotCarry,
@@ -244,8 +244,8 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
    the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
   const { angles, from } = anglesInEffect(raw);
-  if (!angles.length) fail(`codex: ${from} names no angle. Name some of ${Object.keys(ANGLES).join(", ")}, or drop the key for all five.`);
-  for (const one of angles) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
+  const refusal = anglesRefusal(angles, from);
+  if (refusal) fail(`codex: ${refusal}`);
   return angles;
 };
 
