@@ -111,7 +111,7 @@ const groupsIn = (entries, per, single = []) => {
 /* Keys resolving to none of the shape's is rewritten, not empty; and no body sources a derived one — so a fact a check has to read back is `stamped`, which the write fills and this reads, never `derived`, which is a copy for a person and reaches no checker. */
 export const readRecords = (body, shapeOf) => {
   const tag = TAG.exec(body ?? "");
-  const shape = tag ? shapeOf(tag[1]) : null;
+  const shape = tag ? shapeOf(tag[1], Number(tag[2])) : null;
   if (!shape) return [];
   const { entries, rewritten } = entriesIn(body, shape);
   const read = [...shape.fields.filter((one) => !one.derived), ...(shape.stamp ? [shape.stamp] : [])];

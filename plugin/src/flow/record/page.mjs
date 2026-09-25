@@ -1,5 +1,6 @@
 /* The shape a record takes on the page: written out, read back, gathered by kind and printed. Apart from `record.mjs`, which is the verb that spends these, because a record is read by four callers that write nothing — the entry checks, the route, the report and the prose pipeline. */
 import { SHAPES, atMinute, blockOf, criterionNumber, readRecords, tagFor, unwrap } from "../machine.mjs";
+import { SHAPES_AT, shapeFor } from "../machine/contracts.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
 
 /* A heading for a person, the payload fenced and the tag in a code span so the prose rewrite copies both byte for byte. The stamp is read off the issue at the write and is no flag: a value the author could type is one they could get wrong about what the record is matched by. Each block whole, so one of them is byte for byte the record a single write makes. */
@@ -12,7 +13,9 @@ export const render = (kind, blocks, status = null) => {
   return [`## ${shape.heading}`, "", blockOf(entries), "", tagFor(kind, CONTRACT)].join("\n");
 };
 
-export const parseAll = (body) => readRecords(unwrap(body), (kind) => SHAPES[kind]);
+/* Each body by the shapes of the number in its tag, never the current ones (ISS-60). */
+export const parseAll = (body, table = SHAPES_AT) =>
+  readRecords(unwrap(body), (kind, contract) => shapeFor(kind, contract, table));
 
 /* The first block: for readers asking about the comment rather than about a criterion. */
 export const parse = (body) => parseAll(body)[0] ?? null;
@@ -35,7 +38,7 @@ export const assemble = (comments, criteria) => {
       continue;
     }
     latest[record.kind] = { at, record };
-    if (SHAPES[record.kind].repeats) (repeated[record.kind] ??= []).push({ at, record });
+    if (shapeFor(record.kind, record.contract).repeats) (repeated[record.kind] ??= []).push({ at, record });
   }
   const owed = criteria.filter((one) => !verdicts.has(one.number)).map((one) => one.number);
   return { latest, verdicts, owed, repeated, unreadable };
@@ -49,10 +52,11 @@ export const kindsHeld = ({ latest, verdicts, unreadable, issue, criteria }) => 
   ...(criteria?.length ? ["criteria"] : []),
 ];
 
-/* The label is the shape's, never the record's: a record carries keys, and two forms of one record read back under one heading. A rewritten one carries no key and says so instead of nothing. */
+/* The label is the shape's, never the record's: a record carries keys, and two forms of one record read back under one heading. A rewritten one carries no key and says so instead of nothing. The number is shown only where it is not the one this build writes, because beside every record it is noise that hides the one that differs. */
 export const printRecord = ({ at, record }) => {
-  const shape = SHAPES[record.kind];
-  console.log(`${shape.heading}  (${atMinute(at)}, contract ${record.contract})`);
+  const shape = shapeFor(record.kind, record.contract);
+  const other = record.contract === CONTRACT ? "" : `, contract ${record.contract}`;
+  console.log(`${shape.heading}  (${atMinute(at)}${other})`);
   if (record.rewritten) return console.log("  rewritten by the prose pipeline: no field of this shape reads back");
   for (const field of [...shape.fields, ...(shape.stamp ? [shape.stamp] : [])]) {
     const value = record.fields[field.flag];

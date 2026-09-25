@@ -3,7 +3,7 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksIn, looksTo, need, planFlags,
+  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, TRIAGES, looksIn, looksTo, need, planFlags,
   somebodyLooked, unwrap, valuesOf, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
@@ -26,7 +26,7 @@ import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/record.mjs";
 import { assemble, parse } from "./record/page.mjs";
-import { CONTRACT } from "../guides/contract.mjs";
+import { SHAPES_AT, contractGap, shapesAt } from "./machine/contracts.mjs";
 import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
@@ -64,8 +64,11 @@ export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELIN
    little else — by hand, or through a client no gate sits before — is measured against the write's
    own rules here: every field, the stamp the write reads off the issue, the evidence, the contract.
    A commit that is not one compares equal to a short sha by prefix, which is why the form counts. */
-export const shapeGaps = (kind, record, names = []) => {
-  const shape = SHAPES[kind];
+export const shapeGaps = (kind, record, names = [], table = SHAPES_AT) => {
+  const shapes = shapesAt(record.contract, table);
+  if (!shapes) return [contractGap(record.contract, table)];
+  const shape = shapes[kind];
+  if (!shape) return [`a ${kind} record, which contract ${record.contract} has no shape for`];
   const got = Object.fromEntries(shape.fields.map((field) =>
     [field.flag, field.many ? record.fields[field.flag] ?? [] : record.fields[field.flag]]));
   const gaps = shape.fields
@@ -88,9 +91,6 @@ export const shapeGaps = (kind, record, names = []) => {
     if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);
   }
   if (shape.stamp && record.fields[shape.stamp.flag] === undefined) gaps.push(`its ${shape.stamp.label} stamp`);
-  if (!(record.contract >= 1 && record.contract <= CONTRACT)) {
-    return [...gaps, `a contract ${record.contract} record, and this build reads contract 1 to ${CONTRACT}`];
-  }
   for (const field of shape.fields.filter((one) => one.evidence)) {
     for (const ref of got[field.flag]) {
       if (!evidenceHeld(ref, names)) gaps.push(`--${field.flag} \`${ref}\`, which is no attachment here, no URL and no commit`);
