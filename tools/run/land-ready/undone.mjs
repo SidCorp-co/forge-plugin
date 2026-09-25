@@ -18,7 +18,8 @@ const said = (tree, args) => {
   return run.status === 0 ? run.stdout ?? "" : "";
 };
 
-/* The branch's reflog, oldest first, each entry the commit the branch moved to and when. */
+/* The branch's reflog, oldest first, each entry the commit the branch moved to and when: with a
+   `--date`, `%gd` prints the entry's own time as `@{<unix>}` in place of its ordinal. */
 const reflogOf = (tree, branch) => lines(said(tree, ["log", "-g", "--date=unix", "--format=%H %gd",
   `refs/heads/${branch}`, "--"])).map((line) => {
   const [sha, at] = [line.slice(0, 40), /@\{(\d+)\}$/u.exec(line)?.[1]];
