@@ -33,6 +33,7 @@ import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
+import { flowRow } from "./flow-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";
@@ -534,12 +535,13 @@ export const doctor = async (argv) => {
   } else {
     line(OK, "prose language", "as written; `forge doctor --set translate=vi` to rewrite");
   }
-  /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
-     itself names one copy for the whole machine. */
+  /* Which copy `forge` on PATH is, from here — the answer changes with the directory and, for the
+     flow's verbs, with the verb, and the link itself names one copy for the whole machine. */
   under("copy");
   const dispatched = copyToRun();
   line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
     + ` — ${dispatched.why}`);
+  line(OK, "copy of the flow", flowRow());
   const gating = copyToRun({ entry: join("hooks", "_hook.mjs") });
   line(OK, "copy the gates run", `${gating.kind} ${gating.version ?? "?"} at ${gating.dir}`
     + ` — ${gating.why}`);

@@ -51,8 +51,9 @@ Writes translate before they post, so a missing `vi-natural` key is a miss exact
 declares the language that waits on it. The gateway url and model are read beside the key, because a
 saved key alone is configuration that looks complete and dies at the first call.
 
-**And it names the copy a call from here would run, and the copy the gates come from** — two lines
-rather than one, because the case that matters is when they disagree: [the way in](the-way-in.md).
+**And it names the copy a call from here would run, the copy the flow's verbs run, and the copy the
+gates come from** — three lines rather than one, because the case that matters is when they disagree:
+[the way in](the-way-in.md).
 
 **And it asks the remote which version was released last, because this box cannot answer that about
 itself.** Which copies are installed is a fact about one machine, so a box nobody has updated for
