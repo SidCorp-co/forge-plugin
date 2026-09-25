@@ -66,7 +66,7 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   has("forge codex whole-set           15.0    54%      1");
   has("gate                             2.0     7%      1");
   has("     1  Hold — ISS-nn owes a release note.");
-  has("     3  forge issue ISS-99 --full");
+  has("     3  forge issue ISS-nn --full");
   has("    15.0 min  forge codex consult --send bodies plugin/src/stats/runs.mjs");
 });
 

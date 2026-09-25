@@ -17,7 +17,7 @@ import {
 } from "./corpus/classes.mjs";
 import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
 import { TABLE } from "./corpus/generations.mjs";
-import { BUILT_IN_TABLE, ERROR_ROWS, answerOf, answersIn, errorKeyOf, repeatsOf } from "./corpus/answers.mjs";
+import { BUILT_IN_TABLE, ERROR_ROWS, answerOf, answersIn, errorKeyOf, repeatsOf, runless } from "./corpus/answers.mjs";
 import { actLines, phase7For } from "./corpus/release.mjs";
 import { FLOW_BRIEF, LANDING, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
@@ -214,7 +214,9 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
     }
     if (timedOut(call)) timeouts += 1;
     if (call.wait >= LONG_WAIT_MINUTES * 60) {
-      longest.push({ minutes: minutes(call.wait), what: said(call.command || call.name).slice(0, 110) });
+      /* What was typed, for this run's listing, and the row a reading across runs files it under. */
+      const typedAs = call.command || call.name;
+      longest.push({ minutes: minutes(call.wait), what: said(typedAs).slice(0, 110), key: said(runless(typedAs)).slice(0, 110) });
     }
   }
   const claim = calls.find((call) => call.class === "forge claim");
