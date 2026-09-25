@@ -4,12 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome, typedPlan } from "../../fixtures.mjs";
+import { tempHome, typedPlan } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("bold-declaration").path;
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { planFlags } = await import("../../../src/flow/machine.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { CHECKS, viewFrom } = await import("../../../../src/flow/earned.mjs");
+const { planFlags } = await import("../../../../src/flow/machine.mjs");
 
 const DECIDED = [{ createdAt: "2026-09-25T10:00:00.000Z", authorId: "agent",
   body: render("decision", { decision: [], none: "none found" }) }];
