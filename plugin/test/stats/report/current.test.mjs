@@ -118,7 +118,7 @@ test("the page carries no credential, no path outside the reports directory and 
     message: { role: "user", content: "Skill forge:issue-flow ISS-5" } })}\n${[call("c1", 1), call("c2", 2), call("c3", 3)].join("\n")}\n`);
   assert.equal(report(held).status, 0);
   const page = readFileSync(index(held), "utf8");
-  assert.ok(page.includes("forge claim ISS-5"), "the leaking command is on the page, so its masking is what is read");
+  assert.ok(page.includes("forge claim ISS-nn"), "the leaking command is on the page, so its masking is what is read");
   assert.ok(!page.includes("sekrit-value"));
   assert.ok(!page.includes("/home/elsewhere"));
   for (const path of page.match(/(?<![\w.~<:/-])\/[^\s"'`<>()[\]{}|;,&]+/gu) ?? []) {

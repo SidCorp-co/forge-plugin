@@ -146,11 +146,11 @@ const waitsOf = (runs) => {
   const held = new Map();
   for (const run of runs) {
     for (const one of run.longest) {
-      const was = held.get(one.what) ?? { what: one.what, waits: 0, minutes: 0, runs: new Set() };
+      const was = held.get(one.key) ?? { what: one.key, waits: 0, minutes: 0, runs: new Set() };
       was.waits += 1;
       was.minutes = Math.round((was.minutes + one.minutes) * 10) / 10;
       was.runs.add(run);
-      held.set(one.what, was);
+      held.set(one.key, was);
     }
   }
   return [...held.values()].map((one) => ({ ...one, runs: one.runs.size })).sort((left, right) => right.minutes - left.minutes);

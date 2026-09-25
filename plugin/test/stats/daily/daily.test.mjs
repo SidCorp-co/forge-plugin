@@ -207,7 +207,7 @@ test("friction lists refusals, errors, repeats and long waits with the runs behi
   ] });
   const { friction } = contentFor(held, daysAgo(1));
   assert.deepEqual(friction.refusals.map((one) => [one.calls, one.runs]), [[2, 2]]);
-  assert.ok(friction.repeats.some((one) => one.key === "forge issue ISS-99 --full" && one.calls === 6 && one.runs === 2));
+  assert.ok(friction.repeats.some((one) => one.key === "forge issue ISS-nn --full" && one.calls === 6 && one.runs === 2));
   assert.ok(friction.waits.some((one) => one.waits === 2 && one.runs === 2 && one.minutes === 30));
   assert.deepEqual(friction.standDowns, [{ hook: "learning-gate", count: 2, sessions: 2 }]);
 });

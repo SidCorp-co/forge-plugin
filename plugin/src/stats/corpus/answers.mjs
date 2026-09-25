@@ -206,10 +206,13 @@ export const errorKeyOf = (call) => {
   return said ? `${head}: ${said}` : head;
 };
 
-/* The words a run carries of its own, which the same command typed by the next run carries different. */
-const runless = (command) => placeless(command
+/** A command without the words a run carries of its own, which the same command typed by the next
+ *  run carries different: its session id, its paths, its hashes and the issue it names. The session
+ *  goes before the issue, since a session id opens on a lowercase issue number. */
+export const runless = (command) => placeless(command
   .replaceAll(/FORGE_SESSION_ID=\S+/gu, "FORGE_SESSION_ID=<session>")
-  .replaceAll(/\biss-\d+-[0-9a-f]{6,}\b/giu, "<session>"));
+  .replaceAll(/\biss-\d+-[0-9a-f]{6,}\b/giu, "<session>"))
+  .replaceAll(/ISS-\d+/gu, "ISS-nn");
 
 /** A run's repeats, off its count of each whole command typed. Counted over the whole command, so
  *  two sharing what a listing has room to print are two; only one typed `least` times or more then
