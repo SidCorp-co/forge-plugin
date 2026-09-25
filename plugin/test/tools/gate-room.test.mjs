@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { escaped, tempRoom } from "../fixtures.mjs";
 import { landed, run, scratch } from "./gates/scratch.mjs";
-import { forgetRoomRefusal, madeIn, roomRefused, roomRefusal, ROOM_ENV } from "../../../tools/room.mjs";
+import { forgetRoomRefusal, madeIn, roomRefused, roomRefusal, ROOM_ENV } from "../fixtures/room.mjs";
 import { roomPath, runKey } from "../../../tools/gates/timing.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -163,7 +163,7 @@ const REFUSES_A_ROOM = `import test from "node:test";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { madeIn } from "../../../tools/room.mjs";
+import { madeIn } from "../fixtures/room.mjs";
 test("a case of this scratch's own", () => {
   const under = join(tmpdir(), \`scratch-refused-\${process.pid}\`);
   mkdirSync(under, { recursive: true });

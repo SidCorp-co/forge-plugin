@@ -6,7 +6,7 @@ import { basename, dirname, join } from "node:path";
 
 import { projectEntry, projectRecord, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
-import { madeIn } from "../../../tools/room.mjs";
+import { madeIn } from "../fixtures/room.mjs";
 import { derivationFiles } from "../../../tools/gates/scope.mjs";
 
 /* Before the shape reader is loaded: it reaches the tracker's own settings, and a module that read

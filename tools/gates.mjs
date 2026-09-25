@@ -22,7 +22,7 @@ import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mj
 import { deadClaim, escapedClaim, escapedStep, ledgerSaid, readsSaid, severalCauses, stepRead, stepSaid,
   wroteSets } from "./gates/report/said.mjs";
 import { spendOf } from "./gates/report/spend.mjs";
-import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
+import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "../plugin/test/fixtures/room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { argvForTests, DECLARED_READS, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";

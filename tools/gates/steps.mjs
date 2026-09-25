@@ -57,7 +57,7 @@ const SPAWNED = "a node child that left no record: a node standing here, importi
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
   "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs",
-  "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs",
+  "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs", "plugin/test/fixtures/room.mjs",
   "plugin/test/fixtures/served.mjs", "plugin/test/run", "tools"];
 
 /* The four the machine table's own files once earned are gone: a node child carries the audit

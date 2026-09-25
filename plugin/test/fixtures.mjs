@@ -9,7 +9,7 @@ import { checkoutAt } from "../src/git/checkout-at.mjs";
 import { OWN as OWN_KEYS } from "./fixtures/own-keys.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { answeringThrows, body } from "./fixtures/served.mjs";
-import { madeIn } from "../../tools/room.mjs";
+import { madeIn } from "./fixtures/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 const PLAN_BODY = {

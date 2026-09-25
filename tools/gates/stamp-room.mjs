@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
-import { madeIn } from "../room.mjs";
+import { madeIn } from "../../plugin/test/fixtures/room.mjs";
 import { stampRoom } from "../../plugin/src/hooks/stamps.mjs";
 
 /** One temp root per run, every step spawned under it. Removed however the run ends, since a throw from a step or the
