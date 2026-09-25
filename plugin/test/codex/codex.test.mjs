@@ -14,7 +14,6 @@ const { SAYS, ageOf, consultArgs, rounds, unchangedAll } = await import("../../s
 const { modeFor } = await import("../../src/codex/codex-plan.mjs");
 const {
   ANGLES,
-  DEFAULT_ANGLES,
   askApi,
   bundle,
   consume,
@@ -181,24 +180,10 @@ test("pending work is dated in words", () => {
   assert.equal(ageOf(now - 5 * 86_400_000, now), "5 day(s) ago");
 });
 
-/* A checkout that names nothing keeps the board it had, and pays for the debt angle only by naming it. */
-test("the debt angle is off until a checkout or a consult names it", () => {
-  assert.deepEqual(DEFAULT_ANGLES, ["tech", "ba", "user", "ux"]);
-  assert.deepEqual(consultArgs(["a.mjs"]).angles, ["tech", "ba", "user", "ux"], "no angles named: debt is not among them");
-  assert.ok(!roleFor().includes("Debt Reviewer"), "the default role carries no debt angle");
-  assert.deepEqual(consultArgs(["a.mjs", "--angles", "tech,debt"]).angles, ["tech", "debt"]);
-  assert.match(roleFor(["tech", "debt"]), /Reply as a board of 2:[\s\S]*- Debt Reviewer — /u);
-});
-
-test("the consult help names debt among the angles, and says a name turns it on", () => {
-  const help = spawnSync(process.execPath, ["plugin/src/cli.mjs", "codex", "consult", "-h"], { encoding: "utf8" });
-  assert.match(help.stdout, /--angles a,a +which angles review this consult: tech, ba, user, ux; debt only when named/u, help.stdout + help.stderr);
-});
-
 /* Three of four angles wrote "nothing material" in every one of 92 consults on a CLI. */
 test("the checkout picks the angles, and one angle is not a board", () => {
-  assert.match(roleFor(), /board of 4/u);
-  assert.match(roleFor(), /Business Analyst/u);
+  assert.match(roleFor(["tech", "ba", "user", "ux"]), /board of 4/u);
+  assert.match(roleFor(["tech", "ba", "user", "ux"]), /Business Analyst/u);
   const one = roleFor(["tech"]);
   assert.match(one, /Reply as the Tech Lead:/u);
   assert.ok(!one.includes("Business Analyst") && !one.includes("UI/UX"), one.slice(0, 300));

@@ -219,3 +219,15 @@ test("a backlog that came back short leaves who holds the debt unread, and claim
   assert.doesNotMatch(said, /no issue holds it/u,
     `a reading that could not finish was read as one that found nothing:\n${said}`);
 });
+
+/* A list a project wrote before the debt angle existed is its own choice, kept, and told the angle is there. */
+test("the angles row says debt is on by default, and tells a project whose list leaves it out how to add it", async () => {
+  const angles = async (name, project) => {
+    const at = doorRoom(name, project);
+    const { stdout } = await ranAsync(FORGE, ["doctor", "project"], at.env, at.room);
+    return stdout.split("\n").filter((one) => one.includes("] codex.angles ")).join("\n");
+  };
+  assert.match(await angles("angles-default", {}), /codex\.angles +tech, debt {2}← the plugin's default — debt is on$/u);
+  const kept = await angles("angles-kept", { codex: { angles: ["tech"] } });
+  assert.match(kept, /codex\.angles +tech {2}← codex\.angles in \S+ — debt is available and off here: add it to that list, as tech,debt$/u, kept);
+});

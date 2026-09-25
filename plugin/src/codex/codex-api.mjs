@@ -32,9 +32,10 @@ export const ANGLES = {
   debt: "Debt Reviewer — what the change leaves behind, and whether it moves the code toward the project's live goals.",
 };
 
-/* What a checkout naming no angles is reviewed by. `debt` is left out so a project pays for it only by
-   naming it, and `forge codex stats` prints its row so whether it earns that is a figure. */
-export const DEFAULT_ANGLES = ["tech", "ba", "user", "ux"];
+/* What a checkout naming no angles is reviewed by: the owner's choice of 2026-09-25 (ISS-2466), debt on
+   beside the Tech Lead. A project turns it off by naming a list without it, and `forge codex stats`
+   prints its row so whether it pays is a figure. */
+export const DEFAULT_ANGLES = ["tech", "debt"];
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
