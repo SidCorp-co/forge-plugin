@@ -139,11 +139,11 @@ compared is compliance paid for nothing, and the next case written beside a room
 - **AC-11-5-1** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "no case in either test tree puts a path it did not choose into a RegExp source"
   IF a case in any test tree puts a path it did not choose into a `RegExp` source without the
   escape the fixtures export, THEN the check SHALL fail naming the file, the line and the path.
-- **AC-11-5-2** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "a sha destructured beside a path off the same call is not a finding"
+- **AC-11-5-2** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "a name destructured beside a path is no path, and a call to it makes none"
   WHERE a name is destructured from a call to a function whose every return is an object literal
   the check SHALL read that name as a path only when its own property's value makes one, a sibling
   property of the same object being no evidence about it.
-- **AC-11-5-3** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "a value read off a name destructured from a source nothing here can read is not a finding"
+- **AC-11-5-3** · Rev: 1 · Proof: plugin/test/checks/suite/regex-path.test.mjs "a name off a source nothing here can read is a path as a value, and a call to it makes none"
   WHERE a name is destructured from a source whose shape the check cannot read, the check SHALL read
   it as a path where that source makes one and SHALL NOT read a call to it as making one, a path
   being a value nobody calls.

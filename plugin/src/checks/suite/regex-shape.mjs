@@ -133,7 +133,7 @@ const ownReturns = (code, open) => {
    a function body. Any return that is not an object literal leaves the answer unread. */
 export const shapeOf = (code, from, to) => {
   const lead = from + code.slice(from, to).search(/\S/u);
-  if (code[lead] === "{") return entriesAt(code, lead);
+  if (code[lead] === "{") return code.slice(closing(code, lead) + 1, to).trim() ? null : entriesAt(code, lead);
   const body = bodyAt(code, lead, to);
   if (!body || body.open === -1) return null;
   if (body.concise) return /^\s*\)/u.test(code.slice(closing(code, body.open) + 1)) ? entriesAt(code, body.open) : null;
