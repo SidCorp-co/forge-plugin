@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { defaultEffort, rungIn } from "./codex-plan.mjs";
+import { DEFAULT_ANGLES, defaultEffort, rungIn } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { userConfig } from "../resolve/config.mjs";
@@ -32,10 +32,6 @@ export const ANGLES = {
   debt: "Debt Reviewer — what the change leaves behind, and whether it moves the code toward the project's live goals.",
 };
 
-/* What a checkout naming no angles is reviewed by: the owner's choice of 2026-09-25 (ISS-2466), debt on
-   beside the Tech Lead. A project turns it off by naming a list without it, and `forge codex stats`
-   prints its row so whether it pays is a figure. */
-export const DEFAULT_ANGLES = ["tech", "debt"];
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */

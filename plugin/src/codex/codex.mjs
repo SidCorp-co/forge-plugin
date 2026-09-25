@@ -24,8 +24,7 @@ import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, c
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
-import { anglesInEffect, anglesShown } from "./angles.mjs";
-import { EFFORTS, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
+import { EFFORTS, anglesInEffect, anglesShown, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
   ANGLES,

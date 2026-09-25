@@ -8,7 +8,8 @@ import { projectRoom, tempRoom } from "../../fixtures.mjs";
 /* Imported after XDG_CONFIG_HOME moves, so the caller's own project file is not the one read. */
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-angles-home-");
 const { consultArgs } = await import("../../../src/codex/codex.mjs");
-const { DEFAULT_ANGLES, roleFor } = await import("../../../src/codex/codex-api.mjs");
+const { roleFor } = await import("../../../src/codex/codex-api.mjs");
+const { DEFAULT_ANGLES } = await import("../../../src/codex/codex-plan.mjs");
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 
 /* The owner's default of 2026-09-25: debt beside the Tech Lead, and off only where a list leaves it out. */
