@@ -22,6 +22,8 @@ export const movedBetween = (tree, from, to, paths) => {
      reads a pathspec relative to it and a changed file would match nothing. */
   const top = gitOut(["rev-parse", "--show-toplevel"], tree)?.trim();
   if (!top) return null;
-  const said = gitOut(["--literal-pathspecs", "diff", "--no-renames", "--name-only", from, to, "--", ...paths], top);
-  return said === null ? null : said.split("\n").filter(Boolean);
+  /* NUL-delimited, since without `-z` git quotes a name holding a non-ASCII byte, a quote or a
+     backslash, and the quoted form is no path a run could type. */
+  const said = gitOut(["--literal-pathspecs", "diff", "--no-renames", "--name-only", "-z", from, to, "--", ...paths], top);
+  return said === null ? null : said.split("\0").filter(Boolean);
 };

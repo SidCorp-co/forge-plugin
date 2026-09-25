@@ -549,3 +549,19 @@ test("a directory typed for the paths git read under it agrees with git, and one
   assert.equal(wide.status, 1, wide.stdout);
   assert.match(wide.stderr, /--moved says docs, plugin\/src, and git reads docs\/a\.md/u, wide.stderr);
 });
+
+/* Git quotes a name holding a non-ASCII byte unless asked for NUL-delimited output, and the quoted form
+   is no path a run could type. */
+test("a moved path holding a non-ASCII name agrees with the same name typed, and with its directory", async () => {
+  git(ROOM, "checkout", "-q", JUDGED);
+  wrote({ "docs/café.md": "one\n" });
+  const judged = commit("the change's file with an accent");
+  wrote({ "docs/café.md": "two\n" });
+  const landed = commit("a commit that moves it");
+  for (const moved of ["docs/café.md", "docs"]) {
+    state.comments[ISSUE.documentId] = [];
+    const run = await marked("--at", landed, "--reviewed", judged, "--judged", judged,
+      "--moved", moved, "--wrote", "docs/café.md");
+    assert.equal(run.status, 0, `${moved}:\n${run.stdout}${run.stderr}`);
+  }
+});
