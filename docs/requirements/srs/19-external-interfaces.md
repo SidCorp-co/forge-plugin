@@ -436,6 +436,21 @@ it. Reading is all this product does there.
 - **AC-19-8-119** · Rev: 1 · Proof: tools/test/run/workspace/start.test.mjs "start prints a ship command that resolves from the worktree it just made, not the checkout"
   WHEN a worktree is cut THEN the command printed for shipping from it SHALL resolve from that
   worktree rather than carrying the checkout's own prefix.
+- **AC-19-8-137** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a finish that removed the tree leaves a record of it outside that tree, naming the run, the ledger, what went and when"
+  WHEN the call that ends a workspace has removed its worktree THEN it SHALL leave a record outside
+  that tree naming the run, the ledger's name for the tree, what it removed and when.
+- **AC-19-8-138** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a finish after a successful one says finish ended it, when, and that nothing is owed"
+  WHEN the call that ends a workspace finds the tree gone and that record present THEN it SHALL say
+  the workspace was already ended by that call, at the recorded time, and that nothing is owed.
+- **AC-19-8-139** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a tree removed by hand still reads as a leak to recover"
+  IF the call that ends a workspace finds the tree gone and no such record for it THEN it SHALL keep
+  the reading that what a removal by hand left behind is a leak to recover.
+- **AC-19-8-140** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a removal that fails after the scratch went exits non-zero on the removal that failed and the call that retries it"
+  IF a removal fails once the call that ends a workspace has begun removing THEN it SHALL exit
+  non-zero on a last line naming the removal that failed and the command that retries it.
+- **AC-19-8-141** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a fresh start of a key drops the record an earlier finish of it left"
+  WHEN a worktree is cut for an issue key THEN the record an earlier ending of that key's workspace
+  left SHALL be removed, so a later removal by hand still reads as a leak.
 
 - **AC-19-8-120** · Rev: 1 · Proof: plugin/test/stats/phases.test.mjs "phase 7 opens on the act the contract asks that project for, and the verification record is one of them"
   WHEN a run's calls are cut into phases THEN the CLI SHALL open the shipping phase on any of the

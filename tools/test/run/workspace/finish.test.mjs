@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { BARE, OWN_SLUG, git, pushed, runIn } from "../run-fixtures.mjs";
@@ -238,16 +238,92 @@ test("finish called from inside the tree takes that run's scratch, leaves the tr
   assert.ok(run.stdout.includes(`node ${work}/tools/run.mjs finish ${KEY}`), run.stdout);
 });
 
-test("a finish after a successful one removes nothing and exits 0", () => {
+/** Where a finish that removed the tree records that ending: the checkout's common git directory. */
+const endedAt = (work) => join(work, ".git", "forge-ended", `${KEY}.json`);
+
+const LEAK = /what a removal by hand left behind is a leak to recover/u;
+
+test("a finish that removed the tree leaves a record of it outside that tree, naming the run, the ledger, what went and when", async () => {
+  const { work, tree, branch } = started("finish-recorded");
+  const id = readFileSync(idFile(work), "utf8").trim();
+  const scratch = scratchOf(work);
+  const { treeKey } = await import("../../../gates/timing.mjs");
+  const before = Date.now();
+
+  const run = runIn(work, ["finish", KEY], BARE);
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  assert.ok(existsSync(endedAt(work)), `no record of the ending in the common git directory:\n${run.stdout}`);
+  const ended = JSON.parse(readFileSync(endedAt(work), "utf8"));
+  assert.equal(ended.tree, tree);
+  assert.equal(ended.run, id);
+  assert.equal(ended.ledger, treeKey(tree));
+  assert.deepEqual(ended.removed, [`the scratch directory ${scratch}`, `the worktree ${tree}`, `branch ${branch}`]);
+  assert.deepEqual(ended.left, []);
+  assert.ok(Date.parse(ended.at) >= before - 1000, ended.at);
+  assert.ok(!endedAt(work).startsWith(tree), "the record sits inside the tree it records removing");
+  assert.ok(!endedAt(work).startsWith(process.env.XDG_CONFIG_HOME), "the record sits in the config directory");
+});
+
+test("a finish after a successful one says finish ended it, when, and that nothing is owed", () => {
   const { work, tree } = started("finish-twice");
   assert.equal(runIn(work, ["finish", KEY], BARE).status, 0);
   assert.ok(!existsSync(tree));
+  const { at } = JSON.parse(readFileSync(endedAt(work), "utf8"));
 
   const again = runIn(work, ["finish", KEY], BARE);
   assert.equal(again.status, 0, again.stderr + again.stdout);
-  assert.match(again.stdout, /nothing is there, so this workspace is already ended/u, again.stdout);
-  assert.match(again.stdout, /names neither a scratch directory nor a verdict record/u, again.stdout);
+  assert.ok(again.stdout.includes(`finish already ended this workspace at ${at}`), again.stdout);
+  assert.match(again.stdout, /^ {11}nothing is owed$/mu, again.stdout);
+  assert.doesNotMatch(again.stdout, LEAK, again.stdout);
 });
+
+test("a tree removed by hand still reads as a leak to recover", () => {
+  const { work, tree } = started("finish-by-hand");
+  git(work, "worktree", "remove", tree);
+
+  const run = runIn(work, ["finish", KEY], BARE);
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  assert.match(run.stdout, /nothing is there, so this workspace is already ended/u, run.stdout);
+  assert.match(run.stdout, LEAK, run.stdout);
+  assert.doesNotMatch(run.stdout, /finish already ended/u, run.stdout);
+});
+
+test("a fresh start of a key drops the record an earlier finish of it left", () => {
+  const { work, tree } = started("finish-restarted");
+  assert.equal(runIn(work, ["finish", KEY], BARE).status, 0);
+  assert.ok(existsSync(endedAt(work)));
+
+  const again = runIn(work, ["start", KEY, "again"], BARE);
+  assert.equal(again.status, 0, again.stderr + again.stdout);
+  assert.ok(!existsSync(endedAt(work)), "an earlier ending's record outlived the tree cut after it");
+  git(work, "worktree", "remove", tree);
+  const run = runIn(work, ["finish", KEY], BARE);
+  assert.match(run.stdout, LEAK, run.stdout);
+});
+
+/* An ignored directory git cannot empty: the preflight reads the tree as clean, and `git worktree
+   remove` fails at the removal itself, after the scratch has gone. */
+test("a removal that fails after the scratch went exits non-zero on the removal that failed and the call that retries it",
+  { skip: process.getuid?.() === 0 }, () => {
+    const { work, tree } = started("finish-stuck");
+    const scratch = scratchOf(work);
+    writeFileSync(join(work, ".git", "info", "exclude"), "held/\n");
+    const stuck = join(tree, "held", "sub");
+    mkdirSync(stuck, { recursive: true });
+    writeFileSync(join(stuck, "file"), "git cannot delete this\n");
+    chmodSync(stuck, 0o555);
+    try {
+      const run = runIn(work, ["finish", KEY], BARE);
+      assert.notEqual(run.status, 0, run.stdout);
+      assert.ok(!existsSync(scratch), run.stdout);
+      const last = run.stderr.trim().split("\n").at(-1);
+      assert.equal(last, `  failed   the worktree ${tree} was not removed (git refused it, above); `
+        + `retry it with: node ${work}/tools/run.mjs finish ${KEY}`);
+      assert.ok(!existsSync(endedAt(work)), "an ending was recorded for a tree still standing");
+    } finally {
+      chmodSync(stuck, 0o755);
+    }
+  });
 
 /* The prefix is not the ownership: what makes a path removable is that this repository minted the id
    in it, so an id somebody wrote by hand names nothing at all rather than naming what it spells. */

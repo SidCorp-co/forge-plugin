@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { checkoutRoot, defaultBranch, git, loud, stop } from "../../checkout.mjs";
+import { endedDropped } from "./ended.mjs";
 import { borrowedInto, BROKEN } from "./links.mjs";
 import { KEY, occupied, worktreePath } from "./occupant.mjs";
 import { mintRunId, RUN_ID_VAR, scratchMinted } from "./run-id.mjs";
@@ -57,6 +58,8 @@ export const start = ({ words }, { here, self, write }) => {
   const base = defaultBranch(root);
   loud("git", ["-C", root, "worktree", "add", path, "-b", branch, base], root,
     `Pick another branch name than ${branch} if it is taken.`);
+  // A record of this key's earlier ending would otherwise answer for this tree once it is gone.
+  endedDropped(root, key);
   /* All of it or none of it: a half-linked tree refuses the next `start` for the path it left and
      keeps the branch it cut, so the run's escape is two commands it was never told. */
   const made = borrowedInto(root, path, write);
