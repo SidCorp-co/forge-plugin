@@ -40,11 +40,13 @@ const splitLines = (kind, blocks, stamp, { cap, uploads }) => {
   const names = (group) => group.map((got) => nameOf(per, got)).join(", ");
   const lines = [];
   if (groups.length) {
+    /* Named as blocks and never as a flag to paste: a block carries its own values after its
+       --criterion, and a line reading `--criterion 1, 2` retyped would be one value, not two. */
     lines.push(groups.length > 1
-      ? `Split it into ${groups.length} writes, each this command with only the --${per} blocks on its line:`
-      : `The rest fit one write, this command with only these --${per} blocks:`);
+      ? `Split it into ${groups.length} writes, each this command keeping only the blocks on its line, whole:`
+      : "The rest fit one write, this command keeping only these blocks, whole:");
     for (const group of groups) {
-      lines.push(`  --${per} ${names(group)}  (${lengthOf(render(kind, group, stamp))} code points)`);
+      lines.push(`  the --${per} blocks ${names(group)}  (${lengthOf(render(kind, group, stamp))} code points)`);
     }
   }
   for (const { got, over } of alone) {

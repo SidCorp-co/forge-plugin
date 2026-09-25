@@ -85,7 +85,7 @@ const criteria = (numbers) => numbers.flatMap((number) => ["--criterion", String
 const ALL = Array.from({ length: COUNT }, (_, at) => at + 1);
 
 /* The refusal's own lines, read the way a caller retyping it would read them. */
-const groupsIn = (stderr) => [...stderr.matchAll(/^ {2}--criterion ([\d, ]+) {2}\((\d+) code points\)$/gmu)]
+const groupsIn = (stderr) => [...stderr.matchAll(/^ {2}the --criterion blocks ([\d, ]+) {2}\((\d+) code points\)$/gmu)]
   .map((one) => ({ numbers: one[1].split(", ").map(Number), length: Number(one[2]) }));
 
 before(async () => {
