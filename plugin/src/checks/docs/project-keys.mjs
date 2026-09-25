@@ -5,7 +5,10 @@
 const BY_NAME = /forgeJson\(\)\.parsed\?\.(\w+)/gu;
 const AT_CALL = /\bwritten\("(\w+)"\)/gu;
 const OFF_FILE = /projectFileAt\([^()]*\)\?\.(\w+)/gu;
-const BOUND = /\bconst (\w+) = projectFileAt\(/gu;
+/* The parse bound whole, and never a value read off it: `const one = projectFileAt(tree)?.ready` is a
+   read of `ready` that OFF_FILE already takes, and binding `one` as the parse reads its keys as the
+   file's (ISS-2515). */
+const BOUND = /\bconst (\w+) = projectFileAt\([^()]*\)(?!\s*(?:\?\.|\.|\[))/gu;
 
 const A_READ = /forgeJson\(\)\.parsed|projectFileAt\(/u;
 

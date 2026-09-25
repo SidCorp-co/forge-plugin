@@ -11,6 +11,7 @@ import { dirname } from "node:path";
 
 import { anglesRefusal } from "../../codex/angles/refusal.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
+import { readyProblem } from "../../flow/landing/ready-checks.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { answersProblem } from "../../stats/corpus/answers.mjs";
 import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
@@ -306,6 +307,13 @@ export const PROJECT_KEYS = {
   landing: { paths: { "": "text" }, judge: (given) => outside("landing", given, LANDING_ROUTES) },
   redBatch: { paths: { "": "text" }, judge: (given) => outside("redBatch", given, RED_BATCHES) },
   ship: { paths: { "": "text" }, judge: (given) => outside("ship", given, SHIP_MODES) },
+  ready: {
+    paths: { checks: "list" },
+    judge: (given) => {
+      const problem = readyProblem(given);
+      return problem ? said(problem.key, problem.takes, problem.given) : null;
+    },
+  },
   shape: { paths: { "": "text" }, judge: (given) => outside("shape", given, PROJECT_SHAPES) },
   release: { paths: { "": "text" }, judge: (given) => outside("release", given, RELEASE_MODES) },
   report: { paths: { "": "text" }, judge: (given) => outside("report", given, REPORT_MODES) },

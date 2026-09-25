@@ -77,6 +77,8 @@ export const state = {
 };
 const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 const CHILD_HOME = ENV.HOME;
+/** The project record a room is read by, rewritten whole for the case that declares something. */
+export const declared = (room, config) => projectRecord(room, CHILD_HOME, { slug: "forge-plugin", ...config });
 for (const one of [CHANGED, NOTHING]) projectRecord(one, CHILD_HOME, { slug: "forge-plugin" });
 test.after(() => tracker.close());
 
