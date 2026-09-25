@@ -85,6 +85,13 @@ const bodyAt = (code, from, to) => {
   return null;
 };
 
+/* Whether the literal opening at `open` is the whole of what is returned: a statement end, the
+   block's close, or a new statement on the next line after it, and never an operator. */
+const whole = (code, open) => {
+  const rest = code.slice(closing(code, open) + 1);
+  return /^\s*(?:;|\}|$)/u.test(rest) || /^[ \t]*\n\s*[A-Za-z_$]/u.test(rest);
+};
+
 const CONTROL = new Set(["if", "for", "while", "switch", "catch", "with"]);
 
 /* Where each `return` of the function whose body opens at `open` hands back its value: quoted text
@@ -129,12 +136,12 @@ export const shapeOf = (code, from, to) => {
   if (code[lead] === "{") return entriesAt(code, lead);
   const body = bodyAt(code, lead, to);
   if (!body || body.open === -1) return null;
-  if (body.concise) return entriesAt(code, body.open);
+  if (body.concise) return /^\s*\)/u.test(code.slice(closing(code, body.open) + 1)) ? entriesAt(code, body.open) : null;
   const returns = ownReturns(code, body.open);
   if (!returns?.length) return null;
   const entries = [];
   for (const open of returns) {
-    const found = code[open] === "{" ? entriesAt(code, open) : null;
+    const found = code[open] === "{" && whole(code, open) ? entriesAt(code, open) : null;
     if (!found) return null;
     entries.push(...found);
   }

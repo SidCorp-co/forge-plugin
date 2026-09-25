@@ -78,6 +78,8 @@ const REFUSED = {
   "a path destructured off a concise arrow's object": `const make = () => ({ room: tmpdir(), n: 1 });\nconst { room } = make();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
   "a name destructured off a path-making source nothing here can read": `${UNREAD}assert.match(said, new RegExp(\`in \${as}\`, "u"));\n`,
   "a path destructured off a function whose nested helper returns a string of its own": `const repo = () => {\n  const sha = () => { return "abc"; };\n  return { room: tmpdir(), at: sha() };\n};\nconst { room } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path returned by a second object an operator joins to the first": `const repo = () => {\n  return { room: "unused" } && { room: tmpdir() };\n};\nconst { room } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path a concise arrow answers from a second object an operator joins": `const repo = () => ({ room: "unused" } && { room: tmpdir() });\nconst { room } = repo();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
   "a path bound off a quoted key of its own property": `${REPO}const { "room": dir } = repo();\nassert.match(said, new RegExp(\`in \${dir}\`, "u"));\n`,
   "a path an accessor answers, which the check does not read": `const make = () => ({ get room() { return tmpdir(); } });\nconst { room } = make();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
   "a name taken by position off a path-making source": `const [work, n] = [tmpdir(), 1];\nassert.match(said, new RegExp(\`over \${n}\`, "u"));\n`,
