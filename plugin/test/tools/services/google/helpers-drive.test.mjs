@@ -1,8 +1,8 @@
 /* The Drive and Sheets helpers against the fake: which calls each one composes, and what it wrote. */
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 
 import { tempRoom } from "../../../fixtures.mjs";
 import { ENV_ACCESS, google, googleHome, startFake } from "./fake.mjs";
@@ -53,6 +53,27 @@ test("+download refuses an --output that already exists, before any request", as
   assert.ok(answer.stderr.includes(`${out} already exists`));
   assert.deepEqual(fake.requests, []);
   assert.equal(readFileSync(out, "utf8"), "mine");
+});
+
+test("+download without --output saves under the remote name's last part, never a path it names", async () => {
+  for (const [id, name] of [["T1", "../../escaped.pdf"], ["T2", "/tmp/absolute-escape.pdf"], ["T3", "..\\..\\back.pdf"]]) {
+    fake.answers[`GET /drive/v3/files/${id}`] = (seen) => (seen.query.get("alt") === "media"
+      ? [200, `bytes of ${id}`, "application/pdf"]
+      : [200, { id, name, mimeType: "application/pdf" }]);
+    const answer = await ran("+download", id);
+    assert.equal(answer.status, 0, answer.stderr);
+    assert.equal(readFileSync(join(room, basename(name.replaceAll("\\", "/"))), "utf8"), `bytes of ${id}`);
+  }
+  assert.equal(existsSync(join(room, "..", "..", "escaped.pdf")), false);
+  assert.equal(existsSync("/tmp/absolute-escape.pdf"), false);
+});
+
+test("+download refuses a remote name that is no file name, and asks for --output", async () => {
+  fake.answers["GET /drive/v3/files/T4"] = () => [200, { id: "T4", name: "..", mimeType: "application/pdf" }];
+  const answer = await ran("+download", "T4");
+  assert.equal(answer.status, 3);
+  assert.ok(answer.stderr.includes("name one with --output <file>"), answer.stderr);
+  assert.equal(fake.requests.some((seen) => seen.query.get("alt") === "media"), false);
 });
 
 test("+download --mime exports a Google-native file to that type", async () => {

@@ -6,7 +6,7 @@ import { helpAskedOf } from "../../../resolve/flags.mjs";
 import { AUTH_USAGE, auth } from "./auth/login.mjs";
 import { DISCOVERY_USAGE, discovery } from "./discovery/refresh.mjs";
 import { invoke } from "./invocation.mjs";
-import { DISCOVERY, VALIDATION, refuse, say } from "./exits.mjs";
+import { DISCOVERY, INTERNAL, VALIDATION, refuse, say, struck } from "./exits.mjs";
 import { CALL_SWITCHES, CALL_VALUES, parseFlags, requestOf } from "./request.mjs";
 import { COMMON, SERVED, SERVED_SERVICES, carriedIndex, resolveTyped } from "./surface.mjs";
 import { DRIVE_HELPERS } from "./helpers/drive.mjs";
@@ -84,7 +84,18 @@ const helper = (name, rest) => {
   return HELPERS[name](rest);
 };
 
-export const google = async (argv) => {
+/* Anything thrown past the refusals above is this verb's own fault, so it exits by that class and
+   through the same strike as every other line. */
+const guarded = async (run) => {
+  try {
+    return await run();
+  } catch (error) {
+    return refuse(INTERNAL, `google: an internal error stopped the call: ${struck(error?.message ?? String(error))}\n`
+      + "  nothing past this point was sent; `forge feedback` files it against this plugin");
+  }
+};
+
+const dispatch = async (argv) => {
   const help = helpAskedOf(argv, Object.keys(SAYS));
   if (help) {
     console.log(SAYS[help.subject] ?? USAGE);
@@ -102,5 +113,7 @@ export const google = async (argv) => {
   if (head.startsWith("+")) return helper(head, rest);
   return typed(argv);
 };
+
+export const google = (argv) => guarded(() => dispatch(argv));
 
 google.answersHelp = true;

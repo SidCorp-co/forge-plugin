@@ -35,6 +35,16 @@ const EXPORTS = {
 
 const refuseTaken = (output) => invalid(`+download: ${output} already exists; choose another --output or move it first.`);
 
+/* A name Drive holds is anybody's to set, so it names a file here and never a directory: only
+   --output chooses where a download lands. */
+const derivedName = (file, exported) => {
+  const name = basename(String(file.name ?? "").replaceAll("\\", "/"));
+  if (!name || name === "." || name === "..") {
+    invalid(`+download: ${JSON.stringify(file.name)} is no file name to save under; name one with --output <file>.`);
+  }
+  return `${name}${exported?.extension ?? ""}`;
+};
+
 const exportMime = (file, asked) => {
   const kind = file.mimeType.slice(NATIVE.length);
   const mime = asked ?? EXPORTS[kind]?.[0];
@@ -52,7 +62,7 @@ const download = async (argv) => {
   const native = file.mimeType.startsWith(NATIVE);
   if (!native && flags.mime) invalid(`+download: --mime converts a Google-native file, and ${file.name} is ${file.mimeType}.`);
   const exported = native ? exportMime(file, flags.mime) : null;
-  const output = flags.output ?? `${file.name}${exported?.extension ?? ""}`;
+  const output = flags.output ?? derivedName(file, exported);
   if (!flags.output && existsSync(output)) refuseTaken(output);
   const method = methodById(native ? "drive.files.export" : "drive.files.get");
   const params = native ? { mimeType: exported.mime } : {};

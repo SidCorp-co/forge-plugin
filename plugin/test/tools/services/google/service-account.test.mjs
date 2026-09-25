@@ -3,11 +3,11 @@
    clears them, and the order in which a named account, the environment's token and the default answer. */
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
-import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ranAsync, tempRoom } from "../../../fixtures.mjs";
-import { ACCESS, DENIED, ENV_ACCESS, KEY_ID, SENTINELS, filesUnder, google, googleEnv, googleHome, keyFile, startFake } from "./fake.mjs";
+import { ACCESS, DENIED, ENV_ACCESS, KEY_ID, KEY_LINE, SENTINELS, filesUnder, google, googleEnv, googleHome, keyFile, startFake } from "./fake.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
@@ -170,4 +170,28 @@ test("nothing printed carries a credential, and the home holds only the configur
   const all = printed.join("\n");
   for (const secret of SENTINELS) assert.ok(!all.includes(secret), `${secret.slice(0, 12)}… reached a stream`);
   assert.deepEqual(filesUnder(home).sort(), ["forge/config.json", "forge/google/helper.json", "forge/google/robot.json"]);
+});
+
+test("a saved account that is not JSON exits 5 naming its file, and quotes none of what it holds", async () => {
+  const damaged = googleHome(fake);
+  await google(damaged, ["auth", "add", key, "--account", "robot"], { cwd: room });
+  const saved = join(damaged, "forge", "google", "robot.json");
+  writeFileSync(saved, `{"private_key": "${KEY_LINE}", "private_key_id": "${KEY_ID}",`);
+  const answer = await google(damaged, ["drive", "files", "list"], { cwd: room });
+  assert.equal(answer.status, 5, answer.stderr);
+  assert.ok(answer.stderr.includes(`${saved} is not valid JSON`), answer.stderr);
+  assert.match(answer.stderr, /forge google auth remove --account robot/u);
+  for (const secret of SENTINELS) assert.ok(!`${answer.stdout}${answer.stderr}`.includes(secret), `${secret.slice(0, 12)}… reached a stream`);
+});
+
+test("a saved account this user cannot read exits 5 naming its file and what clears it", { skip: process.getuid?.() === 0 }, async () => {
+  const locked = googleHome(fake);
+  await google(locked, ["auth", "add", key, "--account", "robot"], { cwd: room });
+  const saved = join(locked, "forge", "google", "robot.json");
+  chmodSync(saved, 0o000);
+  const answer = await google(locked, ["drive", "files", "list"], { cwd: room });
+  chmodSync(saved, 0o600);
+  assert.equal(answer.status, 5, answer.stderr);
+  assert.ok(answer.stderr.includes(`${saved} could not be read (EACCES)`), answer.stderr);
+  assert.match(answer.stderr, /make it readable by this user/u);
 });

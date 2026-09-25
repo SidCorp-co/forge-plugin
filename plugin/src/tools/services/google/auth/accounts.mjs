@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir, saveNested, userConfig, writeJsonPrivate } from "../../../../resolve/config.mjs";
-import { AUTH, holdSecret, refuse } from "../exits.mjs";
+import { AUTH, INTERNAL, holdSecret, refuse } from "../exits.mjs";
 
 export const ENV_TOKEN = "FORGE_GOOGLE_ACCESS_TOKEN";
 export const SERVICE = "service";
@@ -33,6 +33,24 @@ export const defaultAccount = () => {
 
 const SECRET_FIELDS = ["private_key", "private_key_id", "client_secret", "refresh_token"];
 
+/* A parse error quotes the text it choked on, and that text is a key: the refusal names the file and
+   what was wrong with it by kind, never by content. */
+const readSaved = (at, name) => {
+  let text = null;
+  try {
+    text = readFileSync(at, "utf8");
+  } catch (error) {
+    refuse(INTERNAL, `google: the saved account \`${name}\` at ${at} could not be read (${error.code ?? "unreadable"}).\n`
+      + "  make it readable by this user, or save the account again");
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return refuse(INTERNAL, `google: the saved account \`${name}\` at ${at} is not valid JSON.\n`
+      + `  save it again: forge google auth remove --account ${name}, then add or log in with --account ${name}`);
+  }
+};
+
 /** The saved file of one account, every secret in it held for striking before anything prints. */
 export const accountFile = (name) => {
   const at = fileOf(name);
@@ -40,7 +58,7 @@ export const accountFile = (name) => {
     refuse(AUTH, `google: the account \`${name}\` is recorded and its file ${at} is gone.\n`
       + `  save it again: forge google auth ${savedAccounts()[name]?.kind === LOGIN ? "login" : "add"} … --account ${name}`);
   }
-  const held = JSON.parse(readFileSync(at, "utf8"));
+  const held = readSaved(at, name);
   for (const field of SECRET_FIELDS) holdSecret(held[field]);
   return held;
 };
