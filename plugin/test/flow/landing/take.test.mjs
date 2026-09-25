@@ -600,3 +600,22 @@ test("a records turn naming no state to return to is refused rather than guessed
   assert.match(run.stderr, /names `promoting` as the state the turn came from/u, run.stderr);
   assert.equal(checkpoint().state, "records-owed", "and nothing was written");
 });
+
+/* The opening a capture prints is read off the checkpoint that capture wrote, not the one the issue
+   was fetched with: out of `head-owed` the fetched head is the handed-back one, and a review and
+   every verdict at the new head are what a resume straight after lists as passed (ISS-2439). */
+test("a capture out of head-owed opens on the head it wrote, so the review and proof there read as passed", async () => {
+  const { render } = await import("../../../src/flow/record/page.mjs");
+  const head = git(CHANGED, "rev-parse", "HEAD").stdout.trim();
+  field({ ...BUILT, state: "head-owed" }, null);
+  state.issues[0] = { ...state.issues[0], status: "in_progress", acceptanceCriteria: "1. The one outcome." };
+  state.comments["landing-uuid"] = [
+    render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }),
+    render("verdict", { criterion: "1", verdict: "pass", commit: head, evidence: "abc1234", why: "the case asserts it" }),
+  ].map((body, at) => ({ documentId: `c-${at + 1}`, createdAt: `2026-09-07T12:0${at}:00.000Z`, authorId: "agent", body }));
+  const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().state, "ready", "the capture wrote ready at the new head");
+  assert.match(run.stdout, /^ {2}passed: 4 Implement, to the review {2}— {2}review$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}passed: 5 Prove {2}— {2}verdict$/mu, run.stdout);
+});
