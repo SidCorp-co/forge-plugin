@@ -29,3 +29,22 @@ export const add = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
 /* UTC to the minute with its zone said, because a bound printed without one is read in the reader's
    own zone, and a `--since` typed off it then names a different span. */
 export const stamp = (at) => `${new Date(at).toISOString().slice(0, 16).replace("T", " ")}Z`;
+
+/* Waits overlap: the host issues several calls in one turn and they run at once, so their durations
+   summed exceed the wall clock they shared and would report more waiting than the run took. The
+   union is what the wall time is split by; a class's own row stays a sum of its calls, which is
+   tool-seconds and says so. */
+export const unionSeconds = (spans) => {
+  const sorted = [...spans].sort((left, right) => left.at - right.at);
+  let total = 0;
+  let openedAt = null;
+  let closesAt = null;
+  for (const span of sorted) {
+    if (closesAt === null || span.at > closesAt) {
+      total += closesAt === null ? 0 : closesAt - openedAt;
+      openedAt = span.at;
+      closesAt = span.endedAt;
+    } else closesAt = Math.max(closesAt, span.endedAt);
+  }
+  return (closesAt === null ? total : total + closesAt - openedAt) / 1000;
+};

@@ -13,7 +13,7 @@ import { FILES_IT, WHOLE } from "../../../src/refusal.mjs";
 import { held } from "../../../src/shown/ledger.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
-import { unionSeconds } from "../../../src/stats/runs.mjs";
+import { unionSeconds } from "../../../src/stats/figures.mjs";
 import { scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { USAGE } from "../../../src/stats/stats.mjs";
 import { tempRoom } from "../../fixtures.mjs";

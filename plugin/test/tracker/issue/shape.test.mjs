@@ -15,8 +15,10 @@ process.env.XDG_CONFIG_HOME = home.path;
 /* The in-process readers below resolve this checkout's project, whose record is this machine's and
    so has to be written into the home this process runs against. */
 projectRecord(ROOT, home.path, OWN);
-const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
+const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor,
   shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
+/* The refusal's text, as the gate prints it. */
+const refusalFrom = async (filing, shape, options) => (await filingRefusal(filing, shape, options))?.text ?? null;
 const { COMPLEXITY_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
 /* Prose now: `markFor` went with the second source (ISS-701), and a body already on the tracker still carries the line the emptiness strip reads. */
 const SIZE_LINE = "Size: fix.";
@@ -491,6 +493,17 @@ test("a search that failed reaches the caller, rather than an empty backlog it n
   } finally {
     state.status = undefined;
   }
+});
+
+/* ISS-2501. The gate names each filing refusal on its How line by this, and the harness report
+   follows it by that name through a rewording, so the three refusals carry three names. */
+test("a filing refusal names its cause: a duplicate, a shape the body misses, or a route it owes", async () => {
+  const page = (live) => ({ live, read: { rows: live, whole: true, pages: 1 } });
+  const cause = async (filing, live = []) => (await refusing(() => filingRefusal(filing, shapeOf(filing), { page: page(live) }))).cause;
+  const twin = [{ issueId: "ISS-51", status: "open", title: TITLE }];
+  assert.equal(await cause({ title: TITLE, body: WHOLE }, twin), "duplicate-filing");
+  assert.equal(await cause({ title: "fix", body: "It is broken." }), "filing-shape");
+  assert.equal(await cause({ title: FIX_TITLE, body: FIX_BODY, kind: null }), "filing-route");
 });
 
 /* Six settled rows is what the old ask fitted, being CANDIDATES + the length of the settled list. */

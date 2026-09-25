@@ -17,7 +17,7 @@ const DAYS = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-1
 const figure = (runs, medianMinutes, medianCalls) => ({ runs, medianMinutes, medianCalls });
 const row = (name, runs) => ({ name, ...figure(runs, 20, 40), thin: runs < 10 ? "thin" : null });
 
-const friction = (extra = {}) => ({ refusals: [], errors: [], answers: [], repeats: [], waits: [], guideParts: [], ...extra });
+const friction = (extra = {}) => ({ refusals: [], refusalCauses: [], errors: [], answers: [], repeats: [], waits: [], guideParts: [], ...extra });
 
 const content = (extra = {}) => ({
   day: DAY, zone: "UTC", written: "2026-09-21T06:00:00.000Z", trendDays: DAYS,
@@ -129,7 +129,7 @@ test("a release is read beside the runs either side only where each side holds t
   assert.equal(few.early, true);
 });
 
-const entry = (index) => ({ key: `Hold — rule ${index}`, calls: 20 - index, runs: 1 });
+const entry = (index) => ({ key: `Hold — rule ${index}`, met: `Hold — rule ${index}`, gate: null, calls: 20 - index, runs: 1 });
 
 test("the page lists the errors under what failed and the command's answers in a table of their own", () => {
   const page = pageOf(content({ friction: { ...content().friction,
@@ -141,7 +141,7 @@ test("the page lists the errors under what failed and the command's answers in a
 });
 
 test("opportunities rank by calls paid, list ten, count the rest, and name the open issue each matches or say none", async () => {
-  const held = friction({ refusals: Array.from({ length: 12 }, (_, index) => entry(index)) });
+  const held = friction({ refusalCauses: Array.from({ length: 12 }, (_, index) => entry(index)) });
   const matcher = { match: async (text) => {
     if (text.includes("rule 2")) throw new Error("the semantic query could not run: 503");
     return text.includes("rule 0") ? { key: "ISS-9", title: "The rule" } : null;
@@ -167,7 +167,7 @@ test("a backlog read short, or a search that could not run, is said as not match
   const near = async () => ({ suggestions: [], notes: [] });
   const short = await backlogMatcher(registered, { held, near, read: async () => ({ rows: [], whole: false, pages: 1 }) });
   assert.match(short.refused, /the plugin's open backlog reached 0 issue\(s\) over 1 page\(s\) and the reading is incomplete/u);
-  const found = await opportunitiesOf(friction({ refusals: [entry(0)] }), short);
+  const found = await opportunitiesOf(friction({ refusalCauses: [entry(0)] }), short);
   assert.deepEqual([found.listed[0].match, found.listed[0].unmatched], [null, short.refused]);
   const whole = await backlogMatcher(registered, { held, read: async () => ({ rows: [], whole: true, pages: 1 }),
     near: async () => ({ suggestions: [], notes: ["the semantic query could not run: 503"] }) });

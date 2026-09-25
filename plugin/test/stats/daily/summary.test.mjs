@@ -19,7 +19,7 @@ const sentenceOf = (listed) => summaryOf(content(listed))[2];
 /* One entry in each friction list the ranking reads, each paying a different call count so each can
    be set on top alone. */
 const every = {
-  refusals: [{ key: "Hold — a rule", runs: 1, calls: 5 }],
+  refusalCauses: [{ key: "Hold — a rule", met: "Hold — a rule", gate: null, runs: 1, calls: 5 }],
   errors: [{ key: "poll", runs: 1, calls: 4 }],
   repeats: [{ key: "git status", runs: 1, calls: 4 }],
   guideParts: [{ key: "issue-flow verification", runs: 1, again: 1, calls: 3 }],

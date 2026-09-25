@@ -48,6 +48,7 @@ const lead = (text) => text.charAt(0).toLowerCase() + text.slice(1);
 
 const RULES = [
   {
+    name: "lint-fix",
     // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first. A runner keeps its command as arguments and is not in the shared grammar; a path names it too.
     pattern: new RegExp(
       String.raw`^(?:\S*\/)?(?:(?:npx|pnpm\s+exec|yarn\s+run|bunx)\s+)?(?:\S*\/)?` +
@@ -61,6 +62,7 @@ const RULES = [
       "is the point, and that is the user's decision to make first.",
   },
   {
+    name: "kill-by-name",
     pattern: /^(?:\S*\/)?(?:pkill|killall)\b/u,
     cause:
       "pkill and killall select by name, so they match every process whose name fits — " +
@@ -70,6 +72,7 @@ const RULES = [
       "is the one you established you may stop, then `kill <pid>`.",
   },
   {
+    name: "stage-everything",
     pattern: { test: stagesEverything },
     atStake: "dirty",
     cause:
@@ -78,6 +81,7 @@ const RULES = [
     instead: "Stage the paths you changed, explicitly.",
   },
   {
+    name: "shared-stash",
     pattern: { test: movesTheStash },
     atStake: "shared",
     cause:
@@ -89,6 +93,7 @@ const RULES = [
       `restore it afterwards. ${LEFT_ALONE} move nothing and stay allowed.`,
   },
   {
+    name: "stash-reverts",
     pattern: { test: movesTheStash },
     atStake: "dirty",
     cause:
@@ -98,6 +103,7 @@ const RULES = [
       "Copy the file aside to undo a probe, or use a separate `git worktree` for a clean baseline.",
   },
   {
+    name: "checkout-path",
     pattern: new RegExp(`${GIT}checkout\\s+["']?(?:--\\s+\\S|-{2}\\s|\\S+\\.\\w)`, "u"),
     atStake: "dirty",
     cause:
@@ -105,12 +111,14 @@ const RULES = [
     instead: "Copy the file aside first, or make the change you actually want.",
   },
   {
+    name: "reset-hard",
     pattern: new RegExp(`${GIT}reset\\s+["']?--hard\\b`, "u"),
     atStake: "dirty",
     cause: "git reset --hard discards every uncommitted change in the tree at once.",
     instead: "Reset the specific paths, or commit first so the state is recoverable.",
   },
   {
+    name: "sleep-in-wait",
     pattern: /^(?:\S*\/)?sleep(?=\s|$)/u,
     needsWait: true,
     topic: "polling",
@@ -251,7 +259,7 @@ export const run = (ev) => {
   };
   /* At most one reading gates a rule, and the doubt suffixes below are written about the dirty one. */
   const AT_STAKE = { dirty, shared };
-  for (const { pattern, cause, instead, atStake, needsWait, topic } of RULES) {
+  for (const { name, pattern, cause, instead, atStake, needsWait, topic } of RULES) {
     const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
     const asks = AT_STAKE[atStake];
@@ -261,7 +269,7 @@ export const run = (ev) => {
     const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
     /* The route first, lower-cased onto the marker so the marker is never a sentence on its own. */
-    const full = `Refused — ${lead(instead)}${unsure}\n\n${cause}${topic ? how(topic) : how()}`;
+    const full = `Refused — ${lead(instead)}${unsure}\n\n${cause}${how(topic, name)}`;
     deny(sayOnce(sessionKey(ev), "bash-guard", full, { route: topic || "bash-guard" }));
   }
 
@@ -273,7 +281,7 @@ export const run = (ev) => {
       + "the read before this one came too early: ask the finished log what you now want to know, which "
       + "is a different question. This rule says a thing once, so sending this again passes.\n\n"
       + `This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
-      + `A read repeated with nothing between it and the last one is a wait spent asking.${how("polling")}`,
+      + `A read repeated with nothing between it and the last one is a wait spent asking.${how("polling", "read-again")}`,
     );
   }
 };

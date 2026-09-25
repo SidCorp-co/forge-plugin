@@ -65,6 +65,10 @@ const flagOf = (row) => {
     return `recurred after the fix at ${row.recurred.version}: ${row.recurred.calls} call(s) over ${row.recurred.days} day(s) since; `
       + `the issue to reopen is ${row.recurred.reopen}`;
   }
+  if (row.unsettled) {
+    return `not read as fixed at ${row.release.version}: ${row.unsettled.gates.join(", ")} refused since under ${row.unsettled.keys} `
+      + `cause(s) this row does not carry, on ${row.unsettled.days} day(s), and one may be this cause reworded`;
+  }
   return row.oneOff ? "one-off" : "";
 };
 

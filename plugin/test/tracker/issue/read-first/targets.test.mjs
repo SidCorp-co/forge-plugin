@@ -424,6 +424,19 @@ test("a create that meets the shape is refused for its route, and named the verb
   assert.doesNotMatch(because(run), /forge hooks --how issue-shape/u, "the shape is not what refused it");
 });
 
+/* ISS-2501. The harness report follows a refusal by the name its How line gives, whatever it says
+   above it, so each refusal this gate writes carries a name of its own. */
+test("each refusal this gate writes names its cause on the How line", async () => {
+  const causeOf = (run) => /\(cause: issue-read-first\/([\w-]+)\)$/mu.exec(because(run))?.[1] ?? because(run);
+  whole({ [UUID]: [comment("c30", "a comment only the refusal delivers")] });
+  assert.equal(causeOf(await raw({ action: "archive", documentId: UUID }, { session: "probe-cause-unread" })), "unread-comments");
+  whole({ [UUID]: Array.from({ length: 401 }, (_, at) => comment(`cause${at}`, "one of four hundred and one")) });
+  assert.equal(causeOf(await gate("forge advance ISS-29")), "thread-unaccounted");
+  whole({});
+  assert.equal(causeOf(await filing({ title: "fix", description: "It is broken." })), "filing-shape");
+  assert.equal(causeOf(await filing({ title: TITLED, description: WHOLE })), "raw-call");
+});
+
 test("a comment made through the tool is named its own verb, not the filing's", async () => {
   const run = await filing({ issue: "ISS-29", body: "x" }, { name: "mcp__forge__forge_comments" });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
