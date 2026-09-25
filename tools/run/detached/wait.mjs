@@ -10,7 +10,7 @@ import { read, stop } from "../../checkout.mjs";
 import { DEADLINE, GONE, NO_GATE } from "../../gates/verdict.mjs";
 import { watching } from "../../watching.mjs";
 import { heldMinutes } from "../../../plugin/src/host/call-ceiling.mjs";
-import { gitDir, recordIn, reservationIn, startOf, stillLanding, waitCommand } from "./record.mjs";
+import { gitDir, liveWaiter, recordIn, reservationIn, startOf, stillLanding, waitCommand } from "./record.mjs";
 
 /* The gate's wait's three numbers, so a caller holding both reads one table: past every code a
    landing exits with, 76 a landing gone without deciding, 77 this wait's own deadline, 78 nothing to
@@ -79,9 +79,11 @@ const starting = (dir) => {
   return Number.isInteger(pid) && pid > 1 && startOf(pid) !== null;
 };
 
-/** What the tree's landing record answers now, or null while its landing still runs. */
+/** What the tree's landing record answers now, or null while its landing still runs. A landing waiting
+ *  behind the running one is the tree's next, and the one a caller that started it is waiting on, so
+ *  the record's end is not the answer while that waiter lives. */
 const answer = (dir, tree, { since, say, warn, script }) => {
-  if (starting(dir)) return null;
+  if (starting(dir) || liveWaiter(dir)) return null;
   const was = read(recordIn(dir));
   if (!was) {
     warn(noLandingSaid(tree, script));
