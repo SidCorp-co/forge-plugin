@@ -14,7 +14,7 @@ import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { answersProblem } from "../../stats/corpus/answers.mjs";
 import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
-import { TRIGGERS_KEY, triggersRefusal } from "../../stats/daily/settings.mjs";
+import { TRIGGERS_KEY, triggersRefusal } from "../../stats/report/settings.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import {
   CHECK_MS_AT_MOST,

@@ -7,13 +7,13 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { currentOf } from "../../../src/stats/daily/current.mjs";
-import { currentPageOf } from "../../../src/stats/daily/current-page.mjs";
-import { MATCHED, NONE_NEAR } from "../../../src/stats/daily/families.mjs";
-import { DEFAULTS, FORMULAS, reportSettings } from "../../../src/stats/daily/settings.mjs";
+import { currentOf } from "../../../src/stats/report/current.mjs";
+import { currentPageOf } from "../../../src/stats/report/current-page.mjs";
+import { MATCHED, NONE_NEAR } from "../../../src/stats/report/families.mjs";
+import { DEFAULTS, FORMULAS, reportSettings } from "../../../src/stats/report/settings.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
 import { tempRoom } from "../../fixtures.mjs";
-import { runOn } from "./fixture-daily.mjs";
+import { runOn } from "../daily/fixture-daily.mjs";
 
 process.env.TZ = "UTC";
 

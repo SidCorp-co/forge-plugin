@@ -7,10 +7,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { writeCurrent } from "../../../src/stats/daily/current.mjs";
+import { writeCurrent } from "../../../src/stats/report/current.mjs";
 import { againPath, contentOf, markPath } from "../../../src/stats/daily/store.mjs";
 import { FORGE } from "../fixture-runs.mjs";
-import { daily, daysAgo, device, envOf, today } from "./fixture-daily.mjs";
+import { daily, daysAgo, device, envOf, today } from "../daily/fixture-daily.mjs";
 
 const report = (held, ...argv) => spawnSync(FORGE, ["stats", "report", ...argv], { encoding: "utf8", cwd: held.room, env: envOf(held) });
 

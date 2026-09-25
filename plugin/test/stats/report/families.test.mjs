@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { FLOOR } from "../../../src/tracker/filing/neighbours.mjs";
-import { matchesOf, NONE_NEAR, trackerOf } from "../../../src/stats/daily/families.mjs";
+import { matchesOf, NONE_NEAR, trackerOf } from "../../../src/stats/report/families.mjs";
 
 const PLUGIN = [{ name: "forge-plugin", slug: "forge-plugin" }];
 

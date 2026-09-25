@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { yesterday } from "./day.mjs";
-import { RELEASE, SESSION, triggersOf } from "./settings.mjs";
+import { RELEASE, SESSION, triggersOf } from "../report/settings.mjs";
 import { clearMark, markPath, pagePath, reportsWhere, takeMark, writerHolds } from "./store.mjs";
 import { projectFileAt } from "../../resolve/settings.mjs";
 

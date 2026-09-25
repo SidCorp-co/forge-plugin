@@ -2,8 +2,8 @@
    series ending at today so far, the causes in three sections with their gain and score, and the
    dated snapshots under it. Everything is inline, as the day's page is, and every figure is said in
    words beside any drawing of it — docs/cli/stats.md. */
-import { SORT_SCRIPT, STYLE, at, esc, missing, said, table, trendSvg } from "./page.mjs";
-import { contentBlock } from "./store.mjs";
+import { SORT_SCRIPT, STYLE, at, esc, missing, said, table, trendSvg } from "../daily/page.mjs";
+import { contentBlock } from "../daily/store.mjs";
 
 const TODAY = "today so far";
 

@@ -1,7 +1,7 @@
 /* `forge stats <subject>` — one verb, a subject per thing profiled: docs/cli/stats.md. */
 import { CHANGE_USAGE, printChange } from "./eval/change.mjs";
 import { DAILY_USAGE, printDaily } from "./daily/daily.mjs";
-import { REPORT_USAGE, printReport } from "./daily/current.mjs";
+import { REPORT_USAGE, printReport } from "./report/current.mjs";
 import { DIAGNOSE_USAGE, printDiagnose } from "./eval/diagnose.mjs";
 import { EVAL_USAGE, MARKS_USAGE, printEval, printMarks } from "./eval/eval.mjs";
 import { MODELS_USAGE, printModels } from "./models.mjs";

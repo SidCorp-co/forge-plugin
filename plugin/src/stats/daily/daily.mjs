@@ -7,7 +7,7 @@ import { dayIn, dayRefusal, heldRange, yesterday } from "./day.mjs";
 import { contentOf, corporaOf, landingsFrom, readingOf } from "./gather.mjs";
 import { backlogMatcher } from "./opportunities.mjs";
 import { pageOf } from "./page.mjs";
-import { writeCurrent, writerFrom } from "./current.mjs";
+import { writeCurrent, writerFrom } from "../report/current.mjs";
 import { projectsOn, registered } from "./projects.mjs";
 import { clearMark, pagePath, reportsDir, shownDeep, writePage } from "./store.mjs";
 import { summaryOf } from "./summary.mjs";

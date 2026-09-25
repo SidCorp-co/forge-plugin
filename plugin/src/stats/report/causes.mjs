@@ -3,9 +3,9 @@
    fixed — with the gain its fix realized or the gain fixing it would project. Each entry is the
    day's page's own (`entriesOf` over `frictionOf`), read a run at a time so that a release's moment
    splits a day; nothing here counts a call of its own — docs/cli/stats.md. */
-import { dayOf, shifted } from "./day.mjs";
-import { frictionOf } from "./gather.mjs";
-import { entriesOf } from "./opportunities.mjs";
+import { dayOf, shifted } from "../daily/day.mjs";
+import { frictionOf } from "../daily/gather.mjs";
+import { entriesOf } from "../daily/opportunities.mjs";
 import { FORMULAS } from "./settings.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";
 

@@ -5,17 +5,17 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { dayOf } from "./day.mjs";
+import { dayOf } from "../daily/day.mjs";
 import { byRank, causesOf, daysSince, figuresOf, heldDaysFrom, PER_CAUSE_MISSING, projectedOf, realizedOf,
   recurrenceAfter, scoreOf, sectionOf } from "./causes.mjs";
 import { familiesOf, MATCHED, matchesOf, trackerOf } from "./families.mjs";
-import { corporaOf, dayFiguresOf, readingOf, runsOn, within } from "./gather.mjs";
+import { corporaOf, dayFiguresOf, readingOf, runsOn, within } from "../daily/gather.mjs";
 import { currentPageOf } from "./current-page.mjs";
-import { projectsOn, registered } from "./projects.mjs";
+import { projectsOn, registered } from "../daily/projects.mjs";
 import { FORMULAS, reportSettings } from "./settings.mjs";
 import { CURRENT, INDEX, againPath, clearMark, contentOf as heldContentOf, heldDays, readPage, reportsDir,
-  shownDeep, takeMark, writePage, writerHolds } from "./store.mjs";
-import { indexLineOf } from "./summary.mjs";
+  shownDeep, takeMark, writePage, writerHolds } from "../daily/store.mjs";
+import { indexLineOf } from "../daily/summary.mjs";
 import { RELEASES, marksOf } from "../marks/marks.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -174,7 +174,7 @@ const contentNow = async (dir) => {
   return contentFrom(dir, readingOf({ projects: await corporaOf(found.read, null) }), found);
 };
 
-/** A writer of the current report off a reading already made, for `writeCurrent`. */
+/** What `stats daily` hands `writeCurrent`: the page written from the corpora that day already read. */
 export const writerFrom = (reading, found) => async (dir) => {
   const content = await contentFrom(dir, reading, found);
   return { path: writePage(dir, INDEX, currentPageOf(content)), content };
