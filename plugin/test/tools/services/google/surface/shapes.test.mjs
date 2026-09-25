@@ -25,6 +25,8 @@ const OWED = [
   ["deletes", ["drive", "files", "delete", "F1"]],
   ["overwrites content", ["gmail", "users", "settings", "updateVacation", "--json", JSON.stringify({ enableAutoReply: true })]],
   ["overwrites content", ["sheets", "spreadsheets", "values", "batchUpdate", "S1", "--json", JSON.stringify({ data: [] })]],
+  ["overwrites content", ["drive", "comments", "update", "F1", "C1", "--json", JSON.stringify({ content: "replacement" })]],
+  ["overwrites content", ["drive", "replies", "update", "F1", "C1", "R1", "--json", JSON.stringify({ content: "replacement" })]],
   ["changes who has access", ["calendar", "acl", "insert", "--json", JSON.stringify({ role: "reader", scope: { type: "default" } })]],
   ["changes who has access", ["gmail", "users", "settings", "delegates", "create", "--json", JSON.stringify({ delegateEmail: "a@x.com" })]],
   ["changes who has access", ["meet", "spaces", "members", "create", "spaces/s1", "--json", JSON.stringify({ email: "a@x.com" })]],

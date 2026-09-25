@@ -54,7 +54,8 @@ export const CONSENT = [
   { owes: "removes", names: ({ id }) => REMOVES.some((one) => lastWord(id).startsWith(one)) },
   { owes: "acts on an approval others are waiting on", names: under("drive.approvals") },
   { owes: "overwrites content", names: ({ entry, id }) => entry.http === "PUT"
-    || ["sheets.spreadsheets.values.batchUpdate", "sheets.spreadsheets.values.batchUpdateByDataFilter"].includes(id) },
+    || ["sheets.spreadsheets.values.batchUpdate", "sheets.spreadsheets.values.batchUpdateByDataFilter",
+      "drive.comments.update", "drive.replies.update"].includes(id) },
   { owes: "overwrites a file's content", names: ({ entry }) => entry.http === "PATCH" && Boolean(entry.upload),
     where: "it uploads", when: ({ request }) => Boolean(request.upload) },
   { owes: "invites to an event", names: named(...INVITES), where: "it names attendees",
@@ -75,7 +76,7 @@ export const FREE = {
   "reads through a POST": ["drive.files.download", "sheets.spreadsheets.developerMetadata.search",
     "sheets.spreadsheets.getByDataFilter", "sheets.spreadsheets.values.batchGetByDataFilter", "calendar.freebusy.query"],
   "is undone by a call of its own": ["drive.drives.hide", "drive.drives.unhide", "drive.files.modifyLabels",
-    "drive.comments.update", "drive.replies.update", "gmail.users.messages.modify", "gmail.users.messages.batchModify",
+    "gmail.users.messages.modify", "gmail.users.messages.batchModify",
     "gmail.users.messages.untrash", "gmail.users.threads.modify", "gmail.users.threads.untrash", "gmail.users.labels.patch",
     "gmail.users.settings.cse.keypairs.enable", "gmail.users.settings.cse.identities.patch", "calendar.calendarList.patch",
     "calendar.calendars.patch"],
