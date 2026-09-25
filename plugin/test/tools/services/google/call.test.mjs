@@ -120,6 +120,7 @@ test("--page-all prints one JSON line a page and stops at --page-limit", async (
   assert.equal(answer.status, 0, answer.stderr);
   const lines = answer.stdout.trim().split("\n").map((one) => JSON.parse(one));
   assert.deepEqual(lines.map((one) => one.files[0].id), ["f0", "f1"]);
+  assert.deepEqual(fake.requests.map((seen) => seen.query.get("pageToken")), [null, "1"], "the limit bounds the requests, not only the lines");
   const all = await ran("drive", "files", "list", "--page-all", "--page-delay", "0");
   assert.equal(all.stdout.trim().split("\n").length, 4, "it stops where nextPageToken is absent");
 });
@@ -166,11 +167,15 @@ test("--dry-run prints the request with the credential masked and sends nothing;
   assert.equal(fake.requests[0].headers.authorization, `Bearer ${ENV_ACCESS}`);
 });
 
-test("a 401 exits 2 naming what clears it, and any other HTTP error exits 1 with the API's message and a next step", async () => {
+test("a 401 or 403 exits 2 naming what clears it, and any other HTTP error exits 1 with the API's message and a next step", async () => {
   fake.answers["GET /drive/v3/about"] = () => [401, { error: { message: `Invalid Credentials ${ENV_ACCESS}` } }];
   const auth = await ran("drive", "about", "get", "--params", '{"fields":"user"}');
   assert.equal(auth.status, 2);
   assert.match(auth.stderr, /a fresh token in FORGE_GOOGLE_ACCESS_TOKEN/u);
+  fake.answers["GET /drive/v3/about"] = () => [403, { error: { message: `Request had insufficient authentication scopes ${ENV_ACCESS}` } }];
+  const scoped = await ran("drive", "about", "get", "--params", '{"fields":"user"}');
+  assert.equal(scoped.status, 2);
+  assert.match(scoped.stderr, /a fresh token in FORGE_GOOGLE_ACCESS_TOKEN/u);
   fake.answers["GET /drive/v3/files/F9"] = () => [404, { error: { message: "File not found: F9." } }];
   const missing = await ran("drive", "files", "get", "F9");
   assert.equal(missing.status, 1);
