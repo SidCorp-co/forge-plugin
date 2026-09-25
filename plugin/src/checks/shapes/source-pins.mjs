@@ -2,7 +2,7 @@
    behaviour, and keeps passing while the behaviour it meant goes wrong in a way the text still
    spells (ISS-2502). A rule checker does this by design, which is why `plugin/test/checks/` is not
    walked; everywhere else the behaviour is what a case proves, through the module's entry point.
-   A match naming a banned module or global — no `process.env` in a module, no `node:fs` import —
+   A match naming a banned module or global — no environment read in a module, no `node:fs` import —
    is an architecture rule and survives any rename, so it is not a pin. One naming a local, an
    imported one included, is.
 
