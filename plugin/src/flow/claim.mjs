@@ -115,7 +115,7 @@ export const USAGE = [
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest goes`,
-  "  --ready         with --pushed: `ready`, from `head-owed`, `records-owed`, `builder-owed` too",
+  "  --ready         with --pushed: `ready`, from any builder's turn too",
   "  --take          the lease where the checkpoint names your turn",
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
