@@ -1,7 +1,5 @@
-/* The current report as the page a reader opens first: the span it covers, each headline figure as a
-   series ending at today so far, the causes in three sections with their gain and score, and the
-   dated snapshots under it. Everything is inline, as the day's page is, and every figure is said in
-   words beside any drawing of it — docs/cli/stats.md. */
+/* The current report's content as HTML. Everything is inline, as the day's page is, and every figure
+   is said in words beside any drawing of it — docs/cli/stats.md. */
 import { SORT_SCRIPT, STYLE, at, esc, missing, said, table, trendSvg } from "../daily/page.mjs";
 import { contentBlock } from "../daily/store.mjs";
 

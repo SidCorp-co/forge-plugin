@@ -536,7 +536,6 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
     issues: [...issues].map((one) => String(one).toUpperCase()),
     at: new Date().toISOString(), ...readingOf(directory, corpus, size),
   });
-  /* The current harness report is rewritten after each release reading, where the project asked. */
   releaseDue(directory);
   const ahead = { count: Math.min(size, corpus.runs.length), size, terms: RUN_TERMS };
   return `stats: this release is held as ${version} over ${corpus.runs.length} run(s). ${releaseSaid(wrote, version, ahead)}`;

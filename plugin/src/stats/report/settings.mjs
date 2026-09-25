@@ -34,8 +34,7 @@ const wrong = (key, takes, given) => `stats report: \`${REPORT_KEY}.${key}\` in 
   + `\`${JSON.stringify(given)}\`. Set it to one, or remove it to take ${JSON.stringify(DEFAULTS[key.split(".").at(-1)])}. Nothing was written.`;
 
 /** The score's formula and weights and the two windows, each member read apart and defaulted where
- *  it is omitted; or the first member that is wrong, named in full. Read at the call, so a home the
- *  caller sets reaches it. */
+ *  it is omitted; or the first member that is wrong, named in full. */
 export const reportSettings = () => {
   const given = (readJson(configPath()) ?? {})[REPORT_KEY];
   if (given === undefined) return { ...DEFAULTS, from: "the plugin's defaults" };

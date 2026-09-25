@@ -1,7 +1,5 @@
-/* `forge stats report` — the harness report as it stands now, over every day this device holds: each
-   headline figure as a series, the causes behind the cost one row per root cause in three sections,
-   and the gain a fix realized or would project. It states figures and judges none; every figure is
-   a reader's the day's page already reads — docs/cli/stats.md. */
+/* `forge stats report`: the verb, the content it prints or renders, and the writer that holds the
+   page while it writes — docs/cli/stats.md. */
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -85,7 +83,7 @@ const rowOf = (family, context) => {
   };
 };
 
-/* A section's rows: every one a matched issue keeps on the report, and the first of the rest. */
+/* A section's rows, its tail past the cap counted rather than listed; a row with an issue is never cut. */
 const listed = (rows, section) => {
   const all = rows.filter((one) => one.section === section).sort(byRank);
   const kept = all.filter((one, index) => one.issues.length || index < LISTED[section]);
@@ -168,7 +166,7 @@ const contentFrom = async (dir, reading, found) => {
     [dir, ...found.read.map((one) => one.checkout)]);
 };
 
-/* Read afresh off every registered project, landings and all. */
+/* With no bound on the landings, since the series draws a point for every day held. */
 const contentNow = async (dir) => {
   const found = projectsOn();
   return contentFrom(dir, readingOf({ projects: await corporaOf(found.read, null) }), found);
