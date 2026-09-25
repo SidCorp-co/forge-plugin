@@ -190,7 +190,7 @@ test("a reconciliation at any state but builder-owed is refused naming the state
     field({ ...OWED, state }, lease(BUILDER));
     const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
     assert.equal(run.status, 1, `${state}: ${run.stdout}`);
-    assert.match(run.stderr, new RegExp(`reads \`${state}\``, "u"), run.stderr);
+    assert.ok(run.stderr.includes(`reads \`${state}\``), run.stderr);
     assert.match(run.stderr, /handed back from `builder-owed`/u, "and the one state it is handed back from");
     assert.equal(checkpoint().state, state, "nothing was written");
   }
@@ -438,7 +438,7 @@ test("a records hand-back at any other state is refused naming the state it read
     field({ ...RECORDS, state }, lease(BUILDER));
     const run = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
     assert.equal(run.status, 1, `${state}: ${run.stdout}`);
-    assert.match(run.stderr, new RegExp(`reads \`${state}\``, "u"), run.stderr);
+    assert.ok(run.stderr.includes(`reads \`${state}\``), run.stderr);
     assert.match(run.stderr, /handed back from `records-owed`/u, "and the one state it is handed back from");
     assert.equal(checkpoint().state, state, "nothing was written");
   }

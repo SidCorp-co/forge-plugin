@@ -1,6 +1,6 @@
 /* The spine cut to one issue, off the tables other readers answer to. The shift this file turns on:
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
-   at a rung answers to the rung above. docs/cli/resume.md. */
+   at a rung answers to the rung above. docs/cli/the-phase-owed.md. */
 import { ORDER, stepAfter } from "../flow/earned.mjs";
 import { CLOSES_FROM, atMinute } from "../flow/machine.mjs";
 import { POINTER } from "../flow/worklog.mjs";
@@ -207,7 +207,7 @@ export const READ_OFF_THE_RECORD =
   "Start at the phase owed. The phases before it are read off the record and not run again — each"
   + " one below names the record that discharged it.";
 
-/** The opening on an issue somebody else opened: one line per phase behind, none where none is, and one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
+/** The opening on an issue somebody else opened: one line per phase behind, none where none is, and one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/the-phase-owed.md. */
 /* And the work under the record, gated on a phase being owed — a closed issue's branch is nobody's next step — and on the branch, so a phase owed with nothing behind it reads exactly as it did (ISS-1183). */
 export const openingLines = (status, held, work = null, finished = []) => {
   const { passed, first } = behind(status, held, finished);
