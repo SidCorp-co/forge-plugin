@@ -1,8 +1,8 @@
 /* Which names a list of angles may hold, judged where a consult reads the list and where `forge doctor
    --set` writes it. Apart from codex.mjs so the project file's writer can import the judgement without
    the verb. */
-import { didYouMean } from "../suggest.mjs";
-import { ANGLES } from "./codex-api.mjs";
+import { didYouMean } from "../../suggest.mjs";
+import { ANGLES } from "../codex-api.mjs";
 
 /** Why a list of angles cannot review a consult, or null. One judgement for the consult that reads the
  *  list and the `--set` that writes it, so a write never stores what the next consult refuses, and

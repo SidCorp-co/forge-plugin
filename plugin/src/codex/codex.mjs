@@ -18,7 +18,7 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { budgetMs, codexCheck, fail, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { anglesRefusal } from "./angles.mjs";
+import { anglesRefusal } from "./angles/refusal.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
