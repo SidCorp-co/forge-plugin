@@ -9,6 +9,7 @@ import { basename, dirname, join } from "node:path";
 import { fakeTracker, pathed, projectRecord, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 import { noteShown } from "../../../src/tracker/comments.mjs";
+import { developerCorepack, lendCorepack } from "./room/corepack.mjs";
 
 export const LANDER = "the-lander-run";
 export const BUILDER = "the-builder-run";
@@ -169,9 +170,15 @@ if (argv[1] === "update") {
 process.exit(0);
 `;
 
+/* Read before HOME is replaced below, so the room lends what the developer's own Corepack home holds. */
+export const DEVELOPER_COREPACK = developerCorepack();
+export const COREPACK = join(ROOM, "corepack");
+lendCorepack(DEVELOPER_COREPACK, COREPACK);
+
 mkdirSync(BIN, { recursive: true });
 writeFileSync(join(BIN, "claude"), CLAUDE, { mode: 0o755 });
 process.env.HOME = ROOM;
+process.env.COREPACK_HOME = COREPACK;
 process.env.PATH = `${BIN}:${process.env.PATH}`;
 process.env.FORGE_SESSION_ID = LANDER;
 process.env.AI_AGENT = "a-test-agent";
