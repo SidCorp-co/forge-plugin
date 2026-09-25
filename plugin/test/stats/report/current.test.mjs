@@ -1,4 +1,4 @@
-/* `forge stats report` on a device made small: what it writes and where, what `--open` and `--json`
+/* `forge stats daily --current` on a device made small: what it writes and where, what `--open` and `--json`
    print, the series over every day held, the dated snapshots it lists and leaves alone, the page's
    masking, and the writer's mark with its once-more flag. Every home is the fixture's room. */
 import assert from "node:assert/strict";
@@ -12,11 +12,11 @@ import { againPath, contentOf, markPath, takeMark } from "../../../src/stats/dai
 import { FORGE } from "../fixture-runs.mjs";
 import { daily, daysAgo, device, envOf, today } from "../daily/fixture-daily.mjs";
 
-const report = (held, ...argv) => spawnSync(FORGE, ["stats", "report", ...argv], { encoding: "utf8", cwd: held.room, env: envOf(held) });
+const report = (held, ...argv) => spawnSync(FORGE, ["stats", "daily", "--current", ...argv], { encoding: "utf8", cwd: held.room, env: envOf(held) });
 
 const index = (held) => join(held.reports, "index.html");
 
-test("stats report writes the current report as index.html in the reports directory and prints its path", () => {
+test("stats daily --current writes the current report as index.html in the reports directory and prints its path", () => {
   const held = device({ days: [daysAgo(1)] });
   const run = report(held);
   assert.equal(run.status, 0, run.stderr);
@@ -71,7 +71,7 @@ test("the current report lists every dated snapshot newest first, linked, with i
   assert.match(page, new RegExp(`${daysAgo(1)}</a> — [^<]*following no release written`, "u"));
 });
 
-test("stats daily rewrites the current report after its dated snapshot, and its help names stats report", () => {
+test("stats daily rewrites the current report after its dated snapshot, and its help names --current", () => {
   const held = device({ days: [daysAgo(1)] });
   const run = daily(held);
   assert.equal(run.status, 0, run.stderr);
@@ -80,10 +80,13 @@ test("stats daily rewrites the current report after its dated snapshot, and its 
   assert.deepEqual(content.snapshots.map((one) => one.day), [daysAgo(1)]);
   assert.match(run.stdout, /The current report, listing every day held: /u);
   const help = spawnSync(FORGE, ["stats", "daily", "-h"], { encoding: "utf8", cwd: held.room, env: envOf(held) });
-  assert.match(help.stdout.replaceAll("\n", " "), /The current report, .* is `forge stats report`'s\./u);
+  assert.match(help.stdout.replaceAll("\n", " "), /`forge stats daily --current` writes the current report instead/u);
+  const idle = daily(held, "--current", "--day", daysAgo(1));
+  assert.equal(idle.status, 1);
+  assert.match(idle.stderr, /--current writes the report over every day held and always rewrites it, so it takes no --day/u);
 });
 
-test("a dated snapshot is left byte for byte as it was by stats report", () => {
+test("a dated snapshot is left byte for byte as it was by stats daily --current", () => {
   const held = device({ days: [daysAgo(1)] });
   assert.equal(daily(held).status, 0);
   const page = join(held.reports, `${daysAgo(1)}.html`);

@@ -1,4 +1,4 @@
-/* `forge stats report`: the verb, the content it prints or renders, and the writer that holds the
+/* `forge stats daily --current`: the content it prints or renders, and the writer that holds the
    page while it writes — docs/cli/stats.md. */
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,24 +16,6 @@ import { CURRENT, INDEX, againPath, clearMark, contentOf as heldContentOf, heldD
 import { indexLineOf } from "../daily/summary.mjs";
 import { RELEASES, marksOf } from "../marks/marks.mjs";
 import { fail } from "../../resolve/settings.mjs";
-import { flags } from "../../resolve/flags.mjs";
-
-const VERB = "stats report";
-
-export const REPORT_USAGE = [
-  "Usage: forge stats report [--open] [--json]",
-  "The harness report as it stands now, over every day this device holds, written as index.html in",
-  "the reports directory: runs, minutes, calls, refusals, consults, landings and releases each as a",
-  "series whose last point is today so far; the causes behind the cost, one row per root cause, as",
-  "new, recurring and fixed; the gain each fix realized and each open cause would project; and every",
-  "dated snapshot `forge stats daily` holds. It states figures and judges none: `forge stats eval`",
-  "and the harness-eval skill do that. A project whose `report` is `daily` rewrites it at each",
-  "session start and each release reading, as its `reportOn` names; the score and its windows are",
-  "the `report` table of this device's config.json.",
-  "",
-  "  --open  print the path of the report and nothing else, for a command that opens it",
-  "  --json  print the report's content as one object and write nothing",
-].join("\n");
 
 /** How many rows each section lists past the ones a matched issue keeps on the report. */
 const LISTED = { new: 15, recurring: 25, "one-off": 10 };
@@ -198,9 +180,9 @@ export const writeCurrent = async (dir, first = writeOnce, again = writeOnce, ta
   }
   let wrote = null;
   try {
-    for (let write = first; ; write = again) {
+    for (let pass = first; ; pass = again) {
       rmSync(againPath(dir), { force: true });
-      wrote = await write(dir);
+      wrote = await pass(dir);
       if (!existsSync(againPath(dir))) break;
     }
   } finally {
@@ -210,8 +192,8 @@ export const writeCurrent = async (dir, first = writeOnce, again = writeOnce, ta
   return wrote;
 };
 
-export const printReport = async (rest) => {
-  const { open, json } = flags(rest, VERB, ["--open", "--json"], { usage: REPORT_USAGE });
+/** `forge stats daily --current`, its `--open` and `--json` read by the daily verb's own parse. */
+export const printCurrent = async ({ open, json }) => {
   const reports = reportsDir();
   if (json) return console.log(JSON.stringify(await contentNow(reports.dir), null, 2));
   const wrote = await writeCurrent(reports.dir);

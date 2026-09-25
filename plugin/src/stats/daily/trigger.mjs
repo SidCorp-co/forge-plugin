@@ -55,7 +55,7 @@ const dayWriter = (where, day, { start, root, cwd }) => {
 /* The current report's writer, which takes its own mark: a second one finding it held leaves the
    holder a flag to write once more, so nothing here has to judge the mark. */
 const currentWriter = ({ start, root, cwd }) => {
-  const child = started(start, root, ["report"], cwd);
+  const child = started(start, root, ["daily", "--current"], cwd);
   return child ? { current: true, pid: child.pid } : null;
 };
 

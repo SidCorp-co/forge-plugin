@@ -1,7 +1,6 @@
 /* `forge stats <subject>` — one verb, a subject per thing profiled: docs/cli/stats.md. */
 import { CHANGE_USAGE, printChange } from "./eval/change.mjs";
 import { DAILY_USAGE, printDaily } from "./daily/daily.mjs";
-import { REPORT_USAGE, printReport } from "./report/current.mjs";
 import { DIAGNOSE_USAGE, printDiagnose } from "./eval/diagnose.mjs";
 import { EVAL_USAGE, MARKS_USAGE, printEval, printMarks } from "./eval/eval.mjs";
 import { MODELS_USAGE, printModels } from "./models.mjs";
@@ -11,8 +10,7 @@ import { WAVES_USAGE, printWaves } from "./waves/profile.mjs";
 import { helpAskedOf } from "../resolve/flags.mjs";
 
 const SUBJECTS = { runs: printRuns, models: printModels, eval: printEval, change: printChange,
-  marks: printMarks, diagnose: printDiagnose, waves: printWaves, surface: printSurface, daily: printDaily,
-  report: printReport };
+  marks: printMarks, diagnose: printDiagnose, waves: printWaves, surface: printSurface, daily: printDaily };
 
 export const USAGE = [
   /* The set off the map rather than beside it: the words this verb refuses against are its keys, and
@@ -30,13 +28,12 @@ export const USAGE = [
   "  waves     what each dispatch wave cost its dispatcher, and the hand-backs and replaced runs in it",
   "  surface   what the help and guide texts this copy serves cost in tokens, and what repeats in them",
   "  daily     one page for a calendar day: what the harness cost, what landed in it, where rounds went",
-  "  report    the harness report as it stands now, over every day held: series, causes, gains",
 ].join("\n");
 
 /* One text per subject, which is the set its own parse refuses against, so neither can move alone. */
 export const SAYS = { runs: RUNS_USAGE, models: MODELS_USAGE, eval: EVAL_USAGE, change: CHANGE_USAGE,
   marks: MARKS_USAGE, diagnose: DIAGNOSE_USAGE, waves: WAVES_USAGE, surface: SURFACE_USAGE,
-  daily: DAILY_USAGE, report: REPORT_USAGE };
+  daily: DAILY_USAGE };
 
 export const stats = (argv) => {
   const [subject, ...rest] = argv;

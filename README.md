@@ -145,13 +145,13 @@ the project's to say, and this repository names the four roles its dispatch sets
 
 `report` is `daily` where this project's session starts write yesterday's harness report when it
 is missing, and off unless set: `forge stats daily -h` says what the page holds. `reportOn` names
-the acts that then rewrite the current report, `forge stats report`: `session`, `release`, or both,
+the acts that then rewrite the current report, `forge stats daily --current`: `session`, `release`, or both,
 which is what an unset key means.
 
 The device's own `report` table in config.json sets that page's score: `score.formula` of
 `product` or `sum`, the weights `score.days`, `score.calls` and `score.minutes`, and the windows
 `followDays` and `earlyDays`. Each member is set by hand, and an omitted one takes its default:
-`forge stats report -h` says what the page does with them.
+`forge stats daily -h` says what the page does with them.
 
 `runs` is how many runs this project carries at once, whoever dispatched them, and absent it
 resolves to no number at all — every reader then behaves as it did before the key existed, which is

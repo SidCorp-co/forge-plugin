@@ -30,7 +30,7 @@ const isTable = (value) => value !== null && typeof value === "object" && !Array
 
 const aCount = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
 
-const wrong = (key, takes, given) => `stats report: \`${REPORT_KEY}.${key}\` in ${configPath()} is ${takes}, not `
+const wrong = (key, takes, given) => `stats daily --current: \`${REPORT_KEY}.${key}\` in ${configPath()} is ${takes}, not `
   + `\`${JSON.stringify(given)}\`. Set it to one, or remove it to take ${JSON.stringify(DEFAULTS[key.split(".").at(-1)])}. Nothing was written.`;
 
 /** The score's formula and weights and the two windows, each member read apart and defaulted where
@@ -39,7 +39,7 @@ export const reportSettings = () => {
   const given = (readJson(configPath()) ?? {})[REPORT_KEY];
   if (given === undefined) return { ...DEFAULTS, from: "the plugin's defaults" };
   if (!isTable(given)) {
-    return { refused: `stats report: \`${REPORT_KEY}\` in ${configPath()} is a table of \`score\`, \`followDays\` `
+    return { refused: `stats daily --current: \`${REPORT_KEY}\` in ${configPath()} is a table of \`score\`, \`followDays\` `
       + `and \`earlyDays\`, not \`${JSON.stringify(given)}\`. Nothing was written.` };
   }
   const score = given.score === undefined ? {} : given.score;
@@ -47,7 +47,7 @@ export const reportSettings = () => {
   const stranger = Object.keys(given).find((key) => !["score", ...WINDOWS].includes(key))
     ?? Object.keys(score).map((key) => `score.${key}`).find((key) => !["score.formula", ...WEIGHTS.map((one) => `score.${one}`)].includes(key));
   if (stranger) {
-    return { refused: `stats report: \`${REPORT_KEY}.${stranger}\` in ${configPath()} is no member this report reads: it reads `
+    return { refused: `stats daily --current: \`${REPORT_KEY}.${stranger}\` in ${configPath()} is no member this report reads: it reads `
       + "`score.formula`, `score.days`, `score.calls`, `score.minutes`, `followDays` and `earlyDays`. Remove it. Nothing was written." };
   }
   const held = { ...DEFAULTS, from: configPath() };

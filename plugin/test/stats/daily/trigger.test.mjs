@@ -68,7 +68,7 @@ test("a day already written or still being written starts no second day writer, 
   mkdirSync(other.reports, { recursive: true });
   writeFileSync(join(other.reports, `${day}.writing`), `${process.pid}\n`);
   assert.deepEqual(under(other, () => dailyDue("/plugin", { start, now: NOON, cwd: other.checkout })), { current: true, pid: 424242 });
-  assert.deepEqual(calls.filter((one) => one !== "unref").map((one) => one.args), [["/plugin/bin/forge", "stats", "report"], ["/plugin/bin/forge", "stats", "report"]]);
+  assert.deepEqual(calls.filter((one) => one !== "unref").map((one) => one.args), [["/plugin/bin/forge", "stats", "daily", "--current"], ["/plugin/bin/forge", "stats", "daily", "--current"]]);
   assert.equal(calls.filter((one) => one !== "unref").every((one) => one.options.detached && one.options.stdio === "ignore"), true);
   writeFileSync(join(other.reports, `${day}.writing`), "999999999\n");
   assert.deepEqual(under(other, () => dailyDue("/plugin", { start, now: NOON, cwd: other.checkout })), { day, pid: 424242 });
@@ -88,7 +88,7 @@ test("a release reading starts a detached current-report writer where the projec
   const held = device({ project: { report: "daily" } });
   const { calls, start } = starter();
   assert.deepEqual(under(held, () => releaseDue(held.checkout, { start, root: "/plugin" })), { current: true, pid: 424242 });
-  assert.deepEqual(calls[0].args, ["/plugin/bin/forge", "stats", "report"]);
+  assert.deepEqual(calls[0].args, ["/plugin/bin/forge", "stats", "daily", "--current"]);
   assert.equal(calls[0].options.detached, true);
   assert.equal(calls[0].options.cwd, held.checkout);
   assert.equal(calls[1], "unref");

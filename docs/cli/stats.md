@@ -111,7 +111,7 @@ stops a second one, and a mark whose process is gone stops nothing.
 
 ## The current report
 
-**The page opened first is the current one.** `forge stats report` writes `index.html` over every
+**The page opened first is the current one.** `forge stats daily --current` writes `index.html` over every
 day held, and lists the dated pages as snapshots: two pages each claiming to be first would disagree
 the first time only one was rewritten.
 
