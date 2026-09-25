@@ -1,6 +1,9 @@
 /* The gate a release passed, published for the head it pushed, so a branch cut from that head cites the result instead of invoking a gate of its own (ISS-1101). The whole-scope claim is read here and handed over as a word: the gate's record is a content-keyed `tools/` artefact the plugin may not read, and the ship is the only thing that may say `whole` of a run that was itself scoped. Every field is read off the tree being published for and none off the process's own checkout — a project's configuration is found by its repository's own root folder, so the tree being published for answers for itself and a publication filed under the invoking project is one the release's own checkout cannot discover. */
+import { spawnSync } from "node:child_process";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { gitOut } from "../checkout.mjs";
-import { greenHeld } from "../gates/green.mjs";
 import { remoteHeadOf, shortly } from "./install.mjs";
 import { publishBaseline, publishedSaid } from "../../plugin/src/flow/earned/published.mjs";
 import { projectAt } from "../../plugin/src/resolve/settings.mjs";
@@ -27,8 +30,27 @@ export const unshippedSays = (tree, base, commit) => {
   return null;
 };
 
+/* The reading is the published tree's own gate code, run in a process started for it, and never this process's copy: that copy loaded at the head the release began from, so a change to the step table it landed would be judged by the table it replaced (ISS-2541). A module cache cannot be told to forget, and the ship stands in the very checkout it loaded from, so no import from here reaches the shipped files. */
+const HELD_IN = `const [reader, root] = process.argv.slice(1);
+try {
+  const { greenHeld } = await import(reader);
+  process.stdout.write(JSON.stringify(greenHeld(root)));
+} catch (error) {
+  process.stderr.write(error.message);
+  process.exit(1);
+}`;
+
+export const heldIn = (tree) => {
+  const reader = pathToFileURL(join(tree, "tools", "gates", "green.mjs")).href;
+  const ran = spawnSync(process.execPath, ["--input-type=module", "-e", HELD_IN, reader, tree],
+    { cwd: tree, encoding: "utf8" });
+  if (ran.error) throw new Error(`${process.execPath} could not be started: ${ran.error.message}`);
+  if (ran.status !== 0) throw new Error(ran.stderr.trim() || `the tree's own reader exited ${ran.status}`);
+  return JSON.parse(ran.stdout);
+};
+
 /** Called from every route that releases a head, the ship and the landing alike, because a rule reading `the ship publishes the baseline for the head it shipped` is incomplete while a second route releases one and publishes nothing. Reports and refuses nothing: a record this cannot read is not a release this may stop. `read` is a seam so a case can drive the outcomes a real step table will not produce to order, and the real reader is driven as well, over a repository whose gate ledger is its own. */
-export const publishes = (tree, base, version, { say = console.log, read = greenHeld } = {}) => {
+export const publishes = (tree, base, version, { say = console.log, read = heldIn } = {}) => {
   const commit = gitOut(["rev-parse", "HEAD"], tree);
   try {
     const unshipped = unshippedSays(tree, base, commit);

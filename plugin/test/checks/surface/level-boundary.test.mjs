@@ -121,6 +121,6 @@ test("the ship imports the plugin, which is the direction this boundary allows",
   const ship = readFileSync(join(ROOT, "tools", "run", "publish.mjs"), "utf8");
   assert.match(ship, /from "\.\.\/\.\.\/plugin\/src\/flow\/earned\/published\.mjs"/u,
     "the publish reads the store through the plugin, so the record's shape has one owner");
-  assert.match(ship, /from "\.\.\/gates\/green\.mjs"/u,
-    "and reads the gate's record here, where the ledger belongs");
+  assert.match(ship, /join\(tree, "tools", "gates", "green\.mjs"\)/u,
+    "and reads the gate's record here, where the ledger belongs, with the published tree's own copy of the reader");
 });
