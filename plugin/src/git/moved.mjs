@@ -18,6 +18,10 @@ export const unreadableIn = (tree, commits) =>
  *  paths literal, since a name holding `*` is a file and not a pattern. */
 export const movedBetween = (tree, from, to, paths) => {
   if (!paths.length) return [];
-  const said = gitOut(["--literal-pathspecs", "diff", "--no-renames", "--name-only", from, to, "--", ...paths], tree);
+  /* From the top of the checkout, the paths being the repository's own: asked from a subdirectory, git
+     reads a pathspec relative to it and a changed file would match nothing. */
+  const top = gitOut(["rev-parse", "--show-toplevel"], tree)?.trim();
+  if (!top) return null;
+  const said = gitOut(["--literal-pathspecs", "diff", "--no-renames", "--name-only", from, to, "--", ...paths], top);
   return said === null ? null : said.split("\n").filter(Boolean);
 };

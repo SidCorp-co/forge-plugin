@@ -524,3 +524,28 @@ test("a commit git cannot read in this checkout refuses the mark, and names the 
   assert.match(run.stderr, /\n {2}git fetch$/mu, "the one command that clears it");
   assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false);
 });
+
+/* Git reads a pathspec relative to the directory it is asked from, so a mark written from a
+   subdirectory would have matched none of the change's repository-relative paths. */
+test("a mark written from a subdirectory of the checkout reads the change's paths from its top", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await ranAsync(FORGE, ["record", "merged", "ISS-99", "--at", MOVED, "--reviewed", REVIEWED,
+    "--judged", JUDGED, "--moved", "nothing", "--wrote", CHANGE], ENV, join(ROOM, "docs"));
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--moved says nothing, and git reads docs\/a\.md/u, run.stderr);
+  assert.deepEqual(page(), []);
+});
+
+/* A directory is how a path the note cannot carry is named, so it answers for the paths under it. */
+test("a directory typed for the paths git read under it agrees with git, and one holding none does not", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "docs", "--wrote", CHANGE);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(landingMoved(page()), ["docs"]);
+  state.comments[ISSUE.documentId] = [];
+  const wide = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "docs, plugin/src", "--wrote", CHANGE);
+  assert.equal(wide.status, 1, wide.stdout);
+  assert.match(wide.stderr, /--moved says docs, plugin\/src, and git reads docs\/a\.md/u, wide.stderr);
+});

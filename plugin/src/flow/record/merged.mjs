@@ -285,6 +285,14 @@ const clausesFrom = (given) => {
   return Object.fromEntries(CLAUSES.map((one) => [one.flag, valueOf(one, given[one.flag])]));
 };
 
+/* A typed entry may be a directory, which is the route this verb gives for a path the note cannot
+   carry: the typing agrees with git where every path git read is under an entry and every entry holds
+   a path git read. */
+const under = (entry, path) => path === entry || path.startsWith(`${entry.replace(/\/+$/u, "")}/`);
+const sameReading = (read, moved) =>
+  read.every((path) => moved.some((entry) => under(entry, path)))
+  && moved.every((entry) => read.some((path) => under(entry, path)));
+
 /* The clause that stands the verdicts down or lets them stand is git's reading and never the run's:
    a run listing every path a no-op merge touched re-owed twenty-six verdicts about identical bytes,
    and a run saying `nothing` over a merge that moved its file would have kept them (ISS-1362). The
@@ -303,8 +311,7 @@ const movedProblem = (clauses, tree) => {
   }
   const read = movedBetween(tree, judged, at, wrote);
   if (read === null) return `git in ${tree} could not diff ${judged} against ${at}, so nothing was written.`;
-  const same = read.length === moved.length && read.every((one) => moved.includes(one));
-  if (same) return null;
+  if (sameReading(read, moved)) return null;
   return `--moved says ${pathsSaid(moved)}, and git reads ${pathsSaid(read)}: those are the paths of `
     + `--wrote whose bytes differ between the judged head ${judged} and ${at}. The clause is that `
     + `reading, since it is what lets the verdicts at the judged head stand, so nothing was written. `
