@@ -26,7 +26,17 @@ report has to answer for a directory rather than for the machine. A call that na
 path still runs that copy: the probe of a worktree, the suite's own spawns and the bundled
 `vi-natural` all mean the copy they name, and a caller who typed a path was not asking.
 
+The flow's verbs are the exception to the working directory, and the reason is who judges what they
+write. A record is read by the tracker's contract and moved by the landing, and both answer to the
+installed release, so a worktree cut a few releases ago that answered `forge claim` itself wrote and
+read records under rules nobody was still serving: a route released that morning was refused by a
+run whose branch predated it. So a flow verb arriving through the link runs the installed copy
+wherever it is typed, and every other verb keeps the checkout's, because those are the ones a change
+is probed with. Which verbs are the flow's is declared once, beside the chooser that reads it. A run
+whose change is to a flow verb is told so on the call, since the answer it just read is not its own
+code's, and it probes its own through the checkout's wrapper by path, which is the case above.
+
 The gates ask the same chooser for a different file, so `forge doctor` gives them their own line
-rather than sharing one. The answers are usually the same and the case that matters is when they are
+rather than sharing one, as it does the flow's verbs. The answers are usually the same and the case that matters is when they are
 not: an install holding one entry and not the other picks a different copy for each, and nothing else
 on that report would show it.

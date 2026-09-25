@@ -7,11 +7,11 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { copyToRun } from "../../src/tools/plugin-copy.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { copyToRun } from "../../../src/tools/plugin-copy.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const BIN = new URL("../../bin/", import.meta.url).pathname;
-const PLUGIN = new URL("../..", import.meta.url).pathname;
+const BIN = new URL("../../../bin/", import.meta.url).pathname;
+const PLUGIN = new URL("../../..", import.meta.url).pathname;
 
 const NAME = JSON.parse(readFileSync(join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).name;
 
@@ -194,14 +194,11 @@ test("the chosen copy carries why it was chosen", () => {
 });
 
 /* A dispatcher whose module graph reaches the code it exists to survive survives nothing. */
-test("the dispatcher imports nothing but node builtins and the chooser", () => {
+test("the dispatcher imports nothing but node builtins and the choosers", () => {
   const imports = (path) =>
     [...readFileSync(path, "utf8").matchAll(/from\s+"([^"]+)"/gu)].map(([, one]) => one);
-  const chooser = "./tools/plugin-copy.mjs";
-  for (const one of imports(join(PLUGIN, "src", "dispatch.mjs"))) {
-    assert.ok(one.startsWith("node:") || one === chooser, `dispatch.mjs imports ${one}`);
-  }
-  for (const one of imports(join(PLUGIN, "src", "tools", "plugin-copy.mjs"))) {
-    assert.ok(one.startsWith("node:"), `plugin-copy.mjs imports ${one}`);
-  }
+  const own = (path) => imports(path).filter((one) => !one.startsWith("node:"));
+  assert.deepEqual(own(join(PLUGIN, "src", "dispatch.mjs")), ["./tools/copies/flow-copy.mjs"]);
+  assert.deepEqual(own(join(PLUGIN, "src", "tools", "copies", "flow-copy.mjs")), ["../plugin-copy.mjs"]);
+  assert.deepEqual(own(join(PLUGIN, "src", "tools", "plugin-copy.mjs")), []);
 });

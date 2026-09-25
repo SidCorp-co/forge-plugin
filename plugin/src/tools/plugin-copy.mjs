@@ -72,7 +72,7 @@ const installedAbleToRun = (name, entry, record) => {
   const able = recordsOf(name, record)
     .filter((one) => typeof one.installPath === "string" && existsSync(join(one.installPath, entry)));
   const newest = newestOf(able);
-  return newest ? { dir: newest.installPath, version: newest.version } : null;
+  return newest ? { dir: newest.installPath, version: newest.version, sha: newest.gitCommitSha ?? null } : null;
 };
 
 const versionAt = (dir) => read(join(dir, ".claude-plugin", "plugin.json"))?.version ?? null;

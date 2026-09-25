@@ -118,8 +118,9 @@ const UNDECIDED = [
 
 const COPY = [
   "Usage: forge doctor copy",
-  "Which copy of this plugin answers a call from here, which copy the gates run, what a session",
-  "keeps until it restarts whatever those two say, and the newest version released.",
+  "Which copy of this plugin answers a call from here, which copy the flow's verbs run, which copy",
+  "the gates run, what a session keeps until it restarts whatever those three say, and the newest",
+  "version released.",
   "",
   "No flag writes any of it: a copy is installed by `claude plugin update` and a release is the",
   "project's own to make. The rows are the whole of this subject.",

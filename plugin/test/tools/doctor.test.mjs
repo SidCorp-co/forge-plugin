@@ -175,6 +175,10 @@ test("the copy a call through the link would run is reported, with why that one"
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
   assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory/u);
+  assert.match(inside.stdout, /\[ {2}ok {2}\] copy of the flow\s+checkout \S+ at \S+ — claim, resume, record, \S.* the working directory/u,
+    "the flow's verbs get a row of their own, which with no install record is the checkout");
+  assert.match(inside.stdout, /\[ {2}ok {2}\] copy the gates run\s+checkout \S+ at \S+ — the working directory/u,
+    "and the gates are still chosen by the directory alone");
 });
 
 /* An install holding one entry and not the other answers differently for each: only this shows it. */
