@@ -47,7 +47,7 @@ test("a land --wait behind a running ship waits for it, then runs and exits with
     const { code } = await second.exited;
     assert.equal(code, 0, second.said.out + second.said.err);
     const lines = second.said.out.split("\n");
-    const waited = lines.findIndex((line) => new RegExp(`waited \\d+ second\\(s\\) behind pid ${ahead}, whose ship (succeeded|failed)`, "u").test(line));
+    const waited = lines.findIndex((line) => new RegExp(`waited \\d+ second\\(s\\) behind pid ${escaped(ahead)}, whose ship (succeeded|failed)`, "u").test(line));
     assert.ok(waited >= 0, second.said.out);
     assert.ok(waited < stepAt(second.said.out), `the wait was not said before step 1:\n${second.said.out}`);
     assert.ok(existsSync(join(at, "gate-done")), "the waiter ran before the ship's gate ended");
@@ -82,7 +82,7 @@ for (const verb of ["ship", "land-ready"]) {
     const { work, first, ahead, second, waiter } = await behindShip(`behind-${verb}`, 2000, [verb, "--wait", "1"]);
     try {
       const { code } = await second.exited;
-      assert.match(second.said.out, new RegExp(`waited .+ behind pid ${ahead}, whose ship (succeeded|failed).*; this ${verb} now holds the tree`, "u"),
+      assert.match(second.said.out, new RegExp(`waited .+ behind pid ${escaped(ahead)}, whose ship (succeeded|failed).*; this ${verb} now holds the tree`, "u"),
         second.said.out + second.said.err);
       const mine = recordOf(work);
       assert.deepEqual([mine.pid, mine.verb, mine.waited.behind], [waiter, verb, ahead]);
