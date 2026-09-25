@@ -72,6 +72,13 @@ test("a patch of an event that has an attendee is refused without --yes, read fi
   assert.equal(fake.sent("PATCH", "/calendar/v3/calendars/primary/events/E1").length, 0);
 });
 
+test("a patch of an event under --dry-run is previewed without reading the event", async () => {
+  const answer = await ran("calendar", "events", "patch", "E1", "--json", '{"summary":"moved"}', "--dry-run");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.match(answer.stdout, /^PATCH \S+\/calendar\/v3\/calendars\/primary\/events\/E1$/mu);
+  assert.equal(fake.requests.length, 0);
+});
+
 test("a patch of an event with nobody invited goes without --yes", async () => {
   fake.answers["GET /calendar/v3/calendars/primary/events/E2"] = () => [200, {}];
   fake.answers["PATCH /calendar/v3/calendars/primary/events/E2"] = () => [200, { id: "E2" }];

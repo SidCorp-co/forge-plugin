@@ -71,8 +71,8 @@ changes, or are undone by a call of their own. A write the table names neither w
 unclassified, and the suite fails on it, so a method a refresh brings in is either judged or asked
 about, never sent unjudged.
 
-`--dry-run` prints the request whole with the credential masked by the rule every saved credential
-here is shown by, and sends nothing; what goes on the wire is never masked.
+`--dry-run` prints the request and sends nothing, not even for a token: it names the account that
+would answer and refuses what the send would. What goes on the wire is never masked.
 
 ## Three routes to a credential, in one order
 

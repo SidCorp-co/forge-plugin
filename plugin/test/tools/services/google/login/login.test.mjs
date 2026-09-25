@@ -89,6 +89,25 @@ test("a later invocation exchanges the saved refresh token and bears the access 
   assert.equal(fake.sent("GET", "/gmail/v1/users/me/labels")[0].headers.authorization, `Bearer ${ACCESS}`);
 });
 
+test("--dry-run names the login's address and spends no refresh", async () => {
+  fake.requests.length = 0;
+  const answer = await google(home, ["gmail", "users", "labels", "list", "--dry-run"], { cwd: room });
+  printed.push(answer.stdout, answer.stderr);
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.match(answer.stdout, new RegExp(`^Credential: login ${LOGIN_EMAIL.replace(".", "\\.")}$`, "mu"));
+  assert.match(answer.stdout, /^Authorization: Bearer not fetched \(dry run\)$/mu);
+  assert.deepEqual(fake.requests, []);
+});
+
+test("--dry-run of a service the login did not ask for is refused with 2 naming what adds it, sending nothing", async () => {
+  fake.requests.length = 0;
+  const answer = await google(home, ["drive", "about", "get", "--dry-run"], { cwd: room });
+  printed.push(answer.stdout, answer.stderr);
+  assert.equal(answer.status, 2);
+  assert.match(answer.stderr, /forge google auth login --account owner --client-secret <client_secret\.json> -s gmail,calendar,drive/u);
+  assert.deepEqual(fake.requests, []);
+});
+
 test("--as on a call through a login is refused with 3, saying a login is one person", async () => {
   const answer = await google(home, ["gmail", "users", "labels", "list", "--as", "someone@example.com"], { cwd: room });
   printed.push(answer.stdout, answer.stderr);

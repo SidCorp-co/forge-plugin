@@ -66,6 +66,15 @@ test("a call signs an RS256 JWT with the key, sends it to the key's token endpoi
   assert.equal(fake.sent("GET", "/drive/v3/about")[0].headers.authorization, `Bearer ${ACCESS}`);
 });
 
+test("--dry-run names the service account and the user it acts as, and mints no token", async () => {
+  const answer = await ran(["drive", "about", "get", "--dry-run"]);
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.match(answer.stdout, /^Credential: service account robot@project\.iam\.gserviceaccount\.com key 012345…4567 \(40 chars\) as boss@example\.com$/mu);
+  assert.match(answer.stdout, /^Authorization: Bearer not fetched \(dry run\)$/mu);
+  assert.deepEqual(fake.requests, []);
+  assert.deepEqual(fake.jwts, []);
+});
+
 test("the JWT asks the called service's scopes, and its subject is the default --as or the one given", async () => {
   fake.answers["GET /gmail/v1/users/me/labels"] = () => [200, { labels: [] }];
   await ran(["gmail", "users", "labels", "list"]);
@@ -89,6 +98,10 @@ test("a Gmail call through a service account with no --as anywhere is refused wi
   assert.match(answer.stderr, /name the user with --as user@domain/u);
   assert.match(answer.stderr, /forge google auth set --account robot --as user@domain/u);
   assert.deepEqual(fake.jwts, []);
+  const previewed = await ran(["gmail", "users", "labels", "list", "--dry-run"]);
+  assert.equal(previewed.status, 3);
+  assert.match(previewed.stderr, /name the user with --as user@domain/u);
+  assert.deepEqual(fake.requests, []);
 });
 
 test("auth set records a default --as and the services; a service left out is refused with 2 naming what adds it", async () => {
@@ -182,6 +195,11 @@ test("a saved account that is not JSON exits 5 naming its file, and quotes none 
   assert.ok(answer.stderr.includes(`${saved} is not valid JSON`), answer.stderr);
   assert.match(answer.stderr, /forge google auth remove --account robot/u);
   for (const secret of SENTINELS) assert.ok(!`${answer.stdout}${answer.stderr}`.includes(secret), `${secret.slice(0, 12)}… reached a stream`);
+  fake.requests.length = 0;
+  const previewed = await google(damaged, ["drive", "files", "list", "--dry-run"], { cwd: room });
+  assert.equal(previewed.status, 5, previewed.stderr);
+  assert.ok(previewed.stderr.includes(`${saved} is not valid JSON`), previewed.stderr);
+  assert.deepEqual(fake.requests, []);
 });
 
 test("a saved account this user cannot read exits 5 naming its file and what clears it", { skip: process.getuid?.() === 0 }, async () => {
