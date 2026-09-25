@@ -2,7 +2,7 @@
    value that is a file on disk. Attach then re-send the record was a round of the agent's (ISS-65). */
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
-import { basename, extname, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, resolve, sep } from "node:path";
 
 import { fail } from "../resolve/settings.mjs";
 import { declaredFor, refuseCredential, write } from "./rest.mjs";
@@ -113,10 +113,35 @@ export const attachmentNames = (body, comments) => [
 
 export const evidenceHeld = (ref, names) => URL_REF.test(ref) || COMMIT.test(ref) || names.includes(ref);
 
+/* An attachment goes up under its base name, so a value carrying a separator names a place on disk
+   and never a document on the issue: sending it to `forge attach` only fails there instead (ISS-2506). */
+const pathShaped = (ref) => ref.includes("/") || ref.includes(sep) || isAbsolute(ref);
+
+const isDirectory = (path) => {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
+/* The nearest directory that exists is where the real name can be read off, whichever level the typo is at. */
+const missingFile = (ref) => {
+  const path = resolve(ref);
+  let listed = dirname(path);
+  while (!isDirectory(listed) && dirname(listed) !== listed) listed = dirname(listed);
+  const where = path === ref ? "" : ` (${path})`;
+  const gap = listed === dirname(path) ? "" : ` ${dirname(path)} is no directory here, so nothing under it exists.`;
+  return `Evidence \`${ref}\`${where} names no readable file, so there is nothing to put up.${gap} `
+    + `Read the name off what is there, and send the command again with the path it gives:`
+    + `\n  ls -- ${shellArg(listed)}`;
+};
+
 /** The first value that is none of the three, or null; the caller is the one that refuses. */
 export const evidenceProblem = (refs, names) => {
   const bad = refs.find((ref) => !evidenceHeld(ref, names));
   if (bad === undefined) return null;
+  if (pathShaped(bad) && !localFile(bad)) return missingFile(bad);
   return `Evidence \`${bad}\` is no attachment on this issue, no URL and no commit. `
     + "Attach it first (forge attach issue <ref> <file>), or cite a URL or a commit."
     + (names.length ? `\n  Attached: ${names.join(", ")}` : "");
