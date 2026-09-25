@@ -6,6 +6,7 @@ import { digest, locate } from "./codex-api.mjs";
 import { bodied, judgedBy, logEntries } from "./codex-log.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
+import { WRITE_READ_OWED } from "../ladder.mjs";
 import { bodyItself, notAPath } from "../resolve/payload.mjs";
 
 const OFF = "`FORGE_CODEX_DISABLE=1` in front of this command stands the check down; it runs in this "
@@ -15,17 +16,11 @@ const FILE_ROUTE = (what) =>
   `${what} cannot have been read: a consult is asked for a path, and there is no path here. Write it `
   + "to a file and name the file.";
 
-/* The log's key, quoted, and the root where the caller is not standing in one. `here` is the caller's own root, already computed, and a second probe answers the same directory at another realpath. */
-/* A run reaching this has just been told what its rung buys, and the count it was told is of the
-   review reads. This is not one of them, and a run that reads it as one reaches for the stand-down
-   below rather than spending what the write costs (ISS-1322). */
-const EVERY_RUNG = "A plan or a criteria write asks for this read at every rung, and no rung drops "
-  + "it.";
-
+/* The log's key, quoted, and the root where the caller is not standing in one. `here` is the caller's own root, already computed, and a second probe answers the same directory at another realpath. The owed sentence is the ladder's, which the rung's rounds print too, and it comes before the stand-down so a run reads that no rung buys this read away before it reads the way past it (ISS-1322, ISS-2303). */
 const readIt = (here, root, rel, why) =>
   `${why}\n\nDo this: \`${here === root ? "" : `cd ${typed(root)} && `}echo "<the issue, and `
   + `what this claims to have verified in code>" | forge codex consult --send bodies ${typed(rel)}\`, `
-  + `then re-send. ${EVERY_RUNG} ${OFF}`;
+  + `then re-send. ${WRITE_READ_OWED} ${OFF}`;
 
 /* One file's half of `shortOfWhole`, borrowing its test rather than restating it: what is wanted here is the part itself, for the bytes it carried, and a diffs consult sent none of them. */
 const carriedWhole = (entry, rel) => {
