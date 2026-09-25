@@ -131,6 +131,9 @@ test("a reconciliation over a branch that let the judged head go is refused, nam
   `the push that puts the judged head back:\n${run.stderr}`);
   assert.ok(run.stderr.includes(`git fetch origin ${BRANCH}`),
     `the fetch that moves the evidence it is read off, a push made elsewhere leaving it:\n${run.stderr}`);
+  assert.ok(run.stderr.includes("Where the branch as it now stands is your answer to the candidate")
+    && run.stderr.endsWith("forge claim ISS-673 --pushed --ready\n"),
+  `and where the rebase is the answer, the capture that takes it (ISS-2514):\n${run.stderr}`);
   assert.equal(JSON.stringify(state.issues[0].sessionContext), before, "and the checkpoint is as it was");
 });
 

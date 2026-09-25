@@ -32,7 +32,7 @@ import {
   landingOf,
 } from "./landing/checkpoint.mjs";
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
-import { readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
+import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
 import { readyChecks, readyChecksLines } from "./landing/ready-checks.mjs";
 import {
@@ -116,7 +116,7 @@ export const USAGE = [
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest goes`,
-  "  --ready         with --pushed: `ready`, from `head-owed`, `records-owed` too",
+  "  --ready         with --pushed: `ready`, from any builder's turn too",
   "  --take          the lease where the checkpoint names your turn",
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
@@ -247,7 +247,10 @@ const reconcile = async (documentId, ref, context, holder, given) => {
       + `  git push --force-with-lease=${landing.branch}:${gone.tip} origin `
       + `${landing.head}:refs/heads/${landing.branch}\n`
       + `  git fetch origin ${landing.branch}\n`
-      + `  forge claim ${ref} --reconciled ${landing.candidate}`);
+      + `  forge claim ${ref} --reconciled ${landing.candidate}\n`
+      + `Where the branch as it now stands is your answer to the candidate rather than a reading of it, `
+      + `that head is captured instead, reviewed and, where this run is the judge, judged — the landing `
+      + `builds its candidate again from it:\n  forge claim ${ref} --pushed --ready`);
   }
   const saved = await landingSaved(documentId, ref,
     { state: LANDING_RECONCILED, reconciled: landing.candidate });
@@ -421,12 +424,14 @@ export const claim = async (argv) => {
       + `established that run stopped, say so:\n  forge claim ${ref} ${STOPPED}`);
   }
   /* Before the write and after every refusal of the lease, so a caller the lease turns away is told that first; a capture that read no head is `readyCheckpoint`'s to refuse. */
-  if (given.ready && patch?.head && [LANDING_HEAD_OWED, LANDING_RECORDS_OWED].includes(landingHere?.state)) {
+  const licensing = given.ready && patch?.head ? {
+    [LANDING_HEAD_OWED]: (view, independent) => recaptureRefusal(ref, patch.head, view, independent),
+    [LANDING_RECORDS_OWED]: (view, independent) => reworkRefusal(ref, patch.head, landingHere, view, independent),
+    [LANDING_BUILDER_OWED]: (view, independent) => answerRefusal(ref, patch.head, landingHere, view, independent),
+  }[landingHere?.state] : null;
+  if (licensing) {
     const view = viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
-    const independent = judgementOf(await releasePolicy()) === INDEPENDENT;
-    const refused = landingHere.state === LANDING_HEAD_OWED
-      ? recaptureRefusal(ref, patch.head, view, independent)
-      : reworkRefusal(ref, patch.head, landingHere, view, independent);
+    const refused = licensing(view, judgementOf(await releasePolicy()) === INDEPENDENT);
     if (refused) fail(refused);
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */

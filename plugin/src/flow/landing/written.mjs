@@ -92,17 +92,13 @@ export const rebuiltCheckpoint = (ref, holder, head,
   };
 };
 
-/* The states a capture writes over: its own, and the two builder's turns a new head answers, each
+/* The states a capture writes over: its own, and the three builder's turns a new head answers, each
    licensed by `claim` off the records before this is reached. */
-const CAPTURED_OVER = new Set([LANDING_READY, LANDING_HEAD_OWED, LANDING_RECORDS_OWED]);
+const CAPTURED_OVER = new Set([LANDING_READY, LANDING_HEAD_OWED, LANDING_RECORDS_OWED, LANDING_BUILDER_OWED]);
 
 /* What every other state names instead, one way out apiece, since a refusal naming only the resume
    sends a run to read what this one already knew (ISS-2406). `done` is read on its own below. */
 const OUT_OF = {
-  [LANDING_BUILDER_OWED]: (ref, landing) => `the landing handed the branch back for a reading of `
-    + `the candidate it built, and that turn ends in the reconciliation rather than a new head:\n`
-    + `  forge claim ${ref} --take\n`
-    + `  forge claim ${ref} --reconciled ${landing.candidate ? shortSha(landing.candidate) : "<the candidate's sha>"}`,
   [LANDING_QA_OWED]: (ref) => `the turn is the judge's, and it ends with the judge's own hand-back, `
     + `after which the state names whose turn is next:\n  forge claim ${ref} --judged`,
 };
@@ -201,6 +197,35 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
     + `  forge record verdict ${ref} --commit ${shortSha(head)} --evidence <attachment|url|sha> `
     + `--verdict ${valuesOf("verdict", "verdict")}` + unjudged.map((number) => ` --criterion ${number}`).join("")
     + `\n  ${again}`;
+};
+
+const candidateOf = (landing) => (landing.candidate ? shortSha(landing.candidate) : "<the candidate's sha>");
+
+/* The reconciliation stays the route for a candidate the builder answers for, so every refusal of the
+   other route names it too: a builder reading one route refused should not have to find the second. */
+const ANSWER_SAID = (ref, head, landing) => ({
+  out: `claim --ready out of \`${LANDING_BUILDER_OWED}\` captures ${shortSha(head)} as the answer to `
+    + `the candidate ${candidateOf(landing)}`,
+  why: "the landing builds its candidate again from the head this write names, so it takes a head a "
+    + "review approved and no other",
+  again: `forge claim ${ref} --pushed --ready\nWhere the candidate is answered for as it stands, the `
+    + `reading is the answer instead:\n  forge claim ${ref} --reconciled ${candidateOf(landing)}`,
+});
+
+/** What refuses the capture out of `builder-owed`, or null. The reading found the candidate wrong,
+ *  so the answer is a head of the builder's own and never the one that candidate was built from,
+ *  which would build the same candidate again; past that it is held to what the capture out of
+ *  `head-owed` asks. `view` is `viewFrom`'s. */
+export const answerRefusal = (ref, head, landing, view, independent) => {
+  const said = ANSWER_SAID(ref, head, landing);
+  if (sameCommit(head, landing.head)) {
+    return `${said.out}, which is the head that candidate was built from, so capturing it again `
+      + `answers nothing the reading found. Where the candidate is answered for as it stands, say so; `
+      + `where it is wrong, commit the answer, review that head${independent ? "" : " and judge it"}, `
+      + `push it, then capture it:\n  forge claim ${ref} --reconciled ${candidateOf(landing)}\n`
+      + `  forge claim ${ref} --pushed --ready`;
+  }
+  return recaptureRefusal(ref, head, view, independent, said);
 };
 
 const reviewsOf = (comments) => comments

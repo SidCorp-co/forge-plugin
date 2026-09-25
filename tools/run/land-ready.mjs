@@ -157,13 +157,15 @@ const handedBack = async (member, alone, moved) => {
   await saveOn(member, { state: LANDING_BUILDER_OWED, candidate: alone, moved: moved.join(", ") });
   return stop(`the landing moved ${moved.join(", ")}, so this change's own paths are not what was judged `
     + `and the branch goes back to the run that built it. Nothing of ${key} is pushed, deployed or `
-    + `installed until the checkpoint reads \`${LANDING_RECONCILED}\` at ${shortly(alone)}. What is `
-    + `owed is a reading and not a commit: the branch stays where it is, since what lands is `
-    + `${shortly(landing.head)} merged again and never the branch tip, so moving it lands nothing new `
-    + `and orphans the head the next landing fetches.\n`
+    + `installed until the checkpoint reads \`${LANDING_RECONCILED}\` at ${shortly(alone)} or its builder `
+    + `captures a new head. What is owed first is a reading: where it answers for the candidate, the `
+    + `branch stays where it is, since what lands is ${shortly(landing.head)} merged again and never the `
+    + `branch tip, so moving it lands nothing new and orphans the head the next landing fetches.\n`
     + `    forge claim ${key} --take\n`
     + `    ... read ${moved.join(", ")} as ${shortly(alone)} has them, then: `
-    + `forge claim ${key} --reconciled ${alone}`);
+    + `forge claim ${key} --reconciled ${alone}\n`
+    + `    ... or, where that reading finds the candidate wrong, commit the answer, review that head (and `
+    + `judge it, where this run is the judge), push it, then: forge claim ${key} --pushed --ready`);
 };
 
 /* The reconciliation the landing can make itself, and the one it cannot: a merge that left a
