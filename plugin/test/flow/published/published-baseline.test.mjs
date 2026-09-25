@@ -30,6 +30,7 @@ const { ledgerFor } = await import("../../../../tools/gates/ledger.mjs");
 const { TEST_FILE, gateSteps } = await import("../../../../tools/gates/steps.mjs");
 const { gitCommonDir, gitFiles } = await import("../../../../tools/checkout.mjs");
 const { slugIfAny } = await import("../../../src/resolve/settings.mjs");
+const { citedOwed } = await import("../../../src/flow/earned/baseline.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const HEAD = "43b811e2c9d0f1a3b4c5d6e7f8091a2b3c4d5e6f";
@@ -75,13 +76,50 @@ test("the lookup is one exact commit of one project, and never the newest thing 
 
 test("a citation names a commit something published, or it is refused before the payload is sent", () => {
   const bare = { cited: "the ship's gate", commit: OTHER, gate: "npm run check" };
-  assert.equal(citationProblem("ISS-3", PROJECT, { ...bare, commit: HEAD }), null, "a published commit passes");
+  assert.equal(citationProblem("ISS-3", PROJECT, { ...bare, commit: HEAD, head: HEAD }), null,
+    "a published commit passes where it is the head the write stamped");
   assert.equal(citationProblem("ISS-3", PROJECT, { cited: undefined, commit: "9f9f9f9" }), null,
     "and a baseline citing nothing is no citation to judge");
   const said = citationProblem("ISS-3", "no-such-project", bare);
   assert.match(said, /Nothing is published for 0f1e2d3c/u, "the refusal names the commit it looked for");
   assert.match(said, /only a ship publishes one/u, "and why a run cannot supply one itself");
   assert.match(said, /forge record baseline ISS-3 --gate "npm run check"/u, "with the fresh run to spend instead");
+});
+
+/* The head leg: the write stamps the checkout's clean head into the very payload this reads, so a published commit the checkout does not stand at is refused here rather than first at `in_progress`. */
+const CITED = { cited: "the ship's gate", commit: HEAD, gate: "npm run check", result: RESULT, scope: "whole" };
+
+test("a published citation is refused at the write where the checkout's head is another commit or none", () => {
+  const moved = citationProblem("ISS-3", PROJECT, { ...CITED, head: OTHER });
+  assert.match(moved, new RegExp(`this checkout stands at ${OTHER}`, "u"), "the refusal names the checkout's head");
+  assert.match(moved, new RegExp(`the result at ${HEAD}`, "u"), "and the commit cited");
+  assert.match(moved, /Nothing was sent/u);
+  const route = moved.split("\n  ").at(-1);
+  assert.ok(route.startsWith(`dir=$(mktemp -d) && git worktree add --detach "$dir" ${HEAD} && (cd "$dir" && forge record baseline ISS-3 `),
+    `the route is a detached worktree at the cited commit: ${route}`);
+  assert.ok(route.includes(`--commit ${HEAD} --scope whole --cited 'the ship'\\''s gate'`),
+    `carrying the same write, every value quoted back as typed: ${route}`);
+  const headless = citationProblem("ISS-3", PROJECT, { ...CITED, head: undefined });
+  assert.match(headless, /this checkout stamps no head: it holds uncommitted work/u,
+    "a dirty checkout, which stamps no head, is refused too");
+  assert.equal(headless.split("\n  ").at(-1), route, "and is given the same route");
+  assert.equal(citationProblem("ISS-3", PROJECT, { ...CITED, cited: undefined, head: OTHER }), null,
+    "a baseline citing nothing is taken at any head, its own gate having run on the tree it names");
+  assert.match(citationProblem("ISS-3", PROJECT, { ...CITED, commit: "9f9f9f9f9f", head: OTHER }), /Nothing is published/u,
+    "a commit nothing published is refused on that leg first, its route being a fresh run");
+});
+
+/* One predicate read at two ends: fed the same fields, the write and the entry check refuse on head grounds alike. */
+test("the write refuses on head grounds exactly the cited records in_progress refuses on them", () => {
+  const owed = (fields) => citedOwed({ latest: { baseline: { record: { fields } } } }, "ISS-3");
+  const heads = [HEAD, HEAD.toUpperCase(), HEAD.slice(0, 12), OTHER, OTHER.slice(0, 7), undefined, ""];
+  const refused = heads.map((head) => [citationProblem("ISS-3", PROJECT, { ...CITED, head }) !== null,
+    owed({ ...CITED, head }).length > 0]);
+  for (const [at, [write, entry]] of refused.entries()) {
+    assert.equal(write, entry, `head ${JSON.stringify(heads[at])}: the write ${write ? "refuses" : "takes"} it and the entry check ${entry ? "refuses" : "takes"} it`);
+  }
+  assert.deepEqual(refused.map(([write]) => write), [false, false, false, true, true, true, true],
+    "and the table holds both outcomes, so the agreement is not two readers that never refuse");
 });
 
 /* A repository of its own with a bare remote behind it, so the head the ship speaks for is a head
@@ -190,29 +228,77 @@ state.answer.forge_comments = (args) => {
 const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 const env = { ...ENV, FORGE_SESSION_ID: "the-citing-run" };
-const writing = (commit) => ranAsync(FORGE, ["record", "baseline", "ISS-3", "--gate", "npm run check",
-  "--result", "nothing fails", "--commit", commit, "--scope", "whole", "--cited", "the ship's gate"], env);
+const writing = (commit, cwd = process.cwd(), extra = env) => ranAsync(FORGE, ["record", "baseline", "ISS-3", "--gate", "npm run check",
+  "--result", "nothing fails", "--commit", commit, "--scope", "whole", "--cited", "the ship's gate"], extra, cwd);
+const posts = () => state.calls.filter((one) => one.name === "forge_comments" && one.args?.action !== "list").length;
+
+/* Published into the config home the subprocess is given rather than this process's, the store being one file per home, and under the project the CLI resolves from a checkout of this project. */
+const publishedHere = (commit) => {
+  const mine = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
+  const outcome = publishBaseline({ project: slugIfAny(), commit, gate: "npm run check", result: RESULT, scope: "whole" });
+  process.env.XDG_CONFIG_HOME = mine;
+  return outcome;
+};
+
+/* A checkout of its own recorded as this project, so the child resolves the one the store is keyed on and stamps a head this case chose. */
+let rooms = 0;
+const citingRoom = () => {
+  const { room, as } = repo();
+  /* Its own commit, since two rooms built in one second from one content would otherwise be one sha. */
+  writeFileSync(join(room, "room.txt"), `room ${(rooms += 1)}\n`);
+  as("add", "room.txt");
+  as("commit", "-qm", "this room's own tree");
+  projectRecord(room, env.XDG_CONFIG_HOME, OWN);
+  const at = as("rev-parse", "HEAD").stdout.trim();
+  assert.equal(publishedHere(at), WROTE);
+  return { room, as, at };
+};
 
 test("a citation for a commit nothing published is refused at the write, and the refusal names the fresh run", async () => {
   assert.ok(await ranAsync(FORGE, ["claim", "ISS-3"], env), "the lease every payload write needs");
+  const before = posts();
   const bad = await writing("7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c");
   assert.equal(bad.status, 1, bad.stdout);
   const both = bad.stdout + bad.stderr;
   assert.match(both, /Nothing is published for 7c7c7c7/u, "the commit it looked for is named");
   assert.match(both, /forge record baseline ISS-3 --gate "npm run check"/u, "and the run that answers instead");
-  assert.equal(state.comments["cited-uuid"].length, 0, "and no citation was posted before the refusal");
-  /* The same write against a commit that store does hold, under the project the CLI resolves from the
-     checkout it runs in: the refusal is the lookup's and not the flag's. Published into the config
-     home the subprocess is given rather than this process's, the store being one file per home. */
-  const mine = process.env.XDG_CONFIG_HOME;
-  process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
-  assert.equal(publishBaseline(
-    { project: slugIfAny(), commit: HEAD, gate: "npm run check", result: RESULT, scope: "whole" },
-  ), WROTE);
-  process.env.XDG_CONFIG_HOME = mine;
-  const good = await writing(HEAD);
+  assert.equal(posts(), before, "and no citation was posted before the refusal");
+  /* The same write against a commit that store does hold, from a clean checkout standing at it: the refusal is the lookup's and not the flag's. */
+  const { room, at } = citingRoom();
+  const good = await writing(at, room);
   assert.equal(good.status, 0, good.stdout + good.stderr);
-  assert.match(good.stdout, new RegExp(`commit: ${HEAD}`, "u"), "so the payload goes up carrying the commit cited");
+  assert.match(good.stdout, new RegExp(`commit: ${at}`, "u"), "so the payload goes up carrying the commit cited");
+  assert.match(good.stdout, new RegExp(`head: ${at}`, "u"), "and the head it was written at, which is that commit");
+});
+
+test("a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken", async () => {
+  const { room, as, at } = citingRoom();
+  writeFileSync(join(room, "edit.txt"), "the run's first edit, committed after the cut\n");
+  as("add", "edit.txt");
+  as("commit", "-qm", "the run's own commit");
+  const moved = as("rev-parse", "HEAD").stdout.trim();
+  const before = posts();
+  const refused = await writing(at, room);
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, new RegExp(`this checkout stands at ${moved}, and the result at ${at}`, "u"),
+    "the refusal names the checkout's head and the commit cited");
+  assert.equal(posts(), before, "and nothing reached the issue");
+  /* The route as printed, through a shell: it has to clear the refusal it came with. Spawned without blocking, the tracker answering it being this process. */
+  const route = refused.stderr.split("\n").find((line) => line.trim().startsWith("dir=$(mktemp -d)")).trim();
+  const PATH = `${dirname(FORGE)}:${env.PATH ?? process.env.PATH}`;
+  const taken = await ranAsync("bash", ["-c", route], { ...env, PATH }, room);
+  assert.equal(taken.status, 0, taken.stdout + taken.stderr);
+  assert.match(taken.stdout, new RegExp(`head: ${at}`, "u"), "the write it runs stamps the cited commit as its head");
+  assert.equal(posts(), before + 1, "and posts the one record");
+  assert.equal(as("worktree", "list").stdout.trim().split("\n").length, 1, "leaving no worktree behind");
+  writeFileSync(join(room, "loose.txt"), "never committed\n");
+  as("checkout", "-q", "--detach", at);
+  const dirty = await writing(at, room);
+  assert.equal(dirty.status, 1, dirty.stdout);
+  assert.match(dirty.stderr, /this checkout stamps no head: it holds uncommitted work/u,
+    "a checkout at the cited commit with work beside it is refused, as the entry check would");
+  assert.equal(posts(), before + 1, "and nothing more was posted");
 });
 
 /* Watched failing: the reader the cases above lean on, over a store that holds the near miss alone. */

@@ -17,6 +17,12 @@ export const wholeOwed = (view, ref) => {
   )];
 };
 
+/** Whether a cited result answers for the tree its record was written in, read off the record's own `commit` and `head` and nothing else: `headless` where the write stamped none, a dirty checkout and no checkout alike; `moved` where the head is another commit; null where the two are one. The write and the `in_progress` entry check both judge a citation by this, so neither takes what the other refuses (ISS-2530). */
+export const citedHead = (held) => {
+  if (!held.head) return "headless";
+  return sameCommit(held.commit, held.head) ? null : "moved";
+};
+
 /* One leg and it is off the record: the commit against the head the write stamped from its own checkout, which is the point the branch was cut at because the baseline is recorded before the first edit. A scope of `part` is the refusal above, not repeated. The rung is no leg of it — a tree's state is no property of the issue reading it, so a `feature` cut from a published head is owed the same answer as a `trivial` (ISS-1101).
    The gate is compared with nothing. The project's gate is on no record this reads, and reading its shape out of a checkout is what a plugin running in repositories it cannot see may not do (ISS-1093). */
 export const citedOwed = (view, ref) => {
@@ -29,7 +35,8 @@ export const citedOwed = (view, ref) => {
       + "measured the whole tree; an absent scope is excused for a run of one's own and not for a "
       + "citation, which is taken on the strength of that word", fresh)];
   }
-  if (!held.head) {
+  const head = citedHead(held);
+  if (head === "headless") {
     return [need(
       "the baseline cites a recorded result and carries no head, so nothing on the record says which "
         + "tree that result answered for; a baseline written off a checkout carries none, and so does "
@@ -38,7 +45,7 @@ export const citedOwed = (view, ref) => {
         + `${fresh} --cited "${held.cited}"`,
     )];
   }
-  if (!sameCommit(held.commit, held.head)) {
+  if (head === "moved") {
     return [need(
       `the baseline cites a result at ${held.commit} and was written at ${held.head}, so the branch `
         + "had already moved off the tree that result answered for",
