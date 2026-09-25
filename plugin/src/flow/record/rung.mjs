@@ -5,6 +5,7 @@ import { FLAG_WORD, noValue, pullRepeated } from "../../resolve/flags.mjs";
 import { refuse } from "../../refusal.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { KINDS, kindUsage } from "./record-rows.mjs";
+import { blockOrderChecked } from "../machine/block-order.mjs";
 import { nextLine } from "../lease.mjs";
 import { patchFrom } from "../worklog.mjs";
 
@@ -39,6 +40,7 @@ export const pullRun = async (blocks) => {
       took[flag.slice(2)] = took[flag.slice(2)] || held.includes(flag);
       held = held.filter((two) => two !== flag);
     }
+    blockOrderChecked(one.kind, held);
     return { kind: one.kind, argv: held };
   });
   return { next: nextLine(next), patch: await patchFrom({ ...took, open }), rest };

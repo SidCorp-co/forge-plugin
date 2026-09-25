@@ -52,7 +52,10 @@ carries a verdict, an evidence set and a reason for each criterion it names. Wha
 first `--criterion` is every block's, which is where the saving is; a block's own value of a flag
 that takes one replaces the shared value, so the criterion that failed carries its own reason beside
 thirteen that passed, and a repeatable flag adds to the shared set rather than replacing it, which is
-how the one criterion whose evidence is its own cites that beside the run they all share. Each block is rendered whole rather than as a shared header and thirteen references back to
+how the one criterion whose evidence is its own cites that beside the run they all share. Where
+such a value stands matters once another block follows: after one of the block's other flags, a
+flag the shared part also names reads as opening the next block while the parser binds it to this
+one, so that position is refused and the refusal prints both placements (ISS-435). Each block is rendered whole rather than as a shared header and thirteen references back to
 it, which buys two things: a write naming one criterion renders exactly what it always rendered, and
 every block reads back as the record a single write makes — so the assembly, the entry checks and the
 report are handed one record per criterion and none of them can tell one write from fourteen. That is

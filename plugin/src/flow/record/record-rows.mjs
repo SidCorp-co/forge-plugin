@@ -150,14 +150,14 @@ const VERDICT_BLOCKS = [
 ];
 
 const CRITERION_BLOCKS = [
-  "--criterion repeats: each one opens a block, and one write carries a verdict on every criterion",
-  "it names. What stands before the first --criterion is every block's, so one commit and one",
-  "evidence set cover them all. A block's own value of a flag taking one replaces the shared one; a",
-  "repeatable flag adds to it, so a criterion whose evidence is its own cites that too:",
+  "--criterion repeats: each one opens a block, and one write judges every criterion it names.",
+  "What stands before the first --criterion is every block's. A block's own value of a flag taking",
+  "one replaces the shared one and a repeatable flag adds to it. Where another --criterion follows,",
+  "that value stands directly after the block's own --criterion; after the block's other flags it",
+  "reads as the next block's, and is refused:",
   "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
   "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
-  "A file two criteria cite goes up once, under the one name both of them carry. Each block reads",
-  "back as the record a single write makes, so nothing downstream can tell one write from three.",
+  "A file two criteria cite goes up once. Each block reads back as the record a single write makes.",
 ];
 
 /** Which kinds carry a `Serves:`, off the table that gives them the field: one derivation, so a second kind growing it is a row in `SHAPES` and nothing typed anywhere. */
