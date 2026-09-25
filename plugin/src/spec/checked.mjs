@@ -1,20 +1,26 @@
-/* What a write outside the tree owes it, in one place: `forge record plan` over a plan's whole text (AC-14-4-5), `forge record criteria` over each criterion's opening (AC-14-4-1), and the transition asking whether an issue names any clause (AC-14-4-2). The wording is `citation.mjs`'s and the storage is `tree.mjs`'s; what is decided here is which span each caller hands over, and `raise` is the caller's own because the verb exits where the record throws. The text is asked before the project is (ISS-428): a text naming no identifier has nothing to resolve, and building the index for it parses every document of the tree to answer nothing. That order is also the one place this check is not invisible — where the tree is unreadable, a write citing nothing stores, because it makes no traversal it has no reason to make. */
+/* What a write outside the tree owes it, in one place: `forge record plan` over a plan's text less what it quotes (AC-14-4-5), `forge record criteria` over each criterion's opening (AC-14-4-1), and the transition asking whether an issue names any clause (AC-14-4-2). The wording is `citation.mjs`'s and the storage is `tree.mjs`'s; what is decided here is which span each caller hands over, and `raise` is the caller's own because the verb exits where the record throws. The text is asked before the project is (ISS-428): a text naming no identifier has nothing to resolve, and building the index for it parses every document of the tree to answer nothing. That order is also the one place this check is not invisible — where the tree is unreadable, a write citing nothing stores, because it makes no traversal it has no reason to make. */
 import { citationProblems, citationRefusal, revisionSaid, unrevisionedIn } from "./citation.mjs";
 import { citationsIn, identifiersIn, opensWith } from "./parse.mjs";
 import { keepsSpecTree, specTreeIfAny } from "./tree.mjs";
 import { lookup } from "./index.mjs";
+import { withoutFences, withoutSpans } from "../markdown.mjs";
 
-const referencesChecked = (ids, raise) => {
+const referencesChecked = (ids, raise, escape = null) => {
   if (!ids.length) return;
   const index = specTreeIfAny();
   if (!index) return;
-  const refusal = citationRefusal(citationProblems(index, ids));
+  const refusal = citationRefusal(citationProblems(index, ids), escape);
   if (refusal) raise(refusal);
   const said = revisionSaid(unrevisionedIn(index, ids));
   if (said) console.error(said);
 };
 
-export const citationsChecked = (text, raise) => referencesChecked(identifiersIn(text), raise);
+/** What a plan quotes is text and not a claim (ISS-446): a plan about this checker, or one quoting the document line it fixes, has to name a citation that does not resolve. Quoted is a code span or a fenced block, the literal the tree's own rules already read; an indented line stays prose, being how a plan nests a list. The strip is this reader's alone, because `citationsIn` is hashed into every clause and filtering it would move every recorded digest. */
+const QUOTED = "An identifier inside backticks or a fenced block is read as quoted text rather than a citation:"
+  + " quote an example that way.";
+
+export const citationsChecked = (text, raise) =>
+  referencesChecked(identifiersIn(withoutSpans(withoutFences(text))), raise, QUOTED);
 
 /** An identifier further into a criterion is prose and settles nothing, and where no criterion opens with one nothing is read, so a verb that walked no tree does not start. The openings go on as the references they already are: rendering them back to `<id>~<rev>` text for the next line to parse made this reader and the one above answer one citation differently, because a revision `Number` cannot hold prints in exponent form and parses back as something else — as revision 1 from `1.1111111111111111e+21`, and as no revision at all from `1e+21` (ISS-462). */
 export const criteriaChecked = (criteria, raise) =>
