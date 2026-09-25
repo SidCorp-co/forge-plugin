@@ -17,7 +17,7 @@ const DAYS = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-1
 const figure = (runs, medianMinutes, medianCalls) => ({ runs, medianMinutes, medianCalls });
 const row = (name, runs) => ({ name, ...figure(runs, 20, 40), thin: runs < 10 ? "thin" : null });
 
-const friction = (extra = {}) => ({ refusals: [], errors: [], repeats: [], waits: [], guideParts: [], ...extra });
+const friction = (extra = {}) => ({ refusals: [], errors: [], answers: [], repeats: [], waits: [], guideParts: [], ...extra });
 
 const content = (extra = {}) => ({
   day: DAY, zone: "UTC", written: "2026-09-21T06:00:00.000Z", trendDays: DAYS,
@@ -35,7 +35,7 @@ const content = (extra = {}) => ({
     groups: [{ model: "cx/a", prompt: "v3 abc", consults: 8, findings: 12, ruled: 10, kept: 70, how: 5, rightAboutHow: 80, thin: "thin" }],
     missing: [MISSING.transport] },
   friction: { headline: { refusals: 4, runs: 12 }, trend: DAYS.map((day) => ({ day, refusals: 4 })),
-    refusals: [{ key: "Hold — a rule", calls: 4, runs: 3 }], errors: [], repeats: [], waits: [], guideParts: [], standDowns: [] },
+    refusals: [{ key: "Hold — a rule", calls: 4, runs: 3 }], errors: [], answers: [], repeats: [], waits: [], guideParts: [], standDowns: [] },
   releases: { landed: [{ version: "3.9.1", head: "abcdef1234", at: Date.parse(`${DAY}T12:00:00Z`), scope: "forge-plugin",
     issues: [{ key: "ISS-7", title: "A title", note: "What a user now sees." }],
     before: figure(3, 10, 20), after: figure(2, 11, 21), early: true }], installed: [], trend: [0, 0, 0, 0, 0, 0, 1] },
@@ -130,6 +130,15 @@ test("a release is read beside the runs either side only where each side holds t
 });
 
 const entry = (index) => ({ key: `Hold — rule ${index}`, calls: 20 - index, runs: 1 });
+
+test("the page lists the errors under what failed and the command's answers in a table of their own", () => {
+  const page = pageOf(content({ friction: { ...content().friction,
+    errors: [{ key: "test · exit 1: # fail N", calls: 2, runs: 1 }], answers: [{ key: "pgrep, exit 1", calls: 5, runs: 3 }] } }));
+  assert.ok(page.includes("Errors no rule refused, by the class, the exit and the first line printed"));
+  assert.ok(page.includes("test · exit 1: # fail N"));
+  assert.ok(page.includes("Exits that were the command&#39;s answer, apart from the errors"), page);
+  assert.ok(page.includes("pgrep, exit 1"));
+});
 
 test("opportunities rank by calls paid, list ten, count the rest, and name the open issue each matches or say none", async () => {
   const held = friction({ refusals: Array.from({ length: 12 }, (_, index) => entry(index)) });

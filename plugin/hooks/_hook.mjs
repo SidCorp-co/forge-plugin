@@ -13,6 +13,7 @@ import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
+import { FILES_IT, WHOLE } from "../src/refusal.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } from "../src/hooks/transcripts.mjs";
@@ -54,9 +55,6 @@ export const done = () => {
 
 const emit = (out) => process.stdout.write(JSON.stringify(out));
 
-const FILES_IT = (verb) => `Refused the wrong shape? That is a defect in this plugin and not a rule `
-  + `to work around: \`forge ${verb} <note.md> --title "<one line>"\` files it.`;
-
 /** What resolving the route may spend of an event's clock, and the floor under which it is not tried. Reading the project's key reads the project file, and finding the checkout that owns a linked worktree runs a `git` that a wrapper on PATH can hold open for as long as it likes (ISS-761). A refusal already decided is never traded for the line about where to file it, so the read is a child this process can outlive: killed at the deadline, the refusal goes out as its gate wrote it. */
 export const FILING_MS = 400;
 /** And the ceiling on the read itself, which is a Node start and one `git` — bounded by what it should cost rather than by what the event has left, so a wrapper that never answers costs a second and not the whole clock. */
@@ -92,7 +90,6 @@ export const filed = async (reason, ev, left = remaining()) => {
 };
 
 /* A refusal before a call refuses all of it, so the `git add` ahead of a refused `git commit` never ran, and a caller re-sending only the refused part finds nothing staged (ISS-329). One command, or one pipeline, needs no telling. It is a fact about this call and not the rule's text, so a repeat the shown ledger cut to one line still carries it, on that same line. */
-const WHOLE = "Nothing in this command ran, the parts before the refused one included, so it is re-sent whole.";
 const refusal = (reason, ev) => {
   const command = String(ev?.tool_input?.command ?? "");
   /* A separator at the end opens a span with nothing in it, and `git stash;` is still one command. */

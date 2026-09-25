@@ -235,11 +235,18 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL name each route a run wrote files through with its
   calls per run and the characters a call carried, and SHALL count the passes a landing took, the
   passes resumed and the runs whose push was rejected, each read off the call's own record.
-- **AC-19-8-8** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "the refusals listing is what this plugin refused, keyed on the line that names the rule"
+- **AC-19-8-8** · Rev: 2 · Proof: plugin/test/stats/runs/runs.test.mjs "the refusals listing is what this plugin refused, keyed on the line that names the rule"
   WHEN the refusals a window met are listed THEN the CLI SHALL count only a body carrying a line in
   one of this plugin's own refusal shapes, SHALL key the row on the line that names the rule rather
-  than on the body's first line, and SHALL count every other non-zero exit on a line of its own
-  broken down by the call's class.
+  than on the body's first line, and SHALL list every other non-zero exit apart from them under a
+  row keyed on the call's class, its exit code and the first line it printed with the parts that
+  change from one day to the next taken out, so two different failures of one class are two rows
+  and one failure met on two days is one.
+- **AC-19-8-136** · Rev: 1 · Proof: plugin/test/stats/corpus/answers.test.mjs "an exit that is the command's answer is counted apart from the errors, by the project's own table where it declared one"
+  IF a call exits non-zero from a command whose exit the project's table of answers names, and that
+  command is the one whose status the line returns, THEN the CLI SHALL count that exit as the
+  command's answer, apart from the errors and from every ranking of what could be saved, reading
+  the table the project declared in place of the built-in one wherever it declared one.
 - **AC-19-8-9** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "a stored reading is the before window, and the screen says where the windows overlap"
   WHERE a stored reading is named as the before window the CLI SHALL compare the current window with
   the recent window that reading holds, through the reader the sliding comparison uses, and SHALL say

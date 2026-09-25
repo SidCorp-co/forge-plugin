@@ -235,6 +235,22 @@ test("a stats label takes one command as typed, and several when a comma makes t
     "and the reader reads them as two alternatives rather than one literal command");
 });
 
+/* The answer table is keyed by the exit code first, so one write is one whole entry the reader can use. */
+test("an answer entry is one write, and a code or a pattern its reader could not use is refused naming the key", async () => {
+  fresh();
+  const one = await ask("--set", "stats.answers.1.probe=make[ \\t]+probe");
+  assert.equal(one.status, 0, one.stderr);
+  assert.deepEqual(JSON.parse(now()).stats.answers, { 1: { probe: "make[ \\t]+probe" } });
+  const written = now();
+  const broken = await ask("--set", "stats.answers.1.broken=(");
+  assert.equal(broken.status, 1, broken.stdout);
+  assert.match(broken.stderr, /`stats\.answers\.1\.broken` in .* is a regular expression this CLI can compile/u, broken.stderr);
+  const code = await ask("--set", "stats.answers.300.x=pgrep");
+  assert.equal(code.status, 1, code.stdout);
+  assert.match(code.stderr, /`stats\.answers\.300` in .* is no key of it: a key is an exit code from 1 to 255/u, code.stderr);
+  assert.equal(now(), written, "and neither refusal wrote anything");
+});
+
 test("a key this plugin reads nowhere is refused with what the file can hold", async () => {
   fresh();
   const run = await ask("--set", "review.pathz=plugin/src");
