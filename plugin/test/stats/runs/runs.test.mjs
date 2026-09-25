@@ -18,7 +18,7 @@ import { scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { USAGE } from "../../../src/stats/stats.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import {
-  BASE, FORGE, PROJECT, ask, asked, at, corpus, result, use,
+  BASE, FORGE, PROJECT, ask, asked, at, corpus, indexIn, result, use,
 } from "../fixture-runs.mjs";
 
 test("every row of a fixture run is what the transcript adds up to", () => {
@@ -271,7 +271,7 @@ test("the edits line names each route with its calls and characters, and the shi
   /* Edit carries old plus new (4 + 6), Write its content (40), and each shell route its own text, newlines counted. */
   has("edits           per run edit 1, write 1, edit heredoc 1, edit file 1, edit sed 1 · median chars/call edit 10, write 40, edit heredoc 30, edit file 32, edit sed 24");
   has("ships           2 pass(es), median 2/run, 1 resumed with --from, a push rejected in 1 run(s)");
-  /* A second run: the ship ran in the background, and the refusal is read off its log twice. */
+  /* A second run: the ship ran in the background, and the refusal is read off its log thrice. */
   writeFileSync(join(tasks, "a8.output"), [
     JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-98" } }),
     ...bash("s1", 10, "./plugin/bin/forge claim ISS-98", "claimed"),
@@ -465,7 +465,7 @@ test("the third of three identical reads is the recovery, and is no more a poll 
   assert.equal(
     classes.filter((one) => one === "poll").length,
     2,
-    "five identical reads meet the gate twice, so they count twice: one class here is one refusal there",
+    "five identical reads meet the gate thrice, so they count thrice: one class here is one refusal there",
   );
 });
 
@@ -522,4 +522,37 @@ test("a repeat the ledger cut to its unseen lines is a refusal by the harness's 
   assert.equal(refusalIn({ body: `Instead: Copy the file aside first.\n${WHOLE}`, error: true }), "Instead: Copy the file aside first.");
   assert.equal(refusalIn({ body: "Instead: Copy the file aside first.", error: true }), null,
     "and with no sentence left there is nothing to read it by");
+});
+
+/* A delegated run opens every command with its own `cd` and exports, longer than the listing prints:
+   68 distinct commands once counted as one typed 68 times, and the same command in two runs stood as
+   two keys because each carried its run's session id and paths (ISS-2433). */
+const TREE = (issue) => `cd /work/wt-forge-plugin-ISS-${issue} && export FORGE_SESSION_ID=iss-${issue}-${issue}abcdef`
+  + ` && export TMPDIR=/tmp/forge-run-iss-${issue}-${issue}abcdef && ./plugin/bin/forge doctor 2>&1`;
+const thrice = (text) => [text, text, text];
+const repeatRun = (issue, sha) => [
+  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: `Skill forge:issue-flow ISS-${issue}` } }),
+  ...[
+    `${TREE(issue)} | head -100`, `${TREE(issue)} | sed -n '/goals/,$p'`, `${TREE(issue)} | tail -5`,
+    ...thrice(`${"x".repeat(120)} | head -1`), ...thrice(`${"x".repeat(120)} | head -2`),
+    ...thrice(`cd /work/wt-forge-plugin-ISS-${issue} && FORGE_SESSION_ID=iss-${issue}-${issue}abcdef git show ${sha}`),
+  ].flatMap((command, index) => [use(`r${index}`, index * 10, "Bash", { command }), result(`r${index}`, index * 10 + 1, "ok")]),
+].join("\n");
+
+test("a repeat is the whole command typed again inside one run, keyed without the words that are the run's own", () => {
+  const room = tempRoom("stats-repeats-");
+  indexIn(room, "session-one", "a0001.output", repeatRun(101, "a1b2c3d4e5f6"));
+  indexIn(room, "session-two", "a0002.output", repeatRun(202, "9f8e7d6c5b4a"));
+  const run = ask(room, "--json");
+  assert.equal(run.status, 0, run.stderr);
+  const { repeats } = JSON.parse(run.stdout);
+  assert.deepEqual(repeats.toSorted(([left], [right]) => left.localeCompare(right)), [
+    ["cd <path> && FORGE_SESSION_ID=<session> git show <sha>", 6],
+    [`${"x".repeat(120)} | head -1`, 6],
+    [`${"x".repeat(120)} | head -2`, 6],
+  ], "the three sharing a 160-character opening are none, the two sharing the printed width are two");
+  const out = ask(room).stdout;
+  const rows = out.split("\n").filter((line) => line.startsWith(`     6  ${"x".repeat(100)}`));
+  assert.equal(rows.length, 2, out);
+  assert.equal(rows[0], rows[1], "printed alike, and still two rows");
 });

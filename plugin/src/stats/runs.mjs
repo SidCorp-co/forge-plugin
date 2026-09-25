@@ -17,7 +17,7 @@ import {
 } from "./corpus/classes.mjs";
 import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
 import { TABLE } from "./corpus/generations.mjs";
-import { BUILT_IN_TABLE, ERROR_ROWS, answerOf, answersIn, errorKeyOf } from "./corpus/answers.mjs";
+import { BUILT_IN_TABLE, ERROR_ROWS, answerOf, answersIn, errorKeyOf, repeatsOf } from "./corpus/answers.mjs";
 import { actLines, phase7For } from "./corpus/release.mjs";
 import { FLOW_BRIEF, LANDING, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
@@ -69,7 +69,9 @@ const formIn = (call) => {
   return call.class === `forge ${said.form}` ? said.form : null;
 };
 
-const said = (command) => command.replaceAll(/\s+/gu, " ").trim().slice(0, 160);
+const typed = (command) => command.replaceAll(/\s+/gu, " ").trim();
+
+const said = (command) => typed(command).slice(0, 160);
 
 /* The phase a call sits in, and the segments the markers cut. A marker already passed cannot pull
    the run backwards; every other rule is the marker row's own, so this holds no phase number and
@@ -194,7 +196,7 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
     const was = byClass.get(call.class) ?? { calls: 0, wait: 0 };
     byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     if (!call.answered) unanswered += 1;
-    if (call.name === "Bash") add(repeats, said(call.command));
+    if (call.name === "Bash") add(repeats, typed(call.command));
     if (call.class === "forge guide") add(guideParts, partRead(call));
     /* Off a call this reading classed as one to this CLI, and no other: a declared gate command
        sharing the line takes the class, and a read counted off that call would be a numerator
@@ -261,7 +263,7 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
     forms,
     errors,
     answers: answered,
-    repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
+    repeats: repeatsOf(repeats, REPEATED),
     guideParts,
     helpReads,
     longest,
