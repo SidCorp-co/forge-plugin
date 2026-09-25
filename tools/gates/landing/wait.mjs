@@ -1,9 +1,9 @@
 /* A landing's gate: what land-ready hands it, the wait for a place it takes where a builder's gate declines, and the
    decline a builder's gate says when a landing is ahead of it. The rule that puts a landing ahead is `placeFor`'s; this
    is what each side of it says and does (ISS-2461). */
-import { DECLINED, LANDING_ENV, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./machine.mjs";
-import { spent, TICK_MS, verdictPath } from "./verdict.mjs";
-import { watching } from "../watching.mjs";
+import { DECLINED, LANDING_ENV, placeFor, RAISE, runnersOf, SLOT, WAIT } from "../machine.mjs";
+import { spent, TICK_MS, verdictPath } from "../verdict.mjs";
+import { watching } from "../../watching.mjs";
 
 /** The variable land-ready sets beside `LANDING_ENV`. */
 export const LANDING_WAIT_ENV = "FORGE_LANDING_WAIT";

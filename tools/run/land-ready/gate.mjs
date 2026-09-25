@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 
 import { stop, Stop } from "../../checkout.mjs";
 import { DECLINED, LANDING_ENV } from "../../gates/machine.mjs";
-import { LANDING_WAIT_ENV } from "../../gates/landing.mjs";
+import { LANDING_WAIT_ENV } from "../../gates/landing/wait.mjs";
 import { shortly } from "../install.mjs";
 import { roomFor } from "./candidate.mjs";
 import { keysOf, saveOn } from "./member.mjs";

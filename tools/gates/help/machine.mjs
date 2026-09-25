@@ -2,7 +2,7 @@
    refuses, the ceiling it declines at, what it counts and what the number sizes. Its own file because the runner's is at
    the line limit its own checker sets, and this is the section ISS-1705 grew. `tools/gates.mjs -h` prints it in place. */
 import { DECLINED, LANDING_ENV, RAISE, WAIT } from "../machine.mjs";
-import { LANDING_WAIT_ENV } from "../landing.mjs";
+import { LANDING_WAIT_ENV } from "../landing/wait.mjs";
 import { DEFAULT_MINUTES } from "../verdict.mjs";
 import { WAIT_COMMAND } from "../../../plugin/src/hooks/wait-idiom.mjs";
 

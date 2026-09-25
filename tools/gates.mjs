@@ -17,7 +17,7 @@ import { attribute, attributionLines, CASES_ENV } from "./gates/reporters/isolat
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, heldSaid, LANDING_ENV, outputOf, placeFor, runnersOf, SLOT, treeHeldBy, WAIT } from "./gates/machine.mjs";
-import { declinedSaid, LANDING_WAIT_ENV, landingAsked, waitAsLanding } from "./gates/landing.mjs";
+import { declinedSaid, LANDING_WAIT_ENV, landingAsked, waitAsLanding } from "./gates/landing/wait.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { deadClaim, escapedClaim, escapedStep, ledgerSaid, readsSaid, severalCauses, stepRead, stepSaid,
   wroteSets } from "./gates/report/said.mjs";

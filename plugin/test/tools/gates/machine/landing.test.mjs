@@ -7,7 +7,7 @@ import { readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { DECLINED, LANDING_ENV, placeFor } from "../../../../../tools/gates/machine.mjs";
-import { declinedSaid, LANDING_WAIT_ENV, landingAsked } from "../../../../../tools/gates/landing.mjs";
+import { declinedSaid, LANDING_WAIT_ENV, landingAsked } from "../../../../../tools/gates/landing/wait.mjs";
 import { escaped } from "../../../fixtures.mjs";
 import { entryNames, HANGS_IN, heldGate, reachedTheStep, procTable as table, run, scratch, sibling, stopGate }
   from "../scratch.mjs";
