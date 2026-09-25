@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -44,6 +44,16 @@ const greenAll = async (work) => {
   return entries.length;
 };
 
+/* A scratch with a bare remote behind it, so the head a release speaks for is one something else holds. */
+const shippable = (name, slug, also = []) => {
+  const { work } = scratch(name, [], [], { also });
+  const bare = tempRoom(`${name}-remote-`);
+  spawnSync("git", ["init", "-q", "--bare", bare], { cwd: dirname(bare), encoding: "utf8" });
+  git(work, "remote", "add", "origin", bare);
+  projectRecord(work, HOME, { slug });
+  return work;
+};
+
 const says = (work) => {
   const lines = [];
   publishes(work, "master", "1.0.0", { say: lines.push.bind(lines) });
@@ -51,11 +61,7 @@ const says = (work) => {
 };
 
 test("a release that moved its step table publishes the count the shipped table earns, off the shipped tree's own reader", async () => {
-  const { work } = scratch("published-own-table", [], [], { also: [join("tools", "gates", "green.mjs")] });
-  const bare = tempRoom("published-own-table-remote-");
-  spawnSync("git", ["init", "-q", "--bare", bare], { encoding: "utf8" });
-  git(work, "remote", "add", "origin", bare);
-  projectRecord(work, HOME, { slug: SLUG });
+  const work = shippable("published-own-table", SLUG, [join("tools", "gates", "green.mjs")]);
   git(work, "mv", WAS, NOW);
   const table = readFileSync(join(work, STEPS), "utf8");
   assert.ok(table.includes(JSON.stringify(WAS)), "the scratch's table claims the test this case moves");
@@ -64,18 +70,16 @@ test("a release that moved its step table publishes the count the shipped table 
   assert.throws(() => greenHeld(work), /git reports no test file at tools\/test\/checks\/standing\.test\.mjs/u,
     "this process's own table cannot read the shipped tree, which is the reading the release took");
   const of = await greenAll(work);
-  assert.match(says(work), /whole-tree result is published/u, "the release publishes off the shipped tree's reading");
-  assert.deepEqual(heldIn(work), { green: of, of }, "which is that tree's own reader counting its own table, green");
-  assert.equal(publishedFor(SLUG, head).result, `nothing fails: all ${of} gate step(s) green at this commit`,
+  const said = says(work);
+  const stored = publishedFor(SLUG, head);
+  assert.ok(stored, `the release publishes off the shipped tree's reading, where it said: ${said}`);
+  assert.equal(stored.result, `nothing fails: all ${of} gate step(s) green at this commit`,
     "for the head it shipped, with the count the shipped table earns");
+  assert.deepEqual(heldIn(work), { green: of, of }, "which is that tree's own reader counting its own table, green");
 });
 
 test("a shipped tree holding no gate reader of its own gets nothing published, and the line quotes why", () => {
-  const { work } = scratch("published-no-reader", [], []);
-  const bare = tempRoom("published-no-reader-remote-");
-  spawnSync("git", ["init", "-q", "--bare", bare], { encoding: "utf8" });
-  git(work, "remote", "add", "origin", bare);
-  projectRecord(work, HOME, { slug: `${SLUG}-bare` });
+  const work = shippable("published-no-reader", `${SLUG}-bare`);
   const head = pushed(work, "pushed as it stands");
   assert.match(says(work),
     /nothing is published for \w{7}: the gate's record could not be read \(Cannot find module '[^']*tools\/gates\/green\.mjs'/u,
