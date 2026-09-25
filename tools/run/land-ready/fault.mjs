@@ -6,7 +6,8 @@ import { STEPS } from "../../gates/steps.mjs";
 const TEST_STEPS = new Set(STEPS.filter((one) => one.tests).map((one) => one.label));
 
 /* A token that is a path, optionally followed by a line and a column, as a linter, the dup check and
-   the spec check print one: `src/x.mjs:12:3`, `/tmp/room/plugin/y.md`, `docs/a.md`. */
+   the spec check print one: relative to the tree, absolute in the room, or relative to the directory
+   the step was pointed at. An extension opening on a letter, so a version or a score is no path. */
 const PATH_TOKEN = /[\w@./-]*[\w-]\.[A-Za-z]\w*(?::\d+)*/gu;
 
 /* The failing step's own section of the gate's output: from its banner to the end, so nothing a step
@@ -22,7 +23,7 @@ const tokensIn = (text) => [...new Set([...text.matchAll(PATH_TOKEN)]
   .filter((one) => one.includes("/") || one.includes(".")))];
 
 /* A name printed relative to the directory the step was pointed at, or absolute in a room this
-   landing made, still names that file: the dup check prints `src/x.mjs` for `plugin/src/x.mjs`. */
+   landing made, still names that file: the dup check prints `src/markdown.mjs` for `plugin/src/markdown.mjs`. */
 const names = (token, file) => token === file || file.endsWith(`/${token}`) || token.endsWith(`/${file}`);
 
 const inTree = (file, tree) => tree === "" || tree === "." || file === tree || file.startsWith(`${tree}/`);

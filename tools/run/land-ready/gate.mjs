@@ -99,10 +99,11 @@ const carriedOn = async (found, one) => {
     return oneByOne(at, `The members left green make ${shortly(candidate)}, which`, `moves ${moved.join(", ")
       || "a path a builder reconciled"} or holds a reconciliation of another candidate`);
   }
+  /* The room is the landing's before the first write, so a save refused below leaves nothing its drop misses. */
+  at.room = kept.candidate === candidate ? kept.room : (dropRoom(root, kept.room), roomFor(root, candidate));
   await handedBack(found, at);
   at.members = found.green;
   at.candidate = candidate;
-  at.room = kept.candidate === candidate ? kept.room : (dropRoom(root, kept.room), roomFor(root, candidate));
   for (const member of at.members) await reconciledAt(member, candidate, at.pin);
   return console.log(`  ${keysOf(at)} land as the candidate ${shortly(candidate)}, whose tree a green gate of `
     + `this search read`);

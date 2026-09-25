@@ -497,7 +497,7 @@ export const RED_BATCHES = ["attribute-then-split", "one-by-one"];
  *  member alone as before ISS-2480. The PROJECT's, beside `landing` and `ship`, which describe the
  *  same landing; the first is the default because a red batch then costs a gate per round rather
  *  than one per member. */
-export const redBatchScope = once(() => chosen(forgeJson().parsed?.[RED_BATCH_KEY], RED_BATCHES, RED_BATCHES[0]));
+export const redBatchScope = once(() => chosen(forgeJson().parsed?.redBatch, RED_BATCHES, RED_BATCHES[0]));
 
 export const SHIP_MODES = ["self", "ready"];
 
