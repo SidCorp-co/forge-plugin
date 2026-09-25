@@ -274,6 +274,14 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
   );
 };
 
+/* A failed verdict holds every rung from the judging one to the close, whenever it was written: the
+   builder's records turn writes its verdicts after the landing has entered `testing`, and a fail read
+   by that rung alone held nothing once it was passed (ISS-2511). One reading for the three rungs, so
+   none of them can disagree with another about which criterion failed. */
+const failedOwed = (view, ref) => numbered(view.verdicts)
+  .filter(([, { record }]) => record.fields.verdict === "fail" && !shapeGaps("verdict", record, view.names).length)
+  .map(([number]) => need(`criterion ${number} failed its verdict`, askOne(ref, number, markedCommit(view.comments) ?? "<sha>")));
+
 /* A landing brings other people's commits and leaves this change's own diff alone, so a verdict
    judged before it judged the code that landed; the review's recheck at the landed head guards the
    tree they sit on. The note carries the predicate because git is asked where it can answer (ISS-156). */
@@ -291,7 +299,7 @@ const verdictsOwed = (view, ref) => {
     const held = record.fields;
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
-    else if (held.verdict === "fail") out.push(need(`criterion ${number} failed its verdict`, ask(number)));
+    else if (held.verdict === "fail") continue;
     else if (!merged || sameCommit(held.commit, merged)) continue;
     else if (judged && sameCommit(held.commit, judged)) {
       if (!stands) atJudged.push(number);
@@ -300,6 +308,7 @@ const verdictsOwed = (view, ref) => {
     }
   }
   if (atJudged.length) out.push(equivalenceOwed(view, ref, judged, moved, atJudged));
+  out.push(...failedOwed(view, ref));
   /* A verdict the reader could key by nothing is named as itself: an item naming the criterion it
      does not carry is the shortfall a rewrite invented, and no command supplies it. */
   for (const one of view.unreadable ?? []) {
@@ -574,8 +583,8 @@ export const CHECKS = {
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },
   testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
-  awaiting_release: (view, ref) => [...deployedOwed(view, ref), ...foldedOwed(view, ref, true)],
-  closed: (view, ref) => [...releaseOwed(view, ref), ...foldedOwed(view, ref, true)],
+  awaiting_release: (view, ref) => [...failedOwed(view, ref), ...deployedOwed(view, ref), ...foldedOwed(view, ref, true)],
+  closed: (view, ref) => [...failedOwed(view, ref), ...releaseOwed(view, ref), ...foldedOwed(view, ref, true)],
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */

@@ -140,13 +140,14 @@ const moved = (documentId) =>
   state.calls.filter((one) =>
     one.name === "forge_issues" && one.args.action === "transition" && one.args.documentId === documentId);
 
-test("--owed on a shipped issue names the close, and reads no page to say it", async () => {
+/* The close is judged on the page like every other rung: a failed verdict or a folded finding stands on it, and a page left unread said neither was there (ISS-2511). */
+test("--owed on a shipped issue names the close, judged on the page it holds", async () => {
   const pages = listed("shipped-uuid");
   const rounds = asked();
   const run = await ranAsync(FORGE, ["advance", "ISS-96", "--owed"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-96 is awaiting_release; closed is next and the record earns it/u, run.stdout);
-  assert.equal(listed("shipped-uuid"), pages, "the page the refusal names was fetched");
+  assert.equal(listed("shipped-uuid"), pages + 1, "one page, read by the entry check");
   assert.equal(asked(), rounds + 1, "the release policy the rung is entered on was not read");
   assert.deepEqual(moved("shipped-uuid"), [], "a rehearsal moves nothing");
 });
@@ -166,7 +167,7 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^forge: read close as forge advance ISS-96$/mu, run.stderr);
   assert.match(run.stdout, /ISS-96 {2}awaiting_release -> closed {2}\(read as forge advance ISS-96\)/u, run.stdout);
-  assert.equal(listed("shipped-uuid"), pages + 1, "one page, read by the lease write's gate and by no check");
+  assert.equal(listed("shipped-uuid"), pages + 2, "two pages, one read by the lease write's gate and one by the entry check");
   assert.deepEqual(wrote("shipped-uuid"), [], "nothing is written to close");
   assert.deepEqual(moved("shipped-uuid").map((one) => one.args.data.status), ["closed"]);
 });

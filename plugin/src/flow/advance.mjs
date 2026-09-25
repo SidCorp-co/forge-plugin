@@ -63,20 +63,13 @@ export const USAGE = [
    sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). */
 const couldBeEarned = (body, status) => ORDER.includes(status) && atLeast(status, body.status);
 
-/* A plain advance from the rung `closed` is entered from, whose entry criteria hold nothing a payload could supply, so the page is not worth the call — and the route that skips it is therefore the one route that has to fetch the release policy alone, that rung being entered on a policy no page carries (ISS-1918). A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
-const readsTheRecord = (body, given) => {
-  if (given.set) return couldBeEarned(body, given.set);
-  return body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop)
-    || Boolean(given.reopen);
-};
+/* Every plain advance is judged on the page, the one into `closed` included: that rung is entered on the verdicts and the folded findings as well as on the release policy, and a page skipped there read a failed verdict as none (ISS-2511). A set reads it only where the record could have earned the status instead. */
+const readsTheRecord = (body, given) => (given.set ? couldBeEarned(body, given.set) : true);
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
   const cited = () => citedClauses(body);
-  if (!readsTheRecord(body, given)) {
-    const held = given.set ? null : await policyFor(body.plan, body.status);
-    return viewFrom(documentId, body, [], null, held, cited);
-  }
+  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null, cited);
   const page = await commentPage(documentId);
   /* Only the rehearsal prints the line, so only the rehearsal reads it; and neither read feeds the other. */
   const [deploy, release] = await Promise.all([

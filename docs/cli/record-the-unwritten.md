@@ -32,8 +32,8 @@ composition being a fourth wording of one answer.
 The block makes a claim about what the record does not hold, so it is silent wherever that claim
 cannot be established. On a page the walk could not finish, a routing past the cut disproves it and a
 run believing it would answer `--none` over a routing already there. And the rung the close is taken
-from reads no page at all: its whole entry criterion is the status, a thread too long to walk must
-never be able to stall the close, and buying the claim with a read would put one in front of it. So
+from is left out of it: the close is judged on its page for the verdicts and the findings it answers
+to, and a routing asked for on top would put one more thing a long thread could stall in front of it. So
 the span runs from the rung the work starts at to the last one below that — `in_progress`,
 `developed`, `testing` — the rungs at which a run is working the issue. A finding can be met outside
 them, at a triage or after a reopen; what the span decides is where the block is printed, and the
