@@ -97,6 +97,6 @@ test("a rejected push undoes a version commit this run made that moved only vers
 
 test("a rejected push leaves standing a version commit that also moved another field", () => {
   const { room, head } = madeHere(files("1.0.1", { dependency: "1.2.4" }));
-  assert.equal(unwound(room), "");
+  assert.match(unwound(room), /the version commit at HEAD was left standing/u);
   assert.equal(sha(room, "HEAD"), head, "the commit carrying the dependency's move was reset away");
 });

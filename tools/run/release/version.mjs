@@ -4,7 +4,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, gitOut, loud, read, REMOTE, remoteRef, stop } from "../../checkout.mjs";
-import { onlyRelease, RELEASE_FILES, versionAt } from "../landing.mjs";
+import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "../landing.mjs";
 
 const parts = (version) => String(version ?? "").split(".").map((one) => Number.parseInt(one, 10));
 
@@ -87,14 +87,15 @@ export const versionAbove = (tree, base, note, at = null) => {
 export const unwound = (tree) => {
   const head = gitOut(["rev-parse", "HEAD"], tree);
   if (!head) return "";
-  const release = Boolean(gitOut(["rev-parse", "--verify", "HEAD^"], tree)) && onlyRelease(tree, head);
-  if (head !== bumpMade(tree)) {
-    return release
-      ? `, and the release commit at HEAD was left standing: this run did not make the whole of it, `
+  /* A commit that moved the version conflicts on the rebase whoever made it, so one this run did not
+     make, or one carrying more than the release's own fields, is named and left (ISS-2520). */
+  const version = Boolean(gitOut(["rev-parse", "--verify", "HEAD^"], tree)) && isRelease(tree, head);
+  if (head !== bumpMade(tree) || !(version && onlyRelease(tree, head))) {
+    return version
+      ? `, and the version commit at HEAD was left standing: this run did not make the whole of it, `
         + `so it is not this script's to undo. Read it before the rebase — git show --stat HEAD`
       : "";
   }
-  if (!release) return "";
   /* What a hard reset would destroy and nothing wider: an untracked file survives one. */
   if (gitOut(["status", "--porcelain", "--untracked-files=no"], tree)) {
     return `, and the version commit at ${versionAt(tree, head)} was left standing: this tree has `

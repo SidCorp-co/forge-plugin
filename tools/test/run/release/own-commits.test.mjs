@@ -20,7 +20,7 @@ test("a version commit that also moves a dependency is named as the change", () 
   const { work } = pushed("own-commit-dependency");
   const change = bumpWith(work, { dependencies: { left: "1.2.4" } }, "chore(release): 1.0.1, and a dependency");
   const run = lastStep(work);
-  assert.match(run.stdout, new RegExp(`the change landed as ${change.slice(0, 7)};`, "u"),
+  assert.ok(run.stdout.includes(`the change landed as ${change.slice(0, 7)};`),
     `a dependency's move riding a version bump was left out of the change:\n${run.stdout}`);
 });
 
