@@ -22,14 +22,12 @@ const marks = (candidate) =>
   [candidate.restart ? "restart" : null, candidate.warm ? "warm" : null,
     candidate.row.mergedAt ? "merged" : null].filter(Boolean).join(" ");
 
-/* The tracker's stamp to the minute, as the row holds it. A merge mark is asserted by whichever call
+/* The tracker's stamp as the row holds it. A merge mark is asserted by whichever call
    moved the issue, so the row shows it and neither drops nor scores on it: hiding claimable work on a
    caller's word is the silent shrink this verb exists without. The facts beside it are what tell a
    reopened issue's first landing from work that shipped, and a run working the issue is already left
    out by its live lease (ISS-629). */
-const stampOf = (at) => String(at).replace(/:\d{2}(?:\.\d+)?Z$/u, "Z");
-
-const mergedSaid = (row) => `merge mark set ${stampOf(row.mergedAt)}, ${ageOf(Date.parse(row.mergedAt))}`;
+const mergedSaid = (row) => `merge mark set ${row.mergedAt}, ${ageOf(Date.parse(row.mergedAt))}`;
 
 const mergedLine = (candidate) =>
   `  merged ${mergedSaid(candidate.row)}, while the status reads ${candidate.row.status ?? "(none)"}`
