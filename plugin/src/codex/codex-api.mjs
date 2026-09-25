@@ -35,7 +35,7 @@ export const ANGLES = {
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
-const PROMPT_VERSION = 6;
+const PROMPT_VERSION = 7;
 
 export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
 
@@ -91,6 +91,7 @@ const DEBT = `
   - Another angle's finding on the same line does not stand in for a debt finding: that angle judged whether the code works, and the debt is what the shape leaves behind even where it works.
   - Debt the change removes is a gain, not a finding: write it as an unnumbered line under the angle, \`Removes: <path:line> — <what>\`.
   - Only the diff is under review. Debt you see outside it is one unnumbered line, \`outside this change: <path>\`, and never a refactor asked for.
+  - These unnumbered lines, and your word that there were no goals to rule against, are written under the angle's heading after the findings line, and they follow \`CODEX: 0 findings\` as an OUT OF SCOPE section may: a review that found nothing still says what it removed and what it ruled against.
   - A style is not debt; a shape is. Judge by this repository's own configuration and rules, never by a preference of yours.`;
 
 const BOARD = "\n- Open each angle's part with a heading line carrying its name, `### <the angle's name>`, and write "
@@ -108,7 +109,7 @@ ${named.map((one) => `- ${one}`).join("\n")}
 
 FORM
 - Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
-- Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop there.
+- Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\`, and nothing numbered follows it: only the unnumbered lines a rule below asks for may.
 - Anchor every finding to \`path:line\` — the path as you were given it, the line as numbered in the text you were given. A finding you cannot place is a finding you cannot ground.
 - Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.${named.length > 1 ? BOARD : ""}${recheck ? "" : `\n${CLAUSES}`}
 
