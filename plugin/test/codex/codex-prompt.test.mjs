@@ -154,6 +154,15 @@ test("the debt angle carries its rules, and a consult without it carries none of
     "a comment or doc the change makes stale", "a module grown past what it should hold, or a boundary crossed"]) {
     assert.ok(said.includes(kind), `${kind} is not among the debt the rules name`);
   }
+  assert.ok(said.includes("- Test debt, where the diff adds or changes a test: "), "test debt is not among the debt the rules name");
+  for (const kind of ["an expected value produced by the code under test",
+    "a mock or fixture that implements or supplies what the owner should produce",
+    "a contract run again at a second layer that holds no risk of its own",
+    "an assertion that passes whether or not the behaviour happened",
+    "a name or fixture promising more than its input exercises"]) {
+    assert.ok(said.includes(kind), `${kind} is not among the test debt the rules name`);
+  }
+  assert.match(said, /A test-debt finding's \*\*Fix\*\* names the stronger owner case the check belongs in, or the assertion that would fail\./u);
   assert.match(said, /Debt the change removes is a gain, not a finding: write it as an unnumbered line under the angle, `Removes: <path:line> — <what>`/u);
   assert.match(said, /Only the diff is under review\. Debt you see outside it is one unnumbered line, `outside this change: <path>`, and never a refactor asked for/u);
   assert.match(said, /never supply a goal of your own/u);
@@ -163,6 +172,7 @@ test("the debt angle carries its rules, and a consult without it carries none of
   assert.match(said, /A Debt Reviewer finding opens with the numbered bullet every finding opens with/u);
   assert.match(said, /Another angle's finding on the same line does not stand in for a debt finding/u);
   assert.ok(!roleFor(["tech"]).includes("Debt Reviewer"), "the tech angle alone sends no debt rules");
+  assert.ok(!roleFor(["tech"]).includes("Test debt"), "nor the test debt among them");
 });
 
 test("a board asks each angle to open with its own heading, and one angle is asked for none", () => {
