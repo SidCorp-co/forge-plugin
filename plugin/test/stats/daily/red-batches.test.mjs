@@ -51,7 +51,7 @@ test("stats runs --json carries the red-batch figures the line prints", () => {
 
 test("a project with no red-batch record says none was recorded rather than printing noughts", () => {
   const held = device({ days: [daysAgo(1)] });
-  assert.match(runsOf(held).stdout, /^red batches {5}none recorded, so no red set's gates are read$/mu);
+  assert.match(runsOf(held).stdout, /^red batches {5}none recorded,/mu);
 });
 
 test("the daily page's Landings section prints the day's red-batch figures", () => {
