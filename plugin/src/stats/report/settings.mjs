@@ -44,6 +44,12 @@ export const reportSettings = () => {
   }
   const score = given.score === undefined ? {} : given.score;
   if (!isTable(score)) return { refused: wrong("score", "a table of `formula`, `days`, `calls` and `minutes`", score) };
+  const stranger = Object.keys(given).find((key) => !["score", ...WINDOWS].includes(key))
+    ?? Object.keys(score).map((key) => `score.${key}`).find((key) => !["score.formula", ...WEIGHTS.map((one) => `score.${one}`)].includes(key));
+  if (stranger) {
+    return { refused: `stats report: \`${REPORT_KEY}.${stranger}\` in ${configPath()} is no member this report reads: it reads `
+      + "`score.formula`, `score.days`, `score.calls`, `score.minutes`, `followDays` and `earlyDays`. Remove it. Nothing was written." };
+  }
   const held = { ...DEFAULTS, from: configPath() };
   if (score.formula !== undefined) {
     if (!Object.hasOwn(FORMULAS, score.formula)) {

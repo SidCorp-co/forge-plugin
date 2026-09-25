@@ -271,7 +271,8 @@ test("the report key is read member by member with its defaults, and a wrong mem
     assert.deepEqual([held.formula, held.days, held.calls, held.minutes, held.followDays, held.earlyDays], ["sum", 1, 2, 1, 10, 3]);
     for (const [report, key] of [[{ score: { days: -1 } }, "report.score.days"], [{ score: { minutes: "2" } }, "report.score.minutes"],
       [{ earlyDays: Number.NaN }, "report.earlyDays"], [{ score: { formula: "max" } }, "report.score.formula"], [5, "report"],
-      [{ score: [] }, "report.score"], [{ score: null }, "report.score"]]) {
+      [{ score: [] }, "report.score"], [{ score: null }, "report.score"], [{ score: { priority: 99 } }, "report.score.priority"],
+      [{ followDays: 7, unknown: true }, "report.unknown"]]) {
       write(report);
       assert.match(reportSettings().refused, new RegExp(`\`${key.replaceAll(".", "\\.")}\` in .* is .*Nothing was written`, "u"));
     }
