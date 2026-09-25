@@ -95,7 +95,8 @@ test("the release commit a landing makes writes only the version, in files the d
     assert.ok(RELEASE_FILES.includes(path), `${path} is a file the declaration names:\n${said}`);
     const [was, now] = [`${landed}^`, landed].map((rev) => git(work, "show", `${rev}:${path}`).stdout);
     assert.deepEqual({ ...JSON.parse(was), version: "1.0.6" }, JSON.parse(now), `${path} moved only its version:\n${said}`);
-    assert.equal(was.replace('"1.0.5"', '"1.0.6"'), now, `and no byte beside it:\n${said}`);
+    /* Up to the last newline, which `npm version` adds to a manifest this fixture wrote without one. */
+    assert.equal(was.replace('"1.0.5"', '"1.0.6"').trimEnd(), now.trimEnd(), `and no byte beside it:\n${said}`);
   }
 });
 
