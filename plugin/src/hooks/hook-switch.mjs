@@ -94,6 +94,10 @@ const hooksOff = () => {
 
 export const hookOff = (name) => hooksOff().has(name);
 
+/** What a switch thrown off covers and what undoes it, in the words every surface handing the switch out prints: the key is the account's, and a refusal that called it the session's handed one agent a gate down for every project and agent beside it, with no way back named (ISS-45). */
+export const offReach = (name) =>
+  `off for every project and every session on this account until \`forge hooks --on ${name}\``;
+
 export const setHook = (name, off) => {
   const held = hooksOff();
   if (off) held.add(name);

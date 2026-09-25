@@ -13,7 +13,7 @@ Both name the config directory they read. One whose tree the command does not na
 that: spell it out, `cd <path> &&` or `git -C <path>`. A commit whose staged set cannot be
 enumerated is asked for the record whole.
 
-How to work through it: `forge hooks --off codex-second`, for the session. `FORGE_CODEX_DISABLE=1`
+How to work through it: `forge hooks --off codex-second`, account-wide until `--on`. `FORGE_CODEX_DISABLE=1`
 belongs to the session's environment; as a prefix it reaches no hook.
 
 Not judged: what the consult says, whether you take it, a verdict's honesty, or a write between

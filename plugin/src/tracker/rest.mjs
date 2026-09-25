@@ -178,8 +178,14 @@ const said = (body, status) => {
       .map(([field, held]) => `${field}: ${[held].flat().map(unfenced).join("; ")}`),
   ];
   const head = body?.message ? `${body.code ?? status}: ${unfenced(body.message)}` : `Forge answered ${status}`;
-  return lines.length ? `${head}\n${lines.join("\n")}` : head;
+  const whole = lines.length ? `${head}\n${lines.join("\n")}` : head;
+  return status === 401 ? `${UNAUTHORIZED}\n\n${whole}` : whole;
 };
+
+/* The tracker's words say the token was refused and never which token or where it came from, which
+   left a run unable to tell a wrong one from an expired one without a person (ISS-45). */
+const UNAUTHORIZED = "Run `forge doctor` for the token this sent and the file it was read from, and "
+  + "`forge doctor --token <t>` to replace it. The tracker refused that token:";
 
 const aimedAt = async (row, args, soft, held) => {
   if (!row.project) return { id: null };

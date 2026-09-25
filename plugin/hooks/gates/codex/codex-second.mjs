@@ -9,6 +9,7 @@ import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
+import { offReach } from "../../../src/hooks/hook-switch.mjs";
 import {
   REDIRECT,
   COMMITS,
@@ -89,12 +90,12 @@ export const commitAim = (ev) => {
 
 /* The switch a refused agent can reach, first, and then the variable as what it is: written as a
    prefix on the refused command it reached no hook, and that refusal named no way out (ISS-70). */
-const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline `FORGE_CODEX_DISABLE=1` "
-  + "prefix never reaches a hook.";
+const ESCAPE = `Past the gate: \`forge hooks --off codex-second\`, ${offReach("codex-second")} — an inline `
+  + "`FORGE_CODEX_DISABLE=1` prefix never reaches a hook.";
 
 const DOOR = "commit";
 const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, or drop `
-  + `the key and the commit alone asks.\n\n${unknown} is no door this reads: that key in this project's `
+  + `the key and the commit alone asks. ${ESCAPE}\n\n${unknown} is no door this reads: that key in this project's `
   + "configuration is a list of the doors a consult is demanded at.";
 
 /* The record and the log resolve under XDG_CONFIG_HOME and a hook reads the session's, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
