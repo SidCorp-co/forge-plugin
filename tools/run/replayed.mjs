@@ -13,7 +13,7 @@ import { repoRoot } from "../../plugin/src/git/repo-root.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { shortly } from "./install.mjs";
 import { movedBy, remoteHead } from "./land-ready/candidate.mjs";
-import { undoneBy, undoneLine, undoneSaid } from "./undone.mjs";
+import { undoneBy, undoneLine, undoneSaid } from "./land-ready/undone.mjs";
 
 export const REPLAYED = "the review answers for the head this lands";
 

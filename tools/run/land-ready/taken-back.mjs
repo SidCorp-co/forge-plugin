@@ -1,9 +1,9 @@
 /* A member whose clean merge still carries a revert of work that landed under its branch (ISS-369).
    What answers it is a new head of that branch, so it goes back at `head-owed` as a conflict does,
-   and the set goes on without it. What counts as taken back: ../undone.mjs. */
+   and the set goes on without it. What counts as taken back: undone.mjs. */
 import { gitOut, stop } from "../../checkout.mjs";
 import { shortly } from "../install.mjs";
-import { undoneBy, undoneLine, undoneSaid } from "../undone.mjs";
+import { undoneBy, undoneLine, undoneSaid } from "./undone.mjs";
 import { saveOn } from "./member.mjs";
 import { LANDING_HEAD_OWED, RECAPTURE, landingNext } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 

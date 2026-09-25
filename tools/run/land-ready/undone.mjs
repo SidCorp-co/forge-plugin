@@ -3,8 +3,8 @@
    landed hunks undone. Asked by both landing routes, the ship's step before its rebase and each
    member of a `land-ready` set, of the same three commits: where the branch was cut, the base the
    change sits on, and the head that would land. Edits nothing. */
-import { git, gitOut, lines } from "../checkout.mjs";
-import { shortly } from "./install.mjs";
+import { git, gitOut, lines } from "../../checkout.mjs";
+import { shortly } from "../install.mjs";
 
 const HUNK = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/u;
 const BLAMED = /^([0-9a-f]{40}) (\d+) (\d+)/u;

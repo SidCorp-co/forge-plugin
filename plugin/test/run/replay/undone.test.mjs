@@ -8,10 +8,10 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { BARE, git as plain, pushed, runIn } from "./run-fixtures.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { BARE, git as plain, pushed, runIn } from "../run-fixtures.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const { undoneBy, undoneLine } = await import("../../../tools/run/undone.mjs");
+const { undoneBy, undoneLine } = await import("../../../../tools/run/land-ready/undone.mjs");
 
 const git = (room, ...args) =>
   spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
