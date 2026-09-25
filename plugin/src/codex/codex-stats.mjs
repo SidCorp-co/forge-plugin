@@ -11,8 +11,8 @@ import { MARK, answered, hereOf, inRepo, logEntries, logPath } from "./codex-log
 import { modelKey, numbered } from "./log/replies.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { rungIn } from "./codex-plan.mjs";
-import { groupsOf, promptKey, roundKindsOf, statsOf } from "./stats/figures.mjs";
-import { groupLines, groupedLines, roundKindLines, scoreLine, statLines } from "./stats/lines.mjs";
+import { anglesOf, groupsOf, promptKey, roundKindsOf, statsOf } from "./stats/figures.mjs";
+import { angleLines, groupLines, groupedLines, roundKindLines, scoreLine, statLines } from "./stats/lines.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -44,11 +44,13 @@ export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) =>
 /* The groupings `--by` takes, the window being one group of itself. */
 const BY = { window: () => "the window", model: modelKey, prompt: promptKey };
 
-const windowGroupLines = (group, rows) => [
+const windowGroupLines = (group, rows, verdicts) => [
   ...statLines(group.stats),
   scoreLine(group.key, group.score),
   "\nby round kind, a retried consult counted apart from the calls it reached",
   ...roundKindLines(roundKindsOf(rows)),
+  "\nby angle, a finding under the one angle its consult asked for, or on a board under the heading above it",
+  ...angleLines(anglesOf(rows, verdicts)),
 ];
 
 export const printStats = (rest) => {
@@ -65,8 +67,9 @@ export const printStats = (rest) => {
   const named = asked.days ? `the last ${asked.days} day(s)` : `the last ${asked.last ?? DEFAULT_WINDOW} consult(s)`;
   console.log(`${named}${asked.root ? ` in ${asked.root}` : ""}, ${rows[0].at} to ${rows.at(-1).at}`
     + `${by === "window" ? "" : `, by ${by}`}\n`);
-  const groups = groupsOf(rows, entries.filter((one) => one.kind === "verdict"), BY[by]);
-  const lines = by === "window" ? windowGroupLines(groups[0], rows) : groups.flatMap(groupedLines);
+  const verdicts = entries.filter((one) => one.kind === "verdict");
+  const groups = groupsOf(rows, verdicts, BY[by]);
+  const lines = by === "window" ? windowGroupLines(groups[0], rows, verdicts) : groups.flatMap(groupedLines);
   for (const line of lines) console.log(line);
   console.log("\nWhether a reply could not check, and whether a recheck raised something New, are read "
     + "from the reply itself where the row predates the field, so both windows are counted the same way. "
@@ -198,8 +201,8 @@ export const STATS_USAGE = [
   "The figures of a window's consults, the one aggregation of the log: what they cost and did —",
   "calls against their budget, replies that could not check, rechecks that raised something New,",
   "tokens by kind, the prompt versions that ran — and what they found and what of it was kept, read",
-  "off every verdict the log holds. Where the issue-flow runs of a window spent their time and",
-  "rounds is `forge stats runs`.",
+  "off every verdict the log holds, for the window and for each angle that reviewed it. Where the",
+  "issue-flow runs of a window spent their time and rounds is `forge stats runs`.",
   "",
   "  --by g         window (the default) prints the window as one group, then a pass beside a",
   "                 recheck; model and prompt print one group each, both halves of its figures",

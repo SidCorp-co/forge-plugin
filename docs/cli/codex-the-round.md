@@ -106,3 +106,13 @@ worked.
 **Angles are the checkout's.** On this CLI three of the four wrote "nothing material" in every one of
 92 consults — output paid for, and the reader skimming past the one angle that mattered. The board
 stays for a product with screens; the project's configuration names the angles that fit.
+
+**The debt angle is off until a project names it.** It asks what a change leaves behind and whether it
+moves the code toward the project's goals, which no other angle asks, so that debt reached review only
+by accident. It is off by default because each angle costs output and a reader's attention. A
+project turns it on in `codex.angles`, or for one consult with `--angles`. Its rules are a block of
+their own rather than a longer line under another angle: every angle has the same four-finding cap,
+and debt set against correctness in one list would crowd one of the two out. The goals it rules against
+are the brief's, sent as words and not only as identifiers, because a project with no requirements tree
+has nothing `read_spec` could answer. What it finds is a finding like any other angle's, and no gate
+refuses on it.

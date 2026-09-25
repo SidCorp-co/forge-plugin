@@ -72,3 +72,18 @@ export const groupLines = (group, when) => {
       : `  ${" ".repeat(WHEN)} no consult here recorded what it spent`,
   ];
 };
+
+const UNPLACED = "under no heading";
+
+/** The angle rows `anglesOf` returns, one line each, and the rows it could not attribute. */
+export const angleLines = ({ angles, unrecorded }) => [
+  ...angles.map((one) => {
+    const ruled = one.accepted + one.rejected;
+    /* No consult asks for the unplaced row, so a count there would read as one that did. */
+    const asked = one.angle === null ? "" : `${one.consults} consult(s)`;
+    return `${(one.angle ?? UNPLACED).padEnd(18)} ${asked.padStart(15)}  `
+      + `${String(one.findings).padStart(4)} finding(s)  `
+      + `${ruled ? `${one.accepted} kept, ${one.rejected} dropped, ${share(one.accepted, ruled)} of ${ruled} ruled by id` : "none ruled by id"}`;
+  }),
+  ...(unrecorded ? [`${unrecorded} consult(s) recorded no angles, and are in no row above`] : []),
+];

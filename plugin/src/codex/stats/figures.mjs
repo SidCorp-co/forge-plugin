@@ -3,7 +3,7 @@
    `eval` groups two windows by model and prompt at once; each asks this module, so a figure is
    defined once and two verbs quoting it cannot disagree (ISS-349). docs/cli/codex-the-stats.md. */
 import { answered, verdictsBy } from "../codex-log.mjs";
-import { countedIn, modelKey, numbered, ruledOn } from "../log/replies.mjs";
+import { anglesOfFindings, countedIn, modelKey, numbered, ruledOn } from "../log/replies.mjs";
 import { incompleteIn, newFindingsIn } from "../codex-plan.mjs";
 import { groupBy } from "../../stats/windows.mjs";
 import { median } from "../../stats/median.mjs";
@@ -111,3 +111,34 @@ export const roundKindsOf = (rows) => ROUND_KINDS.map(([name, is]) => {
   const once = own.filter((row) => (row.attempt ?? 1) === 1);
   return { name, consults: own.length, sent: held.sent, cached: held.cached, retried: held.retried, calls: statsOf(once).calls };
 });
+
+/* Kept and dropped are read by id alone: a verdict written as counts says how many of the consult's
+   findings it took and not which angle's, so it rules on none of these rows rather than on a guess. */
+const angleRow = (angle) => ({ angle, consults: 0, findings: 0, accepted: 0, rejected: 0 });
+
+/** Per angle, the consults that asked for it, the findings placed under it and what the verdicts kept and
+ *  dropped of them; `null` is the angle of a finding a board placed under no heading. A row recording no
+ *  angles predates the field and is counted apart, since which angles reviewed it is unknown. */
+export const anglesOf = (rows, verdicts) => {
+  const scored = verdictsBy(verdicts);
+  const by = new Map();
+  const slot = (angle) => by.get(angle) ?? by.set(angle, angleRow(angle)).get(angle);
+  let unrecorded = 0;
+  for (const row of rows) {
+    if (!Array.isArray(row.angles)) {
+      unrecorded += 1;
+      continue;
+    }
+    for (const angle of row.angles) slot(angle).consults += 1;
+    const verdict = scored.get(row.id ?? row.at);
+    const kept = new Set(verdict?.counted ? [] : verdict?.kept ?? []);
+    const dropped = new Set(verdict?.counted ? [] : Object.keys(verdict?.dropped ?? {}));
+    for (const [id, angle] of anglesOfFindings(row.reply, row.angles)) {
+      const held = slot(angle);
+      held.findings += 1;
+      if (kept.has(id)) held.accepted += 1;
+      if (dropped.has(id)) held.rejected += 1;
+    }
+  }
+  return { angles: [...by.values()], unrecorded };
+};

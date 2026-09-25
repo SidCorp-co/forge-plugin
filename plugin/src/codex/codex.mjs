@@ -27,7 +27,7 @@ import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
-  ANGLES,
+  ANGLES, DEFAULT_ANGLES,
   askApi,
   bundle,
   cannotCarry,
@@ -35,7 +35,7 @@ import {
   inside,
   promptMark,
   withDiffs,
-  openingFor,
+  openingFor, goalsFor,
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
@@ -108,7 +108,7 @@ const CONSULT_USAGE = [
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
-  "  --angles a,a   which angles review this consult: tech, ba, user, ux",
+  "  --angles a,a   which angles review this consult: tech, ba, user, ux; debt only when named",
   "  --effort e     minimal | low | medium | high, for this consult only",
   "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
   "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words",
@@ -240,14 +240,14 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
   if (crossing) console.error(crossingSaid(crossing));
 };
 
-/* The checkout's, else the account's, else all four — and a name not on the list is refused rather
+/* The checkout's, else the account's, else the default four — and a name not on the list is refused rather
    than sent, because a role the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
   const given = raw ?? projectCodex().angles ?? userConfig().codex?.angles;
-  if (given === undefined) return Object.keys(ANGLES);
+  if (given === undefined) return DEFAULT_ANGLES;
   const asked = (Array.isArray(given) ? given : String(given).split(",")).map((one) => one.trim()).filter(Boolean);
   for (const one of asked) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
-  return asked.length ? asked : Object.keys(ANGLES);
+  return asked.length ? asked : DEFAULT_ANGLES;
 };
 
 
@@ -430,7 +430,7 @@ const consult = async (given) => {
   const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(),
     { anchor: reached, files: rels, issues, spec, by: started + budgetMs() });
   try {
-    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues });
+    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues, goals: await goalsFor(angles) });
     const held = await reviewed(
       values, model, opening, reach, streamed, askApi,
       { effort, budget, ceiling, system },
