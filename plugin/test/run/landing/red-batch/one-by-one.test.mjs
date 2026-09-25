@@ -11,6 +11,7 @@ import {
 } from "../fixture.mjs";
 
 const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
+const { BATCHES, marksOf } = await import("../../../../src/stats/marks/marks.mjs");
 
 test.after(() => tracker.close());
 
@@ -33,4 +34,9 @@ test("with redBatch one-by-one a combination the gate refuses lands one branch a
   assert.equal(landing(NEXT_UUID).state, "head-owed", said);
   assert.equal(marks(NEXT_UUID).length, 0, said);
   assert.doesNotMatch(said, /red batch:/u, said);
+  const [opened, resolved] = marksOf(BATCHES).slice(-2);
+  assert.equal(opened.strategy, "one-by-one", said);
+  assert.equal(resolved.outcome, "one-by-one", `the red set is on record however it was landed:\n${said}`);
+  assert.equal(resolved.gates, 1, `the combined gate is the one it spent:\n${said}`);
+  assert.deepEqual(resolved.alone, [KEY, NEXT_KEY], `and every member is landed alone:\n${said}`);
 });

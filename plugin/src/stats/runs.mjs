@@ -37,7 +37,7 @@ import { canonical } from "../resolve/canonical.mjs";
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { durationOf } from "./window/duration.mjs";
-import { RESUMED, landingLine, landingsOver, landingsUnder, passesIn } from "./corpus/landings.mjs";
+import { RESUMED, landingLines, landingsHeld, passesIn } from "./corpus/landings.mjs";
 
 const REPEATED = 3;
 const LONG_WAIT_MINUTES = 10;
@@ -519,7 +519,7 @@ const profileLines = (held, all = false) => [
   `edits           per run ${held.edits.map((one) => `${one.route} ${one.perRun}`).join(", ")} · `
     + `median chars/call ${held.edits.map((one) => `${one.route} ${one.medianChars}`).join(", ")}`,
   shipLine(held),
-  ...(held.landings ? [landingLine(held.landings)] : []),
+  ...(held.landings ? landingLines(held) : []),
   `notes           ${held.notes.before} posted before the landing, ${held.notes.after} after it, `
     + `${held.notes.unshipped} in a run that never reached it`,
   ...declareLines(held),
@@ -608,7 +608,7 @@ export const printRuns = async (rest) => {
   const aside = readingAside({ skipped, outsideWindow, unreadable });
   /* Beside the profile and never in it: the profile is what a reading stores, and it is a figure of
      runs where this one is a figure of every transcript. */
-  const held = { ...profileOf(runs, declared, act), landings: landingsOver(landingsUnder(root, classes, passes, from)) };
+  const held = { ...profileOf(runs, declared, act), ...landingsHeld({ root, classes, passes, from, directory }) };
   const reach = since === undefined ? reachOf(scopeOf(directory), held.from) : null;
   if (json) {
     return console.log(JSON.stringify(
@@ -617,7 +617,7 @@ export const printRuns = async (rest) => {
   }
   if (!runs.length) {
     return console.log(`No issue-flow run for this project${since ? ` in the last ${since}` : ""}. ${aside}.\n`
-      + `${landingLine(held.landings)}\n${sourceLines(sources).join("\n")}`
+      + `${landingLines(held).join("\n")}\n${sourceLines(sources).join("\n")}`
       + derivedFrom(directory));
   }
   console.log(`${held.runs} issue-flow run(s)${since ? ` in the last ${since}` : ""}, `

@@ -397,6 +397,11 @@ so a death between the two is recovered by reading back rather than by doing aga
   WHEN every failing case of a set's red candidate reaches the paths of exactly one member THEN the
   landing SHALL hand that member back with the failing step and cases, SHALL spend no gate to find
   it, and SHALL gate the rest once as one candidate on the same pin.
+- **AC-05-10-15** · Rev: 1 · Proof: plugin/test/run/landing/red-batch/record.test.mjs "a red set attributed by paths is opened before its search and resolved with the member handed back and the gates spent"
+  WHEN a set's candidate is red THEN the landing SHALL record that it was red before any gate of its
+  search is spent, and SHALL record how it was resolved — the strategy, the outcome, the members
+  handed back and landed alone, the rounds and the gates spent — so that a red set with no
+  resolution on record is read as unknown and never as a set that cost nothing.
 - **AC-05-10-11** · Rev: 1 · Proof: plugin/test/run/landing/batch.test.mjs "two ready branches make one candidate, one gate, one version and one update to the base"
   WHEN several ready changes are landed together THEN the landing SHALL build one candidate over one
   pinned base, SHALL spend one gate, one version and one push on it, and SHALL write each change's

@@ -25,7 +25,8 @@ class Unbuildable extends Error {}
 /** The search, from the combined candidate's red reading: `{ green, back, gates, rounds, kept,
  *  candidate }`, `kept` being the green gate that read the tree the members left make, and its room
  *  the one room left standing. `{ unbuildable }` where a subset does not merge on the pin, and
- *  `{ unread }` where a gate declined its place or never ran, each with every room dropped. */
+ *  `{ unread }` where a gate declined its place or never ran, each with every room dropped and the
+ *  `gates` spent before it. */
 export const searched = async ({ at, ctx, first }) => {
   const { root, ms } = ctx;
   const found = { green: [], back: [], gates: 1, rounds: 0, trees: new Map() };
@@ -99,8 +100,8 @@ export const searched = async ({ at, ctx, first }) => {
     held = await result();
     return held;
   } catch (error) {
-    if (error instanceof Unbuildable) return { unbuildable: error.message };
-    if (error.read) return { unread: error.read };
+    if (error instanceof Unbuildable) return { unbuildable: error.message, gates: found.gates };
+    if (error.read) return { unread: error.read, gates: found.gates };
     throw error;
   } finally {
     /* Every room but the one the members left were read green in, which the version step builds on. */

@@ -10,6 +10,7 @@ import { keysOf, reconciledAt, saveOn } from "./member.mjs";
 import { searched } from "./search.mjs";
 import { LANDING_HEAD_OWED, RECAPTURE, landingNext } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { RED_BATCHES, redBatchScope } from "../../../plugin/src/resolve/settings.mjs";
+import { ALONE, ATTRIBUTED, SPLIT, UNREAD, batchOpened, batchResolved } from "../../../plugin/src/stats/marks/red-batches.mjs";
 
 /** Whether the table leads this member's state to the builder's new head: past a judgement it does
     not, and a stop there says what it met without writing a move the save would refuse. */
@@ -71,6 +72,26 @@ const reasonOf = ({ members, reading, cases, combination }, member, pin) => {
   return `gated alone as a candidate on ${shortly(pin)}, it is red at ${step}`;
 };
 
+const keysIn = (members) => members.map((member) => member.key);
+
+/** What the red-batch record says of a search over `members`, every outcome `searched` returns in one
+ *  place. Where the search leaves the members to land one at a time — a subset that does not merge, or
+ *  members left that move a path — none is handed back by it, the ones it found at fault included:
+ *  each fails again on its own landing, which spends the gate `alone` counts for it. */
+export const resolutionOf = (found, members, moved) => {
+  if (found.unread) return { outcome: UNREAD, gates: found.gates };
+  if (found.unbuildable) return { outcome: ALONE, gates: found.gates, alone: keysIn(members) };
+  const { gates, rounds } = found;
+  const outcome = rounds ? SPLIT : ATTRIBUTED;
+  if (moved) return { outcome, gates, rounds, alone: keysIn(members) };
+  return { outcome, gates, rounds, back: found.back.flatMap((back) => keysIn(back.members)) };
+};
+
+/* The paths the members left green move on the candidate they make, or none where no member is left. */
+const movedOn = (found, root) => (found.green?.length
+  ? found.green.flatMap((member) => movedBy(root, member.landing.head, found.candidate, member.landing.files))
+  : []);
+
 const handedBack = async (found, at) => {
   for (const back of found.back) {
     for (const member of back.members) {
@@ -90,10 +111,9 @@ const handedBack = async (found, at) => {
 /* The members left, landed on the candidate their search read green: where no member was dropped the
    tree is the one gated, and a new room is made only where the gate that read it was over another
    commit of that same tree. */
-const carriedOn = async (found, one) => {
+const carriedOn = async (found, one, moved) => {
   const { at, ctx: { root } } = one;
   const { candidate, kept } = found;
-  const moved = found.green.flatMap((member) => movedBy(root, member.landing.head, candidate, member.landing.files));
   if (moved.length || found.green.some((member) => member.landing.moved)) {
     dropRoom(root, kept.room);
     return oneByOne(at, `The members left green make ${shortly(candidate)}, which`, `moves ${moved.join(", ")
@@ -109,9 +129,12 @@ const carriedOn = async (found, one) => {
     + `this search read`);
 };
 
-const searchedRed = async (one, first, said) => {
+const searchedRed = async (one, first, said, opened) => {
   const { at, ctx } = one;
   const found = await searched({ at, ctx, first });
+  const moved = movedOn(found, ctx.root);
+  batchResolved(opened, resolutionOf(found, at.members,
+    moved.length > 0 || Boolean(found.green?.some((member) => member.landing.moved))));
   if (found.unread) return unread(found.unread, one);
   if (found.unbuildable) {
     return oneByOne(at, said, `were searched and ${found.unbuildable} does not merge on ${shortly(at.pin)}`);
@@ -122,7 +145,7 @@ const searchedRed = async (one, first, said) => {
     await handedBack(found, at);
     return stop(`${said} Every member of ${keysOf(at)} went back to the run that built it, so nothing of this set lands.`);
   }
-  return carriedOn(found, one);
+  return carriedOn(found, one, moved);
 };
 
 /* Spent on the combination first, a green set costing one gate. What a red set is landed as, and the runs that bounds,
@@ -139,11 +162,14 @@ export const gateStep = async (one) => {
   if (read.error || read.declined) return unread(read, one);
   const said = `npm run check exited ${read.status} over the candidate ${shortly(at.candidate)}.`;
   if (at.members.length > 1) {
-    if (redBatchScope().value === ONE_BY_ONE) {
+    const strategy = redBatchScope().value;
+    const opened = batchOpened({ root, members: keysIn(at.members), candidate: at.candidate, pin: at.pin, strategy });
+    if (strategy === ONE_BY_ONE) {
+      batchResolved(opened, { outcome: ALONE, gates: 1, alone: keysIn(at.members) });
       return oneByOne(at, said, `are green apart and red together, and this project's \`redBatch\` is `
         + `\`${ONE_BY_ONE}\` rather than \`${SEARCHED}\`, so no subset is searched for`);
     }
-    return searchedRed(one, read, said);
+    return searchedRed(one, read, said, opened);
   }
   /* The branch's own fault against what landed since, answered by a new head: the one the gate
      refused stays where it is, the landing writing no ref of a branch it did not build. */

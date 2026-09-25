@@ -61,5 +61,19 @@ than at the end of the session it sits in, and say how many of them no run holds
 stays what it was, the passes of runs. The ship row is both verbs that land a release here, `ship`
 and `land-ready` (ISS-2435).
 
+**A red set is counted off what the landing wrote, never off what it printed.** A landing run in
+the background leaves no transcript, so the line it prints about a red set reaches no reader. The
+landing writes two records per set into the store the release reading lives in — and not into the
+release reading itself, because a set that hands every member back makes no release. The first is
+written the moment the combined candidate reads red and before the search spends a gate; the
+second once the set is resolved. A set with the first and not the second — a landing that died, or
+a write the store refused — is counted as unknown, and so is one a declined gate place stopped,
+since it resolved nothing: an unknown set adds to neither gate figure rather than reading as a set
+that cost nothing. The `red batches` line, and the daily page's Landings section, put the gates the
+resolved sets spent beside what landing every member alone would have: one per member and the
+combined one. A member the resolution leaves to land alone is counted as the gate that landing
+owes, which is why a search that falls back to one at a time names every member alone and none as
+handed back (ISS-2490).
+
 The refusals a window met and the other non-zero exits beside them, which share this classifier and
 are a listing rather than a row: [stats — the refusals](stats-the-refusals.md).
