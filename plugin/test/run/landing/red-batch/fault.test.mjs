@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { attributed, casesOf } from "../../../../tools/run/land-ready/fault.mjs";
+import { attributed, casesOf } from "../../../../../tools/run/land-ready/fault.mjs";
 
 const member = (key, ...files) => ({ key, landing: { files } });
 const ONE = member("ISS-1", "plugin/src/one.mjs");

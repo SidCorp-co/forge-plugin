@@ -6,9 +6,9 @@ import test from "node:test";
 import {
   JUDGED_GATE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, THIRD_BRANCH, THIRD_KEY, THIRD_OWNED, THIRD_UUID,
   context, judgedRuns, judging, landingRan, ready, seeded, tracker, world,
-} from "./fixture.mjs";
+} from "../fixture.mjs";
 
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
+const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
 
 test.after(() => tracker.close());
 

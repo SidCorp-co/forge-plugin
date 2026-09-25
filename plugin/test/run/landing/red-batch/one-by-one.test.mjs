@@ -8,9 +8,9 @@ import { join } from "node:path";
 import {
   BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, PAIRED_GATE, context, forgetGateRuns,
   gateRuns, git, landingRan, marks, ready, redTogether, seeded, sha, tracker, world,
-} from "./fixture.mjs";
+} from "../fixture.mjs";
 
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
+const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
 
 test.after(() => tracker.close());
 
