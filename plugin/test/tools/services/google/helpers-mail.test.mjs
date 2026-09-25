@@ -72,6 +72,16 @@ test("+reply threads onto the original, to its sender, with In-Reply-To, Referen
   assert.match(sent.text, /^References: <orig@example\.com>\r$/mu);
 });
 
+test("+reply --dry-run sends nothing, and prints the metadata read and then the send threaded onto the message it names", async () => {
+  const answer = await ran("+reply", "M1", "--body", "Thanks.", "--dry-run");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.equal(fake.requests.length, 0);
+  const read = answer.stdout.search(/^GET http:\/\/127\.0\.0\.1:\d+\/gmail\/v1\/users\/me\/messages\/M1\?format=metadata/mu);
+  const sent = answer.stdout.search(new RegExp(`^POST http://127\\.0\\.0\\.1:\\d+${SEND}$`, "mu"));
+  assert.ok(read >= 0 && sent > read, answer.stdout);
+  assert.match(answer.stdout, /"threadId": "<threadId of M1>"/u);
+});
+
 test("+triage prints each unread message as its sender, subject and date", async () => {
   fake.answers["GET /gmail/v1/users/me/messages"] = (seen) => [200, seen.query.get("q") === "is:unread" ? { messages: [{ id: "u1" }] } : {}];
   fake.answers["GET /gmail/v1/users/me/messages/u1"] = () => [200, { id: "u1", threadId: "t1", payload: { headers: [

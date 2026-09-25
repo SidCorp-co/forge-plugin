@@ -85,6 +85,24 @@ test("+download --mime exports a Google-native file to that type", async () => {
   assert.equal(readFileSync(out, "utf8"), "exported as text/markdown");
 });
 
+test("+download --dry-run sends nothing, prints the lookup and then the download, and says a native file is exported instead", async () => {
+  const answer = await ran("+download", "F1", "--dry-run");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.equal(fake.requests.length, 0);
+  const lookup = answer.stdout.search(/^GET http:\/\/127\.0\.0\.1:\d+\/drive\/v3\/files\/F1\?fields=id%2Cname%2CmimeType$/mu);
+  const bytes = answer.stdout.search(/^GET http:\/\/127\.0\.0\.1:\d+\/drive\/v3\/files\/F1\?alt=media$/mu);
+  assert.ok(lookup >= 0 && bytes > lookup, answer.stdout);
+  assert.match(answer.stderr, /a dry run does not read F1's type; a Google-native file is exported instead of downloaded/u);
+  assert.equal(existsSync(join(room, "<name of F1>")), false);
+});
+
+test("+download --mime --dry-run sends nothing and prints the export in that type", async () => {
+  const answer = await ran("+download", "D1", "--mime", "application/pdf", "--dry-run");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.equal(fake.requests.length, 0);
+  assert.match(answer.stdout, /^GET http:\/\/127\.0\.0\.1:\d+\/drive\/v3\/files\/D1\/export\?mimeType=application%2Fpdf$/mu);
+});
+
 test("+find lists the files whose name contains the text and are not trashed", async () => {
   fake.answers["GET /drive/v3/files"] = () => [200, { files: [{ id: "F1", name: "budget 2026" }] }];
   const answer = await ran("+find", "budget's");
