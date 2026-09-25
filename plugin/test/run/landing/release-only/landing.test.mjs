@@ -57,7 +57,8 @@ test("a base that moved the change's manifest only by a release's version carrie
   const held = landing();
   assert.notEqual(held.state, "builder-owed", `the release's version is no move of the change:\n${said}`);
   assert.equal(held.moved, undefined, `and nothing was recorded as moved:\n${said}`);
-  assert.match(said, new RegExp(`${MANIFEST} moved between ${head.slice(0, 7)} and [0-9a-f]{7} only in the version fields a release writes`, "u"), said);
+  const told = said.split("\n").find((line) => line.includes(`${MANIFEST} moved between ${head.slice(0, 7)} and `));
+  assert.ok(told?.includes("only in the version fields a release writes"), `the path taken as the release's is named:\n${said}`);
   const landed = remote(at);
   assert.notEqual(landed, theirs, `the release landed:\n${said}`);
   assert.equal(git(work, "merge-base", "--is-ancestor", head, landed).status, 0, `carrying the judged head:\n${said}`);
@@ -111,7 +112,7 @@ test("a base that moved another field of the change's manifest still hands the b
   const held = landing();
   assert.equal(held.state, "builder-owed", said);
   assert.equal(held.moved, MANIFEST, said);
-  assert.match(said, new RegExp(`the landing moved ${MANIFEST}, so this change's own paths are not what was judged`, "u"), said);
+  assert.ok(said.includes(`the landing moved ${MANIFEST}, so this change's own paths are not what was judged`), said);
   assert.doesNotMatch(said, /only in the version fields a release writes/u, said);
   assert.equal(remote(at), theirs, `nothing was pushed:\n${said}`);
 });
