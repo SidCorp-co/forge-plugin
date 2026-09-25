@@ -143,11 +143,12 @@ export const opening = (status, fields, held, work = null, finished = []) => {
 /* The count of what was read and of what this screen left out, in the plan pointer's shape, so a
    stranger reading three headlines learns twenty more records exist and where they print (ISS-47). */
 export const readLines = (brief) => {
-  const { seen, shown } = brief.records;
+  const { seen, standing, shown } = brief.records;
   const latest = brief.comments.length ? `, latest ${brief.comments.at(-1).at}` : "";
+  const superseded = seen > standing ? `, ${seen - standing} of them superseded by a later one of their kind` : "";
   return [
-    `Read: ${brief.comments.length} comment(s) on this issue${latest}, carrying ${seen} typed record(s).`,
-    ...(seen > shown ? [`… ${seen - shown} more than the lines above: forge resume ${brief.ref} --report`] : []),
+    `Read: ${brief.comments.length} comment(s) on this issue${latest}, carrying ${seen} typed record(s)${superseded}.`,
+    ...(standing > shown ? [`… ${standing - shown} more than the lines above: forge resume ${brief.ref} --report`] : []),
   ];
 };
 

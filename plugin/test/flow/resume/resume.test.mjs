@@ -263,22 +263,27 @@ test("the brief headlines the review's outcome and head and the baseline's resul
 });
 
 test("the footer counts the typed records it read and points at the report for the ones it gave no line", () => {
-  const verdict = (criterion) => recorded("verdict", { criterion, verdict: "pass", commit: "aaa1111", evidence: ["run.txt"] });
+  const verdict = (criterion, why) => recorded("verdict", { criterion, verdict: "pass", commit: "aaa1111", evidence: ["run.txt"], why });
   const many = brief({}, [
     recorded("confirmation", { where: ["src/one.mjs"], is: "the first reading", finding: "holds" }),
     recorded("confirmation", { where: ["src/two.mjs"], is: "the second reading", finding: "holds" }),
-    verdict("1 — The first outcome."),
-    verdict("1 — The first outcome."),
+    recorded("correction", { moved: "criterion 2", why: "it named the wrong file" }),
+    recorded("correction", { moved: "criterion 3", why: "it read as two outcomes" }),
+    verdict("1 — The first outcome.", "the old run"),
+    verdict("1 — The first outcome.", "the new run"),
+    verdict("2 — The second outcome.", "the only run"),
     comment("a plain comment carrying no record"),
   ]);
-  assert.deepEqual(many.records, { seen: 4, shown: 2 }, "every typed record read, against the headline and the one mark it shows");
+  assert.deepEqual(many.records, { seen: 7, standing: 5, shown: 4 },
+    "every typed record read; the ones the report prints, which drop the superseded confirmation and verdict; and the two headlines with two marks");
   const [read, more, ...rest] = readLines(many);
-  assert.match(read, /^Read: 5 comment\(s\) on this issue, latest [^,]+, carrying 4 typed record\(s\)\.$/u, read);
-  assert.equal(more, "… 2 more than the lines above: forge resume ISS-44 --report", "the pointer in the plan's shape");
+  assert.match(read, /^Read: 8 comment\(s\) on this issue, latest [^,]+, carrying 7 typed record\(s\), 2 of them superseded by a later one of their kind\.$/u, read);
+  assert.equal(more, "… 1 more than the lines above: forge resume ISS-44 --report",
+    "the pointer counts only what the report prints: the older correction");
   assert.deepEqual(rest, []);
   const whole = brief({}, [recorded("confirmation", { where: ["a"], is: "the one reading", finding: "holds" })]);
-  assert.deepEqual(whole.records, { seen: 1, shown: 1 });
-  assert.equal(readLines(whole).length, 1, "a screen that shows every record it read says nothing is left out");
+  assert.deepEqual(whole.records, { seen: 1, standing: 1, shown: 1 });
+  assert.equal(readLines(whole).length, 1, "a screen that shows every record the report prints says nothing is left out");
   assert.deepEqual(readLines(brief()), ["Read: 0 comment(s) on this issue, carrying 0 typed record(s)."]);
 });
 

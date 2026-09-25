@@ -5,7 +5,7 @@ import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, stateOf } from "./lease.mjs";
 import { sharedHolder } from "./lease/dispatched.mjs";
 import { workUnder } from "./lease/holder.mjs";
-import { atMinute, unwrap } from "./machine.mjs";
+import { SHAPES, atMinute, unwrap } from "./machine.mjs";
 import { rebuiltSaid } from "./landing/reconstruction.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
 import { finishedAtHead, methodOf } from "../guides/phases.mjs";
@@ -115,11 +115,18 @@ const repeatedIn = (view) => Object.fromEntries(
     .filter(([, held]) => held > 1),
 );
 
-/* Every typed record on the comments read, against the ones this screen gives a line: each
-   headline, the park, and the latest verdict a criterion's mark stands for. The difference is what
-   the footer admits and sends to `--report` (ISS-47). */
+/* Three counts, because two differences are said: `standing` is the selection `--report` prints —
+   every record of a kind that repeats, the latest of any other, the latest verdict per criterion —
+   so the pointer promises only what that reading shows, and what `seen` holds beyond it is history a
+   later record of its kind superseded. `shown` is each headline, the park, and the verdict a
+   criterion's mark stands for (ISS-47). */
+const standingIn = (view) =>
+  Object.keys(view.latest).reduce((sum, kind) => sum + (SHAPES[kind].repeats ? view.repeated[kind].length : 1), 0)
+  + view.verdicts.size + (view.unreadable?.length ?? 0);
+
 const recordsIn = (view, latest, park) => ({
   seen: view.comments.reduce((sum, one) => sum + parseAll(one.body ?? "").length, 0),
+  standing: standingIn(view),
   shown: Object.keys(latest).length + (park ? 1 : 0) + view.criteria.filter((one) => view.verdicts.has(one.number)).length,
 });
 
