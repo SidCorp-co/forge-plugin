@@ -268,8 +268,8 @@ test("a citation for a commit nothing published is refused at the write, and the
   const { room, at } = citingRoom();
   const good = await writing(at, room);
   assert.equal(good.status, 0, good.stdout + good.stderr);
-  assert.match(good.stdout, new RegExp(`commit: ${at}`, "u"), "so the payload goes up carrying the commit cited");
-  assert.match(good.stdout, new RegExp(`head: ${at}`, "u"), "and the head it was written at, which is that commit");
+  assert.ok(good.stdout.includes(`commit: ${at}`), "so the payload goes up carrying the commit cited");
+  assert.ok(good.stdout.includes(`head: ${at}`), "and the head it was written at, which is that commit");
 });
 
 test("a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken", async () => {
@@ -281,7 +281,7 @@ test("a published citation written from a moved or dirty checkout is refused bef
   const before = posts();
   const refused = await writing(at, room);
   assert.equal(refused.status, 1, refused.stdout);
-  assert.match(refused.stderr, new RegExp(`this checkout stands at ${moved}, and the result at ${at}`, "u"),
+  assert.ok(refused.stderr.includes(`this checkout stands at ${moved}, and the result at ${at}`),
     "the refusal names the checkout's head and the commit cited");
   assert.equal(posts(), before, "and nothing reached the issue");
   /* The route as printed, through a shell: it has to clear the refusal it came with. Spawned without blocking, the tracker answering it being this process. */
@@ -289,7 +289,7 @@ test("a published citation written from a moved or dirty checkout is refused bef
   const PATH = `${dirname(FORGE)}:${env.PATH ?? process.env.PATH}`;
   const taken = await ranAsync("bash", ["-c", route], { ...env, PATH }, room);
   assert.equal(taken.status, 0, taken.stdout + taken.stderr);
-  assert.match(taken.stdout, new RegExp(`head: ${at}`, "u"), "the write it runs stamps the cited commit as its head");
+  assert.ok(taken.stdout.includes(`head: ${at}`), "the write it runs stamps the cited commit as its head");
   assert.equal(posts(), before + 1, "and posts the one record");
   assert.equal(as("worktree", "list").stdout.trim().split("\n").length, 1, "leaving no worktree behind");
   writeFileSync(join(room, "loose.txt"), "never committed\n");
