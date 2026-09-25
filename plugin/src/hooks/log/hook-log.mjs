@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { hookLogPath, hookEntries, jsonLines } from "./hook-log-file.mjs";
 import { readAction } from "../../tracker/issue-read.mjs";
 import { didYouMean } from "../../suggest.mjs";
-import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, setHook } from "../hook-switch.mjs";
+import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, offReach, setHook } from "../hook-switch.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { helpOf } from "../../resolve/visibility.mjs";
@@ -23,7 +23,7 @@ const line = (one) =>
 const switched = (name, off) => {
   if (!hookNames().includes(name)) fail(didYouMean("hook", name, hookNames()));
   setHook(name, off);
-  console.log(`${name} (${hookEvent(name)}) is now ${off ? "off" : "on"}.`);
+  console.log(`${name} (${hookEvent(name)}) is now ${off ? offReach(name) : "on"}.`);
   const down = offNow();
   console.log(down.length ? `Off: ${down.map((one) => one.name).join(", ")}` : "Every hook is on.");
 };

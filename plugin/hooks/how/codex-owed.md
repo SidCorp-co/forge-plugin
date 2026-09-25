@@ -17,6 +17,6 @@ repository's gate. `forge doctor` names it and the key.
 
 Naming the gate not the commit buys the reading early, at the cost of the commit's own demand.
 
-`FORGE_CODEX_DISABLE=1` silences it with the review; for the session, `forge hooks --off codex-owed`.
+`FORGE_CODEX_DISABLE=1` silences it with the review; `forge hooks --off codex-owed`, account-wide until `--on`.
 
-Not judged: whether the call should run at all, and whether what a consult would find is worth having.
+Not judged: whether the call should run, and whether what a consult would find is worth having.

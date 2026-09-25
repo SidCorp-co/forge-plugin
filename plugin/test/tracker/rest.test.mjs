@@ -161,6 +161,21 @@ test("a refusal naming an unrecognised key names that key, out of the tracker's 
   assert.match(answer.refused, /Unrecognized key: "status"/u);
 });
 
+/* The tracker's 401 names neither the token nor where it came from, so the refusal opens with the
+   command that does, ahead of the tracker's own words (ISS-45). A 403 is a token read and denied a
+   route, which that command does not answer. */
+test("a 401 opens with the command that names the token sent, and keeps the tracker's words after it", async () => {
+  const refusal = { code: "UNAUTHORIZED", message: "Invalid or expired token" };
+  const answer = await answering([[401, refusal]],
+    () => callTool("forge_issues", { action: "update", documentId: "u-1", data: {} }, true));
+  assert.match(answer.refused, /^Run `forge doctor` for the token this sent and the file it was read from/u, answer.refused);
+  assert.match(answer.refused, /`forge doctor --token <t>` to replace it/u);
+  assert.match(answer.refused, /\n\nUNAUTHORIZED: Invalid or expired token$/u, "and the tracker's own words, whole");
+  const denied = await answering([[403, { code: "FORBIDDEN", message: "not yours" }]],
+    () => callTool("forge_issues", { action: "update", documentId: "u-1", data: {} }, true));
+  assert.equal(denied.refused, "FORBIDDEN: not yours");
+});
+
 test("a wrapped title comes off the transport as one line, with nothing added around it", async () => {
   const run = await ran("issue", "ISS-1");
   assert.equal(run.status, 0, run.stderr);

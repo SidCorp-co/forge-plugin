@@ -178,6 +178,9 @@ test("every refusal names the switch a session can reach, and what an inline pre
   for (const one of said) {
     assert.match(one, /forge hooks --off codex-second/u, one);
     assert.match(one, /inline `FORGE_CODEX_DISABLE=1` prefix never reaches a hook/u, one);
+    assert.match(one, /off for every project and every session on this account until `forge hooks --on codex-second`/u,
+      "the switch is the account's, and the refusal says so with the way back on (ISS-45)");
+    assert.doesNotMatch(one, /for the session/iu, one);
   }
 });
 
@@ -403,4 +406,5 @@ test("every refusal this gate writes leads with its route", () => {
   for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
   assert.match(reasons["a staged copy alone"], /^Stage what was read — `git add [^`]*restaged\.mjs`/u);
   assert.match(reasons["no door"], /^Name only doors out of /u, "the key's own route, and not a guess at a door");
+  assert.match(reasons["no door"], /until `forge hooks --on codex-second`/u, "and the switch, as every other refusal names it");
 });

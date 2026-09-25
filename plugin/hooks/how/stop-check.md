@@ -13,7 +13,7 @@ whatever runs a command one of its calls made, in that call's window.
 Whose stop: the main agent's always. A subagent's on its own transcript, and only where a project
 names its agent type in `stop.agents` — absent, no subagent's.
 
-How to stand it down: `forge hooks --off stop-check` for the session, or `FORGE_STOP_DISABLE=1`
+How to stand it down: `forge hooks --off stop-check`, account-wide until `--on`, or `FORGE_STOP_DISABLE=1`
 in the environment it started in.
 
 Not judged: the handback's prose, whether tests pass, an issue another session holds, a file

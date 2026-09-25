@@ -106,6 +106,19 @@ test("a reopen moves the status and writes no correction for it", async () => {
     "and the move says what the reopen now owes, so nothing is learned from a refusal later");
 });
 
+/* The landed status is the ceiling the triage falls under and no destination anyone chose: printed as
+   "is next", it told the reader where the issue was going before the record had decided (ISS-45). */
+test("a reopen missing its finding and triage says where it goes is undecided, and a move is refused saying so", async () => {
+  const owed = await ran(["advance", "ISS-90", "--owed"]);
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  assert.match(owed.stdout, /^ISS-90 is reopen; where it goes back to is undecided until this reopen's finding and triage are written, and no higher than \w+: 2 item\(s\) owed\.$/mu, owed.stdout);
+  assert.doesNotMatch(owed.stdout, /\w+ is next and the record/u, "no status is named as the next one");
+  const moved = await ran(["advance", "ISS-90"]);
+  assert.equal(moved.status, 1, moved.stdout);
+  assert.match(moved.stderr, /2 item\(s\) owed first: where it goes back to is undecided/u, moved.stderr);
+  assert.equal(JUDGED.status, "reopen", "and nothing moved");
+});
+
 test("a reopen is refused where nothing on the record says what the work got to", async () => {
   const run = await ran(["advance", "ISS-91", "--reopen", "--why", "somebody thinks it is wrong"]);
   assert.equal(run.status, 1, run.stdout);
