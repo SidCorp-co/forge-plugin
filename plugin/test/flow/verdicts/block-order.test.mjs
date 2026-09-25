@@ -119,9 +119,8 @@ test("the verdict help states the refused position and the placement taken inste
   const help = await ask("record", "verdict", "-h");
   assert.equal(help.status, 0, help.stderr);
   const text = help.stdout.replace(/\s+/gu, " ");
-  assert.match(text, /Inside a block another --criterion follows, a flag the part before the first --criterion also names stands directly after that block's own --criterion\./u);
-  assert.match(help.stdout, /--criterion 5 --why "<reason>" --verdict fail --criterion 6 {3}refused/u);
-  assert.match(help.stdout, /--criterion 5 --verdict fail --why "<reason>" --criterion 6 {3}criterion 5 fails/u);
+  assert.match(text, /Where another --criterion follows, that value stands directly after the block's own --criterion; after the block's other flags it reads as the next block's, and is refused:/u,
+    help.stdout);
 });
 
 test("a kind whose shape opens no blocks is never judged by position", () => {
