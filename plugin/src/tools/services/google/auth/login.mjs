@@ -152,7 +152,7 @@ const consented = async (client, scopes, { seconds, browser }) => {
     code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256",
     state, access_type: "offline", prompt: "consent" }).forEach(([key, value]) => url.searchParams.set(key, value));
   note(`Open this address in a browser signed in as the Google account to save:\n  ${url}\nWaiting ${seconds}s for the redirect to ${redirect}`);
-  const opener = openAddress(url.href, { wanted: browser });
+  const opener = await openAddress(url.href, { wanted: browser });
   if (opener) note(`Opened it with ${opener}; if no page appeared, open the address above by hand.`);
   const code = await redirected(server, state, seconds);
   const answer = await reach("POST", client.token_uri, {

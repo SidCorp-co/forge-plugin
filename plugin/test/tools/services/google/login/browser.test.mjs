@@ -48,28 +48,24 @@ const openedBy = async (opened, name) => {
 };
 
 test("each platform's own opener is the one chosen: open on macOS, start through the command shell on Windows, xdg-open elsewhere", () => {
-  const { bin } = openers(["open", "xdg-open"]);
-  assert.equal(openerFor(ADDRESS, { platform: "darwin", env: { PATH: bin } }).command, "open");
-  assert.equal(openerFor(ADDRESS, { platform: "linux", env: { PATH: bin } }).command, "xdg-open");
-  assert.equal(openerFor(ADDRESS, { platform: "freebsd", env: { PATH: bin } }).command, "xdg-open");
-  const windows = openerFor(ADDRESS, { platform: "win32", env: { ComSpec: "C:\\Windows\\system32\\cmd.exe" } });
-  assert.equal(windows.command, "C:\\Windows\\system32\\cmd.exe");
-  assert.deepEqual(windows.args, ["/d", "/s", "/c", `start "" "${ADDRESS}"`]);
-  assert.equal(openerFor(ADDRESS, { platform: "linux", env: { PATH: openers([]).bin } }), null);
+  assert.deepEqual(openerFor(ADDRESS, "darwin"), { command: "open", args: [ADDRESS], verbatim: false });
+  assert.deepEqual(openerFor(ADDRESS, "linux"), { command: "xdg-open", args: [ADDRESS], verbatim: false });
+  assert.deepEqual(openerFor(ADDRESS, "freebsd"), { command: "xdg-open", args: [ADDRESS], verbatim: false });
+  assert.deepEqual(openerFor(ADDRESS, "win32"), { command: "cmd.exe", args: ["/d", "/s", "/c", `start "" "${ADDRESS}"`], verbatim: true });
 });
 
 test("on a terminal the platform's opener is started with the address, and no competing command is", async () => {
   const { bin, opened } = openers(["open", "xdg-open"]);
-  assert.equal(openAddress(ADDRESS, { terminal: true, platform: "linux", env: { PATH: bin } }), "xdg-open");
+  assert.equal(await openAddress(ADDRESS, { terminal: true, platform: "linux", env: { PATH: bin } }), "xdg-open");
   assert.equal(await openedBy(opened, "xdg-open"), ADDRESS);
   assert.equal(opened("open"), null);
 });
 
-test("--no-browser, output that is not a terminal and an absent opener each start nothing", () => {
+test("--no-browser, output that is not a terminal and an opener that cannot start each start nothing", async () => {
   const { bin, opened } = openers(["xdg-open"]);
-  assert.equal(openAddress(ADDRESS, { terminal: true, wanted: false, platform: "linux", env: { PATH: bin } }), null);
-  assert.equal(openAddress(ADDRESS, { terminal: false, platform: "linux", env: { PATH: bin } }), null);
-  assert.equal(openAddress(ADDRESS, { terminal: true, platform: "linux", env: { PATH: openers([]).bin } }), null);
+  assert.equal(await openAddress(ADDRESS, { terminal: true, wanted: false, platform: "linux", env: { PATH: bin } }), null);
+  assert.equal(await openAddress(ADDRESS, { terminal: false, platform: "linux", env: { PATH: bin } }), null);
+  assert.equal(await openAddress(ADDRESS, { terminal: true, platform: "linux", env: { PATH: openers([]).bin } }), null);
   assert.equal(opened("xdg-open"), null);
 });
 
