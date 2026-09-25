@@ -84,11 +84,13 @@ export const REPLAY_HELP = [
   "first entry of its own reflog; the commits that landed between there and the base are the ones",
   "asked about, and one of their hunks is taken back where the change removes every line of it the",
   "base still holds that carries a letter or digit, brings fewer than half of those back anywhere,",
-  "and puts back what the hunk replaced. It refuses naming each commit, its subject and the files,",
-  "with the diff to read, the command that reapplies that commit's patch, and the line",
-  "`Undoes: <sha>` that a commit on top of the change carries where taking it back is the change's",
-  "decision. A branch nothing landed under costs nothing and says so; one whose reflog cannot be",
-  "read is not judged, and says why.",
+  "and puts back what the hunk replaced — or, for a hunk that only added lines, removes them in",
+  "commits written before the branch first held it, which is work a replay carried over them rather",
+  "than an edit by somebody who had them in front of them. It refuses naming each commit, its",
+  "subject and the files, with the diff to read, the command that reapplies that commit's patch,",
+  "and the line `Undoes: <sha>` that a commit on top of the change carries where taking it back is",
+  "the change's decision. A branch nothing landed under costs nothing and says so; one whose reflog",
+  "cannot be read is not judged, and says why.",
 ];
 
 const notFetched = (base, pin, self) =>

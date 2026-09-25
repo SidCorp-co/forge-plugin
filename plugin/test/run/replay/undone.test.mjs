@@ -56,17 +56,51 @@ const replayed = (name, { replay = true } = {}) => {
 
 const judged = (room, was, branch = "iss-1") => undoneBy(room, { was, head: sha(room), branch });
 
+/* The first route the filing met: the change was committed before the section landed, and the
+   rebase onto it conflicted and was resolved by keeping the change's side. The replayed commit keeps
+   the hour it was written at, which is before the branch first held that section. */
+const HOUR_AGO = String(Math.floor(Date.now() / 1000) - 3600);
+const droppedOnReplay = (name) => {
+  const room = join(tempRoom(`undone-${name}-`), "work");
+  mkdirSync(room, { recursive: true });
+  git(room, "init", "-qb", "master");
+  write(room, JOURNAL, ["# Journal", "", "## The first entry"]);
+  const cutAt = commit(room, "the base", JOURNAL);
+  git(room, "checkout", "-qb", "iss-1");
+  const mine = [...read(room, JOURNAL), "", "## This change's entry"];
+  write(room, JOURNAL, mine);
+  git(room, "add", JOURNAL);
+  spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "the change"], {
+    cwd: room, encoding: "utf8",
+    env: { ...process.env, GIT_AUTHOR_DATE: `@${HOUR_AGO}`, GIT_COMMITTER_DATE: `@${HOUR_AGO}` },
+  });
+  git(room, "checkout", "-q", "master");
+  write(room, JOURNAL, [...read(room, JOURNAL), "", ...SECTION]);
+  const section = commit(room, "another run's journal section", JOURNAL);
+  git(room, "checkout", "-q", "iss-1");
+  git(room, "rebase", "-q", "master");
+  write(room, JOURNAL, mine);
+  git(room, "add", JOURNAL);
+  git(room, "-c", "core.editor=true", "rebase", "--continue");
+  return { room, cutAt, section, was: sha(room, "master") };
+};
+
 test("a replay that dropped another run's section is that commit taken back", () => {
-  const { room, was, section, cutAt } = replayed("dropped");
-  write(room, JOURNAL, read(room, JOURNAL).slice(0, -(SECTION.length + 1)));
-  write(room, join("docs", "mine.md"), ["this change's own page"]);
-  commit(room, "the change, replayed the wrong way", JOURNAL, join("docs", "mine.md"));
+  const { room, was, section, cutAt } = droppedOnReplay("dropped");
+  assert.deepEqual(read(room, JOURNAL).slice(-1), ["## This change's entry"], "the replay did not keep the change's side");
   const found = judged(room, was);
   assert.equal(found.judged, true);
   assert.equal(found.cut, cutAt, "the cut is not the reflog's first entry");
-  assert.equal(found.landed, 2);
+  assert.equal(found.landed, 1);
   assert.deepEqual(found.undone.map((one) => [one.commit, one.subject, one.files]),
     [[section, "another run's journal section", [JOURNAL]]]);
+});
+
+test("a section somebody rewrites after the replay put it in front of them is no take-back", () => {
+  const { room, was } = replayed("rewritten-section");
+  write(room, JOURNAL, [...read(room, JOURNAL).slice(0, -SECTION.length), "## That section, said again", "", "In this change's words."]);
+  commit(room, "the change rewrites that section", JOURNAL);
+  assert.deepEqual(judged(room, was).undone, []);
 });
 
 test("a stale copy staged over the replay is the commit it predates taken back", () => {
@@ -94,9 +128,7 @@ test("a landed section moved to another file takes nothing back", () => {
 });
 
 test("a take-back the change declares with Undoes: is its own decision", () => {
-  const { room, was, section } = replayed("declared");
-  write(room, JOURNAL, read(room, JOURNAL).slice(0, -(SECTION.length + 1)));
-  commit(room, "the change drops that section on purpose", JOURNAL);
+  const { room, was, section } = droppedOnReplay("declared");
   git(room, "commit", "-q", "--allow-empty", "-m", "the section is wrong", "-m", `Undoes: ${section.slice(0, 9)}`);
   assert.deepEqual(judged(room, was).undone, []);
 });
@@ -129,31 +161,43 @@ test("a branch with no reflog is not judged, and the line says why", () => {
   assert.match(undoneLine(judged(room, was, null)), /HEAD is on no branch/u);
 });
 
-/* The ship end to end: a branch replayed onto what landed, then a commit dropping that landing's
-   section. The step before the rebase refuses it, and nothing past it runs. */
-const shipWorld = (name) => {
+/* The ship end to end. Replayed, the branch holds a change written an hour before another run's
+   section landed, rebased onto it with the conflict resolved to the change's side; otherwise it is
+   put on what landed and the case commits its own change over it. */
+const MINE = ["# Journal", "", "## The first entry", "", "## This change's entry"];
+const shipWorld = (name, { replayed: replay = false } = {}) => {
   const { at, work } = pushed(name);
-  write(work, JOURNAL, ["# Journal", "", "## The first entry"]);
+  write(work, JOURNAL, MINE.slice(0, 3));
   plain(work, "add", JOURNAL);
   plain(work, "commit", "-qm", "the journal");
   plain(work, "push", "-q", "origin", "master:master");
   plain(work, "checkout", "-qb", "iss-369");
+  if (replay) {
+    write(work, JOURNAL, MINE);
+    plain(work, "add", JOURNAL);
+    spawnSync("git", ["commit", "-qm", "the change"], { cwd: work, encoding: "utf8",
+      env: { ...process.env, GIT_AUTHOR_DATE: `@${HOUR_AGO}`, GIT_COMMITTER_DATE: `@${HOUR_AGO}` } });
+  }
   plain(work, "checkout", "-q", "master");
-  write(work, JOURNAL, [...read(work, JOURNAL), "", ...SECTION]);
+  write(work, JOURNAL, [...MINE.slice(0, 3), "", ...SECTION]);
   plain(work, "add", JOURNAL);
   plain(work, "commit", "-qm", "another run's journal section");
   const section = sha(work);
   plain(work, "push", "-q", "origin", "master:master");
   plain(work, "checkout", "-q", "iss-369");
-  plain(work, "reset", "-q", "--hard", "master");
+  if (!replay) plain(work, "reset", "-q", "--hard", "master");
+  else {
+    plain(work, "rebase", "-q", "master");
+    write(work, JOURNAL, MINE);
+    plain(work, "add", JOURNAL);
+    plain(work, "-c", "core.editor=true", "rebase", "--continue");
+  }
   return { work, section, remote: join(at, "origin.git") };
 };
 
 test("the ship refuses a change taking back landed work before its rebase, and lands nothing", () => {
-  const { work, section, remote } = shipWorld("ship-undone");
-  write(work, JOURNAL, ["# Journal", "", "## The first entry", "", "## This change's entry"]);
-  plain(work, "add", JOURNAL);
-  plain(work, "commit", "-qm", "the change, replayed the wrong way");
+  const { work, section, remote } = shipWorld("ship-undone", { replayed: true });
+  assert.deepEqual(read(work, JOURNAL), MINE, "the replay did not keep the change's side");
   const run = runIn(work, ["ship"], BARE);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u, run.stderr);
@@ -170,30 +214,26 @@ test("the ship refuses a change taking back landed work before its rebase, and l
 });
 
 /* The three shapes that are no take-back, each through the ship: what reached the step is the line it
-   prints on letting the change through, and no refusal. */
+   prints on letting the change through, and no refusal. Each returns the commit it makes. */
 const PASSING = {
   rewrite: (work) => {
     write(work, JOURNAL, [...read(work, JOURNAL).slice(0, -1), "It landed first, and this change says more."]);
-    return [JOURNAL];
+    return ["-m", "the change extends that section"];
   },
   move: (work) => {
     write(work, JOURNAL, read(work, JOURNAL).slice(0, -(SECTION.length + 1)));
     write(work, OTHER, ["# Elsewhere", "", ...SECTION]);
-    return [JOURNAL, OTHER];
+    return ["-m", "the change moves that section"];
   },
-  declared: (work, section) => {
-    write(work, JOURNAL, read(work, JOURNAL).slice(0, -(SECTION.length + 1)));
-    return [JOURNAL, `Undoes: ${section}`];
-  },
+  declared: (work, section) => ["--allow-empty", "-m", "that section is wrong", "-m", `Undoes: ${section}`],
 };
 
 for (const [shape, change] of Object.entries(PASSING)) {
   test(`the ship lets through a change that ${shape === "declared" ? "declares its take-back" : `makes a ${shape}`} of landed work`, () => {
-    const { work, section } = shipWorld(`ship-${shape}`);
-    const [paths, declares] = ((said) => [said.filter((one) => !one.startsWith("Undoes:")),
-      said.find((one) => one.startsWith("Undoes:"))])(change(work, section));
-    plain(work, "add", ...paths);
-    plain(work, "commit", "-qm", `the change, as a ${shape}`, ...(declares ? ["-m", declares] : []));
+    const { work, section } = shipWorld(`ship-${shape}`, { replayed: shape === "declared" });
+    const message = change(work, section);
+    plain(work, "add", "-A", "docs");
+    plain(work, "commit", "-q", ...message);
     const run = runIn(work, ["ship"], BARE);
     assert.match(run.stdout, /1 commit\(s\) landed under this change since it was cut at .* takes back no hunk/u,
       `${run.stdout}\n${run.stderr}`);
