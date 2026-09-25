@@ -211,3 +211,43 @@ test("a project with no requirements tree reads none, and its plans are written 
   assert.match(run.stderr, REACHED_THE_TRACKER, "the citation nothing resolved it against never refused it");
   assert.ok(!run.stderr.includes(TREE), `a project with no tree is never told about one: ${run.stderr}`);
 });
+
+/* ISS-446: a plan that discusses the checker, or quotes the document line it fixes, has to name a
+   citation that does not resolve. Backticks and a fence are the author's way to say "quoted". */
+const QUOTED_ESCAPE = /inside backticks or a fenced block is read as quoted text/u;
+
+test("a plan quoting an unresolved citation inside backticks is written", () => {
+  const run = planned(project("plan-spanned-", true),
+    "Screen change: no\n\nThe checker must refuse `AC-01-1-9~1` and `R-10~1`.\n");
+  assert.ok(!/nothing was written/u.test(run.stderr), run.stderr);
+  assert.match(run.stderr, REACHED_THE_TRACKER);
+});
+
+test("a plan quoting an unresolved citation inside a fenced block is written", () => {
+  const run = planned(project("plan-fenced-", true),
+    "Screen change: no\n\nThe refusal read:\n\n```\nThe citation UC-01-1~2 is stale.\n```\n");
+  assert.ok(!/nothing was written/u.test(run.stderr), run.stderr);
+  assert.match(run.stderr, REACHED_THE_TRACKER);
+});
+
+test("the plan refusal names the quoting that would have made its citation text", () => {
+  const run = planned(project("plan-escape-", true),
+    "Screen change: no\n\nThis serves AC-01-1-9~1, and `AC-01-1-8~1` is only quoted.\n");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No clause named AC-01-1-9/u);
+  assert.ok(!run.stderr.includes("AC-01-1-8"), `the quoted one is text: ${run.stderr}`);
+  assert.match(run.stderr, QUOTED_ESCAPE);
+});
+
+test("a criterion refusal carries no line about quoting, its check reading only the opening", () => {
+  const root = project("crit-no-escape-", true);
+  const file = join(root, "criteria.md");
+  writeFileSync(file, "1. AC-01-1-9~1: the outcome.\n");
+  const run = spawnSync(FORGE, ["record", "criteria", "ISS-1", file], {
+    encoding: "utf8",
+    cwd: root,
+    env: { ...process.env, FORGE_CODEX_DISABLE: "1" },
+  });
+  assert.match(run.stderr, /No clause named AC-01-1-9/u);
+  assert.ok(!/backticks/u.test(run.stderr), run.stderr);
+});
