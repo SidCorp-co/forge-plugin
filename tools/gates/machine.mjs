@@ -2,7 +2,9 @@
    off files a gate leaves behind: a file has to be reclaimed when its holder is killed and reclaiming a shared name is a race
    two gates can both win, where a process is its own record and a killed gate has none. A wait of the same runner is not one
    of them: counted, it would decline a gate that could have run and look like a run to a second wait (`gates.mjs -h`). Two
-   gates of one tree are refused outright rather than counted, since they share one record and the later judges nothing. */
+   gates of one tree are refused outright rather than counted, since they share one record and the later judges nothing.
+   A landing's gate is told apart by what its environment carries, and stands ahead of every builder's gate for the next
+   place: what lands is ahead of what is being readied (ISS-2461). */
 import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -18,6 +20,9 @@ const NODE = /^node(?:js)?[\d.]*$/u;
 const NO_ENTRY = new Set(["-c", "--check", "-e", "--eval", "-p", "--print"]);
 
 export const DECLINED = 75;
+
+/** The issue keys a landing's gate carries in its environment, and the one thing that makes a gate a landing's. */
+export const LANDING_ENV = "FORGE_LANDING";
 
 export const WAIT = "--wait";
 
@@ -44,6 +49,18 @@ const entryOf = (argv) => {
   return null;
 };
 
+/* `environ` holds what the process was started with, the one part of it another process can read. Unreadable, it
+   counts as a builder's, which every gate was before ISS-2461. */
+const landingIn = (at) => {
+  try {
+    const found = readFileSync(at("environ"), "utf8").split("\0").find((one) => one.startsWith(`${LANDING_ENV}=`));
+    const keys = found?.slice(LANDING_ENV.length + 1).trim();
+    return keys ? keys : null;
+  } catch {
+    return null;
+  }
+};
+
 const oneProcess = (proc, pid, ours) => {
   const at = (name) => join(proc, String(pid), name);
   let argv;
@@ -63,7 +80,9 @@ const oneProcess = (proc, pid, ours) => {
     return null;
   }
   const runner = resolve(cwd, entry);
-  return start === null || !ours.has(runner) ? null : { pid, start, tree: dirname(dirname(runner)) };
+  return start === null || !ours.has(runner)
+    ? null
+    : { pid, start, tree: dirname(dirname(runner)), landing: landingIn(at) };
 };
 
 export const runnersOf = (root) => new Set(lines(gitOut(["worktree", "list", "--porcelain"], root))
@@ -87,14 +106,23 @@ export const gatesOn = (ours, proc = PROC) => {
   return found.sort((one, other) => one.start - other.start || one.pid - other.pid);
 };
 
-/** What this gate may do: the gates before it, against the number this project declares — none declared declines nobody. */
+/** What this gate may do: the gates before it, against the number this project declares — none declared declines nobody.
+    A builder's gate has every landing's gate ahead of it as well, whenever that one started, and `took` is those of them
+    the kernel started after it: the landing a builder admitted by start order alone would have taken the place from. A
+    landing's gate counts only the gates started before it, so it waits while they fill the number and never adds a gate
+    past it; a builder's gate started after a landing's that was admitted counted that landing already. */
 export const placeFor = (ours, { proc = PROC, declared = parallelRuns(), pid = process.pid } = {}) => {
-  if (declared.value === null) return { declared, ahead: [], declined: false };
+  if (declared.value === null) return { declared, ahead: [], took: [], declined: false };
   const running = gatesOn(ours, proc);
-  if (running === null) return { declared, ahead: [], declined: false };
+  if (running === null) return { declared, ahead: [], took: [], declined: false };
   const mine = running.findIndex((one) => one.pid === pid);
-  const ahead = mine === -1 ? running : running.slice(0, mine);
-  return { declared, ahead, declined: ahead.length >= declared.value };
+  const before = mine === -1 ? running : running.slice(0, mine);
+  /* Off this gate's own entry in the table and not off `process.env`, which the gate clears before its steps inherit it. */
+  const took = mine !== -1 && running[mine].landing === null
+    ? running.slice(mine + 1).filter((one) => one.landing !== null)
+    : [];
+  const ahead = [...before, ...took];
+  return { declared, ahead, took, declined: ahead.length >= declared.value };
 };
 
 /** The earliest gate of this same tree the kernel started before this one, or null: the later of two gates over one tree is the one
