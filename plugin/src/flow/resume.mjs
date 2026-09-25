@@ -29,10 +29,11 @@ export const USAGE = [
   usageOf("resume"),
   "The whole context of one issue on one screen, re-minted from the record and the worklog beside",
   "its lease: the status and the phase it owes, the plan, every criterion with its verdict mark, the",
-  "last confirmation, decision and correction, the worklog, the parks and blockers, the command the",
-  "next status is owed, and where the method for that phase is written. On a wave's headline it",
-  "opens with the wave: each dispatch since the last fold with its members' status and lease read",
-  "live from each member, whether it is complete and that the fold is owed, or the fold that ended it.",
+  "last confirmation, decision, baseline, review and correction, the worklog, the parks and",
+  "blockers, the command the next status is owed, where the method for that phase is written, and",
+  "how many typed records it read and left out. On a wave's headline it opens with the wave: each",
+  "dispatch since the last fold with its members' status and lease read live from each member,",
+  "whether it is complete and that the fold is owed, or the fold that ended it.",
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
   "  --report  every record whole instead of this brief: the latest of each kind that can only be",
@@ -139,6 +140,17 @@ export const opening = (status, fields, held, work = null, finished = []) => {
   for (const line of laneLines({ status, fields })) console.log(line);
 };
 
+/* The count of what was read and of what this screen left out, in the plan pointer's shape, so a
+   stranger reading three headlines learns twenty more records exist and where they print (ISS-47). */
+export const readLines = (brief) => {
+  const { seen, shown } = brief.records;
+  const latest = brief.comments.length ? `, latest ${brief.comments.at(-1).at}` : "";
+  return [
+    `Read: ${brief.comments.length} comment(s) on this issue${latest}, carrying ${seen} typed record(s).`,
+    ...(seen > shown ? [`… ${seen - shown} more than the lines above: forge resume ${brief.ref} --report`] : []),
+  ];
+};
+
 const print = (brief, view, ref) => {
   console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`
     + `${brief.reopens ? `  —  reopened ${brief.reopens} time(s)` : ""}`);
@@ -159,8 +171,8 @@ const print = (brief, view, ref) => {
   block("Parks and blockers", parks(brief));
   owed(brief, view, ref);
   if (brief.reference) console.log(`\nThe method for this phase: ${brief.reference}`);
-  console.log(`\nRead: ${brief.comments.length} comment(s) on this issue`
-    + `${brief.comments.length ? `, latest ${brief.comments.at(-1).at}` : ""}.`);
+  console.log("");
+  for (const line of readLines(brief)) console.log(line);
   if (view.cut) console.log(`${view.cut} This brief was minted from those rows and from no others.`);
 };
 

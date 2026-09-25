@@ -17,7 +17,7 @@ const { render } = await import("../../../src/flow/record/page.mjs");
 const { ORDER, SIDE, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { PHASE, methodOf } = await import("../../../src/guides/phases.mjs");
 const { briefOf } = await import("../../../src/flow/brief.mjs");
-const { USAGE, edgeSaid } = await import("../../../src/flow/resume.mjs");
+const { USAGE, edgeSaid, readLines } = await import("../../../src/flow/resume.mjs");
 const { sessionHeld } = await import("../../../src/resolve/config.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -246,6 +246,40 @@ test("the latest confirmation, decision and correction come down to one line eac
   const long = brief({}, [recorded("confirmation", { where: ["a"], is: "x".repeat(400), finding: "holds" })]);
   assert.ok(long.latest.confirmation.said.length < 260, "a paragraph is cut to a line, with the cut shown");
   assert.match(long.latest.confirmation.said, /…$/u);
+});
+
+/* ISS-67's resume at `in_progress` headlined three kinds while the baseline and the review naming
+   the head sat on the record unshown, and nothing on the screen said more existed (ISS-47). */
+test("the brief headlines the review's outcome and head and the baseline's result", () => {
+  const head = "b".repeat(40);
+  const one = brief({}, [
+    recorded("baseline", { gate: "npm run check", result: "3 steps red at the base", commit: "c".repeat(40), scope: "whole" }),
+    recorded("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }),
+  ]);
+  assert.equal(one.latest.baseline.said, "3 steps red at the base", "the baseline's line is the result the gate gave");
+  assert.match(one.latest.review.said, /^approved — b{40}$/u, `the review's line is its outcome and the head judged: ${one.latest.review.said}`);
+  assert.deepEqual(Object.keys(one.latest), ["baseline", "review"], "and a kind nobody wrote is still left out");
+  assert.match(USAGE, /decision, baseline, review and correction/u, "and the help names both among the headlines");
+});
+
+test("the footer counts the typed records it read and points at the report for the ones it gave no line", () => {
+  const verdict = (criterion) => recorded("verdict", { criterion, verdict: "pass", commit: "aaa1111", evidence: ["run.txt"] });
+  const many = brief({}, [
+    recorded("confirmation", { where: ["src/one.mjs"], is: "the first reading", finding: "holds" }),
+    recorded("confirmation", { where: ["src/two.mjs"], is: "the second reading", finding: "holds" }),
+    verdict("1 — The first outcome."),
+    verdict("1 — The first outcome."),
+    comment("a plain comment carrying no record"),
+  ]);
+  assert.deepEqual(many.records, { seen: 4, shown: 2 }, "every typed record read, against the headline and the one mark it shows");
+  const [read, more, ...rest] = readLines(many);
+  assert.match(read, /^Read: 5 comment\(s\) on this issue, latest [^,]+, carrying 4 typed record\(s\)\.$/u, read);
+  assert.equal(more, "… 2 more than the lines above: forge resume ISS-44 --report", "the pointer in the plan's shape");
+  assert.deepEqual(rest, []);
+  const whole = brief({}, [recorded("confirmation", { where: ["a"], is: "the one reading", finding: "holds" })]);
+  assert.deepEqual(whole.records, { seen: 1, shown: 1 });
+  assert.equal(readLines(whole).length, 1, "a screen that shows every record it read says nothing is left out");
+  assert.deepEqual(readLines(brief()), ["Read: 0 comment(s) on this issue, carrying 0 typed record(s)."]);
 });
 
 /* A reader following the record to find why a status moved arrived at a line that named the move

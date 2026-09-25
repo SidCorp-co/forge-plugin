@@ -10,6 +10,7 @@ import { rebuiltSaid } from "./landing/reconstruction.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
 import { finishedAtHead, methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
+import { parseAll } from "./record/page.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped", short: "≈ short" };
@@ -23,12 +24,16 @@ const HEADLINE_CHARS = 200;
 const HEADLINE = {
   confirmation: ["is"],
   decision: ["decision"],
+  baseline: ["result"],
+  review: ["outcome", "commit"],
   correction: ["moved", "why"],
   park: ["why"],
   finding: ["seen"],
   triage: ["outcome"],
 };
-const LATEST = ["confirmation", "decision", "correction", "finding", "triage"];
+/* The review and the baseline in lane order after the decision, because a run resuming at
+   `in_progress` needs the head that was judged and the gate result before anything else (ISS-47). */
+const LATEST = ["confirmation", "decision", "baseline", "review", "correction", "finding", "triage"];
 const JOIN = " — ";
 
 const flat = (one) => String(Array.isArray(one) ? one.join("; ") : one ?? "").replace(/\s+/gu, " ").trim();
@@ -110,10 +115,26 @@ const repeatedIn = (view) => Object.fromEntries(
     .filter(([, held]) => held > 1),
 );
 
+/* Every typed record on the comments read, against the ones this screen gives a line: each
+   headline, the park, and the latest verdict a criterion's mark stands for. The difference is what
+   the footer admits and sends to `--report` (ISS-47). */
+const recordsIn = (view, latest, park) => ({
+  seen: view.comments.reduce((sum, one) => sum + parseAll(one.body ?? "").length, 0),
+  shown: Object.keys(latest).length + (park ? 1 : 0) + view.criteria.filter((one) => view.verdicts.has(one.number)).length,
+});
+
 export const briefOf = (view, ref) => {
   const status = view.issue.status;
   const method = methodOf(status, finishedAtHead(view));
   const held = leaseIn(view);
+  const latest = Object.fromEntries(
+    LATEST
+      .map((kind) => [kind, headlineOf(view.latest[kind], kind)])
+      .filter(([, one]) => one),
+  );
+  /* The park the route resumes from, chosen the way the route chooses it: the newest park may
+     land in another side status, and a brief showing that one would disagree with its own owed. */
+  const park = SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => sameLanding(PARK_STATUS[one], status)), "park") : null;
   return {
     ref,
     documentId: view.documentId,
@@ -123,21 +144,16 @@ export const briefOf = (view, ref) => {
     rung: rungOf(rungFieldsOf(view)),
     plan: unwrap(view.issue.plan) || null,
     criteria: markedCriteria(view),
-    latest: Object.fromEntries(
-      LATEST
-        .map((kind) => [kind, headlineOf(view.latest[kind], kind)])
-        .filter(([, one]) => one),
-    ),
+    latest,
     repeated: repeatedIn(view),
+    records: recordsIn(view, latest, park),
     next: held?.next ?? null,
     worklog: view.work,
     lease: held,
     /* Printed here because nothing else printed it: a checkpoint naming whose turn it is was written
        by one run and readable by none. */
     landing: view.landing,
-    /* The park the route resumes from, chosen the way the route chooses it: the newest park may
-       land in another side status, and a brief showing that one would disagree with its own owed. */
-    park: SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => sameLanding(PARK_STATUS[one], status)), "park") : null,
+    park,
     blockers: blockersOf(view),
     /* The one fact that says this has happened before, and the tracker keeps it as a field rather
        than a record, so nothing on the record would show it. */
