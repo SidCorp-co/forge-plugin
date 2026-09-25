@@ -15,7 +15,7 @@ const EVALUATOR = "forge stats eval";
 /* Each listing, as what the runs met and what it cost them in calls: a refused call is one call, a
    command typed again is one call per typing past the first in each run, and a guide part read again
    is one call per read past the first. A long wait costs minutes and one call a wait. */
-const entriesOf = (friction) => [
+export const entriesOf = (friction) => [
   ...friction.refusals.map((one) => ({ kind: "refusal", met: one.key, runs: one.runs, calls: one.calls, minutes: null })),
   /* An error only: an exit that was the command's answer cost the run nothing it could have saved. */
   ...friction.errors.map((one) => ({ kind: "error", met: `a non-zero exit no rule refused, ${one.key}`,

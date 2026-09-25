@@ -6,10 +6,11 @@ import { existsSync } from "node:fs";
 import { dayIn, dayRefusal, heldRange, yesterday } from "./day.mjs";
 import { contentOf, corporaOf, landingsFrom, readingOf } from "./gather.mjs";
 import { backlogMatcher } from "./opportunities.mjs";
-import { indexPageOf, pageOf } from "./page.mjs";
+import { pageOf } from "./page.mjs";
+import { writeCurrent, writerFrom } from "./current.mjs";
 import { projectsOn, registered } from "./projects.mjs";
-import { INDEX, clearMark, contentOf as heldContentOf, heldDays, pagePath, readPage, reportsDir, shownDeep, writePage } from "./store.mjs";
-import { indexLineOf, summaryOf } from "./summary.mjs";
+import { clearMark, pagePath, reportsDir, shownDeep, writePage } from "./store.mjs";
+import { summaryOf } from "./summary.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 
@@ -20,9 +21,10 @@ export const DAILY_USAGE = [
   "One page for a calendar day on this device: what the issue-flow runs, landings and consults of",
   "every project registered here cost, where they met friction, which plugin releases landed, and",
   "where rounds could be saved, each figure beside the day before and the seven days before. It",
-  "reads, and writes that day's page and the index of every page held, nothing else. Where they are",
+  "reads, and writes that day's page and then the current report, nothing else. Where they are",
   "written: the `reports` key of this device's config.json, or `reports` beside it. A project whose",
-  "`report` key is `daily` has its session starts write yesterday's page when it is missing.",
+  "`report` key is `daily` has its session starts write yesterday's page when it is missing. The",
+  "current report, over every day held and listing each dated page, is `forge stats report`'s.",
   "",
   "  --day YYYY-MM-DD  the day, in this device's zone; yesterday unless you say otherwise",
   "  --open            print the path of the page and nothing else, for a command that opens it",
@@ -31,13 +33,6 @@ export const DAILY_USAGE = [
 ].join("\n");
 
 const NOT_WRITTEN = "Nothing was written.";
-
-/* The index is rebuilt off the pages themselves, so a page written by hand-deleting another still
-   lists what is there and nothing else. */
-const writeIndex = (dir) => writePage(dir, INDEX, indexPageOf(heldDays(dir).map((day) => {
-  const held = heldContentOf(readPage(dir, day) ?? "");
-  return { day, line: held ? indexLineOf(held) : null };
-})));
 
 const refusedIfDue = (given, reading) => {
   const why = dayRefusal(given, heldRange(reading.first));
@@ -63,7 +58,8 @@ export const printDaily = async (rest) => {
       return null;
     }
     const found = projectsOn();
-    const reading = readingOf({ projects: await corporaOf(found.read, landingsFrom(day)) });
+    /* Every landing where the current report is written after the page, whose series spans every day. */
+    const reading = readingOf({ projects: await corporaOf(found.read, json ? landingsFrom(day) : null) });
     refusedIfDue(day, reading);
     const allowed = [reports.dir, ...found.read.map((one) => one.checkout)];
     const content = shownDeep(await contentOf(reading, day, {
@@ -71,11 +67,13 @@ export const printDaily = async (rest) => {
     }), allowed);
     if (json) return console.log(JSON.stringify(content, null, 2));
     writePage(reports.dir, `${day}.html`, pageOf(content));
-    const index = writeIndex(reports.dir);
+    const current = await writeCurrent(reports.dir, writerFrom(reading, found));
     if (open) return console.log(path);
     console.log([...summaryOf(content), "",
       `${held ? `Rewrote the page held for ${day}` : `Wrote ${day}`}: ${path}`,
-      `Index of every day held: ${index}`, `Reports directory from ${reports.from}.`].join("\n"));
+      current ? `The current report, listing every day held: ${current.path}`
+        : "A writer holds the current report; it writes once more before it exits, listing this day.",
+      `Reports directory from ${reports.from}.`].join("\n"));
     return null;
   } finally {
     clearMark(reports.dir, day);

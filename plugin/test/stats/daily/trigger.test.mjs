@@ -6,7 +6,7 @@ import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { dailyDue } from "../../../src/stats/daily/trigger.mjs";
+import { dailyDue, releaseDue } from "../../../src/stats/daily/trigger.mjs";
 import { reportsWhere, shownDeep, writePage } from "../../../src/stats/daily/store.mjs";
 import { PROJECT_KEYS } from "../../../src/tools/services/project-file.mjs";
 import { daysAgo, device } from "./fixture-daily.mjs";
@@ -57,21 +57,53 @@ test("a project that has not set report to daily starts nothing", () => {
   }
 });
 
-test("a day already written or still being written starts no second writer, and a dead writer's mark does not stop the next", () => {
+test("a day already written or still being written starts no second day writer, the current report's writer in its place, and a dead writer's mark does not stop the next", () => {
   const held = device({ project: { report: "daily" } });
   const day = new Date(NOON - 86_400_000).toISOString().slice(0, 10);
   mkdirSync(held.reports, { recursive: true });
   const { calls, start } = starter();
   writeFileSync(join(held.reports, `${day}.html`), "held");
-  assert.equal(under(held, () => dailyDue("/plugin", { start, now: NOON, cwd: held.checkout })), null);
+  assert.deepEqual(under(held, () => dailyDue("/plugin", { start, now: NOON, cwd: held.checkout })), { current: true, pid: 424242 });
   const other = device({ project: { report: "daily" } });
   mkdirSync(other.reports, { recursive: true });
   writeFileSync(join(other.reports, `${day}.writing`), `${process.pid}\n`);
-  assert.equal(under(other, () => dailyDue("/plugin", { start, now: NOON, cwd: other.checkout })), null);
-  assert.deepEqual(calls, []);
+  assert.deepEqual(under(other, () => dailyDue("/plugin", { start, now: NOON, cwd: other.checkout })), { current: true, pid: 424242 });
+  assert.deepEqual(calls.filter((one) => one !== "unref").map((one) => one.args), [["/plugin/bin/forge", "stats", "report"], ["/plugin/bin/forge", "stats", "report"]]);
+  assert.equal(calls.filter((one) => one !== "unref").every((one) => one.options.detached && one.options.stdio === "ignore"), true);
   writeFileSync(join(other.reports, `${day}.writing`), "999999999\n");
   assert.deepEqual(under(other, () => dailyDue("/plugin", { start, now: NOON, cwd: other.checkout })), { day, pid: 424242 });
   assert.ok(existsSync(join(other.reports, `${day}.writing`)));
+});
+
+test("a project whose reportOn leaves out session starts no writer at a session start", () => {
+  for (const reportOn of [[], ["release"]]) {
+    const held = device({ project: { report: "daily", reportOn } });
+    const { calls, start } = starter();
+    assert.equal(under(held, () => dailyDue("/plugin", { start, now: NOON, cwd: held.checkout })), null);
+    assert.deepEqual(calls, []);
+  }
+});
+
+test("a release reading starts a detached current-report writer where the project asked, and none where it did not", () => {
+  const held = device({ project: { report: "daily" } });
+  const { calls, start } = starter();
+  assert.deepEqual(under(held, () => releaseDue(held.checkout, { start, root: "/plugin" })), { current: true, pid: 424242 });
+  assert.deepEqual(calls[0].args, ["/plugin/bin/forge", "stats", "report"]);
+  assert.equal(calls[0].options.detached, true);
+  assert.equal(calls[0].options.cwd, held.checkout);
+  assert.equal(calls[1], "unref");
+  for (const project of [{}, { report: "off" }, { report: "daily", reportOn: ["session"] }]) {
+    const other = device({ project });
+    const quiet = starter();
+    assert.equal(under(other, () => releaseDue(other.checkout, { start: quiet.start, root: "/plugin" })), null);
+    assert.deepEqual(quiet.calls, []);
+  }
+});
+
+test("the reportOn key takes a list of session and release and refuses any other trigger", () => {
+  for (const given of [["session"], ["release"], ["session", "release"], []]) assert.equal(PROJECT_KEYS.reportOn.judge(given), null);
+  assert.match(PROJECT_KEYS.reportOn.judge(["session", "weekly"]), /`reportOn` in .* is a list naming session, release or both, not `\["session","weekly"\]`/u);
+  assert.match(PROJECT_KEYS.reportOn.judge("session"), /`reportOn` in .* is a list naming/u);
 });
 
 test("the reports directory is the device's reports key, and the forge config directory's reports otherwise", () => {

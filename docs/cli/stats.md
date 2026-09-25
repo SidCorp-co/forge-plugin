@@ -108,3 +108,35 @@ printing a nought, and the fix is that reader, never a second count here.
 machine. The first session start after a day ends, in a project whose `report` key is `daily`,
 starts a detached writer for that day and does not wait for it; a mark naming the writer's process
 stops a second one, and a mark whose process is gone stops nothing.
+
+## The current report
+
+**One page is opened first, and it is the one that is current.** A page per day answered what one
+day cost, and left whoever asked whether a fix paid off to set windows side by side by hand (G-11).
+`forge stats report` writes `index.html` over every day held, each figure a series ending at today
+so far. The dated pages stay as snapshots it lists, which is why the index is this page rather
+than a list beside it: two pages that each claimed to be the first would disagree the first time
+only one was rewritten.
+
+**A row is a root cause, and the tracker says which causes are one.** A friction entry is a cause
+under the key the day's page already names it by. Two causes are one row only where the tracker
+holds the link: one issue, a `relates` edge, or one gate-recurrence marker. A link the report
+inferred for itself would pass a symptom's fix off as a cause's (G-13), so a family the tracker
+does not join stays two rows, and the missing link is filed against the reader that should hold
+it. A search costs a tracker call, so a write asks it for at most thirty new causes, and a match an
+earlier write made rides in the page's own content block. Filing an issue is then all it takes to
+follow a cause, with no list to keep beside it.
+
+**A fix is judged by the days after its release, not by the day it landed.** A cause is released
+at the latest release reading carrying one of its issues. A run begun after that moment that meets
+it again is a recurrence, and the row goes back to Recurring saying which issue to reopen. The
+report reopens nothing: that is the owner's act, or the evaluator's. What a cause costs beyond its
+calls and its long waits is kept by no reader per friction key. The page names it missing with the
+issue that owes it (ISS-2477) rather than dividing a run's outcome among the causes it met.
+
+**Where it is configured, and why there twice.** The score's formula and weights and the two
+windows are the `report` table of the device's config.json, since the page is the device's, over
+every project on it. Which acts rewrite the page is each project's `reportOn`, since a session
+start and a release are that project's. Both triggers start a detached writer and return. A writer
+finding another holding the page leaves it a flag rather than writing alongside it, so a release
+landing mid-write is on the page the holder leaves.
