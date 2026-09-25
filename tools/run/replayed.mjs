@@ -13,6 +13,7 @@ import { repoRoot } from "../../plugin/src/git/repo-root.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { shortly } from "./install.mjs";
 import { movedBy, remoteHead } from "./land-ready/candidate.mjs";
+import { undoneBy, undoneLine, undoneSaid } from "./land-ready/undone.mjs";
 
 export const REPLAYED = "the review answers for the head this lands";
 
@@ -76,6 +77,20 @@ export const REPLAY_HELP = [
   "therefore where the pass was taken rather than what it read, and where that head is no commit",
   "this checkout can resolve; it says which of the four, because a check that found nothing to judge",
   "and one that judged read alike otherwise.",
+  "",
+  "Between the two it asks whether the change takes back work that landed under it, which no gate",
+  "sees: a replay resolved the wrong way, or copies staged by `git add -u` that predate the base,",
+  "leave a consistent tree with another run's landed hunks undone. Where this branch was cut is the",
+  "first entry of its own reflog; the commits that landed between there and the base are the ones",
+  "asked about, and one of their hunks is taken back where the change removes every line of it the",
+  "base still holds that carries a letter or digit, brings fewer than half of those back anywhere,",
+  "and puts back what the hunk replaced — or, for a hunk that only added lines, removes them in",
+  "commits written before the branch first held it, which is work a replay carried over them rather",
+  "than an edit by somebody who had them in front of them. It refuses naming each commit, its",
+  "subject and the files, with the diff to read, the command that reapplies that commit's patch,",
+  "and the line `Undoes: <sha>` that a commit on top of the change carries where taking it back is",
+  "the change's decision. A branch nothing landed under costs nothing and says so; one whose reflog",
+  "cannot be read is not judged, and says why.",
 ];
 
 const notFetched = (base, pin, self) =>
@@ -320,5 +335,9 @@ export const replaySays = (tree, base, self) => {
   console.log(`  ${REMOTE}/${base} is ${shortly(pin)}`
     + `${was === pin ? ", the head this change sits on" : `, moved from ${shortly(was)} under it`}`
     + `, and none of this change's ${files.length} file(s) moved with it`);
+  const head = gitOut(["rev-parse", "HEAD"], tree);
+  const found = undoneBy(tree, { was, head, branch: gitOut(["symbolic-ref", "--short", "-q", "HEAD"], tree) });
+  if (found.undone?.length) stop(`${undoneSaid(found, was, head)}\nThen ship again: ${self} ship`);
+  console.log(`  ${undoneLine(found)}`);
   readSays(tree, was);
 };
