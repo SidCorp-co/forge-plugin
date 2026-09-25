@@ -6,10 +6,9 @@ comments say the state now.
 A thread owed only as a delivery is not refused: the verb prints what you have not been shown, and
 the write goes through in the same call. Nothing to clear, nothing to send again.
 
-The hook still refuses where no verb of this CLI stands between you and the tracker — its own tool,
-and an edge write — and where a thread cannot be accounted for: one the walk could not finish holds
-once, then says how far it got on every write. Clear those by re-sending: the refusal is the
-delivery.
+The hook still refuses where no verb of this CLI stands between you and the tracker — its own tool
+— and where a thread cannot be accounted for: one the walk could not finish holds once, then says
+how far it got on every write. Clear those by re-sending: the refusal is the delivery.
 
 What a session has been shown is remembered per issue, so later writes pass in silence until a
 comment nobody here has seen appears — a person's, or the audit line a merged mark leaves. Your

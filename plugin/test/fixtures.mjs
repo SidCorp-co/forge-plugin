@@ -358,7 +358,8 @@ export const fakeTracker = async (state) => {
       return { documentId: "comment-uuid", authorDeviceId: state.device ?? "a-fake-device", ...(args.data ?? {}) };
     }
     const held = (state.comments ?? {})[args.filters?.issue] ?? [];
-    return { comments: held, returned: held.length, hasMore: false };
+    /* `state.cut` names the issues whose thread reports more behind it and no cursor to it: a walk that cannot finish, which is the read a gate still holds a verb's write for. */
+    return { comments: held, returned: held.length, hasMore: (state.cut ?? []).includes(args.filters?.issue) };
   };
   /* `state.memory` is `[issue, score]` per strategy; the uuid a hit carries is resolved here. */
   const memory = ({ strategy }) =>
