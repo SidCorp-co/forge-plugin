@@ -16,7 +16,7 @@ const BRIEF = [
 ].join("\n");
 
 const { store, knowledge } = fakeStore();
-const state = { answer: { forge_knowledge: knowledge } };
+const state = { answer: { forge_knowledge: (args) => (state.down ? { refused: "Error: the store is unreachable" } : knowledge(args)) } };
 const tracker = await fakeTracker(state);
 after(() => tracker.close());
 
@@ -41,6 +41,21 @@ test("a project with no brief hands the debt angle the reason, and the block say
   const held = await goalsFor(["debt"]);
   assert.deepEqual(held.goals, []);
   assert.match(held.why, /has no brief stored/u);
+  assert.equal(held.unread, false, "no brief stored is the project's own answer");
   assert.match(promptFor("intent", [], [], { goals: held }),
     /GOALS — this project states none: this project has no brief stored\. The Debt Reviewer judges debt alone/u);
+});
+
+test("a store that would not answer is told apart from a project stating no goals", async () => {
+  state.down = true;
+  try {
+    const held = await goalsFor(["debt"]);
+    assert.deepEqual(held.goals, []);
+    assert.equal(held.unread, true);
+    const said = promptFor("intent", [], [], { goals: held });
+    assert.match(said, /GOALS — none could be read: the store would not answer for this project's brief\./u, said);
+    assert.ok(!said.includes("states none"));
+  } finally {
+    state.down = false;
+  }
 });

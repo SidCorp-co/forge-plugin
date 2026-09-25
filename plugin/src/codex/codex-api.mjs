@@ -88,7 +88,7 @@ const SPEC = "\n- `read_spec` reads a clause of this checkout's requirements tre
    because they are one project's and this text is every project's. */
 const DEBT = `
 - As the Debt Reviewer, judge what this change adds, or leaves standing in the lines it touches:
-  - Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words. Where \`read_spec\` answers for a goal's identifier, read the clause and quote it. Where that section says the project states no goals, write that you found no goals to rule against and judge debt alone; never supply a goal of your own.
+  - Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words. Where \`read_spec\` answers for a goal's identifier, read the clause and quote it. Where that section gives no goals, say in the angle that you found none to rule against, and why the section says there are none, and judge debt alone; never supply a goal of your own.
   - The debt to name: a workaround where the cause should have been fixed; a special case where configuration belongs; a step that leaves a person in the loop; a mechanism copied rather than shared; dead code or a branch left behind; a comment or doc the change makes stale; a module grown past what it should hold, or a boundary crossed.
   - A Debt Reviewer finding opens with the numbered bullet every finding opens with. It says in **Fails when** which goal or which rule of this repository it breaks, and its **Fix** is the smaller shape that would not add the debt.
   - Another angle's finding on the same line does not stand in for a debt finding: that angle judged whether the code works, and the debt is what the shape leaves behind even where it works.
@@ -418,16 +418,26 @@ const issuesBlock = (keys) =>
 
 /* The brief's words travel with each identifier: a project keeping no requirements tree has no clause
    `read_spec` could answer, and its goals are still what the change is ruled against. */
-const goalsBlock = ({ goals, why }) => (goals.length
-  ? "GOALS — this project's live goals, from its brief, for the Debt Reviewer to rule the change "
-    + `against:\n\n${goals.map((one) => `${one.id} — ${one.text}`).join("\n")}`
-  : `GOALS — this project states none: ${why}. The Debt Reviewer judges debt alone, says it found no `
-    + "goals to rule against, and supplies none of its own.");
+const goalsBlock = ({ goals, why, unread = false }) => {
+  if (goals.length) {
+    return "GOALS — this project's live goals, from its brief, for the Debt Reviewer to rule the change "
+      + `against:\n\n${goals.map((one) => `${one.id} — ${one.text}`).join("\n")}`;
+  }
+  /* A brief nobody could read is not a brief stating nothing: the reviewer says which it was. */
+  const head = unread ? `GOALS — none could be read: ${why}` : `GOALS — this project states none: ${why}`;
+  return `${head}. The Debt Reviewer judges debt alone, says it found no goals to rule against and `
+    + "why, and supplies none of its own.";
+};
 
 /** The goals a consult the debt angle reviews is owed, or null: the read is a tracker call, and a
- *  consult without the angle owes it none. Imported here so a hook loading codex.mjs pays nothing. */
-export const goalsFor = async (angles) =>
-  (angles.includes("debt") ? (await import("../tracker/knowledge/brief.mjs")).briefGoals() : null);
+ *  consult without the angle owes it none. Imported here so a hook loading codex.mjs pays nothing.
+ *  `unread` marks the reasons that say nothing about the project, only that its brief was not reached. */
+export const goalsFor = async (angles) => {
+  if (!angles.includes("debt")) return null;
+  const [{ briefGoals }, { WHY }] = await Promise.all([import("../tracker/knowledge/brief.mjs"), import("../goals.mjs")]);
+  const read = await briefGoals();
+  return { ...read, unread: [WHY.endpoint, WHY.aimed, WHY.unread].includes(read.why) };
+};
 
 const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false, scope = "", checks = "", issues = [], goals = null } = {}) => {
   /* Derived, not passed: a caller that says "anchored" while sending no diffs would be asking the
