@@ -15,7 +15,7 @@ import { HUMAN_REF } from "../tracker/issues.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
-import { budgetMs, codexCheck, fail, projectRecordPattern } from "../resolve/settings.mjs";
+import { budgetMs, codexCheck, compiles, fail, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { anglesRefusal } from "./angles/refusal.mjs";
@@ -125,17 +125,6 @@ const SHOW_USAGE = [
 
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
    whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
-/** Compiled the way `recordPattern` below will compile it, and nowhere else's flags: exported so a
- *  write of `codex.pathRe` refuses exactly the patterns this reader would pass over. */
-export const compiles = (source) => {
-  try {
-    new RegExp(source);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const recordPattern = () => {
   const asked = [projectRecordPattern(), { value: userConfig().codex?.pathRe, from: configPath() }];
   const held = asked.find((one) => one.value && compiles(one.value));

@@ -9,7 +9,6 @@ import { accountCredentials } from "../../../resolve/settings.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "../coolify/config.mjs";
 import { INSTANCE, coolifyRoute } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
-import { doctorSaid } from "../google/auth/status.mjs";
 
 const cloudflareRow = (full) => {
   const { accounts, from } = cloudflareAccounts();
@@ -82,8 +81,13 @@ const trackerRow = async () => ({ level: "ok",
 
 const coolifyRow = (full) => (coolifyRoute().mode === INSTANCE ? instanceRow(full) : trackerRow());
 
-/* The account a call would take, as `forge google auth status` describes it, and the file it was read from. */
-const googleRow = () => ({ level: "ok", detail: `${doctorSaid()}  ← ${configPath()}` });
+/* The account a call would take, as `forge google auth status` describes it, and the file it was read from.
+   Imported here rather than at the top: describing an account reads the service's scope table, and
+   a report on a machine that saved no Google account never reaches this row. */
+const googleRow = async () => {
+  const { doctorSaid } = await import("../google/auth/status.mjs");
+  return { level: "ok", detail: `${doctorSaid()}  ← ${configPath()}` };
+};
 
 const SAVED = {
   cloudflare: cloudflareRow,

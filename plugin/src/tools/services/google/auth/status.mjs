@@ -3,7 +3,8 @@
    name. `auth status` prints it and `forge doctor` reads the same description. docs/cli/google.md. */
 import { SCOPES } from "../surface.mjs";
 import { endpoint } from "../wire.mjs";
-import { ENV, ENV_TOKEN, LOGIN, defaultAccount, environmentToken, savedAccounts } from "./accounts.mjs";
+import { ENV, LOGIN } from "./accounts.mjs";
+import { ENV_TOKEN, defaultAccount, environmentToken, savedAccounts } from "./configured.mjs";
 import { servicesOf } from "./credential.mjs";
 
 const identityOf = (record) => (record.kind === LOGIN

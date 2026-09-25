@@ -13,8 +13,9 @@ import { AUTH, VALIDATION, holdSecret, note, refuse, say } from "../exits.mjs";
 import { endpoint, jsonOf, reach } from "../wire.mjs";
 import { parseFlags } from "../request.mjs";
 import {
-  LOGIN, SERVICE, checkedName, defaultAccount, knownAccount, removeAccount, saveAccount, savedAccounts, updateAccount,
+  LOGIN, SERVICE, checkedName, knownAccount, removeAccount, saveAccount, updateAccount,
 } from "./accounts.mjs";
+import { defaultAccount, savedAccounts } from "./configured.mjs";
 import { openAddress } from "./browser.mjs";
 import { accountsListed, answering } from "./status.mjs";
 

@@ -8,14 +8,14 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused } from "../refusal.mjs";
-import { issueOf, recordReport } from "./record/record.mjs";
+import { issueOf } from "./record/thread/posting.mjs";
+import { recordReport } from "./record/thread/report.mjs";
 import { rungFieldsOf, viewFrom } from "./earned.mjs";
 import { kindsHeld } from "./record/page.mjs";
 import {
   finishedAtHead, indexLines, laneLines, opensWork, openingLines, phaseIndex, workLines,
 } from "../guides/phases.mjs";
-import { shortfall } from "./advance.mjs";
-import { landsAgain, owedBlock, policyFor } from "./route.mjs";
+import { landsAgain, owedBlock, policyFor, shortfall } from "./route.mjs";
 import { worklogLines, workNow } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 import { SHARED_HOLDER } from "./lease/dispatched.mjs";

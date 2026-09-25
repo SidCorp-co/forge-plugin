@@ -7,7 +7,7 @@ import { lengthOf, ownsField, writeFields } from "../tracker/field-write.mjs";
 import { valueOutsideSet } from "../tracker/issue-shape.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";
-import { issueOf, post } from "./record/record.mjs";
+import { issueOf, post } from "./record/thread/posting.mjs";
 import { render } from "./record/page.mjs";
 
 export const UNREAD = "No entry check read this: the record does not say it was earned, and the "
