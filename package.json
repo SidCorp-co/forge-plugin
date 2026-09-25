@@ -24,5 +24,10 @@
     "check:dup": "node plugin/scripts/skill-dup.mjs plugin --only comments --exclude hooks/vendor --exclude test",
     "sync:skills": "node tools/sync-skills.mjs",
     "sync:skills:check": "node tools/sync-skills.mjs --check"
+  },
+  "standing": {
+    "vacuousAssertions": 19,
+    "sourcePins": 20,
+    "testOnlyExports": 40
   }
 }
