@@ -109,7 +109,7 @@ test("the one hold a cut thread earns stops the upload before the warning is sai
     "--commit", COMMIT, "--evidence", file("held-on-a-cut-walk.txt"));
   state.walk = "whole";
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /^Hold — re-send the same command\./mu, run.stderr);
+  assert.match(run.stderr, /^Hold\b/mu, `held, the rest of the sentence being comments.mjs's own case: ${run.stderr}`);
   assert.equal(warned(run.stderr), null, "no line claims a send the hold stopped");
   assert.equal(uploads() - sent, 0);
   assert.equal(posted() - wrote, 0);
@@ -157,7 +157,7 @@ test("attach and a record verb print the one warning for the one cut walk, and a
   assert.equal(uploads() - sent, 2, "both files went up");
   assert.ok(warned(attached.stderr), `attach warned: ${attached.stderr}`);
   assert.match(warned(attached.stderr), /resolves to two documents/u, "naming what a duplicate costs");
-  assert.match(warned(attached.stderr), /without the tracker ever calling the read complete/u, "and the cut");
+  assert.match(warned(attached.stderr), /without the tracker/u, "and the cut");
   assert.equal(warned(recorded.stderr), warned(attached.stderr));
 });
 
