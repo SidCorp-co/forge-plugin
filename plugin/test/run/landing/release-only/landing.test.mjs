@@ -14,7 +14,7 @@ import {
 } from "../fixture.mjs";
 
 const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
-const { RELEASE_FILES, releaseOnly } = await import("../../../../../tools/run/landing.mjs");
+const { RELEASE_FILES } = await import("../../../../../tools/run/landing.mjs");
 
 test.after(() => tracker.close());
 
@@ -80,7 +80,7 @@ test("the mark over a release-only move says the landing moved nothing, so the j
   assert.ok(note.includes(`judged head ${head}`), note);
 });
 
-test("the release commit a landing makes differs from its parent only in the declared version fields", async () => {
+test("the release commit a landing makes writes only the version, in files the declaration names", async () => {
   const { at, work, base } = world();
   const head = editsManifest(work);
   seeded({ landing: ready(head, base, { files: [OWNED, MANIFEST] }) });
@@ -90,10 +90,12 @@ test("the release commit a landing makes differs from its parent only in the dec
   const said = await landingRan([KEY], work);
   const landed = remote(at);
   const touched = git(work, "diff", "--name-only", `${landed}^`, landed).stdout.split("\n").filter(Boolean);
-  assert.ok(touched.length > 0, `the release wrote something:\n${said}`);
+  assert.deepEqual(touched.sort(), [MANIFEST, join("plugin", ".claude-plugin", "plugin.json")].sort(), said);
   for (const path of touched) {
     assert.ok(RELEASE_FILES.includes(path), `${path} is a file the declaration names:\n${said}`);
-    assert.ok(releaseOnly(work, `${landed}^`, landed, path), `${path} moved in no undeclared field:\n${said}`);
+    const [was, now] = [`${landed}^`, landed].map((rev) => git(work, "show", `${rev}:${path}`).stdout);
+    assert.deepEqual({ ...JSON.parse(was), version: "1.0.6" }, JSON.parse(now), `${path} moved only its version:\n${said}`);
+    assert.equal(was.replace('"1.0.5"', '"1.0.6"'), now, `and no byte beside it:\n${said}`);
   }
 });
 
