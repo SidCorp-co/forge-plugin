@@ -58,8 +58,12 @@ export const printDaily = async (rest) => {
       return null;
     }
     const found = projectsOn();
-    /* Every landing where the current report is written after the page, whose series spans every day. */
-    const reading = readingOf({ projects: await corporaOf(found.read, json ? landingsFrom(day) : null) });
+    /* The page reads the landings from its trend's first day, as it always has; the current report,
+       written after it, reads every landing, so the corpora are read once with no bound and the
+       page's reading is cut from them. */
+    const since = landingsFrom(day);
+    const whole = await corporaOf(found.read, json ? since : null);
+    const reading = readingOf({ projects: whole.map((one) => ({ ...one, passes: one.passes.filter((pass) => pass.at >= since) })) });
     refusedIfDue(day, reading);
     const allowed = [reports.dir, ...found.read.map((one) => one.checkout)];
     const content = shownDeep(await contentOf(reading, day, {
@@ -67,7 +71,7 @@ export const printDaily = async (rest) => {
     }), allowed);
     if (json) return console.log(JSON.stringify(content, null, 2));
     writePage(reports.dir, `${day}.html`, pageOf(content));
-    const current = await writeCurrent(reports.dir, writerFrom(reading, found));
+    const current = await writeCurrent(reports.dir, writerFrom(readingOf({ projects: whole, entries: reading.entries, hooks: reading.hooks }), found));
     if (open) return console.log(path);
     console.log([...summaryOf(content), "",
       `${held ? `Rewrote the page held for ${day}` : `Wrote ${day}`}: ${path}`,
