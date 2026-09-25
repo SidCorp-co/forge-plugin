@@ -18,11 +18,13 @@ const attended = (event) => Array.isArray(event?.attendees) && event.attendees.l
 
 const ADDRESS = /[^\s@]+@[^\s@]+\.[^\s@]+/u;
 
-/* `updateCells` writes every field its mask names, and `*`, or no mask, is every field of the range. */
-const clearsCells = (body) => !body?.fields || String(body.fields).split(",").some((one) => one.trim() === "*");
+/* Sheets kinds that write over cells already holding something: `updateCells` clears what its mask
+   names in every cell of the range its rows do not cover, whatever the mask is. */
+const OVERWRITES_CELLS = ["findReplace", "updateCells", "repeatCell", "pasteData", "copyPaste", "cutPaste", "autoFill",
+  "textToColumns", "trimWhitespace", "randomizeRange"];
 
-const takesAway = (request) => Object.entries(request ?? {}).some(([kind, body]) => /^(delete|clear|replace)/u.test(kind)
-  || kind === "findReplace" || (kind === "updateCells" && clearsCells(body)));
+const takesAway = (request) => Object.keys(request ?? {}).some((kind) => /^(delete|clear|replace)/u.test(kind)
+  || OVERWRITES_CELLS.includes(kind));
 
 /* Fields of an update that decide who can reach the thing it updates. */
 const OPENS = {
@@ -58,8 +60,8 @@ export const CONSENT = [
   { owes: "invites to an event", names: named(...INVITES), where: "it names attendees",
     when: ({ method, request, event }) => attended(request.body) || attended(event)
       || (method.id === "calendar.events.quickAdd" && ADDRESS.test(String(request.params?.text ?? ""))) },
-  { owes: "removes content in its batch", names: named("sheets.spreadsheets.batchUpdate", "docs.documents.batchUpdate"),
-    where: "a request in it deletes, clears or replaces",
+  { owes: "removes or overwrites content in its batch", names: named("sheets.spreadsheets.batchUpdate", "docs.documents.batchUpdate"),
+    where: "a request in it deletes, clears, replaces or writes over cells",
     when: ({ request }) => Array.isArray(request.body?.requests) && request.body.requests.some(takesAway) },
 ];
 

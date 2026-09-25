@@ -47,7 +47,7 @@ test("what a listing says a method owes names each condition a conditional row f
   assert.equal(consentSaid(methodById("drive.files.delete")), "deletes");
   assert.equal(consentSaid(methodById("drive.files.create")), null);
   assert.equal(consentSaid(methodById("drive.files.update")), "trashes where its body sets trashed; overwrites a file's content where it uploads");
-  assert.equal(consentSaid(methodById("sheets.spreadsheets.batchUpdate")), "removes content in its batch where a request in it deletes, clears or replaces");
+  assert.equal(consentSaid(methodById("sheets.spreadsheets.batchUpdate")), "removes or overwrites content in its batch where a request in it deletes, clears, replaces or writes over cells");
 });
 
 const INVOCATION = new URL("../../../../../src/tools/services/google/invocation.mjs", import.meta.url).href;

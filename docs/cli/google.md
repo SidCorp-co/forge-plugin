@@ -60,7 +60,7 @@ A prompt answers itself where no terminal is attached, which is every call an ag
 is `--yes` typed on the call. It is owed by the writes a person cannot take back or that reach
 somebody else: a delete or a PUT, a trash, a removal or a clear, a change of who has access or of
 where mail goes, sending mail, an event that invites anyone, and a batch update carrying a request
-that deletes, clears or replaces. A patch or a move of an event reads the event first, because
+that deletes, clears, replaces or writes over cells. A patch or a move of an event reads the event first, because
 whether it reaches invitees is something only the event can say. The refusal names the rule that
 fired and carries the same command with `--yes` and with `--dry-run`, so the preview is one paste
 away.

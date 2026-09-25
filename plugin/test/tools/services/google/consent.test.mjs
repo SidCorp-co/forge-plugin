@@ -33,7 +33,7 @@ const OWED = [
   ["trashes", ["drive", "files", "update", "F1", "--json", '{"trashed":true}']],
   ["changes who has access", ["drive", "permissions", "create", "F1", "--json", '{"role":"reader","type":"anyone"}']],
   ["overwrites content", ["sheets", "spreadsheets", "values", "update", "S1", "A1", "--json", '{"values":[["x"]]}']],
-  ["removes content in its batch", ["docs", "documents", "batchUpdate", "D1", "--json", '{"requests":[{"replaceAllText":{}}]}']],
+  ["removes or overwrites content in its batch", ["docs", "documents", "batchUpdate", "D1", "--json", '{"requests":[{"replaceAllText":{}}]}']],
   ["overwrites a file's content", ["drive", "files", "update", "F1", "--upload", "new.txt"]],
   ["sends mail", ["gmail", "users", "messages", "send", "--json", '{"raw":"eA"}']],
   ["sends mail", ["gmail", "users", "drafts", "send", "--json", '{"id":"d1"}']],

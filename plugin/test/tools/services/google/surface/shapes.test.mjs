@@ -41,9 +41,12 @@ const OWED = [
   ["removes", ["gmail", "users", "settings", "cse", "keypairs", "obliterate", "K1", "--json", "{}"]],
   ["invites to an event", ["calendar", "events", "import", "--json", JSON.stringify({ iCalUID: "u1", attendees: [{ email: "a@x.com" }] })]],
   ["invites to an event", ["calendar", "events", "quickAdd", "Lunch with a@x.com tomorrow"]],
-  ["removes content in its batch", ["sheets", "spreadsheets", "batchUpdate", "S1", "--json", JSON.stringify({ requests: [{ addSheet: {} }, { deleteSheet: { sheetId: 1 } }] })]],
-  ["removes content in its batch", ["sheets", "spreadsheets", "batchUpdate", "S1", "--json", JSON.stringify({ requests: [{ updateCells: { range: {} } }] })]],
-  ["removes content in its batch", ["docs", "documents", "batchUpdate", "D1", "--json", JSON.stringify({ requests: [{ deleteContentRange: { range: {} } }] })]],
+  ["removes or overwrites content in its batch", ["sheets", "spreadsheets", "batchUpdate", "S1", "--json", JSON.stringify({ requests: [{ addSheet: {} }, { deleteSheet: { sheetId: 1 } }] })]],
+  ["removes or overwrites content in its batch", ["sheets", "spreadsheets", "batchUpdate", "S1", "--json", JSON.stringify({ requests: [{ updateCells: { range: {} } }] })]],
+  ["removes or overwrites content in its batch", ["sheets", "spreadsheets", "batchUpdate", "S1", "--json",
+    JSON.stringify({ requests: [{ updateCells: { range: { sheetId: 0, startRowIndex: 0, endRowIndex: 2 }, fields: "userEnteredValue" } }] })]],
+  ["removes or overwrites content in its batch", ["sheets", "spreadsheets", "batchUpdate", "S1", "--json", JSON.stringify({ requests: [{ repeatCell: { range: {}, fields: "*" } }] })]],
+  ["removes or overwrites content in its batch", ["docs", "documents", "batchUpdate", "D1", "--json", JSON.stringify({ requests: [{ deleteContentRange: { range: {} } }] })]],
 ];
 
 for (const [reason, argv] of OWED) {
@@ -69,8 +72,6 @@ const SENT = [
   ["a docs batchUpdate carrying only insertText", "POST /v1/documents/D1:batchUpdate",
     ["docs", "documents", "batchUpdate", "D1", "--json", JSON.stringify({ requests: [{ insertText: { text: "x", location: { index: 1 } } }] })]],
   ["a quickAdd naming nobody", "POST /calendar/v3/calendars/primary/events/quickAdd", ["calendar", "events", "quickAdd", "Lunch tomorrow"]],
-  ["an updateCells whose fields name what it writes", "POST /v4/spreadsheets/S1:batchUpdate",
-    ["sheets", "spreadsheets", "batchUpdate", "S1", "--json", JSON.stringify({ requests: [{ updateCells: { range: {}, fields: "userEnteredValue" } }] })]],
 ];
 
 for (const [what, route, argv] of SENT) {
