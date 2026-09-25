@@ -15,6 +15,7 @@ import { parseFlags } from "../request.mjs";
 import {
   LOGIN, SERVICE, checkedName, defaultAccount, knownAccount, removeAccount, saveAccount, savedAccounts, updateAccount,
 } from "./accounts.mjs";
+import { openAddress } from "./browser.mjs";
 import { accountsListed, answering } from "./status.mjs";
 
 export const AUTH_USAGE = [
@@ -22,8 +23,9 @@ export const AUTH_USAGE = [
   "",
   "  add <key.json> [--account N] [-s services] [--as user@domain] [--default]",
   "        save a service account's key, copied at 0600; --as is the user it acts as by default",
-  "  login --client-secret F [--account N] [-s services] [--write services] [--default] [--wait S]",
-  "        sign in as a Google account through your own OAuth client; read-only unless --write",
+  "  login --client-secret F [--account N] [-s services] [--write services] [--default] [--wait S] [--no-browser]",
+  "        sign in as a Google account through your own Desktop app OAuth client; read-only unless --write.",
+  "        On a terminal the consent page opens in the browser as well as being printed; --no-browser only prints it",
   "  set --account N [--as user@domain] [-s services] [--default]",
   "        change a saved account's default user (--as '' clears it), its services, or make it the default",
   "  remove --account N   forget a saved account and its file",
@@ -71,12 +73,32 @@ const add = (argv) => {
   say(JSON.stringify({ account: name, ...record, default: isDefault }, null, 2));
 };
 
+const MAKE_DESKTOP = "  make one at console.cloud.google.com → APIs & Services → Credentials → Create credentials → OAuth client ID"
+  + " → Desktop app → Download JSON";
+
+/* A web client takes only the redirect addresses registered for it, port and all, and this login listens
+   on whichever loopback port is free: Google would answer redirect_uri_mismatch after the round trip. */
+const refuseWeb = (path, web) => {
+  holdSecret(web.client_secret);
+  invalid(`${path} holds a Web application client${web.client_id ? `, ${web.client_id}` : ""}. Login runs the installed-app`
+    + " loopback flow, which needs an OAuth client of type Desktop app.\n" + MAKE_DESKTOP);
+};
+
+const refuseKeys = (path, file) => {
+  const keys = file && typeof file === "object" && !Array.isArray(file) ? Object.keys(file) : [];
+  const found = keys.length ? `its top-level ${keys.length === 1 ? "key is" : "keys are"} ${keys.map((one) => `\`${one}\``).join(", ")}` : "it holds no top-level key";
+  const serviceKey = file?.type === "service_account" ? "\n  it is a service account's key, which is saved with: forge google auth add <key.json>" : "";
+  invalid(`${path} is not an OAuth client file: ${found}, where a Desktop app client's is \`installed\`.${serviceKey}\n${MAKE_DESKTOP}`);
+};
+
+/* `installed` answers whatever else the file holds: it is the one client type the loopback flow can use. */
 const clientOf = (path) => {
   const file = readJson(path, "OAuth client file");
-  const client = file.installed ?? file.web;
-  if (!client?.client_id || !client?.client_secret || !client?.auth_uri || !client?.token_uri) {
-    invalid(`${path} is not an OAuth client file: it needs installed.client_id, client_secret, auth_uri and token_uri.\n`
-      + "  download one at console.cloud.google.com → APIs & Services → Credentials → OAuth client ID → Desktop app");
+  if (!file?.installed && file?.web) refuseWeb(path, file.web);
+  if (!file?.installed) refuseKeys(path, file);
+  const client = file.installed;
+  if (!client.client_id || !client.client_secret || !client.auth_uri || !client.token_uri) {
+    invalid(`${path} is not an OAuth client file: it needs installed.client_id, client_secret, auth_uri and token_uri.\n${MAKE_DESKTOP}`);
   }
   holdSecret(client.client_secret);
   return client;
@@ -120,7 +142,7 @@ const emailIn = (idToken) => {
 const scopesAsked = (services, write) => ["openid", "email",
   ...services.flatMap((service) => (write.includes(service) ? SCOPES[service].full : SCOPES[service].read))];
 
-const consented = async (client, scopes, seconds) => {
+const consented = async (client, scopes, { seconds, browser }) => {
   const server = createServer();
   const redirect = `http://127.0.0.1:${await listening(server)}`;
   const verifier = randomBytes(32).toString("base64url");
@@ -130,6 +152,8 @@ const consented = async (client, scopes, seconds) => {
     code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256",
     state, access_type: "offline", prompt: "consent" }).forEach(([key, value]) => url.searchParams.set(key, value));
   note(`Open this address in a browser signed in as the Google account to save:\n  ${url}\nWaiting ${seconds}s for the redirect to ${redirect}`);
+  const opener = openAddress(url.href, { wanted: browser });
+  if (opener) note(`Opened it with ${opener}; if no page appeared, open the address above by hand.`);
   const code = await redirected(server, state, seconds);
   const answer = await reach("POST", client.token_uri, {
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
@@ -148,7 +172,7 @@ const consented = async (client, scopes, seconds) => {
 
 const login = async (argv) => {
   const { flags, positionals } = parseFlags(shortS(argv), { values: ["--client-secret", "--account", "--services", "--write", "--wait"],
-    switches: ["--default"], verb: "google auth login" });
+    switches: ["--default", "--no-browser"], verb: "google auth login" });
   if (positionals.length) invalid(`login takes no argument, not \`${positionals[0]}\`.`);
   if (!flags["client-secret"]) invalid("login needs --client-secret <client_secret.json>, the OAuth client you made for this.");
   const client = clientOf(flags["client-secret"]);
@@ -159,7 +183,7 @@ const login = async (argv) => {
   const seconds = flags.wait === undefined ? WAIT_SECONDS : Number(flags.wait);
   if (!Number.isInteger(seconds) || seconds < 1) invalid(`--wait takes whole seconds, not \`${flags.wait}\`.`);
   const scopes = scopesAsked(services, write);
-  const said = await consented(client, scopes, seconds);
+  const said = await consented(client, scopes, { seconds, browser: !flags["no-browser"] });
   const address = emailIn(said.id_token);
   const name = checkedName(flags.account ?? address?.split("@")[0] ?? "login");
   const record = { kind: LOGIN, address, services, write, scopes, clientId: client.client_id };

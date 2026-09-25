@@ -110,10 +110,14 @@ export const keyFile = (fake, room, email = "robot@project.iam.gserviceaccount.c
   return at;
 };
 
-export const clientFile = (fake, room) => {
-  const at = join(room, "client_secret.json");
-  writeFileSync(at, JSON.stringify({ installed: { client_id: "fake-client.apps.googleusercontent.com",
-    client_secret: CLIENT_SECRET, auth_uri: `${fake.origin}/auth`, token_uri: `${fake.origin}/token` } }));
+export const CLIENT_ID = "fake-client.apps.googleusercontent.com";
+
+/** An OAuth client file with the client under each of `types` — Google writes `installed` for a
+ *  Desktop app and `web` for a Web application — or `{ file }` written as it stands. */
+export const clientFile = (fake, room, { types = ["installed"], file = null, name = "client_secret.json" } = {}) => {
+  const at = join(room, name);
+  const client = { client_id: CLIENT_ID, client_secret: CLIENT_SECRET, auth_uri: `${fake.origin}/auth`, token_uri: `${fake.origin}/token` };
+  writeFileSync(at, JSON.stringify(file ?? Object.fromEntries(types.map((type) => [type, client]))));
   return at;
 };
 

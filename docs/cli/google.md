@@ -72,6 +72,13 @@ reached over a loopback redirect with a PKCE challenge, so the code that comes b
 process but the one that asked. It is read-only unless `--write` names a service, and `--as` is
 refused on it: a login is one person.
 
+The client has to be a Desktop app one. The redirect goes to whichever loopback port is free when
+the login starts, and Google takes a loopback redirect on any port only from an installed-app client;
+a Web application client takes only the addresses registered for it, port and all. So a web client's
+file is refused before anything is printed, rather than failing in the browser after the round trip.
+On a terminal the consent page is opened with the platform's own opener as well as printed, because
+somebody is sitting at that terminal; with output piped, or with `--no-browser`, it is only printed.
+
 An **access token in the environment** is the route for CI, where nothing is saved.
 
 Accounts of both kinds are named and one is the default. An explicit `--account` answers first, the
