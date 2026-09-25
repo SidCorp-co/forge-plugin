@@ -26,7 +26,7 @@ list is a decision, and a refresh taking it silently would be the decision made 
 Drive, Sheets, Docs, Gmail, Calendar and Meet are served. Chat and Admin are carried and serve
 nothing, so a run that needs one of them is a one-line change plus the scope, not a new
 integration. The scopes are the same six whatever is served, so a method needing more than they
-grant — Gmail's settings writes and its permanent deletes among them — answers with the scope hint
+grant — Gmail's settings writes and its permanent deletes among them — answers naming the scope it asks
 rather than being refused here. Every helper reaches its methods through the same account, consent
 and preview path a typed call takes, so the path that has to be right is one path.
 
@@ -121,3 +121,7 @@ failure, 3 for an input it could not use (consent included), 4 for a method the 
 not serve or no longer holds, and 5 for a local failure it did not anticipate, because a caller that
 branches on the class should not have to parse the sentence. Each says on stderr what clears it; an
 authentication failure names the command.
+
+A 403's hint follows the reason Google states, not the status: only a short scope is cleared by a
+sign-in, so a disabled API is named with its enable page, and an unknown reason is left to
+`forge google auth status` rather than guessed at.
