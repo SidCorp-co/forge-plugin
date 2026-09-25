@@ -26,7 +26,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
    `--no-ff` merge onto a base that had not moved carries the judged head's own tree; one commit above
    the head moves a file of the change, another moves only a neighbour. */
 const ROOM = tempRoom("record-merged-repo-");
-spawnSync("git", ["init", "-q", "-b", "master", ROOM], { encoding: "utf8" });
+spawnSync("git", ["init", "-q", "-b", "master", ROOM], { cwd: ROOM, encoding: "utf8" });
 const wrote = (files) => {
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(dirname(join(ROOM, path)), { recursive: true });
