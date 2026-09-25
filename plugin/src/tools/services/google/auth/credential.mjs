@@ -111,13 +111,3 @@ export const accessToken = async (choice, service, subject) => {
   return minted.get(key);
 };
 
-/** What a 401 or 403 is cleared by, for the account that got it. */
-export const clearedBy = (choice, service) => {
-  if (choice.route === ENV) return `a fresh token in ${ENV_TOKEN}, or unset it so a saved account answers`;
-  if (choice.route === LOGIN) {
-    return `sign in again with the write scope: forge google auth login --account ${choice.name}`
-      + ` --client-secret <client_secret.json> -s ${servicesOf(choice.record).join(",")} --write ${service}`;
-  }
-  return `share the item with ${choice.record.clientEmail}, or act as a user who can see it with --as;`
-    + " `forge google auth status` shows what answers";
-};

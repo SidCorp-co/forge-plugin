@@ -185,7 +185,7 @@ test("a 401 or 403 exits 2 naming what clears it, and any other HTTP error exits
   fake.answers["GET /drive/v3/about"] = () => [403, { error: { message: `Request had insufficient authentication scopes ${ENV_ACCESS}` } }];
   const scoped = await ran("drive", "about", "get", "--params", '{"fields":"user"}');
   assert.equal(scoped.status, 2);
-  assert.match(scoped.stderr, /a fresh token in FORGE_GOOGLE_ACCESS_TOKEN/u);
+  assert.match(scoped.stderr, /`forge google auth status` shows which account answered/u);
   fake.answers["GET /drive/v3/files/F9"] = () => [404, { error: { message: "File not found: F9." } }];
   const missing = await ran("drive", "files", "get", "F9");
   assert.equal(missing.status, 1);
