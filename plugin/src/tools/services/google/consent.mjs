@@ -95,7 +95,7 @@ export const rowsFor = (method) => (reads(method) ? [] : CONSENT.filter((row) =>
 /** Whether the table says anything of this method: a read, a row that names it, or the free list. */
 export const classified = (method) => reads(method) || rowsFor(method).length > 0 || freeReason(method.id) !== null;
 
-/** Why this request is refused without `--yes`, or null. `event` is the event a patch or a move changes, read first. */
+/** Why this request is refused without `--yes`, or null. `event` is what invocation.mjs read of it, where the call is in READS_THE_EVENT. */
 export const consentOwed = (method, request, event = null) => {
   if (reads(method)) return null;
   const rows = rowsFor(method);
