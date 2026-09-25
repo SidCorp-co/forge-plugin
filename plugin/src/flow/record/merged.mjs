@@ -32,7 +32,7 @@ export const CLAUSES = [
   { flag: "at", said: "at", label: "the sha the change landed at", commit: true },
   { flag: "reviewed", said: "reviewed head", label: "the head the review judged", commit: true },
   { flag: "judged", said: "judged head", label: "the head the verdicts judged", commit: true },
-  { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved, as git reads --wrote between --judged and --at" },
+  { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved, as git reads --wrote between --judged and --at", read: true },
   { flag: "wrote", said: "landing wrote", label: "the paths this change itself landed" },
 ].map((one) => ({ ...one, reads: one.commit ? shaOf(one.said) : clauseOf(one.said) }));
 
@@ -251,8 +251,12 @@ export const unmarkMerged = async (documentId, ref, { soft = false } = {}) => {
 
 const flagSaid = (one) => `--${one.flag} <${one.label}>`;
 
+/* The clauses a caller types. `landing moved` is not among them: the verb reads it from git, so a form
+   carrying the flag would hand a run a value to guess at and a refusal to learn it from (ISS-2485). */
+const TYPED = CLAUSES.filter((one) => !one.read);
+
 export const mergedForm = (ref) =>
-  `forge record merged ${ref} ${CLAUSES.map(flagSaid).join(" ")}`;
+  `forge record merged ${ref} ${TYPED.map(flagSaid).join(" ")}`;
 
 export const undoForm = (ref) => `forge record merged ${ref} --undo`;
 
@@ -276,13 +280,14 @@ const valueOf = (one, given) => {
 /* Every missing clause at once. The shape's own loop refuses on the first, which costs a round per
    flag, and the mark is the one payload whose flags a run types five of (ISS-680). */
 const clausesFrom = (given) => {
-  const absent = CLAUSES.filter((one) => given[one.flag] === undefined);
+  const absent = TYPED.filter((one) => given[one.flag] === undefined);
   if (absent.length) {
     refuse(`record merged needs ${absent.map((one) => `--${one.flag}`).join(", ")}, `
       + `${absent.length === 1 ? "which is a clause" : "which are clauses"} of the mark's note and `
       + `${absent.length === 1 ? "has" : "have"} no default:\n  ${mergedForm("<uuid|ISS-45>")}`);
   }
-  return Object.fromEntries(CLAUSES.map((one) => [one.flag, valueOf(one, given[one.flag])]));
+  return Object.fromEntries(CLAUSES.filter((one) => given[one.flag] !== undefined)
+    .map((one) => [one.flag, valueOf(one, given[one.flag])]));
 };
 
 /* A typed entry may be a directory, which is the route this verb gives for a path the note cannot
@@ -295,27 +300,30 @@ const sameReading = (read, moved) =>
 
 /* The clause that stands the verdicts down or lets them stand is git's reading and never the run's:
    a run listing every path a no-op merge touched re-owed twenty-six verdicts about identical bytes,
-   and a run saying `nothing` over a merge that moved its file would have kept them (ISS-1362). The
-   typed value stays, checked, because the help promising every clause is owed is printed from
-   record-rows.mjs. What is read is the change's own paths and not the whole tree: a neighbour the
-   landing moved is the review's and the reconcile's to read at the landed head, never a verdict's. */
-const movedProblem = (clauses, tree) => {
+   and a run saying `nothing` over a merge that moved its file would have kept them (ISS-1362). So the
+   clause is read here whether or not it was typed, and a typed one is compared rather than dropped:
+   a flag given and ignored reads to its caller exactly like the value it asked for being written
+   (ISS-2485). What is read is the change's own paths and not the whole tree: a neighbour the landing
+   moved is the review's and the reconcile's to read at the landed head, never a verdict's. The
+   directory a typed entry may name is kept in the note, since the value written is the value given. */
+const movedRead = (clauses, tree) => {
   const { at, judged, moved, wrote } = clauses;
   const gone = unreadableIn(tree, [judged, at]);
   if (gone) {
     const flag = gone === judged ? "--judged" : "--at";
-    return `git in ${tree} cannot read ${gone}, which ${flag} names, and \`landing moved\` is git's `
+    refuse(`git in ${tree} cannot read ${gone}, which ${flag} names, and \`landing moved\` is git's `
       + "reading of the --wrote paths between --judged and --at: no mark is written on a run's word for "
       + "it. Fetch that commit into this checkout, or mark from the one that holds it, then run this "
-      + "again:\n  git fetch";
+      + "again:\n  git fetch");
   }
   const read = movedBetween(tree, judged, at, wrote);
-  if (read === null) return `git in ${tree} could not diff ${judged} against ${at}, so nothing was written.`;
-  if (sameReading(read, moved)) return null;
-  return `--moved says ${pathsSaid(moved)}, and git reads ${pathsSaid(read)}: those are the paths of `
-    + `--wrote whose bytes differ between the judged head ${judged} and ${at}. The clause is that `
+  if (read === null) refuse(`git in ${tree} could not diff ${judged} against ${at}, so nothing was written.`);
+  if (moved === undefined) return { ...clauses, moved: read };
+  if (sameReading(read, moved)) return clauses;
+  return refuse(`--moved says ${pathsSaid(moved)}, and git reads ${pathsSaid(read)}: those are the paths `
+    + `of --wrote whose bytes differ between the judged head ${judged} and ${at}. The clause is that `
     + `reading, since it is what lets the verdicts at the judged head stand, so nothing was written. `
-    + `Run the same command with:\n  --moved ${pathsSaid(read)}`;
+    + `Run the same command without --moved and the clause is git's reading.`);
 };
 
 const branchFor = async (given) => {
@@ -340,10 +348,11 @@ const undone = async (documentId, ref, held, { next, patch }) => {
   console.log(`${ref}  the merged mark is removed. What it said:\n  ${held}`);
 };
 
-const marked = async (documentId, ref, note, at, { next, patch }) => {
+const marked = async (documentId, ref, note, clauses, { next, patch }) => {
   await renew(documentId, ref, next, patch);
   await markMerged(documentId, ref, note, { leased: true });
-  console.log(`${ref}  marked merged at ${at}. Its note:\n  ${note}`);
+  console.log(`${ref}  marked merged at ${clauses.at}, and \`${clause("moved").said}\` is git's reading `
+    + `between ${clauses.judged} and ${clauses.at}: ${pathsSaid(clauses.moved)}. Its note:\n  ${note}`);
 };
 
 /** `forge record merged`: one flag per clause of the note, and `--undo` the one route back. Every
@@ -352,9 +361,7 @@ const marked = async (documentId, ref, note, at, { next, patch }) => {
  *  `-h`, handed in: the rows read this module's clauses, and a read back would be a cycle. */
 export const mergedPrepared = async (argv, { reference, issue, page, next, patch, usage } = {}) => {
   const given = flags(argv, "record merged", ["--undo"], { usage });
-  const clauses = given.undo ? null : clausesFrom(given);
-  const wrong = clauses && movedProblem(clauses, process.cwd());
-  if (wrong) refuse(wrong);
+  const clauses = given.undo ? null : movedRead(clausesFrom(given), process.cwd());
   const { documentId, body } = await issue();
   const { comments } = await page();
   if (given.undo) {
@@ -372,5 +379,5 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
   }
   const note = markNote({ branch: await branchFor(given), ...clauses,
     named: await namedFor(documentId, comments), ref: reference });
-  return { write: () => marked(documentId, reference, note, clauses.at, { next, patch }) };
+  return { write: () => marked(documentId, reference, note, clauses, { next, patch }) };
 };

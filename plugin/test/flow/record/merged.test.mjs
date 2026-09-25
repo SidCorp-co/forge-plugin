@@ -120,8 +120,9 @@ test("the five flags compose the note, and every reader of it parses what they w
   state.comments[ISSUE.documentId] = [];
   const run = await marked(...whole());
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, new RegExp(`^ISS-99 {2}marked merged at ${MOVED}\\. Its note:$`, "mu"),
-    "the reply says which commit it marked, off the flag it was given");
+  assert.match(run.stdout, new RegExp(`^ISS-99 {2}marked merged at ${MOVED}, and \`landing moved\` is `
+    + `git's reading between ${JUDGED} and ${MOVED}: docs/a\\.md\\. Its note:$`, "mu"),
+    "the reply says which commit it marked, off the flag it was given, and what the landing moved");
   const sent = state.calls.find((one) => one.args.action === "mark_merged");
   assert.equal(sent.args.data.target, "base", "the target a landing takes, no flag having named another");
   const held = page();
@@ -143,8 +144,9 @@ test("every clause left out is named at once, and nothing is written for a note 
   /* The line itself, not the usage under it: every flag appears there whether it was owed or not, so
      matching the whole output would pass a refusal that named one clause per round. */
   const [owed] = run.stderr.split("\n").filter((one) => one.includes("record merged needs"));
-  assert.equal(owed, "record merged needs --reviewed, --judged, --moved, --wrote, which are clauses of the mark's note and have no default:",
-    "the four left out, all of them, on the line that says what is owed");
+  assert.equal(owed, "record merged needs --reviewed, --judged, --wrote, which are clauses of the mark's note and have no default:",
+    "the three left out, all of them, on the line that says what is owed, and not `--moved`, which is read from git");
+  assert.doesNotMatch(run.stderr, /--moved/u, "nor does the command under it carry a flag the verb reads for itself");
   assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false, "and no mark went up");
   assert.deepEqual(page(), [], "nor an audit comment for one");
 });
@@ -345,7 +347,7 @@ test("a flag this verb has no clause for is refused with the ones it has", async
   const run = await marked("--commit", AT);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /No record merged flag named --commit\./u);
-  assert.match(run.stderr, /--at V --reviewed V --judged V --moved V --wrote V \[--to B\] \| --undo/u,
+  assert.match(run.stderr, /--at V --reviewed V --judged V \[--moved V\] --wrote V \[--to B\] \| --undo/u,
     "the set, so a run reaching for a name this verb does not have is told the ones it does");
 });
 
@@ -467,7 +469,8 @@ test("a merge carrying the judged head's own tree refuses a list of moved paths,
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--moved says docs\/a\.md, plugin\/src\/flow\/record\/merged\.mjs, and git reads nothing/u,
     run.stderr);
-  assert.match(run.stderr, /Run the same command with:\n {2}--moved nothing/u, "and the value that clears it");
+  assert.match(run.stderr, /Run the same command without --moved and the clause is git's reading\./u,
+    "and the command that clears it, which types no value to guess at");
   assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false, "and no mark went up");
   assert.deepEqual(page(), []);
 });
@@ -496,7 +499,7 @@ test("a landing that moved a file of the change refuses `nothing`, naming that f
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--moved says nothing, and git reads docs\/a\.md: those are the paths of --wrote/u,
     run.stderr);
-  assert.match(run.stderr, /--moved docs\/a\.md$/mu, "and the value that clears it");
+  assert.match(run.stderr, /Run the same command without --moved/u, "and the command that clears it");
   assert.deepEqual(page(), []);
 });
 
@@ -523,6 +526,34 @@ test("a commit git cannot read in this checkout refuses the mark, and names the 
   assert.match(run.stderr, /no mark is written on a run's word for it/u);
   assert.match(run.stderr, /\n {2}git fetch$/mu, "the one command that clears it");
   assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false);
+});
+
+/* The clause is computed by the verb, so a caller leaves the flag out and the mark carries git's
+   reading: typing it cost a value the CLI already had, and a wrong guess a refused round (ISS-2485). */
+test("a mark written without --moved carries git's reading of the change's paths", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED, "--wrote", CHANGE);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(landingMoved(page()), ["docs/a.md"], "the one path of the change the landing moved");
+  assert.match(run.stdout, /`landing moved` is git's reading between [0-9a-f]{40} and [0-9a-f]{40}: docs\/a\.md\./u,
+    "and the reply says so");
+  state.comments[ISSUE.documentId] = [];
+  const none = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED, "--wrote", CHANGE);
+  assert.equal(none.status, 0, `${none.stdout}${none.stderr}`);
+  assert.deepEqual(landingMoved(page()), [], "and a merge carrying the judged head's tree reads as nothing moved");
+  assert.match(none.stdout, /is git's reading between [0-9a-f]{40} and [0-9a-f]{40}: nothing\./u);
+});
+
+test("a commit git cannot read refuses a mark written without --moved, rather than writing an empty clause", async () => {
+  state.comments[ISSUE.documentId] = [];
+  state.calls = [];
+  const absent = "c8c3550c1b7e1a3f4d5e6f708192a3b4c5d6e7f8";
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", absent, "--wrote", CHANGE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`cannot read ${absent}, which --judged names`, "u"), run.stderr);
+  assert.match(run.stderr, /\n {2}git fetch$/mu, "the one command that clears it");
+  assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false);
+  assert.deepEqual(page(), []);
 });
 
 /* Git reads a pathspec relative to the directory it is asked from, so a mark written from a

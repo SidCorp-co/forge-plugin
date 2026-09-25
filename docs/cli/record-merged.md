@@ -20,8 +20,10 @@ trying to ship.
 The clauses are a table now — flag, the words the note is written and read by, and what the clause
 holds — and `plugin/src/flow/record/merged.mjs` builds the regexes off the same rows the composer joins.
 A clause cannot be spelt two ways because there is one spelling. The verb refuses every absent
-clause at once rather than one per round, because a run types five flags and learning them one
-refusal at a time is four rounds nobody gets back.
+clause at once rather than one per round, because a run types four flags and learning them one
+refusal at a time is three rounds nobody gets back. The fifth, `landing moved`, is not a run's to
+type at all: the verb reads it from git, for the reason [the path clauses](record-merged-the-paths.md)
+gives.
 
 ## The landing task writes it through the same call
 

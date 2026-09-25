@@ -129,8 +129,10 @@ test("a verdict at the judged head stands where the landing moved none of the ch
     ["the verdicts on criterion 1, 2 judged bc40edc, which the mark names as the judged head, and "
       + "the mark says nothing about what the landing moved, so nothing says those verdicts survived it"]);
   assert.match(judgingAsks(view(issue, [at("judged head bc40edc"), ...verdicts]))[0],
-    /^forge record merged ISS-3 .*--moved <the paths of this change the landing moved, as git reads/su,
-    "a second mark is the route, and the clause it is owed for is one of the verb's own flags");
+    /^forge record merged ISS-3 --at <[^\n]*--wrote </mu,
+    "a second mark is the route");
+  assert.doesNotMatch(judgingAsks(view(issue, [at("judged head bc40edc"), ...verdicts]))[0], /--moved/u,
+    "and it types no value for the clause it is owed for, which the verb reads from git (ISS-2485)");
 
   /* Every mark on the tracker today names no judged head, so the old refusal is what they must get. */
   assert.deepEqual(owed("reviewed head 37a0ffb"), [
