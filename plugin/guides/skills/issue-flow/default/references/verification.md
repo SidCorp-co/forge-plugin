@@ -123,6 +123,34 @@ and the suite runs again only for a criterion whose evidence is its own.
 | Infrastructure | the plan, and a validation against a real environment |
 | A rule a checker enforces | the case that fails without it, watched red twice (below) |
 
+## What a new test is asked before it is added
+
+A test is upkeep from the day it lands: every later change to what it touches pays to keep it green,
+so a case earns its place by the failure it would catch and not by the line it covers. Every new or
+changed case is asked four questions, and the answers are the run's to give before the case goes in:
+
+1. **Which criterion or contract does it prove?** The behaviour a caller relies on, not the function
+   the case happens to call.
+2. **What regression makes it fail?** A change to the source concrete enough that someone could make
+   it and watch the case go red.
+3. **Which existing case already owns that contract, and why does that one not catch the failure?**
+   Where none does, that is the answer; where one does, the new case exists only for what it misses.
+4. **Does it need an export or a hook that no production caller needs?** A seam opened for the test
+   alone proves the seam, not the path a caller takes.
+
+What the answers decide:
+
+- **A case with no answer to the first two is not added.** It asserts nothing anybody depends on,
+  and it will be kept green for no reason.
+- **A case whose owner already catches the failure extends that owner** rather than standing beside
+  it: two cases on one contract are two to keep for one signal.
+- **A case that needs a test-only seam moves to the real entry point**, the one a caller reaches,
+  and the seam goes with it.
+
+These are judged rather than checked: whether a case is worth its upkeep turns on what the project
+relies on, which no pattern over a test's text can see. Where the project states its own rules for
+tests, those answer first.
+
 ## The case that proves a rule is watched red twice
 
 A change that adds a rule — a checker, a guard, a validation — is proved by a case that fails
