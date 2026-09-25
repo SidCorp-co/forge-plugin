@@ -186,12 +186,15 @@ const writeOnce = async (dir) => {
 /** The report written under the writer's mark, by `first` and then afresh. A writer that finds the
  *  mark held leaves the flag and returns null; the holder reads the flag before and after it lets go
  *  of the mark and writes once more for each, reading afresh, so a release landing while it wrote is
- *  on the page it leaves. `again` is what writes each time after the first. */
-export const writeCurrent = async (dir, first = writeOnce, again = writeOnce) => {
+ *  on the page it leaves. `again` is what writes each time after the first; `take` is the mark's. */
+export const writeCurrent = async (dir, first = writeOnce, again = writeOnce, take = takeMark) => {
   writerHolds(dir, CURRENT);
-  if (!takeMark(dir, CURRENT)) {
+  if (!take(dir, CURRENT)) {
     writeFileSync(againPath(dir), `${process.pid}\n`);
-    return null;
+    /* A holder that let go between the refused take and the flag never read it: taken now, this
+       writer writes for its own flag. */
+    writerHolds(dir, CURRENT);
+    if (!take(dir, CURRENT)) return null;
   }
   let wrote = null;
   try {
@@ -203,7 +206,7 @@ export const writeCurrent = async (dir, first = writeOnce, again = writeOnce) =>
   } finally {
     clearMark(dir, CURRENT);
   }
-  if (existsSync(againPath(dir))) return (await writeCurrent(dir, again, again)) ?? wrote;
+  if (existsSync(againPath(dir))) return (await writeCurrent(dir, again, again, take)) ?? wrote;
   return wrote;
 };
 

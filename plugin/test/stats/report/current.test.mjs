@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join } from "node:path";
 
 import { writeCurrent } from "../../../src/stats/report/current.mjs";
-import { againPath, contentOf, markPath } from "../../../src/stats/daily/store.mjs";
+import { againPath, contentOf, markPath, takeMark } from "../../../src/stats/daily/store.mjs";
 import { FORGE } from "../fixture-runs.mjs";
 import { daily, daysAgo, device, envOf, today } from "../daily/fixture-daily.mjs";
 
@@ -142,3 +142,24 @@ test("a writer finding the current report held does not write alongside it, and 
   assert.equal(existsSync(againPath(reports)), false);
   assert.equal(existsSync(markPath(reports, "current")), false);
 });
+
+test("a writer whose take was refused by a holder that has since let go writes for its own flag", async () => {
+  const { reports } = device();
+  mkdirSync(reports, { recursive: true });
+  let takes = 0;
+  /* The first take meets the holder; by the second, the holder has read no flag and let go. */
+  const take = (dir, name) => {
+    takes += 1;
+    return takes > 1 && takeMark(dir, name);
+  };
+  const wrote = [];
+  const result = await writeCurrent(reports, async (dir) => {
+    wrote.push("late");
+    return { path: join(dir, "index.html") };
+  }, undefined, take);
+  assert.deepEqual(wrote, ["late"]);
+  assert.ok(result);
+  assert.equal(existsSync(againPath(reports)), false);
+  assert.equal(existsSync(markPath(reports, "current")), false);
+});
+
