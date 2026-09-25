@@ -1,6 +1,7 @@
 /* What a failed call was once no refusal of this plugin's own is read in it: the command's answer,
    where the command whose status the line returns is one a table says answers with that exit, or an
-   error filed under what failed. Why each and what it cannot tell: docs/cli/stats-the-refusals.md. */
+   error filed under what failed. Why each and what it cannot tell: docs/cli/stats-the-refusals.md.
+   A run's repeated commands are keyed here too, by the same masks a failure's first line is. */
 import { at } from "./declared.mjs";
 import { WAITS_ON_PID } from "../../hooks/wait-idiom.mjs";
 import { fail, projectFileAt } from "../../resolve/settings.mjs";
@@ -174,12 +175,16 @@ const KEY_CHARS = 80;
 
 const TAGS = /<\/?tool_use_error>/gu;
 
-/* What changes from one day to the next in a line that says the same thing: where, which commit,
-   which issue, and every count or time. The key is what a reading follows a failure by across days. */
-const steady = (line) => line
+/** Where and which commit taken out of a line: words that differ between two runs or two days
+ *  saying the same thing, and what a row followed across either is keyed without. */
+const placeless = (line) => line
   .replaceAll(/(?<![\w.])(?:~|\.{1,2})?\/[^\s'"`:,;)]+/gu, "<path>")
+  .replaceAll(/\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/gu, "<sha>");
+
+/* Which issue, and every count or time, go too for an error: the key is what a reading follows a
+   failure by across days. */
+const steady = (line) => placeless(line)
   .replaceAll(/ISS-\d+/gu, "ISS-nn")
-  .replaceAll(/\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/gu, "<sha>")
   .replaceAll(/\d+/gu, "N")
   .replaceAll(/\s+/gu, " ")
   .trim()
@@ -199,4 +204,23 @@ export const errorKeyOf = (call) => {
   const head = code === null ? call.class : `${call.class} · exit ${code}`;
   const said = steady(firstLineOf(call.body));
   return said ? `${head}: ${said}` : head;
+};
+
+/* The words a run carries of its own, which the same command typed by the next run carries different. */
+const runless = (command) => placeless(command
+  .replaceAll(/FORGE_SESSION_ID=\S+/gu, "FORGE_SESSION_ID=<session>")
+  .replaceAll(/\biss-\d+-[0-9a-f]{6,}\b/giu, "<session>"));
+
+/** A run's repeats, off its count of each whole command typed. Counted over the whole command, so
+ *  two sharing what a listing has room to print are two; only one typed `least` times or more then
+ *  loses the words that are the run's, so one command in two runs is one row. Masked before the
+ *  count, two commands a run typed apart would count as one typed again. */
+export const repeatsOf = (counts, least) => {
+  const keyed = new Map();
+  for (const [command, many] of counts) {
+    if (many < least) continue;
+    const key = runless(command);
+    keyed.set(key, (keyed.get(key) ?? 0) + many);
+  }
+  return keyed;
 };
