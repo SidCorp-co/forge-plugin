@@ -52,7 +52,7 @@ const walk = (resources, prefix, out) => {
 
 const sortedKeys = (record) => Object.fromEntries(Object.keys(record).sort().map((key) => [key, record[key]]));
 
-/** The carried index of one service, from its Discovery document and the URL it was read at. */
+/** Keyed by our service name rather than the document's own, which Admin spells `directory`. */
 export const deriveIndex = (document, { service, discovery }) => ({
   service,
   api: document.name,

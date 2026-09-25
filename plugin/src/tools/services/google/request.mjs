@@ -1,6 +1,6 @@
-/* argv after the method, onto the method's own path, query and body. Every flag, positional and
-   `--params` key is either consumed by the resolved method or refused here, before anything is sent:
-   a key Google does not know would otherwise come back as a 400 naming nothing of ours. */
+/* Every flag, positional and `--params` key a Google call is given is either consumed by the resolved
+   method or refused here, before anything is sent: a key Google does not know would otherwise come
+   back as a 400 naming nothing of ours. The consent a destructive write owes is decided here too. */
 import { existsSync, statSync } from "node:fs";
 
 import { didYouMean } from "../../../suggest.mjs";
