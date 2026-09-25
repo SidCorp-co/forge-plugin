@@ -42,7 +42,7 @@ export const reportSettings = () => {
     return { refused: `stats report: \`${REPORT_KEY}\` in ${configPath()} is a table of \`score\`, \`followDays\` `
       + `and \`earlyDays\`, not \`${JSON.stringify(given)}\`. Nothing was written.` };
   }
-  const score = given.score ?? {};
+  const score = given.score === undefined ? {} : given.score;
   if (!isTable(score)) return { refused: wrong("score", "a table of `formula`, `days`, `calls` and `minutes`", score) };
   const held = { ...DEFAULTS, from: configPath() };
   if (score.formula !== undefined) {
@@ -64,8 +64,13 @@ export const reportSettings = () => {
   return held;
 };
 
-/** The acts a project's `reportOn` names, where its report is on: both where the key is unset. */
-export const triggersOf = (named) => (Array.isArray(named) ? named.filter((one) => TRIGGERS.includes(one)) : TRIGGERS);
+/** The acts a project's `reportOn` names, where its report is on: both where the key is unset, and
+ *  none where it holds anything its writer would refuse, since a value nothing could have written
+ *  decides nothing. */
+export const triggersOf = (named) => {
+  if (named === undefined) return TRIGGERS;
+  return Array.isArray(named) && named.every((one) => TRIGGERS.includes(one)) ? named : [];
+};
 
 /** What the project file's writer says of a `reportOn` value, or null where it holds. */
 export const triggersRefusal = (given, said) => (Array.isArray(given) && given.every((one) => TRIGGERS.includes(one))

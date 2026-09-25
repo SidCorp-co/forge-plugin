@@ -75,8 +75,8 @@ test("a day already written or still being written starts no second day writer, 
   assert.ok(existsSync(join(other.reports, `${day}.writing`)));
 });
 
-test("a project whose reportOn leaves out session starts no writer at a session start", () => {
-  for (const reportOn of [[], ["release"]]) {
+test("a project whose reportOn leaves out session, or holds what its writer refuses, starts no writer at a session start", () => {
+  for (const reportOn of [[], ["release"], "weekly", "session", ["session", "weekly"], null]) {
     const held = device({ project: { report: "daily", reportOn } });
     const { calls, start } = starter();
     assert.equal(under(held, () => dailyDue("/plugin", { start, now: NOON, cwd: held.checkout })), null);
@@ -92,7 +92,8 @@ test("a release reading starts a detached current-report writer where the projec
   assert.equal(calls[0].options.detached, true);
   assert.equal(calls[0].options.cwd, held.checkout);
   assert.equal(calls[1], "unref");
-  for (const project of [{}, { report: "off" }, { report: "daily", reportOn: ["session"] }]) {
+  for (const project of [{}, { report: "off" }, { report: "daily", reportOn: ["session"] }, { report: "daily", reportOn: "weekly" },
+    { report: "daily", reportOn: ["release", "weekly"] }]) {
     const other = device({ project });
     const quiet = starter();
     assert.equal(under(other, () => releaseDue(other.checkout, { start: quiet.start, root: "/plugin" })), null);
