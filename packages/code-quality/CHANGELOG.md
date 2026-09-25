@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.1 - 2026-09-25
+
+### Fixed
+
+- The edit hook no longer formats a file in a project that has no prettier configuration. It ran
+  prettier whenever prettier could be loaded, and Node finds a copy some other dependency hoisted
+  as readily as one the project declared; with no configuration to read, prettier formatted with
+  its own defaults, so a one-line edit came back as a diff of the whole file. A project without a
+  prettier configuration has not chosen a style, and its files are now left as the edit wrote
+  them. Linting is unchanged.
+
 ## 0.16.0 - 2026-09-20
 
 ### Changed

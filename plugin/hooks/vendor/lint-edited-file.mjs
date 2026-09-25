@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.14.1, commit 2115a9c,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.1, commit fc85bac,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -233,10 +233,10 @@ function alreadySaid(sessionId, subject) {
 
 /**
  * Prettier first, so a formatting nit is never one of the errors blocking an edit, and only where
- * the project installed it. In process, not through the CLI: this runs after every edit, and a
- * second Node start would cost more than the whole check. `getFileInfo` answers what
- * `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to report
- * with a line and a column.
+ * the project installed it and configured it. In process, not through the CLI: this runs after
+ * every edit, and a second Node start would cost more than the whole check. `getFileInfo` answers
+ * what `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to
+ * report with a line and a column.
  */
 async function format(require, file) {
   const whole = (api) =>
@@ -254,7 +254,9 @@ async function format(require, file) {
   try {
     const { ignored, inferredParser } = await prettier.getFileInfo(file, { resolveConfig: true });
     if (ignored || inferredParser === null) return;
+    // No config is a project that has not chosen a style, and prettier's defaults are not its.
     const options = await prettier.resolveConfig(file);
+    if (options === null) return;
     const source = readFileSync(file, "utf8");
     const formatted = await prettier.format(source, { ...options, filepath: file });
     if (formatted !== source) writeFileSync(file, formatted);
