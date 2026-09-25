@@ -12,8 +12,9 @@ export const bodyCap = () => capsOf("forge_comments").body?.self ?? null;
 
 const nameOf = (per, got) => String(criterionNumber(got[per]) ?? got[per]);
 
-/* Consecutive and in the order written, so each write is the typed command with blocks removed. A
-   block over the cap by itself fits no write, and is set apart with the amount it is over by. */
+/* In the order written, so each write is the typed command with blocks removed. A block over the
+   cap by itself fits no write: it is set apart with the amount it is over by, and does not close
+   the group around it, which would only owe one more write. */
 const packed = (kind, blocks, stamp, cap) => {
   const groups = [];
   const alone = [];
