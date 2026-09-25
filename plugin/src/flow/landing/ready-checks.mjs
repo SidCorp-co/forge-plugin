@@ -5,7 +5,7 @@
    own. */
 import { fromProject, projectFileAt } from "../../resolve/settings.mjs";
 
-export const READY_CHECKS = "ready.checks";
+const READY_CHECKS = "ready.checks";
 const TAKES = "a list of one or more commands, none of them blank";
 
 /** Why `ready` cannot be read as it stands, or null. `forge doctor --set` and the capture both ask
