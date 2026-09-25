@@ -133,6 +133,16 @@ export const shipLine = (held) => {
 };
 
 /** What an unrecognised class says to do about it, and nothing where every class was recognised. */
+const summed = (rows) => rows.reduce((sum, [, many]) => sum + many, 0);
+
+/** The two totals of the failed calls no refusal of this plugin's own was read in: the errors, whose
+ *  rows are listed below the table, and the exits that were the command's answer, named here. */
+export const failureLines = (held) => [
+  `other errors    ${summed(held.errors)} non-zero exit(s) refused by no rule of this plugin and no command's answer`,
+  `answers         ${summed(held.answers)} non-zero exit(s) that were the command's answer`
+    + `${held.answers.length ? `: ${held.answers.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
+];
+
 export const declareLines = (held) => (held.unrecognised.length
   /* Named as a command and not as a file: the record belongs to the checkout that was PROFILED and
      `fromProject()` would answer for the one this process stands in, which is a different project

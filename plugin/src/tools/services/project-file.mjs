@@ -12,6 +12,7 @@ import { dirname } from "node:path";
 import { compiles } from "../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
+import { answersProblem } from "../../stats/corpus/answers.mjs";
 import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import {
@@ -219,10 +220,16 @@ const codexRefusal = (given) => {
     ? null : said("codex.owed", `a list of ${OWED_DOORS.join(", ")}`, given.owed);
 };
 
+/* The answer table's own reader judges it, so a write refuses exactly what a reading would. */
+const answersRefusal = (given) => {
+  const problem = given === undefined ? null : answersProblem(given);
+  return problem ? said(problem.key, problem.takes, problem.given) : null;
+};
+
 const statsRefusal = (given) => {
   if (!given || typeof given !== "object" || Array.isArray(given)) return said("stats", "a table", given);
   const commands = given.commands;
-  if (commands === undefined) return null;
+  if (commands === undefined) return answersRefusal(given.answers);
   if (!commands || typeof commands !== "object" || Array.isArray(commands)) {
     return said("stats.commands", "a table", commands);
   }
@@ -231,7 +238,8 @@ const statsRefusal = (given) => {
     return said(`stats.commands.${unknown}`, `one of ${DECLARABLE.join(", ")}`, commands[unknown]);
   }
   const empty = Object.keys(commands).find((one) => declares(one, commands) === null);
-  return empty ? said(`stats.commands.${empty}`, "a command, or a list of them", commands[empty]) : null;
+  return empty ? said(`stats.commands.${empty}`, "a command, or a list of them", commands[empty])
+    : answersRefusal(given.answers);
 };
 
 const ROUTED = {
@@ -289,7 +297,7 @@ export const PROJECT_KEYS = {
       ? said("lease.workingRe", "a regular expression this CLI can compile", given?.workingRe) : null),
   },
   stats: {
-    paths: { "commands.*": "commands" },
+    paths: { "commands.*": "commands", "answers.*.*": "text" },
     names: { "commands.*": DECLARABLE.map((one) => `commands.${one}`) },
     judge: statsRefusal,
   },

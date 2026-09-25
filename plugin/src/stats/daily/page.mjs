@@ -112,7 +112,8 @@ const frictionHtml = (friction, days) => `<section id="friction"><h2>Friction</h
   + `${esc(friction.headline.runs)} run(s).</p>`
   + trendSvg("refused calls a day", days, friction.trend.map((one) => one.refusals))
   + counted("Refusals, by the line naming the rule", friction.refusals, "refusal")
-  + counted("Errors no rule refused, by class", friction.errors, "class")
+  + counted("Errors no rule refused, by the class, the exit and the first line printed", friction.errors, "failed")
+  + counted("Exits that were the command's answer, apart from the errors", friction.answers, "answer")
   + counted("Commands typed three or more times inside one run", friction.repeats, "command")
   + (friction.waits.length
     ? `<h3>Single waits of ten minutes or more</h3>${table(["command", "waits", "minutes", "runs"],
