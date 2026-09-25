@@ -14,7 +14,7 @@ const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 const held = { status: "in_progress", acceptanceCriteria: CRITERIA };
 const TYPED = ["## Files touched", "a", "## Before", "a", "## After", "a", "## Deliberately unchanged",
   "a", "## Verified in code", "a", "## Conventions reversed", "a", "## Declarations",
-  "Screen change: no\nSchema coupling: no", "## Witnessed on screen", "none — it reaches no screen",
+  "Screen change: no\nSchema coupling: no\nDeploy coupling: no", "## Witnessed on screen", "none — it reaches no screen",
   "## Steps", "1. Do it. criteria: 9"].join("\n\n");
 
 const asked = async (session) => {

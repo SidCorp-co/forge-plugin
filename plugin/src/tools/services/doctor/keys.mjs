@@ -8,6 +8,7 @@ import { MACHINE_RETIRED } from "../../doctor-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
+import { anglesShown } from "../../../codex/codex-plan.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
@@ -240,6 +241,7 @@ export const projectKeyLines = async () => [
   landingRow(),
   shipRow(),
   owedRow(),
+  { label: "codex.angles", detail: anglesShown() },
   checkRow(),
   runsRow(),
   workRow(),

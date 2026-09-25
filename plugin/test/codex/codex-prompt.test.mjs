@@ -11,7 +11,7 @@ projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME, OWN);
 delete process.env.FORGE_CODEX_DISABLE;
 
 const { consultArgs } = await import("../../src/codex/codex.mjs");
-const { promptFor, roleFor } = await import("../../src/codex/codex-api.mjs");
+const { goalsFor, promptFor, roleFor } = await import("../../src/codex/codex-api.mjs");
 const { digestOf, numbered, recheckRisks } = await import("../../src/codex/log/replies.mjs");
 
 /* 149 of 1,014 ruled findings were dropped, and the two largest classes — real but outside the
@@ -141,4 +141,43 @@ test("the verification block asks for the ruling in the shape the reader takes",
   assert.match(said, /the ruling word first after the number or behind nothing but the finding's id/u,
     "and the head the reader stops reading at, so prose past it is never a ruling");
   assert.match(said, /1\. the lock is still the gateway's 2\. the cap moved/u, "against a list the block numbered");
+});
+
+/* The debt angle's rules are its own block, sent only where the angle is: a checkout leaving it off
+   sends the prompt it sent before, clause for clause. */
+test("the debt angle carries its rules, and a consult without it carries none of them", () => {
+  const said = roleFor(["tech", "debt"]);
+  assert.match(said, /- Debt Reviewer — what the change leaves behind, and whether it moves the code toward the project's live goals\./u);
+  assert.match(said, /Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words/u);
+  for (const kind of ["a workaround where the cause should have been fixed", "a special case where configuration belongs",
+    "a step that leaves a person in the loop", "a mechanism copied rather than shared", "dead code or a branch left behind",
+    "a comment or doc the change makes stale", "a module grown past what it should hold, or a boundary crossed"]) {
+    assert.ok(said.includes(kind), `${kind} is not among the debt the rules name`);
+  }
+  assert.match(said, /Debt the change removes is a gain, not a finding: write it as an unnumbered line under the angle, `Removes: <path:line> — <what>`/u);
+  assert.match(said, /Only the diff is under review\. Debt you see outside it is one unnumbered line, `outside this change: <path>`, and never a refactor asked for/u);
+  assert.match(said, /never supply a goal of your own/u);
+  assert.match(said, /A Debt Reviewer finding opens with the numbered bullet every finding opens with/u);
+  assert.match(said, /Another angle's finding on the same line does not stand in for a debt finding/u);
+  assert.ok(!roleFor(["tech"]).includes("Debt Reviewer"), "the tech angle alone sends no debt rules");
+});
+
+test("a board asks each angle to open with its own heading, and one angle is asked for none", () => {
+  assert.match(roleFor(["tech", "debt"]), /Open each angle's part with a heading line carrying its name, `### <the angle's name>`/u);
+  assert.ok(!roleFor(["tech"]).includes("Open each angle's part"), "one angle has no parts to head");
+});
+
+test("the goals travel in the opening with their own words, or the reason there are none", () => {
+  const held = promptFor("intent", [], [], { goals: { goals: [{ id: "G-12", text: "Read from the project's configuration." }], why: null } });
+  assert.match(held, /GOALS — this project's live goals, from its brief, for the Debt Reviewer to rule the change against:\n\nG-12 — Read from the project's configuration\./u);
+  const none = promptFor("intent", [], [], { goals: { goals: [], why: "the reason the brief gave" } });
+  assert.match(none, /GOALS — this project states none: the reason the brief gave\. The Debt Reviewer judges debt alone, says it found no goals to rule against and why, and supplies none of its own\./u);
+  const unread = promptFor("intent", [], [], { goals: { goals: [], why: "the store would not answer", unread: true } });
+  assert.match(unread, /GOALS — none could be read: the store would not answer\. The Debt Reviewer judges debt alone/u);
+  assert.ok(!unread.includes("states none"), "a brief nobody reached is not one stating nothing");
+  assert.ok(!promptFor("intent", [], []).includes("GOALS —"), "no goals handed, no block");
+});
+
+test("a consult without the debt angle is handed no goals, so no block and no brief read", async () => {
+  assert.equal(await goalsFor(["tech", "ba"]), null);
 });

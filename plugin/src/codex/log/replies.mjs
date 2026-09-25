@@ -196,6 +196,7 @@ export const numbered = (reply, files = null) => {
       const head = `${found[1].replace(ID, "").replace(/:\s*$/u, "")}: ${found[2]}`;
       return {
         id: `F${own ? own[1] : at + 1}`,
+        at: found.index,
         head,
         text: `${head}${clausesAfter(whole, found.index + found[0].length)}`.slice(0, FINDING_CHARS),
       };
@@ -208,6 +209,33 @@ export const numbered = (reply, files = null) => {
 };
 
 export const findingsIn = (reply, files = null) => numbered(reply, files).map((one) => one.text);
+
+/* A board's angle is the heading its part opens with, the one the prompt asks for; a reply that wrote
+   none for a finding leaves it unplaced rather than handed to the first angle, which is the guess that
+   would move one angle's figure by another's findings. */
+const ANGLE_KEYS = new Map(Object.entries(ANGLES).map(([key, line]) => [line.split(" — ")[0].toLowerCase(), key]));
+const angleHeaded = (line) => {
+  const found = LABEL.exec(line);
+  return found ? ANGLE_KEYS.get(found[1].trim().toLowerCase()) ?? null : null;
+};
+
+/** Each finding's id to the angle that raised it, or to null where the reply does not say: the one
+ *  angle a consult asked for, else the angle heading above it among the angles that were asked. */
+export const anglesOfFindings = (reply, angles = []) => {
+  const whole = String(reply ?? "");
+  const heads = [];
+  let offset = 0;
+  for (const line of whole.split("\n")) {
+    const key = angleHeaded(line);
+    if (key) heads.push({ at: offset, key });
+    offset += line.length + 1;
+  }
+  return new Map(numbered(whole).map((one) => {
+    if (angles.length === 1) return [one.id, angles[0]];
+    const above = heads.filter((head) => head.at < one.at).at(-1);
+    return [one.id, above && angles.includes(above.key) ? above.key : null];
+  }));
+};
 
 /* `--accepted F1,F3 --rejected F2=why`, by id and never by count: 185 accepted to 14 rejected was the count form saying nothing. An id the reply never gave, or one given to both sides, is refused: a verdict is what the next consult reads "still open" from. A comma opens a new entry only where an id follows, so a reason may contain one. */
 const NEXT = /,(?=\s*F\d+\b)/u;

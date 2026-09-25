@@ -15,7 +15,7 @@ import { HUMAN_REF } from "../tracker/issues.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
-import { budgetMs, codexCheck, fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
+import { budgetMs, codexCheck, fail, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
@@ -24,7 +24,7 @@ import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, c
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
-import { EFFORTS, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
+import { EFFORTS, anglesInEffect, anglesShown, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
   ANGLES,
@@ -35,7 +35,7 @@ import {
   inside,
   promptMark,
   withDiffs,
-  openingFor,
+  openingFor, goalsFor,
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
@@ -108,7 +108,7 @@ const CONSULT_USAGE = [
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
-  "  --angles a,a   which angles review this consult: tech, ba, user, ux",
+  "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt; all five by default",
   "  --effort e     minimal | low | medium | high, for this consult only",
   "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
   "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words",
@@ -240,14 +240,13 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
   if (crossing) console.error(crossingSaid(crossing));
 };
 
-/* The checkout's, else the account's, else all four — and a name not on the list is refused rather
-   than sent, because a role the prompt never described would be reviewed by nobody. */
+/* Read where `show` reads it, and a name not on the list is refused rather than sent, because a role
+   the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
-  const given = raw ?? projectCodex().angles ?? userConfig().codex?.angles;
-  if (given === undefined) return Object.keys(ANGLES);
-  const asked = (Array.isArray(given) ? given : String(given).split(",")).map((one) => one.trim()).filter(Boolean);
-  for (const one of asked) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
-  return asked.length ? asked : Object.keys(ANGLES);
+  const { angles, from } = anglesInEffect(raw);
+  if (!angles.length) fail(`codex: ${from} names no angle. Name some of ${Object.keys(ANGLES).join(", ")}, or drop the key for all five.`);
+  for (const one of angles) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
+  return angles;
 };
 
 
@@ -430,7 +429,7 @@ const consult = async (given) => {
   const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(),
     { anchor: reached, files: rels, issues, spec, by: started + budgetMs() });
   try {
-    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues });
+    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues, goals: await goalsFor(angles) });
     const held = await reviewed(
       values, model, opening, reach, streamed, askApi,
       { effort, budget, ceiling, system },
@@ -511,7 +510,7 @@ const show = (rest = []) => {
   console.log(`spec      : ${READ_SPEC.name} where the checkout keeps a requirements tree inside itself`);
   console.log(`effort    : ${base}, a step down on a recheck or under ${limits.small} changed line(s), `
     + `a step up on a bodies pass, on a named risk or over ${limits.large}`);
-  console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
+  console.log(`angles    : ${anglesShown()}`);
   const check = codexCheck();
   /* The most it may be given and not the clock one round handed it: what a check actually runs under
      is that less whatever the consult has spent by the time it is called, which no reading taken

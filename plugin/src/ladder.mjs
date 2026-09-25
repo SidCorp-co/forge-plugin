@@ -76,10 +76,16 @@ export const LIGHTER = [
   },
 ];
 
+/* The read a plan or a criteria write asks of a consult before the issue takes the file: named once, so the review round counts itself apart from it by this name, and stated once, so the rounds a rung prints and the write's own refusal carry one sentence rather than two a run reads as opposite rules. It is printed beside the rounds a rung buys and never among them, a line in that list reading as a round bought (ISS-2303). */
+const WRITE_READ = "a plan or a criteria write's own read";
+
+export const WRITE_READ_OWED = `${WRITE_READ[0].toUpperCase()}${WRITE_READ.slice(1)} — a consult that read the `
+  + "file whole, taken again once a correction changes the file — is owed at every rung, and no rung drops it.";
+
 /* One list held by both rungs under the top, so `CEILINGS` is the whole of what tells them apart and a second list cannot become a difference the contract denies having; each line is a judgement spent once, where a `LIGHTER` row drops a payload. */
 const LIGHTER_ROUNDS = [
   "Phase 0 is the brief alone, where no source of it is stale",
-  "one review consult — the whole-set read at the replayed head, and no recheck after a clean pass — and not a plan or a criteria write's own read",
+  `one review consult — the whole-set read at the replayed head, and no recheck after a clean pass — counted apart from ${WRITE_READ}`,
   "one whole run of the gate on the clean path, the ship's, so no commit spends one and none is left after it — the gate is what this line bounds, and a checker the gate contains is not the gate, so those are spent as often as they answer",
 ];
 
