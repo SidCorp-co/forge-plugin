@@ -2,8 +2,8 @@
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
 import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES,
   OWED_DOORS, RUNS_TAKES, SHIP_MODES, checkCeilingMs, codexCheck, codexOwed, checkoutRoot,
-  PROJECT_SHAPES, feedbackScope, landingScope, parallelRuns, projectWorkPattern, shapeScope,
-  shipLeftOnMachine, shipMode } from "../../../resolve/settings.mjs";
+  PROJECT_SHAPES, RED_BATCH_KEY, RED_BATCHES, feedbackScope, landingScope, parallelRuns, projectWorkPattern,
+  redBatchScope, shapeScope, shipLeftOnMachine, shipMode } from "../../../resolve/settings.mjs";
 import { MACHINE_RETIRED } from "../../doctor-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { logBytes } from "../../../codex/codex-log.mjs";
@@ -46,6 +46,11 @@ const landingRow = () => {
   return { label: "landing", detail: landing.value
     ? `${landing.value}  ← ${landing.from}`
     : "unset, so the branches on the tracker's record derive where the merge sits" };
+};
+
+const redBatchRow = () => {
+  const one = redBatchScope();
+  return { level: one.unknown ? MISS : undefined, label: RED_BATCH_KEY, detail: held(one, RED_BATCHES) };
 };
 
 /* What a value left at the other level means: `MACHINE_RETIRED` in doctor-keys.mjs. A note and not a
@@ -239,6 +244,7 @@ export const projectKeyLines = async () => [
   shapeRow(),
   flowRow(),
   landingRow(),
+  redBatchRow(),
   shipRow(),
   owedRow(),
   { label: "codex.angles", detail: anglesShown() },
