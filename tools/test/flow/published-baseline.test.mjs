@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { projectRecord, ranAsync, tempHome, tempRoom } from "../../../plugin/test/fixtures.mjs";
 import { OWN, trackerFor } from "../../../plugin/test/fixtures/own-project.mjs";
 import { render } from "../../../plugin/src/flow/record/page.mjs";
-import { NAMED } from "../gates/scratch.mjs";
+import { NAMED, reachedFrom } from "../gates/scratch.mjs";
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
 
@@ -320,6 +320,11 @@ const gated = () => {
   for (const rel of [...NAMED, "plugin/test/flow/one.test.mjs"]) {
     mkdirSync(dirname(join(room, rel)), { recursive: true });
     writeFileSync(join(room, rel), "// a file the step table has to find\n");
+  }
+  /* The gate code the publisher runs is the tree's own, so the tree holds this checkout's copy of it. */
+  for (const rel of reachedFrom([join("tools", "gates", "green.mjs")])) {
+    mkdirSync(dirname(join(room, rel)), { recursive: true });
+    writeFileSync(join(room, rel), readFileSync(join(ROOT, rel)));
   }
   as("add", ".");
   as("commit", "-qm", "the tests the table claims");
