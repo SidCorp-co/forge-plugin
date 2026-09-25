@@ -107,6 +107,9 @@ export const VERBS = [
   { group: HARNESS,
     wraps: Object.fromEntries(Object.entries(TRACKER_SERVED)
       .map(([name, key]) => [key, `\`forge coolify ${name}\``])) }],
+  ["google", "<service> <resource...> <method> | schema | auth | discovery | +<helper>",
+    "Drive, Sheets, Docs, Gmail, Calendar and Meet, on a saved service account or Google-account login",
+    null, { group: HARNESS }],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay|complexity>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
   ["chatgpt", "<ask|image|collect|pending>",

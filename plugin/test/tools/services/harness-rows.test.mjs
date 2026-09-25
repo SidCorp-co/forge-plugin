@@ -43,7 +43,7 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   profiled(WHOLE_PROFILE);
   configured({});
   const rows = await harnessLines(false);
-  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "codex", "chatgpt",
+  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "google", "codex", "chatgpt",
     "codex url", "codex key", "vi-natural url", "vi-natural key", "vi-natural model",
     "chatgpt url", "chatgpt key", "chatgpt framing", "anthropic key", "anthropic endpoint"]);
   for (const row of rows) {

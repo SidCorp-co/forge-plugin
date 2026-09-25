@@ -39,6 +39,7 @@ writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({
   cloudflare: { accounts: [{ name: "one", accountId: "acct", apiToken: "cf" }] },
   coolify: { url: "https://coolify.example", apiToken: "co" },
   chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
+  google: { accounts: { robot: { kind: "service", clientEmail: "robot@example.iam.gserviceaccount.com", keyId: "k" } }, default: "robot" },
 }));
 writeFileSync(PROFILE, "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AUTH_TOKEN=tok\n");
 /* This process reads that home too, and never the developer's. Every walk below compares what a
@@ -222,6 +223,7 @@ const FIELDS_OF = {
     + " query, scope, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
   coolify: "deploymentUuid, integrationId, issueId, pipelineRunId, resourceUuid",
+  google: null,
   codex: null,
   chatgpt: null,
   hooks: null,
@@ -394,6 +396,10 @@ const ARGS = {
 /* The seeded profile above is what this one case may not have: whether a verb reads this machine before its argv is what is asked here, and a machine holding a profile answers yes unasked (ISS-1425). */
 const NO_GATEWAY = { ...process.env, HOME, XDG_CONFIG_HOME: HOME, CLAUDE_PROXY_ENV: join(HOME, "saved-nothing.env") };
 
+/* A verb whose failures exit by class refuses an input it cannot use with its own validation code;
+   what this walk holds it to is the same, the flag named before anything is read. docs/cli/google.md. */
+const REFUSED_WITH = { google: 3 };
+
 test("every verb and every action hands the parser its text before it reads or asks", () => {
   const wrong = [];
   for (const argv of EVERY_HELP) {
@@ -401,7 +407,7 @@ test("every verb and every action hands the parser its text before it reads or a
     const run = spawnSync(FORGE, [...argv, ...(ARGS[name] ?? []), "--zzz", "x"],
       { encoding: "utf8", env: NO_GATEWAY });
     const said = `${run.stdout}${run.stderr}`;
-    if (run.status !== 1) wrong.push(`forge ${name} --zzz x exited ${run.status}: ${said}`);
+    if (run.status !== (REFUSED_WITH[name] ?? 1)) wrong.push(`forge ${name} --zzz x exited ${run.status}: ${said}`);
     else if (!said.includes("--zzz")) wrong.push(`forge ${name} --zzz x named nothing: ${said}`);
   }
   assert.deepEqual(wrong, []);

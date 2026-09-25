@@ -656,3 +656,31 @@ a priced read means is `docs/cli/stats-the-surface.md`'s.
 - **AC-19-11-4** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "a block copied into a second text raises the repetition, and a text added raises the total"
   WHEN a block of lines is copied into a second text, or a text is added, THEN the repetition or
   the total SHALL rise with it.
+
+### EI-12 — The Workspace APIs
+
+Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/google/wire.mjs`, `plugin/src/tools/services/google/surface.mjs`, `plugin/src/tools/services/google/auth/login.mjs`, `plugin/src/tools/services/google/auth/status.mjs`
+
+Google's Drive, Sheets, Docs, Gmail, Calendar and Meet, reached through a surface this product
+carries rather than fetches, on a credential one of three routes answers for — a saved service
+account, a saved login, or a token the environment holds for CI — in an order that is written down
+rather than inferred. What the surface is derived from and why each write owes consent is
+`docs/cli/google.md`'s.
+
+- **AC-19-12-1** · Rev: 1 · Proof: plugin/test/tools/services/google/call.test.mjs "an unknown --params key is refused with 3 naming the nearest, and nothing is sent"
+  IF a call names a parameter the method does not declare THEN the CLI SHALL refuse it before
+  anything is sent, naming the nearest declared parameter.
+- **AC-19-12-2** · Rev: 1 · Proof: plugin/test/tools/services/google/consent.test.mjs "the refusal carries the same command with --yes and with --dry-run"
+  IF a call deletes, trashes, changes a permission, overwrites content, sends mail or invites
+  anyone, and the caller did not give consent on it, THEN the CLI SHALL send nothing and SHALL
+  print the command that gives it and the command that previews it.
+- **AC-19-12-3** · Rev: 1 · Proof: plugin/test/tools/services/google/call.test.mjs "--dry-run prints the request with the credential masked and sends nothing; the real send carries it whole"
+  WHERE a call is previewed THEN the CLI SHALL print the request with its credential masked, SHALL
+  send nothing, and SHALL send the credential whole when the call is not a preview.
+- **AC-19-12-4** · Rev: 1 · Proof: plugin/test/tools/services/google/service-account.test.mjs "the environment's token answers before the default, mints nothing, and status names what it shadowed"
+  WHEN more than one credential route could answer THEN an account named on the call SHALL answer
+  first, the environment's token next and the default account last, and the report SHALL name the
+  route that answered and the saved account it shadowed.
+- **AC-19-12-5** · Rev: 1 · Proof: plugin/test/tools/services/google/refresh.test.mjs "a fetch that drops a served method is refused with 4 naming it, and nothing is written"
+  IF a refresh of the carried surface would drop a method this product serves THEN the CLI SHALL
+  refuse the refresh naming that method, and SHALL write nothing.

@@ -113,7 +113,7 @@ test("a sub-verb's flags are judged against the sub-verb's own usage", () => {
 
 
 /* The verbs whose first word the CLI refuses against a set of its own, so a kind or an action added or retired moves this rule with it. `spec` is not among them: that slot takes a clause of the requirements tree, and reading `forge spec BR-09` as a bad word would refuse a true document. */
-const CLOSED_VERBS = ["chatgpt", "cloudflare", "codex", "coolify", "knowledge", "record", "stats"];
+const CLOSED_VERBS = ["chatgpt", "cloudflare", "codex", "coolify", "google", "knowledge", "record", "stats"];
 
 /* `forge record report` was served to every session that read Phase 7 and passed the full gate twice: the verb was real, there were no flags, and the word between them was read by nothing. `record` refuses an unknown kind by name, so that word costs a reader the round a renamed flag does. */
 test("a first argument the verb refuses is a finding, with the word and the set it takes", () => {
