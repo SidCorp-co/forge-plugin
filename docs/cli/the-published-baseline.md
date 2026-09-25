@@ -55,7 +55,11 @@ asked. `forge advance` answers off the record alone, so two checkouts of one iss
 and a store that one of them can read and the other cannot would break that outright. The write is
 the other end: it has the checkout in hand, it is already reading git for the head it stamps, and it
 happens once per baseline rather than at every rehearsal of every status. So that is where the
-question goes, and by the time a record is read back the authority behind it is already settled.
+question goes, and by the time a record is read back the authority behind it is already settled. The
+head it stamps is judged there as well, and by the entry check's own predicate rather than a copy of
+it: a citation the next status would refuse for the tree it was written in is one the write has no
+business taking, and the one route that clears it — the same write from a checkout at the cited
+commit — is only open while the payload is still unsent.
 
 The two ends are not alike, and this is the part worth knowing before it surprises you: **the write
 is device-local and the record is portable.** A machine holding no publication for a head cannot

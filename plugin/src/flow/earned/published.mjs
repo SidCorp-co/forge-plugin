@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
 import { declaredCommands, declaredIn } from "../../stats/corpus/declared.mjs";
-import { freshForm } from "./baseline.mjs";
+import { typedBack } from "../../refusal.mjs";
+import { citedHead, freshForm } from "./baseline.mjs";
 
 const WHOLE = "whole";
 
@@ -58,12 +59,35 @@ export const publishedSaid = (outcome, commit) => ({
   [FAILED]: `nothing is published for ${commit}, so a branch cut here runs its own gate`,
 }[outcome]);
 
+/* The same write, run from a checkout that stands at the cited commit and holds nothing else: the one tree the cited result answers for, and the one route that clears either head refusal below without measuring a tree somebody already measured. Every value goes back as typed, so the line runs as printed. */
+const atCitedForm = (ref, got) => {
+  const write = ["forge", "record", "baseline", ref, "--gate", got.gate, "--result", got.result,
+    "--commit", got.commit, "--scope", got.scope, "--cited", got.cited].map(typedBack).join(" ");
+  return `dir=$(mktemp -d) && git worktree add --detach "$dir" ${typedBack(got.commit)} `
+    + `&& (cd "$dir" && ${write}); git worktree remove "$dir"`;
+};
+
+const HEAD_SAID = {
+  headless: (got) => `this checkout stamps no head: it holds uncommitted work, or it is no checkout at `
+    + `all, so nothing would say the result at ${got.commit} answers for the tree this record is written in`,
+  moved: (got) => `this checkout stands at ${got.head}, and the result at ${got.commit} answers for that `
+    + `commit's tree and not this one`,
+};
+
+/** What refuses a citing write: a commit nothing published, or a published one that is not the clean head of the checkout the write stands in, read by the entry check's own predicate so the write never takes a record `in_progress` refuses (ISS-2530). A write citing nothing is judged by neither. */
 export const citationProblem = (ref, project, got) => {
-  if (!got.cited || publishedFor(project, got.commit)) return null;
-  return `--commit to name a commit some ship published a whole-tree result for. Nothing is `
-    + `published for ${got.commit}, and only a ship publishes one — \`forge baseline publish\`, run by `
-    + `a release for the head it pushed — so a citation naming it is a green from nowhere. Measure `
-    + `this tree instead:\n  ${freshForm(ref, got.gate)}`;
+  if (!got.cited) return null;
+  if (!publishedFor(project, got.commit)) {
+    return `--commit to name a commit some ship published a whole-tree result for. Nothing is `
+      + `published for ${got.commit}, and only a ship publishes one — \`forge baseline publish\`, run by `
+      + `a release for the head it pushed — so a citation naming it is a green from nowhere. Measure `
+      + `this tree instead:\n  ${freshForm(ref, got.gate)}`;
+  }
+  const head = citedHead(got);
+  if (!head) return null;
+  return `--commit to be the clean head of the checkout the write stands in, since a cited result `
+    + `answers for one tree. ${HEAD_SAID[head](got)}. Nothing was sent. Write it from a detached `
+    + `worktree at the cited commit:\n  ${atCitedForm(ref, got)}`;
 };
 
 /** The write that cites what is published for one head, or null. A head this cannot be given at all — no checkout, or one with uncommitted work in it — answers null too, that being the head the write would fail to stamp. */
