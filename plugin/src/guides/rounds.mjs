@@ -12,7 +12,6 @@ export const rungServed = (given) => (RUNGS.includes(given) ? given : FEATURE);
 const ASSUMED = `No rung was named, so this is the \`${FEATURE}\` text — the top rung, which is what`
   + " an unstated rung resolves to. `--rung <name>` serves a lighter one.";
 
-/* The read the rounds count themselves apart from is under a heading of its own, a line among them reading as one more round bought. */
 const boughtBy = (rung) => [
   `Rung \`${rung}\`, and the rounds it buys:`,
   ...SPARES[rung].map((one) => `  ${one}`),

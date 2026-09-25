@@ -12,7 +12,6 @@ const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
 const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) =>
   `  ${`at ${one.status}`.padEnd(WIDTH)}not owed: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`);
 
-/* The read the rounds count themselves apart from follows them on a line of its own, a line among them reading as one more round bought. */
 const spareLines = (rung) => (SPARES[rung].length ? [
   ...SPARES[rung].map((one, at) => `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`),
   `  ${"still owed".padEnd(WIDTH)}${WRITE_READ_OWED}`,
