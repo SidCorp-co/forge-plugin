@@ -180,7 +180,7 @@ export const hookLoads = ({ edges, registration, files, verbs, read, heavy = HEA
 };
 
 /* A verb's own tree: the module its row loads, and where that module is named after its directory, the
-   directory. A root may enter another verb's tree only at a module that imports nothing else of it —
+   directory. A root may enter another verb's tree only at a module that loads nothing else of it by any route —
    a reader of that verb's configuration, which is the shape `coolify/config.mjs` has — because past
    that module every call the root takes pays for the verb it was not asked for. The trees are the
    table's, so a verb added to it is covered with nobody remembering; what is declared is the other
@@ -203,6 +203,14 @@ export const verbTrees = (verbs, shared = SHARED) => [...verbs].map(([module, ve
   return { verb, module, tree: own ? dir : module };
 });
 
+/** The first module of `tree` other than `from` that `from` loads by any route, leaving the tree and
+ *  coming back into it included, as the chain from `from`; null where it stands alone. */
+const loadsMoreOf = (edges, from, inside) => {
+  const by = reachedFrom(edges, from);
+  const other = [...by.keys()].find((one) => one !== from && inside(one));
+  return other ? chainTo(by, other) : null;
+};
+
 /** Each place `root`'s path enters another verb's tree past a module standing alone in it, with the chain. */
 export const treeLoads = (edges, root, trees) => {
   const by = reachedFrom(edges, root);
@@ -212,12 +220,14 @@ export const treeLoads = (edges, root, trees) => {
     if (inside(root)) continue;
     for (const each of by.keys()) {
       if (!inside(each) || inside(by.get(each) ?? "")) continue;
-      if (each !== module && !(edges.get(each) ?? []).some(inside)) continue;
+      const more = each === module ? null : loadsMoreOf(edges, each, inside);
+      if (each !== module && !more) continue;
       const chain = chainTo(by, each);
       found.push(`${root} enters the \`${verb}\` verb's ${tree === module ? "module" : `tree ${tree}`}: `
-        + `${chain.join(" -> ")}. Every call on this path pays for ${each === module ? "that verb's handler" : `${each} and what it loads of that tree`}, `
+        + `${chain.join(" -> ")}${more ? `, and from there ${more.slice(1).join(" -> ")}` : ""}. Every call on this path pays for `
+        + `${each === module ? "that verb's handler" : `${each} and what it loads of that tree`}, `
         + `whatever it was asked for, so the line to remove is the one in ${chain.at(-2)} that imports ${each}. `
-        + "Take the binding from a module of its own that imports nothing else of that verb, or import it at the "
+        + "Take the binding from a module of its own that loads nothing else of that verb, or import it at the "
         + "point it is asked for.");
     }
   }

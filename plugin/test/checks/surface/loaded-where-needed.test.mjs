@@ -92,7 +92,7 @@ test("the entry entering a verb's directory at a module that loads more of it is
   ]), ENTRY, SYNTH);
   assert.equal(found.length, 1, found.join("\n"));
   assert.match(found[0], /enters the `mail` verb's tree plugin\/src\/tools\/services\/mail\//u);
-  assert.ok(found[0].includes(`${ENTRY} -> plugin/src/resolve/shown.mjs -> ${M}auth/status.mjs.`),
+  assert.ok(found[0].includes(`${ENTRY} -> plugin/src/resolve/shown.mjs -> ${M}auth/status.mjs, and from there ${M}surface.mjs.`),
     `the chain from the entry is not named: ${found[0]}`);
   assert.match(found[0], /the one in plugin\/src\/resolve\/shown\.mjs that imports/u, "and the line to remove");
 });
@@ -107,6 +107,18 @@ test("the entry entering a verb's directory only at modules that load nothing el
   ]), ENTRY, SYNTH), []);
 });
 
+test("a reader that leaves the directory and comes back into it does not stand alone", () => {
+  const found = treeLoads(graph([
+    [ENTRY, [`${M}auth/configured.mjs`]],
+    [`${M}auth/configured.mjs`, ["plugin/src/resolve/helper.mjs"]],
+    ["plugin/src/resolve/helper.mjs", [`${M}surface.mjs`]],
+    [`${M}surface.mjs`, []],
+  ]), ENTRY, SYNTH);
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.ok(found[0].includes(`${ENTRY} -> ${M}auth/configured.mjs, and from there plugin/src/resolve/helper.mjs -> ${M}surface.mjs.`),
+    `the route back into the tree is not named: ${found[0]}`);
+});
+
 test("one verb's handler reaching into another verb's directory, or its module, is a finding from that handler", () => {
   const CLOUD = "plugin/src/tools/services/cloud.mjs";
   const into = treeLoads(graph([
@@ -116,7 +128,7 @@ test("one verb's handler reaching into another verb's directory, or its module, 
   ]), CLOUD, SYNTH);
   assert.equal(into.length, 1, into.join("\n"));
   assert.ok(into[0].startsWith(`${CLOUD} enters the \`mail\` verb's tree`), into[0]);
-  assert.ok(into[0].includes(`${CLOUD} -> ${M}auth/status.mjs.`), into[0]);
+  assert.ok(into[0].includes(`${CLOUD} -> ${M}auth/status.mjs, and from there ${M}wire.mjs.`), into[0]);
   const handler = treeLoads(graph([
     [`${M}mail.mjs`, ["plugin/src/resolve/beside.mjs"]],
     ["plugin/src/resolve/beside.mjs", [CLOUD]],
