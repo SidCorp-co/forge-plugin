@@ -59,7 +59,7 @@ const sendFile = async (target, targetId, { path, name, digest }, sending) => {
 };
 
 /** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is dropped once scanned, so the peak stays one file, its digest standing in for it.
- *  `said` is spoken past the first renewal, the last thing that can refuse before a byte goes up, so a line saying the file is being sent is never printed on a call that sent none. */
+ *  `said` is spoken on the line before the first request, past the renewal and the digest check that can each still refuse, so a line saying the file is being sent is never printed on a call that sent none. */
 export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {}, said = null } = {}) => {
   if (!declaredFor("forge_uploads", "targets").includes(target)) fail(targetRefusal(target));
   const files = [];
@@ -72,8 +72,11 @@ export const uploadAll = async (target, targetId, paths, { renewing, sending = (
   const sent = [];
   for (const file of files) {
     await renewing?.();
-    if (said && file === files[0]) console.error(said);
-    const row = await sendFile(target, targetId, file, sending);
+    const first = said && file === files[0];
+    const row = await sendFile(target, targetId, file, (name) => {
+      if (first) console.error(said);
+      sending(name);
+    });
     if (row?.refused) fail(uploadRefusal(file.path, row.refused, sent));
     /* The tracker's name: it sanitises, and a verdict cites what a read of the issue holds. */
     const named = row?.name ?? file.name;

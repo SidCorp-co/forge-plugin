@@ -40,7 +40,10 @@ const WALKS = {
 const state = { calls: [], issues: [judging], comments: { "cut-uuid": [] }, answer: {}, walk: "whole" };
 state.answer.forge_issues = (args) => {
   if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
-  if (args.action === "update") return Object.assign(judging, args.data);
+  if (args.action === "update") {
+    state.renewed?.();
+    return Object.assign(judging, args.data);
+  }
   return judging;
 };
 state.answer.forge_comments = (args) => {
@@ -191,6 +194,23 @@ test("a record refused for another reason on a cut walk says nothing was sent an
   assert.equal(warned(run.stderr), null, "and no line claims a send");
   assert.equal(uploads() - sent, 0);
   assert.equal(posted() - wrote, 0);
+});
+
+/* The digest check sits between the renewal and the request, and can still refuse: a file rewritten
+   while the lease renews goes nowhere, so nothing may say it is being sent. It runs after the first
+   case has spent the one hold a cut thread earns, which would otherwise answer before the renewal. */
+test("a file rewritten during the renewal on a cut walk is refused with no warning and no upload", async () => {
+  const path = file("rewritten-during-renewal.txt");
+  state.walk = "cut";
+  state.renewed = () => writeFileSync(path, "other bytes\n");
+  const sent = uploads();
+  const run = await ask("attach", "issue", "ISS-9", path);
+  state.walk = "whole";
+  delete state.renewed;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /changed on disk/u, run.stderr);
+  assert.equal(warned(run.stderr), null, "no line claims a send the digest stopped");
+  assert.equal(uploads() - sent, 0);
 });
 
 /* A read the tracker called whole has handed over every name it is going to, whatever its count
