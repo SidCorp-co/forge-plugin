@@ -16,9 +16,8 @@ export const FLOW_VERBS = Object.freeze([
 
 const CLI = join("src", "cli.mjs");
 
-/** Which copy a call of `verb` through the PATH link runs: a flow verb standing in a checkout runs
- *  the installed copy where one resolves, carrying the checkout as `tree`; anything else is
- *  `copyToRun`'s answer unchanged. */
+/** `copyToRun`'s answer, except for a flow verb standing in a checkout with an install that
+ *  resolves: that one takes the installed copy and carries the checkout as `tree`. */
 export const copyForVerb = ({ verb, entry = CLI, ...where } = {}) => {
   const chosen = copyToRun({ entry, ...where });
   if (entry !== CLI || !FLOW_VERBS.includes(verb) || chosen.kind !== "checkout" || !chosen.installed) return chosen;
