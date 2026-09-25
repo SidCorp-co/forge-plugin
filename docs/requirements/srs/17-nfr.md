@@ -226,17 +226,17 @@ crossing it stopped meaning anything (ISS-1142). A figure that is meant to say "
 drawn from what usual currently is, which is the population the ledger already keeps, and not from
 whatever the population looked like the day someone last measured it.
 
-- **AC-17-12-1** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "the ceiling a whole run is judged against is a percentile of the ledger's own same-table population, not a fixed sample"
+- **AC-17-12-1** · Rev: 1 · Proof: tools/test/gates/timing.test.mjs "the ceiling a whole run is judged against is a percentile of the ledger's own same-table population, not a fixed sample"
   WHEN a whole run is judged against a ceiling THEN that ceiling SHALL be a percentile of the whole
   runs the ledger already holds at the same table size, rather than a fixed constant.
-- **AC-17-12-2** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "fewer prior whole runs than the population floor leaves the ceiling unspoken"
+- **AC-17-12-2** · Rev: 1 · Proof: tools/test/gates/timing.test.mjs "fewer prior whole runs than the population floor leaves the ceiling unspoken"
   IF fewer than the declared minimum of same-table whole runs stand in the ledger before the one
   being judged THEN nothing SHALL be said about a ceiling for it.
-- **AC-17-12-3** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "a spoken ceiling names its percentile, its population and the date it was drawn through"
+- **AC-17-12-3** · Rev: 1 · Proof: tools/test/gates/timing.test.mjs "a spoken ceiling names its percentile, its population and the date it was drawn through"
   WHEN a run is said to be over the ceiling THEN the line SHALL name the percentile taken, the
   count of runs it was taken over and the date of the newest of them, so the figure can be
   recomputed rather than trusted.
-- **AC-17-12-4** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "a population whose ordinary run sits under the ceiling is silent, and the same population shifted up makes an ordinary run of it speak"
+- **AC-17-12-4** · Rev: 1 · Proof: tools/test/gates/timing.test.mjs "a population whose ordinary run sits under the ceiling is silent, and the same population shifted up makes an ordinary run of it speak"
   WHERE a synthetic ledger's population has an ordinary run under the ceiling drawn from it, that
   run SHALL be silent; WHERE the same population is shifted up, an ordinary run of the shifted
   population judged against the ceiling drawn from the population before it SHALL be said to be
@@ -255,11 +255,11 @@ tree broke ran without the audit, so it read the instrument's failure as company
 instrument that changes what it measures makes the red it reports its own, and the re-run that
 judges a red stands where that red stood.
 
-- **AC-17-13-1** · Rev: 1 · Proof: plugin/test/tools/gates/reads/synced.test.mjs "a function replaced on a builtin's default object and synced reaches a by-name importer under the audit"
+- **AC-17-13-1** · Rev: 1 · Proof: tools/test/gates/reads/synced.test.mjs "a function replaced on a builtin's default object and synced reaches a by-name importer under the audit"
   WHEN a process under the gate's read audit replaces a file-system function on the builtin's
   default object and asks the runtime to bring the builtin's named exports in step THEN a module of
   this repository that imported that function by name SHALL call the replacement, as it does
   without the audit.
-- **AC-17-13-2** · Rev: 1 · Proof: plugin/test/tools/gates/attribution.test.mjs "a case red under the read audit alone reproduces alone, its re-run recording inside its own room"
+- **AC-17-13-2** · Rev: 1 · Proof: tools/test/gates/attribution.test.mjs "a case red under the read audit alone reproduces alone, its re-run recording inside its own room"
   WHEN the gate re-runs a failing case alone THEN the re-run SHALL run under the read audit its
   step ran under, recording into the re-run's own room.

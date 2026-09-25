@@ -263,7 +263,7 @@ const WRITERS = {
   /* The verb and every part of it, as the lander's is below: a checkpoint the verb composes rather
      than moves sits beside the table it is composed against, not in the file that walks it. */
   claim: ["plugin/src/flow/claim.mjs",
-    ...readdirSync(new URL("../../../../plugin/src/flow/landing/", import.meta.url))
+    ...readdirSync(new URL("../../../src/flow/landing/", import.meta.url))
       .map((one) => `plugin/src/flow/landing/${one}`)],
   /* The verb and every part of it, read off the directory rather than listed: a state written in a
      part this table forgot to name would read exactly like a state nobody writes. */

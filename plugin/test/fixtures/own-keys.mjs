@@ -7,7 +7,7 @@
    Nothing is imported here, and that is the whole reason this file is not `own-project.mjs`. The
    slug's one source in the product is `PROJECT`, but reaching it pulls `plugin/src/ladder.mjs` in
    through forty-one other modules, and a static import hoists above the line where
-   `plugin/test/run/run-fixtures.mjs` moves `XDG_CONFIG_HOME` — which would leave the shape reader
+   `tools/test/run/run-fixtures.mjs` moves `XDG_CONFIG_HOME` — which would leave the shape reader
    loaded against the developer's own configuration home. So the slug is typed here and held to
    `PROJECT` by a case instead, in plugin/test/checks/suite/own-project-keys.test.mjs. */
 

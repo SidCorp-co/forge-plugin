@@ -363,60 +363,60 @@ order and never edits one. Because the builder is gone, the landing's own progre
 as the checkpoint, and every external write is preceded by a save of what is about to be written,
 so a death between the two is recovered by reading back rather than by doing again (BR-02, BR-04).
 
-- **AC-05-10-1** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "a ready branch is pinned, merged, proved to have moved nothing and promoted against that pin"
+- **AC-05-10-1** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "a ready branch is pinned, merged, proved to have moved nothing and promoted against that pin"
   WHEN a ready change is landed THEN the landing SHALL pin the base at the server, build the
   candidate, and compare the judged head with the candidate over the change's own paths, and SHALL
   promote, deploy or install nothing of it until the comparison moved nothing or the checkpoint
   records a fresh review at that candidate.
-- **AC-05-10-2** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "a branch that conflicts with the pinned base is parked with the list, and the next branch lands"
+- **AC-05-10-2** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "a branch that conflicts with the pinned base is parked with the list, and the next branch lands"
   IF the candidate's merge conflicts THEN the landing SHALL park the issue with the conflict list
   attached, SHALL edit nothing, and SHALL go on to the next ready change.
-- **AC-05-10-3** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "a base head past the pin refuses the promotion, names it, and rebuilds from the new head"
+- **AC-05-10-3** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "a base head past the pin refuses the promotion, names it, and rebuilds from the new head"
   IF the base at the server has moved from the pin THEN the landing SHALL refuse to promote, SHALL
   rebuild from a fresh pin, and SHALL void the review and judgement evidence held for the old
   candidate.
-- **AC-05-10-13** · Rev: 1 · Proof: plugin/test/run/landing/moved-pin.test.mjs "a base that moved none of the change's own paths carries the builder's reading to the rebuilt candidate"
+- **AC-05-10-13** · Rev: 1 · Proof: tools/test/run/landing/moved-pin.test.mjs "a base that moved none of the change's own paths carries the builder's reading to the rebuilt candidate"
   WHERE a rebuilt candidate holds a change's own paths as the candidate its builder reconciled held
   them, the landing SHALL carry that reconciliation to the rebuilt candidate rather than ask its
   builder a second time.
-- **AC-05-10-4** · Rev: 1 · Proof: plugin/test/run/landing/resume.test.mjs "a checkpoint at `judged` past its own push rebuilds nothing and releases nothing twice"
+- **AC-05-10-4** · Rev: 1 · Proof: tools/test/run/landing/resume.test.mjs "a checkpoint at `judged` past its own push rebuilds nothing and releases nothing twice"
   WHEN a landing is resumed after a death THEN it SHALL finish only the steps the checkpoint, the
   server and the record say are still owed, and SHALL write no mark twice and no second release.
-- **AC-05-10-5** · Rev: 1 · Proof: plugin/test/run/landing/resume.test.mjs "nothing else takes the landing's lock between the pin and the end of the install"
+- **AC-05-10-5** · Rev: 1 · Proof: tools/test/run/landing/resume.test.mjs "nothing else takes the landing's lock between the pin and the end of the install"
   WHILE a landing holds the lock, a journal landing or a self-landing release SHALL wait until the
   landing's install has completed.
 - **AC-05-10-10** · Rev: 1 · Proof: none yet — ISS-2123
   IF an install of an older release is still in flight when a newer one completes THEN the older
   SHALL never overwrite the newer installed copy.
-- **AC-05-10-6** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the landing writes the checkpoint, the mark and the statuses, and no judgement of its own"
+- **AC-05-10-6** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the landing writes the checkpoint, the mark and the statuses, and no judgement of its own"
   WHEN a landing writes THEN it SHALL write only the checkpoint, the merged mark, the release
   verification, the park it owes and the status moves the flow table allows on the builder's records.
-- **AC-05-10-7** · Rev: 2 · Proof: plugin/test/run/landing/batch.test.mjs "a combination the gate refuses hands both branches back together, each naming the other"
+- **AC-05-10-7** · Rev: 2 · Proof: tools/test/run/landing/batch.test.mjs "a combination the gate refuses hands both branches back together, each naming the other"
   WHEN ready changes each pass alone as candidates on the pin and fail together THEN the landing
   SHALL hand them back together, each hand-back naming the others and the failing step, SHALL land
   the rest of the set as one candidate, and SHALL blame none of them alone.
-- **AC-05-10-14** · Rev: 1 · Proof: plugin/test/run/landing/red-batch/search.test.mjs "a red set whose failing step names one member's path alone hands that member back and lands the rest after one gate"
+- **AC-05-10-14** · Rev: 1 · Proof: tools/test/run/landing/red-batch/search.test.mjs "a red set whose failing step names one member's path alone hands that member back and lands the rest after one gate"
   WHEN every failing case of a set's red candidate reaches the paths of exactly one member THEN the
   landing SHALL hand that member back with the failing step and cases, SHALL spend no gate to find
   it, and SHALL gate the rest once as one candidate on the same pin.
-- **AC-05-10-15** · Rev: 1 · Proof: plugin/test/run/landing/red-batch/record.test.mjs "a red set attributed by paths is opened before its search and resolved with the member handed back and the gates spent"
+- **AC-05-10-15** · Rev: 1 · Proof: tools/test/run/landing/red-batch/record.test.mjs "a red set attributed by paths is opened before its search and resolved with the member handed back and the gates spent"
   WHEN a set's candidate is red THEN the landing SHALL record that it was red before any gate of its
   search is spent, and SHALL record how it was resolved — the strategy, the outcome, the members
   handed back and landed alone, the rounds and the gates spent — so that a red set with no
   resolution on record is read as unknown and never as a set that cost nothing.
-- **AC-05-10-11** · Rev: 1 · Proof: plugin/test/run/landing/batch.test.mjs "two ready branches make one candidate, one gate, one version and one update to the base"
+- **AC-05-10-11** · Rev: 1 · Proof: tools/test/run/landing/batch.test.mjs "two ready branches make one candidate, one gate, one version and one update to the base"
   WHEN several ready changes are landed together THEN the landing SHALL build one candidate over one
   pinned base, SHALL spend one gate, one version and one push on it, and SHALL write each change's
   own mark and statuses against that release.
-- **AC-05-10-12** · Rev: 2 · Proof: plugin/test/run/landing/batch.test.mjs "the bound on the gate runs a set may spend is named before the first of them is spent"
+- **AC-05-10-12** · Rev: 2 · Proof: tools/test/run/landing/batch.test.mjs "the bound on the gate runs a set may spend is named before the first of them is spent"
   WHERE a landing takes several ready changes as one candidate, the gate runs it may spend SHALL be
   named before the first of them is spent, SHALL be one for a green candidate, SHALL be, for a red
   one, none to find a member the failing cases' paths name alone and two per halving of the suspects
   otherwise, SHALL gate at once no more halves than the project's runs leaves places for, and SHALL
   add, for a base that moves, no run beyond the rebuild one change's own landing is already allowed.
-- **AC-05-10-8** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the install after that promotion holds the version the release commit carries"
+- **AC-05-10-8** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the install after that promotion holds the version the release commit carries"
   WHEN the candidate is promoted THEN the landing SHALL install from the tree that shipped.
-- **AC-05-10-9** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the merged mark names the judged head, the landed head and that the landing moved nothing"
+- **AC-05-10-9** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the merged mark names the judged head, the landed head and that the landing moved nothing"
   WHEN the install has completed THEN the landing SHALL write the merged mark naming the judged head,
   the landed head and whether the landing moved the change's own paths.
 

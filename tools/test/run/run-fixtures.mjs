@@ -1,0 +1,364 @@
+/* What both readers of `tools/run.mjs` exercise it on, since neither runs against this checkout.
+   Not a `.test.mjs`, so the suite collects no test of its own here. */
+import { spawn, spawnSync } from "node:child_process";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+
+import { projectEntry, projectRecord, tempRoom } from "../../../plugin/test/fixtures.mjs";
+import { OWN } from "../../../plugin/test/fixtures/own-project.mjs";
+import { madeIn } from "../../../plugin/test/fixtures/room.mjs";
+import { derivationFiles } from "../../gates/scope.mjs";
+
+/* Before the shape reader is loaded: it reaches the tracker's own settings, and a module that read
+   the developer's config directory would run on their credential. */
+process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
+
+const { complexityFor } = await import("../../../plugin/src/ladder.mjs");
+
+export const ROOT = new URL("../../..", import.meta.url).pathname;
+export const OWN_SLUG = OWN.slug;
+/* And this machine's record of THIS checkout, under the home just moved: a reader called in this
+   process resolves the project of the tree this process stands in, not of the scratch checkout it
+   is acting on, and the worktree path it derives is named for that slug. */
+projectRecord(ROOT, process.env.XDG_CONFIG_HOME, { slug: OWN_SLUG });
+export const SCRIPT = join("tools", "run.mjs");
+/* npm and node without whatever else the developer has on PATH: the ship path's last two steps are
+   `claude`, and a machine that has it would prove nothing about what a missing step does. */
+export const BARE = { ...process.env, PATH: `${dirname(realpathSync(process.execPath))}:/usr/bin:/bin` };
+
+export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
+export const runIn = (work, argv, env = process.env, at = ".") =>
+  spawnSync(process.execPath, [join(work, SCRIPT), ...argv], { cwd: join(work, at), encoding: "utf8", env });
+
+export const tiedSpawn = (argv, outputs = ["pipe", "inherit"]) =>
+  spawn(process.execPath, argv, { stdio: ["pipe", ...outputs] });
+
+export const alive = () => tiedSpawn([join(import.meta.dirname, "processes", "ends-with-spawner.mjs")], ["ignore", "ignore"]);
+
+/* `check` stands in for the repository's gate, which ship spends by name — the real one needs a tree
+   this scratch checkout is not. */
+export const GATE = "node -e \"console.log('scratch gate ran')\"";
+
+/* Every file the script is, derived from it: a module added to the runner and missed here is a scratch checkout that loads nothing. */
+const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.startsWith("tools/"));
+
+/* The checkout's folder name is the room's own, never a constant: this machine's record of a
+   project is keyed on the repository's root folder, so two scratch checkouts called the same thing
+   would share one record and each case would be configured by whichever ran last. */
+export const scratch = (name, gate = GATE) => {
+  const at = tempRoom(`${name}-`);
+  const work = join(at, basename(at));
+  return madeIn(at, () => filled(at, work, gate));
+};
+
+const filled = (at, work, gate) => {
+  for (const one of COPIED) {
+    mkdirSync(join(work, dirname(one)), { recursive: true });
+    cpSync(join(ROOT, one), join(work, one));
+  }
+  /* The CLI's source too, the filing being a module call, with the one directory it reaches out to. */
+  cpSync(join(ROOT, "plugin", "src"), join(work, "plugin", "src"), { recursive: true });
+  cpSync(join(ROOT, "plugin", "hooks", "vendor"), join(work, "plugin", "hooks", "vendor"), { recursive: true });
+  /* The rest of the layout a case may count over: a checkout lacking a declared path is refused, never counted (ISS-1939). */
+  for (const one of ["bin", "test"]) mkdirSync(join(work, "plugin", one), { recursive: true });
+  writeFileSync(join(work, ".forge.json"), JSON.stringify({ slug: OWN_SLUG }));
+  writeFileSync(join(work, "package.json"),
+    JSON.stringify({ name: "scratch", version: "1.0.0", type: "module", scripts: { check: gate } }, null, 2));
+  mkdirSync(join(work, ".claude-plugin"), { recursive: true });
+  writeFileSync(join(work, ".claude-plugin", "marketplace.json"), JSON.stringify({ name: "scratch-local" }));
+  mkdirSync(join(work, "plugin", ".claude-plugin"), { recursive: true });
+  writeFileSync(join(work, "plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: "scratch", version: "1.0.0" }));
+  mkdirSync(join(work, "node_modules"), { recursive: true });
+  return { at, work };
+};
+
+/** This machine's record of the scratch checkout's project, written where the resolver reads it,
+ *  under the configuration home a case names. Keyed on the checkout, so it is written once that
+ *  checkout is one. */
+export const declaredIn = (work, home, keys = {}) =>
+  projectRecord(work, home, { slug: OWN_SLUG, ...keys });
+
+/* The two configuration homes this file stands up — the one every in-process reader and every child
+   given no environment of its own reads, and the one the tracker fixture serves its endpoint from —
+   each get the record, because a case picks between them by which env it hands `runIn`. */
+export const declared = (work, keys = {}) => {
+  declaredIn(work, process.env.XDG_CONFIG_HOME, keys);
+  return declaredIn(work, BARE.XDG_CONFIG_HOME, keys);
+};
+
+/** Where that record sits, which is what a report of a key read out of it names as its source. */
+export const recordOf = (work) => projectEntry(work, BARE.XDG_CONFIG_HOME);
+
+export const committed = (work, message) => {
+  for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
+  declared(work);
+  git(work, "add", "package.json", ".claude-plugin", "plugin", "tools", ".forge.json");
+  git(work, "commit", "-m", message);
+};
+
+/* The endpoint the in-process filing reaches, one per module load: the release step's create is a
+   module call now, and a run pointed at nothing would report a filing the network lost rather than
+   the outcome each case is about. `state` is what a case seeds and reads back. */
+const ROOM = tempRoom("run-tracker-");
+const [SEED, CALLS, HOME] = ["tracker-state.json", "tracker-calls.jsonl", "tracker-home"];
+const SEED_AT = join(ROOM, SEED);
+const CALLS_AT = join(ROOM, CALLS);
+
+const BACKLOG = { issues: [], comments: {}, memory: {}, mint: "filed-uuid" };
+
+/** Every case starts with a backlog of its own and nothing recorded against it. */
+export const noBacklog = (seed = {}) => {
+  writeFileSync(SEED_AT, JSON.stringify({ ...BACKLOG, ...seed }));
+  writeFileSync(CALLS_AT, "");
+};
+
+/** Rows onto a backlog a case has already spent calls against, those calls left where they are. */
+export const alsoOpen = (issues) => {
+  const held = JSON.parse(readFileSync(SEED_AT, "utf8"));
+  writeFileSync(SEED_AT, JSON.stringify({ ...held, issues: [...(held.issues ?? []), ...issues] }));
+};
+
+noBacklog();
+const served = tiedSpawn([join(import.meta.dirname, "processes", "tracker-process.mjs"), ROOM, SEED, CALLS, HOME]);
+await new Promise((ready) => served.stdout.once("data", ready));
+served.stdout.destroy();
+served.unref();
+
+Object.assign(BARE, { XDG_CONFIG_HOME: readFileSync(join(ROOM, HOME), "utf8").trim() });
+
+export const seen = (action, name = "forge_issues") =>
+  (existsSync(CALLS_AT) ? readFileSync(CALLS_AT, "utf8") : "").split("\n").filter(Boolean)
+    .map((line) => JSON.parse(line))
+    .filter((one) => one.name === name && one.args.action === action);
+
+/* Without the push the fetch has nothing to name and the range is undefined. */
+export const pushed = (name) => {
+  const { at, work } = scratch(name);
+  git(at, "init", "--bare", "origin.git");
+  git(work, "init", "-b", "master");
+  committed(work, "one");
+  git(work, "remote", "add", "origin", join(at, "origin.git"));
+  git(work, "push", "origin", "HEAD:master");
+  return { at, work };
+};
+
+export const landIn = (work, path, lines, message) => {
+  mkdirSync(join(work, dirname(path)), { recursive: true });
+  writeFileSync(join(work, path), "the change\n".repeat(lines));
+  git(work, "add", path);
+  git(work, "commit", "-m", message);
+};
+
+/* The install step is `claude`, which BARE does not carry, so the release runs as far as it can and
+   the last step is then reached in a process of its own — which is how a resume reaches it too. */
+export const LAST_STEP = 10;
+
+export const lastStep = (work) => {
+  runIn(work, ["ship"], BARE);
+  return runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
+};
+
+/* The `claude` the install steps invoke: the one registration the real one keeps, a cache keyed by
+   version and the install record `pluginCopy` reads, so a case can ask which tree the install read.
+   Three files switch its failures on: an add of a named path, both updates, and a low version. */
+const CLAUDE_STUB = `#!/usr/bin/env node
+import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+const room = join(dirname(fileURLToPath(import.meta.url)), "..");
+const argv = process.argv.slice(2);
+appendFileSync(join(room, "claude-calls.json"), JSON.stringify(argv) + "\\n");
+const said = (name) => (existsSync(join(room, name)) ? readFileSync(join(room, name), "utf8").trim() : null);
+const AT = join(room, "marketplace-source");
+if (argv[1] === "marketplace" && argv[2] === "add") {
+  if (said("claude-refuses-add-of") === argv[3]) {
+    process.stderr.write("this add was told to refuse\\n");
+    process.exit(1);
+  }
+  writeFileSync(AT, argv[3] + "\\n");
+  process.exit(0);
+}
+if (said("claude-update-refuses") !== null) {
+  process.stderr.write("this update was told to refuse\\n");
+  process.exit(1);
+}
+const source = said("marketplace-source");
+if (!source) {
+  process.stderr.write("no marketplace is registered here\\n");
+  process.exit(1);
+}
+if (argv[1] === "update") {
+  const [name, market] = argv[2].split("@");
+  const manifest = JSON.parse(readFileSync(join(source, "plugin", ".claude-plugin", "plugin.json"), "utf8"));
+  const version = said("claude-installs-old") ?? manifest.version;
+  const dir = join(process.env.HOME, ".claude", "plugins", "cache", market, name, version);
+  mkdirSync(dirname(dir), { recursive: true });
+  cpSync(join(source, "plugin"), dir, { recursive: true });
+  const record = join(process.env.HOME, ".claude", "plugins", "installed_plugins.json");
+  const held = existsSync(record) ? JSON.parse(readFileSync(record, "utf8")) : { version: 2, plugins: {} };
+  held.plugins[argv[2]] = [...(held.plugins[argv[2]] ?? []),
+    { scope: "user", installPath: dir, version, lastUpdated: new Date().toISOString() }];
+  writeFileSync(record, JSON.stringify(held, null, 2));
+}
+process.exit(0);
+`;
+
+/** A release shipped from a linked worktree, with a `claude` on PATH and `HOME` in the room, so what
+ *  the install read and what the cache now holds are both readable afterwards. */
+export const worktreeRoom = (name, key = "ISS-374") => {
+  const { at, work } = pushed(name);
+  const tree = join(at, `wt-${key}`);
+  git(work, "worktree", "add", tree, "-b", `iss-${key.slice(4)}`);
+  const bin = join(at, "bin");
+  madeIn(at, () => {
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, "claude"), CLAUDE_STUB, { mode: 0o755 });
+    mkdirSync(join(at, "home"), { recursive: true });
+    // Where an installed machine starts, so a release writing no registration is one that read it.
+    writeFileSync(join(at, "marketplace-source"), `${work}\n`);
+  });
+  return { at, work, tree, env: { ...BARE, HOME: join(at, "home"), PATH: `${bin}:${BARE.PATH}` } };
+};
+
+export const switched = (at, name, value = "") => writeFileSync(join(at, name), value);
+
+/** The version the plugin manifest in one tree carries, committed: `npm version` raises the
+ *  package's and this scratch checkout has no lifecycle script that follows it into the plugin's. */
+export const shipping = (tree, version) => {
+  const at = join("plugin", ".claude-plugin", "plugin.json");
+  writeFileSync(join(tree, at), JSON.stringify({ name: "scratch", version }));
+  git(tree, "add", at);
+  git(tree, "commit", "-m", `the version this tree's plugin carries`);
+};
+
+/** Which tree the marketplace names now, or nothing at all if it was never written. */
+export const registeredAt = (at) => {
+  const path = join(at, "marketplace-source");
+  return existsSync(path) ? readFileSync(path, "utf8").trim() : null;
+};
+
+export const claudeCalls = (at) => (existsSync(join(at, "claude-calls.json"))
+  ? readFileSync(join(at, "claude-calls.json"), "utf8") : "").split("\n").filter(Boolean).map((one) => JSON.parse(one));
+
+/** What the stub copied into the cache: the file's text, or nothing where no copy holds it. */
+export const cached = (at, market, name, version, path) => {
+  const file = join(at, "home", ".claude", "plugins", "cache", market, name, version, path);
+  return existsSync(file) ? readFileSync(file, "utf8") : null;
+};
+
+export const ref = (work) => git(work, "rev-parse", "--verify", "--quiet", "refs/forge/reviewed").stdout.trim();
+
+/* The tracker the release step's LOOKUPS go through, at the path the step invokes. Every call is
+   logged with the body it was piped, `new` leaves the row a later `issues` finds, and a
+   `forge-refuses` file is the network that is not there — all above the checkout, an artefact inside
+   it being a file the first ship step refuses. The filing is not among them. */
+const STUB = `#!/usr/bin/env node
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+const room = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const argv = process.argv.slice(2);
+const body = argv.includes("-") ? readFileSync(0, "utf8") : "";
+appendFileSync(join(room, "forge-calls.json"), JSON.stringify({ argv, body }) + "\\n");
+if (existsSync(join(room, "forge-refuses"))) {
+  process.stderr.write("the tracker did not answer: getaddrinfo ENOTFOUND\\n");
+  process.exit(1);
+}
+const rows = join(room, "forge-rows.txt");
+const STATUS_AT = 2;
+const answer = (shape) => (existsSync(join(room, "forge-broken"))
+  ? "not json at all {"
+  : JSON.stringify(existsSync(join(room, "forge-null")) ? null : shape, null, 2));
+if (argv[0] === "issue" && (argv[1] === undefined || argv[1].startsWith("--"))) {
+  const want = argv.includes("--status") ? argv[argv.indexOf("--status") + 1] : null;
+  const all = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n").filter(Boolean);
+  const kept = want ? all.filter((line) => line.trim().split(/\\s+/)[STATUS_AT] === want) : all;
+  for (const line of kept) process.stdout.write(line + "\\n");
+  process.stdout.write(\`\\n\${kept.length} issue(s)\\n\`);
+  process.exit(0);
+}
+if (argv[0] === "issue") {
+  if (existsSync(join(room, "forge-unread"))) {
+    process.stderr.write("forge issue failed: fetch failed\\n");
+    process.exit(1);
+  }
+  const row = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n")
+    .find((line) => line.startsWith(argv[1]));
+  const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
+  const heldAt = join(room, "forge-complexity");
+  const complexity = existsSync(heldAt) ? readFileSync(heldAt, "utf8").trim() : null;
+  process.stdout.write(answer({ issueId: argv[1], status, complexity }));
+  process.exit(0);
+}
+if (argv[0] === "resume" && argv.includes("--json")) {
+  const heldAt = join(room, "forge-rung");
+  const rung = existsSync(heldAt) ? readFileSync(heldAt, "utf8").trim() : null;
+  process.stdout.write(answer({ issueId: argv[1], status: "in_progress", rung }));
+  process.exit(0);
+}
+if (argv[0] === "resume" && argv.includes("--report")) {
+  const page = join(room, "forge-record-page");
+  process.stdout.write(existsSync(page) ? readFileSync(page, "utf8") : "Every criterion has a verdict.");
+  process.exit(0);
+}
+if (existsSync(join(room, "forge-collides"))) {
+  process.stderr.write("Hold — this files an issue the flow cannot carry.\\n\\n"
+    + "- read: " + process.argv[1] + " read the body\\n"
+    + "- read: the title of this filing, against ISS-135, overlapping at 1.00\\n"
+    + "  clear: forge comment ISS-135 <body> --title T\\n");
+  process.exit(1);
+}
+if (existsSync(join(room, "forge-shape-refuses"))) {
+  process.stderr.write("forge_issues -> project scratch (from .forge.json), prose as written\\n"
+    + "Hold \u2014 this files an issue the flow cannot carry. Each line below is what was read, "
+    + "what the shape wants and the one command that clears it.\\n\\n"
+    + "- read: no heading naming the outcome\\n  wants: a heading naming the outcome\\n"
+    + "  clear: add a heading ## Outcome and re-send the same command\\n");
+  process.exit(1);
+}
+const title = argv[argv.indexOf("--title") + 1];
+appendFileSync(rows, \`\${"ISS-777".padEnd(8)} \${"medium".padEnd(8)} \${"open".padEnd(12)} \${title}\\n\`);
+process.stdout.write(JSON.stringify({ documentId: "d", issueId: "ISS-777", title }, null, 2));
+`;
+
+/* Committed before the mark is planted, so the stub itself is behind the range the count reads. */
+export const stubbed = (work) => {
+  mkdirSync(join(work, "plugin", "bin"), { recursive: true });
+  writeFileSync(join(work, "plugin", "bin", "forge"), STUB, { mode: 0o755 });
+  git(work, "add", join("plugin", "bin", "forge"));
+  git(work, "commit", "-m", "the tracker this checkout files through");
+};
+
+/** An issue at one rung with nothing on its record moving it: the complexity field claims it and the lane answers it, each written as the value its own reader reads back. `laneAt` moves the lane's answer alone, for the record where the two legitimately differ — a whole correction climbed the issue and the field still claims what the reporter typed. */
+export const atRung = (at, rung) => {
+  writeFileSync(join(at, "forge-complexity"), complexityFor(rung));
+  writeFileSync(join(at, "forge-rung"), rung);
+};
+export const laneAt = (at, rung) => writeFileSync(join(at, "forge-rung"), rung);
+export const pageSays = (at, text) => writeFileSync(join(at, "forge-record-page"), text);
+/** Two answers the ceiling cannot measure: `null`, which parses and has no field, and neither. */
+export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");
+export const brokenAnswer = (at) => writeFileSync(join(at, "forge-broken"), "");
+
+export const called = (at) => (existsSync(join(at, "forge-calls.json"))
+  ? readFileSync(join(at, "forge-calls.json"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line))
+  : []);
+
+/* The range, the size and the rules are the step's to measure, never a person's to copy out (ISS-112). */
+/** The project's own reading threshold and counted paths, into this machine's record of it — which
+ *  is where both readers read it, and is no part of the tree being counted. Paths left out leave the
+ *  key out, which is a project declaring a volume alone. */
+export const withReview = (work, lines, paths) => {
+  const kept = JSON.parse(readFileSync(recordOf(work), "utf8"));
+  declared(work, { ...kept, review: paths === undefined ? { lines } : { lines, paths } });
+};
+
+export const owedAt = (name, lines = null) => {
+  const { at, work } = pushed(name);
+  stubbed(work);
+  if (lines !== null) withReview(work, lines);
+  runIn(work, ["review", "--done"], BARE);
+  const from = ref(work);
+  landIn(work, join("plugin", "src", "wide.mjs"), (lines ?? 1500) + 1, "a module a run grew (ISS-77)");
+  return { at, work, from };
+};

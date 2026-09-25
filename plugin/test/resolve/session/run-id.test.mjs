@@ -8,8 +8,7 @@ import { join } from "node:path";
 
 import { pathed, tempRoom } from "../../fixtures.mjs";
 
-import { RUN_ID, besideGit, gitDirAt, runHeldWhere, runIdAt } from "../../../src/resolve/session/run-id.mjs";
-import { mintRunId } from "../../../../tools/run/workspace/run-id.mjs";
+import { RUN_ID, besideGit, gitDirAt, mintRunId, runHeldWhere, runIdAt } from "../../../src/resolve/session/run-id.mjs";
 
 const root = () => {
   const at = tempRoom("forge-run-id-");

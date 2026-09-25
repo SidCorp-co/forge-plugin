@@ -66,7 +66,7 @@ A list bound by the caller's own limit is indistinguishable from a complete one,
 carries what was returned, the limit and whether more exists — and a report assembled from a
 truncated read is refused rather than rendered.
 
-- **AC-02-2-1** · Rev: 1 · Proof: plugin/test/run/landing/discovery-short.test.mjs "an empty call whose read of the backlog came back short lands nothing and says which read"
+- **AC-02-2-1** · Rev: 1 · Proof: tools/test/run/landing/discovery-short.test.mjs "an empty call whose read of the backlog came back short lands nothing and says which read"
   IF the record could not be read whole THEN the CLI SHALL refuse to judge anything on it and SHALL
   say which read was short.
 - **AC-02-2-2** · Rev: 1 · Proof: plugin/test/tools/knowledge.test.mjs "an answer longer than the limit prints the limit, and says the store may hold more"

@@ -1,7 +1,7 @@
 /* The rule the suite could not hold for itself: a case that reads a hook's answer asserts a value the
    hook writes when it allows, and one that never answered writes the same thing. `answered()` in the
    fixture tells those apart; this walk is what keeps the sentinel from being written next door again,
-   where nothing would tell it apart. The walk is both test trees and not the whole repository: a
+   where nothing would tell it apart. The walk is every test tree and not the whole repository: a
    reader under `plugin/src` that falls back on a child's silence is this product deciding something,
    answering to its own clause and not to what a case may assert, and `packages/code-quality` travels
    alone and cannot import the fixture, so what the refusal asks it for is the assertion. */
@@ -14,7 +14,7 @@ import { READER, silencesIn } from "../../../src/checks/suite/child-silence.mjs"
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 
-const TREES = ["plugin/test", "packages/code-quality/test"];
+const TREES = ["plugin/test", "tools/test", "packages/code-quality/test"];
 
 const files = () => {
   const out = [];
@@ -31,11 +31,11 @@ const files = () => {
 
 const said = (text, rel = "plugin/test/one.test.mjs") => silencesIn(text, rel);
 
-test("the walk reaches both test trees, so a clean answer is not an empty selector", () => {
+test("the walk reaches every test tree, so a clean answer is not an empty selector", () => {
   const walked = files();
   assert.ok(walked.length > 200, `the walk found ${walked.length} files, and this suite has hundreds`);
   for (const one of [READER, "plugin/test/gates/codex/codex-owed.test.mjs",
-    "plugin/test/hooks/gate.test.mjs", "plugin/test/git/reviewed.test.mjs",
+    "plugin/test/hooks/gate.test.mjs", "plugin/test/git/reviewed.test.mjs", "tools/test/gates/scratch.mjs",
     "packages/code-quality/test/cli/lint-edited-file.test.js"]) {
     assert.ok(walked.some((each) => each.rel === one), `${one} is in the walk`);
   }

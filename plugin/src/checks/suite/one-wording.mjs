@@ -19,8 +19,10 @@ import { spansIn } from "./wall-clock.mjs";
  *  this class read at the same floor and the pairs it verified are all above it. */
 export const FLOOR = 28;
 
-const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
-const SOURCE_FILE = /^(?:plugin\/src|plugin\/hooks|tools)\//u;
+/* Both test trees: the plugin's own, and the tests of this repository's scripts, which sit under
+   tools/test so the plugin travels alone and are therefore no source of tools/ (ISS-2537). */
+const TEST_FILE = /^(?:plugin|tools)\/test\/.*\.test\.mjs$/u;
+const SOURCE_FILE = /^(?:plugin\/src\/|plugin\/hooks\/|tools\/(?!test\/))/u;
 const VENDORED = "/vendor/";
 
 const QUOTED = new Set(["string", "template"]);

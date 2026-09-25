@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { SETTING, laddersIn } from "../../../src/checks/suite/fixture-retry.mjs";
 
 const SUITE = new URL("../../", import.meta.url).pathname;
+// The tests of this repository's own scripts, which sit outside plugin/ so the plugin travels alone (ISS-2537).
+const TOOLS_SUITE = new URL("../../../../tools/test/", import.meta.url).pathname;
 const MADE_UP = "plugin/test/made-up.test.mjs";
 /* Every source below opens with the statement that writes the store, that being half of what the
    rule reads; a case about the keys alone would pass for the wrong reason. */
@@ -22,12 +24,14 @@ const files = () => {
     }
   };
   walk(SUITE, "plugin/test");
+  walk(TOOLS_SUITE, "tools/test");
   return out;
 };
 
 test("the walk reaches the suite, so a clean answer is a clean suite and not an empty selector", () => {
   const walked = files();
-  assert.ok(walked.length > 30, `${walked.length} file(s) under plugin/test; the selector matches too little`);
+  assert.ok(walked.length > 30, `${walked.length} file(s) under plugin/test and tools/test; the selector matches too little`);
+  assert.ok(walked.some((one) => one.rel === "tools/test/run/run-fixtures.mjs"), "the tests of tools/ are not reached");
   assert.ok(walked.some((one) => one.rel === "plugin/test/stats/corpus/guide-parts.test.mjs"),
     "a nested file is not reached");
 });

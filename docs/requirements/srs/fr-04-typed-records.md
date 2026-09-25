@@ -52,7 +52,7 @@ a correction beside any of them.
 - **AC-04-1-5** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "a criterion named twice in one write is refused, and nothing is posted"
   IF one write opens two blocks on the same value THEN the CLI SHALL refuse the write and SHALL name
   that value.
-- **AC-04-1-6** · Rev: 1 · Proof: plugin/test/flow/published/published-baseline.test.mjs "a citation for a commit nothing published is refused at the write, and the refusal names the fresh run"
+- **AC-04-1-6** · Rev: 1 · Proof: tools/test/flow/published-baseline.test.mjs "a citation for a commit nothing published is refused at the write, and the refusal names the fresh run"
   IF a baseline cites a recorded gate result for a commit no published whole-tree result names THEN
   the CLI SHALL refuse the write and SHALL name the command that measures a fresh baseline, so that
   the authority a citation rests on is established where the payload is made rather than believed
@@ -77,7 +77,7 @@ a correction beside any of them.
   WHERE a verdict value records that somebody exercised the criterion, the CLI SHALL owe evidence at
   the write and an attachment under a declared screen change alike, so that no value carries one
   obligation and is excused the other.
-- **AC-04-1-12** · Rev: 1 · Proof: plugin/test/flow/published/published-baseline.test.mjs "a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken"
+- **AC-04-1-12** · Rev: 1 · Proof: tools/test/flow/published-baseline.test.mjs "a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken"
   IF a baseline cites a published gate result from a checkout whose clean head is not the commit it
   cites THEN the CLI SHALL refuse the write, SHALL name both commits and SHALL give the command that
   writes the same baseline from a checkout standing at the commit cited, because a record the write

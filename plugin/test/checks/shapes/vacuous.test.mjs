@@ -11,19 +11,21 @@ import { vacuousIn, vacuousProblems } from "../../../src/checks/shapes/vacuous.m
 import { standingOf, standingProblems } from "../../../src/checks/shapes/standing.mjs";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
-const SUITE = join("plugin", "test");
+// Both test trees: the plugin's own, and the tests of this repository's scripts beside them (ISS-2537).
+const SUITES = [join("plugin", "test"), join("tools", "test")];
 const KEY = "vacuousAssertions";
 
-const walked = () => readdirSync(join(ROOT, SUITE), { recursive: true }).map(String)
+const walked = () => SUITES.flatMap((suite) => readdirSync(join(ROOT, suite), { recursive: true }).map(String)
   .filter((one) => one.endsWith(".mjs"))
-  .map((one) => ({ rel: join(SUITE, one), text: readFileSync(join(ROOT, SUITE, one), "utf8") }));
+  .map((one) => ({ rel: join(suite, one), text: readFileSync(join(ROOT, suite, one), "utf8") })));
 
 const planted = (text) => vacuousIn(text, "plugin/test/made-up.test.mjs");
 const lines = (text) => planted(text).map(({ line, shape }) => `${line} ${shape}`);
 
 test("the suite holds no more vacuous assertions than its standing count, and no fewer", () => {
   const files = walked();
-  assert.ok(files.length > 400, `${files.length} file(s) under ${SUITE}; the walk reaches too little`);
+  assert.ok(files.length > 400, `${files.length} file(s) under ${SUITES.join(" and ")}; the walk reaches too little`);
+  assert.ok(files.some((one) => one.rel === "tools/test/gates/scratch.mjs"), "the tests of tools/ are not reached");
   assert.ok(files.some((one) => one.rel === "plugin/test/tracker/rest.test.mjs"), "a nested file is not reached");
   const problems = vacuousProblems(files.flatMap((one) => vacuousIn(one.text, one.rel)));
   const config = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));

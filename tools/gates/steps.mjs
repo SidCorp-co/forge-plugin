@@ -39,33 +39,34 @@ export const EVERYTHING = [".", ".claude-plugin", "docs", "packages", "plugin", 
 export const WHOLE_TREE_TESTS = [
   "plugin/test/checks/cited-paths.test.mjs",
   "plugin/test/checks/docs",
-  "plugin/test/checks/shapes/standing.test.mjs",
   "plugin/test/checks/shapes/test-only.test.mjs",
   "plugin/test/checks/sources-are-text.test.mjs",
   "plugin/test/checks/surface/dead-exports.test.mjs",
   "plugin/test/checks/surface/level-boundary.test.mjs",
   "plugin/test/guides/contract.test.mjs",
+  "tools/test/checks/standing.test.mjs",
 ];
 
-export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
+// The plugin's own suite, and the tests of this repository's scripts, which do not ship with it (C-02).
+export const TEST_FILE = /^(plugin|tools)\/test\/.*\.test\.mjs$/u;
 
 /* The ceiling a test file gets while the audit cannot derive its set: `where` the file, `reads` what
    it may read, `blind` the route that justified it. One key per file and never a directory of them; a
    ceiling answers for every route that blinds its file, the audit's own reads unioned in and failing
    the gate where they escape; and a file blind on a route nobody read is left out (ISS-1761, ISS-1774). */
-const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
+const SPAWNED = "a node child that left no record: a node standing here, importing tools/test/run";
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
   "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs",
   "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs", "plugin/test/fixtures/room.mjs",
-  "plugin/test/fixtures/served.mjs", "plugin/test/run", "tools"];
+  "plugin/test/fixtures/served.mjs", "tools"];
 
 /* The four the machine table's own files once earned are gone: a node child carries the audit
    whatever environment its caller handed it, so those files derive their own sets now (ISS-2119).
    What is left is what no preload reaches — a process orphaned on purpose, and a git. */
 export const DECLARED_READS = [
-  { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
-  { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: TAGS },
+  { where: "tools/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
+  { where: "tools/test/run/release/run-released-version.test.mjs", reads: RUN, blind: TAGS },
 ];
 
 export const declarationFor = (file, table = DECLARED_READS) => {
