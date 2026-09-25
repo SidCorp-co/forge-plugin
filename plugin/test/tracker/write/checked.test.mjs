@@ -129,7 +129,7 @@ test("every tracker write in the source is behind the check, or named as exempt"
 
 /* The other half of the same funnel, and what the read-first gate's stand-down rests on: a finder's renewal writes no lease on an issue this session does not hold, so it satisfies the scan above while making no comment check at all. Two sites do it, each named here with why it is safe; a third is a shape the gate may be standing down for on a check nobody makes (ISS-1715, ISS-1724). */
 const FINDERS = {
-  "commands.mjs renew(written.id, \u2026)": "the edge write, which makes no check of its own \u2014 so its "
+  "tracker/edges/write.mjs renew(written.id, \u2026)": "the edge write, which makes no check of its own \u2014 so its "
     + "row in the verb table carries no `own`, and the gate refuses it rather than standing down (ISS-1724)",
   "commands.mjs renew(issue, \u2026)": "the comment verb, which calls mustBeShown itself one line before this",
   "flow/record/thread/posting.mjs renew(documentId, \u2026)": "a wave or fold record's post, which calls mustBeShown "
