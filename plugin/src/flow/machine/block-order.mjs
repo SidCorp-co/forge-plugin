@@ -44,7 +44,7 @@ export const blockOrderChecked = (kind, argv) => {
   const blocks = splitAt(argv.slice(opens), opener);
   for (let at = 0; at < blocks.length - 1; at += 1) {
     const own = blocks[at];
-    /* A block whose key has no value is the parser's syntax error to answer, not a position to judge. */
+    /* `--criterion` with nothing after it is refused by name further on, so no position is judged here. */
     if (isFlag(own[1]) || own[1] === undefined) continue;
     const ahead = [];
     for (let index = 2; index < own.length; index += 1) {
