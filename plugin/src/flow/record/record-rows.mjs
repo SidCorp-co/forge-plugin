@@ -51,7 +51,7 @@ const kindRows = (caps) => [
   "  fold         --summary S                                      the wave's end, once its fold is posted",
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
-  "  merged       " + CLAUSES.map((one) => `--${one.flag} V`).join(" ") + " [--to B] | --undo",
+  "  merged       " + CLAUSES.map((one) => (one.read ? `[--${one.flag} V]` : `--${one.flag} V`)).join(" ") + " [--to B] | --undo",
   "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
     + " [--technical " + withCap("T", caps.releaseNotes?.halves?.technical)
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
@@ -127,9 +127,13 @@ const CITES = ["plan", "criteria"];
 /* The one place the note's clauses are described, from the same table that writes and reads them:
    a template a run copied by hand is how a sha reached the slot another clause is read from. */
 const MERGED_BLOCKS = [
-  "The mark's note is one sentence and each flag writes one clause of it. Every clause is owed, and",
-  "a write missing any names all of them at once rather than one per round:",
-  ...CLAUSES.map((one) => `  --${one.flag.padEnd(10)}${one.label}`),
+  "The mark's note is one sentence and each flag writes one clause of it. Every clause is owed but",
+  "the ones read from git unless given, and a write missing any names all of them at once rather",
+  "than one per round:",
+  ...CLAUSES.flatMap((one) => [`  --${one.flag.padEnd(10)}${one.label}`,
+    ...(one.read ? [`  ${"".padEnd(12)}read from git unless given`] : [])]),
+  "A clause read from git and given anyway is compared with git's reading, and a write whose value",
+  "differs is refused naming that reading.",
   `A path clause takes paths separated by commas, or the word \`${NOTHING}\`, which reads back as`,
   "none rather than as silence. --to is the branch the change landed on, read from this project's",
   "base branch where it is not given. --undo removes the mark whole, prints the note it removed and",

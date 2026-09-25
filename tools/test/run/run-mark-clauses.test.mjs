@@ -1,4 +1,4 @@
-/* The flags the merged mark's two path clauses are typed into, printed by the release step that knows what the change landed: `developed` reads the first back against the plan and `testing` the second, to decide whether a verdict taken before the landing still judges the code that landed.
+/* What the release step that knows what the change landed prints for the merged mark's two path clauses: the flag `landing wrote` is typed into, which `developed` reads back against the plan, and the word that `landing moved` is git's reading, which `testing` reads to decide whether a verdict taken before the landing still judges the code that landed.
    Its own file because the lines are typed by hand into a shell, which is a question about what is printed rather than about the steps around a change (ISS-1023). */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -75,24 +75,22 @@ test("a release that landed nothing of its own says so in the value the flag tak
 
 /* The clause `testing` reads to decide whether the verdicts survived the landing is git's reading, taken by
    `forge record merged` between the judged head and the sha a mark takes, which the release step cannot
-   know the first of (ISS-1362). Before, it printed a value measured above that sha, and a run whose verdicts
-   judged an earlier commit was left to compare the heads itself. */
-test("the last step prints the moved flag, saying the write reads that clause from git", () => {
+   know the first of (ISS-1362). The write reads it where no flag is typed, so the step prints no value for
+   a run to type and says who reads it instead (ISS-2485). */
+test("the last step prints no moved flag, saying the write reads that clause from git", () => {
   const { work } = pushed("landing-moved-nothing");
   stubbed(work);
   landIn(work, join("plugin", "src", "flow", "entered.mjs"), 1, "the entry check");
   const out = lastStep(work).stdout;
-  const said = MOVED.exec(out);
-  assert.ok(said, `no flag and value for what the landing moved:\n${out}`);
-  assert.equal(said[1], "nothing", `the replay proved the base moved none of the change's paths:\n${out}`);
-  assert.match(out, /by --moved: `forge record merged` reads it from git itself, as the paths above whose bytes differ between --judged and --at [0-9a-f]{7}, and refuses any other value/u,
+  assert.doesNotMatch(out, MOVED, `a value for what the landing moved is still printed to type:\n${out}`);
+  assert.match(out, /takes no flag: `forge record merged` reads it from git itself, as the paths above whose bytes differ between --judged and --at [0-9a-f]{7}, and writes that reading/u,
     `the line does not say who reads the clause:\n${out}`);
 });
 
 /* A bump alone has no commit of the change under it, so the line names no sha to measure against. */
-test("a release that landed nothing of its own names no sha for the moved flag", () => {
+test("a release that landed nothing of its own names no sha for the moved clause", () => {
   const { work } = pushed("landing-moved-nothing-landed");
   const out = lastStep(work).stdout;
-  assert.match(out, /^ {4}--moved nothing$/mu, `a release of the bump alone named paths as moved:\n${out}`);
-  assert.match(out, /differ between --judged and --at, and refuses/u, `the line names a sha over a change that did not land:\n${out}`);
+  assert.doesNotMatch(out, MOVED, `a release of the bump alone printed a moved value to type:\n${out}`);
+  assert.match(out, /differ between --judged and --at, and writes/u, `the line names a sha over a change that did not land:\n${out}`);
 });

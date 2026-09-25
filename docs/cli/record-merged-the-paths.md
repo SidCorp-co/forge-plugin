@@ -65,7 +65,7 @@ untrue:
 - one whose `landing moved` clause has no room for a single written path. That clause is what stands
   the verdicts down, and a partial list of it reads as a landing that moved less than it did.
 
-A run following the ship's last step types each flag and the value it printed, whole. The improvisation this replaced —
+A run following the ship's last step types the flag and the value it printed, whole. The improvisation this replaced —
 a shorter note invented per run, because the printed instruction was refused by the write it asked
 for — is what made the record of a large change whatever its run had time to type.
 
@@ -79,10 +79,15 @@ beside a judged head that was the reconciled candidate itself, standing down the
 builder took there (ISS-1362).
 
 So `forge record merged` reads it: the `--wrote` paths whose bytes differ between `--judged` and
-`--at`, from git in the checkout it runs in. A typed `--moved` that differs is refused with git's
-value, and a checkout that cannot read either commit is refused with the fetch that fixes it. The
-landing task asks the same question of the candidate the change landed as, leaving out the version
-commit a release puts above it.
+`--at`, from git in the checkout it runs in, and a mark written without `--moved` carries that
+reading. The flag stays for a caller who has a value, and a typed one is compared rather than dropped:
+one that differs is refused with git's value. It is not required, because a value the verb computes
+anyway is one a caller can only guess at and learn from a refusal (ISS-2485). A checkout that cannot
+read either commit is refused with the fetch that fixes it, whether or not the flag was typed, and
+never falls back to an empty clause. The landing task asks the same question of the candidate the
+change landed as, leaving out the version commit a release puts above it and the paths a release
+moved only in its own version fields (ISS-2516), so it composes the note with that reading rather
+than going through the verb.
 
 It reads the change's own paths and not the whole tree. An identical tree reads as nothing moved,
 and so does a landing that moved only a neighbour: what the verdicts judged was the change's paths,

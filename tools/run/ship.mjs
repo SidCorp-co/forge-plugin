@@ -82,11 +82,11 @@ export const shipHelp = () => [
   "It names beside those the sha the change landed as, which is not the pushed head the push printed:",
   "the rebase rewrote the commit the run reviewed and the version commit sits above it, so a mark that",
   "is about the change rather than about the release reads its sha from there and not off a log by eye.",
-  "That same step prints the flag each of the mark's two path clauses is typed into: what this change",
-  "wrote, computed over the range's commits that are the change rather than the version bump, and not",
-  "earlier, because a clause answered before the version commit exists is answered about a landing",
-  "that has not happened. What the landing moved of those paths is `forge record merged`'s own reading",
-  "of git between the judged head and the sha a mark takes, which it checks the typed value against.",
+  "That same step prints the flag the mark's clause of what this change wrote is typed into, computed",
+  "over the range's commits that are the change rather than the version bump, and not earlier,",
+  "because a clause answered before the version commit exists is answered about a landing that has",
+  "not happened. What the landing moved of those paths is printed as no flag at all: `forge record",
+  "merged` reads it from git between the judged head and the sha a mark takes, and writes that.",
   "",
   "The same step finishes the landing checkpoint each issue this tree was started for left, because a",
   "release is a landing and this one wrote no landing state at all: a branch its own run released read",
@@ -167,10 +167,11 @@ const releaseSays = (tree, base) => {
   return own.at(-1) ?? null;
 };
 
-/** The flags that write the merged mark's two path clauses, printed at the step that knows what landed —
- *  the flags and not the clauses, whose wording a run typed whole into the value (ISS-1023). By commit and
- *  not by filename: a dependency lives in the manifest a bump also writes. Both here and neither earlier,
- *  a clause answered before the version commit exists being about a landing that has not happened (ISS-1896). */
+/** The flag that writes the merged mark's `landing wrote` clause, printed at the step that knows what landed —
+ *  the flag and not the clause, whose wording a run typed whole into the value (ISS-1023). By commit and
+ *  not by filename: a dependency lives in the manifest a bump also writes. Here and not earlier, a
+ *  clause answered before the version commit exists being about a landing that has not happened
+ *  (ISS-1896). `landing moved` is printed as no flag, the write reading it from git (ISS-2485). */
 const clauseFlags = (tree, own) => {
   const wrote = new Set();
   for (const sha of own) {
@@ -181,13 +182,10 @@ const clauseFlags = (tree, own) => {
   console.log("  the clause of the mark's note that says what this change wrote, which `developed` "
     + "reads against the plan, is written by this flag:");
   console.log(`    --wrote ${said.length ? typed(said.join(", ")) : "nothing"}`);
-  console.log("  and the clause that says what the landing moved of this change, which is what lets the "
-    + "verdicts stand at the head they were taken at, by --moved: `forge record merged` reads it from "
+  console.log("  the clause that says what the landing moved of this change, which is what lets the "
+    + "verdicts stand at the head they were taken at, takes no flag: `forge record merged` reads it from "
     + `git itself, as the paths above whose bytes differ between --judged and --at${landed
-      ? ` ${landed.slice(0, 7)}` : ""}, and refuses any other value, naming the one it read. The replay `
-    + "step proved the base moved none of those paths, so for verdicts taken at the head this ship "
-    + "rebased that reading is:");
-  console.log("    --moved nothing");
+      ? ` ${landed.slice(0, 7)}` : ""}, and writes that reading`);
   console.log("  type each flag and its value whole, any quotes on it being the shell's: the note is built "
     + "to the room the tracker gives it, and one too long to store leaves out paths the plan names "
     + "and says so in a clause of its own");
