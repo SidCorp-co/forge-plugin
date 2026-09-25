@@ -174,6 +174,19 @@ test("a day whose only record is a landing a dispatching session typed is read, 
   assert.match(said.stdout, /^landings {8}2 pass\(es\)/mu, "and the landings are printed beside the runs it found none of");
 });
 
+test("a landing older than the page's trend is on the current report's series and off the page, which reads alike written or printed", () => {
+  const held = device({ days: [daysAgo(1)] });
+  dispatcherLanded(held, daysAgo(12));
+  const printed = contentFor(held, daysAgo(1));
+  assert.equal(daily(held, "--day", daysAgo(1)).status, 0);
+  const written = contentOf(readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8"));
+  assert.equal(written.dayOfFirst, printed.dayOfFirst);
+  assert.deepEqual(written.landings, printed.landings);
+  const current = contentOf(readFileSync(join(held.reports, "index.html"), "utf8"));
+  assert.equal(current.series.days[0], daysAgo(12));
+  assert.equal(current.series.landings[0], 2);
+});
+
 test("consults are counted for the day, one row per model and prompt version", () => {
   const on = `${daysAgo(1)}T10:00:00.000Z`;
   const held = device({ days: [daysAgo(1)], consults: [consult(on), consult(on, { id: "c-2", prompt: { v: 4, sha: "def456" } }),

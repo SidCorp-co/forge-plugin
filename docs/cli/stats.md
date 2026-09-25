@@ -108,3 +108,20 @@ printing a nought, and the fix is that reader, never a second count here.
 machine. The first session start after a day ends, in a project whose `report` key is `daily`,
 starts a detached writer for that day and does not wait for it; a mark naming the writer's process
 stops a second one, and a mark whose process is gone stops nothing.
+
+## The current report
+
+**The page opened first is the current one.** `forge stats daily --current` writes `index.html` over every
+day held, and lists the dated pages as snapshots: two pages each claiming to be first would disagree
+the first time only one was rewritten.
+
+**Two causes are one row only where the tracker links them**: one issue, a `relates` edge, or one
+gate-recurrence marker. A link inferred here would pass a symptom's fix off as a cause's (G-13), so
+an unjoined family stays two rows. A match rides in the page's own content block, so filing an
+issue is all it takes to follow a cause. A fix is read by the runs begun after the release reading
+carrying its issue, and the report reopens nothing. Cost a friction key's reader does not keep is
+named missing with the issue that owes it, never divided among the causes a run met.
+
+**Configured twice, because it is two decisions.** The score and its windows are the device's
+config.json `report` table, the page being the device's; which acts rewrite it is each project's
+`reportOn`.

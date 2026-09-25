@@ -6,24 +6,25 @@ import { contentBlock } from "./store.mjs";
 import { summaryOf } from "./summary.mjs";
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-const esc = (value) => String(value ?? "").replace(/[&<>"']/gu, (one) => ESCAPES[one]);
+export const esc = (value) => String(value ?? "").replace(/[&<>"']/gu, (one) => ESCAPES[one]);
 
-const at = (moment) => (moment === null || moment === undefined ? "—" : new Date(moment).toISOString().slice(0, 16).replace("T", " "));
+export const at = (moment) => (moment === null || moment === undefined ? "—" : new Date(moment).toISOString().slice(0, 16).replace("T", " "));
 
 /** A figure, or the words for its absence: an absent figure is never a nought. */
-const said = (value, unit = "") => (value === null || value === undefined ? "none" : `${value}${unit}`);
+export const said = (value, unit = "") => (value === null || value === undefined ? "none" : `${value}${unit}`);
 
-const missing = (one) => `<span class="missing">missing: ${esc(one.reading)} — no reader computes it yet (${esc(one.issue)})</span>`;
+export const missing = (one) => `<span class="missing">missing: ${esc(one.reading)} — no reader computes it yet (${esc(one.issue)})</span>`;
 
 const WIDE = 140;
 const HIGH = 32;
 
-/** Seven values as a line, a gap where a day holds none; the values are said in the caption beside it,
- *  so the chart adds a shape and carries no figure the text does not. */
-const trendSvg = (label, days, values) => {
+/** A value a day as a line, a gap where a day holds none; the values are said in the caption beside
+ *  it, so the chart adds a shape and carries no figure the text does not. `span` names the days and
+ *  `nameOf` each one in the caption; `wide` is the drawing's width. */
+export const trendSvg = (label, days, values, { span = "seven days", nameOf = (day) => day.slice(5), wide = WIDE } = {}) => {
   const known = values.filter((one) => one !== null && one !== undefined);
   const top = Math.max(1, ...known);
-  const step = WIDE / Math.max(1, values.length - 1);
+  const step = wide / Math.max(1, values.length - 1);
   const point = (value, index) => `${Math.round(index * step)},${Math.round(HIGH - 2 - ((value / top) * (HIGH - 4)))}`;
   const runs = [];
   let current = [];
@@ -37,15 +38,15 @@ const trendSvg = (label, days, values) => {
   const lines = runs.map((one) => (one.length === 1
     ? `<circle cx="${one[0].split(",")[0]}" cy="${one[0].split(",")[1]}" r="2" />`
     : `<polyline fill="none" points="${one.join(" ")}" />`)).join("");
-  const caption = days.map((day, index) => `${day.slice(5)} ${said(values[index])}`).join(", ");
-  return `<figure class="trend"><svg viewBox="0 0 ${WIDE} ${HIGH}" width="${WIDE}" height="${HIGH}" role="img" `
+  const caption = days.map((day, index) => `${nameOf(day, index)} ${said(values[index])}`).join(", ");
+  return `<figure class="trend"><svg viewBox="0 0 ${wide} ${HIGH}" width="${wide}" height="${HIGH}" role="img" `
     + `aria-label="${esc(label)}"><title>${esc(label)}: ${esc(caption)}</title>${lines}</svg>`
-    + `<figcaption>${esc(label)}, seven days: ${esc(caption)}</figcaption></figure>`;
+    + `<figcaption>${esc(label)}, ${esc(span)}: ${esc(caption)}</figcaption></figure>`;
 };
 
 /** A table whose every column sorts: the header row names the columns, and each cell carries the
  *  value it sorts by where the text it shows is not that value. */
-const table = (columns, rows) => `<table class="sortable"><thead><tr>${columns.map((one) =>
+export const table = (columns, rows) => `<table class="sortable"><thead><tr>${columns.map((one) =>
   `<th scope="col" title="sort by ${esc(one)}">${esc(one)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) =>
   `<tr>${row.map((cell) => (cell && typeof cell === "object"
     ? `<td data-value="${esc(cell.value)}">${cell.html}</td>`
@@ -159,7 +160,7 @@ const opportunitiesHtml = (opportunities) => `<section id="opportunities"><h2>Op
     : `<p class="headline"><strong>No opportunity</strong>: no refusal, error, repeat, re-read or long wait was recorded on this day.</p>`)
   + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p></section>`;
 
-const STYLE = `body{font:15px/1.5 system-ui,sans-serif;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#1d1d1f;background:#fff}
+export const STYLE = `body{font:15px/1.5 system-ui,sans-serif;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#1d1d1f;background:#fff}
 h1{font-size:1.5rem}h2{margin-top:2.5rem;border-bottom:1px solid #ddd}h3{font-size:1rem;margin-top:1.5rem}
 .summary{background:#f5f5f7;padding:1rem 1.25rem;border-radius:6px}.headline{font-size:1.05rem}
 table{border-collapse:collapse;margin:.5rem 0;font-size:.9rem}th,td{padding:.25rem .6rem;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
@@ -192,9 +193,3 @@ export const pageOf = (content) => {
     + opportunitiesHtml(content.opportunities)
     + `<script>${SORT_SCRIPT}</script>${contentBlock(content)}</body></html>\n`;
 };
-
-/** The index of every held day, newest first, each with the line its own summary keeps. */
-export const indexPageOf = (days) => `<!doctype html><html lang="en"><head><meta charset="utf-8">`
-  + `<title>Harness daily reports</title><style>${STYLE}</style></head><body><h1>Harness daily reports</h1>`
-  + `<ul>${days.map((one) => `<li><a href="${esc(one.day)}.html">${esc(one.day)}</a> — ${esc(one.line ?? "its page holds no summary this copy can read")}</li>`).join("")}</ul>`
-  + "</body></html>\n";

@@ -38,6 +38,23 @@ export const reportsDir = () => {
 export const pagePath = (dir, day) => join(dir, `${day}.html`);
 export const markPath = (dir, day) => join(dir, `${day}.writing`);
 
+/** The name the current report's writer holds its mark under, beside the days' own. */
+export const CURRENT = "current";
+/** Left by a writer that found the current report held, and read by the holder before it lets go. */
+export const againPath = (dir) => join(dir, `${CURRENT}.again`);
+
+/** The mark taken under a process's id, or false where another holds it: taken whole or not at all,
+ *  so two writers starting in one instant cannot both hold it. */
+export const takeMark = (dir, name, pid = process.pid) => {
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(markPath(dir, name), `${pid}\n`, { flag: "wx" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /** Every day a page is held for, newest first. */
 export const heldDays = (dir) => {
   try {

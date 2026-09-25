@@ -32,13 +32,13 @@ const STOOD_DOWN = "error";
 /* The class `stats runs` files a declared gate command under. */
 const GATE_CLASS = "gate";
 
-const within = (at, day) => {
+export const within = (at, day) => {
   const { from, to } = boundsOf(day);
   return at >= from && at < to;
 };
 
 /* A run belongs to the day it ended on, as every `stats runs` window judges a run by its own end. */
-const runsOn = (runs, day) => runs.filter((run) => within(run.endedAt, day));
+export const runsOn = (runs, day) => runs.filter((run) => within(run.endedAt, day));
 
 const thinOf = (runs) => (runs < FLOOR ? THIN : null);
 
@@ -170,18 +170,24 @@ const standDownsOn = (entries, day) => {
 
 const refusalsOn = (all, day) => profileOf(runsOn(all, day)).refusals.reduce((sum, [, many]) => sum + many, 0);
 
+/** The friction listings of a set of runs, each row with the runs behind it, off the runs' own
+ *  profile: what a day's page lists and what the current report reads day by day. */
+export const frictionOf = (runs, profile = profileOf(runs)) => ({
+  refusals: listed(profile.refusals, runs, (run) => run.refusals),
+  errorRows: profile.errorRows,
+  errors: listed(profile.errors, runs, (run) => run.errors),
+  answers: listed(profile.answers, runs, (run) => run.answers),
+  repeats: listed(profile.repeats, runs, (run) => run.repeats),
+  waits: waitsOf(runs),
+  guideParts: profile.guideParts.map(([key, one]) => ({ key, ...one })),
+});
+
 const frictionSection = (all, day, profile, hooks) => {
   const today = runsOn(all, day);
   return {
     headline: { refusals: profile.refusals.reduce((sum, [, many]) => sum + many, 0), runs: today.length },
     trend: trendDays(day).map((one) => ({ day: one, refusals: runsOn(all, one).length ? refusalsOn(all, one) : null })),
-    refusals: listed(profile.refusals, today, (run) => run.refusals),
-    errorRows: profile.errorRows,
-    errors: listed(profile.errors, today, (run) => run.errors),
-    answers: listed(profile.answers, today, (run) => run.answers),
-    repeats: listed(profile.repeats, today, (run) => run.repeats),
-    waits: waitsOf(today),
-    guideParts: profile.guideParts.map(([key, one]) => ({ key, ...one })),
+    ...frictionOf(today, profile),
     standDowns: standDownsOn(hooks, day),
   };
 };
@@ -194,6 +200,19 @@ const followedOf = (releases) => [...releases.recent].sort((left, right) => righ
 const movedOf = (all, day, profile) => {
   const week = profileOf(weekBefore(day).flatMap((one) => runsOn(all, one)));
   return { phases: movedIn(profile.phases, week.phases, "name"), rungs: movedIn(profile.rungs, week.rungs, "rung") };
+};
+
+/** One day's headline figures, each off the reader the day's own page reads it from: what the
+ *  current report draws a point of every series with. A figure the day holds nothing for is null. */
+export const dayFiguresOf = (reading, day) => {
+  const runs = runsOn(reading.all, day);
+  return {
+    day,
+    ...figureOf(runs),
+    refusals: runs.length ? refusalsOn(reading.all, day) : null,
+    consults: consultsOn(reading.entries, day).length,
+    landings: landingsOf(runs, passesOn(reading.passes, day))?.passes ?? null,
+  };
 };
 
 /** The first moment anything was recorded on this device, for the range a refusal names. */

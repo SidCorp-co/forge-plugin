@@ -5,6 +5,7 @@
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
 import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
 import { scopeFor } from "../corpus/release.mjs";
+import { releaseDue } from "../daily/trigger.mjs";
 import { corpusOf } from "../corpus/read.mjs";
 import { deviceOf } from "../../resolve/machine/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
@@ -535,6 +536,7 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
     issues: [...issues].map((one) => String(one).toUpperCase()),
     at: new Date().toISOString(), ...readingOf(directory, corpus, size),
   });
+  releaseDue(directory);
   const ahead = { count: Math.min(size, corpus.runs.length), size, terms: RUN_TERMS };
   return `stats: this release is held as ${version} over ${corpus.runs.length} run(s). ${releaseSaid(wrote, version, ahead)}`;
 };
