@@ -98,15 +98,34 @@ test("a typed plan missing a section is refused, with each one named", async () 
 test("the way back is refused only where a coupling declaration asks for it", async () => {
   heldBy(MINE);
   for (const which of ["Schema", "Deploy"]) {
-    const declared = `Screen change: no\nSchema coupling: no\n${which} coupling: yes`;
+    const declared = ["Screen change: no", ...["Schema", "Deploy"]
+      .map((one) => `${one} coupling: ${one === which ? "yes" : "no"}`)].join("\n");
     const run = await wrote(MINE, planAt(typedPlan({ Declarations: declared })));
     assert.equal(run.status, 1, which);
     assert.match(run.stderr, new RegExp(`## The way back — the plan declares ${which.toLowerCase()} coupling`, "u"),
       "the refusal names the declaration that owes it");
   }
-  const answered = typedPlan({ Declarations: "Screen change: no\nSchema coupling: yes", "The way back": "Revert and ship again." });
+  const answered = typedPlan({ Declarations: "Screen change: no\nSchema coupling: yes\nDeploy coupling: no",
+    "The way back": "Revert and ship again." });
   const held = await wrote(MINE, planAt(answered));
   assert.equal(held.status, 0, held.stderr);
+});
+
+/* Which declarations a plan owes is the table's, read here as `approved` reads it, so the write turns
+   back a plan the status would refuse for a missing line rather than storing it (ISS-752). */
+test("a typed plan answering a required declaration nowhere is refused, each missing line named", async () => {
+  heldBy(MINE);
+  const one = await wrote(MINE, planAt(typedPlan({ Declarations: "Screen change: no\nSchema coupling: no" })));
+  assert.equal(one.status, 1);
+  assert.match(one.stderr, /^The plan leaves a declaration it owes unanswered, so nothing was written:$/mu);
+  assert.match(one.stderr, /^ {2}Deploy coupling: yes\|no$/mu, "the line to write, as a plan writes it");
+  assert.equal(state.issues[0].plan, undefined, "the field is untouched");
+  const two = await wrote(MINE, planAt(typedPlan({ Declarations: "Schema coupling: no" })));
+  assert.equal(two.status, 1);
+  assert.match(two.stderr, /^The plan leaves 2 declarations it owes unanswered/mu);
+  assert.match(two.stderr, /^ {2}Screen change: yes\|no\n {2}Deploy coupling: yes\|no$/mu, "every one, not the first");
+  const bare = await wrote(MINE, planAt(typedPlan({ Declarations: "Screen change: no\nSchema coupling: no\nDeploy coupling: no" })));
+  assert.equal(bare.status, 0, `and leaving out the user-facing outcome is no refusal: ${bare.stderr}`);
 });
 
 test("a step naming no criterion is refused, and the step is quoted", async () => {
@@ -180,6 +199,8 @@ test("`record plan -h` prints every section a typed plan owes, as the question i
      of them sends a run reading it to a refusal it was told nothing about (ISS-1694). */
   assert.match(run.stdout, /Witnessed on screen is owed of every plan where this project's flow serves projects with a screen,\nand at `approved` where the plan declares screen change\./u);
   assert.match(run.stdout, /The way back is owed only where the plan declares schema coupling or deploy coupling\./u);
+  assert.match(run.stdout, /^ {2}## Declarations +each of screen change, schema coupling, deploy coupling, written `yes` or `no`, and user-facing outcome the same way where the change has one$/mu,
+    "the three a plan owes, and the one it answers only where it applies");
   assert.match(run.stdout, /step naming none is refused here\. At `approved`, where the criteria field is read, so is a step\nwhose numbers name no criterion the issue holds, and a criterion no step names\./u);
 });
 

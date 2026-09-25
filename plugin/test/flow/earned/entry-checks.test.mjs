@@ -355,7 +355,7 @@ test("the release note is owed at a lighter rung, and the owed line names both f
 });
 
 const PLAN = typedPlan();
-const UNTYPED = "Screen change: no. Schema coupling: no.\n\nThe plan itself.";
+const UNTYPED = "Screen change: no. Schema coupling: no. Deploy coupling: no.\n\nThe plan itself.";
 
 /* AC-14-4-2: the sixth argument is the read, handed over unevaluated, so this check is proved from
    a fixture and `earned.mjs` still reads no checkout. `null` is a project with no tree and owes
@@ -468,17 +468,17 @@ test("approved needs the plan with both its declarations, and numbered criteria"
   assert.deepEqual(missing("approved", planned(PLAN)), []);
   assert.deepEqual(missing("approved", view({ plan: "   " }, DECIDED)).length, 2, "whitespace is an empty field");
   const bare = missing("approved", planned("the plan"));
-  assert.equal(bare[0], "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
-    + "two decide what the ship steps owe");
+  assert.equal(bare[0], "the plan does not declare `Screen change: yes|no`, `Schema coupling: yes|no` or `Deploy coupling: yes|no`, "
+    + "each deciding what the plan and the ship steps owe");
   assert.match(bare[1], /^the plan is untyped/u, "and the sections are owed apart from the declarations");
   assert.equal(bare.length, 2);
-  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: null, look: null });
+  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: "no", look: null });
   assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null });
   assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null },
     "prose about the two is not the two declared");
   assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
   assert.deepEqual(missing("approved", planned("User-facing outcome: yes.")).length, 2,
-    "which is optional: its absence is no, and only the two required lines are owed here");
+    "which is optional: its absence is no, and only the three required lines are owed here");
 });
 
 /* The record the fold moved here, and the rung that drops it: `approved` carries a row per payload,
@@ -501,14 +501,16 @@ test("approved refuses without the decision record, and each of its three is dro
 /* The way back is the one section a declaration turns on, which is the condition the requirements
    tree puts one behind: either coupling asks for it and neither declared asks for nothing. */
 test("schema coupling and deploy coupling each owe the way back at the write and here", () => {
-  const coupled = (which) => typedPlan({ Declarations: `Screen change: no\nSchema coupling: no\n${which} coupling: yes` });
+  const coupled = (which) => typedPlan({ Declarations: ["Screen change: no", ...["Schema", "Deploy"]
+    .map((one) => `${one} coupling: ${one === which ? "yes" : "no"}`)].join("\n") });
   assert.equal(planFlags("DEPLOY COUPLING: YES").deploy, "yes", "read in any case, as the three before it are");
   assert.equal(planFlags("Deploy coupling: no").deploy, "no", "and a bare no is an answer, not an absent one");
   for (const which of ["Schema", "Deploy"]) {
     assert.deepEqual(missing("approved", planned(coupled(which))),
       ["the plan carries no section `## The way back`"], `${which.toLowerCase()} coupling owes it`);
   }
-  const answered = typedPlan({ Declarations: "Screen change: no\nSchema coupling: yes", "The way back": "Revert the ship commit." });
+  const answered = typedPlan({ Declarations: "Screen change: no\nSchema coupling: yes\nDeploy coupling: no",
+    "The way back": "Revert the ship commit." });
   assert.deepEqual(missing("approved", planned(answered)), [],
     "and a plan that carries it owes nothing");
 });
@@ -545,8 +547,9 @@ test("a declaration a plan quotes inside a code span is not one it makes", () =>
   const quoted = "This reads `Screen change: yes` and `Schema coupling: yes` off whatever plan it is given.";
   assert.deepEqual(planFlags(quoted), { screen: null, schema: null, deploy: null, look: null });
   const said = missing("approved", planned(quoted));
-  assert.equal(said[0], "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
-    + "two decide what the ship steps owe", "such a plan declares nothing, which is what it means");
+  assert.equal(said[0], "the plan does not declare `Screen change: yes|no`, `Schema coupling: yes|no` or `Deploy coupling: yes|no`, "
+    + "each deciding what the plan and the ship steps owe",
+    "such a plan declares nothing, which is what it means");
   assert.match(said[1], /^the plan is untyped/u, "and carrying no section is a second thing it owes");
   const landed = mark("merged to master at c8c3550");
   const verdicts = [1, 2].map((number) =>

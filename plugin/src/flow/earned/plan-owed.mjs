@@ -1,27 +1,18 @@
 /* Every rule here is asked a second time, of the stored plan rather than the file, and over the
    criteria field the write cannot see: a plan that arrived by any route answers to the same shape,
    and a number it cites is weighed against the criteria only the issue holds. */
-import { criteriaUncovered, declaredAs, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+import { criteriaUncovered, declarationLine, declarationsMissing, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 
-/* The two lines the ship steps read. Each missing one is named on its own, so a plan that declares
-   one is never told it declares neither (ISS-312). */
-const REQUIRED = ["screen", "schema"];
-const labelOf = (name) => `${name[0].toUpperCase()}${name.slice(1)}`;
-const asLine = (name) => `\`${labelOf(name)}: yes|no\``;
-
+/* Which lines are owed is the table's, read by the write as well, and every missing one is named at
+   once: a plan answering some is told which it lacks rather than that it declares none (ISS-312,
+   ISS-752). */
 const declarationsOwed = (flags, ref) => {
-  const missing = REQUIRED.filter((key) => !flags[key]);
+  const missing = declarationsMissing(flags).map((key) => `\`${declarationLine(key)}\``);
   if (!missing.length) return [];
-  if (missing.length === REQUIRED.length) {
-    return [need(
-      `the plan declares neither ${declaredAs(REQUIRED).map(asLine).join(" nor ")}, and the two decide what the ship steps owe`,
-      `forge record plan ${ref} <plan.md>, with both lines in it`,
-    )];
-  }
-  const [held] = declaredAs(REQUIRED.filter((key) => flags[key]));
+  const listed = missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}`;
   return [need(
-    `the plan declares \`${labelOf(held)}\` but not ${asLine(declaredAs(missing)[0])}, and the two decide what the ship steps owe`,
-    `forge record plan ${ref} <plan.md>, with that line in it`,
+    `the plan does not declare ${listed}, ${missing.length === 1 ? "which decides" : "each deciding"} what the plan and the ship steps owe`,
+    `forge record plan ${ref} <plan.md>, with ${missing.length === 1 ? "that line" : "those lines"} under \`## Declarations\``,
   )];
 };
 

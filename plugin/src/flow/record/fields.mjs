@@ -5,7 +5,7 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, WITNESSED, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+import { SECTIONS, WITNESSED, declarationLine, declarationsMissing, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 import { compoundCriteria } from "../../prose.mjs";
 import { flowPinned, requiresOf, screensOf } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
@@ -148,6 +148,14 @@ const planChecked = (plan) => {
         return `  ## ${name}${by.length ? ` — the plan declares ${by.join(" and ")}` : ""}`;
       }),
       "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
+    ].join("\n"));
+  }
+  const unanswered = declarationsMissing(declared);
+  if (unanswered.length) {
+    refuse([
+      `The plan leaves ${unanswered.length === 1 ? "a declaration" : `${unanswered.length} declarations`} it owes unanswered, so nothing was written:`,
+      ...unanswered.map((key) => `  ${declarationLine(key)}`),
+      "Write each under `## Declarations`: what each says decides what the plan and the ship steps owe.",
     ].join("\n"));
   }
   const flow = flowPinned().value;

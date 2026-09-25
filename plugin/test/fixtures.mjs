@@ -13,13 +13,13 @@ import { madeIn } from "../../tools/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 const PLAN_BODY = {
-  Declarations: "Screen change: no\nSchema coupling: no",
+  Declarations: "Screen change: no\nSchema coupling: no\nDeploy coupling: no",
   "Witnessed on screen": "none — nothing this change moves is a thing a person could look at.",
   Steps: "1. The one step — criteria 1, 2",
 };
 
-/** A typed plan, built off the table so it cannot drift: every section but the way back, both
- *  declarations, one step citing two criteria. `null` drops a section, a string replaces its body. */
+/** A typed plan, built off the table so it cannot drift: every section but the way back, the
+ *  three required declarations, one step citing two criteria. `null` drops a section, a string replaces its body. */
 export const typedPlan = (over = {}) => {
   const held = { ...PLAN_BODY, ...over };
   return PLAN_SECTIONS
