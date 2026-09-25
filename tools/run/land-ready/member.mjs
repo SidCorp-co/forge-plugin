@@ -5,7 +5,7 @@ import { stop, Stop } from "../../checkout.mjs";
 import { shortly } from "../install.mjs";
 import { releaseReadings } from "../release/readings.mjs";
 import { stillReads } from "./candidate.mjs";
-import { movedBetween } from "../../../plugin/src/git/moved.mjs";
+import { changeMoved } from "../landing.mjs";
 import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
@@ -172,9 +172,11 @@ export const markStep = async (one) => {
       /* git's reading of the judged head against the candidate the change landed as, which is what the
          clause says, rather than the paths the reconcile read: beside a judged head that is that
          candidate, those stood down the verdicts the builder took there (ISS-1362). The release's own
-         version commit above the candidate is no movement of the change. */
+         version commit above the candidate is no movement of the change, and neither is a release's
+         below it: a path the base moved only in those fields is the chain's to carry and not the
+         verdicts' to answer for, so the clause reads it as the chain did (ISS-2516). */
       const over = landing.candidate ?? landed;
-      const moved = movedBetween(root, judged, over, landing.files)
+      const moved = changeMoved(root, judged, over, landing.files)?.moved
         ?? stop(`git in ${root} could not diff ${shortly(judged)} against ${shortly(over)}, so the `
           + `mark's \`landing moved\` has no reading and ${key} is not marked.`);
       const named = await asked(() => namedFor(documentId, comments ?? []));

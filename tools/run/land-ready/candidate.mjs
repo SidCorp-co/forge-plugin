@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import { git, gitOut, loud, REMOTE, stop } from "../../checkout.mjs";
 import { LINKED, remoteHeadOf, shortly } from "../install.mjs";
-import { movedBetween } from "../../../plugin/src/git/moved.mjs";
+import { changeMoved } from "../landing.mjs";
 
 export const remoteHead = (tree, base) => {
   const held = remoteHeadOf(tree, base);
@@ -60,7 +60,24 @@ export const linked = (tree, tip, head) => {
 
 /* The mark's own reading. A git that cannot answer reads here as nothing moved, as it always has: each
    caller built or verified both commits a step earlier. */
-export const movedBy = (tree, judged, candidate, files) => movedBetween(tree, judged, candidate, files) ?? [];
+/* Said once per pair and path: the chain asks the same pair twice where no branch was held before it. */
+const told = new Set();
+
+/** What moved of a change's paths, less what only a release's version fields moved, which the
+ *  landing carries and says it carried: a release between a judgement and its landing rewrites no
+ *  line a builder wrote, and handing the branch back for it cost a turn per release (ISS-2516). */
+export const movedBy = (tree, judged, candidate, files) => {
+  const read = changeMoved(tree, judged, candidate, files);
+  if (!read) return [];
+  const fresh = read.release.filter((path) => !told.has(`${judged} ${candidate} ${path}`));
+  for (const path of fresh) told.add(`${judged} ${candidate} ${path}`);
+  if (fresh.length) {
+    console.log(`  ${fresh.join(", ")} moved between ${shortly(judged)} and ${shortly(candidate)} only in `
+      + `the version fields a release writes, so the landing takes that as the release's and not as a `
+      + `move of the change`);
+  }
+  return read.moved;
+};
 
 const cleanly = (tree, pin, head) => {
   const merged = mergedTree(tree, pin, head);

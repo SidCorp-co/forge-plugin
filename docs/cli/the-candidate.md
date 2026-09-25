@@ -48,6 +48,15 @@ rebuilds. One only a sibling moved leaves the set owing nobody anything and land
 that sibling is the base, and its builder is asked in the ordinary way. A conflict against the pin
 parks the issue, a park being a claim about the base; against a sibling it only drops it.
 
+A path the pin moved only in the fields a release writes its number into is not moved, for the chain
+or for the mark (ISS-2516). Every release rewrites them, so a change editing one of those files could
+land only where no release fell between its judgement and its landing, and on a base that releases
+every few minutes it met one nearly every time, with a builder's turn spent reading a number it never
+wrote. The fields are read off the one table the version step stages its files from, so the reading is
+the release's own shape and never a list of names. A move anywhere else in the file, a file that no
+longer parses, or a formatting change beside the number is still a move. The gate judges the candidate
+either way, and the landing says which paths it took as the release's.
+
 **A set the gate refuses is searched rather than landed one member at a time** (ISS-2480, reversing
 the rule that no subset is searched for). Landing each member alone paid a whole gate and a release
 per member for one member's fault, and the gate already wrote what the search needs: which step
