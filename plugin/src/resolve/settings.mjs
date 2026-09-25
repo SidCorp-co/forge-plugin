@@ -489,6 +489,16 @@ export const LANDING_ROUTES = ["after-merge", "before-merge"];
 export const landingScope = once(() =>
   chosen(forgeJson().parsed?.landing, LANDING_ROUTES, null, { absent: null }));
 
+export const RED_BATCH_KEY = "redBatch";
+export const RED_BATCHES = ["attribute-then-split", "one-by-one"];
+
+/** What a landing does with a set its combined gate refused: find the members at fault by what the
+ *  failing cases read and by halves of the rest, landing the others as one candidate, or land every
+ *  member alone as before ISS-2480. The PROJECT's, beside `landing` and `ship`, which describe the
+ *  same landing; the first is the default because a red batch then costs a gate per round rather
+ *  than one per member. */
+export const redBatchScope = once(() => chosen(forgeJson().parsed?.redBatch, RED_BATCHES, RED_BATCHES[0]));
+
 export const SHIP_MODES = ["self", "ready"];
 
 /** Whether a run lands its own change or stops at a pushed branch and a landing checkpoint. The

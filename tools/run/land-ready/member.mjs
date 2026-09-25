@@ -61,6 +61,16 @@ export const voidedAt = async (root, member, pin) => {
   return kept;
 };
 
+/** A member's reading moved to a candidate this landing built after the one it was reconciled at:
+ *  what was taken over the old one is void, and the reading is taken again at the new one. Two saves
+ *  for the same reason `voidedAt` takes two. Returns what the void took with it, said. */
+export const reconciledAt = async (member, candidate, pin) => {
+  const said = await voidSaid(member.documentId, member.landing);
+  await saveOn(member, landingVoided(pin));
+  await saveOn(member, { state: LANDING_RECONCILED, candidate, reconciled: candidate });
+  return said;
+};
+
 export const releaseOf = (at) => at.release ?? at.members[0].landing.release;
 
 export const intendedOf = (at) => at.intended ?? at.members[0].landing.intended;

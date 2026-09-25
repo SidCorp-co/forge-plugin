@@ -18,23 +18,36 @@ export const isFile = (data) => typeof data.file === "string" && resolve(data.na
 const jsonLines = (at) =>
   readFileSync(at, "utf8").trim().split("\n").filter(Boolean).map((one) => JSON.parse(one));
 
+/* What a failure said of itself, for a landing to read the paths it names (ISS-2480): capped, since a
+   case can fail on a whole document quoted into its message and the record is one line per case. */
+const SAID_CAP = 600;
+const messageOf = (data) => {
+  const message = data.details?.error?.cause?.message ?? data.details?.error?.message;
+  return typeof message === "string" && message.length > 0 ? [message.slice(0, SAID_CAP)] : [];
+};
+
 /** The nesting-0 failures, because a pattern naming a nested leaf alone selects nothing: the case a
  *  re-run can name is the outermost test, which node reports failing too. The leaves under it are
  *  kept per file so the line can say what the selected unit actually contains. */
 export default async function* failedCases(source) {
   const failed = [];
   const inside = new Map();
+  const saying = new Map();
   let passed = 0;
   for await (const { type, data } of source) {
     if (type === "test:pass" && data.nesting === 0 && !isFile(data)) passed += 1;
     if (type !== "test:fail") continue;
     const deeper = inside.get(data.file) ?? [];
-    if (data.nesting > 0) inside.set(data.file, [...deeper, data.name]);
-    else {
+    const said = [...(saying.get(data.file) ?? []), ...messageOf(data)];
+    if (data.nesting > 0) {
+      inside.set(data.file, [...deeper, data.name]);
+      saying.set(data.file, said);
+    } else {
       failed.push({
-        file: relative(process.cwd(), data.file), name: data.name, whole: isFile(data), inside: deeper,
+        file: relative(process.cwd(), data.file), name: data.name, whole: isFile(data), inside: deeper, said,
       });
       inside.set(data.file, []);
+      saying.set(data.file, []);
     }
   }
   const at = process.env[CASES_ENV];

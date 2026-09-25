@@ -1,7 +1,7 @@
 /* The branches a landing is given taken as one candidate: what one gate, one version and one push
    leave on each issue, and the four outcomes a set has that a single branch has not — a member the
    base moved handed back while the others land, a member a sibling moved landed after them, a
-   combination the gate refuses landed one at a time, and a reading whose set is no longer this one
+   combination the gate refuses handed back together, and a reading whose set is no longer this one
    voided. Every refusal is read for what it names, because a set that stopped for the wrong reason
    looks exactly like one that stopped for the right one (ISS-722). */
 import assert from "node:assert/strict";
@@ -104,47 +104,39 @@ test("each member of that set takes its own mark and names no other member on it
   assert.deepEqual(strayWrites(), [], `and the set is inside the landing's own writes:\n${said}`);
 });
 
-/* AC-05-10-7: green apart and red together is a fact about the pair, so no subset is searched for
-   and neither branch is named as the cause. The one landed is the one the gate passed first. */
-test("a combination the gate refuses lands one branch and refuses the other against the new base", async () => {
+/* AC-05-10-7: green apart and red together is a fact about the pair. Nothing the gate wrote names
+   either branch, so the pair is halved; each half green alone, the two go back together, each told
+   of the other, and neither is blamed alone (ISS-2480). */
+test("a combination the gate refuses hands both branches back together, each naming the other", async () => {
   const { at, work, head, next, base } = world({ base: "other", second: true, gate: PAIRED_GATE });
+  const before = remote(at);
   seeded({ landing: ready(head, base), next: beside(next, base) });
   forgetGateRuns();
   redTogether();
   const said = await ran([KEY, NEXT_KEY], work);
-  assert.match(said, /are green apart and red together/u, said);
-  assert.match(said, /No subset is searched for/u, said);
+  assert.deepEqual(gateRuns(), ["red", "green", "green"],
+    `one run for the candidate and one for each half:\n${said}`);
+  for (const [key, other, uuid] of [[KEY, NEXT_KEY, undefined], [NEXT_KEY, KEY, NEXT_UUID]]) {
+    assert.equal(landing(uuid).state, "head-owed", said);
+    assert.match(said, new RegExp(`${key} goes back to the run that built it: red at a step no verdict of it names `
+      + `together with ${other} and green without them`, "u"), said);
+  }
   assert.doesNotMatch(said, new RegExp(`${NEXT_BRANCH} (is the|broke|failed)`, "u"),
     `neither branch is blamed for the combination:\n${said}`);
-  assert.deepEqual(gateRuns(), ["red", "green", "red"],
-    `one run for the candidate and one for each branch, and no search:\n${said}`);
-  const landed = remote(at);
-  assert.ok(holds(work, landed, head), `the first branch landed:\n${said}`);
-  assert.ok(!holds(work, landed, next), `and the second did not:\n${said}`);
-  assert.equal(landing().state, "records-owed", said);
-  assert.equal(marks(NEXT_UUID).length, 0, `nothing of it is marked:\n${said}`);
-  /* Refused where its own gate ran: the pin under it is the base the first branch landed on, and
-     what it is reconciled at is that candidate rather than the combination it was read at. */
-  assert.equal(landing(NEXT_UUID).pinned, landed, `it was gated against the new base:\n${said}`);
-  const chain = /candidate ([0-9a-f]{7}) over 2 file/u.exec(said)?.[1];
-  assert.ok(chain, said);
-  assert.ok(!landing(NEXT_UUID).reconciled.startsWith(chain),
-    `its reading at the combination is void:\n${said}`);
-  assert.equal(landing(NEXT_UUID).reconciled, landing(NEXT_UUID).candidate, said);
-  /* Red alone is that branch's own fault, so the turn is its builder's to answer with a new head. */
-  assert.equal(landing(NEXT_UUID).state, "head-owed", said);
-  assert.match(said, /stopped at step 4 \(the gate over the candidate\)/u,
-    `with the failing step named:\n${said}`);
+  assert.equal(remote(at), before, `nothing of the pair landed:\n${said}`);
+  assert.equal(marks(NEXT_UUID).length, 0, said);
+  assert.match(said, /red batch: split, 1 round\(s\), 3 gate\(s\) spent/u, said);
 });
 
 test("the bound on the gate runs a set may spend is named before the first of them is spent", async () => {
   const { work, head, next, base } = world({ base: "other", second: true });
   seeded({ landing: ready(head, base), next: beside(next, base) });
   const said = await ran([KEY, NEXT_KEY], work);
-  const bound = said.indexOf("3 gate run(s) at most");
+  const bound = said.indexOf("one gate run for the candidate, which is all a green set costs");
   assert.ok(bound > 0, `the bound is printed:\n${said}`);
   assert.ok(bound < said.indexOf("step 4/10"), `before the gate runs:\n${said}`);
-  assert.match(said, /one for the candidate, and one for each branch/u, said);
+  assert.match(said, /where it is red, the members are searched: none spent finding a member every failing /u, said);
+  assert.match(said, /two for each halving of the suspects otherwise/u, said);
   assert.match(said, /and one more of any of them where master moves under a pin/u, said);
 });
 

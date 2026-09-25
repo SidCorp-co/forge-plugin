@@ -16,7 +16,7 @@ import {
 } from "./land-ready/candidate.mjs";
 import {
   asked, caughtUp, DEVELOPED, intendedOf, keysOf, markStep, notReconciled, OWED_TO_QA, perMember,
-  JUDGED, releaseOf, saveOn, statusStep, viewOf, voidedAt, voidSaid,
+  JUDGED, reconciledAt, releaseOf, saveOn, statusStep, viewOf, voidedAt, voidSaid,
 } from "./land-ready/member.mjs";
 import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
@@ -28,13 +28,13 @@ import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_HEAD_OWED, LANDING_JUDGED,
   LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE,
-  landingOf, landingVoided,
+  landingOf,
 } from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
-import { gateStep, handsBack } from "./land-ready/gate.mjs";
+import { boundSaid, gateStep, handsBack, strategyRefused } from "./land-ready/gate.mjs";
 import { takenBack } from "./land-ready/taken-back.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
@@ -211,7 +211,7 @@ const chainStep = async (one) => {
   /* A plain loop from here, where the two above drop a member and go on: the candidate holds this
      member's head already, so a drop now would ship its change with nothing recorded of it. */
   for (const member of at.members) {
-    const { key, documentId, landing } = member;
+    const { key, landing } = member;
     if (landing.state === LANDING_CANDIDATE) {
       await saveOn(member, { state: LANDING_RECONCILED, candidate: at.candidate, reconciled: at.candidate });
       continue;
@@ -221,12 +221,11 @@ const chainStep = async (one) => {
        none of this landing's to write over, and the landing's own is void — the membership of the
        set is what moved under it — and made again below, as a moved pin's is. */
     if (landing.moved) stop(notReconciled(key, landing, at.candidate));
-    const said = await voidSaid(documentId, landing);
-    console.log(`  ${key} was reconciled at ${shortly(landing.reconciled)} and this landing built `
+    const was = landing.reconciled;
+    const said = await reconciledAt(member, at.candidate, at.pin);
+    console.log(`  ${key} was reconciled at ${shortly(was)} and this landing built `
       + `${shortly(at.candidate)}: the set that reading was taken in is not this one, so it is `
       + `void.${said}`);
-    await saveOn(member, landingVoided(at.pin));
-    await saveOn(member, { state: LANDING_RECONCILED, candidate: at.candidate, reconciled: at.candidate });
   }
 };
 
@@ -500,6 +499,7 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `each candidate in a tree of its own and touches no run's: land from ${ctx.root}.`);
   }
   const ms = waitMs(flags);
+  strategyRefused();
   /* Read once and carried: a project answering neither line is said, never defaulted. A null is not refused — it is both a failed read and a project holding no config, and the second must still land, so a failed read downgrades an independent judge to the builder (ISS-699 owns that conflation). */
   const policy = await asked(() => releasePolicy());
   const route = landingRoute(policy, landingScope()).value;
@@ -548,9 +548,7 @@ export const landReady = async ({ flags, words }, ctx) => {
   let over = [];
   if (set.length) {
     console.log(`\n=== ${set.map((one) => one.key).join(" ")}, as one candidate`);
-    console.log(`  ${set.length + 1} gate run(s) at most: one for the candidate, and one for each `
-      + `branch where it is red and they are landed alone — and one more of any of them where `
-      + `${ctx.base} moves under a pin`);
+    console.log(boundSaid(set.length, ctx.base));
     over = await landSet(set, full, 0);
   } else if (judged && rest.length > 1) {
     console.log(NO_SET(route));

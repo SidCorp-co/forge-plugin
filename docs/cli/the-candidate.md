@@ -48,9 +48,19 @@ rebuilds. One only a sibling moved leaves the set owing nobody anything and land
 that sibling is the base, and its builder is asked in the ordinary way. A conflict against the pin
 parks the issue, a park being a claim about the base; against a sibling it only drops it.
 
-Two changes green apart and red together are a fact about the pair, so no subset is searched for —
-what makes two changes incompatible is not in the paths they touch, and a landing that parked
-whichever branch came second would park an innocent one half the time. Every reading taken at that
-candidate is void and the branches are landed one at a time against the base as it moves, so the one
-that fails there fails on its own account.
-The runs that bounds is one for the candidate and one per branch, named before the first is spent.
+**A set the gate refuses is searched rather than landed one member at a time** (ISS-2480, reversing
+the rule that no subset is searched for). Landing each member alone paid a whole gate and a release
+per member for one member's fault, and the gate already wrote what the search needs: which step
+failed, which cases, and what each case's file read in that very run. So a member goes back to its
+builder only on evidence — every failing case reaching that member's own paths and no other's, or a
+subset gated as its own candidate coming back red — and never on a guess. A case the gate cannot
+account for, whose read record is unfinished or which reaches nobody or several, is not a guess to
+make: it sends the suspects to halving, each half a candidate on the same pin, which finds one bad
+member among n in about log2(n) gates. What makes two changes incompatible is sometimes in no path
+either touches, so a half red while its own halves are each green is a combination, handed back
+together with each builder told of the others — neither blamed alone, and neither landed over the
+other's head. The members left land as one candidate and one release, and the gate already spent on
+their tree is not spent again. A place declined anywhere in the search stops the landing with every
+checkpoint where it was, since the hand-backs are written only once every gate has answered.
+What a set may spend is said before its first gate. `redBatch: one-by-one` in the project's record
+keeps the old landing; `land-ready -h` names both.

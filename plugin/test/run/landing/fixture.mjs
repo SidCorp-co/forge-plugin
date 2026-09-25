@@ -88,6 +88,49 @@ const PAIRED = [
 ].join("\n");
 export const PAIRED_GATE = "node tools/paired.mjs";
 
+/** A gate that says why it is red the way the real one does: a verdict record under the room's own
+ *  key naming the failing step, its cases and what each read, and the step's section of the output
+ *  naming paths. The rules are a case's own, first match wins, each over which of the three changes
+ *  the gated tree holds; one line per run, JSON, with when it started and ended (ISS-2480). */
+const JUDGED_RULES = join(ROOM, "judged-rules.json");
+const JUDGED_RUNS = join(ROOM, "judged-runs.txt");
+export const judgedRuns = () => (existsSync(JUDGED_RUNS) ? readFileSync(JUDGED_RUNS, "utf8") : "")
+  .split("\n").filter(Boolean).map((one) => JSON.parse(one));
+export const judging = (rules, { sleepMs = 0 } = {}) => {
+  rmSync(JUDGED_RUNS, { force: true });
+  writeFileSync(JUDGED_RULES, JSON.stringify({ rules, sleepMs }));
+};
+const JUDGED = [
+  'import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";',
+  'import { createHash } from "node:crypto";',
+  'import { execFileSync } from "node:child_process";',
+  'import { basename, join } from "node:path";',
+  'const held = (path) => (existsSync(path) ? readFileSync(path, "utf8") : "");',
+  `const marks = [["one", ${JSON.stringify(OWNED)}, "as the change wrote it"], `
+    + `["two", ${JSON.stringify(NEXT_OWNED)}, "the second change"], ["three", ${JSON.stringify(THIRD_OWNED)}, "the third change"]];`,
+  "const present = marks.filter(([, path, mark]) => held(path).includes(mark)).map(([name]) => name);",
+  `const { rules, sleepMs } = JSON.parse(held(${JSON.stringify(JUDGED_RULES)}) || '{"rules":[],"sleepMs":0}');`,
+  "const rule = rules.find((one) => one.when.every((name) => present.includes(name))",
+  "  && (!one.exact || present.length === one.when.length));",
+  "const started = Date.now();",
+  "await new Promise((done) => setTimeout(done, sleepMs));",
+  `appendFileSync(${JSON.stringify(JUDGED_RUNS)}, JSON.stringify({ present, red: Boolean(rule), status: rule?.status ?? 0, started, ended: Date.now(), `
+    + `below: execFileSync("git", ["rev-list", "--first-parent", "HEAD"], { encoding: "utf8" }).split("\\n").filter(Boolean) }) + "\\n");`,
+  "if (!rule) process.exit(0);",
+  "const root = realpathSync(process.cwd());",
+  "if (rule.status !== 75) {",
+  '  const dir = join(execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" }).trim(), "gate-ledger");',
+  '  const key = `${basename(root).replace(/[^\\w.-]+/gu, "-")}.${createHash("sha256").update(root).digest("hex").slice(0, 8)}`;',
+  "  mkdirSync(dir, { recursive: true });",
+  '  const verdict = { tree: root, pid: process.pid, verdict: "failed", code: 1, step: rule.step, ...(rule.cases ? { cases: rule.cases, reads: rule.reads } : {}) };',
+  '  appendFileSync(join(dir, `verdict-${key}`), JSON.stringify(verdict) + "\\n");',
+  '  process.stdout.write(`\\n=== ${rule.step} ===\\n${rule.says ?? ""}\\n`);',
+  "  process.stderr.write(`\\nGate failed: ${rule.step} — the tree judged: ${root}\\n`);",
+  "}",
+  "process.exit(rule.status ?? 1);",
+].join("\n");
+export const JUDGED_GATE = "node tools/judged.mjs";
+
 const CLAUDE = `#!/usr/bin/env node
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -264,7 +307,7 @@ const PACKAGE = {
 /** A checkout of a bare origin, the change on a branch both hold, and the base wherever `base`
  *  puts it. The gate is a script here; the version lifecycle is a real one. */
 export const world = ({
-  base = "still", gate = PACKAGE.scripts.check, second = false, third = false, shared = false,
+  base = "still", gate = PACKAGE.scripts.check, second = false, third = false, shared = false, project = {},
 } = {}) => {
   const at = tempRoom("land-ready-");
   /* Named after the room, not a constant: this machine's record of a project is keyed on the
@@ -280,10 +323,11 @@ export const world = ({
   written(work, "package.json", JSON.stringify({ ...PACKAGE, scripts: { ...PACKAGE.scripts, check: gate } }, null, 2));
   /* This machine's record of the project this checkout belongs to, under the configuration home the
      tracker fixture put on this process and hands every child. */
-  projectRecord(work, process.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
+  projectRecord(work, process.env.XDG_CONFIG_HOME, { slug: "forge-plugin", ...project });
   written(work, join("tools", "sync.mjs"), SYNC);
   written(work, join("tools", "probe.mjs"), PROBE);
   written(work, join("tools", "paired.mjs"), PAIRED);
+  written(work, join("tools", "judged.mjs"), JUDGED);
   written(work, join("plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: PLUGIN, version: "1.0.0" }, null, 2));
   written(work, join(".claude-plugin", "marketplace.json"),
     JSON.stringify({ name: MARKET, plugins: [{ name: PLUGIN, source: "./plugin" }] }));

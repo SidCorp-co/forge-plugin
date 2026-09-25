@@ -26,6 +26,7 @@ import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { argvForTests, DECLARED_READS, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";
+import { failedReads } from "./gates/reads/failed.mjs";
 import { auditEnv, claimsJudged, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom,
   stepEscapes, stepSetFrom } from "./gates/reads/sets.mjs";
 import { ATTRIBUTION_HELP } from "./gates/help/attribution.mjs";
@@ -542,7 +543,7 @@ for (const step of planned) {
         + `${because(step, said, error)} — the tree judged: ${ROOT}`);
       for (const each of said?.tree ?? []) console.error(`  ${each.one.file}  ${each.one.name}`);
       for (const line of ownedLines()) console.error(line);
-      finish(status ?? 1, "failed", { step: step.label });
+      finish(status ?? 1, "failed", { step: step.label, ...(said ? failedReads(readsOut(step.label), ROOT, said.tree) : {}) });
     }
   }
   if (step.tests) forgetRoomRefusal(roomPath(record, step.label, mine));

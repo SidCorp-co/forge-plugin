@@ -129,3 +129,18 @@ export const pushed = (tree, base, pin, what) => {
   if (run.error) stop(`git could not be run: ${run.error.message}. Check the remote is reachable.`);
   return run.status === 0;
 };
+
+/** A candidate over some of a set's heads, in the order given, on the pin, or null where a link
+ *  conflicts: the search's subsets are built exactly as the chain step builds the whole set, so the
+ *  same heads on the same pin are the same commit. */
+export const chainOver = (tree, pin, heads) => {
+  let tip = pin;
+  for (const head of heads) {
+    const link = linked(tree, tip, head);
+    if (link.conflicts.length) return null;
+    tip = link.commit;
+  }
+  return tip;
+};
+
+export const treeOf = (tree, commit) => gitOut(["rev-parse", `${commit}^{tree}`], tree);

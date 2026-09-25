@@ -72,7 +72,8 @@ tested; `landing`, where the merge sits; `lease.workingRe`, what a run working i
 project's trees is running, which is the only thing that separates two agents standing in one tree;
 `ship`, whether a run lands its own change or ends ready for another actor to land it; and
 `release`, whether a change goes out without a person's look. `forge doctor` prints all six with
-their sources, and it is the only surface allowed to.
+their sources, and it is the only surface allowed to. A seventh, `redBatch`, is read by no step of
+the flow and by this repository's landing alone: what a set its combined gate refused is landed as.
 
 **`ship` was the machine's until 2026-09-22 and is the project's now** (ISS-2174). What decided it is
 the line at the top of this page rather than a preference: the right answer differs between two
