@@ -336,12 +336,12 @@ const blocksOf = (kind, argv) => {
 /* One plan over what every block cites: a document three criteria prove goes up once under the one
    name all three carry, so the collision `attachPlan` refuses is never this write citing its own.
    A cut walk is carried as the line `forge attach` says for it, and said only where the uploads go. */
-const citeOnce = (blocks, { held, cut, reference }) => {
+const citeOnce = (blocks, { held, read, cut, reference }) => {
   const refs = [...new Set(blocks.flatMap((one) => one.evidence ?? []))];
   if (!refs.length) return null;
   const plan = attachPlan(refs, held, (ref) => evidenceHeld(ref, held));
   if (plan.refusal) refuse(plan.refusal);
-  plan.said = plan.upload.length ? unreadNames(reference, held.length, cut) : null;
+  plan.said = plan.upload.length ? unreadNames(reference, read, cut) : null;
   const cited = new Map(refs.map((one, at) => [one, plan.cite[at]]));
   for (const one of blocks) one.evidence = one.evidence.map((ref) => cited.get(ref));
   return plan;
@@ -371,8 +371,10 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   answerChecked(kind, reference, body);
   const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
   finderChecked(kind, reference, body, { comments, cut });
-  const held = [...attachmentNames(body, comments), ...planned];
-  const plan = citeOnce(blocks, { held, cut, reference });
+  const onIssue = attachmentNames(body, comments);
+  const held = [...onIssue, ...planned];
+  /* The count is of names read off the issue, as `forge attach` gives it; a rung's earlier kind's pending upload is no name read. */
+  const plan = citeOnce(blocks, { held, read: onIssue.length, cut, reference });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
     /* Every block fills from one record; three copies of a line is reading the write spared. */
   const spoken = new Set();

@@ -161,6 +161,23 @@ test("attach and a record verb print the one warning for the one cut walk, and a
   assert.equal(warned(recorded.stderr), warned(attached.stderr));
 });
 
+/* A rung writing two kinds in one call plans the first kind's upload before the second reads its
+   names; that pending name is no name read off the issue, so the one line said is attach's own. */
+test("a two-kind rung on a cut walk says the one warning attach says, counting no pending upload", async () => {
+  state.walk = "cut";
+  const sent = uploads();
+  const attached = await ask("attach", "issue", "ISS-9", file("attached-before-a-rung.txt"));
+  const rung = await ask("record", "verdict", "ISS-9", "--criterion", "1", "--verdict", "pass",
+    "--commit", COMMIT, "--evidence", file("rung-verdict.txt"),
+    "--also", "verification", "--where", "the installed plugin", "--commit", COMMIT,
+    "--evidence", file("rung-verification.txt"));
+  state.walk = "whole";
+  assert.equal(rung.status, 0, rung.stderr);
+  assert.equal(uploads() - sent, 3, "the attached file and both of the rung's");
+  const lines = rung.stderr.split("\n").filter((line) => line.startsWith("The names already on "));
+  assert.deepEqual(lines, [warned(attached.stderr)], "one line, byte for byte the one attach printed");
+});
+
 /* Said where the uploads go and not where the plan is made: a write refused after the plan never
    sent anything, so a line saying it did would be a lie told on the one call nothing went up. */
 test("a record refused for another reason on a cut walk says nothing was sent and sends nothing", async () => {
