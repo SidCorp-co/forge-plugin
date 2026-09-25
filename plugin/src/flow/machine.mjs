@@ -26,10 +26,22 @@ export const criterionNumber = (value) => {
 /* A trim: the fence is off before a field reaches here, so this goes with its callers (ISS-470). */
 export const unwrap = (text) => String(text ?? "").trim();
 
-/* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-rung-in-text.md). */
+/* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-rung-in-text.md).
+   `required` is which a plan must answer: the write and `approved` both read it here, so a declaration
+   added to this table is enforced by being added to it (ISS-752). A user-facing outcome is the one a
+   plan may leave out, its absence reading `no`, because only a change with such a result has a reason
+   to answer it. */
 const DECLARED = {
-  screen: "screen change", schema: "schema coupling", deploy: "deploy coupling", look: "user-facing outcome",
+  screen: { name: "screen change", required: true },
+  schema: { name: "schema coupling", required: true },
+  deploy: { name: "deploy coupling", required: true },
+  look: { name: "user-facing outcome", required: false },
 };
+const NAMES = Object.values(DECLARED).map((one) => one.name);
+const namesWhere = (required) => Object.values(DECLARED).filter((one) => one.required === required).map((one) => one.name);
+const optional = namesWhere(false);
+const DECLARATIONS_ASK = `each of ${namesWhere(true).join(", ")}, written \`yes\` or \`no\``
+  + (optional.length ? `, and ${optional.join(", ")} the same way where the change has one` : "");
 /* Markup may stand at the joints — a bold label closing after its colon, or before it, or an emphasised
    value — and nowhere else. One pattern, so the reader and the protector below cannot disagree about
    which lines are declarations (ISS-312); the class is markdown.mjs's, never a second spelling. */
@@ -39,7 +51,7 @@ const lineFor = (name) => new RegExp(`${name}${DECLARED_VALUE}`, "giu");
 
 export const planFlags = (plan) => {
   const said = blanked(String(plan ?? ""), SPAN);
-  return Object.fromEntries(Object.entries(DECLARED).map(([key, name]) => {
+  return Object.fromEntries(Object.entries(DECLARED).map(([key, { name }]) => {
     const found = [...said.matchAll(lineFor(name))].map((one) => one[1].toLowerCase());
     return [key, found.includes("yes") ? "yes" : (found[0] ?? null)];
   }));
@@ -66,7 +78,7 @@ export const PLAN_SECTIONS = [
   { name: "Deliberately unchanged", asks: "what this change leaves alone on purpose" },
   { name: "Verified in code", asks: "the one thing read in the source that makes this possible" },
   { name: "Conventions reversed", asks: "which documented convention this reverses, and where the same change rewrites it" },
-  { name: "Declarations", asks: `each of ${Object.values(DECLARED).join(", ")}, written \`yes\` or \`no\`` },
+  { name: "Declarations", asks: DECLARATIONS_ASK },
   { name: WITNESSED, asks: "which criteria only a person at the running product can witness, by number, or `none` and the reading that makes it none", owed: ["screen"], screens: true },
   { name: "Steps", asks: "the ordered steps, each naming the criterion number it serves" },
   { name: "The way back", asks: "what triggers it, the steps, who is told", owed: ["schema", "deploy"] },
@@ -143,7 +155,18 @@ export const sectionsOwed = (plan, flags = {}) => {
     .map((one) => one.name);
 };
 
-export const declaredAs = (keys) => keys.map((key) => DECLARED[key] ?? key);
+export const declaredAs = (keys) => keys.map((key) => DECLARED[key]?.name ?? key);
+
+/** The required declarations a plan leaves unanswered, by key and in the table's order: the one reading
+ *  the write and `approved` share, so a plan one accepts is never one the other refuses for a line. */
+export const declarationsMissing = (flags = {}) =>
+  Object.keys(DECLARED).filter((key) => DECLARED[key].required && !flags[key]);
+
+/** A declaration as the line a plan writes to answer it: `Deploy coupling: yes|no`. */
+export const declarationLine = (key) => {
+  const name = DECLARED[key]?.name ?? key;
+  return `${name[0].toUpperCase()}${name.slice(1)}: yes|no`;
+};
 
 export const sectionOwedBy = (name, flags = {}) =>
   declaredAs((PLAN_SECTIONS.find((one) => one.name === name)?.owed ?? [])
@@ -164,7 +187,7 @@ export const criteriaUncovered = (steps, criteria) => {
 
 const MACHINE = {
   plan: new RegExp(
-    `${HEADING}|(?:${Object.values(DECLARED).join("|")})${DECLARED_VALUE}|${CITED}|${WITNESSED_NONE}`,
+    `${HEADING}|(?:${NAMES.join("|")})${DECLARED_VALUE}|${CITED}|${WITNESSED_NONE}`,
     "gimu",
   ),
 };

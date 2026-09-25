@@ -99,7 +99,7 @@ test("every kind's payload survives the rewrite byte for byte, and reads back un
 test("a status is earned from records that came back through the rewrite, with nothing owed", () => {
   const plan = throughVi(typedPlan());
   const criteria = rewritten("1. The first outcome.\n2. The second outcome.");
-  assert.deepEqual(planFlags(plan), { screen: "no", schema: "no", deploy: null, look: null }, "the declarations are read through it");
+  assert.deepEqual(planFlags(plan), { screen: "no", schema: "no", deploy: "no", look: null }, "the declarations are read through it");
   assert.deepEqual(witnessedOn(plan), { cites: [], none: true }, "and a considered `none` is still the answer it was");
   /* Every shape the reader takes as the answer, through the boundary: what it accepts and what the
      protector holds are one pattern, so a form one of them took alone would come back unanswered. */
