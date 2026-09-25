@@ -146,17 +146,18 @@ export const returningOf = (shell, body = "") => {
     .map((index) => parts[index]);
 };
 
-/* The pattern where the command itself starts, past a subshell's opening: matched anywhere later, a
-   `pgrep` inside `test -z "$(pgrep x)"` would answer for the `test` around it. */
-const leads = (match, command) => match.exec(command.replace(/^[\s({]+/u, ""))?.index === 0;
+/* The pattern where the command itself starts: matched anywhere later, an argument spelled like a
+   command would answer for the command it is an argument of. */
+const leads = (match, command) => match.exec(command.trimStart())?.index === 0;
 
-/* A line that substitutes a command's output has commands of its own inside that output, whose
-   separators this split cannot tell from the line's; so no command of it answers for the line. */
-const SUBSTITUTES = /\$\(|`/u;
+/* A line that groups commands or substitutes one's output has commands inside the group whose
+   separators, and whose guard, this split cannot tell from the line's: `false && (echo; pgrep x)`
+   ran no pgrep. So no command of such a line answers for it. */
+const GROUPS = /[(){}`]/u;
 
 /** The answer row a failed call is counted under, or null where its exit was no command's answer. */
 export const answerOf = (call, table = BUILT_IN_TABLE) => {
-  if (call.name !== "Bash" || !call.error || SUBSTITUTES.test(call.shell)) return null;
+  if (call.name !== "Bash" || !call.error || GROUPS.test(call.shell)) return null;
   const code = exitCodeOf(call.body);
   if (code === null) return null;
   const commands = returningOf(call.shell, call.body);

@@ -49,7 +49,8 @@ test("an exit is the command's answer only where that command certainly ran and 
   assert.equal(answerOf(failed("test -z \"$(printf ''; pgrep -x forge)\"", "Exit code 1\n")), null,
     "nor one a separator inside the substitution sets at the head of a segment");
   assert.equal(answerOf(failed("test -z `pgrep -x forge`", "Exit code 1\n")), null, "and a backtick substitutes the same way");
-  assert.equal(answerOf(failed("(pgrep -x forge)", "Exit code 1\n")), "pgrep, exit 1", "while a subshell's own last command still does");
+  assert.equal(answerOf(failed("false && (echo skipped; pgrep -x forge)", "Exit code 1\n")), null,
+    "a group's guard is not read, so no command inside a group answers for the line");
   assert.equal(answerOf(failed("cd /w && export A=b && pgrep -x forge", "Exit code 1\n")), "pgrep, exit 1",
     "a cd and an export of literal words leave it certain to have run");
   assert.equal(answerOf(failed("cd /gone && pgrep -x forge", "Exit code 1\nbash: line 1: cd: /gone: No such file or directory")), null,
