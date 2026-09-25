@@ -451,6 +451,9 @@ it. Reading is all this product does there.
 - **AC-19-8-141** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a fresh start of a key drops the record an earlier finish of it left"
   WHEN a worktree is cut for an issue key THEN the record an earlier ending of that key's workspace
   left SHALL be removed, so a later removal by hand still reads as a leak.
+- **AC-19-8-142** · Rev: 1 · Proof: tools/test/run/workspace/finish.test.mjs "a finish that cannot write the record of its ending refuses before removing anything"
+  IF the call that ends a workspace cannot write the record of that ending THEN it SHALL refuse
+  before removing anything, since the names that record carries die with the tree.
 
 - **AC-19-8-120** · Rev: 1 · Proof: plugin/test/stats/phases.test.mjs "phase 7 opens on the act the contract asks that project for, and the verification record is one of them"
   WHEN a run's calls are cut into phases THEN the CLI SHALL open the shipping phase on any of the

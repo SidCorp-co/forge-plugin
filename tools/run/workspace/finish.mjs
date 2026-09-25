@@ -211,11 +211,25 @@ const removedVerdict = (at, ended) => {
   return console.log(`  removed  ${at}, the verdict record of a tree that is now gone`);
 };
 
-const recorded = (root, key, ended) => {
+/* Written once before anything goes and once after, because the run id and the ledger's name die
+   with the tree: a record that could not be written first refuses the whole call, and one whose
+   second write fails still says finish began the ending, rather than leaving a hand removal's reading. */
+const begun = (root, key, ended) => {
   const wrote = endedWritten(root, key, ended);
+  if (wrote.at) return true;
+  console.error(`  left     the whole workspace, its scratch with it, because no record of this ending `
+    + `could be written (${wrote.why}), and a second finish would then read this tree's absence as a `
+    + `removal by hand`);
+  console.error(`             clear it: git -C ${root} rev-parse --git-common-dir, and make that directory `
+    + `writable`);
+  return false;
+};
+
+const recorded = (root, key, ended) => {
+  const wrote = endedWritten(root, key, { ...ended, at: new Date().toISOString() });
   if (wrote.at) return console.log(`  recorded ${wrote.at}, which a second finish reads as this ending`);
-  return console.error(`  note     no record of this ending could be written (${wrote.why}), so a `
-    + `second finish will read this tree's absence as a removal by hand`);
+  return console.error(`  note     the record of this ending could not be finished (${wrote.why}), so a `
+    + `second finish reads the one written before the removal: that finish began it at ${ended.began}`);
 };
 
 /* Invoked and not read off the install record: a record names a version, and what a session needs is
@@ -269,6 +283,11 @@ const alreadyGone = (root, key, path) => {
       + `no finish recorded ending it, so this names neither a scratch directory nor a verdict record: `
       + `what a removal by hand left behind is a leak to recover and not a workspace to end`);
   }
+  if (!ended.at) {
+    return console.log(`  gone     finish began ending this workspace at ${ended.began}, under run `
+      + `${ended.run ?? "none minted"} and the ledger's name ${ended.ledger}, and did not record what it `
+      + `removed; this removed nothing, and no removal by hand is read into it`);
+  }
   console.log(`  gone     finish already ended this workspace at ${ended.at}, under run `
     + `${ended.run ?? "none minted"} and the ledger's name ${ended.ledger}, and this removed nothing`);
   for (const one of ended.removed ?? []) console.log(`           it removed ${one}`);
@@ -284,6 +303,22 @@ const closing = (root, failed) => {
   if (!failed) return;
   console.error(failedLine(failed.what, failed.why, failed.retry));
   process.exitCode = REFUSED;
+};
+
+/** The tree, its branch and its verdict record, once the record of the ending is begun; what failed, or nothing. */
+const removedWhole = (root, path, base, read, ended, retry) => {
+  const took = removedScratch(read.scratch, retry);
+  if (took) ended.removed.push(took);
+  loud("git", ["-C", root, "worktree", "remove", path], root,
+    `The scratch directory above is gone and nothing else is — no branch and no verdict record. `
+    + `Read what git said: a second call finds the scratch already gone.\n`
+    + failedLine(`the worktree ${path}`, "git refused it, above", retry));
+  console.log(`  removed  ${path}`);
+  ended.removed.push(`the worktree ${path}`);
+  if (read.branch) removedBranch(root, base, read.branch, ended);
+  const failed = removedVerdict(read.verdict, ended);
+  recorded(root, ended.key, ended);
+  return failed;
 };
 
 export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = gatesHere }) => {
@@ -321,24 +356,18 @@ export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = 
     return;
   }
   const retry = `${runnerIn(root, "run.mjs")} finish ${key}`;
-  const took = removedScratch(read.scratch, retry);
   if (standingIn(path, cwd)) {
+    removedScratch(read.scratch, retry);
     console.log(`  left     ${path}, which this call is standing in: a verb that removes the directory `
       + `its caller stands in leaves that caller nothing to write its last records from.`);
-    console.log(`           End it from the checkout, where nothing stands in it: `
-      + `${runnerIn(root, "run.mjs")} finish ${key}`);
-  } else {
-    loud("git", ["-C", root, "worktree", "remove", path], root,
-      `The scratch directory above is gone and nothing else is — no branch and no verdict record. `
-      + `Read what git said: a second call finds the scratch already gone.\n`
-      + failedLine(`the worktree ${path}`, "git refused it, above", retry));
-    console.log(`  removed  ${path}`);
-    const ended = { key, tree: path, run: whose.held ?? null, ledger: treeKey(path),
-      removed: [...(took ? [took] : []), `the worktree ${path}`], left: [] };
-    if (read.branch) removedBranch(root, base, read.branch, ended);
-    const failed = removedVerdict(read.verdict, ended);
-    recorded(root, key, { ...ended, at: new Date().toISOString() });
-    return closing(root, failed);
+    console.log(`           End it from the checkout, where nothing stands in it: ${retry}`);
+    return closing(root, null);
   }
-  return closing(root, null);
+  const ended = { key, tree: path, run: whose.held ?? null, ledger: treeKey(path),
+    began: new Date().toISOString(), at: null, removed: [], left: [] };
+  if (!begun(root, key, ended)) {
+    process.exitCode = REFUSED;
+    return closing(root, null);
+  }
+  return closing(root, removedWhole(root, path, base, read, ended, retry));
 };

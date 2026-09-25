@@ -288,6 +288,21 @@ test("a tree removed by hand still reads as a leak to recover", () => {
   assert.doesNotMatch(run.stdout, /finish already ended/u, run.stdout);
 });
 
+/* A file where the record's directory belongs: the one place the ending can be written refuses it,
+   whoever runs the case, and the tree and git's own metadata stay writable. */
+test("a finish that cannot write the record of its ending refuses before removing anything", () => {
+  const { work, tree, branch } = started("finish-unrecordable");
+  const scratch = scratchOf(work);
+  writeFileSync(dirname(endedAt(work)), "not a directory\n");
+
+  const run = runIn(work, ["finish", KEY], BARE);
+  assert.equal(run.status, 1, run.stdout + run.stderr);
+  assert.ok(existsSync(tree), "the tree went with no record of its ending written");
+  assert.ok(existsSync(scratch), "the scratch went with no record of the ending written");
+  assert.notEqual(git(work, "rev-parse", "--verify", "--quiet", branch).stdout.trim(), "", run.stderr);
+  assert.match(run.stderr, /no record of this ending could be written/u, run.stderr);
+});
+
 test("a fresh start of a key drops the record an earlier finish of it left", () => {
   const { work, tree } = started("finish-restarted");
   assert.equal(runIn(work, ["finish", KEY], BARE).status, 0);
@@ -319,7 +334,8 @@ test("a removal that fails after the scratch went exits non-zero on the removal 
       const last = run.stderr.trim().split("\n").at(-1);
       assert.equal(last, `  failed   the worktree ${tree} was not removed (git refused it, above); `
         + `retry it with: node ${work}/tools/run.mjs finish ${KEY}`);
-      assert.ok(!existsSync(endedAt(work)), "an ending was recorded for a tree still standing");
+      assert.equal(JSON.parse(readFileSync(endedAt(work), "utf8")).at, null,
+        "an ending was recorded as finished for a tree still standing");
     } finally {
       chmodSync(stuck, 0o755);
     }
