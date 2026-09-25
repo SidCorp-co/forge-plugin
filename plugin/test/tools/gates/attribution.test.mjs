@@ -8,6 +8,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 import { CASES_ENV } from "../../../../tools/gates/reporters/isolation.mjs";
+import { verdictRuns } from "../../../../tools/gates/verdict.mjs";
 import { escaped, fakeTracker, projectRecord } from "../../fixtures.mjs";
 import { COPIED, entryDir, landed, passesFor, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
   ROUTE_ROOTS, run, runsFile, scratch, STAMPED } from "./scratch.mjs";
@@ -23,7 +24,7 @@ const caseFile = (body) => `import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-test("a case of this scratch's own", () => {
+test("a case of this scratch's own", async () => {
 ${body}
 });
 `;
@@ -76,6 +77,30 @@ test("a case that fails however it is run refuses the gate, and the refusal name
     assert.match(said.stderr, new RegExp(escaped(CASE), "u"), said.stderr);
     assert.match(said.stdout, /reproduced alone/u, said.stdout);
     assert.deepEqual(passesFor(work, "test"), [], "a step whose case reproduced was recorded as passed");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* What a landing reads to say whose a red candidate is: the case, and what its file read in the run
+   that refused, on the verdict the gate writes (ISS-2480). */
+const READING_REACHED = `  const { readFileSync } = await import("node:fs");
+  readFileSync("${REACHED}", "utf8");
+  throw new Error("having read what it reached");`;
+
+test("a refused test step's verdict carries the case that reproduced and what its file read in that run", () => {
+  const { at, work } = withCase("attributed-reads-", READING_REACHED);
+  try {
+    const said = run(work);
+    assert.equal(said.status, 1, said.stdout);
+    const verdict = verdictRuns(work).at(-1);
+    assert.equal(verdict.step, "test", JSON.stringify(verdict));
+    assert.deepEqual(verdict.cases.map(({ file, name }) => ({ file, name })), [{ file: CASE, name: CASE_NAME }],
+      JSON.stringify(verdict));
+    assert.ok(verdict.reads[CASE].paths.includes(REACHED),
+      `the path the case read is on the verdict:\n${JSON.stringify(verdict.reads)}`);
+    assert.ok(verdict.reads[CASE].paths.includes(CASE), JSON.stringify(verdict.reads));
+    assert.deepEqual(verdict.cases[0].said, ["having read what it reached"], "and what its failure said");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
