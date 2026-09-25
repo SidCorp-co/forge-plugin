@@ -578,12 +578,14 @@ export const shapeRefusal = ({ gaps }) =>
   (gaps.length ? [SHAPE_HEAD, rendered(gaps)].join("\n\n") : null);
 
 /** Why a filing is refused, as the parts a caller branches on beside the text a person reads: the
- *  key it duplicates, whether the shape refused the body, and whether a route is owed. Reading any
+ *  key it duplicates, whether the shape refused the body, and whether a route is owed. `fresh` is
+ *  `--new`, and `declined` the duplicate it waved through, with `text` null where nothing else refused. Reading any
  *  of those off the text is matching a paragraph written for somebody else. The read is handed in
  *  rather than taken: a body scanned twice for one filing is the reading done twice, and this asks
  *  the tracker what else is open where the `shapeOf` line owes no such read. `routed` is a route the
  *  command named and the body cannot show, `page` a projection already fetched. */
-export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = false, page = null } = {}) => {
+export const filingRefusal = async (filing, { gaps, fix, tokens },
+  { routed = false, page = null, fresh = false } = {}) => {
   const owesRoute = fix && !routed;
   const { live, read } = page ?? await liveTitles();
   /* Searched only where the walk fell short: a whole reading already holds every open issue. */
@@ -596,15 +598,20 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
       + "measured.");
   }
   const same = duplicateOf(filing, wider);
+  /* `--new` is the filer's word that this is an issue of its own, and a split's sibling reads like
+     its parent by construction; so it declines this line and no other, and a hold a reworded title
+     alone clears is gone (ISS-2527). */
+  const declined = fresh ? same : null;
   const out = [...gaps];
-  if (same) {
+  if (same && !fresh) {
     out.unshift(need(
       `${same.where} of this filing, against ${same.key} \`${same.title}\`, overlapping at ${same.score.toFixed(2)}`,
       "one issue per problem",
-      `forge comment ${same.key} <body> --title "<title>"`,
+      `forge comment ${same.key} <body> --title "<title>"; or, for a split of its own, the same `
+        + `forge new with --with ${same.key} --new`,
     ));
   }
-  if (!out.length && !owesRoute) return null;
+  if (!out.length && !owesRoute) return declined ? { text: null, duplicate: null, shaped: false, declined } : null;
   const held = found?.pages[0];
   const routes = owesRoute
     ? fixRoutes(tokens, held
@@ -620,8 +627,9 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
     : SHAPE_HEAD;
   return {
     text: [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n"),
-    duplicate: same?.key ?? null,
+    duplicate: declined ? null : same?.key ?? null,
     shaped: gaps.length > 0,
+    declined,
   };
 };
 

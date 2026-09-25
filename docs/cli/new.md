@@ -16,7 +16,9 @@ title carrying a file path each say nothing about the behaviour after the change
 two things of two different named tokens is the contract's split rule. A duplicate is measured
 against the titles of every issue still open to work, at the threshold this repository's own
 documents are held to: over the four filed that day it found one real duplicate at 0.60 and no false
-positive. "Every" is a walk rather than a page — `docs/cli/the-projections.md` says why one answer
+positive. `--new` declines that hold and no other, and the reply names what it read like: a split's
+sibling reads like its parent by construction, and a hold only a reworded title clears teaches a filer
+to write less like the issue they are splitting. "Every" is a walk rather than a page — `docs/cli/the-projections.md` says why one answer
 is not the backlog. Where that walk comes back whole it is the whole measure, and the tokens the
 body names are searched for only past its ceiling, since a search can name nothing a whole reading
 did not already hold. What neither reaches is said on the way past, because refusing every filing on

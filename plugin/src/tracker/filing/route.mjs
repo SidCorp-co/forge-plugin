@@ -78,17 +78,20 @@ const relatedTo = (keys, rows) => {
 };
 
 const readFiling = async (filing, read,
-  { routed = false, everySection = false, duplicates = true, shape: known = null } = {}) => {
+  { routed = false, fresh = false, everySection = false, duplicates = true, shape: known = null } = {}) => {
   const shape = known ?? shapeOf(filing, { everySection });
   const refused = duplicates
-    ? await filingRefusal(filing, shape, { routed, page: read })
+    ? await filingRefusal(filing, shape, { routed, page: read, fresh })
     : shapeRefusal(shape);
-  if (refused) return { refusal: refusalOf(refused), shape, beside: null };
-  return { refusal: null, shape, beside: await neighboursOf(shape, read.live, settledOf(read.read?.rows)) };
+  const declined = refused?.declined ?? null;
+  if (refused && (typeof refused === "string" || refused.text)) {
+    return { refusal: refusalOf(refused), shape, beside: null, declined };
+  }
+  return { refusal: null, shape, beside: await neighboursOf(shape, read.live, settledOf(read.read?.rows)), declined };
 };
 
 /** One filing, from what a route knows to an issue or a reason there is none. `routed` rides another
- *  issue's branch and owes no fold, `fresh` is `--new` declining one, `everySection` is a route with
+ *  issue's branch and owes no fold, `fresh` is `--new` declining one and the duplicate hold, `everySection` is a route with
  *  no lighter path, `duplicates` off the finder's route, where a refusal loses the finding.
  *  `relations` are edges the caller resolved itself and `relateKeys` ones this resolves softly, and `onBeside` is the caller's own printer, handed the neighbours before the fold acts on them. */
 export const fileIssue = async ({
@@ -117,11 +120,11 @@ export const fileIssue = async ({
   const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
   if (held) return { refusal: refusalOf(held), description, shape: known };
   const seen = page ?? await liveTitles();
-  const { refusal, shape, beside } = await readFiling({ title, body: description, kind }, seen,
-    { routed, everySection, duplicates, shape: known });
+  const { refusal, shape, beside, declined } = await readFiling({ title, body: description, kind }, seen,
+    { routed, fresh, everySection, duplicates, shape: known });
   if (refusal) return { refusal, description, shape };
   const { joined, answer: comment } =
-    await foldFiling(beside, { title, body: description, kind, routed, fresh, soft, onBeside });
+    await foldFiling(beside, { title, body: description, kind, routed, fresh, declined, soft, onBeside });
   if (joined) return { refusal: null, description, shape, joined, answer: comment, ranked };
   const found = relateKeys.length ? relatedTo(relateKeys, seen.read.rows) : { relations: [], unknown: [] };
   const wanted = [...(relations ?? []), ...found.relations];
