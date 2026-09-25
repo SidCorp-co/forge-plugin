@@ -22,9 +22,21 @@ a verb-sentence refusal of its own, is filed under the line it was reading.
 
 Two of the four are read off the call's exit code as well. The verb sentence, because a line an
 *answering* call printed looks exactly like one — `project id: …` opens with a verb too. And the
-`How:` line, which counts only where it is the body's **last** line on a call that failed: a gate's
-denial is the whole result the harness returns and ends there, while a document or a test's output
-quoting one goes on printing past it, which is fourteen of the 516 bodies carrying that line.
+`How:` line, which counts only where it is the **last line the gate wrote** on a call that failed: a
+gate's denial is the whole result the harness returns and ends there, while a document or a test's
+output quoting one goes on printing past it, which is fourteen of the 516 bodies carrying that line.
+The harness appends its own lines after it — that nothing in a several-command call ran, and once a
+session where to file a refusal thought wrong — and those are read past, from the one module the
+harness prints them from. Read as last lines, they turned every full gate refusal into an error.
+
+**A repeat is a refusal too.** The shown ledger cuts a refusal the session has already seen to one
+line naming the route, and that line is an opener of its own; the row is that line, so a rule met
+again is counted under the route rather than beside its first wording. Where the ledger cut it to
+the lines not seen yet instead, no opener is left, and on a failed call the harness's sentence that
+nothing in the command ran is what says a gate refused it. A one-command call cut that way carries
+neither, and is counted with the errors: telling it apart would need the hook log joined to the
+transcript. On 2026-09-24, before either was read, these were 56 of this project's 101 "other
+errors".
 
 The two openers and `<name> refused:` count however the call exited. A run that pipes a refusal
 through `tail`, or ends the line with `; echo EXIT=$?`, met it just the same and the shell answered
@@ -35,9 +47,25 @@ meet is one this listing cannot tell from one that met it; seven of the 813 abov
 refusal written in none of the four shapes — the hook harness running out of time, a missing
 endpoint, a missing project slug — is counted with the other errors rather than dropped.
 
-Those other errors are one line, broken down by the class of the call that exited non-zero. Read as
-refusals they were six of the listing's top ten: a test's failure line, a `grep` that matched
-nothing, a `-h` read whose help text carries the word, an issue body that does.
+Read as refusals, the other errors were six of the listing's top ten: a test's failure line, a `grep`
+that matched nothing, a `-h` read whose help text carries the word, an issue body that does.
+
+**An exit that is the command's answer is not an error.** `pgrep` finding nothing, `grep -q`
+missing, a `timeout` ending the prescribed wait on a pid and `git diff --quiet` all answer with a
+non-zero exit, and counted as errors they were most of the rows a reader was asked to act on. What
+counts as one is a table, exit code to name to pattern, and a project that declares `stats.answers`
+**replaces** the built-in table rather than joining it, as `stats.commands` replaces the built-in
+commands. An exit is attributed to a command only where that command's status is the line's: the
+last command, or one followed only by `&&`-joined `echo`, `true` or `:` of literal words. A `pgrep`
+that found its process, then a test that failed, both answer 1, and nothing in the transcript says
+which did — so that exit stays an error. Answers are counted in a row of their own and ranked
+nowhere.
+
+**An error is keyed on what failed:** its class, its exit code and the first line it printed, with
+paths, hashes, issue keys and numbers taken out, so two failures of one class are two rows and one
+failure met on two days is one row a later reading can follow. The host joins the two streams, so
+that line is the first one printed and not always the error's own. The key's generation rides in
+every reading and daily page as `errorRows`; one carrying none keyed on the class alone.
 
 Two more rows sit beside these and are neither: a compaction and an API error are a run's own
 condition rather than a call this plugin made, refused, or judged — [stats — the

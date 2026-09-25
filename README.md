@@ -190,7 +190,10 @@ gate some other way. So a door named with no command declared for it guards noth
 string, a number and an empty list each declaring nothing, and `forge doctor` prints which named
 door is unarmed, what was written where a value is no command, and the key that arms it. A reading
 keeps the fallback: `forge stats` counts this repository's own spellings where a project declared
-none, a miscounted row in a profile costing what a refused command does not.
+none, a miscounted row in a profile costing what a refused command does not. `stats.answers` is the
+same decision for a failed call: under each exit code, the commands whose exit with it is their
+answer rather than a failure, written one at a time as `stats.answers.<exit code>.<name>=<pattern>`.
+Declared, it replaces the built-in table whole.
 
 `lease.workingRe` is what a run working in one of this project's trees is running. The id a lease
 records names the tree a run was cut in and not the run, so two agents standing in one tree resolve

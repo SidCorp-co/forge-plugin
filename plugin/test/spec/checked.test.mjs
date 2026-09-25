@@ -170,6 +170,9 @@ for (const [typed, renders] of UNWRITABLE) {
   });
 }
 
+/* The plan refusal alone closes on how to quote an example (ISS-446); the reference is what the two are compared on. */
+const QUOTED_LINE = /\nAn identifier inside backticks[^\n]*$/u;
+
 /* Criterion 2 of ISS-462: one reference standing alone, read by both this module's readers over one
    tree. The criterion path wraps it in a criterion and the plan path hands it over as text, which is
    the whole of what separates them, so any difference in what comes back is the two of them
@@ -193,7 +196,8 @@ test("a criterion's opening and a plan's text answer one reference the same way,
   for (const reference of ["AC-01-1-1~1", "AC-01-1-2~1", "UC-01-1", "R-10~1",
     "AC-01-1-1~1111111111111111111111", "AC-01-1-1~1000000000000000000000"]) {
     const { criteria, plan } = JSON.parse(bothReaders(root, reference));
-    assert.equal(criteria, plan, `the two readers disagree about ${reference}`);
+    const answered = plan.replace(QUOTED_LINE, "");
+    assert.equal(criteria, answered, `the two readers disagree about ${reference}`);
   }
 });
 

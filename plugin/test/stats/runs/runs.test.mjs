@@ -9,6 +9,8 @@ import { join } from "node:path";
 
 import { callsIn, shellOf } from "../../../src/stats/corpus/transcripts.mjs";
 import { refusalIn } from "../../../src/stats/corpus/refusals.mjs";
+import { FILES_IT, WHOLE } from "../../../src/refusal.mjs";
+import { held } from "../../../src/shown/ledger.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { unionSeconds } from "../../../src/stats/runs.mjs";
@@ -341,6 +343,12 @@ test("the refusals listing is what this plugin refused, keyed on the line that n
     /* A gate that denies on neither opener is still a gate: the `How:` line it ends on is what says
        so, and the rule is named on the first line because the denial is the whole result. */
     ...bad("f12", 55, "git commit -m x", "Codex has not read what this commit stages.\n\nDo this: consult it.\n\nHow: `forge hooks --how codex-second`"),
+    /* The harness appends its own lines after the `How:` line, and they do not hide it. */
+    ...bad("f14", 56, "git add -A && git commit -m x", `Refused — stage the paths you changed.\n\nHow: \`forge hooks --how bash-guard\`\n\n${WHOLE}\n\n${FILES_IT("feedback")}`),
+    /* The shown ledger's repeat is one line naming the route, relayed under the host's own prefix. */
+    ...bad("f15", 57, "git stash && ls", `PreToolUse:Bash hook error: ${held("bash-guard")} ${WHOLE}`),
+    /* A repeat the ledger cut to the unseen lines keeps no opener; the harness's sentence remains. */
+    ...bad("f16", 58, "cd /w; git checkout -- a.mjs", `Instead: Copy the file aside first.\n${WHOLE}`),
     /* The same line quoted by a document that goes on printing after it is not a refusal met. */
     use("f13", 57, "Bash", { command: "cat plugin/hooks/how/codex-second.md" }),
     result("f13", 58, "How: `forge hooks --how codex-second`\n\nand the page continues past it."),
@@ -374,8 +382,17 @@ test("the refusals listing is what this plugin refused, keyed on the line that n
   has("     1  Codex has not read what this commit stages.");
   hasnt("and the page continues past it.");
 
-  /* The three that refused nothing are counted by class instead, and none of them is listed. */
-  has("other errors    3 non-zero exit(s) refused by no rule of this plugin: read 1, test 1, gate 1");
+  has("     1  Refused — stage the paths you changed.");
+  has(`     1  ${held("bash-guard")}`);
+  hasnt(`${held("bash-guard")} Nothing`);
+  has("     1  Instead: Copy the file aside first.");
+
+  /* The three that refused nothing are listed apart, each under its class and the line it printed. */
+  has("other errors    3 non-zero exit(s) refused by no rule of this plugin and no command's answer");
+  has("other errors, by the class, the exit and the first line printed");
+  has("     1  read\n");
+  has("     1  test: # fail N\n");
+  has("     1  gate: Gate failed: lint\n");
 });
 
 /* The shape is the host's: a record it changes must cost this reading one transcript, said out
@@ -489,4 +506,20 @@ test("a refusal opening on either of bash-guard's openers is marked, whatever th
   assert.equal(refusalIn({ body: `${route}\nEXIT=0`, error: false }), "Refused — stage the paths you changed.");
   assert.equal(refusalIn({ body: "Refused. git add -A stages everything.\nEXIT=0", error: false }),
     "Refused. git add -A stages everything.");
+});
+
+test("a gate's refusal is read past the lines the hook harness appends after its How line", () => {
+  const body = `Codex has not read what this push stages.\n\nHow: \`forge hooks --how codex-owed\`\n\n${WHOLE}\n\n${FILES_IT("feedback")}`;
+  assert.equal(refusalIn({ body, error: true }), "Codex has not read what this push stages.");
+});
+
+test("the shown ledger's one-line repeat is a refusal, keyed on the route it names", () => {
+  const body = `PreToolUse:Bash hook error: ${held("bash-guard")} ${WHOLE}`;
+  assert.equal(refusalIn({ body, error: true }), held("bash-guard"));
+});
+
+test("a repeat the ledger cut to its unseen lines is a refusal by the harness's sentence that nothing ran", () => {
+  assert.equal(refusalIn({ body: `Instead: Copy the file aside first.\n${WHOLE}`, error: true }), "Instead: Copy the file aside first.");
+  assert.equal(refusalIn({ body: "Instead: Copy the file aside first.", error: true }), null,
+    "and with no sentence left there is nothing to read it by");
 });

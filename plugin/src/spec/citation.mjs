@@ -58,9 +58,10 @@ export const unrevisionedIn = (index, ids) => [...new Set(ids
   .filter((one) => one.rev === null && lookup(index, one.id).clause)
   .map((one) => one.id))];
 
-export const citationRefusal = (problems) => (problems.length
+/** `escape` is the caller's closing line: the one reader that skips quoted text says how to quote. */
+export const citationRefusal = (problems, escape = null) => (problems.length
   ? ["This citation does not resolve against this project's requirements tree, so nothing was written:",
-    ...problems.map((one) => `  ${one}`)].join("\n")
+    ...problems.map((one) => `  ${one}`), ...(escape ? [escape] : [])].join("\n")
   : null);
 
 export const revisionSaid = (ids) => {

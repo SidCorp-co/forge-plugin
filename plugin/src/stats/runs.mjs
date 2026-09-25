@@ -17,11 +17,12 @@ import {
 } from "./corpus/classes.mjs";
 import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
 import { TABLE } from "./corpus/generations.mjs";
+import { BUILT_IN_TABLE, ERROR_ROWS, answerOf, answersIn, errorKeyOf } from "./corpus/answers.mjs";
 import { actLines, phase7For } from "./corpus/release.mjs";
 import { FLOW_BRIEF, LANDING, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
-  conditionLines, countIn, declareLines, foldPhases, helpLine, helpOver, listing, perRung,
+  conditionLines, countIn, declareLines, failureLines, foldPhases, helpLine, helpOver, listing, perRung,
   phaseLines, readHeader, readRow, rungLines, shipLine, tokenLines, unrecognisedIn,
 } from "./tables.mjs";
 import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
@@ -168,7 +169,7 @@ const editsIn = (calls) => new Map(EDIT_ROUTES.map((route) => {
   return [route, { calls: sizes.length, sizes }];
 }));
 
-export const runFrom = (path, session, text, classes = undefined) => {
+export const runFrom = (path, session, text, classes = undefined, answers = BUILT_IN_TABLE) => {
   const read = callsIn(text, classes);
   const calls = segmented(read.calls);
   if (!calls.length) return null;
@@ -180,6 +181,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
   const refusals = new Map();
   const forms = new Map();
   const errors = new Map();
+  const answered = new Map();
   const repeats = new Map();
   const guideParts = new Map();
   const helpReads = new Map();
@@ -203,7 +205,11 @@ export const runFrom = (path, session, text, classes = undefined) => {
     if (form) add(forms, form);
     const refusal = refusalIn(call);
     if (refusal) add(refusals, refusal);
-    else if (call.error) add(errors, call.class);
+    else if (call.error) {
+      const answer = answerOf(call, answers);
+      if (answer) add(answered, answer);
+      else add(errors, errorKeyOf(call));
+    }
     if (timedOut(call)) timeouts += 1;
     if (call.wait >= LONG_WAIT_MINUTES * 60) {
       longest.push({ minutes: minutes(call.wait), what: said(call.command || call.name).slice(0, 110) });
@@ -254,6 +260,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
     refusals,
     forms,
     errors,
+    answers: answered,
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
     guideParts,
     helpReads,
@@ -264,8 +271,8 @@ export const runFrom = (path, session, text, classes = undefined) => {
 
 /* The transcript folded, and whether it is an issue-flow run: a transcript that is not one is still
    read for the landings it typed. */
-const flowRun = (path, session, text, classes) => {
-  const run = runFrom(path, session, text, classes);
+const flowRun = (path, session, text, classes, answers) => {
+  const run = runFrom(path, session, text, classes, answers);
   if (!run) return { run: null, flow: false };
   /* Either class a claim carries: a run whose only one is the landing checkpoint is a run. */
   return { run, flow: FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") || run.byClass.has(READY_CLASS) };
@@ -274,7 +281,7 @@ const flowRun = (path, session, text, classes) => {
 /** Every transcript under the derived root, folded. A file that is not an issue-flow run is
  *  counted rather than dropped: a corpus that shrank because the marker changed reads exactly like
  *  a quiet week. */
-export const runsUnder = (root, since, classes = undefined) => {
+export const runsUnder = (root, since, classes = undefined, answers = BUILT_IN_TABLE) => {
   const runs = [];
   const passes = [];
   let skipped = 0;
@@ -291,7 +298,7 @@ export const runsUnder = (root, since, classes = undefined) => {
        that transcript rather than the corpus. What it cost is printed rather than swallowed. */
     let folded = null;
     try {
-      folded = flowRun(path, session, text, classes);
+      folded = flowRun(path, session, text, classes, answers);
     } catch {
       unreadable += 1;
       continue;
@@ -424,6 +431,7 @@ export const profileOf = (runs, declared = null, act = null) => {
        a stored reading standing as a before window is compared row by row only where each of them
        agrees with this one's. */
     table: TABLE,
+    errorRows: ERROR_ROWS,
     declares: declaredSaid(declared),
     /* The answer the release model gave and never its own word, for the reason `ACTS` in
        corpus/release.mjs carries. `releaseSaid` holds only what the key cannot — which word this
@@ -482,6 +490,7 @@ export const profileOf = (runs, declared = null, act = null) => {
     refusals: mergedCounts(runs, (run) => run.refusals),
     forms: mergedCounts(runs, (run) => run.forms),
     errors: mergedCounts(runs, (run) => run.errors),
+    answers: mergedCounts(runs, (run) => run.answers),
     repeats: mergedCounts(runs, (run) => run.repeats),
     guideParts: mergedReads(runs, (run) => run.guideParts),
     helpReads: mergedReads(runs, (run) => run.helpReads),
@@ -511,8 +520,7 @@ const profileLines = (held, all = false) => [
     + `${held.notes.unshipped} in a run that never reached it`,
   ...declareLines(held),
   `timeouts        ${held.timeouts}`,
-  `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
-    + `${held.errors.length ? `: ${held.errors.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
+  ...failureLines(held),
   ...conditionLines(held.condition, held.runs, all),
   ...rungLines(held),
   ...phaseLines(held),
@@ -525,6 +533,8 @@ const profileLines = (held, all = false) => [
     all,
   ),
   ...listing("refusals this plugin wrote, by the line naming the rule", held.refusals,
+    ([line, many]) => `  ${String(many).padStart(4)}  ${line}`, all),
+  ...listing("other errors, by the class, the exit and the first line printed", held.errors,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line}`, all),
   /* Beside the refusals, the two answering one question together: a form is a word a run reached for and got, a refusal one it reached for and did not. */
   ...listing("handled forms performed, by the word typed", held.forms,
@@ -590,7 +600,7 @@ export const printRuns = async (rest) => {
   const declared = declaredIn(directory);
   const act = await phase7For(directory);
   const classes = classesFor(declared, act);
-  const { runs, passes, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classes);
+  const { runs, passes, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classes, answersIn(directory));
   const aside = readingAside({ skipped, outsideWindow, unreadable });
   /* Beside the profile and never in it: the profile is what a reading stores, and it is a figure of
      runs where this one is a figure of every transcript. */

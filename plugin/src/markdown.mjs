@@ -11,16 +11,16 @@ export const TABLE_ROW_PATTERN = `^${MARGIN}\\|(.*)\\|${MARGIN}$`;
 export const TABLE_SEPARATOR_PATTERN = `^${MARGIN}\\|[\\s:|-]+\\|${MARGIN}$`;
 export const MARKUP_PATTERN = "[*`_>[\\]()]";
 /* A shown line is not a claimed line, and an unclosed fence runs on: docs/cli/the-rung-in-text.md. */
-const EXAMPLE_PATTERN = [
-  String.raw`^[ \t]*(?<wall>(?<bar>\x60|~)\k<bar>{2,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>\k<bar>*[ \t]*$|$(?![\s\S]))`,
-  String.raw`^(?: {4}|\t)[^\n]*$`,
-].join("|");
+const FENCE_PATTERN = String.raw`^[ \t]*(?<wall>(?<bar>\x60|~)\k<bar>{2,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>\k<bar>*[ \t]*$|$(?![\s\S]))`;
+const EXAMPLE_PATTERN = [FENCE_PATTERN, String.raw`^(?: {4}|\t)[^\n]*$`].join("|");
 const SPANNED = new RegExp(CODE_SPAN_PATTERN, "gu");
 const MARKUP = new RegExp(MARKUP_PATTERN, "gu");
 const EXAMPLE = new RegExp(EXAMPLE_PATTERN, "gmu");
+const FENCED = new RegExp(FENCE_PATTERN, "gmu");
 export const withoutSpans = (text) => String(text ?? "").replace(SPANNED, " ");
 export const withoutMarkup = (text) => String(text ?? "").replace(MARKUP, "");
 export const withoutExamples = (text) => String(text ?? "").replaceAll(EXAMPLE, "");
+export const withoutFences = (text) => String(text ?? "").replaceAll(FENCED, "");
 export const lineAt = (text, index) => String(text).slice(0, index).split("\n").length;
 /* A string made into a pattern source that matches it literally, for every pattern a caller builds out of text it did not write. */
 const METACHARACTERS = /[.*+?^${}()|[\]\\]/gu;

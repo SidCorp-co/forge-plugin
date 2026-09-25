@@ -17,7 +17,8 @@ const EVALUATOR = "forge stats eval";
    is one call per read past the first. A long wait costs minutes and one call a wait. */
 const entriesOf = (friction) => [
   ...friction.refusals.map((one) => ({ kind: "refusal", met: one.key, runs: one.runs, calls: one.calls, minutes: null })),
-  ...friction.errors.map((one) => ({ kind: "error", met: `a non-zero exit no rule refused, class ${one.key}`,
+  /* An error only: an exit that was the command's answer cost the run nothing it could have saved. */
+  ...friction.errors.map((one) => ({ kind: "error", met: `a non-zero exit no rule refused, ${one.key}`,
     runs: one.runs, calls: one.calls, minutes: null })),
   ...friction.repeats.map((one) => ({ kind: "repeat", met: one.key, runs: one.runs, calls: Math.max(0, one.calls - one.runs), minutes: null })),
   ...friction.guideParts.filter((one) => one.again > 0).map((one) => ({ kind: "guide part", met: one.key, runs: one.again,

@@ -199,6 +199,34 @@ test("friction lists refusals, errors, repeats and long waits with the runs behi
   assert.deepEqual(friction.standDowns, [{ hook: "learning-gate", count: 2, sessions: 2 }]);
 });
 
+/* One more run on the day, holding a command's answer and a failure, beside the fixture's own. */
+const failing = (held, on) => {
+  const stamp = (second) => `${on}T01:00:${String(second).padStart(2, "0")}.000Z`;
+  const call = (id, second, command, body, isError = true) => [
+    { timestamp: stamp(second), message: { role: "assistant", content: [{ type: "tool_use", id, name: "Bash", input: { command } }] } },
+    { timestamp: stamp(second + 1), message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: body, is_error: isError }] } },
+  ];
+  const rows = [{ timestamp: stamp(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-8" } },
+    ...call("f1", 1, "forge claim ISS-8", "claimed", false),
+    ...call("f2", 10, "pgrep -f 'tools/run.mjs ship'", "Exit code 1\n"),
+    ...call("f3", 20, "node --test plugin/test/a.test.mjs", "Exit code 1\n# fail 1")];
+  const store = join(held.room, ".claude", "projects", slugFor(held.checkout), "session-failing", "subagents");
+  mkdirSync(store, { recursive: true });
+  writeFileSync(join(store, "agent-failing.jsonl"), `${rows.map((one) => JSON.stringify(one)).join("\n")}\n`);
+};
+
+test("the day's errors are keyed as stats runs keys them, its answers are listed apart, and no answer is an opportunity", () => {
+  const held = device({ days: [daysAgo(1)] });
+  failing(held, daysAgo(1));
+  const { friction, opportunities } = contentFor(held, daysAgo(1));
+  assert.equal(friction.errorRows, 2);
+  assert.deepEqual(friction.answers, [{ key: "pgrep, exit 1", calls: 1, runs: 1 }]);
+  assert.deepEqual(friction.errors, [{ key: "test · exit 1: # fail N", calls: 1, runs: 1 }]);
+  const met = opportunities.listed.map((one) => one.met);
+  assert.ok(met.includes("a non-zero exit no rule refused, test · exit 1: # fail N"), met.join("\n"));
+  assert.ok(!met.some((one) => one.includes("pgrep")), met.join("\n"));
+});
+
 test("a release reading of the day is listed with its version, commit, time and issues", () => {
   const on = `${daysAgo(1)}T12:00:00.000Z`;
   const held = device({ days: [daysAgo(1)], marks: [{ kind: "releases", version: "3.9.1", head: "abcdef1234567890",
