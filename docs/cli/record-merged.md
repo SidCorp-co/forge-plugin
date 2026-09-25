@@ -42,7 +42,7 @@ without the other.
 | `at <sha>` | `developed`, and every record that reads `--commit` off the mark | which commit landed; a mark naming none earns nothing |
 | `reviewed head <sha>` | `developed` | the head the review judged, so a squash that changed the hash still matches an approving review |
 | `judged head <sha>` | `testing` | the head the verdicts were taken at, which is what lets a verdict stand across the landing |
-| `landing moved <paths>` | `testing` | whether the landing moved a path this change touched; empty is what makes the verdicts stand, and *silence is not empty* |
+| `landing moved <paths>` | `testing` | whether the landing moved a path this change touched, as git reads it; empty is what makes the verdicts stand, and *silence is not empty* |
 | `landing wrote <paths>` | `developed` | what this change itself landed, so a path neither the plan nor a correction names refuses the status |
 
 ## Marks already on the tracker still earn

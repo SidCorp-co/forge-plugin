@@ -5,8 +5,9 @@ import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { git, gitOut, lines, loud, REMOTE, stop } from "../../checkout.mjs";
+import { git, gitOut, loud, REMOTE, stop } from "../../checkout.mjs";
 import { LINKED, remoteHeadOf, shortly } from "../install.mjs";
+import { movedBetween } from "../../../plugin/src/git/moved.mjs";
 
 export const remoteHead = (tree, base) => {
   const held = remoteHeadOf(tree, base);
@@ -57,8 +58,9 @@ export const linked = (tree, tip, head) => {
     : { conflicts: [], commit: candidateOf(tree, merged.tree, tip, head) };
 };
 
-export const movedBy = (tree, judged, candidate, files) =>
-  (files.length ? lines(gitOut(["diff", "--name-only", judged, candidate, "--", ...files], tree)) : []);
+/* The mark's own reading. A git that cannot answer reads here as nothing moved, as it always has: each
+   caller built or verified both commits a step earlier. */
+export const movedBy = (tree, judged, candidate, files) => movedBetween(tree, judged, candidate, files) ?? [];
 
 const cleanly = (tree, pin, head) => {
   const merged = mergedTree(tree, pin, head);

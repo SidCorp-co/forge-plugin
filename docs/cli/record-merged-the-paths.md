@@ -69,14 +69,25 @@ A run following the ship's last step types each flag and the value it printed, w
 a shorter note invented per run, because the printed instruction was refused by the write it asked
 for — is what made the record of a large change whatever its run had time to type.
 
-## Both path clauses are computed at the same step, and neither earlier
+## `landing moved` is git's reading, and the write takes it
 
-Where the landing is a release it writes files of its own on top of the change, so a `landing moved`
-answered before the version commit exists is answered about a landing that has not happened — and
-the ship gave one, six steps early. A run then had one clause computed and one promised, and the
-value it worked out instead, the judged head against the landed one, named the release's own three
-files as the change's. Every verdict fell with them, on every issue (ISS-1896).
+The clause is what lets a verdict at the judged head stand across the landing, so it is not a run's
+to assert. It was: a run whose `--no-ff` merge resolved nothing, and whose merge commit therefore
+carried the judged head's own tree object, listed every path the merge touched and re-owed
+twenty-six verdicts about identical bytes; and the landing task wrote the paths a reconcile had read
+beside a judged head that was the reconciled candidate itself, standing down the verdicts the
+builder took there (ISS-1362).
 
-Both are answered at the one step that knows what landed, which names the commit it measured the
-moved clause above. That naming is the honest half: it measures movement the landing caused and
-proves no verdict current, so a run that committed a fix after judging owes the comparison itself.
+So `forge record merged` reads it: the `--wrote` paths whose bytes differ between `--judged` and
+`--at`, from git in the checkout it runs in. A typed `--moved` that differs is refused with git's
+value, and a checkout that cannot read either commit is refused with the fetch that fixes it. The
+landing task asks the same question of the candidate the change landed as, leaving out the version
+commit a release puts above it.
+
+It reads the change's own paths and not the whole tree. An identical tree reads as nothing moved,
+and so does a landing that moved only a neighbour: what the verdicts judged was the change's paths,
+and the tree around them is what the review and the reconcile read at the landed head.
+
+`landing wrote` is still computed at the one step that knows what landed, and never earlier: where
+the landing is a release it writes files of its own on top of the change, and a clause answered
+before the version commit exists is answered about a landing that has not happened (ISS-1896).

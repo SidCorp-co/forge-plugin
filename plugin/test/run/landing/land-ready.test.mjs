@@ -230,7 +230,9 @@ test("a base that moved a line of the change's own file hands the branch back, r
   assert.equal(landing().state, "records-owed", after);
   assert.notEqual(remote(at), pinned, `the reconciled candidate lands:\n${after}`);
   assert.match(marks()[0].body, new RegExp(`judged head ${escaped(held.candidate)}\\b`, "u"), marks()[0].body);
-  assert.ok(marks()[0].body.includes(`landing moved ${OWNED};`), marks()[0].body);
+  /* git's reading of the judged head against the candidate it names, which moved nothing: the paths the
+     reconcile read beside that head stood down the verdicts the builder took there (ISS-1362). */
+  assert.ok(marks()[0].body.includes("landing moved nothing;"), marks()[0].body);
 });
 
 /* Four runs of one wave were each refused at the last record and every refusal was right: the rungs left after the mark are earned by records only the builder can answer, and the checkpoint gave that state to the lander. Watched end to end, through the shipped commands (ISS-923). */
