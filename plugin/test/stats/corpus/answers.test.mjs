@@ -42,6 +42,10 @@ test("an exit is the command's answer only where that command certainly ran and 
     "a cd and an export of literal words leave it certain to have run");
   assert.equal(answerOf(failed("cd /gone && pgrep -x forge", "Exit code 1\nbash: line 1: cd: /gone: No such file or directory")), null,
     "unless the cd says it failed");
+  assert.equal(answerOf(failed("export 1bad=x && pgrep -x forge", "Exit code 1\nbash: line 1: export: `1bad=x': not a valid identifier")), null,
+    "and an export of a name no shell accepts is no prelude");
+  assert.equal(answerOf(failed("export A=b && pgrep -x forge", "Exit code 1\nbash: export: A: readonly variable")), null,
+    "nor one whose failure the body shows");
   assert.equal(answerOf(failed("test -f x || pgrep -x forge", "Exit code 1\n")), "pgrep, exit 1",
     "after `||` a non-zero status means the right side ran");
   assert.equal(answerOf(failed("cat /tmp/gate.log | grep -q '^exit '", "Exit code 1\n")), "grep -q, exit 1",

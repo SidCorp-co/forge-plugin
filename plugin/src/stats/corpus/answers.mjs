@@ -86,10 +86,12 @@ const SEPARATOR = /(&&|\|\||(?<![<>&|])&(?![>&])|\||;|\n)/u;
    no expansion, glob or redirection to go wrong, and these three return 0 whatever words they hold. */
 const INERT = /^(?:echo|true|:)(?:[ \t]+[^\s$`*?[\]<>{}~]+)*$/u;
 
-/* What may stand ahead of a command through `&&` and still leave it certain to have run: a `cd` or an
-   `export` of literal words. Only the `cd` can fail, and a `cd` that failed says so in the body. */
-const PRELUDE = /^(?:cd|export)(?:[ \t]+[^\s$`*?[\]<>{}~]+)*$/u;
-const CD_FAILED = /\bcd: /u;
+/* What may stand ahead of a command through `&&` and still leave it certain to have run: a `cd` of
+   literal words, or an `export` of names a shell accepts given literal values. Either builtin that
+   failed says so in the body under its own name, and then it is no prelude. */
+const LITERAL = "[^\\s$`*?[\\]<>{}~]+";
+const PRELUDE = new RegExp(String.raw`^(?:cd(?:[ \t]+${LITERAL})*|export(?:[ \t]+[A-Za-z_]\w*(?:=${LITERAL})?)+)$`, "u");
+const PRELUDE_FAILED = /\b(?:cd|export): /u;
 
 /* A negated command's status is the opposite of its own, so its exit is never its answer. */
 const NEGATED = /^[\s({]*!/u;
@@ -113,7 +115,7 @@ const ran = (parts, index, body) => {
   let at = index;
   while (at >= 2 && ["|", "&&"].includes(parts[at - 1])) {
     const before = parts[at - 2].trim();
-    if (parts[at - 1] === "&&" && (!PRELUDE.test(before) || (before.startsWith("cd") && CD_FAILED.test(body)))) return false;
+    if (parts[at - 1] === "&&" && (!PRELUDE.test(before) || PRELUDE_FAILED.test(body))) return false;
     at -= 2;
   }
   return true;
