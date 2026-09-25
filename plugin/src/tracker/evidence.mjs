@@ -58,8 +58,9 @@ const sendFile = async (target, targetId, { path, name, digest }, sending) => {
   return write("forge_uploads", asked, undefined, true);
 };
 
-/** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is dropped once scanned, so the peak stays one file, its digest standing in for it. */
-export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {} } = {}) => {
+/** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is dropped once scanned, so the peak stays one file, its digest standing in for it.
+ *  `said` is spoken past the first renewal, the last thing that can refuse before a byte goes up, so a line saying the file is being sent is never printed on a call that sent none. */
+export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {}, said = null } = {}) => {
   if (!declaredFor("forge_uploads", "targets").includes(target)) fail(targetRefusal(target));
   const files = [];
   for (const path of paths) {
@@ -71,6 +72,7 @@ export const uploadAll = async (target, targetId, paths, { renewing, sending = (
   const sent = [];
   for (const file of files) {
     await renewing?.();
+    if (said && file === files[0]) console.error(said);
     const row = await sendFile(target, targetId, file, sending);
     if (row?.refused) fail(uploadRefusal(file.path, row.refused, sent));
     /* The tracker's name: it sanitises, and a verdict cites what a read of the issue holds. */
@@ -169,9 +171,19 @@ export const attachPlan = (refs, names, held) => {
   return plan;
 };
 
+/** What either route that puts a file up says where the comment walk stopped short, and the one place
+ *  that decides it: said and sent, never refused. No name a caller could choose clears a list that
+ *  cannot be read, so a refusal only sent the caller to `forge attach` and the same risk (ISS-447).
+ *  A prefix alone: a thread the tracker called whole has handed over every name it is going to. */
+export const unreadNames = (reference, count, cut) => (cut
+  ? `The names already on ${reference} cannot be read whole. ${cut} ${count} were read here and one `
+    + `behind the cut cannot be seen. ${TWICE} Sending anyway, no name a caller could choose clearing `
+    + `a list that cannot be read: where ${reference} turns out to carry the name twice, attach the `
+    + `file again under a name of its own and cite that.`
+  : null);
+
 /** A bare upload's `refusal` where a base name is already a document on the issue, and its `said`
- *  where the comment page stopped short — said, never refused: `record` cites a URL or a commit
- *  instead, and a verb that only uploads, against a thread the walk could not finish, cannot (ISS-137). */
+ *  where the comment page stopped short (ISS-137). */
 export const uploadRead = (paths, names, { reference, cut }) => {
   const taken = [...names];
   for (const path of paths) {
@@ -185,10 +197,6 @@ export const uploadRead = (paths, names, { reference, cut }) => {
     }
     taken.push(name);
   }
-  if (!cut) return {};
-  return {
-    said: `The names already on ${reference} cannot be read whole. ${cut} ${names.length} were read `
-      + `here and one behind the cut cannot be seen. ${TWICE} Sending anyway, this verb having no `
-      + `citation to make instead: read ${reference} before a record cites the name.`,
-  };
+  const said = unreadNames(reference, names.length, cut);
+  return said ? { said } : {};
 };
