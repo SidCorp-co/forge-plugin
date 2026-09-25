@@ -235,8 +235,8 @@ superseded history and the check simply stops being met.
   that clears it.
 - **AC-05-6-7** · Rev: 1 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "a whole fail standing on a criterion refuses awaiting_release and closed, naming the criterion"
   IF a criterion's latest verdict is a failed one THEN the CLI SHALL refuse `awaiting_release` and
-  `closed` and name that criterion, because a rung past the judging that ignores a fail releases a
-  change its own record says does not work.
+  `closed` as it refuses `testing`, and name that criterion, because a rung past the judging that
+  ignores a fail releases a change its own record says does not work.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 
