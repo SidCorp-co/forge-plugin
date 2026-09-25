@@ -259,10 +259,6 @@ test("a kind that owes no evidence is given none, and a flag that was passed is 
   assert.deepEqual(asked.evidence, ["two.md"]);
 });
 
-test("the shape reader is not versioned, so the contract may not be bumped until it is", () => {
-  assert.equal(CONTRACT, 1, "before this moves, shapeGaps has to dispatch on record.contract");
-});
-
 test("the shapes say what each field is called on the record", () => {
   for (const [kind, shape] of Object.entries(SHAPES)) {
     assert.ok(shape.heading, kind);

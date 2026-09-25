@@ -275,7 +275,7 @@ test("a record read back is measured by the write's own rules, and a future cont
   const unnumbered = tagged("## Verdict\n\n- **Criterion:** the first outcome\n- **Verdict:** pass\n- **Commit:** 43b811e\n- **Evidence:** run.txt\n\n`forge-record: verdict · contract 1`");
   assert.match(shapeGaps("verdict", parse(unnumbered.comments[0].body), ["run.txt"]).join(" "), /which opens with no number/u);
   const ahead = tagged("## Baseline\n\n- **Gate:** npm test\n- **Result:** green\n- **Commit:** 43b811e\n\n`forge-record: baseline · contract 9`");
-  assert.match(missing("in_progress", ahead)[0], /a contract 9 record, and this build reads contract 1/u);
+  assert.match(missing("in_progress", ahead)[0], /a contract 9 record, and this build reads contract 1: `claude plugin update` then restart the session/u);
   /* The stamp is read off the issue at the write and is no flag, so a copy of the shape can carry
      every flag and still not be a park: nothing on it says which status it left. */
   const unstamped = view({ status: "waiting", attachments: ATTACHED }, [
