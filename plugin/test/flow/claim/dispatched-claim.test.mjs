@@ -17,8 +17,7 @@ process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 const AWAY = projectRoom(tempRoom("dispatched-claim-away-"), process.env.XDG_CONFIG_HOME, OWN);
 process.chdir(AWAY);
 
-const { RUN_ID_VAR, runFor, runsFor } = await import("../../../src/resolve/session/run-id.mjs");
-const { mintRunId } = await import("../../../../tools/run/workspace/run-id.mjs");
+const { RUN_ID_VAR, mintRunId, runFor, runsFor } = await import("../../../src/resolve/session/run-id.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "3f5b0a1c-2d4e-4b6a-8c9d-0e1f2a3b4c5d";

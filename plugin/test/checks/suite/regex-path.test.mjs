@@ -12,6 +12,7 @@ import { escaped } from "../../fixtures.mjs";
 
 const TREES = {
   "plugin/test": new URL("../../", import.meta.url).pathname,
+  "tools/test": new URL("../../../../tools/test/", import.meta.url).pathname,
   "packages/code-quality/test": new URL("../../../../packages/code-quality/test/", import.meta.url).pathname,
 };
 
@@ -29,10 +30,11 @@ const files = () => {
 
 const borrowed = (walked) => walked.reduce((all, one) => new Set([...all, ...exportsIn(one.text)]), new Set());
 
-test("the walk reaches both trees, so a clean answer is two clean suites and not an empty selector", () => {
+test("the walk reaches every test tree, so a clean answer is clean suites and not an empty selector", () => {
   const walked = files();
   assert.ok(walked.length > 100, `${walked.length} file(s) walked; the selector matches too little`);
-  for (const rel of ["plugin/test/tracker/evidence.test.mjs", "packages/code-quality/test/fixtures/room.test.js"]) {
+  for (const rel of ["plugin/test/tracker/evidence.test.mjs", "tools/test/gates/scratch.mjs",
+    "packages/code-quality/test/fixtures/room.test.js"]) {
     assert.ok(walked.some((one) => one.rel === rel), `${rel} is not reached`);
   }
 });

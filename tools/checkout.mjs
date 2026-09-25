@@ -58,7 +58,7 @@ export const gitCommonDir = (from) =>
 export const checkoutRoot = (from) =>
   checkoutAt(from)?.repository ?? stop(`${from} is no git checkout, so there is no repository to work in.`);
 
-/** Every read of the remote's branch, spelled out: abbreviated, it is a name a local branch wins, and `plugin/test/run/run-shadowed-ref.test.mjs` is what that costs (ISS-1127). */
+/** Every read of the remote's branch, spelled out: abbreviated, it is a name a local branch wins, and `tools/test/run/run-shadowed-ref.test.mjs` is what that costs (ISS-1127). */
 export const remoteRef = (branch) => `${TRACKING}${branch}`;
 
 /** A commit or a stop: through `gitOut` an unresolvable ref and an empty answer are one value. */
@@ -86,7 +86,7 @@ export const gitFiles = (root) =>
     ]),
   ].sort();
 
-/** The one reading of `status --porcelain`, for both readers of that table: every uncommitted path whole, and null where git would not report a status at all, which is not the same as nothing uncommitted. What each flag is doing here is `plugin/test/tools/gates.test.mjs`, whose two cases fail without them (ISS-1129). */
+/** The one reading of `status --porcelain`, for both readers of that table: every uncommitted path whole, and null where git would not report a status at all, which is not the same as nothing uncommitted. What each flag is doing here is `tools/test/gates.test.mjs`, whose two cases fail without them (ISS-1129). */
 export const uncommittedIn = (root) => {
   const run = git(["status", "--porcelain", "-z", "--no-renames"], root);
   if (run.status !== 0) return null;

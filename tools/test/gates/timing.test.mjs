@@ -1,0 +1,190 @@
+/* `tools/gates/timing.mjs` alone — the whole-run series beside the step records, on a planted file rather than a checkout, every step of a scratch one being `node -e ""` and measuring process startup. The runner's own behaviour is ../gates.test.mjs. */
+import assert from "node:assert/strict";
+import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { CEILING_PERCENTILE, MIN_CEILING_POPULATION, ceilingFromLedger, fileTimesPath, recordRun, runSays,
+  runSeries, wholeGatesRecorded } from "../../gates/timing.mjs";
+import { tempRoom } from "../../../plugin/test/fixtures.mjs";
+
+const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
+
+const planted = (lines) => {
+  const dir = join(tempRoom("said-"), "gate-ledger");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "runs"), lines.length === 0 ? "" : `${lines.join("\n")}\n`);
+  return dir;
+};
+
+const FULL = "2026-01-01T00:00:00.000Z 80s 12/12";
+// A review figure planted beside the runs, so what these cases pin is the arithmetic and not this repository's number.
+const REVIEWED = { seconds: 400, load: 0.2, cores: 8, on: "2025-12-01", issue: "ISS-0" };
+const says = (lines) => runSays(planted(lines), REVIEWED);
+
+test("a figure is compared only with a whole-gate figure, and what is comparable is always named", () => {
+  assert.match(says([]), /no run is recorded/u);
+  assert.match(says([]), /npm run check -- --full/u);
+
+  // The shape this repository produces: scoped ship-gate runs between the full ones, which the newest two *runs* would never subtract across.
+  const apart = says([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]);
+  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 0\.25x the 400s the review of 2025-12-01 measured under load 0\.2 on 8 core\(s\) \(ISS-0\); 1\.25x the 80s before it/u,
+    `two whole-gate figures with a scoped run between them were not subtracted:\n${apart}`);
+
+  const scoped = says([FULL, "2026-01-03T00:00:00.000Z 9s 3/12"]);
+  assert.match(scoped, /^9s over 3 of 12 step\(s\) on 2026-01-03, which is scoped and measures less/u, scoped);
+  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, 0\.20x the 400s the review of 2025-12-01 measured under load 0\.2 on 8 core\(s\) \(ISS-0\); the only whole-gate figure recorded/u,
+    `a scoped run that names no comparable figure leaves the reader to assume one:\n${scoped}`);
+
+  const first = says(["2026-01-04T00:00:00.000Z 9s 3/12"]);
+  assert.match(first, /no run recorded spent the whole table; npm run check -- --full plants a figure/u, first);
+
+  // A table that gained a step is another gate, and subtracting across the two reports the addition as drift, which is what a review would act on.
+  const grown = says([FULL, "2026-01-07T00:00:00.000Z 100s 13/13"]);
+  assert.match(grown, /100s over 13 of 13 step\(s\) on 2026-01-07, 0\.25x the 400s [^;]+; the one before it was 80s over 12 of 12 step\(s\)/u, grown);
+  assert.match(grown, /a table of another size, so nothing is subtracted/u, grown);
+  assert.doesNotMatch(grown, /x the 80s/u, `a 12-step gate was subtracted from a 13-step one:\n${grown}`);
+
+  const sameSize = says([FULL, "2026-01-08T00:00:00.000Z 40s 13/13", "2026-01-09T00:00:00.000Z 50s 13/13"]);
+  assert.match(sameSize, /50s over 13 of 13 step\(s\) on 2026-01-09, 0\.13x the 400s [^;]+; 1\.25x the 40s before it/u,
+    `two figures over the same table were not subtracted:\n${sameSize}`);
+
+  // A gate under a second is the scratch case, and a ratio over it is a division by zero.
+  assert.match(says(["2026-01-05T00:00:00.000Z 0s 12/12", "2026-01-06T00:00:00.000Z 3s 12/12"]),
+    /3s more than the one before it, which took under a second, so there is no ratio/u);
+});
+
+/* The load on a run's line is context; the review figure, said with the load it was measured under, stays
+   in the sentence as a dated anchor whatever the run before it did under load (ISS-736) — and, with only
+   one prior whole run recorded, well short of MIN_CEILING_POPULATION, nothing is said about a ceiling at
+   all: a percentile of one point is a single reading wearing a formula. */
+test("the review figure's own ratio is said even when the run before it was slower under load, and a population this small speaks no ceiling", () => {
+  const review = { seconds: 60, load: 1.1, cores: 6, on: "2026-09-01", issue: "ISS-1" };
+  const said = runSays(planted(["2026-09-08T08:00:00.000Z 100s 14/14 load 9.00/6", "2026-09-08T09:00:00.000Z 90s 14/14 load 0.50/6"]), review);
+  assert.equal(said, "90s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 1.50x the 60s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1); "
+    + "0.90x the 100s before it (its line said load 9.00/6)");
+});
+
+test("a line from before the load clause compares without one", () => {
+  const review = { seconds: 100, load: 1.1, cores: 6, on: "2026-09-01", issue: "ISS-1" };
+  const said = runSays(planted(["2026-09-04T18:05:41.583Z 69s 14/14", "2026-09-08T09:00:00.000Z 80s 14/14 load 0.50/6"]), review);
+  assert.equal(said, "80s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 0.80x the 100s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1); 1.16x the 69s before it");
+});
+
+// A ledger built with MIN_CEILING_POPULATION prior whole runs at one table size, so a ceiling can be spoken of at all.
+const populated = (priorSeconds, newest) => {
+  const lines = priorSeconds.map((seconds, nth) => `2026-02-${String(nth + 1).padStart(2, "0")}T00:00:00.000Z ${seconds}s ${WHOLE}/${WHOLE}`);
+  lines.push(`2026-03-01T00:00:00.000Z ${newest}s ${WHOLE}/${WHOLE}`);
+  return planted(lines);
+};
+
+// Ten values, so MIN_CEILING_POPULATION is met exactly and the 90th percentile interpolates rather than landing on a point.
+const TEN = [100, 110, 120, 130, 140, 150, 160, 170, 180, 190];
+// percentileOf([...TEN], 0.9): index (10-1)*0.9 = 8.1, between the 9th (180) and 10th (190) values, interpolated.
+const TEN_P90 = 181;
+
+test("the ceiling a whole run is judged against is a percentile of the ledger's own same-table population, not a fixed sample", () => {
+  assert.equal(TEN.length, MIN_CEILING_POPULATION, "the fixture is sized to the population floor this pins");
+  const dir = populated(TEN, 200);
+  const ceiling = ceilingFromLedger(runSeries(dir).filter((one) => one.total === one.ran));
+  assert.deepEqual(ceiling, { seconds: TEN_P90, population: MIN_CEILING_POPULATION, through: "2026-02-10T00:00:00.000Z" },
+    "the ceiling is the 90th percentile of the ten prior runs, not REVIEW.seconds * 1.25");
+  // The same population under a review figure an order of magnitude away still names the same ceiling: the two are independent.
+  const farReview = { seconds: 5, load: 1, cores: 1, on: "2020-01-01", issue: "ISS-0" };
+  assert.match(runSays(dir, farReview), new RegExp(`over the ${Math.round(CEILING_PERCENTILE * 100)}th percentile of ${MIN_CEILING_POPULATION} whole run\\(s\\) .* ${TEN_P90}s`, "u"));
+});
+
+test("fewer prior whole runs than the population floor leaves the ceiling unspoken", () => {
+  const short = TEN.slice(0, MIN_CEILING_POPULATION - 1);
+  const dir = populated(short, 100_000);
+  const ceiling = ceilingFromLedger(runSeries(dir).filter((one) => one.total === one.ran));
+  assert.equal(ceiling, null, `${short.length} prior run(s), one short of the floor, named a ceiling`);
+  assert.doesNotMatch(runSays(dir), /percentile/u, "an ordinary run's sentence spoke a ceiling with too small a population behind it");
+});
+
+test("a spoken ceiling names its percentile, its population and the date it was drawn through", () => {
+  const said = runSays(populated(TEN, 200));
+  assert.match(said,
+    new RegExp(`, over the 90th percentile of 10 whole run\\(s\\) this ledger holds on this table through 2026-02-10, ${TEN_P90}s`, "u"),
+    said);
+});
+
+test("a population whose ordinary run sits under the ceiling is silent, and the same population shifted up makes an ordinary run of it speak", () => {
+  // Twenty points so the population's own median is unambiguous and the 90th percentile sits well inside it.
+  const population = Array.from({ length: 20 }, (one, nth) => 90 + nth); // 90..109, median 99.5
+  const ceiling = ceilingFromLedger([...population.map((seconds) => ({ seconds, total: WHOLE })), { seconds: 0, total: WHOLE }]);
+  assert.ok(ceiling.seconds >= 90 && ceiling.seconds <= 109, `the ceiling ${ceiling.seconds}s should sit inside the population it was drawn from, near its top`);
+
+  const ordinary = runSays(populated(population, 100)); // 100 is squarely inside 90..109: an ordinary run of this population
+  assert.doesNotMatch(ordinary, /percentile/u, `an ordinary run of the population it was judged against spoke a ceiling:\n${ordinary}`);
+
+  // The same population, shifted up by 100s: an ordinary run of that shifted regime (200, squarely inside 190..209)
+  // judged against the ceiling drawn from the *unshifted* runs recorded before it.
+  const shifted = runSays(populated(population, 200));
+  assert.match(shifted, /percentile/u, `an ordinary run of a population that has genuinely shifted up stayed silent:\n${shifted}`);
+  assert.match(shifted, new RegExp(`over the 90th percentile of 20 whole run\\(s\\) .* ${ceiling.seconds}s`, "u"), shifted);
+});
+
+test("a line without a load clause and one with it both read as runs, and a recorded run writes what it was given", () => {
+  const dir = planted(["2026-09-04T18:05:41.583Z 69s 12/12", "2026-09-08T09:00:00.000Z 100s 14/14 load 7.25/6"]);
+  recordRun(dir, { seconds: 90, ran: 14, total: 14, load: 1.5, cores: 6 });
+  recordRun(dir, { seconds: 91, ran: 3, total: 14 });
+  const [old, fresh, withLoad, without] = runSeries(dir);
+  assert.deepEqual(old, { at: "2026-09-04T18:05:41.583Z", seconds: 69, ran: 12, total: 12, load: null, cores: null });
+  assert.deepEqual(fresh, { at: "2026-09-08T09:00:00.000Z", seconds: 100, ran: 14, total: 14, load: 7.25, cores: 6 });
+  assert.equal(withLoad.load, 1.5);
+  assert.equal(without.load, null);
+  assert.equal(fileTimesPath("/ledger", "test:tree"), join("/ledger", "test-tree-files"), "the per-file record is named for its step");
+});
+
+// Any trimming reads the file first, and this one is shared, so a stale snapshot renamed over it would drop the figure a release is about to read.
+test("the record is only ever appended, however far past a reader's needs it has grown", () => {
+  const runs = (count) => Array.from({ length: count }, (one, nth) => `2026-01-01T00:00:0${nth % 10}.000Z ${nth}s 12/12`);
+  for (const count of [30, 65]) {
+    const dir = planted(runs(count));
+    recordRun(dir, { seconds: 7, ran: 12, total: 12 });
+    const held = runSeries(dir);
+    assert.equal(held.length, count + 1, `${count} run(s) plus one left ${held.length}: the file was rewritten`);
+    assert.equal(held.at(-1).seconds, 7, "the fresh figure is the last line");
+    assert.equal(held[0].seconds, 0, "the oldest line went, and only a rewrite can drop one");
+  }
+});
+
+// The case above proves the write carries nothing it read; this pins what follows from it, over real processes rather than one module called twice.
+test("eight runs recording at once each leave their figure", () => {
+  const dir = planted([]);
+  const write = `import { recordRun } from "${join(ROOT, "tools", "gates", "timing.mjs")}";
+    recordRun(process.argv[2], { seconds: Number(process.argv[3]), ran: 3, total: 12 });`;
+  const at = join(dir, "write.mjs");
+  writeFileSync(at, write);
+  // Backgrounded and waited for: eight spawnSync calls would run one after another.
+  const together = spawnSync("sh",
+    ["-c", `for n in 1 2 3 4 5 6 7 8; do "${process.execPath}" "${at}" "${dir}" $n & done; wait`],
+    { encoding: "utf8" });
+  assert.equal(together.status, 0, together.stderr);
+  const seconds = runSeries(dir).map((run) => run.seconds).sort((a, b) => a - b);
+  assert.deepEqual(seconds, [1, 2, 3, 4, 5, 6, 7, 8], `8 runs recorded ${seconds.length} figure(s)`);
+});
+
+/* What the gate wait offers a run at its deadline, so the run decides whether one more wait reaches the verdict rather
+   than deciding by polling. Both parities, because a lower-middle observation over an even window reads a box that is
+   half fast and half slow as the fast half alone, and a wait told 100s of a 300s gate declares it already overdue. */
+const WHOLE = 14;
+
+const of = (seconds) => planted(seconds.map((one, at) =>
+  `2026-09-1${at % 9}T0${at % 9}:00:00.000Z ${one}s ${WHOLE}/${WHOLE}`));
+
+test("the recorded figure a wait offers is the median of both parities, of the newest runs, at the last one's size", () => {
+  assert.equal(wholeGatesRecorded(planted([])), null);
+  assert.deepEqual(wholeGatesRecorded(of([100, 300, 500])), { median: 300, runs: 3, steps: WHOLE });
+  assert.deepEqual(wholeGatesRecorded(of([100, 100, 900, 900])), { median: 500, runs: 4, steps: WHOLE });
+  assert.deepEqual(wholeGatesRecorded(of([10, 20, 30, 40, 50]), 2), { median: 45, runs: 2, steps: WHOLE });
+  const mixed = planted(["2026-09-11T01:00:00.000Z 900s 13/13", `2026-09-11T02:00:00.000Z 100s ${WHOLE}/${WHOLE}`,
+    `2026-09-11T03:00:00.000Z 500s ${WHOLE}/${WHOLE}`]);
+  assert.deepEqual(wholeGatesRecorded(mixed), { median: 300, runs: 2, steps: WHOLE },
+    "a gate of another size was counted into the figure");
+  const scoped = planted([`2026-09-11T01:00:00.000Z 700s 3/${WHOLE}`]);
+  assert.equal(wholeGatesRecorded(scoped), null, "a scoped run was read as a whole gate");
+});

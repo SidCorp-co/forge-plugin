@@ -1,0 +1,265 @@
+/* A checkout of the runner's own per case, and a configuration home beside it: a case's questions are about that tree and that box, never this repository's and never whoever ran the suite. */
+import { spawn, spawnSync } from "node:child_process";
+import { mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { stampRoom } from "../../../plugin/src/hooks/stamps.mjs";
+import { DECLARED_READS, STEPS, WHOLE_TREE_TESTS } from "../../gates/steps.mjs";
+import { projectEntry, projectRecord, ranAsync, tempRoom } from "../../../plugin/test/fixtures.mjs";
+
+export const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
+export const RUNNER = join("tools", "gates.mjs");
+
+const STATIC = [/\bfrom\s*["'](\.[^"']+)["']/gu, /\bimport\s+["'](\.[^"']+)["']/gu];
+
+// Every module these roots statically reach, so no list has to be remembered into step.
+export const reachedFrom = (roots) => {
+  const seen = new Set();
+  const walk = (path) => {
+    if (seen.has(path)) return;
+    seen.add(path);
+    const full = resolve(ROOT, path);
+    let text;
+    try {
+      text = readFileSync(full, "utf8");
+    } catch {
+      return;
+    }
+    for (const pattern of STATIC) {
+      for (const [, one] of text.matchAll(pattern)) walk(relative(ROOT, resolve(dirname(full), one)));
+    }
+  };
+  for (const one of roots) walk(one);
+  return [...seen].sort();
+};
+
+// The runner, and the reporter `steps.mjs` names by path: a walk sees no runtime specifier.
+// The modules the runner reaches only by a literal dynamic import, which a static reach cannot see:
+// `--baseline`'s, the two `worklog.mjs` loads in its turn, the clause reader `codex-tools.mjs` loads for `read_spec`,
+// and the brief reader `codex-api.mjs` loads for the debt angle's goals.
+export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs"),
+  join("tools", "gates", "baseline.mjs"), join("plugin", "src", "codex", "codex-log.mjs"),
+  join("plugin", "src", "codex", "log", "replies.mjs"), join("plugin", "src", "spec", "verbs.mjs"),
+  join("plugin", "src", "tracker", "knowledge", "brief.mjs")];
+
+// `recurrence.mjs`'s own, and `project-config.mjs` and `guides.mjs`, which every `write()` reaches
+// the same way — the first to resolve the project, the second to read what the tracker warned about
+// against this copy's disposition of the page it came off.
+export const ROUTE_ROOTS = [
+  join("plugin", "src", "tracker", "filing", "route.mjs"),
+  join("plugin", "src", "tracker", "comments.mjs"),
+  join("plugin", "src", "tracker", "issues.mjs"),
+  join("plugin", "src", "tracker", "project-config.mjs"),
+  join("plugin", "src", "guides", "guides.mjs"),
+  join("plugin", "src", "resolve", "settings.mjs"),
+  join("plugin", "src", "resolve", "flags.mjs"),
+];
+
+export const COPIED = reachedFrom(RUNNER_ROOTS);
+export const STAMPED = basename(stampRoom());
+
+/* One file per top-level entry the table claims, plus one under every path a step reads, so a
+   scratch run scopes the way the real one does instead of widening on a path nothing owns. */
+export const PLACED = ["eslint.config.mjs", "package-lock.json", "docs/one.md",
+  "docs/requirements/one.md", ".claude-plugin/one.json", "plugin/src/one.mjs",
+  "plugin/scripts/one.mjs", "plugin/skills/one.md", "plugin/vi-natural/one.mjs",
+  "plugin/hooks/vendor/one.mjs", "tools/check-vi-text.mjs", "tools/sync-skills.mjs",
+  "packages/code-quality/claude-quality.mjs", "packages/code-quality/claude-plugin/skills/one.md"];
+
+export const write = (work, path, text) => {
+  mkdirSync(join(work, dirname(path)), { recursive: true });
+  writeFileSync(join(work, path), text);
+};
+
+export const NAMED = WHOLE_TREE_TESTS.map((one) => one.endsWith(".test.mjs") ? one : join(one, "one.test.mjs"));
+
+export const declaredReads = (where) => DECLARED_READS.find((one) => one.where === where).reads;
+
+/* A test whose tree crossed a boundary the audit cannot follow, which is the shape a declaration
+   exists for, reading only the paths it is handed. */
+const blindTest = (reads) => [`import test from "node:test";`,
+  `import { readFileSync } from "node:fs";`, `import { spawnSync } from "node:child_process";`,
+  `test("the blind case", () => {`,
+  ...reads.map((one) => `  readFileSync(${JSON.stringify(one)});`),
+  `  spawnSync("sh", ["-c", "exit 0"]);`, `});`].join("\n") + "\n";
+
+export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
+
+/* Without the variable node's runner sets in every test process: a `node --test` spawned under it
+   runs as a child of this suite and spends no file, so the scratch's test steps would pass empty. */
+export const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
+
+/** The configuration home every run of a scratch checkout reads, one per scratch and never the
+ *  developer's: this machine's record of that scratch's project is kept under it. */
+export const configHome = (work) => join(work, "..", "config");
+
+/** And where that record sits, which is what a run of this scratch names as a key's source. */
+export const projectRecordAt = (work) => projectEntry(work, configHome(work));
+
+const scratchEnv = (work, env) =>
+  ({ ...SHELL_ENV, XDG_CONFIG_HOME: configHome(work), ...env });
+
+export const run = (work, argv = [], cwd = work, env = {}) =>
+  spawnSync(process.execPath, [join(work, RUNNER), ...argv],
+    { cwd, encoding: "utf8", env: scratchEnv(work, env) });
+
+// Awaited: a case serving the tracker itself cannot also block in `spawnSync` and answer the gate.
+export const ranGate = (work, argv = [], cwd = work, env = {}) =>
+  ranAsync(process.execPath, [join(work, RUNNER), ...argv], scratchEnv(work, env), cwd);
+
+// Its own process group, so the step it spawned goes with it: a hanging step outlives its gate, and a ten-minute sleeper per case is what the suite would leave on the developer's box.
+export const heldGate = (work, argv = [], env = {}) =>
+  spawn(process.execPath, [join(work, RUNNER), ...argv],
+    { cwd: work, detached: true, env: scratchEnv(work, env), stdio: ["ignore", "pipe", "pipe"] });
+
+export const stopGate = async (child) => {
+  if (child.exitCode === null && child.signalCode === null) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      child.kill("SIGKILL");
+    }
+    await new Promise((done) => child.once("exit", done));
+  }
+  child.stdout.destroy();
+  child.stderr.destroy();
+};
+
+const TICK = 100;
+
+/* One directory per process, the files the count reads. `cwd` is a link because /proc's is, and a relative runner path in a
+   command line resolves against nothing else; `out` is where the process's standard output goes, a link as /proc's is. */
+export const procTable = (rows) => {
+  const at = tempRoom("proc-");
+  for (const [nth, row] of rows.entries()) {
+    const pid = row.pid ?? 1000 + nth;
+    const dir = join(at, String(pid));
+    mkdirSync(dir);
+    writeFileSync(join(dir, "cmdline"), `${row.argv.join("\0")}\0`);
+    writeFileSync(join(dir, "stat"), `${pid} (node) R 1 ${pid} ${pid} `
+      + `${new Array(16).fill("0").join(" ")} ${row.start * TICK}\n`);
+    symlinkSync(row.cwd ?? at, join(dir, "cwd"));
+    if (row.env) writeFileSync(join(dir, "environ"), Object.entries(row.env).map(([name, value]) => `${name}=${value}\0`).join(""));
+    if (row.out) {
+      mkdirSync(join(dir, "fd"));
+      symlinkSync(row.out, join(dir, "fd", "1"));
+    }
+  }
+  return at;
+};
+
+/* A step writing the hook stamp room into whatever temporary directory it was handed, which is the
+   shape a suite has when nothing points TMPDIR at a room of its own (ISS-361). */
+export const LEAKS = "node -e \"const fs=require('node:fs'),os=require('node:os'),p=require('node:path');"
+  + `const room=p.join(os.tmpdir(),'${STAMPED}');fs.mkdirSync(room,{recursive:true});`
+  + "fs.writeFileSync(p.join(room,'learning-gate-planted'),'')\"";
+
+export const HOLDING = "holding";
+const HANGS = `node -e "console.log('${HOLDING}');setTimeout(()=>{},600000)"`;
+
+// The label a scratch hangs in, and the promise that a held gate has really reached it: a gate stopped short of its step was never running, and every case about a running gate would then be about nothing.
+export const HANGS_IN = STEPS.find((step) => !step.tests).label;
+
+export const reachedTheStep = (child, why) => new Promise((done, fail) => {
+  let said = "";
+  const both = (chunk) => {
+    said += chunk;
+    if (said.includes(HOLDING)) done(said);
+  };
+  child.stdout.on("data", both);
+  child.stderr.on("data", both);
+  child.once("exit", (code) => fail(new Error(`${why}: it exited ${code} instead\n${said}`)));
+});
+
+const command = (label, { failing, leaking, hanging, needing }) => {
+  if (label === failing) return "node -e \"process.exit(1)\"";
+  if (label === leaking) return LEAKS;
+  if (label === hanging) return HANGS;
+  if (label === needing?.step) return needing.command;
+  return "node -e \"\"";
+};
+
+const scripts = (marks) =>
+  Object.fromEntries(STEPS.filter((step) => !step.tests)
+    .map((step) => [step.label, command(step.label, marks)]));
+
+/* Committed on master, then worked on a branch, so the merge-base is real and a change to it diffs.
+   `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at,
+   `hanging` a step that prints `HOLDING` and then never returns, so a gate can be held open. */
+export const scratch = (name, failing, leaking,
+  { also = [], slug = null, hanging = null, runs = null, declares = null, needing = null,
+    declaring = null, reading = [] } = {}) => {
+  const at = tempRoom(`${name}-`);
+  const work = join(at, "checkout");
+  for (const one of [...COPIED, ...reachedFrom(also)]) {
+    write(work, one, readFileSync(join(ROOT, one), "utf8"));
+  }
+  for (const one of [...PLACED, ...NAMED, "plugin/test/tools/one.test.mjs"]) {
+    // In prose, never its own path, which is how node reports a file that failed to load; and reading a source, or every content answers for it and a scoped run spends no test step at all.
+    write(work, one, one.endsWith(".test.mjs")
+      ? `import test from "node:test";\nimport { readFileSync } from "node:fs";\n`
+        + `test("the green case of ${one}", () => { readFileSync("plugin/src/one.mjs"); });\n`
+      : `${one}\n`);
+  }
+  /* Written before the tree is committed: the number is the project's now, and a file placed
+     after the commit would leave the scratch dirty and refuse its gate for another reason. */
+  if (declaring) write(work, declaring, blindTest(reading));
+  write(work, "package.json",
+    JSON.stringify({ name: "scratch", version: "1.0.0", ...(declares && { devDependencies: declares }),
+      scripts: scripts({ failing, leaking, hanging, needing }) }, null, 2));
+  git(work, "init", "-b", "master");
+  /* Once the tree is a checkout and outside it, the record being keyed on the repository. */
+  if (slug || runs) projectRecord(work, configHome(work), { ...(slug && { slug }), ...(runs && { runs }) });
+  for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
+  git(work, "add", "-A");
+  git(work, "commit", "-m", "the tree");
+  git(work, "checkout", "-b", "work");
+  return { at, work };
+};
+
+/** A second worktree of a scratch checkout, cut beside it: a second gate of the same tree is refused before any ceiling is
+ *  read (ISS-1705), so a case about the ceiling needs a second tree to put its second gate in. */
+export const sibling = (work, name = "sibling") => {
+  const tree = join(work, "..", name);
+  git(work, "worktree", "add", "-q", "-b", name, tree);
+  return tree;
+};
+
+// One landing under a path of every step, so a run over it fills the record whole: a question about a tree the record already answers for is one a scoped landing cannot ask.
+export const REACHES_ALL = ["plugin/skills/one.md", "packages/code-quality/claude-quality.mjs",
+  "plugin/scripts/one.mjs", "plugin/src/one.mjs"];
+
+export const touchedEverywhere = (work, text) => {
+  for (const one of REACHES_ALL) write(work, one, `${one}\n${text}\n`);
+  git(work, "add", ...REACHES_ALL);
+  git(work, "commit", "-m", `touched every step: ${text}`);
+};
+
+export const landed = (work, path, text) => {
+  write(work, path, text);
+  git(work, "add", "-A");
+  git(work, "commit", "-m", `wrote ${path}`);
+};
+
+export const entryDir = (work) => join(work, ".git", "gate-ledger");
+export const passesDir = (work) => join(entryDir(work), "passes");
+export const runsFile = (work) => join(entryDir(work), "runs");
+export const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
+
+// The entries themselves, a write in flight left out; a record no pass has reached yet answers as none rather than throwing.
+export const entryNames = (work) => {
+  try {
+    return readdirSync(passesDir(work)).filter((one) => !one.startsWith(".")).sort();
+  } catch {
+    return [];
+  }
+};
+
+export const entries = (work) =>
+  Object.fromEntries(entryNames(work).map((one) => [one, readFileSync(join(passesDir(work), one), "utf8")]));
+
+// One step's own, one per content it has passed at, each named for the digest before its label.
+export const passesFor = (work, label) => entryNames(work)
+  .filter((one) => one.split(".").slice(1).join(".") === label.replace(/[^\w.-]+/gu, "-"))
+  .map((one) => join(passesDir(work), one));

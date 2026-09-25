@@ -9,7 +9,6 @@ import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
-import { checkoutRoot } from "../../../../tools/checkout.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { FORGE, OTHER, transcript } from "../fixture-runs.mjs";
 
@@ -81,12 +80,13 @@ test("a directory no checkout holds is read as itself, with nothing said about a
   assert.equal(run.stderr, "");
 });
 
-test("the ship's checkout and the stats reader's are one answer", () => {
+/* The ship reads the same layout to the same checkout, which is tools/test/checkout.test.mjs's case:
+   both pinned to the one directory is how the two stay one answer without the plugin importing the ship. */
+test("the stats reader's checkout is the one the worktree's commondir names", () => {
   const { room, checkout, tree } = checkoutWithWorktree();
   runsFor(room, checkout);
 
-  assert.equal(checkoutRoot(tree), checkout);
-  assert.equal(JSON.parse(statsIn(room, tree, "--json").stdout).project, checkoutRoot(tree));
+  assert.equal(JSON.parse(statsIn(room, tree, "--json").stdout).project, checkout);
 });
 
 /* The refusal's wording is `runs.test.mjs`'s to pin; what is this case's is that a worktree reaches

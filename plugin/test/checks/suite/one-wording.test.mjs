@@ -67,9 +67,9 @@ const tree = (homeBody, elsewhereBody) => [
 
 test("the walk reaches the suite's test files, so no pairs is a clean suite and not an empty selector", () => {
   const all = walked();
-  const tests = all.filter((one) => /^plugin\/test\/.*\.test\.mjs$/u.test(one.rel));
+  const tests = all.filter((one) => /^(?:plugin|tools)\/test\/.*\.test\.mjs$/u.test(one.rel));
   assert.ok(tests.length > 300, `the walk found ${tests.length} test files, and this suite has hundreds`);
-  for (const one of ["plugin/test/flow/park/park.test.mjs", "plugin/test/run/run-script.test.mjs",
+  for (const one of ["plugin/test/flow/park/park.test.mjs", "tools/test/run/run-script.test.mjs",
     "plugin/src/flow/route.mjs", "plugin/hooks/gates/codex/codex-second.mjs", "tools/run/land-ready.mjs"]) {
     assert.ok(all.some((each) => each.rel === one), `${one} is in the walk`);
   }
@@ -109,6 +109,18 @@ test("every entry of the table names the open issue that will cut it", () => {
   for (const one of STANDING) {
     assert.ok(one.home && one.elsewhere && one.module && one.sentence, `${keyed(one)} is a whole entry`);
   }
+});
+
+/* The tests of tools/ sit under tools/, so the one tree is read twice over: its scripts as a sentence's
+   home, and its test directory as the cases that pin one, never as a composer (ISS-2537). */
+test("a sentence tools/ composes and two of its tests pin is named, the tests not read as its composers", () => {
+  const found = pairsOver([
+    { rel: "tools/only/here.mjs", text: HOME },
+    { rel: "tools/test/only/home.test.mjs", text: `import { said } from "../../only/here.mjs";\n${PINS}` },
+    { rel: "tools/test/other/away.test.mjs", text: PINS },
+  ]);
+  assert.deepEqual(found.map((one) => [one.module, one.home, one.elsewhere]),
+    [["tools/only/here.mjs", "tools/test/only/home.test.mjs", "tools/test/other/away.test.mjs"]]);
 });
 
 test("a sentence pinned on both sides of the import line is named with both lines and the home", () => {
@@ -185,8 +197,8 @@ test("a test file reaching the module through a helper it imports is a reader, a
    that the usage carries the reckoning at all, the other pins the values in it. */
 test("a presence check is not the same pattern as the wording check beside it", () => {
   const found = overTree().filter((one) =>
-    one.elsewhere === "plugin/test/run/run-script.test.mjs"
-    || one.home === "plugin/test/run/run-script.test.mjs");
+    one.elsewhere === "tools/test/run/run-script.test.mjs"
+    || one.home === "tools/test/run/run-script.test.mjs");
   assert.deepEqual(found, [],
     "a pattern whose variable parts are captured or classed is a different pattern from one whose "
     + "parts are literal, so the two never form a pair");

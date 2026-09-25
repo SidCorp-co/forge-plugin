@@ -337,7 +337,7 @@ a wait no party can end.
 - **AC-03-6-6** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the builder's reconciliation moves the checkpoint to reconciled at the candidate it names"
   WHILE the checkpoint names the builder's turn and the builder holds the lease, a reconciliation
   write under that lease SHALL be accepted.
-- **AC-03-6-7** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the builder writes the records the landing stops for, and the landing finishes on its own turn"
+- **AC-03-6-7** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the builder writes the records the landing stops for, and the landing finishes on its own turn"
   IF a status the landing is walking is not earned, THEN the landing SHALL move the checkpoint to a
   state naming the turn of the actor whose record earns that status, SHALL record on it the state
   the turn was handed back from where that actor is the builder, and SHALL name the run that answers
@@ -350,13 +350,13 @@ a wait no party can end.
   head the checkpoint was written at, THEN the CLI SHALL refuse the reconciliation naming the push
   that puts that head back, because what a landing merges is that head and a branch moved under the
   hand-back leaves it reachable from no ref.
-- **AC-03-6-10** · Rev: 1 · Proof: plugin/test/run/landing/moved-branch.test.mjs "a branch standing past the judged head refuses the landing, naming what is between them"
+- **AC-03-6-10** · Rev: 1 · Proof: tools/test/run/landing/moved-branch.test.mjs "a branch standing past the judged head refuses the landing, naming what is between them"
   IF the branch the checkpoint names stands on the remote at a commit other than the head the
   checkpoint was written at, THEN the landing SHALL refuse that change before it merges anything,
   naming both commits, what stands between them and the push that puts the judged head back on the
   branch, because the landing merges the judged head and a release cut over a branch that moved
   leaves the rest of it unlanded with nothing said.
-- **AC-03-6-11** · Rev: 1 · Proof: plugin/test/run/run-checkpoint.test.mjs "a release finishes the ready checkpoint of the branch it landed"
+- **AC-03-6-11** · Rev: 1 · Proof: tools/test/run/run-checkpoint.test.mjs "a release finishes the ready checkpoint of the branch it landed"
   WHEN a release has landed and installed the change on the branch a checkpoint declared ready THEN
   that release SHALL leave the checkpoint in the state that names no turn, because a checkpoint
   still declaring a landed branch ready is what the next landing reads when it asks what this
@@ -367,7 +367,7 @@ a wait no party can end.
   THEN the CLI SHALL refuse the write naming what moved, because the table of states cannot tell a
   checkpoint that stood still from one another run put a different change's landing on, and the same
   move is allowed from more than one state.
-- **AC-03-6-13** · Rev: 1 · Proof: plugin/test/run/run-checkpoint.test.mjs "a checkpoint whose head this release does not carry is named and left where it stands"
+- **AC-03-6-13** · Rev: 1 · Proof: tools/test/run/run-checkpoint.test.mjs "a checkpoint whose head this release does not carry is named and left where it stands"
   IF the head a checkpoint was written at is one the release neither carries nor replayed on its way
   to what it landed THEN that release SHALL leave the checkpoint where it stands, because a branch
   name outlives the work captured under it and a release that reads only the name would finish a
@@ -437,7 +437,7 @@ a wait no party can end.
   CLI SHALL refuse it, because the two are contradictory statements about one fact and taking either
   would put on the record a reading nobody made.
 
-- **AC-03-6-26** · Rev: 1 · Proof: plugin/test/run/landing/handed-back/builder-owed.test.mjs "a builder who reads the candidate wrong answers with a new head, and that head lands"
+- **AC-03-6-26** · Rev: 1 · Proof: tools/test/run/landing/handed-back/builder-owed.test.mjs "a builder who reads the candidate wrong answers with a new head, and that head lands"
   WHILE the checkpoint names the builder's turn for a reading of a candidate the landing built, the
   CLI SHALL accept a capture of a new head the builder pushed, reviewed as approved and, where the
   builder is the project's judge, holding a verdict at that head on every criterion with none of them

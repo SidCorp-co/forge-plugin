@@ -13,6 +13,8 @@ import { PROJECT } from "../../../src/tracker/filing/plugin-defect.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const SUITE = join("plugin", "test");
+// The tests of this repository's scripts, outside plugin/ so the plugin travels alone (ISS-2537).
+const TOOLS_SUITE = join("tools", "test");
 const COMMITTED = ".forge.json";
 
 /* The one place that answers, whose keys are the suite's own declaration and not a reading of this
@@ -71,8 +73,9 @@ test("this repository carries no committed project file, its keys being this mac
 });
 
 test("no case names a path to a project file at this repository's root", () => {
-  const files = under(SUITE);
-  assert.ok(files.length > 200, `${files.length} files under ${SUITE}, so this walk is not the suite's`);
+  const files = [...under(SUITE), ...under(TOOLS_SUITE)];
+  assert.ok(files.length > 200, `${files.length} files under ${SUITE} and ${TOOLS_SUITE}, so this walk is not the suite's`);
+  assert.ok(files.includes(join(TOOLS_SUITE, "run", "run-fixtures.mjs")), "the tests of tools/ are not reached");
   const reaching = files.flatMap((one) => rootReadsIn(one, readFileSync(join(ROOT, one), "utf8")));
   assert.deepEqual(reaching, [], `import OWN from ${ONE_SOURCE} instead: this repository tracks no `
     + `${COMMITTED} for a case to read, and a case composing its own answer to where this tree's `
@@ -82,7 +85,7 @@ test("no case names a path to a project file at this repository's root", () => {
 
 /* The one key of that declaration the product also holds. It is typed in both places because the
    suite cannot import the product's copy early enough — the module graph behind it loads the shape
-   reader, which `plugin/test/run/run-fixtures.mjs` may only load after it has moved
+   reader, which `tools/test/run/run-fixtures.mjs` may only load after it has moved
    `XDG_CONFIG_HOME` — so the two are held together here instead of resolved. */
 test("the slug the suite declares is the slug the product files this repository's defects under", () => {
   assert.equal(OWN.slug, PROJECT, `${ONE_SOURCE} and plugin/src/tracker/filing/plugin-defect.mjs `

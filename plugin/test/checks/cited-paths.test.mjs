@@ -44,6 +44,7 @@ const ANOTHER_TREE = {
   "plugin/guides/skills": "the same method, served by forge guide and held by the same check",
   "plugin/agents": "role definitions read from wherever they are installed, held by the same check",
   "plugin/test": "a fixture path is invented on purpose, and every case below is one",
+  "tools/test": "the same, for the tests of this repository's own scripts",
 };
 /* A version directory is not a part of the tree, so the claim naming `skills` covers `v1/skills`. */
 const unversioned = (rel) => rel.replace(/^plugin\/guides\/v\d+\//u, "plugin/guides/");

@@ -11,19 +11,21 @@ import { EXEMPT, pinProblems, pinsIn } from "../../../src/checks/shapes/source-p
 import { standingOf, standingProblems } from "../../../src/checks/shapes/standing.mjs";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
-const SUITE = join("plugin", "test");
+// Both test trees: the plugin's own, and the tests of this repository's scripts beside them (ISS-2537).
+const SUITES = [join("plugin", "test"), join("tools", "test")];
 const KEY = "sourcePins";
 const AT = "plugin/test/tracker/made-up.test.mjs";
 
-const walked = () => readdirSync(join(ROOT, SUITE), { recursive: true }).map(String)
+const walked = () => SUITES.flatMap((suite) => readdirSync(join(ROOT, suite), { recursive: true }).map(String)
   .filter((one) => one.endsWith(".mjs"))
-  .map((one) => ({ rel: join(SUITE, one), text: readFileSync(join(ROOT, SUITE, one), "utf8") }));
+  .map((one) => ({ rel: join(suite, one), text: readFileSync(join(ROOT, suite, one), "utf8") })));
 
 const lines = (text, rel = AT) => pinsIn(text, rel).map(({ line, pattern }) => `${line} ${pattern}`);
 
 test("the suite holds no more source-text pins than its standing count, and no fewer", () => {
   const files = walked();
-  assert.ok(files.length > 400, `${files.length} file(s) under ${SUITE}; the walk reaches too little`);
+  assert.ok(files.length > 400, `${files.length} file(s) under ${SUITES.join(" and ")}; the walk reaches too little`);
+  assert.ok(files.some((one) => one.rel === "tools/test/gates/scratch.mjs"), "the tests of tools/ are not reached");
   const problems = pinProblems(files.flatMap((one) => pinsIn(one.text, one.rel)));
   const config = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   assert.deepEqual(standingProblems({ key: KEY, problems, standing: standingOf(config, KEY) }), []);

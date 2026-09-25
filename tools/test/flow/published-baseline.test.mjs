@@ -1,0 +1,362 @@
+/* The published whole-tree result, its two writers and its one reader. Every case here answers the
+   question the gate's own record cannot: what result exists for a commit. The store is keyed on the
+   pair, so the cases that matter most are the near misses — another commit, another project — which
+   a reader falling back on the newest thing published would answer with a green from nowhere. */
+import assert from "node:assert/strict";
+import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+import { projectRecord, ranAsync, tempHome, tempRoom } from "../../../plugin/test/fixtures.mjs";
+import { OWN, trackerFor } from "../../../plugin/test/fixtures/own-project.mjs";
+import { render } from "../../../plugin/src/flow/record/page.mjs";
+import { NAMED } from "../gates/scratch.mjs";
+
+const ROOT = new URL("../../../", import.meta.url).pathname;
+
+const HOME = tempHome("published-baseline").path;
+process.env.XDG_CONFIG_HOME = HOME;
+/* This checkout's project, in this process's home as well as in the children's: one case publishes
+   through this process and reads back through a child, and the two have to name one project. */
+projectRecord(ROOT, HOME, OWN);
+const { HELD, PART, WROTE, citationProblem, citeForm, publishBaseline, publishedFor, publishedPath, publishedSaid }
+  = await import("../../../plugin/src/flow/earned/published.mjs");
+const { publishes } = await import("../../run/publish.mjs");
+const { greenHeld } = await import("../../gates/green.mjs");
+const { recordDir } = await import("../../gates/timing.mjs");
+const { recordPass } = await import("../../gates/ledger.mjs");
+const { ledgerFor } = await import("../../gates/ledger.mjs");
+const { TEST_FILE, gateSteps } = await import("../../gates/steps.mjs");
+const { gitCommonDir, gitFiles } = await import("../../checkout.mjs");
+const { slugIfAny } = await import("../../../plugin/src/resolve/settings.mjs");
+const { citedOwed } = await import("../../../plugin/src/flow/earned/baseline.mjs");
+
+const FORGE = new URL("../../../plugin/bin/forge", import.meta.url).pathname;
+const HEAD = "43b811e2c9d0f1a3b4c5d6e7f8091a2b3c4d5e6f";
+const OTHER = "0f1e2d3c4b5a69788796a5b4c3d2e1f009182736";
+const PROJECT = "the-project";
+const RESULT = "nothing fails: all 14 gate step(s) green at this commit";
+const published = (extra = {}) => publishBaseline(
+  { project: PROJECT, commit: HEAD, gate: "npm run check", result: RESULT, scope: "whole", version: "1.2.3", ...extra },
+);
+
+test("a whole-tree result is published once per commit, and a scope that is not whole is not published at all", () => {
+  assert.equal(published(), WROTE);
+  assert.equal(published(), HELD, "a second release at the same commit appends nothing");
+  const found = publishedFor(PROJECT, HEAD);
+  assert.equal(found.commit, HEAD, "the record is keyed on the commit and carries it");
+  assert.equal(found.gate, "npm run check", "the command the result answers for travels with it");
+  assert.equal(found.result, RESULT, "and so does what already fails, or the citing run guesses it");
+  assert.equal(found.scope, "whole");
+  assert.equal(found.version, "1.2.3");
+  const short = published({ commit: OTHER, scope: "13 of 14" });
+  assert.equal(short, PART, "a ship whose record is not wholly green publishes nothing");
+  assert.equal(publishedFor(PROJECT, OTHER), null, "and nothing is written for that commit");
+  assert.match(publishedSaid(PART, OTHER), /does not hold every step of the whole table green/u,
+    "the reason is said rather than left as a silence that reads like a pass");
+});
+
+test("the lookup is one exact commit of one project, and never the newest thing published", () => {
+  assert.equal(published(), HELD, "the first case already published this head");
+  assert.equal(publishedFor(PROJECT, OTHER), null, "a commit one later is a tree nothing answered for");
+  assert.equal(publishedFor("another-project", HEAD), null, "and one project's ship speaks for no other");
+  /* A newer publication beside the one asked for: a reader taking the last line of the store would
+     answer with this and hand a run a citation its own checkout cannot earn. */
+  assert.equal(published({ commit: OTHER, version: "1.2.4" }), WROTE);
+  assert.equal(publishedFor(PROJECT, HEAD).version, "1.2.3", "the older commit still answers with its own");
+  assert.equal(citeForm("ISS-3", PROJECT, null), null, "a checkout with no readable head cites nothing");
+  assert.equal(citeForm("ISS-3", PROJECT, "9f9f9f9"), null, "and neither does one at an unpublished head");
+  const form = citeForm("ISS-3", PROJECT, HEAD);
+  assert.match(form, /^forge record baseline ISS-3 /u);
+  assert.match(form, new RegExp(`--commit ${HEAD} --scope whole`, "u"), "the write names the commit published");
+  assert.match(form, /--cited "the ship's gate at release 1\.2\.3"/u, "and says whose result it is");
+  assert.match(form, /--result "nothing fails/u, "carrying what already fails, from the record and not from memory");
+});
+
+test("a citation names a commit something published, or it is refused before the payload is sent", () => {
+  const bare = { cited: "the ship's gate", commit: OTHER, gate: "npm run check" };
+  assert.equal(citationProblem("ISS-3", PROJECT, { ...bare, commit: HEAD, head: HEAD }), null,
+    "a published commit passes where it is the head the write stamped");
+  assert.equal(citationProblem("ISS-3", PROJECT, { cited: undefined, commit: "9f9f9f9" }), null,
+    "and a baseline citing nothing is no citation to judge");
+  const said = citationProblem("ISS-3", "no-such-project", bare);
+  assert.match(said, /Nothing is published for 0f1e2d3c/u, "the refusal names the commit it looked for");
+  assert.match(said, /only a ship publishes one/u, "and why a run cannot supply one itself");
+  assert.match(said, /forge record baseline ISS-3 --gate "npm run check"/u, "with the fresh run to spend instead");
+});
+
+/* The head leg: the write stamps the checkout's clean head into the very payload this reads, so a published commit the checkout does not stand at is refused here rather than first at `in_progress`. */
+const CITED = { cited: "the ship's gate", commit: HEAD, gate: "npm run check", result: RESULT, scope: "whole" };
+
+test("a published citation is refused at the write where the checkout's head is another commit or none", () => {
+  const moved = citationProblem("ISS-3", PROJECT, { ...CITED, head: OTHER });
+  assert.match(moved, new RegExp(`this checkout stands at ${OTHER}`, "u"), "the refusal names the checkout's head");
+  assert.match(moved, new RegExp(`the result at ${HEAD}`, "u"), "and the commit cited");
+  assert.match(moved, /Nothing was sent/u);
+  const route = moved.split("\n  ").at(-1);
+  assert.ok(route.startsWith(`dir=$(mktemp -d) && git worktree add --detach "$dir" ${HEAD} && (cd "$dir" && forge record baseline ISS-3 `),
+    `the route is a detached worktree at the cited commit: ${route}`);
+  assert.ok(route.includes(`--commit ${HEAD} --scope whole --cited 'the ship'\\''s gate'`),
+    `carrying the same write, every value quoted back as typed: ${route}`);
+  const headless = citationProblem("ISS-3", PROJECT, { ...CITED, head: undefined });
+  assert.match(headless, /this checkout stamps no head: it holds uncommitted work/u,
+    "a dirty checkout, which stamps no head, is refused too");
+  assert.equal(headless.split("\n  ").at(-1), route, "and is given the same route");
+  assert.equal(citationProblem("ISS-3", PROJECT, { ...CITED, cited: undefined, head: OTHER }), null,
+    "a baseline citing nothing is taken at any head, its own gate having run on the tree it names");
+  assert.match(citationProblem("ISS-3", PROJECT, { ...CITED, commit: "9f9f9f9f9f", head: OTHER }), /Nothing is published/u,
+    "a commit nothing published is refused on that leg first, its route being a fresh run");
+});
+
+/* One predicate read at two ends: fed the same fields, the write and the entry check refuse on head grounds alike. */
+test("the write refuses on head grounds exactly the cited records in_progress refuses on them", () => {
+  const owed = (fields) => citedOwed({ latest: { baseline: { record: { fields } } } }, "ISS-3");
+  const heads = [HEAD, HEAD.toUpperCase(), HEAD.slice(0, 12), OTHER, OTHER.slice(0, 7), undefined, ""];
+  const refused = heads.map((head) => [citationProblem("ISS-3", PROJECT, { ...CITED, head }) !== null,
+    owed({ ...CITED, head }).length > 0]);
+  for (const [at, [write, entry]] of refused.entries()) {
+    assert.equal(write, entry, `head ${JSON.stringify(heads[at])}: the write ${write ? "refuses" : "takes"} it and the entry check ${entry ? "refuses" : "takes"} it`);
+  }
+  assert.deepEqual(refused.map(([write]) => write), [false, false, false, true, true, true, true],
+    "and the table holds both outcomes, so the agreement is not two readers that never refuse");
+});
+
+/* A repository of its own with a bare remote behind it, so the head the ship speaks for is a head
+   something else really holds. The whole-table reading is a parameter of the ship's own step, because
+   `greenHeld` reads the step table of this repository and the ledger every worktree of it shares: a
+   case driving the whole outcome through the live reader would have to write into that shared record
+   to reach it, and the case above proves that reader against the record instead. */
+const repo = () => {
+  const room = tempRoom("published-ship-");
+  const bare = tempRoom("published-remote-");
+  const as = (...args) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "--bare", bare], { cwd: dirname(bare), encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "master", room], { cwd: dirname(room), encoding: "utf8" });
+  writeFileSync(join(room, "package.json"), JSON.stringify({ name: "shipped", version: "9.9.9" }));
+  as("add", ".");
+  as("commit", "-qm", "base");
+  as("remote", "add", "origin", bare);
+  as("push", "-q", "origin", "HEAD:master");
+  return { room, as, at: as("rev-parse", "HEAD").stdout.trim() };
+};
+
+const shipSays = (room, held) => {
+  const lines = [];
+  publishes(room, "master", "9.9.9", { say: lines.push.bind(lines), read: () => held });
+  return lines.join("\n");
+};
+
+test("the ship publishes the whole-tree result for the head it pushed, and nothing where a step is not green", () => {
+  const { room, at } = repo();
+  assert.match(shipSays(room, { green: 13, of: 14 }), /nothing is published for/u,
+    "a table one step short publishes nothing and says which commit went without");
+  assert.equal(publishedFor(null, at), null, "and the store holds nothing for that head");
+  assert.match(shipSays(room, { green: 14, of: 14 }), /whole-tree result is published/u);
+  const stored = readFileSync(publishedPath(), "utf8").trim().split("\n").map((one) => JSON.parse(one));
+  const wrote = stored.findLast((one) => one.commit === at);
+  assert.equal(wrote.commit, at, "the commit is the head the ship's own git answered with");
+  assert.equal(wrote.scope, "whole", "the ship is the only writer that may say the word");
+  assert.equal(wrote.gate, "npm run check", "and it records the command its own gate step runs");
+  assert.match(wrote.result, /all 14 gate step\(s\) green/u, "so a citing run inherits the list and guesses none of it");
+  assert.equal(wrote.version, "9.9.9");
+  assert.match(shipSays(room, { green: 14, of: 14 }), /already holds a published result/u,
+    "and a second ship at that head writes nothing");
+});
+
+/* The leg that makes the record the ship's rather than the run's: `--from` past the push reaches this
+   step with the gate green over a commit the remote has never seen. */
+test("a commit the remote does not hold is published by no resume, however green the table is", () => {
+  const { room, as } = repo();
+  writeFileSync(join(room, "after.txt"), "committed after the push, and never pushed\n");
+  as("add", "after.txt");
+  as("commit", "-qm", "the resume's own commit");
+  const unpushed = as("rev-parse", "HEAD").stdout.trim();
+  const said = shipSays(room, { green: 14, of: 14 });
+  assert.match(said, /the remote holds \w{7} for master and this tree is at/u,
+    "the refusal names both heads rather than saying only that it declined");
+  assert.equal(publishedFor(null, unpushed), null, "and no run's own commit becomes the next run's authority");
+  as("push", "-q", "origin", "HEAD:master");
+  assert.match(shipSays(room, { green: 14, of: 14 }), /whole-tree result is published/u,
+    "once the remote holds it, the same tree and the same reading publish");
+});
+
+/* The live reading, proved against the one repository whose step table it is: a read and no write,
+   so nothing here reaches the shared record the case above declines to touch. */
+test("the whole-table reading the ship publishes from counts every step of this repository's gate", () => {
+  const here = new URL("../../../", import.meta.url).pathname;
+  const files = gitFiles(here);
+  const steps = gateSteps(files.filter((one) => TEST_FILE.test(one)));
+  /* Against the record read independently rather than against `green <= of`, which a reader wired to
+     answer zero would satisfy and which would let the ship's own default go unproven. */
+  const { entries } = ledgerFor(steps, { root: here, files, runner: join(here, "tools", "gates.mjs") });
+  assert.deepEqual(greenHeld(here), { green: entries.filter((step) => step.green).length, of: entries.length },
+    "the live reading is the whole table's own count of green, step for step");
+  assert.equal(entries.length, steps.length, "and the table it counts is the gate's whole one");
+  assert.equal(recordDir(here), join(gitCommonDir(here), "gate-ledger"),
+    "out of the record every worktree of this checkout shares, which is why the case above writes none");
+});
+
+/* The refusal reaching a caller, which is the half no unit test of `citationProblem` answers for:
+   the record write has to ask before it posts, or the citation is up and the refusal is advice. */
+const ISSUE = {
+  documentId: "cited-uuid",
+  issueId: "ISS-3",
+  status: "approved",
+  title: "the issue whose baseline cites",
+  description: "no mark here",
+  complexity: "m",
+};
+const state = {
+  calls: [],
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
+  issues: [ISSUE],
+  comments: { "cited-uuid": [] },
+  answer: {},
+};
+state.answer.forge_config = () => ({ config: state.config });
+state.answer.forge_issues = (args) => {
+  if (args.action === "list") return { issues: state.issues, returned: 1, hasMore: false };
+  if (args.action === "get") return ISSUE;
+  if (args.action === "update") return Object.assign(ISSUE, args.data);
+  return { documentId: args.documentId, ...(args.data ?? {}) };
+};
+state.answer.forge_comments = (args) => {
+  if (args.action === "list") return { comments: state.comments["cited-uuid"], returned: 0, hasMore: false };
+  return { documentId: `posted-${state.calls.length}`, createdAt: "2026-09-02T10:00:00.000Z", body: args.body };
+};
+const { tracker, env: ENV } = await trackerFor(state);
+test.after(() => tracker.close());
+const env = { ...ENV, FORGE_SESSION_ID: "the-citing-run" };
+const writing = (commit, cwd = process.cwd(), extra = env) => ranAsync(FORGE, ["record", "baseline", "ISS-3", "--gate", "npm run check",
+  "--result", "nothing fails", "--commit", commit, "--scope", "whole", "--cited", "the ship's gate"], extra, cwd);
+const posts = () => state.calls.filter((one) => one.name === "forge_comments" && one.args?.action !== "list").length;
+
+/* Published into the config home the subprocess is given rather than this process's, the store being one file per home, and under the project the CLI resolves from a checkout of this project. */
+const publishedHere = (commit) => {
+  const mine = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
+  const outcome = publishBaseline({ project: slugIfAny(), commit, gate: "npm run check", result: RESULT, scope: "whole" });
+  process.env.XDG_CONFIG_HOME = mine;
+  return outcome;
+};
+
+/* A checkout of its own recorded as this project, so the child resolves the one the store is keyed on and stamps a head this case chose. */
+let rooms = 0;
+const citingRoom = () => {
+  const { room, as } = repo();
+  /* Its own commit, since two rooms built in one second from one content would otherwise be one sha. */
+  writeFileSync(join(room, "room.txt"), `room ${(rooms += 1)}\n`);
+  as("add", "room.txt");
+  as("commit", "-qm", "this room's own tree");
+  projectRecord(room, env.XDG_CONFIG_HOME, OWN);
+  const at = as("rev-parse", "HEAD").stdout.trim();
+  assert.equal(publishedHere(at), WROTE);
+  return { room, as, at };
+};
+
+test("a citation for a commit nothing published is refused at the write, and the refusal names the fresh run", async () => {
+  assert.ok(await ranAsync(FORGE, ["claim", "ISS-3"], env), "the lease every payload write needs");
+  const before = posts();
+  const bad = await writing("7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c");
+  assert.equal(bad.status, 1, bad.stdout);
+  const both = bad.stdout + bad.stderr;
+  assert.match(both, /Nothing is published for 7c7c7c7/u, "the commit it looked for is named");
+  assert.match(both, /forge record baseline ISS-3 --gate "npm run check"/u, "and the run that answers instead");
+  assert.equal(posts(), before, "and no citation was posted before the refusal");
+  /* The same write against a commit that store does hold, from a clean checkout standing at it: the refusal is the lookup's and not the flag's. */
+  const { room, at } = citingRoom();
+  const good = await writing(at, room);
+  assert.equal(good.status, 0, good.stdout + good.stderr);
+  assert.ok(good.stdout.includes(`commit: ${at}`), "so the payload goes up carrying the commit cited");
+  assert.ok(good.stdout.includes(`head: ${at}`), "and the head it was written at, which is that commit");
+});
+
+test("a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken", async () => {
+  const { room, as, at } = citingRoom();
+  writeFileSync(join(room, "edit.txt"), "the run's first edit, committed after the cut\n");
+  as("add", "edit.txt");
+  as("commit", "-qm", "the run's own commit");
+  const moved = as("rev-parse", "HEAD").stdout.trim();
+  const before = posts();
+  const refused = await writing(at, room);
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.ok(refused.stderr.includes(`this checkout stands at ${moved}, and the result at ${at}`),
+    "the refusal names the checkout's head and the commit cited");
+  assert.equal(posts(), before, "and nothing reached the issue");
+  /* The route as printed, through a shell: it has to clear the refusal it came with. Spawned without blocking, the tracker answering it being this process. */
+  const route = refused.stderr.split("\n").find((line) => line.trim().startsWith("dir=$(mktemp -d)")).trim();
+  const PATH = `${dirname(FORGE)}:${env.PATH ?? process.env.PATH}`;
+  const taken = await ranAsync("bash", ["-c", route], { ...env, PATH }, room);
+  assert.equal(taken.status, 0, taken.stdout + taken.stderr);
+  assert.ok(taken.stdout.includes(`head: ${at}`), "the write it runs stamps the cited commit as its head");
+  assert.equal(posts(), before + 1, "and posts the one record");
+  assert.equal(as("worktree", "list").stdout.trim().split("\n").length, 1, "leaving no worktree behind");
+  writeFileSync(join(room, "loose.txt"), "never committed\n");
+  as("checkout", "-q", "--detach", at);
+  const dirty = await writing(at, room);
+  assert.equal(dirty.status, 1, dirty.stdout);
+  assert.match(dirty.stderr, /this checkout stamps no head: it holds uncommitted work/u,
+    "a checkout at the cited commit with work beside it is refused, as the entry check would");
+  assert.equal(posts(), before + 1, "and nothing more was posted");
+});
+
+/* Watched failing: the reader the cases above lean on, over a store that holds the near miss alone. */
+test("the near-miss store the cases above are read against really is a near miss", () => {
+  assert.equal(render("baseline", { gate: "g", result: "r", commit: HEAD, scope: "whole" }).includes(HEAD), true,
+    "the record kind still renders the commit, which is what a citation is matched on");
+  assert.notEqual(publishedFor(PROJECT, HEAD), null, "the fixture published this head");
+  assert.equal(publishedFor(PROJECT, `${HEAD.slice(0, 39)}0`), null,
+    "and a commit differing in one character is a different tree, so no prefix match creeps in");
+});
+
+/* A slug this checkout's own record does not carry, so a publication filed under the invoking project rather than the released tree's is visible as a wrong answer and not as a coincidence. */
+const SHIPPED = "a-project-that-is-not-this-one";
+
+const gated = () => {
+  const { room, as } = repo();
+  /* Read in this process, off the configuration home it runs against. */
+  projectRecord(room, HOME, { slug: SHIPPED });
+  for (const rel of [...NAMED, "plugin/test/flow/one.test.mjs"]) {
+    mkdirSync(dirname(join(room, rel)), { recursive: true });
+    writeFileSync(join(room, rel), "// a file the step table has to find\n");
+  }
+  as("add", ".");
+  as("commit", "-qm", "the tests the table claims");
+  as("push", "-q", "origin", "HEAD:master");
+  return { room, as, at: as("rev-parse", "HEAD").stdout.trim() };
+};
+
+/* The publisher's own reading, with nothing injected: a repository of its own has its own common git
+   directory, so its `gate-ledger` is its own too and recording a pass in it reaches nothing this
+   checkout shares. That is what makes the real `greenHeld` drivable here, and it is the only case
+   that would notice that default rewired to answer zero while `greenHeld` itself stayed right. */
+test("the publisher's own reading publishes a wholly green ledger, and nothing while the tree is dirty", () => {
+  const { room, at } = gated();
+  assert.notEqual(recordDir(room), recordDir(new URL("../../../", import.meta.url).pathname),
+    "the fixture's record is its own, so nothing below writes the one this checkout shares");
+  const before = greenHeld(room);
+  assert.ok(before.of > 0 && before.green === 0, "its ledger starts empty over a whole table");
+  const say = [];
+  publishes(room, "master", "9.9.9", { say: say.push.bind(say) });
+  assert.match(say.join("\n"), /nothing is published for/u, "an empty record publishes nothing");
+  const { dir, entries } = ledgerFor(gateSteps(NAMED.concat("plugin/test/flow/one.test.mjs")),
+    { root: room, files: gitFiles(room), runner: join(room, "tools", "gates.mjs") });
+  for (const step of entries) recordPass(dir, step, 1);
+  assert.deepEqual(greenHeld(room), { green: entries.length, of: entries.length }, "and now it is wholly green");
+  /* The dirty half, before the clean one: a reading is of the content on disk and the record names
+     HEAD, so a pushed head with uncommitted work beside it would be certified from other files. */
+  writeFileSync(join(room, "uncommitted.txt"), "never committed, and never pushed\n");
+  const dirty = [];
+  publishes(room, "master", "9.9.9", { say: dirty.push.bind(dirty) });
+  assert.match(dirty.join("\n"), /holds uncommitted work, so the gate's reading is of content no commit carries/u,
+    "the refusal says why rather than only that it declined");
+  assert.equal(publishedFor(SHIPPED, at), null, "and nothing is published for that head");
+  rmSync(join(room, "uncommitted.txt"));
+  const clean = [];
+  publishes(room, "master", "9.9.9", { say: clean.push.bind(clean) });
+  assert.match(clean.join("\n"), /whole-tree result is published/u, "with the tree clean again, the real reader publishes");
+  assert.equal(publishedFor(SHIPPED, at).scope, "whole", "off its own ledger and no injected count");
+  assert.equal(publishedFor(slugIfAny(), at), null,
+    "and under the released tree's project, never the one the process was invoked in");
+});
