@@ -140,8 +140,8 @@ const heldLine = ({ where, key, title, score }) =>
   + ` ${score.toFixed(2)}, so it files as an issue of its own rather than as a comment there.`;
 
 /** Under every filing: the empty answer, the failed search and the folded one. `fresh` is `--new`,
- *  which closes the block on every outcome rather than only where it acted, and `declined` the
- *  duplicate it waved through. */
+ *  which closes the block on every outcome rather than only where it acted; `declined` is
+ *  `filingRefusal`'s. */
 export const suggestionLines = ({ suggestions, notes, place, dropped = [], closed = [] },
   { nearest = null, foldable = false, routed = false, fresh = false, declined = null } = {}) => {
   const settled = settledLines({ dropped, closed }, NO_SCORE);
