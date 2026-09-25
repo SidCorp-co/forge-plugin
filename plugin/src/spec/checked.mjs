@@ -15,7 +15,7 @@ const referencesChecked = (ids, raise, escape = null) => {
   if (said) console.error(said);
 };
 
-/** What a plan quotes is text and not a claim (ISS-446): a plan about this checker, or one quoting the document line it fixes, has to name a citation that does not resolve. Quoted is a code span or a fenced block, the literal the tree's own rules already read; an indented line stays prose, being how a plan nests a list. The strip is this reader's alone, because `citationsIn` is hashed into every clause and filtering it would move every recorded digest. */
+/** What a plan quotes is text, not a claim (ISS-446): a code span or a fenced block, the tree's own literal; an indented line stays prose, as a plan nests lists. The strip is this reader's alone: `citationsIn` is hashed into every clause. */
 const QUOTED = "An identifier inside backticks or a fenced block is read as quoted text rather than a citation:"
   + " quote an example that way.";
 
