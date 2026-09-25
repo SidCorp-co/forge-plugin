@@ -103,6 +103,44 @@ test("a section somebody rewrites after the replay put it in front of them is no
   assert.deepEqual(judged(room, was).undone, []);
 });
 
+/* The same drop made by a merge instead of a rebase: the branch merges the base in, conflicts, and
+   keeps its own side. That merge is where the branch first held the section, and where it went. */
+const mergedIn = (name, { conflict }) => {
+  const room = join(tempRoom(`undone-${name}-`), "work");
+  mkdirSync(room, { recursive: true });
+  git(room, "init", "-qb", "master");
+  write(room, JOURNAL, ["# Journal", "", "## The first entry"]);
+  commit(room, "the base", JOURNAL);
+  git(room, "checkout", "-qb", "iss-1");
+  const mine = conflict ? [...read(room, JOURNAL), "", "## This change's entry"] : null;
+  if (mine) write(room, JOURNAL, mine);
+  else write(room, OTHER, ["this change's own page"]);
+  commit(room, "the change", mine ? JOURNAL : OTHER);
+  git(room, "checkout", "-q", "master");
+  write(room, JOURNAL, [...read(room, JOURNAL), "", ...SECTION]);
+  const section = commit(room, "another run's journal section", JOURNAL);
+  git(room, "checkout", "-q", "iss-1");
+  git(room, "merge", "-q", "--no-edit", "master");
+  if (mine) {
+    write(room, JOURNAL, mine);
+    commit(room, "merge master, keeping this change's side", JOURNAL);
+  }
+  return { room, section, was: sha(room, "master") };
+};
+
+test("a merge that brought another run's section in and dropped it in the conflict takes it back", () => {
+  const { room, was, section } = mergedIn("merge-dropped", { conflict: true });
+  assert.equal(git(room, "rev-list", "--parents", "-n1", "HEAD").stdout.trim().split(" ").length, 3, "no merge was made");
+  assert.deepEqual(judged(room, was).undone.map((one) => one.commit), [section]);
+});
+
+test("a section rewritten after a clean merge brought it in is no take-back", () => {
+  const { room, was } = mergedIn("merge-rewritten", { conflict: false });
+  write(room, JOURNAL, [...read(room, JOURNAL).slice(0, -SECTION.length), "## That section, said again", "", "In this change's words."]);
+  commit(room, "the change rewrites that section", JOURNAL);
+  assert.deepEqual(judged(room, was).undone, []);
+});
+
 test("a stale copy staged over the replay is the commit it predates taken back", () => {
   const { room, was, value } = replayed("stale");
   write(room, SOURCE, OLD_SOURCE);

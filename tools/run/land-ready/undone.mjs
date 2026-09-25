@@ -87,12 +87,11 @@ const blameOf = (tree, was, file, how = []) => {
 
 /** One hunk, judged over the lines of it still standing at the base that carry a letter or digit, a
  *  blank or a brace being whichever copy the diff happened to align: every one of them is removed,
- *  and fewer than half come back anywhere in the change, which is what a move does. Past that, a
- *  hunk that replaced lines is taken back where what it replaced comes back in this file, which a
- *  stale copy always does and a rewrite into new content does not; a hunk that only added lines
- *  leaves nothing to restore, so it is taken back where every commit that removed those lines was
- *  written before the branch first held the hunk — work a replay carried over it, as against an
- *  edit made by somebody who had it in front of them. */
+ *  and fewer than half come back anywhere, which is what a move does. Past that, a hunk that
+ *  replaced lines is taken back where what it replaced comes back in this file, which a stale copy
+ *  does and a rewrite does not; one that only added lines is taken back where every commit that
+ *  removed them was written before the branch first held the hunk, or is the merge that brought it
+ *  in — work a replay or a conflict carried over it, not an edit by somebody who had read it. */
 export const takesBack = ({ standing, removed, addedAnywhere, addedHere, replaced, replayed }) => {
   const wordy = standing.filter((one) => WORDY.test(one.text));
   if (!wordy.length || !wordy.every((one) => removed.has(one.final))) return false;
@@ -119,16 +118,24 @@ const heldFrom = (tree, entries) => cached((sha) =>
 
 const authoredAt = (tree) => cached((sha) => Number(gitOut(["log", "-1", "--format=%at", sha], tree)));
 
-/* Which commit of the change removed each line of the file at `was`: reverse blame names the last
-   commit that still had it, and the one after that on the change's first-parent line removed it. */
+/* Which commits of the change removed each line of the file at `was`: reverse blame names the last
+   commit that still had it, and its children inside the change, down either parent of a merge, are
+   where it went. */
 const removersOf = (tree, was, head, file) => {
-  const order = lines(gitOut(["rev-list", "--reverse", "--first-parent", `${was}..${head}`], tree));
-  const out = new Map();
-  for (const one of blameOf(tree, `${was}..${head}`, file, ["--reverse"])) {
-    const next = one.sha === was ? order[0] : order[order.indexOf(one.sha) + 1];
-    if (next) out.set(one.final, next);
+  const children = new Map();
+  for (const line of lines(gitOut(["rev-list", "--parents", `${was}..${head}`], tree))) {
+    const [sha, ...parents] = line.split(" ");
+    for (const one of parents) children.set(one, [...(children.get(one) ?? []), sha]);
   }
-  return out;
+  return new Map(blameOf(tree, `${was}..${head}`, file, ["--reverse"])
+    .map((one) => [one.final, children.get(one.sha) ?? []]));
+};
+
+/* A merge whose first parent lacks the landed commit is the one that brought it in, so lines of it
+   gone at that merge went in its conflict resolution, the same moment a replay would have been. */
+const broughtBy = (tree, sha, by) => {
+  const parents = (gitOut(["rev-list", "--parents", "-n1", by], tree) ?? "").split(" ").slice(1);
+  return parents.length > 1 && git(["merge-base", "--is-ancestor", sha, parents[0]], tree).status !== 0;
 };
 
 const fileTakesBack = (tree, { was, head, file, landed, addedAnywhere, entries }) => {
@@ -145,8 +152,8 @@ const fileTakesBack = (tree, { was, head, file, landed, addedAnywhere, entries }
         && one.orig < hunk.newStart + hunk.newCount),
       removed, addedAnywhere, addedHere, replaced: hunk.removed,
       replayed: (line) => {
-        const [from, by] = [held(sha), removers(file).get(line)];
-        return from !== null && Boolean(by) && authored(by) < from;
+        const [from, by] = [held(sha), removers(file).get(line) ?? []];
+        return by.length > 0 && by.every((one) => broughtBy(tree, sha, one) || (from !== null && authored(one) < from));
       },
     })));
 };
