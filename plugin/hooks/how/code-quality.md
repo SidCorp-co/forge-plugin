@@ -7,10 +7,9 @@ How to clear it: fix what each finding names, at the source. `--fix` is refused.
 inverts, so read that one twice: shortening a string raises the ratio, and the header comment is what
 to trim in the same edit.
 
-It writes. The delegate runs the project's `prettier` before linting, so a file written by `sed` comes
-back formatted — where the project configured prettier. A project with no prettier configuration has
-not chosen a style, and its files are left as written rather than restyled to prettier's defaults. A file is reported once per content in a session: a command that only names it again
-is not answered twice, and the log line carries the rules that fired.
+It writes: the project's `prettier` runs before the lint, so a file written by `sed` comes back
+formatted. A file is reported once per content in a session, and the log line carries the rules that
+fired.
 
 Not read is said: one call lints its first five code files by path, and a file past that, past the
 clock or past the linter's time limit is named after the call, refusing nothing.
@@ -19,5 +18,5 @@ Which project: the one that holds the file. A worktree cut beside the checkout i
 directory the session started in, and its files answer to the worktree's own configuration, not to
 nobody's.
 
-Not judged: anything the project has not configured. No ESLint means silence, which is an opt-out and
-not a misconfiguration. Every rule comes from the project.
+Not judged: anything the project has not configured. No ESLint means silence, and no prettier
+configuration means no formatting: each is an opt-out, not a misconfiguration.
