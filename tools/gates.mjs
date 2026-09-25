@@ -16,7 +16,8 @@ import { CALL_CEILING_SECONDS } from "../plugin/src/host/call-ceiling.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/reporters/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
-import { DECLINED, heldSaid, outputOf, placeFor, RAISE, runnersOf, SLOT, treeHeldBy, WAIT } from "./gates/machine.mjs";
+import { DECLINED, heldSaid, LANDING_ENV, outputOf, placeFor, runnersOf, SLOT, treeHeldBy, WAIT } from "./gates/machine.mjs";
+import { declinedSaid, LANDING_WAIT_ENV, landingAsked, waitAsLanding } from "./gates/landing.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { deadClaim, escapedClaim, escapedStep, ledgerSaid, readsSaid, severalCauses, stepRead, stepSaid,
   wroteSets } from "./gates/report/said.mjs";
@@ -231,6 +232,18 @@ if (waiting && minutes > DEFAULT_MINUTES) {
   process.exit(1);
 }
 
+/* Read once and then taken out of the environment every step inherits: a gate a step starts is never a landing's. What
+   other gates read is this process's own entry in the table, which the removal leaves as it was started. */
+const asked = landingAsked();
+
+if (asked.refused) {
+  console.error(`${asked.refused}\nNo step ran and nothing was recorded. land-ready sets both: node tools/run.mjs land-ready -h`);
+  process.exit(1);
+}
+
+delete process.env[LANDING_ENV];
+delete process.env[LANDING_WAIT_ENV];
+
 const elsewhere = crossTree(ROOT);
 
 if (elsewhere) {
@@ -323,14 +336,10 @@ try {
    already lost the argument. It says nothing about the tree and records nothing of it. */
 const place = placeFor(ours);
 
-if (place.declined) {
-  console.error(`\nThis gate declined the machine and judged nothing.`);
-  console.error(`${place.ahead.length} gate(s) of this checkout are already running, and this project `
-    + `carries ${place.declared.value} run(s) at once  ← ${place.declared.from}`);
-  for (const one of place.ahead) console.error(`  pid ${one.pid}  gating ${one.tree}`);
-  console.error(`Wait for a place, then gate again: node tools/gates.mjs ${WAIT} ${SLOT}`);
-  console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
-  console.error(`Or raise ${RAISE} above ${place.declared.value}.`);
+if (place.declined && asked.landing?.minutes) {
+  if (!await waitAsLanding(ROOT, asked.landing, { ours })) finish(DECLINED, "declined");
+} else if (place.declined) {
+  console.error(declinedSaid(place, ROOT));
   finish(DECLINED, "declined");
 }
 

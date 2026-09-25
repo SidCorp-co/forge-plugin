@@ -33,7 +33,7 @@ export const VERBS = new Map([
   ["land-ready", {
     signature: "land-ready [ISS-nn…] [--wait M]",
     flags: [
-      takes("--wait", "M", "minutes to wait behind another landing on this checkout before refusing"),
+      takes("--wait", "M", "minutes to wait behind another landing on this checkout, and then for a gate place for the candidate, before refusing"),
     ],
     words: Number.POSITIVE_INFINITY,
   }],
