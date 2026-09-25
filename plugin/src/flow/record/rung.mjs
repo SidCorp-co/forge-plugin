@@ -5,7 +5,7 @@ import { FLAG_WORD, noValue, pullRepeated } from "../../resolve/flags.mjs";
 import { refuse } from "../../refusal.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { KINDS, kindUsage } from "./record-rows.mjs";
-import { blockOrderChecked } from "./block-order.mjs";
+import { blockOrderChecked } from "../machine/block-order.mjs";
 import { nextLine } from "../lease.mjs";
 import { patchFrom } from "../worklog.mjs";
 

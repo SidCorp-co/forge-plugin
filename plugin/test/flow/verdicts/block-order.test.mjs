@@ -9,7 +9,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("block-order").path;
 const { parseAll } = await import("../../../src/flow/record/page.mjs");
-const { blockOrderChecked } = await import("../../../src/flow/record/block-order.mjs");
+const { blockOrderChecked } = await import("../../../src/flow/machine/block-order.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const COMMIT = "43b811e";
