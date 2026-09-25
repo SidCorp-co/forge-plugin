@@ -108,7 +108,7 @@ const CONSULT_USAGE = [
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
-  "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt; tech,debt by default",
+  "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt; all five by default",
   "  --effort e     minimal | low | medium | high, for this consult only",
   "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
   "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words",
@@ -244,7 +244,7 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
    the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
   const { angles, from } = anglesInEffect(raw);
-  if (!angles.length) fail(`codex: ${from} names no angle. Name some of ${Object.keys(ANGLES).join(", ")}, or drop the key for tech,debt.`);
+  if (!angles.length) fail(`codex: ${from} names no angle. Name some of ${Object.keys(ANGLES).join(", ")}, or drop the key for all five.`);
   for (const one of angles) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
   return angles;
 };

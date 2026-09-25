@@ -153,10 +153,10 @@ export const plannedFor = ({ parts, bodies, recheck, risks = 0, asked, effort })
   };
 };
 
-/* What a checkout naming no angles is reviewed by: the owner's choice of 2026-09-25 (ISS-2466), debt on
-   beside the Tech Lead. A project turns it off by naming a list without it, and `forge codex stats`
+/* What a checkout naming no angles is reviewed by: every angle, debt among them by the owner's choice of
+   2026-09-25 (ISS-2466). A project turns debt off by naming a list without it, and `forge codex stats`
    prints its row so whether it pays is a figure. */
-export const DEFAULT_ANGLES = ["tech", "debt"];
+export const DEFAULT_ANGLES = ["tech", "ba", "user", "ux", "debt"];
 
 /* Which angles review a consult here, and which level said so: one reading shared by the consult, by
    `forge codex show` and by `forge doctor`, so the line a reader is shown is the list the consult runs. */

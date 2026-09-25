@@ -227,7 +227,7 @@ test("the angles row says debt is on by default, and tells a project whose list 
     const { stdout } = await ranAsync(FORGE, ["doctor", "project"], at.env, at.room);
     return stdout.split("\n").filter((one) => one.includes("] codex.angles ")).join("\n");
   };
-  assert.match(await angles("angles-default", {}), /codex\.angles +tech, debt {2}← the plugin's default — debt is on$/u);
+  assert.match(await angles("angles-default", {}), /codex\.angles +tech, ba, user, ux, debt {2}← the plugin's default — debt is on$/u);
   const kept = await angles("angles-kept", { codex: { angles: ["tech"] } });
   assert.match(kept, /codex\.angles +tech {2}← codex\.angles in \S+ — debt is available and off here: add it to that list, as tech,debt$/u, kept);
 });

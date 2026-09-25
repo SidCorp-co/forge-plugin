@@ -59,8 +59,8 @@ which of those were right would invent the very data the share measures (ISS-182
 **The debt angle is on unless a project's list leaves it out.** It asks what a change leaves behind
 and whether it moves the code toward the project's goals, which no other angle asks, so that debt
 reached review only by accident. The owner put it on by default (2026-09-25, ISS-2466): with no
-`codex.angles` set a consult reviews as `tech,debt`, and a list without `debt`, or `--angles` on one
-consult, turns it off. A list a project wrote before the angle existed is kept, because the project
+`codex.angles` set a consult reviews under the four angles it had and `debt`, and a list without
+`debt`, or `--angles` on one consult, turns it off. A list a project wrote before the angle existed is kept, because the project
 chose it, and `forge codex show` and `forge doctor` tell it the angle is there and how to add it. Its
 rules are a block of their own rather than a longer line under another angle: every angle has the same
 four-finding cap, and debt set against correctness in one list would crowd one of the two out. The
