@@ -1,5 +1,5 @@
 /* The rounds a rung buys, beside a served part and never in one: docs/cli/the-parts.md. */
-import { FEATURE, RUNGS, SPARES } from "../ladder.mjs";
+import { FEATURE, RUNGS, SPARES, WRITE_READ_OWED } from "../ladder.mjs";
 
 export const rungRefusal = (given) =>
   (given === undefined || given === null || RUNGS.includes(given)
@@ -12,9 +12,12 @@ export const rungServed = (given) => (RUNGS.includes(given) ? given : FEATURE);
 const ASSUMED = `No rung was named, so this is the \`${FEATURE}\` text — the top rung, which is what`
   + " an unstated rung resolves to. `--rung <name>` serves a lighter one.";
 
+/* The read the rounds count themselves apart from is under a heading of its own, a line among them reading as one more round bought. */
 const boughtBy = (rung) => [
   `Rung \`${rung}\`, and the rounds it buys:`,
   ...SPARES[rung].map((one) => `  ${one}`),
+  "And what it still owes:",
+  `  ${WRITE_READ_OWED}`,
 ];
 
 const topRung = (rung) =>

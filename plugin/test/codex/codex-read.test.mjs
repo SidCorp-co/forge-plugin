@@ -19,6 +19,7 @@ const { digest, locate } = await import("../../src/codex/codex-api.mjs");
 const { logConsult, logPath } = await import("../../src/codex/codex-log.mjs");
 const { repoRoot } = await import("../../src/git/repo-root.mjs");
 const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
+const { WRITE_READ_OWED } = await import("../../src/ladder.mjs");
 
 /* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */
 const refusalOf = (...given) => readOrRefuse(...given).refusal;
@@ -64,6 +65,8 @@ test("the refusal says this read is owed at every rung, before it offers the sta
   const { root, path } = room();
   const refusal = refusalOf(path, root);
   assert.match(refusal, /at every rung, and no rung drops it/u);
+  assert.ok(refusal.includes(WRITE_READ_OWED),
+    "the refusal spells the owed read some other way than the rung's rounds print it (ISS-2303)");
   assert.ok(refusal.indexOf("every rung") < refusal.indexOf("FORGE_CODEX_DISABLE"),
     "a run reads that the read is owed before it reads what would stand the check down");
 });

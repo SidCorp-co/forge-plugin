@@ -2,7 +2,8 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, climbForm, heightOf, rungClaimed, rungOf, splits,
+  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WRITE_READ_OWED, climbForm, heightOf, rungClaimed, rungOf,
+  splits,
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
@@ -11,8 +12,11 @@ const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
 const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) =>
   `  ${`at ${one.status}`.padEnd(WIDTH)}not owed: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`);
 
-const spareLines = (rung) => SPARES[rung].map((one, at) =>
-  `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`);
+/* The read the rounds count themselves apart from follows them on a line of its own, a line among them reading as one more round bought. */
+const spareLines = (rung) => (SPARES[rung].length ? [
+  ...SPARES[rung].map((one, at) => `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`),
+  `  ${"still owed".padEnd(WIDTH)}${WRITE_READ_OWED}`,
+] : []);
 
 /* Two sentences and no third: a rung something claimed, and an absence. A reader told it holds none learns what to set; one told a value learns which value the rung was read off, and neither has to be read as the other. */
 const markSaid = ({ rung, complexity }) =>

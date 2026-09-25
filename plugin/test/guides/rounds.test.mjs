@@ -15,7 +15,7 @@ process.env.XDG_CONFIG_HOME = tempHome("rounds").path;
 const { contractAnswer, partsOf, readContract } = await import("../../src/guides/contract.mjs");
 const { skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
 const { roundLines, rungRefusal, rungServed } = await import("../../src/guides/rounds.mjs");
-const { FEATURE, FIX, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
+const { FEATURE, FIX, RUNGS, SPARES, WRITE_READ_OWED, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { DEFAULT, SCREEN } = await import("../../src/guides/flow.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -195,6 +195,30 @@ test("the rounds line says which consult its count is of, on both surfaces that 
   }
 });
 
+/* The rounds said the write's own read was not counted, from inside the list of what a rung buys,
+   and runs at both lighter rungs read it as bought and met the refusal saying no rung drops it: one
+   sentence now, the ladder's, printed apart from the bought rounds on both surfaces and by the
+   refusal (ISS-2303). */
+test("the read a plan or a criteria write owes is printed apart from the rounds a rung buys", () => {
+  assert.match(WRITE_READ_OWED, /owed at every rung/u, "the sentence says no rung drops the read");
+  assert.match(WRITE_READ_OWED, /taken again once a correction changes the file/u,
+    "and that a correction to a file already taken owes it again");
+  for (const rung of [TRIVIAL, FIX]) {
+    assert.ok(!SPARES[rung].includes(WRITE_READ_OWED), `\`${rung}\` lists the owed read among the rounds it buys`);
+    const bought = SPARES[rung].filter((one) => /\bnot\b[^—]*plan or a criteria write/u.test(one));
+    assert.deepEqual(bought, [], `a round \`${rung}\` buys says the write's own read is not owed`);
+    const served = text(contractAnswer({ part: "approved", rung }));
+    const heading = served.indexOf("And what it still owes:");
+    assert.ok(heading > served.indexOf(SPARES[rung].at(-1)),
+      `the part served at \`${rung}\` prints the owed read before the rounds it buys have ended`);
+    assert.ok(served.indexOf(WRITE_READ_OWED) > heading,
+      `the part served at \`${rung}\` does not print the owed read under its own heading`);
+    const report = rungReport({ complexity: complexityFor(rung) });
+    assert.ok(report.split("\n").some((line) => /^ {2}still owed +/u.test(line) && line.endsWith(WRITE_READ_OWED)),
+      `the rehearsal at \`${rung}\` does not print the owed read on a line of its own`);
+  }
+});
+
 test("the rung a caller names decides nothing else about the answer", () => {
   assert.equal(rungServed("nonesuch"), FEATURE);
   assert.equal(rungServed(TRIVIAL), TRIVIAL);
@@ -264,6 +288,8 @@ test("the part a claim prints carries the rounds the issue's own rung buys", asy
     assert.ok(light.stdout.includes(round),
       `an \`xs\` issue is claimed and the phase part says nothing of "${round}"`);
   }
+  assert.ok(light.stdout.includes(WRITE_READ_OWED),
+    "an `xs` issue is claimed and not told the read a plan or a criteria write still owes");
 });
 
 test("and the top rung is claimed with none of them", async () => {
