@@ -7,7 +7,7 @@ import { DERIVED_BUILDER, HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNREC
   from "./reconstruction.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_DONE, LANDING_HEAD_OWED, LANDING_QA_OWED, LANDING_READY,
-  LANDING_RECORDS_OWED, LANDING_STATES,
+  LANDING_RECORDS_OWED, LANDING_STATES, approvedAt, unjudgedAt,
 } from "./checkpoint.mjs";
 import { parseAll } from "../record/page.mjs";
 import { carriedByLanding } from "../worklog.mjs";
@@ -182,7 +182,7 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
   const ask = `forge record review ${ref} --reviewer codex --commit ${shortSha(head)} `
     + `--outcome ${valuesOf("review", "outcome")}`;
   const { out, why, again } = said;
-  if (!review?.commit || !sameCommit(review.commit, head) || review.outcome !== "approved") {
+  if (!approvedAt(head, latest)) {
     const held = review?.commit
       ? `the latest review on ${ref} judged ${shortSha(review.commit)} and says ${review.outcome ?? "nothing"}`
       : `${ref} carries no review`;
@@ -190,10 +190,7 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
       + `  ${again}`;
   }
   if (independent) return null;
-  const unjudged = criteria.map((one) => one.number).filter((number) => {
-    const held = verdicts.get(number)?.record.fields;
-    return !held?.commit || !sameCommit(held.commit, head) || held.verdict === "fail";
-  });
+  const unjudged = unjudgedAt(head, { verdicts, criteria });
   if (!unjudged.length) return null;
   const at = unjudged.map((number) => {
     const held = verdicts.get(number)?.record.fields;

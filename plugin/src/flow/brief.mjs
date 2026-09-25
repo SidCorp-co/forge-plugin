@@ -8,7 +8,7 @@ import { workUnder } from "./lease/holder.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
 import { rebuiltSaid } from "./landing/reconstruction.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
-import { methodOf } from "../guides/phases.mjs";
+import { finishedAtHead, methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 
@@ -112,7 +112,7 @@ const repeatedIn = (view) => Object.fromEntries(
 
 export const briefOf = (view, ref) => {
   const status = view.issue.status;
-  const method = methodOf(status);
+  const method = methodOf(status, finishedAtHead(view));
   const held = leaseIn(view);
   return {
     ref,

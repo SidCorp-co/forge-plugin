@@ -455,3 +455,39 @@ test("a flag with no form to belong to is refused, and the issue comes first", (
   }
   assert.ok(ask("resume").stdout.includes("Usage: forge resume"), "no argument is a question");
 });
+
+/* ISS-2379's own record: a trivial issue at `in_progress`, its checkpoint `ready`, an approved review
+   and a passing verdict on every criterion at the head the checkpoint names. The status stays until
+   the landing moves it, so the phase owed is read off those records and not off the status (ISS-2439). */
+test("a resume at in_progress with the review and every verdict at the checkpoint's head owes the landing", async () => {
+  const { finishedAtHead } = await import("../../../src/guides/phases.mjs");
+  const { kindsHeld } = await import("../../../src/flow/record/page.mjs");
+  const { opening } = await import("../../../src/flow/resume.mjs");
+  const { advisory } = await import("../../../src/flow/claim.mjs");
+  const head = "c3d676c1111111111111111111111111111111aa";
+  const landing = { state: "ready", head, base: "84a2d82", branch: "iss-2379-pair-minute", files: ["a.test.mjs"], builder: "iss-2379-879ceb83" };
+  const extra = { complexity: "xs", sessionContext: { lease: LEASE, worklog: WORKLOG, landing } };
+  const comments = [
+    recorded("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }),
+    ...[1, 2, 3].map((criterion) => recorded("verdict",
+      { criterion: String(criterion), verdict: "pass", commit: head, evidence: "abc1234", why: "the case asserts it" })),
+  ];
+  const one = brief(extra, comments);
+  assert.equal(one.phase, "7 Ship, the landing", "the review and the proof are the record's, not owed");
+  assert.equal(one.reference, "forge guide issue-flow", "and the method named is the ship's");
+  const view = viewFrom("the-uuid", issue(extra), comments, null, RELEASES_ITSELF);
+  const said = (run) => {
+    const lines = [];
+    const was = console.log;
+    console.log = (line) => lines.push(String(line));
+    try { run(); } finally { console.log = was; }
+    return lines.filter((line) => line.trim().startsWith("passed:"));
+  };
+  const args = ["in_progress", rungFieldsOf(view), kindsHeld(view), null, finishedAtHead(view)];
+  const resumed = said(() => opening(...args));
+  assert.ok(resumed.includes("  passed: 4 Implement, to the review  —  review"), resumed.join("\n"));
+  assert.ok(resumed.includes("  passed: 5 Prove  —  verdict"), resumed.join("\n"));
+  assert.deepEqual(said(() => advisory(...args)), resumed, "and the claim prints the same passed lines");
+  const moved = brief(extra, [recorded("review", { reviewer: "codex", commit: "9f0e1d2", outcome: "approved", finding: [] }), ...comments.slice(1)]);
+  assert.equal(moved.phase, PHASE.in_progress[0], "a review of another commit ends no phase at this head");
+});

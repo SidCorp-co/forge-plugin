@@ -39,6 +39,7 @@ how many topics there may be.
 | [`the turn`](cli/the-turn.md) | Whose turn each landing state names, the three routes one is handed back by, and why only the judge's gives the lease back and takes an issue carrying no checkpoint. |
 | [`the takeover`](cli/the-takeover.md) | What says a run holding a turn has gone, why the take and the write it licenses are separate questions, and why a state whose successor nothing writes is a landing parked for good. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
+| [the phase owed](cli/the-phase-owed.md) | Why the phase owed leads the resume and the claim, why a phase behind is passed on its record and not its status, and the one cell the records narrow. |
 | [the wave](cli/the-wave.md) | Why a dispatcher's two record kinds take no lease, and what a resume reads on a wave's headline. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation narrowed rather than guessed. |
 | [spec — a clause read backwards](cli/spec-the-status.md) | Why the issues citing a clause are a search narrowed rather than a store walked, why the ask is per clause, what a criterion proves that a mention does not, and why a cut set earns no rung. |

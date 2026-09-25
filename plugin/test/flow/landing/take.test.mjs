@@ -4,129 +4,10 @@
    refusing for the right one (ISS-673). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
-import { writeFileSync } from "node:fs";
 
-import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
-
-process.env.XDG_CONFIG_HOME = tempHome("landing-take").path;
-/* Away from this checkout, whose git directory names the run this suite is written under: a
-   checkout of its own names none, and its project is a record beside the machine's own keys
-   rather than a file in the tree. */
-const AWAY = projectRoom(tempRoom("landing-take-away-"), process.env.XDG_CONFIG_HOME, OWN);
-process.chdir(AWAY);
-const { leaseOf } = await import("../../../src/flow/lease.mjs");
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
-
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const BUILDER = "the-builder-run";
-const LANDER = "the-lander-run";
-
-const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
-
-/* What `--pushed` reads: a base a remote head names, and a diff above it. The remote ref is written
-   by hand because a fixture with a real remote is a second repository for one merge-base. */
-const pushedRepo = (files) => {
-  const room = tempRoom("landing-repo-");
-  spawnSync("git", ["init", "-q", "-b", "iss-673-6", room], { cwd: dirname(room), encoding: "utf8" });
-  writeFileSync(join(room, "base.txt"), "the base\n");
-  git(room, "add", "base.txt");
-  git(room, "commit", "-qm", "base");
-  git(room, "update-ref", "refs/remotes/origin/master", git(room, "rev-parse", "HEAD").stdout.trim());
-  for (const one of files) writeFileSync(join(room, one), `${one}, changed\n`);
-  if (files.length) {
-    git(room, "add", ...files);
-    git(room, "commit", "-qm", "the change");
-  }
-  return room;
-};
-
-const CHANGED = pushedRepo(["one.mjs", "two.mjs"]);
-const NOTHING = pushedRepo([]);
-
-const ISSUE = {
-  documentId: "landing-uuid",
-  issueId: "ISS-673",
-  status: "developed",
-  title: "one flow: the ready checkpoint and the handoff",
-  description: "no mark here",
-};
-const state = {
-  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
-  issues: [ISSUE],
-  comments: { "landing-uuid": [] },
-  answer: {
-    forge_config: () => ({ config: state.config }),
-    forge_issues: (args) => {
-      if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
-      if (args.action === "update" || args.action === "transition") {
-        state.issues[0] = { ...state.issues[0], ...args.data };
-      }
-      return state.issues[0];
-    },
-    forge_comments: (args) => {
-      if (args.action !== "list") {
-        state.comments["landing-uuid"].push({ documentId: `c-${state.comments["landing-uuid"].length + 1}`, createdAt: "2026-09-07T12:00:00.000Z", authorId: "agent", body: args.data.body });
-        return { documentId: `c-${state.comments["landing-uuid"].length}` };
-      }
-      const held = state.comments["landing-uuid"];
-      return { comments: held, returned: held.length, hasMore: false };
-    },
-  },
-};
-const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
-const CHILD_HOME = ENV.HOME;
-for (const one of [CHANGED, NOTHING]) projectRecord(one, CHILD_HOME, { slug: "forge-plugin" });
-test.after(() => tracker.close());
-
-const asRun = (id) => ({ ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: id });
-/* The id a whole wave carries: no `FORGE_SESSION_ID`, so every run of it reads the dispatcher's. */
-const asWave = (id) => {
-  const env = { ...asRun(id), CLAUDE_CODE_SESSION_ID: id };
-  delete env.FORGE_SESSION_ID;
-  return env;
-};
-const held = () => leaseOf(state.issues[0].sessionContext);
-const checkpoint = () => landingOf(state.issues[0].sessionContext);
-
-const lease = (holder, minutes = 30) => ({
-  holder, agent: "a-test-agent", pid: "4242", renewedAt: new Date().toISOString(), minutes, next: null, history: [],
-});
-
-/* Each case starts from the field it is about, so no case reads through the one before it. */
-const field = (landing, leased) => {
-  state.issues[0] = { ...ISSUE };
-  if (landing || leased) state.issues[0].sessionContext = { ...(leased ? { lease: leased } : {}), ...(landing ? { landing } : {}) };
-  state.comments["landing-uuid"] = [];
-};
-
-const BUILT = {
-  state: "ready",
-  builder: BUILDER,
-  branch: "iss-673-6",
-  head: "9e24c2af0000000000000000000000000000abcd",
-  base: "c4890050000000000000000000000000000dcba",
-  files: ["one.mjs", "two.mjs"],
-  at: "2026-09-07T12:00:00.000Z",
-};
-
-/* The read-before-write gate delivers a comment this session has not been shown and refuses once;
-   the same command sent again lands. That hold is not this file's subject, and neither is the
-   other: every case here starts from a field holding no lease at `developed`, which is the record
-   a claim refuses without `--unheld` (ISS-1184), and the flag says nothing about any state a
-   checkpoint names. */
-const ran = async (argv, id, cwd = process.cwd(), env = asRun) => {
-  const sent = argv[0] === "claim" ? [...argv, "--unheld"] : argv;
-  let run = null;
-  for (const again of [1, 2]) {
-    run = await ranAsync(FORGE, sent, env(id), cwd);
-    if (run.status === 0 || again === 2) return run;
-  }
-  return run;
-};
+import {
+  BUILDER, BUILT, CHANGED, LANDER, NOTHING, asWave, checkpoint, field, git, held, lease, ran, state,
+} from "./fixture.mjs";
 
 test("a build that ends ready writes the checkpoint the landing reads, off the capture", async () => {
   field(null, null);
@@ -309,7 +190,7 @@ test("a reconciliation at any state but builder-owed is refused naming the state
     field({ ...OWED, state }, lease(BUILDER));
     const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
     assert.equal(run.status, 1, `${state}: ${run.stdout}`);
-    assert.match(run.stderr, new RegExp(`reads \`${state}\``, "u"), run.stderr);
+    assert.ok(run.stderr.includes(`reads \`${state}\``), run.stderr);
     assert.match(run.stderr, /handed back from `builder-owed`/u, "and the one state it is handed back from");
     assert.equal(checkpoint().state, state, "nothing was written");
   }
@@ -557,7 +438,7 @@ test("a records hand-back at any other state is refused naming the state it read
     field({ ...RECORDS, state }, lease(BUILDER));
     const run = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
     assert.equal(run.status, 1, `${state}: ${run.stdout}`);
-    assert.match(run.stderr, new RegExp(`reads \`${state}\``, "u"), run.stderr);
+    assert.ok(run.stderr.includes(`reads \`${state}\``), run.stderr);
     assert.match(run.stderr, /handed back from `records-owed`/u, "and the one state it is handed back from");
     assert.equal(checkpoint().state, state, "nothing was written");
   }
@@ -599,4 +480,23 @@ test("a records turn naming no state to return to is refused rather than guessed
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /names `promoting` as the state the turn came from/u, run.stderr);
   assert.equal(checkpoint().state, "records-owed", "and nothing was written");
+});
+
+/* The opening a capture prints is read off the checkpoint that capture wrote, not the one the issue
+   was fetched with: out of `head-owed` the fetched head is the handed-back one, and a review and
+   every verdict at the new head are what a resume straight after lists as passed (ISS-2439). */
+test("a capture out of head-owed opens on the head it wrote, so the review and proof there read as passed", async () => {
+  const { render } = await import("../../../src/flow/record/page.mjs");
+  const head = git(CHANGED, "rev-parse", "HEAD").stdout.trim();
+  field({ ...BUILT, state: "head-owed" }, null);
+  state.issues[0] = { ...state.issues[0], status: "in_progress", acceptanceCriteria: "1. The one outcome." };
+  state.comments["landing-uuid"] = [
+    render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }),
+    render("verdict", { criterion: "1", verdict: "pass", commit: head, evidence: "abc1234", why: "the case asserts it" }),
+  ].map((body, at) => ({ documentId: `c-${at + 1}`, createdAt: `2026-09-07T12:0${at}:00.000Z`, authorId: "agent", body }));
+  const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().state, "ready", "the capture wrote ready at the new head");
+  assert.match(run.stdout, /^ {2}passed: 4 Implement, to the review {2}— {2}review$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}passed: 5 Prove {2}— {2}verdict$/mu, run.stdout);
 });

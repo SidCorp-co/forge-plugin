@@ -11,7 +11,9 @@ import { Refused } from "../refusal.mjs";
 import { issueOf, recordReport } from "./record/record.mjs";
 import { rungFieldsOf, viewFrom } from "./earned.mjs";
 import { kindsHeld } from "./record/page.mjs";
-import { indexLines, laneLines, opensWork, openingLines, phaseIndex, workLines } from "../guides/phases.mjs";
+import {
+  finishedAtHead, indexLines, laneLines, opensWork, openingLines, phaseIndex, workLines,
+} from "../guides/phases.mjs";
 import { shortfall } from "./advance.mjs";
 import { landsAgain, owedBlock, policyFor } from "./route.mjs";
 import { worklogLines, workNow } from "./worklog.mjs";
@@ -131,8 +133,8 @@ const owed = (brief, view, ref) => {
 /* Ahead of the body, the brief and every other block, because a run handed an issue past `open`
    redoes the phases behind it otherwise — this issue's own run replayed two of them (ISS-673).
    Exported alongside the claim's own printer, which carries why either is (ISS-804). */
-export const opening = (status, fields, held, work = null) => {
-  for (const line of openingLines(status, held, work)) console.log(line);
+export const opening = (status, fields, held, work = null, finished = []) => {
+  for (const line of openingLines(status, held, work, finished)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
 };
@@ -144,7 +146,7 @@ const print = (brief, view, ref) => {
   block("Wave", waveLines(brief.wave, ref));
   const work = workNow(brief.worklog);
   const kinds = kindsHeld(view);
-  opening(brief.status, rungFieldsOf(view), kinds, work);
+  opening(brief.status, rungFieldsOf(view), kinds, work, finishedAtHead(view));
   block("Lease", leased(brief));
   block("Plan", planLines(brief, ref));
   block("Criteria", brief.criteria.map((one) => `${one.mark.padEnd(10)} ${one.number}. ${one.text}`));
@@ -169,7 +171,7 @@ export const indexFor = async (slug, ref) => {
   const page = await commentPage(documentId);
   const view = viewFrom(documentId, body, page.comments, cutIn(page));
   return indexLines(slug, ref,
-    phaseIndex({ status: body.status, fields: rungFieldsOf(view), held: kindsHeld(view) }));
+    phaseIndex({ status: body.status, fields: rungFieldsOf(view), held: kindsHeld(view), finished: finishedAtHead(view) }));
 };
 
 const run = async (argv) => {
