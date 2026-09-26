@@ -42,7 +42,11 @@ the call: it named the surviving field under a reason written for three, which i
 happened and misleading about what was asked. So the refusal names **both** values rather than the
 survivor — a caller shown only what was kept cannot see which of their arguments was thrown away —
 and it says nothing was sent, a flag given twice being one question asked twice with neither answer
-better. A repeated **boolean** is not refused: a second `true` loses no value.
+better. The count is every occurrence and the values shown stop at two, so three pairs never read as
+two and the reply does not grow with the argv. Where the answer is not choosing one — `record
+routed`'s `--what` and `--to`, one finding per record — the verb declares the route and the refusal
+prints the call that records the next one instead. A repeated **boolean** is not refused: a second
+`true` loses no value.
 
 Accumulating is a declaration and not a default: a verb whose flag accumulates pulls it out with
 `pullRepeated` first, and that call is the one place in the tree saying a flag may repeat. No second

@@ -473,13 +473,15 @@ export const SHAPES = {
     stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
   },
   /* A finding this run made about something it is not working, and where it went: without the
-     destination the parent has to chase it, which is a round nobody can bill to this issue. */
+     destination the parent has to chase it, which is a round nobody can bill to this issue.
+     `onePer` is the unit one record carries, so a second one is a second record rather than a
+     choice between them: the refusal of a repeat and this kind's `-h` both read it (ISS-234). */
   routed: {
     heading: "Routed finding",
     repeats: true,
     fields: [
-      FIELD("what", "What was found", { optional: true, prose: true }),
-      FIELD("to", "Where it went", { optional: true }),
+      FIELD("what", "What was found", { optional: true, prose: true, onePer: "finding" }),
+      FIELD("to", "Where it went", { optional: true, onePer: "finding" }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
       FIELD("none", "None found", { optional: true, prose: true }),
     ],

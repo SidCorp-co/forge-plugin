@@ -40,14 +40,58 @@ test("both values are named, the caller's own words in their own order", async (
   assert.match(said, /Ask for the one you meant: `--one <value>`, once\./u,
     "and the form to type, which every other refusal on this CLI carries");
   assert.match(said, /Nothing was sent\./u, "and neither answer was preferred over the other");
-  assert.equal(said, repeatedFlag("thing", "--one", "first", "second"),
+  assert.equal(said, repeatedFlag("thing", "--one", ["first", "second"]),
     "the verb half and the unit half read one sentence, not two copies");
 });
 
-test("a third occurrence is refused at the second, so no reply grows with the argv", async () => {
-  const said = await refused(() => flags(["--one", "a", "--one", "b", "--one", "c"], "thing", [], { usage: USAGE }));
-  assert.match(said, /`a` and then `b`/u, said);
-  assert.doesNotMatch(said, /`c`/u, "the parse stops at the first repeat rather than collecting them");
+/* ISS-234: `twice` said of three pairs read as two, and the caller wrote one more record than it knew it owed. */
+test("a third occurrence is counted, the reply naming two values and how many more", async () => {
+  const said = await refused(() => flags(["--one", "a", "--one", "b", "--one", "c", "--one", "d"], "thing", [],
+    { usage: USAGE }));
+  assert.match(said, /^thing: --one was given 4 times, `a`, `b` and 2 more, /u, said);
+  assert.doesNotMatch(said, /twice/u, "four is not two");
+  assert.doesNotMatch(said, /`c`|`d`/u, "and the reply does not grow with every value typed");
+  assert.match(said, /Ask for the one you meant: `--one <value>`, once\. Nothing was sent\./u,
+    "a flag declaring no route of its own keeps the parser's");
+});
+
+test("a route the verb declares for a flag replaces the parser's, after saying nothing was sent", async () => {
+  const again = { "--one": "One thing carries one item, so write one per item:\n  forge thing <ref> --one <item>" };
+  const said = await refused(() => flags(["--one", "a", "--one", "b", "--two", "x"], "thing", [], { usage: USAGE, again }));
+  assert.match(said, /--one was given twice, `a` and then `b`, and one flag carries one value\. Nothing was sent\. One thing/u,
+    said);
+  assert.match(said, /\n {2}forge thing <ref> --one <item>$/u, "the command is the last line, where a caller copies from");
+  assert.doesNotMatch(said, /Ask for the one you meant/u, "choosing one would lose the rest");
+  const other = await refused(() => flags(["--two", "a", "--two", "b"], "thing", [], { usage: USAGE, again }));
+  assert.match(other, /Ask for the one you meant: `--two <value>`, once\./u, "and the declaration is per flag");
+});
+
+test("a routed record given three findings is refused with the count and the call per finding, and posts nothing", async () => {
+  const run = await ran("record", "routed", "ISS-1", "--what", "A", "--to", "ISS-2", "--what", "B", "--to", "ISS-3",
+    "--what", "C", "--to", "ISS-4", "--evidence", "abc1234");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(run.stdout, "", "no record came back");
+  assert.match(run.stderr, /^record routed: --what was given 3 times, `A`, `B` and 1 more, /mu, run.stderr);
+  assert.match(run.stderr, /Nothing was sent\. One routed record carries one finding, so write one per finding:/u,
+    run.stderr);
+  assert.match(run.stderr, /^ {2}forge record routed ISS-1 --what <what was found> --to <where it went>$/mu, run.stderr);
+  assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "refused before anything was resolved");
+});
+
+test("a confirmation's --is given twice keeps the parser's route, its field declaring none", async () => {
+  const run = await ran("record", "confirmation", "ISS-1", "--where", "a.mjs", "--is", "X", "--is", "Y",
+    "--finding", "holds");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--is was given twice, `X` and then `Y`, and one flag carries one value\. Ask for the one you meant: `--is <value>`, once\. Nothing was sent\./u,
+    run.stderr);
+  assert.doesNotMatch(run.stderr, /write one per/u, run.stderr);
+});
+
+test("routed's help says one record carries one finding", async () => {
+  const run = await ran("record", "routed", "-h");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /One record carries one finding: --what and --to take one value each,\nso several findings are several calls\./u,
+    run.stdout);
 });
 
 test("two different flags are two answers to two questions, and both are read", () => {

@@ -108,10 +108,18 @@ const strangerIn = (argv, verb, row) => {
   if (said) fail(said);
 };
 
-/* One value too many, where `noValue` is one too few: a dropped value leaves the caller a reply about what did move and nothing about what did not (ISS-930). */
-export const repeatedFlag = (verb, flag, kept, given) =>
-  `${verb}: ${flag} was given twice, \`${kept}\` and then \`${given}\`, and one flag carries one `
-  + `value. Ask for the one you meant: \`${flag} <value>\`, once. Nothing was sent.`;
+/* One value too many, where `noValue` is one too few: a dropped value leaves the caller a reply about what did move and nothing about what did not (ISS-930). The count is every occurrence, so three read as three, while two values are shown whatever it is, so the reply does not grow with the argv. `again` is the route a verb declared for this flag where the answer is not choosing one: several findings are several records, and asking for one would lose the rest (ISS-234). */
+export const repeatedFlag = (verb, flag, values, again) => {
+  const [kept, given] = values;
+  const more = values.length - 2;
+  const said = more > 0
+    ? `${values.length} times, \`${kept}\`, \`${given}\` and ${more} more`
+    : `twice, \`${kept}\` and then \`${given}\``;
+  const head = `${verb}: ${flag} was given ${said}, and one flag carries one value.`;
+  return again
+    ? `${head} Nothing was sent. ${again}`
+    : `${head} Ask for the one you meant: \`${flag} <value>\`, once. Nothing was sent.`;
+};
 
 /* Which of a verb's flags carries a credential is the verb's own declaration, beside `boolean` and `hidden` and for the same reason: a second list here would drift from the row the caller was shown. A refusal naming the flag is the whole of what a caller needs, and both values printed is a token in a transcript. */
 const HIDDEN_VALUE = "***";
@@ -130,7 +138,9 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
     const name = key.slice(2);
     if (found[name] !== undefined) {
       const shown = (one) => ((row.secret ?? []).includes(key) ? HIDDEN_VALUE : one);
-      fail(repeatedFlag(verb, key, shown(found[name]), shown(value)));
+      /* Every flag sits at an even index, since each spends the word after it. */
+      const values = pairs.flatMap((word, at) => (at % 2 === 0 && word === key ? [shown(pairs[at + 1])] : []));
+      fail(repeatedFlag(verb, key, values, row.again?.[key]));
     }
     found[name] = value;
     index += 1;

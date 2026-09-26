@@ -206,6 +206,38 @@ const formsTaken = (kind) => (SHAPES[kind]?.fields ?? [])
   .filter((one) => one.form)
   .map((one) => `--${one.flag} takes ${one.form}.`);
 
+/* The fields a kind declares one of per record, and the unit that record carries: the help line and the refusal of a repeat are both read off this, so the two cannot say different things (ISS-234). */
+const onePerOf = (kind) => {
+  const fields = (SHAPES[kind]?.fields ?? []).filter((one) => one.onePer);
+  return fields.length ? { fields, unit: fields[0].onePer } : null;
+};
+
+const flagList = (fields) => {
+  const named = fields.map((one) => `--${one.flag}`);
+  return named.length > 1 ? `${named.slice(0, -1).join(", ")} and ${named.at(-1)}` : named[0];
+};
+
+const onePerBlocks = (kind) => {
+  const declared = onePerOf(kind);
+  if (!declared) return [];
+  const { fields, unit } = declared;
+  return [`One record carries one ${unit}: ${flagList(fields)} take${fields.length > 1 ? "" : "s"} one value each,`,
+    `so several ${unit}s are several calls.`];
+};
+
+/** What a repeated one-per-record flag is answered with, keyed by flag for the parser: the call that
+ *  records the next one, since asking for the one meant would lose the rest. Empty for a kind that
+ *  declares none, so the parser's own route stands. */
+export const onePerRoutes = (kind, reference = "<ref>") => {
+  const declared = onePerOf(kind);
+  if (!declared) return {};
+  const { fields, unit } = declared;
+  const call = `forge record ${kind} ${reference} `
+    + fields.map((one) => `--${one.flag} <${one.label.toLowerCase()}>`).join(" ");
+  const route = `One ${kind} record carries one ${unit}, so write one per ${unit}:\n  ${call}`;
+  return Object.fromEntries(fields.map((one) => [`--${one.flag}`, route]));
+};
+
 /* One sentence per fill, under that fill's own condition: an evidence field nothing owes, `routed`'s, is never filled and is promised no read. */
 const readsOff = (kind) => {
   const commit = filled(kind, "commit");
@@ -291,6 +323,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     KIND_PHRASE[kind] ? `${KIND_PHRASE[kind][0].toUpperCase()}${KIND_PHRASE[kind].slice(1)}.` : "",
     "",
     row,
+    ...(onePerBlocks(kind).length ? ["", ...onePerBlocks(kind)] : []),
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),

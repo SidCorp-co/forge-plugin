@@ -12,7 +12,7 @@ import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
-import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "./record-rows.mjs";
+import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, onePerRoutes, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
 import { RUN_FLAGS, kindBlocks, pullRun } from "./rung.mjs";
 import { fieldChecked } from "./prose-route.mjs";
@@ -43,7 +43,7 @@ import { stampedNow, uncommittedOver } from "../worklog.mjs";
 const DEFERRED = ["commit", "evidence"];
 
 /* One pass over the shape: every flag read, every rule applied, before anything is written. */
-const gather = (kind, argv, defer = []) => {
+const gather = (kind, argv, defer = [], reference = undefined) => {
   const shape = SHAPES[kind];
   let rest = argv;
   const got = {};
@@ -53,7 +53,7 @@ const gather = (kind, argv, defer = []) => {
     got[field.flag] = pulled.values;
     rest = pulled.rest;
   }
-  const single = flags(rest, `record ${kind}`, [], { usage });
+  const single = flags(rest, `record ${kind}`, [], { usage, again: onePerRoutes(kind, reference) });
   Object.assign(got, single, writtenBy(shape), stampedNow(shape));
   /* Its own pass and first, so a route typed at one field is named before whichever field is missing. */
   for (const field of shape.fields) fieldChecked(kind, field, got[field.flag]);
@@ -286,11 +286,11 @@ export const blocksIn = (argv, per, single = [], verb = "record") => {
 
 /* Refused here and by the number the reader keys by, so `01` and `1` are one: the map every check
    keys keeps the last of two blocks naming one, and says so nowhere. */
-const blocksOf = (kind, argv) => {
+const blocksOf = (kind, argv, reference) => {
   const shape = SHAPES[kind];
   const single = shape.fields.filter((one) => !one.many).map((one) => `--${one.flag}`);
   const blocks = blocksIn(argv, shape.per, single, `record ${kind}`)
-    .map((one) => gather(kind, one, DEFERRED));
+    .map((one) => gather(kind, one, DEFERRED, reference));
   const seen = new Set();
   for (const got of blocks) {
     const named = got[shape.per];
@@ -337,7 +337,7 @@ const quoteCriteria = (kind, blocks, body, reference) => {
 /* Every refusal a shaped payload can earn, before any write of the call: a second block's bad field costs the first block nothing. */
 const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) => {
   const shape = SHAPES[kind];
-  const blocks = blocksOf(kind, argv);
+  const blocks = blocksOf(kind, argv, reference);
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const { body } = await issue();
   answerChecked(kind, reference, body);
