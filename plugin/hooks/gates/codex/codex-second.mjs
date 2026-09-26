@@ -124,7 +124,7 @@ const unjudged = (ev, root, others) => {
   return ` Judged ${typed(root)}; this call also commits in ${rest.join(", ")}, which went unchecked.`;
 };
 
-/* What one tree's record owes this commit, read under whichever home the caller has set. */
+/* The staged demand, then the unruled findings: the caller picks the home both are read under. */
 const judged = (ev, root, aim, staged, also) => {
   /* Recorded this turn or a turn ago, staged here, and unread at the bytes this commit carries — the
      index with no `-a`: 7 of 30 landed unread, and an exact revert owed a consult with nothing in it. */

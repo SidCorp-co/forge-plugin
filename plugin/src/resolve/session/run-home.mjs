@@ -11,7 +11,7 @@ import { scratchAt } from "./run-id.mjs";
  *  XDG_CONFIG_HOME, and what that tree's hooks read, one derivation for both. */
 export const homeIn = (scratch) => join(scratch, "home");
 
-/** That home for the tree holding `path`, or null where the tree records no scratch of a run. */
+/** The home a run standing at `path` was handed, off its tree's scratch record; null without one. */
 export const runHomeAt = (path) => {
   const scratch = path ? scratchAt(path) : null;
   return scratch ? homeIn(scratch) : null;
