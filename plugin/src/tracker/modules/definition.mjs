@@ -24,8 +24,8 @@ const definedSaid = (modules) => (modules.length
   ? `This project defines: ${namesOf(modules).join(", ")}.`
   : "This project defines no module yet.");
 
-/** The one module `name` names, or the refusal naming what is defined. `what` is how the caller's
- *  own flag spells the slot, so the refusal names the word the caller typed. */
+/** The one module `name` names, or the refusal naming what is defined, opening on `what` — the
+ *  flag, `--parent` or `--to` or `--module`, that carried the name. */
 export const moduleNamed = (modules, name, what) => {
   const found = modules.find((one) => one.name === name);
   if (found) return { found, refusal: null };
