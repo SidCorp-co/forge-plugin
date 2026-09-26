@@ -1,7 +1,6 @@
-/* The minutes issues waited on a person each day, off the tracker's own status history: a wait is the
-   time an issue stood at a status a person's park lands it in, and it counts on the day it ended.
-   Which statuses those are, where a wait's two ends are read and why the open ones stand apart:
-   docs/cli/stats-the-reading.md. */
+/* How long work stood still for a person each day. A wait is the time an issue spent at a status a
+   person's park lands it in, and it counts on the day it ended. Which statuses those are, where a
+   wait's two ends are read and why the open ones stand apart: docs/cli/stats-the-reading.md. */
 import { boundsOf, weekBefore } from "../day.mjs";
 import { MOVED, NO_ENDPOINT, TRACKER, endpointHeld, firstLine, oncePerSlug, walkBack } from "./history.mjs";
 import { PARK_STATUS, answersByComment } from "../../../flow/earned/park-status.mjs";
@@ -76,8 +75,8 @@ const listedOf = async (reads, name) => {
 const touching = (walk) => (walk.events ?? []).filter((one) => one.action === MOVED && (PERSON.has(one.from) || PERSON.has(one.to)));
 const ending = (walk) => touching(walk).filter((one) => PERSON.has(one.from) && !PERSON.has(one.to));
 
-/* The day's waits of one project: not read where its walk of the day was, or where the history of an
-   issue whose wait ended inside the day was; else every wait ending inside it. */
+/* One project's day: every wait whose end falls inside it, unless the day's walk, or the history of
+   an issue a wait ended for that day, came back short. */
 const dayOf = (project, walk, day, histories, keyOf) => {
   if (walk.unread) return { unread: `${project.name}: ${walk.unread}` };
   for (const one of ending(walk)) {
@@ -147,9 +146,9 @@ const joined = (parts, key) => {
   return unread.length ? { unread: unread.join("; ") } : { [key]: parts.flatMap((one) => one[key]) };
 };
 
-/** The waits that ended on a day and on each of the seven before it, over every registered project,
- *  and the waits open at that day's end. A day any project could not read is not read, since a sum
- *  missing a project reads as less waiting. */
+/** Every registered project's waits, per day of the page's eight, with those still open when the
+ *  page's day ended. One project unread leaves the day unread: a sum short of a project would read
+ *  as less waiting. */
 export const waitsRead = async (registered, day, { reads = TRACKER, held = endpointHeld } = {}) => {
   const days = [...weekBefore(day), day];
   const everywhere = (why) => ({ day, days: Object.fromEntries(days.map((one) => [one, { unread: why }])), open: { unread: why } });
