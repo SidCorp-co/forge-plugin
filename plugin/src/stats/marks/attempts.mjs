@@ -19,8 +19,8 @@ export const MOVED_BASE = "moved-base";
 export const DECLINED = "declined";
 export const TRACKER = "tracker";
 export const JUDGE = "judge";
-export const CAUSES = [BRANCH, COMBINATION, MOVED_BASE, DECLINED, TRACKER, JUDGE];
-export const UNRECORDED = "unrecorded";
+const CAUSES = [BRANCH, COMBINATION, MOVED_BASE, DECLINED, TRACKER, JUDGE];
+const UNRECORDED = "unrecorded";
 
 /* A gate's verdict: only the first two judged a tree, so only they spend gate minutes. */
 export const GREEN = "green";
