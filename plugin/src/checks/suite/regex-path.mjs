@@ -7,6 +7,7 @@
 
 import { lineAt } from "../../markdown.mjs";
 import { calleeOf, pairsOf, shapeOf } from "./regex-shape.mjs";
+import { COMMENTS, maskOf } from "../lexical.mjs";
 import { blanked, closesAfter } from "./wall-clock.mjs";
 
 /** Where a path comes from: the node routes that make one, and the environment that hands one over. */
@@ -26,33 +27,8 @@ const JOINED = /`[^`]*\$\{|["']\s*\+|\+\s*["']/u;
 
 const DECLARED = /\b(?:const|let|var)\s+(?:([A-Za-z_$][\w$]*)|[{[]([^}\]]*)[}\]])\s*=\s*/gu;
 
-/** Comments out, templates left standing: where a name got its value is read through them. */
-const uncommented = (text) => {
-  const out = Array.from(text);
-  const hide = (from, to) => {
-    for (let at = from; at < to && at < out.length; at += 1) if (out[at] !== "\n") out[at] = " ";
-  };
-  let at = 0;
-  while (at < text.length) {
-    const two = text.slice(at, at + 2);
-    if (two === "//") {
-      const end = text.indexOf("\n", at);
-      hide(at, end === -1 ? text.length : end);
-      at = end === -1 ? text.length : end;
-    } else if (two === "/*") {
-      const end = text.indexOf("*/", at + 2);
-      hide(at, end === -1 ? text.length : end + 2);
-      at = end === -1 ? text.length : end + 2;
-    } else if (text[at] === "'" || text[at] === '"') {
-      let end = at + 1;
-      while (end < text.length && text[end] !== text[at]) end += text[end] === "\\" ? 2 : 1;
-      at = end + 1;
-    } else {
-      at += 1;
-    }
-  }
-  return out.join("");
-};
+/** Comments out, every literal left standing: where a name got its value is read through them. */
+const uncommented = (text) => maskOf(text, { blank: COMMENTS });
 
 const rightOf = (code, from) => {
   let depth = 0;

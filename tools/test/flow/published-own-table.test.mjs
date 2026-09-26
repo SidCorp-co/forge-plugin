@@ -73,7 +73,8 @@ test("a release that moved its step table publishes the count the shipped table 
   const said = says(work);
   const stored = publishedFor(SLUG, head);
   assert.ok(stored, `the release publishes off the shipped tree's reading, where it said: ${said}`);
-  assert.equal(stored.result, `nothing fails: all ${of} gate step(s) green at this commit`,
+  /* The count is this case's; the sentence around it is published-manifest.test.mjs's to pin whole. */
+  assert.equal(stored.result.split(" gate step")[0], `nothing fails: all ${of}`,
     "for the head it shipped, with the count the shipped table earns");
   assert.deepEqual(heldIn(work), { green: of, of }, "which is that tree's own reader counting its own table, green");
 });

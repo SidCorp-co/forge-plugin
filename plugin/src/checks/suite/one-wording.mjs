@@ -12,7 +12,8 @@
    lexical reading sees those as plainly as the rest, and ISS-2282 owns the rule that names them. */
 
 import { lineAt } from "../../markdown.mjs";
-import { spansIn } from "./wall-clock.mjs";
+import { COMMENTS, KINDS, literalsIn } from "../lexical.mjs";
+import { blanked } from "./wall-clock.mjs";
 
 /** The shortest wording this refuses to see pinned twice. Below it a pattern is a status word or a
  *  flag name, which many files share for reasons that are not this one; the census that measured
@@ -25,7 +26,12 @@ const TEST_FILE = /^(?:plugin|tools)\/test\/.*\.test\.mjs$/u;
 const SOURCE_FILE = /^(?:plugin\/src\/|plugin\/hooks\/|tools\/(?!test\/))/u;
 const VENDORED = "/vendor/";
 
-const QUOTED = new Set(["string", "template"]);
+const QUOTED = new Set([KINDS.SINGLE, KINDS.DOUBLE, KINDS.TEMPLATE]);
+/* Which quotes spelt a string is no part of its wording, so both quoted kinds are one label. */
+const LABEL = { [KINDS.SINGLE]: "string", [KINDS.DOUBLE]: "string", [KINDS.TEMPLATE]: "template", [KINDS.REGEX]: "regex" };
+/* A template is read whole, what it interpolates included, as the suite's mask reads it, and split
+   at its interpolations by RUNS below. Reading its halves instead is where ISS-2212 takes the suite. */
+const regionsOf = (text) => literalsIn(text, { holes: "text" });
 
 /* An interpolation and an escaped newline each break a composed sentence into runs that stand in the
    output whole, so a pattern is matched against the runs and never across one. */
@@ -36,7 +42,7 @@ const unescaped = (one) => one.replace(ESCAPED, "$1");
 /** Every sentence this module composes: the text of each quoted run a `+` chain joins, which is how
  *  a refusal longer than a line is written here, split at what it interpolates. */
 export const composedIn = (text) => {
-  const quoted = spansIn(text).filter((one) => QUOTED.has(one.kind));
+  const quoted = regionsOf(text).filter((one) => QUOTED.has(one.kind));
   const joined = [];
   for (const one of quoted) {
     const last = joined.at(-1);
@@ -156,18 +162,15 @@ const callsIn = (code) => {
  *  string spelling the same characters are two patterns and not one — which is what keeps a presence
  *  check with a capture from reading as the wording check beside it (ISS-2218). */
 export const pinnedIn = (text) => {
-  const spans = spansIn(text);
-  const code = spans.reduce((each, one) =>
-    `${each.slice(0, one.from)}${" ".repeat(one.to - one.from)}${each.slice(one.to)}`, text);
-  const calls = callsIn(code);
+  const calls = callsIn(blanked(text));
   const out = [];
-  for (const one of spans) {
-    if (one.kind === "comment") continue;
+  for (const one of regionsOf(text)) {
+    if (COMMENTS.includes(one.kind)) continue;
     const call = calls.find((each) => one.from > each.from && one.from < each.to);
     if (!call || NEGATED.test(call.head) || one.from >= call.message) continue;
     const raw = text.slice(one.from, one.to);
-    const core = one.kind === "regex" ? regexCore(raw) : stringCore(raw);
-    if (core.length >= FLOOR) out.push({ pattern: `${one.kind} ${raw}`, core, line: lineAt(text, one.from) });
+    const core = one.kind === KINDS.REGEX ? regexCore(raw) : stringCore(raw);
+    if (core.length >= FLOOR) out.push({ pattern: `${LABEL[one.kind]} ${raw}`, core, line: lineAt(text, one.from) });
   }
   return out;
 };

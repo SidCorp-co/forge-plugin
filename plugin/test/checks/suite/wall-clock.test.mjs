@@ -6,7 +6,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { boundsIn, blanked, spansIn } from "../../../src/checks/suite/wall-clock.mjs";
+import { boundsIn, blanked } from "../../../src/checks/suite/wall-clock.mjs";
 import { patience } from "../../patience.mjs";
 
 const SUITE = new URL("../../", import.meta.url).pathname;
@@ -106,58 +106,10 @@ test("the escape never returns under the bound it was given, nor over the cap ab
   }
 });
 
-/* Every index blanking works with counts code units, so a pair read as one element would address the
-   wrong place from the first astral character on — and a reader carrying an offset from here into the
-   source would be one place out for each of them (ISS-2040). */
-test("blanking hands back a text of the same length, code unit for code unit", () => {
-  const source = 'const drawn = "\u{1F600}";\n/* a comment */\nconst three = 3;\n';
-  assert.equal(blanked(source).length, source.length);
-  assert.equal(blanked(source).indexOf("const three"), source.indexOf("const three"),
-    "so an offset taken off the blanked copy names the same place in the source");
-  assert.doesNotMatch(blanked(source), /a comment/u, "and the comment is still gone");
-});
-
-test("blanking keeps every line where it was, so a finding's line number is the file's own", () => {
-  const source = "/* one\n   two */\nconst three = 3;\n";
-  assert.equal(blanked(source).split("\n").length, source.split("\n").length);
-  assert.match(blanked(source), /const three = 3;/u, "code outside the comment is left alone");
-  assert.doesNotMatch(blanked(source), /two/u, "and the comment's words are gone");
-});
-
-/* The two ends of the bounded lookbehind the slash decision reads (ISS-1941). A window sized to the
-   keyword and no further reads `footypeof` as `typeof`, because the keyword then sits flush against
-   the start of what the pattern is given and the word boundary matches there; a window taken as a
-   fixed slice, without walking the whitespace out first, sees only spaces and calls every spaced
-   regular expression a division. */
-test("a slash after an identifier merely ending in a keyword is a division, so what follows it stands", () => {
-  assert.match(blanked("const n = footypeof /size/u;\n"), /size/u, "`footypeof` is an identifier, not `typeof`");
-});
-
-test("a slash parted from its operator by more whitespace than the lookbehind still opens a regular expression", () => {
-  const source = `const m = ${" ".repeat(40)}/secret/u;\n`;
-  assert.doesNotMatch(blanked(source), /secret/u, "the operator is still what precedes the slash");
-  assert.match(blanked(source), /const m =/u, "and the code before it is left alone");
-});
-
-/* The mask and the readers that need a run's own extent come off one walk, because a blanked run
-   breaks at every space the source already had and a second scanner would be a second answer. A
-   comment's delimiters fall inside its span and a string's or a regular expression's fall outside,
-   which is the whole of how a reader tells the three apart from the source alone. */
-test("the spans the mask is built from carry their kind and their extent", () => {
-  const source = 'const a = "x y"; // note\nconst r = /a b/u;\nconst t = `q ${w} z`;\n/* block */\n';
-  assert.deepEqual(spansIn(source).map((one) => [one.kind, source.slice(one.from, one.to)]), [
-    ["string", "x y"],
-    ["comment", "// note"],
-    ["regex", "a b"],
-    ["template", "q ${w} z"],
-    ["comment", "/* block */"],
-  ], "a run holds the spaces the source had, which is what the mask cannot give back");
-});
-
-test("the mask is those spans and nothing else, so an offset off either names the same place", () => {
-  const source = 'const a = "x y"; // note\nconst r = /a b/u;\n';
-  const built = spansIn(source).reduce((each, one) =>
-    `${each.slice(0, one.from)}${" ".repeat(one.to - one.from)}${each.slice(one.to)}`, source);
-  assert.equal(blanked(source), built);
-  assert.equal(blanked(source).length, source.length);
+/* The walk itself is plugin/test/checks/lexical.test.mjs's. What is this file's is the choice the
+   suite rules share: a template goes whole, what its holes spell included, until ISS-2212 opens them. */
+test("the suite's mask blanks a template whole, its holes included, and keeps its backticks", () => {
+  const source = "const t = `a ${Date.now() - start} b`; const n = Date.now();\n";
+  const inside = "a ${Date.now() - start} b";
+  assert.equal(blanked(source), source.replace(inside, " ".repeat(inside.length)));
 });
