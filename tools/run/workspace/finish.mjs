@@ -12,10 +12,12 @@ import { join, resolve, sep } from "node:path";
 import { consults } from "../../../plugin/src/codex/codex-log.mjs";
 import { jsonlAt } from "../../../plugin/src/hooks/log/hook-log-file.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
-import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef,
+import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef, stop,
   uncommittedIn } from "../../checkout.mjs";
 import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
+import { treeKey } from "../../gates/timing.mjs";
+import { endedOf, endedWritten } from "./ended.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";
 
@@ -53,8 +55,18 @@ export const FINISH_HELP = [
   "Run from inside the tree it would remove, it takes that run's scratch, leaves the tree and prints",
   "the call that ends it from the checkout — a verb that deletes the directory its caller stands in",
   "strands that caller with nothing left to write its own last records from. That is a report and not",
-  "a refusal, and the exit code stays 0. So is a second call, which finds nothing to do and says so,",
-  "which is also what a run that died before its last phase leaves for whoever ends it.",
+  "a refusal, and the exit code stays 0.",
+  "",
+  "A call that removed the tree leaves a record of that ending in the checkout's common git",
+  "directory — the run id, the ledger's name for the tree, what went and what was left, and when —",
+  "because both names lived in the tree it removed. A second call reads it and says the workspace",
+  "was already ended by finish, and exits 0. A tree gone with no such record is what a removal by",
+  "hand, or a run that died before its last phase, left behind, and that is said as a leak to",
+  "recover rather than a workspace to end. start drops the record when it cuts that key's tree",
+  "again, so an old ending never answers for a newer tree.",
+  "",
+  "A removal that fails once removing has begun exits non-zero, and the last line names the",
+  "removal that failed and the command that retries it.",
 ];
 
 /* Each by the copy that sits in the tree it is about: the gate judges the tree its own runner is in,
@@ -147,7 +159,11 @@ const corpusGoing = (at) => {
     + `log is the corpus a release is read off, and a consult recorded only here reached no other copy`);
 };
 
-const removedScratch = (at) => {
+/* One line naming the removal and the call that retries it, last of all, since a caller reading the
+   tail of this output is reading that line. */
+const failedLine = (what, why, retry) => `  failed   ${what} was not removed (${why}); retry it with: ${retry}`;
+
+const removedScratch = (at, retry) => {
   if (!at) {
     return console.log(`  left     no scratch directory is named: that tree carries no run id this `
       + `repository minted, and nothing derives a path from one it did not`);
@@ -155,26 +171,65 @@ const removedScratch = (at) => {
   if (!existsSync(at)) return console.log(`  gone     ${at} was already removed`);
   const held = readdirSync(at).length;
   corpusGoing(at);
-  rmSync(at, { recursive: true, force: true });
-  return console.log(`  removed  ${at}, holding ${held} entry(s)`);
+  try {
+    rmSync(at, { recursive: true, force: true });
+  } catch (error) {
+    stop(`The tree, its branch and its verdict record are untouched; only part of the scratch may be gone.\n`
+      + failedLine(`the scratch directory ${at}`, error.message, retry));
+  }
+  console.log(`  removed  ${at}, holding ${held} entry(s)`);
+  return `the scratch directory ${at}`;
 };
 
 /* `-d` and never `-D`, with git's own advice off: that advice offers the forced delete, which is the
    one route out of this a refusal here may not carry — the way out is the line below it. */
-const removedBranch = (root, base, branch) => {
+const removedBranch = (root, base, branch, ended) => {
   const run = git(["-C", root, "-c", "advice.forceDeleteBranch=false", "branch", "-d", branch], root);
-  if (run.status === 0) return console.log(`  removed  branch ${branch}`);
+  if (run.status === 0) {
+    ended.removed.push(`branch ${branch}`);
+    return console.log(`  removed  branch ${branch}`);
+  }
+  const later = `git -C ${root} branch -d ${branch}`;
+  ended.left.push(`branch ${branch}, which git refused to delete and which loses nothing: ${later}`);
   console.error(`  left     branch ${branch}, which git refuses to delete: `
     + `${(run.stderr ?? "").trim() || `it exited ${run.status}`}`);
   return console.error(`           nothing of it is lost — ${REMOTE}/${base} carries every commit of `
-    + `it, proved before anything was removed. Delete it once this checkout has caught up: `
-    + `git -C ${root} branch -d ${branch}`);
+    + `it, proved before anything was removed. Delete it once this checkout has caught up: ${later}`);
 };
 
-const removedVerdict = (at) => {
+/* Reported last rather than stopped on: the tree and the branch are already gone, so what is owed
+   is this one file, and the record of the ending still has to be written. */
+const removedVerdict = (at, ended) => {
   if (!existsSync(at)) return console.log(`  gone     no gate of that tree ever wrote a verdict record`);
-  rmSync(at, { force: true });
+  try {
+    rmSync(at, { force: true });
+  } catch (error) {
+    ended.left.push(`the verdict record ${at}: rm -f ${at}`);
+    return { what: `the verdict record ${at}`, why: error.message, retry: `rm -f ${at}` };
+  }
+  ended.removed.push(`the verdict record ${at}`);
   return console.log(`  removed  ${at}, the verdict record of a tree that is now gone`);
+};
+
+/* Written once before anything goes and once after, because the run id and the ledger's name die
+   with the tree: a record that could not be written first refuses the whole call, and one whose
+   second write fails still says finish began the ending, rather than leaving a hand removal's reading. */
+const begun = (root, key, ended) => {
+  const wrote = endedWritten(root, key, ended);
+  if (wrote.at) return true;
+  console.error(`  left     the whole workspace, its scratch with it, because no record of this ending `
+    + `could be written (${wrote.why}), and a second finish would then read this tree's absence as a `
+    + `removal by hand`);
+  console.error(`             clear it: git -C ${root} rev-parse --git-common-dir, and make that directory `
+    + `writable`);
+  return false;
+};
+
+const recorded = (root, key, ended) => {
+  const wrote = endedWritten(root, key, { ...ended, at: new Date().toISOString() });
+  if (wrote.at) return console.log(`  recorded ${wrote.at}, which a second finish reads as this ending`);
+  return console.error(`  note     the record of this ending could not be finished (${wrote.why}), so a `
+    + `second finish reads the one written before the removal: that finish began it at ${ended.began}`);
 };
 
 /* Invoked and not read off the install record: a record names a version, and what a session needs is
@@ -219,6 +274,53 @@ const foreign = (root, path, whose) => {
     + `${whose.itsOwn ? path : whose.owner} worktree list`;
 };
 
+/* A tree gone is one of two things, and only the record outside it tells them apart. */
+const alreadyGone = (root, key, path) => {
+  const ended = endedOf(root, key, path);
+  if (!ended) {
+    console.log(`  gone     nothing is there, so this workspace is already ended and this removed nothing`);
+    return console.log(`  left     the run id and the ledger's name for that tree both lived in it, and `
+      + `no finish recorded ending it, so this names neither a scratch directory nor a verdict record: `
+      + `what a removal by hand left behind is a leak to recover and not a workspace to end`);
+  }
+  if (!ended.at) {
+    return console.log(`  gone     finish began ending this workspace at ${ended.began}, under run `
+      + `${ended.run ?? "none minted"} and the ledger's name ${ended.ledger}, and did not record what it `
+      + `removed; this removed nothing, and no removal by hand is read into it`);
+  }
+  console.log(`  gone     finish already ended this workspace at ${ended.at}, under run `
+    + `${ended.run ?? "none minted"} and the ledger's name ${ended.ledger}, and this removed nothing`);
+  for (const one of ended.removed ?? []) console.log(`           it removed ${one}`);
+  for (const one of ended.left ?? []) console.log(`  left     ${one}`);
+  return console.log((ended.left ?? []).length
+    ? `           nothing is owed beyond what it left, named above`
+    : `           nothing is owed`);
+};
+
+const closing = (root, failed) => {
+  treesLeft(root);
+  stackSays();
+  if (!failed) return;
+  console.error(failedLine(failed.what, failed.why, failed.retry));
+  process.exitCode = REFUSED;
+};
+
+/** The tree, its branch and its verdict record, once the record of the ending is begun; what failed, or nothing. */
+const removedWhole = (root, path, base, read, ended, retry) => {
+  const took = removedScratch(read.scratch, retry);
+  if (took) ended.removed.push(took);
+  loud("git", ["-C", root, "worktree", "remove", path], root,
+    `The scratch directory above is gone and nothing else is — no branch and no verdict record. `
+    + `Read what git said: a second call finds the scratch already gone.\n`
+    + failedLine(`the worktree ${path}`, "git refused it, above", retry));
+  console.log(`  removed  ${path}`);
+  ended.removed.push(`the worktree ${path}`);
+  if (read.branch) removedBranch(root, base, read.branch, ended);
+  const failed = removedVerdict(read.verdict, ended);
+  recorded(root, ended.key, ended);
+  return failed;
+};
+
 export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = gatesHere }) => {
   const key = String(given ?? "").toUpperCase();
   if (!KEY.test(key)) {
@@ -230,10 +332,7 @@ export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = 
   const path = worktreePath(root, key);
   console.log(`The workspace ${key} was started with: ${path}`);
   if (!existsSync(path)) {
-    console.log(`  gone     nothing is there, so this workspace is already ended and this removed nothing`);
-    console.log(`  left     the run id and the ledger's name for that tree both lived in it, so this `
-      + `names neither a scratch directory nor a verdict record: what a removal by hand left behind `
-      + `is a leak to recover and not a workspace to end`);
+    alreadyGone(root, key, path);
     treesLeft(root);
     stackSays();
     return;
@@ -256,20 +355,19 @@ export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = 
     process.exitCode = REFUSED;
     return;
   }
-  removedScratch(read.scratch);
+  const retry = `${runnerIn(root, "run.mjs")} finish ${key}`;
   if (standingIn(path, cwd)) {
+    removedScratch(read.scratch, retry);
     console.log(`  left     ${path}, which this call is standing in: a verb that removes the directory `
       + `its caller stands in leaves that caller nothing to write its last records from.`);
-    console.log(`           End it from the checkout, where nothing stands in it: `
-      + `${runnerIn(root, "run.mjs")} finish ${key}`);
-  } else {
-    loud("git", ["-C", root, "worktree", "remove", path], root,
-      `The scratch directory above is gone and nothing else is — no branch and no verdict record. `
-      + `Read what git said, then take this call again: a second one finds the scratch already gone.`);
-    console.log(`  removed  ${path}`);
-    if (read.branch) removedBranch(root, base, read.branch);
-    removedVerdict(read.verdict);
+    console.log(`           End it from the checkout, where nothing stands in it: ${retry}`);
+    return closing(root, null);
   }
-  treesLeft(root);
-  stackSays();
+  const ended = { key, tree: path, run: whose.held ?? null, ledger: treeKey(path),
+    began: new Date().toISOString(), at: null, removed: [], left: [] };
+  if (!begun(root, key, ended)) {
+    process.exitCode = REFUSED;
+    return closing(root, null);
+  }
+  return closing(root, removedWhole(root, path, base, read, ended, retry));
 };
