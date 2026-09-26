@@ -406,22 +406,22 @@ were taking about four. The count is derived from the consult log rather than ke
 run that dies leaves nothing wrong, and it is reported rather than enforced until it is trusted.
 `docs/cli/codex-the-log.md` says why a head tells a repeat from a recheck.
 
-- **AC-06-9-1** · Rev: 1 · Proof: plugin/test/codex/log/reads.test.mjs "two reads at one head carrying a common file are a repeat"
+- **AC-06-9-1** · Rev: 1 · Proof: plugin/test/codex/log/whole-read/reads.test.mjs "two reads at one head carrying a common file are a repeat"
   WHEN two whole-set reads of one issue are taken at the same recorded head and carry a common file
   THEN the CLI SHALL report the second as a repeat.
-- **AC-06-9-2** · Rev: 1 · Proof: plugin/test/codex/log/reads.test.mjs "a read, a commit, and a read at the new head are a recheck and not a repeat"
+- **AC-06-9-2** · Rev: 1 · Proof: plugin/test/codex/log/whole-read/reads.test.mjs "a read, a commit, and a read at the new head are a recheck and not a repeat"
   WHEN a whole-set read is taken at a head no earlier read of that issue was taken at THEN the CLI
   SHALL report it as a recheck and not as a repeat.
-- **AC-06-9-3** · Rev: 1 · Proof: plugin/test/codex/log/reads.test.mjs "a diff consult, a recheck, a dirty tree and a read of outside paths alone are no whole-set read"
+- **AC-06-9-3** · Rev: 1 · Proof: plugin/test/codex/log/whole-read/reads.test.mjs "a diff consult, a recheck, a dirty tree and a read of outside paths alone are no whole-set read"
   IF a consult sent diffs, verified earlier findings, was taken over a changed working tree, or
   carried no file of the checkout whole THEN the CLI SHALL count it as no whole-set read.
 - **AC-06-9-4** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "--owed prints the issue's whole-set reads beside what its rung allows"
   WHEN a run asks what an issue owes THEN the CLI SHALL print how many whole-set reads that issue has
   taken, at which heads and of which kind, beside the number its rung allows.
-- **AC-06-9-5** · Rev: 1 · Proof: plugin/test/codex/log/reads.test.mjs "a consult that read whole says which read it was, and one that did not says nothing"
+- **AC-06-9-5** · Rev: 1 · Proof: plugin/test/codex/log/whole-read/reads.test.mjs "a consult that read whole says which read it was, and one that did not says nothing"
   WHEN a consult has read the set whole THEN the CLI SHALL end by saying which whole-set read it was,
   at what head and of which kind, beside the number each rung allows.
-- **AC-06-9-6** · Rev: 1 · Proof: plugin/test/codex/log/reads.test.mjs "codex stats counts the window's reads, rechecks and repeats apart, one run at a time"
+- **AC-06-9-6** · Rev: 1 · Proof: plugin/test/codex/log/whole-read/reads.test.mjs "codex stats counts the window's reads, rechecks and repeats apart, one run at a time"
   WHEN the log's figures are printed THEN the CLI SHALL count the window's whole-set reads with its
   rechecks and its repeats apart.
 

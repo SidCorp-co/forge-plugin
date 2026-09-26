@@ -4,13 +4,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("forge-reads-");
 const { FIRST, PASS, RECHECK, REPEAT, classified, isWholeRead, placeLine, readFigures, readsIn, readsSaid, rowsOf } =
-  await import("../../../src/codex/log/reads.mjs");
-const { REVIEW_READS, SPARES, readsAllowed } = await import("../../../src/ladder.mjs");
-const { readsLine } = await import("../../../src/codex/stats/lines.mjs");
+  await import("../../../../src/codex/log/reads.mjs");
+const { REVIEW_READS, SPARES, readsAllowed } = await import("../../../../src/ladder.mjs");
+const { readsLine } = await import("../../../../src/codex/stats/lines.mjs");
 
 const HERE = { root: "/a", repo: null };
 const sent = (rels) => rels.map((rel) => ({ rel, chars: 9, clipped: false }));
