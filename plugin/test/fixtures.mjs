@@ -95,6 +95,12 @@ sweep();
 
 process.env.TMPDIR = root;
 
+/* Which session a call resolves is the case's to name, never the shell's that started the suite: every
+   env a suite hands a child is a spread of this one, so a case's outcome turned on whether it ran
+   inside a Claude Code session or from CI (ISS-2570). A case wanting an id sets it after this. */
+delete process.env.CLAUDE_CODE_SESSION_ID;
+delete process.env.FORGE_SESSION_ID;
+
 export const tempRoom = (prefix) => madeIn(join(root, prefix), () => mkdtempSync(join(root, prefix)));
 
 /* A case about which run a call is controls the tree it stands in as it controls the config home: a
