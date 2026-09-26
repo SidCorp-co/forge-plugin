@@ -113,6 +113,7 @@ test("a base that moved another field of the change's manifest still hands the b
   assert.equal(held.state, "builder-owed", said);
   assert.equal(held.moved, MANIFEST, said);
   assert.ok(said.includes(`the landing moved ${MANIFEST}, so this change's`), said);
+  assert.ok(said.includes("not what was judged"), said);
   assert.doesNotMatch(said, /only in the version fields a release writes/u, said);
   assert.equal(remote(at), theirs, `nothing was pushed:\n${said}`);
 });

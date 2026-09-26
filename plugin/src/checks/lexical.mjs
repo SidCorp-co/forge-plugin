@@ -92,6 +92,8 @@ const walk = (text) => {
   const opensARegex = () => {
     if (last === "") return true;
     if (last === VALUE || last === "]") return false;
+    /* A postfix `++` or `--` ends a value, `count++ / total`; nothing prefixed by one is a regex. */
+    if ((last === "+" || last === "-") && text[lastAt - 1] === last) return false;
     if (last === ")") return closedControl;
     if (WORD.test(last)) return STARTS_AN_EXPRESSION.has(wordEndingAt(text, lastAt));
     return true;
