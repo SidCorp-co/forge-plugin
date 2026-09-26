@@ -1,5 +1,5 @@
-/* How each route's answer becomes the shape its callers read: the row shapers the declared table in
-   routes.mjs names. Pure, as that table is — docs/cli/one-transport.md. */
+/* The shapers the rows of ../routes.mjs name, each turning a route's body into the row its caller
+   reads. Pure, as that table is. */
 
 import { relationsOf } from "../edges/kinds.mjs";
 

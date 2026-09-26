@@ -1,5 +1,5 @@
-/* One declared table: the route each tool action takes, and how its answer becomes the shape every
-   caller above it reads. Pure — it builds requests and reads bodies and makes none, which is what
+/* One declared table: the route each tool action takes, and which shaper in answers/projections.mjs
+   its answer goes through. Pure — it builds requests and reads bodies and makes none, which is what
    lets the captured pairs under plugin/test/fixtures/rest judge it. docs/cli/one-transport.md. */
 
 import { UPLOAD_MIMES, mimeForName } from "../wire/upload-mimes.mjs";
