@@ -5,7 +5,8 @@
 import { closeSync, openSync, readSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 
-import { configDir, readJson } from "../../resolve/config.mjs";
+import { readJson } from "../../resolve/config.mjs";
+import { projectRecords } from "../../resolve/settings.mjs";
 import { checkoutAt } from "../../git/checkout-at.mjs";
 import { durableBase } from "../corpus/corpus.mjs";
 
@@ -45,9 +46,9 @@ const cwdIn = (store) => {
 };
 
 /** Every project this device has a record of, by the folder its record sits under and the tracker
- *  slug that record names. */
+ *  slug that record names: out of the one directory a project-scoped call reads its record from. */
 export const registered = () => {
-  const room = join(configDir("forge"), "projects");
+  const room = projectRecords().dir;
   return entries(room)
     .filter((one) => one.isDirectory())
     .map((one) => ({ name: one.name, record: readJson(join(room, one.name, "config.json")) }))
