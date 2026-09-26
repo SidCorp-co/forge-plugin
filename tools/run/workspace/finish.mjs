@@ -17,6 +17,7 @@ import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRe
 import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { treeKey } from "../../gates/timing.mjs";
+import { aheadRoute } from "./ahead-route.mjs";
 import { endedOf, endedWritten } from "./ended.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";
@@ -44,6 +45,12 @@ export const FINISH_HELP = [
   "all about a commit that exists in one place. `-d` and never `-D` is the same rule for the branch,",
   "with git's own advice for the forced delete turned off, that being the one way out a refusal here",
   "may not carry.",
+  "",
+  "The route out of the second is `ship`, except where the project's ship mode is `ready` and the",
+  "issue's landing checkpoint names this branch: a run there lands nothing of its own, so the refusal",
+  "names the landing where the checkpoint is the lander's turn, `forge resume` where it is another's,",
+  "and a push where `origin/<branch>` does not carry the head, and it says the commits die with the",
+  "tree only in that last case.",
   "",
   "What it left running it reports and never ends. A gate of that tree is named with its pid and with",
   "the one call that reads what that gate decided, which is this repository's only way to ask; no",
@@ -116,7 +123,10 @@ const dirtyRefusal = (path, dirty) => {
     : null;
 };
 
-const aheadRefusal = (path, base, branch, read) => {
+/* `route` is the ship mode's and the checkpoint's answer where they give one, read before this
+   because it is the one reading here the tracker makes: ahead-route.mjs. */
+const aheadRefusal = (path, base, branch, read, route) => {
+  if (route) return route;
   if (read.unknown) {
     return { why: `${read.unknown}, so nothing here can prove ${REMOTE}/${base} carries the commits `
       + `of ${branch}`, how: `git -C ${path} fetch ${REMOTE} ${base}` };
@@ -140,9 +150,9 @@ const lockRefusal = (root, path, held) => (held
     + `remove it, and this call is not the one to overrule them`, how: `git -C ${root} worktree unlock ${path}` }
   : null);
 
-const refusals = (root, path, base, read) => [
+const refusals = (root, path, base, read, route) => [
   dirtyRefusal(path, read.dirty),
-  aheadRefusal(path, base, read.branch ?? "that branch", read.ahead),
+  aheadRefusal(path, base, read.branch ?? "that branch", read.ahead, route),
   gateRefusal(path, read.gates),
   lockRefusal(root, path, read.locked),
 ].filter(Boolean);
@@ -321,7 +331,7 @@ const removedWhole = (root, path, base, read, ended, retry) => {
   return failed;
 };
 
-export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = gatesHere }) => {
+export const finish = async ({ words: [given] }, { here, cwd = process.cwd(), gates = gatesHere }) => {
   const key = String(given ?? "").toUpperCase();
   if (!KEY.test(key)) {
     console.error(`finish takes the issue key whose workspace it ends, \`ISS-nn\`, not \`${given ?? ""}\`.`);
@@ -345,7 +355,10 @@ export const finish = ({ words: [given] }, { here, cwd = process.cwd(), gates = 
   }
   const base = defaultBranch(root);
   const read = readTree(root, path, base, gates);
-  const held = refusals(root, path, base, read);
+  const route = read.branch && read.ahead.commits?.length
+    ? await aheadRoute({ key, root, path, base, branch: read.branch, held: read.ahead.commits, runner: runnerIn })
+    : null;
+  const held = refusals(root, path, base, read, route);
   if (held.length) {
     console.error(`  left     the whole workspace, its scratch with it, because a removal would take `
       + `what no record of it cites:`);
