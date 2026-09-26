@@ -166,7 +166,7 @@ test("a metric no reader computes is a greyed tile naming the issue that owes it
   assert.doesNotMatch(page, /missing: /u, "no red missing line in the body");
 });
 
-test("ISS-2425 29. the first-gate tile shows the day's share against the seven days before, and is no longer greyed", () => {
+test("ISS-2425 33. the first-gate tile shows the day's share against the seven days before, and is no longer greyed", () => {
   const page = pageOf(content());
   assert.ok(!page.includes('<div class="tile greyed" id="tile-firstGate">'), "a computed tile");
   const tile = tileHtml(page, "firstGate");
@@ -174,7 +174,7 @@ test("ISS-2425 29. the first-gate tile shows the day's share against the seven d
   assert.ok(tile.includes("+5 pt, better"), tile);
 });
 
-test("ISS-2425 28. the Landings section prints the day's attempts, the first-gate share, the causes and the gate minutes", () => {
+test("ISS-2425 32. the Landings section prints the day's attempts, the first-gate share, the causes and the gate minutes", () => {
   const page = pageOf(content());
   assert.ok(page.includes("<p>Attempts: 7 attempt(s): 5 landed, 4 of the 5 on a judged gate on their first (80%) · 2 not landed: "
     + "branch 1, unrecorded 1 · 6 judged gate(s) spent 42.5 min, 12 min of it lost, 1 declined.</p>"), page);
@@ -249,7 +249,7 @@ test("the footer names the runs on no known rung, the projects with no runs, and
   assert.ok(footer.includes("8 of the day&#39;s 12 run(s) claimed no rung this reading could establish."), footer);
   assert.ok(footer.includes("No run on this day in: idle."));
   for (const issue of ["ISS-2424", "ISS-2426"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
-  assert.ok(!footer.includes("ISS-2425"), "ISS-2425 30. the landing figures have their reader");
+  assert.ok(!footer.includes("ISS-2425"), "ISS-2425 34. the landing figures have their reader");
   assert.ok(!footer.includes("ISS-2599"), "13. the closed count has its reader");
   assert.ok(!footer.includes("ISS-2600"), "15. the owner wait has its reader");
 });

@@ -8,7 +8,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join } from "node:path";
 
 import { STEPS, gateSteps, testWorkers } from "../gates/steps.mjs";
-import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../gates/verdict.mjs";
+import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL, verdictRuns } from "../gates/verdict.mjs";
 import { CALL_CEILING_SECONDS } from "../../plugin/src/host/call-ceiling.mjs";
 import { REVIEW } from "../gates/timing.mjs";
 import { tempRoom } from "../../plugin/test/fixtures.mjs";
@@ -316,6 +316,20 @@ test("a red step records nothing, and the failing verdict names the tree", () =>
     assert.ok(said.stderr.includes(`Gate failed: lint — the tree judged: ${work}`), said.stderr);
     assert.deepEqual(passesFor(work, "lint"), [], "a step that failed was recorded as passed");
     assert.deepEqual(passesFor(work, "test"), [], "a step the run never reached was recorded as passed");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* A landing prices a red gate off this figure, as it prices a green one (ISS-2425). */
+test("ISS-2425 15. a failing verdict carries the seconds its steps ran", () => {
+  const { at, work } = scratch("red-seconds", "lint");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    assert.equal(run(work).status, 1);
+    const verdict = verdictRuns(work).at(-1);
+    assert.equal(verdict.verdict, "failed", JSON.stringify(verdict));
+    assert.ok(Number.isInteger(verdict.seconds) && verdict.seconds >= 0, `no seconds on the failing verdict: ${JSON.stringify(verdict)}`);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

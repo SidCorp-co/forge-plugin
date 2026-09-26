@@ -40,7 +40,7 @@ test("with redBatch one-by-one a combination the gate refuses lands one branch a
   assert.equal(resolved.outcome, "one-by-one", `the red set is on record however it was landed:\n${said}`);
   assert.equal(resolved.gates, 1, `the combined gate is the one it spent:\n${said}`);
   assert.deepEqual(resolved.alone, [KEY, NEXT_KEY], `and every member is landed alone:\n${said}`);
-  /* ISS-2425 5: the set's attempt ends for the combination, and each member's own attempt after it. */
+  /* ISS-2425 6: the set's attempt ends for the combination, and each member's own attempt after it. */
   const endings = (key) => marksOf(ATTEMPTS).slice(from).filter((one) => one.phase === "ended" && one.issue === key)
     .map((one) => [one.outcome, one.cause]);
   assert.deepEqual(endings(KEY), [["back", "combination"], ["landed", null]], said);

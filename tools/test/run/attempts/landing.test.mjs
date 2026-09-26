@@ -86,7 +86,7 @@ test("ISS-2425 3. a member that conflicts with the pin ends with cause branch wh
   assert.equal(ended(NEXT_KEY).outcome, "landed", said);
 });
 
-test("ISS-2425 5, 6. a member writing a sibling's paths leaves the set for cause combination, and alone meets the moved base", async () => {
+test("ISS-2425 5, 7. a member writing a sibling's paths leaves the set for cause combination, and alone meets the moved base", async () => {
   const { work, head, last, base } = world({ base: "other", shared: true });
   seeded({ landing: ready(head, base), last: behind(last, base, [OWNED]) });
   const { said, endings, ended } = await recorded([KEY, THIRD_KEY], work);
@@ -95,7 +95,7 @@ test("ISS-2425 5, 6. a member writing a sibling's paths leaves the set for cause
     `left the set, then was handed back at builder-owed on its own:\n${said}`);
 });
 
-test("ISS-2425 6. a member the base moved is handed back at builder-owed for cause moved-base", async () => {
+test("ISS-2425 7. a member the base moved is handed back at builder-owed for cause moved-base", async () => {
   const { work, head, next, base } = world({ base: "moved", second: true });
   seeded({ landing: ready(head, base), next: beside(next, base) });
   const { said, ended } = await recorded([KEY, NEXT_KEY], work);
@@ -103,7 +103,7 @@ test("ISS-2425 6. a member the base moved is handed back at builder-owed for cau
   assert.equal(ended(NEXT_KEY).outcome, "landed", said);
 });
 
-test("ISS-2425 7. a push the base moved under ends that attempt for cause moved-base, and the rebuild is a second attempt that lands", async () => {
+test("ISS-2425 8. a push the base moved under ends that attempt for cause moved-base, and the rebuild is a second attempt that lands", async () => {
   const { at, work, head, base } = world({ base: "other" });
   const pinned = sha(work, BASE);
   seeded({ landing: ready(head, base, { state: "promoting", pinned, candidate: head, reconciled: head, intended: head, release: "1.0.1" }) });
@@ -113,7 +113,7 @@ test("ISS-2425 7. a push the base moved under ends that attempt for cause moved-
   assert.deepEqual(endings(KEY).map((one) => [one.outcome, one.cause]), [["back", "moved-base"], ["landed", null]], said);
 });
 
-test("ISS-2425 8. a declined gate place ends the attempt for cause declined, and its gate record holds no seconds", async () => {
+test("ISS-2425 9. a declined gate place ends the attempt for cause declined, and its gate record holds no seconds", async () => {
   const { work, head, base } = world({ base: "other", gate: JUDGED_GATE });
   seeded({ landing: ready(head, base) });
   judging([{ when: ["one"], status: 75 }]);
@@ -122,7 +122,7 @@ test("ISS-2425 8. a declined gate place ends the attempt for cause declined, and
   assert.deepEqual([gates[0].verdict, gates[0].seconds], ["declined", null], said);
 });
 
-test("ISS-2425 9. a tracker refusal ends every attempt of the set for cause tracker", async () => {
+test("ISS-2425 10. a tracker refusal ends every attempt of the set for cause tracker", async () => {
   const { work, head, next, base } = world({ base: "other", second: true });
   seeded({ landing: ready(head, base), next: beside(next, base) });
   const kept = state.answer.forge_issues;
