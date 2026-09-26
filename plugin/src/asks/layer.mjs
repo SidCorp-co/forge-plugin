@@ -231,7 +231,8 @@ const readScanned = (path) => {
 /** Brings a layer up to what its transcripts hold now, reading each file only past the offset the
  *  last build reached; a file that shrank was replaced, and is read again from its start, rows
  *  already held being kept once. `skip` is the tool-use ids the gate decided itself, and `until` a
- *  time past which the build stops and keeps its place for the next one. */
+ *  time past which the build stops before its next line, inside a file as between files, and keeps
+ *  its place for the next one. */
 export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {}) => {
   if (!paths) return { added: 0, complete: true };
   const layer = readLayer(paths);
@@ -257,6 +258,7 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
     const from = size < was ? 0 : was;
     if (from >= size) continue;
     const { end, stopped } = eachLineRun(file, from, size, (bytes) => {
+      if (Date.now() > until) return false;
       const rows = rowsOfLine(bytes, skip, paths.repository);
       if (rows === null) return false;
       for (const row of rows.filter((one) => !held.has(one.id))) {
