@@ -35,7 +35,7 @@ const endpointHeld = () => Boolean(accountCredentials().url.value && accountCred
 
 /** A matcher over the plugin's open backlog, the nearest neighbour `neighboursOf` keeps being an
  *  entry's owner, and each issue's status and priority by its key; or why the backlog could not be
- *  asked. Every status is read, in the one walk the current report written beside the page reads too.
+ *  asked. Every status is read, since a raise asks after an issue that is not open.
  *  The tracker's two reads are the caller's to stand in for. */
 export const backlogMatcher = async (registered, { read = everyIssue, near = neighboursOf, held = endpointHeld } = {}) => {
   const plugin = registered.find((one) => one.slug === PROJECT);

@@ -92,7 +92,6 @@ const matchOf = async (backlog, text) => {
   }
 };
 
-/* Each kept filing set against the open backlog, where an issue that already covers it takes it as a comment. */
 const routed = (decisions, backlog) => Promise.all(decisions.map(async (one) => (one.action === "file"
   ? routedFiling(one, await matchOf(backlog, `${one.title}: ${one.cause}`)) : one)));
 

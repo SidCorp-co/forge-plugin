@@ -11,7 +11,7 @@ const ONE_KEY = /^ISS-\d+$/u;
 export const trimmed = (value) => String(value ?? "").trim();
 
 /** A value a POSIX shell passes as exactly one argument, whatever quotes it holds. */
-export const quoted = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
+const quoted = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
 
 const raiseCommand = (key, priority, figure) =>
   `forge issue ${key} --set priority=${priority} --why ${quoted(`${figure.said}: ${figure.value}`)}`;

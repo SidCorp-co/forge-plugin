@@ -197,7 +197,7 @@ const tileFinder = (content) => {
 
 /** Each section's kept verdict for a drill-down's summary row, coloured as the tiles are; named by
  *  its section where the drill-down holds more than one. */
-export const verdictMarks = (judgement, ids) => ids.map((id) => judgement?.sections?.[id]).filter((read) => read?.verdict)
+const verdictMarks = (judgement, ids) => ids.map((id) => judgement?.sections?.[id]).filter((read) => read?.verdict)
   .map((read) => `<span class="mark ${esc(read.verdict)}">${ids.length > 1 ? `${esc(read.title)}: ` : ""}${esc(read.verdict)}</span>`).join("");
 
 /** A drill-down: closed when the page opens, its summary the title, the verdicts and one line. */
