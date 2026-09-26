@@ -127,8 +127,6 @@ export const USAGE = [
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
   "first; no capture is automatic. What a checkpoint holds: docs/cli/the-checkpoint.md.",
-  "A claim from a tree whose run id names several issues puts that batch on the worklog, and a",
-  "--pushed capture from any other tree clears it: docs/cli/the-work.md.",
   "",
   nothingWorked(),
   "",
