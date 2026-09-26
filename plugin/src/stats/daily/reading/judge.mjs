@@ -98,7 +98,7 @@ const decisionOf = (one, { figures, keys }, dropped) => {
   if (!what || what.length > TEXT_CHARS || command.length > TEXT_CHARS) return reject(`said nothing, or more than ${TEXT_CHARS} characters`);
   if ([...keysIn(what), ...keysIn(command)].some((key) => !keys.has(key))) return reject("named an issue key the page does not name");
   if (!command && action !== NO_COMMAND) return reject("named no command to carry it out");
-  if (command && !command.startsWith("forge ") && !keys.has(command)) return reject("named a command that is neither a forge command nor an issue key the page names");
+  if (command && !command.startsWith("forge ") && !keys.has(command)) return reject("named a command that is neither one of this CLI's nor an issue key the page names");
   return { action, what, figure, command: command || null };
 };
 
