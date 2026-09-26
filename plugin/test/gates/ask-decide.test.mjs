@@ -176,7 +176,8 @@ test("a question with no close precedent reaches the owner without the judge bei
 test("a judge that cannot be reached, or that names what it was not offered, leaves the question with the owner", async () => {
   const cases = [null, () => ({ questions: [{ question: REPORT, verdict: "decide", option: "Somewhere else", precedent: "toolu_old0#0", precedentsAgree: true, reason: "r" }] }),
     () => ({ questions: [{ question: REPORT, verdict: "decide", option: OPTIONS[0].label, precedent: "invented", precedentsAgree: true, reason: "r" }] }),
-    () => ({ questions: [{ question: REPORT, verdict: "owner", precedentsAgree: true, reason: "new ground" }] })];
+    () => ({ questions: [{ question: REPORT, verdict: "owner", precedentsAgree: true, reason: "new ground" }] }),
+    () => ({ questions: [{ question: REPORT, verdict: "decide", option: OPTIONS[1].label, precedent: "toolu_old0#0", precedentsAgree: true, reason: "r" }] })];
   for (const decide of cases) {
     const held = await project({ asks: { mode: "decide" } }, { decide });
     const said = await ask(held, [reportQuestion()]);

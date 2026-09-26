@@ -18,10 +18,22 @@ export const asksRoom = () => {
 
 export const decidedPath = (room = asksRoom()) => (room ? join(room, "decided.jsonl") : null);
 
-/** One outcome appended; false where there is no project or the write failed, which the gate says. */
+const nonEmpty = (value) => typeof value === "string" && value.trim() !== "";
+
+/* The one shape an outcome has, held at the write and at the read alike: a pass names its reason and
+   its questions, a decision names its call and, per question, the option, the precedent and the undo. */
+const wellFormed = (row) => {
+  if (!row || typeof row !== "object" || !Array.isArray(row.questions) || !row.questions.length) return false;
+  if (row.outcome === OWNER) return nonEmpty(row.reason) && row.questions.every(nonEmpty);
+  return row.outcome === DECIDED && nonEmpty(row.toolUseId) && row.questions.every((one) => one && nonEmpty(one.question)
+    && nonEmpty(one.option) && nonEmpty(one.reversal) && one.precedent && nonEmpty(one.precedent.id));
+};
+
+/** One outcome appended; false where there is no project, the row is not an outcome, or the write
+ *  failed — a decision the owner could not review later is one the gate does not take. */
 export const logOutcome = (entry, room = asksRoom()) => {
   const path = decidedPath(room);
-  if (!path) return false;
+  if (!path || !wellFormed(entry)) return false;
   try {
     appendJsonl(path, { at: new Date().toISOString(), ...entry });
     return true;
@@ -50,10 +62,7 @@ const outcomes = (room) => {
     } catch {
       row = null;
     }
-    /* A decided row that does not name its call cannot keep that call's answer out of the layer. */
-    const named = row && typeof row === "object" && typeof row.outcome === "string"
-      && (row.outcome !== DECIDED || (typeof row.toolUseId === "string" && row.toolUseId));
-    if (!named) return { unreadable: `${path} line ${at + 1} is not a record this gate wrote` };
+    if (!wellFormed(row)) return { unreadable: `${path} line ${at + 1} is not a record this gate wrote` };
     rows.push(row);
   }
   return { rows };

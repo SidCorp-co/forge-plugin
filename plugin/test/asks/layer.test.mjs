@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
 import { addPrecedent, ownerRow, precedentsIn, refreshLayer, shortlistFor } from "../../src/asks/layer.mjs";
+import { decidedIds, logOutcome } from "../../src/asks/decided.mjs";
 
 const QUESTION = { question: "Where should each day's report go?", header: "Delivery",
   options: [{ label: "A file on this device (Recommended)" }, { label: "A page on the tracker" }] };
@@ -143,4 +144,30 @@ test("a transcript that cannot be read leaves the build incomplete", () => {
   }
   assert.equal(refreshLayer({ ...layer(), source: join(tempRoom("asks-none-"), "absent") }).complete, true,
     "while a project with no transcripts at all is simply read to its end");
+});
+
+test("a line that should hold an answer and cannot be read stops the build before it, to be read again", () => {
+  const paths = layer();
+  const file = join(paths.source, "s1.jsonl");
+  const whole = answered("toolu_b", QUESTION, "A file on this device (Recommended)");
+  const torn = whole.slice(0, whole.indexOf("\"toolUseResult\"") + 30);
+  writeFileSync(file, `${answered("toolu_a", QUESTION, "A page on the tracker")}${torn}\n${answered("toolu_c", QUESTION, "A page on the tracker")}`);
+  assert.deepEqual(refreshLayer(paths), { added: 1, complete: false }, "nothing past the unreadable answer is taken");
+  writeFileSync(file, `${answered("toolu_a", QUESTION, "A page on the tracker")}${answered("toolu_b", QUESTION, "A file on this device (Recommended)")}`
+    + answered("toolu_c", QUESTION, "A page on the tracker"));
+  assert.deepEqual(refreshLayer(paths), { added: 2, complete: true }, "and once it reads whole, it and what follows are");
+});
+
+test("the decision log takes only the outcome shapes it can read back, and names its calls", () => {
+  const room = join(tempRoom("asks-log-"), "asks");
+  const decision = { outcome: "decided", toolUseId: "toolu_x", questions: [{ question: "Q?", option: "A", reason: "r",
+    reversal: "undo it", precedent: { id: "p1" } }] };
+  for (const wrong of [{ questions: ["Q?"], reason: "r" }, { ...decision, questions: [] }, { ...decision, toolUseId: null },
+    { outcome: "owner", reason: "r", questions: "Q?" }, { ...decision, questions: [{ question: "Q?", option: "A" }] }]) {
+    assert.equal(logOutcome(wrong, room), false, JSON.stringify(wrong));
+  }
+  assert.deepEqual(decidedIds(room), { ids: new Set() }, "nothing was written");
+  assert.equal(logOutcome(decision, room), true);
+  assert.equal(logOutcome({ outcome: "owner", reason: "new ground", questions: ["Q?"] }, room), true);
+  assert.deepEqual(decidedIds(room), { ids: new Set(["toolu_x"]) });
 });

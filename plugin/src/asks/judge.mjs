@@ -5,7 +5,7 @@
 import { askApi } from "../codex/codex-api.mjs";
 import { defaultEffort, rungFor } from "../codex/codex-plan.mjs";
 import { modelBehind } from "../resolve/machine/stores.mjs";
-import { DECISION_KIND } from "./layer.mjs";
+import { DECISION_KIND, OWNER_KIND } from "./layer.mjs";
 import { reversalOf } from "./declared.mjs";
 
 const DECIDE = "decide";
@@ -95,6 +95,11 @@ export const readVerdicts = (calls, questions, shortlists) => {
     if (!option) return { owner: `the judge chose \`${said.option}\`, which "${question.question}" does not offer` };
     const precedent = shortlists[at].find((one) => one.id === said.precedent);
     if (!precedent) return { owner: `the judge followed \`${said.precedent}\`, which is not among the precedents it was given` };
+    /* Only an owner answer is followed, and only to the option it names: a judge whose choice its own
+       precedent does not bear out has decided from something other than the owner. */
+    if (precedent.kind !== OWNER_KIND || precedent.answer !== option.label) {
+      return { owner: `the precedent the judge followed for "${question.question}" answered \`${precedent.answer ?? "no option"}\`, not \`${option.label}\`` };
+    }
     decisions.push({ question: question.question, option: option.label, precedent, reason: String(said.reason ?? "").trim() });
   }
   return { decisions };

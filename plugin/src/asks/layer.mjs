@@ -90,16 +90,19 @@ const decisionRows = (record) => (Array.isArray(record?.message?.content) ? reco
   })
   .filter(Boolean);
 
-/* Parsed only where it could hold something: an answer, or a decision record read back. */
-const worthParsing = (line) => line.includes("\"toolUseResult\"") || line.includes(DECISION_FOOTER);
+/* Parsed only where it could hold something: an answer, or a decision record read back. Asked of the
+   bytes, so the lines holding neither — nearly all of them — are never decoded. */
+const MARKS = [Buffer.from("\"toolUseResult\""), Buffer.from(DECISION_FOOTER)];
 
-const rowsOfLine = (line, skip) => {
-  if (!worthParsing(line)) return [];
+/** The rows one line holds; null for a line that should hold some and cannot be read, which the
+ *  build treats as evidence it has not seen rather than evidence that is not there. */
+const rowsOfLine = (bytes, skip) => {
+  if (!MARKS.some((one) => bytes.includes(one))) return [];
   let record;
   try {
-    record = JSON.parse(line);
+    record = JSON.parse(bytes.toString("utf8"));
   } catch {
-    return [];
+    return null;
   }
   return [...ownerRows(record, skip), ...decisionRows(record)];
 };
@@ -129,7 +132,8 @@ const CHUNK = 32 * 1024 * 1024;
 const NEWLINE = 0x0a;
 
 /* Whole lines only, so a transcript still being written is read to its last complete line and the
-   rest waits for the next build; `end` is the offset just past the last newline consumed. */
+   rest waits for the next build. `visit` answers false to stop before a line, and `end` is then the
+   offset that line starts at, so the next build reads it again; otherwise just past the last newline. */
 const eachLineRun = (path, from, to, visit) => {
   const fd = openSync(path, "r");
   let at = from;
@@ -142,19 +146,18 @@ const eachLineRun = (path, from, to, visit) => {
       readSync(fd, read, 0, size, at);
       at += size;
       const data = carry.length ? Buffer.concat([carry, read]) : read;
-      const last = data.lastIndexOf(NEWLINE);
-      if (last < 0) {
-        carry = data;
-        continue;
+      let start = 0;
+      for (let stop = data.indexOf(NEWLINE); stop >= 0; stop = data.indexOf(NEWLINE, start)) {
+        if (!visit(data.subarray(start, stop))) return { end, stopped: true };
+        end += stop + 1 - start;
+        start = stop + 1;
       }
-      visit(data.subarray(0, last).toString("utf8"));
-      end = at - (data.length - last - 1);
-      carry = data.subarray(last + 1);
+      carry = data.subarray(start);
     }
   } finally {
     closeSync(fd);
   }
-  return end;
+  return { end, stopped: false };
 };
 
 const readScanned = (path) => {
@@ -192,16 +195,17 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
     const was = scanned.files[file]?.offset ?? 0;
     const from = size < was ? 0 : was;
     if (from >= size) continue;
-    const end = eachLineRun(file, from, size, (text) => {
-      for (const line of text.split("\n")) {
-        for (const row of rowsOfLine(line, skip)) {
-          if (held.has(row.id)) continue;
-          held.add(row.id);
-          appendJsonl(paths.precedents, row);
-          added += 1;
-        }
+    const { end, stopped } = eachLineRun(file, from, size, (bytes) => {
+      const rows = rowsOfLine(bytes, skip);
+      if (rows === null) return false;
+      for (const row of rows.filter((one) => !held.has(one.id))) {
+        held.add(row.id);
+        appendJsonl(paths.precedents, row);
+        added += 1;
       }
+      return true;
     });
+    if (stopped) complete = false;
     scanned.files[file] = { offset: end };
   }
   mkdirSync(dirname(paths.scanned), { recursive: true });

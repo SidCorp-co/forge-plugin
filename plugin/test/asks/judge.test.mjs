@@ -42,6 +42,13 @@ test("a decision is believed only as an offered option, followed from a shown pr
   assert.match(readVerdicts(said({ ...decided, precedent: "p9" }), [QUESTION], [[PRECEDENT]]).owner, /not among the precedents/u);
 });
 
+test("an option its own precedent does not bear out, or a recorded decision followed, leaves the question with the owner", () => {
+  assert.match(readVerdicts(said({ ...decided, option: "File (Recommended)" }), [QUESTION], [[PRECEDENT]]).owner,
+    /answered `Page`, not `File \(Recommended\)`/u);
+  const recorded = { id: "d1", kind: "decision", issue: "ISS-4", readings: ["Page | a | b"], score: 0.5 };
+  assert.match(readVerdicts(said({ ...decided, precedent: "d1" }), [QUESTION], [[PRECEDENT, recorded]]).owner, /answered `no option`/u);
+});
+
 test("an option picked while the close precedents are reported not to agree leaves the question with the owner", () => {
   assert.match(readVerdicts(said({ ...decided, precedentsAgree: false }), [QUESTION], [[PRECEDENT]]).owner, /do not agree/u);
   assert.match(readVerdicts(said({ ...decided, precedentsAgree: undefined }), [QUESTION], [[PRECEDENT]]).owner, /do not agree/u);
