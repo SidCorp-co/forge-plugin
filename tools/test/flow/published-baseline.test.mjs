@@ -88,9 +88,11 @@ test("a citation names a commit something published, or it is refused before the
 
 /* The head leg: the write stamps the checkout's clean head into the very payload this reads, so a published commit the checkout does not stand at is refused here rather than first at `in_progress`. */
 const CITED = { cited: "the ship's gate", commit: HEAD, gate: "npm run check", result: RESULT, scope: "whole" };
+/* Handed in rather than resolved, since this process stands in a tree that may name a run of its own. */
+const NOBODY = { id: null, source: null };
 
 test("a published citation is refused at the write where the checkout's head is another commit or none", () => {
-  const moved = citationProblem("ISS-3", PROJECT, { ...CITED, head: OTHER });
+  const moved = citationProblem("ISS-3", PROJECT, { ...CITED, head: OTHER }, NOBODY);
   assert.match(moved, new RegExp(`this checkout stands at ${OTHER}`, "u"), "the refusal names the checkout's head");
   assert.match(moved, new RegExp(`the result at ${HEAD}`, "u"), "and the commit cited");
   assert.match(moved, /Nothing was sent/u);
@@ -99,7 +101,7 @@ test("a published citation is refused at the write where the checkout's head is 
     `the route is a detached worktree at the cited commit: ${route}`);
   assert.ok(route.includes(`--commit ${HEAD} --scope whole --cited 'the ship'\\''s gate'`),
     `carrying the same write, every value quoted back as typed: ${route}`);
-  const headless = citationProblem("ISS-3", PROJECT, { ...CITED, head: undefined });
+  const headless = citationProblem("ISS-3", PROJECT, { ...CITED, head: undefined }, NOBODY);
   assert.match(headless, /this checkout stamps no head: it holds uncommitted work/u,
     "a dirty checkout, which stamps no head, is refused too");
   assert.equal(headless.split("\n  ").at(-1), route, "and is given the same route");
@@ -109,11 +111,30 @@ test("a published citation is refused at the write where the checkout's head is 
     "a commit nothing published is refused on that leg first, its route being a fresh run");
 });
 
+/* The id a fresh detached tree cannot find again is the one the route carries: a tree's own file, which the new tree's git directory lacks, and a variable the refused call was prefixed with. */
+test("the route carries the run's id where the fresh tree would not find it, and only there", () => {
+  const route = (held) => citationProblem("ISS-3", PROJECT, { ...CITED, head: OTHER }, held).split("\n  ").at(-1);
+  const bare = route(NOBODY);
+  const inner = (said) => said.slice(said.indexOf('(cd "$dir" && ') + 14, said.indexOf("); git worktree remove"));
+  for (const source of ["worktree", "asked"]) {
+    const said = route({ id: "iss-3-0a1b2c3d", source });
+    assert.ok(inner(said).startsWith("FORGE_SESSION_ID=iss-3-0a1b2c3d forge record baseline ISS-3 "),
+      `an id from the ${source} row rides the write into the new tree: ${said}`);
+    assert.equal(said.replace("FORGE_SESSION_ID=iss-3-0a1b2c3d ", ""), bare, "and nothing else about the route moves");
+  }
+  assert.ok(inner(route({ id: "a run's id", source: "worktree" })).startsWith("FORGE_SESSION_ID='a run'\\''s id' forge "),
+    "the id goes back as typed, like every other value on the line");
+  for (const source of ["inherited", "saved"]) {
+    assert.equal(route({ id: "read-alike-there", source }), bare, `an id from the ${source} row is read in the new tree alike, so it is not carried`);
+  }
+  assert.equal(route({ id: null, source: "worktree" }), bare, "and a run holding no id carries none");
+});
+
 /* One predicate read at two ends: fed the same fields, the write and the entry check refuse on head grounds alike. */
 test("the write refuses on head grounds exactly the cited records in_progress refuses on them", () => {
   const owed = (fields) => citedOwed({ latest: { baseline: { record: { fields } } } }, "ISS-3");
   const heads = [HEAD, HEAD.toUpperCase(), HEAD.slice(0, 12), OTHER, OTHER.slice(0, 7), undefined, ""];
-  const refused = heads.map((head) => [citationProblem("ISS-3", PROJECT, { ...CITED, head }) !== null,
+  const refused = heads.map((head) => [citationProblem("ISS-3", PROJECT, { ...CITED, head }, NOBODY) !== null,
     owed({ ...CITED, head }).length > 0]);
   for (const [at, [write, entry]] of refused.entries()) {
     assert.equal(write, entry, `head ${JSON.stringify(heads[at])}: the write ${write ? "refuses" : "takes"} it and the entry check ${entry ? "refuses" : "takes"} it`);
@@ -272,14 +293,18 @@ test("a citation for a commit nothing published is refused at the write, and the
   assert.ok(good.stdout.includes(`head: ${at}`), "and the head it was written at, which is that commit");
 });
 
+/* The run's id held the way a delegated run's is, in the room's own git directory, and no variable carried: the printed route crosses into a tree whose git directory names nobody, so it lands only if it carries the id itself (ISS-2556). */
+const treeHeld = Object.fromEntries(Object.entries(env).filter(([key]) => key !== "FORGE_SESSION_ID"));
+
 test("a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken", async () => {
   const { room, as, at } = citingRoom();
+  writeFileSync(join(as("rev-parse", "--absolute-git-dir").stdout.trim(), "forge-run-id"), `${env.FORGE_SESSION_ID}\n`);
   writeFileSync(join(room, "edit.txt"), "the run's first edit, committed after the cut\n");
   as("add", "edit.txt");
   as("commit", "-qm", "the run's own commit");
   const moved = as("rev-parse", "HEAD").stdout.trim();
   const before = posts();
-  const refused = await writing(at, room);
+  const refused = await writing(at, room, treeHeld);
   assert.equal(refused.status, 1, refused.stdout);
   assert.ok(refused.stderr.includes(`this checkout stands at ${moved}, and the result at ${at}`),
     "the refusal names the checkout's head and the commit cited");
@@ -287,14 +312,14 @@ test("a published citation written from a moved or dirty checkout is refused bef
   /* The route as printed, through a shell: it has to clear the refusal it came with. Spawned without blocking, the tracker answering it being this process. */
   const route = refused.stderr.split("\n").find((line) => line.trim().startsWith("dir=$(mktemp -d)")).trim();
   const PATH = `${dirname(FORGE)}:${env.PATH ?? process.env.PATH}`;
-  const taken = await ranAsync("bash", ["-c", route], { ...env, PATH }, room);
+  const taken = await ranAsync("bash", ["-c", route], { ...treeHeld, PATH }, room);
   assert.equal(taken.status, 0, taken.stdout + taken.stderr);
   assert.ok(taken.stdout.includes(`head: ${at}`), "the write it runs stamps the cited commit as its head");
   assert.equal(posts(), before + 1, "and posts the one record");
   assert.equal(as("worktree", "list").stdout.trim().split("\n").length, 1, "leaving no worktree behind");
   writeFileSync(join(room, "loose.txt"), "never committed\n");
   as("checkout", "-q", "--detach", at);
-  const dirty = await writing(at, room);
+  const dirty = await writing(at, room, treeHeld);
   assert.equal(dirty.status, 1, dirty.stdout);
   assert.match(dirty.stderr, /this checkout stamps no head: it holds uncommitted work/u,
     "a checkout at the cited commit with work beside it is refused, as the entry check would");

@@ -77,11 +77,12 @@ a correction beside any of them.
   WHERE a verdict value records that somebody exercised the criterion, the CLI SHALL owe evidence at
   the write and an attachment under a declared screen change alike, so that no value carries one
   obligation and is excused the other.
-- **AC-04-1-12** · Rev: 1 · Proof: tools/test/flow/published-baseline.test.mjs "a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken"
+- **AC-04-1-12** · Rev: 2 · Proof: tools/test/flow/published-baseline.test.mjs "a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken"
   IF a baseline cites a published gate result from a checkout whose clean head is not the commit it
   cites THEN the CLI SHALL refuse the write, SHALL name both commits and SHALL give the command that
-  writes the same baseline from a checkout standing at the commit cited, because a record the write
-  takes and the next status refuses is an input read to the caller as accepted.
+  writes the same baseline, under the run the refused write holds, from a checkout standing at the
+  commit cited, because a record the write takes and the next status refuses is an input read to the
+  caller as accepted, and a route the lease refuses for the same run is a second refusal.
 
 ### UC-04-2 — Evidence is checked before it is cited
 
