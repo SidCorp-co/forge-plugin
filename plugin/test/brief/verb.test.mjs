@@ -4,7 +4,7 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 import { RUN, brief, homeFor, repository } from "./fixture.mjs";
 import { besideGit, runIdAt, runsFor } from "../../src/resolve/session/run-id.mjs";
 
@@ -22,7 +22,7 @@ test("with --tree, the brief names that tree's branch, head, run id, scratch dir
   assert.match(run.stdout, new RegExp(`^TMPDIR=/tmp/forge-run-${RUN}$`, "mu"));
   /* The line `run.mjs start` prints, so a dispatched run borrows rather than copying the credential. */
   assert.match(run.stdout, new RegExp(`^XDG_CONFIG_HOME=/tmp/forge-run-${RUN}/home FORGE_BORROW_FROM=${
-    join(home.config, "forge", "config.json")}$`, "mu"));
+    escaped(join(home.config, "forge", "config.json"))}$`, "mu"));
 });
 
 test("a brief naming no issue leaves a tree that records no run without an id or a scratch line", () => {
