@@ -1,7 +1,7 @@
 /* The issues closed each day and the issue-flow minutes that went to them, off the tracker's own
    status history rather than off any transcript: a close is the tracker's fact, and a run is only
    what this device saw of the work. Where the history is read from, why each day is its own walk,
-   and how a run's minutes are split between its issues: docs/cli/stats.md. */
+   and how a run's minutes are split between its issues: docs/cli/stats-the-reading.md. */
 import { boundsOf, weekBefore } from "./day.mjs";
 import { byAlias, documentsOf, pairsOf } from "../eval/outcomes.mjs";
 import { everyIssue, shortOf } from "../../tracker/issues.mjs";
