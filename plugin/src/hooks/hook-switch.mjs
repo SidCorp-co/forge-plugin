@@ -12,7 +12,7 @@ export const ENTRIES_DIR = join(HOOKS_DIR, "entries");
 export const GATES_DIR = join(HOOKS_DIR, "gates");
 
 /* What one hook event may spend, under what hooks.json registers, and so which words a registration line uses for a clock rather than for a gate: `gate.mjs pre bash-guard c d` names one clock and three gates, and `namesOn` below drops the first. One declaration, because a fourth event named in the budgets only would be a kind this switch reads as a gate name. `_hook.mjs` re-exports it, so no importer moved. */
-export const DEADLINES = { pre: 8_000, post: 85_000, stop: 25_000 };
+export const DEADLINES = { pre: 8_000, post: 85_000, stop: 25_000, ask: 110_000 };
 const EVENT_KINDS = Object.keys(DEADLINES);
 
 const RUNS_ALONE = (name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs";

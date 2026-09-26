@@ -3,7 +3,7 @@
    file resolves once per process (ISS-1883). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { OWN } from "../../../fixtures/own-project.mjs";
 
@@ -230,4 +230,41 @@ test("the angles row says debt is on by default, and tells a project whose list 
   assert.match(await angles("angles-default", {}), /codex\.angles +tech, ba, user, ux, debt {2}← the plugin's default — debt is on$/u);
   const kept = await angles("angles-kept", { codex: { angles: ["tech"] } });
   assert.match(kept, /codex\.angles +tech {2}← codex\.angles in \S+ — debt is available and off here: `forge doctor --set project\.codex\.angles=tech,debt` adds it$/u, kept);
+});
+
+/* The ask rows: the mode and where it was read, and under `decide` the layer's size and the categories
+   the gate holds for the owner, the project's own terms after the built-in ones. */
+const asksRows = async (name, keys, precedents = 0) => {
+  const room = tempRoom(`asks-row-${name}-`);
+  const env = homeEnv(`asks-row-${name}`);
+  ran(room, "init", "-q", "-b", "master", ".");
+  const record = projectRecord(room, env.XDG_CONFIG_HOME, { slug: name, ...keys });
+  if (precedents) {
+    mkdirSync(join(record, "..", "asks"), { recursive: true });
+    writeFileSync(join(record, "..", "asks", "precedents.jsonl"),
+      Array.from({ length: precedents }, (one, at) => `${JSON.stringify({ id: `p${at}`, kind: "owner" })}\n`).join(""));
+  }
+  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], env, room);
+  return { rows: stdout.split("\n").filter((one) => /\] asks\./u.test(one)).join("\n"), record, room, env };
+};
+
+test("the ask rows print the mode with its source, the layer's count and the categories in force", async () => {
+  const unset = await asksRows("asks-unset", {});
+  assert.match(unset.rows, /asks\.mode +off {2}← the plugin's default$/u);
+  assert.doesNotMatch(unset.rows, /asks\.precedents/u, "a project that has not opted in has no layer to count");
+  const on = await asksRows("asks-on", { asks: { mode: "decide", owner: ["pricing"] } }, 2);
+  assert.match(on.rows, new RegExp(`asks\\.mode +decide {2}← ${escaped(on.record)}`, "u"));
+  assert.match(on.rows, /asks\.precedents +2 in this project's layer; outcomes logged in \S+decided\.jsonl/u);
+  assert.match(on.rows, /asks\.owner +a secret or credential; spend; .*a contract others build against; and this project's own: pricing/u);
+});
+
+test("the mode is written by --set into the project's record, and a mode the key does not take is refused", async () => {
+  const held = await asksRows("asks-set", {});
+  const set = await ranAsync(FORGE, ["doctor", "--set", "asks.mode=decide"], held.env, held.room);
+  assert.equal(set.status, 0, set.stderr);
+  assert.equal(JSON.parse(readFileSync(held.record, "utf8")).asks.mode, "decide");
+  const refused = await ranAsync(FORGE, ["doctor", "--set", "asks.mode=sometimes"], held.env, held.room);
+  assert.notEqual(refused.status, 0);
+  assert.match(`${refused.stdout}${refused.stderr}`, /asks\.mode.*is one of off, decide, not `"sometimes"`/u);
+  assert.equal(JSON.parse(readFileSync(held.record, "utf8")).asks.mode, "decide", "and the record is as it was");
 });

@@ -564,6 +564,22 @@ export const SHIP_MODES = ["self", "ready"];
  *  file answered for every checkout on it at once (ISS-2174). */
 export const shipMode = once(() => chosen(forgeJson().parsed?.ship, SHIP_MODES, SHIP_MODES[0]));
 
+export const ASK_MODES = ["off", "decide"];
+
+/** Whether a question this project's sessions declare reversible may be decided without the owner.
+ *  The PROJECT's and nobody else's, `off` where unset or unreadable, because this plugin runs in
+ *  repositories whose owners have not decided: plugin/hooks/how/ask-decide.md. */
+export const asksScope = once(() => chosen(forgeJson().parsed?.asks?.mode, ASK_MODES, ASK_MODES[0]));
+
+/** The terms this project adds to the owner categories; anything but a list of strings adds none. */
+export const asksOwnerTerms = once(() => {
+  const given = forgeJson().parsed?.asks?.owner;
+  return Array.isArray(given) ? given.filter((one) => typeof one === "string" && one.trim()).map((one) => one.trim()) : [];
+});
+
+/** The repository this process stands in, whose root folder names the project's entry. */
+export const projectRepository = () => standing()?.repository ?? null;
+
 /** A `ship` a release before that move left in the machine's own file, read to be reported ignored
  *  and by nothing that decides: honouring it as a fallback is the second layer the move removed, and
  *  dropping it in silence is a value somebody set and nothing tells them about. Presence and never
