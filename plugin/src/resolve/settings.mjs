@@ -7,9 +7,9 @@ import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:pa
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { escaped } from "../markdown.mjs";
 import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
-import { fail } from "./failing.mjs";
+import { fail } from "../refusal.mjs";
 
-export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "./failing.mjs";
+export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "../refusal.mjs";
 
 const ancestors = (start) => {
   const seen = [];

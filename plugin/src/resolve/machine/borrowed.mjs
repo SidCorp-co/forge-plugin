@@ -7,7 +7,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 
-import { fail } from "../failing.mjs";
+import { fail } from "../../refusal.mjs";
 
 export const BORROW_VAR = "FORGE_BORROW_FROM";
 
