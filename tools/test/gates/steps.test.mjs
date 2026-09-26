@@ -185,6 +185,19 @@ test("each path a script step reads puts that step in the run", () => {
   }
 });
 
+/* The ledger keys every step's digest on the root manifests, so the scope has to reach every step
+   with them; one below the root is a path like any other, and reaches the steps that claim it (ISS-2564). */
+test("a root manifest puts every step in the run, and one below the root only the steps claiming it", () => {
+  const steps = STEPS.map((step) => ({ ...step }));
+  for (const path of ["package.json", "package-lock.json"]) {
+    const unreached = planFor(steps, [path]).steps.filter((step) => !step.run).map((step) => step.label);
+    assert.deepEqual(unreached, [], `${path} leaves ${unreached.join(", ")} out of the run`);
+  }
+  const nested = planFor(steps, ["plugin/package.json"]).steps;
+  assert.equal(nested.find((step) => step.label === "check:package").run, false);
+  assert.equal(nested.find((step) => step.label === "check:dup").run, true);
+});
+
 /* Narrowing `reads` is the mistake the per-file selection may not make, and a test file in the
    launcher would key every record on which files happened to run beside it (ISS-654). */
 test("a test step narrowed to fewer files keeps its reads, and its launcher names no test file", () => {

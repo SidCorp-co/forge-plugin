@@ -6,15 +6,12 @@ import { dirname, join } from "node:path";
 
 import { git } from "../checkout.mjs";
 import { RELEASE_FIELDS, RELEASE_FILES } from "../run/landing.mjs";
-import { derivationFiles, under } from "./scope.mjs";
+import { derivationFiles, stepReads } from "./scope.mjs";
 import { recordDir } from "./timing.mjs";
 
 const DIGEST_LENGTH = 12;
 // Seconds before the label, the last capture, which on `.+` swallows a suffix; optional, so an older entry still reads as a pass.
 const ENTRY = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}}) (?:(\\d+)s )?(.+)$`, "u");
-
-// Every step's input: a dependency change can break any of them, and no step declares node_modules.
-const SHARED = /^package(?:-lock)?\.json$/u;
 
 export const LEDGER_UNSEEN = `Keyed on repository file content, the manifests, this runner's own modules and ${process.version}.
 A file a release writes a version into is keyed on its values with that version taken out of them, so a rebase past
@@ -232,7 +229,7 @@ const LAST = Number.MAX_SAFE_INTEGER;
 export const cheapestFirst = (timed) =>
   [...timed].sort((one, other) => (one.seconds ?? LAST) - (other.seconds ?? LAST));
 
-/** One `reads` decides both whether the diff reaches a step and what its digest covers, so the
+/** One `stepReads` decides both whether the diff reaches a step and what its digest covers, so the
  *  ledger can never trust a wider or narrower set of inputs than the scoping already trusted. */
 export const ledgerFor = (steps, { root, files, runner }) => {
   const dir = recordDir(root);
@@ -240,7 +237,7 @@ export const ledgerFor = (steps, { root, files, runner }) => {
   const entries = steps.map((step) => {
     const inputs = new Set(derivation);
     for (const file of files) {
-      if (SHARED.test(file) || step.reads.some((claim) => under(file, claim))) inputs.add(file);
+      if (stepReads(step, file)) inputs.add(file);
     }
     const digest = digestOf(root, inputs);
     const was = recorded(dir, step.label, digest);
