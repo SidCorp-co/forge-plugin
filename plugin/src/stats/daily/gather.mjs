@@ -135,7 +135,7 @@ const landingsSection = (all, passes, day) => ({
 
 const share = (part, whole) => (whole ? Math.round((part / whole) * 100) : null);
 
-export const consultsOn = (entries, day) => answered(entries).filter((one) => within(Date.parse(one.at) || 0, day));
+const consultsOn = (entries, day) => answered(entries).filter((one) => within(Date.parse(one.at) || 0, day));
 
 export const consultsSection = (entries, day) => {
   const verdicts = entries.filter((one) => one.kind === "verdict");
