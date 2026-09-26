@@ -294,7 +294,7 @@ test("a citation for a commit nothing published is refused at the write, and the
 });
 
 /* The run's id held the way a delegated run's is, in the room's own git directory, and no variable carried: the printed route crosses into a tree whose git directory names nobody, so it lands only if it carries the id itself (ISS-2556). */
-const { FORGE_SESSION_ID: _carried, ...treeHeld } = env;
+const treeHeld = Object.fromEntries(Object.entries(env).filter(([key]) => key !== "FORGE_SESSION_ID"));
 
 test("a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken", async () => {
   const { room, as, at } = citingRoom();
