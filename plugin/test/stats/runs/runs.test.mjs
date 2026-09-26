@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { callsIn, shellOf } from "../../../src/stats/corpus/transcripts.mjs";
-import { refusalIn } from "../../../src/stats/corpus/refusals.mjs";
+import { refusalCauseIn, refusalIn } from "../../../src/stats/corpus/refusals.mjs";
 import { FILES_IT, WHOLE } from "../../../src/refusal.mjs";
 import { held } from "../../../src/shown/ledger.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
@@ -516,6 +516,19 @@ test("a gate's refusal is read past the lines the hook harness appends after its
 test("the shown ledger's one-line repeat is a refusal, keyed on the route it names", () => {
   const body = `PreToolUse:Bash hook error: ${held("bash-guard")} ${WHOLE}`;
   assert.equal(refusalIn({ body, error: true }), held("bash-guard"));
+});
+
+/* A repeat names the rule it refused beside the page, so it is counted under the cause its first
+   refusal was, and a transcript written before it did is still read as a refusal. */
+test("a repeat naming its rule is counted under the cause its full refusal is", () => {
+  const full = "Refused — stage the paths you changed, explicitly.\n\ngit add -A stages everything.\n\n"
+    + "How: `forge hooks --how bash-guard` (cause: bash-guard/stage-everything)";
+  const again = held("bash-guard", { shape: "`git add -A`: stage the paths you changed, explicitly.", cause: "bash-guard/stage-everything" });
+  const key = (body) => refusalCauseIn({ body, error: true })?.key;
+  assert.equal(key(full), "bash-guard · stage-everything");
+  assert.equal(key(`PreToolUse:Bash hook error: ${again} ${WHOLE}`), key(full));
+  const before = "Refused again, for the reason this session was already shown in full: `forge hooks --how polling`";
+  assert.equal(refusalIn({ body: `${before} ${WHOLE}`, error: true }), before, "the old wording still reads as one");
 });
 
 test("a repeat the ledger cut to its unseen lines is a refusal by the harness's sentence that nothing ran", () => {

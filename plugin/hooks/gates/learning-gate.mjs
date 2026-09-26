@@ -6,7 +6,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 
 import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../_hook.mjs";
 import { struck } from "../../src/hooks/shell-spans.mjs";
-import { sayOnce, sessionKey } from "../../src/shown/ledger.mjs";
+import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The reading is `_hook.mjs`'s, so a name it would read is a name this reads. */
@@ -196,7 +196,11 @@ export const run = (ev) => {
           + "This repeats what the skill already says — that is a defect, not a style "
           + "preference: two authorities for one rule diverge the first time someone corrects only "
           + `the copy they found.\n\n${joined}` + how(null, CAUSE.restated);
-        deny(sayOnce(sessionKey(ev), "learning-gate", full, { route: "learning-gate" }));
+        deny(sayOnce(readerKey(ev), "learning-gate", full, {
+          route: "learning-gate",
+          shape: `\`${basename(path)}\` repeats what the skill already says: keep it in one place and cite it from the other.`,
+          cause: `learning-gate/${CAUSE.restated}`,
+        }));
       }
     }
     if (askedAlready(ev, settled(path), "learning-gate")) done();

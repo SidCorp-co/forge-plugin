@@ -9,7 +9,7 @@ import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
-import { sayOnce, sessionKey } from "../../src/shown/ledger.mjs";
+import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
 const GIT = String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS;
@@ -45,6 +45,13 @@ const movesTheStash = (one) => {
 
 /* Each rule's `instead` is a sentence of its own, and the refusal leads with it after a dash. */
 const lead = (text) => text.charAt(0).toLowerCase() + text.slice(1);
+
+/* The span that tripped a rule, as a repeat quotes it: one line, and short enough to stay one. */
+const SPAN_CAP = 80;
+const spanOf = (said) => {
+  const one = String(said).replace(/\s+/gu, " ").replaceAll("`", "'").trim();
+  return one.length > SPAN_CAP ? `${one.slice(0, SPAN_CAP - 1)}\u2026` : one;
+};
 
 const RULES = [
   {
@@ -263,14 +270,16 @@ export const run = (ev) => {
     const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
     const asks = AT_STAKE[atStake];
-    /* The trees of the hit that answered, and not of the last one read: the refusal is about that one. */
-    const found = asks ? hits.map((one) => treesOf(one, ev.cwd)).find((trees) => trees.some(asks)) : null;
-    if (asks && !found) continue;
+    /* The hit that answered, and not the last one read: the refusal is about that one, its trees and its span. */
+    const hit = asks ? hits.find((one) => treesOf(one, ev.cwd).some(asks)) : hits[0];
+    if (!hit) continue;
+    const found = asks ? treesOf(hit, ev.cwd) : null;
     const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
     /* The route first, lower-cased onto the marker so the marker is never a sentence on its own. */
     const full = `Refused — ${lead(instead)}${unsure}\n\n${cause}${how(topic, name)}`;
-    deny(sayOnce(sessionKey(ev), "bash-guard", full, { route: topic || "bash-guard" }));
+    const shape = `\`${spanOf(hit.said)}\`: ${lead(instead)}${unsure}`;
+    deny(sayOnce(readerKey(ev), "bash-guard", full, { route: topic || "bash-guard", shape, cause: `bash-guard/${name}` }));
   }
 
   const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");

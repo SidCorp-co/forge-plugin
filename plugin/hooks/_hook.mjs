@@ -78,8 +78,8 @@ const verbWithin = (ms) => {
 export const filed = async (reason, ev, left = remaining()) => {
   if (left <= FILING_MS) return reason;
   try {
-    const { lastShown, noteShown, sessionKey } = await import("../src/shown/ledger.mjs");
-    const session = sessionKey(ev);
+    const { lastShown, noteShown, readerKey } = await import("../src/shown/ledger.mjs");
+    const session = readerKey(ev);
     if (session && lastShown(session, FILING_SURFACE)) return reason;
     const verb = verbWithin(Math.min(left - FILING_MS, RESOLVE_MS));
     if (session) noteShown(session, FILING_SURFACE, verb || "nowhere");

@@ -16,31 +16,34 @@ before it reached anyone is a delivery that silently went missing; every surface
 is owed, prints, and credits after. This is why the ask and the credit are two calls and not one
 convenience.
 
-**A session is whoever holds the id, and a subagent owes one of its own.** An id a run was handed
-outranks the one a hook event carries, so delegated runs under one exported `CLAUDE_CODE_SESSION_ID`
-share a ledger and pay a delivery once between them. That is a cost and not the other correct shape:
-the shared id names a wave rather than a run, so the second agent is told a thing was already shown
-to it when it was shown to a sibling, and what it gets back is the route to the reason instead of
-the reason. `forge hooks --how` still carries the whole of it, which is what bounds the cost, and
-the route out is the resolver's own — give each dispatched run its own `FORGE_SESSION_ID` and its
-credits are its alone. This store keys on the string it is given and decides nothing about which
-string that is.
+**A session is whoever holds the id, and a hook's reader is the transcript its event names.** The
+claim a repeat makes — *shown in full earlier in this conversation* — is about a transcript, so a
+surface a hook speaks on keys on that and on nothing a process resolves. Inside a subagent the id a
+hook process resolves is the wave's or the tree's: the harness hands every agent the dispatcher's
+`CLAUDE_CODE_SESSION_ID`, resets its working directory to the dispatcher's checkout, and a tree's own
+run id is shared by the dispatcher that minted it and every run that resumes there. Keyed on either,
+one agent's delivery is read as its siblings', and the sibling is told it read a paragraph it never
+saw. The event is what names the reader: the dispatcher's session in `session_id` and the subagent
+alone in `agent_id`. A surface a verb speaks on has no event, and keeps the id the resolver gives it,
+which a run makes its own by exporting its own `FORGE_SESSION_ID`. This store keys on the string it
+is given and decides nothing about which string that is.
 
 ## What a repeat costs, by surface
 
 | Surface | First time | Repeat | Reading |
 | --- | --- | --- | --- |
-| a refusal a session must act on | the paragraph | one line naming the route to the reason | ever shown |
+| a refusal a session must act on | the paragraph | one line naming the shape refused, what to do instead, the rule and the route to the reason | ever shown |
 | a line reporting what is owed next | the whole of it | nothing | shown last |
 | a hint that a document wants a second reader | the whole of it | the whole of it | credited only |
 | the filing line a refusal ends with | the line | nothing | ever shown |
 | a phase of the method, carried by the verb that acts | the whole part | nothing | ever shown, whole only |
 
 A refusal repeats as a line and never as nothing, because the call is still being refused and a
-session shown nothing cannot tell a block from a pass. That line still reads as a refusal and names
-`forge hooks --how <topic>`, which is where the reason, what the rule does not judge, and the escape
-live. Nothing about the particular call is lost with the paragraph: a rule's cause, its *Instead* and
-its topic belong to the rule, not to the command that tripped it.
+session shown nothing cannot tell a block from a pass. That line still reads as a refusal, and it
+carries what the call needs to be re-sent: the span of this command that tripped the rule, the rule's
+own *Instead*, and the rule's name beside `forge hooks --how <topic>`. What it leaves to that page is
+the cause, which is the part a session that read it once has read. A line naming only the page sent
+a session with a four-verb command to a page of shapes to guess which verb it was.
 
 **Two readings of "already shown", and the surface picks one.** *Ever shown* asks whether this text
 was delivered at any point in the session, which is what a refusal wants: a paragraph read once has
