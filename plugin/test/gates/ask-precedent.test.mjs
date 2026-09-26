@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { join } from "node:path";
 
 import { callHook, projectRoom, tempRoom } from "../fixtures.mjs";
+import { logOutcome } from "../../src/asks/decided.mjs";
 
 const HOOK = new URL("../../hooks/entries/ask-precedent.mjs", import.meta.url).pathname;
 const QUESTION = { question: "Where should the weekly report go?", header: "Delivery",
@@ -36,12 +37,14 @@ test("a question the owner answers joins the project's layer with the answer and
   assert.deepEqual([row.id, row.kind, row.answer, row.matched, row.notes], ["toolu_owner#0", "owner", "A page", false, "and quickly"]);
 });
 
-test("a question the ask gate answered itself joins no layer", () => {
+test("a question the ask gate answered itself joins no layer, while the owner's next answer does", () => {
   const held = project({ asks: { mode: "decide" } });
-  mkdirSync(held.room, { recursive: true });
-  writeFileSync(join(held.room, "decided.jsonl"), `${JSON.stringify({ outcome: "decided", toolUseId: "toolu_self" })}\n`);
+  assert.equal(logOutcome({ outcome: "decided", toolUseId: "toolu_self", questions: [{ question: QUESTION.question,
+    option: "A file (Recommended)", reason: "the owner chose it before", reversal: "move it back", precedent: { id: "p1" } }] },
+  held.room), true);
   answered(held, "toolu_self", "A file (Recommended)");
-  assert.deepEqual(rows(held), []);
+  answered(held, "toolu_owner", "A page");
+  assert.deepEqual(rows(held).map((one) => one.id), ["toolu_owner#0"]);
 });
 
 test("a decision log that cannot be read keeps the answer out, since it cannot say whose it was", () => {

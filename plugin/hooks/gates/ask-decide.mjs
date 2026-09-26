@@ -6,7 +6,7 @@ import { asksOwnerTerms, asksScope } from "../../src/resolve/settings.mjs";
 import { gateway } from "../../src/resolve/machine/stores.mjs";
 import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../src/asks/declared.mjs";
 import { DECIDED, OWNER, asksRoom, decidedIds, decidedPath, logOutcome } from "../../src/asks/decided.mjs";
-import { OWNER_KIND, layerPaths, precedentsIn, refreshLayer, shortlistFor } from "../../src/asks/layer.mjs";
+import { OWNER_KIND, layerPaths, readLayer, refreshLayer, shortlistFor } from "../../src/asks/layer.mjs";
 import { judge, judgeModel } from "../../src/asks/judge.mjs";
 
 const ASKS = "AskUserQuestion";
@@ -58,8 +58,11 @@ const decide = async (ev, questions, room) => {
   if (decided.unreadable) return toOwner(ev, questions, decided.unreadable, room);
   const paths = layerPaths(room);
   const built = refreshLayer(paths, { skip: decided.ids, until: Date.now() + remaining() * BUILD_SHARE });
+  if (built.unreadable) return toOwner(ev, questions, built.unreadable, room);
   if (!built.complete) return toOwner(ev, questions, "the precedent layer is not yet read to the end of its transcripts", room);
-  const rows = precedentsIn(paths);
+  const layer = readLayer(paths);
+  if (layer.unreadable) return toOwner(ev, questions, layer.unreadable, room);
+  const { rows } = layer;
   const shortlists = questions.map((one) => shortlistFor(one, rows));
   const bare = shortlists.findIndex((list) => !list.some((one) => one.kind === OWNER_KIND));
   if (bare >= 0) return toOwner(ev, questions, `"${questions[bare].question}" has no close owner precedent`, room);

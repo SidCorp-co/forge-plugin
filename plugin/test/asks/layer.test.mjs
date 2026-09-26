@@ -175,3 +175,22 @@ test("the decision log takes only the outcome shapes it can read back, and names
   assert.equal(written.extra, undefined, "a field the caller added is not written");
   assert.notEqual(written.at, "1999-01-01", "nor a time the caller sent");
 });
+
+test("a last line still being written that may hold an answer leaves the build incomplete until it lands", () => {
+  const paths = layer();
+  const file = join(paths.source, "s1.jsonl");
+  const last = answered("toolu_b", QUESTION, "A file on this device (Recommended)");
+  writeFileSync(file, `${answered("toolu_a", QUESTION, "A page on the tracker")}${last.slice(0, -1)}`);
+  assert.deepEqual(refreshLayer(paths), { added: 1, complete: false });
+  appendFileSync(file, "\n");
+  assert.deepEqual(refreshLayer(paths), { added: 1, complete: true });
+});
+
+test("a layer holding a row that will not parse is refused, rather than read without it", () => {
+  const paths = layer();
+  writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
+  refreshLayer(paths);
+  appendFileSync(paths.precedents, '{"id":"toolu_b#0","kind":"owner","answer":\n');
+  assert.match(refreshLayer(paths).unreadable, /line 2 is not a precedent/u);
+  assert.equal(refreshLayer(paths).complete, false);
+});

@@ -26,6 +26,29 @@ export const layerPaths = (room, repository = projectRepository()) => (room && r
 
 export const precedentsIn = (paths) => (paths ? jsonlAt(paths.precedents) : []);
 
+/** The layer read strictly, for the one reader that decides from it: a row that will not parse may be
+ *  the answer that disagrees, and the offsets already read past it will not bring it back. */
+export const readLayer = (paths) => {
+  let text;
+  try {
+    text = readFileSync(paths.precedents, "utf8");
+  } catch (error) {
+    return error.code === "ENOENT" ? { rows: [] } : { unreadable: `${paths.precedents} could not be read: ${error.message}` };
+  }
+  const rows = [];
+  for (const [at, line] of text.split("\n").entries()) {
+    if (!line.trim()) continue;
+    try {
+      const row = JSON.parse(line);
+      if (!row || typeof row.id !== "string" || ![OWNER_KIND, DECISION_KIND].includes(row.kind)) throw new Error("no row");
+      rows.push(row);
+    } catch {
+      return { unreadable: `${paths.precedents} line ${at + 1} is not a precedent` };
+    }
+  }
+  return { rows };
+};
+
 /** How many precedents a layer holds, read without building anything. */
 export const precedentCount = (paths) => precedentsIn(paths).length;
 
@@ -157,7 +180,8 @@ const eachLineRun = (path, from, to, visit) => {
   } finally {
     closeSync(fd);
   }
-  return { end, stopped: false };
+  /* Unfinished bytes carrying a marker count as a stop: they may be the answer that disagrees. */
+  return { end, stopped: MARKS.some((one) => carry.includes(one)) };
 };
 
 const readScanned = (path) => {
@@ -175,8 +199,10 @@ const readScanned = (path) => {
  *  time past which the build stops and keeps its place for the next one. */
 export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {}) => {
   if (!paths) return { added: 0, complete: true };
+  const layer = readLayer(paths);
+  if (layer.unreadable) return { added: 0, complete: false, unreadable: layer.unreadable };
   const scanned = readScanned(paths.scanned);
-  const held = new Set(precedentsIn(paths).map((one) => one.id));
+  const held = new Set(layer.rows.map((one) => one.id));
   let added = 0;
   const listed = transcriptsUnder(paths.source);
   let { complete } = listed;
