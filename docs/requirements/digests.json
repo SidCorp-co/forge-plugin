@@ -2381,6 +2381,18 @@
       "rev": 1,
       "digest": "c45312922da5399acc1bc460dc48b764f8b95f112d19e1262e6c0894cc8a14eb"
     },
+    "AC-05-1-16": {
+      "rev": 1,
+      "digest": "006da82a47341253199de05aa1585be9f4c2a59265610c06feafc7bf716650c7"
+    },
+    "AC-05-1-17": {
+      "rev": 1,
+      "digest": "4ee76baa4756c3f819dc3de014bc6b9b88adf7f49095133ece5110e4306d772d"
+    },
+    "AC-05-1-18": {
+      "rev": 1,
+      "digest": "67f8ef298ae357a3c82243f38a6d01c61578a44b138b814e367c8f202dd96b81"
+    },
     "UC-05-2": {
       "rev": 1,
       "digest": "8b36cd2023956a8383f427fbed094aa107e0cea7b4f8e58a7535fd1c2402d0c8"
