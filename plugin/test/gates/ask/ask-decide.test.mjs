@@ -262,4 +262,11 @@ test("a precedent layer not read to its end, or a decision log that cannot be re
   torn.gateway.close();
   assert.equal(torn.gateway.asked.length, 0);
   assert.equal(existsSync(join(torn.room, "precedents.jsonl")), false, "and no transcript is read past it");
+  const partial = await project({ asks: { mode: "decide" } });
+  mkdirSync(partial.room, { recursive: true });
+  writeFileSync(join(partial.room, "precedents.jsonl"), `${JSON.stringify({ id: "d1", kind: "decision" })}\n`);
+  assert.equal(await ask(partial, [reportQuestion()]), null);
+  partial.gateway.close();
+  assert.equal(partial.gateway.asked.length, 0);
+  assert.match(log(partial).at(-1).reason, /line 1 is not a precedent/u, "a layer row missing what the judge reads is refused, not crashed on");
 });

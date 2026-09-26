@@ -26,6 +26,13 @@ export const layerPaths = (room, repository = projectRepository()) => (room && r
 
 export const precedentsIn = (paths) => (paths ? jsonlAt(paths.precedents) : []);
 
+const strings = (list) => Array.isArray(list) && list.every((one) => typeof one === "string");
+
+/* Every field the shortlist and the judge read, present in the type they read it as. */
+const wholeRow = (row) => Boolean(row) && typeof row.id === "string" && (row.kind === OWNER_KIND
+  ? typeof row.question === "string" && typeof row.answer === "string" && strings(row.options)
+  : row.kind === DECISION_KIND && strings(row.readings) && row.readings.length > 0);
+
 /** The layer read strictly, for the one reader that decides from it: a row that will not parse may be
  *  the answer that disagrees, and the offsets already read past it will not bring it back. */
 export const readLayer = (paths) => {
@@ -40,7 +47,7 @@ export const readLayer = (paths) => {
     if (!line.trim()) continue;
     try {
       const row = JSON.parse(line);
-      if (!row || typeof row.id !== "string" || ![OWNER_KIND, DECISION_KIND].includes(row.kind)) throw new Error("no row");
+      if (!wholeRow(row)) throw new Error("no row");
       rows.push(row);
     } catch {
       return { unreadable: `${paths.precedents} line ${at + 1} is not a precedent` };

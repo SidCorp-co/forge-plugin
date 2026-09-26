@@ -193,4 +193,10 @@ test("a layer holding a row that will not parse is refused, rather than read wit
   appendFileSync(paths.precedents, '{"id":"toolu_b#0","kind":"owner","answer":\n');
   assert.match(refreshLayer(paths).unreadable, /line 2 is not a precedent/u);
   assert.equal(refreshLayer(paths).complete, false);
+  for (const partial of [{ id: "d1", kind: "decision" }, { id: "o1", kind: "owner", question: "Q?", options: ["A"] }]) {
+    const whole = layer();
+    mkdirSync(join(whole.precedents, ".."), { recursive: true });
+    writeFileSync(whole.precedents, `${JSON.stringify(partial)}\n`);
+    assert.match(refreshLayer(whole).unreadable, /line 1 is not a precedent/u, `${JSON.stringify(partial)} is not a whole row`);
+  }
 });
