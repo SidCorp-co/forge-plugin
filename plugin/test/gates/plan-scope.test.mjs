@@ -67,7 +67,7 @@ test("a write the plan does not name is refused, naming the path, the issue and 
   assert.equal(held.allowed, false);
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs`/u);
   assert.match(held.reason, /ISS-411's plan/u);
-  assert.match(held.reason, /forge record correction ISS-411 --moved "the change also wrote plugin\/src\/unplanned\.mjs"/u);
+  assert.match(held.reason, /forge record correction ISS-411 --corrects plan --moved "the change also wrote plugin\/src\/unplanned\.mjs"/u);
   assert.match(held.reason, /forge hooks --how plan-scope/u);
 });
 

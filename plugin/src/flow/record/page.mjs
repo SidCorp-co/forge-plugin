@@ -20,17 +20,17 @@ export const parseAll = (body, table = SHAPES_AT) =>
 /* The first block: for readers asking about the comment rather than about a criterion. */
 export const parse = (body) => parseAll(body)[0] ?? null;
 
-/* Latest of each kind, latest verdict per criterion, and the criteria no verdict names. */
+/* Latest of each kind, latest verdict per criterion, and the criteria no verdict names. A repeating kind's entries keep their comment's id, which is what a record naming another by handle is matched on. */
 export const assemble = (comments, criteria) => {
   const records = comments
-    .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: one.createdAt ?? "", record })))
+    .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: one.createdAt ?? "", id: one.documentId ?? one.id ?? null, record })))
     .sort((a, b) => a.at.localeCompare(b.at));
   const latest = {};
   const verdicts = new Map();
   const repeated = {};
   /* A verdict whose criterion this build cannot read is kept apart rather than keyed by what the read produced: keying by that is how an owed list came to name a criterion `NaN`. */
   const unreadable = [];
-  for (const { at, record } of records) {
+  for (const { at, id, record } of records) {
     if (record.kind === "verdict") {
       const number = criterionNumber(record.fields.criterion);
       if (number === null) unreadable.push({ at, record });
@@ -38,7 +38,7 @@ export const assemble = (comments, criteria) => {
       continue;
     }
     latest[record.kind] = { at, record };
-    if (shapeFor(record.kind, record.contract).repeats) (repeated[record.kind] ??= []).push({ at, record });
+    if (shapeFor(record.kind, record.contract).repeats) (repeated[record.kind] ??= []).push({ at, id, record });
   }
   const owed = criteria.filter((one) => !verdicts.has(one.number)).map((one) => one.number);
   return { latest, verdicts, owed, repeated, unreadable };
@@ -53,15 +53,19 @@ export const kindsHeld = ({ latest, verdicts, unreadable, issue, criteria }) => 
 ];
 
 /* The label is the shape's, never the record's: a record carries keys, and two forms of one record read back under one heading. A rewritten one carries no key and says so instead of nothing. The number is shown only where it is not the one this build writes, because beside every record it is noise that hides the one that differs. */
-export const printRecord = ({ at, record }) => {
+/** `gap` indents the whole record under another it stands beside, and `mark` is said after its heading. */
+export const printRecord = ({ at, record }, { gap = "", mark = "" } = {}) => {
   const shape = shapeFor(record.kind, record.contract);
   const other = record.contract === CONTRACT ? "" : `, contract ${record.contract}`;
-  console.log(`${shape.heading}  (${atMinute(at)}${other})`);
-  if (record.rewritten) return console.log("  rewritten by the prose pipeline: no field of this shape reads back");
+  console.log(`${gap}${shape.heading}  (${atMinute(at)}${other})${mark}`);
+  if (record.rewritten) return console.log(`${gap}  rewritten by the prose pipeline: no field of this shape reads back`);
   for (const field of [...shape.fields, ...(shape.stamp ? [shape.stamp] : [])]) {
     const value = record.fields[field.flag];
     if (value === undefined || (Array.isArray(value) && !value.length)) continue;
-    for (const one of Array.isArray(value) ? value : [value]) console.log(`  ${field.label}: ${one}`);
+    for (const one of Array.isArray(value) ? value : [value]) {
+      /* A value's own later lines are indented only under a gap, where they would otherwise fall out of it. */
+      console.log(`${gap}  ${field.label}: ${gap ? String(one).replaceAll("\n", `\n${gap}    `) : one}`);
+    }
   }
   return null;
 };

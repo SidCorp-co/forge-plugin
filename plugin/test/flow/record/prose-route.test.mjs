@@ -69,7 +69,7 @@ test("a bare `-` is refused as a route, and a value that is only a file's name g
   assert.equal(dash.posted, 0);
   assert.match(dash.stderr, /--detail - reads as stdin/u);
   /* A correction's --moved names the file a landing wrote, and `developed` reads that name back. */
-  const named = await write(["correction", "ISS-7", "--moved", FILE, "--why", "the file that landed"]);
+  const named = await write(["correction", "ISS-7", "--corrects", "plan", "--moved", FILE, "--why", "the file that landed"]);
   assert.equal(named.status, 0, named.stderr);
   assert.equal(named.posted, 1);
   assert.ok(posts().at(-1).args.data.body.includes(`moved: ${FILE}`), "stored as the text it is");

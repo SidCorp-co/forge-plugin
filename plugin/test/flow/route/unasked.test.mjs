@@ -102,7 +102,7 @@ test("the three surfaces that print what is owed print this in the same words", 
   const mine = inSession("unasked-write");
   await ranAsync(FORGE, ["claim", "ISS-7", "--unheld"], mine);
   const wrote = await ranAsync(FORGE, ["record", "correction", "ISS-7",
-    "--moved", "a file the plan does not name", "--why", "the read went wider"], mine);
+    "--corrects", "plan", "--moved", "a file the plan does not name", "--why", "the read went wider"], mine);
   assert.equal(wrote.status, 0, wrote.stderr);
   const asked = promptIn(wrote.stderr);
   assert.ok(asked.trim(), `the line a record write ends on carries it: ${wrote.stderr}`);

@@ -57,7 +57,7 @@ const judged = (verdict) => recorded("verdict", { criterion: "1 — The first ou
 test("a reopen falls where its triage says, once the write that outcome owes is there", () => {
   const wrong = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED }, () => [recorded("finding", ABOUT_TWO, "0")]), "ISS-3");
   assert.match(wrong.missing[0].what, /rules the criterion the wrong test, and no whole correction since it/u);
-  assert.match(wrong.missing[0].command, /^forge record correction ISS-3 --moved/u);
+  assert.match(wrong.missing[0].command, /^forge record correction ISS-3 --corrects criteria:2 --moved/u);
   const moved = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED }, () => [recorded("finding", ABOUT_TWO, "0"), corrected()]), "ISS-3");
   assert.deepEqual(moved.missing, []);
   assert.equal(moved.next, "developed", "the criterion was the wrong test, so it and its verdicts go");

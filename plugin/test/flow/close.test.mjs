@@ -291,8 +291,9 @@ test("a promotion nothing automates refuses the close, and one the project makes
 test("the line a record write leaves at that rung names the same shortfall", async () => {
   state.config = OWES_A_PERSON;
   await claimed("ISS-101");
+  /* The note the issue already holds, so the write replaces nothing its status was earned on. */
   const run = await ranAsync(FORGE, ["record", "note", "ISS-101", "--section", "Fixed",
-    "--user", "what the reporter sees"], ENV);
+    "--user", "it works"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stderr.includes(personOwedForRelease(releaseFrom(OWES_A_PERSON))),
     `the record write still reads the close as earned:\n${run.stderr}`);

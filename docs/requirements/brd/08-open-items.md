@@ -25,6 +25,5 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 | What a project with no deploy step writes for `awaiting_release`. | ISS-808 |
 | Whether a clause can say its result is one a person judges, so the criteria citing it carry that demand. | ISS-812 |
 | Whether the entry criteria, the served text and the verb's own answer are held against each other. | ISS-813 |
-| Whether a plan or criteria write after approval is refused without its correction. | ISS-814 |
 | Whether the comment list takes a cursor, so no rule reads the end of a page a cut invented. | ISS-17 |
 | Which requirement asks that a fix reach every case the cause it answers reaches, so G-13 is met by one. | ISS-1781 |

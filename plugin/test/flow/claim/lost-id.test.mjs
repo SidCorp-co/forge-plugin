@@ -71,10 +71,10 @@ const updates = (from) => state.calls.slice(from)
 test("a live lease whose pid is this call's own process hands the id back, in the command that was refused", async () => {
   heldBy(HOLDER);
   const before = state.calls.length;
-  const refused = await ran(["record", "correction", "ISS-1084", "--moved", "a plan step", "--why", "the file moved"]);
+  const refused = await ran(["record", "correction", "ISS-1084", "--corrects", "plan", "--moved", "a plan step", "--why", "the file moved"]);
   assert.equal(refused.status, 1, `the payload write should have been refused:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, new RegExp(`FORGE_SESSION_ID=${HOLDER} forge record correction ISS-1084 `
-    + `--moved 'a plan step' --why 'the file moved'`, "u"),
+    + `--corrects plan --moved 'a plan step' --why 'the file moved'`, "u"),
   "the whole command that was refused, under the id the refusal had already printed");
   assert.match(refused.stderr, /the process and not the run inside it/u,
     "and what the pid does not establish, since every agent a session dispatched shares one");

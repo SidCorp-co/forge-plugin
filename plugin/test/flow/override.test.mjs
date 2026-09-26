@@ -142,7 +142,7 @@ test("a field set by hand is written, said to be unread, and left with a correct
   assert.ok(run.stdout.includes(UNREAD), "with the line that says no entry check read it");
   const [correction] = posted();
   assert.match(correction, /forge-record: correction/u, "the record left behind is a correction");
-  assert.match(correction, /priority set to `high` by `forge issue --set`/u, "naming the field, the value and the verb");
+  assert.match(correction, /priority set to `high` by `forge issue --set`[\s\S]*^corrects: issue:priority$/mu, "naming the field, the value, the verb and what it corrects");
   assert.ok(correction.includes(WHY), "and carrying the reason the run typed");
 });
 
@@ -158,8 +158,8 @@ test("every field of one call is written, and one correction names all of them",
   assert.match(run.stdout, /^ISS-96 {2}priority is high$/mu);
   assert.equal(posted().length, 1, "one record for the call, not one per field");
   const [correction] = posted();
-  assert.match(correction, /moved: complexity set to `m`, priority set to `high` by `forge issue --set`/u,
-    "naming every field that moved, each beside the value it moved to");
+  assert.match(correction, /moved: complexity set to `m`, priority set to `high` by `forge issue --set`[\s\S]*^corrects: issue:complexity,priority$/mu,
+    "naming every field that moved, each beside the value it moved to, and every one as what it corrects");
   assert.ok(correction.includes(WHY), "under the one reason the caller typed for all of them");
 });
 
@@ -346,8 +346,8 @@ test("a status set by hand carries the reason the tracker demands, and says no c
   assert.ok(run.stdout.includes(UNREAD));
   assert.equal(sent("transition").reason, WHY, "the reason travels with the move, which a side status refuses without");
   const [correction] = posted();
-  assert.match(correction, /the status set to `on_hold` by `forge advance --set`, from `awaiting_release`/u,
-    "and the correction says where it came from, which the status field no longer holds");
+  assert.match(correction, /the status set to `on_hold` by `forge advance --set`, from `awaiting_release`[\s\S]*^corrects: issue:status$/mu,
+    "and the correction says where it came from, which the status field no longer holds, naming the status as corrected");
 });
 
 /* The round this removes, end to end and on the verb that was spending it most: the move lands in the one call that asked for it, on an issue no run had ever taken (ISS-1260). The transition's own `--next` is a clearing of a line the issue was carrying, and a field holding no lease carries none, so the lease gets the line that says no work followed the write, and the write gives that lease back. */
@@ -401,7 +401,7 @@ test("a lease taken under the correction stops the move, and the message names w
   assert.match(run.stderr, /the record for needs_info went up and the move was not attempted/u,
     "the record above is the subject, not the lease");
   assert.match(run.stderr, /changed hands between the two writes/u, "and why nothing here may set the status");
-  assert.match(run.stderr, /forge record correction ISS-96 --moved/u, "with the way to say the record above is wrong");
+  assert.match(run.stderr, /forge record correction ISS-96 --corrects issue:status --moved/u, "with the way to say the record above is wrong");
   assert.match(run.stderr, /forge claim ISS-96 --take/u, "and the way to take the issue back and finish it");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false,
     "no move was sent under another run's lease");
@@ -420,7 +420,7 @@ test("a lease the transport would not read stops the move, and is reported as no
   assert.match(run.stderr, /could not be read, so nothing was sent to the status/u,
     "not knowing is said as not knowing, and never as a handoff");
   assert.match(run.stderr, /forge advance ISS-96 --set needs_info --why/u, "with the move to make once it answers");
-  assert.match(run.stderr, /forge record correction ISS-96 --moved/u, "and the way to say the record above is wrong");
+  assert.match(run.stderr, /forge record correction ISS-96 --corrects issue:status --moved/u, "and the way to say the record above is wrong");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and nothing was sent to the status");
 });
 
@@ -434,7 +434,7 @@ test("a move refused after the record went up is reported as the pair it left", 
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /is still confirmed: the record for needs_info went up and the move was refused/u);
   assert.match(run.stderr, /a status change needs a reason/u, "carrying what the tracker said, which is what to act on");
-  assert.match(run.stderr, /forge record correction ISS-96 --moved/u, "and the way to say the record above is wrong");
+  assert.match(run.stderr, /forge record correction ISS-96 --corrects issue:status --moved/u, "and the way to say the record above is wrong");
   assert.equal(posted().length, 1, "the correction that did go up is the thing the message is about");
 });
 

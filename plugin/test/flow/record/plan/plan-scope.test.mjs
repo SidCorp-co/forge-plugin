@@ -191,7 +191,7 @@ test("a correction the tracker took is held by the cache though the write after 
     assert.deepEqual(held().map((one) => one.ref), ["ISS-77"], "the claim is what first holds the scope");
     assert.equal(namesPath(held()[0].named, GREW), false, "and the plan does not name the file yet");
     const wrote = await ranAsync(FORGE, ["record", "correction", "ISS-77",
-      "--moved", `the change also wrote ${GREW}`, "--why", "the helper had no home",
+      "--corrects", "plan", "--moved", `the change also wrote ${GREW}`, "--why", "the helper had no home",
       "--also", "decision", "--decision", "a reading | its assumption | its undo"],
     childEnv(tracker), worked);
     assert.notEqual(wrote.status, 0, "the call failed");
@@ -230,7 +230,7 @@ test("a record whose scope can be neither written nor removed says so, and names
     rmSync(join(tracker.env.XDG_CONFIG_HOME, "forge", "plan-scope"), { recursive: true, force: true });
     writeFileSync(join(tracker.env.XDG_CONFIG_HOME, "forge", "plan-scope"), "not a directory");
     const wrote = await ranAsync(FORGE, ["record", "correction", "ISS-88",
-      "--moved", "the change also wrote grew.mjs", "--why", "the helper had no home"], childEnv(tracker), worked);
+      "--corrects", "plan", "--moved", "the change also wrote grew.mjs", "--why", "the helper had no home"], childEnv(tracker), worked);
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.match(wrote.stderr, /could not be written or removed/u);
     assert.match(wrote.stderr, /forge hooks --off plan-scope/u);

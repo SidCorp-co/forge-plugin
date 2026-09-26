@@ -392,7 +392,7 @@ test("a note whose unnamed paths alone overrun it is refused, with the correctio
   assert.throws(() => fixture({ named: "the plan names none of them" }), (error) => {
     assert.match(error.message, /over the 2000 the tracker takes with only the 119 path\(s\) the plan/u);
     assert.match(error.message, /none of them may be left out: nothing was written/u);
-    assert.match(error.message, /forge record correction ISS-99 --moved "the change also wrote /u);
+    assert.match(error.message, /forge record correction ISS-99 --corrects plan --moved "the change also wrote /u);
     return true;
   });
   assert.ok(lengthOf(fixture({ named: "", wrote: CASES })) <= capsOf().note.self,
