@@ -211,7 +211,7 @@ const costLines = (judgement) => Object.entries(judgement?.cost ?? {}).map(([rol
   `${role}: ${one.model}, ${one.calls} call(s)${one.failed ? ` of which ${one.failed} failed` : ""}, `
   + `${one.input} input and ${one.output} output token(s)`);
 
-export const costFooter = (judgement) => {
+const costFooter = (judgement) => {
   const lines = costLines(judgement);
   return lines.length ? `<footer><p class="note">What reading this page cost: ${lines.map(esc).join("; ")}.</p></footer>` : "";
 };
