@@ -3,7 +3,7 @@
    stand-in gateway that plays the judge and counts every time it was asked. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 
@@ -245,4 +245,20 @@ test("one project's layer is never read for another project's question", async (
   assert.equal(second.gateway.asked.length, 0);
   assert.ok(existsSync(join(first.room, "precedents.jsonl")), "the first project's layer is there to be misread");
   assert.notEqual(dirname(first.room), dirname(second.room));
+});
+
+test("a precedent layer not read to its end, or a decision log that cannot be read, leaves the question with the owner", async () => {
+  const unread = await project({ asks: { mode: "decide" } });
+  symlinkSync(join(unread.store, "vanished.target"), join(unread.store, "s9.jsonl"));
+  assert.equal(await ask(unread, [reportQuestion()]), null);
+  unread.gateway.close();
+  assert.equal(unread.gateway.asked.length, 0);
+  assert.match(log(unread).at(-1).reason, /not yet read to the end/u);
+  const torn = await project({ asks: { mode: "decide" } });
+  mkdirSync(torn.room, { recursive: true });
+  writeFileSync(join(torn.room, "decided.jsonl"), '{"outcome":"decided","toolUseId":"toolu_self"\n');
+  assert.equal(await ask(torn, [reportQuestion()]), null);
+  torn.gateway.close();
+  assert.equal(torn.gateway.asked.length, 0);
+  assert.equal(existsSync(join(torn.room, "precedents.jsonl")), false, "and no transcript is read past it");
 });

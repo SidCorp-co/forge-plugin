@@ -9,7 +9,9 @@ export const run = (ev) => {
   if (ev.tool_name !== "AskUserQuestion" || asksScope().value !== "decide") return;
   const room = asksRoom();
   const id = ev.tool_use_id;
-  if (!room || !id || decidedIds(room).has(id)) return;
+  if (!room || !id) return;
+  const decided = decidedIds(room);
+  if (decided.unreadable || decided.ids.has(id)) return;
   const response = ev.tool_response && typeof ev.tool_response === "object" ? ev.tool_response : {};
   const answers = response.answers ?? {};
   const questions = Array.isArray(response.questions) ? response.questions : ev.tool_input?.questions ?? [];

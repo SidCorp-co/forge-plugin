@@ -63,34 +63,50 @@ const ownerRows = (record, skip) => {
     .filter(Boolean);
 };
 
-const DECISION_VERB = "forge record decision";
+/* In command position only, so a sentence or an `echo` carrying the words records nothing. */
+const DECISION_RUN = /(?:^|[;&|(]\s*)(?:\S*\/)?forge\s+record\s+decision\s/u;
 const DECISION_FLAG = /--decision\s+(?:"((?:[^"\\]|\\.)*)"|'([^']*)')/gu;
-const DECISION_ISSUE = /forge record decision\s+([A-Za-z]+-\d+)/u;
+const DECISION_ISSUE = /forge\s+record\s+decision\s+([A-Za-z]+-\d+)/u;
+const REFUSED = /nothing was written|refused/iu;
 
-/* A decision a session recorded, read off the command it ran: the tracker lists comments one issue
-   at a time, and these are the ones this project's own runs wrote. */
-const decisionRows = (record) => (Array.isArray(record?.message?.content) ? record.message.content : [])
-  .filter((one) => one?.type === "tool_use" && one.name === "Bash" && String(one.input?.command ?? "").includes(DECISION_VERB))
-  .map((one) => {
-    const command = String(one.input.command);
+/* A decision a session asked to record, held until its result says the write went through: the
+   tracker lists comments one issue at a time, and these are the ones this project's own runs wrote. */
+const decisionsAsked = (record, pending) => {
+  for (const one of Array.isArray(record?.message?.content) ? record.message.content : []) {
+    const command = one?.type === "tool_use" && one.name === "Bash" ? String(one.input?.command ?? "") : "";
+    if (!DECISION_RUN.test(command)) continue;
     const readings = [...command.matchAll(DECISION_FLAG)].map((hit) => (hit[1] ?? hit[2]).replace(/\\(.)/gu, "$1"));
-    return readings.length
-      ? { id: one.id, kind: DECISION_KIND, at: record.timestamp ?? null, issue: DECISION_ISSUE.exec(command)?.[1] ?? null, readings }
-      : null;
-  })
-  .filter(Boolean);
+    if (readings.length) {
+      pending[one.id] = { id: one.id, kind: DECISION_KIND, at: record.timestamp ?? null, issue: DECISION_ISSUE.exec(command)?.[1] ?? null, readings };
+    }
+  }
+};
 
-const MARKS = ["\"toolUseResult\"", DECISION_VERB];
+const textOfResult = (block) => (typeof block.content === "string" ? block.content
+  : Array.isArray(block.content) ? block.content.map((one) => one?.text ?? "").join("\n") : "");
 
-const rowsOfLine = (line, skip) => {
-  if (!MARKS.some((one) => line.includes(one))) return [];
+const decisionsRecorded = (record, pending) => (Array.isArray(record?.message?.content) ? record.message.content : [])
+  .filter((one) => one?.type === "tool_result" && pending[one.tool_use_id])
+  .flatMap((one) => {
+    const row = pending[one.tool_use_id];
+    delete pending[one.tool_use_id];
+    return one.is_error === true || REFUSED.test(textOfResult(one)) ? [] : [row];
+  });
+
+/* Parsed only where it could hold something: an answer, a decision asked for, or the result of one. */
+const worthParsing = (line, pending) => line.includes("\"toolUseResult\"") || line.includes("record decision")
+  || Object.keys(pending).some((id) => line.includes(id));
+
+const rowsOfLine = (line, skip, pending) => {
+  if (!worthParsing(line, pending)) return [];
   let record;
   try {
     record = JSON.parse(line);
   } catch {
     return [];
   }
-  return [...ownerRows(record, skip), ...decisionRows(record)];
+  decisionsAsked(record, pending);
+  return [...ownerRows(record, skip), ...decisionsRecorded(record, pending)];
 };
 
 const transcriptsUnder = (dir) => {
@@ -142,9 +158,9 @@ const eachLineRun = (path, from, to, visit) => {
 const readScanned = (path) => {
   try {
     const held = JSON.parse(readFileSync(path, "utf8"));
-    return held && typeof held.files === "object" ? held : { files: {} };
+    return held && typeof held.files === "object" ? { pending: {}, ...held } : { files: {}, pending: {} };
   } catch {
-    return { files: {} };
+    return { files: {}, pending: {} };
   }
 };
 
@@ -167,6 +183,7 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
     try {
       size = statSync(file).size;
     } catch {
+      complete = false;
       continue;
     }
     const was = scanned.files[file]?.offset ?? 0;
@@ -174,7 +191,7 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
     if (from >= size) continue;
     const end = eachLineRun(file, from, size, (text) => {
       for (const line of text.split("\n")) {
-        for (const row of rowsOfLine(line, skip)) {
+        for (const row of rowsOfLine(line, skip, scanned.pending)) {
           if (held.has(row.id)) continue;
           held.add(row.id);
           appendJsonl(paths.precedents, row);
@@ -237,6 +254,11 @@ const SHORTLIST_FLOOR = 0.2;
 const SHORTLIST_OWNER = 5;
 const SHORTLIST_DECISIONS = 3;
 
+/* A cap that fell between two equally close precedents would hide the one that disagrees, so every row
+   as close as the last one kept is kept with it. */
+const cutKeepingTies = (sorted, cap) => (sorted.length <= cap ? sorted
+  : sorted.filter((one) => one.score >= sorted[cap - 1].score));
+
 /** The precedents closest to one question, owner answers and recorded decisions each capped apart,
  *  every one at or above the floor; the score travels with each so the judge sees how close. */
 export const shortlistFor = (question, rows, { floor = SHORTLIST_FLOOR } = {}) => {
@@ -253,8 +275,6 @@ export const shortlistFor = (question, rows, { floor = SHORTLIST_FLOOR } = {}) =
     .map(({ row, tokens }) => ({ ...row, score: Number(cosine(target, vectorOf(tokens, idf)).toFixed(3)) }))
     .filter((one) => one.score >= floor)
     .sort((left, right) => right.score - left.score);
-  return [
-    ...scored.filter((one) => one.kind === OWNER_KIND).slice(0, SHORTLIST_OWNER),
-    ...scored.filter((one) => one.kind === DECISION_KIND).slice(0, SHORTLIST_DECISIONS),
-  ];
+  return [...cutKeepingTies(scored.filter((one) => one.kind === OWNER_KIND), SHORTLIST_OWNER),
+    ...cutKeepingTies(scored.filter((one) => one.kind === DECISION_KIND), SHORTLIST_DECISIONS)];
 };

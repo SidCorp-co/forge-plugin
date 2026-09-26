@@ -44,6 +44,14 @@ test("a question the ask gate answered itself joins no layer", () => {
   assert.deepEqual(rows(held), []);
 });
 
+test("a decision log that cannot be read keeps the answer out, since it cannot say whose it was", () => {
+  const held = project({ asks: { mode: "decide" } });
+  mkdirSync(held.room, { recursive: true });
+  writeFileSync(join(held.room, "decided.jsonl"), '{"outcome":"decided","toolUseId":"toolu_self"\n');
+  answered(held, "toolu_self", "A file (Recommended)");
+  assert.deepEqual(rows(held), []);
+});
+
 test("a project that has not opted in keeps nothing", () => {
   for (const keys of [{}, { asks: { mode: "off" } }]) {
     const held = project(keys);

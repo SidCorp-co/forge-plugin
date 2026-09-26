@@ -54,8 +54,11 @@ const decide = async (ev, questions, room) => {
     if (!reversalOf(questions[held]) && !askedAlready(ev, "ask-decide", "ask-declare")) context(TEACH);
     return;
   }
+  const decided = decidedIds(room);
+  if (decided.unreadable) return toOwner(ev, questions, decided.unreadable, room);
   const paths = layerPaths(room);
-  refreshLayer(paths, { skip: decidedIds(room), until: Date.now() + remaining() * BUILD_SHARE });
+  const built = refreshLayer(paths, { skip: decided.ids, until: Date.now() + remaining() * BUILD_SHARE });
+  if (!built.complete) return toOwner(ev, questions, "the precedent layer is not yet read to the end of its transcripts", room);
   const rows = precedentsIn(paths);
   const shortlists = questions.map((one) => shortlistFor(one, rows));
   const bare = shortlists.findIndex((list) => !list.some((one) => one.kind === OWNER_KIND));
