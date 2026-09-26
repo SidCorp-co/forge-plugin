@@ -308,6 +308,16 @@ test("every consumer of a stored reading reads the same with the two fields and 
       profile: { from: 7, to: 7, medianMinutes: 777, rungs: [{ rung: "nonesuch", runs: 7 }], byClass: [["nonesuch", { wait: 7 }]] } },
     classes: { rows: [["nonesuch", 7]], lookups: { before: 7, now: 7 } },
   };
+  /* A figure of those fields printed as a value of its own. The same readings print wall-clock epochs
+     in milliseconds, and a digit run inside one of those is the clock and not a leak (ISS-2550). */
+  const DEAD_FIGURE = /nonesuch|(?<!\d|\d\.)(?:777|1999)(?!\d|\.\d)/u;
+  for (const clock of ["\"at\": 1790377751303.5022", "\"at\": 1781999000000", "\"at\": 1790000000000.1777"]) {
+    assert.doesNotMatch(clock, DEAD_FIGURE, `a digit run inside a printed epoch is not a dead figure: ${clock}`);
+  }
+  for (const leak of ["\"medianMinutes\": 777", "median 777 min.", "\"from\": \"1999-01-01T00:00:00.000Z\"",
+    "from 1999-01-01 00:00Z", "rung nonesuch"]) {
+    assert.match(leak, DEAD_FIGURE, `a dead figure printed as its own value is one: ${leak}`);
+  }
   /* Stripped here rather than by the code under test, so the pair is two stores differing in exactly
      these two fields whichever source this runs against — a precondition a case must hold for itself
      and not borrow from the thing it is checking. */
@@ -390,7 +400,7 @@ test("every consumer of a stored reading reads the same with the two fields and 
     assert.equal(cut.status, 0, `${what}: and a reading rather than a refusal — ${cut.stderr}`);
     assert.equal(settled(cut.stdout), settled(read.stdout), `criterion 11: ${what} reads the same either way`);
     assert.equal(cut.stderr, read.stderr, `criterion 11: ${what} says the same either way`);
-    assert.doesNotMatch(read.stdout, /nonesuch|777|1999/u,
+    assert.doesNotMatch(read.stdout, DEAD_FIGURE,
       `${what}: and no figure of the dead fields reaches a reader`);
     if (settled(read.stdout).includes(", read <when>")) stamped += 1;
   }
