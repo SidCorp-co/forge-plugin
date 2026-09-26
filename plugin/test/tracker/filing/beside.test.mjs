@@ -382,7 +382,7 @@ test("the note verb still refuses a flag that is none of its four", async () => 
   assert.equal(run.status, 1);
   /* The one parser's refusal, not a sentence of this verb's own: the stranger by name, the set it was
      held to, and the usage row under it — which is what a filer needs to write the call again. */
-  assert.match(run.stderr, /No feedback flag named --size\. The set is --title, --kind, --with, --new\./u);
+  assert.match(run.stderr, /No feedback flag named --size\. The set is --title, --kind, --with, --module, --new\./u);
   assert.match(run.stderr, /^Usage: forge feedback /mu);
 });
 

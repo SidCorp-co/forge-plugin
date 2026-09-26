@@ -58,6 +58,7 @@ how many topics there may be.
 | [`brief`](cli/brief.md) | Why a dispatch message is generated rather than typed, where each reading comes from, and why the hook compares a digest inside a window. |
 | [`next`](cli/next.md) | The call budget a 503 set, where the module reading stops rather than inferring a layout, and what the cost column does not say. |
 | [`next` weights](cli/next-weights.md) | Why the complexity field is the one source, why age has no ceiling and an order held by it is the answer, what each kind is worth, and what an issue nobody sized is worth. |
+| [modules](cli/modules.md) | Why a module is the tracker's definition and its weight the project's, why nothing is read where there is nothing to weigh, why the counts are one walk, and why a removal refuses rather than strands. |
 | [`next` — the edges](cli/next-the-edges.md) | Why an edge lives in two stores and neither proves the other, and what a landing frees against what it only reaches. |
 | [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry restating a rules file. |
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |

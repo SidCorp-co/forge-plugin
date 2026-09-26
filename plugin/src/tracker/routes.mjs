@@ -3,6 +3,7 @@
    lets the captured pairs under plugin/test/fixtures/rest judge it. docs/cli/one-transport.md. */
 
 import { relationsOf } from "./edges/kinds.mjs";
+import { UPLOAD_MIMES, mimeForName } from "../wire/upload-mimes.mjs";
 
 const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));
@@ -35,6 +36,10 @@ const COMMENT = ["issueId", "authorId", "authorDeviceId", "body", "format", "tem
 const PROJECT_ROW = ["id", "slug", "name", "orgId", "role", "archivedAt"];
 
 const ATTACHMENT = ["name", "mime", "size", "url", "createdAt"];
+
+/* A module is a label of kind `module`, so one projection reads both: the kind is what tells them
+   apart, and the parent and description are what `forge doctor modules` prints. docs/cli/modules.md. */
+const labelOf = (row) => pick(row, ["id", "name", "kind", "parentId", "slug", "description", "color"]);
 
 /* Only the identifiers the row carries: an `issueId: null` reads as an issue with no key. */
 const named = (row) => filled({ documentId: row?.id, issueId: row?.displayId });
@@ -124,39 +129,6 @@ const FILTERS = {
 /* Strict: a target outside this map builds no path, and its one caller refuses one before asking. */
 const COLLECTIONS = { issue: "issues", comment: "comments" };
 
-/* An upload is judged on the type its multipart part carries, so this CLI is what puts one there;
-   the pairs are the tracker's own at 29977155, and the argument docs/cli/one-transport.md's. */
-const UPLOAD_MIMES = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".pdf": "application/pdf",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mov": "video/quicktime",
-  ".qt": "video/quicktime",
-  ".txt": "text/plain",
-  ".md": "text/markdown",
-  ".markdown": "text/markdown",
-  ".csv": "text/csv",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".xls": "application/vnd.ms-excel",
-  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-};
-
-/** What a name outside the map is sent as; the tracker's allowlist holds it, so its answer is the
- *  refusal and nothing here anticipates one. */
-export const UNTYPED = "application/octet-stream";
-
-/** Read the way the tracker reads it: the last dot onwards, lowercased, a bare extension included. */
-export const mimeForName = (name) => {
-  const held = String(name ?? "");
-  const at = held.lastIndexOf(".");
-  return (at < 0 ? null : UPLOAD_MIMES[held.slice(at).toLowerCase()]) ?? UNTYPED;
-};
-
 /* Only what the route serves is declared, as the values the route takes — or, where a value carries
    more than its own name, as rows that answer with one. A name on neither list is refused rather
    than ignored. The reader that spends a row beside its name is `statusKind` in `rest.mjs`. */
@@ -240,6 +212,17 @@ const listQuery = (args) => query({
   sort: ORDER,
   ...Object.fromEntries(WIRE_FILTERS.map((name) => [name, args.filters?.[name]])),
 });
+
+/* The search route with each row's module attributions — the list route refuses `withModules` — and
+   a set of statuses repeated rather than joined, which is how the route takes one. */
+const attributedQuery = (args) => {
+  const held = new URLSearchParams({ withModules: "true", sort: ORDER });
+  for (const status of args.statuses ?? []) held.append("status", status);
+  for (const status of args.statusNot ?? []) held.append("statusNot", status);
+  return `?${held.toString()}${query({ module: args.module, limit: args.limit, offset: args.offset }).replace("?", "&")}`;
+};
+
+const attributedOf = (row) => ({ ...named(row), status: row?.status ?? null, modules: row?.modules ?? null });
 
 /* Two routes, one query: the search route narrows on the same columns, and a search that dropped
    them printed closed rows as a whole answer to `--status open` (codex F2). */
@@ -340,6 +323,37 @@ export const ROUTES = {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}/dependencies/${args.edgeId}`, "DELETE"),
     sends: ["documentId", "edgeId"],
+  },
+  "forge_issues.attributed": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/issues/search${attributedQuery(args)}`),
+    answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(attributedOf)),
+    sends: ["limit", "offset", "statuses", "statusNot", "module"],
+  },
+  /* The project's labels, a module being one kind; the delete is refused while an issue carries it. */
+  "forge_labels.list": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/labels`),
+    answers: ({ page }) => ({ labels: rowsIn(page, "items").map(labelOf) }),
+    sends: [],
+  },
+  "forge_labels.create": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/labels`, "POST", args.data),
+    answers: ({ page }) => labelOf(page),
+    sends: ["data"],
+  },
+  "forge_labels.update": {
+    writes: true,
+    requests: (args) => one(`/labels/${args.labelId}`, "PATCH", args.data),
+    answers: ({ page }) => labelOf(page),
+    sends: ["labelId", "data"],
+  },
+  "forge_labels.delete": {
+    writes: true,
+    requests: (args) => one(`/labels/${args.labelId}`, "DELETE"),
+    sends: ["labelId"],
   },
   "forge_comments.list": {
     requests: (args) => one(`/issues/${args.filters?.issue}/comments${query({ cursor: args.filters?.cursor })}`),
@@ -557,7 +571,7 @@ export const REFERENCE_KEYS = new Set([
 /* A tool that carries its action in an argument, against one that spells it in its own name: the
    table's key is `<tool>.<action>` either way, and this says which half of it is the tool. */
 const ACTION_ARG = new Set(["forge_issues", "forge_comments", "forge_knowledge", "forge_config",
-  "forge_guide", "forge_project_pm", "forge_uploads"]);
+  "forge_guide", "forge_project_pm", "forge_uploads", "forge_labels"]);
 
 const toolOf = (key) => {
   const head = key.slice(0, key.lastIndexOf("."));
@@ -570,6 +584,7 @@ const SAMPLE = {
   documentId: ":documentId",
   projectRef: ":projectRef",
   edgeId: ":edgeId",
+  labelId: ":labelId",
   slug: ":slug",
   offset: ":offset",
   filters: { issue: ":issue" },

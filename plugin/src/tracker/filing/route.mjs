@@ -112,6 +112,7 @@ export const fileIssue = async ({
   ranked: asked = null,
   soft = false,
   onBeside = null,
+  module = null,
 }) => {
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
@@ -139,6 +140,7 @@ export const fileIssue = async ({
     priority: ranked.value,
     ...trackerFields({ category: kind, complexity }),
     ...(edges.length ? { relations: edges } : {}),
+    ...(module ? { labels: [{ labelId: module.id, isPrimary: true }] } : {}),
   };
   const answer = await write("forge_issues", { action: "create", data }, undefined, soft);
   return { refusal: null, description, shape, joined: null, answer, ranked, related };

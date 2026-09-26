@@ -1,0 +1,56 @@
+{
+  "taken": "2026-09-26",
+  "routes": {
+    "answer": "GET /projects/:project/issues/search"
+  },
+  "rest": {
+    "answer": {
+      "items": [
+        {
+          "id": "d7086af0-04d0-4ee1-93b1-2b614cf931f1",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 2588,
+          "title": "A project's modules are managed from forge doctor, filed into, and weighed by the rank from project config",
+          "status": "in_progress",
+          "waitingKind": null,
+          "priority": "high",
+          "category": "enhancement",
+          "complexity": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "createdVia": "web",
+          "reportedBy": null,
+          "detectorKey": null,
+          "source": "manual",
+          "externalId": null,
+          "reopenCount": 0,
+          "mergedAt": null,
+          "mergedCommitSha": null,
+          "releaseBatchRunId": null,
+          "metadata": null,
+          "archivedAt": null,
+          "createdAt": "2026-09-26T08:50:12.202Z",
+          "updatedAt": "2026-09-26T10:21:19.413Z",
+          "displayId": "ISS-2588",
+          "mergeMark": "unmarked",
+          "modules": [
+            {
+              "labelId": "4488744c-2850-4abf-ae70-f7f4947cd309",
+              "name": "iss-2588-probe",
+              "color": "#8a5a1f",
+              "isPrimary": true
+            }
+          ],
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": false,
+          "creatorLabel": "thanhnh@sidcorp.co"
+        }
+      ],
+      "returned": 1,
+      "total": 1,
+      "limit": 2,
+      "offset": 0,
+      "hasMore": false
+    }
+  }
+}

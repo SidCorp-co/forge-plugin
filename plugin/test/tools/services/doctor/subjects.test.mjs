@@ -152,10 +152,10 @@ test("a word that is no subject is refused with the nearest, and nothing is read
     "and a sentence is --line's prose, which no nearest name could be about");
 });
 
-test("the subjects a bare call reads are the table's own, and four are not among them", () => {
+test("the subjects a bare call reads are the table's own, and five are not among them", () => {
   assert.deepEqual([...IN_BARE].sort(), ["brief", "copy", "machine", "offer", "project", "services"]);
   assert.deepEqual(SUBJECTS.filter((one) => !one.bare).map((one) => one.slug),
-    ["undecided", "serves", "repo", "tracker"]);
+    ["undecided", "serves", "repo", "tracker", "modules"]);
 });
 
 /* The read point ISS-1460 measured, held as what it is: a position in the one order this report is

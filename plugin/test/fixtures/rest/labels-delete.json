@@ -1,0 +1,9 @@
+{
+  "taken": "2026-09-26",
+  "routes": {
+    "answer": "DELETE /labels/:labelId"
+  },
+  "rest": {
+    "answer": null
+  }
+}

@@ -55,6 +55,14 @@ export const noteLandedAs = (held, sent) =>
 
 const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
+/* The set sent, a bare id meaning not primary, against the `{ id, isPrimary }` rows the read carries. */
+const labelsLandedAs = (held, sent) => {
+  const wanted = (sent ?? []).map((one) => (typeof one === "string"
+    ? { id: one, isPrimary: false } : { id: one.labelId, isPrimary: Boolean(one.isPrimary) }));
+  return (held ?? []).length === wanted.length
+    && wanted.every((one) => (held ?? []).some((row) => row.id === one.id && Boolean(row.isPrimary) === one.isPrimary));
+};
+
 /* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back. A recorded override writes under a row of its own, the tracker judging a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
 let rows = null;
 const fields = () => (rows ??= {
@@ -65,6 +73,10 @@ const fields = () => (rows ??= {
   acceptanceCriteria: { same: landedAs },
   releaseNotes: { same: noteLandedAs, halves: NOTE_HALVES },
   sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false, expects: true },
+  /* The set is replaced whole and moved by a module's removal over issues nobody holds for it, so it
+     takes no lease and reads no thread: docs/cli/modules.md. */
+  labels: { same: labelsLandedAs, renews: false,
+    by: "`forge new --module` on a filing and `forge doctor modules --remove <name> --to` on a move" },
 });
 
 const mismatch = (row, field, ref, back) =>

@@ -1,0 +1,20 @@
+{
+  "taken": "2026-09-26",
+  "routes": {
+    "answer": "POST /projects/:project/labels"
+  },
+  "rest": {
+    "answer": {
+      "id": "6a34168c-6226-4de1-8dc6-645b942865a7",
+      "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+      "name": "iss-2588-probe",
+      "color": "#8a5a1f",
+      "kind": "module",
+      "parentId": null,
+      "slug": "iss-2588-probe",
+      "knowledgeEntryId": null,
+      "description": "A probe module ISS-2588 captured its routes with, removed in the same run.",
+      "createdAt": "2026-09-26T09:27:30.286Z"
+    }
+  }
+}

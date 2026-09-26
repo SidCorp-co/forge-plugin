@@ -214,7 +214,7 @@ const FIELDS_OF = {
   spec: "filters, limit, offset",
   attach: "bytes",
   alike: null,
-  next: null,
+  next: "limit, module, offset, statusNot, statuses",
   baseline: null,
   brief: null,
   guide: "slug",
@@ -228,7 +228,7 @@ const FIELDS_OF = {
   chatgpt: null,
   hooks: null,
   feedback: null,
-  doctor: "depth, issueId",
+  doctor: "depth, issueId, labelId",
   stats: null,
 };
 

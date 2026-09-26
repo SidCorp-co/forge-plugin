@@ -16,7 +16,9 @@ read there rather than listed here, where one added or dropped would leave this 
 flag out of a refusal, and this project's rule is that a refusal carries the one command that clears
 it. A flag that moved onto its subject's parse would have made every one of those a wrong command on
 the day it moved. What moved is where each is described, so a subject's own text spells the call as
-it is typed, and a flag described by two subjects is a precedence question a case here refuses.
+it is typed, and a flag described by two subjects is a precedence question a case here refuses. One
+subject parses its own: `modules` writes the project's tracker rather than a file, and
+[modules](modules.md) says why its flags follow its name.
 
 **Two rules decide what a reading holds**, and they are about presentation alone — the report is
 built in one order whatever is asked for, because the order is what lets the release ask overlap the

@@ -32,6 +32,9 @@ export const DEFAULTS = {
   priority: { critical: 40, high: 30, medium: 20, low: 10, none: 0 },
   kind: kindWeights(),
   complexity: { xs: 8, s: 6, m: 4, l: 2, xl: 1, [UNSET]: 0 },
+  /* Keyed by the names the project's own tracker defines, so the plugin holds the one row no module
+     name is needed for: docs/cli/modules.md. */
+  module: { [UNSET]: 0 },
   agePerDay: 1,
   ageCap: null,
   reopened: 5,
@@ -42,7 +45,11 @@ export const DEFAULTS = {
   readCap: 60,
 };
 
-const TABLES = ["priority", "kind", "complexity"];
+const TABLES = ["priority", "kind", "complexity", "module"];
+
+/* The table whose rows are the project's own names: any name is taken here, and the rank judges it
+   against the modules the tracker defines, which this pure fold cannot read. */
+export const MODULE_TABLE = "module";
 
 const UNCAPPED = "ageCap";
 
@@ -86,7 +93,7 @@ const wrongIn = (given) => {
         return `\`rank.${key}\` is a table of ${Object.keys(DEFAULTS[key]).join(", ")}, not a single value.`;
       }
       for (const [name, held] of Object.entries(value)) {
-        if (!Object.hasOwn(DEFAULTS[key], name)) {
+        if (key !== MODULE_TABLE && !Object.hasOwn(DEFAULTS[key], name)) {
           return `\`rank.${key}.${name}\` names no row of that table. It holds: ${Object.keys(DEFAULTS[key]).join(", ")}.`;
         }
         if (!numeric(held)) return `\`rank.${key}.${name}\` is a number of points, not \`${JSON.stringify(held)}\`.`;
@@ -143,6 +150,8 @@ export const weightLines = (weights) => [
   row("priority", table(weights.priority)),
   row("kind", `${table(weights.kind)} — a defect in the tool the flow runs on is paid by every later run`),
   row("complexity", `${table(weights.complexity)} — smaller first, a light path paying back sooner`),
+  row("module", `${table(weights.module)} — keyed by the modules this project's tracker defines; one`),
+  row("", "with no row takes its parent's, then `unset`. No table, or no module defined, weighs none"),
   row("agePerDay", `${weights.agePerDay} per day since it was filed, so nothing starves`),
   row("ageCap", weights.ageCap === null
     ? "none — age never stops, so anything left sitting rises until somebody works it or drops it"

@@ -1,6 +1,7 @@
 /* `forge next` — the open issues this project should work next, ranked and written nowhere. The
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { complexitySpread, weightLines, weightsFrom } from "./weights.mjs";
+import { moduleTermsFor } from "./modules.mjs";
 import { complexitiesOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
 import { chainOf, complexitySaid, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
@@ -309,7 +310,8 @@ export const next = async (argv) => {
   if (wantsHelp(argv)) return console.log(usage);
   const { asked, holding, focus } = askedIn(argv, usage);
   const count = countFrom(asked.count);
-  const [read, carried] = await Promise.all([everyIssue(), carriersOf(weights.windowCap)]);
+  const [read, carried, terms] = await Promise.all([everyIssue(), carriersOf(weights.windowCap),
+    asked.graph ? null : moduleTermsFor(weights)]);
   if (asked.graph) return printedGraph(focus, read, carried, weights);
   const said = shortOf(read, "The set this rank is computed over");
   if (said) console.error(`warning: ${said}\nSo an issue outside it is neither ranked nor named as dropped.`);
@@ -329,7 +331,7 @@ export const next = async (argv) => {
   const preScored = ordered(takeable.map((row) => ({
     issueId: row.issueId,
     row,
-    score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive) }),
+    score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive), module: terms.termOf(row) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
   const judging = await judgingIn(rows, weights);
@@ -345,7 +347,8 @@ export const next = async (argv) => {
     const body = bodies.get(one.issueId);
     const text = body?.description ?? "";
     const read = bodies.has(one.issueId);
-    const score = scoreOf(one.row, { weights, chain: chainOf(one.issueId, blocks, alive) });
+    const score = scoreOf(one.row, { weights, chain: chainOf(one.issueId, blocks, alive),
+      module: terms.termOf(one.row) });
     const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
       ({ otherDisplayId: key, otherStatus: statusOf.get(key) ?? "unknown", kind: "blocks" }));
     const verdict = eligibilityOf(one.row, {

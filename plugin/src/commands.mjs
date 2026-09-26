@@ -26,6 +26,7 @@ import {
 } from "./tracker/issue-shape.mjs";
 import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
+import { moduleForFiling } from "./tracker/modules/definition.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { COMPLEXITY_NAMES } from "./ladder.mjs";
@@ -166,7 +167,8 @@ const NEW_FLAGS = [
   "  --status S     the status to file at; the tracker's own default absent one",
   "  --priority P   the tracker's own set; absent, the filing is unranked and the reply says so",
   `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
-  "  --with ISS-45  file it with a `relates` edge to that issue, or to several separated by commas",
+  "  --with ISS-45  a `relates` edge to that issue, or to several, comma-separated",
+  "  --module M     its primary module, which `forge doctor modules` lists",
   "  --new          file it past the duplicate hold and the fold, and say which",
 ].join("\n");
 
@@ -252,7 +254,7 @@ const own = {
     /* Before the unknown-flag route, whose nearest live name answers a question nobody asked. */
     const retired = retiredFlagIn("new", rest);
     if (retired) fail(retired);
-    const { with: rides, complexity, category, priority, new: fresh, ...given } = flags(rest, "new", ["--new"], row);
+    const { with: rides, complexity, category, priority, new: fresh, module: named, ...given } = flags(rest, "new", ["--new"], row);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     refuseUndeclared("new", "status", given.status,
       { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
@@ -267,6 +269,8 @@ const own = {
        filing takes this answer rather than asking again. */
     const rank = await rankFor(priority);
     if (rank.refusal) fail(rank.refusal.text);
+    const { module, refusal: unknownModule } = await moduleForFiling(named, "new");
+    if (unknownModule) fail(unknownModule);
     const body = await bodyFrom(path);
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
@@ -283,6 +287,7 @@ const own = {
       fields: carried,
       routed: relating,
       fresh,
+      module,
       relations: relating
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))

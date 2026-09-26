@@ -197,9 +197,9 @@ test("a filing whose complexity claims a rung below the top is read against no s
     "while the same body with no complexity is read on — the `Size:` line in it claims nothing");
   assert.equal(shapeOf({ ...thin, kind: "bug", complexity: "xl" }).fix, unread.fix,
     "and a top-rung value reads exactly as none does");
-  assert.match(KINDS_HELP, /no\nsection and against no category, so nothing is read of it and nothing is said/u,
+  assert.match(KINDS_HELP, /no\nsection and no category, and nothing is said of it/u,
     "which is what the help says, so the two cannot drift into promising a line the value suppresses");
-  assert.match(KINDS_HELP, /the value is not\nan exemption from the flag/u,
+  assert.match(KINDS_HELP, /the value is no exemption from the flag/u,
     "the sections are what it drops, and the set is not among them");
   /* The value exempts the sections and not the set, and the tracker's own tool is the route that
      can carry both at once. */

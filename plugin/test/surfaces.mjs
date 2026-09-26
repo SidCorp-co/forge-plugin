@@ -14,6 +14,7 @@ import { SAYS as STATS } from "../src/stats/stats.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../src/spec/verbs.mjs";
 import { KINDS, kindUsage } from "../src/flow/record/record-rows.mjs";
 import { usageOf } from "../src/resolve/visibility.mjs";
+import { SAYS as DOCTOR } from "../src/tools/services/doctor/subjects.mjs";
 
 /** The verb's own `-h` text, for a row on `forge -h` that names no flag because it delegates. */
 export const OWN = {
@@ -36,7 +37,9 @@ const CLOSED = {
 
 const ALSO = { coolify: Object.keys(COOLIFY_ALIASES) };
 
-const UNDER = { ...CLOSED, spec: { check: CHECK_USAGE } };
+/* The one doctor subject whose flags follow its name, so its own text is the surface a form after it
+   is held to. */
+const UNDER = { ...CLOSED, spec: { check: CHECK_USAGE }, doctor: { modules: DOCTOR.modules } };
 
 export const wordsOf = (verb) =>
   (CLOSED[verb] ? [...Object.keys(CLOSED[verb]), ...(ALSO[verb] ?? [])] : null);
