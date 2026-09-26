@@ -1,7 +1,7 @@
 /* Where one checkout's ask state lives, and the log of what the gate did with each question: beside
-   its project's config, under a key of the checkout's own, since checkouts whose root folders share a
-   name share that config entry, so nothing one checkout decided is read for another. The owner reads
-   the log to review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
+   its project's config, under a key of the checkout's own (the config entry itself can be shared, as
+   settings.mjs says), so nothing one checkout decided is read for another. The owner reads the log to
+   review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
