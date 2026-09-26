@@ -7,7 +7,7 @@ import { fail, projectFilePath } from "../../../resolve/settings.mjs";
 import { projectWrite } from "../project-file.mjs";
 import { look, session } from "./client.mjs";
 import { PIN_FORMS, configured, pinned } from "./config.mjs";
-import { environmentsOf } from "./scope.mjs";
+import { asKey, environmentsOf } from "./scope.mjs";
 
 export const PIN_USAGE = [
   "Usage: forge coolify pin [--app A | --project P [--environment E]] [--yes] [--dry-run]",
@@ -28,9 +28,6 @@ const listed = (value) => (Array.isArray(value) ? value.filter((one) => one && t
 const nameOf = (one) => String(one?.name ?? "");
 
 const rowOf = (one) => `    ${one.uuid}  ${nameOf(one)}`;
-
-/* One route spells an id a number and another spells the same id a string. */
-const asKey = (value) => (value === undefined || value === null ? null : String(value));
 
 /* A uuid, then a whole name in any case, and never a part of one: a pin written off a guessed
    substring points the guard at somebody else's project. Names are not unique on this platform,

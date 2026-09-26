@@ -45,7 +45,7 @@ export const active = (scope) => scope.projects.length > 0;
 export const label = (scope) => scope.projects.join(", ");
 
 /* One route spells an id a number and another spells the same id a string, so every key is text. */
-const asKey = (value) => (value === undefined || value === null ? null : String(value));
+export const asKey = (value) => (value === undefined || value === null ? null : String(value));
 
 export const environmentIds = async (scope) => {
   if (scope.envIds) return scope.envIds;
