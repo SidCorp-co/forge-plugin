@@ -527,9 +527,9 @@ export const runsMark = async (directory, size = WINDOW, held = null) => {
  *  them back. The keys are what makes a change resolvable to the copy that carried it, and what tells
  *  a reading that one release landed several changes. Silent unless the corpus holds a run, since a
  *  reading of nothing pins nothing. */
-export const releaseMark = async (directory, { version, head, issues = [] }, size = WINDOW) => {
+export const releaseMark = async (directory, { version, head, issues = [] }, size = WINDOW, held = null) => {
   if (!version) return null;
-  const corpus = await corpusOf(directory);
+  const corpus = held ?? await corpusOf(directory);
   if (!corpus.runs.length) return null;
   const wrote = writeMark({
     kind: RELEASES, mark: corpus.runs.length, version, head: head ?? null,
