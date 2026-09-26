@@ -22,6 +22,11 @@ source. A borrowed key is read at each use, so a rotated credential reaches a ru
 to one is refused rather than redirected, a run writing the machine's file being what the home
 prevents; and a borrow resolving to nothing is refused rather than read as no credential. The
 secret keys of the one borrowable table are what a workspace's ending searches its scratch for.
+A borrowing home that holds no record of a project reads the machine's record of it, beside the
+file the borrow names, rather than resolving no slug and every other key at its default; one that
+holds its own reads that alone, since two records per key would be two sources for one decision. A
+write to a record read that way is refused: written in the home it would shadow every key the
+machine's record decides.
 
 Which checkout this process stands in, and which repository that checkout belongs to, are read off
 the disk rather than asked of git, and what that walk has to do differently from `git rev-parse`:

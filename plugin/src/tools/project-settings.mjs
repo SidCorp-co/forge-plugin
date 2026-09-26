@@ -4,7 +4,7 @@
 import { accessSync, constants, readFileSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { fromProject, Refusal, SHIP_MODES, drainScope, fail, projectFilePath, projectSlug, slugIfAny }
+import { fromProject, Refusal, SHIP_MODES, drainScope, fail, projectFileToWrite, projectSlug, slugIfAny }
   from "../resolve/settings.mjs";
 import { pairOf } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
@@ -214,7 +214,7 @@ const DRAIN_SAID = `\`${DRAIN_KEY}\` in ${fromProject()}, which names the master
 /* Proved rewritable before the tracker is sent anything: a judgement that lands over a file this
    could not have rewritten leaves exactly the orphaned drain the pair is cleared together to stop. */
 const drainFile = () => {
-  const named = projectFilePath();
+  const named = projectFileToWrite(`the cleared \`${DRAIN_KEY}\``, "--set");
   if (!named) {
     fail(`--set: this would clear ${DRAIN_SAID}, and this directory belongs to no checkout, so `
       + "there is no project whose record could hold it. Nothing was sent. Run this from inside the "
@@ -350,7 +350,7 @@ const flowFile = (slug) => {
     fail(`--flow: \`${slug}\` is no flow this copy serves — it serves ${FLOW_SLUGS.join(", ")}. `
       + `Nothing was sent: ${FLOW_USAGE}`);
   }
-  const named = projectFilePath();
+  const named = projectFileToWrite("`flow`", "--flow");
   if (!named) {
     fail("--flow: `flow` is a key of this machine's record of a project and this directory belongs "
       + "to no checkout, so there is no project to write it to: nothing was written and nothing was "

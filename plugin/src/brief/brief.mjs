@@ -3,6 +3,7 @@
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { borrowRoute } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { helpOf } from "../resolve/visibility.mjs";
@@ -76,6 +77,9 @@ const treeLines = (tree) => {
     `Tree: ${tree.path} · branch ${tree.branch ?? "detached"} · head ${tree.head?.slice(0, 7) ?? "none"}`,
     id ? `FORGE_SESSION_ID=${id}` : null,
     scratch ? `TMPDIR=${scratch}` : null,
+    /* A run dispatched with no route to borrow by copies the credential into its scratch, which is
+       what the borrow ended (ISS-2619). */
+    scratch ? borrowRoute(scratch) : null,
   ].filter(Boolean);
 };
 
