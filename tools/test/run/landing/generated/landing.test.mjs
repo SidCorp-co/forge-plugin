@@ -14,6 +14,7 @@ import {
 } from "../fixture.mjs";
 
 const { landingOf } = await import("../../../../../plugin/src/flow/landing/checkpoint.mjs");
+const { regenerated } = await import("../../../../run/rooms/generated.mjs");
 
 test.after(() => tracker.close());
 
@@ -139,4 +140,15 @@ test("a base that moved a source path beside the generated one hands the branch 
   assert.equal(held.moved, OWNED, `the source path alone is the move:\n${said}`);
   assert.ok(said.includes(`the landing moved ${OWNED}, so this change's own paths are not what was judged`), said);
   assert.equal(remote(at), theirs, `nothing was pushed:\n${said}`);
+});
+
+/* A path the merged head does not hold reads as unmoved once removed, whatever the generators did: a
+   deletion is no file a generator wrote back, so it stays a move beside one that is cleared. */
+test("a path the merged head lacks is not taken as generated beside one its generator writes back", () => {
+  const { work, head } = generating();
+  const gone = join("plugin", "src", "gone.mjs");
+  const found = regenerated(work, head, [LIST, gone]);
+  assert.deepEqual(found.generated, [LIST], JSON.stringify(found));
+  assert.deepEqual(found.scripts, ["generate:pages"], JSON.stringify(found));
+  assert.match(found.why, /did not write plugin\/src\/gone\.mjs back byte for byte/u, found.why);
 });

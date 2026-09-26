@@ -6,7 +6,7 @@
    they write back with other bytes, and one beside a generator that failed or moved anything else
    stays a move. docs/cli/the-candidate.md. */
 import { spawnSync } from "node:child_process";
-import { rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, gitOut, parsed, Stop } from "../../checkout.mjs";
@@ -51,8 +51,10 @@ const judged = (room, scripts, paths) => {
   if (beside.length) {
     return { generated: [], why: `they also moved ${beside.join(", ")}, so the merged head is not what its generators make` };
   }
-  const generated = paths.filter((path) => !moved.includes(path));
-  const left = paths.filter((path) => moved.includes(path));
+  /* Present as well as unlisted: a path the merged head lacks reads as unmoved once removed, whether or
+     not anything wrote it, and a deletion both sides made is no file a generator put back. */
+  const generated = paths.filter((path) => !moved.includes(path) && existsSync(join(room, path)));
+  const left = paths.filter((path) => !generated.includes(path));
   return { generated, why: left.length ? `they did not write ${left.join(", ")} back byte for byte` : null };
 };
 
