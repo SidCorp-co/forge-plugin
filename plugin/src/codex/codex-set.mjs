@@ -28,7 +28,7 @@ export const relsOf = (root, named) => {
 
 /** One home for the question two readers ask: a diff git refused is not one that came back empty, and
  *  neither is one nobody asked for. `missing` covers a deletion and an unreadable file too, so `nothingToShow` — a heading handed over with none of the file under it — asks the disk about absence (ISS-703). */
-export const noDiffIn = (diff) => !diff?.text && !diff?.error;
+const noDiffIn = (diff) => !diff?.text && !diff?.error;
 
 const nothingToShow = (root, part) => absentFrom(root, part.rel) && noDiffIn(part.diff);
 
