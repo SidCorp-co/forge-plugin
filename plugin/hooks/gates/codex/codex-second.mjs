@@ -7,6 +7,7 @@ import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { allPathed, listed, unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
+import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
 import { offReach } from "../../../src/hooks/hook-switch.mjs";
@@ -100,7 +101,7 @@ const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} 
   + `the key and the commit alone asks. ${ESCAPE}\n\n${unknown} is no door this reads: that key in this project's `
   + "configuration is a list of the doors a consult is demanded at.";
 
-/* The record and the log resolve under XDG_CONFIG_HOME and a hook reads the session's, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
+/* The record and the log resolve under XDG_CONFIG_HOME, and a hook reads the session's or the tree's run home, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
 
@@ -123,35 +124,8 @@ const unjudged = (ev, root, others) => {
   return ` Judged ${typed(root)}; this call also commits in ${rest.join(", ")}, which went unchecked.`;
 };
 
-export const run = (ev) => {
-  if (!committing(ev) || process.env.FORGE_CODEX_DISABLE === "1") done();
-
-  /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
-  const aim = commitAim(ev);
-  /* This gate's answer to a directory no reading can settle is a refusal, never the event's cwd: that
-     is a different repository's answer, and no tree means no way to ask what the commit stages.
-     Ahead of the door key, which is that tree's to set and unreadable while the tree is. */
-  if (aim.tree === NOWHERE) {
-    deny(
-      "Spell the tree out — `cd <path> && git commit …`, or `git -C <path> commit …` — then re-send. "
-        + `${ESCAPE}\n\n`
-        + "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
-        + "destination built from a value names no directory this reading can check, so what the commit "
-        + "stages cannot be asked for."
-        + how(),
-    );
-  }
-  const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
-  const owed = codexOwedOf(projectFileAt(at)?.codex);
-  if (owed.unknown) deny(`${malformed(owed.unknown)}${how()}`);
-  if (!owed.value.includes(DOOR)) done();
-  const root = repoRoot(at);
-  if (!root) done();
-
-  const also = unjudged(ev, root, aim.others);
-  /* Asked for what it stages; a commit this cannot enumerate names nothing, so the record stands whole. */
-  const staged = stagedIn(root, aim, probeMs(remaining()));
-
+/* The staged demand, then the unruled findings: the caller picks the home both are read under. */
+const judged = (ev, root, aim, staged, also) => {
   /* Recorded this turn or a turn ago, staged here, and unread at the bytes this commit carries — the
      index with no `-a`: 7 of 30 landed unread, and an exact revert owed a consult with nothing in it. */
   const waiting = pendingState(root);
@@ -188,5 +162,38 @@ export const run = (ev) => {
         + how(),
     );
   }
+};
+
+export const run = (ev) => {
+  if (!committing(ev) || process.env.FORGE_CODEX_DISABLE === "1") done();
+
+  /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
+  const aim = commitAim(ev);
+  /* This gate's answer to a directory no reading can settle is a refusal, never the event's cwd: that
+     is a different repository's answer, and no tree means no way to ask what the commit stages.
+     Ahead of the door key, which is that tree's to set and unreadable while the tree is. */
+  if (aim.tree === NOWHERE) {
+    deny(
+      "Spell the tree out — `cd <path> && git commit …`, or `git -C <path> commit …` — then re-send. "
+        + `${ESCAPE}\n\n`
+        + "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
+        + "destination built from a value names no directory this reading can check, so what the commit "
+        + "stages cannot be asked for."
+        + how(),
+    );
+  }
+  const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
+  const owed = codexOwedOf(projectFileAt(at)?.codex);
+  if (owed.unknown) deny(`${malformed(owed.unknown)}${how()}`);
+  if (!owed.value.includes(DOOR)) done();
+  const root = repoRoot(at);
+  if (!root) done();
+
+  const also = unjudged(ev, root, aim.others);
+  /* Asked for what it stages; a commit this cannot enumerate names nothing, so the record stands whole. */
+  const staged = stagedIn(root, aim, probeMs(remaining()));
+
+  /* The tree's record where its own run keeps it, through the reader the call doors take. */
+  inRunHome(root, () => judged(ev, root, aim, staged, also));
   done();
 };

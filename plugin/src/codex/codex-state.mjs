@@ -246,8 +246,9 @@ export const pending = (rest, root) => {
   const held = readState();
   const waiting = root ? pendingIn(held, root) : [];
   /* Said on every branch, the empty one most of all: this record and the commit gate's both sit
-     under XDG_CONFIG_HOME and the gate reads the session's, so `nothing pending` here and a refusal
-     naming the same file there are two answers about two records (ISS-189). */
+     under XDG_CONFIG_HOME and the gate reads the session's or the tree's run home, so `nothing
+     pending` here and a refusal naming the same file there can be two answers about two records
+     (ISS-189, ISS-2651). */
   const from = () => console.log(`read from ${configDir("forge")}`);
   if (!waiting.length) {
     console.log("nothing pending");

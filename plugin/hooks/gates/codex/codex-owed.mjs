@@ -7,6 +7,7 @@ import { allPathed, listed, unverdicted, verdictForm } from "../../../src/codex/
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
+import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { offReach } from "../../../src/hooks/hook-switch.mjs";
 import { NOWHERE, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
 
@@ -61,6 +62,38 @@ const heldBy = (text, cwd) => {
   return { found, unreadable };
 };
 
+/* What one tree's record owes, read under whichever home the caller has set. */
+const judged = (root, cwd) => {
+  let entries = null;
+  const log = () => (entries ??= logBytes());
+  const cd = root === cwd ? "" : `cd ${typed(root)} && `;
+  const waiting = pendingState(root);
+  /* The working copy, which is what a consult reads and what this call would judge, where the
+     commit asks its index: one record, one reader, two subjects. */
+  const owed = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
+  if (owed.length) {
+    deny(
+      `Run \`${cd}echo "<what you were doing>" | forge codex consult --diff --only `
+        + `blocker,major ${allPathed(owed)}\`, then re-send. ${readIn()} `
+        + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
+        + `Codex has not read what this call would judge in ${root} (${listed(owed)}, recorded ${ageOf(waiting.at)}). `
+        + "Every door this project names asks for that same reading, so clearing it here clears them all."
+        + how(),
+    );
+  }
+  const open = unverdicted(log(), root);
+  if (open) {
+    deny(
+      `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
+        + `A --recheck records the verdict for what it refutes. ${ESCAPE}\n\n`
+        + `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what `
+        + `became of ${open.open.join(", ")}, and this call would judge it in ${root}. Ruling on them `
+        + "clears every door this project names."
+        + how(),
+    );
+  }
+};
+
 export const run = (ev) => {
   if (ev.tool_name !== "Bash" || process.env.FORGE_CODEX_DISABLE === "1") done();
   const cwd = ev.cwd ?? process.cwd();
@@ -74,36 +107,10 @@ export const run = (ev) => {
         + how(),
     );
   }
-  let entries = null;
-  const log = () => (entries ??= logBytes());
   for (const { root, unknown } of found) {
     if (unknown) deny(`${malformed(unknown)}${how()}`);
-    const cd = root === cwd ? "" : `cd ${typed(root)} && `;
-    const waiting = pendingState(root);
-    /* The working copy, which is what a consult reads and what this call would judge, where the
-       commit asks its index: one record, one reader, two subjects. */
-    const owed = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
-    if (owed.length) {
-      deny(
-        `Run \`${cd}echo "<what you were doing>" | forge codex consult --diff --only `
-          + `blocker,major ${allPathed(owed)}\`, then re-send. ${readIn()} `
-          + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
-          + `Codex has not read what this call would judge in ${root} (${listed(owed)}, recorded ${ageOf(waiting.at)}). `
-          + "Every door this project names asks for that same reading, so clearing it here clears them all."
-          + how(),
-      );
-    }
-    const open = unverdicted(log(), root);
-    if (open) {
-      deny(
-        `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
-          + `A --recheck records the verdict for what it refutes. ${ESCAPE}\n\n`
-          + `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what `
-          + `became of ${open.open.join(", ")}, and this call would judge it in ${root}. Ruling on them `
-          + "clears every door this project names."
-          + how(),
-      );
-    }
+    /* Each tree's record where its own run keeps it, which is not this hook's environment. */
+    inRunHome(root, () => judged(root, cwd));
   }
   done();
 };

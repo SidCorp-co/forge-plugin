@@ -119,6 +119,21 @@ test("findings nobody ruled on refuse the stop, with the verdict to write", () =
   assert.match(said.reason, /forge codex verdict --of c9/u, "the command that clears it is missing");
 });
 
+/* A run keeps its consults under the home inside its scratch, and this hook fires in the session's
+   environment, whose log holds none of them (ISS-2651). */
+test("findings nobody ruled on in the run's own log refuse the stop, the session's log holding none", () => {
+  const cwd = cleanRepo();
+  const root = realpathSync(cwd);
+  const id = "iss-2651-0000abcd";
+  const scratch = join(tempRoom("stop-check-scratch-"), `forge-run-${id}`);
+  writeFileSync(join(root, ".git", "forge-run-id"), `${id}\n`);
+  writeFileSync(join(root, ".git", "forge-run-scratch"), `${scratch}\n`);
+  mkdirSync(join(scratch, "home", "forge"), { recursive: true });
+  writeFileSync(join(scratch, "home", "forge", "codex-log.jsonl"), `${consult(root)}\n`);
+  const said = stopped(room(), { transcript_path: transcript(), cwd });
+  assert.match(said?.reason ?? "", /Consult c9 made F1/u, said?.reason);
+});
+
 /* Git answers the two directories relatively in a checkout and absolutely in a worktree, so a
    comparison of the raw answers refuses every checkout there is — which is the dangerous direction,
    and why the checkout the worktree was made from is asserted silent in the same case. */

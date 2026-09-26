@@ -459,9 +459,12 @@ test("start makes the one directory this run's scratch belongs in, and names it 
      them, and the corpus a release is judged on lost every delegated run (ISS-189). */
   const handed = /TMPDIR=(.*)$/mu.exec(run.stdout)[1];
   assert.doesNotMatch(run.stdout, new RegExp(`XDG_CONFIG_HOME=${handed}$`, "mu"), "plugin state is not this run's scratch");
-  assert.match(run.stdout, /Plugin state is not scratch/u, run.stdout);
-  /* The one home a probe may point at the scratch is one that borrows, so it holds no credential of
-     its own and a run needing live data has a route that is not a copy (ISS-2612). */
+  /* The home under the scratch is where a tree's hooks read its record, so saying the record stays
+     in the machine's own directory sent consults where the doors no longer look (ISS-2651). */
+  assert.match(run.stdout, /own consult log and turn record live in a home under that directory/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /this machine's own config directory/u, run.stdout);
+  /* That home borrows, so it holds no credential of its own and a run has a route that is not a
+     copy (ISS-2612). */
   const configHome = BARE.XDG_CONFIG_HOME;
   assert.ok(run.stdout.includes(`XDG_CONFIG_HOME=${join(handed, "home")} FORGE_BORROW_FROM=${join(configHome, "forge", "config.json")}`),
     `the borrowing form, under this run's scratch and naming this machine's config, is not printed:\n${run.stdout}`);
