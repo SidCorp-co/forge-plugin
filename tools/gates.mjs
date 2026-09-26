@@ -120,7 +120,9 @@ refused — its uncommitted work is the point of it.
   ${BASELINE} [ISS-nn]  a run's Phase 0 baseline, and the only route to one here. Where a ship
              published a whole-tree result for this clean head it spends no step and prints the
              write that cites it; where none is published it runs the gate as a bare call does,
-             record and all, and prints the write to record. A dirty tree is refused.
+             record and all, and prints the write to record. A dirty tree is refused. The one wait
+             it takes is ${WAIT} ${SLOT} [M], which waits for a place and then measures in the
+             same call; ${WAIT} for a verdict is refused beside it
   --full     every step, whatever the diff or the ledger says. It proves a tree independently
              and is never the baseline route: it trusts no record, so a clean head spends all of it
   ${ANYWAY}   gate the shared checkout as it stands, uncommitted paths and all. The run names
@@ -200,9 +202,11 @@ if (unknown.length > 0) {
   process.exit(1);
 }
 
-if (baselining && (full || waiting || allowDirty)) {
+const verdictWait = waiting && subject !== SLOT;
+
+if (baselining && (full || verdictWait || allowDirty)) {
   const { besideSaid } = await import("./gates/baseline.mjs");
-  console.error(besideSaid(full ? "--full" : waiting ? WAIT : ANYWAY, baselineKey));
+  console.error(besideSaid(full ? "--full" : verdictWait ? WAIT : ANYWAY, baselineKey));
   process.exit(1);
 }
 
@@ -258,7 +262,8 @@ if (elsewhere) {
 /* After the wrong-tree guard, because the head it reads is the caller's: a citation printed for the tree
    the caller stands in, by the gate of another, is the certificate that guard exists to refuse. */
 if (baselining) {
-  const { takeBaseline } = await import("./gates/baseline.mjs");
+  const { baselineAfterPlace, takeBaseline } = await import("./gates/baseline.mjs");
+  if (waiting) process.exit(await baselineAfterPlace(ROOT, baselineKey, { minutes }));
   const code = takeBaseline(baselineKey);
   if (code !== null) process.exit(code);
 }
@@ -341,7 +346,10 @@ const place = placeFor(ours);
 if (place.declined && asked.landing?.minutes) {
   if (!await waitAsLanding(ROOT, asked.landing, { ours })) finish(DECLINED, "declined");
 } else if (place.declined) {
-  console.error(declinedSaid(place, ROOT));
+  const { baselineWaitCall } = baselining ? await import("./gates/baseline.mjs") : {};
+  console.error(declinedSaid(place, ROOT, baselining
+    ? `Wait for a place and take the baseline in the same call: node tools/gates.mjs ${baselineWaitCall(baselineKey)}`
+    : undefined));
   finish(DECLINED, "declined");
 }
 

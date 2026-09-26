@@ -27,9 +27,9 @@ export const landingAsked = (env = process.env) => {
 
 const gateLine = (one) => `  pid ${one.pid}  gating ${one.tree}${one.landing ? `  the landing of ${one.landing}` : ""}`;
 
-/** A builder's gate declined for the ceiling: every gate it counted, and the landing that took the place where the
-    gates started before it would have left one free. */
-export const declinedSaid = (place, root) => {
+/** A builder's gate declined for the ceiling: every gate it counted, the landing that took the place where the
+    gates started before it would have left one free, and `route`, the one command that waits for a place. */
+export const declinedSaid = (place, root, route = `Wait for a place, then gate again: node tools/gates.mjs ${WAIT} ${SLOT}`) => {
   const before = place.ahead.length - place.took.length;
   const lines = [
     `\nThis gate declined the machine and judged nothing.`,
@@ -42,7 +42,7 @@ export const declinedSaid = (place, root) => {
       .map((one) => `${one.landing} (pid ${one.pid})`).join(", ")} took it, since what lands is ahead of what `
       + `is being readied.`);
   }
-  lines.push(`Wait for a place, then gate again: node tools/gates.mjs ${WAIT} ${SLOT}`,
+  lines.push(route,
     `No step ran and nothing was recorded, so nothing here judges ${root}.`,
     `Or raise ${RAISE} above ${place.declared.value}.`);
   return lines.join("\n");
