@@ -1,7 +1,7 @@
 /* Where the instance, its token and this checkout's project pin come from: the credential from
    this CLI's own configuration, the pin from this machine's record of the project the checkout
    belongs to, which `forge coolify pin` writes. docs/cli/coolify-the-pin.md. */
-import { configPath, userConfig } from "../../../resolve/config.mjs";
+import { configSource, userConfig } from "../../../resolve/config.mjs";
 import { fail, projectCoolify, projectFilePath } from "../../../resolve/settings.mjs";
 
 export const NO_TARGET =
@@ -49,7 +49,7 @@ const withBase = (raw) => {
 export const coolifyTarget = () => {
   const saved = userConfig().coolify ?? {};
   if (!saved.url || !saved.apiToken) return { url: null, token: null, from: null };
-  return { url: withBase(saved.url), token: saved.apiToken, from: configPath() };
+  return { url: withBase(saved.url), token: saved.apiToken, from: configSource("coolify.apiToken") };
 };
 
 
