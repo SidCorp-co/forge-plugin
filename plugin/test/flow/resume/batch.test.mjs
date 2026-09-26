@@ -37,7 +37,8 @@ const row = (n, status, extra = {}) => ({
   createdAt: `2026-09-01T00:${String(n).padStart(2, "0")}:00.000Z`, ...extra,
 });
 
-const ALL = "ISS-10, ISS-11, ISS-12, ISS-13, ISS-99";
+const ALL = "ISS-10, ISS-11, ISS-12, ISS-13, ISS-15";
+const REFUSED = "the tracker will not read uuid-15";
 const ISSUES = Array.from({ length: 21 }, (_, at) => row(at + 1, "open"));
 Object.assign(ISSUES[2], { sessionContext: worklog({ batch: "ISS-3, ISS-4" }) });
 Object.assign(ISSUES[4], { sessionContext: worklog({ batch: "ISS-5, ISS-6" }) });
@@ -53,6 +54,7 @@ const project = {
   answer: {
     /* Kept on the row, since the next read of it is what a case asserts on. */
     forge_issues: (args) => {
+      if (args.action === "get" && args.documentId === "uuid-15") return { refused: REFUSED };
       if (args.action !== "update") return undefined;
       return Object.assign(ISSUES.find((one) => one.documentId === args.documentId), args.data);
     },
@@ -106,14 +108,14 @@ test("a capture from a tree not naming the member among several clears its batch
 });
 
 const LINE = "batch       with ISS-11 in_progress at abc1234; ISS-12 open, no capture, names no batch; "
-  + "ISS-13 developed at 1234567, names another batch; ISS-99 unreadable:";
+  + "ISS-13 developed at 1234567, names another batch; ISS-15 unreadable:";
 
 test("resume names every sibling with its status, its captured head and whether it names this batch", async () => {
   const run = await forgeIn(process.cwd(), "resume", "ISS-10");
   assert.equal(run.status, 0, run.stderr);
   const line = lineOf(run.stdout);
   assert.ok(line?.startsWith(LINE), `${line}\n${run.stdout}`);
-  assert.match(line, /ISS-99 unreadable: \S/u, "the tracker's own words for the one it would not answer for");
+  assert.ok(line.includes(REFUSED), "the tracker's own words for the one it would not answer for");
   assert.match(run.stdout, /^Criteria$/mu, "and the rest of the issue still prints");
   assert.match(run.stdout, /^Read: /mu);
 });
@@ -140,14 +142,15 @@ test("--json carries the batch in the one shape batchLive owns", async () => {
   const run = await forgeIn(process.cwd(), "resume", "ISS-10", "--json");
   assert.equal(run.status, 0, run.stderr);
   const { batch } = JSON.parse(run.stdout);
-  assert.deepEqual(batch.members, ["ISS-10", "ISS-11", "ISS-12", "ISS-13", "ISS-99"]);
+  assert.deepEqual(batch.members, ["ISS-10", "ISS-11", "ISS-12", "ISS-13", "ISS-15"]);
   assert.deepEqual(batch.siblings.slice(0, 3), [
     { key: "ISS-11", status: "in_progress", head: HEAD_11, batch: "same" },
     { key: "ISS-12", status: "open", head: null, batch: "none" },
     { key: "ISS-13", status: "developed", head: HEAD_13, batch: "other" },
   ]);
   assert.deepEqual(Object.keys(batch.siblings[3]), ["key", "unreadable"]);
-  assert.equal(batch.siblings[3].key, "ISS-99");
+  assert.equal(batch.siblings[3].key, "ISS-15");
+  assert.ok(batch.siblings[3].unreadable.includes(REFUSED), batch.siblings[3].unreadable);
 });
 
 test("a member naming no batch prints no batch line and reads no issue but its own", async () => {
