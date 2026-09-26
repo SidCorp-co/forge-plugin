@@ -55,6 +55,16 @@ test("a baseline is the median over the seven days before that hold a value, and
   assert.deepEqual([idle.value, idle.change, idle.verdict], [null, null, null], "a day with no run has no value to judge");
 });
 
+test("the baseline is the median of the days before and not their mean or either end", () => {
+  const at = (day, hour) => `${day}T${String(hour).padStart(2, "0")}:00:00.000Z`;
+  const consults = (day, atBudget, budgeted) => Array.from({ length: budgeted }, (_, index) =>
+    consult(at(day, index + 1), index < atBudget ? {} : { calls: 1 }));
+  const entries = [...consults("2026-09-14", 0, 1), ...consults("2026-09-16", 1, 3), ...consults("2026-09-18", 3, 3), ...consults(DAY, 1, 2)];
+  const tile = tileIn(scorecardOf(readingOf({ entries }), DAY), "atBudget");
+  assert.deepEqual([tile.value, tile.baseline, tile.baselineDays, tile.change, tile.verdict], [50, 33.3, 3, 16.7, "worse"],
+    "0%, 33.3% and 100% before: the median is 33.3, where the mean is 44.4 and the ends 0 and 100");
+});
+
 test("a change reads better or worse by the metric's declared direction, steady at none, and nothing where it is absent", () => {
   assert.equal(verdictOf("lower", -2), "better");
   assert.equal(verdictOf("lower", 2), "worse");

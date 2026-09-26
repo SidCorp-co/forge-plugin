@@ -250,13 +250,15 @@ const matchCell = (one) => {
 
 const frictionHtml = (friction, opportunities, days, heads) => {
   const top = opportunities.listed.slice(0, FRICTION_SHOWN);
-  const rest = opportunities.listed.length - top.length + opportunities.unlisted;
+  const inJson = opportunities.listed.length - top.length;
+  const rest = [inJson && `${inJson} more listed in <code>--json</code>`,
+    opportunities.unlisted && `${opportunities.unlisted} more ranked below those and counted, never listed`].filter(Boolean);
   return drill("friction", "Friction", `${esc(friction.headline.refusals)} refused call(s) across ${esc(friction.headline.runs)} run(s)`,
     heads + chartSvg("Refused calls a day", "refusals", days, friction.trend.map((one) => one.refusals))
     + (top.length
       ? `<h3>The top ${esc(top.length)}, by calls lost</h3>${table(["rank", "kind", "what the runs met", "runs", "calls lost", "open issue"],
         top.map((one, index) => [index + 1, one.kind, one.met, one.runs, one.calls, matchCell(one)]))}`
-        + `<p>${esc(rest)} more ranked below these, each in <code>--json</code>.</p>`
+        + (rest.length ? `<p>${rest.join("; ")}.</p>` : "")
       : "<p>No refusal, error, repeat, re-read or long wait was recorded on this day.</p>")
     + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p>`);
 };

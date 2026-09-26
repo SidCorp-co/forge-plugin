@@ -170,7 +170,10 @@ test("the friction drill-down lists the top five by calls lost, each with the is
   assert.equal((friction.match(/<tr><td>\d<\/td>/gu) ?? []).length, 5);
   assert.ok(friction.includes("<th scope=\"col\" title=\"sort by calls lost\">calls lost</th>"));
   assert.ok(friction.includes("ISS-9 — The rule") && friction.includes("matches no open issue: no filing yet"));
-  assert.ok(!friction.includes("rule 5") && friction.includes("5 more ranked below these"), friction);
+  assert.ok(!friction.includes("rule 5"), friction);
+  assert.ok(friction.includes("<p>2 more listed in <code>--json</code>; 3 more ranked below those and counted, never listed.</p>"), friction);
+  const five = pageOf(content({ opportunities: { listed: listed.slice(0, 5), unlisted: 0, evaluator: "forge stats eval" } }));
+  assert.ok(!five.includes("more listed in") && !five.includes("counted, never listed"), "nothing beyond the five is said to exist");
 });
 
 test("the releases are one line with their count, expanding to one line per release", () => {
