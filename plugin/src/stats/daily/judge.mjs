@@ -3,7 +3,7 @@
    every section's findings and writes the decisions and one line per section. Every figure a reading
    cites is checked here against the figures it was shown, and a reading citing anything else is
    dropped and counted rather than written. What a stage that does not run leaves the next one, and
-   why a model's reading sits on a page of figures at all: docs/cli/stats.md. */
+   why a model's reading sits on a page of figures at all: docs/cli/stats-the-reading.md. */
 import { readingInput } from "./figures.mjs";
 import { ROLES } from "./store.mjs";
 import { modelCall } from "../../wire/model-call.mjs";

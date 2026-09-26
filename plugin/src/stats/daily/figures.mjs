@@ -3,7 +3,7 @@
    (`runs.phases[Ship].medianMinutes`), and the issue keys the page names. A reading cites a key and
    the page renders the label and value itself, so a model can point at a figure and never restate
    one. Text a transcript carries — a refusal's line, a command typed — is no figure and never
-   travels; neither does a path: docs/cli/stats.md. */
+   travels; neither does a path: docs/cli/stats-the-reading.md. */
 import { shownDeep } from "./store.mjs";
 
 const ROW_FIGURES = [["runs", "runs"], ["medianMinutes", "median minutes a run"], ["medianCalls", "median calls a run"]];
@@ -109,7 +109,7 @@ export const SECTIONS = [
 ];
 
 /** The issue keys the page names, each with its title and where on the page it sits. */
-export const offeredKeys = (content) => {
+const offeredKeys = (content) => {
   const held = new Map();
   const add = (key, title, where) => {
     if (key && !held.has(key)) held.set(key, { key, title: title ?? null, where });

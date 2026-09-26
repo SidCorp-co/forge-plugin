@@ -104,16 +104,7 @@ so a number on the page and the same number on a verb's screen cannot disagree. 
 a figure no reader computes, it names the missing reading and the issue that owes it rather than
 printing a nought, and the fix is that reader, never a second count here.
 
-**The page's reading is models', and every citation in it is checked here.** The figures stay the
-readers' and judge nothing; what a person wanted of the page was which of them to act on, and code
-can only surface the patterns it was written to find. So models read it, split by role because one
-reading of a whole page weighs the sections it happened to notice: explore proposes per section,
-review keeps what that section's figures support, and one judge per page weighs the survivors
-against each other. A model cites a figure by its key in the gathered content and never restates
-it, so a number on the Decisions block is the page's own, and a reading citing a key, an issue or a
-command the page does not hold is dropped and counted in the open — a judge that invents is visible
-rather than trusted. The call is not a consult: it reviews no code and its cost belongs in the
-page's footer, not in the log every consult figure is read from. The figures never wait on it.
+**The page's reading is models'**, over these figures: [`stats-the-reading.md`](stats-the-reading.md).
 
 **A session start is the schedule.** A cron entry or a timer is a change to the person's own
 machine. The first session start after a day ends, in a project whose `report` key is `daily`,

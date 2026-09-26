@@ -1,7 +1,7 @@
 /* The models' reading of a day as the page shows it: the Decisions block, one self-contained section
    a layout can move whole; each section's line at that section's head; and what each role spent, in
    the footer. Every figure a reading names is shown with the label and value the page computed, never
-   in the model's words: docs/cli/stats.md. */
+   in the model's words: docs/cli/stats-the-reading.md. */
 import { esc } from "./html.mjs";
 
 const figureSaid = (figure) => `${esc(figure.said)}: ${esc(figure.value)}`;
@@ -30,8 +30,8 @@ const decisionHtml = (one) => `<li><strong>${esc(one.action)}</strong> — ${esc
 
 /** What a judged page says in place of its decisions where it holds none: the judge's own word that
  *  there was nothing, or that none of what it proposed survived the checks, which is not the same. */
-export const NOTHING = "Nothing to decide.";
-export const NONE_KEPT = "No decision the judge proposed survived the checks.";
+const NOTHING = "Nothing to decide.";
+const NONE_KEPT = "No decision the judge proposed survived the checks.";
 export const emptySaid = (judgement) => (judgement.nothing ? NOTHING : NONE_KEPT);
 
 const judgedBody = (judgement) => {
@@ -70,7 +70,7 @@ export const sectionHead = (judgement, id) => {
 };
 
 /** Per role: the model, its calls and the tokens they spent. */
-export const costLines = (judgement) => Object.entries(judgement?.cost ?? {}).map(([role, one]) =>
+const costLines = (judgement) => Object.entries(judgement?.cost ?? {}).map(([role, one]) =>
   `${role}: ${one.model}, ${one.calls} call(s)${one.failed ? ` of which ${one.failed} failed` : ""}, `
   + `${one.input} input and ${one.output} output token(s)`);
 
