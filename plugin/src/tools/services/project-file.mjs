@@ -18,6 +18,7 @@ import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
 import { TRIGGERS_KEY, triggersRefusal } from "../../stats/report/settings.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import {
+  ASK_MODES,
   CHECK_MS_AT_MOST,
   CHECK_MS_TAKES,
   Refusal,
@@ -203,6 +204,13 @@ const outside = (key, given, allowed) => {
   return unknown === undefined ? null : said(key, `one of ${allowed.join(", ")}`, given);
 };
 
+/* `owner` only adds to the built-in categories, so an empty list is refused as a line that does nothing. */
+const asksRefusal = (given) => {
+  if (!given || typeof given !== "object" || Array.isArray(given)) return said("asks", "a table", given);
+  return (given.mode === undefined ? null : outside("asks.mode", given.mode, ASK_MODES))
+    || (given.owner === undefined ? null : listOfNames("asks.owner", given.owner));
+};
+
 const codexRefusal = (given) => {
   if (!given || typeof given !== "object" || Array.isArray(given)) return said("codex", "a table", given);
   if (given.pathRe !== undefined && !(typeof given.pathRe === "string" && compiles(given.pathRe))) {
@@ -307,6 +315,7 @@ export const PROJECT_KEYS = {
   landing: { paths: { "": "text" }, judge: (given) => outside("landing", given, LANDING_ROUTES) },
   redBatch: { paths: { "": "text" }, judge: (given) => outside("redBatch", given, RED_BATCHES) },
   ship: { paths: { "": "text" }, judge: (given) => outside("ship", given, SHIP_MODES) },
+  asks: { paths: { mode: "text", owner: "list" }, judge: asksRefusal },
   ready: {
     paths: { checks: "list" },
     judge: (given) => {

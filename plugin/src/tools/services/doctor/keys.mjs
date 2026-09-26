@@ -12,7 +12,10 @@ import { anglesShown } from "../../../codex/codex-plan.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
-import { accountCredentials, refusing } from "../../../resolve/settings.mjs";
+import { accountCredentials, refusing, ASK_MODES, asksOwnerTerms, asksScope } from "../../../resolve/settings.mjs";
+import { OWNER_CATEGORIES } from "../../../asks/declared.mjs";
+import { asksRoom, decidedPath } from "../../../asks/decided.mjs";
+import { layerPaths, precedentCount } from "../../../asks/layer.mjs";
 
 const MISS = "miss";
 const NOTE = "note";
@@ -237,6 +240,22 @@ const reviewRow = async () => {
     + `reading of what has landed${owed ? await holding(mark) : ""}  ← ${whereFrom(standing)}` };
 };
 
+/* The mode, and under `decide` what the gate reads: nothing past the mode is read under `off`, where the
+   layer does not exist and a count of it would be a number about nothing. */
+const asksRows = () => {
+  const mode = asksScope();
+  const rows = [{ level: mode.unknown ? MISS : undefined, label: "asks.mode", detail: held(mode, ASK_MODES) }];
+  if (mode.value !== "decide") return rows;
+  const room = asksRoom();
+  const terms = asksOwnerTerms();
+  return [
+    ...rows,
+    { label: "asks.precedents", detail: `${precedentCount(layerPaths(room))} in this project's layer; outcomes logged in ${decidedPath(room)}` },
+    { label: "asks.owner", detail: `${OWNER_CATEGORIES.map((one) => one.name).join("; ")}`
+      + `${terms.length ? `; and this project's own: ${terms.join(", ")}` : ""}` },
+  ];
+};
+
 /** Every keyed choice this project makes, in the order the report prints them. */
 export const projectKeyLines = async () => [
   ...Object.entries(feedbackScope()).map(([which, one]) =>
@@ -246,6 +265,7 @@ export const projectKeyLines = async () => [
   landingRow(),
   redBatchRow(),
   shipRow(),
+  ...asksRows(),
   owedRow(),
   { label: "codex.angles", detail: anglesShown() },
   checkRow(),

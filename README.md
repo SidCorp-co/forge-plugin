@@ -117,6 +117,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "landing": "after-merge",
   "redBatch": "one-by-one",
   "ship": "ready",
+  "asks": { "mode": "decide", "owner": ["pricing"] },
   "ready": { "checks": ["npm run lint", "npm test"] },
   "shape": "staged",
   "release": "manual",
@@ -159,6 +160,12 @@ The device's own `report` table in config.json sets that page's score: `score.fo
 `redBatch` is what this repository's landing does with a set whose combined gate is red:
 `attribute-then-split`, the default, hands back the members the failing cases name and halves what
 they do not, and `one-by-one` lands every member alone. `node tools/run.mjs -h` says the rest.
+
+`asks.mode` is `decide` where a question this project's sessions declare reversible may be answered
+from the owner's own earlier answers instead of stopping the session, and `off` unless set — any
+other value reads as `off` too, and then nothing is read, built or logged. `asks.owner` adds terms to
+the subjects that always go to the owner; it cannot remove the built-in ones. `forge hooks --how
+ask-decide` says how a question declares itself and where each decision is logged.
 
 `runs` is how many runs this project carries at once, whoever dispatched them, and absent it
 resolves to no number at all — every reader then behaves as it did before the key existed, which is

@@ -105,7 +105,7 @@ const STOOD_DOWN = (name, error) => `forge hooks: ${name} could not judge this c
   + `replaces a token the tracker refused. Why the call went through: \`forge hooks --how stood-down\`.`;
 
 /* Where the session reads a hook's words: a tool event's own context, and a warning on any other. */
-const TOOL_EVENTS = { pre: "PreToolUse", post: "PostToolUse" };
+const TOOL_EVENTS = { pre: "PreToolUse", post: "PostToolUse", ask: "PreToolUse" };
 const toolEventOf = (kind, ev) => {
   const named = ev?.hook_event_name;
   if (named) return /^(?:Pre|Post)ToolUse$/u.test(named) ? named : null;
@@ -134,6 +134,8 @@ export const dispatch = async (given, ev = readEvent()) => {
     }
     current = name;
     if (remaining() <= 0) {
+      /* A question out of time is the owner's, which is what silence gives it: refusing it would stop a session nothing asked to stop. */
+      if (kind === "ask") return;
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
         logged("deny", reason);
@@ -156,6 +158,10 @@ export const dispatch = async (given, ev = readEvent()) => {
         process.stderr.write(`forge hooks: ${name} failed and was skipped: ${error.message}\n`);
         stoodDown.push(STOOD_DOWN(name, error));
         continue;
+      }
+      if (error.kind === "answer") {
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: error.message, updatedInput: error.input, ...toldBeside(stoodDown) } });
+        return;
       }
       if (error.kind === "deny") {
         emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(error.message, ev), ...toldBeside(stoodDown) } });
@@ -288,6 +294,14 @@ export function block(reason) {
   logged("block", reason);
   throw new Decision("block", reason);
 }
+
+/** Lets the call through with its input replaced: the one way a gate answers a question for the owner.
+ *  Not written to the refusal log, which holds refusals alone; the gate keeps its own record. */
+export const answer = (input, reason) => {
+  const decision = new Decision("answer", reason);
+  decision.input = input;
+  throw decision;
+};
 
 /** Said to the model after the call, refusing nothing. */
 export const context = (text) => {
