@@ -41,7 +41,8 @@ test("a template's hole is code, and a template, a string or a regex nested in o
    way by one checker and the other way by the next. */
 test("a slash opens a regex wherever an expression starts, and divides after a value", () => {
   const opens = ["a > /re/", "if (ok) /re/.test(x)", "return /re/", "x = /re/", "f(/re/)", "while (a) /re/",
-    "x = ++/re/.lastIndex", "x = --/re/.lastIndex"];
+    "x = ++/re/.lastIndex", "x = --/re/.lastIndex", "a\n++/re/.lastIndex", "a /*\n*/ --/re/.lastIndex",
+    "export default /re/"];
   const divides = ["a / b", "(a) / b", "a[0] / b", "a.return / b", "f(x) / b", "1.5 / b", "\"s\" / b",
     "`t` / b", "/re/ / b", "a++ / b", "a-- / b", "a /* c */ ++ / b", "a /* c */ -- / b", "1. / b"];
   for (const said of opens) {

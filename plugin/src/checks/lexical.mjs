@@ -15,10 +15,11 @@ export const LITERALS = Object.freeze([KINDS.SINGLE, KINDS.DOUBLE, KINDS.TEMPLAT
 
 const WORD = /[\w$]/u;
 const SPACE = /\s/u;
+const LINE_BREAK = /[\n\r\u2028\u2029]/u;
 /* The words after which only an expression can start, so `return /x/` opens a literal as `= /x/`
    does, while `x / 2` divides. */
 const STARTS_AN_EXPRESSION = new Set(["return", "typeof", "instanceof", "in", "of", "new", "delete", "void",
-  "throw", "case", "do", "else", "yield", "await"]);
+  "throw", "case", "do", "else", "yield", "await", "extends", "default"]);
 /* The paren closing one of these conditions ends no value: a statement starts after it, and a
    statement may be a regex, `if (ok) /x/.test(y)`. */
 const CONTROL = new Set(["if", "while", "for", "with"]);
@@ -101,9 +102,9 @@ const walk = (text) => {
     if (!last) return true;
     if (last.one === VALUE || last.one === "]") return false;
     /* A postfix `++` or `--` ends a value, `count++ / total`; a prefix one, `++/re/.lastIndex`, still
-       has its operand to come. */
+       has its operand to come, and so does one a line break parts from the value before it. */
     const update = (last.one === "+" || last.one === "-") && previous?.one === last.one && previous.at === last.at - 1;
-    if (update) return !endsAValue(before);
+    if (update) return !endsAValue(before) || LINE_BREAK.test(text.slice(before.at + 1, previous.at));
     /* A number may end in its point, `1. / 2`. */
     if (last.one === "." && previous && previous.at === last.at - 1 && /^\d/u.test(wordEndingAt(text, previous.at))) return false;
     if (last.one === ")") return closedControl;
