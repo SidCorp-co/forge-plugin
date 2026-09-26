@@ -89,12 +89,22 @@ test("a question the gate decided itself is taken from no transcript and by no a
     "and one row is kept once");
 });
 
-test("a build past its time keeps its place, and the next one carries on from there", () => {
+test("a build past its time keeps its place, and the next one carries on from there", (t) => {
   const paths = layer();
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
   assert.deepEqual(refreshLayer(paths, { until: Date.now() - 1 }), { added: 0, complete: false });
   appendFileSync(join(paths.source, "s1.jsonl"), "");
   assert.equal(refreshLayer(paths).added, 1);
+  /* One transcript is not one step: the time runs out between two of its lines, since a single
+     session's file can run to hundreds of megabytes. Each reading of the clock is a second later. */
+  appendFileSync(join(paths.source, "s1.jsonl"), answered("toolu_b", QUESTION, "A file on this device")
+    + answered("toolu_c", QUESTION, "A page on the tracker"));
+  let second = 0;
+  t.mock.method(Date, "now", () => second++);
+  assert.deepEqual(refreshLayer(paths, { until: 1 }), { added: 1, complete: false }, "it stops inside the file");
+  t.mock.restoreAll();
+  assert.deepEqual(refreshLayer(paths), { added: 1, complete: true }, "and the next build reads on from that line, once");
+  assert.deepEqual(precedentsIn(paths).map((one) => one.id), ["toolu_a#0", "toolu_b#0", "toolu_c#0"]);
 });
 
 test("the shortlist holds what is close and nothing under the floor", () => {

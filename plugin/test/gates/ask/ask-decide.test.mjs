@@ -3,7 +3,7 @@
    stand-in gateway that plays the judge and counts every time it was asked. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
@@ -73,7 +73,8 @@ const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], dec
   projectRoom(repo, config, keys);
   const store = join(home, ".claude", "projects", slugFor(repo));
   mkdirSync(store, { recursive: true });
-  writeFileSync(join(store, "s1.jsonl"),
+  /* Named for the checkout, so two checkouts the host files under one folder keep a transcript each. */
+  writeFileSync(join(store, `s-${createHash("sha256").update(repo).digest("hex").slice(0, 8)}.jsonl`),
     precedents.map(([question, answer], at) => `${answeredLine(`toolu_old${at}`, question, answer, repo)}\n`).join(""));
   const gateway = await standIn(decide);
   writeFileSync(join(home, "proxy.env"), [`ANTHROPIC_BASE_URL="http://127.0.0.1:${gateway.port}"`,
@@ -258,6 +259,8 @@ test("two checkouts whose folders share a name keep a layer each under the one p
   first.gateway.close();
   const second = await project({ asks: { mode: "decide" } }, { precedents: [], within: first, named: "a/b/app" });
   assert.equal(slugFor(second.repo), slugFor(first.repo), "the host keeps both checkouts' transcripts in one folder");
+  assert.match(readdirSync(second.store).map((one) => readFileSync(join(second.store, one), "utf8")).join(""),
+    /toolu_old0/u, "where the first checkout's answer still stands to be misread");
   assert.equal(dirname(dirname(second.room)), dirname(dirname(first.room)), "one project entry for both, as the config home keys it");
   const said = await ask(second, [reportQuestion()]);
   second.gateway.close();
