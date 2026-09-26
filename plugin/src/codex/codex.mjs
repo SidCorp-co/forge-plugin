@@ -217,6 +217,11 @@ const CHECK_SAID = {
   declined: (command) => `check declined — \`${command}\` was offered and not run: this review is inspection, not execution.`,
 };
 
+/* Said whichever way the intent came out empty: a pipe that closed with nothing on it (a redirect from a missing file, a flag that took its neighbour as its value) ran silent and still answered `0 findings`, the artefact a review stands on (ISS-471). Said and not refused, an intent-free consult being one a caller may mean. */
+const noIntentSaid = (said) => (said === null
+  ? `codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`
+  : 'codex: stdin closed with nothing on it, so the consult carries no intent. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
+
 const checkSaid = (reach) => {
   const state = checkState(reach);
   return state === "none" ? null : `codex: ${CHECK_SAID[state](checkCommand(reach))}`;
@@ -377,8 +382,8 @@ const consult = async (given) => {
     + `${issues.length ? `, ${issues.join(", ")} for the reviewer to read off the tracker` : ""}`
     + `, sending ${bodies ? "bodies" : "diffs"}; reading the intent from stdin.`);
   const said = await stdinText();
-  if (said === null) console.error(`codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`);
   const intent = (said ?? "").trim();
+  if (!intent) console.error(noIntentSaid(said));
   const id = randomBytes(3).toString("hex");
   const history = historyFor(entries, root, undefined, rels);
   const spec = await specFor(root);
