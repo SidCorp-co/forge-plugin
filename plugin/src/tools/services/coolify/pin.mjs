@@ -81,14 +81,14 @@ const byProject = async (held, needle, environmentNeedle) => {
     fail(`coolify pin: no project this token can see is named or numbered \`${needle}\`, ${NOTHING}.\n`
       + `${projectsSeen(projects)}`);
   }
-  if (environmentNeedle === undefined) return { project, environment: null, via: `project ${nameOf(project)}` };
+  if (environmentNeedle === undefined) return { project, environment: null, via: null };
   const environments = listed(await environmentsOf(held, project.uuid));
   const environment = matched(environments, environmentNeedle, "environment");
   if (!environment) {
     fail(`coolify pin: project ${nameOf(project)} has no environment \`${environmentNeedle}\`, ${NOTHING}.\n`
       + `  its environments: ${environments.map(nameOf).join(", ") || "(none)"}`);
   }
-  return { project, environment, via: `project ${nameOf(project)}` };
+  return { project, environment, via: null };
 };
 
 const refuseMixed = ({ app, project, environment }) => {
@@ -110,8 +110,9 @@ const pinOf = ({ project, environment }) => ({
 const settled = (found, pin, asked) => {
   const was = pinned();
   const held = was.at ? JSON.stringify(was.spec) : null;
-  console.log(`${found.via} is in project ${nameOf(found.project)} (${found.project.uuid})`
-    + `${found.environment ? `, environment ${nameOf(found.environment)}` : ", every environment"}`);
+  const where = `project ${nameOf(found.project)} (${found.project.uuid}), `
+    + `${found.environment ? `environment ${nameOf(found.environment)}` : "every environment"}`;
+  console.log(found.via ? `${found.via} is in ${where}` : where);
   if (held === JSON.stringify(pin)) {
     console.log(`already pinned to ${held}  ← ${was.at}; nothing written`);
     return false;
