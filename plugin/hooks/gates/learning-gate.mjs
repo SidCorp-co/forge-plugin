@@ -12,6 +12,16 @@ import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The reading is `_hook.mjs`'s, so a name it would read is a name this reads. */
 const MD_ONLY = "md";
 
+/* One name per refusal, so the harness report counts a refusal met on many files as one cause: the file's name is in the wording, and a refusal naming no cause is keyed on its wording. */
+const CAUSE = {
+  tracker: "tracker-memory",
+  shellHeld: "shell-existing",
+  shellNew: "shell-new",
+  memory: "memory-file",
+  restated: "skill-restated",
+  skill: "skill-text",
+};
+
 /* Doubt is an action, and the one branch with a tree to name is where this gate can be one. */
 const UNSURE =
   " This command could run in more than one tree — a `cd` before `;` or `||` may have failed — and in "
@@ -97,7 +107,7 @@ export const run = (ev) => {
     deny(
       `Hold — re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
         "and say in one line which of the five conditions below made it worth keeping.\n\n" +
-        `This is project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}${how()}`,
+        `This is project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}${how(null, CAUSE.tracker)}`,
     );
 
   const decide = (payload) => {
@@ -127,7 +137,7 @@ export const run = (ev) => {
             `Hold — re-send this change with Edit, which asks what a change to this file owes.${doubt}\n\n`
               + `\`${basename(resolved)}\` is ${kind} that already exists, written through the shell, which `
               + "carries no content for that question to be asked of."
-              + how(),
+              + how(null, CAUSE.shellHeld),
           );
         }
         // Being sent to another tool teaches nothing about whether a new fact belongs in a file at all.
@@ -138,7 +148,7 @@ export const run = (ev) => {
             : `Hold — write it with Write and name the kind — ${SKILL_CATEGORIES.join(" | ")} — if all five `
               + "conditions below hold. Otherwise change nothing.")
             + `${doubt}\n\n\`${basename(resolved)}\` would be ${kind}, new, written through the shell.\n\n${BRIEF}`
-            + how(),
+            + how(null, CAUSE.shellNew),
         );
       }
     }
@@ -162,7 +172,7 @@ export const run = (ev) => {
       `Hold — ${route}\n\n`
         + `\`${basename(path)}\`${fresh ? " is a new memory. Why should it exist, and will it still matter later?" : " is a memory."}`
         + `${found ? `\n\n${found}` : ""}\n\n${BRIEF}${fresh ? `\n\n${SHAPE}` : ""}`
-        + how(),
+        + how(null, CAUSE.memory),
     );
   }
 
@@ -185,7 +195,7 @@ export const run = (ev) => {
           + "the worse one, replace it rather than adding beside it.\n\n"
           + "This repeats what the skill already says — that is a defect, not a style "
           + "preference: two authorities for one rule diverge the first time someone corrects only "
-          + `the copy they found.\n\n${joined}` + how();
+          + `the copy they found.\n\n${joined}` + how(null, CAUSE.restated);
         deny(sayOnce(sessionKey(ev), "learning-gate", full, { route: "learning-gate" }));
       }
     }
@@ -197,7 +207,7 @@ export const run = (ev) => {
         "check in the plugin could enforce it instead, and what it displaces.\n\n" +
         `\`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
         `a note about this one repository.\n\n${BRIEF}` +
-        how(),
+        how(null, CAUSE.skill),
     );
   }
 };
