@@ -18,6 +18,7 @@ import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { treeKey } from "../../gates/timing.mjs";
 import { aheadRoute } from "./ahead-route.mjs";
+import { copiesIn, machineSecrets } from "./credential-copies.mjs";
 import { endedOf, endedWritten } from "./ended.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";
@@ -35,16 +36,22 @@ export const FINISH_HELP = [
   "anything but the minted name derives no path at all. Recovering a leak somebody else left is an",
   "operator's act and no part of this.",
   "",
-  "It refuses rather than forces, on five readings taken whole before the first removal, so nothing",
+  "It refuses rather than forces, on six readings taken whole before the first removal, so nothing",
   "met at a removal can cost a tree already gone: an uncommitted path in the tree, a commit the",
   "remote's default branch does not carry, a gate of that tree still on the process table, a worktree",
-  "somebody has locked, and a directory at the derived path that is not this checkout's worktree. Each",
+  "somebody has locked, a file in the scratch holding one of this machine's credentials, and a",
+  "directory at the derived path that is not this checkout's worktree. Each",
   "leaves the whole workspace standing, the scratch with it, and exits non-zero, because what a",
   "removal would take is what no record of it cites. The second is the reading nothing else here",
   "makes: `git worktree remove` refuses a dirty tree and a locked one by itself, and says nothing at",
   "all about a commit that exists in one place. `-d` and never `-D` is the same rule for the branch,",
   "with git's own advice for the forced delete turned off, that being the one way out a refusal here",
   "may not carry.",
+  "",
+  "The credential reading is the one refusal whose way out is not to keep the thing it names: a run",
+  "home borrows this machine's credentials by reference, which `start` prints, so a copy in the",
+  "scratch is one a run made and no record says it did. Removing the scratch with it would end the",
+  "one trace of that, so the files are named and the workspace called clean only once they are gone.",
   "",
   "The route out of the second is `ship`, except where the project's ship mode is `ready` and the",
   "issue's landing checkpoint names this branch: a run there lands nothing of its own, so the refusal",
@@ -103,6 +110,7 @@ const lockedOn = (root, path) => (gitOut(["worktree", "list", "--porcelain"], ro
 const readTree = (root, path, base, gates) => ({
   branch: gitOut(["rev-parse", "--abbrev-ref", "HEAD"], path),
   scratch: scratchAt(path),
+  copies: scratchAt(path) ? copiesIn(scratchAt(path), machineSecrets()) : [],
   /* `status --porcelain` and not a diff against HEAD: an untracked file a run never staged is work
      too, and null from here is a status git would not report rather than a clean tree. */
   dirty: uncommittedIn(path),
@@ -150,11 +158,18 @@ const lockRefusal = (root, path, held) => (held
     + `remove it, and this call is not the one to overrule them`, how: `git -C ${root} worktree unlock ${path}` }
   : null);
 
+const copyRefusal = (held) => (held.length
+  ? { why: `${held.length} file(s) in the scratch hold a copy of one of this machine's credentials, which a `
+    + `run home borrows by reference and never needs: ${held.join(", ")}`,
+  how: `rm -f -- ${held.join(" ")}` }
+  : null);
+
 const refusals = (root, path, base, read, route) => [
   dirtyRefusal(path, read.dirty),
   aheadRefusal(path, base, read.branch ?? "that branch", read.ahead, route),
   gateRefusal(path, read.gates),
   lockRefusal(root, path, read.locked),
+  copyRefusal(read.copies),
 ].filter(Boolean);
 
 /* Said before the removal, because afterwards there is nothing left to read. A run whose configuration

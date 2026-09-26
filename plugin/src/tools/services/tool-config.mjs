@@ -2,7 +2,7 @@
    `visibility.mjs`'s gate: that one replays what the server said this CREDENTIAL may spend. One row per tool and
    one answer, read by the help's filter, `forge doctor`'s rows, the served guides' conditions and the verb's own
    refusal. What puts a tool in the table: docs/cli/an-unconfigured-tool.md. */
-import { configPath, userConfig } from "../../resolve/config.mjs";
+import { configSource, userConfig } from "../../resolve/config.mjs";
 import { gateway, storeHeld, storeMissing } from "../../resolve/machine/stores.mjs";
 import { coolifyTarget } from "./coolify/config.mjs";
 import { onTracker } from "./coolify/chosen-route.mjs";
@@ -20,7 +20,7 @@ export const NO_ACCOUNT = `No Cloudflare account is configured. Save one with\n 
 
 export const cloudflareAccounts = () => {
   const held = (userConfig().cloudflare?.accounts ?? []).filter((one) => one.apiToken && one.accountId);
-  return { from: held.length ? configPath() : null, accounts: held };
+  return { from: held.length ? configSource("cloudflare.accounts") : null, accounts: held };
 };
 
 const TOOLS = [

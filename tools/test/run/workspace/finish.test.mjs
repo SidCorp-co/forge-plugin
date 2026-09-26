@@ -2,11 +2,11 @@
    refuses to remove and what it says it left. `start`'s own half is `start.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, OWN_SLUG, git, pushed, runIn } from "../run-fixtures.mjs";
+import { BARE, OWN_SLUG, declaredIn, git, pushed, runIn } from "../run-fixtures.mjs";
 import { escaped, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 
 const KEY = "ISS-88";
@@ -457,8 +457,46 @@ test("start makes the one directory this run's scratch belongs in, and names it 
   /* It printed both variables at this one empty directory, so a run doing as it was told had no
      credential, logged its consults where the commit gate does not read and `finish` then removed
      them, and the corpus a release is judged on lost every delegated run (ISS-189). */
-  assert.doesNotMatch(run.stdout, /XDG_CONFIG_HOME=/u, "plugin state is not this run's scratch");
+  const handed = /TMPDIR=(.*)$/mu.exec(run.stdout)[1];
+  assert.doesNotMatch(run.stdout, new RegExp(`XDG_CONFIG_HOME=${handed}$`, "mu"), "plugin state is not this run's scratch");
   assert.match(run.stdout, /Plugin state is not scratch/u, run.stdout);
+  /* The one home a probe may point at the scratch is one that borrows, so it holds no credential of
+     its own and a run needing live data has a route that is not a copy (ISS-2612). */
+  const configHome = BARE.XDG_CONFIG_HOME;
+  assert.ok(run.stdout.includes(`XDG_CONFIG_HOME=${join(handed, "home")} FORGE_BORROW_FROM=${join(configHome, "forge", "config.json")}`),
+    `the borrowing form, under this run's scratch and naming this machine's config, is not printed:\n${run.stdout}`);
+});
+
+/* A copy of the machine's credential is the one thing in a scratch nothing records a run made, so it
+   is named and the workspace stays until it is gone rather than going with the directory (ISS-2612). */
+test("finish names every scratch file holding a copy of this machine's credential and leaves the workspace until they are gone", () => {
+  const { work, tree } = started("finish-copies");
+  const scratch = scratchOf(work);
+  const home = tempRoom("finish-copies-home-");
+  declaredIn(work, home);
+  writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ url: "https://tracker.example/mcp", token: "machine-token-0123456789abcdef" }));
+  const profile = join(home, "claude-proxy.env");
+  writeFileSync(profile, "ANTHROPIC_AUTH_TOKEN=profile-gateway-key-0123456789\n");
+  const env = { ...BARE, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: profile };
+  mkdirSync(join(scratch, "xdg", "forge"), { recursive: true });
+  const copied = join(scratch, "xdg", "forge", "config.json");
+  writeFileSync(copied, readFileSync(join(home, "forge", "config.json")));
+  const gateway = join(scratch, "gateway.env");
+  writeFileSync(gateway, readFileSync(profile));
+  writeFileSync(join(scratch, "probe.log"), "https://tracker.example/mcp answered\n");
+
+  const run = runIn(work, ["finish", KEY], env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /2 file\(s\) in the scratch hold a copy of one of this machine's credentials/u, run.stderr);
+  for (const one of [copied, gateway]) assert.ok(run.stderr.includes(one), `${one} is not named:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /probe\.log/u, "a file naming only the endpoint is not a credential copy");
+  assert.ok(existsSync(tree) && existsSync(copied), "the workspace stands while a copy does");
+
+  const cleared = spawnSync("rm", ["-f", "--", copied, gateway]);
+  assert.equal(cleared.status, 0);
+  const again = runIn(work, ["finish", KEY], env);
+  assert.equal(again.status, 0, again.stderr + again.stdout);
+  assert.ok(!existsSync(tree) && !existsSync(scratch), again.stdout);
 });
 
 /* The quiet half of the same split: a consult recorded under a scratch configuration home is in the

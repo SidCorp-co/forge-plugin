@@ -4,6 +4,8 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { configSource } from "../../../plugin/src/resolve/config.mjs";
+import { BORROW_VAR } from "../../../plugin/src/resolve/machine/borrowed.mjs";
 import { checkoutRoot, defaultBranch, git, loud, stop } from "../../checkout.mjs";
 import { endedDropped } from "./ended.mjs";
 import { borrowedInto, BROKEN } from "./links.mjs";
@@ -22,10 +24,16 @@ const scratchMade = (tree, id, self) => {
   console.log(`Put every scratch file this run makes under that id's own directory, which is what`);
   console.log(`${self} finish removes and the only path under the temporary root it will:`);
   console.log(`  TMPDIR=${at}`);
-  /* That variable and no second one. This directory is made empty, so a shell pointing XDG_CONFIG_HOME at it held no credential, wrote its consults to a log the commit gate does not read and `finish` then removed, and every delegated run that did as it was told went missing from the corpus a release is judged on (ISS-189). */
-  return console.log(`Plugin state is not scratch: the credential, the consult log and the turn `
+  /* That variable and no second one for the run itself. This directory is made empty, so a shell pointing XDG_CONFIG_HOME at it held no credential, wrote its consults to a log the commit gate does not read and `finish` then removed, and every delegated run that did as it was told went missing from the corpus a release is judged on (ISS-189). */
+  console.log(`Plugin state is not scratch: the credential, the consult log and the turn `
     + `record stay in this machine's own config directory, which is where the hooks read them from `
     + `whatever this shell exports.`);
+  /* A probe is the exception, and it had no route: four runs of one day that needed live data made a
+     home of their own and copied the token into it, and `finish` refuses while such a copy stands
+     (ISS-2612). */
+  console.log(`A probe that needs live data and must write nothing of this machine's own points its home`);
+  console.log(`under that directory and borrows the credentials, read-only, rather than copying them in:`);
+  return console.log(`  XDG_CONFIG_HOME=${join(at, "home")} ${BORROW_VAR}=${configSource("token")}`);
 };
 
 /* The keys first and the slug after them, rather than a count: a batch is one tree under one id and

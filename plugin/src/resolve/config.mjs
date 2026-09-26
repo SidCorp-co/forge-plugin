@@ -15,6 +15,7 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
+import { borrowing, isBorrowed, overlaid, refuseBorrowedWrite } from "./machine/borrowed.mjs";
 import { idGrantedBy } from "./session/granted-id.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runHeldWhere } from "./session/run-id.mjs";
 
@@ -44,7 +45,22 @@ export const readJson = (path) => {
   }
 };
 
-export const userConfig = once(() => readJson(configPath()) ?? {});
+/* The home's own file, which is what every write merges onto: merged onto what a reader sees, a write
+   would copy each borrowed credential into the home that borrows it. */
+const ownConfig = once(() => readJson(configPath()) ?? {});
+
+/** What every reader takes: the home's own file, and under a borrow the borrowed keys laid over it
+ *  afresh at each call. */
+export const userConfig = () => {
+  const borrow = borrowing(configPath());
+  return borrow ? overlaid(ownConfig(), borrow.values) : ownConfig();
+};
+
+/** The file a key was read from, which is what a report prints after its arrow (BR-08). */
+export const configSource = (key) => {
+  const borrow = borrowing(configPath());
+  return borrow && isBorrowed(key) ? borrow.path : configPath();
+};
 
 /* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. The temporary name carries the writer's pid: two processes sharing one would interleave a file the survivor then renames into place, and a writer killed before its rename leaves a file nothing reuses. The next write sweeps it, there being nothing else here that runs to clean up. */
 const STRANDED_MS = 60_000;
@@ -77,15 +93,17 @@ export const writeJsonPrivate = (path, value) => {
 };
 
 export const saveConfig = (values) => {
+  const borrow = borrowing(configPath());
+  if (borrow) refuseBorrowedWrite(values, borrow.path, configPath());
   mkdirSync(configDir("forge"), { recursive: true });
-  const merged = { ...userConfig(), ...values };
+  const merged = { ...ownConfig(), ...values };
   writeJsonPrivate(configPath(), merged);
-  Object.assign(userConfig(), merged);
+  Object.assign(ownConfig(), merged);
   return configPath();
 };
 
 /* One key of the config holds an object, and `saveConfig` above merges the top level only — so writing one field of it from a bare object drops every sibling under the same key, which is how a login lost what a login before it had saved. The read, the merge and the save are here, where that limitation is. */
-export const saveNested = (key, values) => saveConfig({ [key]: { ...(userConfig()[key] ?? {}), ...values } });
+export const saveNested = (key, values) => saveConfig({ [key]: { ...(ownConfig()[key] ?? {}), ...values } });
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
 export const sessionPath = () => join(configDir("forge"), "session.json");

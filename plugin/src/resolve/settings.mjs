@@ -6,7 +6,7 @@ import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:pa
 
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { escaped } from "../markdown.mjs";
-import { configDir, configPath, once, readJson, userConfig } from "./config.mjs";
+import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
 
 /* Registered by a caller holding something no exit may lose — a body that arrived on stdin, or a
    line owed only once a write lands. Several, each dropped by the caller that registered it. */
@@ -168,8 +168,8 @@ const sourced = (from, value) => (value ? { value, from } : { value: null, from:
 export const accountCredentials = once(() => {
   const saved = userConfig();
   return {
-    url: sourced(configPath(), saved.url),
-    token: sourced(configPath(), saved.token),
+    url: sourced(configSource("url"), saved.url),
+    token: sourced(configSource("token"), saved.token),
   };
 });
 
@@ -179,7 +179,7 @@ export const settings = once(() => {
     /* The file this call read, not the one it would have read with the configuration directory left where it defaults: a run under a redirected home was told the live path was the one place either is read from, and went looking in a file nothing had opened (ISS-189). */
     fail(
       `No Forge endpoint. Run \`forge doctor --token <pat> --url <endpoint>\` to save one in\n${
-        configPath()}\n`
+        configSource("token")}\n`
         + "which is the one place either is read from. Neither the environment nor a `.mcp.json`\n"
         + "is a source; `forge doctor` names a `.mcp.json` it finds.",
     );

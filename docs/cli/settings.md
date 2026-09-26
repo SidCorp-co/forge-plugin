@@ -14,6 +14,20 @@ The config is 0600 from the moment it exists: chmodding afterwards leaves it wor
 length of the write, and a temp file a crashed run left behind would take the token at whatever
 permissions it already had.
 
+**A run home borrows the credential by reference and never holds a copy of it.** A run that must write
+nothing into the machine's own logs points its configuration home somewhere of its own, and a home is
+all or nothing: until a home could borrow, the only way a run reached live data from one was to copy
+the token into scratch, where it sat world-traversable for the run's length and outlived any run that
+died. `FORGE_BORROW_FROM` names the machine's file, not a value, so that file stays the one source a
+credential has, which is why it sits beside `XDG_CONFIG_HOME` among the variables that say where
+configuration lives. A borrowed key is read from that file each time it is read, so a rotated
+credential reaches a running probe; a write to one under the borrowing home is refused rather than
+redirected, since a write landing in the machine's file from a run is exactly what the home was made
+to prevent. A borrow that resolves to nothing is refused too, because a borrow answering *no
+credential* sent the reader to a refusal naming a file it was never going to use. Which keys may be
+borrowed is one table, and the secret ones are what a workspace's ending searches its scratch for: a
+copy found there is one no record says a run made.
+
 Which checkout this process stands in, and which repository that checkout belongs to, are read off
 the disk rather than asked of git, and what that walk has to do differently from `git rev-parse`:
 [the checkout walk](the-checkout-walk.md).

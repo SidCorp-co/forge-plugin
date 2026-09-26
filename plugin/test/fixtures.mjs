@@ -98,9 +98,12 @@ process.env.TMPDIR = root;
 
 /* Which session a call resolves is the case's to name, never the shell's that started the suite: every
    env a suite hands a child is a spread of this one, so a case's outcome turned on whether it ran
-   inside a Claude Code session or from CI (ISS-2570). A case wanting an id sets it after this. */
+   inside a Claude Code session or from CI (ISS-2570). A case wanting an id sets it after this. A
+   borrow is the same kind of thing, and one inherited would hand every case the machine's credential
+   under a home the case thinks is its own (ISS-2612). */
 delete process.env.CLAUDE_CODE_SESSION_ID;
 delete process.env.FORGE_SESSION_ID;
+delete process.env.FORGE_BORROW_FROM;
 
 export const tempRoom = (prefix) => madeIn(join(root, prefix), () => mkdtempSync(join(root, prefix)));
 

@@ -4,7 +4,7 @@
    a store declared beside it being the third file a new machine has to fill. docs/cli/settings.md. */
 import { join } from "node:path";
 
-import { configDir, configPath, readJson, userConfig } from "../config.mjs";
+import { configDir, configSource, readJson, userConfig } from "../config.mjs";
 import { profileValues } from "./profile.mjs";
 
 const viPath = () => join(configDir("vi-natural"), "config.json");
@@ -75,7 +75,7 @@ const saved = (value) => (typeof value === "string" && value.trim() ? value : nu
  *  a broken undo, which is why `from` travels with every value (BR-08). */
 export const machineValue = (name, key) => {
   const held = saved(userConfig()[name]?.[key]);
-  if (held) return { value: held, from: configPath() };
+  if (held) return { value: held, from: configSource(`${name}.${key}`) };
   const behind = storeOf(name)?.behind;
   const field = behind?.fields[key];
   if (!field) return { value: null, from: null };
