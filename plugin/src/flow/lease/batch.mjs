@@ -11,7 +11,7 @@ const JOIN = ", ";
 
 const membersOf = (batch) => String(batch ?? "").split(",").map((one) => one.trim()).filter(Boolean);
 
-/** Every key the tree's run id names, head first, where it names several and `key` among them; null otherwise. */
+/** The batch a claim in `tree` declares for `key`: the run id's keys joined head first, or null where that id names `key` alone or not at all. */
 export const batchFor = (key, tree = process.cwd()) => {
   const keys = runsFor(runIdAt(tree)).map((one) => one.toUpperCase());
   return keys.length > 1 && keys.includes(String(key ?? "").toUpperCase()) ? keys.join(JOIN) : null;
@@ -49,7 +49,7 @@ const siblingNow = async (key, members, read) => {
   };
 };
 
-/** The batch a member's worklog names with each other member read now, one read per sibling and softly, or null where it names none. `read` is the tracker unless a caller hands another. */
+/** The batch a member's worklog names with each other member read now, one read per sibling and softly, or null where it names none; a case hands its own `read` in place of the tracker's. */
 export const batchLive = async (worklog, key, read = readMember) => {
   const members = membersOf(worklog?.batch);
   if (!members.length) return null;
