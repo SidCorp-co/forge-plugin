@@ -2,12 +2,12 @@
    decisions below it, then drill-downs closed until opened, and what the page could not read in
    its footer. Everything is inline — style, script, charts — so the file opens with no network and
    travels as one file. Colour only ever repeats what the words beside it say: docs/cli/stats.md. */
-import { contentBlock } from "./store.mjs";
+import { contentBlock } from "../store.mjs";
 import { droppedLine, emptySaid, stageLines } from "./summary.mjs";
-import { changeSaid, moveSaid, tileOfSection, withUnit } from "./scorecard.mjs";
-import { SECTIONS } from "./reading/figures.mjs";
-import { redBatchSaid } from "../marks/red-batches.mjs";
-import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
+import { changeSaid, moveSaid, tileOfSection, withUnit } from "../scorecard.mjs";
+import { SECTIONS } from "../reading/figures.mjs";
+import { redBatchSaid } from "../../marks/red-batches.mjs";
+import { RUNG_UNKNOWN } from "../../corpus/transcripts.mjs";
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export const esc = (value) => String(value ?? "").replace(/[&<>"']/gu, (one) => ESCAPES[one]);

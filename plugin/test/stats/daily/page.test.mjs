@@ -5,8 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FRICTION_SHOWN, SORT_SCRIPT, pageOf } from "../../../src/stats/daily/page.mjs";
-import { indexLineOf } from "../../../src/stats/daily/summary.mjs";
+import { FRICTION_SHOWN, SORT_SCRIPT, pageOf } from "../../../src/stats/daily/page/page.mjs";
+import { indexLineOf } from "../../../src/stats/daily/page/summary.mjs";
 import { METRICS } from "../../../src/stats/daily/scorecard.mjs";
 import { LISTED, backlogMatcher, opportunitiesOf } from "../../../src/stats/daily/opportunities.mjs";
 import { sidesOf } from "../../../src/stats/daily/releases.mjs";

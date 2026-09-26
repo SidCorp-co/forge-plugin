@@ -13,7 +13,7 @@ import { projectsOn, registered } from "../daily/projects.mjs";
 import { FORMULAS, reportSettings } from "./settings.mjs";
 import { CURRENT, INDEX, againPath, clearMark, contentOf as heldContentOf, heldDays, readPage, reportsDir,
   shownDeep, takeMark, writePage, writerHolds } from "../daily/store.mjs";
-import { indexLineOf } from "../daily/summary.mjs";
+import { indexLineOf } from "../daily/page/summary.mjs";
 import { RELEASES, marksOf } from "../marks/marks.mjs";
 import { fail } from "../../resolve/settings.mjs";
 
