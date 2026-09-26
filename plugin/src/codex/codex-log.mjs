@@ -117,7 +117,7 @@ export const verdictsBy = (entries) => {
 
 const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(file));
 
-/** The answered consults of this root naming any of these files, oldest first: what a recheck here follows. A plan or criteria write asks by the file alone, whichever root read it: codex-read.mjs. */
+/** The answered consults of this root naming any of these files, oldest first: what a recheck here follows. */
 export const judgedBy = (entries, root, rels) =>
   answered(entries).filter((one) => one.root === root && sharing(one, rels));
 
