@@ -4,28 +4,32 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 import { RUN, brief, homeFor, repository } from "./fixture.mjs";
 import { besideGit, runIdAt, runsFor } from "../../src/resolve/session/run-id.mjs";
 
 const repo = repository();
 
-const READINGS = [/^ISS-\d+$/u, /^Tree: /u, /^FORGE_SESSION_ID=/u, /^TMPDIR=/u, /^Held by the other trees/u,
+const READINGS = [/^ISS-\d+$/u, /^Tree: /u, /^FORGE_SESSION_ID=/u, /^TMPDIR=/u, /^XDG_CONFIG_HOME=/u, /^Held by the other trees/u,
   /^ {2}\S/u, /^Plugin copy: /u, /^Restart owed: /u, /^Trees: /u];
 
-test("with --tree, the brief names that tree's branch, head, run id and scratch directory", () => {
-  const run = brief(["ISS-7", "--tree", repo.mine], repo.main, homeFor().env);
+test("with --tree, the brief names that tree's branch, head, run id, scratch directory and borrowing route", () => {
+  const home = homeFor();
+  const run = brief(["ISS-7", "--tree", repo.mine], repo.main, home.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^ISS-7\nTree: .*mine · branch mine · head [0-9a-f]{7}$/mu);
   assert.match(run.stdout, new RegExp(`^FORGE_SESSION_ID=${RUN}$`, "mu"));
   assert.match(run.stdout, new RegExp(`^TMPDIR=/tmp/forge-run-${RUN}$`, "mu"));
+  /* The line `run.mjs start` prints, so a dispatched run borrows rather than copying the credential. */
+  assert.match(run.stdout, new RegExp(`^XDG_CONFIG_HOME=/tmp/forge-run-${RUN}/home FORGE_BORROW_FROM=${
+    escaped(join(home.config, "forge", "config.json"))}$`, "mu"));
 });
 
 test("a brief naming no issue leaves a tree that records no run without an id or a scratch line", () => {
   const fresh = repository();
   const run = brief(["--tree", fresh.idle], fresh.main, homeFor().env);
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stdout, /FORGE_SESSION_ID=|TMPDIR=/u);
+  assert.doesNotMatch(run.stdout, /FORGE_SESSION_ID=|TMPDIR=|XDG_CONFIG_HOME=/u);
   assert.equal(runIdAt(fresh.idle), null, "no key names what an id would be minted for, so none is");
 });
 

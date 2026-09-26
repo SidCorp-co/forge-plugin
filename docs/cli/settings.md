@@ -16,12 +16,14 @@ permissions it already had.
 
 **A run home borrows the credential by reference and never holds a copy of it.** A home is all or
 nothing, so until one could borrow, a run needing live data from a home of its own copied the token
-into scratch, world-traversable for the run's length and left behind by any run that died.
-`FORGE_BORROW_FROM` names the machine's file, not a value, so that file stays a credential's one
-source. A borrowed key is read at each use, so a rotated credential reaches a running probe; a write
-to one is refused rather than redirected, a run writing the machine's file being what the home
-prevents; and a borrow resolving to nothing is refused rather than read as no credential. The
-secret keys of the one borrowable table are what a workspace's ending searches its scratch for.
+into scratch, world-traversable and left behind by any run that died. `FORGE_BORROW_FROM` names the
+machine's file, not a value, so that file stays a credential's one source. A borrowed key is read
+at each use, so a rotated credential reaches a running probe; a write to one is refused rather than
+redirected, the machine's file being what the home protects; a borrow resolving to nothing is
+refused rather than read as no credential. The secret keys of the one borrowable table are what a
+workspace's ending searches its scratch for. A home with no project record of its own reads the
+machine's whole, never merged per key with one of its own, and refuses a write to it, which in the
+home would shadow every key the machine's decides.
 
 Which checkout this process stands in, and which repository that checkout belongs to, are read off
 the disk rather than asked of git, and what that walk has to do differently from `git rev-parse`:

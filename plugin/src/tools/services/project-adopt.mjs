@@ -4,7 +4,7 @@
    somebody's tree. docs/cli/the-project-file.md. */
 import { existsSync, readFileSync } from "node:fs";
 
-import { COMMITTED_FILE, committedFileHere, fail, projectFilePath } from "../../resolve/settings.mjs";
+import { COMMITTED_FILE, committedFileHere, fail, projectFileToWrite } from "../../resolve/settings.mjs";
 import { readJson } from "../../resolve/config.mjs";
 import { asWritten, createdWith, READS_IT } from "./project-file.mjs";
 
@@ -21,7 +21,7 @@ const refusedShape = (parsed) => {
  *  this is said: a copy that landed and does not parse is the one state a caller must not be told
  *  went through. */
 export const adopt = () => {
-  const path = projectFilePath();
+  const path = projectFileToWrite(`what ${COMMITTED_FILE} holds`, "--adopt");
   if (!path) {
     fail(`--adopt: this directory belongs to no checkout, so there is no project to adopt a `
       + `${COMMITTED_FILE} into. Run this from inside a checkout.`);

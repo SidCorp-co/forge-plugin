@@ -4,8 +4,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { configSource } from "../../../plugin/src/resolve/config.mjs";
-import { BORROW_VAR } from "../../../plugin/src/resolve/machine/borrowed.mjs";
+import { borrowRoute } from "../../../plugin/src/resolve/config.mjs";
 import { checkoutRoot, defaultBranch, git, loud, stop } from "../../checkout.mjs";
 import { endedDropped } from "./ended.mjs";
 import { borrowedInto, BROKEN } from "./links.mjs";
@@ -33,7 +32,7 @@ const scratchMade = (tree, id, self) => {
      (ISS-2612). */
   console.log(`A probe that needs live data and must write nothing of this machine's own points its home`);
   console.log(`under that directory and borrows the credentials, read-only, rather than copying them in:`);
-  return console.log(`  XDG_CONFIG_HOME=${join(at, "home")} ${BORROW_VAR}=${configSource("token")}`);
+  return console.log(`  ${borrowRoute(at)}`);
 };
 
 /* The keys first and the slug after them, rather than a count: a batch is one tree under one id and

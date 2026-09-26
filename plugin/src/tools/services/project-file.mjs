@@ -22,7 +22,7 @@ import {
   CHECK_MS_AT_MOST,
   CHECK_MS_TAKES,
   Refusal,
-  projectFilePath,
+  projectFileToWrite,
   fail,
   DRAINS,
   FEEDBACK_CHANNELS,
@@ -542,7 +542,7 @@ const EMPTY = "{}\n";
 /* The flag a refusal names is the one the caller typed: two flags write one key of this file, and a
    `--ship` refused with `--set:` in front of it sends its reader to a call they did not make. */
 const openedFile = (key, said) => {
-  const named = projectFilePath();
+  const named = projectFileToWrite(`\`${key}\``, said);
   if (!named) {
     fail(`${said}: \`${key}\` is a key of this machine's record of the project this directory belongs `
       + "to, and this directory belongs to no checkout, so there is no project to configure and "

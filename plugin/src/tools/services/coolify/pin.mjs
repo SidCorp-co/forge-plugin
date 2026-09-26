@@ -3,7 +3,7 @@
    Named forms only, since every caller is an agent with no terminal to pick from, and a pin already
    recorded is replaced only when asked. docs/cli/coolify-the-pin.md. */
 import { flags } from "../../../resolve/flags.mjs";
-import { fail, projectFilePath } from "../../../resolve/settings.mjs";
+import { fail, projectFileToWrite } from "../../../resolve/settings.mjs";
 import { projectWrite } from "../project-file.mjs";
 import { look, session } from "./client.mjs";
 import { PIN_FORMS, configured, pinned } from "./config.mjs";
@@ -131,7 +131,7 @@ const settled = (found, pin, asked) => {
 export const pin = async (argv) => {
   const asked = flags(argv, "coolify pin", ["--yes", "--dry-run"], { usage: PIN_USAGE });
   refuseMixed(asked);
-  if (!projectFilePath()) {
+  if (!projectFileToWrite("`coolifyPin`", "coolify pin")) {
     fail("coolify pin: this directory belongs to no checkout, so there is no project record to write a "
       + "pin to, and nothing was sent. Run it from inside the checkout the pin is for.");
   }

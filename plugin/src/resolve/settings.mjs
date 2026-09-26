@@ -7,6 +7,7 @@ import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:pa
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { escaped } from "../markdown.mjs";
 import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
+import { BORROW_VAR, borrowing } from "./machine/borrowed.mjs";
 import { fail } from "../refusal.mjs";
 
 export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "../refusal.mjs";
@@ -58,18 +59,48 @@ const PROJECT_ENTRY = ["projects", "config.json"];
  *  finds it — a slug is readable only out of the very file this locates, so keying on it cannot
  *  start. Two checkouts whose root folders share a name share an entry, which is the accepted cost
  *  of every worktree of one checkout sharing one. */
-const entryFor = (repository) => {
-  const [under, file] = PROJECT_ENTRY;
-  return repository === null
-    ? null : join(configDir("forge"), under, basename(repository), file);
+const entryUnder = (forgeDir, repository) => join(forgeDir, PROJECT_ENTRY[0], basename(repository), PROJECT_ENTRY[1]);
+
+const entryFor = (repository) => (repository === null ? null : entryUnder(configDir("forge"), repository));
+
+/* A home borrowing the machine's credentials has no record of its project, so every project-scoped
+   call refused for want of a slug, and a run writing the slug alone read every other key at its
+   default (ISS-2619). It reads the machine's record, beside the config the borrow names, while it
+   holds none of its own; a home holding one reads that alone, two records per key being two sources
+   for one decision. */
+const borrowedEntry = (repository) => {
+  const borrow = borrowing(configPath());
+  return borrow ? entryUnder(dirname(borrow.path), repository) : null;
 };
 
-const projectEntryAt = (directory) => entryFor(checkoutAt(directory)?.repository ?? null);
+const recordFor = (repository) => {
+  const own = entryFor(repository);
+  if (own === null || existsSync(own)) return own;
+  const borrowed = borrowedEntry(repository);
+  return borrowed && existsSync(borrowed) ? borrowed : own;
+};
+
+const projectEntryAt = (directory) => recordFor(checkoutAt(directory)?.repository ?? null);
 
 /* Off the memoised walk rather than through the line above, which would walk the disk again on
    every read of every key; the configuration directory is read per call either way, so a home the
    caller sets reaches this without a previous call's home answering for it. */
-export const projectFilePath = () => entryFor(standing()?.repository ?? null);
+export const projectFilePath = () => recordFor(standing()?.repository ?? null);
+
+/** The record a write lands in, the one every read takes it from, or null outside a checkout. `what`
+ *  names what was about to be written, as the refusal says it. Refused where that record is the
+ *  machine's read under a borrow: written there it is the machine's file the home exists not to
+ *  write, and written into the home it would shadow every key the machine's record decides. */
+export const projectFileToWrite = (what, said) => {
+  const repository = standing()?.repository ?? null;
+  const path = recordFor(repository);
+  if (path === null || path === entryFor(repository)) return path;
+  const home = dirname(dirname(borrowing(configPath()).path));
+  return fail(`${said}: ${what} would be written to ${path}, this machine's record of the project, which this home `
+    + `reads under ${BORROW_VAR} because it holds no record of its own at ${entryFor(repository)}. Nothing was written. `
+    + `Write it where it lives, from a shell that does not borrow: ${BORROW_VAR}= XDG_CONFIG_HOME=${home} `
+    + "and the same command.");
+};
 
 /** Where a project value was read from, which is what `forge doctor` prints after its arrow (BR-08).
  *  A directory belonging to no checkout has no such file, and the bare name is what a message about
