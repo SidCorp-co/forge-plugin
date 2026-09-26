@@ -206,7 +206,7 @@ const formsTaken = (kind) => (SHAPES[kind]?.fields ?? [])
   .filter((one) => one.form)
   .map((one) => `--${one.flag} takes ${one.form}.`);
 
-/* The fields a kind declares one of per record, and the unit that record carries: the help line and the refusal of a repeat are both read off this, so the two cannot say different things (ISS-234). */
+/* The fields declaring `onePer`, and its unit: machine.mjs says what the declaration means. */
 const onePerOf = (kind) => {
   const fields = (SHAPES[kind]?.fields ?? []).filter((one) => one.onePer);
   return fields.length ? { fields, unit: fields[0].onePer } : null;
