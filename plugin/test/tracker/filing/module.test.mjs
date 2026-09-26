@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 const home = tempHome("module-filing");
@@ -93,6 +93,26 @@ test("forge feedback --module files the note on the plugin's project under that 
   const listed = state.calls.find((one) => one.name === "forge_labels");
   assert.equal(listed.slug, OWN.slug, "the modules read are the plugin project's, where the note goes");
   assert.match(run.stdout, /under surface, its primary module, read back from the tracker\.$/mu);
+});
+
+/* A checkout of some other project, whose tracker defines a module of the same name under another
+   id: any project but the plugin's answers that definition, so a label read aimed wrong is seen. */
+const caller = projectRoom(tempRoom("module-filing-caller-"), tracker.env.XDG_CONFIG_HOME, { slug: "caller-app" });
+
+test("forge feedback --module from another project's checkout reads the plugin project's modules", async () => {
+  before({
+    ...keeping(),
+    forge_labels: (args) => (args.action !== "list" ? undefined : state.calls.at(-1).slug === OWN.slug
+      ? [{ id: "m-plugin-surf", name: "surface", kind: "module", parentId: null, description: null }]
+      : [{ id: "m-caller-surf", name: "surface", kind: "module", parentId: null, description: null }]),
+  });
+  const run = await ranAsync(FORGE, ["feedback", bodyFile(), "--title", TITLE, "--module", "surface", "--new"], ENV, caller);
+  assert.equal(run.status, 0, run.stderr);
+  const listed = state.calls.filter((one) => one.name === "forge_labels");
+  assert.deepEqual(listed.map((one) => one.slug), [OWN.slug], "the one label read went to the plugin's project");
+  assert.deepEqual(created().args.data.labels, [{ labelId: "m-plugin-surf", isPrimary: true }],
+    "the primary is the plugin project's surface, not the caller's module of that name");
+  assert.equal(created().slug, OWN.slug, "and the note itself went there");
 });
 
 test("a --module the project does not define is refused before anything is filed, naming the way to define it", async () => {

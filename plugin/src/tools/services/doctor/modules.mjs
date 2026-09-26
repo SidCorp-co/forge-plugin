@@ -97,12 +97,28 @@ const named = (modules, name, what) => {
   return found;
 };
 
+/* The two words a module may not be called: `none` is what --parent and --to take for no module, and
+   `unset` is the rank's row for an issue carrying none, so a module under either name could be
+   neither selected nor weighed as itself. */
+const RESERVED = [NONE, UNSET];
+
+/* `none` read as no module, and refused where the tracker holds a module by that name, which the
+   word could then mean either way. */
+const noneMeant = (modules, flag) => {
+  if (modules.some((one) => one.name === NONE)) {
+    fail(`${VERB}: ${flag} none means no module, and this project also defines a module named \`none\`, so the `
+      + "word names both. Nothing was sent. Rename that module on the tracker's own screen, then send this again.");
+  }
+  return true;
+};
+
 /* The parent a write sends: `none` is the top, any other word a module this project defines. */
 const parentFor = (modules, given) => (given === undefined ? undefined
-  : given === NONE ? null : named(modules, given, "--parent").id);
+  : given === NONE && noneMeant(modules, "--parent") ? null : named(modules, given, "--parent").id);
 
-/* The module as the tracker now lists it, held to what the write sent: a field the tracker took
-   and did not keep reads the same to a caller as one it kept, unless this says otherwise. */
+/* The module as the tracker now lists it, held to what the write posted — a project writing its
+   prose in another language posts a rewrite of the description typed — since a field the tracker
+   took and did not keep reads the same to a caller as one it kept, unless this says otherwise. */
 const readBack = async (id, what, data) => {
   const found = (await defined()).find((one) => one.id === id);
   if (!found) fail(`${VERB}: the tracker answered the ${what} and a read of its labels holds no module ${id}.`);
@@ -119,14 +135,20 @@ const said = (module, modules) => `${module.name}, parent ${modules.find((one) =
 
 const added = async (modules, asked) => {
   if (!asked.add.trim()) fail(`${VERB}: --add takes the module's name, not an empty word.`);
+  if (RESERVED.includes(asked.add)) {
+    fail(`${VERB}: \`${asked.add}\` is ${asked.add === NONE ? "what --parent and --to take for no module"
+      : "the rank's row for an issue carrying no module"}, so a module by that name could not be told from it. `
+      + "Nothing was sent: name it otherwise.");
+  }
   if (modules.some((one) => one.name === asked.add)) {
     fail(`${VERB}: \`${asked.add}\` is a module of this project already. Nothing was sent: --edit changes it.`);
   }
   const data = { name: asked.add, kind: MODULE,
     ...(asked.parent === undefined ? {} : { parentId: parentFor(modules, asked.parent) }),
     ...(asked.description === undefined ? {} : { description: asked.description || null }) };
-  const answer = await write("forge_labels", { action: "create", data });
-  const back = await readBack(answer?.id, "create", data);
+  let posted = data;
+  const answer = await write("forge_labels", { action: "create", data }, (sent) => (posted = sent ?? data));
+  const back = await readBack(answer?.id, "create", posted);
   return `Added ${said(back, await defined())}, read back off the tracker.`;
 };
 
@@ -137,8 +159,9 @@ const edited = async (modules, asked) => {
   }
   const data = { ...(asked.parent === undefined ? {} : { parentId: parentFor(modules, asked.parent) }),
     ...(asked.description === undefined ? {} : { description: asked.description || null }) };
-  await write("forge_labels", { action: "update", labelId: module.id, data });
-  const back = await readBack(module.id, "edit", data);
+  let posted = data;
+  await write("forge_labels", { action: "update", labelId: module.id, data }, (sent) => (posted = sent ?? data));
+  const back = await readBack(module.id, "edit", posted);
   return `Edited ${said(back, await defined())}, read back off the tracker.`;
 };
 
@@ -174,7 +197,8 @@ const removed = async (modules, asked) => {
       + `the top unsaid. Nothing was sent. Move each first: ${children.map((one) =>
         `\`forge doctor modules --edit ${one.name} --parent <module|none>\``).join(", ")}.`);
   }
-  const target = asked.to === undefined || asked.to === NONE ? null : named(modules, asked.to, "--to");
+  const target = asked.to === undefined || (asked.to === NONE && noneMeant(modules, "--to"))
+    ? null : named(modules, asked.to, "--to");
   if (target?.id === module.id) fail(`${VERB}: --to names the module being removed. Nothing was sent.`);
   const carriers = await carriersOf(module.id);
   if (!carriers.whole) fail(`${VERB}: the walk of the issues carrying ${module.name} stopped short, so which issues it would strand is unknown. Nothing was sent.`);

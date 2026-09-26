@@ -117,3 +117,14 @@ test("the walk up a module's parents ends at a cycle, and the weight takes the f
   assert.equal(primaryOf([{ labelId: "x", isPrimary: false }, { labelId: "y", isPrimary: true }]), "y");
   assert.equal(primaryOf([{ labelId: "x", isPrimary: false }]), null);
 });
+
+test("a module the tracker calls unset takes its ancestor's row, not the fallback that shares its name", () => {
+  const named = [
+    { id: "p", name: "platform", parentId: null },
+    { id: "u", name: "unset", parentId: "p" },
+  ];
+  assert.deepEqual(weightOf(named[1], named, { platform: 10, unset: 0 }, "unset"),
+    { points: 10, row: "platform", via: "platform" });
+  assert.deepEqual(weightOf({ id: "v", name: "unset", parentId: null }, [], { unset: 3 }, "unset"),
+    { points: 3, row: "unset", via: null }, "with no ancestor it lands on the fallback, said as the fallback");
+});

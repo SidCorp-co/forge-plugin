@@ -42,8 +42,11 @@ const seed = () => {
     issue("ISS-4", "open"),
     issue("ISS-5", "closed", [{ id: "m-surf", isPrimary: true }]),
     issue("ISS-6", "open", [{ id: "m-tool", isPrimary: false }, { id: "m-surf", isPrimary: true }]),
+    issue("ISS-7", "open", [{ id: "m-gate", isPrimary: true }, { id: "m-surf", isPrimary: false }]),
   ];
   state.calls.length = 0;
+  state.page = undefined;
+  delete state.answer.forge_issues;
 };
 
 const sent = (name, action) => state.calls.filter((call) => call.name === name && call.args?.action === action);
@@ -56,9 +59,10 @@ test("the reading names each module's parent, description and open primaries, an
   assert.match(run.stdout, /^3 module\(s\) on the tracker of modules-fixture\.$/mu, "a plain label is no module");
   assert.match(run.stdout, /^ {2}tooling {2}parent none {2}0 open as primary/mu);
   assert.match(run.stdout, /^ {6}What the repository's own gate runs on\.$/mu, "its description under it");
-  assert.match(run.stdout, /^ {4}gate {2}parent tooling {2}1 open as primary/mu, "a child indented under its parent");
-  assert.match(run.stdout, /^ {2}surface {2}parent none {2}2 open as primary/mu, "a closed issue is not open");
-  assert.match(run.stdout, /^2 of 5 open issue\(s\) carry no module \(40%\)\.$/mu,
+  assert.match(run.stdout, /^ {4}gate {2}parent tooling {2}2 open as primary/mu, "a child indented under its parent");
+  assert.match(run.stdout, /^ {2}surface {2}parent none {2}2 open as primary/mu,
+    "a closed issue is not open, and a secondary carrier is not a primary one");
+  assert.match(run.stdout, /^2 of 6 open issue\(s\) carry no module \(33%\)\.$/mu,
     "a plain label is not a module, and the share is over every open issue");
   assert.deepEqual(writes(), [], "a reading writes nothing");
 });
@@ -119,8 +123,8 @@ test("--remove of a module issues carry sends no delete and names how many and t
   seed();
   const run = await ran(["modules", "--remove", "surface"]);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /3 issue\(s\) carry surface, and the tracker refuses a delete while any does\. Nothing was sent\./u,
-    "the closed issue carries it too, and holds the delete back like the open ones");
+  assert.match(run.stderr, /4 issue\(s\) carry surface, and the tracker refuses a delete while any does\. Nothing was sent\./u,
+    "the closed issue and the secondary carrier hold the delete back like the open primaries");
   assert.match(run.stderr, /`forge doctor modules --remove surface --to <module>`/u);
   assert.match(run.stderr, /`--to none`/u);
   assert.deepEqual(writes(), []);
@@ -137,6 +141,7 @@ test("--remove of a module holding a child sends no delete and names the child's
 
 test("--remove --to moves every carrier onto the target keeping its primary, and deletes only after", async () => {
   seed();
+  state.page = 2;
   const run = await ran(["modules", "--remove", "surface", "--to", "tooling"]);
   assert.equal(run.status, 0, run.stderr);
   const byKey = (key) => state.issues.find((one) => one.issueId === key).labels;
@@ -144,9 +149,43 @@ test("--remove --to moves every carrier onto the target keeping its primary, and
   assert.deepEqual(byKey("ISS-5"), [{ id: "m-tool", isPrimary: true }], "a closed carrier moves too");
   assert.deepEqual(byKey("ISS-6"), [{ id: "m-tool", isPrimary: true }],
     "where it already carried the target, the target takes the primary the removed one held");
-  const order = writes().map((call) => call.method);
-  assert.deepEqual(order, ["PATCH", "PATCH", "PATCH", "DELETE"], "three moves, then the one delete");
-  assert.match(run.stdout, /^Removed surface, read back gone off the tracker\. 3 issue\(s\) moved to tooling, each read back\.$/mu);
+  assert.deepEqual(byKey("ISS-7"), [{ id: "m-gate", isPrimary: true }, { id: "m-tool", isPrimary: false }],
+    "a secondary carrier gets the target as secondary, its own primary kept");
+  const walked = state.calls.filter((call) => call.args?.action === "attributed" && call.args.module === "m-surf");
+  assert.equal(walked.length, 3, "two pages of two find the four carriers, and one empty page finds none left");
+  const moves = state.calls.filter((call) => ["PATCH", "DELETE"].includes(call.method)
+    || (call.method === "GET" && /^\/api\/issues\/[^/]+$/u.test(call.path)));
+  const shape = moves.map((call) => (call.method === "GET" ? `GET ${call.path.split("/").pop()}` : call.method));
+  assert.deepEqual(shape.filter((one) => !one.startsWith("GET")), ["PATCH", "PATCH", "PATCH", "PATCH", "DELETE"],
+    "four moves, then the one delete");
+  for (const [at, one] of shape.entries()) {
+    if (one === "PATCH") assert.match(shape[at + 1] ?? "", /^GET u-ISS-\d$/u, "every move is read back before the next write");
+  }
+  assert.match(run.stdout, /^Removed surface, read back gone off the tracker\. 4 issue\(s\) moved to tooling, each read back\.$/mu);
+});
+
+test("--remove --to sends no delete where a move does not read back as written", async () => {
+  seed();
+  state.answer.forge_issues = (args) => (args.action === "update"
+    ? { documentId: args.documentId } : undefined);
+  const run = await ran(["modules", "--remove", "gate", "--to", "none"]);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /ISS-\d did not move off gate: .* So gate was not deleted\. The same call again moves the issues still carrying it\./su);
+  assert.deepEqual(sent("forge_labels", "delete"), [], "the delete waits on every move reading back");
+});
+
+test("a module may not be called none or unset, and none is refused where a module holds that name", async () => {
+  seed();
+  for (const name of ["none", "unset"]) {
+    const run = await ran(["modules", "--add", name]);
+    assert.equal(run.status, 1, name);
+    assert.match(run.stderr, new RegExp(`\`${name}\` is .*, so a module by that name could not be told from it\. Nothing was sent`, "u"));
+  }
+  state.labels.push(module("m-none", "none"));
+  const ambiguous = await ran(["modules", "--remove", "gate", "--to", "none"]);
+  assert.equal(ambiguous.status, 1);
+  assert.match(ambiguous.stderr, /--to none means no module, and this project also defines a module named `none`/u);
+  assert.deepEqual(writes(), []);
 });
 
 test("--remove --to none takes the module off every carrier, other labels kept, then deletes it", async () => {
@@ -154,8 +193,9 @@ test("--remove --to none takes the module off every carrier, other labels kept, 
   const run = await ran(["modules", "--remove", "gate", "--to", "none"]);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(state.issues.find((one) => one.issueId === "ISS-1").labels, [{ id: "l-bug", isPrimary: false }]);
+  assert.deepEqual(state.issues.find((one) => one.issueId === "ISS-7").labels, [{ id: "m-surf", isPrimary: false }]);
   assert.deepEqual(sent("forge_labels", "delete").map((call) => call.args.labelId), ["m-gate"]);
-  assert.match(run.stdout, /1 issue\(s\) moved off it, each read back\./u);
+  assert.match(run.stdout, /2 issue\(s\) moved off it, each read back\./u);
 });
 
 test("a name the project does not define is refused before anything is sent, naming what is defined", async () => {
@@ -178,7 +218,7 @@ test("a name the project does not define is refused before anything is sent, nam
 test("the project reading prints the module count and the unassigned share on one row", async () => {
   seed();
   const run = await ran(["project"]);
-  assert.match(run.stdout, /\[ {2}ok {2}\] modules {16}3 defined; 2 of 5 open issue\(s\) carry none \(40%\) — `forge doctor modules`$/mu);
+  assert.match(run.stdout, /\[ {2}ok {2}\] modules {16}3 defined; 2 of 6 open issue\(s\) carry none \(33%\) — `forge doctor modules`$/mu);
   state.labels = [];
   const none = await ran(["project"]);
   assert.match(none.stdout, /\[ {2}ok {2}\] modules {16}none defined, so every open issue carries none \(100%\)/mu);

@@ -52,11 +52,12 @@ export const lineOf = (module, modules) => {
 };
 
 /** What a module scores under `table`: its own row, else the nearest ancestor's, else `unset`.
- *  `row` is the key that answered and `via` the ancestor it belongs to where that is not the module. */
+ *  `row` is the key that answered and `via` the ancestor it belongs to where that is not the module.
+ *  A module the tracker lets be called `unset` has no row of its own, that key being the fallback's. */
 export const weightOf = (module, modules, table, unset) => {
   if (module) {
     for (const [depth, one] of lineOf(module, modules).entries()) {
-      if (Object.hasOwn(table, one.name)) {
+      if (one.name !== unset && Object.hasOwn(table, one.name)) {
         return { points: table[one.name], row: one.name, via: depth ? one.name : null };
       }
     }
