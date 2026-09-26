@@ -12,7 +12,8 @@ import { modelKey, numbered } from "./log/replies.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { rungIn } from "./codex-plan.mjs";
 import { anglesOf, groupsOf, promptKey, roundKindsOf, statsOf } from "./stats/figures.mjs";
-import { angleLines, groupLines, groupedLines, roundKindLines, scoreLine, statLines } from "./stats/lines.mjs";
+import { angleLines, groupLines, groupedLines, readsLine, roundKindLines, scoreLine, statLines } from "./stats/lines.mjs";
+import { readFigures } from "./log/reads.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -44,8 +45,9 @@ export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) =>
 /* The groupings `--by` takes, the window being one group of itself. */
 const BY = { window: () => "the window", model: modelKey, prompt: promptKey };
 
-const windowGroupLines = (group, rows, verdicts) => [
+const windowGroupLines = (group, rows, verdicts, entries) => [
   ...statLines(group.stats),
+  readsLine(readFigures(rows, answered(entries))),
   scoreLine(group.key, group.score),
   "\nby round kind, a retried consult counted apart from the calls it reached",
   ...roundKindLines(roundKindsOf(rows)),
@@ -69,7 +71,7 @@ export const printStats = (rest) => {
     + `${by === "window" ? "" : `, by ${by}`}\n`);
   const verdicts = entries.filter((one) => one.kind === "verdict");
   const groups = groupsOf(rows, verdicts, BY[by]);
-  const lines = by === "window" ? windowGroupLines(groups[0], rows, verdicts) : groups.flatMap(groupedLines);
+  const lines = by === "window" ? windowGroupLines(groups[0], rows, verdicts, entries) : groups.flatMap(groupedLines);
   for (const line of lines) console.log(line);
   console.log("\nWhether a reply could not check, and whether a recheck raised something New, are read "
     + "from the reply itself where the row predates the field, so both windows are counted the same way. "

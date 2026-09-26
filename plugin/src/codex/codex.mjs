@@ -51,9 +51,11 @@ import {
   logConsult,
   logEntries,
   loggedWithMark,
+  runOf,
   sentFrom,
   verdictsBy,
 } from "./codex-log.mjs";
+import { placeLine } from "./log/reads.mjs";
 import {
   numbered,
   historyFor,
@@ -228,7 +230,7 @@ const checkSaid = (reach) => {
 };
 
 /* Everything the run is told once the round is done, in one place: this list is what a run reads to decide whether the review answered, and the check's own word sits in it rather than two thirds of the way down a reply. */
-const toldAfter = (held, reach, { left, since, crossing }) => {
+const toldAfter = (held, reach, { left, since, crossing, place }) => {
   const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
   const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");
   if (spent) console.error(`codex: ${held.calls} call(s), tools it ran: ${spent}.`);
@@ -236,7 +238,7 @@ const toldAfter = (held, reach, { left, since, crossing }) => {
   if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
   if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
   if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
-  if (crossing) console.error(crossingSaid(crossing));
+  for (const line of [crossing && crossingSaid(crossing), place]) if (line) console.error(line);
 };
 
 /* Read where `show` reads it, and a name not on the list is refused rather than sent, because a role
@@ -436,7 +438,7 @@ const consult = async (given) => {
     /* Buffered while a retry was still possible, so the review lands here in one piece. */
     if (!held.streamed) process.stdout.write(held.text);
     process.stdout.write("\n");
-    const crossing = loggedWithMark({
+    const finished = {
       ...record,
       kind: "consult",
       ms: Date.now() - started,
@@ -456,14 +458,16 @@ const consult = async (given) => {
       ...checkRow(reach),
       ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
       reply: held.text,
-    });
+    };
+    const crossing = loggedWithMark(finished);
     const { clear, held: standing } = clearableOf(root, record.sent);
     const { left, since } = clearConsulted(root, clear);
     if (standing.length) console.error(`codex: ${heldSaid(standing)}`);
     if (plan) {
       console.error(`codex: ${ruledSaid(plan, offset, held.text, id, entries)}`);
     }
-    toldAfter(held, reach, { left, since, crossing });
+    const place = placeLine(entries, { ...finished, run: runOf() }, { keys: issues, run: runOf(), here: hereOf(root) });
+    toldAfter(held, reach, { left, since, crossing, place });
   } catch (error) {
     logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message, ...checkRow(reach) });
     if (checkSaid(reach)) console.error(checkSaid(reach));

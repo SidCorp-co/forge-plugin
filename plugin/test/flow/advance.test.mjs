@@ -3,9 +3,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
+import { repoRoot } from "../../src/git/repo-root.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record/page.mjs");
@@ -482,11 +485,13 @@ const LANDED = {
   description: "no mark here",
   mergedAt: "2026-09-03T09:00:00.000Z",
 };
+/* A `fix`, so the count has an allowance to be printed beside (ISS-1090). */
+const READING = { ...OPEN, documentId: "reading-uuid", issueId: "ISS-97", description: "no mark here", complexity: "s" };
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" },
-    EARNS, LOOKING, QUIET, LANDED, STALE],
+    EARNS, LOOKING, QUIET, LANDED, STALE, READING],
   comments: {
     "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
     "looking-uuid": [passed(), recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
@@ -576,3 +581,20 @@ test("a drop is refused once the merged mark is set, and it is the mark that ref
   swap({});
 });
 
+/* The count is read off the consult log in the home the verb runs under, for the repository it
+   stands in, so a run learns what it has spent from the same call that says what it owes. */
+test("--owed prints the issue's whole-set reads beside what its rung allows", async () => {
+  const root = repoRoot(process.cwd());
+  const read = (head, id) => JSON.stringify({
+    kind: "consult", id, ok: true, root, at: id, files: ["a.mjs"], sent: [{ rel: "a.mjs", chars: 9, clipped: false }],
+    send: "bodies", head, issues: ["ISS-97"], reply: "CODEX: 0 findings",
+  });
+  mkdirSync(join(ENV.XDG_CONFIG_HOME, "forge"), { recursive: true });
+  writeFileSync(join(ENV.XDG_CONFIG_HOME, "forge", "codex-log.jsonl"),
+    `${[read("aaaaaaa", "1"), read("bbbbbbb", "2"), read("bbbbbbb", "3")].join("\n")}\n`);
+  const run = await owed("ISS-97");
+  assert.match(run.stdout, /Whole-set reads of ISS-97 in this repository, off the consult log: 3, and the 1 a `fix` allows\. That is past the allowance/u, run.stdout);
+  assert.match(run.stdout, /\n {2}aaaaaaa {2}first\n {2}bbbbbbb {2}recheck — [^\n]*\n {2}bbbbbbb {2}repeat — /u);
+  const none = await owed("ISS-92");
+  assert.match(none.stdout, /Whole-set reads of ISS-92 in this repository, off the consult log: none yet, and a `feature` states no allowance\./u);
+});

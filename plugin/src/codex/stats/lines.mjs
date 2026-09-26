@@ -23,6 +23,10 @@ export const statLines = (held) => {
   ];
 };
 
+/** The window's whole-set reads, off `readFigures`, under its own figures. */
+export const readsLine = ({ reads, runs, rechecks, repeats }) => `whole-set reads   ${reads} over ${runs} run(s), `
+  + `${rechecks} recheck(s) at a head not read before, ${repeats} repeat(s) of a head already read`;
+
 export const roundKindLines = (kinds) => kinds.map(({ name, consults, sent, cached, retried, calls }) => {
   const label = `${name.padEnd(8)} ${String(consults).padStart(4)} consult(s)`;
   if (!consults) return `${label}  none in this window`;
