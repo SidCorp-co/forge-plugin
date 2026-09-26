@@ -39,8 +39,9 @@ session where to file a refusal thought wrong — and those are read past, from 
 harness prints them from. Read as last lines, they turned every full gate refusal into an error.
 
 **A repeat is a refusal too.** The shown ledger cuts a refusal the session has already seen to one
-line naming the route, and that line is an opener of its own; the row is that line, so a rule met
-again is counted under the route rather than beside its first wording. Where the ledger cut it to
+line, and that line is an opener of its own. It names the rule beside the route, so the report counts
+a rule met again under the cause its full refusal is counted under; the row is the line, which names
+the span refused, so a listing splits one rule by the commands that met it. Where the ledger cut it to
 the lines not seen yet instead, no opener is left, and on a failed call the harness's sentence that
 nothing in the command ran is what says a gate refused it. A one-command call cut that way carries
 neither, and is counted with the errors: telling it apart would need the hook log joined to the

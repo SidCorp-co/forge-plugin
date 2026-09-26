@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { FROZEN } from "../../src/tools/plugin-copy.mjs";
 import { ROUTE_NOT_VERDICT } from "../../src/hooks/log/hook-log.mjs";
+import { appendedLine } from "../../src/refusal.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
 import { callHook, escaped, pathed, tempRoom } from "../fixtures.mjs";
 
@@ -130,7 +131,8 @@ test("the refusal states the rule and gives one action, and the page it names an
   assert.match(held.reason, /reaches a session only at its next start/u, held.reason);
   assert.match(held.reason, /every open session runs the old copy until then/u, held.reason);
   assert.match(held.reason, /^Hold — say in one line why no live home fits/u, held.reason);
-  assert.match(held.reason, /How: `forge hooks --how restart-owed`$/u, held.reason);
+  const last = held.reason.trim().split("\n").findLast((line) => line.trim() && !appendedLine(line));
+  assert.equal(last, "How: `forge hooks --how restart-owed`", held.reason);
 
   const page = spawnSync(process.execPath, [CLI, "hooks", "--how", "restart-owed"], { encoding: "utf8", env: ENV });
   assert.equal(page.status, 0, page.stderr);

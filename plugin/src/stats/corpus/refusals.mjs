@@ -2,7 +2,7 @@
 import { VERB_NAMES } from "../../resolve/visibility.mjs";
 import { escaped } from "../../markdown.mjs";
 import { WHOLE, appendedLine } from "../../refusal.mjs";
-import { held } from "../../shown/ledger.mjs";
+import { HELD_OPENS } from "../../shown/ledger.mjs";
 
 /* The harness's own sentence is cut off the line it shares, so a repeat keys on the rule it names. */
 const shortened = (line) =>
@@ -14,14 +14,15 @@ const shortened = (line) =>
    body that only quotes a refusal goes on printing past it. */
 const GATE_HOW = /^How: `forge hooks --how (?<topic>\S+)`(?: \(cause: (?<gate>[\w.-]+)\/(?<cause>[\w.-]+)\))?$/u;
 
-/* A line naming the page it points at, as the shown ledger's repeat does in place of the How line. */
-const PAGE = /`forge hooks --how (?<topic>[^\s`]+)`/u;
+/* A line naming the page it points at, as the shown ledger's repeat does in place of the How line,
+   and the rule it names beside it where the repeat carries one. */
+const PAGE = /`forge hooks --how (?<topic>[^\s`]+)`(?: \(cause: (?<gate>[\w.-]+)\/(?<cause>[\w.-]+)\))?/u;
 
 /* The host names the event ahead of a denial it relays from a hook, which is not the gate's text. */
 const HOST_SAID = /^\S+:\S+ hook error: /u;
 
-/* The shown ledger's one-line repeat, opening on the words `held()` writes ahead of the route. */
-const AGAIN = escaped(held("\u0000").split("`")[0]);
+/* The shown ledger's one-line repeat, in either of the forms it has been written in. */
+const AGAIN = escaped(HELD_OPENS);
 
 /* A gate's openers, the shown ledger's repeat and the transport's `<name> refused:`, the rule after
    the colon for a transport failure and on the next line for a tool's. Read first: a refusal opening
@@ -88,6 +89,7 @@ const gateOf = ({ rule, lines }) => {
   if (how?.groups.cause) return { gate: how.groups.gate, cause: how.groups.cause };
   if (how) return { gate: how.groups.topic, cause: null };
   const page = PAGE.exec(rule);
+  if (page?.groups.cause) return { gate: page.groups.gate, cause: page.groups.cause };
   return page ? { gate: page.groups.topic, cause: null } : null;
 };
 

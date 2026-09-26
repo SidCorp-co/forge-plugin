@@ -64,6 +64,64 @@ test("a rule this session already read in full is refused again in one line", ()
   assert.match(other.reason, /stages everything in the tree/u, "another session is owed the whole of it");
 });
 
+/* As the harness calls a subagent's hook: the event names the dispatcher in `session_id` and the run
+   only in `agent_id`, and the process carries the wave's id and none of the run's. */
+const WAVE_HOME = homeEnv("bash-guard-wave");
+const asAgent = (agent, command, { cwd = DIRTY, session = "the-dispatcher" } = {}) => {
+  const env = { ...WAVE_HOME, CLAUDE_CODE_SESSION_ID: "the-wave" };
+  delete env.FORGE_SESSION_ID;
+  const event = { session_id: session, agent_id: agent, tool_name: "Bash", tool_input: { command }, cwd };
+  const run = callHook(HOOK, event, env);
+  assert.equal(run.status, 0, run.stderr);
+  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+};
+
+/* AC-10-5-5, through the hook. Every sighting on ISS-1028 was this: a sibling of one wave was told it
+   had read a paragraph only another agent of the wave was shown, and so never learned the rule. */
+test("an agent is shown a rule's whole paragraph that only a sibling agent of its session read", () => {
+  const session = randomUUID();
+  const first = asAgent("agent-one", `${STAGE_ALL} && git commit -m one`, { session });
+  assert.match(first, /stages everything in the tree/u, "the first agent reads the paragraph");
+  const sibling = asAgent("agent-two", `${STAGE_ALL} && git commit -m two`, { session });
+  assert.match(sibling, /stages everything in the tree/u, "and so does its sibling, which never saw it");
+  assert.doesNotMatch(sibling, /^Refused again/u, "with no claim that it was already shown");
+});
+
+/* The tree's own id is the other key a run fell to, and a dispatcher and a resumed run share a tree. */
+test("two agents standing in one tree that names one run are each shown the paragraph", () => {
+  const tree = dirtyRepo();
+  writeFileSync(join(tree, ".git", "forge-run-id"), `iss-1-${randomUUID().slice(0, 8)}\n`);
+  const session = randomUUID();
+  const first = asAgent("in-tree-one", `${STAGE_ALL} && git commit -m one`, { session, cwd: tree });
+  assert.match(first, /stages everything in the tree/u);
+  const second = asAgent("in-tree-two", `${STAGE_ALL} && git commit -m two`, { session, cwd: tree });
+  assert.match(second, /stages everything in the tree/u, "the tree's id discharges nothing for another agent");
+});
+
+/* AC-10-5-2's line, and what it now carries: the span that tripped the rule, the rule's own instead
+   and its name, so the repeat is acted on without a read of the page (ISS-1028). */
+test("the one-line repeat quotes the span refused, the rule's instead and its cause", () => {
+  const session = randomUUID();
+  asAgent("repeater", `cd ${DIRTY} && ${STAGE_ALL} && git commit -m one`, { session });
+  const again = asAgent("repeater", `echo hi && ${STAGE_ALL}  &&  git status`, { session });
+  const line = again.split("\n");
+  assert.equal(line.length, 1, "one line");
+  assert.match(again, /^Refused again — /u, "which reads as a refusal");
+  assert.ok(again.includes(`\`${STAGE_ALL}\``), `the span that tripped it is quoted: ${again}`);
+  assert.ok(again.includes("stage the paths you changed, explicitly."), "the rule's instead is carried");
+  assert.ok(again.includes("`forge hooks --how bash-guard` (cause: bash-guard/stage-everything)"),
+    "and the page and the rule are named");
+});
+
+test("a polling repeat names its topic page and the rule under the gate that refused it", () => {
+  const session = randomUUID();
+  const wait = "until grep -q done log.txt; do sleep 5; done";
+  assert.match(asAgent("poller", wait, { session }), /A sleep inside a wait polls/u);
+  const again = asAgent("poller", wait, { session });
+  assert.ok(again.includes("`sleep 5`"), again);
+  assert.ok(again.includes("`forge hooks --how polling` (cause: bash-guard/sleep-in-wait)"), again);
+});
+
 /* One home across these cases, because the ledger lives in it: a fresh one per call would owe every
    paragraph again and the repeat this rule is about could not happen. Sessions keep them apart. */
 const FILING_HOME = homeEnv("bash-guard-filing");
@@ -113,6 +171,21 @@ test("a session is told where to file once, so a repeat stays the one line it wa
   const again = refusedIn(BUGS, session, `${STAGE_ALL} .`);
   assert.equal(again.split("\n").length, 1, "the second is one line");
   assert.doesNotMatch(again, /forge feedback/u, "and carries no filing line to make it two");
+});
+
+/* The filing line is said once per reader too, and the reader is the transcript, as for the paragraph. */
+test("the filing line reaches a subagent that a sibling agent of its session was told it before", () => {
+  const session = randomUUID();
+  const refused = (agent) => {
+    const env = { ...FILING_HOME, CLAUDE_CODE_SESSION_ID: "the-wave" };
+    delete env.FORGE_SESSION_ID;
+    const event = { session_id: session, agent_id: agent, tool_name: "Bash", tool_input: { command: STAGE_ALL }, cwd: DIRTY };
+    const run = callHook(HOOK, event, env, BUGS);
+    assert.equal(run.status, 0, run.stderr);
+    return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+  };
+  assert.match(refused("files-first"), FILES_IT, "the first agent is told where to file");
+  assert.match(refused("files-second"), FILES_IT, "and so is its sibling");
 });
 
 /* Twice in one session a heredoc was refused for holding the command in a *string literal*. */

@@ -17,7 +17,7 @@ writeFileSync(
 process.env.XDG_CONFIG_HOME = HOME.path;
 standsInNoTree("shown-ledger");
 
-const { digestOf, held, lastShown, noteShown, owedOf, sayIfChanged, sayOnce, sessionKey } =
+const { digestOf, held, lastShown, noteShown, owedOf, readerKey, sayIfChanged, sayOnce, sessionKey } =
   await import("../../src/shown/ledger.mjs");
 const { creditedTo } = await import("../../src/shown/journal.mjs");
 
@@ -137,4 +137,32 @@ test("the subagent's credit is written under its own id and not its dispatcher's
   assert.ok(worker.has(digestOf("A paragraph only the worker was shown.")), "the worker holds its own");
   assert.equal(boss.has(digestOf("A paragraph only the worker was shown.")), false,
     "and the dispatcher was credited for nothing the worker read");
+});
+
+/* The key a hook's text is credited under is the transcript its event names, whatever id the hook
+   process resolves: inside a subagent that id is the wave's, which every sibling holds (ISS-1028). */
+test("a hook's reader is the event's session joined with its agent, never the wave's id", () => {
+  const env = { ...process.env };
+  delete process.env.FORGE_SESSION_ID;
+  process.env.CLAUDE_CODE_SESSION_ID = "the-wave";
+  try {
+    const one = readerKey({ session_id: "the-dispatcher", agent_id: "agent-one" });
+    const two = readerKey({ session_id: "the-dispatcher", agent_id: "agent-two" });
+    assert.notEqual(one, two, "two agents of one session are two readers");
+    assert.equal(readerKey({ session_id: "the-dispatcher" }), "the-dispatcher", "the session itself reads as its own");
+    assert.equal(readerKey({}), "the-wave", "and an event naming no session falls back to the resolved id");
+    noteShown(one, "bash-guard", PARAGRAPH);
+    assert.equal(owedOf(two, "bash-guard", PARAGRAPH).owed, true, "what one agent read is owed to the other");
+  } finally {
+    for (const name of ["FORGE_SESSION_ID", "CLAUDE_CODE_SESSION_ID"]) {
+      if (env[name]) process.env[name] = env[name]; else delete process.env[name];
+    }
+  }
+});
+
+test("a repeat given the shape it refused carries it on its one line", () => {
+  const again = held("bash-guard", { shape: "`git add -A`: stage the paths you changed.", cause: "bash-guard/stage-everything" });
+  assert.equal(again.split("\n").length, 1);
+  assert.match(again, /^Refused again — `git add -A`: stage the paths you changed\. /u);
+  assert.ok(again.endsWith("`forge hooks --how bash-guard` (cause: bash-guard/stage-everything)"), again);
 });
