@@ -56,8 +56,8 @@ const follows = (request) => {
   }) };
 };
 
-const answeredLine = (id, question, answer) => JSON.stringify({
-  type: "user", timestamp: "2026-09-24T08:00:00.000Z",
+const answeredLine = (id, question, answer, cwd) => JSON.stringify({
+  type: "user", timestamp: "2026-09-24T08:00:00.000Z", cwd,
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "answered" }] },
   toolUseResult: { questions: [question], answers: { [question.question]: answer } },
 });
@@ -71,7 +71,7 @@ const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], dec
   const store = join(home, ".claude", "projects", slugFor(repo));
   mkdirSync(store, { recursive: true });
   writeFileSync(join(store, "s1.jsonl"),
-    precedents.map(([question, answer], at) => `${answeredLine(`toolu_old${at}`, question, answer)}\n`).join(""));
+    precedents.map(([question, answer], at) => `${answeredLine(`toolu_old${at}`, question, answer, repo)}\n`).join(""));
   const gateway = await standIn(decide);
   writeFileSync(join(home, "proxy.env"), [`ANTHROPIC_BASE_URL="http://127.0.0.1:${gateway.port}"`,
     "ANTHROPIC_AUTH_TOKEN=sk-stand-in", 'ANTHROPIC_DEFAULT_FABLE_MODEL="cx/judge"', 'ANTHROPIC_DEFAULT_OPUS_MODEL="cx/judge"'].join("\n"));
@@ -226,7 +226,7 @@ test("a question this gate decided never joins the layer when the transcript hol
   const held = await project({ asks: { mode: "decide" } });
   await ask(held, [reportQuestion()], { id: "toolu_self" });
   /* The host writes the gate's own answer into the transcript as if the owner had given it. */
-  writeFileSync(join(held.store, "s2.jsonl"), `${answeredLine("toolu_self", reportQuestion(), OPTIONS[0].label)}\n`);
+  writeFileSync(join(held.store, "s2.jsonl"), `${answeredLine("toolu_self", reportQuestion(), OPTIONS[0].label, held.repo)}\n`);
   await ask(held, [reportQuestion()], { id: "toolu_next" });
   held.gateway.close();
   const ids = readFileSync(join(held.room, "precedents.jsonl"), "utf8").split("\n").filter(Boolean).map((one) => JSON.parse(one).id);

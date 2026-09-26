@@ -12,8 +12,8 @@ import { decidedIds, logOutcome } from "../../src/asks/decided.mjs";
 const QUESTION = { question: "Where should each day's report go?", header: "Delivery",
   options: [{ label: "A file on this device (Recommended)" }, { label: "A page on the tracker" }] };
 
-const answered = (id, question, answer, notes) => `${JSON.stringify({
-  type: "user", timestamp: "2026-09-24T08:00:00.000Z",
+const answered = (id, question, answer, notes, cwd) => `${JSON.stringify({
+  type: "user", timestamp: "2026-09-24T08:00:00.000Z", cwd,
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "answered" }] },
   toolUseResult: { questions: [question], answers: { [question.question]: answer },
     ...(notes ? { annotations: { [question.question]: { notes } } } : {}) },
@@ -213,4 +213,19 @@ test("a link out of the project's own transcripts is never read, and leaves the 
   writeFileSync(join(inside.source, "session", "real.jsonl"), answered("toolu_in", QUESTION, "A page on the tracker"));
   symlinkSync(join(inside.source, "session"), join(inside.source, "linked"));
   assert.equal(refreshLayer(inside).complete, true, "while one landing inside them is read as they are");
+});
+
+test("a row is this project's only where its session stood in this repository, whatever directory the host filed it under", () => {
+  const paths = { ...layer(), repository: "/work/team/app" };
+  const file = join(paths.source, "s1.jsonl");
+  writeFileSync(file, [
+    answered("toolu_here", QUESTION, "A page on the tracker", null, "/work/team/app"),
+    answered("toolu_below", QUESTION, "A page on the tracker", null, "/work/team/app/plugin"),
+    answered("toolu_theirs", QUESTION, "A file on this device (Recommended)", null, "/work/team-app"),
+  ].join(""));
+  assert.deepEqual(refreshLayer(paths), { added: 2, complete: true });
+  assert.deepEqual(precedentsIn(paths).map((one) => one.id).sort(), ["toolu_below#0", "toolu_here#0"],
+    "the repository whose path collapses to the same slug is another project");
+  appendFileSync(file, answered("toolu_unsaid", QUESTION, "A page on the tracker"));
+  assert.deepEqual(refreshLayer(paths), { added: 0, complete: false }, "and a row that does not say where it stood is doubt");
 });

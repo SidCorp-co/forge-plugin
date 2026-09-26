@@ -21,6 +21,7 @@ export const layerPaths = (room, repository = projectRepository()) => (room && r
       precedents: join(room, "precedents.jsonl"),
       scanned: join(room, "scanned.json"),
       source: join(durableBase(), slugFor(repository.replace(/\/+$/u, "") || "/")),
+      repository: repository.replace(/\/+$/u, "") || "/",
     }
   : null);
 
@@ -126,7 +127,15 @@ const MARKS = [Buffer.from("\"toolUseResult\""), Buffer.from(DECISION_FOOTER)];
 
 /** The rows one line holds; null for a line that should hold some and cannot be read, which the
  *  build treats as evidence it has not seen rather than evidence that is not there. */
-const rowsOfLine = (bytes, skip) => {
+/* The host names a project's transcript directory by a slug two repositories can share, so a row is
+   this project's only where the session that wrote it stood in this repository. One that says where it
+   stood elsewhere is another project's; one that does not say cannot be told apart, and is doubt. */
+const standsIn = (record, repository) => {
+  if (typeof record?.cwd !== "string" || !record.cwd) return null;
+  return record.cwd === repository || record.cwd.startsWith(`${repository}/`);
+};
+
+const rowsOfLine = (bytes, skip, repository) => {
   if (!MARKS.some((one) => bytes.includes(one))) return [];
   let record;
   try {
@@ -134,7 +143,11 @@ const rowsOfLine = (bytes, skip) => {
   } catch {
     return null;
   }
-  return [...ownerRows(record, skip), ...decisionRows(record)];
+  const rows = [...ownerRows(record, skip), ...decisionRows(record)];
+  if (!rows.length || repository === undefined) return rows;
+  const here = standsIn(record, repository);
+  if (here === null) return null;
+  return here ? rows : [];
 };
 
 /* A directory that is not there holds no transcripts; one that is there and cannot be listed may hold
@@ -247,7 +260,7 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
     const from = size < was ? 0 : was;
     if (from >= size) continue;
     const { end, stopped } = eachLineRun(file, from, size, (bytes) => {
-      const rows = rowsOfLine(bytes, skip);
+      const rows = rowsOfLine(bytes, skip, paths.repository);
       if (rows === null) return false;
       for (const row of rows.filter((one) => !held.has(one.id))) {
         held.add(row.id);
