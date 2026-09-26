@@ -9,17 +9,17 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, tempRoom } from "../fixtures.mjs";
+import { git, tempRoom } from "../../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the log's path is bound when its module loads. */
 const sandbox = tempRoom("forge-codex-read-anywhere-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { digest, locate } = await import("../../src/codex/codex-api.mjs");
-const { logConsult, logPath } = await import("../../src/codex/codex-log.mjs");
-const { repoRoot } = await import("../../src/git/repo-root.mjs");
-const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
+const { digest, locate } = await import("../../../src/codex/codex-api.mjs");
+const { logConsult, logPath } = await import("../../../src/codex/codex-log.mjs");
+const { repoRoot } = await import("../../../src/git/repo-root.mjs");
+const { readOrRefuse } = await import("../../../src/codex/codex-read.mjs");
 
 const refusalOf = (path, cwd) => readOrRefuse(path, cwd).refusal;
 

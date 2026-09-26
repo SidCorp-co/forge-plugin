@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { cleanRepo, escaped, tempRoom, typed } from "../fixtures.mjs";
+import { cleanRepo, escaped, tempRoom, typed } from "../../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the log's path is bound when its module loads, and a suite
    that imports first writes to the developer's own log. */
@@ -15,11 +15,11 @@ const sandbox = tempRoom("forge-codex-read-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { digest, locate } = await import("../../src/codex/codex-api.mjs");
-const { logConsult, logPath } = await import("../../src/codex/codex-log.mjs");
-const { repoRoot } = await import("../../src/git/repo-root.mjs");
-const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
-const { WRITE_READ_OWED } = await import("../../src/ladder.mjs");
+const { digest, locate } = await import("../../../src/codex/codex-api.mjs");
+const { logConsult, logPath } = await import("../../../src/codex/codex-log.mjs");
+const { repoRoot } = await import("../../../src/git/repo-root.mjs");
+const { readOrRefuse } = await import("../../../src/codex/codex-read.mjs");
+const { WRITE_READ_OWED } = await import("../../../src/ladder.mjs");
 
 /* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */
 const refusalOf = (...given) => readOrRefuse(...given).refusal;
