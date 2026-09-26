@@ -90,7 +90,9 @@ diff where the consult is anchored to one and on the bodies where it is not.
 
 **A follow-up round verifies; it does not roam.** Six rounds on one patch, each a full review, each
 finding a narrower hole than the last with no signal to stop on. `--recheck` replays the previous
-consult's findings as the verification list, which is the shape the reviewer is reliable in.
+consult's findings as the verification list, which is the shape the reviewer is reliable in. A recheck
+that raised nothing of its own is followed to the consult it answered while that consult holds a
+finding open, since stopping at it read that finding as a clean whole-set read (ISS-2643).
 
 That was half of what stops a consult repeating itself. The other half is that 100 of 196 rechecks raised something marked
 New, and each one cost the head another fix and another round — a recheck asked to confirm went looking

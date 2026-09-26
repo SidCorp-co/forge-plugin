@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import { git, tempRoom } from "../../fixtures.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
+import { digest } from "../../../src/codex/codex-api.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -116,6 +117,49 @@ test("a recheck given --of answers that consult where a newer one shares its fil
   const verdict = rowsOf(home).find((one) => one.kind === "verdict");
   assert.equal(verdict?.of, "c1", "the recheck's ruling is recorded against the consult --of named");
   assert.deepEqual(verdict.kept, ["F1"]);
+});
+
+/* A refutation is "fixed, or never real", and the bytes are what tell the two apart (ISS-2641). */
+test("a recheck refuting a finding over bytes unchanged since its consult records it rejected, and after a change accepted", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const sentAs = (text) => [{ rel: "judged.txt", sha: digest(text), chars: text.length, clipped: false }];
+  const same = seeded([consultRow(root, { id: "c1", files: ["judged.txt"], sent: sentAs("reviewed, and fixed\n"), reply: FINDING })]);
+  const unmoved = await forge(room, same, ["consult", "--recheck", "--of", "c1", "--rounds", "1"]);
+  assert.equal(unmoved.status, 0, unmoved.said);
+  assert.match(unmoved.said, /accepted: none; rejected: F1, refuted over files unchanged since c1\./u);
+  const never = rowsOf(same).find((one) => one.kind === "verdict");
+  assert.deepEqual([never.kept, Object.keys(never.dropped)], [[], ["F1"]], "nothing moved, so nothing was fixed: the finding was never real");
+  const moved = seeded([consultRow(root, { id: "c1", files: ["judged.txt"], sent: sentAs("reviewed\n"), reply: FINDING })]);
+  const fixed = await forge(room, moved, ["consult", "--recheck", "--of", "c1", "--rounds", "1"]);
+  assert.equal(fixed.status, 0, fixed.said);
+  assert.deepEqual(rowsOf(moved).find((one) => one.kind === "verdict").kept, ["F1"], "the file changed since, so the refutation is a fix");
+});
+
+/* The ISS-513 sequence: a recheck over one file ruled nothing it could stand behind and left F1 open,
+   and the next recheck, given no --of, was refused as though that recheck were a whole-set read (ISS-2643). */
+test("a recheck given no --of after a recheck that left a finding open answers the consult that made it", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const origin = consultRow(root, { id: "c1", files: ["judged.txt", "other.txt"], reply: FINDING });
+  const first = consultRow(root, { id: "r1", recheck: true, files: ["judged.txt"],
+    sent: [{ rel: "judged.txt", chars: 20, clipped: false }], reply: "1. CANNOT TELL — the wording is on the tracker.\n\nCODEX: 0 findings" });
+  const open = { kind: "verdict", of: "c1", from: "r1", kept: [], dropped: {}, reopened: ["F1"], auto: ["F1"] };
+  const home = seeded([origin, first, open]);
+  const { status, said, shown } = await forge(room, home, ["consult", "--recheck", "--rounds", "1", "judged.txt"]);
+  assert.equal(status, 0, said);
+  assert.match(said, /recheck r1 left F1 of consult c1 open, so this recheck answers c1/u);
+  assert.match(shown, /Your earlier finding F1 still stands/u, "c1's finding went to the reviewer");
+  const rows = rowsOf(home);
+  const served = rows.filter((one) => one.kind === "consult" && one.recheck).at(-1);
+  assert.equal(served.rechecked, "c1", "the recheck's row names the consult it answered");
+  const read = rows.filter((one) => one.kind === "verdict" && one.of === "c1").at(-1);
+  assert.deepEqual([read.from, read.kept, read.reopened], [served.id, ["F1"], undefined], "and its verdict on c1 is the one read now");
+
+  const settled = seeded([origin, first, { ...open, kept: ["F1"], reopened: undefined }]);
+  const refused = await forge(room, settled, ["consult", "--recheck", "--rounds", "1", "judged.txt"]);
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.said, /consult r1 is a recheck of consult c1 and raised no finding of its own, and c1 has nothing left open/u);
 });
 
 test("a recheck given --of from a linked worktree finds the consult a sibling worktree answered", async () => {

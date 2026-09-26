@@ -8,7 +8,8 @@ import { isAbsolute } from "node:path";
 
 import { DIFF_CHARS, digest } from "./codex-api.mjs";
 import { MARK, answered, hereOf, inRepo, logEntries, logPath } from "./codex-log.mjs";
-import { modelKey, numbered } from "./log/replies.mjs";
+import { numbered } from "./log/replies.mjs";
+import { modelKey } from "./stats/ruled.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { rungIn } from "./codex-plan.mjs";
 import { anglesOf, groupsOf, promptKey, roundKindsOf, statsOf } from "./stats/figures.mjs";

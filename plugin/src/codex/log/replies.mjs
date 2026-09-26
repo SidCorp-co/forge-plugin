@@ -7,7 +7,7 @@ import { masked } from "../../hooks/log/scrub.mjs";
 import { escaped } from "../../markdown.mjs";
 import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
-import { answered, byRun, inRepo, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
+import { answered, answeredBy, byRun, inRepo, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
 
 /* A row of the older shape folded its composed clause into its note, and `composedAt` says where — read as a whole clause and never as a substring of the author's prose, which "Evidence from recheck r7 supports my rejection" is; the composed form was always clauses joined by the same separator, so the boundary is the format. `authorNote` is what is left for the next write to carry, because carrying the whole would say the earlier recheck's status on the next recheck's row. */
 const composedAt = (held) => (held?.from ? (held.note ?? "").split(CLAUSE).indexOf(`from recheck ${held.from}`) : -1);
@@ -339,19 +339,39 @@ const leftOutOf = (judged, reply, kept, ruled) => {
   };
 };
 
+/* The ids of a consult's findings nothing has decided yet, by the verdict the log reads last for it. */
+const openOf = (entries, one) => undecidedIn(numbered(one?.reply).map((found) => found.id), verdictsBy(entries).get(one?.id ?? one?.at));
+
+/* A recheck that raised nothing of its own answered another consult, so while that consult still has
+   a finding open it is the one to answer: stopping at the recheck read a finding left open as a clean
+   whole-set read (ISS-2643). Bounded by the log, so a cycle of links cannot hold the verb. */
+const followed = (entries, one) => {
+  let at = one;
+  for (let hops = 0; at?.recheck && !numbered(at.reply).length && hops < entries.length; hops += 1) {
+    const next = answeredBy(entries, at);
+    if (!next || !openOf(entries, next).length) break;
+    at = next;
+  }
+  return at;
+};
+
 /* A follow-up round rules on the last consult's findings about these files — another file's would
    clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
 export const recheckPlan = (entries, root, rels, pinned = null) => {
-  const judged = pinned ?? judgedBy(entries, root, rels).at(-1);
+  const last = pinned ? null : judgedBy(entries, root, rels).at(-1);
+  const judged = pinned ?? followed(entries, last);
   if (!judged) return null;
   /* The other half of what a request carries out of stored entries; `historyFor` above has the seat's reason, and `judged` stays as stored because its coverage fields are read here and never sent. */
   const ruled = verdictsBy(entries).get(judged.id ?? judged.at);
   const held = ruled ? maskedDeep(ruled) : null;
   const reply = masked(judged.reply);
   const findings = numbered(reply, rels, judged.files);
+  const answered = judged.recheck ? answeredBy(entries, judged) : null;
   return {
     judged,
     pinned: Boolean(pinned),
+    via: !last || judged === last ? null : { id: last.id ?? last.at, open: openOf(entries, judged) },
+    answers: answered ? { id: answered.id ?? answered.at, open: openOf(entries, answered) } : null,
     ids: findings.map((one) => one.id),
     outside: leftOutOf(judged, reply, findings, ruled),
     /* The defect, with the legend: "re-verify" drew CONFIRMED for a fix that held, then REFUTED. */
@@ -364,6 +384,14 @@ export const recheckPlan = (entries, root, rels, pinned = null) => {
 };
 
 export const recheckRisks = (entries, root, rels) => recheckPlan(entries, root, rels)?.risks ?? [];
+
+/** The line a recheck that followed an earlier one past it prints, or null where it followed none. */
+export const recheckVia = (plan) => {
+  if (!plan?.via) return null;
+  const of = plan.judged.id ?? plan.judged.at;
+  return `recheck ${plan.via.id} left ${some(plan.via.open)} of consult ${of} open, so this recheck answers ${of},`
+    + ` and the verdict it records is the one read for ${of} from here on.`;
+};
 
 /** The range a recheck sends where no file was named: the judged consult's own, narrowed out of what an aged base now offers and never widened past it; null where nothing drops. docs/cli/codex-the-consult.md. */
 export const recheckRange = (plan, rels) => {
@@ -418,6 +446,18 @@ export const recheckOwed = (plan, rels) => {
         ? ` Nothing says what became of ${some(plan.outside.owed)}, which is what a commit gate refuses for.`
         : " Every one of them already carries your ruling."}\n${missedRoute(plan.outside)}`;
   }
+  /* A recheck is a ruling on another consult's findings, never a read of the set (ISS-2643). */
+  if (plan.judged.recheck) {
+    const answers = plan.answers;
+    const head = `consult ${of} is a recheck${answers ? ` of consult ${answers.id}` : ""} and raised no finding of its own`;
+    /* Reached pinned, where the selection follows nothing: the consult it answered may still hold one. */
+    if (answers?.open.length) {
+      return `${head}, and ${answers.id} still has ${some(answers.open)} open, which this recheck cannot reach.\n`
+        + `Do this: \`echo "<what you were doing>" | forge codex consult --recheck --of ${answers.id}\` — the consult those findings belong to.`;
+    }
+    return `${head}, and ${answers ? `${answers.id} has nothing left open` : "the log does not say which consult it answered"}, so there is nothing to recheck.\n`
+      + `${read} — only where the tree has moved since, which this cannot see and you can.`;
+  }
   // `plan.judged` is the last consult sharing ANY of these files, which is why a shortfall is likely.
   const { unread, part, whole } = shortOfWhole(plan.judged, rels);
   if (whole) {
@@ -443,24 +483,28 @@ const authorRuled = (prior, id) =>
 const ruledAs = (prior, id) => (prior?.kept?.includes(id) ? "accepted" : "rejected");
 
 /* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply says; a CONFIRMED one stays open, and the caller's own verdict overrides this one. A ruling the author already made is not the recheck's to move: it goes to `stood`, where the reviewer's word sits beside the author's rather than over it, because a confirmation is the reviewer standing by its finding and never the author withdrawing a rejection, and deriving the whole verdict from the recheck took a rejection and its reason off the record (ISS-1881). One that moved nothing still writes, so the log says it ran and what it said. */
-export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null) => {
+export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null, unchanged = false) => {
   const rulings = new Map();
   /* The block asks the reviewer to lead with the rulings, so a number repeated later is an echo of one. */
   for (const one of rulingsIn(reply)) if (!rulings.has(one.n)) rulings.set(one.n, one.ruling);
   const kept = [];
   const open = [];
+  const never = [];
   const stood = [];
   plan.ids.forEach((id, at) => {
     const ruling = rulings.get(offset + at + 1);
     if (ruling !== "REFUTED" && ruling !== "CONFIRMED" && ruling !== "CANNOT TELL") return;
     if (authorRuled(prior, id)) stood.push([id, ruling]);
-    else if (ruling === "REFUTED") kept.push(id);
+    /* Refuted with no byte of the set moved since the consult: no fix could have resolved it, so it was never real, and accepted is the figure the eval counts as a finding worth having (ISS-2641). */
+    else if (ruling === "REFUTED") (unchanged ? never : kept).push(id);
     else open.push(id);
   });
-  if (!kept.length && !open.length && !stood.length) return null;
+  if (!kept.length && !open.length && !never.length && !stood.length) return null;
   const of = plan.judged.id ?? plan.judged.at;
-  const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length, true);
-  const moved = Boolean(kept.length || open.length);
+  const why = `recheck ${recheckId} refuted it over files unchanged since consult ${of}, so it was never real`;
+  const decided = [...open.map((id) => ({ id, reopen: true })), ...never.map((id) => ({ id, why }))];
+  const held = joined(prior, kept.map((id) => ({ id })), decided, numbered(plan.judged.reply).length, true);
+  const moved = Boolean(kept.length || open.length || never.length);
   return {
     record: {
       kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held,
@@ -470,6 +514,7 @@ export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null)
     said: [
       moved
         ? `verdict on ${of} recorded from recheck ${recheckId} — accepted: ${kept.join(", ") || "none"}`
+          + `${never.length ? `; rejected: ${never.join(", ")}, refuted over files unchanged since ${of}` : ""}`
           + `${open.length ? `; still open: ${open.join(", ")}` : ""}.`
         : `recheck ${recheckId} moved no ruling on consult ${of}, and the verdict on it stands as you wrote it.`,
       stood.length
@@ -575,28 +620,4 @@ export const unverdicted = (bytes, root, scope = null) => {
     return open.length ? { id, ids, open, files: one.files ?? [], at: one.at } : null;
   }
   return null;
-};
-
-
-/* The eval the log exists for: what each model found, what the caller kept, cached over every input
-   token. The channel is part of the key and an unrecorded one is a value of its own: a row written
-   before the effort moved onto the model states an effort the gateway never read, and grouping it
-   with one written after would score two treatments as one. Where the model carried the effort its
-   id already says which, so the level is not repeated in the key. */
-export const modelKey = (one) => {
-  const via = one.effortVia ?? "unrecorded";
-  const level = via !== "model" && one.effort ? ` @${one.effort}` : "";
-  return `${one.model ?? one.slot ?? "?"}${level} via ${via}`;
-};
-
-/** What one verdict row ruled, counted over the findings its consult's own reply carries: before ISS-651 the parser gave a positional id to a summary bullet in a reply counting itself at zero, and fifteen rows ruled on those ids. The log is append-only and the only copy of the corpus, so the row stays and the count skips what it names beyond the reply (ISS-1680). A count-form row names no id, and a recheck's rulings are the lines `numbered` leaves out, so its typed totals are all there is to read; a row whose consult the log does not hold is read by its totals for the same reason. */
-export const ruledOn = (verdict, consult) => {
-  const made = consult ? new Set(numbered(consult.reply).map((one) => one.id)) : null;
-  const madeIn = (ids) => (made ? ids.filter((id) => made.has(id)).length : ids.length);
-  /* A mechanism mark is always by id, so it is counted by id even on a row whose totals are a count's: a later word ruling on how over a count-form prior is new data, not the old count's. */
-  const how = { sound: madeIn(verdict.sound ?? []), misreasoned: madeIn(Object.keys(verdict.misreasoned ?? {})) };
-  if (!consult || verdict.counted || (!verdict.kept && !verdict.dropped)) {
-    return { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0, ...how };
-  }
-  return { accepted: madeIn(verdict.kept ?? []), rejected: madeIn(Object.keys(verdict.dropped ?? {})), ...how };
 };

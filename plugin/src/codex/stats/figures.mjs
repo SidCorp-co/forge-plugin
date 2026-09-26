@@ -3,7 +3,8 @@
    `eval` groups two windows by model and prompt at once; each asks this module, so a figure is
    defined once and two verbs quoting it cannot disagree (ISS-349). docs/cli/codex-the-stats.md. */
 import { answered, verdictsBy } from "../codex-log.mjs";
-import { anglesOfFindings, countedIn, modelKey, numbered, ruledOn } from "../log/replies.mjs";
+import { anglesOfFindings, countedIn, numbered } from "../log/replies.mjs";
+import { modelKey, ruledOn } from "./ruled.mjs";
 import { incompleteIn, newFindingsIn } from "../codex-plan.mjs";
 import { groupBy } from "../../stats/windows.mjs";
 import { median } from "../../stats/median.mjs";

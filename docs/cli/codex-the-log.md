@@ -7,9 +7,10 @@ wrong about why, which [the finding](codex-the-finding.md) explains, never a cou
 to 14 rejected was the count form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
 prose: the gateway reported no cache creation in 108 consults, so every replayed character was paid for
 on every call. A recheck's REFUTED rulings record themselves as the verdict on the consult they judged
-(CONFIRMED stays open) over every finding the author has not ruled on; one they have keeps the ruling
-and the reason they gave it, and the recheck's word on it is stored and printed beside that ruling
-rather than over it. The record says finding by finding which of its rulings a recheck wrote, so a
+(CONFIRMED stays open) over every finding the author has not ruled on, rejected where no file that
+consult was sent has moved since and accepted otherwise. One they have keeps the ruling and the reason
+they gave it, and the recheck's word on it is stored and printed beside that ruling rather than over
+it. The record says finding by finding which of its rulings a recheck wrote, so a
 later recheck revises its own word and never the author's. A verdict lands by default on this run's last
 consult that made findings and heard nothing, and `--of` names another. The commit gate waits on
 both: [the commit gate](codex-the-commit.md), and its how document carries the counts. Usage is summed over a consult's calls; logged from the
@@ -39,9 +40,8 @@ That mask reaches nothing written before it, and the log is append-only, so the 
 over the entries it is about to print. The seat is the print and not the read: masking a 2,248-entry
 log costs 377ms against the 23ms it takes to parse one, and the hook path parses it on every consult.
 A line's counts are taken from the stored entry rather than the masked copy, because a mask shortens
-a reply and an eval number that moved is a wrong one. The two ends answer different questions — what
-accumulates on disk from here, and what reaches a transcript now — and neither makes the other
-redundant.
+a reply and an eval number that moved is a wrong one. The two ends answer different questions: what
+accumulates on disk from here, and what reaches a transcript now.
 
 What is deliberately not done is a pass that rewrites the file. Counted on the machine that raised
 it, no on-sight credential shape matches any entry at all: only the two *named* patterns fire, on 42

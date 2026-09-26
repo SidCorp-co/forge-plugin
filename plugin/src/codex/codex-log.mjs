@@ -102,6 +102,12 @@ export const sentFrom = (parts) => {
   });
 };
 
+/** Whether every file a consult was sent reads the same bytes now, by the whole-file sha its row carries and `now` maps each path to. A row with no sha, or one no digest answers, is a set nobody can prove unmoved, so it reads as moved (ISS-2641). */
+export const sameBytesSince = (one, now) => {
+  const sent = one?.sent ?? [];
+  return sent.length > 0 && sent.every((row) => Boolean(row.sha) && now.get(row.rel) === row.sha);
+};
+
 /* Paired on `id`, which the finished entry copies from the started one. An unpaired start is a consult that died rather than one that failed, and only writing the start down tells them apart. */
 export const pairedLog = (entries) => {
   const finished = new Set(consults(entries).map((one) => one.id ?? one.at));
@@ -120,6 +126,12 @@ const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(fi
 /** The answered consults of this root naming any of these files, oldest first: what a recheck here follows. */
 export const judgedBy = (entries, root, rels) =>
   answered(entries).filter((one) => one.root === root && sharing(one, rels));
+
+/** The consult a recheck answered: its own row says from ISS-2643 on, and the verdict it wrote names both before that. Null where neither does, a recheck that ruled nothing having written no verdict. */
+export const answeredBy = (entries, one) => {
+  const of = one?.rechecked ?? entries.findLast((row) => row.kind === "verdict" && row.from && row.from === one?.id)?.of;
+  return of ? answered(entries).find((row) => (row.id ?? row.at) === of) ?? null : null;
+};
 
 /* A `sent` entry is not a body: `bundle` records one for a file it could not read, and a clipped one, a missing one and an empty one each close a review on something nobody read. */
 export const bodied = (one) => one && !one.clipped && Number(one.chars) > 0;

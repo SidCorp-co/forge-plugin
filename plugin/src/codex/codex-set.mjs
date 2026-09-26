@@ -1,7 +1,7 @@
 /* Which files one consult is about, and which of them anything can be shown of. docs/cli/codex-the-consult.md. */
 import { fail } from "../resolve/settings.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
-import { changedAgainst, ignoredIn, locate, wouldSit } from "./codex-api.mjs";
+import { bundle, changedAgainst, ignoredIn, locate, wouldSit } from "./codex-api.mjs";
 import { absentFrom, goneFrom, goneSaid } from "./codex-state.mjs";
 
 /* Absence alone cannot tell a typo from a tracked deletion, so HEAD is asked, once for the set; what is then shown of the deletion stays `shownOf`'s question, two answers to it being why the named route refused a whole consult the tree-derived route ran, and a git that would not answer refuses nothing, as `goneFrom` does not (ISS-1880). */
@@ -147,4 +147,13 @@ export const pinnedSet = (pinned) => {
     said: [`a recheck of ${pinned.id}, so the ${files.length} file(s) it recorded travel.`],
     gone: [],
   };
+};
+
+/** Each file a consult was sent, digested as it reads at the recheck answering it: the recheck's own
+ *  send where it carried the file, the disk for the part of the consult's set it did not (ISS-2641). */
+export const digestsAt = (root, judged, sent = []) => {
+  const now = new Map(sent.filter((row) => row.sha).map((row) => [row.rel, row.sha]));
+  const rest = (judged?.sent ?? []).map((row) => row.rel).filter((rel) => !now.has(rel));
+  for (const part of bundle(root, rest)) if (part.sha) now.set(part.rel, part.sha);
+  return now;
 };
