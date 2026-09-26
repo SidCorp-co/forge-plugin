@@ -113,6 +113,18 @@ const safely = async (project, days, runs, reads) => {
   }
 };
 
+/* Two repositories registered under one tracker project read it once, their runs pooled: read twice,
+   one close would be lent the same run twice. A registration naming no project stands alone. */
+const oncePerSlug = (registered) => {
+  const held = new Map();
+  for (const one of registered) {
+    const key = one.slug ?? `\0${one.name}`;
+    const was = held.get(key);
+    held.set(key, was ? { ...was, name: `${was.name} and ${one.name}` } : one);
+  }
+  return [...held.values()];
+};
+
 const endpointHeld = () => Boolean(accountCredentials().url.value && accountCredentials().token.value);
 
 /** The closes of a day and of the seven days before it over every registered project, each day
@@ -124,7 +136,7 @@ export const closesRead = async (registered, day, { runs = [], reads = tracker, 
   if (!registered.length) return everywhere("no project is registered on this device");
   if (!held()) return everywhere(NO_ENDPOINT);
   const read = [];
-  for (const project of registered) {
+  for (const project of oncePerSlug(registered)) {
     const own = runs.filter((one) => one.slug === project.slug).flatMap((one) => one.runs);
     read.push([project, await safely(project, days, own, reads)]);
   }
@@ -152,30 +164,31 @@ const sharesOf = (pairs) => {
   return (run) => run.seconds / 60 / owned.get(run);
 };
 
-/* Every close of an issue the page knows of: its own history where that was read, else every walked
-   day's, which is whole for a run that began after the last walked day that could not be read. */
-const timesOf = (closed, issueId, starts) => {
+/* Every close of an issue the page knows of, and the walked days that could not be read: its own
+   history where that was read, which has no gap, else every walked day's closes. */
+const timesOf = (closed, issueId) => {
   const every = closed.history.get(issueId);
-  if (every) return every;
-  const gaps = Object.entries(closed.days).filter(([, one]) => one.unread).map(([day]) => boundsOf(day).to);
-  if (starts.some((start) => gaps.some((end) => start < end))) {
-    return { unread: "a walked day between a run that owned one of these issues and its close could not be read" };
-  }
+  if (every) return { ...every, gaps: [] };
   const at = Object.values(closed.days).flatMap((one) => one.closes ?? []).filter((one) => one.issueId === issueId).map((one) => one.at);
-  return { at: at.sort((a, b) => a - b) };
+  const gaps = Object.entries(closed.days).filter(([, one]) => one.unread).map(([day]) => boundsOf(day));
+  return { at: at.sort((a, b) => a - b), gaps };
 };
 
-/* The minutes one issue's closes of the day were lent: a run lends a close when it started at or
-   before it and after the close before it. */
+const GAP = "a walked day between a run that owned one of these issues and its close could not be read";
+
+/* The minutes one issue's closes of the day were lent. A day not read between a lending run's start
+   and its close could hold a close that would stand between them, so the minutes are then not read. */
 const lentTo = (issueId, closes, closed, pairs, share) => {
   const owners = pairs.filter((one) => one.key === issueId);
-  const times = timesOf(closed, issueId, owners.map((one) => one.run.startedAt));
+  const times = timesOf(closed, issueId);
   if (times.unread) return { unread: times.unread };
   let minutes = 0;
   let runs = 0;
   for (const close of closes) {
     const previous = times.at.filter((at) => at < close.at).at(-1) ?? -Infinity;
-    for (const pair of owners.filter((one) => one.run.startedAt <= close.at && one.run.startedAt > previous)) {
+    const lending = owners.filter((one) => one.run.startedAt <= close.at && one.run.startedAt > previous);
+    if (lending.some((one) => times.gaps.some((gap) => gap.from < close.at && gap.to > one.run.startedAt))) return { unread: GAP };
+    for (const pair of lending) {
       minutes += share(pair.run);
       runs += 1;
     }

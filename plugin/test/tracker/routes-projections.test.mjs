@@ -40,7 +40,8 @@ describe("an activity event carries the transition and none of the field an upda
       const answer = held(name).rest.answer;
       const { events, nextBefore } = ROUTES[key].answers({ page: answer }, {});
       const moved = events.find((one) => one.action === "issue.statusChanged");
-      assert.deepEqual(moved, { id: moved.id, issueId: "40744dde-f44c-4c7e-a707-3757a1a3c857", action: "issue.statusChanged",
+      assert.deepEqual(events.map((one) => one.id), answer.items.map((one) => one.id), "a walk keeps events apart by their id");
+      assert.deepEqual(moved, { id: "1656299e-e844-4395-a7da-fed677691cea", issueId: "40744dde-f44c-4c7e-a707-3757a1a3c857", action: "issue.statusChanged",
         from: "awaiting_release", to: "closed", reopenCount: 0, at: "2026-09-26T14:59:24.141Z" });
       assert.equal(nextBefore, answer.nextBefore);
       assert.ok(events.every((one) => !Object.hasOwn(one, "payload")), "an update's body travels nowhere");

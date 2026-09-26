@@ -147,6 +147,21 @@ test("a run begun before a walked day that could not be read leaves the minutes 
   assert.match(day().minutesUnread, /could not be read/u);
 });
 
+test("a day not read after a close leaves that close's minutes standing", async () => {
+  const refusedAt = (before) => before === iso(at("2026-09-19", "00:00:00") + 86_400_000);
+  const day = await readOn(tracker({ refusedAt, events: [moved("doc-a", at("2026-09-15", "10:00:00"))], issues: [["ISS-1", "doc-a"]] }),
+    { runs: [run("/early", at("2026-09-14", "09:00:00"), 30, ["ISS-1"])] });
+  assert.deepEqual(day("2026-09-15"), { closed: 1, minutes: 30, withoutRun: 0, minutesUnread: null });
+  assert.ok(day("2026-09-19").unread);
+});
+
+test("two repositories registered under one tracker project read it once, and a close is lent each run once", async () => {
+  const reads = tracker({ events: [moved("doc-a", at(DAY, "10:00:00"))], issues: [["ISS-1", "doc-a"]] });
+  const day = await readOn(reads, { registered: [PROJECT, { name: "proj-fork", slug: "proj" }],
+    runs: [run("/one", at(DAY, "09:00:00"), 30, ["ISS-1"])] });
+  assert.deepEqual(day(), { closed: 1, minutes: 30, withoutRun: 0, minutesUnread: null });
+});
+
 test("18. two events sharing a timestamp across a page boundary are both kept", async () => {
   const tie = at(DAY, "12:00:00");
   const events = [moved("a", at(DAY, "13:00:00")), moved("b", at(DAY, "12:30:00")), moved("c", tie), moved("d", tie), moved("e", at(DAY, "11:00:00"))];
