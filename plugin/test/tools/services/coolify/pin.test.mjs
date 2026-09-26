@@ -209,5 +209,6 @@ test("the doctor row names the record the pin was read from", async () => {
   assert.ok(existsSync(entry));
   projectRecord(room, home, { slug: "doctor", coolifyPin: { project_uuid: ["p-in"] } });
   const answer = await ranAsync(FORGE, ["doctor"], { ...process.env, XDG_CONFIG_HOME: home }, room);
-  assert.match(`${answer.stdout}${answer.stderr}`, new RegExp(`project p-in {2}← ${entry.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}`, "u"));
+  const said = `${answer.stdout}${answer.stderr}`;
+  assert.ok(said.includes(`project p-in  ← ${entry}`), said);
 });
