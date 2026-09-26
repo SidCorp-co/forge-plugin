@@ -1,5 +1,6 @@
 /* The columns this rule holds, stated as patterns and read by property access, so neither the rule nor its reader is a quoted span and neither needs an exemption. Whose word each of these is, and why: `rest.mjs`, which names the document. A column this CLI has no second word for is not here — `complexity` is spoken as the tracker spells it, which is docs/cli/the-kinds.md's decision, and `ALIASES` below is what holds that true. */
 import { lineAt } from "../markdown.mjs";
+import { COMMENTS, KINDS, LITERALS, literalsIn, maskOf } from "./source/lexical.mjs";
 
 /* A row may name where its word is not the tracker's. The deploy bindings are the case: another
    service this CLI speaks answers a field of its own under the same word, and that surface prints
@@ -31,152 +32,31 @@ const ALIASES = [
 /* The one shape an alias may stand in: the initializer of a declaration whose own name says the spelling is retired, so a reader of a historical record keeps the old word under a name that says so. A second string on that line is refused as any other is, and no path is exempt. */
 const RETIRED_HOLDER = /^\s*(?:export\s+)?const\s+RETIRED[A-Z_]*\s*=\s*$/u;
 
-/* What a `/` follows where it divides rather than opens a regex: a value, which is a word character, a closing bracket, or the end of a string. Everything else — an operator, a comma, an opening bracket, the start of the input — is a position only a literal can hold. */
-const DIVIDES = /[\w$)\]"'`]/u;
-/* A word character divides unless the word is one of these, after which only an expression can
-   start, so `return /x/` opens a literal as `= /x/` does. */
-const OPENS_AFTER = new Set(["return", "typeof", "instanceof", "in", "of", "new", "delete", "void", "throw",
-  "case", "do", "else", "yield", "await"]);
-const WORD_CHAR = /[\w$]/u;
-
-/** The word the code half holds before `at`, space and blanked comments skipped; none after a `.`. */
-const wordBefore = (bare, at) => {
-  let one = at - 1;
-  while (one >= 0 && SPACE.test(bare[one])) one -= 1;
-  const end = one + 1;
-  while (one >= 0 && WORD_CHAR.test(bare[one])) one -= 1;
-  return bare[one] === "." ? "" : bare.slice(one + 1, end).join("");
-};
-const SPACE = /\s/u;
-
 /** Every quoted span, comments dropped: a pattern over the file cannot tell a read from a print. A
  *  template is one span with the text of its `${…}` holes taken out, so a sentence broken by a hole
  *  is still read whole, and what stands in a hole is read as the code it is — a string nested there
- *  is a span of its own rather than the delimiter the scanner mistook for this template's last. */
-const scan = (text) => {
-  const out = [];
-  const bare = text.split("");
-  let at = 0;
-  /* Blanked and never cut, so every offset a caller reports stays where it was and a line number
-     does too; a space also parts two names a removal would have joined. */
-  const blank = (from, to) => {
-    for (let one = Math.max(from, 0); one < Math.min(to, bare.length); one += 1) {
-      if (bare[one] !== "\n") bare[one] = " ";
-    }
-  };
-  const skipped = (run) => {
-    const from = at;
-    run();
-    blank(from, at);
-  };
-  const past = (end) => {
-    const found = text.indexOf(end, at + end.length);
-    at = found === -1 ? text.length : found + end.length;
-  };
-  const plain = (quote) => {
-    const from = at + 1;
-    at = from;
-    while (at < text.length && text[at] !== quote) at += text[at] === "\\" ? 2 : 1;
-    out.push({ from, held: text.slice(from, at) });
-    at += 1;
-  };
-  const template = () => {
-    const from = at + 1;
-    blank(at, from);
-    at = from;
-    let held = "";
-    while (at < text.length && text[at] !== "`") {
-      if (text[at] === "\\") {
-        held += text.slice(at, at + 2);
-        blank(at, at + 2);
-        at += 2;
-        continue;
-      }
-      if (text.slice(at, at + 2) === "${") {
-        at += 2;
-        code("}");
-        continue;
-      }
-      held += text[at];
-      blank(at, at + 1);
-      at += 1;
-    }
-    out.push({ from, held });
-    at += 1;
-  };
-  /* Skipped as a comment is, and by the same necessity: a delimiter inside a regex is read as the
-     delimiter it is not, and one unbalanced span puts every span after it in that file out by a
-     literal — a comment's words arrive as string content. A class is read whole so a `/` inside one
-     ends nothing, and the literal ends at a line break, which no regex crosses (ISS-1110). */
-  const regex = () => {
-    at += 1;
-    let inClass = false;
-    while (at < text.length && text[at] !== "\n") {
-      const one = text[at];
-      if (one === "\\") {
-        at += 2;
-        continue;
-      }
-      if (one === "[") inClass = true;
-      else if (one === "]") inClass = false;
-      else if (one === "/" && !inClass) {
-        at += 1;
-        return;
-      }
-      at += 1;
-    }
-  };
-  /* Braces are counted so a hole holding an object or a block ends where its own `}` does. */
-  function code(stop) {
-    let depth = 0;
-    let prev = "";
-    while (at < text.length) {
-      const two = text.slice(at, at + 2);
-      if (two === "//") {
-        skipped(() => past("\n"));
-        continue;
-      }
-      if (two === "/*") {
-        skipped(() => past("*/"));
-        continue;
-      }
-      const one = text[at];
-      if (one === '"' || one === "'") {
-        skipped(() => plain(one));
-        prev = one;
-        continue;
-      }
-      if (one === "`") {
-        template();
-        prev = one;
-        continue;
-      }
-      if (one === "/" && (DIVIDES.test(prev) === false || (WORD_CHAR.test(prev) && OPENS_AFTER.has(wordBefore(bare, at))))) {
-        skipped(() => regex());
-        prev = "/";
-        continue;
-      }
-      if (stop && one === "{") depth += 1;
-      if (stop && one === stop) {
-        at += 1;
-        if (depth === 0) return;
-        depth -= 1;
-        continue;
-      }
-      if (!SPACE.test(one)) prev = one;
-      at += 1;
+ *  is a span of its own. */
+export const quoted = (text) => {
+  const spans = [];
+  const templates = new Map();
+  for (const one of literalsIn(text)) {
+    const held = text.slice(one.from, one.to);
+    if (one.kind === KINDS.SINGLE || one.kind === KINDS.DOUBLE) spans.push({ from: one.from, held });
+    if (one.kind !== KINDS.TEMPLATE) continue;
+    const open = templates.get(one.template);
+    if (open) open.held += held;
+    else {
+      templates.set(one.template, { from: one.from, held });
+      spans.push(templates.get(one.template));
     }
   }
-  code(null);
-  return { spans: out, bare: bare.join("") };
+  return spans;
 };
 
-export const quoted = (text) => scan(text).spans;
-
-/** The same walk's other half: the source with every comment, string and regex blanked and every
- *  offset kept, so a name a rename left behind in prose is not evidence the binding survived. What a
- *  string may still stand as evidence of is `doc-shape.mjs`'s to say, off the spans above. */
-export const codeOf = (text) => scan(text).bare;
+/** The same source with every comment, string and regex blanked, quotes and all, and every offset
+ *  kept, so a name a rename left behind in prose is not evidence the binding survived. What a string
+ *  may still stand as evidence of is `doc-shape.mjs`'s to say, off the spans above. */
+export const codeOf = (text) => maskOf(text, { blank: [...COMMENTS, ...LITERALS], quotes: "blank" });
 
 const rowsIn = (held, rows) =>
   rows.filter((row) => row.pattern.test(held) && (!row.needs || row.needs.test(held)));

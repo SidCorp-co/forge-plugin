@@ -5,87 +5,17 @@
    rest on that number. Reached here: three clocks, inline or through a local, bounded in one breath. */
 
 import { lineAt } from "../../markdown.mjs";
+import { COMMENTS, LITERALS, maskOf } from "../source/lexical.mjs";
 
 const CLOCK = String.raw`(?:Date\.now\(\)|performance\.now\(\)|process\.hrtime(?:\.bigint)?\([^)]*\))`;
 const NUMBER = String.raw`\d[\d_]*(?:\.\d+)?`;
 
-/* The words a `/` may follow and still open a regular expression, held as a list because the window
-   below is sized off the longest of them and a word added here has to move that window with it. */
-const OPENS_A_REGEX_WORDS = ["return", "typeof", "case", "in", "of", "do", "else", "yield", "await"];
-
-const OPENS_A_REGEX = new RegExp(
-  String.raw`(?:[([{,;:=!&|?+\-*%<>~^]|\b(?:${OPENS_A_REGEX_WORDS.join("|")}))\s*$`, "u");
-
-/* The most text that decision can rest on. The pattern is anchored at its end, so it reads the
-   longest word and one character further back — what `\b` needs to know the word is not the tail of
-   an identifier, `footypeof /x/` being a division. */
-const LOOKBEHIND = Math.max(...OPENS_A_REGEX_WORDS.map((word) => word.length)) + 1;
-const WHITESPACE = /\s/u;
-
-/* Whether the `/` at `at` opens a regular expression, decided from that window rather than from
-   `text.slice(0, at)`, which copied the file's whole prefix once per candidate `/` and made the scan
-   quadratic in file length (ISS-1941). The whitespace run is walked by index and stands back in as
-   one space, which `\s*$` reads the same; two candidates cannot walk the same run, a `/` being
-   itself the non-whitespace a walk stops at, so the walking is linear over the file. */
-const opensARegex = (text, at) => {
-  let back = at;
-  while (back > 0 && WHITESPACE.test(text[back - 1])) back -= 1;
-  const head = text.slice(Math.max(0, back - LOOKBEHIND), back);
-  return OPENS_A_REGEX.test(back < at ? `${head} ` : head);
-};
-
-/** Comments and every kind of quoted text, as the spans one walk over this source finds. A comment's
- *  own delimiters fall inside its span and a string's or a regular expression's fall outside, which
- *  is what lets a reader tell the three apart from the source alone.
- *
- *  Code units and not code points: every index here comes from `indexOf` and `slice`, which count
- *  units, so a pair split as one element would address the wrong place from the first astral
- *  character on. A reader that carries an offset of its own from here into the source depends on
- *  that (ISS-2040). */
-export const spansIn = (text) => {
-  const out = [];
-  let at = 0;
-  while (at < text.length) {
-    const two = text.slice(at, at + 2);
-    if (two === "//" || two === "/*") {
-      const close = two === "//" ? text.indexOf("\n", at) : text.indexOf("*/", at + 2);
-      const to = close === -1 ? text.length : close + (two === "//" ? 0 : 2);
-      out.push({ kind: "comment", from: at, to });
-      at = to;
-    } else if (text[at] === "'" || text[at] === '"' || text[at] === "`") {
-      const quote = text[at];
-      let end = at + 1;
-      while (end < text.length && text[end] !== quote) end += text[end] === "\\" ? 2 : 1;
-      out.push({ kind: quote === "`" ? "template" : "string", from: at + 1, to: end });
-      at = end + 1;
-    } else if (text[at] === "/" && opensARegex(text, at)) {
-      let end = at + 1;
-      let inClass = false;
-      while (end < text.length && (inClass || text[end] !== "/")) {
-        if (text[end] === "\\") end += 1;
-        else if (text[end] === "[") inClass = true;
-        else if (text[end] === "]") inClass = false;
-        else if (text[end] === "\n") break;
-        end += 1;
-      }
-      out.push({ kind: "regex", from: at + 1, to: end });
-      at = end + 1;
-    } else at += 1;
-  }
-  return out;
-};
-
-/** The same spans blanked to spaces so line and column still hold. A reader needing a run's own
- *  extent takes `spansIn` instead: a blanked run breaks at every space the source already had. */
-export const blanked = (text) => {
-  const out = text.split("");
-  for (const span of spansIn(text)) {
-    for (let at = span.from; at < span.to && at < out.length; at += 1) {
-      if (out[at] !== "\n") out[at] = " ";
-    }
-  }
-  return out.join("");
-};
+/** Comments and every kind of quoted text blanked to spaces, each literal's quotes kept, so line and
+ *  column still hold. This is the one mask the suite and shape rules share, and it reads templates
+ *  as text: a clock or a child spelt inside an interpolation is out of their reach, and opening that
+ *  to them is ISS-2212's, with a case per rule. */
+export const blanked = (text) =>
+  maskOf(text, { blank: [...COMMENTS, ...LITERALS], quotes: "keep", holes: "text" });
 
 /* Where a name was last declared before it is read and still inside the braces it was declared in,
    so neither a case reusing the name for a count nor a binding a nested block has left is read as

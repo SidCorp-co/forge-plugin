@@ -14,7 +14,8 @@
 import { dirname, join, normalize } from "node:path";
 
 import { lineAt } from "../../markdown.mjs";
-import { blanked, closesAfter, spansIn } from "../suite/wall-clock.mjs";
+import { KINDS, literalsIn } from "../source/lexical.mjs";
+import { blanked, closesAfter } from "../suite/wall-clock.mjs";
 import { argumentsAt } from "./calls.mjs";
 
 const NAME = String.raw`[A-Za-z_$][\w$]*`;
@@ -147,7 +148,7 @@ const MATCHERS = new RegExp(String.raw`\bassert\.(?:match|doesNotMatch)\s*\(|\.(
 
 /** Each match whose text a read of a pinned source produced, with the pattern's own text. */
 const matchesOn = (text, code, holders, inline) => {
-  const regexes = spansIn(text).filter((one) => one.kind === "regex");
+  const regexes = literalsIn(text).filter((one) => one.kind === KINDS.REGEX);
   const carries = (span) => {
     if (!span) return false;
     const lead = span.from + code.slice(span.from, span.to).search(/\S/u);

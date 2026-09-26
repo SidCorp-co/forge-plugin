@@ -9,7 +9,8 @@ import { join } from "node:path";
 import { COMPLEXITY_NAMES } from "../../ladder.mjs";
 import { DECLARES } from "../../tracker/routes.mjs";
 import { KIND_NAMES } from "../../tracker/issue-shape.mjs";
-import { VERBS, spanOf } from "../../resolve/visibility.mjs";
+import { VERBS, rowFor, spanOf } from "../../resolve/visibility.mjs";
+import { COMMENTS, LITERALS, maskOf } from "../source/lexical.mjs";
 
 export const JUDGE = "refuseUndeclared";
 const JUDGE_ARITY = 4;
@@ -76,8 +77,6 @@ export const slotsIn = (usage) => {
   return [...new Set(found)];
 };
 
-const rowFor = (verb) => VERBS.find(([name]) => name === verb);
-
 /** Off the tool the verb owns, so nothing here lists a verb's arguments by hand. */
 const setFor = (verb, name) => {
   const tool = rowFor(verb)?.[3];
@@ -110,81 +109,11 @@ export const declaredSlots = () =>
     return set ? [{ ...slot, set }] : [];
   });
 
-/* A slash opening a token is a regex; one after a value is division. */
-const OPENS_A_REGEX = "([{:;,=!&|?+\n";
-const closingAt = (text, from, quote) => {
-  for (let at = from + 1; at < text.length; at += 1) {
-    if (text[at] === "\\") at += 1;
-    else if (text[at] === quote) return at;
-  }
-  return text.length - 1;
-};
-
 /** Comments and literal insides blanked to spaces — a judge commented out is no judge — keeping the
- *  length, so an index found here indexes the source too. */
-export const masked = (text) => {
-  const out = text.split("");
-  const blank = (from, to) => {
-    for (let at = from; at < to && at < out.length; at += 1) if (out[at] !== "\n") out[at] = " ";
-  };
-  /* A template's literal half is text and its holes are code, and the two nest: a quote in the text
-     read as a delimiter blanked a call that runs, so the halves are walked rather than skipped. */
-  const holes = [];
-  let at = 0;
-  let last = "\n";
-  const inText = () => holes.at(-1) === 0;
-  while (at < text.length) {
-    const two = text.slice(at, at + 2);
-    const one = text[at];
-    if (inText()) {
-      if (one === "\\") blank(at, at + 2);
-      else if (one === "`") {
-        holes.pop();
-        /* Leaving a template leaves a value, so a slash after it is division. */
-        last = "x";
-      } else if (two === "${") {
-        /* The hole's own braces go too, so its code counts for the depth its statement is at, and
-           a hole opens an expression: what preceded the template cannot say what a slash in it is. */
-        holes.push(1);
-        blank(at, at + 2);
-        last = "\n";
-      } else blank(at, at + 1);
-      at += two === "${" || one === "\\" ? 2 : 1;
-      continue;
-    }
-    if (two === "//" || two === "/*") {
-      const shut = text.indexOf(two === "//" ? "\n" : "*/", at + 2);
-      const to = shut < 0 ? text.length : shut + (two === "//" ? 0 : 2);
-      blank(at, to);
-      at = to;
-      continue;
-    }
-    if (one === "`") {
-      holes.push(0);
-      at += 1;
-      continue;
-    }
-    if (holes.length && (one === "{" || one === "}")) {
-      holes[holes.length - 1] += one === "{" ? 1 : -1;
-      if (holes.at(-1) === 0) {
-        holes.pop();
-        blank(at, at + 1);
-      }
-      at += 1;
-      continue;
-    }
-    if (one === '"' || one === "'" || (one === "/" && OPENS_A_REGEX.includes(last))) {
-      const close = closingAt(text, at, one);
-      blank(at + 1, close);
-      at = close + 1;
-      last = one === "/" ? "x" : one;
-      continue;
-    }
-    if (!/\s/u.test(one)) last = one;
-    at += 1;
-  }
-  return out.join("");
-};
+ *  length and each literal's quotes, so an index found here indexes the source too. A template's
+ *  holes stand as the code they are, and their own braces go, so a call in one counts for the depth
+ *  its statement is at. */
+export const masked = (text) => maskOf(text, { blank: [...COMMENTS, ...LITERALS], quotes: "keep" });
 
 /* Balanced over the mask, so a paren inside a literal or a comment closes nothing. */
 const spanAt = (mask, from, open = "(", shut = ")") => {

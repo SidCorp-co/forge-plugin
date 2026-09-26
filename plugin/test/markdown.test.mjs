@@ -40,6 +40,7 @@ const SPEC_PARSE = "plugin/src/spec/parse.mjs";
 const CANONICAL = "plugin/src/resolve/canonical.mjs";
 const MEDIAN = "plugin/src/stats/median.mjs";
 const JSONL = "plugin/src/hooks/log/hook-log-file.mjs";
+const LEXICAL = "plugin/src/checks/source/lexical.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -109,6 +110,11 @@ const ESCAPE_ALPHABET = String.raw`[\\/^$*+?.()|[\]{}]`;
 const ESCAPE_CLASS = new RegExp(String.raw`[/"'\x60]\[`
   + [..."*+?(){}|^$."].map((one) => `(?=${ESCAPE_ALPHABET}*?\\${one})`).join("")
   + String.raw`${ESCAPE_ALPHABET}{11,}\][/"'\x60]`, "u");
+/* A walk telling a comment from code has to find where a block comment ends, however it spells the
+   rest, so the closer standing as a literal is the needle: every one of the four walks this home
+   replaced held it, in three different calls, and no module that is not a lexer has a reason to. What
+   it cannot see: a closer built from its two characters, which no walk here has written (ISS-1085). */
+const COMMENT_CLOSER = [/(["'\x60])\*\/\1/u];
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
@@ -129,6 +135,7 @@ const NEEDLES = [
   ["a median over numbers", MEDIAN, MEDIAN_FORMS],
   ["an append-only JSONL store", JSONL, JSONL_APPEND],
   ["a regex escape", MARKDOWN, [ESCAPE_CLASS]],
+  ["a reading of what is code and what is a literal", LEXICAL, COMMENT_CLOSER],
 ];
 
 /* A needle is a primitive's bytes, or a shape where the primitive is one — a fallback body is the same reading whatever its parameter is called, and no substring tells those copies apart. */
@@ -155,7 +162,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [MARKDOWN, SHELL, SSE, TRANSPORT, HELP_WORD, LOG_READS, MEDIAN, JSONL]) {
+  for (const home of [MARKDOWN, SHELL, SSE, TRANSPORT, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -193,6 +200,9 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "x3.mjs", text: 'const lit = (one) => one.replace(/[/\\\\^$*+?.()|[\\]{}]/gu, "\\\\$&");' },
     { rel: "x4.mjs", text: "const lit = (one) => one.replace(/[\\\\^$.*+?()[\\]{}|]/g, '\\\\$&');" },
     { rel: "x5.mjs", text: 'const ESCAPED = new RegExp("[.*+?^${}()|[\\\\]\\\\\\\\]", "g");' },
+    /* The four walks' own call, and a comparison in single quotes, which none of them wrote. */
+    { rel: "z1.mjs", text: 'const shut = text.indexOf("*/", at + 2);' },
+    { rel: "z2.mjs", text: "if (inside === 'block' && pair === '*/') inside = '';" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -219,6 +229,7 @@ test("the guard fires on a module that re-declares one", () => {
     `v.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
     `w.mjs declares an append-only JSONL store of its own; ${JSONL} holds it`,
     ...["x1", "x2", "x3", "x4", "x5"].map((one) => `${one}.mjs declares a regex escape of its own; ${MARKDOWN} holds it`),
+    ...["z1", "z2"].map((one) => `${one}.mjs declares a reading of what is code and what is a literal of its own; ${LEXICAL} holds it`),
   ]);
 });
 

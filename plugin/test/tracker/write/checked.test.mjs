@@ -3,6 +3,8 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { COMMENTS, LITERALS, maskOf } from "../../../src/checks/source/lexical.mjs";
+
 /* The defect this issue is: the gate covered three verbs and not the five that write the record
    now. A funnel closes today's list, and this closes the next one — every tracker write in the
    source is either behind the check or named here with the reason it is not. */
@@ -16,38 +18,10 @@ const EXEMPT = {
 
 /* Not line by line and not by the word alone: a call split over lines, one whose answer is returned
    rather than awaited, and one spaced from its parenthesis are the same write — while a comment
-   naming the word is none. Comments go first, and quote-aware, or a `//` inside a string would
-   blank the rest of a real line; every newline is kept, so a line number still counts. */
-const bare = (text) => {
-  let out = "";
-  let quote = "";
-  let inside = "";
-  for (let at = 0; at < text.length; at += 1) {
-    const one = text[at];
-    const pair = text.slice(at, at + 2);
-    const blank = one === "\n" ? one : " ";
-    if (inside === "line") {
-      inside = one === "\n" ? "" : inside;
-      out += blank;
-    } else if (inside === "block") {
-      inside = pair === "*/" ? "" : inside;
-      out += pair === "*/" ? "  " : blank;
-      at += pair === "*/" ? 1 : 0;
-    } else if (quote) {
-      quote = one === quote ? "" : quote;
-      out += one;
-      at += one === "\\" ? 1 : 0;
-      out += one === "\\" ? " " : "";
-    } else if (pair === "//" || pair === "/*") {
-      inside = pair === "//" ? "line" : "block";
-      out += " ";
-    } else {
-      quote = ["\"", "'", "`"].includes(one) ? one : quote;
-      out += one;
-    }
-  }
-  return out;
-};
+   naming the word is none. Only comments go, a string's content being carried through: a string
+   spelling a write is read as one, which over-reports rather than missing a site. Every offset and
+   newline is kept, so a line number still counts. */
+const bare = (text) => maskOf(text, { blank: COMMENTS });
 const CALLS = /(?<![.\w])write\s*\(\s*(?:"(forge_\w+)")?/gu;
 /* The specifier's last segment, not the word `rest` in it: every module inside `tracker/` reaches the
    transport as `./rest.mjs` or `../rest.mjs`, which is where the writes are, and a pattern spelling
@@ -92,6 +66,19 @@ test("the scan sees a write however it is spelled, and nothing that is not one",
     "and a string holding comment syntax hides nothing after it");
   assert.equal(flagged("const held = `${await write(\"forge_issues\", args)}`;"), 1,
     "nor does a template literal: a string's content is carried through, only a comment is blanked");
+});
+
+/* A regex holding a quote read as a string's opening swallowed the file below it, so a comment's
+   words arrived as code and every write after it moved: ISS-1535 met it, and spelt its classes in
+   code points to get past it (ISS-1085). */
+test("a regex holding a quote or a backtick hides nothing after it from the scan", () => {
+  for (const quote of ["'", "\"", "`"]) {
+    const text = `const held = /[${quote}]/u;\n// await write("forge_comments", {});\n`
+      + 'const url = "http://host";\nawait write("forge_issues", { action: "update" });\n';
+    assert.deepEqual(uncheckedIn("probe.mjs", text),
+      ["probe.mjs:4 writes forge_issues with no read-before-write check above it"],
+      `a ${quote} in a class: the comment's write is none and the real one is found on its own line`);
+  }
 });
 
 test("an aliased or namespaced import of the transport is refused", () => {
@@ -143,44 +130,35 @@ const FINDERS = {
    unlisted one is not the same answer. A string spelling a renewal is read as one too: over-reporting
    is answered by naming the site, and missing one is not answered at all. */
 const ENDS = { "(": ")", "[": "]", "{": "}" };
+/* Brackets are counted on a mask with every literal blanked and its quotes kept, so a bracket inside
+   a string or a regex closes nothing, and the text is read back at the same offsets. */
+const literalsOut = (text) => maskOf(text, { blank: LITERALS });
 /* The argument text between a call's own parentheses. Depth is counted over every bracket and not
-   over the parenthesis alone, so an object or an array in an argument closes nothing of the call. */
+   over the parenthesis alone, so an object or an array in an argument closes nothing of the call.
+   The walk starts at the parenthesis, so a renewal a string spells is read from there as code. */
 const argsOf = (text, from) => {
+  const code = literalsOut(text.slice(from));
   const shut = [];
-  let quote = "";
-  for (let at = from; at < text.length; at += 1) {
-    const one = text[at];
-    if (quote) {
-      quote = one === quote ? "" : quote;
-      at += one === "\\" ? 1 : 0;
-    } else if (["\"", "'", "`"].includes(one)) {
-      quote = one;
-    } else if (ENDS[one]) {
-      shut.push(ENDS[one]);
-    } else if (one === shut.at(-1)) {
+  for (let at = 0; at < code.length; at += 1) {
+    const one = code[at];
+    if (ENDS[one]) shut.push(ENDS[one]);
+    else if (one === shut.at(-1)) {
       shut.pop();
-      if (!shut.length) return text.slice(from + 1, at);
+      if (!shut.length) return text.slice(from + 1, from + at);
     }
   }
   return null;
 };
 const partsOf = (text) => {
+  const code = literalsOut(text);
   const parts = [];
   const shut = [];
-  let quote = "";
   let start = 0;
-  for (let at = 0; at < text.length; at += 1) {
-    const one = text[at];
-    if (quote) {
-      quote = one === quote ? "" : quote;
-      at += one === "\\" ? 1 : 0;
-    } else if (["\"", "'", "`"].includes(one)) {
-      quote = one;
-    } else if (ENDS[one]) {
-      shut.push(ENDS[one]);
-    } else if (one === shut.at(-1)) {
-      shut.pop();
-    } else if (one === "," && !shut.length) {
+  for (let at = 0; at < code.length; at += 1) {
+    const one = code[at];
+    if (ENDS[one]) shut.push(ENDS[one]);
+    else if (one === shut.at(-1)) shut.pop();
+    else if (one === "," && !shut.length) {
       parts.push(text.slice(start, at));
       start = at + 1;
     }

@@ -163,7 +163,7 @@ export const grouped = (rows) =>
   GROUPS.map((group) => [group, rows.filter((row) => groupOf(row) === group)])
     .filter(([, held]) => held.length);
 
-const rowFor = (verb) => VERBS.find(([name]) => name === verb);
+export const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 
 export const usageOf = (verb) => {
   const row = rowFor(verb);
