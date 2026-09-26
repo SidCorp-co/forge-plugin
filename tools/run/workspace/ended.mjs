@@ -5,7 +5,7 @@
    tree's own, which `git worktree remove` takes with it, nor the developer's config directory, which
    is not a run's to write. `start` drops it, so a record of an earlier ending never answers for a
    tree cut since and removed by hand. */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { gitCommonDir, parsed } from "../../checkout.mjs";
@@ -17,13 +17,18 @@ export const endedPath = (root, key) => {
   return common ? join(common, ENDED, `${key}.json`) : null;
 };
 
+/* Written beside and renamed over, so the second write of an ending that fails part-way leaves the
+   first one whole rather than an empty file a repeat would read as no record at all. */
+export const stagedAt = (at) => `${at}.${process.pid}`;
+
 /** The path written, or the reason it could not be: the removals it records have happened either way. */
 export const endedWritten = (root, key, record) => {
   const at = endedPath(root, key);
   if (!at) return { why: `git answers no common directory for ${root}` };
   try {
     mkdirSync(dirname(at), { recursive: true });
-    writeFileSync(at, `${JSON.stringify(record, null, 2)}\n`);
+    writeFileSync(stagedAt(at), `${JSON.stringify(record, null, 2)}\n`);
+    renameSync(stagedAt(at), at);
     return { at };
   } catch (error) {
     return { why: error.message };

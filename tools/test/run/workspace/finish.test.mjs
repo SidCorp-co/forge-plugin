@@ -303,6 +303,18 @@ test("a finish that cannot write the record of its ending refuses before removin
   assert.match(run.stderr, /no record of this ending could be written/u, run.stderr);
 });
 
+test("a record of an ending whose second write fails keeps the first one whole", async () => {
+  const { work, tree } = started("finish-staged");
+  const { endedOf, endedWritten, stagedAt } = await import("../../../run/workspace/ended.mjs");
+  const first = { key: KEY, tree, run: "iss-88-00000000", ledger: "the ledger", began: "then", at: null };
+  assert.ok(endedWritten(work, KEY, first).at);
+  mkdirSync(stagedAt(endedAt(work)));
+
+  const second = endedWritten(work, KEY, { ...first, at: "now" });
+  assert.ok(second.why, "a write that could not be staged read as written");
+  assert.deepEqual(endedOf(work, KEY, tree), first);
+});
+
 test("a fresh start of a key drops the record an earlier finish of it left", () => {
   const { work, tree } = started("finish-restarted");
   assert.equal(runIn(work, ["finish", KEY], BARE).status, 0);
