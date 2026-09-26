@@ -74,9 +74,22 @@ const grouped = (runs, keyOf) => {
 /* The runs behind a listing's row: those whose own map carries the row's key. */
 const runsBehind = (runs, pick, key) => runs.filter((run) => pick(run).has(key)).length;
 
+/* A part of a whole as a percentage to one decimal, or none where the whole is nought. */
+const percentOf = (part, whole) => (whole ? Math.round((part / whole) * 1000) / 10 : null);
+
+/* Each phase's share of the run minutes, the day's beside the seven days before pooled, as `stats
+   eval` pools a window; the phases sum to the wall, so the shares sum to the whole. */
+const phaseSharesOf = (profile, week) => profile.phases.map((one, at) => {
+  const share = percentOf(one.totalMinutes, profile.totalMinutes);
+  const baseline = percentOf(week.phases[at].totalMinutes, week.totalMinutes);
+  return { name: one.name, minutes: one.totalMinutes, share, baseline,
+    change: share === null || baseline === null ? null : Math.round((share - baseline) * 10) / 10 };
+});
+
 const runsSection = (all, day, projects) => {
   const today = runsOn(all, day);
   const profile = profileOf(today);
+  const week = profileOf(weekBefore(day).flatMap((one) => runsOn(all, one)));
   const daily = weekBefore(day).map((one) => figureOf(runsOn(all, one)));
   return {
     headline: { day: figureOf(today), before: daily.at(-1), week: weekOf(daily) },
@@ -84,11 +97,13 @@ const runsSection = (all, day, projects) => {
     projects: projects.map((one) => rowOf(one.name, runsOn(one.runs, day))),
     phases: profile.phases.map((one) => ({ name: one.name, runs: one.runs, medianMinutes: one.runs ? one.medianMinutes : null,
       medianCalls: one.runs ? one.medianCalls : null, thin: thinOf(one.runs) })),
+    phaseShares: phaseSharesOf(profile, week),
     rungs: profile.rungs.filter((one) => one.runs > 0).map((one) => ({ name: one.rung, runs: one.runs,
       medianMinutes: one.medianMinutes, medianCalls: one.medianCalls, thin: thinOf(one.runs) })),
     models: grouped(today, (run) => run.model).map(([model, runs]) => rowOf(model, runs)),
     effort: MISSING.effort,
     profile,
+    week,
   };
 };
 
@@ -120,9 +135,9 @@ const landingsSection = (all, passes, day) => ({
 
 const share = (part, whole) => (whole ? Math.round((part / whole) * 100) : null);
 
-const consultsOn = (entries, day) => answered(entries).filter((one) => within(Date.parse(one.at) || 0, day));
+export const consultsOn = (entries, day) => answered(entries).filter((one) => within(Date.parse(one.at) || 0, day));
 
-const consultsSection = (entries, day) => {
+export const consultsSection = (entries, day) => {
   const verdicts = entries.filter((one) => one.kind === "verdict");
   const rows = consultsOn(entries, day);
   const held = windowObject(rows, verdicts);
@@ -207,10 +222,7 @@ const frictionSection = (all, day, profile, hooks) => {
 const followedOf = (releases) => [...releases.recent].sort((left, right) => right.at - left.at)[0] ?? null;
 
 /* `stats eval`'s own moved-most selection, the week pooled as that reading pools a window. */
-const movedOf = (all, day, profile) => {
-  const week = profileOf(weekBefore(day).flatMap((one) => runsOn(all, one)));
-  return { phases: movedIn(profile.phases, week.phases, "name"), rungs: movedIn(profile.rungs, week.rungs, "rung") };
-};
+const movedOf = (profile, week) => ({ phases: movedIn(profile.phases, week.phases, "name"), rungs: movedIn(profile.rungs, week.rungs, "rung") });
 
 /** One day's headline figures, each off the reader the day's own page reads it from: what the
  *  current report draws a point of every series with. A figure the day holds nothing for is null. */
@@ -254,7 +266,7 @@ export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntrie
 export const contentOf = async (reading, day, { unread = [], match } = {}) => {
   const { projects, all, passes, entries, hooks } = reading;
   const runs = runsSection(all, day, projects);
-  const { profile, ...runsShown } = runs;
+  const { profile, week, ...runsShown } = runs;
   const releases = await releasesOn(day, all);
   const friction = frictionSection(all, day, profile, hooks);
   return {
@@ -269,7 +281,7 @@ export const contentOf = async (reading, day, { unread = [], match } = {}) => {
     friction,
     releases,
     opportunities: await opportunitiesOf(friction, match),
-    moved: movedOf(all, day, profile),
+    moved: movedOf(profile, week),
     followed: followedOf(releases),
     trendDays: trendDays(day),
     dayOfFirst: reading.first === null ? null : dayOf(reading.first),

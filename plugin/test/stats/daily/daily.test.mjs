@@ -115,15 +115,40 @@ test("the runs split by phase, rung and model, a row under ten runs marked thin"
   assert.deepEqual(content.runs.models.map((one) => [one.name, one.runs, one.thin]), [["claude-opus-5", 1, "thin"]]);
 });
 
-test("a figure no reader computes names the missing reading and its issue", () => {
+test("a figure no reader computes is named once in the footer with its issue, and never as a red line in the body", () => {
   const held = device({ days: [daysAgo(1)] });
   assert.equal(daily(held).status, 0);
   const page = readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8");
+  const footer = page.slice(page.indexOf("<footer>"), page.indexOf("</footer>"));
   for (const [reading, issue] of [["issue-flow runs by the effort they ran at", "ISS-2424"],
     ["hand-backs by cause", "ISS-2425"], ["gate minutes lost", "ISS-2425"],
-    ["consult calls lost to transport failures", "ISS-2426"]]) {
-    assert.ok(page.includes(`missing: ${reading} — no reader computes it yet (${issue})`), reading);
+    ["consult calls lost to transport failures", "ISS-2426"], ["the minutes work waited on a person each day", "ISS-2600"]]) {
+    assert.ok(footer.includes(`<li>Not computed yet: ${reading}, owed by ${issue}.</li>`), reading);
   }
+  assert.doesNotMatch(page, /missing: /u, "no red missing line anywhere on the page");
+});
+
+test("--json and the terminal carry the scorecard, one entry and one line per metric, and no template sentence", () => {
+  const held = device({ days: [daysAgo(1), daysAgo(2)] });
+  const { scorecard } = contentFor(held, daysAgo(1));
+  assert.deepEqual(scorecard.map((one) => one.metric), ["closed", "minutesPerClosed", "firstGate", "ownerWait", "wasted", "atBudget"]);
+  for (const one of scorecard) {
+    for (const field of ["metric", "value", "baseline", "change", "verdict", "goal"]) assert.ok(field in one, `${one.metric} lacks ${field}`);
+  }
+  const wasted = scorecard.find((one) => one.metric === "wasted");
+  assert.equal(wasted.baselineDays, 1, "the one day before that held a run");
+  assert.equal(wasted.change, 0);
+  assert.equal(wasted.verdict, "steady", "the same run on both days wastes the same share");
+  const written = daily(held, "--day", daysAgo(1));
+  assert.equal(written.status, 0, written.stderr);
+  const lines = written.stdout.split("\n");
+  assert.equal(lines[0], "Scorecard, the day against the median of the seven days before:");
+  assert.equal(lines.slice(1, 7).filter((one) => one.startsWith("  ")).length, 6, written.stdout);
+  assert.match(written.stdout, /^ {2}issues closed: not computed yet, ISS-2599 owes its reader \(higher is better, G-11\)$/mu);
+  assert.match(written.stdout, new RegExp(`^  wasted calls, of all calls: ${wasted.value}% against ${wasted.baseline}%, \\+?0 pt, steady \\(lower is better, G-11\\)$`, "mu"));
+  assert.ok(!written.stdout.includes("issue-flow run(s) across"), "no template sentence");
+  const again = daily(held, "--day", daysAgo(1));
+  assert.ok(again.stdout.startsWith("Scorecard, the day against"), "a held page's scorecard is printed on a plain open");
 });
 
 test("the landings are the landing reader's passes and the profile's gate figures for the day", () => {

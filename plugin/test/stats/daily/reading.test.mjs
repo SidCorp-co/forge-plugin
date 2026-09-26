@@ -80,13 +80,17 @@ test("a written page opens with the judged Decisions, each section with its line
     const count = (model) => gateway.seen.filter((one) => one.model === model).length;
     assert.deepEqual([count("cx/explorer"), count("cx/reviewer-max"), count("cx/judge")], [6, 6, 1]);
     const page = pageOf(held);
-    assert.ok(page.indexOf('<section id="decisions">') < page.indexOf('<section class="summary">'), "the block comes first");
-    assert.match(page, /<li><strong>raise<\/strong> — the effort reading is still owed<br><span class="note">Figure <code>runs\.headline\.day\.runs<\/code>, runs, the day: 1\. Carried out by <code>ISS-2424<\/code>\.<\/span><\/li>/u);
+    assert.ok(page.indexOf('<section id="scorecard">') < page.indexOf('<section id="decisions">'), "the scorecard comes first");
+    assert.ok(page.indexOf('<section id="decisions">') < page.indexOf("<details"), "the block stands above every drill-down");
+    assert.match(page, /<li><strong>raise<\/strong> — the effort reading is still owed<br><span class="note"><span class="figure" title="runs\.headline\.day\.runs">runs, the day: 1<\/span>\. Tile: <a href="#tile-minutesPerClosed">agent minutes per closed issue<\/a>\. Carried out by <code>ISS-2424<\/code>\.<\/span><\/li>/u);
+    assert.ok(page.includes('<div class="tile greyed" id="tile-minutesPerClosed">'), "and the tile it links to is on the page");
+    assert.doesNotMatch(page.slice(0, page.indexOf("<script")), />[^<]*runs\.headline\.day\.runs/u, "the key is a hover, never page text");
     assert.match(page, /1 reading\(s\) dropped before this page was written: 1 at judge, cited a figure the page does not hold\./u);
-    assert.match(page, /<section id="friction"><h2>Friction<\/h2><p class="verdict"><strong>steady<\/strong> — nothing moved in friction<\/p>/u);
+    assert.match(page, /<details id="friction"><summary><h2>Friction<\/h2>.*?<\/summary><p class="verdict"><strong>steady<\/strong> — nothing moved in friction<\/p>/u);
     assert.match(page, /What reading this page cost: explore: cx\/explorer, 6 call\(s\), 300 input and 30 output token\(s\); review: cx\/reviewer-max, 6 call\(s\), 300 input and 30 output token\(s\); judge: cx\/judge, 1 call\(s\), 50 input and 5 output token\(s\)\./u);
-    assert.ok(written.stdout.startsWith("Decisions:\n1. raise: the effort reading is still owed — runs, the day: 1 — ISS-2424\n"), written.stdout);
-    assert.ok(!written.stdout.includes("issue-flow run(s) across"), "the decisions stand in place of the template sentences");
+    assert.ok(written.stdout.startsWith("Scorecard, the day against"), written.stdout);
+    assert.ok(written.stdout.includes("\nDecisions:\n1. raise: the effort reading is still owed — runs, the day: 1 — ISS-2424\n"), written.stdout);
+    assert.ok(!written.stdout.includes("issue-flow run(s) across"), "the scorecard and the decisions stand in place of the template sentences");
     const sent = JSON.stringify(gateway.seen);
     assert.ok(!sent.includes(held.room), "no path under this device's home travelled");
     assert.ok(!sent.includes("sk-stand-in"), "no credential travelled in a body");
@@ -107,7 +111,7 @@ test("a held page's reading is read back by a later open and by --json with no c
     assert.equal((await run(held, ["--day", daysAgo(1)])).status, 0);
     const asked = gateway.seen.length;
     const again = await run(held, ["--day", daysAgo(1)]);
-    assert.ok(again.stdout.startsWith("Decisions:\n1. raise:"), again.stdout);
+    assert.ok(again.stdout.includes("\nDecisions:\n1. raise:"), again.stdout);
     /* A run landing on the day after the page was written: --json still prints what the reading read. */
     const later = join(held.room, ".claude", "projects", slugFor(held.checkout), "session-later", "subagents");
     mkdirSync(later, { recursive: true });
@@ -131,8 +135,8 @@ test("with no gateway, or the variable standing codex down, the page is written 
   const written = await run(held, ["--day", daysAgo(1)]);
   assert.equal(written.status, 0, written.stderr);
   assert.match(pageOf(held), /<section id="decisions"><p class="missing">No decisions: no model read this page: the gateway has no gateway endpoint and no credential for it/u);
-  assert.match(pageOf(held), /<section id="runs"><h2>Runs<\/h2><p class="headline">/u, "every figure is still on the page");
-  assert.match(written.stdout, /issue-flow run\(s\) across 1 project\(s\)[\s\S]*\nNo decisions: no model read this page/u);
+  assert.match(pageOf(held), /<details id="runs"><summary><h2>Runs<\/h2>/u, "every figure is still on the page");
+  assert.match(written.stdout, /^Scorecard, the day against[\s\S]*\nNo decisions: no model read this page/u);
   const gateway = await standIn();
   try {
     const off = deviceAt(gateway);
