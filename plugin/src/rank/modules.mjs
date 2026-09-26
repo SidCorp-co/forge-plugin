@@ -16,15 +16,16 @@ const saidOf = (module, weight) => {
 };
 
 /** `termOf(row)` for every row the ranking scores, the refusal where the table weighs a name the
- *  project does not define, and `whole` false where the attribution read stopped short. No table,
- *  or no module defined, is a zero term and no attribution read: every issue scores as it did. */
+ *  project does not define — none defined included — and `whole` false where the attribution read
+ *  stopped short. No table, or no module defined, is a zero term and no attribution read: every
+ *  issue scores as it did. */
 const moduleTerms = async (weights) => {
   const asked = rankConvention().value?.[MODULE_TABLE];
   if (asked === undefined) return { termOf: flat(`no rank.${MODULE_TABLE} table`), whole: true, refusal: null };
   const { modules } = await moduleDefinition();
-  if (!modules.length) return { termOf: flat("no module defined"), whole: true, refusal: null };
   const unknown = undefinedKeys(asked, modules, UNSET);
   if (unknown.length) return { termOf: null, whole: true, refusal: undefinedRefusal(unknown, modules) };
+  if (!modules.length) return { termOf: flat("no module defined"), whole: true, refusal: null };
   const { found, whole } = await primaryModules(TAKEABLE);
   const byId = new Map(modules.map((one) => [one.id, one]));
   const termOf = (row) => {

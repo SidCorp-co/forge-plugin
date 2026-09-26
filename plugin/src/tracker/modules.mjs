@@ -1,7 +1,7 @@
 /* A project's modules, as its own tracker defines them: labels of kind `module`, nested by parent.
    Nothing here names a module or a weight — docs/cli/modules.md says why both are the project's. */
 import { scoped } from "./rest.mjs";
-import { didYouMean } from "../suggest.mjs";
+import { suggest } from "../suggest.mjs";
 import { NO_LONGER_OWES } from "../flow/earned/park-status.mjs";
 
 export const MODULE = "module";
@@ -32,7 +32,8 @@ const definedSaid = (modules) => (modules.length
 export const moduleNamed = (modules, name, what) => {
   const found = modules.find((one) => one.name === name);
   if (found) return { found, refusal: null };
-  const near = modules.length ? ` ${didYouMean("module", name, namesOf(modules))}` : "";
+  const close = suggest(name, namesOf(modules));
+  const near = close.length ? ` Did you mean: ${close.join(", ")}?` : "";
   return { found: null,
     refusal: `${what} names \`${name}\`, which is no module of this project.${near} ${definedSaid(modules)}` };
 };

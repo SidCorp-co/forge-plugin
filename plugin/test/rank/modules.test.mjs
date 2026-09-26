@@ -94,6 +94,9 @@ test("where the project defines no module every issue scores as it did", async (
   const held = candidates(await ran(["next", "--json"], standing({ module: { unset: 9 } })));
   for (const one of held) assert.deepEqual(one.parts.module, { said: "no module defined", points: 0 });
   assert.deepEqual(attributedCalls(), [], "no attribution read where there is nothing to attribute");
+  const named = await ran(["next"], standing({ module: { gone: 4 } }));
+  assert.equal(named.status, 1, "a row naming a module is still a name nothing defines");
+  assert.match(named.stderr, /This project defines no module yet\./u);
 });
 
 test("forge next -h prints the module row of the table", async () => {
