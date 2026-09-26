@@ -135,7 +135,7 @@ status it reports is read as that platform means it rather than as it spells it.
 - **AC-19-10-1** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "a uuid outside the pin is refused, and its own action path is never asked for"
   IF a call names a resource outside the pinned project THEN the CLI SHALL refuse it while the
   target is being resolved, and SHALL send nothing to that resource's own route.
-- **AC-19-10-2** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "with nothing pinned every route-index command refuses and says what to write"
+- **AC-19-10-2** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "with nothing pinned every route-index command refuses and names the command that pins one"
   WHERE no project is pinned the CLI SHALL refuse every call that reaches this boundary, and SHALL
   name what pins one.
 - **AC-19-10-3** · Rev: 1 · Proof: plugin/test/tools/services/coolify/surface.test.mjs "deploy is the one served operation with a selector nothing ties to the pin"
@@ -177,6 +177,13 @@ status it reports is read as that platform means it rather than as it spells it.
 - **AC-19-10-13** · Rev: 1 · Proof: plugin/test/tools/services/harness-rows.test.mjs "the coolify row names the way that answers and where it was read"
   WHEN this product reports on the configuration this machine holds THEN that report SHALL name
   which of the two ways answers for this platform and the file that answer was read from.
+- **AC-19-10-14** · Rev: 1 · Proof: plugin/test/tools/services/coolify/pin.test.mjs "an application's name pins the project and the environment holding it, and the verb then answers inside it"
+  WHERE a checkout has a saved instance and no project pinned, naming an application that instance
+  holds SHALL pin the project and the environment that application sits in, with nothing but this
+  product.
+- **AC-19-10-15** · Rev: 1 · Proof: plugin/test/tools/services/coolify/pin.test.mjs "a pin naming a project the instance does not know is refused naming the pin, which then answers"
+  IF a pinned project resolves to nothing on the instance THEN the refusal SHALL name a command that
+  answers under that same pin.
 
 ### EI-07 — The version-control host
 

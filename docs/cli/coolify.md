@@ -7,8 +7,8 @@ it answers, and what a name the answering one does not serve is told.
 
 The platform can be reached twice over: through the tracker, which already binds it to this project
 and already holds a credential for it, or through an instance whose URL and token this machine
-saved. The second came first and cost a second login, a hand-written uuid and a file in the checkout
-before it answered anything. The first costs nothing that is not already there, which is the whole
+saved. The second costs a second login and a pin before
+it answers anything. The first costs nothing that is not already there, which is the whole
 argument: a checkout that has never run `coolify login` gets a working verb, and there is no refusal
 to clear because the route that answers asks for nothing.
 

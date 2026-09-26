@@ -376,6 +376,9 @@ export const declaredJobs = () => jobsOf(forgeJson().parsed?.jobs);
 
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
+/** Which project of a saved Coolify instance this checkout is pinned to, written by `forge coolify
+ *  pin` and read nowhere else: the checkout's own `.coolify.json` is not a source (ISS-1401). */
+export const projectCoolify = () => forgeJson().parsed?.coolifyPin ?? {};
 
 /* Where a project keeps its tests is its own decision and never a guess of this plugin's: a root
    written relative to the checkout, and a pattern matched against a file's own name, `*` standing for

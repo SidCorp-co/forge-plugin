@@ -4,6 +4,7 @@
 import { look } from "./client.mjs";
 import { wrapper } from "./shape.mjs";
 import { fail } from "../../../resolve/settings.mjs";
+import { PIN_WAYS } from "./config.mjs";
 
 const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
 
@@ -14,11 +15,13 @@ const asList = (value) => {
 };
 
 /* Some instances answer the environments route with nothing useful, so the project's own embedded
-   list is the fallback — and both callers take this one reading, so they cannot disagree. */
-const environmentsOf = async (held, projectUuid) => {
-  const listed = objects(await look(held, `/projects/${projectUuid}/environments`));
+   list is the fallback — and the guard and the pin take this one reading, so they cannot disagree.
+   A project the instance does not know has no environments, rather than a refusal of its own: a
+   mistyped pin is then refused by `mustResolve`, which says how to re-pin. */
+export const environmentsOf = async (held, projectUuid) => {
+  const listed = objects(await look(held, `/projects/${projectUuid}/environments`, []));
   if (listed.length) return listed;
-  const project = await look(held, `/projects/${projectUuid}`);
+  const project = await look(held, `/projects/${projectUuid}`, null);
   return objects(project?.environments);
 };
 
@@ -65,7 +68,8 @@ const mustResolve = (scope, allowed, what) => {
     `coolify: the pinned project${scope.projects.length === 1 ? "" : "s"} (${label(scope)}) `
     + `resolved to no ${what}, so nothing can be checked against the pin.\n`
     + `  this checkout's scope comes from ${scope.pin.at}\n`
-    + "  check that uuid against `forge coolify project list`, and that any environment it names exists",
+    + "  check that uuid, and that any environment it names exists, against what this token can see —\n"
+    + `  re-pin with one of:\n${PIN_WAYS.join("\n")}`,
   );
 };
 

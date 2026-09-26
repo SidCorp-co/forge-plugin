@@ -19,10 +19,10 @@ the checkout and no refusal there is about a missing pin. What is in reach is wh
 bound to, and an empty listing means this project deploys nothing rather than that something is
 unconfigured.
 
-**On the instance's route every resource command runs inside one project, and the project is a
-file.** `.coolify.json`, found by walking up from the working directory, is what pins it. In a
-checkout that has none, every such command refuses — that is the arrangement, not a fault to work
-around. A refusal naming a uuid outside the pin is the same guard working: that resource belongs to
+**On the instance's route every resource command runs inside one project, and `forge coolify pin`
+is what sets it.** In a checkout with none, every such command refuses and names that command — run
+it with the application this checkout deploys (`--app <name>`), which settles the project and the
+environment together; with no flag it lists the projects the token can see. A refusal naming a uuid outside the pin is the same guard working: that resource belongs to
 a project this checkout does not own, so list what is in scope and act on that instead. There is no
 flag, variable or key that widens it, and looking for one is looking for the defect the guard exists
 to prevent.

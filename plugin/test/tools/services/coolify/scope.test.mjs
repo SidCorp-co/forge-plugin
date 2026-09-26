@@ -48,7 +48,9 @@ const stub = (t, instance = INSTANCE) => {
   return asked;
 };
 
-const PIN = { at: "/work/web/.coolify.json", spec: { project_uuid: ["p-in"] } };
+/* Where the pin was read from, which is all the guard does with the path: it names it. */
+const RECORD = "/home/dev/.config/forge/projects/web/config.json";
+const PIN = { at: RECORD, spec: { project_uuid: ["p-in"] } };
 
 const scoped = (pin = PIN) =>
   makeScope(session({ url: "https://coolify.test/api/v1", token: "tok-1" }, {}), pin);
@@ -88,7 +90,7 @@ test("an application outside the pin is refused, and the refusal names it, the p
   stub(t);
   const said = await refused(() => check(scoped(), GUARD, { uuid: "a-out" }));
   assert.match(said, /application a-out is outside the pinned project \(p-in\)/u);
-  assert.match(said, /this checkout's scope comes from \/work\/web\/\.coolify\.json/u);
+  assert.match(said, /this checkout's scope comes from \/home\/dev\/\.config\/forge\/projects\/web\/config\.json/u);
   assert.match(said, /there is no override/u);
 });
 
@@ -192,7 +194,7 @@ test("an application the resources route cannot key refuses even where its neigh
   assert.match(said, /1 application\(s\) of the pinned project \(p-in\) carry no id/u);
   assert.match(said, /unplaced: a-second/u);
   assert.match(said, /`\/applications` answered without an `id` field and `\/resources` carried no row/u);
-  assert.match(said, /\/work\/web\/\.coolify\.json/u);
+  assert.match(said, /\/home\/dev\/\.config\/forge\/projects\/web\/config\.json/u);
 });
 
 test("a projects listing is cut to the projects the pin names", async (t) => {
@@ -215,21 +217,24 @@ test("an object with no linking field at all survives the filter", async (t) => 
    very typo it names: the Python warns and carries on, which leaves the whole team in reach. */
 test("a project uuid that resolves to no environment refuses rather than allowing everything", async (t) => {
   stub(t, { ...INSTANCE, "/projects/p-typo/environments": [], "/projects/p-typo": { uuid: "p-typo" } });
-  const scope = scoped({ at: "/work/web/.coolify.json", spec: { project_uuid: ["p-typo"] } });
+  const scope = scoped({ at: RECORD, spec: { project_uuid: ["p-typo"] } });
   const said = await refused(() => check(scope, GUARD, { uuid: "a-in" }));
   assert.match(said, /resolved to no environments/u);
-  assert.match(said, /\/work\/web\/\.coolify\.json/u);
+  assert.ok(said.includes(RECORD), said);
+  assert.match(said, /forge coolify pin --app <name\|uuid>/u);
+  assert.match(said, /forge coolify pin, with neither, lists the projects this token can see/u);
+  assert.doesNotMatch(said, /forge coolify project list/u, "the advice names a command the same pin cuts to nothing");
 });
 
 test("an environment restriction matching nothing refuses too, rather than widening to the team", async (t) => {
   stub(t);
-  const scope = scoped({ at: "/work/web/.coolify.json", spec: { project_uuid: ["p-in"], environment: ["staging"] } });
+  const scope = scoped({ at: RECORD, spec: { project_uuid: ["p-in"], environment: ["staging"] } });
   assert.match(await refused(() => check(scope, GUARD, { uuid: "a-in" })), /resolved to no environments/u);
 });
 
 test("a listing under an unresolvable pin refuses rather than printing every row", async (t) => {
   stub(t, { ...INSTANCE, "/projects/p-typo/environments": [], "/projects/p-typo": { uuid: "p-typo" } });
-  const scope = scoped({ at: "/work/web/.coolify.json", spec: { project_uuid: ["p-typo"] } });
+  const scope = scoped({ at: RECORD, spec: { project_uuid: ["p-typo"] } });
   assert.match(await refused(() => filterList(scope, "applications", [IN_SCOPE, OUTSIDE])),
     /resolved to no environments/u);
 });

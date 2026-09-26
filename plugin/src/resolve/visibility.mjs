@@ -100,7 +100,7 @@ export const VERBS = [
   /* Two ways to one platform, and the row names the one that answers: a usage list offering the
      other way's commands offers every one of them to a refusal. */
   ["coolify", () => `<${(onTracker() ? TAKEN_HERE
-    : ["login", "accounts", "whoami", "app", "deploy", "deployment", "project", "resource"]).join("|")}>`,
+    : ["login", "accounts", "whoami", "pin", "app", "deploy", "deployment", "project", "resource"]).join("|")}>`,
   () => (onTracker()
     ? "this project's own deployment bindings, on the credential already held"
     : "a pinned project's deployments, and nothing outside it"), null,
