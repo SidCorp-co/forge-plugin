@@ -92,8 +92,8 @@ test("a borrowing home holding a record of another project does not read the mac
   writeFileSync(join(other, "config.json"), `${JSON.stringify({ slug: "another-slug" })}\n`);
   const run = await forge(at, "doctor");
   const row = rowOf(run.stdout, "project slug") ?? "";
-  assert.ok(!row.includes("forge-plugin"), `the machine's slug is not this home's:\n${row}`);
-  assert.ok(!row.includes(at.file), `nor is the machine's record its source:\n${row}`);
+  assert.match(row, /project slug\s+project-scoped calls will refuse/u, `no slug resolves here:\n${run.stdout}`);
+  assert.ok(!row.includes(at.file), `and the machine's record is not named as a source:\n${row}`);
 });
 
 test("a --set of a project key is refused naming the machine's record, which keeps its bytes, and the home holds none", async () => {
