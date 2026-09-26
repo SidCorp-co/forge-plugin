@@ -25,7 +25,8 @@ test("each metric declares its direction and its goal once, and every tile carri
   for (const metric of METRICS) {
     assert.ok(["lower", "higher"].includes(metric.better), metric.id);
     assert.match(metric.goal, /^G-\d{2}$/u, metric.id);
-    assert.ok(metric.of || metric.missing?.issue, `${metric.id} is read, or names the reader it waits for`);
+    assert.equal(typeof metric.of === "function", !metric.missing, `${metric.id} is read, or names the reader it waits for, never both`);
+    if (metric.missing) assert.match(metric.missing.issue, /^ISS-\d+$/u, metric.id);
   }
   const scorecard = scorecardOf(readingOf(), DAY);
   assert.deepEqual(scorecard.map((one) => [one.metric, one.better, one.goal]), METRICS.map((one) => [one.id, one.better, one.goal]));

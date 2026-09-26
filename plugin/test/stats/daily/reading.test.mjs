@@ -83,7 +83,7 @@ test("a written page opens with the judged Decisions, each section with its line
     assert.ok(page.indexOf('<section id="scorecard">') < page.indexOf('<section id="decisions">'), "the scorecard comes first");
     assert.ok(page.indexOf('<section id="decisions">') < page.indexOf("<details"), "the block stands above every drill-down");
     assert.match(page, /<li><strong>raise<\/strong> — the effort reading is still owed<br><span class="note"><span class="figure" title="runs\.headline\.day\.runs">runs, the day: 1<\/span>\. Tile: <a href="#tile-minutesPerClosed">agent minutes per closed issue<\/a>\. Carried out by <code>ISS-2424<\/code>\.<\/span><\/li>/u);
-    assert.ok(page.includes('<div class="tile greyed" id="tile-minutesPerClosed">'), "and the tile it links to is on the page");
+    assert.ok(page.includes('id="tile-minutesPerClosed"'), "and the tile it links to is on the page; what a tile shows is page.test's");
     assert.doesNotMatch(page.slice(0, page.indexOf("<script")), />[^<]*runs\.headline\.day\.runs/u, "the key is a hover, never page text");
     assert.match(page, /1 reading\(s\) dropped before this page was written: 1 at judge, cited a figure the page does not hold\./u);
     assert.match(page, /<details id="friction"><summary><h2>Friction<\/h2>.*?<\/summary><p class="verdict"><strong>steady<\/strong> — nothing moved in friction<\/p>/u);
