@@ -18,7 +18,7 @@ import { CEILINGS, climbForm, overCeiling } from "../../plugin/src/ladder.mjs";
 import { REPLAYED, replaySays, replayedBy } from "./replayed.mjs";
 import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./land.mjs";
 import { checkpointsFinished, keysHere } from "./ship/checkpoint.mjs";
-import { gatedShip, pushedShip, shipAttempt, shipLeft } from "./ship/attempts.mjs";
+import { gatedShip, pushedShip, shipAttempt, shipLeft } from "./attempts/ship.mjs";
 import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
@@ -252,7 +252,7 @@ const shipSteps = (tree, root, base, note, attempt) => {
       replayedBy(tree, from);
     }, LANDS],
     /* After the rebase, the range being what the release ships, so the gate judges the content that goes out. Where it sits relative to the bump decides nothing now: a release's own version is no part of a step's digest (ISS-1716). */
-    [GATE, () => gatedShip(attempt, tree, (heard) => loud("npm", CHECK, tree,
+    [GATE, () => gatedShip(attempt, tree, base, (heard) => loud("npm", CHECK, tree,
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run.", heard)), LANDS],
     [`a version above ${REMOTE}/${base}`,
       () => versionAbove(tree, base, note), LANDS],

@@ -439,7 +439,7 @@ so a death between the two is recovered by reading back rather than by doing aga
   search is spent, and SHALL record how it was resolved — the strategy, the outcome, the members
   handed back and landed alone, the rounds and the gates spent — so that a red set with no
   resolution on record is read as unknown and never as a set that cost nothing.
-- **AC-05-10-16** · Rev: 1 · Proof: tools/test/run/landing/attempts.test.mjs "a branch the gate refuses alone ends its attempt with cause branch, after an opening and a red gate record"
+- **AC-05-10-16** · Rev: 1 · Proof: tools/test/run/attempts/landing.test.mjs "a branch the gate refuses alone ends its attempt with cause branch, after an opening and a red gate record"
   WHEN a landing takes a change into an attempt THEN it SHALL record the attempt's opening before its
   first step, every gate it runs with the candidate, the verdict and the seconds its steps ran, and
   the attempt's ending — landed, or handed back with the one cause of a closed set that stopped it —

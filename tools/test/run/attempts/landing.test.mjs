@@ -9,7 +9,7 @@ import {
   JUDGED_GATE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, PAIRED_GATE, THIRD_BRANCH, THIRD_KEY, THIRD_OWNED, UUID,
   OWNED, forgetGateRuns, judgedRuns, judging, landingRan, ready, redTogether, seeded, serverPushes, sha, state,
   tracker, world, BASE, issue,
-} from "./fixture.mjs";
+} from "../landing/fixture.mjs";
 
 const { ATTEMPTS, marksOf } = await import("../../../../plugin/src/stats/marks/marks.mjs");
 

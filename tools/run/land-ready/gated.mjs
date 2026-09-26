@@ -7,7 +7,7 @@ import { DECLINED, LANDING_ENV } from "../../gates/machine.mjs";
 import { LANDING_WAIT_ENV } from "../../gates/landing/wait.mjs";
 import { treeOf } from "./candidate.mjs";
 import { roomFor } from "../rooms/room.mjs";
-import { gateNoted, verdictIn } from "../gate-record.mjs";
+import { gateNoted, verdictIn } from "../attempts/gate.mjs";
 import { GATE_ERROR, GREEN, RED, DECLINED as PLACE_DECLINED } from "../../../plugin/src/stats/marks/attempts.mjs";
 
 /* Each line of a gate run beside another under the keys it gates, so two at once still read apart. */

@@ -3,8 +3,8 @@
    for a place. Both landing verbs gate, so both note it here. docs/cli/stats-the-landing.md. */
 import { realpathSync } from "node:fs";
 
-import { runOf } from "../gates/verdict.mjs";
-import { GATE_ERROR, GREEN, RED, DECLINED, gateRecorded } from "../../plugin/src/stats/marks/attempts.mjs";
+import { runOf } from "../../gates/verdict.mjs";
+import { GATE_ERROR, GREEN, RED, DECLINED, gateRecorded } from "../../../plugin/src/stats/marks/attempts.mjs";
 
 /* The gate's own words for how a run ended, read as the landing's four. */
 const READ_AS = { pass: GREEN, unproved: GREEN, failed: RED, declined: DECLINED, refused: GATE_ERROR };

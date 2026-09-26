@@ -2,11 +2,11 @@
    same pass goes on to push, and ended landed the moment its push is taken, or back with the cause of
    the stop that ended it. A ship re-runs its gate on every resume, so one pass is one attempt. What
    the records are and who reads them: docs/cli/stats-the-landing.md. */
-import { gitOut, remoteRef, Stop } from "../../checkout.mjs";
+import { git, gitOut, remoteRef, Stop } from "../../checkout.mjs";
 import { DECLINED as DECLINED_STATUS } from "../../gates/machine.mjs";
 import { remoteHeadOf } from "../install.mjs";
-import { gateNoted } from "../gate-record.mjs";
-import { keysHere } from "./checkpoint.mjs";
+import { gateNoted } from "./gate.mjs";
+import { keysHere } from "../ship/checkpoint.mjs";
 import {
   BACK, BRANCH, DECLINED, GATE_ERROR, GREEN, LANDED, MOVED_BASE, RED, attemptEnded, attemptOpened,
 } from "../../../plugin/src/stats/marks/attempts.mjs";
@@ -31,11 +31,19 @@ const exitedAs = (run) => {
   return run.status === DECLINED_STATUS ? DECLINED : RED;
 };
 
-/** The gate step: each issue's attempt opened at the head the gate judges, the gate run, and noted. */
-export const gatedShip = (attempt, tree, run) => {
+/* Whether the remote base already carries the head: a resume after a push that was taken, whose version
+   commit is the head now and no candidate an earlier ending names, so it is asked of the remote. */
+const onBase = (tree, base, head) => {
+  const now = remoteHeadOf(tree, base);
+  return Boolean(now && head) && git(["merge-base", "--is-ancestor", head, now], tree).status === 0;
+};
+
+/** The gate step: each issue's attempt opened at the head the gate judges, unless the base carries it
+ *  already, the gate run, and noted. */
+export const gatedShip = (attempt, tree, base, run) => {
   attempt.candidate = gitOut(["rev-parse", "HEAD"], tree);
   const members = keysHere(tree);
-  if (attempt.armed) {
+  if (attempt.armed && !onBase(tree, base, attempt.candidate)) {
     attempt.handles = members.map((issue) => attemptOpened({ root: tree, issue, verb: VERB, candidate: attempt.candidate }))
       .filter(Boolean);
   }

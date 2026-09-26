@@ -36,7 +36,7 @@ import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
 import { boundSaid, gateStep, handsBack, strategyRefused } from "./land-ready/gate.mjs";
 import { takenBack } from "./land-ready/taken-back.mjs";
-import { attemptsEnded, attemptsOpened } from "./land-ready/attempts.mjs";
+import { attemptsEnded, attemptsOpened } from "./attempts/set.mjs";
 import { BRANCH, COMBINATION, JUDGE, MOVED_BASE } from "../../plugin/src/stats/marks/attempts.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */

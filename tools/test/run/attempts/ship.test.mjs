@@ -4,11 +4,11 @@
    the remote moved (ISS-2425). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, GATE, committed, git, landIn, runIn, scratch } from "./run-fixtures.mjs";
-import { mintRunId } from "../../run/workspace/run-id.mjs";
+import { BARE, GATE, committed, git, landIn, runIn, scratch } from "../run-fixtures.mjs";
+import { mintRunId } from "../../../run/workspace/run-id.mjs";
 
 const KEY = "ISS-333";
 
@@ -77,4 +77,17 @@ test("ISS-2425 16. a resume past the push re-runs the gate and opens no attempt"
   shipped(room);
   const { said, phases } = shipped(room, ["ship", "--from", "9"]);
   assert.deepEqual(phases, ["gate"], `the gate is spent again and nothing is attempted:\n${said}`);
+});
+
+test("ISS-2425 13. a resume at the push after the push was taken and its tag refused opens no second attempt", () => {
+  const room = shipping("attempt-tag-refused");
+  const hook = join(room.at, "origin.git", "hooks", "pre-receive");
+  writeFileSync(hook, "#!/bin/sh\nwhile read old new ref; do case \"$ref\" in refs/tags/*) echo 'no tags here' >&2; exit 1;; esac; done\n",
+    { mode: 0o755 });
+  const first = shipped(room);
+  assert.match(first.said, /the branch is pushed and v?\S+ is not/u, first.said);
+  assert.deepEqual([first.ended.outcome, first.ended.cause], ["landed", null], first.said);
+  const push = /The resume: node \S+ ship --from (\d+)|ship --from (\d+)/u.exec(first.run.stderr);
+  const again = shipped(room, ["ship", "--from", push[1] ?? push[2]]);
+  assert.deepEqual(again.phases, ["gate"], `the resumed gate is recorded and nothing is attempted:\n${again.said}`);
 });
