@@ -26,14 +26,14 @@ test("a set that excluded the judged consult's findings says so and names what r
   assert.equal(/found nothing/u.test(narrow), false, "the consult found something, and this set is not where");
   assert.match(narrow, /consult c55 made F1 on docs\/FORGE-CLI\.md/u, "the finding by the id its consult gave it, beside the file it is anchored on");
   assert.match(narrow, /othing says what became of F1/u, "and that it is the one a commit gate refuses for");
-  assert.match(narrow, /--recheck a\.mjs docs\/FORGE-CLI\.md/u, "with the set that reaches it");
+  assert.match(narrow, /forge codex consult --recheck --of c55`/u, "with the route that pins the consult the finding was made by");
 
-  /* `judgedBy` takes the LAST consult sharing ANY of the files, so a wider set can select a newer one. */
+  /* `judgedBy` takes the LAST consult sharing ANY of the files, so a set the route typed could select a
+     newer one; the id cannot (ISS-378). */
   const newer = { kind: "consult", id: "c77", ok: true, root: "/a", at: "2", files: ["docs/FORGE-CLI.md"], send: "bodies", reply: "CODEX: 0 findings" };
   const shadowed = recheckOwed(recheckPlan([JUDGED, newer], "/a", ["a.mjs"]), ["a.mjs"]);
-  assert.equal(/--recheck/u.test(shadowed), false, "a route landing on c77 is no route to c55's finding");
-  assert.match(shadowed, /lands on consult c77 instead/u);
-  assert.match(shadowed, /forge codex verdict --of c55/u, "so the disposition is written where the gate names");
+  assert.match(shadowed, /forge codex consult --recheck --of c55`/u, "a newer consult sharing a file does not take the route from c55");
+  assert.equal(recheckPlan([JUDGED, newer], "/a", JUDGED.files, JUDGED).judged.id, "c55", "and the route lands where it says");
 
   const ruled = recheckOwed(recheckPlan([JUDGED, { kind: "verdict", of: "c55", kept: ["F1"], dropped: {} }], "/a", ["a.mjs"]), ["a.mjs"]);
   assert.equal(/othing says what became of/u.test(ruled), false, "a finding the author ruled on is no gate obligation");
@@ -58,14 +58,13 @@ test("a recheck that does go ahead names the finding its set does not reach", ()
   assert.deepEqual(plan.ids, ["F2"], "only the finding this set holds is verified");
   assert.equal(recheckOwed(plan, ["a.mjs"]), null, "there is something to recheck, so nothing is refused");
   assert.match(recheckMissed(plan), /also made F1 on docs\/FORGE-CLI\.md/u);
-  /* This round writes a consult of its own over these files, so a wider recheck answers that one. */
-  assert.equal(/--recheck/u.test(recheckMissed(plan)), false, "a route this very round invalidates is not offered");
-  assert.match(recheckMissed(plan), /forge codex verdict --of c55/u);
+  /* This round writes a consult of its own over these files, which a route pinned by id cannot land on. */
+  assert.match(recheckMissed(plan), /forge codex consult --recheck --of c55`/u, "the route after this round still reaches c55");
   const settled = recheckPlan([both, { kind: "verdict", of: "c55", kept: ["F1"], dropped: {} }], "/a", ["a.mjs"]);
   assert.equal(recheckMissed(settled), null, "a finding already disposed of holds no gate, so it is not named mid-round");
   const answered = { kind: "consult", id: "c99", ok: true, root: "/a", at: "3", files: ["a.mjs"], send: "bodies", reply: "CODEX: 0 findings" };
   assert.equal(recheckPlan([both, answered], "/a", ["a.mjs", "docs/FORGE-CLI.md"]).judged.id, "c99",
-    "which is what a wider recheck would then answer, and why the route was withheld");
+    "a recheck given no --of answers the last answered consult sharing any file of its set");
 });
 
 /* A plan or criteria file lies outside the checkout, so its consult records the real path and the

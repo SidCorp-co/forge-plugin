@@ -22,11 +22,11 @@ import { anglesRefusal } from "./angles/refusal.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
-import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
+import { pinnedSet, reviewSet, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
-import { EFFORTS, anglesInEffect, anglesShown, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
-  modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
+import { EFFORTS, anglesInEffect, anglesShown, askedRounds, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
+  modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder, severities } from "./codex-plan.mjs";
 import {
   askApi,
   bundle,
@@ -66,7 +66,7 @@ import {
   recheckRange,
   verdictFromRulings,
 } from "./log/replies.mjs";
-import { LOG_USAGE, VERDICT_USAGE, printLog, verdict } from "./log/verbs.mjs";
+import { LOG_USAGE, VERDICT_USAGE, consultOf, printLog, verdict } from "./log/verbs.mjs";
 
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 
@@ -94,7 +94,7 @@ export const USAGE = [
 
 const CONSULT_USAGE = [
   "Usage: forge codex consult [file|ISS-nn...] [--diff [--base <ref>]] [--send m] [--only s,s]",
-  "                           [--verify <risk>]... [--recheck] [--angles a,a] [--effort e]",
+  "                           [--verify <risk>]... [--recheck [--of <id>]] [--angles a,a] [--effort e]",
   "                           [--rounds n] [--out-of-scope <text>] [--checks <text>] [--allow-echo]",
   "The files you name, or what this turn touched; pipe your intent on stdin.",
   "",
@@ -110,6 +110,8 @@ const CONSULT_USAGE = [
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
+  "  --of <id>      the answered consult a recheck pins by id, in any worktree of this repository;",
+  "                 with no file named, the files that consult recorded travel",
   "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt; all five by default",
   "  --effort e     minimal | low | medium | high, for this consult only",
   "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
@@ -135,10 +137,6 @@ const recordPattern = () => {
 
 export const recordable = (rel) => new RegExp(recordPattern().value).test(rel);
 
-/* A `missing` part with a diff is a deletion, and a change: every `missing` read as unchanged sent a deletion-only review no diffs at all (ISS-703). */
-export const unchangedAll = (parts) => parts.length > 0
-  && parts.every((part) => part.diff?.unchanged || (part.missing && noDiffIn(part.diff)));
-
 /* A head logged days ago may be gone: a worktree branch deleted, a rebase, another checkout. An
    unreadable one is not an error — the recheck simply carries no diff. */
 const readableRef = (root, ref) =>
@@ -153,24 +151,6 @@ const commitAt = (root) => {
 };
 
 const BOOLEAN = ["--allow-echo", "--diff", "--recheck"];
-const SEVERITIES = ["blocker", "major", "minor"];
-
-const severities = (raw) => {
-  if (raw === undefined) return [];
-  const asked = raw.split(",").map((one) => one.trim().toLowerCase()).filter(Boolean);
-  for (const one of asked) if (!SEVERITIES.includes(one)) fail(didYouMean("severity", one, SEVERITIES));
-  return asked;
-};
-
-/* Refused rather than defaulted: a caller who typed `--rounds two` asked for something, and a
-   consult that silently ran at three would bill them for an answer to a question they did not ask. */
-const askedRounds = (raw) => {
-  if (raw === undefined) return undefined;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 1) fail(`codex: --rounds takes an integer of 1 or more, not \`${raw}\`.`);
-  return value;
-};
-
 /* Repeated `--verify`, then positionals apart from flag values, then the rest — three passes because a flag can carry a value and a file cannot. */
 export const consultArgs = (given) => {
   if (given.includes("--bg")) fail("codex: --bg is gone; a consult runs inline, like the advisor.");
@@ -183,6 +163,9 @@ export const consultArgs = (given) => {
       + 'input. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
   }
   const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
+  if (held.of !== undefined && !held.recheck) {
+    fail(`codex: --of takes --recheck: it names the consult a recheck answers. Do this: \`echo "<what you were doing>" | forge codex consult --recheck --of ${held.of}\``);
+  }
   /* Split here, where the positionals are read: `relsOf` exits on a path neither the tree nor HEAD holds. */
   const keys = positionals.filter((one) => HUMAN_REF.test(one));
   const namedBase = held.base ?? null;
@@ -204,6 +187,7 @@ export const consultArgs = (given) => {
     /* The mode named and not the mode resolved, the set that decides the default being settled well after the flags are. */
     send: chosenSend(held.send),
     recheck: Boolean(held.recheck),
+    of: held.of ?? null,
     angles: chosenAngles(held.angles),
     /* The issue's own sentence and the checkout's own command: a scope this end composes moves the boundary the reviewer is judged against. */
     scope: held["out-of-scope"] ?? "",
@@ -300,12 +284,15 @@ const ruledSaid = (plan, offset, reply, id, entries) => {
 };
 
 const consult = async (given) => {
-  const { named, issues, risks, only, allowEcho, base, namedBase, readFromParting, effort: askedEffort, cap, send, recheck, angles, scope, checks } = consultArgs(given);
+  const { named, issues, risks, only, allowEcho, base, namedBase, readFromParting, effort: askedEffort, cap, send, recheck, of, angles, scope, checks } = consultArgs(given);
   const { problem, values, path } = gateway();
   if (problem) fail(`codex: the consult has no gateway to be sent to — ${problem}.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const set = reviewSet({ root, named, keys: issues, base, readFromParting, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
+  const entries = logEntries();
+  const pinned = of ? consultOf(entries, root, of) : null;
+  const set = pinned && !named.length ? pinnedSet(pinned)
+    : reviewSet({ root, named, keys: issues, base, readFromParting, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
   const { offered, gone } = set;
   let rels = set.rels;
   for (const line of set.said) console.error(`codex: ${line}`);
@@ -313,8 +300,7 @@ const consult = async (given) => {
      on, so leaving it would offer the next consult the same phantom (ISS-703). */
   if (gone.length) clearConsulted(root, gone);
   if (!rels.length && !issues.length) fail(`codex: nothing to consult on. Name a file, an issue key, or write a file first.${base ? ` Nothing differs from ${base} either.` : ""}`);
-  const entries = logEntries();
-  const plan = recheck ? recheckPlan(entries, root, rels) : null;
+  const plan = recheck ? recheckPlan(entries, root, rels, pinned) : null;
   const offset = risks.length;
   if (recheck) {
     /* Asked before the narrowing and against the set the caller stood on: a route out has to name

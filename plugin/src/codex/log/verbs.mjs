@@ -171,6 +171,12 @@ const missing = (of, entries, here) => {
     : `codex: no answered consult in ${logPath()} carries the id ${of}; \`forge codex log --last 10\` lists the ones it holds.`;
 };
 
+/** The answered consult `--of` names, found as `verdict --of` finds one — in any worktree of this repository — or refused saying where that id is instead. */
+export const consultOf = (entries, root, of) => {
+  const here = hereOf(root);
+  return answered(entries).findLast((one) => inRepo(one, here) && one.id === of) ?? fail(missing(of, entries, here));
+};
+
 /* The flagless form lands on this run's consult or on none: a verdict is a record, and one on another run's consult is corrected rather than removed, so refusing costs a retyped command where guessing cost a finding (ISS-898). */
 const notOurs = (bytes, root, here, run) => {
   const open = unverdicted(bytes, root, { repo: here.repo });

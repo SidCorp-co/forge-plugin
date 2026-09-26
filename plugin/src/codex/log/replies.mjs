@@ -317,33 +317,32 @@ export const outcomeOf = (held, id) => {
 };
 
 /* What the resolved set kept out of the judged consult's findings, or null: the gate filters findings
-   by no set, so a narrower one leaves the two disagreeing over whether one exists (ISS-1873). `why`
-   withholds the consult's own set as a route where it selects a newer consult or reprints this. */
-const leftOutOf = (entries, root, judged, reply, kept, ruled) => {
+   by no set, so a narrower one leaves the two disagreeing over whether one exists (ISS-1873). The
+   route pins that consult by id, so a newer one sharing a file cannot take the selection; `why`
+   withholds it only where the consult's own set cannot reach the finding either (ISS-378). */
+const leftOutOf = (judged, reply, kept, ruled) => {
   const held = new Set(kept.map((one) => one.id));
   const out = numbered(reply).filter((one) => !held.has(one.id));
   if (!out.length) return null;
   const of = judged.id ?? judged.at;
   const files = judged.files ?? [];
-  const lands = files.length ? judgedBy(entries, root, files).at(-1) : null;
   const reaches = new Set(numbered(reply, files).map((one) => one.id));
   const why = !files.length ? `consult ${of} recorded no set of its own to recheck over`
-    : lands !== judged ? `a recheck over ${of}'s own set lands on consult ${lands.id ?? lands.at} instead`
+    : !judged.id ? `consult ${of} was logged before consults carried an id, so --of cannot name it`
     : out.every((one) => reaches.has(one.id)) ? null
     : `${of}'s own set leaves that finding out too, it being anchored on a file that consult never recorded — it recorded ${listed(files)}`;
   return {
     of,
     made: out.map((one) => `${one.id} on ${ANCHOR.exec(one.head)?.[1] ?? "a file it did not name"}`),
     owed: undecidedIn(out.map((one) => one.id), ruled),
-    route: why ? null : files,
     why,
   };
 };
 
 /* A follow-up round rules on the last consult's findings about these files — another file's would
    clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
-export const recheckPlan = (entries, root, rels) => {
-  const judged = judgedBy(entries, root, rels).at(-1);
+export const recheckPlan = (entries, root, rels, pinned = null) => {
+  const judged = pinned ?? judgedBy(entries, root, rels).at(-1);
   if (!judged) return null;
   /* The other half of what a request carries out of stored entries; `historyFor` above has the seat's reason, and `judged` stays as stored because its coverage fields are read here and never sent. */
   const ruled = verdictsBy(entries).get(judged.id ?? judged.at);
@@ -352,8 +351,9 @@ export const recheckPlan = (entries, root, rels) => {
   const findings = numbered(reply, rels, judged.files);
   return {
     judged,
+    pinned: Boolean(pinned),
     ids: findings.map((one) => one.id),
-    outside: leftOutOf(entries, root, judged, reply, findings, ruled),
+    outside: leftOutOf(judged, reply, findings, ruled),
     /* The defect, with the legend: "re-verify" drew CONFIRMED for a fix that held, then REFUTED. */
     risks: findings.map((one) => {
       const did = outcomeOf(held, one.id);
@@ -387,19 +387,18 @@ const some = (items) => (items.length > SHOWN
   ? `${items.slice(0, SHOWN).join(", ")} and ${items.length - SHOWN} more`
   : items.join(", "));
 
-const missedRoute = (out) => (out.route
-  ? `Do this: \`echo "<what you were doing>" | forge codex consult --recheck ${out.route.map(pathed).join(" ")}\``
-    + ` — the set ${out.of} was given, which is where its findings are anchored.`
-  : `${out.why}, so rule it where the gate names: \`${verdictForm(out.of)}\`.`);
+const missedRoute = (out) => (out.why
+  ? `${out.why}, so rule it where the gate names: \`${verdictForm(out.of)}\`.`
+  : `Do this: \`echo "<what you were doing>" | forge codex consult --recheck --of ${out.of}\``
+    + ` — the files ${out.of} recorded travel, which is where its findings are anchored.`);
 
-/** What a recheck that does go ahead still does not reach, or null where no disposition is owed. Never
- *  a wider recheck: this round logs a consult of its own, which is then the one a wider set selects. */
+/** What a recheck that does go ahead still does not reach, or null where no disposition is owed. The
+ *  route pins the consult by id, so the consult this round logs over these files does not take it. */
 export const recheckMissed = (plan, rels = []) => {
   const out = plan?.outside;
   if (!out?.owed.length) return null;
   return `consult ${out.of} also made ${some(out.made)}, which this set does not hold${rels.length ? ` — it holds ${listed(rels)} —` : ","} so this recheck`
-    + ` does not reach ${some(out.owed)}. This round logs a consult of its own over these files, which a`
-    + ` wider recheck would then answer instead, so rule it where the gate names: \`${verdictForm(out.of)}\`.`;
+    + ` does not reach ${some(out.owed)}.\n${missedRoute(out)}`;
 };
 
 /** Why a recheck has nothing to verify and which pass does earn the review, or null where it has.
@@ -431,7 +430,8 @@ export const recheckOwed = (plan, rels) => {
     ? ` It read ${listed(plan.judged.files ?? [])}, so ${listed(unread)} ${unread.length === 1 ? "was" : "were"} not among them.`
     : "";
   const cut = part.length ? ` It carried no whole body for ${listed(part)}, so that much of the set is unread.` : "";
-  return `consult ${of} is the last answered one on these files and it found nothing, so there is nothing to recheck.${short}${cut}\n`
+  const which = plan.pinned ? "the one --of named" : "the last answered one on these files";
+  return `consult ${of} is ${which} and it found nothing, so there is nothing to recheck.${short}${cut}\n`
     + `${read} — the read of the whole set is what earns the review; a recheck follows a finding and nothing else.`;
 };
 /* Whose word a disposition is, per finding: an id a verdict named and no recheck's write claimed is the

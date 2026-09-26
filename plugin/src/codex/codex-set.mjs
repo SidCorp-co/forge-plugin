@@ -28,9 +28,13 @@ export const relsOf = (root, named) => {
 
 /** One home for the question two readers ask: a diff git refused is not one that came back empty, and
  *  neither is one nobody asked for. `missing` covers a deletion and an unreadable file too, so `nothingToShow` — a heading handed over with none of the file under it — asks the disk about absence (ISS-703). */
-export const noDiffIn = (diff) => !diff?.text && !diff?.error;
+const noDiffIn = (diff) => !diff?.text && !diff?.error;
 
 const nothingToShow = (root, part) => absentFrom(root, part.rel) && noDiffIn(part.diff);
+
+/* A `missing` part with a diff is a deletion, and a change: every `missing` read as unchanged sent a deletion-only review no diffs at all (ISS-703). */
+export const unchangedAll = (parts) => parts.length > 0
+  && parts.every((part) => part.diff?.unchanged || (part.missing && noDiffIn(part.diff)));
 
 /** The parts anything can be shown of, what leaves with nothing, and the lines saying so. With no
  *  anchor no diff was collected, so absence alone cannot tell a phantom from a tracked deletion:
@@ -128,5 +132,19 @@ export const reviewSet = ({ root, named, keys = [], base, readFromParting, held,
     offered,
     said: [`nothing named, so the ${changed.length} file(s) changed against ${base}: ${changed.join(", ")}.`, ...said],
     gone,
+  };
+};
+
+/** `--of` with no path beside it: the files that consult recorded are on the record, so a commit
+ *  that emptied the turn record costs no retyped list. Kept as recorded rather than read as named
+ *  paths, so a deletion committed since stays for the anchor's diff to show (ISS-378). */
+export const pinnedSet = (pinned) => {
+  const files = pinned.files ?? [];
+  if (!files.length) fail(`codex: consult ${pinned.id} recorded no file, so a recheck of it has no set of its own. Name the files it is about.`);
+  return {
+    rels: [...files],
+    offered: (many) => `${many} ${pinned.id} recorded`,
+    said: [`a recheck of ${pinned.id}, so the ${files.length} file(s) it recorded travel.`],
+    gone: [],
   };
 };

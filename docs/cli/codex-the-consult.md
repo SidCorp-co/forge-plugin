@@ -96,8 +96,9 @@ to name files they can act on. The effort level is not a symptom of any of this:
 below the base whatever the diff's size, so what moved with the range was the call budget, which
 rises with every clipped file.
 
-**A route that does not reach is withheld.** A recheck answers the last answered consult sharing any
-of its files, so the one route to a finding the resolved set excluded — that consult's own recorded
-set — can land the selection on a newer consult sharing one of those files, which would run and
-verify something else. Where it would, the refusal names the disposition written by hand instead,
-which is the form the commit gate names for the same finding.
+**A recheck can name the consult it answers.** Unpinned, it answers the last consult sharing any of
+its files over the turn's record — empty once the fix is committed — and the judged consult's own set
+could select a newer consult sharing one of them. `--of` pins the consult by id, as `verdict --of`
+finds it; with no file named its recorded set travels, being on the record already (ISS-378). That id
+is the route every refusal names to a finding its set left out, withheld only where the consult's own
+set cannot reach it either, which is when the refusal names the disposition form instead.
