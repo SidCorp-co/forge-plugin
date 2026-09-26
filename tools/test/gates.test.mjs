@@ -322,14 +322,17 @@ test("a red step records nothing, and the failing verdict names the tree", () =>
 });
 
 /* A landing prices a red gate off this figure, as it prices a green one (ISS-2425). */
+/* A step that fails after a second and a half, so a verdict carrying none or nought of it is caught. */
+const SLOW_RED = { step: "lint", command: "node -e \"setTimeout(() => process.exit(1), 1500)\"" };
+
 test("ISS-2425 15. a failing verdict carries the seconds its steps ran", () => {
-  const { at, work } = scratch("red-seconds", "lint");
+  const { at, work } = scratch("red-seconds", null, null, { needing: SLOW_RED });
   try {
     landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
     assert.equal(run(work).status, 1);
     const verdict = verdictRuns(work).at(-1);
     assert.equal(verdict.verdict, "failed", JSON.stringify(verdict));
-    assert.ok(Number.isInteger(verdict.seconds) && verdict.seconds >= 0, `no seconds on the failing verdict: ${JSON.stringify(verdict)}`);
+    assert.ok(Number.isInteger(verdict.seconds) && verdict.seconds >= 1, `the failing step's time is not on the verdict: ${JSON.stringify(verdict)}`);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
