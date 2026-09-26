@@ -11,9 +11,9 @@ const CLOCK = String.raw`(?:Date\.now\(\)|performance\.now\(\)|process\.hrtime(?
 const NUMBER = String.raw`\d[\d_]*(?:\.\d+)?`;
 
 /** Comments and every kind of quoted text blanked to spaces, each literal's quotes kept, so line and
- *  column still hold. The suite and shape rules that read this share it, and a template goes whole,
- *  what its holes spell included: a clock or a child spelt inside an interpolation is out of their
- *  reach, and opening the holes to them is ISS-2212's, with a case per rule. */
+ *  column still hold. This is the one mask the suite and shape rules share, and it reads templates
+ *  as text: a clock or a child spelt inside an interpolation is out of their reach, and opening that
+ *  to them is ISS-2212's, with a case per rule. */
 export const blanked = (text) =>
   maskOf(text, { blank: [...COMMENTS, ...LITERALS], quotes: "keep", holes: "text" });
 
