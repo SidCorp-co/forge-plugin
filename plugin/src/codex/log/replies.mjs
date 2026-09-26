@@ -375,10 +375,13 @@ export const recheckRange = (plan, rels) => {
 
 /* Six and a count in the sentence keeps a refusal readable; the command carries every path, since a pass over six of thirty earns nothing while looking as though it did — `pathed` for both ways a path is unreadable back. */
 const SHOWN = 6;
-const listed = (rels) => {
+export const listed = (rels) => {
   const shown = rels.slice(0, SHOWN).map(pathed).join(" ");
   return rels.length > SHOWN ? `${shown} and ${rels.length - SHOWN} more` : shown;
 };
+
+/** The command half of the same pair: every path, so the route it offers clears the whole of what is refused for. */
+export const allPathed = (rels) => rels.map(pathed).join(" ");
 
 const some = (items) => (items.length > SHOWN
   ? `${items.slice(0, SHOWN).join(", ")} and ${items.length - SHOWN} more`

@@ -3,7 +3,7 @@
 import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
-import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
+import { allPathed, listed, unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
@@ -61,8 +61,6 @@ const heldBy = (text, cwd) => {
   return { found, unreadable };
 };
 
-const six = (rels) => rels.slice(0, 6).map(typed).join(" ");
-
 export const run = (ev) => {
   if (ev.tool_name !== "Bash" || process.env.FORGE_CODEX_DISABLE === "1") done();
   const cwd = ev.cwd ?? process.cwd();
@@ -88,10 +86,9 @@ export const run = (ev) => {
     if (owed.length) {
       deny(
         `Run \`${cd}echo "<what you were doing>" | forge codex consult --diff --only `
-          + `blocker,major ${six(owed)}\`, then re-send. ${readIn()} `
+          + `blocker,major ${allPathed(owed)}\`, then re-send. ${readIn()} `
           + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
-          + `Codex has not read what this call would judge in ${root} (${six(owed)}`
-          + `${owed.length > 6 ? ` and ${owed.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}). `
+          + `Codex has not read what this call would judge in ${root} (${listed(owed)}, recorded ${ageOf(waiting.at)}). `
           + "Every door this project names asks for that same reading, so clearing it here clears them all."
           + how(),
       );

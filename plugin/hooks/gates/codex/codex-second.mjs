@@ -5,7 +5,7 @@ import { isAbsolute, resolve } from "node:path";
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, stagedIn } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
-import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
+import { allPathed, listed, unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
@@ -102,8 +102,6 @@ const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} 
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
 
-const six = (rels) => rels.slice(0, 6).map(typed).join(" ");
-
 /* One call, two commits, one answer: the tree judged is the first commit's, and the second's is
    inspected by nothing. Saying which was judged is what the reader needs to split the call. */
 const unjudged = (ev, root, others) => {
@@ -166,15 +164,14 @@ export const run = (ev) => {
     const stale = demand.filter((rel) => apart.includes(rel));
     const unread = demand.filter((rel) => !apart.includes(rel));
     const consult = `\`${cd}echo "<what you were doing>" | forge codex consult --diff --only blocker,major `
-      + `${six(unread)}\``;
-    const stage = `\`${cd}git add ${six(stale)}\`, or commit with \`-a\``;
+      + `${allPathed(unread)}\``;
+    const stage = `\`${cd}git add ${allPathed(stale)}\`, or commit with \`-a\``;
     deny(
       `${unread.length ? `Run ${consult}` : `Stage what was read — ${stage}`}`
         + `${unread.length && stale.length ? `, and stage what was read — ${stage}` : ""}. Then re-send. `
         + `${readIn()} \`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
-        + `Codex has not read what this commit stages in ${root} (${six(demand)}`
-        + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}`
-        + `${stale.length ? ` The staged copy of ${six(stale)} is not the copy on disk a consult would `
+        + `Codex has not read what this commit stages in ${root} (${listed(demand)}, recorded ${ageOf(waiting.at)}).${also}`
+        + `${stale.length ? ` The staged copy of ${listed(stale)} is not the copy on disk a consult would `
           + `read, so no consult clears ${stale.length > 1 ? "them" : "it"}.` : ""}`
         + how(),
     );
