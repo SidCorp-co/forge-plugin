@@ -5,6 +5,7 @@ import test from "node:test";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { deflateSync } from "node:zlib";
 
 import { citedIn, problems } from "../../src/checks/cited-paths.mjs";
 
@@ -21,7 +22,10 @@ const list = (...args) => lines("ls-files", "--cached", "--others", "--exclude-s
    files this repository describes itself in, because only there is a named path a claim this check can
    judge. What is out carries its reason, and the case below holds the two to covering the whole tree.
    Every file of a part that is in, whatever its class: a class left unread is a third way out that
-   carries no reason, which `docs` declared whole with its figures unwalked was (ISS-263). */
+   carries no reason, which `docs` declared whole with its figures unwalked was (ISS-263). What is read
+   is text, because a citation is something a person reads and corrects: a file that does not decode
+   is refused rather than read leniently, where a raster's metadata becomes a citation on a line of a
+   byte stream, and goes out the one way anything does, by a row here with its reason (ISS-274). */
 const TREE = list();
 /* The one thing the population cannot say: it already means untracked and unignored. */
 const INDEXED = new Set(lines("ls-files", "--cached"));
@@ -51,7 +55,22 @@ const unversioned = (rel) => rel.replace(/^plugin\/guides\/v\d+\//u, "plugin/gui
 const out = (rel) => Object.keys(ANOTHER_TREE).some((claim) =>
   [rel, unversioned(rel)].some((one) => one === claim || one.startsWith(`${claim}/`)));
 const POPULATION = list(...DESCRIBES_THIS_TREE).filter((one) => !out(one));
-const files = POPULATION.map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") }));
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+/* Which way out is the index's answer here too: a run's own scratch is sent to no list (ISS-1014). */
+const bytesOf = (rel, bytes, indexed = INDEXED) => {
+  try {
+    return { rel, text: UTF8.decode(bytes) };
+  } catch {
+    const way = indexed.has(rel)
+      ? "name it in ANOTHER_TREE with the reason it is left unread"
+      : "the index does not carry it, so a working file this run wrote goes outside the checkout or"
+        + " is deleted";
+    return { rel, refused: `${rel} — it does not decode as UTF-8, so it is not text and names no path`
+      + ` a reader can correct: ${way}` };
+  }
+};
+const READ = POPULATION.map((rel) => bytesOf(rel, readFileSync(join(ROOT, rel))));
+const files = READ.filter((one) => !one.refused);
 
 const said = (rel, text) => problems([{ rel, text }], TREE);
 
@@ -80,6 +99,8 @@ test("every file in the tree is read, or left out for a reason named here", () =
   assert.deepEqual(unplaced, [],
     `neither read nor accounted for:\n${unplaced.map((one) => refusal(one, INDEXED)).join("\n")}`);
   assert.ok(Object.values(ANOTHER_TREE).every((why) => why.length > 30), "each exclusion says why");
+  const refused = READ.filter((one) => one.refused).map(({ refused: why }) => why);
+  assert.deepEqual(refused, [], `read and not text:\n${refused.join("\n")}`);
 });
 
 const SCRATCH = ".iss953-criteria.md";
@@ -96,6 +117,53 @@ test("the same name refused once the index carries it is sent to the two lists i
   assert.ok(said.includes("DESCRIBES_THIS_TREE"), said);
   assert.ok(said.includes("ANOTHER_TREE"), said);
   assert.ok(!said.includes("outside the checkout"), `a committed file is not the run's: ${said}`);
+});
+
+/* A one-pixel PNG carrying a text chunk, the shape an exported figure's metadata takes. */
+const png = (text) => {
+  const chunk = (type, data) => {
+    const size = Buffer.alloc(4);
+    size.writeUInt32BE(data.length);
+    return Buffer.concat([size, Buffer.from(type), data, Buffer.alloc(4)]);
+  };
+  const header = Buffer.from([0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]);
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header), chunk("tEXt", Buffer.from(text)),
+    chunk("IDAT", deflateSync(Buffer.from([0, 255, 0, 0]))), chunk("IEND", Buffer.alloc(0))]);
+};
+
+/* Measured before it was decided: the lenient read found this citation, on the chunk's line. */
+test("a byte stream under a declared part is refused as not text and never read as prose", () => {
+  const figure = png("Source\0docs/diagrams/gone.md");
+  const lenient = said("docs/diagrams/one.png", figure.toString("utf8"));
+  assert.equal(lenient.length, 1, "the lenient read reports a raster's metadata as a citation");
+  assert.match(lenient[0], /^docs\/diagrams\/one\.png:3 cites docs\/diagrams\/gone\.md/u);
+  const read = bytesOf("docs/diagrams/one.png", figure, new Set(["docs/diagrams/one.png"]));
+  assert.equal(read.text, undefined, "the population's own read carries no text for it");
+  assert.ok(read.refused.includes("docs/diagrams/one.png"), read.refused);
+  assert.ok(read.refused.includes("it is not text"), read.refused);
+  assert.ok(read.refused.includes("name it in ANOTHER_TREE with the reason"), read.refused);
+  const scratch = bytesOf("docs/diagrams/one.png", figure, new Set());
+  assert.ok(scratch.refused.includes("goes outside the checkout or is deleted"), scratch.refused);
+  assert.ok(!scratch.refused.includes("ANOTHER_TREE"), `a working file is sent to no list: ${scratch.refused}`);
+});
+
+test("a byte stream a row names is left out before it is read", () => {
+  const listed = "packages/code-quality/test";
+  assert.ok(DESCRIBES_THIS_TREE.includes("packages") && listed in ANOTHER_TREE,
+    "a row inside a declared part, the shape a figure's own row would take");
+  assert.ok(TREE.some((one) => one.startsWith(`${listed}/`)), `${listed} holds files to leave out`);
+  assert.ok(out(`${listed}/one.png`), "a byte stream there is out by the row");
+  assert.deepEqual(READ.filter(({ rel }) => out(rel)), [], "and no file a row names reaches the read");
+});
+
+test("a vector figure is text, and the path its link names is judged", () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><a href="docs/diagrams/gone.md"><text>x</text></a></svg>\n';
+  const read = bytesOf("docs/diagrams/one.svg", Buffer.from(svg));
+  assert.equal(read.refused, undefined, "an SVG decodes and is read");
+  const found = problems([read], TREE);
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /^docs\/diagrams\/one\.svg:1 cites docs\/diagrams\/gone\.md/u);
 });
 
 /* The class the filter hid, counted so a figure added and never walked cannot read as covered. */
