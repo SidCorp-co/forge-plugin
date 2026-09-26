@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { cleanRepo, escaped, tempRoom, typed } from "../fixtures.mjs";
+import { cleanRepo, escaped, tempRoom, typed } from "../../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the log's path is bound when its module loads, and a suite
    that imports first writes to the developer's own log. */
@@ -15,11 +15,11 @@ const sandbox = tempRoom("forge-codex-read-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { digest, locate } = await import("../../src/codex/codex-api.mjs");
-const { logConsult, logPath } = await import("../../src/codex/codex-log.mjs");
-const { repoRoot } = await import("../../src/git/repo-root.mjs");
-const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
-const { WRITE_READ_OWED } = await import("../../src/ladder.mjs");
+const { digest, locate } = await import("../../../src/codex/codex-api.mjs");
+const { logConsult, logPath } = await import("../../../src/codex/codex-log.mjs");
+const { repoRoot } = await import("../../../src/git/repo-root.mjs");
+const { readOrRefuse } = await import("../../../src/codex/codex-read.mjs");
+const { WRITE_READ_OWED } = await import("../../../src/ladder.mjs");
 
 /* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */
 const refusalOf = (...given) => readOrRefuse(...given).refusal;
@@ -97,7 +97,8 @@ test("a clipped body and a body that never arrived are both no whole body", () =
   assert.match(refusalOf(gone.path, gone.root), /Consult m1ss01 carried no whole body for plan\.md/u);
 });
 
-test("a consult in another checkout is not this one's", () => {
+/* The same rel under another root is another file, so a consult there read something else (ISS-904). */
+test("a consult of the same name under another root read another file", () => {
   const { root, path, rel } = room();
   consulted(join(root, "elsewhere"), rel, PLAN, { id: "0ther1" });
   assert.match(refusalOf(path, root), /No consult has read plan\.md/u);

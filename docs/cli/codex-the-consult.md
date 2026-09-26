@@ -29,7 +29,12 @@ did consult and was refused anyway learns nothing from being sent back to the co
 failed them. Both verbs ask before they touch the tracker at all, so a
 refusal is never one the caller has to undo. A body piped in is refused with the file route named,
 since a consult is asked for a path and there is none. And it stands down outside a checkout for nobody: these verbs write by issue
-reference from any directory, so one `cd` would otherwise be the whole way past the rule.
+reference from any directory, so one `cd` would otherwise be the whole way past the rule. For the
+same reason which consult counts is decided by the file and never by where either command ran: a run
+consults from its worktree and writes from wherever its shell stands, so the key is the real path the
+argument resolves to, whichever checkout the consult was taken in (ISS-904). A different file holding
+the same bytes stays unread, because keying on the bytes would let a consult of a common text clear a
+file it never named.
 
 **A refusal reports the log and stops there.** It names the consult that found nothing, whether that
 consult read the whole set or only part of it, and which files it clipped or never held — and then

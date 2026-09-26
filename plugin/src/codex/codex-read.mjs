@@ -1,9 +1,9 @@
 /* No commit gate reaches a plan or its criteria, so the verbs that write them ask. docs/cli/codex-the-consult.md. */
-import { readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
-import { bodied, judgedBy, logEntries } from "./codex-log.mjs";
+import { answered, bodied, logEntries } from "./codex-log.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 import { WRITE_READ_OWED } from "../ladder.mjs";
@@ -33,16 +33,25 @@ const STOOD_DOWN = { refusal: null, text: null };
 /* The bytes ride along with the consult refusal: a caller whose own checks refuse this file spends no consult on it. */
 const refusing = (refusal, text = null) => ({ refusal, text });
 
+/* Where a row's name for a file lands: its rel under the root it ran in, or the absolute path `locate` records for a file outside that root. */
+const landsAt = (one, file) => (isAbsolute(file) ? file : one.root ? join(one.root, file) : null);
+
+/* The consults that named the file at this real path, each with its own name for it. The file is the key and the caller's directory no part of it, so a consult from a worktree, a sibling checkout or no checkout at all clears the write wherever it is made; the row's own name is what finds the body it carried (ISS-904). */
+const readersOf = (entries, real) => answered(entries).flatMap((one) => {
+  const rel = (one.files ?? []).find((file) => landsAt(one, file) === real);
+  return rel ? [{ one, rel }] : [];
+});
+
 /* Any consult, not the latest: restored bytes are read bytes, which a hash says and a clock denies. */
-const readWhole = (mine, rel, sha) => mine.some((one) => carriedWhole(one, rel)?.sha === sha);
+const readWhole = (mine, sha) => mine.some(({ one, rel }) => carriedWhole(one, rel)?.sha === sha);
 
 const whyNot = (mine, rel) => {
-  const last = mine.at(-1);
+  const { one: last, rel: named } = mine.at(-1) ?? {};
   const of = last && (last.id ?? last.at);
   if (!last) return `No consult has read ${rel}, and the issue is about to take it as its own.`;
   if (last.send !== "bodies") return `Consult ${of} named ${rel} but sent its diff, not its text — a `
     + "reviewer told to fetch a file for itself may never have asked for it.";
-  if (!carriedWhole(last, rel)) return `Consult ${of} carried no whole body for ${rel}, so that much of `
+  if (!carriedWhole(last, named)) return `Consult ${of} carried no whole body for ${rel}, so that much of `
     + "it is unread.";
   return `Consult ${of} read ${rel} whole, and its text has changed since.`;
 };
@@ -59,19 +68,19 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   /* These verbs write from any directory, so no stand-down: one `cd` would be the way past the rule. */
   const here = repoRoot(cwd);
   const root = here ?? repoRoot(real);
-  if (!root) {
-    return refusing(`${path} is in no git checkout, and neither is ${cwd}. The consult log is keyed `
-      + "by repository, so there is nowhere to look this up and nowhere to run the consult that "
-      + `would clear it.\n\nDo this: put the file in the checkout the change is for and run from `
-      + `there. ${OFF}`);
-  }
-  const held = file ? locate(root, real) : null;
+  /* No root to try first, so the real path is the whole of the name. */
+  const held = !file ? null : root ? locate(root, real) : { rel: realpathSync(real), real: realpathSync(real) };
   if (!held) {
     return refusing(`${path} is not a regular file, so no consult can be shown it.\n\nDo this: `
       + `write the text to a file and name that. ${OFF}`);
   }
   const text = readFileSync(held.real, "utf8");
-  const mine = judgedBy(logEntries(), root, [held.rel]);
-  if (readWhole(mine, held.rel, digest(text))) return { refusal: null, text };
+  const mine = readersOf(logEntries(), held.real);
+  if (readWhole(mine, digest(text))) return { refusal: null, text };
+  if (!root) {
+    return refusing(`${whyNot(mine, held.rel)} ${path} is in no git checkout, and neither is ${cwd}, `
+      + "and a consult runs in one.\n\nDo this: run the consult on this path from the checkout the "
+      + `change is for, then re-send from anywhere. ${WRITE_READ_OWED} ${OFF}`, text);
+  }
   return refusing(readIt(here, root, held.rel, whyNot(mine, held.rel)), text);
 };
