@@ -156,6 +156,18 @@ deciding a status.
 - **AC-05-2-11** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "in_progress owes the branch the change is built on, and the refusal names the capture"
   IF the worklog holds no branch THEN the CLI SHALL refuse `in_progress` and SHALL name the capture
   that writes one.
+- **AC-05-2-12** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "only an edge that gates dispatch holds a status back, and the refusal names the kind"
+  IF an edge on the issue's blocking relations is one the tracker says does not gate dispatch THEN
+  the CLI SHALL hold no status back for it, whatever the status of the issue at its other end,
+  because the tracker lists a mention beside an ordering and only the ordering is a blocker.
+- **AC-05-2-13** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "only an edge that gates dispatch holds a status back, and the refusal names the kind"
+  WHEN an edge holds a status back THEN the refusal SHALL name that edge's kind, and SHALL say the
+  tracker named none where it named none, because a mention and an ordering read alike on a line of
+  their own.
+- **AC-05-2-14** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "an edge the tracker sent no answer for falls back to its kind, and one with no kind gates nothing"
+  WHERE the tracker sent no answer about whether an edge gates dispatch, the CLI SHALL judge that edge
+  by its kind's own row in the one table of edge kinds, and a kind with no row there SHALL order
+  nothing.
 
 ### UC-05-3 — Refuse a jump
 
@@ -318,6 +330,10 @@ for.
   declares, whatever status the issue stands at and whether or not that policy leaves anybody an
   act, because a run told only that the close is owed cannot tell a policy this CLI read from one
   it never consulted (G-13).
+- **AC-05-7-14** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/deploy-declaration.test.mjs "the user-facing outcome is the one declaration a plan may leave out"
+  WHERE a plan answers every required declaration and leaves the user-facing outcome unanswered, the
+  CLI SHALL not refuse `approved` for it, because only a change with such a result has a reason to
+  answer it.
 
 ### UC-05-8 — A record too large to read whole
 
