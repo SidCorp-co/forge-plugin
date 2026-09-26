@@ -435,7 +435,7 @@ test("approved refuses an untyped plan, and a criterion no plan step names", () 
     "plan step 2 serves no criterion this issue holds, so no verdict reaches what it does",
   ], "the two gaps are one plan's, and each is said: the outcome nothing serves, then the step serving nothing");
   assert.deepEqual(missing("approved", planned(PLAN)), [],
-    "and a plan carrying every section, both declarations and a step per criterion owes nothing");
+    "and a plan carrying every section, every required declaration and a step per criterion owes nothing");
 });
 
 /* The plan's other set of criterion numbers: the write reads no criteria field, so a witnessed set
@@ -458,9 +458,9 @@ test("approved refuses a witnessed set citing a criterion the issue does not hol
     ["`## Witnessed on screen` cites criterion 2 and says `none` as well, so nothing there says whether a person at the running product is owed a look"]);
 });
 
-/* The two declarations are what the ship steps read, so a plan that answers neither earns nothing —
-   and each is answered by a line, never by prose saying the same thing (AC-05-7-3). */
-test("approved needs the plan with both its declarations, and numbered criteria", () => {
+/* Which declarations are required is the table's, so a plan leaving any of them unanswered earns
+   nothing — and each is answered by a line, never by prose saying the same thing (AC-05-7-3). */
+test("approved needs the plan with every required declaration, and numbered criteria", () => {
   assert.deepEqual(missing("approved", view({}, DECIDED)), [
     "the plan field is empty",
     "the criteria field holds no numbered line `N. outcome`",
@@ -472,10 +472,13 @@ test("approved needs the plan with both its declarations, and numbered criteria"
     + "each deciding what the plan and the ship steps owe");
   assert.match(bare[1], /^the plan is untyped/u, "and the sections are owed apart from the declarations");
   assert.equal(bare.length, 2);
+  const partial = missing("approved", planned("Screen change: no\nSchema coupling: no"));
+  assert.equal(partial[0], "the plan does not declare `Deploy coupling: yes|no`, which decides what the plan and the ship steps owe",
+    "a plan answering some is told the one it lacks, and nothing it answered is quoted back");
   assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: "no", look: null });
   assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null });
   assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null },
-    "prose about the two is not the two declared");
+    "prose about a declaration is not the declaration");
   assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
   assert.deepEqual(missing("approved", planned("User-facing outcome: yes.")).length, 2,
     "which is optional: its absence is no, and only the three required lines are owed here");
