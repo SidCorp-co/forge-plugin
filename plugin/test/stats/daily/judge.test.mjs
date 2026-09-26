@@ -219,6 +219,31 @@ test("better or worse stands only beside a baseline figure of its own section, w
   assert.equal(judgement.sections.friction.verdict, "steady", "steady claims no movement and owes no baseline");
 });
 
+test("the judge reading findings is sent its section's baseline figures, marked, and a verdict citing one it was sent stands", async () => {
+  const fromRequest = (spec) => {
+    const runs = spec.data.sections.find((one) => one.section === "runs");
+    return { sections: [{ section: "runs", verdict: "worse", why: "longer than the week", baseline: runs.baselines.find((one) => one.key.endsWith("week.medianMinutes"))?.key }],
+      decisions: [], nothing: true };
+  };
+  const { calls, judgement } = await judgedWith(BACKLOG, fromRequest);
+  const runs = calls.find((one) => one.model === "cx/judge").data.sections.find((one) => one.section === "runs");
+  assert.equal(runs.findings[0].figure, DAY_MINUTES);
+  assert.deepEqual(runs.baselines.find((one) => one.key === "runs.headline.week.medianMinutes"),
+    { key: "runs.headline.week.medianMinutes", said: "median minutes a run, median of the seven days before", value: valueAt("runs.headline.week.medianMinutes"), baseline: true });
+  assert.ok(runs.baselines.every((one) => one.baseline), "only the baselines ride beside the findings");
+  assert.equal(judgement.sections.runs.verdict, "worse");
+  assert.deepEqual(calls.find((one) => one.model === "cx/judge").data.sections.find((one) => one.section === "landings").baselines, [],
+    "a section the page computed no window for is sent none");
+});
+
+test("a finding whose review failed still reaches the judge beside the open issue it matches", async () => {
+  const { calls, call } = standIn({ candidates: EXPLORED, review: new Error("gateway answered 503"), judge: JUDGED });
+  await judgeDay(content, { roles: ALL, gateway: GATEWAY, call, backlog: BACKLOG });
+  const sent = calls.find((one) => one.model === "cx/judge").data;
+  assert.equal(sent.sections.find((one) => one.section === "runs").unreviewed[0].open, "ISS-777");
+  assert.deepEqual(sent.issues.find((one) => one.key === "ISS-777").priority, "low");
+});
+
 test("the terminal's Decisions lines carry each kept decision's command", async () => {
   const { judgement } = await judgedWith();
   const lines = decisionsSaid(judgement);
@@ -268,7 +293,7 @@ test("with review unset the judge reads the candidates marked unreviewed, and th
   const { calls, call } = standIn({ candidates: EXPLORED, judge: JUDGED });
   const judgement = await judgeDay(content, { roles: { roles: { explore: "cx/explorer", judge: "cx/judge" }, from: "config.json" }, gateway: GATEWAY, call });
   const sent = calls.find((one) => one.model === "cx/judge").data.sections.find((one) => one.section === "runs");
-  assert.deepEqual(Object.keys(sent).sort(), ["section", "title", "unreviewed"]);
+  assert.deepEqual(Object.keys(sent).sort(), ["baselines", "section", "title", "unreviewed"]);
   assert.equal(sent.unreviewed[0].figure, "runs.headline.day.medianMinutes");
   assert.match(decisionsHtml(judgement), /The review stage was skipped: `reports\.roles\.review` in config\.json names no model\./u);
 });

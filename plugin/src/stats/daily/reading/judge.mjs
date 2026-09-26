@@ -157,6 +157,7 @@ const sectionRead = async (section, held) => {
     candidates: candidates.map((one, at) => ({ candidate: at + 1, figure: one.figure.key, reading: one.reading, direction: one.direction })) } }, held);
   if (reviewed.failed) {
     read.notes.push(`review did not answer: ${reviewed.failed}`);
+    await withOpen(candidates, held.backlog);
     return read;
   }
   const { kept, rejected } = reviewedOf(reviewed.input, candidates, held.dropped);
@@ -164,10 +165,12 @@ const sectionRead = async (section, held) => {
   return Object.assign(read, { input: "findings", findings: kept, rejected });
 };
 
-/* What the judge is sent of a section: its findings as far as they got, or its figures where none was proposed. */
+/* What the judge is sent of a section: its findings as far as they got beside the baselines a verdict
+   cites, or its figures, baselines marked, where none was proposed. */
 const judgeSection = (read, section) => (read.input === "figures"
   ? { section: read.id, title: read.title, figures: section.figures }
-  : { section: read.id, title: read.title, [read.input === "findings" ? "findings" : "unreviewed"]: read.findings.map(shownFinding) });
+  : { section: read.id, title: read.title, [read.input === "findings" ? "findings" : "unreviewed"]: read.findings.map(shownFinding),
+    baselines: section.figures.filter((one) => one.baseline) });
 
 const stageOf = (roles, role, from) => (roles[role]
   ? { model: roles[role] }
