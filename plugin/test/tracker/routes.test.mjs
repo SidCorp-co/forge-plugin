@@ -6,7 +6,6 @@ import { describe, it } from "node:test";
 
 import { DECLARES, ISSUE_PARTS, ROUTES, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
   from "../../src/tracker/routes.mjs";
-import { UNTYPED, mimeForName } from "../../src/wire/upload-mimes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
 import { CHOSEN, staleDeclarations } from "../../src/tracker/declared/name-join.mjs";
 
@@ -530,48 +529,6 @@ describe("what the table declares in the tracker's stead", () => {
     for (const name of ["search", "status", "priority", "category", "statusNot", "complexity"]) {
       assert.ok(DECLARES.forge_issues.filters.includes(name), `${name} is on no list`);
     }
-  });
-});
-
-/* Written out here rather than read back off the table, which would be the table judging itself:
-   these are the tracker's own upload tool's pairs, read off `EXT_MIME` in
-   packages/core/src/mcp/tools/forge-uploads.ts at 29977155 in the sibling checkout. A name this map
-   types differently is a name that went up before and is refused now, and nothing else says so. */
-const TRACKER_TYPES = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".pdf": "application/pdf",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mov": "video/quicktime",
-  ".qt": "video/quicktime",
-  ".txt": "text/plain",
-  ".md": "text/markdown",
-  ".markdown": "text/markdown",
-  ".csv": "text/csv",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".xls": "application/vnd.ms-excel",
-  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-};
-
-describe("the type an upload's part carries", () => {
-  it("is the one the tracker's own tool derives from the name, for every extension it maps", () => {
-    for (const [ext, mime] of Object.entries(TRACKER_TYPES)) {
-      assert.equal(mimeForName(`shot${ext}`), mime, ext);
-      assert.equal(mimeForName(`SHOT${ext.toUpperCase()}`), mime, `${ext} upper-cased`);
-    }
-    assert.deepEqual(DECLARES.forge_uploads.extensions.slice().sort(),
-      Object.keys(TRACKER_TYPES).sort(), "the printed set is the map's own keys and no other");
-  });
-
-  it("is the untyped default for a name outside that set, which the tracker refuses rather than this", () => {
-    for (const name of ["gate-run.log", "archive.tar.gz", "noextension", "shot.svg", "page.html"]) {
-      assert.equal(mimeForName(name), UNTYPED, name);
-    }
-    assert.equal(mimeForName(".txt"), "text/plain", "a name that is all extension is typed too");
   });
 });
 

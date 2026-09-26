@@ -19,8 +19,8 @@ import { fieldChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
 import { commentPage, cutIn } from "../../tracker/comments.mjs";
 import {
-  attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine, unreadNames,
-  uploadAll,
+  attachPlan, attachmentNames, batchRefusal, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine,
+  unreadNames, uploadAll,
 } from "../../tracker/evidence.mjs";
 import { releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
@@ -457,11 +457,17 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   /* Named from the line before the PUT: a file the tracker took with the answer lost is up all the same. */
   const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
   process.once("exit", stranded);
-  await uploadAll("issue", documentId, uploads.map((one) => one.path), {
+  const batch = await uploadAll("issue", documentId, uploads.map((one) => one.path), {
     renewing: () => renew(documentId, reference),
     sending: sent.push.bind(sent),
     said: [...new Set(prepared.map((one) => one.said).filter(Boolean))].join("\n") || null,
   });
+  /* The batch's account names each file, the one whose answer was lost among them, so the stranded
+     line would say the same thing a second time. */
+  if (batch.refused.length) {
+    process.off("exit", stranded);
+    fail(`${batchRefusal(reference, batch)}\n\nNo record was written: nothing of it reached ${reference}.`);
+  }
   const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
   const posted = [];
   /* A finder's kind is written alone and touches nothing of the run holding the issue, its plan scope included. */

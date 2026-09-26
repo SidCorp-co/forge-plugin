@@ -16,7 +16,7 @@ import {
   shortOf,
 } from "./tracker/issues.mjs";
 import { commentPage, cutIn, mustBeShown, postComment, readThread } from "./tracker/comments.mjs";
-import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
+import { attachmentNames, batchRefusal, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
   KINDS_HELP,
   KIND_NAMES,
@@ -339,10 +339,11 @@ const own = {
       said = read.said ?? null;
     }
     /* The renewal rides the sending pass; a comment id names no issue to read a lease from. */
-    await uploadAll(target, targetId, paths, {
+    const batch = await uploadAll(target, targetId, paths, {
       renewing: target === "issue" ? () => renew(targetId, targetRef) : undefined,
       said,
     });
+    if (batch.refused.length) fail(batchRefusal(targetRef, batch));
   },
   /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A held slug is answered as one the tracker never served, through that refusal's own call site so the two cannot drift, and its body is never fetched: a line saying a page exists and is stale is what sends an agent to read it.
      --tracker is the maintainer's way past that, and the only one. The contract is on disk, so it is answered before the transport is touched. */

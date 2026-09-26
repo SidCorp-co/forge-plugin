@@ -2,7 +2,7 @@
    its answer goes through. Pure — it builds requests and reads bodies and makes none, which is what
    lets the captured pairs under plugin/test/fixtures/rest judge it. docs/cli/one-transport.md. */
 
-import { UPLOAD_MIMES, mimeForName } from "../wire/upload-mimes.mjs";
+import { mimeFor } from "../wire/upload-mimes.mjs";
 import { PROJECT_ROW, attachmentOf, attributedOf, browseOf, citingOf, commentOf, configOf, eventsOf,
   filled, issueOf, labelOf, paged, pick, projectOf, rowsIn, threadOf, writtenRow } from "./answers/projections.mjs";
 
@@ -82,10 +82,8 @@ export const DECLARES = {
     confidence: ["verified", "inferred", "deprecated"],
     authoredBy: ["human", "agent", "imported"],
   },
-  /* The names this CLI can type, which is the map's own key set: the tracker allows types and not
-     names, so a name missing here may go up under one that is in it (ISS-134). */
+  /* The set of types an upload may carry is the tracker's, read off its refusal, and never kept here. */
   forge_uploads: {
-    extensions: Object.keys(UPLOAD_MIMES),
     targets: Object.keys(COLLECTIONS),
   },
 };
@@ -462,7 +460,7 @@ export const ROUTES = {
       const part = (target) => ({
         path: `/${COLLECTIONS[target]}/${args.data?.targetId}/attachments`,
         method: "POST",
-        form: { file: { name: args.data?.name, mime: mimeForName(args.data?.name), bytes: args.bytes } },
+        form: { file: { name: args.data?.name, mime: mimeFor(args.data?.name, args.bytes), bytes: args.bytes } },
       });
       const aimed = args.data?.target;
       return aimed

@@ -273,9 +273,13 @@ const asComment = (comment) => {
   return { id: documentId, ...rest };
 };
 
-/* The arguments the tool took, so a handler keyed by tool reads the shape it always read. */
-const uploadAsk = (target, targetId, sent) =>
-  ({ action: "request", data: { target, targetId, name: sent.multipart?.name ?? null } });
+/* The arguments the tool took, so a handler keyed by tool reads the shape it always read, and beside
+   them the type the part declared, which is what the tracker judges the bytes against. */
+const uploadAsk = (target, targetId, sent) => ({
+  action: "request",
+  data: { target, targetId, name: sent.multipart?.name ?? null },
+  part: { mime: sent.multipart?.mime ?? null, bytes: sent.multipart?.bytes ?? null },
+});
 
 /* The inverse of the attachment projection, so a handler answering the tool's own shape needs no
    rewriting: what it leaves out is filled from the part that arrived. */
@@ -615,8 +619,10 @@ export const fakeTracker = async (state) => {
     const answer = refusal ?? built;
     if (answer?.refused) {
       response.writeHead(400, { "Content-Type": "application/json" });
-      /* The tracker's own code where a handler names one: what an upload's refusal is read by. */
-      response.end(JSON.stringify({ code: answer.code ?? "BAD_REQUEST", message: answer.refused }));
+      /* The tracker's own code where a handler names one: what an upload's refusal is read by, and
+         its `details` where one gives them, which carry the set of types an upload may take. */
+      response.end(JSON.stringify({ code: answer.code ?? "BAD_REQUEST", message: answer.refused,
+        ...(answer.details ? { details: answer.details } : {}) }));
       return;
     }
     if (answer?.http) {

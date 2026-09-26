@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { attachPlan, evidenceProblem, localFile, uploadRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
+import { attachPlan, batchRefusal, evidenceProblem, localFile, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
 import { escaped, tempRoom } from "../fixtures.mjs";
 
 const DIR = tempRoom("evidence-");
@@ -137,70 +137,104 @@ test("a readable file whose name reads as a commit goes up as a file, and says s
   assert.deepEqual(nowhere.cite, ["deadbee"]);
 });
 
-/* The tracker's own line says which mime it guessed and nothing about the file, the extension or
-   the set, so four runs in one week renamed a `.log` to `.txt` by guessing (ISS-134). */
-test("a refusal on the name says which file, what it read off it, and what the tracker takes", () => {
-  const said = uploadRefusal(join(DIR, "iss134-gate-final.log"), "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
-  assert.match(said, /^iss134-gate-final\.log is a name the tracker would not take/u);
-  assert.match(said, /the extension \.log/u);
-  assert.match(said, /This CLI types \.png \.jpg [.\w ]*\.xlsx —/u);
-  assert.match(said, /its reading of the tracker's set rather than the tracker's own answer/u);
-  assert.match(said, /MIME_NOT_ALLOWED/u, "the tracker's own words stay in it");
-  const log = join(DIR, "iss134-gate-final.log");
-  assert.match(said, new RegExp(`ln -- '${escaped(log)}' '${escaped(log)}\\.txt'$`, "u"), "the same name plus .txt collides with nothing");
+/* The tracker's refusal body as the live one answered on 2026-09-27, trimmed to what is read. */
+const ALLOWED = { reason: "not-text", allowed: { mimes: ["image/png", "text/plain", "text/html"], anyExtensionIfText: true } };
+const NOT_TEXT = "MIME_NOT_ALLOWED: mime not allowed: text/plain — the bytes are binary, and this type carries text";
+const refusedOne = (name, { utf8 = true, said = NOT_TEXT, details = ALLOWED, status = 400 } = {}) =>
+  ({ name, path: join(DIR, name), utf8, said, details, status });
+
+/* ISS-80: the set printed was this CLI's copy of the tracker's, so a name missing from it read as refused. */
+test("a type refusal names the file in the tracker's words and prints the set the tracker's body carried", () => {
+  const said = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("gate.log")], unsent: [] });
+  assert.match(said, /^0 of 1 file\(s\) went up to ISS-1, and 1 was refused:$/mu);
+  assert.match(said, /^ {2}gate\.log — MIME_NOT_ALLOWED: mime not allowed: text\/plain — the bytes are binary/mu);
+  assert.match(said, /^The tracker takes image\/png text\/plain text\/html, and text under any name\.$/mu);
+  assert.doesNotMatch(said, /\.png \.jpg|This CLI types/u, "no extension list of this CLI's own");
 });
 
-/* The mint bought the tracker's verdict before any byte went, and one request cannot: what the
-   refusal owes instead is the names already up, there being no delete for an upload (ISS-614). */
-test("a refusal mid-write names what is already up, and how to cite it", () => {
-  const said = uploadRefusal(join(DIR, "iss134-gate-final.log"),
-    "MIME_NOT_ALLOWED: mime not allowed: application/octet-stream", ["first.txt", "second.txt"]);
-  assert.match(said, /2 file\(s\) of this write are up and cannot be deleted: first\.txt, second\.txt\./u);
-  assert.match(said, /Cite those by name rather than by path/u);
-  assert.match(said, /--evidence first\.txt --evidence second\.txt/u);
-  const alone = uploadRefusal(join(DIR, "iss134-gate-final.log"), "Forge answered 401: token expired");
-  assert.match(alone, /It was the first of the write, so nothing else went up\./u,
-    "and where it was the first, that it was: an empty list reads as an unanswered question");
+test("a type refusal whose body carries no set says the tracker named none", () => {
+  const said = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("gate.log", { details: null })], unsent: [] });
+  assert.match(said, /^The tracker's refusal named no set of types it takes\.$/mu);
 });
 
-test("a name carrying no extension is told that, and a name a shell would read is quoted", () => {
-  const bare = uploadRefusal("/tmp/gate-run", "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
-  assert.match(bare, /a name carrying no extension\./u);
-  assert.match(bare, /ln -- '\/tmp\/gate-run' '\/tmp\/gate-run\.txt'$/u);
-  const hostile = uploadRefusal("/tmp/$(touch PWNED) it's.log", "Error: MIME_NOT_ALLOWED: mime not allowed: x");
-  assert.match(hostile, /ln -- '\/tmp\/\$\(touch PWNED\) it'\\''s\.log' '\/tmp\/\$\(touch PWNED\) it'\\''s\.log\.txt'$/u);
+test("the refusal counts what went up and what was refused, and cites what is up by name", () => {
+  const said = batchRefusal("ISS-1", {
+    sent: ["first.txt", "second.txt"], refused: [refusedOne("a.log"), refusedOne("b.log")], unsent: [],
+  });
+  assert.match(said, /^2 of 4 file\(s\) went up to ISS-1, and 2 were refused:$/mu);
+  assert.match(said, /^ {2}a\.log — /mu);
+  assert.match(said, /^ {2}b\.log — /mu);
+  assert.match(said, /^Up already: first\.txt, second\.txt\. Cite them by name rather than by path/mu);
+  assert.match(said, /^ {2}--evidence first\.txt --evidence second\.txt$/mu);
 });
 
-/* A 401 or a credential refusal is no fact about the name, so the set is not offered against it:
-   naming what the tracker takes would read as the answer to a question it never asked. */
-test("a refusal that is not about the name names the file and offers no set", () => {
-  const said = uploadRefusal(join(DIR, "iss134-gate-final.log"), "Forge answered 401: token expired");
-  assert.match(said, /^iss134-gate-final\.log is a name the tracker would not take/u);
+/* finding cab3efb3: a rename resends the bytes the tracker judged, so it can clear no content refusal. */
+test("bytes that decode as text are answered with the command that strips their control bytes", () => {
+  const said = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("capture.txt")], unsent: [] });
+  assert.match(said, /so it is their control bytes the tracker read as binary/u);
+  const capture = join(DIR, "capture.txt");
+  const plain = join(DIR, "capture-plain.txt");
+  assert.match(said, new RegExp(`^ {2}\\(set -C; LC_ALL=C tr -d '[^']+' < '${escaped(capture)}' > '${escaped(plain)}'\\)$`, "mu"));
+  assert.match(said, /^ {4}then send capture-plain\.txt in place of capture\.txt\.$/mu);
+  assert.doesNotMatch(said, /\bln --/u, "and no rename");
+});
+
+test("bytes that do not decode as text are answered with the read of what they are, and no rename", () => {
+  const said = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("probe-gz.txt", { utf8: false })], unsent: [] });
+  assert.match(said, /The bytes do not decode as text/u);
+  assert.match(said, new RegExp(`^ {2}file --mime-type -- '${escaped(join(DIR, "probe-gz.txt"))}'$`, "mu"));
+  assert.doesNotMatch(said, /\bln --|\.txt\.txt|tr -d/u, "no rename and no strip of bytes that are not text");
+});
+
+/* A 401 or a dropped answer is no fact about the file, so no set and no way out is offered against it. */
+test("a refusal that is not about the type offers no set, and names the files it left unsent", () => {
+  const said = batchRefusal("ISS-1", {
+    sent: ["first.txt"],
+    refused: [refusedOne("second.txt", { said: "Forge answered 401: token expired", details: null, status: 401 })],
+    unsent: ["third.txt", "fourth.txt"],
+  });
+  assert.match(said, /^1 of 4 file\(s\) went up to ISS-1, and 1 was refused; 2 not sent:$/mu);
   assert.match(said, /token expired/u);
-  assert.doesNotMatch(said, /This CLI types/u, "no extension is named where the name is not what refused");
-  assert.doesNotMatch(said, /\.txt/u);
+  assert.match(said, /^Not sent, the write stopping at second\.txt, which the tracker did not judge: third\.txt, fourth\.txt\.$/mu);
+  assert.doesNotMatch(said, /The tracker takes|named no set|Do this/u);
+});
+
+/* A request with no answer may have landed, so it is neither up nor refused, and a retry of its path
+   could put it up twice. */
+test("a file with no answer is counted apart, and the caller is sent to read the issue before resending it", () => {
+  const said = batchRefusal("ISS-1", {
+    sent: ["first.txt"],
+    refused: [refusedOne("second.txt", { said: "Forge did not answer POST /issues/u/attachments", details: null, status: null })],
+    unsent: ["third.txt"],
+  });
+  assert.match(said, /^1 of 3 file\(s\) went up to ISS-1, and 0 were refused; 1 had no answer; 1 not sent:$/mu);
+  assert.match(said, /^ {4}It may be up with the answer lost: read ISS-1 before sending it again, and cite second\.txt by name if it is there\.$/mu);
+  const failed = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("x.txt", { said: "Forge answered 502", details: null, status: 502 })], unsent: [] });
+  assert.match(failed, /1 had no answer/u, "a failure on the tracker's side may have stored the file too");
 });
 
 /* The one action a refusal prints is only an action if running it does what it says, so it is run:
-   a name a shell would read, a name `ln` would read as a flag, and a destination already there. */
-const ranTail = (path, cwd) => {
-  const said = uploadRefusal(path, "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
-  return spawnSync("sh", ["-c", said.split("\n").pop().trim()], { cwd, encoding: "utf8" });
+   a name a shell would read, a name a program would read as a flag, and a destination already there. */
+const ranWayOut = (name, cwd) => {
+  const said = batchRefusal("ISS-1", { sent: [], refused: [{ ...refusedOne(name), path: name }], unsent: [] });
+  const line = said.split("\n").find((one) => one.includes("tr -d"));
+  return spawnSync("sh", ["-c", line.trim()], { cwd, encoding: "utf8" });
 };
 
-test("the command the refusal prints runs, and refuses a destination rather than overwriting it", () => {
-  const room = tempRoom("mint-command-");
-  writeFileSync(join(room, "$(touch PWNED) it's.log"), "gate output\n");
-  assert.equal(ranTail("$(touch PWNED) it's.log", room).status, 0, "a name a shell would read is one path");
-  assert.equal(readFileSync(join(room, "$(touch PWNED) it's.log.txt"), "utf8"), "gate output\n");
+test("the command the refusal prints strips the control bytes, and refuses a destination already there", () => {
+  const room = tempRoom("strip-command-");
+  writeFileSync(join(room, "$(touch PWNED) it's.log"), "ring\u0007 \u001b[31mred\u001b[0m\r\nnext\tline\n");
+  assert.equal(ranWayOut("$(touch PWNED) it's.log", room).status, 0, "a name a shell would read is one path");
+  assert.equal(readFileSync(join(room, "$(touch PWNED) it's-plain.log"), "utf8"), "ring [31mred[0m\r\nnext\tline\n",
+    "the control bytes go, and tab, CR and line feed stay");
   assert.equal(existsSync(join(room, "PWNED")), false, "and nothing in it ran");
-  writeFileSync(join(room, "-f.log"), "flag-shaped\n");
-  assert.equal(ranTail("-f.log", room).status, 0, "a leading hyphen is an operand");
-  assert.equal(readFileSync(join(room, "-f.log.txt"), "utf8"), "flag-shaped\n");
-  writeFileSync(join(room, "held.log"), "new\n");
-  writeFileSync(join(room, "held.log.txt"), "already here\n");
-  assert.notEqual(ranTail("held.log", room).status, 0, "a destination already there is refused");
-  assert.equal(readFileSync(join(room, "held.log.txt"), "utf8"), "already here\n", "and its bytes stand");
+  writeFileSync(join(room, "-f.log"), "flag\u0001-shaped\n");
+  assert.equal(ranWayOut("-f.log", room).status, 0, "a leading hyphen is a path to a redirection");
+  assert.equal(readFileSync(join(room, "-f-plain.log"), "utf8"), "flag-shaped\n");
+  writeFileSync(join(room, "held.log"), "new\u0007\n");
+  writeFileSync(join(room, "held-plain.log"), "already here\n");
+  assert.notEqual(ranWayOut("held.log", room).status, 0, "a destination already there is refused");
+  assert.equal(readFileSync(join(room, "held-plain.log"), "utf8"), "already here\n", "and its bytes stand");
 });
 
 test("the upload answer is read for its url, and one carrying none is printed whole", () => {
