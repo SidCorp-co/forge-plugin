@@ -20,13 +20,25 @@ export const PERSON = new Set(Object.values(PARK_STATUS).filter(answersByComment
 
 const tenth = (value) => Math.round(value * 10) / 10;
 
+/* The moves in the order they were made. Time orders them, and moves sharing a millisecond, which no
+   cursor or page order says the order of, are put in the one order whose statuses link, each
+   leaving from where the one before it arrived. */
+const chained = (moves) => {
+  const left = [...moves].sort((one, other) => one.at - other.at);
+  const out = [];
+  while (left.length) {
+    const linked = left.findIndex((one) => one.at === left[0].at && one.from === out.at(-1)?.to);
+    out.push(...left.splice(Math.max(linked, 0), 1));
+  }
+  return out;
+};
+
 /** One issue's waits, off its whole history: from a move into a person's status, or from its creation
  *  where it began at one, to the first move out; a move between two of them continues the wait. A
  *  wait not yet ended has `end` null. `status` is where the issue list says it stands now. */
 export const spansOf = (events, status = null) => {
-  const sorted = [...events].sort((left, right) => left.at - right.at);
-  const created = sorted.find((one) => one.action === CREATED)?.at ?? null;
-  const moves = sorted.filter((one) => one.action === MOVED);
+  const created = events.find((one) => one.action === CREATED)?.at ?? null;
+  const moves = chained(events.filter((one) => one.action === MOVED));
   const beganAtOne = moves.length ? PERSON.has(moves[0].from) : PERSON.has(status);
   if (beganAtOne && created === null) return { unread: NO_START };
   const spans = [];
