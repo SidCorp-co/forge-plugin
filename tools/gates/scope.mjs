@@ -30,6 +30,13 @@ export const editsDerivation = (changed, runner, root) => {
 export const under = (file, claim) =>
   claim === "." ? !file.includes("/") : file === claim || file.startsWith(`${claim}/`);
 
+// The root manifests: a dependency change can break any step, and no step declares node_modules.
+const SHARED = /^package(?:-lock)?\.json$/u;
+
+/** Whether a changed path is one this step depends on: the one answer the scope runs a step on and
+ *  the ledger keys its digest on, so no step the scope skips has a digest that path moved (ISS-2564). */
+export const stepReads = (step, file) => SHARED.test(file) || step.reads.some((claim) => under(file, claim));
+
 export const mergeBaseDiff = (root) => {
   const branch = defaultBranch(root);
   const base = gitOut(["merge-base", "HEAD", branch], root);
@@ -44,8 +51,7 @@ export const mergeBaseDiff = (root) => {
 
 // Fail toward the whole gate: a path no step claims is a tree the table does not model yet.
 export const unclaimedIn = (steps, changed) => {
-  const claimed = steps.flatMap((step) => step.reads);
-  return changed.find((file) => !claimed.some((claim) => under(file, claim)));
+  return changed.find((file) => !steps.some((step) => stepReads(step, file)));
 };
 
 export const planFor = (steps, changed) => {
@@ -54,7 +60,7 @@ export const planFor = (steps, changed) => {
   return {
     full: false,
     steps: steps.map((step) => {
-      const reached = changed.find((file) => step.reads.some((claim) => under(file, claim)));
+      const reached = changed.find((file) => stepReads(step, file));
       return { ...step, run: Boolean(reached), reason: reached };
     }),
   };

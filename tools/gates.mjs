@@ -51,7 +51,8 @@ Every check this repository gates a change with, stopping at the first failure. 
 Runs only the steps the diff can reach, and prints what it skipped and why. The diff is against
 the merge-base with the default branch, so committing does not empty it. A changed path no step
 claims widens the run to everything rather than guessing, and so does a change to the runner or
-its own modules.
+its own modules. The root package.json and its lock file reach every step, a dependency being
+something any step can break, and every step's digest is keyed on them.
 
 Widening is half of it. A run that cannot place every changed path in a step leaves the record's
 digests unread as well, because no step's digest is keyed on a path no step reads, so the widening
