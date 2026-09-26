@@ -86,13 +86,16 @@ feature: a plan or a criterion citing a clause is refused for a document that ha
 
 ### UC-10-4 — A gate that cannot see stands down
 
-Rev: 1 · Actors: agent · Enforces: BR-13
+Rev: 2 · Actors: agent · Enforces: BR-13
 
-If the session's own history cannot be opened, the gate has no evidence either way, and refusing on
-no evidence would make the product unusable in a session it cannot read.
+The gate reads an issue's comments from the tracker itself. If the tracker does not answer that
+read, the gate has no evidence either way, and refusing on no evidence would make the product
+unusable whenever the tracker is out of reach. Standing down silently would leave the session
+believing it had been checked, so the stand-down is said.
 
-- **AC-10-4-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a tracker that will not answer leaves the write alone and says why"
-  IF the session's history cannot be read THEN the gate SHALL stand down.
+- **AC-10-4-1** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a tracker that will not answer leaves the write alone and says why"
+  IF the tracker does not answer the gate's read of an issue's comments THEN the gate SHALL leave the
+  write alone and SHALL tell the session which gate stood down and why.
 
 ### UC-10-5 — A session is told a thing once
 
