@@ -268,7 +268,7 @@ test("the builder writes the records the landing stops for, and the landing fini
   assert.equal(verdict.status, 0, `${verdict.stdout}${verdict.stderr}`);
 
   const correction = await asBuilder(["record", "correction", KEY,
-    "--moved", OWNED, "--why", "the plan named another file and this is the one that landed"]);
+    "--corrects", "plan", "--moved", OWNED, "--why", "the plan named another file and this is the one that landed"]);
   assert.equal(correction.status, 0, `${correction.stdout}${correction.stderr}`,
     "the reason only this run knows is typed by this run");
   const verified = await asBuilder(["record", "verification", KEY,
@@ -384,7 +384,7 @@ test("a note the composer cannot fit stops the mark as this step's own stop and 
   seeded({ landing: ready(head, base, { files: UNNAMED }) });
   const said = await ran([KEY], work);
   assert.match(said, /the plan and its corrections do not name/u, said);
-  assert.match(said, new RegExp(`forge record correction ${KEY} --moved`, "u"),
+  assert.match(said, new RegExp(`forge record correction ${KEY} --corrects plan --moved`, "u"),
     `the write that clears it:\n${said}`);
   assert.match(said, /stopped at step \d+ \(the merged mark\)/u,
     `the step's own stop and not a thrown error:\n${said}`);

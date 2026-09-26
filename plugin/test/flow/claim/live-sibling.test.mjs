@@ -506,7 +506,7 @@ test("a payload write does not take that lease for itself while the work stands"
   hostExited();
   const ship = await standingIn(OTHER);
   try {
-    const wrote = await ran(["record", "correction", "ISS-1872", "--moved", "the probe", "--why", "the host exited"], AWAY);
+    const wrote = await ran(["record", "correction", "ISS-1872", "--corrects", "plan", "--moved", "the probe", "--why", "the host exited"], AWAY);
     assert.equal(wrote.status, 1, `the write must not take what the claim refuses:\n${wrote.stdout}${wrote.stderr}`);
     assert.match(wrote.stderr, /is held by another run/u, "in the words a live lease's write refusal uses");
     assert.equal(state.wrote, 0, "and the field is untouched");
@@ -580,7 +580,7 @@ test("a payload write does not take a long-lapsed lease by the clock while work 
   try {
     const refused = await ran(["claim", "ISS-1872"], AWAY, HOST, A_STRANGER);
     assert.equal(refused.status, 1, `the typed claim refuses it:\n${refused.stdout}`);
-    const wrote = await ran(["record", "correction", "ISS-1872", "--moved", "the probe", "--why", "the lapse is old"],
+    const wrote = await ran(["record", "correction", "ISS-1872", "--corrects", "plan", "--moved", "the probe", "--why", "the lapse is old"],
       AWAY, HOST, A_STRANGER);
     assert.equal(wrote.status, 1, `and so must the write:\n${wrote.stdout}${wrote.stderr}`);
     assert.match(wrote.stderr, /Reclaim it first/u, "sending the caller to the claim, which is where the reading is said");
@@ -592,7 +592,7 @@ test("a payload write does not take a long-lapsed lease by the clock while work 
 
 test("that same write takes the long-lapsed lease as it always did once nothing is standing there", async () => {
   longLapsed();
-  const wrote = await ran(["record", "correction", "ISS-1872", "--moved", "the probe", "--why", "the lapse is old"],
+  const wrote = await ran(["record", "correction", "ISS-1872", "--corrects", "plan", "--moved", "the probe", "--why", "the lapse is old"],
     AWAY, HOST, A_STRANGER);
   assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
   assert.equal(onTheRecord().history.at(-1).how, "reclaim", "under the word a reclaim keeps");

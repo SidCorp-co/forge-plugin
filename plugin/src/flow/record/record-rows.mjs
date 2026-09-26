@@ -1,8 +1,9 @@
 /* The kinds, the table `forge record -h` prints of them, and the help rendered from that table —
    each capped field's cap on the row of the field it caps, so a note is drafted against the number
    rather than learning it from the refusal (ISS-46). */
-import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
+import { FIELD_KINDS, PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
   sectionOwedBy } from "../machine.mjs";
+import { EARNED } from "./corrections/superseding.mjs";
 import { CLAUSES, NOTHING } from "./merged.mjs";
 import { citationBlocks } from "../../spec/checked.mjs";
 import { DECISION_PARTS, commitTakes } from "./content.mjs";
@@ -15,7 +16,7 @@ import { bodyCap } from "../../tracker/comment-cap.mjs";
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
    and written by no verb, so it is no kind this verb takes. */
-export const KINDS = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), "merged", "note", "criteria", "plan"];
+export const KINDS = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), ...FIELD_KINDS];
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
 
@@ -38,7 +39,7 @@ const kindRows = (caps) => [
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
-  "  correction   --moved M --why W                                a plan or criteria change after approval",
+  "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
   "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C --evidence E... [--why W] [--filed R]",
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding F]...",
@@ -68,7 +69,7 @@ const KIND_PHRASE = {
   question: "the readings a person is to choose between, as outcomes",
   answer: "a person's answer to a park, and who gave it",
   park: "the issue set down, with the kind saying who it waits on",
-  correction: "what moved in the plan or the criteria after approval, and why",
+  correction: "what moved in which record, and why",
   baseline: "the gate, what it reports, the commit it ran at, and a citation's source",
   verdict: "one criterion judged, at a commit, citing its own evidence",
   review: "who read which head, each finding answered, and the outcome",
@@ -292,7 +293,7 @@ export const usage = () => [
   "",
   "These kinds add to the issue, and the report lists each, oldest first, under a count:",
   `  ${REPEATS.join(", ")}`,
-  "Every other kind is latest-wins: a later record supersedes the one before.",
+  `Every other kind is latest-wins, an earned ${Object.keys(EARNED).join(", ")} only after a correction.`,
   "",
   ...SHARED_FLAGS,
   "",

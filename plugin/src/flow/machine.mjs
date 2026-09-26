@@ -332,6 +332,33 @@ const HANDLE_FORM = new RegExp(`^[0-9a-f]{${HANDLE_LENGTH}}(?:-[0-9a-f-]*)?$`, "
 export const handleOf = (id) => String(id ?? "").toLowerCase().slice(0, HANDLE_LENGTH);
 const HANDLE_TAKES = `the finding's handle, the ${HANDLE_LENGTH} hex characters \`forge advance --owed\` names it by, or its comment's whole id`;
 
+/* What a correction may name beyond the shapes: `FIELD_KINDS`, whose reason is given where `KINDS`
+   joins them in record-rows.mjs. `issue` names a field of the issue itself that no record holds — its status, its
+   complexity — which the CLI's own corrections move as often as they move a record. */
+export const FIELD_KINDS = ["merged", "note", "criteria", "plan"];
+const ISSUE_TARGET = "issue";
+const CORRECTS_TAKES = "a record kind, or `issue:<field>` for a field of the issue no record holds, "
+  + "either followed by `:<occasion>` where one record of the kind is meant — `plan`, `criteria:3`, "
+  + "`issue:status`";
+const OCCASION = /^[^\s:]+$/u;
+
+/** Which kind a correction names, the occasion after it dropped: `criteria` for `criteria:3`. */
+export const correctedKind = (corrects) => String(corrects ?? "").split(":")[0];
+
+/* Worded to follow `needs`, as every shape's check is: the refusal reads `record correction needs …`. */
+const correctsProblem = (value) => {
+  const [target, ...rest] = String(value).split(":");
+  const kinds = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), ...FIELD_KINDS];
+  /* `issue` owes the field it names before any occasion; a kind owes nothing after it. */
+  const [field, ...after] = target === ISSUE_TARGET ? rest : [null, ...rest];
+  const occasion = after.join(":");
+  const known = target === ISSUE_TARGET || kinds.includes(target);
+  const shaped = (field === null || OCCASION.test(field ?? "")) && (!after.length || /^\S+$/u.test(occasion));
+  if (known && shaped) return null;
+  return `--corrects as ${CORRECTS_TAKES}, not \`${value}\``
+    + (known ? "" : `; the kinds are ${kinds.join(", ")}`);
+};
+
 /* Said once, by the shape and by whatever turns a write back, so both name the same two grounds. */
 const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it, or --evidence "
   + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
@@ -385,10 +412,29 @@ export const SHAPES = {
         ? `--evidence: a ${got.kind} park names what the reviewer is to look at`
         : null),
   },
+  /* `corrects` is what makes a correction findable by what it corrects rather than by reading its
+     sentence, and what the field writes key their refusal on (record/corrections/superseding.mjs); `newer`, so
+     every correction written before it reads back whole. */
   correction: {
     heading: "Correction",
-    fields: [FIELD("moved", "What moved", { prose: true }), FIELD("why", "Why", { prose: true })],
+    fields: [FIELD("moved", "What moved", { prose: true }), FIELD("why", "Why", { prose: true }),
+      FIELD("corrects", "What it corrects", { newer: true, form: CORRECTS_TAKES })],
     repeats: true,
+    check: (got) => (got.corrects === undefined ? null : correctsProblem(got.corrects)),
+  },
+  /* A value a field write replaced, posted by that write after the field and never by a verb: the
+     attachment goes up before the field does, so the value is on the issue before it is gone from
+     the field, and `by` is the handle of the correction the replacement spent. */
+  superseded: {
+    heading: "Superseded payload",
+    repeats: true,
+    verbless: true,
+    fields: [
+      FIELD("kind", "Kind"),
+      FIELD("by", "Corrected by"),
+      FIELD("attached", "Attached as"),
+      FIELD("was", "As it stood", { optional: true }),
+    ],
   },
   baseline: {
     heading: "Baseline",

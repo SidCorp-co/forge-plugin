@@ -64,6 +64,9 @@ export const USAGE = [
    where it stands is how a landing is walked back, and the drop's own refusal prints that walk. Neither
    is a status anything on the page earns, so neither is worth a page. An issue standing outside the lane
    sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). */
+/* What every correction of a status names as corrected: the issue's own field, which no record holds. */
+const STATUS_CORRECTED = "issue:status";
+
 const couldBeEarned = (body, status) => ORDER.includes(status) && atLeast(status, body.status);
 
 /* Every plain advance is judged on the page, the one into `closed` included: that rung is entered on the verdicts and the folded findings as well as on the release policy, and a page skipped there read a failed verdict as none (ISS-2511). A set reads it only where the record could have earned the status instead. */
@@ -112,7 +115,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`
       + (soft
         ? `\nThe record above it claims ${status} and this issue holds ${held}. Say on the record `
-          + `that it did not move:\n  forge record correction ${ref} --moved "the record above `
+          + `that it did not move:\n  forge record correction ${ref} --corrects ${STATUS_CORRECTED} --moved "the record above `
           + `claims ${status}, which the move answered ${held}" --why <w>`
         : ""));
   }
@@ -146,7 +149,7 @@ const movedAfterRecord = async (view, ref, status, move) => {
           + `Read the lease and make the move, or say on the record that it did not happen:\n  ${setForm(ref, status)}\n`
         : `${ref} changed hands between the two writes, so no write of yours may set its status. `
           + `Take the issue back and move it, or say on the record that it did not happen:\n  forge claim ${ref} --take\n`)
-      + `  forge record correction ${ref} --moved "the record above claims ${status}, which was not `
+      + `  forge record correction ${ref} --corrects ${STATUS_CORRECTED} --moved "the record above claims ${status}, which was not `
       + `attempted" --why <w>`);
   }
   const refused = await move(true);
@@ -161,7 +164,7 @@ const movedAfterRecord = async (view, ref, status, move) => {
   refuse(`${ref} is still ${view.issue.status}: the record for ${status} went up and the move was `
     + `refused. ${refused}\nThe page above now reads as a status this issue does not hold. `
     + `Move it with the command that was refused, or say on the record that it did not move:\n`
-    + `  ${setForm(ref, status)}\n  forge record correction ${ref} `
+    + `  ${setForm(ref, status)}\n  forge record correction ${ref} --corrects ${STATUS_CORRECTED} `
     + `--moved "the record above claims ${status}, which the move was refused" --why <w>`);
 };
 
@@ -417,11 +420,11 @@ const setStatus = async (view, ref, status, why, asked) => {
      `needs_info`, which the lane does not hold, so `couldBeEarned` is false there and no stamp of it is
      ever this verb's to read. */
   if (answersByComment(status)) {
-    await correctionFor(view.documentId, ref, moved, said, { done: false });
+    await correctionFor(view.documentId, ref, moved, said, { done: false, corrects: STATUS_CORRECTED });
     return movedAfterRecord(view, ref, status, move);
   }
   await move();
-  return settledAfter(held, ref, status, () => correctionFor(view.documentId, ref, moved, said));
+  return settledAfter(held, ref, status, () => correctionFor(view.documentId, ref, moved, said, { corrects: STATUS_CORRECTED }));
 };
 
 export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;

@@ -165,7 +165,7 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   assert.equal(grew.length, 1);
   assert.match(grew[0].what, /tools\/run\.mjs/u);
   assert.doesNotMatch(grew[0].what, /earned\.mjs/u, "only the paths the plan does not name");
-  assert.match(grew[0].command, /^forge record correction ISS-3 --moved/u);
+  assert.match(grew[0].command, /^forge record correction ISS-3 --corrects plan --moved/u);
   const corrected = [...wrote("; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs"),
     recorded("correction", { moved: "the change also wrote tools/run.mjs", why: "the ship prints the clause" })];
   assert.deepEqual(owed(planned, corrected).map((one) => one.what), [], "a correction naming it clears it");

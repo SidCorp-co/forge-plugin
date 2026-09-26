@@ -55,7 +55,7 @@ export const climbsIn = (text) => [...String(text ?? "").matchAll(CLIMB)]
 const climbedTo = (moved) => (moved ?? []).flatMap(climbsIn);
 
 export const climbForm = (ref, from = FIX) =>
-  `forge record correction ${ref} --moved "Rung: ${from} -> ${RUNGS[Math.min(heightOf(from) + 1, RUNGS.length - 1)]}" `
+  `forge record correction ${ref} --corrects issue:complexity --moved "Rung: ${from} -> ${RUNGS[Math.min(heightOf(from) + 1, RUNGS.length - 1)]}" `
   + `--why "<what the work turned out to be>"`;
 
 /* One row per payload a rung below the top stops owing, so a status demanding several carries several. `kind` is the record kind the row drops, and it is what both readers below match on: `drops` and `because` are the report's own prose and no key. Both rows are at `approved` and a release note is not a third: the tracker refuses `closed` with no `releaseNotes` field and reads no rung doing it, so a row here would state a rule this repository owns the other end of, and the close is refused whatever it says (ISS-1485). What a rung may buy is the second of a judgement already spent, which a note never is. */

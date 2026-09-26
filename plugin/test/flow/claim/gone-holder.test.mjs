@@ -183,7 +183,7 @@ test("the count of reclaims at a status counts this take among them, and the cla
 
 test("a payload write meeting that same lease takes it rather than being refused", async () => {
   heldBy();
-  const wrote = await ran(["record", "correction", "ISS-919", "--moved", "the probe", "--why", "the holder is gone"]);
+  const wrote = await ran(["record", "correction", "ISS-919", "--corrects", "plan", "--moved", "the probe", "--why", "the holder is gone"]);
   assert.equal(wrote.status, 0, `one call should have written it:\n${wrote.stdout}${wrote.stderr}`);
   assert.doesNotMatch(wrote.stderr, /is held by another run/u, "with nothing sending the caller back for a claim");
   assert.match(wrote.stderr, new RegExp(`Process id ${GONE}`, "u"), "and the notice names what it took the lease on");
@@ -233,7 +233,7 @@ test("a run the issue was dispatched to takes a gone dispatcher's lease as the h
 
 test("and takes it as that same handoff where it writes a payload instead of typing the claim", async () => {
   heldBy({ history: [reclaimed(ago(300)), reclaimed(ago(200))] });
-  const wrote = await ran(["record", "correction", "ISS-919", "--moved", "the probe", "--why", "the holder is gone"],
+  const wrote = await ran(["record", "correction", "ISS-919", "--corrects", "plan", "--moved", "the probe", "--why", "the holder is gone"],
     "iss-919-3ec73d70");
   assert.equal(wrote.status, 0, `the write should carry the turn through:\n${wrote.stdout}${wrote.stderr}`);
   assert.equal(ISSUE.sessionContext.lease.history.at(-1).how, "handed",

@@ -29,8 +29,9 @@ export const afterRefused = (refused) => {
   return { unknown, said: unknown ? "may or may not have gone up" : "did not go up" };
 };
 
-export const correctionFor = async (documentId, ref, moved, why, { done = true } = {}) => {
-  const body = render("correction", { moved, why });
+/** `corrects` is what the correction names as corrected, as `forge record correction --corrects` takes it. */
+export const correctionFor = async (documentId, ref, moved, why, { done = true, corrects } = {}) => {
+  const body = render("correction", { moved, why, corrects });
   /* `done` is the write this describes having happened, whose own renewal of the lease stands. */
   const answer = await post(documentId, body, { ref, soft: true, renewed: done });
   if (!answer?.refused) return;
@@ -120,7 +121,8 @@ export const overrideFields = async (reference, given, why, { next, patch, ask }
   const told = async (moved, read) => {
     for (const { field, value } of moved) console.log(`${reference}  ${field} is ${read?.[field] ?? value}`);
     console.log(UNREAD);
-    await correctionFor(documentId, reference, movedSaid(moved), said);
+    await correctionFor(documentId, reference, movedSaid(moved), said,
+      { corrects: `issue:${moved.map(({ field }) => field).join(",")}` });
   };
   const back = await writeFields(documentId, pairs, {
     ref: reference, next, patch, refuse, ask, override: true, partly: (moved) => told(moved, null),

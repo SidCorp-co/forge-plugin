@@ -16,6 +16,7 @@ import { didYouMean } from "../../suggest.mjs";
 import { kindUsage } from "./record-rows.mjs";
 import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
+import { supersedingOf } from "./corrections/superseding.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -182,8 +183,12 @@ const onlyFile = (kind, [path, ...extra], what) => {
   return readOrRefuse(path);
 };
 
+/* Each of the three takes the context `record.mjs` hands every preparer, and asks last whether it
+   replaces a payload its status was earned on: that question costs a read of the issue, and every
+   refusal above it costs none. */
+
 /** The plan field, and every refusal a plan can earn, from a file a consult has read. */
-export const planPrepared = async (argv) => {
+export const planPrepared = async (argv, at) => {
   const { refusal, text } = onlyFile("plan", argv, PLAN_BODY);
   if (refusal && text === null) refuse(refusal);
   const plan = text ?? await bodyFrom(argv[0]);
@@ -191,11 +196,11 @@ export const planPrepared = async (argv) => {
   citationsChecked(plan, refuse);
   planChecked(plan);
   if (refusal) refuse(refusal);
-  return { field: "plan", value: plan, shown: plan };
+  return { field: "plan", value: plan, shown: plan, ...await supersedingOf("plan", plan, at) };
 };
 
 /** The criteria field, numbered and renumbered by nobody: the numbers a verdict names are stored. */
-export const criteriaPrepared = async (argv) => {
+export const criteriaPrepared = async (argv, at) => {
   /* The file's own shape first, the consult after it: a criterion this verb will refuse anyway is
      one no review round should have been spent on, which is the whole of ISS-483. */
   const { refusal, text } = onlyFile("criteria", argv, CRITERIA_BODY);
@@ -205,11 +210,11 @@ export const criteriaPrepared = async (argv) => {
   compoundRefused(criteria);
   if (refusal) refuse(refusal);
   const value = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  return { field: "acceptanceCriteria", value, shown: value };
+  return { field: "acceptanceCriteria", value, shown: value, ...await supersedingOf("criteria", value, at) };
 };
 
 /** The release note, in whichever of its two forms was typed. */
-export const notePrepared = (argv) => {
+export const notePrepared = async (argv, at) => {
   const value = noteFrom(argv);
-  return { field: "releaseNotes", value, shown: JSON.stringify(value, null, 2) };
+  return { field: "releaseNotes", value, shown: JSON.stringify(value, null, 2), ...await supersedingOf("note", value, at) };
 };

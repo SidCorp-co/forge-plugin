@@ -128,7 +128,7 @@ export const namesPath = (named, path) =>
 
 /** The write that names a path the plan does not, spelt once: the mark's own refusal and `developed`'s shortfall both spend it, and two spellings would send a run to two commands. */
 export const correctionForm = (ref, paths) =>
-  `forge record correction ${ref} --moved "the change also wrote ${paths.join(", ")}" `
+  `forge record correction ${ref} --corrects plan --moved "the change also wrote ${paths.join(", ")}" `
   + `--why "<why each was needed>"`;
 
 /** The text `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle. */

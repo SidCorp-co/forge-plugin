@@ -182,7 +182,7 @@ const OUTCOME_OWED = {
     if (!(fixed?.at >= since) || shapeGaps("correction", fixed.record, view.names).length) {
       return [need(
         "the triage rules the criterion the wrong test, and no whole correction since it says what moved in the criteria",
-        `forge record correction ${ref} --moved "<the criterion as corrected>" --why "<the finding that showed it>"`,
+        `forge record correction ${ref} --corrects criteria:${number} --moved "<the criterion as corrected>" --why "<the finding that showed it>"`,
       )];
     }
     return view.criteria.find((one) => one.number === number)?.text === cited.replace(QUOTED, "")

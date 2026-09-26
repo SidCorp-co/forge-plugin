@@ -13,6 +13,9 @@ import { CLOSES_AT, setForm } from "../../earned.mjs";
 import { assemble, printRecord } from "../page.mjs";
 import { criteriaLines } from "../fields.mjs";
 import { issueOf } from "./posting.mjs";
+import { besideOf, repeatedPlace } from "../corrections/beside.mjs";
+
+const LISTED_BESIDE = ["correction", "superseded"];
 
 export const recordReport = async (reference) => {
   const { documentId, body } = await issueOf(reference);
@@ -25,21 +28,58 @@ export const recordReport = async (reference) => {
   if (cutIn(page)) console.error(`${cutLine(page)} This report was assembled from those rows and `
     + "from no others.");
   const { latest, verdicts, owed, repeated, unreadable } = assemble(comments, criteria);
+  const plan = unwrap(body.plan);
+  const listed = unwrap(body.acceptanceCriteria);
+  const note = body.releaseNotes?.section ? body.releaseNotes : null;
+  const printed = new Set([
+    ...Object.keys(latest).filter((kind) => !SHAPES[kind]?.repeats),
+    ...[...verdicts.keys()].map((number) => `verdict:${number}`),
+    ...(plan ? ["plan"] : []), ...(listed ? ["criteria"] : []), ...(note ? ["note"] : []),
+  ]);
+  /* A record of a repeating kind is a place too, found by its handle; the two lists beside records are not, whose own entries print only where they are loose. */
+  for (const kind of Object.keys(repeated).filter((one) => !LISTED_BESIDE.includes(one))) {
+    for (const one of repeated[kind]) if (one.id) printed.add(repeatedPlace(kind, one.id));
+  }
+  const beside = besideOf(repeated, printed);
+  const withBeside = (place) => {
+    for (const { correction, under } of beside.at(place)) {
+      printRecord(correction, { gap: "  " });
+      for (const one of under) printRecord(one, { gap: "    ", mark: ", superseded under the correction above" });
+    }
+  };
+  const lists = { correction: beside.corrections, superseded: beside.superseded };
   for (const kind of Object.keys(SHAPES)) {
     if (SHAPES[kind].repeats) {
-      const held = repeated[kind] ?? [];
-      const said = heldSaid(kind, held.length);
+      const held = lists[kind] ?? repeated[kind] ?? [];
+      const whole = repeated[kind]?.length ?? 0;
+      /* The count says how many stand elsewhere, so a reader of this list knows it is not all of them. */
+      const said = held.length && whole > held.length
+        ? `${held.length} of the ${whole} ${SHAPES[kind].heading} records, the rest beside what each corrects`
+        : heldSaid(kind, held.length);
       if (said) console.log(`${said}, oldest first`);
-      for (const one of held) printRecord(one);
-    } else if (latest[kind]) printRecord(latest[kind]);
+      for (const one of held) {
+        printRecord(one);
+        if (one.id && !LISTED_BESIDE.includes(kind)) withBeside(repeatedPlace(kind, one.id));
+      }
+    } else if (latest[kind]) {
+      printRecord(latest[kind]);
+      withBeside(kind);
+    }
   }
-  for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
+  for (const number of [...verdicts.keys()].sort((a, b) => a - b)) {
+    printRecord(verdicts.get(number));
+    withBeside(`verdict:${number}`);
+  }
   for (const one of unreadable) printRecord(one);
   /* Whole rather than summarised: the plan is what every later phase was built against, and a
-     report that names it without carrying it sends its reader back to the issue. */
-  const held = unwrap(body.plan);
-  if (held) console.log(`Plan  (${planTyped(held) ? "typed" : "untyped"})\n${held}`);
-  if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
+     report that names it without carrying it sends its reader back to the issue. The criteria are
+     what every verdict is judged against, whole for the same reason. */
+  if (plan) console.log(`Plan  (${planTyped(plan) ? "typed" : "untyped"})\n${plan}`);
+  withBeside("plan");
+  if (listed) console.log(`Criteria\n${listed}`);
+  withBeside("criteria");
+  if (note) console.log(`Release note  ${note.section}: ${note.userFacing}`);
+  withBeside("note");
   /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
   /* The pointer with the block, this report opening on no phase line to carry it (ISS-1183). */
   const work = worklogOf(body[SESSION]);
