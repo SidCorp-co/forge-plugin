@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { FLOW_VERBS, copyForVerb, flowRow } from "../../../src/tools/copies/flow-copy.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { escaped, tempRoom } from "../../fixtures.mjs";
 
 const BIN = new URL("../../../bin/", import.meta.url).pathname;
 const PLUGIN = new URL("../../..", import.meta.url).pathname;
@@ -141,7 +141,7 @@ test("doctor's row for the flow names the copy, why that one, and a change it wo
     const where = { cwd: checkout, root: PLUGIN, record };
     assert.equal(copyForVerb({ verb: "record", ...where }).dir, installed);
     const clean = flowRow(where);
-    assert.match(clean, new RegExp(`^installed 2\\.0\\.0 at ${installed} — ${FLOW_VERBS.join(", ")}: a flow verb runs the flow the installed copy serves`, "u"));
+    assert.match(clean, new RegExp(`^installed 2\\.0\\.0 at ${escaped(installed)} — ${FLOW_VERBS.join(", ")}: a flow verb runs the flow the installed copy serves`, "u"));
     assert.doesNotMatch(clean, /changes what they load/u);
     writeFileSync(join(checkout, "src", "flow.mjs"), "export const flow = 3;\n");
     assert.match(flowRow(where), /this checkout changes what they load \(src\/flow\.mjs\)/u);
