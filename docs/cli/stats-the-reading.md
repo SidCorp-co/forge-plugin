@@ -53,3 +53,19 @@ the issue, joined as `stats eval` joins them, and began after its previous close
 several issues lends each an equal share, since nothing in a transcript says which call went to which
 issue. The tracker's reopen counter does not count a closed issue moved back to testing, so a second
 close cannot be told apart from a first: it counts on its own day, and the tile says so.
+
+## The owner wait under the scorecard
+
+**A wait on a person is time at a status a person answers.** Which statuses those are is the flow's
+own park table: the ones a park lands in when a person, and no run, owes the next move — `needs_info`
+and `waiting` today. `on_hold` waits on a run or a dependency, and `awaiting_release` is where every
+landed change stands whether a person owes it anything or not, so neither counts. A wait starts at
+the move into one of those statuses, or at the issue's creation where it was created at one, and
+ends at the first move out, whichever write made it; a move between the two is one wait.
+
+**A wait counts whole on the day it ended**, since that is the day the person acted, and a wait
+still open at the day's end is set beside the tile with its age rather than added to it: its minutes
+are still running. The days' walks only find which issues waited; each one's own history gives its
+two ends, because a walked day that could not be read could hide a move between them. The open ones
+are found by a walk from the day's end to now and by where the issue list says each issue stands.
+Both readers ask the tracker for the same activity pages, and each page is asked once.
