@@ -31,7 +31,9 @@ test("the arming capture runs every declared check from the checkout's top, in o
   assert.deepEqual(rest, [""]);
   assert.equal(checkpoint()?.state, "ready");
   assert.equal(checkpoint()?.head, HEAD);
-  assert.match(run.stdout, /^ready\.checks: 2 check\(s\) green at [0-9a-f]{7,}/mu, run.stdout);
+  const green = run.stdout.split("\n").find((one) => one.startsWith("ready.checks: "));
+  assert.match(green ?? "", /^ready\.checks: 2 check\(s\) green at [0-9a-f]{7,}/u, run.stdout);
+  assert.ok(green.includes(`\`${note("two")}\``), "the line names the checks that passed");
 });
 
 test("a red check refuses the capture, names it with its exit and its last lines, and runs none after it", async () => {
