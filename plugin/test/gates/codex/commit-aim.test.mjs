@@ -100,3 +100,22 @@ test("a commit whose tree the command does not name reads as no tree at all", ()
     "and a second commit in the call carries the same answer",
   );
 });
+
+/* Writing about a commit is not making one: a criterion's text, quoted on its way to the tracker, carried `&&` before `git -C a -C b commit` and was refused as a commit (ISS-93). */
+test("an operator inside a quoted argument opens no command, so a quoted commit is data", () => {
+  const ask = (command) => committing(ev(command));
+  assert.equal(ask(`for c in "7=cd /p && git -C a -C b commit, judged in /p/a/b"; do forge x "$c"; done`), false, "double-quoted, holding &&");
+  assert.equal(ask(`node -e 'x; git commit -m y'`), false, "single-quoted, holding ;");
+  assert.equal(ask(`echo "a\ngit commit -m x"`), false, "a newline inside the quote is no command start either");
+  assert.equal(ask(`sh -c "git commit -m x"`), true, "a -c body is still run");
+  assert.equal(ask(`bash -c 'cd /w && git commit -m "a; b"'`), true, "and a quote inside it stays data without hiding the commit");
+  assert.equal(ask(`echo "made $(git commit -m x)"`), true, "a shell runs a substitution under a double quote");
+});
+
+test("a quoted mention beside a real commit leaves one commit, in the tree it names", () => {
+  const aim = commitAim(ev(`forge comment X "a; git -C /elsewhere commit" && git -C "/tmp/a b" commit -m "x; git commit"`));
+  assert.equal(aim.tree, "/tmp/a b");
+  assert.equal(aim.unknown, false, "the mention is no second commit");
+  assert.deepEqual(aim.others, []);
+  assert.deepEqual(aim.paths, []);
+});
