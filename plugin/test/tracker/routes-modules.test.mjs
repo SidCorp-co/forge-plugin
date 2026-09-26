@@ -24,11 +24,13 @@ describe("the module rows carry what a module is read by", () => {
   it("each attributed row keeps its key, its status and the attributions the route answered", () => {
     const page = held("issues-attributed").rest.answer;
     const { issues } = ROUTES["forge_issues.attributed"].answers({ page }, {});
-    assert.ok(issues.length > 0, "the capture holds no row");
-    for (const row of issues) {
-      assert.match(row.issueId, /^ISS-\d+$/u);
-      assert.ok(Array.isArray(row.modules), `${row.issueId} lost its modules`);
-    }
+    const answered = page.items.find((one) => one.modules.length);
+    assert.ok(answered, "the capture holds no row carrying a module, so no attribution is proved to survive");
+    const row = issues.find((one) => one.issueId === answered.displayId);
+    assert.equal(row.status, answered.status);
+    assert.deepEqual(row.modules.map(({ labelId, name, isPrimary }) => ({ labelId, name, isPrimary })),
+      answered.modules.map(({ labelId, name, isPrimary }) => ({ labelId, name, isPrimary })));
+    assert.ok(row.modules.some((one) => one.isPrimary === true), "the primary flag survives as the tracker set it");
   });
 
   it("the attributed read repeats each status and names the module it narrows to", () => {
