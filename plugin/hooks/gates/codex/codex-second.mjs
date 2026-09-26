@@ -18,6 +18,7 @@ import {
   directoryAt,
   gitTreeOf,
   NOWHERE,
+  quotedOut,
   shellText,
   spans,
   spelled as bare,
@@ -40,7 +41,7 @@ const TWICE = new RegExp(COMMITS.source, "gu");
    not one after it — has changed. Where the shell stands nowhere the text names, only an absolute
    `-C` still answers, and the sentinel travels on: `resolve` would throw on it. */
 const treeAt = (text, one) => {
-  const named = gitTreeOf(one[0]);
+  const named = gitTreeOf(text.slice(one.index, one.index + one[0].length));
   const moved = directoryAt(text, one.index);
   if (moved === NOWHERE) return named && isAbsolute(named) ? named : NOWHERE;
   return named && !isAbsolute(named) && moved ? resolve(moved, named) : named ?? moved;
@@ -48,7 +49,8 @@ const treeAt = (text, one) => {
 
 export const commitAim = (ev) => {
   const text = shellText((ev.tool_input ?? {}).command);
-  const made = [...text.matchAll(TWICE)];
+  /* Matched where quoted data is inert and read back from the text itself, the two being one length. */
+  const made = [...quotedOut(text).matchAll(TWICE)];
   const found = made[0];
   if (!found) return { tree: null, all: false, paths: [], others: [] };
   let unknown = made.length > 1;
