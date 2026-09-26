@@ -481,7 +481,7 @@ test("finish names every scratch file holding a copy of this machine's credentia
   mkdirSync(join(scratch, "xdg", "forge"), { recursive: true });
   const copied = join(scratch, "xdg", "forge", "config.json");
   writeFileSync(copied, readFileSync(join(home, "forge", "config.json")));
-  const gateway = join(scratch, "gateway.env");
+  const gateway = join(scratch, "gateway copy; $(true).env");
   writeFileSync(gateway, readFileSync(profile));
   writeFileSync(join(scratch, "probe.log"), "https://tracker.example/mcp answered\n");
 
@@ -492,8 +492,13 @@ test("finish names every scratch file holding a copy of this machine's credentia
   assert.doesNotMatch(run.stderr, /probe\.log/u, "a file naming only the endpoint is not a credential copy");
   assert.ok(existsSync(tree) && existsSync(copied), "the workspace stands while a copy does");
 
-  const cleared = spawnSync("rm", ["-f", "--", copied, gateway]);
-  assert.equal(cleared.status, 0);
+  /* The printed way out, run as a shell would run it: a name the run chose is whatever it chose. */
+  const how = /clear it: (rm -f -- .*)$/mu.exec(run.stderr)?.[1];
+  assert.ok(how, run.stderr);
+  const cleared = spawnSync("sh", ["-c", how], { encoding: "utf8" });
+  assert.equal(cleared.status, 0, cleared.stderr);
+  assert.ok(!existsSync(copied) && !existsSync(gateway), `the printed command left a copy standing: ${how}`);
+  assert.ok(existsSync(join(scratch, "probe.log")), "and removed nothing it did not name");
   const again = runIn(work, ["finish", KEY], env);
   assert.equal(again.status, 0, again.stderr + again.stdout);
   assert.ok(!existsSync(tree) && !existsSync(scratch), again.stdout);

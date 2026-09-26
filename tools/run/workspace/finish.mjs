@@ -11,6 +11,7 @@ import { join, resolve, sep } from "node:path";
 
 import { consults } from "../../../plugin/src/codex/codex-log.mjs";
 import { jsonlAt } from "../../../plugin/src/hooks/log/hook-log-file.mjs";
+import { typedBack } from "../../../plugin/src/refusal.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef, stop,
   uncommittedIn } from "../../checkout.mjs";
@@ -39,8 +40,8 @@ export const FINISH_HELP = [
   "It refuses rather than forces, on six readings taken whole before the first removal, so nothing",
   "met at a removal can cost a tree already gone: an uncommitted path in the tree, a commit the",
   "remote's default branch does not carry, a gate of that tree still on the process table, a worktree",
-  "somebody has locked, a file in the scratch holding one of this machine's credentials, and a",
-  "directory at the derived path that is not this checkout's worktree. Each",
+  "somebody has locked, a file in the scratch holding one of this machine's credentials or that it",
+  "cannot read to say, and a directory at the derived path that is not this checkout's worktree. Each",
   "leaves the whole workspace standing, the scratch with it, and exits non-zero, because what a",
   "removal would take is what no record of it cites. The second is the reading nothing else here",
   "makes: `git worktree remove` refuses a dirty tree and a locked one by itself, and says nothing at",
@@ -110,7 +111,7 @@ const lockedOn = (root, path) => (gitOut(["worktree", "list", "--porcelain"], ro
 const readTree = (root, path, base, gates) => ({
   branch: gitOut(["rev-parse", "--abbrev-ref", "HEAD"], path),
   scratch: scratchAt(path),
-  copies: scratchAt(path) ? copiesIn(scratchAt(path), machineSecrets()) : [],
+  copies: scratchAt(path) ? copiesIn(scratchAt(path), machineSecrets()) : { copies: [], unread: [] },
   /* `status --porcelain` and not a diff against HEAD: an untracked file a run never staged is work
      too, and null from here is a status git would not report rather than a clean tree. */
   dirty: uncommittedIn(path),
@@ -158,18 +159,24 @@ const lockRefusal = (root, path, held) => (held
     + `remove it, and this call is not the one to overrule them`, how: `git -C ${root} worktree unlock ${path}` }
   : null);
 
-const copyRefusal = (held) => (held.length
-  ? { why: `${held.length} file(s) in the scratch hold a copy of one of this machine's credentials, which a `
-    + `run home borrows by reference and never needs: ${held.join(", ")}`,
-  how: `rm -f -- ${held.join(" ")}` }
-  : null);
+/* Each path quoted for the shell it is pasted into: a scratch file name is whatever the run chose. */
+const typedPaths = (paths) => paths.map(typedBack).join(" ");
+
+const copyRefusal = ({ copies, unread }) => [
+  copies.length && { why: `${copies.length} file(s) in the scratch hold a copy of one of this machine's `
+    + `credentials, which a run home borrows by reference and never needs: ${copies.join(", ")}`,
+  how: `rm -f -- ${typedPaths(copies)}` },
+  unread.length && { why: `${unread.length} path(s) in the scratch could not be read, so nothing here can say `
+    + `they hold no copy of this machine's credentials: ${unread.join(", ")}`,
+  how: `chmod -R u+rX -- ${typedPaths(unread)}` },
+].filter(Boolean);
 
 const refusals = (root, path, base, read, route) => [
   dirtyRefusal(path, read.dirty),
   aheadRefusal(path, base, read.branch ?? "that branch", read.ahead, route),
   gateRefusal(path, read.gates),
   lockRefusal(root, path, read.locked),
-  copyRefusal(read.copies),
+  ...copyRefusal(read.copies),
 ].filter(Boolean);
 
 /* Said before the removal, because afterwards there is nothing left to read. A run whose configuration

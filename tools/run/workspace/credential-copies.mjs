@@ -33,30 +33,42 @@ export const machineSecrets = () => [...new Set(BORROWED.filter((row) => row.sec
   return leaves(narrowed(store ? machineValue(...store).value : valueAt(userConfig(), row.key), row.within));
 }))];
 
-const filesUnder = (dir) => {
+/* A path that vanished while this read is nobody's copy; one that is there and cannot be read is a
+   path nothing here can clear, so it is kept apart and refused on rather than read as clean. */
+const GONE = "ENOENT";
+
+const walked = (dir, into) => {
   let names;
   try {
     names = readdirSync(dir);
-  } catch {
-    return [];
+  } catch (error) {
+    if (error.code !== GONE) into.unread.push(dir);
+    return into;
   }
-  return names.flatMap((name) => {
+  for (const name of names) {
     const path = join(dir, name);
     const held = lstatSync(path, { throwIfNoEntry: false });
-    if (held?.isDirectory()) return filesUnder(path);
-    return held?.isFile() ? [path] : [];
-  });
-};
-
-const holds = (path, secrets) => {
-  try {
-    const text = readFileSync(path);
-    return secrets.some((one) => text.includes(one));
-  } catch {
-    return false;
+    if (held?.isDirectory()) walked(path, into);
+    else if (held?.isFile()) into.files.push(path);
   }
+  return into;
 };
 
-/** Every regular file under `dir` whose bytes hold one of `secrets`; a link is not followed, the file
- *  it names being somewhere else's. */
-export const copiesIn = (dir, secrets) => (secrets.length ? filesUnder(dir).filter((path) => holds(path, secrets)) : []);
+/** What the scratch under `dir` holds of `secrets`: every regular file whose bytes hold one, and every
+ *  path that could not be read to say. A link is not followed, the file it names being somewhere
+ *  else's; a directory that is not there holds nothing. */
+export const copiesIn = (dir, secrets) => {
+  const found = { copies: [], unread: [] };
+  if (!secrets.length) return found;
+  const { files, unread } = walked(dir, { files: [], unread: [] });
+  found.unread.push(...unread);
+  for (const path of files) {
+    try {
+      const text = readFileSync(path);
+      if (secrets.some((one) => text.includes(one))) found.copies.push(path);
+    } catch (error) {
+      if (error.code !== GONE) found.unread.push(path);
+    }
+  }
+  return found;
+};
