@@ -1,6 +1,6 @@
 /* Where the instance, its token and this checkout's project pin come from: the credential from
    this CLI's own configuration, the pin from this machine's record of the project the checkout
-   belongs to, which `forge coolify pin` writes. docs/cli/coolify-the-instance.md. */
+   belongs to, which `forge coolify pin` writes. docs/cli/coolify-the-pin.md. */
 import { configPath, userConfig } from "../../../resolve/config.mjs";
 import { fail, projectCoolify, projectFilePath } from "../../../resolve/settings.mjs";
 

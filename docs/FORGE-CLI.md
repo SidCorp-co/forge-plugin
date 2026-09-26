@@ -64,7 +64,8 @@ how many topics there may be.
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
 | [coolify](cli/coolify.md) | Why one platform is reached two ways, which of them answers where nothing was chosen, why a name the answering one does not serve is refused rather than sent on, and where the credential for the other lives. |
-| [coolify — the saved instance](cli/coolify-the-instance.md) | Why the pin came before the first command and how a checkout reaches one, how the served surface is derived from a carried index, and the three readings a faithful port would have lost. |
+| [coolify — the pin](cli/coolify-the-pin.md) | Why the pin came before the first command, where it is recorded, and how a checkout that has none reaches one. |
+| [coolify — the saved instance](cli/coolify-the-instance.md) | How the served surface is derived from a carried index, the three readings a faithful port would have lost, and what a write owes. |
 | [google](cli/google.md) | Why the Workspace surface is carried rather than fetched, which writes take `--yes`, the three routes to a credential and the order they answer in, and why failures exit by class. |
 | [chatgpt](cli/chatgpt.md) | Why one turn is never sent twice, which two transports the backend forces, what makes a message an answer rather than one about it, and where the key must not reach. |
 | [chatgpt — asking for a picture](cli/chatgpt-image.md) | Why the framing and the aspect ratio are both refused rather than defaulted, where the framing is saved and why no flag stands beside it, why the ratio travels in the prompt and how a run of pictures comes back as one set. |

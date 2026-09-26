@@ -1,7 +1,7 @@
 /* The one way from a saved instance to a pinned checkout: a name looked up on the instance, followed
    to the project and environment holding it, and written into this machine's record of the project.
    Named forms only, since every caller is an agent with no terminal to pick from, and a pin already
-   recorded is replaced only when asked. docs/cli/coolify-the-instance.md. */
+   recorded is replaced only when asked. docs/cli/coolify-the-pin.md. */
 import { flags } from "../../../resolve/flags.mjs";
 import { fail, projectFilePath } from "../../../resolve/settings.mjs";
 import { projectWrite } from "../project-file.mjs";
