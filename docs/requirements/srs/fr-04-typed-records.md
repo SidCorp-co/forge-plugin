@@ -104,6 +104,11 @@ client no check sits in front of.
 - **AC-04-2-4** · Rev: 1 · Proof: plugin/test/flow/earned/refused-verdict-carries.test.mjs "a block refused for missing evidence is told what the issue carries, never what this call only planned"
   IF a block is refused for citing no evidence THEN the CLI SHALL name only the attachments the
   issue already holds, and SHALL NOT name a file this same write merely planned to upload.
+- **AC-04-2-5** · Rev: 1 · Proof: plugin/test/tracker/evidence.test.mjs "a path naming no file is refused as a missing file, with the directory to read the name off"
+  IF a record cites evidence shaped like a path that names no readable file THEN the CLI SHALL
+  refuse it as a missing file, SHALL name the path as typed and SHALL give the one command that
+  lists the directory it points into, because an attachment goes up under its base name and a
+  value carrying a separator can only be a place on disk, never a document on the issue.
 
 ### UC-04-3 — A review is two voices in one record
 
