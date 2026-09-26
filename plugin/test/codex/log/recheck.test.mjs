@@ -67,3 +67,58 @@ test("a recheck that does go ahead names the finding its set does not reach", ()
   assert.equal(recheckPlan([both, answered], "/a", ["a.mjs", "docs/FORGE-CLI.md"]).judged.id, "c99",
     "which is what a wider recheck would then answer, and why the route was withheld");
 });
+
+/* A plan or criteria file lies outside the checkout, so its consult records the real path and the
+   reviewer anchors on the name it would write: the two have to meet, or every correction costs a
+   fresh whole consult (ISS-2336). */
+const OUT = "/tmp/run-9/scratch/criteria.md";
+const PLAN = "/tmp/run-9/scratch/plan.md";
+const outside = (reply, files = [PLAN, OUT]) => ({
+  kind: "consult", id: "o1", ok: true, root: "/a", at: "1", files, send: "bodies",
+  sent: files.map((rel) => ({ rel, chars: 9, clipped: false })), reply,
+});
+
+test("a recheck over a file outside the checkout reaches the findings anchored on its bare name or its tail", () => {
+  const judged = outside("CODEX: 3 findings\n- **New — major:** `criteria.md:4` — two outcomes on one line.\n"
+    + "- **New — minor:** `scratch/criteria.md:1` — the clause is cited without its revision.\n"
+    + "- **New — minor:** `plan.md:2` — a step names no criterion.");
+  const plan = recheckPlan([judged], "/a", [OUT]);
+  assert.deepEqual(plan.ids, ["F1", "F2"], "the bare name and the path tail both resolve to the one recorded file");
+  assert.match(plan.risks[0], /Your earlier finding F1 .*two outcomes on one line/u, "and each goes to the reviewer as a risk");
+  assert.match(plan.risks[1], /Your earlier finding F2 .*without its revision/u);
+  assert.equal(recheckOwed(plan, [OUT]), null, "so the recheck has something to verify and is not refused");
+  assert.match(recheckMissed(plan, [OUT]), /also made F3 on plan\.md/u, "the finding on the file this set left out is still named");
+});
+
+test("a tail two recorded files share is no one's, even where the recheck names only one of them", () => {
+  const other = "/tmp/run-7/criteria.md";
+  const judged = outside("CODEX: 1 findings\n- **New — major:** `criteria.md:4` — two outcomes on one line.", [OUT, other]);
+  const plan = recheckPlan([judged], "/a", [OUT]);
+  assert.deepEqual(plan.ids, [], "attributed to neither file");
+  const said = recheckOwed(plan, [OUT]);
+  assert.match(said, /made F1 on criteria\.md, and this set holds no such file — it holds \/tmp\/run-9\/scratch\/criteria\.md/u,
+    "the refusal names the anchor it looked for and the files the set holds");
+  assert.match(said, /anchored on a file that consult never recorded — it recorded \/tmp\/run-9\/scratch\/criteria\.md \/tmp\/run-7\/criteria\.md/u);
+  assert.match(said, /forge codex verdict --of o1/u, "and the route out is the verdict");
+});
+
+test("an anchor naming no recorded file stays out, and a relative path is matched whole", () => {
+  const stray = outside("CODEX: 1 findings\n- **New — major:** `notes.md:4` — the lock is released by path.");
+  const said = recheckOwed(recheckPlan([stray], "/a", [OUT]), [OUT]);
+  assert.match(said, /made F1 on notes\.md, and this set holds no such file — it holds \/tmp\/run-9\/scratch\/criteria\.md/u);
+  assert.match(said, /forge codex verdict --of o1/u);
+  assert.equal(/--recheck/u.test(said), false, "no recheck reaches it, so none is offered");
+
+  const inside = { ...JUDGED, reply: "CODEX: 1 findings\n- **New — minor:** `FORGE-CLI.md:12` — the row names a flag that is gone." };
+  const bare = recheckPlan([inside], "/a", ["docs/FORGE-CLI.md"]);
+  assert.deepEqual(bare.ids, [], "a bare name inside the checkout is not resolved to docs/FORGE-CLI.md");
+  assert.deepEqual(recheckPlan([JUDGED], "/a", ["docs/FORGE-CLI.md"]).ids, ["F1"], "the exact relative path still matches");
+});
+
+test("a file the recheck adds is not handed a finding the consult anchored on a file it never recorded", () => {
+  const notes = "/tmp/run-9/scratch/notes.md";
+  const judged = outside("CODEX: 1 findings\n- **New — major:** `notes.md:4` — the lock is released by path.", [OUT]);
+  const plan = recheckPlan([judged], "/a", [OUT, notes]);
+  assert.deepEqual(plan.ids, [], "notes.md was never in the consult's set, so the recheck's copy of it does not reach F1");
+  assert.match(recheckOwed(plan, [OUT, notes]), /forge codex verdict --of o1/u);
+});
