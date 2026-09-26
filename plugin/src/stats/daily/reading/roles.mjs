@@ -1,7 +1,6 @@
-/* What each role of the page's reading is told and the one tool it answers through: explore proposes
-   findings from one section's figures, review keeps the ones those figures support, the judge writes
-   the decisions and a line per section. The schema bounds each answer; judge.mjs checks it anyway,
-   since a bound a model was told is not one it kept. */
+/* What each role of the page's reading is told, and the one tool it answers through; what each role
+   is for is judge.mjs's opening. The schema bounds each answer and judge.mjs checks it anyway, since a
+   bound a model was told is not one it kept. */
 /** The longest a reading, a reason or a decision may be: two lines of the page. */
 export const TEXT_CHARS = 200;
 export const MOST_DECISIONS = 5;

@@ -163,8 +163,8 @@ const opportunitiesHtml = (opportunities, head = "") => `<section id="opportunit
   + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p></section>`;
 
 /* The models' reading as the page shows it: the Decisions block, one self-contained section a layout
-   can move whole; each section's line at that section's head; what each role spent, in the footer.
-   A figure a reading names is shown with the page's own label and value: docs/cli/stats-the-reading.md. */
+   can move whole; each section's line at that section's head; what each role spent, in the footer:
+   docs/cli/stats-the-reading.md. */
 const figureSaid = (figure) => `${esc(figure.said)}: ${esc(figure.value)}`;
 
 const decisionHtml = (one) => `<li><strong>${esc(one.action)}</strong> — ${esc(one.what)}`
