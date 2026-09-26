@@ -105,6 +105,7 @@ test("every script this repository gates with has a step, or is named as spent o
     test: "the whole suite in one command, which the two test steps spend by file instead",
     version: "npm's own hook on a version bump",
     "sync:skills": "the writer sync:skills:check gates; running it would edit the tree",
+    "generate:spec": "the writer check:spec gates, which a landing runs at a merged head rather than here",
   };
   for (const name of Object.keys(scripts)) {
     assert.ok(spendsItsScript.includes(name) || otherwise[name],

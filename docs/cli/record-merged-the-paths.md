@@ -86,8 +86,8 @@ anyway is one a caller can only guess at and learn from a refusal (ISS-2485). A 
 read either commit is refused with the fetch that fixes it, whether or not the flag was typed, and
 never falls back to an empty clause. The landing task asks the same question of the candidate the
 change landed as, leaving out the version commit a release puts above it and the paths a release
-moved only in its own version fields (ISS-2516), so it composes the note with that reading rather
-than going through the verb.
+moved only in its own version fields (ISS-2516) and the paths the landed head's own generators write
+back (ISS-1421), so it composes the note with that reading rather than going through the verb.
 
 It reads the change's own paths and not the whole tree. An identical tree reads as nothing moved,
 and so does a landing that moved only a neighbour: what the verdicts judged was the change's paths,

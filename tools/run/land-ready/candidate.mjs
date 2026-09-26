@@ -1,13 +1,11 @@
 /* The git a landing does and nothing of the record: the merge, the candidate a reconciliation names,
    one chain link, what moved of a change's paths, the gate's tree, the push. the-checkpoint.md. */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 import { git, gitOut, loud, REMOTE, stop } from "../../checkout.mjs";
-import { LINKED, remoteHeadOf, shortly } from "../install.mjs";
+import { remoteHeadOf, shortly } from "../install.mjs";
 import { changeMoved } from "../landing.mjs";
+import { regenerated } from "../generated.mjs";
 
 export const remoteHead = (tree, base) => {
   const held = remoteHeadOf(tree, base);
@@ -58,24 +56,48 @@ export const linked = (tree, tip, head) => {
     : { conflicts: [], commit: candidateOf(tree, merged.tree, tip, head) };
 };
 
-/* The mark's own reading. A git that cannot answer reads here as nothing moved, as it always has: each
-   caller built or verified both commits a step earlier. */
+/** What moved of a change's paths between its judged head and a candidate, split three ways: what
+ *  moved, what only a release's version fields moved (ISS-2516), and what the generators the merged
+ *  head declares write back there byte for byte (ISS-1421). `merged` is where they run: the candidate
+ *  itself, except for a caller comparing with a commit that is not the merge. Null where git could not
+ *  answer. The mark reads this too, so what the chain carried is what the mark says moved. */
+export const changeRead = (tree, judged, candidate, files, merged = candidate) => {
+  const read = changeMoved(tree, judged, candidate, files);
+  if (!read) return null;
+  const found = regenerated(tree, merged, read.moved);
+  return { ...read, ...found, moved: read.moved.filter((path) => !found.generated.includes(path)) };
+};
+
 /* Said once per pair and path: the chain asks the same pair twice where no branch was held before it. */
 const told = new Set();
+const fresh = (key, paths) => paths.filter((path) => !told.has(`${key} ${path}`) && told.add(`${key} ${path}`));
 
-/** What moved of a change's paths, less what only a release's version fields moved, which the
- *  landing carries and says it carried: a release between a judgement and its landing rewrites no
- *  line a builder wrote, and handing the branch back for it cost a turn per release (ISS-2516). */
-export const movedBy = (tree, judged, candidate, files) => {
-  const read = changeMoved(tree, judged, candidate, files);
+const generatedSaid = (read, judged, merged, key) => {
+  const cleared = fresh(`${key} generated`, read.generated);
+  const ran = read.scripts.join(", ");
+  if (cleared.length) {
+    console.log(`  ${cleared.join(", ")} moved since ${shortly(judged)}, and ${ran} run at ${shortly(merged)} `
+      + `with ${cleared.length === 1 ? "that file" : "those files"} removed wrote ${cleared.length === 1 ? "it" : "them"} `
+      + `back byte for byte, so the landing takes that as generated and not as a move of the change`);
+  }
+  if (read.why && fresh(`${key} why`, [read.why]).length) {
+    console.log(`  ${ran} run at ${shortly(merged)}: ${read.why}; what they would have written stays a move`);
+  }
+};
+
+/** The paths `changeRead` leaves moved, after saying which it carried and why: a builder's turn spent
+ *  on bytes nobody's hand wrote is the cost this reading exists to stop. */
+export const movedBy = (tree, judged, candidate, files, merged = candidate) => {
+  const read = changeRead(tree, judged, candidate, files, merged);
   if (!read) return [];
-  const fresh = read.release.filter((path) => !told.has(`${judged} ${candidate} ${path}`));
-  for (const path of fresh) told.add(`${judged} ${candidate} ${path}`);
-  if (fresh.length) {
-    console.log(`  ${fresh.join(", ")} moved between ${shortly(judged)} and ${shortly(candidate)} only in `
+  const key = `${judged} ${candidate}`;
+  const release = fresh(key, read.release);
+  if (release.length) {
+    console.log(`  ${release.join(", ")} moved between ${shortly(judged)} and ${shortly(candidate)} only in `
       + `the version fields a release writes, so the landing takes that as the release's and not as a `
       + `move of the change`);
   }
+  if (read.scripts.length) generatedSaid(read, judged, merged, key);
   return read.moved;
 };
 
@@ -97,22 +119,6 @@ export const stillReads = (tree, landing, pin) => {
   const now = cleanly(tree, pin, landing.head);
   if (!now) return null;
   return movedBy(tree, was, now, landing.files).length ? null : now;
-};
-
-export const roomFor = (root, candidate) => {
-  const path = mkdtempSync(join(tmpdir(), "forge-landing-"));
-  loud("git", ["worktree", "add", "--detach", path, candidate], root,
-    "The candidate is gated in a tree of the landing's own, never in the one that built it.");
-  for (const one of LINKED) {
-    if (existsSync(join(root, one))) symlinkSync(join(root, one), join(path, one));
-  }
-  return path;
-};
-
-export const dropRoom = (root, path) => {
-  if (!path) return;
-  spawnSync("git", ["worktree", "remove", "--force", path], { cwd: root, encoding: "utf8" });
-  rmSync(path, { recursive: true, force: true });
 };
 
 /** Three answers, not two: a head pushed between the fetch and the read is a commit this repository

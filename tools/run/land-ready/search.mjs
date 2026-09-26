@@ -5,7 +5,8 @@
    turn. docs/cli/the-candidate.md. */
 import { gatesOn, runnersOf } from "../../gates/machine.mjs";
 import { parallelRuns } from "../../../plugin/src/resolve/settings.mjs";
-import { chainOver, dropRoom, treeOf } from "./candidate.mjs";
+import { chainOver, treeOf } from "./candidate.mjs";
+import { dropRoom } from "../room.mjs";
 import { attributed, casesOf } from "./fault.mjs";
 import { gateOver } from "./gated.mjs";
 

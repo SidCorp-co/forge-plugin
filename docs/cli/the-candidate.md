@@ -57,6 +57,18 @@ the release's own shape and never a list of names. A move anywhere else in the f
 longer parses, or a formatting change beside the number is still a move. The gate judges the candidate
 either way, and the landing says which paths it took as the release's.
 
+Nor is a path the merged head's own generators write back (ISS-1421). A file with one writer, such as
+the requirements tree's digest record, is written by every change that touches what it is made from,
+so two unrelated changes met there and the second went back to its builder over bytes neither hand
+wrote. The generators are the `generate:` scripts of that head's own package.json, where every command
+line of a repository already lives, so what is declared is a writer and never a list of the files it
+writes. They run in a room of the merged head with the moved paths removed first, which is what shows
+a generator writes a path at all: a path they leave missing, write back with other bytes, or write
+beside a script that failed or a file anything else moved is a move, and a hand edit in a generated
+file reads as its generator disagreeing. The landing names the paths it took as generated and the
+scripts it ran, and says why where they did not clear one. The ship's step before its rebase reads the
+same, at the merge the rebase would make.
+
 **A set the gate refuses is searched rather than landed one member at a time** (ISS-2480, reversing
 the rule that no subset is searched for). Landing each member alone paid a whole gate and a release
 per member for one member's fault, and the gate already wrote what the search needs: which step
