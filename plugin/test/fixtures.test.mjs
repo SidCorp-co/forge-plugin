@@ -170,6 +170,44 @@ test("the environment the fixture hands out names a home of the run's own", () =
   assert.equal(config, home, "the config home and the home are one room, so a leak is one directory to look in");
 });
 
+/* The developer's session reaches a suite as two variables, and a spawned hook resolved them ahead of
+   the event it was handed, so a case read one key inside a session and another in CI (ISS-2570). The
+   probe stands in a tree naming no run under a home of its own, leaving the variables the only source. */
+const SESSION_VARS = ["CLAUDE_CODE_SESSION_ID", "FORGE_SESSION_ID"];
+const RESOLVER = pathToFileURL(join(ROOT, "plugin/src/resolve/config.mjs")).href;
+
+const sessionless = (fixture) => `
+  import { spawnSync } from "node:child_process";
+  import { homeEnv, tempRoom } from "${pathToFileURL(fixture).href}";
+  import { sessionSourced } from "${RESOLVER}";
+  const env = homeEnv("sessionless");
+  const probe = ${JSON.stringify(`import { sessionSourced } from "${RESOLVER}"; process.stdout.write(JSON.stringify(sessionSourced()));`)};
+  const spawned = (extra) => {
+    const run = spawnSync(process.execPath, ["--input-type=module", "-e", probe], { env: { ...env, ...extra }, encoding: "utf8" });
+    return run.status === 0 ? JSON.parse(run.stdout) : run.stderr;
+  };
+  process.stdout.write(JSON.stringify({
+    handed: ${JSON.stringify(SESSION_VARS)}.filter((name) => name in env),
+    own: sessionSourced(), spawned: spawned({}), named: spawned({ FORGE_SESSION_ID: "the-cases-own" }),
+  }));
+`;
+
+test("a suite's spawned processes resolve no session from the shell that started it, only the one a case names", () => {
+  const room = tempRoom("fixture-session-");
+  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+  const argv = ["--input-type=module", "-e", sessionless(join(ROOT, FIXTURES[0]))];
+  const developer = { CLAUDE_CODE_SESSION_ID: "the-developers-session", FORGE_SESSION_ID: "the-developers-run" };
+  const run = spawnSync(process.execPath, argv,
+    { encoding: "utf8", cwd: room, env: { ...WITHOUT, TMPDIR: room, HOME: room, XDG_CONFIG_HOME: room, ...developer } });
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const { handed, own, spawned, named } = JSON.parse(run.stdout);
+  assert.deepEqual(handed, [], "homeEnv handed a child the session the developer's shell held");
+  assert.equal(own.id, null, `the test process resolved ${own.id} from ${own.said}`);
+  assert.equal(spawned.id, null, `a process spawned from homeEnv resolved ${spawned.id} from ${spawned.said}`);
+  assert.deepEqual([named.id, named.source], ["the-cases-own", "asked"],
+    "the id a case set on the env it handed a child is not the one that child resolved");
+});
+
 /* A home-rooted path built into a module constant is resolved at import, so no caller can move it
    afterwards and no test can vary it. These two hold the install record; `resolve/config.mjs` is the
    shape that was already right. Read at the call, a `HOME` set after the import reaches them. */
