@@ -33,6 +33,14 @@ const wordEndingAt = (text, end) => {
   return text[start - 1] === "." ? "" : text.slice(start, end + 1);
 };
 
+/* Whether the `++` or `--` starting at `at` follows the value it updates, `count++ / total`, which
+   leaves a value; a prefix one, `++/re/.lastIndex`, still has its operand to come. */
+const postfix = (text, at) => {
+  let before = at - 1;
+  while (before >= 0 && (text[before] === " " || text[before] === "\t")) before -= 1;
+  return before >= 0 && (WORD.test(text[before]) || text[before] === ")" || text[before] === "]");
+};
+
 const stringAt = (text, at) => {
   const quote = text[at];
   let to = at + 1;
@@ -92,8 +100,7 @@ const walk = (text) => {
   const opensARegex = () => {
     if (last === "") return true;
     if (last === VALUE || last === "]") return false;
-    /* A postfix `++` or `--` ends a value, `count++ / total`; nothing prefixed by one is a regex. */
-    if ((last === "+" || last === "-") && text[lastAt - 1] === last) return false;
+    if ((last === "+" || last === "-") && text[lastAt - 1] === last) return !postfix(text, lastAt - 1);
     if (last === ")") return closedControl;
     if (WORD.test(last)) return STARTS_AN_EXPRESSION.has(wordEndingAt(text, lastAt));
     return true;

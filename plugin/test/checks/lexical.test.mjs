@@ -40,7 +40,8 @@ test("a template's hole is code, and a template, a string or a regex nested in o
 /* One rule for every reader. Three rules stood before, and the operators between them were read one
    way by one checker and the other way by the next. */
 test("a slash opens a regex wherever an expression starts, and divides after a value", () => {
-  const opens = ["a > /re/", "if (ok) /re/.test(x)", "return /re/", "x = /re/", "f(/re/)", "while (a) /re/"];
+  const opens = ["a > /re/", "if (ok) /re/.test(x)", "return /re/", "x = /re/", "f(/re/)", "while (a) /re/",
+    "x = ++/re/.lastIndex", "x = --/re/.lastIndex"];
   const divides = ["a / b", "(a) / b", "a[0] / b", "a.return / b", "f(x) / b", "1.5 / b", "\"s\" / b",
     "`t` / b", "/re/ / b", "a++ / b", "a-- / b"];
   for (const said of opens) {
