@@ -14,7 +14,7 @@
 import { dirname, join, normalize } from "node:path";
 
 import { lineAt } from "../../markdown.mjs";
-import { KINDS, literalsIn } from "../lexical.mjs";
+import { KINDS, literalsIn } from "../source/lexical.mjs";
 import { blanked, closesAfter } from "../suite/wall-clock.mjs";
 import { argumentsAt } from "./calls.mjs";
 

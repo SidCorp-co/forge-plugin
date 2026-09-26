@@ -10,7 +10,7 @@ import { COMPLEXITY_NAMES } from "../../ladder.mjs";
 import { DECLARES } from "../../tracker/routes.mjs";
 import { KIND_NAMES } from "../../tracker/issue-shape.mjs";
 import { VERBS, rowFor, spanOf } from "../../resolve/visibility.mjs";
-import { COMMENTS, LITERALS, maskOf } from "../lexical.mjs";
+import { COMMENTS, LITERALS, maskOf } from "../source/lexical.mjs";
 
 export const JUDGE = "refuseUndeclared";
 const JUDGE_ARITY = 4;

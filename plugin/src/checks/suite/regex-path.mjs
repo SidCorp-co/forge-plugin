@@ -7,7 +7,7 @@
 
 import { lineAt } from "../../markdown.mjs";
 import { calleeOf, pairsOf, shapeOf } from "./regex-shape.mjs";
-import { COMMENTS, maskOf } from "../lexical.mjs";
+import { COMMENTS, maskOf } from "../source/lexical.mjs";
 import { blanked, closesAfter } from "./wall-clock.mjs";
 
 /** Where a path comes from: the node routes that make one, and the environment that hands one over. */

@@ -12,7 +12,7 @@
    lexical reading sees those as plainly as the rest, and ISS-2282 owns the rule that names them. */
 
 import { lineAt } from "../../markdown.mjs";
-import { COMMENTS, KINDS, literalsIn } from "../lexical.mjs";
+import { COMMENTS, KINDS, literalsIn } from "../source/lexical.mjs";
 import { blanked } from "./wall-clock.mjs";
 
 /** The shortest wording this refuses to see pinned twice. Below it a pattern is a status word or a

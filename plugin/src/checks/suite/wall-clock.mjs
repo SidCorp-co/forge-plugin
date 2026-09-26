@@ -5,7 +5,7 @@
    rest on that number. Reached here: three clocks, inline or through a local, bounded in one breath. */
 
 import { lineAt } from "../../markdown.mjs";
-import { COMMENTS, LITERALS, maskOf } from "../lexical.mjs";
+import { COMMENTS, LITERALS, maskOf } from "../source/lexical.mjs";
 
 const CLOCK = String.raw`(?:Date\.now\(\)|performance\.now\(\)|process\.hrtime(?:\.bigint)?\([^)]*\))`;
 const NUMBER = String.raw`\d[\d_]*(?:\.\d+)?`;

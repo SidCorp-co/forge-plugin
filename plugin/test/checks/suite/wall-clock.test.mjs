@@ -106,7 +106,7 @@ test("the escape never returns under the bound it was given, nor over the cap ab
   }
 });
 
-/* The walk itself is plugin/test/checks/lexical.test.mjs's. What is this file's is the choice the
+/* The walk itself is plugin/test/checks/source/lexical.test.mjs's. What is this file's is the choice the
    suite rules share: a template goes whole, what its holes spell included, until ISS-2212 opens them. */
 test("the suite's mask blanks a template whole, its holes included, and keeps its backticks", () => {
   const source = "const t = `a ${Date.now() - start} b`; const n = Date.now();\n";

@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { COMMENTS, LITERALS, maskOf } from "../../../src/checks/lexical.mjs";
+import { COMMENTS, LITERALS, maskOf } from "../../../src/checks/source/lexical.mjs";
 
 /* The defect this issue is: the gate covered three verbs and not the five that write the record
    now. A funnel closes today's list, and this closes the next one — every tracker write in the

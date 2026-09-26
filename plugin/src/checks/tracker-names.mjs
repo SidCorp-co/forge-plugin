@@ -1,6 +1,6 @@
 /* The columns this rule holds, stated as patterns and read by property access, so neither the rule nor its reader is a quoted span and neither needs an exemption. Whose word each of these is, and why: `rest.mjs`, which names the document. A column this CLI has no second word for is not here — `complexity` is spoken as the tracker spells it, which is docs/cli/the-kinds.md's decision, and `ALIASES` below is what holds that true. */
 import { lineAt } from "../markdown.mjs";
-import { COMMENTS, KINDS, LITERALS, literalsIn, maskOf } from "./lexical.mjs";
+import { COMMENTS, KINDS, LITERALS, literalsIn, maskOf } from "./source/lexical.mjs";
 
 /* A row may name where its word is not the tracker's. The deploy bindings are the case: another
    service this CLI speaks answers a field of its own under the same word, and that surface prints

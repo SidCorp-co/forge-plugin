@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { COMMENTS, KINDS, LITERALS, literalsIn, maskOf } from "../../src/checks/lexical.mjs";
+import { COMMENTS, KINDS, LITERALS, literalsIn, maskOf } from "../../../src/checks/source/lexical.mjs";
 
 const EVERY = [...COMMENTS, ...LITERALS];
 const kinds = (source) => literalsIn(source).map((one) => [one.kind, source.slice(one.from, one.to)]);
