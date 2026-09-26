@@ -204,7 +204,7 @@ test files back to the criteria, and lists the criteria still owed a case, the t
 cites and the cases more than one criterion cites. Why each duty below is the right one is argued
 in `docs/cli/spec-proofs.md`, and this use case states the duties alone.
 
-- **AC-14-9-1** · Rev: 1 · Proof: none yet — ISS-2549
+- **AC-14-9-1** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "forge spec proofs reads each Proof line as the spec gate does, at every read, and leaves nothing on disk"
   WHEN the lists are read THEN the CLI SHALL derive them from the tree's Proof lines at that read,
   through the reading the gate uses, and SHALL store them nowhere.
 - **AC-14-9-2** · Rev: 1 · Proof: plugin/test/spec/proofs-verb.test.mjs "a project that set no test root is told the call that sets it, and still gets the other two lists"
