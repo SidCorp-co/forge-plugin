@@ -14,8 +14,9 @@ const room = standsInNoTree("forge-codex-misreasoned");
 
 const { logEntries, logPath } = await import("../../../src/codex/codex-log.mjs");
 const {
-  digestOf, outcomeOf, ruledOn, undecidedIn, unverdicted, verdictFromRulings, verdictRecord,
+  digestOf, outcomeOf, undecidedIn, unverdicted, verdictFromRulings, verdictRecord,
 } = await import("../../../src/codex/log/replies.mjs");
+const { ruledOn } = await import("../../../src/codex/stats/ruled.mjs");
 const { logLine, verdict, VERDICT_USAGE } = await import("../../../src/codex/log/verbs.mjs");
 const { evalLines, evalObject, printStats } = await import("../../../src/codex/codex-stats.mjs");
 const { scoreOf } = await import("../../../src/codex/stats/figures.mjs");

@@ -6,7 +6,7 @@ import { criterionNumber } from "../../flow/machine.mjs";
 import { parseAll } from "../../flow/record/page.mjs";
 import { pairedOneToOne } from "../joined.mjs";
 import { answered } from "../../codex/codex-log.mjs";
-import { ruledOn } from "../../codex/log/replies.mjs";
+import { ruledOn } from "../../codex/stats/ruled.mjs";
 import { accountCredentials } from "../../resolve/settings.mjs";
 
 export const HORIZON = 86_400_000;

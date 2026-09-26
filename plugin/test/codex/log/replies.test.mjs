@@ -16,7 +16,6 @@ const {
   digestOf,
   findingsIn,
   historyFor,
-  modelKey,
   numbered,
   outcomeOf,
   recheckOwed,
@@ -27,12 +26,12 @@ const {
   recheckRisks,
   rulingsIn,
   rulingsUnread,
-  ruledOn,
   undecidedIn,
   unverdicted,
   verdictFromRulings,
   verdictRecord,
 } = await import("../../../src/codex/log/replies.mjs");
+const { modelKey, ruledOn } = await import("../../../src/codex/stats/ruled.mjs");
 const { scoreOf } = await import("../../../src/codex/stats/figures.mjs");
 
 /* A verdict is a separate record; replaying advice without what was done with it made resolved /
