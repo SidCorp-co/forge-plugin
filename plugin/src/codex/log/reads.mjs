@@ -22,9 +22,8 @@ const carriedWhole = (one) => {
 export const isWholeRead = (one) => isAnswered(one) && one.send === "bodies" && !one.dirty
   && Boolean(one.head) && !one.recheck && carriedWhole(one).length > 0;
 
-/* A further pass is one run's, as AC-06-1-9 has it and the landing reads it: two runs reading halves of a set at one head each took a read, and folding one into the other would undercount both. */
-const continues = (held, one, files) =>
-  Boolean(held?.run) && one.run === held.run && !files.some((rel) => held.files.has(rel));
+/* A further pass is one run's, as AC-06-1-9 has it and the landing reads it: two runs reading halves of a set at one head each took a read, and folding one into the other would undercount both. So each head holds a read per run, and another run's read at that head leaves a run's own standing to be continued. */
+const continues = (own, files) => Boolean(own) && !files.some((rel) => own.files.has(rel));
 
 /** Each whole-set read among rows already in log order, one entry per row: the first; a recheck, at a head no earlier read was at; a repeat, at a head already read, which with a head recorded per commit means no commit between; or a further pass of the read at that head by the same run, carrying only files it had not read (AC-06-1-9). `read` is the ordinal of the read the row belongs to. */
 export const classified = (rows) => {
@@ -34,16 +33,19 @@ export const classified = (rows) => {
   for (const one of rows) {
     if (!isWholeRead(one)) continue;
     const files = carriedWhole(one);
-    const held = atHead.get(one.head);
-    if (continues(held, one, files)) {
-      for (const rel of files) held.files.add(rel);
-      held.passes += 1;
-      out.push({ row: one, kind: PASS, read: held.read, passes: held.passes });
+    const runs = atHead.get(one.head);
+    const own = one.run ? runs?.get(one.run) : undefined;
+    if (continues(own, files)) {
+      for (const rel of files) own.files.add(rel);
+      own.passes += 1;
+      out.push({ row: one, kind: PASS, read: own.read, passes: own.passes });
       continue;
     }
     reads += 1;
-    const kind = held ? REPEAT : (reads === 1 ? FIRST : RECHECK);
-    atHead.set(one.head, { files: new Set(files), read: reads, passes: 1, run: one.run ?? null });
+    const kind = runs ? REPEAT : (reads === 1 ? FIRST : RECHECK);
+    const held = runs ?? new Map();
+    if (one.run) held.set(one.run, { files: new Set(files), read: reads, passes: 1 });
+    atHead.set(one.head, held);
     out.push({ row: one, kind, read: reads, passes: 1 });
   }
   return out;

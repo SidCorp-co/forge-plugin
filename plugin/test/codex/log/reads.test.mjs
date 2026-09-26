@@ -36,6 +36,10 @@ test("two reads at one head carrying a common file are a repeat", () => {
 test("two runs reading halves of a set at one head each took a read, and no pass is folded across them", () => {
   const rows = [READ("aaaaaaa", ["a.mjs"], { run: "r1" }), READ("aaaaaaa", ["b.mjs"], { run: "r2" })];
   assert.deepEqual(kinds(rows), [["aaaaaaa", FIRST], ["aaaaaaa", REPEAT]]);
+  const interleaved = [...rows, READ("aaaaaaa", ["c.mjs"], { run: "r1" })];
+  assert.deepEqual(classified(interleaved).map((one) => one.kind), [FIRST, REPEAT, PASS],
+    "another run's read at the head leaves this run's own read to be continued");
+  assert.equal(readsIn(interleaved)[0].passes, 2);
   const nameless = [READ("aaaaaaa", ["a.mjs"], { run: undefined }), READ("aaaaaaa", ["b.mjs"], { run: undefined })];
   assert.equal(readsIn(nameless).length, 2, "rows naming no run are no sequence anybody declared");
 });
