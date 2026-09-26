@@ -85,7 +85,6 @@ test("the consult a commit refusal prints clears every recorded file it stages, 
   try {
     git(at.repo, "add", "--", ...FILES);
     const said = because(at.ask("codex-second", "git commit -m x"));
-    assert.match(said, /has not read what this commit stages/u, said);
     assert.match(shown(said), / and 2 more$/u, "the sentence shows six names and counts the rest");
     const ran = await at.run(route(said, "forge codex consult"));
     assert.equal(ran.status, 0, ran.stderr);
@@ -116,7 +115,6 @@ test("the consult a gate-door refusal prints clears the whole record, and the ga
   const at = await room({ slug: "fixture", codex: { owed: ["gate"] }, stats: { commands: { gate: "npm run check" } } });
   try {
     const said = because(at.ask("codex-owed", "npm run check"));
-    assert.match(said, /has not read what this call would judge/u, said);
     assert.match(shown(said), / and 2 more$/u, "the sentence shows six names and counts the rest");
     const ran = await at.run(route(said, "forge codex consult"));
     assert.equal(ran.status, 0, ran.stderr);

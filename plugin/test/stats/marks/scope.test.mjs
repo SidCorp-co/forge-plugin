@@ -416,8 +416,8 @@ test("the refusal names the lock and what clears it", () => {
     try {
       writeFileSync(`${marksPath()}.lock`, `${holder.pid}-deadbeef`);
       assert.throws(() => underLock(`${marksPath()}.lock`, () => "ran", { strict: true, waits: 100 }), (error) => {
-        assert.match(error.message, new RegExp(`rm ${marksPath().replaceAll(".", "\\.")}\\.lock`, "u"),
-          `the one command that clears it — ${error.message}`);
+        /* A substring and never a pattern: the path is the caller's, and a `+` in it reads as a quantifier (ISS-1442). */
+        assert.ok(error.message.includes(`rm ${marksPath()}.lock`), `the one command that clears it — ${error.message}`);
         return true;
       });
     } finally {
