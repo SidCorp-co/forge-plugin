@@ -122,9 +122,10 @@ test("a figure no reader computes is named once in the footer with its issue, an
   const footer = page.slice(page.indexOf("<footer>"), page.indexOf("</footer>"));
   for (const [reading, issue] of [["issue-flow runs by the effort they ran at", "ISS-2424"],
     ["hand-backs by cause", "ISS-2425"], ["gate minutes lost", "ISS-2425"],
-    ["consult calls lost to transport failures", "ISS-2426"], ["the minutes work waited on a person each day", "ISS-2600"]]) {
+    ["consult calls lost to transport failures", "ISS-2426"]]) {
     assert.ok(footer.includes(`<li>Not computed yet: ${reading}, owed by ${issue}.</li>`), reading);
   }
+  assert.ok(!footer.includes("ISS-2600"), "15. the owner wait has its reader");
   assert.doesNotMatch(page, /missing: /u, "no red missing line anywhere on the page");
 });
 
@@ -149,6 +150,10 @@ test("--json and the terminal carry the scorecard, one entry and one line per me
   const closed = scorecard.find((one) => one.metric === "closed");
   assert.deepEqual([closed.value, closed.baseline, closed.unread], [null, null, "no Forge endpoint is saved on this machine"],
     "15. --json carries the value, the baseline and why it was not read");
+  const wait = scorecard.find((one) => one.metric === "ownerWait");
+  assert.deepEqual([wait.value, wait.baseline, wait.unread, wait.missing], [null, null, "no Forge endpoint is saved on this machine", null],
+    "ISS-2600 13, 16. the owner wait on a device with no endpoint is not read, carried by --json");
+  assert.match(written.stdout, /^ {2}owner wait minutes: not read: no Forge endpoint is saved on this machine \(lower is better, G-11\)$/mu);
   assert.match(written.stdout, new RegExp(`^  wasted calls, of all calls: ${wasted.value}% against ${wasted.baseline}%, \\+?0 pt, steady \\(lower is better, G-11\\)$`, "mu"));
   assert.ok(!written.stdout.includes("issue-flow run(s) across"), "no template sentence");
   const again = daily(held, "--day", daysAgo(1));

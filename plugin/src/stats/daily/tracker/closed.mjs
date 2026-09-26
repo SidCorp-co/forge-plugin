@@ -2,59 +2,21 @@
    status history rather than off any transcript: a close is the tracker's fact, and a run is only
    what this device saw of the work. Where the history is read from, why each day is its own walk,
    and how a run's minutes are split between its issues: docs/cli/stats-the-reading.md. */
-import { boundsOf, weekBefore } from "./day.mjs";
-import { byAlias, documentsOf, pairsOf } from "../eval/outcomes.mjs";
-import { everyIssue, shortOf } from "../../tracker/issues.mjs";
-import { scoped } from "../../tracker/rest.mjs";
-import { accountCredentials, refusing, useProject } from "../../resolve/settings.mjs";
+import { boundsOf, weekBefore } from "../day.mjs";
+import { MOVED, NO_ENDPOINT, TRACKER, endpointHeld, firstLine, oncePerSlug, walkBack } from "./history.mjs";
+import { byAlias, documentsOf, pairsOf } from "../../eval/outcomes.mjs";
+import { shortOf } from "../../../tracker/issues.mjs";
+import { refusing, useProject } from "../../../resolve/settings.mjs";
 
-const PAGE = 200;
-const MOVED = "issue.statusChanged";
 const CLOSED = "closed";
 
 export const SPLIT = "a run that owned several issues lends each an equal share of its minutes";
 export const REOPENED = "an issue closed again after a reopen counts on each day it closed";
-export const NO_ENDPOINT = "no Forge endpoint is saved on this machine";
-export const SATURATED = "more events share one timestamp than a page of the history carries, so the walk cannot get past them";
 const NO_READING = "no tracker reading was made for this page";
 
-const firstLine = (text) => String(text ?? "").split("\n")[0];
 const tenth = (value) => Math.round(value * 10) / 10;
 
-/** The events of one history inside `[from, to)`, newest first by the tracker's cursor. The cursor
- *  moves to a millisecond past the oldest event a page held and events are kept by id, so two sharing
- *  a timestamp across a page boundary are both kept. A page adding none is the end where it is short
- *  of `limit`, and where it is full a tie as long as a page, which no cursor on time can get past. */
-export const walkBack = async (ask, from, to, limit = PAGE) => {
-  const held = new Map();
-  let before = to;
-  for (;;) {
-    const page = await ask(new Date(before).toISOString());
-    if (page?.refused) return { unread: firstLine(page.refused) };
-    const events = page?.events ?? [];
-    let oldest = Infinity;
-    let fresh = 0;
-    for (const one of events) {
-      const at = Date.parse(one.at);
-      oldest = Math.min(oldest, at);
-      if (at < from || at >= to || held.has(one.id)) continue;
-      held.set(one.id, { ...one, at });
-      fresh += 1;
-    }
-    if (!events.length || !page.nextBefore || oldest < from) return { events: [...held.values()] };
-    if (!fresh) return events.length < limit ? { events: [...held.values()] } : { unread: SATURATED };
-    before = oldest + 1;
-  }
-};
-
 const closesIn = (events) => events.filter((one) => one.action === MOVED && one.to === CLOSED);
-
-const tracker = {
-  limit: PAGE,
-  activity: (before) => scoped("forge_issues", { action: "activity", limit: PAGE, before }, true),
-  history: (documentId, before) => scoped("forge_issues", { action: "issue_activity", documentId, limit: PAGE, before }, true),
-  issues: () => everyIssue({}, { soft: true }),
-};
 
 /* Every close an issue ever had, off its own history. */
 const everyCloseOf = async (documentId, reads) => {
@@ -113,24 +75,10 @@ const safely = async (project, days, runs, reads) => {
   }
 };
 
-/* Two repositories registered under one tracker project read it once, their runs pooled: read twice,
-   one close would be lent the same run twice. A registration naming no project stands alone. */
-const oncePerSlug = (registered) => {
-  const held = new Map();
-  for (const one of registered) {
-    const key = one.slug ?? `\0${one.name}`;
-    const was = held.get(key);
-    held.set(key, was ? { ...was, name: `${was.name} and ${one.name}` } : one);
-  }
-  return [...held.values()];
-};
-
-const endpointHeld = () => Boolean(accountCredentials().url.value && accountCredentials().token.value);
-
 /** The closes of a day and of the seven days before it over every registered project, each day
  *  unread where any project's walk of it was: a sum missing one project reads as fewer closes.
  *  `runs` is the reading's projects, whose runs are paired by the slug each was registered under. */
-export const closesRead = async (registered, day, { runs = [], reads = tracker, held = endpointHeld } = {}) => {
+export const closesRead = async (registered, day, { runs = [], reads = TRACKER, held = endpointHeld } = {}) => {
   const days = [...weekBefore(day), day];
   const everywhere = (why) => ({ days: Object.fromEntries(days.map((one) => [one, { unread: why }])), owners: {}, history: new Map() });
   if (!registered.length) return everywhere("no project is registered on this device");

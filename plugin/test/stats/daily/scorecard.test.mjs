@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { METRICS, changeSaid, moveSaid, scorecardLines, scorecardOf, tileFedBy, verdictOf } from "../../../src/stats/daily/scorecard.mjs";
-import { REOPENED, SPLIT } from "../../../src/stats/daily/closed.mjs";
+import { REOPENED, SPLIT } from "../../../src/stats/daily/tracker/closed.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
 import { consult, runOn } from "./fixture-daily.mjs";
 
@@ -123,7 +123,7 @@ test("11, 16. minutes not read leave the count standing, and the terminal prints
 
 test("a metric no reader computes is a tile with no figure, naming the issue that owes its reader", () => {
   const scorecard = scorecardOf(readingOf({ runs: runsOn(DAY) }), DAY);
-  for (const [id, issue] of [["firstGate", "ISS-2425"], ["ownerWait", "ISS-2600"]]) {
+  for (const [id, issue] of [["firstGate", "ISS-2425"]]) {
     const tile = tileIn(scorecard, id);
     assert.equal(tile.missing.issue, issue, id);
     assert.deepEqual([tile.value, tile.baseline, tile.change, tile.verdict], [null, null, null, null], id);
@@ -148,4 +148,44 @@ test("a figure feeds a tile only where the tile's value is made of it, and a til
 test("a tile with no value on the day says so once in its terminal line", () => {
   const [line] = scorecardLines(scorecardOf(readingOf(), DAY)).filter((one) => one.includes("consults that ended at their call budget"));
   assert.equal(line, "  consults that ended at their call budget: none on this day (lower is better, G-06)");
+});
+
+/* An owner-wait reading made by hand: each day's answered waits as minutes, or why it was not read,
+   and the waits open at the page's day's end. */
+const waitsReading = (days, open = { waits: [] }) => ({ ...readingOf(), waits: { day: DAY, open,
+  days: Object.fromEntries(Object.entries(days).map(([day, held]) => [day, Array.isArray(held)
+    ? { answered: held.map((minutes, index) => ({ project: "proj", issueId: `ISS-${index}`, minutes })) } : held])) } });
+
+test("2, 9, 10, 13, 15. the owner wait is the minutes answered on the day, the open waits said apart and carried whole", () => {
+  const open = { waits: [{ project: "proj", issueId: "ISS-7", since: "2026-09-20T20:00:00.000Z", minutes: 240 }] };
+  const tile = tileIn(scorecardOf(waitsReading({ [DAY]: [30, 45.5] }, open), DAY), "ownerWait");
+  assert.deepEqual([tile.value, tile.missing, tile.unread], [75.5, null, null], "240 open minutes are not in the value");
+  assert.equal(tile.detail, "2 wait(s) on a person answered on this day; 1 still open at its end: proj ISS-7 240 min");
+  assert.deepEqual(tile.open, open);
+});
+
+test("8. a day read whole with no wait answered reads nought, and says none open", () => {
+  const tile = tileIn(scorecardOf(waitsReading({ [DAY]: [] }), DAY), "ownerWait");
+  assert.equal(tile.value, 0);
+  assert.equal(tile.detail, "0 wait(s) on a person answered on this day; none open at its end");
+});
+
+test("12. open waits not read are said so while the day's minutes stand", () => {
+  const tile = tileIn(scorecardOf(waitsReading({ [DAY]: [20] }, { unread: "proj: the tracker answered 503" }), DAY), "ownerWait");
+  assert.equal(tile.value, 20);
+  assert.equal(tile.detail, "1 wait(s) on a person answered on this day; open waits not read: proj: the tracker answered 503");
+});
+
+test("1, 14. the owner wait takes a baseline over the days before that were read, lower being better, and a day not read is no nought", () => {
+  const scorecard = scorecardOf(waitsReading({ "2026-09-14": [60], "2026-09-15": [100, 20], "2026-09-16": { unread: "proj: 503" },
+    [DAY]: [90] }), DAY);
+  const tile = tileIn(scorecard, "ownerWait");
+  assert.deepEqual([tile.value, tile.baseline, tile.baselineDays, tile.change, tile.verdict], [90, 90, 2, 0, "steady"],
+    "60 and 120 before, the unread day left out");
+  const worse = tileIn(scorecardOf(waitsReading({ "2026-09-14": [60], [DAY]: [90] }), DAY), "ownerWait");
+  assert.equal(worse.verdict, "worse", "more minutes waited on a person is worse");
+  const unread = tileIn(scorecardOf(waitsReading({ [DAY]: { unread: "proj: the tracker answered 503" } }), DAY), "ownerWait");
+  assert.deepEqual([unread.value, unread.unread], [null, "proj: the tracker answered 503"]);
+  const [line] = scorecardLines([unread]);
+  assert.ok(scorecardLines([unread]).includes("  owner wait minutes: not read: proj: the tracker answered 503 (lower is better, G-11)"), line);
 });

@@ -11,7 +11,7 @@ import { METRICS } from "../../../src/stats/daily/scorecard.mjs";
 import { LISTED, backlogMatcher, opportunitiesOf } from "../../../src/stats/daily/opportunities.mjs";
 import { sidesOf } from "../../../src/stats/daily/releases.mjs";
 import { MISSING } from "../../../src/stats/daily/gather.mjs";
-import { REOPENED } from "../../../src/stats/daily/closed.mjs";
+import { REOPENED } from "../../../src/stats/daily/tracker/closed.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
 import { runOn } from "./fixture-daily.mjs";
 
@@ -28,11 +28,13 @@ const tileFor = (metric, value, baseline, change, verdict, { detail = null, unre
   label: metric.label, unit: metric.unit, better: metric.better, goal: metric.goal, value, detail, baseline,
   baselineDays: baseline === null ? 0 : 7, change, verdict, unread, missing: metric.of ? null : metric.missing });
 const UNREAD = "proj: the tracker answered 503";
+const OPEN_SAID = "2 wait(s) on a person answered on this day; 1 still open at its end: alpha ISS-7 240 min";
 const SCORECARD = METRICS.map((metric) => {
   if (metric.id === "wasted") return tileFor(metric, 12.5, 10, 2.5, "worse");
   if (metric.id === "atBudget") return tileFor(metric, 20, 25, -5, "better");
   if (metric.id === "closed") return tileFor(metric, 9, 7, 2, "better", { detail: REOPENED });
   if (metric.id === "minutesPerClosed") return tileFor(metric, null, 30, null, null, { unread: UNREAD });
+  if (metric.id === "ownerWait") return tileFor(metric, 75, 90, -15, "better", { detail: OPEN_SAID });
   return tileFor(metric, null, null, null, null);
 });
 
@@ -144,9 +146,15 @@ test("a tile whose source was not read says not read and why, and judges nothing
   assert.ok(tile.includes(`<div class="move">not read: ${UNREAD}</div>`), tile);
 });
 
+test("ISS-2600 10. the owner wait tile shows its minutes, and the waits still open at the day's end beside them", () => {
+  const tile = tileHtml(pageOf(content()), "ownerWait");
+  assert.ok(tile.includes('<div class="value">75 min</div>'), tile);
+  assert.ok(tile.includes(`<div class="note">${OPEN_SAID}</div>`), tile);
+});
+
 test("a metric no reader computes is a greyed tile naming the issue that owes its reader", () => {
   const page = pageOf(content());
-  for (const [id, issue] of [["firstGate", "ISS-2425"], ["ownerWait", "ISS-2600"]]) {
+  for (const [id, issue] of [["firstGate", "ISS-2425"]]) {
     assert.ok(page.includes(`<div class="tile greyed" id="tile-${id}">`), id);
     assert.ok(tileHtml(page, id).includes(`<div class="move">${issue} owes its reader</div>`), id);
   }
@@ -221,8 +229,9 @@ test("the footer names the runs on no known rung, the projects with no runs, and
   const footer = page.slice(page.indexOf("<footer>"), page.indexOf("</footer>"));
   assert.ok(footer.includes("8 of the day&#39;s 12 run(s) claimed no rung this reading could establish."), footer);
   assert.ok(footer.includes("No run on this day in: idle."));
-  for (const issue of ["ISS-2424", "ISS-2425", "ISS-2426", "ISS-2600"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
+  for (const issue of ["ISS-2424", "ISS-2425", "ISS-2426"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
   assert.ok(!footer.includes("ISS-2599"), "13. the closed count has its reader");
+  assert.ok(!footer.includes("ISS-2600"), "15. the owner wait has its reader");
 });
 
 test("every chart names its axis, labels its scale and its days, spans the column, and repeats no value as text", () => {

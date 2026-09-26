@@ -5,7 +5,8 @@
    arithmetic this page does over the readers' figures: docs/cli/stats.md. */
 import { weekBefore } from "./day.mjs";
 import { MISSING, consultsSection, frictionOf, runsOn } from "./gather.mjs";
-import { REOPENED, SPLIT, closedOn } from "./closed.mjs";
+import { REOPENED, SPLIT, closedOn } from "./tracker/closed.mjs";
+import { waitsOn } from "./tracker/waits.mjs";
 import { entriesOf } from "./opportunities.mjs";
 import { median } from "../median.mjs";
 
@@ -52,6 +53,21 @@ const minutesPerClosedOf = (reading, day) => {
     detail: `${held.minutes} min over ${held.closed} closed issue(s), ${held.withoutRun} with no run on this device; ${SPLIT}` };
 };
 
+/* The waits open at the day's end are said beside the tile and never added to it: their minutes are
+   still running, and a figure that grows with the hour the page was written is not a day's. */
+const openSaid = (open) => {
+  if (open.unread) return `open waits not read: ${open.unread}`;
+  if (!open.waits.length) return "none open at its end";
+  return `${open.waits.length} still open at its end: ${open.waits.map((one) => `${one.project} ${one.issueId} ${one.minutes} min`).join(", ")}`;
+};
+
+const ownerWaitOf = (reading, day) => {
+  const held = waitsOn(reading, day);
+  if (held.unread) return { value: null, unread: held.unread };
+  const ended = `${held.ended} wait(s) on a person answered on this day`;
+  return { value: held.minutes, detail: held.open ? `${ended}; ${openSaid(held.open)}` : ended, open: held.open };
+};
+
 /* The figures of the page's reading a tile's value is made of: the day's refused calls and each listed
    opportunity's lost calls are wasted calls, a wait apart, and the consults at their budget over those
    that recorded one are that tile's two terms. */
@@ -75,8 +91,7 @@ export const METRICS = [
   { id: "minutesPerClosed", label: "agent minutes per closed issue", unit: " min", better: LOWER, goal: "G-11", of: minutesPerClosedOf },
   { id: "firstGate", label: "landings that passed their first gate", unit: PERCENT, better: HIGHER, goal: "G-11",
     missing: MISSING.firstGate },
-  { id: "ownerWait", label: "owner wait minutes", unit: " min", better: LOWER, goal: "G-11",
-    missing: { reading: "the minutes work waited on a person each day", issue: "ISS-2600" } },
+  { id: "ownerWait", label: "owner wait minutes", unit: " min", better: LOWER, goal: "G-11", of: ownerWaitOf },
   { id: "wasted", label: "wasted calls, of all calls", unit: PERCENT, better: LOWER, goal: "G-11", of: wastedOf, fedBy: wastedFrom },
   { id: "atBudget", label: "consults that ended at their call budget", unit: PERCENT, better: LOWER, goal: "G-06",
     of: atBudgetOf, fedBy: atBudgetFrom },
@@ -104,7 +119,7 @@ const tileOf = (metric, reading, day) => {
   const value = held?.value ?? null;
   const change = value === null || baseline === null ? null : tenth(value - baseline);
   return { ...declared, value, detail: held?.detail ?? null, baseline, baselineDays: before.length, change,
-    verdict: verdictOf(metric.better, change), unread: held?.unread ?? null, missing: null };
+    verdict: verdictOf(metric.better, change), unread: held?.unread ?? null, missing: null, ...(held?.open ? { open: held.open } : {}) };
 };
 
 /** Every tile for a day, off the corpora and logs the page was read from. */

@@ -4,8 +4,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NO_ENDPOINT, SATURATED, closedOn, closesRead, walkBack } from "../../../src/stats/daily/closed.mjs";
-import { projectTarget } from "../../../src/resolve/settings.mjs";
+import { closedOn, closesRead } from "../../../../src/stats/daily/tracker/closed.mjs";
+import { NO_ENDPOINT, SATURATED, walkBack } from "../../../../src/stats/daily/tracker/history.mjs";
+import { projectTarget } from "../../../../src/resolve/settings.mjs";
 
 process.env.TZ = "UTC";
 
