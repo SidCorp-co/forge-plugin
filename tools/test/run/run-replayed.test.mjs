@@ -410,26 +410,59 @@ test("a fix that added a file after the read is refused, naming what no read car
     git(work, "rev-parse", "master").stdout.trim(), "the refused change was pushed");
 });
 
-/* Two reads this is not, and each is one path away from being it: a head this change had no paths at,
-   which `shortOfWhole` reads as covering the empty set whole, and a head no lineage here reaches. */
-for (const [name, room, at, rewrite] of [
-  ["a head this change had no paths at", "read-at-the-base", (held) => held.base, () => {}],
-  ["a head this history lost", "read-off-lineage", (held) => held.mine, (held) => {
-    git(held.work, "reset", "--soft", held.base);
-    git(held.work, "commit", "-m", "the change under review, rebuilt as one commit");
-  }],
-]) {
-  test(`a read at ${name} is not a read this change outgrew`, () => {
-    const held = grewAfter(room, at);
-    rewrite(held);
+const silentOn = (run, name) => {
+  assert.match(run.stdout, /no consult in this log read the whole of this change's 2 file\(s\)/u,
+    `a read at ${name} was taken for one this change outgrew:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
+    `a read at ${name} stopped a ship this cannot judge:\n${run.stdout}${run.stderr}`);
+};
 
-    const run = runIn(held.work, ["ship"], held.env);
-    assert.match(run.stdout, /no consult in this log read the whole of this change's 2 file\(s\)/u,
-      `a read at ${name} was taken for one this change outgrew:\n${run.stdout}${run.stderr}`);
-    assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
-      `a read at ${name} stopped a ship this cannot judge:\n${run.stdout}${run.stderr}`);
-  });
-}
+/* A read this is not, one path away from being it: a head this change had no paths at, which
+   `shortOfWhole` reads as covering the empty set whole. */
+test("a read at a head this change had no paths at is not a read this change outgrew", () => {
+  const held = grewAfter("read-at-the-base", (at) => at.base);
+  silentOn(runIn(held.work, ["ship"], held.env), "a head this change had no paths at");
+});
+
+/* Each fault alone is refused, the rewrite by the ancestor test and the growth by the answer above, so
+   the two together falling to the absence gave the run that did both less than either (ISS-1017). */
+test("a read this change both outgrew and rewrote is refused, naming the lost head and what no read carried", () => {
+  const held = grewAfter("read-off-lineage", (at) => at.mine);
+  git(held.work, "reset", "--soft", held.base);
+  git(held.work, "commit", "-m", "the change under review, rebuilt as one commit");
+  const head = git(held.work, "rev-parse", "HEAD").stdout.trim();
+
+  const run = runIn(held.work, ["ship"], held.env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u, run.stderr);
+  assert.ok(run.stderr.includes(`at ${held.mine.slice(0, 7)}, a head neither ${head.slice(0, 7)}'s history `
+    + "nor this ship's recorded replay reaches"), `the lost head is not said to be lost:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(`${ADDED} is a file ${head.slice(0, 7)} would land that no read here carries`),
+    `the file the read never carried is not named:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(`--send bodies ${ADDED} ${UNDER_REVIEW}`),
+    `the read it asks for does not name the whole set at the head that would land:\n${run.stderr}`);
+  assert.doesNotMatch(run.stdout, /scratch gate ran/u, "a refused ship spent the gate");
+  assert.equal(git(held.remote, "rev-parse", "master").stdout.trim(),
+    git(held.work, "rev-parse", "master").stdout.trim(), "the refused change was pushed");
+});
+
+/* Off lineage the merge base is the only tie a read has to this change, so a read that also carried a
+   path this change does not write is some other change's review, and the absence is what is said. */
+test("a read off lineage that carried a path this change does not write is not a read this change outgrew", () => {
+  const held = baseMoved("read-of-another-change", ELSEWHERE);
+  const other = join("plugin", "src", "other.mjs");
+  writeFileSync(join(held.work, other), "a file only the dropped change wrote\n");
+  git(held.work, "add", other);
+  git(held.work, "commit", "-m", "a change this branch later dropped");
+  const dropped = git(held.work, "rev-parse", "HEAD").stdout.trim();
+  const env = readTaken(held.work, dropped, [UNDER_REVIEW, other]);
+  git(held.work, "reset", "--hard", held.mine);
+  writeFileSync(join(held.work, ADDED), "the file the change went on to add\n");
+  git(held.work, "add", ADDED);
+  git(held.work, "commit", "-m", "the change under review, grown by a file");
+
+  silentOn(runIn(held.work, ["ship"], env), "a head of another change");
+});
 
 test("a file added to fix the gate after the ship's own replay is named, not left to an absence", () => {
   const { work, mine } = gateRefuses("read-then-grew-on-resume");

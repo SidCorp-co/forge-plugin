@@ -66,7 +66,12 @@ export const REPLAY_HELP = [
   "paths the change had at its own head, on a lineage this step accepts, where what would land holds",
   "paths it never carried. That is refused too, naming those paths and asking for the same read at",
   "the same head, because a read a post-review fix put out of reach is a review that provably does",
-  "not answer for what is being landed, and a widening fix is the case that owes the most.",
+  "not answer for what is being landed, and a widening fix is the case that owes the most. A read",
+  "outgrown that way whose head is also on no lineage this step accepts — the change rewritten under",
+  "it as well as grown past it — is refused the same way, naming both heads and the paths added,",
+  "since one read at the head that would land clears either fault and both; off lineage it counts",
+  "only where every path it covered is still one this change lands, a read of some other change",
+  "that shares a file with this one being the absence below rather than a stale review of it.",
   "The second: do the passes this change was read by cover the set between them. Where they carry no",
   "whole body for some of it, that much of what would land went clipped or was never sent, and a",
   "reply of no findings over part of a set is indistinguishable from an approving review of all of",
@@ -162,6 +167,20 @@ export const ownReplay = (tree, at, head) => {
     && held.some((one) => carries(tree, at, one)));
 };
 
+/* Both faults at once, each of which is refused alone: the head is gone from this history and the set
+   grew past it. One read clears both, so this names both findings and prints that read once. */
+const outgrewLost = (of, at, head, added, held) =>
+  `consult ${of} read the whole of this change at ${shortly(at)}, a head neither ${shortly(head)}'s `
+  + `history nor this ship's recorded replay reaches — the commits it was taken over were rewritten `
+  + `afterwards, by a rebase, an amend or a reset — and the change has grown since: ${added.join(", ")} `
+  + `${added.length === 1 ? "is a file" : "are files"} ${shortly(head)} would land that no read here `
+  + `carries. The review record names a head this branch no longer holds and answers for less than it `
+  + `would land; the base under the change is fine, so replaying clears neither. One read clears both, `
+  + `the whole of what the change now touches at the head that would land, and nothing here re-reads `
+  + `for you:\n`
+  + `    echo "<what you were doing>" | forge codex consult --send bodies ${held.map(pathed).join(" ")}\n`
+  + `Then rewrite the review record at ${shortly(head)}, and ship.`;
+
 const outgrewSince = (of, at, head, added, held) =>
   `consult ${of} read the whole of this change at ${shortly(at)}, and the change has grown since: `
   + `${added.join(", ")} ${added.length === 1 ? "is a file" : "are files"} ${shortly(head)} would land `
@@ -181,18 +200,22 @@ const pathsIn = (tree, from, to) => {
   return (named.status === 0 ? named.stdout ?? "" : "").split("\0").filter(Boolean);
 };
 
-/* A read this change outgrew, as against one that never covered it: the newest consult whose head this
-   step accepts and which read whole the paths the change had at that head — diffed from that head's
-   merge base with this change's base, so the ship's own replay leaves a candidate the change's paths
-   and not the landing's. An empty covered set is no read of this change: every bodies consult read it. */
+/* A read this change outgrew, as against one that never covered it: the newest consult which read whole
+   the paths the change had at its own head — diffed from that head's merge base with this change's
+   base, so the ship's own replay leaves a candidate the change's paths and not the landing's. An empty
+   covered set is no read of this change: every bodies consult read it. A head this step's lineage does
+   not accept is `lost`, and is taken only where every path it covered is still one this change lands:
+   off lineage, the merge base is the one tie left to this change, and a read of some other change in
+   this checkout that shares a file with it is an absence and not a stale review of this one (ISS-1017). */
 const outgrew = (tree, was, root, held, head) => {
   for (const one of judgedBy(logEntries(), root, held).reverse()) {
     if (one.dirty || !gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
-    if (!carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head)) continue;
+    const lost = !carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head);
     const from = gitOut(["merge-base", one.head, was], tree);
     const covered = from ? pathsIn(tree, from, one.head) : [];
     const added = held.filter((rel) => !covered.includes(rel));
-    if (covered.length && added.length && shortOfWhole(one, covered).whole) return { one, added };
+    if (lost && !covered.every((rel) => held.includes(rel))) continue;
+    if (covered.length && added.length && shortOfWhole(one, covered).whole) return { one, added, lost };
   }
   return null;
 };
@@ -292,7 +315,8 @@ const readSays = (tree, was) => {
   const head = gitOut(["rev-parse", "HEAD"], tree);
   if (!read) {
     const grew = root ? outgrew(tree, was, root, held, head) : null;
-    if (grew) stop(outgrewSince(grew.one.id ?? grew.one.at, grew.one.head, head, grew.added, held));
+    const says = grew?.lost ? outgrewLost : outgrewSince;
+    if (grew) stop(says(grew.one.id ?? grew.one.at, grew.one.head, head, grew.added, held));
     if (root && shortSays(tree, was, root, held, head)) return undefined;
     const diffed = root ? sentDiffsFor(tree, was, root, held, head) : null;
     if (diffed) return console.log(sentDiffs(diffed.id ?? diffed.at, diffed.head, head, held));
