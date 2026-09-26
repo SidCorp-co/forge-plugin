@@ -62,9 +62,10 @@ test("a borrowing home with no record of its own resolves the machine's slug, na
 });
 
 test("a key the machine's record sets beside the slug reads the machine's value, not the default", async () => {
-  const at = standing({ ...MACHINE_RECORD, ship: "self" });
+  const at = standing();
   const run = await forge(at, "doctor");
-  assert.match(rowOf(run.stdout, "ship") ?? "", new RegExp(`ship\\s+self {2}← ${escaped(at.file)}$`, "u"), run.stdout);
+  /* `ready`, because `self` is what the plugin's default would answer. */
+  assert.match(rowOf(run.stdout, "ship") ?? "", new RegExp(`ship\\s+ready {2}← ${escaped(at.file)}$`, "u"), run.stdout);
 });
 
 test("the reader aimed at a named directory returns the machine's record of that directory's project", () => {
