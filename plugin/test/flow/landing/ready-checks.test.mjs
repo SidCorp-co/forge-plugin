@@ -32,14 +32,6 @@ test("a project declaring no list hears nothing about one", async () => {
   assert.doesNotMatch(run.stdout, /ready\.checks|--pushed --ready`/u, run.stdout);
 });
 
-test("the capture that arms the landing is past the moment the list was for, so it does not print it", async () => {
-  declared(CHANGED, { ready: { checks: CHECKS } });
-  field(null, null);
-  const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED);
-  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.doesNotMatch(run.stdout, HEADING, run.stdout);
-});
-
 test("a value the key does not take is said on the capture, never read as no list", async () => {
   declared(CHANGED, { ready: { checks: "npm run check:dup" } });
   field(null, null);

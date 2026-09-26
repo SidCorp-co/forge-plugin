@@ -445,6 +445,13 @@ a wait no party can end.
   state a landing starts from at that head, because a reading that finds the candidate wrong is
   answered by a head and a reconciliation of the candidate it refused is a judgement nobody made.
 
+- **AC-03-6-27** · Rev: 1 · Proof: plugin/test/flow/landing/ready-checks-run.test.mjs "a red check refuses the capture, names it with its exit and its last lines, and runs none after it"
+  WHERE a project declares the checks a run spends before it arms a landing, the CLI SHALL run each of
+  them in the checkout the capture reads its head from before it writes the ready checkpoint, and
+  SHALL refuse that checkpoint on the first one that fails, naming it and the command that runs it
+  again, because a check that is shown and not held is one a run can skip, and the landing that runs
+  it next finds the failure at the landing's price.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

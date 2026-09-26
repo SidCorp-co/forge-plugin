@@ -94,6 +94,14 @@ declares `ready.checks`, and nothing where it does not. The served method says t
 before a landing is armed and names none, because it is every project's; a run left to pick its own
 set armed a landing a directory-count lint then refused, the per-file linter it had run being green
 on the same tree (ISS-2515). The plain `--pushed` is the place because Phase 4 takes it before the
-status moves and at every push, so it is read before `--pushed --ready`; the arming call itself is
-past the moment the list was for, and says nothing of it. A value the key does not take is said on
-that capture rather than read as no list.
+status moves and at every push, so it is read before `--pushed --ready`, which runs it. A value the
+key does not take is said on that capture rather than read as no list.
+
+**The arming capture runs those checks and refuses on a red one.** Printed and not held, the list
+was advice a run could skip or cut short, and five landings in a row were handed back on one of its
+checks, each red in seconds on the candidate (ISS-2555). They run after every refusal of the lease
+and the checkpoint, so a capture refused for those spends none, and from the top of the checkout,
+where the commands a project writes expect to stand. A tree holding what the head does not carry is
+refused before anything runs, because a green over uncommitted files answers for no commit; a value
+the key does not take refuses the capture too, since reading it as no list would arm a landing on
+checks nobody ran.
