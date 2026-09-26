@@ -82,8 +82,11 @@ test("3. two moves sharing a millisecond are taken in the order whose statuses l
   const history = (order) => [created("a", at(DAY, "04:00:00")), moved("a", at(DAY, "04:30:00"), "open", "in_progress"),
     ...order([moved("a", tie, "in_progress", "needs_info"), moved("a", tie, "needs_info", "testing")]),
     moved("a", at(DAY, "06:00:00"), "testing", "needs_info")].map((one) => ({ ...one, at: Date.parse(one.at) }));
+  const first = (order) => [created("a", at(DAY, "04:00:00")),
+    ...order([moved("a", tie, "open", "needs_info"), moved("a", tie, "needs_info", "testing")])].map((one) => ({ ...one, at: Date.parse(one.at) }));
   for (const order of [(pair) => pair, (pair) => [...pair].reverse()]) {
     assert.deepEqual(spansOf(history(order)).spans, [{ start: tie, end: tie }, { start: at(DAY, "06:00:00"), end: null }]);
+    assert.deepEqual(spansOf(first(order)).spans, [{ start: tie, end: tie }], "the issue's first moves, with none before to link from");
   }
 });
 

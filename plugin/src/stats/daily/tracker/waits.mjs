@@ -21,14 +21,21 @@ export const PERSON = new Set(Object.values(PARK_STATUS).filter(answersByComment
 const tenth = (value) => Math.round(value * 10) / 10;
 
 /* The moves in the order they were made. Time orders them, and moves sharing a millisecond, which no
-   cursor or page order says the order of, are put in the one order whose statuses link, each
-   leaving from where the one before it arrived. */
+   cursor or page order says the order of, are put in the order whose statuses link: next is the one
+   leaving from where the move before arrived, or, with none before or none leaving from there, the
+   one no other of that millisecond arrives where it leaves from. */
+const nextOf = (group, previous) => {
+  const linked = group.findIndex((one) => one.from === previous);
+  if (linked >= 0) return linked;
+  return Math.max(group.findIndex((one) => !group.some((other) => other !== one && other.to === one.from)), 0);
+};
+
 const chained = (moves) => {
   const left = [...moves].sort((one, other) => one.at - other.at);
   const out = [];
   while (left.length) {
-    const linked = left.findIndex((one) => one.at === left[0].at && one.from === out.at(-1)?.to);
-    out.push(...left.splice(Math.max(linked, 0), 1));
+    const group = left.filter((one) => one.at === left[0].at);
+    out.push(...left.splice(nextOf(group, out.at(-1)?.to), 1));
   }
   return out;
 };
