@@ -194,7 +194,7 @@ const sessionless = (fixture) => `
 
 test("a suite's spawned processes resolve no session from the shell that started it, only the one a case names", () => {
   const room = tempRoom("fixture-session-");
-  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
   const argv = ["--input-type=module", "-e", sessionless(join(ROOT, FIXTURES[0]))];
   const developer = { CLAUDE_CODE_SESSION_ID: "the-developers-session", FORGE_SESSION_ID: "the-developers-run" };
   const run = spawnSync(process.execPath, argv,
