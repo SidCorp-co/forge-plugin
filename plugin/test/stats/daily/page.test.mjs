@@ -23,18 +23,24 @@ const row = (name, runs) => ({ name, ...figure(runs, 20, 40), thin: runs < 10 ? 
 const friction = (extra = {}) => ({ refusals: [], refusalCauses: [], errors: [], answers: [], repeats: [], waits: [], guideParts: [], ...extra });
 
 /* One tile per metric the table declares, each moved the way the case needs: wasted calls worse,
-   consults better, the closed count better, its minutes not read, and each metric with no reader greyed. */
+   consults better, the closed count better, its minutes not read, and the first-gate share better. */
 const tileFor = (metric, value, baseline, change, verdict, { detail = null, unread = null } = {}) => ({ metric: metric.id,
   label: metric.label, unit: metric.unit, better: metric.better, goal: metric.goal, value, detail, baseline,
   baselineDays: baseline === null ? 0 : 7, change, verdict, unread, missing: metric.of ? null : metric.missing });
 const UNREAD = "proj: the tracker answered 503";
 const OPEN_SAID = "2 wait(s) on a person answered on this day; 1 still open at its end: alpha ISS-7 240 min";
+const FIRST_SAID = "4 of 5 landing(s) on a judged gate";
+const ATTEMPTS = { attempts: 7, landed: 5, back: 2,
+  causes: { branch: 1, combination: 0, "moved-base": 0, declined: 0, tracker: 0, judge: 0, unrecorded: 1 },
+  firstGate: { landed: 5, first: 4, ungated: 0, share: 80 },
+  gates: { judged: 6, unpriced: 0, declined: 1, error: 0, minutes: 42.5, lostMinutes: 12 } };
 const SCORECARD = METRICS.map((metric) => {
   if (metric.id === "wasted") return tileFor(metric, 12.5, 10, 2.5, "worse");
   if (metric.id === "atBudget") return tileFor(metric, 20, 25, -5, "better");
   if (metric.id === "closed") return tileFor(metric, 9, 7, 2, "better", { detail: REOPENED });
   if (metric.id === "minutesPerClosed") return tileFor(metric, null, 30, null, null, { unread: UNREAD });
   if (metric.id === "ownerWait") return tileFor(metric, 75, 90, -15, "better", { detail: OPEN_SAID });
+  if (metric.id === "firstGate") return tileFor(metric, 80, 75, 5, "better", { detail: FIRST_SAID });
   return tileFor(metric, null, null, null, null);
 });
 
@@ -50,7 +56,7 @@ const content = (extra = {}) => ({
       { name: "7 Ship", minutes: 60, share: 25, baseline: 30, change: -5 }],
   },
   landings: { headline: { passes: 5, resumed: 1, outsideRuns: 4, rejectedRuns: 0, gateCalls: 7, gateMinutes: 31.5 },
-    trend: DAYS.map((day) => ({ day, passes: 3 })), missing: [MISSING.firstGate, MISSING.causes, MISSING.gateLost] },
+    attempts: ATTEMPTS, trend: DAYS.map((day) => ({ day, passes: 3 })) },
   consults: { headline: { answered: 8, atBudget: 2, budgeted: 8, incomplete: 1, retried: 0 },
     trend: DAYS.map((day) => ({ day, answered: 4 })),
     groups: [{ model: "cx/a", prompt: "v3 abc", consults: 8, findings: 12, ruled: 10, kept: 70, how: 5, rightAboutHow: 80, thin: "thin" }],
@@ -153,12 +159,25 @@ test("ISS-2600 10. the owner wait tile shows its minutes, and the waits still op
 });
 
 test("a metric no reader computes is a greyed tile naming the issue that owes its reader", () => {
-  const page = pageOf(content());
-  for (const [id, issue] of [["firstGate", "ISS-2425"]]) {
-    assert.ok(page.includes(`<div class="tile greyed" id="tile-${id}">`), id);
-    assert.ok(tileHtml(page, id).includes(`<div class="move">${issue} owes its reader</div>`), id);
-  }
+  const [metric] = METRICS;
+  const page = pageOf(content({ scorecard: [{ ...tileFor(metric, null, null, null, null), missing: MISSING.effort }] }));
+  assert.ok(page.includes(`<div class="tile greyed" id="tile-${metric.id}">`), page);
+  assert.ok(tileHtml(page, metric.id).includes(`<div class="move">${MISSING.effort.issue} owes its reader</div>`));
   assert.doesNotMatch(page, /missing: /u, "no red missing line in the body");
+});
+
+test("ISS-2425 29. the first-gate tile shows the day's share against the seven days before, and is no longer greyed", () => {
+  const page = pageOf(content());
+  assert.ok(!page.includes('<div class="tile greyed" id="tile-firstGate">'), "a computed tile");
+  const tile = tileHtml(page, "firstGate");
+  assert.ok(tile.includes('<div class="value">80%</div>'), tile);
+  assert.ok(tile.includes("+5 pt, better"), tile);
+});
+
+test("ISS-2425 28. the Landings section prints the day's attempts, the first-gate share, the causes and the gate minutes", () => {
+  const page = pageOf(content());
+  assert.ok(page.includes("<p>Attempts: 7 attempt(s): 5 landed, 4 of the 5 on a judged gate on their first (80%) · 2 not landed: "
+    + "branch 1, unrecorded 1 · 6 judged gate(s) spent 42.5 min, 12 min of it lost, 1 declined.</p>"), page);
 });
 
 test("a decision links the tile its figure feeds, or else its figure's section, and shows its figure by label and value", () => {
@@ -229,7 +248,8 @@ test("the footer names the runs on no known rung, the projects with no runs, and
   const footer = page.slice(page.indexOf("<footer>"), page.indexOf("</footer>"));
   assert.ok(footer.includes("8 of the day&#39;s 12 run(s) claimed no rung this reading could establish."), footer);
   assert.ok(footer.includes("No run on this day in: idle."));
-  for (const issue of ["ISS-2424", "ISS-2425", "ISS-2426"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
+  for (const issue of ["ISS-2424", "ISS-2426"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
+  assert.ok(!footer.includes("ISS-2425"), "ISS-2425 30. the landing figures have their reader");
   assert.ok(!footer.includes("ISS-2599"), "13. the closed count has its reader");
   assert.ok(!footer.includes("ISS-2600"), "15. the owner wait has its reader");
 });

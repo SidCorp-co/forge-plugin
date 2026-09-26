@@ -12,6 +12,7 @@ import { searched } from "./search.mjs";
 import { LANDING_HEAD_OWED, RECAPTURE, landingNext } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { RED_BATCHES, redBatchScope } from "../../../plugin/src/resolve/settings.mjs";
 import { ALONE, ATTRIBUTED, SPLIT, UNREAD, batchOpened, batchResolved } from "../../../plugin/src/stats/marks/red-batches.mjs";
+import { BRANCH, COMBINATION, DECLINED as PLACE_DECLINED } from "../../../plugin/src/stats/marks/attempts.mjs";
 
 /** Whether the table leads this member's state to the builder's new head: past a judgement it does
     not, and a stop there says what it met without writing a move the save would refuse. */
@@ -48,6 +49,7 @@ const unread = (read, { at, ctx: { self, ms } }) => {
     + `Land again with a longer wait:\n    ${self} land-ready ${keysOf(at)} `
     + `--wait ${minutes * 2}`);
   declined.exitCode = DECLINED;
+  declined.why = PLACE_DECLINED;
   throw declined;
 };
 
@@ -55,7 +57,7 @@ const oneByOne = (at, said, why) => {
   at.split = true;
   stop(`${said} ${keysOf(at)} ${why}: every reading taken at this candidate is void and each branch is `
     + `landed alone, against the base as it moves, so the one that fails there fails on its own account and `
-    + `the failing step goes back to whoever built it.`);
+    + `the failing step goes back to whoever built it.`, COMBINATION);
 };
 
 /* What each hand-back names, so the run that gets the branch back reads why without this landing's log. */
@@ -103,6 +105,7 @@ const handedBack = async (found, at) => {
         continue;
       }
       await saveOn(member, { state: LANDING_HEAD_OWED });
+      member.cause = back.combination ? COMBINATION : BRANCH;
       console.error(`  ${member.key} goes back to the run that built it: ${why}. The checkpoint is at `
         + `\`${LANDING_HEAD_OWED}\`, and nothing of it is pushed or installed:\n${RECAPTURE(member.key, "    ")}`);
     }
@@ -184,5 +187,5 @@ export const gateStep = async (one) => {
     + `failure is that branch's own and it goes back to the run that built it: the checkpoint is at `
     + `\`${LANDING_HEAD_OWED}\`, and nothing of ${member.key} is pushed or installed. That run commits `
     + `the answer on top of ${shortly(member.landing.head)} and captures the head it makes:\n`
-    + RECAPTURE(member.key, "    "));
+    + RECAPTURE(member.key, "    "), BRANCH);
 };

@@ -75,5 +75,21 @@ combined one. A member the resolution leaves to land alone is counted as the gat
 owes, which is why a search that falls back to one at a time names every member alone and none as
 handed back (ISS-2490).
 
+**An attempt is counted off what the landing wrote too, and its cause is the stop's own.** The lease
+history the tracker keeps was the first place looked: it gains a row only when a run takes the
+issue, keeps twelve, and names no cause, so a hand-back leaves nothing until its builder picks it up.
+So both verbs that land here write into the same store: an opening per issue before a pass's first
+step, one record per gate with its verdict and the seconds its steps ran — the gate's own figure,
+which leaves out the wait for a place — and an ending, landed once the push is taken or back with
+the one cause of a closed set that stopped it: the branch's own fault, a combination, a moved base,
+a declined gate place, a tracker refusal, or an independent judge's turn. A stop none of those names
+ends its attempt with no cause, and an opening whose ending never reached the store is read the same
+way, as unrecorded, so a landing in flight at the moment of reading is counted among those. An
+attempt belongs to the window its opening falls in. The first-gate share is over the landings that a
+judged gate named, one judged gate since that issue's last landing being a landing on its first; a
+declined place judged nothing and is no gate there. A gate minute is lost where no landed ending, as
+the store stands when read, carries the candidate that gate judged, so a green gate whose candidate
+was rebuilt counts beside a red one (ISS-2425).
+
 The refusals a window met and the other non-zero exits beside them, which share this classifier and
 are a listing rather than a row: [stats — the refusals](stats-the-refusals.md).

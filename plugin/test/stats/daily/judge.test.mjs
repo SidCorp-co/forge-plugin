@@ -13,6 +13,9 @@ import { decisionsSaid } from "../../../src/stats/daily/page/summary.mjs";
 
 const held = device({ days: [daysAgo(1), daysAgo(1), daysAgo(2)] });
 const content = JSON.parse(daily(held, "--day", daysAgo(1), "--json").stdout);
+/* A release the page names an issue in, so a raise of a key the page names can meet a closed one. */
+content.releases.landed.push({ version: "3.9.1", head: "abcdef1234", at: Date.parse(`${daysAgo(1)}T12:00:00Z`),
+  issues: [{ key: "ISS-2425", title: "A reader of landing attempts" }] });
 const GATEWAY = { values: { ANTHROPIC_BASE_URL: "http://stand-in", ANTHROPIC_AUTH_TOKEN: "sk-stand-in" }, problem: null };
 const ALL = { roles: { explore: "cx/explorer", review: "cx/reviewer-max", judge: "cx/judge" }, from: "config.json" };
 
@@ -39,7 +42,7 @@ const EXPLORED = (spec) => ({ candidates: [
   { figure: firstKey(spec), reading: "x".repeat(201), direction: "steady" },
 ] });
 
-/* The plugin's backlog as the page's reading meets it: ISS-2424 open at medium, ISS-2425 closed,
+/* The plugin's backlog as the page's reading meets it: ISS-2424 open at medium, ISS-2425 closed and landed,
    ISS-2426 unknown to it, and one open issue, ISS-777, that a runs finding and one filing match. */
 const BACKLOG = {
   issue: (key) => ({ "ISS-2424": { status: "open", priority: "medium" }, "ISS-2425": { status: "closed", priority: "low" },

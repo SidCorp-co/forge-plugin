@@ -22,6 +22,8 @@ export const RELEASES = "releases";
 export const CLAIMS = "claims";
 /* How a landing resolved a red set: an opening record and a resolution record per set, docs/cli/stats-the-landing.md. */
 export const BATCHES = "red-batches";
+/* A landing's attempts and gates: an opening, an ending and a record per gate, docs/cli/stats-the-landing.md. */
+export const ATTEMPTS = "landing-attempts";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
@@ -238,6 +240,7 @@ const identityOf = (record) => {
      carries the moment: holding them by issue alone would make a revised claim a no-op write. */
   if (record.kind === CLAIMS) return `${record.issue}@${record.at}`;
   if (record.kind === BATCHES) return `${record.batch}:${record.phase}`;
+  if (record.kind === ATTEMPTS) return `${record.attempt ?? record.gate}:${record.phase}`;
   return record.mark;
 };
 

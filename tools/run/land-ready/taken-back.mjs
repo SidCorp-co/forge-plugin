@@ -6,6 +6,7 @@ import { shortly } from "../install.mjs";
 import { undoneBy, undoneLine, undoneSaid } from "./undone.mjs";
 import { saveOn } from "./member.mjs";
 import { LANDING_HEAD_OWED, RECAPTURE, landingNext } from "../../../plugin/src/flow/landing/checkpoint.mjs";
+import { BRANCH } from "../../../plugin/src/stats/marks/attempts.mjs";
 
 export const takenBack = async (member, pin, root) => {
   const { key, landing } = member;
@@ -21,5 +22,5 @@ export const takenBack = async (member, pin, root) => {
     ? `The checkpoint is at \`${LANDING_HEAD_OWED}\`, and the run that built the branch pushes the head `
       + `that answers it, then captures that head:\n${RECAPTURE(key)}`
     : `The checkpoint reads \`${landing.state}\`, past the states a branch is handed back from. Read `
-      + `where it is:\n  forge resume ${key}`}`);
+      + `where it is:\n  forge resume ${key}`}`, back ? BRANCH : null);
 };

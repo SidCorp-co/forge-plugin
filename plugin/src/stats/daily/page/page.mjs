@@ -7,6 +7,7 @@ import { decisionDetail, droppedLine, emptySaid, stageLines } from "./summary.mj
 import { changeSaid, moveSaid, tileFedBy, withUnit } from "../scorecard.mjs";
 import { SECTIONS } from "../reading/figures.mjs";
 import { redBatchSaid } from "../../marks/red-batches.mjs";
+import { attemptsSaid } from "../../marks/attempts.mjs";
 import { RUNG_UNKNOWN } from "../../corpus/transcripts.mjs";
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -247,6 +248,7 @@ const landingsHtml = (landings, days, { head, marks }) => {
     : "<p>No landing pass was typed and no run ended on this day, so no landing figure is read.</p>";
   return drill("landings", "Landings", line, head + top
     + (landings.redBatches ? `<p>Red batches: ${esc(redBatchSaid(landings.redBatches))}.</p>` : "")
+    + (landings.attempts ? `<p>Attempts: ${esc(attemptsSaid(landings.attempts))}.</p>` : "")
     + chartSvg("Landing passes a day", "passes", days, landings.trend.map((one) => one.passes)), marks);
 };
 
@@ -304,7 +306,7 @@ const releasesHtml = (releases, { head, marks }) => drill("releases", "Harness i
 const unbuilt = (content) => {
   const held = new Map();
   for (const one of [...(content.scorecard ?? []).map((tile) => tile.missing), content.runs.effort,
-    ...content.landings.missing, ...content.consults.missing]) {
+    ...content.consults.missing]) {
     if (one) held.set(`${one.issue}\0${one.reading}`, one);
   }
   return [...held.values()];

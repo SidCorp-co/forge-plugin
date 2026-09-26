@@ -17,6 +17,7 @@ import { landingSaved } from "../../../plugin/src/flow/lease.mjs";
 import { LANDING_DONE, LANDING_JUDGED, LANDING_MARKED, LANDING_QA_OWED, LANDING_RECONCILED,
   LANDING_RECORDS_OWED, landingVoided } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT, judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
+import { TRACKER } from "../../../plugin/src/stats/marks/attempts.mjs";
 import { personOwedForRelease, releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
 const BEFORE_MERGE = "before-merge";
@@ -27,12 +28,13 @@ export const [JUDGED] = RUNGS;
 /* How far a member goes: through the close only where the release owes a person no act (ISS-1147). */
 const walkedWhere = (owed) => (owed ? RUNGS.slice(0, RUNGS.indexOf(CLOSES_FROM) + 1) : RUNGS);
 
-/* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence. */
+/* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence.
+   Every call through here is one to the tracker, so its refusal ends an attempt as the tracker's. */
 export const asked = async (run) => {
   try {
     return await refusing(run);
   } catch (error) {
-    if (error instanceof Refusal || error instanceof Refused) return stop(error.message);
+    if (error instanceof Refusal || error instanceof Refused) return stop(error.message, TRACKER);
     throw error;
   }
 };
@@ -91,6 +93,8 @@ export const perMember = async (at, run) => {
       await run(member);
     } catch (error) {
       if (!(error instanceof Stop) || at.members.length === 1) throw error;
+      /* Kept on the member, whose attempt the landing ends once the set's pass is over. */
+      member.cause = error.why ?? null;
       console.error(`  ${member.key} is out of this landing: ${error.message}`);
       at.members = at.members.filter((one) => one !== member);
       at.dropped.push(member);

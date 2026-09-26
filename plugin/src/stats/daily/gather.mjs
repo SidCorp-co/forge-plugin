@@ -10,6 +10,8 @@ import { profileOf } from "../runs.mjs";
 import { landingsOver, landingsUnder } from "../corpus/landings.mjs";
 import { classesFor } from "../corpus/classes.mjs";
 import { redBatchesOver } from "../marks/red-batches.mjs";
+import { attemptsOver } from "../marks/attempts.mjs";
+import { ATTEMPTS, marksOf } from "../marks/marks.mjs";
 import { movedIn } from "../eval/eval.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";
 import { median } from "../median.mjs";
@@ -22,9 +24,6 @@ import { hookEntries } from "../../hooks/log/hook-log-file.mjs";
  *  figure's place, never printed as a nought. */
 export const MISSING = {
   effort: { reading: "issue-flow runs by the effort they ran at", issue: "ISS-2424" },
-  firstGate: { reading: "the share of landings that landed on their first gate", issue: "ISS-2425" },
-  causes: { reading: "hand-backs by cause", issue: "ISS-2425" },
-  gateLost: { reading: "gate minutes lost", issue: "ISS-2425" },
   transport: { reading: "consult calls lost to transport failures", issue: "ISS-2426" },
 };
 
@@ -124,13 +123,16 @@ const passesOn = (passes, day) => passes.filter((one) => within(one.at, day));
 /** Where the page's landings begin: the first day its trend draws. */
 export const landingsFrom = (day) => boundsOf(trendDays(day)[0]).from;
 
-/* Every project's red sets, as the page's landings are every project's passes. */
-const landingsSection = (all, passes, day) => ({
-  headline: landingsOf(runsOn(all, day), passesOn(passes, day)),
+/** The day's landing attempts, every project's, off the records the landings wrote that the page read. */
+export const attemptsOn = (reading, day) => attemptsOver(null, boundsOf(day).from, boundsOf(day).to, reading.attempts ?? []);
+
+/* Red sets and attempts from every project, as the page's passes are. */
+const landingsSection = (reading, day) => ({
+  headline: landingsOf(runsOn(reading.all, day), passesOn(reading.passes, day)),
   redBatches: redBatchesOver(null, boundsOf(day).from, boundsOf(day).to),
+  attempts: attemptsOn(reading, day),
   trend: trendDays(day).map((one) => ({ day: one,
-    passes: landingsOf(runsOn(all, one), passesOn(passes, one))?.passes ?? null })),
-  missing: [MISSING.firstGate, MISSING.causes, MISSING.gateLost],
+    passes: landingsOf(runsOn(reading.all, one), passesOn(reading.passes, one))?.passes ?? null })),
 });
 
 const share = (part, whole) => (whole ? Math.round((part / whole) * 100) : null);
@@ -257,14 +259,14 @@ export const corporaOf = async (read, since = null) => {
 
 /** What a day's report says. `held` is the corpora and logs already read, so the range a refusal
  *  names and the report itself come off one reading. */
-export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntries() }) => {
+export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntries(), attempts = marksOf(ATTEMPTS, null) }) => {
   const all = projects.flatMap((one) => one.runs).sort((left, right) => left.startedAt - right.startedAt);
   const passes = projects.flatMap((one) => one.passes ?? []);
-  return { projects, all, passes, entries, hooks, first: firstOf(all, entries, passes) };
+  return { projects, all, passes, entries, hooks, attempts, first: firstOf(all, entries, passes) };
 };
 
 export const contentOf = async (reading, day, { unread = [], match } = {}) => {
-  const { projects, all, passes, entries, hooks } = reading;
+  const { projects, all, entries, hooks } = reading;
   const runs = runsSection(all, day, projects);
   const { profile, week, ...runsShown } = runs;
   const releases = await releasesOn(day, all);
@@ -276,7 +278,7 @@ export const contentOf = async (reading, day, { unread = [], match } = {}) => {
     projects: projects.map((one) => ({ name: one.name, slug: one.slug, checkout: one.checkout })),
     unread: unread.map((one) => ({ name: one.name, slug: one.slug })),
     runs: runsShown,
-    landings: landingsSection(all, passes, day),
+    landings: landingsSection(reading, day),
     consults: consultsSection(entries, day),
     friction,
     releases,

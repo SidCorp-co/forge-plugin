@@ -46,8 +46,9 @@ const exitOf = (error) => {
   return process.exitCode && process.exitCode !== code ? 1 : code;
 };
 
-/** One landing's steps, in the order given: the span is the roles', never the caller's to decide. */
-export const runLanding = async (steps, order, tree, { ms, held, again }) => {
+/** One landing's steps, in the order given: the span is the roles', never the caller's to decide.
+ *  `stopped` is handed the stop that ended them, which is how a landing reads the cause it carries. */
+export const runLanding = async (steps, order, tree, { ms, held, again, stopped = () => {} }) => {
   let drop = null;
   const last = [...order].reverse().find((at) => SHARED.has(steps[at][2]));
   try {
@@ -59,6 +60,7 @@ export const runLanding = async (steps, order, tree, { ms, held, again }) => {
         await run();
       } catch (error) {
         if (!(error instanceof Stop)) throw error;
+        stopped(error);
         console.error(`\nstopped at step ${at + 1} (${name}): ${error.message}`);
         console.error(again(at));
         process.exitCode = exitOf(error);
