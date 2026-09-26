@@ -1,8 +1,6 @@
 /* The few sentences a person reads first, and the one line the index keeps per day: each states a
    figure the content already holds and judges none of them. Where a judge read the page, its
    decisions are what the terminal prints instead, labelled as the models' — docs/cli/stats.md. */
-import { droppedLine, emptySaid, stageLines } from "./judgement-page.mjs";
-
 const min = (value) => (value === null || value === undefined ? "no" : `${value}`);
 
 const movedSaid = (what, one, way) =>
@@ -86,3 +84,27 @@ export const decisionsSaid = (judgement) => {
     : [emptySaid(judgement)];
   return ["Decisions:", ...items, ...notes];
 };
+
+const STAGE_NAMES = { explore: "explore", review: "review", judge: "judge" };
+
+/** One line per stage that did not run as configured, and per section a stage could not finish. */
+export const stageLines = (judgement) => [
+  ...Object.entries(judgement.stages ?? {}).filter(([, stage]) => stage.skipped)
+    .map(([role, stage]) => `The ${STAGE_NAMES[role] ?? role} stage was skipped: ${stage.skipped}.`),
+  ...Object.values(judgement.sections ?? {}).flatMap((read) => read.notes.map((note) => `${read.title}: ${note}.`)),
+];
+
+/** How many readings were dropped at which stage and why, in one sentence, or null where none was. */
+export const droppedLine = (judgement) => {
+  const dropped = judgement.dropped ?? [];
+  if (!dropped.length) return null;
+  const total = dropped.reduce((sum, one) => sum + one.count, 0);
+  return `${total} reading(s) dropped before this page was written: `
+    + `${dropped.map((one) => `${one.count} at ${one.stage}, ${one.reason}`).join("; ")}.`;
+};
+
+/** What a judged page says in place of its decisions where it holds none: the judge's own word that
+ *  there was nothing, or that none of what it proposed survived the checks, which is not the same. */
+const NOTHING = "Nothing to decide.";
+const NONE_KEPT = "No decision the judge proposed survived the checks.";
+export const emptySaid = (judgement) => (judgement.nothing ? NOTHING : NONE_KEPT);

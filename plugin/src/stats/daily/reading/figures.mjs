@@ -4,7 +4,7 @@
    the page renders the label and value itself, so a model can point at a figure and never restate
    one. Text a transcript carries — a refusal's line, a command typed — is no figure and never
    travels; neither does a path: docs/cli/stats-the-reading.md. */
-import { shownDeep } from "./store.mjs";
+import { shownDeep } from "../store.mjs";
 
 const ROW_FIGURES = [["runs", "runs"], ["medianMinutes", "median minutes a run"], ["medianCalls", "median calls a run"]];
 

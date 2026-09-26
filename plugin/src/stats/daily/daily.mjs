@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import { dayIn, dayRefusal, heldRange, yesterday } from "./day.mjs";
 import { contentOf, corporaOf, landingsFrom, readingOf } from "./gather.mjs";
 import { backlogMatcher } from "./opportunities.mjs";
-import { judgeDay, unjudged } from "./judge.mjs";
+import { judgeDay, unjudged } from "./reading/judge.mjs";
 import { pageOf } from "./page.mjs";
 import { printCurrent, writeCurrent, writerFrom } from "../report/current.mjs";
 import { projectsOn, registered } from "./projects.mjs";

@@ -5,12 +5,12 @@
    dropped and counted rather than written. What a stage that does not run leaves the next one, and
    why a model's reading sits on a page of figures at all: docs/cli/stats-the-reading.md. */
 import { readingInput } from "./figures.mjs";
-import { ROLES } from "./store.mjs";
-import { modelCall } from "../../wire/model-call.mjs";
+import { ROLES } from "../store.mjs";
+import { modelCall } from "../../../wire/model-call.mjs";
 import {
   ACTIONS, DIRECTIONS, EXPLORE_ROLE, EXPLORE_TOOL, ISSUE_KEY, JUDGE_ROLE, JUDGE_TOOL, MOST_CANDIDATES, MOST_DECISIONS,
   NO_COMMAND, REVIEW_ROLE, REVIEW_TOOL, TEXT_CHARS, VERDICTS,
-} from "./reading-roles.mjs";
+} from "./roles.mjs";
 
 const tally = () => new Map();
 const drop = (dropped, stage, reason) => {

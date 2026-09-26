@@ -2,13 +2,12 @@
    a summary, one section per heading, each opening with its headline beside a seven-day trend, tables that sort on a header click. Everything
    is inline — style, script, charts — so the file opens with no network and travels as one file.
    Colour only ever repeats what the words beside it say: docs/cli/stats.md. */
-import { esc } from "./html.mjs";
-import { costFooter, decisionsHtml, sectionHead } from "./judgement-page.mjs";
 import { contentBlock } from "./store.mjs";
-import { summaryOf } from "./summary.mjs";
+import { droppedLine, emptySaid, stageLines, summaryOf } from "./summary.mjs";
 import { redBatchSaid } from "../marks/red-batches.mjs";
 
-export { esc };
+const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+export const esc = (value) => String(value ?? "").replace(/[&<>"']/gu, (one) => ESCAPES[one]);
 
 export const at = (moment) => (moment === null || moment === undefined ? "—" : new Date(moment).toISOString().slice(0, 16).replace("T", " "));
 
@@ -162,6 +161,60 @@ const opportunitiesHtml = (opportunities, head = "") => `<section id="opportunit
       + `<p>${esc(opportunities.unlisted)} more entr${opportunities.unlisted === 1 ? "y" : "ies"} ranked below these and unlisted.</p>`
     : `<p class="headline"><strong>No opportunity</strong>: no refusal, error, repeat, re-read or long wait was recorded on this day.</p>`)
   + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p></section>`;
+
+/* The models' reading as the page shows it: the Decisions block, one self-contained section a layout
+   can move whole; each section's line at that section's head; what each role spent, in the footer.
+   A figure a reading names is shown with the page's own label and value: docs/cli/stats-the-reading.md. */
+const figureSaid = (figure) => `${esc(figure.said)}: ${esc(figure.value)}`;
+
+const decisionHtml = (one) => `<li><strong>${esc(one.action)}</strong> — ${esc(one.what)}`
+  + `<br><span class="note">Figure <code>${esc(one.figure.key)}</code>, ${figureSaid(one.figure)}.`
+  + `${one.command ? ` Carried out by <code>${esc(one.command)}</code>.` : ""}</span></li>`;
+
+const judgedBody = (judgement) => {
+  if (judgement.decisions.length) return `<ol class="decisions">${judgement.decisions.map(decisionHtml).join("")}</ol>`;
+  return `<p><strong>${esc(emptySaid(judgement))}</strong></p>`;
+};
+
+/** The Decisions block, or the one line saying why the page carries none; nothing for a page written
+ *  before the reading existed. */
+export const decisionsHtml = (judgement) => {
+  if (!judgement) return "";
+  const notes = [...stageLines(judgement), droppedLine(judgement)].filter(Boolean);
+  if (judgement.why) {
+    return `<section id="decisions"><p class="missing">No decisions: ${esc(judgement.why)}.</p>`
+      + `${notes.map((one) => `<p class="note">${esc(one)}</p>`).join("")}</section>`;
+  }
+  if (!judgement.judged) {
+    return `<section id="decisions"><h2>Decisions</h2><p class="missing">No decisions: no judge ran.</p>`
+      + `${notes.map((one) => `<p class="note">${esc(one)}</p>`).join("")}</section>`;
+  }
+  return `<section id="decisions"><h2>Decisions</h2>${judgedBody(judgement)}`
+    + `${notes.map((one) => `<p class="note">${esc(one)}</p>`).join("")}`
+    + `<p class="note">Judged by models over this page's own figures, at ${esc(judgement.at)}; every figure cited was checked against them.</p></section>`;
+};
+
+const findingHtml = (one) => `<li>${esc(one.reading)} <span class="note">(<code>${esc(one.figure.key)}</code>, ${figureSaid(one.figure)})</span></li>`;
+
+/** What a section opens with: the judge's line where it gave one, else the findings the stages kept. */
+export const sectionHead = (judgement, id) => {
+  const read = judgement?.sections?.[id];
+  if (!read) return "";
+  if (read.verdict) return `<p class="verdict"><strong>${esc(read.verdict)}</strong> — ${esc(read.why)}</p>`;
+  if (read.input === "figures" || !read.findings.length) return "";
+  const said = read.input === "findings" ? "Reviewed findings" : "Unreviewed findings";
+  return `<p class="note">${said}, no judge having ruled on this section:</p><ul>${read.findings.map(findingHtml).join("")}</ul>`;
+};
+
+/** Per role: the model, its calls and the tokens they spent. */
+const costLines = (judgement) => Object.entries(judgement?.cost ?? {}).map(([role, one]) =>
+  `${role}: ${one.model}, ${one.calls} call(s)${one.failed ? ` of which ${one.failed} failed` : ""}, `
+  + `${one.input} input and ${one.output} output token(s)`);
+
+export const costFooter = (judgement) => {
+  const lines = costLines(judgement);
+  return lines.length ? `<footer><p class="note">What reading this page cost: ${lines.map(esc).join("; ")}.</p></footer>` : "";
+};
 
 export const STYLE = `body{font:15px/1.5 system-ui,sans-serif;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#1d1d1f;background:#fff}
 h1{font-size:1.5rem}h2{margin-top:2.5rem;border-bottom:1px solid #ddd}h3{font-size:1rem;margin-top:1.5rem}
