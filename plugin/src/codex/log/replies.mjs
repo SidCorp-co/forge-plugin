@@ -366,11 +366,12 @@ export const recheckPlan = (entries, root, rels, pinned = null) => {
   const held = ruled ? maskedDeep(ruled) : null;
   const reply = masked(judged.reply);
   const findings = numbered(reply, rels, judged.files);
+  const answered = judged.recheck ? answeredBy(entries, judged) : null;
   return {
     judged,
     pinned: Boolean(pinned),
     via: !last || judged === last ? null : { id: last.id ?? last.at, open: openOf(entries, judged) },
-    answers: judged.recheck ? answeredBy(entries, judged) : null,
+    answers: answered ? { id: answered.id ?? answered.at, open: openOf(entries, answered) } : null,
     ids: findings.map((one) => one.id),
     outside: leftOutOf(judged, reply, findings, ruled),
     /* The defect, with the legend: "re-verify" drew CONFIRMED for a fix that held, then REFUTED. */
@@ -447,9 +448,14 @@ export const recheckOwed = (plan, rels) => {
   }
   /* A recheck is a ruling on another consult's findings, never a read of the set (ISS-2643). */
   if (plan.judged.recheck) {
-    const answers = plan.answers ? plan.answers.id ?? plan.answers.at : null;
-    return `consult ${of} is a recheck${answers ? ` of consult ${answers}` : ""} and raised no finding of its own, and `
-      + `${answers ? `${answers} has nothing left open` : "the log does not say which consult it answered"}, so there is nothing to recheck.\n`
+    const answers = plan.answers;
+    const head = `consult ${of} is a recheck${answers ? ` of consult ${answers.id}` : ""} and raised no finding of its own`;
+    /* Reached pinned, where the selection follows nothing: the consult it answered may still hold one. */
+    if (answers?.open.length) {
+      return `${head}, and ${answers.id} still has ${some(answers.open)} open, which this recheck cannot reach.\n`
+        + `Do this: \`echo "<what you were doing>" | forge codex consult --recheck --of ${answers.id}\` — the consult those findings belong to.`;
+    }
+    return `${head}, and ${answers ? `${answers.id} has nothing left open` : "the log does not say which consult it answered"}, so there is nothing to recheck.\n`
       + `${read} — only where the tree has moved since, which this cannot see and you can.`;
   }
   // `plan.judged` is the last consult sharing ANY of these files, which is why a shortfall is likely.

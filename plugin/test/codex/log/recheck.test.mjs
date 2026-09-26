@@ -172,6 +172,10 @@ test("a recheck after a recheck that left nothing open is refused naming both, a
   const unlinked = recheckOwed(recheckPlan([ORIGIN, FIRST], "/a", ["a.mjs"]), ["a.mjs"]);
   assert.match(unlinked, /the log does not say which consult it answered/u);
   assert.match(unlinked, /forge codex consult --send bodies a\.mjs`/u, "with the read that earns the review");
+  const pinned = recheckOwed(recheckPlan([ORIGIN, FIRST, LEFT_OPEN], "/a", ["a.mjs"], FIRST), ["a.mjs"]);
+  assert.match(pinned, /52d00e still has F1 open/u, "a recheck pinned to the recheck follows nothing, so the open finding is named");
+  assert.match(pinned, /forge codex consult --recheck --of 52d00e`/u, "with the route to the consult it belongs to");
+  assert.equal(/nothing left open/u.test(pinned), false);
   const clean = recheckOwed(recheckPlan([{ ...ORIGIN, reply: "CODEX: 0 findings" }], "/a", ORIGIN.files), ORIGIN.files);
   assert.match(clean, /^consult 52d00e read this set whole and found nothing, taken at b2cd0c46: that is the whole-set read a review is earned by, and a recheck has nothing to verify against it\./u,
     "a consult that found nothing keeps the refusal written for it");
