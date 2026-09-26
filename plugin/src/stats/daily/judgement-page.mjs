@@ -28,9 +28,15 @@ const decisionHtml = (one) => `<li><strong>${esc(one.action)}</strong> — ${esc
   + `<br><span class="note">Figure <code>${esc(one.figure.key)}</code>, ${figureSaid(one.figure)}.`
   + `${one.command ? ` Carried out by <code>${esc(one.command)}</code>.` : ""}</span></li>`;
 
+/** What a judged page says in place of its decisions where it holds none: the judge's own word that
+ *  there was nothing, or that none of what it proposed survived the checks, which is not the same. */
+export const NOTHING = "Nothing to decide.";
+export const NONE_KEPT = "No decision the judge proposed survived the checks.";
+export const emptySaid = (judgement) => (judgement.nothing ? NOTHING : NONE_KEPT);
+
 const judgedBody = (judgement) => {
   if (judgement.decisions.length) return `<ol class="decisions">${judgement.decisions.map(decisionHtml).join("")}</ol>`;
-  return "<p><strong>Nothing to decide.</strong></p>";
+  return `<p><strong>${esc(emptySaid(judgement))}</strong></p>`;
 };
 
 /** The Decisions block, or the one line saying why the page carries none; nothing for a page written

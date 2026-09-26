@@ -46,8 +46,8 @@ export const DAILY_USAGE = [
   "",
   "  --day YYYY-MM-DD  the day, in this device's zone; yesterday unless you say otherwise",
   "  --open            print the path of the page and nothing else, for a command that opens it",
-  "  --json            print the day's content as one object and write nothing; the reading is the held",
-  "                    page's, and no model is asked",
+  "  --json            print the day's content as one object and write nothing; a page held with its",
+  "                    reading is printed as it was written, and no model is asked",
   "  --force           rewrite a day already written, reading it with the models again",
   "  --current         the current report over every day held, in place of one day's page",
 ].join("\n");
@@ -99,6 +99,10 @@ export const printDaily = async (rest) => {
       } else console.log([...decisionsSaid(heldReading(reports.dir, day)), heldSaid(path, day)].join("\n"));
       return null;
     }
+    /* A held reading is printed with the content it read, never beside figures gathered since: a key
+       it cites names whatever sits there now, and an opportunity's rank is not its identity. */
+    const kept = json && held ? heldContentOf(readPage(reports.dir, day) ?? "") : null;
+    if (kept?.judgement) return console.log(JSON.stringify(kept, null, 2));
     const found = projectsOn();
     /* The page reads the landings from its trend's first day, as it always has; the current report,
        written after it, reads every landing, so the corpora are read once with no bound and the
@@ -112,8 +116,7 @@ export const printDaily = async (rest) => {
       unread: found.unread, match: await backlogMatcher(registered()),
     }), allowed);
     if (json) {
-      const kept = held ? heldReading(reports.dir, day) : null;
-      return console.log(JSON.stringify({ ...content, judgement: kept ?? unjudged(held
+      return console.log(JSON.stringify({ ...content, judgement: unjudged(held
         ? `the page held for ${day} carries no reading; \`forge stats daily --day ${day} --force\` reads it`
         : `no page is written for ${day}; \`forge stats daily --day ${day}\` writes and reads it`) }, null, 2));
     }

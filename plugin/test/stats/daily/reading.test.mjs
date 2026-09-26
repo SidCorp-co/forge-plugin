@@ -4,11 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { FORGE } from "../fixture-runs.mjs";
-import { daysAgo, device, envOf } from "./fixture-daily.mjs";
+import { daysAgo, device, envOf, runOn } from "./fixture-daily.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { contentOf } from "../../../src/stats/daily/store.mjs";
 
 const ROLES = { explore: "cx/explorer", review: "cx/reviewer-max", judge: "cx/judge" };
@@ -107,9 +108,14 @@ test("a held page's reading is read back by a later open and by --json with no c
     const asked = gateway.seen.length;
     const again = await run(held, ["--day", daysAgo(1)]);
     assert.ok(again.stdout.startsWith("Decisions:\n1. raise:"), again.stdout);
+    /* A run landing on the day after the page was written: --json still prints what the reading read. */
+    const later = join(held.room, ".claude", "projects", slugFor(held.checkout), "session-later", "subagents");
+    mkdirSync(later, { recursive: true });
+    writeFileSync(join(later, "agent-later.jsonl"), `${runOn(daysAgo(1))}\n`);
     const printed = JSON.parse((await run(held, ["--day", daysAgo(1), "--json"])).stdout);
     assert.equal(gateway.seen.length, asked, "neither the open nor --json asked again");
-    assert.deepEqual(printed.judgement, contentOf(pageOf(held)).judgement);
+    assert.deepEqual(printed, contentOf(pageOf(held)), "the held content whole, not fresh figures beside an old reading");
+    assert.equal(printed.runs.headline.day.runs, 1);
     assert.deepEqual(printed.judgement.decisions.map((one) => [one.action, one.figure.key, one.command]), [["raise", "runs.headline.day.runs", "ISS-2424"]]);
     assert.equal(printed.judgement.sections.runs.verdict, "steady");
     assert.equal(printed.judgement.cost.judge.calls, 1);

@@ -70,7 +70,10 @@ const reviewedOf = (input, candidates, dropped) => {
     if (!candidates[at] || ruled.has(at)) continue;
     ruled.set(at, "kept");
     const reading = trimmed(one?.reading);
-    kept.push({ ...candidates[at], ...(reading && reading.length <= TEXT_CHARS ? { reading } : {}) });
+    /* A rewording is the review's correction of the claim, so one over the length drops the finding
+       rather than letting the uncorrected claim stand in its place. */
+    if (reading.length > TEXT_CHARS) drop(dropped, "review", `reworded it past ${TEXT_CHARS} characters`);
+    else kept.push({ ...candidates[at], ...(reading ? { reading } : {}) });
   }
   candidates.forEach((_, at) => {
     if (!ruled.has(at)) drop(dropped, "review", "neither kept nor dropped with a reason");
@@ -114,7 +117,10 @@ const judgedOf = (input, held, sections, dropped) => {
     else if (!VERDICTS.includes(one?.verdict) || !why || why.length > TEXT_CHARS) drop(dropped, "judge", "gave a section line with no verdict, or one over the length");
     else if (!section.verdict) Object.assign(section, { verdict: one.verdict, why });
   }
-  return { decisions, nothing: decisions.length === 0 && input.nothing === true };
+  /* Nothing to decide is the judge's word only where it proposed nothing: a proposal that failed the
+     checks leaves a day the judge thought held something. */
+  const proposed = Array.isArray(input.decisions) ? input.decisions.length : 0;
+  return { decisions, nothing: proposed === 0 && input.nothing === true };
 };
 
 const shownFinding = (one) => ({ figure: one.figure.key, said: one.figure.said, value: one.figure.value, reading: one.reading, direction: one.direction });

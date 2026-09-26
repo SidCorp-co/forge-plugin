@@ -1,7 +1,7 @@
 /* The few sentences a person reads first, and the one line the index keeps per day: each states a
    figure the content already holds and judges none of them. Where a judge read the page, its
    decisions are what the terminal prints instead, labelled as the models' — docs/cli/stats.md. */
-import { droppedLine, stageLines } from "./judgement-page.mjs";
+import { droppedLine, emptySaid, stageLines } from "./judgement-page.mjs";
 
 const min = (value) => (value === null || value === undefined ? "no" : `${value}`);
 
@@ -83,6 +83,6 @@ export const decisionsSaid = (judgement) => {
   const items = judgement.decisions.length
     ? judgement.decisions.map((one, at) => `${at + 1}. ${one.action}: ${one.what} — ${one.figure.said}: ${one.figure.value}`
       + `${one.command ? ` — ${one.command}` : ""}`)
-    : ["Nothing to decide."];
+    : [emptySaid(judgement)];
   return ["Decisions:", ...items, ...notes];
 };

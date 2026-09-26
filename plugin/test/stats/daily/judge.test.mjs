@@ -126,6 +126,25 @@ test("a candidate the review neither keeps nor drops with a reason is counted as
   assert.equal(judgement.sections.runs.rejected[0].why, "thin row");
 });
 
+test("a review that rewords a candidate past the length drops it rather than keeping the uncorrected claim", async () => {
+  const { calls, call } = standIn({ candidates: EXPLORED, review: { kept: [{ candidate: 1, reading: "y".repeat(201) }], dropped: [] }, judge: JUDGED });
+  const judgement = await judgeDay(content, { roles: ALL, gateway: GATEWAY, call });
+  assert.equal(judgement.dropped.find((one) => one.stage === "review" && one.reason.startsWith("reworded it past 200"))?.count, SECTIONS.length);
+  assert.deepEqual(judgement.sections.runs.findings, []);
+  assert.deepEqual(calls.find((one) => one.model === "cx/judge").data.sections.find((one) => one.section === "runs").findings, []);
+});
+
+test("a judge that proposes nothing without saying there is nothing, or whose every proposal fails, is not read as nothing to decide", async () => {
+  for (const judged of [{ sections: [], decisions: [], nothing: false }, {},
+    { sections: [], decisions: [{ action: "file", what: "x", figure: "runs.madeUp", command: "forge new" }], nothing: true }]) {
+    const { call } = standIn({ candidates: EXPLORED, review: REVIEW_KEEP_FIRST, judge: judged });
+    const judgement = await judgeDay(content, { roles: ALL, gateway: GATEWAY, call });
+    assert.equal(judgement.nothing, false, JSON.stringify(judged));
+    assert.match(decisionsHtml(judgement), /No decision the judge proposed survived the checks\./u);
+    assert.doesNotMatch(decisionsHtml(judgement), /Nothing to decide/u);
+  }
+});
+
 test("a judge with nothing to decide leaves a block saying so", async () => {
   const { call } = standIn({ candidates: { candidates: [] }, review: REVIEW_KEEP_FIRST, judge: { sections: [], decisions: [], nothing: true } });
   const judgement = await judgeDay(content, { roles: ALL, gateway: GATEWAY, call });
