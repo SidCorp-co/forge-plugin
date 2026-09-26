@@ -4,14 +4,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ranAsync, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { ranAsync, tempRoom } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("report-corrections-");
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { handleOf } = await import("../../../src/flow/machine.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { handleOf } = await import("../../../../src/flow/machine.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const PLAN = "# The plan\n\nThe second reading.";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 

@@ -16,7 +16,7 @@ import { didYouMean } from "../../suggest.mjs";
 import { kindUsage } from "./record-rows.mjs";
 import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
-import { supersedingOf } from "./superseding.mjs";
+import { supersedingOf } from "./corrections/superseding.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 

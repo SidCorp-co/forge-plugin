@@ -13,7 +13,7 @@ import { CLOSES_AT, setForm } from "../../earned.mjs";
 import { assemble, printRecord } from "../page.mjs";
 import { criteriaLines } from "../fields.mjs";
 import { issueOf } from "./posting.mjs";
-import { besideOf, repeatedPlace } from "./beside.mjs";
+import { besideOf, repeatedPlace } from "../corrections/beside.mjs";
 
 const LISTED_BESIDE = ["correction", "superseded"];
 

@@ -6,15 +6,15 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("superseding").path;
-const { render, parse } = await import("../../../src/flow/record/page.mjs");
-const { handleOf } = await import("../../../src/flow/machine.mjs");
+const { render, parse } = await import("../../../../src/flow/record/page.mjs");
+const { handleOf } = await import("../../../../src/flow/machine.mjs");
 
 const room = tempRoom("superseding-");
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const MINE = "superseding-run";
 const OLD_PLAN = "# The plan\n\nScreen change: no\nSchema coupling: no\nDeploy coupling: no\n\nThe first reading.";
 const NEW_PLAN = "# The plan\n\nScreen change: no\nSchema coupling: no\nDeploy coupling: no\n\nThe second reading.";

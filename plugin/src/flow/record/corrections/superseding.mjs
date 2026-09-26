@@ -6,13 +6,13 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { refuse } from "../../refusal.mjs";
-import { correctedKind, handleOf, unwrap } from "../machine.mjs";
-import { render } from "./page.mjs";
-import { bodyCap } from "../../tracker/comment-cap.mjs";
-import { lengthOf } from "../../tracker/field-write.mjs";
-import { attachmentNames } from "../../tracker/evidence.mjs";
-import { lightens } from "../../ladder.mjs";
+import { refuse } from "../../../refusal.mjs";
+import { correctedKind, handleOf, unwrap } from "../../machine.mjs";
+import { render } from "../page.mjs";
+import { bodyCap } from "../../../tracker/comment-cap.mjs";
+import { lengthOf } from "../../../tracker/field-write.mjs";
+import { attachmentNames } from "../../../tracker/evidence.mjs";
+import { lightens } from "../../../ladder.mjs";
 
 const noteText = (note) => [`Section: ${note.section}`, `User-facing: ${note.userFacing}`,
   ...(note.technical ? [`Technical: ${note.technical}`] : [])].join("\n");
@@ -85,8 +85,8 @@ export const supersedingOf = async (kind, value, { reference, issue, page, plann
   const held = entry.text(body[entry.field]);
   if (!held || held === entry.text(value)) return {};
   const { comments, cut } = await page();
-  const earned = await import("../earned.mjs");
-  const { CITED } = await import("../../guides/phases.mjs");
+  const earned = await import("../../earned.mjs");
+  const { CITED } = await import("../../../guides/phases.mjs");
   const at = Object.keys(CITED).find((status) => CITED[status].includes(kind));
   const view = earned.viewFrom(documentId, body, comments, cut);
   const standing = standingOf(view, earned);

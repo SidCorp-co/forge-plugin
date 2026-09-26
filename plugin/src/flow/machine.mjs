@@ -413,7 +413,7 @@ export const SHAPES = {
         : null),
   },
   /* `corrects` is what makes a correction findable by what it corrects rather than by reading its
-     sentence, and what the field writes key their refusal on (record/superseding.mjs); `newer`, so
+     sentence, and what the field writes key their refusal on (record/corrections/superseding.mjs); `newer`, so
      every correction written before it reads back whole. */
   correction: {
     heading: "Correction",
