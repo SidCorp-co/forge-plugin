@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
+import { appendedLine } from "../../src/refusal.mjs";
+import { refusalCauseIn } from "../../src/stats/corpus/refusals.mjs";
 import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
@@ -70,4 +72,38 @@ test("every refusal this gate writes leads with its route", () => {
   for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
   assert.match(reasons["a memory already written"], /\n\nAlready in `background-work-survives-tool-timeout\.md`/u,
     "the twin is named after the route, not in it");
+});
+
+/* ISS-2547. The harness report keys a refusal naming no cause on its wording, and four of this gate's
+   wordings carry the file's name, so one refusal met on three files was three rows. Each kind is met
+   here on two names: the cause is read off the How line, where the report reads it. */
+test("each refusal this gate writes names a cause of its own, and the same one whichever file it met", () => {
+  const tracker = (source) =>
+    reasonOf({ tool_name: `mcp__forge__forge${"_"}memory${"_"}write`, tool_input: { source, text: "x" } });
+  const other = join(memory, "killed-jobs-keep-running.md");
+  writeFileSync(other, "---\nname: killed-jobs-keep-running\nmetadata:\n  type: feedback\n---\n\nA line.\n");
+  const kinds = {
+    tracker: [tracker("note"), tracker("policy")],
+    "shell, a file that exists": [shell(`sed -i 's/a/b/' ${HELD}`), shell(`sed -i 's/a/b/' ${join(skill, "SKILL.md")}`)],
+    "shell, a new file": [shell(`cat > ${join(memory, "trap.md")}`), shell(`echo x > ${join(skill, "references", "new.md")}`)],
+    "a memory file": [written(join(memory, "a-fresh-trap.md"), "A pnpm workspace resolves twice."), written(other, "a fix", "Edit")],
+    "a skill duplicate": [written(join(skill, "references", "shape.md"), `${LINE}\n`), written(join(skill, "guide.md"), `${LINE}\n`)],
+    "a skill's own text": [written(join(skill, "SKILL.md"), "a line of method"), written(join(skill, "references", "method.md"), "a step")],
+  };
+  const causes = new Map();
+  for (const [label, [one, two]] of Object.entries(kinds)) {
+    const named = [one, two].map((reason) => {
+      /* The last line the gate wrote, the harness's own line after it read past as the report reads past it. */
+      const last = reason.trim().split("\n").findLast((line) => line.trim() && !appendedLine(line));
+      const cause = /^How: `forge hooks --how learning-gate` \(cause: learning-gate\/(?<name>[\w.-]+)\)$/u.exec(last);
+      assert.ok(cause, `${label}: the refusal does not end on a How line naming its cause — ${last}`);
+      return cause.groups.name;
+    });
+    assert.equal(named[0], named[1], `${label}: two files, two causes`);
+    const [keyOne, keyTwo] = [one, two].map((body) => refusalCauseIn({ body, error: true })?.key);
+    assert.equal(keyOne, `learning-gate · ${named[0]}`, `${label}: the report keys it on its cause`);
+    assert.equal(keyTwo, keyOne, `${label}: and on the same cause for both files`);
+    causes.set(named[0], label);
+  }
+  assert.equal(causes.size, Object.keys(kinds).length, `two kinds share a cause: ${[...causes.keys()].join(", ")}`);
 });
