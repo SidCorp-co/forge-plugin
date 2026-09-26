@@ -50,6 +50,19 @@ test("a red check refuses the capture, names it with its exit and its last lines
   assert.match(logged(), /^one$/mu);
 });
 
+for (const [red, said] of [["false", "It wrote no output."], ["printf ' \\n\\t\\n'; exit 1", "It wrote only whitespace."]]) {
+  test(`a red check \`${red}\` is refused saying \`${said}\` and prints no blank tail line (ISS-2558)`, async () => {
+    declared(CHANGED, { ready: { checks: [red] } });
+    field({ ...BUILT }, null);
+    const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED);
+    assert.notEqual(run.status, 0, run.stdout);
+    assert.deepEqual(checkpoint(), BUILT);
+    assert.ok(run.stderr.includes(`none after it was run. ${said}\nMake it pass`), run.stderr);
+    assert.doesNotMatch(run.stderr, /Its last lines:/u, run.stderr);
+    assert.doesNotMatch(run.stderr, /^ {2}\|/mu, run.stderr);
+  });
+}
+
 test("a project declaring no checks captures with nothing run and nothing said of checks", async () => {
   declared(CHANGED, {});
   field(null, null);

@@ -54,9 +54,12 @@ const TAIL = 30;
 /* Each check's output is only read when it fails, so it is held whole rather than streamed. */
 const BUFFER = 256 * 1024 * 1024;
 
-const tailOf = (output) => {
-  const lines = String(output ?? "").replace(/\s+$/u, "").split("\n");
-  return lines.slice(-TAIL).map((one) => `  | ${one}`);
+/* A check that wrote nothing visible is said to have, since a blank tail line reads as output lost. */
+const outputSaid = (output) => {
+  const whole = String(output ?? "");
+  const shown = whole.replace(/\s+$/u, "");
+  if (!shown) return [whole ? "It wrote only whitespace." : "It wrote no output."];
+  return ["Its last lines:", ...shown.split("\n").slice(-TAIL).map((one) => `  | ${one}`)];
 };
 
 const exitSaid = (run) => (run.error ? `could not start (${run.error.message})`
@@ -89,8 +92,7 @@ export const runReadyChecks = (ref, declared, head) => {
     if (run.status === 0) continue;
     fail([`claim --ready runs the checks this project declares (\`${READY_CHECKS}\` in ${declared.from}) `
       + `before it writes the checkpoint, and \`${check}\` ${exitSaid(run)} in ${root}, so no checkpoint `
-      + `was written and none after it was run. Its last lines:`,
-    ...tailOf(run.stdout),
+      + `was written and none after it was run. ${outputSaid(run.stdout).join("\n")}`,
     `Make it pass, then run it again and capture:\n  ${check}\n  ${arming(ref)}`].join("\n"));
   }
   return `${READY_CHECKS}: ${declared.checks.length} check(s) green at ${shortSha(head)} — `
