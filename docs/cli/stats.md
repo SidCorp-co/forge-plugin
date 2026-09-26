@@ -109,6 +109,17 @@ issue that owes it rather than printing a nought, and the fix is that reader, ne
 (G-11); its direction and goal sit beside its definition, where every surface reads them. A metric no
 reader computes keeps a greyed tile naming the issue.
 
+**A close is the tracker's, read off its status history.** The issues closed a day are the tracker's
+own transitions to `closed` in each registered project's issue activity, because a transcript sees
+only this device's runs and a close can land from anywhere. Each of the eight days a page reads is a
+walk of its own back from that day's end, one project's walks at once, so the wait added is about one
+day's walk rather than eight. A day any project could not read is not read at all: a sum missing a
+project reads as fewer closes. The minutes a close cost are those of the issue-flow runs that owned
+the issue, joined as `stats eval` joins them, and began after its previous close; a run that owned
+several issues lends each an equal share, since nothing in a transcript says which call went to which
+issue. The tracker's reopen counter does not count a closed issue moved back to testing, so a second
+close cannot be told apart from a first: it counts on its own day, and the tile says so.
+
 **A session start is the schedule.** A cron entry or a timer is a change to the person's own
 machine. The first session start after a day ends, in a project whose `report` key is `daily`,
 starts a detached writer for that day and does not wait for it; a mark naming the writer's process

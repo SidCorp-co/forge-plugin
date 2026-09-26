@@ -13,6 +13,7 @@ import { projectsOn, registered } from "./projects.mjs";
 import { clearMark, contentOf as heldContentOf, pagePath, readPage, reportRoles, reportsDir, shownDeep, writePage } from "./store.mjs";
 import { decisionsSaid } from "./page/summary.mjs";
 import { scorecardLines, scorecardOf } from "./scorecard.mjs";
+import { closesRead } from "./closed.mjs";
 import { gateway } from "../../resolve/machine/stores.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -112,6 +113,8 @@ export const printDaily = async (rest) => {
     const reading = readingOf({ projects: whole.map((one) => ({ ...one, passes: one.passes.filter((pass) => pass.at >= since) })) });
     refusedIfDue(day, reading);
     const allowed = [reports.dir, ...found.read.map((one) => one.checkout)];
+    /* Before the backlog is asked, which aims the tracker at the plugin's own project for good. */
+    reading.closed = await closesRead(registered(), day, { runs: reading.projects });
     const backlog = await backlogMatcher(registered());
     const content = shownDeep({ ...await contentOf(reading, day, {
       unread: found.unread, match: backlog,

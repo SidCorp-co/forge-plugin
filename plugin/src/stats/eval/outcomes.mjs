@@ -71,7 +71,16 @@ const inBatches = async (list, most, each) => {
 };
 
 /** Every issue the corpus's runs owned, read once: the walk maps a reference to a row and a thread read per issue carries the records, and both spend the one budget. Every alias the rows answer to is kept, which is what makes an issue one issue whichever name a claim printed. */
-const documentsOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.documentId]));
+export const documentsOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.documentId]));
+
+/** Every row under both names a claim can print, upper-cased: a row missed under one alias is a pair lost for nothing. */
+export const byAlias = (listed) => {
+  const rows = new Map();
+  for (const row of listed) {
+    for (const alias of [row?.issueId, row?.documentId]) if (alias) rows.set(String(alias).toUpperCase(), row);
+  }
+  return rows;
+};
 const complexitiesOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.complexity ?? null]));
 
 export const readThreads = async (references, bound) => {
@@ -86,11 +95,7 @@ export const readThreads = async (references, bound) => {
     return { threads: held, documents: new Map(), complexities: new Map() };
   }
   const read = await everyIssue({}, bound);
-  /* Indexed under both names a claim can print: a row missed under one alias is a pair lost for nothing. */
-  const rows = new Map();
-  for (const row of read.rows) {
-    for (const alias of [row?.issueId, row?.documentId]) if (alias) rows.set(String(alias).toUpperCase(), row);
-  }
+  const rows = byAlias(read.rows);
   const missed = read.refused ?? (read.whole ? null : "the issue list came back a prefix");
   const byDocument = new Map();
   for (const reference of references) {
