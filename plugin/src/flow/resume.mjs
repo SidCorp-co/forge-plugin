@@ -24,6 +24,7 @@ import { LANDING_DONE, landingLine, landingTurn } from "./landing/checkpoint.mjs
 import { sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { atMinute, heldSaid } from "./machine.mjs";
 import { waveLines, waveLive, waveOf } from "./record/wave.mjs";
+import { batchLine, batchLive } from "./lease/batch.mjs";
 
 export const USAGE = [
   usageOf("resume"),
@@ -33,7 +34,8 @@ export const USAGE = [
   "blockers, the command the next status is owed, where the method for that phase is written, and",
   "how many typed records it read and left out. On a wave's headline it opens with the wave: each",
   "dispatch since the last fold with its members' status and lease read live from each member,",
-  "whether it is complete and that the fold is owed, or the fold that ended it.",
+  "whether it is complete and that the fold is owed, or the fold that ended it. On a member of a",
+  "batch the worklog names, one line gives every sibling's status and captured head, read live.",
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
   "  --report  every record whole instead of this brief: the latest of each kind that can only be",
@@ -168,6 +170,7 @@ const print = (brief, view, ref) => {
   block("Worklog", [
     ...(opensWork(brief.status, kinds) ? [] : workLines(work)),
     ...worklogLines(brief.worklog, brief.next),
+    ...[batchLine(brief.batch)].filter(Boolean),
   ]);
   block("Parks and blockers", parks(brief));
   owed(brief, view, ref);
@@ -200,6 +203,8 @@ const run = async (argv) => {
   const brief = briefOf(view, ref);
   const wave = await waveLive(waveOf(page.comments));
   if (wave) brief.wave = wave;
+  const batch = await batchLive(brief.worklog, body.issueId ?? ref);
+  if (batch) brief.batch = batch;
   return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
 };
 

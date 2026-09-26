@@ -9,6 +9,7 @@ import { workLines } from "../../../guides/phases.mjs";
 import { CLOSES_FROM, SHAPES, heldSaid, planTyped, unwrap } from "../../machine.mjs";
 import { FIELD as SESSION } from "../../lease.mjs";
 import { worklogLines, worklogOf, workNow } from "../../worklog.mjs";
+import { batchLine, batchLive } from "../../lease/batch.mjs";
 import { CLOSES_AT, setForm } from "../../earned.mjs";
 import { assemble, printRecord } from "../page.mjs";
 import { criteriaLines } from "../fields.mjs";
@@ -83,7 +84,8 @@ export const recordReport = async (reference) => {
   /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
   /* The pointer with the block, this report opening on no phase line to carry it (ISS-1183). */
   const work = worklogOf(body[SESSION]);
-  const lines = [...workLines(workNow(work)), ...worklogLines(work)];
+  const batch = batchLine(await batchLive(work, body.issueId ?? reference));
+  const lines = [...workLines(workNow(work)), ...worklogLines(work), ...(batch ? [batch] : [])];
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);

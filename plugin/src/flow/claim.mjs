@@ -18,6 +18,7 @@ import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld } from "./record/page.mjs";
 import { buildsAt } from "./earned.mjs";
 import { OPEN_KEPT, droppedHead, merged, patchFrom, saidWritten, worklogFor, worklogOf, workNow } from "./worklog.mjs";
+import { batchPatch, batchSaid } from "./lease/batch.mjs";
 import {
   LANDING_BUILDER_OWED,
   LANDING_HEAD_OWED,
@@ -354,10 +355,13 @@ export const claim = async (argv) => {
   }
   const asked = minutesFrom(given.minutes);
   const line = nextLine(given.next);
-  const patch = await patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
+  const captured = await patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
   const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   const context = issue?.sessionContext ?? null;
+  /* Into the capture's own object where there is one, which is the key its written line waits under. */
+  const batched = batchPatch(issue?.issueId ?? ref, given.pushed);
+  const patch = Object.keys(batched).length ? Object.assign(captured ?? {}, batched) : captured;
   const lease = leaseOf(context);
   const mine = sessionSourced();
   const holder = sessionOf();
@@ -379,7 +383,10 @@ export const claim = async (argv) => {
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, source, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
-    return advise(documentId, issue, merged(worklog, patch).worklog);
+    const after = merged(worklog, patch).worklog;
+    const tookBatch = batchSaid(worklog, after);
+    if (tookBatch) console.log(tookBatch);
+    return advise(documentId, issue, after);
   }
   if (given.judged) {
     return advise(documentId, issue, worklog, await handBack(documentId, ref, issue.status, context, holder));
@@ -458,6 +465,8 @@ export const claim = async (argv) => {
   });
   await setLease(documentId, next, ref, () => context);
   saidWritten(patch);
+  const batchLine = batchSaid(worklog, worklogOf(next));
+  if (batchLine) console.log(batchLine);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken, source)}`);
   if (state === "live") console.log(handedSaid(ref, lease));
