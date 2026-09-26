@@ -64,6 +64,16 @@ export const scopeOf = (directory) => {
   return `${NO_PROJECT}${repository ?? directory}`;
 };
 
+/** The scope a landing's record is held under, or none where the checkout's project file cannot be
+ *  read: the daily page, which reads every scope, still counts it, and no landing stops over a figure. */
+export const scopeOrNone = (root) => {
+  try {
+    return scopeOf(root);
+  } catch {
+    return null;
+  }
+};
+
 const readAll = () => jsonlAt(marksPath());
 
 /* The store's bytes as this process last read them, and which file in which state they were read

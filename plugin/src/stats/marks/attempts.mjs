@@ -3,7 +3,7 @@
    spent and lost. Written by the landing into the store red sets live in, because the lease history
    carries no cause and a landing run in the background leaves no transcript. What each figure counts
    and what it cannot see: docs/cli/stats-the-landing.md. */
-import { ATTEMPTS, WRITTEN, marksOf, scopeOf, writeMark } from "./marks.mjs";
+import { ATTEMPTS, WRITTEN, marksOf, scopeOrNone, writeMark } from "./marks.mjs";
 
 const OPENED = "opened";
 const ENDED = "ended";
@@ -28,7 +28,7 @@ export const RED = "red";
 export const GATE_ERROR = "error";
 const JUDGED = new Set([GREEN, RED]);
 
-/* Said and carried past, as a red set's record is: the landing goes on whatever the store answers. */
+/* Said and carried past, as red-batches.mjs says a record the store refused. */
 const written = (record, what) => {
   let outcome;
   try {
@@ -39,15 +39,6 @@ const written = (record, what) => {
   if (outcome === WRITTEN) return;
   console.error(`landing attempts: ${what} is not on record, so \`forge stats runs\` reads it as unrecorded; `
     + "the landing goes on as it would have.");
-};
-
-/* A checkout whose project file cannot be read is held under no scope: the daily page reads every scope. */
-const scopeTried = (root) => {
-  try {
-    return scopeOf(root);
-  } catch {
-    return null;
-  }
 };
 
 const momentOf = (record) => Date.parse(record.at) || 0;
@@ -61,7 +52,7 @@ const landedEndings = (records) => records.filter((one) => one.phase === ENDED &
  *  written against. `null`, writing nothing, where a landed ending already carries `candidate`: a
  *  resume past a push that landed lands nothing a second time. */
 export const attemptOpened = ({ root, issue, verb, candidate = null }) => {
-  const scope = scopeTried(root);
+  const scope = scopeOrNone(root);
   if (candidate && landedEndings(marksOf(ATTEMPTS, scope)).some((one) => one.issue === issue && one.candidate === candidate)) {
     return null;
   }
@@ -82,7 +73,7 @@ export const attemptEnded = (handle, { outcome, cause = null, candidate = null }
  *  ran, which a gate that declined or could not run has none of. */
 export const gateRecorded = ({ root, candidate, members, verdict, seconds = null }) => {
   const at = new Date().toISOString();
-  written({ kind: ATTEMPTS, scope: scopeTried(root), phase: GATE, gate: `${candidate}@${at}`, at, candidate,
+  written({ kind: ATTEMPTS, scope: scopeOrNone(root), phase: GATE, gate: `${candidate}@${at}`, at, candidate,
     members, verdict, seconds: Number.isFinite(seconds) ? seconds : null }, `the gate over ${String(candidate).slice(0, 7)}`);
 };
 
@@ -118,9 +109,9 @@ const gateFigures = (gates, landings) => {
   };
 };
 
-/** The attempts opened in `[from, to)` — either bound null for none — under one project's scope, or
- *  every scope where `scope` is null, each read with its ending wherever it falls; the gates whose
- *  record falls in the window; and the first-gate and lost-minute lookups over the whole store. */
+/** Counted over a window as red-batches.mjs counts its sets, the window holding the attempts by their
+ *  opening and the gates by their record, while each ending, the first-gate lookup and the lost-minute
+ *  lookup are read from wherever in the store they fall. */
 export const attemptsOver = (scope, from = null, to = null, records = marksOf(ATTEMPTS, scope)) => {
   const inWindow = (one) => {
     const at = momentOf(one);
