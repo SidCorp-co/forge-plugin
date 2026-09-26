@@ -97,7 +97,8 @@ test("a clipped body and a body that never arrived are both no whole body", () =
   assert.match(refusalOf(gone.path, gone.root), /Consult m1ss01 carried no whole body for plan\.md/u);
 });
 
-test("a consult in another checkout is not this one's", () => {
+/* The same rel under another root is another file, so a consult there read something else (ISS-904). */
+test("a consult of the same name under another root read another file", () => {
   const { root, path, rel } = room();
   consulted(join(root, "elsewhere"), rel, PLAN, { id: "0ther1" });
   assert.match(refusalOf(path, root), /No consult has read plan\.md/u);
