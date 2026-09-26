@@ -2,6 +2,7 @@
    rather than called, because what is under test is the sentence a developer reads and the project
    file resolves once per process (ISS-1883). */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,7 +10,6 @@ import { OWN } from "../../../fixtures/own-project.mjs";
 
 import { escaped, fakeTracker, git, homeEnv, projectEntry, projectRecord, ranAsync, shortPage,
   tempRoom } from "../../../fixtures.mjs";
-import { slugFor } from "../../../../src/stats/corpus/corpus.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
@@ -241,7 +241,7 @@ const asksRows = async (name, keys, precedents = 0) => {
   ran(room, "init", "-q", "-b", "master", ".");
   const record = projectRecord(room, env.XDG_CONFIG_HOME, { slug: name, ...keys });
   if (precedents) {
-    const layer = join(record, "..", "asks", slugFor(realpathSync(room)));
+    const layer = join(record, "..", "asks", createHash("sha256").update(realpathSync(room)).digest("hex").slice(0, 16));
     mkdirSync(layer, { recursive: true });
     writeFileSync(join(layer, "precedents.jsonl"),
       Array.from({ length: precedents }, (one, at) => `${JSON.stringify({ id: `p${at}`, kind: "owner" })}\n`).join(""));

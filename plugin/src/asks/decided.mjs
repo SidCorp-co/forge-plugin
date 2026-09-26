@@ -1,22 +1,26 @@
-/* Where one project's ask state lives, and the log of what the gate did with each question: beside
-   that project's config and under its checkout's own name, since two checkouts whose root folders
-   share a name share the config entry, so nothing one checkout decided is read for another. The owner reads the
-   log to review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
+/* Where one checkout's ask state lives, and the log of what the gate did with each question: beside
+   its project's config, under a key of the checkout's own, since checkouts whose root folders share a
+   name share that config entry, so nothing one checkout decided is read for another. The owner reads
+   the log to review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { appendJsonl } from "../hooks/log/hook-log-file.mjs";
 import { projectFilePath, projectRepository } from "../resolve/settings.mjs";
-import { slugFor } from "../stats/corpus/corpus.mjs";
 
 export const DECIDED = "decided";
 export const OWNER = "owner";
+
+/* The host's own slug for a path folds every separator and punctuation mark into one character, so
+   two checkouts can share it; a digest of the path cannot. */
+const checkoutKey = (repository) => createHash("sha256").update(repository.replace(/\/+$/u, "") || "/").digest("hex").slice(0, 16);
 
 /** The checkout's ask directory, or null where this process stands in no checkout. */
 export const asksRoom = () => {
   const entry = projectFilePath();
   const repository = projectRepository();
-  return entry && repository ? join(dirname(entry), "asks", slugFor(repository.replace(/\/+$/u, "") || "/")) : null;
+  return entry && repository ? join(dirname(entry), "asks", checkoutKey(repository)) : null;
 };
 
 export const decidedPath = (room = asksRoom()) => (room ? join(room, "decided.jsonl") : null);

@@ -1,13 +1,13 @@
 /* After a question: the owner's answer joins the project's layer, the gate's own answer never does,
    and a project that has not opted in keeps nothing. */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { callHook, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { logOutcome } from "../../../src/asks/decided.mjs";
-import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 
 const HOOK = new URL("../../../hooks/entries/ask/ask-precedent.mjs", import.meta.url).pathname;
 const QUESTION = { question: "Where should the weekly report go?", header: "Delivery",
@@ -18,7 +18,7 @@ const project = (keys) => {
   const repo = realpathSync(tempRoom("ask-precedent-repo-"));
   projectRoom(repo, config, keys);
   const env = { ...process.env, XDG_CONFIG_HOME: config, HOME: tempRoom("ask-precedent-home-"), TMPDIR: tempRoom("ask-precedent-tmp-") };
-  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", slugFor(repo));
+  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", createHash("sha256").update(repo).digest("hex").slice(0, 16));
   return { repo, env, room };
 };
 

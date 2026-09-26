@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 
@@ -66,7 +67,8 @@ const answeredLine = (id, question, answer, cwd) => JSON.stringify({
 const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], decide = follows, within = null, named = null } = {}) => {
   const config = within?.config ?? tempRoom("ask-decide-config-");
   const home = within?.home ?? tempRoom("ask-decide-home-");
-  const repo = named ? join(realpathSync(tempRoom("ask-decide-parent-")), named) : realpathSync(tempRoom("ask-decide-repo-"));
+  const parent = within?.parent ?? realpathSync(tempRoom("ask-decide-parent-"));
+  const repo = named ? join(parent, named) : realpathSync(tempRoom("ask-decide-repo-"));
   mkdirSync(repo, { recursive: true });
   projectRoom(repo, config, keys);
   const store = join(home, ".claude", "projects", slugFor(repo));
@@ -80,8 +82,8 @@ const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], dec
     TMPDIR: tempRoom("ask-decide-tmp-") };
   delete env.FORGE_URL;
   delete env.FORGE_TOKEN;
-  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", slugFor(repo));
-  return { repo, env, gateway, room, store, config, home };
+  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", createHash("sha256").update(repo).digest("hex").slice(0, 16));
+  return { repo, env, gateway, room, store, config, home, parent };
 };
 
 const ask = (held, questions, extra = {}) => callHookAsync(HOOK, {
@@ -250,10 +252,12 @@ test("one project's layer is never read for another project's question", async (
 });
 
 test("two checkouts whose folders share a name keep a layer each under the one project entry they share", async () => {
-  const first = await project({ asks: { mode: "decide" } }, { named: "app" });
+  /* Named so the host's slug is one for both: every separator and dash folds to the same character. */
+  const first = await project({ asks: { mode: "decide" } }, { named: "a-b/app" });
   assert.equal((await ask(first, [reportQuestion()]))?.permissionDecision, "allow", "the first checkout decides from its own precedent");
   first.gateway.close();
-  const second = await project({ asks: { mode: "decide" } }, { precedents: [], within: first, named: "app" });
+  const second = await project({ asks: { mode: "decide" } }, { precedents: [], within: first, named: "a/b/app" });
+  assert.equal(slugFor(second.repo), slugFor(first.repo), "the host keeps both checkouts' transcripts in one folder");
   assert.equal(dirname(dirname(second.room)), dirname(dirname(first.room)), "one project entry for both, as the config home keys it");
   const said = await ask(second, [reportQuestion()]);
   second.gateway.close();
