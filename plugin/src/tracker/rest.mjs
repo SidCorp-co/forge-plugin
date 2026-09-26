@@ -44,8 +44,10 @@ export const retryAfter = (text, headers) => {
   return Number.isFinite(seconds) && seconds > 0 ? capped(seconds) : FALLBACK_RETRY_SECONDS;
 };
 
-/** Soft for a caller holding the refusal beside its real work, `fail()` for one that is not. */
-const refusing = (soft) => (message) => (soft ? { refused: message } : fail(message));
+/** Soft for a caller holding the refusal beside its real work, `fail()` for one that is not. A soft one
+ *  keeps the answer's status and the body's `details` where the tracker sent them: an upload tells its
+ *  verdict on the file from a call that failed by the first, and reads the accepted set off the second. */
+const refusing = (soft) => (message, answer = {}) => (soft ? { refused: message, ...answer } : fail(message));
 
 /* The tracker's fence: one home, and where each strip has to stand — docs/cli/the-primitives.md. */
 export const FENCE_PATTERN = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
@@ -192,7 +194,7 @@ const aimedAt = async (row, args, soft, held) => {
   return args.projectId ? { id: args.projectId } : idOfProject(soft, held);
 };
 
-const refused = (message) => ({ refused: message });
+const refused = (message, answer = {}) => ({ refused: message, ...answer });
 
 /* Every part of a row's answer is asked for at once: three routes cost one round trip, not three. */
 const fetchedParts = async (key, row, args, soft, held) => {
@@ -209,7 +211,11 @@ const fetchedParts = async (key, row, args, soft, held) => {
     if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
       + `${ranOut(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
-    if (!response.ok) return [part, refused(said(parsedOr(text), response.status))];
+    if (!response.ok) {
+      const body = parsedOr(text);
+      return [part, refused(said(body, response.status),
+        { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
+    }
     const body = text ? parsedOr(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
        tracker saying the row is not there. */
@@ -298,7 +304,10 @@ export const callTool = async (name, args, soft = false, held = {}) => {
   const parts = await fetchedParts(key, row, args, soft, held);
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
-  if (bad) return stop(bad[1].refused);
+  if (bad) {
+    const { refused: message, ...answer } = bad[1];
+    return stop(message, answer);
+  }
   if (row.writes) await sayDeclined(key, parts.map(([, held]) => held.body));
   return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };

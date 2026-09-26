@@ -25,16 +25,19 @@ from it under `forge doctor tracker`.
 The presigned dance — mint a ticket, then PUT the bytes to it unauthenticated — exists for a caller
 that cannot hold bytes, and a shell process can. What that move costs is the pre-flight it bought
 for nothing: the ticket carried the tracker's verdict on the name before a byte went, and one
-request cannot ask before it sends. So a name the tracker refuses now costs that file's own
-request and leaves the files before it up, undeletable — which the refusal says, with what to cite
-instead of the path.
+request cannot ask before it sends. So a file the tracker refuses costs that file's own request and
+no other: the rest of the write still go, and the refusal says which are up and what to cite instead
+of the path.
 
-**The type an upload is judged on travels on the part, so this CLI is what puts one there.** The
-tracker reads the type off the multipart part rather than off the file name and accepts an allowlist
-of types, so a client sending none has every upload refused as untyped. The extension-to-type map
-here is a copy of the guess the tracker's own upload tool makes: narrower and a name that goes up
-today is refused, wider and this CLI invents a type the tracker never guessed. It is a guess and not
-a verdict: the allowlist is still the tracker's, and the refusal that arrives is its own 400 body.
+**The type an upload carries is read from its bytes before its name, and the tracker keeps the
+verdict.** The tracker judges the bytes against the type the part declares, so a type read off the
+name alone sent a text log called `.log` as a binary and a gzip called `.txt` as text. Bytes that
+decode as UTF-8 with no NUL go up as the text type their extension names or as plain text; other
+bytes as the non-text type their extension names, or as an untyped stream the tracker reads for
+itself. The test is looser than the tracker's own, so what it misjudges comes back in words about
+the bytes, and the way out printed beside that reads the bytes too: a rename sends the same ones.
+The set of types the tracker takes is not kept here. Its refusal body carries it, and the refusal
+this CLI prints is read off that body.
 
 **A content type is declared where a body of that type follows, and nowhere else.** Declaring
 `application/json` on every request that was not an upload cost the tracker's merged mark its only

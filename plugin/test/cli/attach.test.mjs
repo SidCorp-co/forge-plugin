@@ -139,24 +139,77 @@ test("each file goes up in one request of its own, and nothing is sent for it fi
     "two files, two requests, in the order they were named");
 });
 
-/* One request cannot ask before it sends, so a name the tracker will not take costs that file's own
-   request and leaves the ones before it up, undeletable: the refusal owes which, and what to cite. */
-test("a name refused mid-write names the files already up and how to cite them", async () => {
+/* The tracker's refusal body as the live one answered on 2026-09-27: the reason, and the set it takes. */
+const ALLOWED = { mimes: ["image/png", "text/plain", "text/markdown"], anyExtensionIfText: true };
+const NOT_TEXT = "mime not allowed: text/plain — the bytes are binary, and this type carries text";
+
+/* The fake judges the bytes as the live tracker does, a NUL making them binary, so a case can send a
+   file of either kind under any name. */
+const judging = (own) => (args) => {
+  if (!args?.part?.bytes?.includes(0)) return own(args);
+  order.push(`sent ${args.data.name}`);
+  return { refused: NOT_TEXT, code: "MIME_NOT_ALLOWED", details: { reason: "not-text", allowed: ALLOWED } };
+};
+const uploadsTo = () => (state.calls ?? []).filter((one) => one.method === "POST" && one.path.endsWith("/attachments"))
+  .map((one) => one.sent.multipart);
+
+/* ISS-80's own rule: a `.log` of text goes up as text, and a `.log` of binary is refused with the set. */
+test("a .log holding text arrives typed text/plain, and a .log holding binary is refused with the tracker's set", async () => {
+  order.length = 0;
+  const own = state.answer.forge_uploads;
+  state.answer.forge_uploads = judging(own);
+  const text = wrote("gate-run-text.log");
+  const binary = join(room.path, "gate-run-binary.log");
+  writeFileSync(binary, Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0x00]));
+  const run = await ask("attach", "issue", "ISS-1", text, binary);
+  state.answer.forge_uploads = own;
+  const parts = uploadsTo();
+  assert.equal(parts.find((one) => one.name === "gate-run-text.log")?.mime, "text/plain", "the text went up as text");
+  assert.equal(parts.find((one) => one.name === "gate-run-binary.log")?.mime, "application/octet-stream",
+    "and the binary as no text type");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^ {2}gate-run-binary\.log — MIME_NOT_ALLOWED: mime not allowed: text\/plain/mu);
+  assert.match(run.stderr, /^The tracker takes image\/png text\/plain text\/markdown, and text under any name\.$/mu);
+  assert.match(run.stderr, /^ {2}file --mime-type -- /mu, "bytes that are not text are read, never renamed");
+  assert.doesNotMatch(run.stderr, /\bln --/u);
+});
+
+/* One request cannot ask before it sends, so a file the tracker will not take costs that file's own
+   request and no other: the rest still go, and the refusal counts both and says what to cite. */
+test("a file refused mid-write leaves the rest going up, and the refusal counts both", async () => {
+  order.length = 0;
+  const own = state.answer.forge_uploads;
+  state.answer.forge_uploads = judging(own);
+  const refused = join(room.path, "refused-here.txt");
+  writeFileSync(refused, "capture\u0000with a NUL\n");
+  const run = await ask("attach", "issue", "ISS-1", wrote("up-before-it.txt"), refused, wrote("up-after-it.txt"));
+  state.answer.forge_uploads = own;
+  assert.deepEqual(order, ["sent up-before-it.txt", "sent refused-here.txt", "sent up-after-it.txt"],
+    "every file of the batch was sent");
+  assert.equal(run.status, 1, "a batch with a refused file exits non-zero");
+  assert.match(run.stderr, /^2 of 3 file\(s\) went up to ISS-1, and 1 was refused:$/mu);
+  assert.match(run.stderr, /^ {2}refused-here\.txt — MIME_NOT_ALLOWED: /mu, "the file, in the tracker's own words");
+  assert.match(run.stderr, /^Up already: up-before-it\.txt, up-after-it\.txt\./mu);
+  assert.match(run.stderr, /--evidence up-before-it\.txt --evidence up-after-it\.txt/u);
+  assert.match(run.stderr, /\(set -C; LC_ALL=C tr -d /u, "text with a control byte is answered by stripping it");
+});
+
+/* A 401 is the credential and no verdict on the file, and would meet every file after it alike. */
+test("a refusal that is not the tracker's verdict on the file stops the write, naming what it left unsent", async () => {
   order.length = 0;
   const own = state.answer.forge_uploads;
   state.answer.forge_uploads = (args) => {
-    if (!args?.data?.name?.endsWith(".log")) return own(args);
+    if (args?.data?.name !== "second-of-three.txt") return own(args);
     order.push(`sent ${args.data.name}`);
-    return { refused: "mime not allowed: application/octet-stream", code: "MIME_NOT_ALLOWED" };
+    return { http: 401 };
   };
-  const run = await ask("attach", "issue", "ISS-1", wrote("up-before-it.txt"), wrote("refused-here.log"));
+  const run = await ask("attach", "issue", "ISS-1", wrote("first-of-three.txt"), wrote("second-of-three.txt"),
+    wrote("third-of-three.txt"));
   state.answer.forge_uploads = own;
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /^refused-here\.log is a name the tracker would not take/mu);
-  assert.match(run.stderr, /MIME_NOT_ALLOWED/u, "in the tracker's own line");
-  assert.match(run.stderr, /1 file\(s\) of this write are up and cannot be deleted: up-before-it\.txt\./u);
-  assert.match(run.stderr, /--evidence up-before-it\.txt/u, "and the citation to make instead of the path");
-  assert.deepEqual(order, ["sent up-before-it.txt", "sent refused-here.log"]);
+  assert.match(run.stderr, /^1 of 3 file\(s\) went up to ISS-1, and 1 was refused; 1 not sent:$/mu);
+  assert.match(run.stderr, /^Not sent, the write stopping at second-of-three\.txt, which the tracker did not judge: third-of-three\.txt\.$/mu);
+  assert.ok(!sunk().includes("third-of-three.txt"), `sent ${sunk().join(", ")}`);
 });
 
 /* What a write puts up is what it scanned, and between the two passes the digest is what says so. */

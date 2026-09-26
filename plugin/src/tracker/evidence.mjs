@@ -2,9 +2,10 @@
    value that is a file on disk. Attach then re-send the record was a round of the agent's (ISS-65). */
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
-import { basename, dirname, extname, isAbsolute, resolve, sep } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { fail } from "../resolve/settings.mjs";
+import { decodesAsUtf8 } from "../wire/upload-mimes.mjs";
 import { declaredFor, refuseCredential, write } from "./rest.mjs";
 
 export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
@@ -21,27 +22,68 @@ const targetRefusal = (target) =>
   + `${declaredFor("forge_uploads", "targets").join(" and ")}. A session's attachment route takes a `
   + `browser session or a device token, neither of which is the credential here.`;
 
-/* No verdict precedes the bytes, so a refusal owes which of the write are up (ISS-55). */
-const behindIt = (sent) =>
-  (sent.length
-    ? `\n  ${sent.length} file(s) of this write are up and cannot be deleted: ${sent.join(", ")}.`
-      + `\n  Cite those by name rather than by path, which would collide:`
-      + `\n  --evidence ${sent.join(" --evidence ")}`
-    : `\n  It was the first of the write, so nothing else went up.`);
+/* Where the batch stopped, only a refusal the tracker made about this one request lets the rest go:
+   a credential refused, a limit spent or no answer at all would meet every file after it alike. */
+const aboutTheFile = ({ status }) => status >= 400 && status < 500 && ![401, 403, 408, 429].includes(status);
 
-/** What the refusal leaves out: the file, the extension, the set — offered, never enforced. */
-export const uploadRefusal = (path, said, sent = []) => {
-  const name = basename(path);
-  const head = `${name} is a name the tracker would not take.\n  it said: ${said}`;
-  if (!said.includes("MIME_NOT_ALLOWED")) return `${head}${behindIt(sent)}`;
-  const ext = extname(name);
-  return `${head}\n  The type goes up off the name and never off the bytes, and this one was typed `
-    + `off ${ext ? `the extension ${ext}` : "a name carrying no extension"}.`
-    + `\n  This CLI types ${declaredFor("forge_uploads", "extensions").join(" ")} — its reading of `
-    + `the tracker's set rather than the tracker's own answer, so one missing here may work too.`
-    + `${behindIt(sent)}`
-    + `\n\nDo this: send the same bytes under a name it can type, and cite that name:`
-    + `\n  ln -- ${shellArg(path)} ${shellArg(`${path}.txt`)}`;
+const typeRefused = (one) => one.said.includes("MIME_NOT_ALLOWED");
+
+/* The tracker's own set, off its refusal body: a copy kept here is one that goes stale unseen. */
+const acceptedSet = (refused) => {
+  const allowed = refused.find((one) => one.details?.allowed)?.details.allowed;
+  if (!allowed?.mimes?.length) return "The tracker's refusal named no set of types it takes.";
+  return `The tracker takes ${allowed.mimes.join(" ")}`
+    + `${allowed.anyExtensionIfText ? ", and text under any name" : ""}.`;
+};
+
+/* A control byte a terminal capture carries, tab, line feed and carriage return kept: what the
+   tracker reads as binary in bytes that are otherwise text. */
+const CONTROL = String.raw`\000-\010\013\014\016-\037\177`;
+
+const plainBeside = (path) => {
+  const ext = extname(path);
+  return join(dirname(path), `${basename(path, ext)}-plain${ext}`);
+};
+
+/* The way out reads the bytes and never the name, since the tracker judges the bytes and a new name
+   sends the same ones: a capture that is text loses its control bytes, and anything else is read. */
+const bytesSaid = (one) => (one.utf8
+  ? "The bytes decode as text, so it is their control bytes the tracker read as binary."
+  : "The bytes do not decode as text, and the tracker judged the bytes, so no name sends them as text.");
+
+/* `set -C` in a subshell of its own: a destination already there is refused rather than overwritten,
+   and the caller's shell keeps the options it had. */
+const wayOut = (one) => (one.utf8
+  ? `  (set -C; LC_ALL=C tr -d '${CONTROL}' < ${shellArg(one.path)} > ${shellArg(plainBeside(one.path))})`
+    + `\n    then send ${basename(plainBeside(one.path))} in place of ${one.name}.`
+  : `  file --mime-type -- ${shellArg(one.path)}`
+    + `\n    then send ${one.name}'s bytes converted to one of the types above: under a new name alone `
+    + `they are refused the same way.`);
+
+/** The whole of a write that did not all go up: what went, what the tracker refused and in its
+ *  words, what was never sent, the set it takes, the citation for what is up, and one way out per
+ *  file refused for its type. */
+export const batchRefusal = (reference, { sent, refused, unsent }) => {
+  const total = sent.length + refused.length + unsent.length;
+  const lines = [`${sent.length} of ${total} file(s) went up to ${reference}, and ${refused.length} `
+    + `${refused.length === 1 ? "was" : "were"} refused${unsent.length ? `; ${unsent.length} not sent` : ""}:`];
+  for (const one of refused) {
+    lines.push(`  ${one.name} — ${one.said}${typeRefused(one) ? `\n    ${bytesSaid(one)}` : ""}`);
+  }
+  const typed = refused.filter(typeRefused);
+  if (typed.length) lines.push(acceptedSet(typed));
+  if (unsent.length) {
+    lines.push(`Not sent, the write stopping at ${refused.at(-1).name}, which the tracker did not judge: `
+      + `${unsent.join(", ")}.`);
+  }
+  if (sent.length) {
+    lines.push(`Up already: ${sent.join(", ")}. Cite them by name rather than by path, which would collide:`
+      + `\n  --evidence ${sent.join(" --evidence ")}`);
+  }
+  if (typed.length) {
+    lines.push(`\nDo this:\n${typed.map(wayOut).join("\n")}`);
+  }
+  return lines.join("\n");
 };
 
 const digestOf = (body) => createHash("sha256").update(body).digest("hex");
@@ -59,6 +101,9 @@ const sendFile = async (target, targetId, { path, name, digest }, sending) => {
 };
 
 /** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is dropped once scanned, so the peak stays one file, its digest standing in for it.
+ *  Per file: a file the tracker refuses is set aside with its words and the rest still go, so what
+ *  comes back is `{ sent, refused, unsent }` and the caller decides what a refusal costs. A refusal that
+ *  is not the tracker's verdict on the file stops the write, the files behind it left unsent.
  *  `said` is spoken on the line before the first request, past the renewal and the digest check that can each still refuse, so a line saying the file is being sent is never printed on a call that sent none. */
 export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {}, said = null } = {}) => {
   if (!declaredFor("forge_uploads", "targets").includes(target)) fail(targetRefusal(target));
@@ -67,17 +112,20 @@ export const uploadAll = async (target, targetId, paths, { renewing, sending = (
     const name = basename(path);
     const body = readFileSync(path);
     await refuseCredential(body.toString("utf8"), name);
-    files.push({ path, name, digest: digestOf(body) });
+    files.push({ path, name, digest: digestOf(body), utf8: decodesAsUtf8(body) });
   }
-  const sent = [];
-  for (const file of files) {
+  const [sent, refused] = [[], []];
+  for (const [at, file] of files.entries()) {
     await renewing?.();
-    const first = said && file === files[0];
     const row = await sendFile(target, targetId, file, (name) => {
-      if (first) console.error(said);
+      if (said && at === 0) console.error(said);
       sending(name);
     });
-    if (row?.refused) fail(uploadRefusal(file.path, row.refused, sent));
+    if (row?.refused) {
+      refused.push({ ...file, said: row.refused, details: row.details ?? null });
+      if (aboutTheFile(row)) continue;
+      return { sent, refused, unsent: files.slice(at + 1).map((one) => one.name) };
+    }
     /* The tracker's name: it sanitises, and a verdict cites what a read of the issue holds. */
     const named = row?.name ?? file.name;
     if (named !== file.name) {
@@ -87,7 +135,7 @@ export const uploadAll = async (target, targetId, paths, { renewing, sending = (
     console.log(`${named}  ${uploaded(row)}`);
     sent.push(named);
   }
-  return sent;
+  return { sent, refused, unsent: [] };
 };
 
 /* The three shapes a citation may take: an attachment's name, a URL, a commit, and nothing else. */

@@ -119,6 +119,14 @@ test("a kind is shown the evidence vocabulary and the read sentence its own shap
   assert.doesNotMatch(kindHelp("park"), /--commit/u, "and the kind citing evidence and no commit hears of no --commit");
 });
 
+/* ISS-80: the help said the tracker types a file by its name, so a `.log` of text read as refused. */
+test("the evidence vocabulary says a file of text goes up as text, and never that the name types it", () => {
+  const shown = kindHelp("verdict").replace(/\n/gu, " ");
+  assert.match(shown, /A file whose bytes are text goes up as text whatever its name/u);
+  assert.match(shown, /A file it refuses leaves the rest going up and no record written/u);
+  assert.doesNotMatch(shown, /types a file by its name/u);
+});
+
 /* `[--contains C]` beside `--where W` reads as a slot for prose and the row's letters cannot say
    otherwise: the fill's sentence describes the first commit-typed field and said nothing of any
    other, so what `--contains` takes reached a caller only in a refusal for guessing (ISS-833). */

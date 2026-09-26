@@ -6,7 +6,6 @@ import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
 import { CLAUSES, NOTHING } from "./merged.mjs";
 import { citationBlocks } from "../../spec/checked.mjs";
 import { DECISION_PARTS, commitTakes } from "./content.mjs";
-import { declaredFor } from "../../tracker/rest.mjs";
 import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
@@ -185,9 +184,9 @@ const servesBlocks = (goals) => (goals
 const EVIDENCE_BLOCKS = [
   "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
   "a readable file, which goes up under its base name and is cited by it. A name already attached is",
-  `refused rather than attached twice. The tracker types a file by its name and takes`,
-  `${declaredFor("forge_uploads", "extensions").join(" ")} — this CLI's reading of the tracker's set rather`,
-  "than its answer, so one missing may work too, and no path costs an upload before it is minted.",
+  "refused rather than attached twice. A file whose bytes are text goes up as text whatever its name,",
+  "any other under the type its extension names, and the tracker judges the bytes. A file it refuses",
+  "leaves the rest going up and no record written, and the refusal names the types the tracker takes.",
 ];
 
 /** The field a deferred fill reads, the first of its type: `verification` declares two commit-typed fields, the fill reads the first, and the second is promised nothing. */
