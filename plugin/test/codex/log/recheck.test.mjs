@@ -12,7 +12,10 @@ const {
   recheckMissed,
   recheckOwed,
   recheckPlan,
+  recheckVia,
+  verdictFromRulings,
 } = await import("../../../src/codex/log/replies.mjs");
+const { verdictsBy } = await import("../../../src/codex/codex-log.mjs");
 
 const JUDGED = {
   kind: "consult", id: "c55", ok: true, root: "/a", at: "1", head: "38cac7b7",
@@ -120,4 +123,56 @@ test("a file the recheck adds is not handed a finding the consult anchored on a 
   const plan = recheckPlan([judged], "/a", [OUT, notes]);
   assert.deepEqual(plan.ids, [], "notes.md was never in the consult's set, so the recheck's copy of it does not reach F1");
   assert.match(recheckOwed(plan, [OUT, notes]), /forge codex verdict --of o1/u);
+});
+
+/* The ISS-513 sequence: consult 52d00e made F1, recheck a5033d over one file raised nothing of its own
+   and left F1 open, and the next unpinned recheck was refused as though a5033d were a clean whole-set
+   read (ISS-2643). */
+const ORIGIN = {
+  kind: "consult", id: "52d00e", ok: true, root: "/a", at: "1", head: "b2cd0c46", files: ["a.mjs", "b.mjs"], send: "bodies",
+  sent: [{ rel: "a.mjs", chars: 9, clipped: false }, { rel: "b.mjs", chars: 9, clipped: false }],
+  reply: "CODEX: 1 findings\n- **F1 — New — major:** `a.mjs:3` — the comment names the wrong rule.",
+};
+const FIRST = {
+  kind: "consult", id: "a5033d", ok: true, root: "/a", at: "2", head: "b2cd0c46", files: ["a.mjs"], send: "bodies", recheck: true,
+  sent: [{ rel: "a.mjs", chars: 9, clipped: false }],
+  reply: "1. **CANNOT TELL** — the criterion's wording is on the tracker.\n\nCODEX: 0 findings",
+};
+const LEFT_OPEN = { kind: "verdict", of: "52d00e", from: "a5033d", kept: [], dropped: {}, reopened: ["F1"], auto: ["F1"] };
+
+test("an unpinned recheck after a recheck that left a finding open answers the consult that finding belongs to", () => {
+  const plan = recheckPlan([ORIGIN, FIRST, LEFT_OPEN], "/a", ["a.mjs"]);
+  assert.equal(plan.judged.id, "52d00e", "the consult whose finding is open, not the recheck that left it open");
+  assert.deepEqual(plan.ids, ["F1"]);
+  assert.equal(recheckOwed(plan, ["a.mjs"]), null, "there is a finding to verify, so nothing is refused");
+  assert.match(recheckVia(plan), /^recheck a5033d left F1 of consult 52d00e open, so this recheck answers 52d00e,/u);
+
+  /* A recheck that ruled nothing wrote no verdict, so its own row is what names the consult. */
+  const silent = recheckPlan([ORIGIN, { ...FIRST, rechecked: "52d00e" }], "/a", ["a.mjs"]);
+  assert.equal(silent.judged.id, "52d00e", "the row's own link is followed where no verdict carries one");
+  assert.equal(recheckVia(recheckPlan([ORIGIN], "/a", ["a.mjs"])), null, "a recheck that followed nothing says nothing of it");
+});
+
+test("the verdict a followed recheck records is the one the log reads for that consult afterwards", () => {
+  const entries = [ORIGIN, FIRST, LEFT_OPEN];
+  const plan = recheckPlan(entries, "/a", ["a.mjs"]);
+  const prior = verdictsBy(entries).get("52d00e");
+  const auto = verdictFromRulings(plan, 0, "1. **REFUTED** — the comment now names the rule.", "e71c02", prior);
+  assert.equal(auto.record.of, "52d00e", "recorded on the consult it answers");
+  const read = verdictsBy([...entries, auto.record]).get("52d00e");
+  assert.equal(read.from, "e71c02", "the newer verdict is the one read, not a5033d's");
+  assert.deepEqual([read.kept, read.reopened], [["F1"], undefined], "and it closes what the earlier one left open");
+});
+
+test("a recheck after a recheck that left nothing open is refused naming both, and never as a whole-set read", () => {
+  const settled = { ...LEFT_OPEN, kept: ["F1"], reopened: undefined };
+  const refused = recheckOwed(recheckPlan([ORIGIN, FIRST, settled], "/a", ["a.mjs"]), ["a.mjs"]);
+  assert.match(refused, /^consult a5033d is a recheck of consult 52d00e and raised no finding of its own, and 52d00e has nothing left open/u);
+  assert.equal(/read this set whole/u.test(refused), false, "a recheck read no set whole");
+  const unlinked = recheckOwed(recheckPlan([ORIGIN, FIRST], "/a", ["a.mjs"]), ["a.mjs"]);
+  assert.match(unlinked, /the log does not say which consult it answered/u);
+  assert.match(unlinked, /forge codex consult --send bodies a\.mjs`/u, "with the read that earns the review");
+  const clean = recheckOwed(recheckPlan([{ ...ORIGIN, reply: "CODEX: 0 findings" }], "/a", ORIGIN.files), ORIGIN.files);
+  assert.match(clean, /^consult 52d00e read this set whole and found nothing, taken at b2cd0c46: that is the whole-set read a review is earned by, and a recheck has nothing to verify against it\./u,
+    "a consult that found nothing keeps the refusal written for it");
 });

@@ -136,6 +136,32 @@ test("a recheck refuting a finding over bytes unchanged since its consult record
   assert.deepEqual(rowsOf(moved).find((one) => one.kind === "verdict").kept, ["F1"], "the file changed since, so the refutation is a fix");
 });
 
+/* The ISS-513 sequence: a recheck over one file ruled nothing it could stand behind and left F1 open,
+   and the next recheck, given no --of, was refused as though that recheck were a whole-set read (ISS-2643). */
+test("a recheck given no --of after a recheck that left a finding open answers the consult that made it", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const origin = consultRow(root, { id: "c1", files: ["judged.txt", "other.txt"], reply: FINDING });
+  const first = consultRow(root, { id: "r1", recheck: true, files: ["judged.txt"],
+    sent: [{ rel: "judged.txt", chars: 20, clipped: false }], reply: "1. CANNOT TELL — the wording is on the tracker.\n\nCODEX: 0 findings" });
+  const open = { kind: "verdict", of: "c1", from: "r1", kept: [], dropped: {}, reopened: ["F1"], auto: ["F1"] };
+  const home = seeded([origin, first, open]);
+  const { status, said, shown } = await forge(room, home, ["consult", "--recheck", "--rounds", "1", "judged.txt"]);
+  assert.equal(status, 0, said);
+  assert.match(said, /recheck r1 left F1 of consult c1 open, so this recheck answers c1/u);
+  assert.match(shown, /Your earlier finding F1 still stands/u, "c1's finding went to the reviewer");
+  const rows = rowsOf(home);
+  const served = rows.filter((one) => one.kind === "consult" && one.recheck).at(-1);
+  assert.equal(served.rechecked, "c1", "the recheck's row names the consult it answered");
+  const read = rows.filter((one) => one.kind === "verdict" && one.of === "c1").at(-1);
+  assert.deepEqual([read.from, read.kept, read.reopened], [served.id, ["F1"], undefined], "and its verdict on c1 is the one read now");
+
+  const settled = seeded([origin, first, { ...open, kept: ["F1"], reopened: undefined }]);
+  const refused = await forge(room, settled, ["consult", "--recheck", "--rounds", "1", "judged.txt"]);
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.said, /consult r1 is a recheck of consult c1 and raised no finding of its own, and c1 has nothing left open/u);
+});
+
 test("a recheck given --of from a linked worktree finds the consult a sibling worktree answered", async () => {
   const primary = checkout();
   const sibling = join(tempRoom("codex-recheck-of-sibling-"), "wt");

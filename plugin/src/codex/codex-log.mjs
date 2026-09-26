@@ -127,6 +127,12 @@ const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(fi
 export const judgedBy = (entries, root, rels) =>
   answered(entries).filter((one) => one.root === root && sharing(one, rels));
 
+/** The consult a recheck answered: its own row says from ISS-2643 on, and the verdict it wrote names both before that. Null where neither does, a recheck that ruled nothing having written no verdict. */
+export const answeredBy = (entries, one) => {
+  const of = one?.rechecked ?? entries.findLast((row) => row.kind === "verdict" && row.from && row.from === one?.id)?.of;
+  return of ? answered(entries).find((row) => (row.id ?? row.at) === of) ?? null : null;
+};
+
 /* A `sent` entry is not a body: `bundle` records one for a file it could not read, and a clipped one, a missing one and an empty one each close a review on something nobody read. */
 export const bodied = (one) => one && !one.clipped && Number(one.chars) > 0;
 

@@ -7,7 +7,7 @@ import { masked } from "../../hooks/log/scrub.mjs";
 import { escaped } from "../../markdown.mjs";
 import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
-import { answered, byRun, inRepo, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
+import { answered, answeredBy, byRun, inRepo, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
 
 /* A row of the older shape folded its composed clause into its note, and `composedAt` says where — read as a whole clause and never as a substring of the author's prose, which "Evidence from recheck r7 supports my rejection" is; the composed form was always clauses joined by the same separator, so the boundary is the format. `authorNote` is what is left for the next write to carry, because carrying the whole would say the earlier recheck's status on the next recheck's row. */
 const composedAt = (held) => (held?.from ? (held.note ?? "").split(CLAUSE).indexOf(`from recheck ${held.from}`) : -1);
@@ -339,10 +339,27 @@ const leftOutOf = (judged, reply, kept, ruled) => {
   };
 };
 
+/* The ids of a consult's findings nothing has decided yet, by the verdict the log reads last for it. */
+const openOf = (entries, one) => undecidedIn(numbered(one?.reply).map((found) => found.id), verdictsBy(entries).get(one?.id ?? one?.at));
+
+/* A recheck that raised nothing of its own answered another consult, so while that consult still has
+   a finding open it is the one to answer: stopping at the recheck read a finding left open as a clean
+   whole-set read (ISS-2643). Bounded by the log, so a cycle of links cannot hold the verb. */
+const followed = (entries, one) => {
+  let at = one;
+  for (let hops = 0; at?.recheck && !numbered(at.reply).length && hops < entries.length; hops += 1) {
+    const next = answeredBy(entries, at);
+    if (!next || !openOf(entries, next).length) break;
+    at = next;
+  }
+  return at;
+};
+
 /* A follow-up round rules on the last consult's findings about these files — another file's would
    clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
 export const recheckPlan = (entries, root, rels, pinned = null) => {
-  const judged = pinned ?? judgedBy(entries, root, rels).at(-1);
+  const last = pinned ? null : judgedBy(entries, root, rels).at(-1);
+  const judged = pinned ?? followed(entries, last);
   if (!judged) return null;
   /* The other half of what a request carries out of stored entries; `historyFor` above has the seat's reason, and `judged` stays as stored because its coverage fields are read here and never sent. */
   const ruled = verdictsBy(entries).get(judged.id ?? judged.at);
@@ -352,6 +369,8 @@ export const recheckPlan = (entries, root, rels, pinned = null) => {
   return {
     judged,
     pinned: Boolean(pinned),
+    via: !last || judged === last ? null : { id: last.id ?? last.at, open: openOf(entries, judged) },
+    answers: judged.recheck ? answeredBy(entries, judged) : null,
     ids: findings.map((one) => one.id),
     outside: leftOutOf(judged, reply, findings, ruled),
     /* The defect, with the legend: "re-verify" drew CONFIRMED for a fix that held, then REFUTED. */
@@ -364,6 +383,14 @@ export const recheckPlan = (entries, root, rels, pinned = null) => {
 };
 
 export const recheckRisks = (entries, root, rels) => recheckPlan(entries, root, rels)?.risks ?? [];
+
+/** The line a recheck that followed an earlier one past it prints, or null where it followed none. */
+export const recheckVia = (plan) => {
+  if (!plan?.via) return null;
+  const of = plan.judged.id ?? plan.judged.at;
+  return `recheck ${plan.via.id} left ${some(plan.via.open)} of consult ${of} open, so this recheck answers ${of},`
+    + ` and the verdict it records is the one read for ${of} from here on.`;
+};
 
 /** The range a recheck sends where no file was named: the judged consult's own, narrowed out of what an aged base now offers and never widened past it; null where nothing drops. docs/cli/codex-the-consult.md. */
 export const recheckRange = (plan, rels) => {
@@ -417,6 +444,13 @@ export const recheckOwed = (plan, rels) => {
       + ` recheck has nothing of its findings to verify.${plan.outside.owed.length
         ? ` Nothing says what became of ${some(plan.outside.owed)}, which is what a commit gate refuses for.`
         : " Every one of them already carries your ruling."}\n${missedRoute(plan.outside)}`;
+  }
+  /* A recheck is a ruling on another consult's findings, never a read of the set (ISS-2643). */
+  if (plan.judged.recheck) {
+    const answers = plan.answers ? plan.answers.id ?? plan.answers.at : null;
+    return `consult ${of} is a recheck${answers ? ` of consult ${answers}` : ""} and raised no finding of its own, and `
+      + `${answers ? `${answers} has nothing left open` : "the log does not say which consult it answered"}, so there is nothing to recheck.\n`
+      + `${read} — only where the tree has moved since, which this cannot see and you can.`;
   }
   // `plan.judged` is the last consult sharing ANY of these files, which is why a shortfall is likely.
   const { unread, part, whole } = shortOfWhole(plan.judged, rels);

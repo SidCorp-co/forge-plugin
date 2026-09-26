@@ -65,6 +65,7 @@ import {
   recheckPlan,
   rulingsUnread,
   recheckRange,
+  recheckVia,
   verdictFromRulings,
 } from "./log/replies.mjs";
 import { LOG_USAGE, VERDICT_USAGE, consultOf, printLog, verdict } from "./log/verbs.mjs";
@@ -311,8 +312,8 @@ const consult = async (given) => {
     const nothing = recheckOwed(plan, rels);
     if (nothing) fail(`codex: ${nothing}`);
     /* The set holds some of that consult's findings and not others: this round answers only part. */
-    const missed = recheckMissed(plan, rels);
-    if (missed) for (const line of missed.split("\n")) console.error(`codex: ${line}`);
+    const told = [recheckVia(plan), recheckMissed(plan, rels)].filter(Boolean).join("\n");
+    if (told) for (const line of told.split("\n")) console.error(`codex: ${line}`);
     risks.push(...plan.risks);
     const range = named.length ? null : recheckRange(plan, rels);
     if (range) {
@@ -401,7 +402,7 @@ const consult = async (given) => {
     prompt: promptMark(system),
     ...(cap === undefined ? {} : { cap }),
     ...(issues.length ? { issues } : {}),
-    ...(recheck ? { recheck: true } : {}),
+    ...(recheck ? { recheck: true, rechecked: plan.judged.id ?? plan.judged.at } : {}),
     ...(anchoredTo ? { anchoredTo } : {}),
     ...(risks.length ? { risks } : {}),
     ...(only.length ? { only } : {}),
