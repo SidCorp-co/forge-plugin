@@ -17,6 +17,9 @@ import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, 
 import { ANSWERED_BY_COMMENT, ORDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
+import { hereOf, logEntries, runOf } from "../codex/codex-log.mjs";
+import { readsIn, readsSaid, rowsOf } from "../codex/log/reads.mjs";
+import { repoRoot } from "../git/repo-root.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
@@ -206,11 +209,21 @@ export const checkTarget = (to, next, view, ref) => {
   refuse(`${ref} is ${view.issue.status} and ${next} is next, not ${to}. A jump past a status is refused.`);
 };
 
+/* Off this machine's consult log, read where the verb stands: the reads counted are the ones that repository's consults recorded, and a directory in no checkout has none to count. */
+const readsAhead = (view, ref) => {
+  const root = repoRoot(process.cwd());
+  if (!root) return null;
+  const rows = rowsOf(logEntries(), { keys: [view.issue.issueId ?? ref], run: runOf(), here: hereOf(root) });
+  return readsSaid(readsIn(rows), { ref, rung: rungOf(rungFieldsOf(view)) });
+};
+
 /* Printed under the shortfall and under "the record earns it" alike, because the point of it is
    that a run reads it before the status it belongs to is the one being asked for. */
 const sayAhead = (view, ref, next) => {
   const report = fixReport(view, ref);
   if (report) console.log(`\n${report}`);
+  const reads = readsAhead(view, ref);
+  if (reads) console.log(`\n${reads}`);
   console.log("");
   for (const line of laneLines({ status: view.issue.status, fields: rungFieldsOf(view) })) console.log(line);
   const cheaper = baselineAhead(view, ref);

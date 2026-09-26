@@ -16,6 +16,8 @@ export const statLines = (held) => {
     `retried at the ceiling   ${held.retried}  ${share(held.retried, held.consults)}`,
     `rechecks          ${held.rechecks}, ${held.raisedNew} raised a New finding `
       + `${share(held.raisedNew, held.rechecks)}, ${held.newFindings} of them in all`,
+    `whole-set reads   ${held.wholeReads.reads} over ${held.wholeReads.runs} run(s), ${held.wholeReads.rechecks} `
+      + `recheck(s) at a head not read before, ${held.wholeReads.repeats} repeat(s) of a head already read`,
     `tokens per consult  ${per(held.spent.input_tokens)} in, ${per(held.spent.cache_read_input_tokens)} from cache, `
       + `${per(held.spent.cache_creation_input_tokens)} written, ${per(held.spent.output_tokens)} out`,
     `read from cache   ${Math.round(held.cached * 100)}% of ${held.sent} input token(s)`,

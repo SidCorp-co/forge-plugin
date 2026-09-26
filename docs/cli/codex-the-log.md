@@ -61,6 +61,17 @@ failure. `--of` reaches any run's consult in the repository, a later run owing a
 earlier one's being the ordinary case. A row written before the field answers by its checkout path,
 so one from a worktree since removed stays unreachable from elsewhere (ISS-898).
 
+**How many whole-set reads a run has taken is read off these rows, never kept.** A rung under the top
+allows one, and runs were taking about four with nothing counting them. A counter beside the log is a
+second copy a crashed run leaves wrong, and the transcript is the wrong source anyway: the send mode
+is resolved rather than typed, so the shell line no longer says what went up. What tells a repeat
+from a recheck is the head. A row's head is a commit and a read is only counted at a clean one, so a
+second read carrying a file already read at that head had nothing new to judge: that is the read the
+allowance excludes. A read at a head no earlier read was at follows a commit, which the rule already
+owes a read. A pass at a read head carrying only unread files is the same read, as the landing
+already takes it. The count refuses nothing until it is trusted, because a miscount would block the
+one read a run genuinely owes (ISS-1090).
+
 What the stats window answers, how it groups, and why a pass and a recheck are priced apart is
 [codex — the stats](codex-the-stats.md).
 

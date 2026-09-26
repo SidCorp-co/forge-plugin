@@ -82,10 +82,16 @@ const WRITE_READ = "a plan or a criteria write's own read";
 export const WRITE_READ_OWED = `${WRITE_READ[0].toUpperCase()}${WRITE_READ.slice(1)} — a consult that read the `
   + "file whole, taken again once a correction changes the file — is owed at every rung, and no rung drops it.";
 
+/** The whole-set reads a rung under the top allows, as a number, so the line below and the count `forge advance --owed` prints beside it read one value (ISS-1090). */
+export const REVIEW_READS = 1;
+
+const SPELLED = ["no", "one", "two", "three"];
+const readsWord = `${SPELLED[REVIEW_READS] ?? REVIEW_READS} review consult${REVIEW_READS === 1 ? "" : "s"}`;
+
 /* One list held by both rungs under the top, so `CEILINGS` is the whole of what tells them apart and a second list cannot become a difference the contract denies having; each line is a judgement spent once, where a `LIGHTER` row drops a payload. */
 const LIGHTER_ROUNDS = [
   "Phase 0 is the brief alone, where no source of it is stale",
-  `one review consult — the whole-set read at the replayed head, and no recheck after a clean pass — counted apart from ${WRITE_READ}`,
+  `${readsWord} — the whole-set read at the replayed head, and no recheck after a clean pass — counted apart from ${WRITE_READ}`,
   "one whole run of the gate on the clean path, the ship's, so no commit spends one and none is left after it — the gate is what this line bounds, and a checker the gate contains is not the gate, so those are spent as often as they answer",
 ];
 
@@ -94,6 +100,9 @@ export const SPARES = {
   [FIX]: LIGHTER_ROUNDS,
   [FEATURE]: [],
 };
+
+/** The whole-set reads a rung allows, or null where it states none, which is the top's. */
+export const readsAllowed = (rung) => (SPARES[rung]?.length ? REVIEW_READS : null);
 
 /* The arithmetic catching a claim the work outgrew, spent after the judging and refusing nothing. */
 export const CEILINGS = {
