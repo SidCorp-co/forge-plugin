@@ -107,8 +107,8 @@ const tileHtml = (tile) => {
   const judged = tile.verdict ? ` ${tile.verdict}` : "";
   const arrow = tile.change === null ? "" : `<span class="arrow" aria-hidden="true">${arrowOf(tile.change)}</span> `;
   return `<div class="tile${judged}" id="tile-${esc(tile.metric)}"><div class="label">${esc(tile.label)}</div>`
-    + `<div class="value">${esc(withUnit(tile.value, tile.unit))}</div>`
-    + (tile.detail ? `<div class="note">${esc(tile.detail)}</div>` : "")
+    + `<div class="value">${tile.unread ? "not read" : esc(withUnit(tile.value, tile.unit))}</div>`
+    + (tile.detail && tile.value !== null ? `<div class="note">${esc(tile.detail)}</div>` : "")
     + `<div class="baseline">seven days before: ${esc(withUnit(tile.baseline, tile.unit))}</div>`
     + `<div class="move">${arrow}${esc(moveSaid(tile))}</div>${goal}</div>`;
 };

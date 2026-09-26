@@ -11,6 +11,7 @@ import { METRICS } from "../../../src/stats/daily/scorecard.mjs";
 import { LISTED, backlogMatcher, opportunitiesOf } from "../../../src/stats/daily/opportunities.mjs";
 import { sidesOf } from "../../../src/stats/daily/releases.mjs";
 import { MISSING } from "../../../src/stats/daily/gather.mjs";
+import { REOPENED } from "../../../src/stats/daily/closed.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
 import { runOn } from "./fixture-daily.mjs";
 
@@ -22,13 +23,16 @@ const row = (name, runs) => ({ name, ...figure(runs, 20, 40), thin: runs < 10 ? 
 const friction = (extra = {}) => ({ refusals: [], refusalCauses: [], errors: [], answers: [], repeats: [], waits: [], guideParts: [], ...extra });
 
 /* One tile per metric the table declares, each moved the way the case needs: wasted calls worse,
-   consults better, and each metric with no reader greyed. */
-const tileFor = (metric, value, baseline, change, verdict) => ({ metric: metric.id, label: metric.label, unit: metric.unit,
-  better: metric.better, goal: metric.goal, value, detail: null, baseline, baselineDays: baseline === null ? 0 : 7, change, verdict,
-  missing: metric.of ? null : metric.missing });
+   consults better, the closed count better, its minutes not read, and each metric with no reader greyed. */
+const tileFor = (metric, value, baseline, change, verdict, { detail = null, unread = null } = {}) => ({ metric: metric.id,
+  label: metric.label, unit: metric.unit, better: metric.better, goal: metric.goal, value, detail, baseline,
+  baselineDays: baseline === null ? 0 : 7, change, verdict, unread, missing: metric.of ? null : metric.missing });
+const UNREAD = "proj: the tracker answered 503";
 const SCORECARD = METRICS.map((metric) => {
   if (metric.id === "wasted") return tileFor(metric, 12.5, 10, 2.5, "worse");
   if (metric.id === "atBudget") return tileFor(metric, 20, 25, -5, "better");
+  if (metric.id === "closed") return tileFor(metric, 9, 7, 2, "better", { detail: REOPENED });
+  if (metric.id === "minutesPerClosed") return tileFor(metric, null, 30, null, null, { unread: UNREAD });
   return tileFor(metric, null, null, null, null);
 });
 
@@ -123,9 +127,26 @@ test("a tile with no change reads steady, and one with no baseline or no value s
   assert.doesNotMatch(unbased + valueless, /class="tile (better|worse)"/u);
 });
 
+test("13. the closed count and its minutes are tiles of their own, the count with its figure and the rule a reopen follows", () => {
+  const page = pageOf(content());
+  assert.ok(page.includes('<div class="tile better" id="tile-closed">'), "not greyed");
+  const closed = tileHtml(page, "closed");
+  assert.ok(closed.includes('<div class="value">9</div>'), closed);
+  assert.ok(closed.includes(`<div class="note">${REOPENED}</div>`), closed);
+  assert.doesNotMatch(page, /ISS-2599/u, "neither tile names the issue that owed their reader");
+});
+
+test("a tile whose source was not read says not read and why, and judges nothing", () => {
+  const page = pageOf(content());
+  assert.ok(page.includes('<div class="tile" id="tile-minutesPerClosed">'), "neither greyed nor judged");
+  const tile = tileHtml(page, "minutesPerClosed");
+  assert.ok(tile.includes('<div class="value">not read</div>'), tile);
+  assert.ok(tile.includes(`<div class="move">not read: ${UNREAD}</div>`), tile);
+});
+
 test("a metric no reader computes is a greyed tile naming the issue that owes its reader", () => {
   const page = pageOf(content());
-  for (const [id, issue] of [["closed", "ISS-2599"], ["minutesPerClosed", "ISS-2599"], ["firstGate", "ISS-2425"], ["ownerWait", "ISS-2600"]]) {
+  for (const [id, issue] of [["firstGate", "ISS-2425"], ["ownerWait", "ISS-2600"]]) {
     assert.ok(page.includes(`<div class="tile greyed" id="tile-${id}">`), id);
     assert.ok(tileHtml(page, id).includes(`<div class="move">${issue} owes its reader</div>`), id);
   }
@@ -200,7 +221,8 @@ test("the footer names the runs on no known rung, the projects with no runs, and
   const footer = page.slice(page.indexOf("<footer>"), page.indexOf("</footer>"));
   assert.ok(footer.includes("8 of the day&#39;s 12 run(s) claimed no rung this reading could establish."), footer);
   assert.ok(footer.includes("No run on this day in: idle."));
-  for (const issue of ["ISS-2424", "ISS-2425", "ISS-2426", "ISS-2599", "ISS-2600"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
+  for (const issue of ["ISS-2424", "ISS-2425", "ISS-2426", "ISS-2600"]) assert.ok(footer.includes(`owed by ${issue}.`), issue);
+  assert.ok(!footer.includes("ISS-2599"), "13. the closed count has its reader");
 });
 
 test("every chart names its axis, labels its scale and its days, spans the column, and repeats no value as text", () => {

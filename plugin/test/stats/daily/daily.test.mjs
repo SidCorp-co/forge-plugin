@@ -144,7 +144,11 @@ test("--json and the terminal carry the scorecard, one entry and one line per me
   const lines = written.stdout.split("\n");
   assert.equal(lines[0], "Scorecard, the day against the median of the seven days before:");
   assert.equal(lines.slice(1, 7).filter((one) => one.startsWith("  ")).length, 6, written.stdout);
-  assert.match(written.stdout, /^ {2}issues closed: not computed yet, ISS-2599 owes its reader \(higher is better, G-11\)$/mu);
+  assert.match(written.stdout, /^ {2}issues closed: not read: no Forge endpoint is saved on this machine \(higher is better, G-11\)$/mu,
+    "14, 16. a device with no endpoint reads no close, and says so rather than nought");
+  const closed = scorecard.find((one) => one.metric === "closed");
+  assert.deepEqual([closed.value, closed.baseline, closed.unread], [null, null, "no Forge endpoint is saved on this machine"],
+    "15. --json carries the value, the baseline and why it was not read");
   assert.match(written.stdout, new RegExp(`^  wasted calls, of all calls: ${wasted.value}% against ${wasted.baseline}%, \\+?0 pt, steady \\(lower is better, G-11\\)$`, "mu"));
   assert.ok(!written.stdout.includes("issue-flow run(s) across"), "no template sentence");
   const again = daily(held, "--day", daysAgo(1));

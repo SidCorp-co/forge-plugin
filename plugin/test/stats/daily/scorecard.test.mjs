@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { METRICS, changeSaid, scorecardLines, scorecardOf, tileFedBy, verdictOf } from "../../../src/stats/daily/scorecard.mjs";
+import { METRICS, changeSaid, moveSaid, scorecardLines, scorecardOf, tileFedBy, verdictOf } from "../../../src/stats/daily/scorecard.mjs";
+import { REOPENED, SPLIT } from "../../../src/stats/daily/closed.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
 import { consult, runOn } from "./fixture-daily.mjs";
 
@@ -76,9 +77,53 @@ test("a change reads better or worse by the metric's declared direction, steady 
   assert.equal(changeSaid(-3, " min"), "-3 min");
 });
 
+/* A closed reading made by hand: each day's closes of project `proj`, or why the day was not read, and
+   the runs paired with the issues they owned. */
+const closedReading = (days, pairs = [], owners = { pairs }) => ({ ...readingOf(), closed: {
+  days: Object.fromEntries(Object.entries(days).map(([day, held]) => [day, Array.isArray(held)
+    ? { closes: held.map((issueId, index) => ({ slug: "proj", issueId, at: Date.parse(`${day}T1${index}:00:00Z`) })) } : held])),
+  owners: { proj: owners }, history: new Map() } });
+
+const minutesRun = (day, minutes, keys) => ({ path: `/${day}-${minutes}`, startedAt: Date.parse(`${day}T01:00:00Z`), seconds: minutes * 60, issues: keys });
+
+test("12. the closed count and its minutes each take a baseline over the days before that were read, and a verdict by direction", () => {
+  const scorecard = scorecardOf(closedReading({ "2026-09-14": ["a"], "2026-09-15": ["b", "c", "d"], "2026-09-16": { unread: "proj: 503" },
+    [DAY]: ["e", "f", "g"] }), DAY);
+  const closed = tileIn(scorecard, "closed");
+  assert.deepEqual([closed.value, closed.baseline, closed.baselineDays, closed.change, closed.verdict], [3, 2, 2, 1, "better"],
+    "1 and 3 before, the unread day left out: more closed is better");
+  assert.equal(closed.detail, REOPENED, "4. the count says a second close counts on its own day");
+  const run = minutesRun("2026-09-15", 60, ["b"]);
+  const minutes = tileIn(scorecardOf(closedReading({ "2026-09-15": ["b"], [DAY]: ["e"] }, [{ run, key: "b" }, { run: minutesRun(DAY, 90, ["e"]), key: "e" }]), DAY),
+    "minutesPerClosed");
+  assert.deepEqual([minutes.value, minutes.baseline, minutes.change, minutes.verdict], [90, 60, 30, "worse"], "more minutes a close is worse");
+});
+
+test("9, 10. the minutes tile states the minutes, the closes without a run and the equal-share split", () => {
+  const run = minutesRun(DAY, 60, ["a", "b"]);
+  const tile = tileIn(scorecardOf(closedReading({ [DAY]: ["a", "z"] }, [{ run, key: "a" }, { run, key: "b" }]), DAY), "minutesPerClosed");
+  assert.equal(tile.value, 15, "half of 60 lent to a, over two closed issues");
+  assert.equal(tile.detail, `30 min over 2 closed issue(s), 1 with no run on this device; ${SPLIT}`);
+});
+
+test("22. a day on which nothing closed has no minutes a close, and says none closed", () => {
+  const tile = tileIn(scorecardOf(closedReading({ [DAY]: [] }), DAY), "minutesPerClosed");
+  assert.deepEqual([tile.value, tile.unread], [null, null]);
+  assert.equal(moveSaid(tile), "none on this day, no issue closed");
+  assert.equal(tileIn(scorecardOf(closedReading({ [DAY]: [] }), DAY), "closed").value, 0, "a count read whole may be nought");
+});
+
+test("11, 16. minutes not read leave the count standing, and the terminal prints a tile not read with its reason", () => {
+  const scorecard = scorecardOf(closedReading({ [DAY]: ["a"] }, [], { unread: "proj: its issue list came back short" }), DAY);
+  assert.equal(tileIn(scorecard, "closed").value, 1);
+  assert.deepEqual([tileIn(scorecard, "minutesPerClosed").value, tileIn(scorecard, "minutesPerClosed").unread], [null, "proj: its issue list came back short"]);
+  const [line] = scorecardLines(scorecard).filter((one) => one.includes("agent minutes per closed issue"));
+  assert.equal(line, "  agent minutes per closed issue: not read: proj: its issue list came back short (lower is better, G-11)");
+});
+
 test("a metric no reader computes is a tile with no figure, naming the issue that owes its reader", () => {
   const scorecard = scorecardOf(readingOf({ runs: runsOn(DAY) }), DAY);
-  for (const [id, issue] of [["closed", "ISS-2599"], ["minutesPerClosed", "ISS-2599"], ["firstGate", "ISS-2425"], ["ownerWait", "ISS-2600"]]) {
+  for (const [id, issue] of [["firstGate", "ISS-2425"], ["ownerWait", "ISS-2600"]]) {
     const tile = tileIn(scorecard, id);
     assert.equal(tile.missing.issue, issue, id);
     assert.deepEqual([tile.value, tile.baseline, tile.change, tile.verdict], [null, null, null, null], id);

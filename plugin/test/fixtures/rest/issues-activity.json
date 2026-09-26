@@ -1,0 +1,488 @@
+{
+  "taken": "2026-09-26",
+  "tool": "forge_issues",
+  "action": "activity",
+  "routes": {
+    "page": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/activity?type=issue&limit=3&before=2026-09-26T14:59:25.000Z"
+  },
+  "note": "No tool answered this: the MCP surface had no activity action, so what is pinned is the envelope and the transition names the projection reads. Long payload strings are cut at 200 characters.",
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "answer": {
+      "items": [
+        {
+          "id": "1656299e-e844-4395-a7da-fed677691cea",
+          "issueId": "40744dde-f44c-4c7e-a707-3757a1a3c857",
+          "action": "issue.statusChanged",
+          "actorType": "user",
+          "actorAgency": "human",
+          "actorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "payload": {
+            "to": "closed",
+            "from": "awaiting_release",
+            "reopenCount": 0
+          },
+          "createdAt": "2026-09-26T14:59:24.141Z",
+          "actor": {
+            "type": "user",
+            "id": "0a3bb457-c689-4773-bf87-f3aba7198539",
+            "displayName": "thanhnh@sidcorp.co",
+            "isAgent": false
+          }
+        },
+        {
+          "id": "f0a5f825-4926-494f-a509-d6acdf5b52a1",
+          "issueId": "40744dde-f44c-4c7e-a707-3757a1a3c857",
+          "action": "issue.updated",
+          "actorType": "user",
+          "actorAgency": "human",
+          "actorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "payload": {
+            "after": {
+              "sessionContext": {
+                "lease": {
+                  "pid": "1315361",
+                  "next": null,
+                  "tree": "/run/media/thanh/New/ai-project/wt-forge-plugin-ISS-2594",
+                  "agent": "claude-code_2-1-280_agent",
+                  "clock": 645,
+                  "place": "e03ea0f7-7f0d-4a78-a469-451bc9a42979 pid:[4026531836]",
+                  "holder": "iss-2594-ba82cf03",
+                  "history": [
+                    {
+                      "at": "2026-09-26T10:57:54.351Z",
+                      "how": "claim",
+                      "next": null,
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "open"
+                    },
+                    {
+                      "at": "2026-09-26T13:32:26.316Z",
+                      "how": "swept",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress"
+                    },
+                    {
+                      "at": "2026-09-26T14:44:46.640Z",
+                      "how": "take",
+                      "next": null,
+                      "holder": "aed0f3e5-5271-4817-9bf5-21f7a24efb0f",
+                      "status": "in_progress",
+                      "landing": "ready"
+                    },
+                    {
+                      "at": "2026-09-26T14:54:26.829Z",
+                      "how": "take",
+                      "next": "landed 3.36.409; the builder's records turn",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress",
+                      "landing": "records-owed"
+                    }
+                  ],
+                  "minutes": 60,
+                  "renewedAt": "2026-09-26T14:59:22.071Z"
+                },
+                "strand": {
+                  "at": "2026-09-26T13:42:27.382Z",
+                  "owes": "agent",
+                  "lease": "expired",
+                  "since": "2026-09-26 11:28:52.646+00",
+                  "reason": "the claim on this row was released and nothing has taken it since",
+                  "status": "in_progress",
+                  "evidence": {
+                    "merged": false,
+                    "everRan": false,
+                    "leaseFanout": 1,
+                    "poolHasRunner": false
+                  },
+                  "waitingFor": "the run that claimed it"
+                },
+                "landing": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "owed": "",
+                  "files": [
+                    "docs/cli/stats.md",
+                    "plugin/src/stats/daily/daily.mjs",
+                    "plugin/src/stats/daily/gather.mjs",
+                    "plugin/src/stats/daily/page.mjs",
+                    "plugin/src/stats/daily/page/page.mjs",
+                    "plugin/src/stats/daily/page/summary.mjs",
+                    "plugin/src/stats/daily/scorecard.mjs",
+                    "plugin/src/stats/report/current-page.mjs",
+                    "plugin/src/stats/report/current.mjs",
+                    "plugin/test/stats/daily/daily.test.mjs",
+                    "plugin/test/stats/daily/judge.test.mjs",
+                    "plugin/test/stats/daily/page.test.mjs",
+                    "plugin/test/stats/daily/reading.test.mjs",
+                    "plugin/test/stats/daily/red-batches.test.mjs",
+                    "plugin/test/stats/daily/scorecard.test.mjs",
+                    "plugin/test/stats/daily/summary.test.mjs"
+                  ],
+                  "state": "marked",
+                  "branch": "iss-2594",
+                  "pinned": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "builder": "iss-2594-ba82cf03",
+                  "release": "3.36.409",
+                  "intended": "3a5d7d638288b8371c5ab2dbe7f0627fa5a80587",
+                  "candidate": "be25ec9818d8842149410e72499c9ee5fd9d2a09",
+                  "reconciled": "be25ec9818d8842149410e72499c9ee5fd9d2a09"
+                },
+                "worklog": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "copy": "forge 3.36.408",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "files": "16",
+                  "branch": "iss-2594",
+                  "touched": "docs/cli/stats.md, plugin/src/stats/daily/daily.mjs, plugin/src/stats/daily/gather.mjs, plugin/src/stats/daily/page.mjs, plugin/src/stats/daily/page/page.mjs, plugin/src/stats/daily/page/summary.mjs, plugin/src/stats/daily/scorecard.mjs, plugin/src/stats/report/current-page.mjs, plugin/src/stats/report/current.mjs, plugin/test/stats/daily/daily.test.mjs, plugin/test/stats/daily/judge.test.mjs, plugin/test/stats/daily/page.test.mjs, plugin/test/stats/daily/reading.test.mjs, plugin/test/stats/daily/red-batches.test.mjs, plugin/test/stats/daily/scorecard.test.mjs, plugin/test/stats/daily/summary.test.mjs"
+                }
+              }
+            },
+            "before": {
+              "sessionContext": {
+                "lease": {
+                  "pid": "1315361",
+                  "next": null,
+                  "tree": "/run/media/thanh/New/ai-project/wt-forge-plugin-ISS-2594",
+                  "agent": "claude-code_2-1-280_agent",
+                  "clock": 646,
+                  "place": "e03ea0f7-7f0d-4a78-a469-451bc9a42979 pid:[4026531836]",
+                  "holder": "iss-2594-ba82cf03",
+                  "history": [
+                    {
+                      "at": "2026-09-26T10:57:54.351Z",
+                      "how": "claim",
+                      "next": null,
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "open"
+                    },
+                    {
+                      "at": "2026-09-26T13:32:26.316Z",
+                      "how": "swept",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress"
+                    },
+                    {
+                      "at": "2026-09-26T14:44:46.640Z",
+                      "how": "take",
+                      "next": null,
+                      "holder": "aed0f3e5-5271-4817-9bf5-21f7a24efb0f",
+                      "status": "in_progress",
+                      "landing": "ready"
+                    },
+                    {
+                      "at": "2026-09-26T14:54:26.829Z",
+                      "how": "take",
+                      "next": "landed 3.36.409; the builder's records turn",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress",
+                      "landing": "records-owed"
+                    }
+                  ],
+                  "minutes": 60,
+                  "renewedAt": "2026-09-26T14:59:14.413Z"
+                },
+                "strand": {
+                  "at": "2026-09-26T13:42:27.382Z",
+                  "owes": "agent",
+                  "lease": "expired",
+                  "since": "2026-09-26 11:28:52.646+00",
+                  "reason": "the claim on this row was released and nothing has taken it since",
+                  "status": "in_progress",
+                  "evidence": {
+                    "merged": false,
+                    "everRan": false,
+                    "leaseFanout": 1,
+                    "poolHasRunner": false
+                  },
+                  "waitingFor": "the run that claimed it"
+                },
+                "landing": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "owed": "",
+                  "files": [
+                    "docs/cli/stats.md",
+                    "plugin/src/stats/daily/daily.mjs",
+                    "plugin/src/stats/daily/gather.mjs",
+                    "plugin/src/stats/daily/page.mjs",
+                    "plugin/src/stats/daily/page/page.mjs",
+                    "plugin/src/stats/daily/page/summary.mjs",
+                    "plugin/src/stats/daily/scorecard.mjs",
+                    "plugin/src/stats/report/current-page.mjs",
+                    "plugin/src/stats/report/current.mjs",
+                    "plugin/test/stats/daily/daily.test.mjs",
+                    "plugin/test/stats/daily/judge.test.mjs",
+                    "plugin/test/stats/daily/page.test.mjs",
+                    "plugin/test/stats/daily/reading.test.mjs",
+                    "plugin/test/stats/daily/red-batches.test.mjs",
+                    "plugin/test/stats/daily/scorecard.test.mjs",
+                    "plugin/test/stats/daily/summary.test.mjs"
+                  ],
+                  "state": "marked",
+                  "branch": "iss-2594",
+                  "pinned": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "builder": "iss-2594-ba82cf03",
+                  "release": "3.36.409",
+                  "intended": "3a5d7d638288b8371c5ab2dbe7f0627fa5a80587",
+                  "candidate": "be25ec9818d8842149410e72499c9ee5fd9d2a09",
+                  "reconciled": "be25ec9818d8842149410e72499c9ee5fd9d2a09"
+                },
+                "worklog": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "copy": "forge 3.36.408",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "files": "16",
+                  "branch": "iss-2594",
+                  "touched": "docs/cli/stats.md, plugin/src/stats/daily/daily.mjs, plugin/src/stats/daily/gather.mjs, plugin/src/stats/daily/page.mjs, plugin/src/stats/daily/page/page.mjs, plugin/src/stats/daily/page/summary.mjs, plugin/src/stats/daily/scorecard.mjs, plugin/src/stats/report/current-page.mjs, plugin/src/stats/report/current.mjs, plugin/test/stats/daily/daily.test.mjs, plugin/test/stats/daily/judge.test.mjs, plugin/test/stats/daily/page.test.mjs, plugin/test/stats/daily/reading.test.mjs, plugin/test/stats/daily/red-batches.test.mjs, plugin/test/stats/daily/scorecard.test.mjs, plugin/test/stats/daily/summary.test.mjs"
+                }
+              }
+            },
+            "fields": [
+              "sessionContext"
+            ]
+          },
+          "createdAt": "2026-09-26T14:59:22.774Z",
+          "actor": {
+            "type": "user",
+            "id": "0a3bb457-c689-4773-bf87-f3aba7198539",
+            "displayName": "thanhnh@sidcorp.co",
+            "isAgent": false
+          }
+        },
+        {
+          "id": "b23278ab-943f-4ef7-ba3a-35ed0c192997",
+          "issueId": "40744dde-f44c-4c7e-a707-3757a1a3c857",
+          "action": "issue.updated",
+          "actorType": "user",
+          "actorAgency": "human",
+          "actorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "payload": {
+            "after": {
+              "sessionContext": {
+                "lease": {
+                  "pid": "1315361",
+                  "next": null,
+                  "tree": "/run/media/thanh/New/ai-project/wt-forge-plugin-ISS-2594",
+                  "agent": "claude-code_2-1-280_agent",
+                  "clock": 646,
+                  "place": "e03ea0f7-7f0d-4a78-a469-451bc9a42979 pid:[4026531836]",
+                  "holder": "iss-2594-ba82cf03",
+                  "history": [
+                    {
+                      "at": "2026-09-26T10:57:54.351Z",
+                      "how": "claim",
+                      "next": null,
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "open"
+                    },
+                    {
+                      "at": "2026-09-26T13:32:26.316Z",
+                      "how": "swept",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress"
+                    },
+                    {
+                      "at": "2026-09-26T14:44:46.640Z",
+                      "how": "take",
+                      "next": null,
+                      "holder": "aed0f3e5-5271-4817-9bf5-21f7a24efb0f",
+                      "status": "in_progress",
+                      "landing": "ready"
+                    },
+                    {
+                      "at": "2026-09-26T14:54:26.829Z",
+                      "how": "take",
+                      "next": "landed 3.36.409; the builder's records turn",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress",
+                      "landing": "records-owed"
+                    }
+                  ],
+                  "minutes": 60,
+                  "renewedAt": "2026-09-26T14:59:14.413Z"
+                },
+                "strand": {
+                  "at": "2026-09-26T13:42:27.382Z",
+                  "owes": "agent",
+                  "lease": "expired",
+                  "since": "2026-09-26 11:28:52.646+00",
+                  "reason": "the claim on this row was released and nothing has taken it since",
+                  "status": "in_progress",
+                  "evidence": {
+                    "merged": false,
+                    "everRan": false,
+                    "leaseFanout": 1,
+                    "poolHasRunner": false
+                  },
+                  "waitingFor": "the run that claimed it"
+                },
+                "landing": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "owed": "",
+                  "files": [
+                    "docs/cli/stats.md",
+                    "plugin/src/stats/daily/daily.mjs",
+                    "plugin/src/stats/daily/gather.mjs",
+                    "plugin/src/stats/daily/page.mjs",
+                    "plugin/src/stats/daily/page/page.mjs",
+                    "plugin/src/stats/daily/page/summary.mjs",
+                    "plugin/src/stats/daily/scorecard.mjs",
+                    "plugin/src/stats/report/current-page.mjs",
+                    "plugin/src/stats/report/current.mjs",
+                    "plugin/test/stats/daily/daily.test.mjs",
+                    "plugin/test/stats/daily/judge.test.mjs",
+                    "plugin/test/stats/daily/page.test.mjs",
+                    "plugin/test/stats/daily/reading.test.mjs",
+                    "plugin/test/stats/daily/red-batches.test.mjs",
+                    "plugin/test/stats/daily/scorecard.test.mjs",
+                    "plugin/test/stats/daily/summary.test.mjs"
+                  ],
+                  "state": "marked",
+                  "branch": "iss-2594",
+                  "pinned": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "builder": "iss-2594-ba82cf03",
+                  "release": "3.36.409",
+                  "intended": "3a5d7d638288b8371c5ab2dbe7f0627fa5a80587",
+                  "candidate": "be25ec9818d8842149410e72499c9ee5fd9d2a09",
+                  "reconciled": "be25ec9818d8842149410e72499c9ee5fd9d2a09"
+                },
+                "worklog": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "copy": "forge 3.36.408",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "files": "16",
+                  "branch": "iss-2594",
+                  "touched": "docs/cli/stats.md, plugin/src/stats/daily/daily.mjs, plugin/src/stats/daily/gather.mjs, plugin/src/stats/daily/page.mjs, plugin/src/stats/daily/page/page.mjs, plugin/src/stats/daily/page/summary.mjs, plugin/src/stats/daily/scorecard.mjs, plugin/src/stats/report/current-page.mjs, plugin/src/stats/report/current.mjs, plugin/test/stats/daily/daily.test.mjs, plugin/test/stats/daily/judge.test.mjs, plugin/test/stats/daily/page.test.mjs, plugin/test/stats/daily/reading.test.mjs, plugin/test/stats/daily/red-batches.test.mjs, plugin/test/stats/daily/scorecard.test.mjs, plugin/test/stats/daily/summary.test.mjs"
+                }
+              }
+            },
+            "before": {
+              "sessionContext": {
+                "lease": {
+                  "pid": "1315361",
+                  "next": null,
+                  "tree": "/run/media/thanh/New/ai-project/wt-forge-plugin-ISS-2594",
+                  "agent": "claude-code_2-1-280_agent",
+                  "clock": 643,
+                  "place": "e03ea0f7-7f0d-4a78-a469-451bc9a42979 pid:[4026531836]",
+                  "holder": "iss-2594-ba82cf03",
+                  "history": [
+                    {
+                      "at": "2026-09-26T10:57:54.351Z",
+                      "how": "claim",
+                      "next": null,
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "open"
+                    },
+                    {
+                      "at": "2026-09-26T13:32:26.316Z",
+                      "how": "swept",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress"
+                    },
+                    {
+                      "at": "2026-09-26T14:44:46.640Z",
+                      "how": "take",
+                      "next": null,
+                      "holder": "aed0f3e5-5271-4817-9bf5-21f7a24efb0f",
+                      "status": "in_progress",
+                      "landing": "ready"
+                    },
+                    {
+                      "at": "2026-09-26T14:54:26.829Z",
+                      "how": "take",
+                      "next": "landed 3.36.409; the builder's records turn",
+                      "holder": "iss-2594-ba82cf03",
+                      "status": "in_progress",
+                      "landing": "records-owed"
+                    }
+                  ],
+                  "minutes": 60,
+                  "renewedAt": "2026-09-26T14:58:55.004Z"
+                },
+                "strand": {
+                  "at": "2026-09-26T13:42:27.382Z",
+                  "owes": "agent",
+                  "lease": "expired",
+                  "since": "2026-09-26 11:28:52.646+00",
+                  "reason": "the claim on this row was released and nothing has taken it since",
+                  "status": "in_progress",
+                  "evidence": {
+                    "merged": false,
+                    "everRan": false,
+                    "leaseFanout": 1,
+                    "poolHasRunner": false
+                  },
+                  "waitingFor": "the run that claimed it"
+                },
+                "landing": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "owed": "marked",
+                  "files": [
+                    "docs/cli/stats.md",
+                    "plugin/src/stats/daily/daily.mjs",
+                    "plugin/src/stats/daily/gather.mjs",
+                    "plugin/src/stats/daily/page.mjs",
+                    "plugin/src/stats/daily/page/page.mjs",
+                    "plugin/src/stats/daily/page/summary.mjs",
+                    "plugin/src/stats/daily/scorecard.mjs",
+                    "plugin/src/stats/report/current-page.mjs",
+                    "plugin/src/stats/report/current.mjs",
+                    "plugin/test/stats/daily/daily.test.mjs",
+                    "plugin/test/stats/daily/judge.test.mjs",
+                    "plugin/test/stats/daily/page.test.mjs",
+                    "plugin/test/stats/daily/reading.test.mjs",
+                    "plugin/test/stats/daily/red-batches.test.mjs",
+                    "plugin/test/stats/daily/scorecard.test.mjs",
+                    "plugin/test/stats/daily/summary.test.mjs"
+                  ],
+                  "state": "records-owed",
+                  "branch": "iss-2594",
+                  "pinned": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "builder": "iss-2594-ba82cf03",
+                  "release": "3.36.409",
+                  "intended": "3a5d7d638288b8371c5ab2dbe7f0627fa5a80587",
+                  "candidate": "be25ec9818d8842149410e72499c9ee5fd9d2a09",
+                  "reconciled": "be25ec9818d8842149410e72499c9ee5fd9d2a09"
+                },
+                "worklog": {
+                  "at": "2026-09-26T14:40:05.511Z",
+                  "base": "5bed5be9e0c0f7485eac4204b5ae459b4d407551",
+                  "copy": "forge 3.36.408",
+                  "head": "62b9c3f5f9284339271fe11b244eb76735abcb45",
+                  "files": "16",
+                  "branch": "iss-2594",
+                  "touched": "docs/cli/stats.md, plugin/src/stats/daily/daily.mjs, plugin/src/stats/daily/gather.mjs, plugin/src/stats/daily/page.mjs, plugin/src/stats/daily/page/page.mjs, plugin/src/stats/daily/page/summary.mjs, plugin/src/stats/daily/scorecard.mjs, plugin/src/stats/report/current-page.mjs, plugin/src/stats/report/current.mjs, plugin/test/stats/daily/daily.test.mjs, plugin/test/stats/daily/judge.test.mjs, plugin/test/stats/daily/page.test.mjs, plugin/test/stats/daily/reading.test.mjs, plugin/test/stats/daily/red-batches.test.mjs, plugin/test/stats/daily/scorecard.test.mjs, plugin/test/stats/daily/summary.test.mjs"
+                }
+              }
+            },
+            "fields": [
+              "sessionContext"
+            ]
+          },
+          "createdAt": "2026-09-26T14:59:15.455Z",
+          "actor": {
+            "type": "user",
+            "id": "0a3bb457-c689-4773-bf87-f3aba7198539",
+            "displayName": "thanhnh@sidcorp.co",
+            "isAgent": false
+          }
+        }
+      ],
+      "nextBefore": "2026-09-26T14:59:15.455Z"
+    }
+  }
+}

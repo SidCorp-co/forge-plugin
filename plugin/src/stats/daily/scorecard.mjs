@@ -5,6 +5,7 @@
    arithmetic this page does over the readers' figures: docs/cli/stats.md. */
 import { weekBefore } from "./day.mjs";
 import { MISSING, consultsSection, frictionOf, runsOn } from "./gather.mjs";
+import { REOPENED, SPLIT, closedOn } from "./closed.mjs";
 import { entriesOf } from "./opportunities.mjs";
 import { median } from "../median.mjs";
 
@@ -34,7 +35,22 @@ const atBudgetOf = (reading, day) => {
   return { value: percentOf(atBudget, budgeted), detail: `${atBudget} of ${budgeted} consult(s) that recorded a budget` };
 };
 
-const CLOSED_READER = { reading: "the issues closed a day and the agent minutes that went to them", issue: "ISS-2599" };
+/* The two tiles a close feeds: a count not read is not read, never nought, and a day with no close has
+   no quotient to take. */
+const closedCountOf = (reading, day) => {
+  const held = closedOn(reading, day);
+  if (held.unread) return { value: null, unread: held.unread };
+  return { value: held.closed, detail: REOPENED };
+};
+
+const minutesPerClosedOf = (reading, day) => {
+  const held = closedOn(reading, day);
+  const unread = held.unread ?? held.minutesUnread;
+  if (unread) return { value: null, unread };
+  if (!held.closed) return { value: null, detail: "no issue closed" };
+  return { value: tenth(held.minutes / held.closed),
+    detail: `${held.minutes} min over ${held.closed} closed issue(s), ${held.withoutRun} with no run on this device; ${SPLIT}` };
+};
 
 /* The figures of the page's reading a tile's value is made of: the day's refused calls and each listed
    opportunity's lost calls are wasted calls, a wait apart, and the consults at their budget over those
@@ -51,11 +67,12 @@ const atBudgetFrom = (key) => key === "consults.headline.atBudget" || key === "c
 
 /** The metrics, in the order the tiles stand. `fedBy` says whether a figure of the page's reading, by
  *  its key, is one the tile's value is made of, so a decision citing it points at this tile; a metric
- *  no reader computes is made of no figure. `of` reads the metric's value for a day, and a metric
- *  without one names the reader it waits for. */
+ *  read off no figure the page's reading is shown carries none. `of` reads the metric's value for a
+ *  day, `unread` beside a null one where a source could not be read, and a metric without one names
+ *  the reader it waits for. */
 export const METRICS = [
-  { id: "closed", label: "issues closed", unit: "", better: HIGHER, goal: "G-11", missing: CLOSED_READER },
-  { id: "minutesPerClosed", label: "agent minutes per closed issue", unit: " min", better: LOWER, goal: "G-11", missing: CLOSED_READER },
+  { id: "closed", label: "issues closed", unit: "", better: HIGHER, goal: "G-11", of: closedCountOf },
+  { id: "minutesPerClosed", label: "agent minutes per closed issue", unit: " min", better: LOWER, goal: "G-11", of: minutesPerClosedOf },
   { id: "firstGate", label: "landings that passed their first gate", unit: PERCENT, better: HIGHER, goal: "G-11",
     missing: MISSING.firstGate },
   { id: "ownerWait", label: "owner wait minutes", unit: " min", better: LOWER, goal: "G-11",
@@ -78,7 +95,8 @@ export const verdictOf = (better, change) => {
 const tileOf = (metric, reading, day) => {
   const declared = { metric: metric.id, label: metric.label, unit: metric.unit, better: metric.better, goal: metric.goal };
   if (!metric.of) {
-    return { ...declared, value: null, detail: null, baseline: null, baselineDays: 0, change: null, verdict: null, missing: metric.missing };
+    return { ...declared, value: null, detail: null, baseline: null, baselineDays: 0, change: null, verdict: null, unread: null,
+      missing: metric.missing };
   }
   const held = metric.of(reading, day);
   const before = weekBefore(day).map((one) => metric.of(reading, one)?.value).filter((one) => one !== null && one !== undefined);
@@ -86,7 +104,7 @@ const tileOf = (metric, reading, day) => {
   const value = held?.value ?? null;
   const change = value === null || baseline === null ? null : tenth(value - baseline);
   return { ...declared, value, detail: held?.detail ?? null, baseline, baselineDays: before.length, change,
-    verdict: verdictOf(metric.better, change), missing: null };
+    verdict: verdictOf(metric.better, change), unread: held?.unread ?? null, missing: null };
 };
 
 /** Every tile for a day, off the corpora and logs the page was read from. */
@@ -104,7 +122,8 @@ export const changeSaid = (change, unit) => {
 
 /** What a tile says of its move in words, which is what its colour and arrow repeat. */
 export const moveSaid = (tile) => {
-  if (tile.value === null) return "none on this day";
+  if (tile.unread) return `not read: ${tile.unread}`;
+  if (tile.value === null) return tile.detail ? `none on this day, ${tile.detail}` : "none on this day";
   if (tile.baseline === null) return "no baseline: the seven days before hold none";
   return `${changeSaid(tile.change, tile.unit)}, ${tile.verdict}`;
 };

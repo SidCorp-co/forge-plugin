@@ -229,7 +229,7 @@ const FIELDS_OF = {
   hooks: null,
   feedback: null,
   doctor: "depth, issueId, labelId",
-  stats: null,
+  stats: "before, documentId, limit",
 };
 
 /* The table is where an agent learns the surface, so one write has one row in it: a name a landing
