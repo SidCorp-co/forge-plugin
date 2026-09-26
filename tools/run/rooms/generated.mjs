@@ -6,7 +6,7 @@
    they write back with other bytes, and one beside a generator that failed or moved anything else
    stays a move. docs/cli/the-candidate.md. */
 import { spawnSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, gitOut, parsed, Stop } from "../../checkout.mjs";
@@ -41,7 +41,13 @@ const ranIn = (room, scripts) => {
   return null;
 };
 
+/* A path the merged head tracks, asked before anything is removed: status reads a tracked path against
+   the index whatever an ignore rule says, and a path the head lacks is a deletion, never a file written
+   back — so neither an absent file nor an ignored one is cleared by reading as unlisted. */
+const tracked = (room, path) => git(["cat-file", "-e", `HEAD:${path}`], room).status === 0;
+
 const judged = (room, scripts, paths) => {
+  const held = paths.filter((path) => tracked(room, path));
   for (const path of paths) rmSync(join(room, path), { force: true });
   const failed = ranIn(room, scripts);
   if (failed) return { generated: [], why: failed };
@@ -51,9 +57,7 @@ const judged = (room, scripts, paths) => {
   if (beside.length) {
     return { generated: [], why: `they also moved ${beside.join(", ")}, so the merged head is not what its generators make` };
   }
-  /* Present as well as unlisted: a path the merged head lacks reads as unmoved once removed, whether or
-     not anything wrote it, and a deletion both sides made is no file a generator put back. */
-  const generated = paths.filter((path) => !moved.includes(path) && existsSync(join(room, path)));
+  const generated = held.filter((path) => !moved.includes(path));
   const left = paths.filter((path) => !generated.includes(path));
   return { generated, why: left.length ? `they did not write ${left.join(", ")} back byte for byte` : null };
 };

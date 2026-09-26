@@ -152,3 +152,19 @@ test("a path the merged head lacks is not taken as generated beside one its gene
   assert.deepEqual(found.scripts, ["generate:pages"], JSON.stringify(found));
   assert.match(found.why, /did not write plugin\/src\/gone\.mjs back byte for byte/u, found.why);
 });
+
+/* The same absence behind an ignore rule, which status does not list even once a generator writes the
+   file: whether the merged head holds a path is asked of the head, not read off what status leaves out. */
+test("an ignored path the merged head lacks is not taken as generated when a generator writes it", () => {
+  const { work } = generating();
+  const made = join("docs", "made.txt");
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  put(work, ".gitignore", `${made}\n`);
+  put(work, join("tools", "made.mjs"), `import { writeFileSync } from "node:fs";\nwriteFileSync(${JSON.stringify(made)}, "made\\n");\n`);
+  put(work, "package.json", JSON.stringify({ ...held, scripts: { ...held.scripts, "generate:made": "node tools/made.mjs" } }, null, 2));
+  git(work, "add", ".gitignore", "package.json", join("tools", "made.mjs"));
+  git(work, "commit", "-qm", "a generator of an ignored file");
+  const found = regenerated(work, sha(work, "HEAD"), [LIST, made]);
+  assert.deepEqual(found.generated, [LIST], JSON.stringify(found));
+  assert.match(found.why, /did not write docs\/made\.txt back byte for byte/u, found.why);
+});
