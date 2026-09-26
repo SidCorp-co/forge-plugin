@@ -12,7 +12,7 @@ import { judgedBy, logEntries, shortOfWhole, wholeReadOf } from "../../plugin/sr
 import { repoRoot } from "../../plugin/src/git/repo-root.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { shortly } from "./install.mjs";
-import { movedBy, remoteHead } from "./land-ready/candidate.mjs";
+import { candidateOf, mergedTree, movedBy, remoteHead } from "./land-ready/candidate.mjs";
 import { undoneBy, undoneLine, undoneSaid } from "./land-ready/undone.mjs";
 
 export const REPLAYED = "the review answers for the head this lands";
@@ -32,6 +32,9 @@ export const REPLAY_HELP = [
   "refused the same way and names the fetch. Where the base moved it prints both sets, the paths this",
   "change writes and the paths that landing wrote, and names which of the change's files moved, not",
   "just that the branch did — a landing that touched none of them invalidates no read and is not refused,",
+  "and neither is one whose only moves of them the merge's own generators write back: the `generate:`",
+  "scripts of that merge's package.json, run in a room of it with those files removed, putting them back",
+  "byte for byte and moving nothing else, which it says it ran. For the rest it refuses,",
   "and it replays nothing and re-reads nothing for you:",
   "replaying onto the head that is there now is the whole of what clears it, and it goes back in",
   "ahead of the gate on any resume that can still reach the push, so --from is no way past it",
@@ -316,6 +319,18 @@ const readSays = (tree, was) => {
     + `replayed as ${shortly(head)}, and nothing has rewritten the branch since`);
 };
 
+/* The commit the rebase would make of this change on the pin, for the generators to run at: this step
+   compares the base with the pin, neither of which holds both sides. A merge that conflicts has no such
+   commit, and the rebase would stop on the same path. */
+const mergedAt = (tree, pin) => {
+  const head = gitOut(["rev-parse", "HEAD"], tree);
+  const merged = mergedTree(tree, pin, head);
+  if (!merged.conflicts.length) return candidateOf(tree, merged.tree, pin, head);
+  console.log(`  this change does not merge cleanly onto ${shortly(pin)} (${merged.conflicts.join(", ")}), `
+    + `so no generator is run at a merged head`);
+  return null;
+};
+
 export const replaySays = (tree, base, self) => {
   const pin = remoteHead(tree, base);
   if (!gitOut(["rev-parse", "--verify", `${pin}^{commit}`], tree)) stop(notFetched(base, pin, self));
@@ -330,7 +345,8 @@ export const replaySays = (tree, base, self) => {
     console.log(`  this change writes ${files.join(", ") || "nothing"}`);
     console.log(`  what landed from ${shortly(was)} to ${shortly(pin)} wrote ${landed.join(", ") || "nothing"}`);
   }
-  const moved = movedBy(tree, was, pin, files);
+  const first = movedBy(tree, was, pin, files, null);
+  const moved = first.length ? movedBy(tree, was, pin, files, mergedAt(tree, pin)) : first;
   if (moved.length) stop(readNobodyTook(base, pin, was, moved));
   console.log(`  ${REMOTE}/${base} is ${shortly(pin)}`
     + `${was === pin ? ", the head this change sits on" : `, moved from ${shortly(was)} under it`}`

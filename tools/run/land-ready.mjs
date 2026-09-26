@@ -11,9 +11,9 @@ import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { versionAt } from "./landing.mjs";
 import {
-  candidateOf, carries, dropRoom, landedAlready, linked, mergedTree, movedBy, NOT_KNOWN, pushed,
-  remoteHead, roomFor,
+  candidateOf, carries, landedAlready, linked, mergedTree, movedBy, NOT_KNOWN, pushed, remoteHead,
 } from "./land-ready/candidate.mjs";
+import { dropRoom, roomFor } from "./rooms/room.mjs";
 import {
   asked, caughtUp, DEVELOPED, intendedOf, keysOf, markStep, notReconciled, OWED_TO_QA, perMember,
   JUDGED, reconciledAt, releaseOf, saveOn, statusStep, viewOf, voidedAt, voidSaid,

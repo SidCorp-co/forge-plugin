@@ -4,7 +4,8 @@
 import { stop, Stop } from "../../checkout.mjs";
 import { DECLINED } from "../../gates/machine.mjs";
 import { shortly } from "../install.mjs";
-import { dropRoom, movedBy, roomFor } from "./candidate.mjs";
+import { movedBy } from "./candidate.mjs";
+import { dropRoom, roomFor } from "../rooms/room.mjs";
 import { gateOver } from "./gated.mjs";
 import { keysOf, reconciledAt, saveOn } from "./member.mjs";
 import { searched } from "./search.mjs";
