@@ -16,7 +16,7 @@ import { scorecardLines, scorecardOf } from "./scorecard.mjs";
 import { closesRead } from "./tracker/closed.mjs";
 import { waitsRead } from "./tracker/waits.mjs";
 import { gateway } from "../../resolve/machine/stores.mjs";
-import { fail } from "../../resolve/settings.mjs";
+import { fail, projectRecords } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 
 const VERB = "stats daily";
@@ -55,7 +55,7 @@ const NOT_WRITTEN = "Nothing was written.";
 
 const refusedIfDue = (given, reading) => {
   const why = dayRefusal(given, heldRange(reading.first));
-  if (why) fail(`${why} ${NOT_WRITTEN}`);
+  if (why) fail(`${why} This device's registered projects were read from ${projectRecords().dir}. ${NOT_WRITTEN}`);
 };
 
 /* The models' reading of a page about to be written; a fault in it costs the reading, never the figures. */

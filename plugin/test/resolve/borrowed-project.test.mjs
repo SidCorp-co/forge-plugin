@@ -85,6 +85,17 @@ test("a borrowing home holding a record of its own reads that record's slug and 
     run.stdout);
 });
 
+test("a borrowing home holding a record of another project does not read the machine's record of this one", async () => {
+  const at = standing();
+  const other = join(at.home, "forge", "projects", "another-project");
+  mkdirSync(other, { recursive: true });
+  writeFileSync(join(other, "config.json"), `${JSON.stringify({ slug: "another-slug" })}\n`);
+  const run = await forge(at, "doctor");
+  const row = rowOf(run.stdout, "project slug") ?? "";
+  assert.match(row, /project slug\s+project-scoped calls will refuse/u, `no slug resolves here:\n${run.stdout}`);
+  assert.ok(!row.includes(at.file), `and the machine's record is not named as a source:\n${row}`);
+});
+
 test("a --set of a project key is refused naming the machine's record, which keeps its bytes, and the home holds none", async () => {
   const at = standing();
   const run = await forge(at, "doctor", "--set", "ship=self");

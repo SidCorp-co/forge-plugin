@@ -1,7 +1,7 @@
 /* Where every setting comes from — never from an argument. Two scopes: the url and token are the
    ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
    resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
 
 import { checkoutAt } from "../git/checkout-at.mjs";
@@ -59,25 +59,42 @@ const PROJECT_ENTRY = ["projects", "config.json"];
  *  finds it — a slug is readable only out of the very file this locates, so keying on it cannot
  *  start. Two checkouts whose root folders share a name share an entry, which is the accepted cost
  *  of every worktree of one checkout sharing one. */
-const entryUnder = (forgeDir, repository) => join(forgeDir, PROJECT_ENTRY[0], basename(repository), PROJECT_ENTRY[1]);
+const entryUnder = (room, repository) => join(room, basename(repository), PROJECT_ENTRY[1]);
 
-const entryFor = (repository) => (repository === null ? null : entryUnder(configDir("forge"), repository));
+const ownRoom = () => join(configDir("forge"), PROJECT_ENTRY[0]);
 
-/* A home borrowing the machine's credentials has no record of its project, so every project-scoped
-   call refused for want of a slug, and a run writing the slug alone read every other key at its
-   default (ISS-2619). It reads the machine's record, beside the config the borrow names, while it
-   holds none of its own; a home holding one reads that alone, two records per key being two sources
-   for one decision. */
-const borrowedEntry = (repository) => {
-  const borrow = borrowing(configPath());
-  return borrow ? entryUnder(dirname(borrow.path), repository) : null;
+const entryFor = (repository) => (repository === null ? null : entryUnder(ownRoom(), repository));
+
+const holdsRecord = (room) => {
+  try {
+    return readdirSync(room, { withFileTypes: true })
+      .some((one) => one.isDirectory() && existsSync(join(room, one.name, PROJECT_ENTRY[1])));
+  } catch {
+    return false;
+  }
 };
 
+/** The directory of project records this home reads, and the borrowed config it sits beside or null.
+ *  A home borrowing the machine's credentials holds no record of its own, so a project-scoped call
+ *  refused for want of a slug (ISS-2619) and a device-wide reader listed no project (ISS-2631); while
+ *  it holds none it reads the machine's, beside the config the borrow names. A home holding any record
+ *  reads its own alone, per home and not per project, so the one project's record and the registry a
+ *  device-wide reader walks come out of one directory and never out of two. */
+export const projectRecords = () => {
+  const own = ownRoom();
+  const borrow = borrowing(configPath());
+  return !borrow || holdsRecord(own)
+    ? { dir: own, borrowed: null }
+    : { dir: join(dirname(borrow.path), PROJECT_ENTRY[0]), borrowed: borrow.path };
+};
+
+/* The home's own path where the machine holds no record of the project either, which is where a
+   write for a project nobody has recorded lands, as it would with nothing borrowed. */
 const recordFor = (repository) => {
-  const own = entryFor(repository);
-  if (own === null || existsSync(own)) return own;
-  const borrowed = borrowedEntry(repository);
-  return borrowed && existsSync(borrowed) ? borrowed : own;
+  if (repository === null) return null;
+  const records = projectRecords();
+  const read = entryUnder(records.dir, repository);
+  return records.borrowed === null || existsSync(read) ? read : entryFor(repository);
 };
 
 const projectEntryAt = (directory) => recordFor(checkoutAt(directory)?.repository ?? null);
