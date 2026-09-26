@@ -59,7 +59,10 @@ forge doctor --chatgpt-url <endpoint> --chatgpt-key <key> --chatgpt-prefix <fram
 ```
 
 Beside them, `reports` is the absolute directory `forge stats daily` writes its pages to, set by
-hand; unset, they go to `reports` under the forge config directory.
+hand; unset, they go to `reports` under the forge config directory. As a table it carries that
+directory as `dir` beside `roles`, the gateway model id each stage of the page's reading runs on —
+`explore`, `review` and `judge`, the effort riding the id — and a role left out skips its stage:
+`forge stats daily -h` says what each does.
 
 Two of those services had a file of their own before this one did and still answer from it where the
 key here is unset: the reviewer's gateway from `~/.claude/claude-proxy.env`, the Vietnamese gateway

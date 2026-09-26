@@ -104,6 +104,8 @@ so a number on the page and the same number on a verb's screen cannot disagree. 
 a figure no reader computes, it names the missing reading and the issue that owes it rather than
 printing a nought, and the fix is that reader, never a second count here.
 
+**The page's reading is models'**, over these figures: [`stats-the-reading.md`](stats-the-reading.md).
+
 **A session start is the schedule.** A cron entry or a timer is a change to the person's own
 machine. The first session start after a day ends, in a project whose `report` key is `daily`,
 starts a detached writer for that day and does not wait for it; a mark naming the writer's process

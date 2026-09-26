@@ -1,9 +1,9 @@
-/* The day's content as a page a person reads at a glance: a summary, one section per heading, each
-   opening with its headline beside a seven-day trend, tables that sort on a header click. Everything
+/* The day's content as a page a person reads at a glance: the models' decisions where they read it,
+   a summary, one section per heading, each opening with its headline beside a seven-day trend, tables that sort on a header click. Everything
    is inline — style, script, charts — so the file opens with no network and travels as one file.
    Colour only ever repeats what the words beside it say: docs/cli/stats.md. */
 import { contentBlock } from "./store.mjs";
-import { summaryOf } from "./summary.mjs";
+import { droppedLine, emptySaid, stageLines, summaryOf } from "./summary.mjs";
 import { redBatchSaid } from "../marks/red-batches.mjs";
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -61,9 +61,9 @@ const FIGURE_COLUMNS = ["", "runs", "median min", "median calls", "floor"];
 const side = (label, figure) => `${esc(label)} ${said(figure.medianMinutes, " min")} and ${said(figure.medianCalls)} calls over `
   + `${esc(figure.runs)} run(s)`;
 
-const runsHtml = (runs, days) => {
+const runsHtml = (runs, days, head = "") => {
   const { day, before, week } = runs.headline;
-  return `<section id="runs"><h2>Runs</h2>`
+  return `<section id="runs"><h2>Runs</h2>${head}`
     + `<p class="headline"><strong>${esc(day.runs)} issue-flow run(s)</strong>, median ${esc(said(day.medianMinutes, " min"))} `
     + `and ${esc(said(day.medianCalls))} calls a run.</p>`
     + trendSvg("runs a day", days, runs.trend.map((one) => one.runs))
@@ -77,14 +77,14 @@ const runsHtml = (runs, days) => {
     + `<h3>By effort</h3><p>${missing(runs.effort)}</p></section>`;
 };
 
-const landingsHtml = (landings, days) => {
+const landingsHtml = (landings, days, head = "") => {
   const held = landings.headline;
-  const head = held
+  const top = held
     ? `<p class="headline"><strong>${esc(held.passes)} landing pass(es)</strong>, ${esc(held.outsideRuns)} of them in a session `
       + `no issue-flow run holds, ${esc(held.resumed)} resumed with --from, `
       + `a push rejected in ${esc(held.rejectedRuns)} run(s), ${esc(held.gateMinutes)} gate minute(s) spent over ${esc(held.gateCalls)} gate call(s).</p>`
     : `<p class="headline"><strong>No landing pass</strong> was typed and no run ended on this day, so no landing figure is read.</p>`;
-  return `<section id="landings"><h2>Landings</h2>${head}`
+  return `<section id="landings"><h2>Landings</h2>${head}${top}`
     + (landings.redBatches ? `<p>Red batches: ${esc(redBatchSaid(landings.redBatches))}.</p>` : "")
     + trendSvg("landing passes a day", days, landings.trend.map((one) => one.passes))
     + `<ul>${landings.missing.map((one) => `<li>${missing(one)}</li>`).join("")}</ul></section>`;
@@ -92,9 +92,9 @@ const landingsHtml = (landings, days) => {
 
 const pct = (value) => (value === null ? "none ruled" : `${value}%`);
 
-const consultsHtml = (consults, days) => {
+const consultsHtml = (consults, days, head = "") => {
   const held = consults.headline;
-  return `<section id="consults"><h2>Consults</h2>`
+  return `<section id="consults"><h2>Consults</h2>${head}`
     + `<p class="headline"><strong>${esc(held.answered)} answered consult(s)</strong>, ${esc(held.atBudget)} of the `
     + `${esc(held.budgeted)} that recorded a budget ending at it, ${esc(held.incomplete)} saying it could not check.</p>`
     + trendSvg("answered consults a day", days, consults.trend.map((one) => one.answered))
@@ -110,7 +110,7 @@ const counted = (label, rows, first) => (rows.length
   ? `<h3>${esc(label)}</h3>${table([first, "calls", "runs"], rows.map((one) => [one.key, one.calls, one.runs]))}`
   : `<h3>${esc(label)}</h3><p>None on this day.</p>`);
 
-const frictionHtml = (friction, days) => `<section id="friction"><h2>Friction</h2>`
+const frictionHtml = (friction, days, head = "") => `<section id="friction"><h2>Friction</h2>${head}`
   + `<p class="headline"><strong>${esc(friction.headline.refusals)} refused call(s)</strong> across `
   + `${esc(friction.headline.runs)} run(s).</p>`
   + trendSvg("refused calls a day", days, friction.trend.map((one) => one.refusals))
@@ -135,7 +135,7 @@ const sidesLine = (one) => (one.early
   ? `<p>Too early to read: the day holds ${esc(one.before.runs)} run(s) ending before it and ${esc(one.after.runs)} beginning after it, and each side needs ten.</p>`
   : `<p>${side("Before it:", one.before)}; ${side("after it:", one.after)}. The reading of what its own change moved is <code>forge stats change ${esc(one.issues[0]?.key ?? "<ISS-nn>")}</code>.</p>`);
 
-const releasesHtml = (releases, days) => `<section id="releases"><h2>Harness implementation</h2>`
+const releasesHtml = (releases, days, head = "") => `<section id="releases"><h2>Harness implementation</h2>${head}`
   + `<p class="headline"><strong>${esc(releases.landed.length)} release(s)</strong> written and `
   + `${esc(releases.installed.length)} cop(ies) installed on this day.</p>`
   + trendSvg("releases a day", days, releases.trend)
@@ -152,7 +152,7 @@ const matchCell = (one) => {
   return { value: "~~", html: "matches no open issue: no filing yet" };
 };
 
-const opportunitiesHtml = (opportunities) => `<section id="opportunities"><h2>Opportunities</h2>`
+const opportunitiesHtml = (opportunities, head = "") => `<section id="opportunities"><h2>Opportunities</h2>${head}`
   + (opportunities.listed.length
     ? `<p class="headline"><strong>${esc(opportunities.listed[0].calls)} call(s)</strong> paid by the largest, `
       + `${esc(opportunities.listed[0].runs)} run(s) behind it.</p>`
@@ -162,13 +162,67 @@ const opportunitiesHtml = (opportunities) => `<section id="opportunities"><h2>Op
     : `<p class="headline"><strong>No opportunity</strong>: no refusal, error, repeat, re-read or long wait was recorded on this day.</p>`)
   + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p></section>`;
 
+/* The models' reading as the page shows it: the Decisions block, one self-contained section a layout
+   can move whole; each section's line at that section's head; what each role spent, in the footer:
+   docs/cli/stats-the-reading.md. */
+const figureSaid = (figure) => `${esc(figure.said)}: ${esc(figure.value)}`;
+
+const decisionHtml = (one) => `<li><strong>${esc(one.action)}</strong> — ${esc(one.what)}`
+  + `<br><span class="note">Figure <code>${esc(one.figure.key)}</code>, ${figureSaid(one.figure)}.`
+  + `${one.command ? ` Carried out by <code>${esc(one.command)}</code>.` : ""}</span></li>`;
+
+const judgedBody = (judgement) => {
+  if (judgement.decisions.length) return `<ol class="decisions">${judgement.decisions.map(decisionHtml).join("")}</ol>`;
+  return `<p><strong>${esc(emptySaid(judgement))}</strong></p>`;
+};
+
+/** The Decisions block, or the one line saying why the page carries none; nothing for a page written
+ *  before the reading existed. */
+export const decisionsHtml = (judgement) => {
+  if (!judgement) return "";
+  const notes = [...stageLines(judgement), droppedLine(judgement)].filter(Boolean);
+  if (judgement.why) {
+    return `<section id="decisions"><p class="missing">No decisions: ${esc(judgement.why)}.</p>`
+      + `${notes.map((one) => `<p class="note">${esc(one)}</p>`).join("")}</section>`;
+  }
+  if (!judgement.judged) {
+    return `<section id="decisions"><h2>Decisions</h2><p class="missing">No decisions: no judge ran.</p>`
+      + `${notes.map((one) => `<p class="note">${esc(one)}</p>`).join("")}</section>`;
+  }
+  return `<section id="decisions"><h2>Decisions</h2>${judgedBody(judgement)}`
+    + `${notes.map((one) => `<p class="note">${esc(one)}</p>`).join("")}`
+    + `<p class="note">Judged by models over this page's own figures, at ${esc(judgement.at)}; every figure cited was checked against them.</p></section>`;
+};
+
+const findingHtml = (one) => `<li>${esc(one.reading)} <span class="note">(<code>${esc(one.figure.key)}</code>, ${figureSaid(one.figure)})</span></li>`;
+
+/** What a section opens with: the judge's line where it gave one, else the findings the stages kept. */
+export const sectionHead = (judgement, id) => {
+  const read = judgement?.sections?.[id];
+  if (!read) return "";
+  if (read.verdict) return `<p class="verdict"><strong>${esc(read.verdict)}</strong> — ${esc(read.why)}</p>`;
+  if (read.input === "figures" || !read.findings.length) return "";
+  const said = read.input === "findings" ? "Reviewed findings" : "Unreviewed findings";
+  return `<p class="note">${said}, no judge having ruled on this section:</p><ul>${read.findings.map(findingHtml).join("")}</ul>`;
+};
+
+/** Per role: the model, its calls and the tokens they spent. */
+const costLines = (judgement) => Object.entries(judgement?.cost ?? {}).map(([role, one]) =>
+  `${role}: ${one.model}, ${one.calls} call(s)${one.failed ? ` of which ${one.failed} failed` : ""}, `
+  + `${one.input} input and ${one.output} output token(s)`);
+
+const costFooter = (judgement) => {
+  const lines = costLines(judgement);
+  return lines.length ? `<footer><p class="note">What reading this page cost: ${lines.map(esc).join("; ")}.</p></footer>` : "";
+};
+
 export const STYLE = `body{font:15px/1.5 system-ui,sans-serif;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#1d1d1f;background:#fff}
 h1{font-size:1.5rem}h2{margin-top:2.5rem;border-bottom:1px solid #ddd}h3{font-size:1rem;margin-top:1.5rem}
 .summary{background:#f5f5f7;padding:1rem 1.25rem;border-radius:6px}.headline{font-size:1.05rem}
 table{border-collapse:collapse;margin:.5rem 0;font-size:.9rem}th,td{padding:.25rem .6rem;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
 th{cursor:pointer;background:#fafafa}th:hover{text-decoration:underline}td{max-width:40rem;overflow-wrap:anywhere}
 .trend{display:inline-block;margin:.25rem 1.5rem .25rem 0}.trend svg{stroke:#555;fill:#555;stroke-width:1.5}.trend figcaption{font-size:.8rem;color:#555}
-.thin{color:#8a5a00;font-weight:600}.missing{color:#8a1c1c}.note{color:#444}code{background:#f0f0f0;padding:0 .25rem}`;
+.thin{color:#8a5a00;font-weight:600}.verdict{font-size:1.05rem}.missing{color:#8a1c1c}.note{color:#444}code{background:#f0f0f0;padding:0 .25rem}`;
 
 /* Numbers compare as numbers and the rest as text; a second click on one header reverses it. */
 export const SORT_SCRIPT = `function forgeSort(th){var table=th.closest("table"),body=table.tBodies[0],col=th.cellIndex,dir=th.dataset.dir==="asc"?"desc":"asc";
@@ -181,6 +235,7 @@ document.querySelectorAll("table.sortable th").forEach(function(th){th.addEventL
 /** The whole page for a day's content. */
 export const pageOf = (content) => {
   const days = content.trendDays;
+  const head = (id) => sectionHead(content.judgement, id);
   const unread = content.unread.length
     ? `<p>Registered and not read, no transcript store naming a checkout of it: ${content.unread.map((one) => esc(one.name)).join(", ")}.</p>`
     : "";
@@ -189,9 +244,12 @@ export const pageOf = (content) => {
     + `<h1>Harness daily report — ${esc(content.day)}</h1>`
     + `<p>The day in ${esc(content.zone)}, over ${esc(content.projects.length)} project(s): `
     + `${content.projects.map((one) => esc(one.name)).join(", ") || "none"}. Written ${esc(at(Date.parse(content.written)))}Z.</p>${unread}`
+    + decisionsHtml(content.judgement)
     + `<section class="summary"><h2>Summary</h2>${summaryOf(content).map((one) => `<p>${esc(one)}</p>`).join("")}</section>`
-    + runsHtml(content.runs, days) + landingsHtml(content.landings, days) + consultsHtml(content.consults, days)
-    + frictionHtml(content.friction, days) + releasesHtml(content.releases, days)
-    + opportunitiesHtml(content.opportunities)
+    + runsHtml(content.runs, days, head("runs")) + landingsHtml(content.landings, days, head("landings"))
+    + consultsHtml(content.consults, days, head("consults"))
+    + frictionHtml(content.friction, days, head("friction")) + releasesHtml(content.releases, days, head("releases"))
+    + opportunitiesHtml(content.opportunities, head("opportunities"))
+    + costFooter(content.judgement)
     + `<script>${SORT_SCRIPT}</script>${contentBlock(content)}</body></html>\n`;
 };
