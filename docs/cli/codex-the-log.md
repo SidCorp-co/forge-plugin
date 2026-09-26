@@ -7,8 +7,10 @@ wrong about why, which [the finding](codex-the-finding.md) explains, never a cou
 to 14 rejected was the count form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
 prose: the gateway reported no cache creation in 108 consults, so every replayed character was paid for
 on every call. A recheck's REFUTED rulings record themselves as the verdict on the consult they judged
-(CONFIRMED stays open) over every finding the author has not ruled on; one they have keeps the ruling
-and the reason they gave it, and the recheck's word on it is stored and printed beside that ruling
+(CONFIRMED stays open) over every finding the author has not ruled on: accepted where a file that
+consult was sent has moved since, by the sha its row carries, and rejected where none has, since no fix
+exists to refute a finding over unmoved bytes and the eval would count a false one as worth having. One
+the author has ruled on keeps the ruling and the reason they gave it, and the recheck's word on it is stored and printed beside that ruling
 rather than over it. The record says finding by finding which of its rulings a recheck wrote, so a
 later recheck revises its own word and never the author's. A verdict lands by default on this run's last
 consult that made findings and heard nothing, and `--of` names another. The commit gate waits on

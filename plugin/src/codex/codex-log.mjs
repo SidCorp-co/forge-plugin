@@ -102,6 +102,12 @@ export const sentFrom = (parts) => {
   });
 };
 
+/** Whether every file a consult was sent reads the same bytes now, by the whole-file sha its row carries and `now` maps each path to. A row with no sha, or one no digest answers, is a set nobody can prove unmoved, so it reads as moved (ISS-2641). */
+export const sameBytesSince = (one, now) => {
+  const sent = one?.sent ?? [];
+  return sent.length > 0 && sent.every((row) => Boolean(row.sha) && now.get(row.rel) === row.sha);
+};
+
 /* Paired on `id`, which the finished entry copies from the started one. An unpaired start is a consult that died rather than one that failed, and only writing the start down tells them apart. */
 export const pairedLog = (entries) => {
   const finished = new Set(consults(entries).map((one) => one.id ?? one.at));

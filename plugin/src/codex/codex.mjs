@@ -22,7 +22,7 @@ import { anglesRefusal } from "./angles/refusal.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
-import { pinnedSet, reviewSet, shownOf, unchangedAll } from "./codex-set.mjs";
+import { digestsAt, pinnedSet, reviewSet, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, askedRounds, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
@@ -53,6 +53,7 @@ import {
   loggedWithMark,
   runOf,
   sentFrom,
+  sameBytesSince,
   verdictsBy,
 } from "./codex-log.mjs";
 import { placeLine } from "./log/reads.mjs";
@@ -275,9 +276,11 @@ const plannedSaid = ({ model, effort, kind, budget, ceiling, lines, clipped }) =
   + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}`
   + `${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`;
 
-const ruledSaid = (plan, offset, reply, id, entries) => {
+/* `sent` is the recheck's own row: the digests it took at the send answer for the files it carried. */
+const ruledSaid = (plan, offset, reply, id, entries, { root, sent }) => {
   const prior = verdictsBy(entries).get(plan.judged.id ?? plan.judged.at) ?? null;
-  const auto = verdictFromRulings(plan, offset, reply, id, prior);
+  const unchanged = sameBytesSince(plan.judged, digestsAt(root, plan.judged, sent));
+  const auto = verdictFromRulings(plan, offset, reply, id, prior, unchanged);
   if (!auto) return rulingsUnread(plan, offset, reply, id);
   logConsult(auto.record);
   return auto.said;
@@ -450,7 +453,7 @@ const consult = async (given) => {
     const { left, since } = clearConsulted(root, clear);
     if (standing.length) console.error(`codex: ${heldSaid(standing)}`);
     if (plan) {
-      console.error(`codex: ${ruledSaid(plan, offset, held.text, id, entries)}`);
+      console.error(`codex: ${ruledSaid(plan, offset, held.text, id, entries, { root, sent: record.sent })}`);
     }
     const place = placeLine(entries, { ...finished, run: runOf() }, { keys: issues, run: runOf(), here: hereOf(root) });
     toldAfter(held, reach, { left, since, crossing, place });

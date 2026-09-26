@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import { git, tempRoom } from "../../fixtures.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
+import { digest } from "../../../src/codex/codex-api.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -116,6 +117,23 @@ test("a recheck given --of answers that consult where a newer one shares its fil
   const verdict = rowsOf(home).find((one) => one.kind === "verdict");
   assert.equal(verdict?.of, "c1", "the recheck's ruling is recorded against the consult --of named");
   assert.deepEqual(verdict.kept, ["F1"]);
+});
+
+/* A refutation is "fixed, or never real", and the bytes are what tell the two apart (ISS-2641). */
+test("a recheck refuting a finding over bytes unchanged since its consult records it rejected, and after a change accepted", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const sentAs = (text) => [{ rel: "judged.txt", sha: digest(text), chars: text.length, clipped: false }];
+  const same = seeded([consultRow(root, { id: "c1", files: ["judged.txt"], sent: sentAs("reviewed, and fixed\n"), reply: FINDING })]);
+  const unmoved = await forge(room, same, ["consult", "--recheck", "--of", "c1", "--rounds", "1"]);
+  assert.equal(unmoved.status, 0, unmoved.said);
+  assert.match(unmoved.said, /accepted: none; rejected: F1, refuted over files unchanged since c1\./u);
+  const never = rowsOf(same).find((one) => one.kind === "verdict");
+  assert.deepEqual([never.kept, Object.keys(never.dropped)], [[], ["F1"]], "nothing moved, so nothing was fixed: the finding was never real");
+  const moved = seeded([consultRow(root, { id: "c1", files: ["judged.txt"], sent: sentAs("reviewed\n"), reply: FINDING })]);
+  const fixed = await forge(room, moved, ["consult", "--recheck", "--of", "c1", "--rounds", "1"]);
+  assert.equal(fixed.status, 0, fixed.said);
+  assert.deepEqual(rowsOf(moved).find((one) => one.kind === "verdict").kept, ["F1"], "the file changed since, so the refutation is a fix");
 });
 
 test("a recheck given --of from a linked worktree finds the consult a sibling worktree answered", async () => {

@@ -443,24 +443,28 @@ const authorRuled = (prior, id) =>
 const ruledAs = (prior, id) => (prior?.kept?.includes(id) ? "accepted" : "rejected");
 
 /* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply says; a CONFIRMED one stays open, and the caller's own verdict overrides this one. A ruling the author already made is not the recheck's to move: it goes to `stood`, where the reviewer's word sits beside the author's rather than over it, because a confirmation is the reviewer standing by its finding and never the author withdrawing a rejection, and deriving the whole verdict from the recheck took a rejection and its reason off the record (ISS-1881). One that moved nothing still writes, so the log says it ran and what it said. */
-export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null) => {
+export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null, unchanged = false) => {
   const rulings = new Map();
   /* The block asks the reviewer to lead with the rulings, so a number repeated later is an echo of one. */
   for (const one of rulingsIn(reply)) if (!rulings.has(one.n)) rulings.set(one.n, one.ruling);
   const kept = [];
   const open = [];
+  const never = [];
   const stood = [];
   plan.ids.forEach((id, at) => {
     const ruling = rulings.get(offset + at + 1);
     if (ruling !== "REFUTED" && ruling !== "CONFIRMED" && ruling !== "CANNOT TELL") return;
     if (authorRuled(prior, id)) stood.push([id, ruling]);
-    else if (ruling === "REFUTED") kept.push(id);
+    /* Refuted with no byte of the set moved since the consult: no fix could have resolved it, so it was never real, and accepted is the figure the eval counts as a finding worth having (ISS-2641). */
+    else if (ruling === "REFUTED") (unchanged ? never : kept).push(id);
     else open.push(id);
   });
-  if (!kept.length && !open.length && !stood.length) return null;
+  if (!kept.length && !open.length && !never.length && !stood.length) return null;
   const of = plan.judged.id ?? plan.judged.at;
-  const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length, true);
-  const moved = Boolean(kept.length || open.length);
+  const why = `recheck ${recheckId} refuted it over files unchanged since consult ${of}, so it was never real`;
+  const decided = [...open.map((id) => ({ id, reopen: true })), ...never.map((id) => ({ id, why }))];
+  const held = joined(prior, kept.map((id) => ({ id })), decided, numbered(plan.judged.reply).length, true);
+  const moved = Boolean(kept.length || open.length || never.length);
   return {
     record: {
       kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held,
@@ -470,6 +474,7 @@ export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null)
     said: [
       moved
         ? `verdict on ${of} recorded from recheck ${recheckId} — accepted: ${kept.join(", ") || "none"}`
+          + `${never.length ? `; rejected: ${never.join(", ")}, refuted over files unchanged since ${of}` : ""}`
           + `${open.length ? `; still open: ${open.join(", ")}` : ""}.`
         : `recheck ${recheckId} moved no ruling on consult ${of}, and the verdict on it stands as you wrote it.`,
       stood.length
