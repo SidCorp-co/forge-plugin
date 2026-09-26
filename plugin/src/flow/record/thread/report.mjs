@@ -41,7 +41,6 @@ export const recordReport = async (reference) => {
     for (const one of repeated[kind]) if (one.id) printed.add(repeatedPlace(kind, one.id));
   }
   const beside = besideOf(repeated, printed);
-  /* Each correction under the record it names, and under it every payload that correction let a write replace. */
   const withBeside = (place) => {
     for (const { correction, under } of beside.at(place)) {
       printRecord(correction, { gap: "  " });

@@ -332,8 +332,8 @@ const HANDLE_FORM = new RegExp(`^[0-9a-f]{${HANDLE_LENGTH}}(?:-[0-9a-f-]*)?$`, "
 export const handleOf = (id) => String(id ?? "").toLowerCase().slice(0, HANDLE_LENGTH);
 const HANDLE_TAKES = `the finding's handle, the ${HANDLE_LENGTH} hex characters \`forge advance --owed\` names it by, or its comment's whole id`;
 
-/* The kinds besides the shapes that a correction may name: the four the record verb writes by
-   another route. `issue` names a field of the issue itself that no record holds — its status, its
+/* What a correction may name beyond the shapes: `FIELD_KINDS`, whose reason is given where `KINDS`
+   joins them in record-rows.mjs. `issue` names a field of the issue itself that no record holds — its status, its
    complexity — which the CLI's own corrections move as often as they move a record. */
 export const FIELD_KINDS = ["merged", "note", "criteria", "plan"];
 const ISSUE_TARGET = "issue";
