@@ -102,10 +102,3 @@ could select a newer consult sharing one of them. `--of` pins the consult by id,
 finds it; with no file named its recorded set travels, being on the record already (ISS-378). That id
 is the route every refusal names to a finding its set left out, withheld only where the consult's own
 set cannot reach it either, which is when the refusal names the disposition form instead.
-
-**A recheck that raised nothing of its own is followed to the consult it answered.** Unpinned, the
-last consult on a file is the recheck just taken, which carries rulings and no findings, so it read
-as a set reviewed whole and found clean while the consult it answered still held a finding open. So
-while that consult has a finding open the next recheck answers it, and its verdict replaces the one
-before on that consult; with nothing open the refusal names both, and never calls a recheck a read
-of the set (ISS-2643).
