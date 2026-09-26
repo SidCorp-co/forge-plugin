@@ -85,3 +85,26 @@ that older block was taken. Nothing is refused for it — a run captures again f
 once its change has landed, and that is the ordinary case rather than the mistake — but the checkout
 is the one thing this flag exists to be deliberate about, and a silent overwrite is how a `--pushed`
 typed in the wrong tree names that tree's branch as the issue's.
+
+## A batch rides the worklog, and only a capture takes it off
+
+Two issues worked on one branch were a batch nobody could see: the id the dispatch minted named
+both, and no member's record named the other, so a run resuming one member learned nothing of its
+twin and a verdict citing a different commit went unnoticed. The relation belongs on the record, and
+the tracker offers no edge that means *shares a branch* — what it has orders dispatch, mentions,
+duplicates or decomposes — so it goes where the rest of what a run knows between two records goes.
+
+It is written by the claim, because the claim is the first write a run makes on each member and it
+is made in the tree the dispatch bound to the batch; the verb that mints the id writes nothing to
+the tracker and holds no lease. So each member names the whole batch from the moment its own run
+takes it, and a member not yet claimed there reads on its siblings' line as naming none.
+
+A claim from any other tree leaves it standing: a landing and a judge each claim from a tree of
+their own, and where the change lives is not a fact such a tree holds. A capture does say that, so a
+`--pushed` from a tree whose id does not name the member among several clears it, as it clears every
+other fact the last capture left.
+
+The resume reads each sibling live rather than trusting the member's own list, and says of each
+whether it names the same batch. A relation one member holds and the other does not is what a
+cleared or never-claimed member leaves, and it has to read as one-sided rather than as a batch,
+because what is later built on the batch reads that same answer.

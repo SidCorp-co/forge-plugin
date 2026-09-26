@@ -19,7 +19,7 @@ export const KEY = "worklog";
 export const OPEN_KEPT = 8;
 
 /* Read off the run, never typed; without `copy` a run behind the tree reads like one on it. */
-const FACTS = ["branch", "head", "base", "touched", "files", "at", "copy"];
+const FACTS = ["branch", "head", "base", "touched", "files", "at", "copy", "batch"];
 const REMOTES = ["origin/main", "origin/master"];
 
 /** The half the opening renders, the block below it rendering the rest: one list both readers answer to, so neither prints a fact the other does. Reaching a head is two offline readings for the same reason a claim may not wait on a remote to open. docs/cli/the-work.md. */
