@@ -13,7 +13,7 @@ import { copiesIn, machineSecrets } from "../../../run/workspace/credential-copi
 const HOME = tempRoom("copies-home-");
 mkdirSync(join(HOME, "forge"));
 writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({
-  url: "https://tracker.example/mcp", token: "a-machine-token-0123456789",
+  url: "https://tracker.example/mcp", token: "a-machine-token-0123456789", retrySeconds: 0,
   cloudflare: { accounts: [{ name: "main", accountId: "a-public-account-id-0123456789", apiToken: "a-cloudflare-token-0123456789" }] },
 }));
 process.env.XDG_CONFIG_HOME = HOME;

@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { tempRoom } from "../fixtures.mjs";
+import { answered, escaped, tempRoom } from "../fixtures.mjs";
 import { BORROWED, BORROW_VAR } from "../../src/resolve/machine/borrowed.mjs";
 import { STORES } from "../../src/resolve/machine/stores.mjs";
 
@@ -57,7 +57,7 @@ const probe = (home, borrowed, body, extra = {}) => {
     + ` import { writeFileSync } from "node:fs"; const out = await (async () => { ${body} })();`
     + " process.stdout.write(JSON.stringify(out));"],
   { encoding: "utf8", cwd: tempRoom("borrowed-cwd-"), env: envOf(home, borrowed, extra) });
-  return { ...run, out: run.status === 0 ? JSON.parse(run.stdout) : null };
+  return { ...run, out: () => answered(run) };
 };
 
 /** Every file under a home, whole, so a value that reached the home anywhere is found. */
@@ -69,7 +69,7 @@ test("a run home holding no token reports the token set, read from the file it b
   const home = runHome();
   const run = cli(home, borrowed, ["doctor"]);
   const row = run.stdout.split("\n").find((line) => /\] token {2,}/u.test(line)) ?? "";
-  assert.match(row, new RegExp(`set \\(${TOKEN.length} chars\\) {2}← ${borrowed.replaceAll("/", "\\/")}$`, "u"),
+  assert.match(row, new RegExp(`set \\(${TOKEN.length} chars\\) {2}← ${escaped(borrowed)}$`, "u"),
     `the token row names the borrowed file after its arrow:\n${run.stdout}${run.stderr}`);
   assert.doesNotMatch(everything(home), new RegExp(TOKEN, "u"), "and the report wrote the token nowhere under the run home");
 });
@@ -79,9 +79,9 @@ test("a borrowed key of a store resolves from the borrowed file, and an unborrow
   const home = runHome({ vi: { model: "run/model", key: "the-run-homes-copy-0123456789" } });
   const run = probe(home, borrowed, `return { key: stores.machineValue("vi", "key"), model: stores.machineValue("vi", "model") };`);
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(run.out.key, { value: VI_KEY, from: borrowed },
+  assert.deepEqual(run.out().key, { value: VI_KEY, from: borrowed },
     "the borrowed key is the borrowed file's, and the copy the run home held is never read");
-  assert.deepEqual(run.out.model, { value: "run/model", from: join(home, "forge", "config.json") });
+  assert.deepEqual(run.out().model, { value: "run/model", from: join(home, "forge", "config.json") });
 });
 
 test("a write aimed at a borrowed key is refused naming the key and the borrowed file, and the run home holds none", () => {
@@ -149,7 +149,7 @@ test("a borrowed key changed between two reads in one process is read with its n
     const second = config.userConfig().token;
     return { first, second };`);
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual([run.out.first, run.out.second], [TOKEN, "rotated-token-0123456789abcdef"]);
+  assert.deepEqual([run.out().first, run.out().second], [TOKEN, "rotated-token-0123456789abcdef"]);
   const kept = everything(home);
   assert.doesNotMatch(kept, new RegExp(`${TOKEN}|rotated-token`, "u"), "neither value was written under the run home");
 });
@@ -161,7 +161,7 @@ test("a store key the borrowed file lacks resolves from that store's fallback fi
   writeFileSync(profile, "ANTHROPIC_BASE_URL=https://gw.example\nANTHROPIC_AUTH_TOKEN=profile-gateway-key-0123456789\n");
   const run = probe(home, borrowed, `return stores.machineValue("codex", "key");`, { CLAUDE_PROXY_ENV: profile });
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(run.out, { value: "profile-gateway-key-0123456789", from: profile });
+  assert.deepEqual(run.out(), { value: "profile-gateway-key-0123456789", from: profile });
 });
 
 test("the account's readers answer a rotated token at the next call, not the first one they read", () => {
@@ -174,8 +174,8 @@ test("the account's readers answer a rotated token at the next call, not the fir
     writeFileSync(${JSON.stringify(borrowed)}, JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "rotated-token-0123456789abcdef" }));
     return { first, second: [accountCredentials().token.value, settings().token] };`);
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(run.out.first, [TOKEN, `Bearer ${TOKEN}`]);
-  assert.deepEqual(run.out.second, ["rotated-token-0123456789abcdef", "Bearer rotated-token-0123456789abcdef"]);
+  assert.deepEqual(run.out().first, [TOKEN, `Bearer ${TOKEN}`]);
+  assert.deepEqual(run.out().second, ["rotated-token-0123456789abcdef", "Bearer rotated-token-0123456789abcdef"]);
 });
 
 test("a borrow refused inside an embedding script throws the refusal that script catches, rather than ending it", () => {
@@ -190,5 +190,5 @@ test("a borrow refused inside an embedding script throws the refusal that script
       return error instanceof Refusal ? error.message : "another error";
     }`);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.out, /FORGE_BORROW_FROM=relative\/config\.json is not an absolute path/u, run.out);
+  assert.match(run.out(), /FORGE_BORROW_FROM=relative\/config\.json is not an absolute path/u, run.out());
 });

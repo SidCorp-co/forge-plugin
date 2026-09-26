@@ -54,7 +54,7 @@ export const isBorrowed = (key) => BORROWED.some((row) => key === row.key || key
 
 /* The printed route out of every refusal below: the variable unset, which is the home reading its own
    file again, or a path naming the machine's config, which is what `start` prints. */
-const UNSET = `unset ${BORROW_VAR}, or set it to the absolute path of this machine's own forge config.json`;
+const UNSET = `unset ${BORROW_VAR}, or set it to the absolute path of this machine's own config.json, which \`run.mjs start\` prints`;
 
 const sameFile = (one, other) => {
   const real = (path) => {

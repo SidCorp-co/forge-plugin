@@ -474,7 +474,7 @@ test("finish names every scratch file holding a copy of this machine's credentia
   const scratch = scratchOf(work);
   const home = tempRoom("finish-copies-home-");
   declaredIn(work, home);
-  writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ url: "https://tracker.example/mcp", token: "machine-token-0123456789abcdef" }));
+  writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ url: "https://tracker.example/mcp", token: "machine-token-0123456789abcdef", retrySeconds: 0 }));
   const profile = join(home, "claude-proxy.env");
   writeFileSync(profile, "ANTHROPIC_AUTH_TOKEN=profile-gateway-key-0123456789\n");
   const env = { ...BARE, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: profile };
