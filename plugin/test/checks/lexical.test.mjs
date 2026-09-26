@@ -86,6 +86,8 @@ test("a line comment and a regex end at any of the four line terminators, each k
     const source = `// note${stop}const a = "x";/* one${stop}two */`;
     assert.deepEqual(kinds(source), [[KINDS.LINE, " note"], [KINDS.DOUBLE, "x"], [KINDS.BLOCK, ` one${stop}two `]], name);
     assert.equal(maskOf(source, { blank: EVERY, quotes: "blank" }), `       ${stop}const a =    ;      ${stop}      `, name);
+    const unclosed = `x = /ab${stop}const b = "y";`;
+    assert.deepEqual(kinds(unclosed), [[KINDS.REGEX, "ab"], [KINDS.DOUBLE, "y"]], `${name}: a regex left open ends at the line`);
   }
 });
 
