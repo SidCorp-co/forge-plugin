@@ -32,6 +32,10 @@ export const noDiffIn = (diff) => !diff?.text && !diff?.error;
 
 const nothingToShow = (root, part) => absentFrom(root, part.rel) && noDiffIn(part.diff);
 
+/* A `missing` part with a diff is a deletion, and a change: every `missing` read as unchanged sent a deletion-only review no diffs at all (ISS-703). */
+export const unchangedAll = (parts) => parts.length > 0
+  && parts.every((part) => part.diff?.unchanged || (part.missing && noDiffIn(part.diff)));
+
 /** The parts anything can be shown of, what leaves with nothing, and the lines saying so. With no
  *  anchor no diff was collected, so absence alone cannot tell a phantom from a tracked deletion:
  *  HEAD is asked, and where it will not answer nothing is dropped and the line says so. */
@@ -129,4 +133,13 @@ export const reviewSet = ({ root, named, keys = [], base, readFromParting, held,
     said: [`nothing named, so the ${changed.length} file(s) changed against ${base}: ${changed.join(", ")}.`, ...said],
     gone,
   };
+};
+
+/* Where no file is named, a recheck pinned by `--of` sends the set that consult recorded: it is on the record, so a recheck taken after a commit emptied the turn record needs no copy of it typed back (ISS-378). */
+export const pinnedNamed = (named, pinned) => {
+  if (!pinned || named.length) return named;
+  const files = pinned.files ?? [];
+  if (!files.length) fail(`codex: consult ${pinned.id} recorded no file, so a recheck of it has no set of its own. Name the files it is about.`);
+  console.error(`codex: a recheck of ${pinned.id}, so the ${files.length} file(s) it recorded travel.`);
+  return files;
 };

@@ -4,6 +4,7 @@ import { isAbsolute } from "node:path";
 
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { fail, fromProject, projectCodex } from "../resolve/settings.mjs";
+import { didYouMean } from "../suggest.mjs";
 
 export const EFFORTS = ["minimal", "low", "medium", "high"];
 export const defaultEffort = () => userConfig().codex?.effort || "medium";
@@ -31,6 +32,24 @@ export const chosenSend = (raw) => {
   const named = raw ?? userConfig().codex?.send ?? null;
   if (named !== null && !SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
   return named;
+};
+
+const SEVERITIES = ["blocker", "major", "minor"];
+
+export const severities = (raw) => {
+  if (raw === undefined) return [];
+  const asked = raw.split(",").map((one) => one.trim().toLowerCase()).filter(Boolean);
+  for (const one of asked) if (!SEVERITIES.includes(one)) fail(didYouMean("severity", one, SEVERITIES));
+  return asked;
+};
+
+/* Refused rather than defaulted: a caller who typed `--rounds two` asked for something, and a
+   consult that silently ran at three would bill them for an answer to a question they did not ask. */
+export const askedRounds = (raw) => {
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1) fail(`codex: --rounds takes an integer of 1 or more, not \`${raw}\`.`);
+  return value;
 };
 
 /** Whether this set travels whole, and what is owed the caller about why. Bodies off where the reviewer has tools and a diff to read: it fetches what it needs and the payload stops paying twice. But an absolute rel is `locate`'s word for a path outside the root, and what a consult names one for is a plan or a criteria file — the run's own scratch, in no checkout at all, so nothing can be shown of it as a change and its text is the whole of what the write that takes it asks for, which a diffs consult is refused by a round after the review (ISS-1311). Bodies over the set for that reason, and decided after `--recheck` has narrowed it rather than while the flags are read, a mode chosen before the set walking back into the same refusal. `changedIn` will diff an absolute path that does belong to another checkout, so this is a policy about where a path lies and never a claim that no diff of it exists. */

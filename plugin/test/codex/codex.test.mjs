@@ -10,7 +10,8 @@ const sandbox = tempRoom("forge-codex-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { SAYS, ageOf, consultArgs, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
+const { SAYS, ageOf, consultArgs, rounds } = await import("../../src/codex/codex.mjs");
+const { unchangedAll } = await import("../../src/codex/codex-set.mjs");
 const { modeFor } = await import("../../src/codex/codex-plan.mjs");
 const {
   ANGLES,
