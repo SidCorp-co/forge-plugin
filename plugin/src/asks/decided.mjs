@@ -26,8 +26,22 @@ const wellFormed = (row) => {
   if (!row || typeof row !== "object" || !Array.isArray(row.questions) || !row.questions.length) return false;
   if (row.outcome === OWNER) return nonEmpty(row.reason) && row.questions.every(nonEmpty);
   return row.outcome === DECIDED && nonEmpty(row.toolUseId) && row.questions.every((one) => one && nonEmpty(one.question)
-    && nonEmpty(one.option) && nonEmpty(one.reversal) && one.precedent && nonEmpty(one.precedent.id));
+    && nonEmpty(one.option) && nonEmpty(one.reason) && nonEmpty(one.reversal) && one.precedent && nonEmpty(one.precedent.id));
 };
+
+const orNull = (value) => (value === undefined ? null : value);
+
+/* The fields written are these and no others, so nothing a caller adds, and no `at` it sends, reaches the log. */
+const canonical = (row) => ({
+  at: new Date().toISOString(), session: String(row.session ?? ""), toolUseId: orNull(row.toolUseId), outcome: row.outcome,
+  ...(row.outcome === OWNER
+    ? { reason: row.reason, questions: [...row.questions] }
+    : { model: orNull(row.model), questions: row.questions.map((one) => ({
+        question: one.question, option: one.option, reason: one.reason, reversal: one.reversal,
+        precedent: { id: one.precedent.id, at: orNull(one.precedent.at), question: orNull(one.precedent.question),
+          answer: orNull(one.precedent.answer) },
+      })) }),
+});
 
 /** One outcome appended; false where there is no project, the row is not an outcome, or the write
  *  failed — a decision the owner could not review later is one the gate does not take. */
@@ -35,7 +49,7 @@ export const logOutcome = (entry, room = asksRoom()) => {
   const path = decidedPath(room);
   if (!path || !wellFormed(entry)) return false;
   try {
-    appendJsonl(path, { at: new Date().toISOString(), ...entry });
+    appendJsonl(path, canonical(entry));
     return true;
   } catch {
     return false;

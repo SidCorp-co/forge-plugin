@@ -163,11 +163,15 @@ test("the decision log takes only the outcome shapes it can read back, and names
   const decision = { outcome: "decided", toolUseId: "toolu_x", questions: [{ question: "Q?", option: "A", reason: "r",
     reversal: "undo it", precedent: { id: "p1" } }] };
   for (const wrong of [{ questions: ["Q?"], reason: "r" }, { ...decision, questions: [] }, { ...decision, toolUseId: null },
-    { outcome: "owner", reason: "r", questions: "Q?" }, { ...decision, questions: [{ question: "Q?", option: "A" }] }]) {
+    { outcome: "owner", reason: "r", questions: "Q?" }, { ...decision, questions: [{ question: "Q?", option: "A" }] },
+    { ...decision, questions: [{ ...decision.questions[0], reason: "" }] }]) {
     assert.equal(logOutcome(wrong, room), false, JSON.stringify(wrong));
   }
   assert.deepEqual(decidedIds(room), { ids: new Set() }, "nothing was written");
-  assert.equal(logOutcome(decision, room), true);
+  assert.equal(logOutcome({ ...decision, at: "1999-01-01", extra: "not a field" }, room), true);
   assert.equal(logOutcome({ outcome: "owner", reason: "new ground", questions: ["Q?"] }, room), true);
   assert.deepEqual(decidedIds(room), { ids: new Set(["toolu_x"]) });
+  const [written] = readFileSync(join(room, "decided.jsonl"), "utf8").split("\n").map((one) => one && JSON.parse(one));
+  assert.equal(written.extra, undefined, "a field the caller added is not written");
+  assert.notEqual(written.at, "1999-01-01", "nor a time the caller sent");
 });
