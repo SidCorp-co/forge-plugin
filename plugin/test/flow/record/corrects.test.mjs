@@ -3,6 +3,7 @@
    issue's own fields, and excused on every correction written before it existed. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 
 import { tempHome } from "../../fixtures.mjs";
 
@@ -13,6 +14,8 @@ const { shapeGaps } = await import("../../../src/flow/earned.mjs");
 const { KINDS } = await import("../../../src/flow/record/record-rows.mjs");
 
 const { check } = SHAPES.correction;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
 
 test("--corrects takes a kind this verb writes or a field of the issue, either with an occasion after it", () => {
   for (const kind of KINDS) assert.equal(check({ corrects: kind }), null, `${kind} is a kind the verb writes`);
@@ -36,4 +39,18 @@ test("a correction written before the field reads back whole", () => {
   assert.equal(newer.fields.corrects, "plan", "and one carrying it reads it back");
   assert.deepEqual(shapeGaps("correction", parse(render("correction", { moved: "m", why: "w", corrects: "nothing" }))).length, 1,
     "while one naming no kind is a gap, however it reached the page");
+});
+
+test("a correction with no --corrects is refused before any call, naming the flag and the form it takes", () => {
+  const run = ask("record", "correction", "ISS-1", "--moved", "the reading moved", "--why", "the code said otherwise");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^record correction needs --corrects \(what it corrects\), which takes a record kind, or `issue:<field>`/mu);
+  assert.doesNotMatch(run.stderr, /No Forge endpoint|forge doctor/u, "a flag error costs no call");
+});
+
+test("the help names the field on the kind's own row, and says which kinds refuse a replacement", () => {
+  const own = ask("record", "correction", "-h").stdout;
+  assert.match(own, /^ {2}correction {3}--moved M --why W --corrects K /mu, "on the row the parse reads its flags off");
+  const all = ask("record", "-h").stdout;
+  assert.match(all, /^Every other kind is latest-wins, an earned plan, criteria, note only after a correction\.$/mu);
 });

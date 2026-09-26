@@ -30,9 +30,10 @@ it spent, and carries the value inline where it fits one comment. A field update
 the correction unspent, so the same write sent again goes through; a comment that fails after the
 field was written leaves the value readable in the file already on the issue.
 
-**`--corrects` is required of every correction from now on**, and the CLI's own writers supply it:
-the path a landing wrote names the plan, a status set by hand names `issue:status`, a rung climbed
-names `issue:complexity`, a criterion ruled the wrong test names it by number. A correction written
+**`--corrects` is required of every correction from now on**, and every correction the CLI prints
+or posts for itself already carries one, so no run is sent a command its own parse refuses. `issue:`
+is there because those writers correct the issue's status and its complexity as often as a record,
+and a correction that could name only a record would leave them nothing true to say. A correction written
 before the field existed reads back whole, and names nothing, so the report keeps it in the counted
 list; one that names a record the report prints stands under that record instead, with the payloads
 it let a write replace beneath it.

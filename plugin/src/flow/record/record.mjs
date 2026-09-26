@@ -70,7 +70,8 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
     }
     if (value === undefined) {
       if (!field.optional && !defer.includes(field.flag)) {
-        refuse(`record ${kind} needs --${field.flag} (${field.label.toLowerCase()}).`);
+        /* The form beside the name where the field has one, so the first refusal is the last. */
+        refuse(`record ${kind} needs --${field.flag} (${field.label.toLowerCase()})${field.form ? `, which takes ${field.form}` : ""}.`);
       }
       continue;
     }
