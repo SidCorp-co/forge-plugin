@@ -81,6 +81,14 @@ test("the caller chooses what goes: which kinds, their quotes, and a template's 
 
 /* Every index a caller takes off the mask indexes the source, which is the property every reader of
    it stands on: counted in code units, so an astral character moves nothing (ISS-2040). */
+test("a line comment and a regex end at any of the four line terminators, each kept where it stood", () => {
+  for (const [name, stop] of [["LF", "\n"], ["CR", "\r"], ["LS", "\u2028"], ["PS", "\u2029"]]) {
+    const source = `// note${stop}const a = "x";/* one${stop}two */`;
+    assert.deepEqual(kinds(source), [[KINDS.LINE, " note"], [KINDS.DOUBLE, "x"], [KINDS.BLOCK, ` one${stop}two `]], name);
+    assert.equal(maskOf(source, { blank: EVERY, quotes: "blank" }), `       ${stop}const a =    ;      ${stop}      `, name);
+  }
+});
+
 test("the mask is the source's length, code unit for code unit, with every line break where it stood", () => {
   const source = "const drawn = \"\u{1F600}\";\n/* one\n   two */\nconst three = `a\nb`;\n";
   const mask = maskOf(source, { blank: EVERY, quotes: "blank" });

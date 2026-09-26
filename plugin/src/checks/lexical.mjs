@@ -15,6 +15,7 @@ export const LITERALS = Object.freeze([KINDS.SINGLE, KINDS.DOUBLE, KINDS.TEMPLAT
 
 const WORD = /[\w$]/u;
 const SPACE = /\s/u;
+/* JavaScript's four line terminators, any of which ends a line comment or a regex and stays put in a mask. */
 const LINE_BREAK = /[\n\r\u2028\u2029]/u;
 /* The words after which only an expression can start, so `return /x/` opens a literal as `= /x/`
    does, while `x / 2` divides. */
@@ -48,7 +49,7 @@ const stringAt = (text, at) => {
 const regexAt = (text, at) => {
   let to = at + 1;
   let inClass = false;
-  while (to < text.length && text[to] !== "\n") {
+  while (to < text.length && !LINE_BREAK.test(text[to])) {
     const one = text[to];
     if (one === "\\") {
       to += 2;
@@ -63,9 +64,14 @@ const regexAt = (text, at) => {
   return { kind: KINDS.REGEX, start: at, from: at + 1, to, end: text[to] === "/" ? to + 1 : to };
 };
 
+const lineEndFrom = (text, from) => {
+  const found = text.slice(from).search(LINE_BREAK);
+  return found === -1 ? -1 : from + found;
+};
+
 const commentAt = (text, at) => {
   const line = text[at + 1] === "/";
-  const shut = text.indexOf(line ? "\n" : "*/", at + 2);
+  const shut = line ? lineEndFrom(text, at + 2) : text.indexOf("*/", at + 2);
   const to = shut === -1 ? text.length : shut;
   return { kind: line ? KINDS.LINE : KINDS.BLOCK, start: at, from: at + 2, to,
     end: line || shut === -1 ? to : to + 2 };
@@ -149,7 +155,7 @@ const walk = (text) => {
 };
 
 const blankInto = (out, from, to) => {
-  for (let at = Math.max(from, 0); at < Math.min(to, out.length); at += 1) if (out[at] !== "\n") out[at] = " ";
+  for (let at = Math.max(from, 0); at < Math.min(to, out.length); at += 1) if (!LINE_BREAK.test(out[at])) out[at] = " ";
 };
 
 const CHOICES = { quotes: ["keep", "blank"], holes: ["code", "text"] };
