@@ -2,7 +2,8 @@
 import { join } from "node:path";
 
 import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
-import { configDir } from "../../resolve/config.mjs";
+import { ASKED, WORKTREE, configDir, sessionSourced } from "../../resolve/config.mjs";
+import { RUN_ID_VAR } from "../../resolve/session/run-id.mjs";
 import { declaredCommands, declaredIn } from "../../stats/corpus/declared.mjs";
 import { typedBack } from "../../refusal.mjs";
 import { citedHead, freshForm } from "./baseline.mjs";
@@ -59,10 +60,14 @@ export const publishedSaid = (outcome, commit) => ({
   [FAILED]: `nothing is published for ${commit}, so a branch cut here runs its own gate`,
 }[outcome]);
 
-/* The same write, run from a checkout that stands at the cited commit and holds nothing else: the one tree the cited result answers for, and the one route that clears either head refusal below without measuring a tree somebody already measured. Every value goes back as typed, so the line runs as printed. */
-const atCitedForm = (ref, got) => {
-  const write = ["forge", "record", "baseline", ref, "--gate", got.gate, "--result", got.result,
-    "--commit", got.commit, "--scope", got.scope, "--cited", got.cited].map(typedBack).join(" ");
+/* The two sources of a run's id the route below loses on its way into a fresh tree: that tree's git directory holds no id of its own, and a variable the refused call was prefixed with is gone from the shell the route is pasted into. The rest are read there alike, and carrying them would only rename where they came from (ISS-2556). */
+const LOST_IN_A_NEW_TREE = [ASKED, WORKTREE];
+
+/* The same write, run from a checkout that stands at the cited commit and holds nothing else: the one tree the cited result answers for, and the one route that clears either head refusal below without measuring a tree somebody already measured. Every value goes back as typed, the run's id among them, so the line runs as printed and the lease takes it for the run that was refused. */
+const atCitedForm = (ref, got, held) => {
+  const carried = held?.id && LOST_IN_A_NEW_TREE.includes(held.source) ? [`${RUN_ID_VAR}=${typedBack(held.id)}`] : [];
+  const write = [...carried, ...["forge", "record", "baseline", ref, "--gate", got.gate, "--result", got.result,
+    "--commit", got.commit, "--scope", got.scope, "--cited", got.cited].map(typedBack)].join(" ");
   return `dir=$(mktemp -d) && git worktree add --detach "$dir" ${typedBack(got.commit)} `
     + `&& (cd "$dir" && ${write}); git worktree remove "$dir"`;
 };
@@ -75,7 +80,7 @@ const HEAD_SAID = {
 };
 
 /** What refuses a citing write: a commit nothing published, or a published one that is not the clean head of the checkout the write stands in, read by the entry check's own predicate so the write never takes a record `in_progress` refuses (ISS-2530). A write citing nothing is judged by neither. */
-export const citationProblem = (ref, project, got) => {
+export const citationProblem = (ref, project, got, held = sessionSourced()) => {
   if (!got.cited) return null;
   if (!publishedFor(project, got.commit)) {
     return `--commit to name a commit some ship published a whole-tree result for. Nothing is `
@@ -87,7 +92,7 @@ export const citationProblem = (ref, project, got) => {
   if (!head) return null;
   return `--commit to be the clean head of the checkout the write stands in, since a cited result `
     + `answers for one tree. ${HEAD_SAID[head](got)}. Nothing was sent. Write it from a detached `
-    + `worktree at the cited commit:\n  ${atCitedForm(ref, got)}`;
+    + `worktree at the cited commit:\n  ${atCitedForm(ref, got, held)}`;
 };
 
 /** The write that cites what is published for one head, or null. A head this cannot be given at all — no checkout, or one with uncommitted work in it — answers null too, that being the head the write would fail to stamp. */
