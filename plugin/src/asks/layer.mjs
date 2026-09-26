@@ -3,7 +3,7 @@
    a new question is judged against. Nothing here reads another project's transcripts or layer.
    plugin/hooks/how/ask-decide.md. */
 import { createHash } from "node:crypto";
-import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { appendJsonl, jsonlAt } from "../hooks/log/hook-log-file.mjs";
@@ -138,19 +138,37 @@ const rowsOfLine = (bytes, skip) => {
 };
 
 /* A directory that is not there holds no transcripts; one that is there and cannot be listed may hold
-   the answer that disagrees, so it leaves the build incomplete. */
-const transcriptsUnder = (dir, top = true) => {
+   the answer that disagrees, so it leaves the build incomplete. A link is followed only where it lands
+   inside the project's own transcripts: one leading anywhere else is another project's, or nothing,
+   and is doubt rather than evidence. */
+const transcriptsUnder = (dir, root = null) => {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch (error) {
-    return { files: [], complete: top && error.code === "ENOENT" };
+    return { files: [], complete: root === null && error.code === "ENOENT" };
   }
+  const top = root ?? realpathSync(dir);
   const found = { files: [], complete: true };
   for (const one of entries) {
     const path = join(dir, one.name);
-    if (one.isDirectory()) {
-      const inner = transcriptsUnder(path, false);
+    let kind = one;
+    if (one.isSymbolicLink()) {
+      let target;
+      try {
+        target = realpathSync(path);
+      } catch {
+        found.complete = false;
+        continue;
+      }
+      if (!target.startsWith(`${top}/`)) {
+        found.complete = false;
+        continue;
+      }
+      kind = statSync(target);
+    }
+    if (kind.isDirectory()) {
+      const inner = transcriptsUnder(path, top);
       found.files.push(...inner.files);
       found.complete &&= inner.complete;
     } else if (one.name.endsWith(".jsonl")) found.files.push(path);

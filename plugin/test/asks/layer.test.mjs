@@ -200,3 +200,17 @@ test("a layer holding a row that will not parse is refused, rather than read wit
     assert.match(refreshLayer(whole).unreadable, /line 1 is not a precedent/u, `${JSON.stringify(partial)} is not a whole row`);
   }
 });
+
+test("a link out of the project's own transcripts is never read, and leaves the build incomplete", () => {
+  const paths = layer();
+  const foreign = join(tempRoom("asks-foreign-"), "theirs.jsonl");
+  writeFileSync(foreign, answered("toolu_theirs", QUESTION, "A page on the tracker"));
+  writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_mine", QUESTION, "A file on this device (Recommended)"));
+  symlinkSync(foreign, join(paths.source, "s2.jsonl"));
+  assert.deepEqual(refreshLayer(paths), { added: 1, complete: false });
+  assert.deepEqual(precedentsIn(paths).map((one) => one.id), ["toolu_mine#0"]);
+  const inside = layer();
+  writeFileSync(join(inside.source, "session", "real.jsonl"), answered("toolu_in", QUESTION, "A page on the tracker"));
+  symlinkSync(join(inside.source, "session"), join(inside.source, "linked"));
+  assert.equal(refreshLayer(inside).complete, true, "while one landing inside them is read as they are");
+});
