@@ -22,7 +22,11 @@ const carriedWhole = (one) => {
 export const isWholeRead = (one) => isAnswered(one) && one.send === "bodies" && !one.dirty
   && Boolean(one.head) && !one.recheck && carriedWhole(one).length > 0;
 
-/** Each whole-set read among rows already in log order, one entry per row: the first; a recheck, at a head no earlier read was at; a repeat, carrying a file already read whole at its head, which with a head recorded per commit means no commit between; or a further pass of the read at that head, carrying only files it had not read (AC-06-1-9). `read` is the ordinal of the read the row belongs to. */
+/* A further pass is one run's, as AC-06-1-9 has it and the landing reads it: two runs reading halves of a set at one head each took a read, and folding one into the other would undercount both. */
+const continues = (held, one, files) =>
+  Boolean(held?.run) && one.run === held.run && !files.some((rel) => held.files.has(rel));
+
+/** Each whole-set read among rows already in log order, one entry per row: the first; a recheck, at a head no earlier read was at; a repeat, at a head already read, which with a head recorded per commit means no commit between; or a further pass of the read at that head by the same run, carrying only files it had not read (AC-06-1-9). `read` is the ordinal of the read the row belongs to. */
 export const classified = (rows) => {
   const atHead = new Map();
   const out = [];
@@ -31,7 +35,7 @@ export const classified = (rows) => {
     if (!isWholeRead(one)) continue;
     const files = carriedWhole(one);
     const held = atHead.get(one.head);
-    if (held && !files.some((rel) => held.files.has(rel))) {
+    if (continues(held, one, files)) {
       for (const rel of files) held.files.add(rel);
       held.passes += 1;
       out.push({ row: one, kind: PASS, read: held.read, passes: held.passes });
@@ -39,7 +43,7 @@ export const classified = (rows) => {
     }
     reads += 1;
     const kind = held ? REPEAT : (reads === 1 ? FIRST : RECHECK);
-    atHead.set(one.head, { files: new Set([...(held?.files ?? []), ...files]), read: reads, passes: 1 });
+    atHead.set(one.head, { files: new Set(files), read: reads, passes: 1, run: one.run ?? null });
     out.push({ row: one, kind, read: reads, passes: 1 });
   }
   return out;
@@ -64,16 +68,20 @@ export const rowsOf = (entries, { keys = [], run = null, here }) => {
     && ((one.issues ?? []).some((key) => named.has(upper(key))) || (run !== null && one.run === run)));
 };
 
-/** The window's figure for `forge codex stats`: each run's rows read as one sequence, a row naming no run standing alone, since nothing ties it to any other. */
-export const readFigures = (rows) => {
+const runKey = (one) => (one.run ? `run ${one.run}` : `row ${one.id ?? one.at}`);
+
+/** The window's figure for `forge codex stats`: each run's rows read as one sequence over the history given, so a read whose first fell before the window is still a repeat or a pass inside it, and only the window's rows are counted. A row naming no run stands alone, nothing tying it to any other. */
+export const readFigures = (rows, history = rows) => {
+  const inWindow = new Set(rows);
+  const wanted = new Set(rows.map(runKey));
   const byRun = new Map();
-  for (const one of rows) {
-    const key = one.run ? `run ${one.run}` : `row ${one.id ?? one.at}`;
-    byRun.set(key, [...(byRun.get(key) ?? []), one]);
+  for (const one of history) {
+    const key = runKey(one);
+    if (wanted.has(key)) byRun.set(key, [...(byRun.get(key) ?? []), one]);
   }
   const held = { reads: 0, rechecks: 0, repeats: 0, runs: 0 };
   for (const group of byRun.values()) {
-    const reads = readsIn(group);
+    const reads = classified(group).filter((one) => inWindow.has(one.row) && one.kind !== PASS);
     if (!reads.length) continue;
     held.runs += 1;
     held.reads += reads.length;
@@ -86,7 +94,7 @@ export const readFigures = (rows) => {
 const WHY = {
   [FIRST]: "first",
   [RECHECK]: "recheck — the head moved since the read before it",
-  [REPEAT]: "repeat — a file already read whole at this head, read again with no commit between",
+  [REPEAT]: "repeat — this head was already read, with no commit between",
 };
 
 const passesSaid = (passes) => (passes > 1 ? `, in ${passes} passes` : "");

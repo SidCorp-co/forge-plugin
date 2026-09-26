@@ -10,8 +10,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("forge-reads-");
 const { FIRST, PASS, RECHECK, REPEAT, classified, isWholeRead, placeLine, readFigures, readsIn, readsSaid, rowsOf } =
   await import("../../../src/codex/log/reads.mjs");
 const { REVIEW_READS, SPARES, readsAllowed } = await import("../../../src/ladder.mjs");
-const { statsOf } = await import("../../../src/codex/stats/figures.mjs");
-const { statLines } = await import("../../../src/codex/stats/lines.mjs");
+const { readsLine } = await import("../../../src/codex/stats/lines.mjs");
 
 const HERE = { root: "/a", repo: null };
 const sent = (rels) => rels.map((rel) => ({ rel, chars: 9, clipped: false }));
@@ -32,6 +31,13 @@ test("two passes by one run at one clean head over different files are one whole
 test("two reads at one head carrying a common file are a repeat", () => {
   const rows = [READ("aaaaaaa"), READ("aaaaaaa", ["b.mjs"])];
   assert.deepEqual(kinds(rows), [["aaaaaaa", FIRST], ["aaaaaaa", REPEAT]]);
+});
+
+test("two runs reading halves of a set at one head each took a read, and no pass is folded across them", () => {
+  const rows = [READ("aaaaaaa", ["a.mjs"], { run: "r1" }), READ("aaaaaaa", ["b.mjs"], { run: "r2" })];
+  assert.deepEqual(kinds(rows), [["aaaaaaa", FIRST], ["aaaaaaa", REPEAT]]);
+  const nameless = [READ("aaaaaaa", ["a.mjs"], { run: undefined }), READ("aaaaaaa", ["b.mjs"], { run: undefined })];
+  assert.equal(readsIn(nameless).length, 2, "rows naming no run are no sequence anybody declared");
 });
 
 test("a read, a commit, and a read at the new head are a recheck and not a repeat", () => {
@@ -79,7 +85,7 @@ test("the allowance printed and the rung's round line are one constant", () => {
   const over = readsSaid(readsIn([READ("aaaaaaa"), READ("bbbbbbb"), READ("bbbbbbb")]), { ref: "ISS-7", rung: "trivial" });
   assert.match(over, /: 3, and the 1 a `trivial` allows\. That is past the allowance, and nothing refuses it\./u);
   assert.match(over, /\n {2}bbbbbbb {2}recheck — the head moved since the read before it\n/u);
-  assert.match(over, /\n {2}bbbbbbb {2}repeat — a file already read whole at this head, read again with no commit between$/u);
+  assert.match(over, /\n {2}bbbbbbb {2}repeat — this head was already read, with no commit between$/u);
 });
 
 test("a consult that read whole says which read it was, and one that did not says nothing", () => {
@@ -101,7 +107,19 @@ test("codex stats counts the window's reads, rechecks and repeats apart, one run
   ];
   assert.deepEqual(readFigures(rows), { reads: 6, rechecks: 1, repeats: 1, runs: 4 },
     "a row naming no run is tied to no other, so two of them at one head are two firsts");
-  const lines = statLines(statsOf(rows));
-  assert.ok(lines.includes("whole-set reads   6 over 4 run(s), 1 recheck(s) at a head not read before, 1 repeat(s) of a head already read"),
-    lines.join("\n"));
+  assert.equal(readsLine(readFigures(rows)),
+    "whole-set reads   6 over 4 run(s), 1 recheck(s) at a head not read before, 1 repeat(s) of a head already read");
+});
+
+test("a window is classified against the history before it, and counts only its own rows", () => {
+  const first = READ("aaaaaaa");
+  const again = READ("aaaaaaa");
+  assert.deepEqual(readFigures([again], [first, again]), { reads: 1, rechecks: 0, repeats: 1, runs: 1 },
+    "a repeat whose first read fell before the window is still a repeat");
+  const opening = READ("bbbbbbb", ["a.mjs"]);
+  const pass = READ("bbbbbbb", ["b.mjs"]);
+  assert.deepEqual(readFigures([pass], [opening, pass]), { reads: 0, rechecks: 0, repeats: 0, runs: 0 },
+    "a further pass of a read begun before the window is no read of its own");
+  assert.deepEqual(readFigures([again], [first, again, READ("ccccccc", undefined, { run: "r9" })]).runs, 1,
+    "a run with no row in the window is not counted");
 });

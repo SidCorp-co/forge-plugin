@@ -66,10 +66,11 @@ allows one, and runs were taking about four with nothing counting them. A counte
 second copy a crashed run leaves wrong, and the transcript is the wrong source anyway: the send mode
 is resolved rather than typed, so the shell line no longer says what went up. What tells a repeat
 from a recheck is the head. A row's head is a commit and a read is only counted at a clean one, so a
-second read carrying a file already read at that head had nothing new to judge: that is the read the
-allowance excludes. A read at a head no earlier read was at follows a commit, which the rule already
-owes a read. A pass at a read head carrying only unread files is the same read, as the landing
-already takes it. The count refuses nothing until it is trusted, because a miscount would block the
+second read at a head already read had no commit to judge: that is the read the allowance excludes.
+A read at a head no earlier read was at follows a commit, which the rule already owes a read. One
+run's pass at a read head carrying only files that read had not is the same read, as the landing
+already takes it; two runs each reading half are two reads. The stats window classifies against the
+log before it, or a repeat whose first read fell outside would count as a first. The count refuses nothing until it is trusted, because a miscount would block the
 one read a run genuinely owes (ISS-1090).
 
 What the stats window answers, how it groups, and why a pass and a recheck are priced apart is

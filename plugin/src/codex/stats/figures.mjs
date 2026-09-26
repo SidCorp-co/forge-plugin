@@ -7,7 +7,6 @@ import { anglesOfFindings, countedIn, modelKey, numbered, ruledOn } from "../log
 import { incompleteIn, newFindingsIn } from "../codex-plan.mjs";
 import { groupBy } from "../../stats/windows.mjs";
 import { median } from "../../stats/median.mjs";
-import { readFigures } from "../log/reads.mjs";
 
 const KINDS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens"];
 
@@ -54,7 +53,6 @@ export const statsOf = (rows) => {
   const sent = spent.input_tokens + read + spent.cache_creation_input_tokens;
   return {
     ...held,
-    wholeReads: readFigures(rows),
     spent,
     sent,
     cached: sent ? read / sent : 0,
