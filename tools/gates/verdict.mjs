@@ -123,24 +123,26 @@ const deadlineSaid = (root, pid, minutes, held) => `${WAITED} deadline — the g
 
 const holding = (ahead) => ahead.map((one) => `  pid ${one.pid}  gating ${one.tree}`).join("\n");
 
-const slotFreeSaid = (root, ahead, waited) => `${WAITED} place — ${ahead.length} gate(s) of this checkout are `
-  + `running, which is under the number it declares${waited >= 1000 ? `, after ${spent(waited)}` : ""}. Nothing here `
-  + `judged ${root}: the ceiling is advisory, so a gate that starts before yours takes the place instead.\nGate it:\n`
-  + `  npm run check`;
+const GATE_IT = "Nothing here judged <root>: the ceiling is advisory, so a gate that starts before yours takes the place "
+  + "instead.\nGate it:\n  npm run check";
 
-const slotHeldSaid = (root, ahead, minutes) => `${WAITED} deadline — every place this checkout declares is still `
+const slotFreeSaid = (root, ahead, waited, then) => `${WAITED} place — ${ahead.length} gate(s) of this checkout are `
+  + `running, which is under the number it declares${waited >= 1000 ? `, after ${spent(waited)}` : ""}. `
+  + then.replace("<root>", root);
+
+const slotHeldSaid = (root, ahead, minutes, again) => `${WAITED} deadline — every place this checkout declares is still `
   + `held and this wait was given ${minutes} minute(s), which is what it hit:\n${holding(ahead)}\nNo gate of ${root} `
   + `ran at all, so this is not a tree that was judged and found red — it is one that never got a place.\n`
-  + `Wait again, in a call that returns:\n  node tools/gates.mjs ${WAIT} ${SLOT}`;
+  + `Wait again, in a call that returns:\n  node tools/gates.mjs ${again}`;
 
 /* Written before the first round and read by a caller holding nothing else: a result carrying this line alone is one where no answer of its own was observed. Which of the ways that happened it does not say — a call the host ended and a failure in here after this line was written look alike from outside, and the next move is the same for both: the gate is untouched by either and waiting again is what reads it. */
 const watchingSaid = (root, minutes, subject) => `${WAITED} watching — the ${subject} of ${root}, for up to `
   + `${minutes} minute(s). An answer is one more line of its own, so a result carrying this one alone `
   + `is a call that reached none.`;
 
-/** The wait's other subject: a place at the ceiling this checkout declares, answered 0 where a gate starting now would not be declined and DEADLINE where it still would. It starts no gate, judges no tree and writes no verdict, so nothing it does can be read back as a result about this tree; what it watches is the verdict file of the gate ahead, since that is the last thing that gate writes, and the tick behind it is what answers a gate killed before it wrote one. `place` is the seam a case drives a ceiling through, this repository's own number being one a suite may not be made to answer to. */
+/** The wait's other subject: a place at the ceiling this checkout declares, answered 0 where a gate starting now would not be declined and DEADLINE where it still would. It starts no gate, judges no tree and writes no verdict, so nothing it does can be read back as a result about this tree; what it watches is the verdict file of the gate ahead, since that is the last thing that gate writes, and the tick behind it is what answers a gate killed before it wrote one. `place` is the seam a case drives a ceiling through, this repository's own number being one a suite may not be made to answer to. `again` and `then` are the caller's route, since a baseline that waited goes on to measure where a plain wait hands back: the arguments that wait again, and what follows a place found free. */
 export const waitForSlot = async (root, { minutes = DEFAULT_MINUTES, say = console.log, warn = console.error,
-  tick = TICK_MS, place = placeFor } = {}) => {
+  tick = TICK_MS, place = placeFor, again = `${WAIT} ${SLOT}`, then = GATE_IT } = {}) => {
   const began = Date.now();
   const until = began + minutes * 60_000;
   mkdirSync(recordDir(root), { recursive: true });
@@ -156,11 +158,11 @@ export const waitForSlot = async (root, { minutes = DEFAULT_MINUTES, say = conso
       where = place(ours);
     }
     if (!where.declined) {
-      say(slotFreeSaid(root, where.ahead, Date.now() - began));
+      say(slotFreeSaid(root, where.ahead, Date.now() - began, then));
       return 0;
     }
     if (Date.now() >= until) {
-      warn(slotHeldSaid(root, where.ahead, minutes));
+      warn(slotHeldSaid(root, where.ahead, minutes, again));
       return DEADLINE;
     }
     const ms = Math.min(tick, Math.max(until - Date.now(), 1));
