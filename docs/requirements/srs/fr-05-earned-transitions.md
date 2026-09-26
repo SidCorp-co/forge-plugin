@@ -103,6 +103,11 @@ agent learns what a status wants.
   WHERE the full report prints more records than the re-minted context shows, the CLI SHALL say how
   many more there are and name the command that prints them, and SHALL say nothing of it where the
   context shows them all, so a stranger reading a few headlines learns the rest exists.
+- **AC-05-1-19** · Rev: 1 · Proof: plugin/test/codex/read-anywhere.test.mjs "a write from the primary checkout is cleared by a consult of the same absolute path in a worktree"
+  WHEN a write of the plan or the criteria names a file a consult read whole at the bytes it holds
+  now THEN the CLI SHALL take the write whichever directory either command ran from, the file's real
+  path being what the consult is found by, because a run consults from its worktree and writes from
+  wherever its shell stands.
 
 ### UC-05-2 — Advance to the next status
 
