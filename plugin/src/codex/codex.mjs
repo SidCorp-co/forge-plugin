@@ -310,7 +310,7 @@ const consult = async (given) => {
     const nothing = recheckOwed(plan, rels);
     if (nothing) fail(`codex: ${nothing}`);
     /* The set holds some of that consult's findings and not others: this round answers only part. */
-    const missed = recheckMissed(plan);
+    const missed = recheckMissed(plan, rels);
     if (missed) for (const line of missed.split("\n")) console.error(`codex: ${line}`);
     risks.push(...plan.risks);
     const range = named.length ? null : recheckRange(plan, rels);

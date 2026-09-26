@@ -1,4 +1,5 @@
 /* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, and what a recheck has to verify. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
+import { isAbsolute } from "node:path";
 import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
@@ -159,6 +160,19 @@ const ANCHOR = /`([^`:\s]+):\d+(?:-\d+)?`/u;
 const onTracker = (anchored) => HUMAN_REF.test(String(anchored).split("/")[0]);
 const FINDING_CHARS = 900;
 
+/* The file of `recorded` an anchor names: its exact path, or the one absolute path it is the tail of.
+   A file outside the checkout is recorded by its real path and shown under it, and the reviewer anchors
+   on the name it would write, `criteria.md` or `scratch/criteria.md` (ISS-2336, ISS-2171). Two recorded
+   files sharing that tail make it no one's, and a relative path is only ever matched whole, because a
+   bare name in a checkout names many files the set never held. A recheck resolves against the consult's
+   own set as well as its narrower one, so naming one of two such files does not make the tail its. */
+const tailOf = (file, anchor) => file === anchor || file.endsWith(`/${anchor}`);
+export const anchoredOn = (anchor, recorded) => {
+  if (recorded.includes(anchor)) return anchor;
+  const tails = recorded.filter((file) => tailOf(file, anchor));
+  return tails.length === 1 && isAbsolute(tails[0]) ? tails[0] : null;
+};
+
 const ID = /^\s*F(\d+)\b\s*[—-]?\s*/u;
 
 const INDENTED = /^[ \t]+\S/u;
@@ -184,7 +198,8 @@ const clausesAfter = (reply, from) => {
 };
 
 /* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against. `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. An empty list is no list — it says the caller named none, never that none may be cited — and it is what a consult given only issue keys records: read as a range admitting no path, it dropped every finding anchored to one, which is most of what a reviewer told to read the checkout writes. A reply that counts itself at zero made no findings, so nothing here is given a positional id: the severity words are the ones the prompt puts in front of the reviewer, and a summary bullet echoing them to say none was found was read as one for fourteen of 4409 logged replies, every one of which then had a verdict written against an id nobody raised (ISS-352, ISS-651, ISS-707, ISS-1532, ISS-1665). An id the reviewer wrote itself still stands, whatever the count says, because that is the model numbering a finding and not this parser inventing one. No predicate over the label's prose is attempted: two of the fourteen negate in Vietnamese and one, `Blocker floor is developed`, negates nothing at all. */
-export const numbered = (reply, files = null) => {
+export const numbered = (reply, files = null, recorded = null) => {
+  const among = [...new Set([...(recorded ?? []), ...(files ?? [])])];
   const whole = String(reply ?? "");
   const none = countedIn(whole)?.total === 0;
   const seen = new Set();
@@ -204,7 +219,7 @@ export const numbered = (reply, files = null) => {
     .filter((one) => one && !seen.has(one.id) && seen.add(one.id))
     .filter((one) => {
       const found = files?.length ? ANCHOR.exec(one.head) : null;
-      return !found || onTracker(found[1]) || files.includes(found[1]);
+      return !found || onTracker(found[1]) || files.includes(anchoredOn(found[1], among));
     });
 };
 
@@ -314,7 +329,7 @@ const leftOutOf = (entries, root, judged, reply, kept, ruled) => {
   const why = !files.length ? `consult ${of} recorded no set of its own to recheck over`
     : lands !== judged ? `a recheck over ${of}'s own set lands on consult ${lands.id ?? lands.at} instead`
     : out.every((one) => reaches.has(one.id)) ? null
-    : `${of}'s own set leaves that finding out too, it being anchored on a file that consult never recorded`;
+    : `${of}'s own set leaves that finding out too, it being anchored on a file that consult never recorded — it recorded ${listed(files)}`;
   return {
     of,
     made: out.map((one) => `${one.id} on ${ANCHOR.exec(one.head)?.[1] ?? "a file it did not name"}`),
@@ -333,7 +348,7 @@ export const recheckPlan = (entries, root, rels) => {
   const ruled = verdictsBy(entries).get(judged.id ?? judged.at);
   const held = ruled ? maskedDeep(ruled) : null;
   const reply = masked(judged.reply);
-  const findings = numbered(reply, rels);
+  const findings = numbered(reply, rels, judged.files);
   return {
     judged,
     ids: findings.map((one) => one.id),
@@ -375,10 +390,10 @@ const missedRoute = (out) => (out.route
 
 /** What a recheck that does go ahead still does not reach, or null where no disposition is owed. Never
  *  a wider recheck: this round logs a consult of its own, which is then the one a wider set selects. */
-export const recheckMissed = (plan) => {
+export const recheckMissed = (plan, rels = []) => {
   const out = plan?.outside;
   if (!out?.owed.length) return null;
-  return `consult ${out.of} also made ${some(out.made)}, which this set does not hold, so this recheck`
+  return `consult ${out.of} also made ${some(out.made)}, which this set does not hold${rels.length ? ` — it holds ${listed(rels)} —` : ","} so this recheck`
     + ` does not reach ${some(out.owed)}. This round logs a consult of its own over these files, which a`
     + ` wider recheck would then answer instead, so rule it where the gate names: \`${verdictForm(out.of)}\`.`;
 };
@@ -395,7 +410,7 @@ export const recheckOwed = (plan, rels) => {
   const of = plan.judged.id ?? plan.judged.at;
   /* Ahead of the coverage sentences, each of which claims the CONSULT found nothing (ISS-1873). */
   if (plan.outside) {
-    return `consult ${of} made ${some(plan.outside.made)}, and this set holds no such file, so this`
+    return `consult ${of} made ${some(plan.outside.made)}, and this set holds no such file — it holds ${listed(rels)} — so this`
       + ` recheck has nothing of its findings to verify.${plan.outside.owed.length
         ? ` Nothing says what became of ${some(plan.outside.owed)}, which is what a commit gate refuses for.`
         : " Every one of them already carries your ruling."}\n${missedRoute(plan.outside)}`;
