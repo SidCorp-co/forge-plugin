@@ -143,7 +143,7 @@ export const VERBS = [
         "forge_project_pm.runner_load": "`forge doctor`" } }],
   ["stats", "<runs|models|eval|change|marks|diagnose|waves|surface|daily>",
     "where an issue-flow run's and a dispatch wave's time and rounds go, read off the transcripts the harness keeps", null,
-    { group: HARNESS }],
+    { group: HARNESS, wraps: { "forge_issues.activity": "`forge stats daily`", "forge_issues.issue_activity": "`forge stats daily`" } }],
 ];
 
 export const VERB_NAMES = VERBS.map(([verb]) => verb);
