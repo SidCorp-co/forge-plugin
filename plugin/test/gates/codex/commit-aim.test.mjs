@@ -110,6 +110,8 @@ test("an operator inside a quoted argument opens no command, so a quoted commit 
   assert.equal(ask(`sh -c "git commit -m x"`), true, "a -c body is still run");
   assert.equal(ask(`bash -c 'cd /w && git commit -m "a; b"'`), true, "and a quote inside it stays data without hiding the commit");
   assert.equal(ask(`echo "made $(git commit -m x)"`), true, "a shell runs a substitution under a double quote");
+  assert.equal(ask("echo \"`true; git commit -m x`\""), true, "and a backtick pair, whose own operators open commands");
+  assert.equal(commitAim(ev("echo \"`true; git -C /w commit -m x`\"")).tree, "/w", "in the tree it names");
 });
 
 test("a quoted mention beside a real commit leaves one commit, in the tree it names", () => {

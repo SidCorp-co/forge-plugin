@@ -439,8 +439,8 @@ export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespa
 /** Where a draft stops being one, in command position only: a message quoting the word is not one. */
 export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-])`, "u");
 
-/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)`, and a gate that must not miss a commit keeps such a span whole rather than guess where the substitution ends — the reading that says where is ISS-1533's. */
-const SUBSTITUTES = /\$\(/u;
+/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and a gate that must not miss a commit keeps such a span whole rather than guess where the substitution ends — the reading that says where is ISS-1533's. */
+const SUBSTITUTES = /\$\(|`/u;
 export const quotedOut = (text) =>
   text.replace(QUOTED, (span) =>
     (span[0] === '"' && SUBSTITUTES.test(span) ? span : `${span[0]}${"_".repeat(span.length - 2)}${span[0]}`));
