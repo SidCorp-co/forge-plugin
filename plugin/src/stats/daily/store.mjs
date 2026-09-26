@@ -14,19 +14,51 @@ const REPORTS_KEY = "reports";
 const PAGE = /^(\d{4}-\d{2}-\d{2})\.html$/u;
 export const INDEX = "index.html";
 
+/* `reports` is the directory as a string, or a table carrying it as `dir` beside the models that read
+   the page as `roles`: a config written before the table existed stays valid as it is. */
+const TABLE_MEMBERS = ["dir", "roles"];
+export const ROLES = ["explore", "review", "judge"];
+
+const isTable = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
+const reportsGiven = () => (readJson(configPath()) ?? {})[REPORTS_KEY];
+
 /** The directory the reports are written to and where that was read from, or why it cannot be
  *  used. Read at the call, so a home the caller sets reaches it; a value that is not an absolute
  *  directory is refused with the file it was read from, since a relative one would land wherever the
  *  next session happens to stand. */
 export const reportsWhere = () => {
-  const given = (readJson(configPath()) ?? {})[REPORTS_KEY];
+  const held = reportsGiven();
+  const given = isTable(held) ? held.dir : held;
+  const named = isTable(held) ? `${REPORTS_KEY}.dir` : REPORTS_KEY;
   const fallback = join(configDir("forge"), "reports");
   if (given === undefined) return { dir: fallback, from: "the plugin's default, beside this device's config.json" };
   if (typeof given !== "string" || !isAbsolute(given)) {
-    return { refused: `stats daily: \`${REPORTS_KEY}\` in ${configPath()} is an absolute directory, not `
+    return { refused: `stats daily: \`${named}\` in ${configPath()} is an absolute directory, not `
       + `\`${JSON.stringify(given)}\`. Set it to one, or remove the key to write under ${fallback}.` };
   }
   return { dir: given.replace(/\/+$/u, "") || "/", from: configPath() };
+};
+
+/** The model id each role of the page's reading names, and the file it was read from; a role left
+ *  unset is absent, which skips its stage. A member nothing reads, or an id that is not a non-empty
+ *  string, is refused by its full name, since a value read and dropped reads as a stage that ran. */
+export const reportRoles = () => {
+  const held = reportsGiven();
+  if (!isTable(held)) return { roles: {}, from: configPath() };
+  const stranger = Object.keys(held).find((key) => !TABLE_MEMBERS.includes(key));
+  const refused = (key, what) => ({ refused: `\`${REPORTS_KEY}.${key}\` in ${configPath()} is ${what}. Nothing read the `
+    + "page with a model; the figures were written." });
+  if (stranger) return refused(stranger, `no member this report reads: it reads ${TABLE_MEMBERS.join(" and ")}. Remove it`);
+  if (held.roles === undefined) return { roles: {}, from: configPath() };
+  if (!isTable(held.roles)) return refused("roles", `a table naming a model id for ${ROLES.join(", ")}, not \`${JSON.stringify(held.roles)}\``);
+  const other = Object.keys(held.roles).find((key) => !ROLES.includes(key));
+  if (other) return refused(`roles.${other}`, `no role this report runs: its roles are ${ROLES.join(", ")}. Remove it`);
+  const wrong = ROLES.find((role) => held.roles[role] !== undefined
+    && (typeof held.roles[role] !== "string" || !held.roles[role].trim()));
+  if (wrong) return refused(`roles.${wrong}`, `a model id the gateway serves, not \`${JSON.stringify(held.roles[wrong])}\``);
+  return { roles: Object.fromEntries(ROLES.filter((role) => held.roles[role] !== undefined)
+    .map((role) => [role, held.roles[role].trim()])), from: configPath() };
 };
 
 export const reportsDir = () => {

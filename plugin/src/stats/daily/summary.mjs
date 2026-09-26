@@ -1,6 +1,8 @@
 /* The few sentences a person reads first, and the one line the index keeps per day: each states a
-   figure the content already holds and judges none of them, "better" and "worse" being the
-   evaluator's words and not this page's — docs/cli/stats.md. */
+   figure the content already holds and judges none of them. Where a judge read the page, its
+   decisions are what the terminal prints instead, labelled as the models' — docs/cli/stats.md. */
+import { droppedLine, stageLines } from "./judgement-page.mjs";
+
 const min = (value) => (value === null || value === undefined ? "no" : `${value}`);
 
 const movedSaid = (what, one, way) =>
@@ -71,3 +73,16 @@ export const summaryOf = (content) => {
 
 /** The index's line for a day: the move and the release behind it, the same two the summary names. */
 export const indexLineOf = (content) => `${movedLine(content.moved)}; following ${followedLine(content.followed)}`;
+
+/** What the terminal prints of the models' reading: the decisions where a judge ran, else the one line
+ *  saying why none did, each followed by what did not run and what was dropped. */
+export const decisionsSaid = (judgement) => {
+  if (!judgement) return [];
+  const notes = [...stageLines(judgement), droppedLine(judgement)].filter(Boolean);
+  if (!judgement.judged) return [`No decisions: ${judgement.why ?? "no judge ran"}.`, ...notes];
+  const items = judgement.decisions.length
+    ? judgement.decisions.map((one, at) => `${at + 1}. ${one.action}: ${one.what} — ${one.figure.said}: ${one.figure.value}`
+      + `${one.command ? ` — ${one.command}` : ""}`)
+    : ["Nothing to decide."];
+  return ["Decisions:", ...items, ...notes];
+};
