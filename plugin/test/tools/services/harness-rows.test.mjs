@@ -79,7 +79,8 @@ test("the coolify row is a note with no instance and an ok with one, and never s
 test("the coolify row says which project this directory is pinned to, or that none is", async () => {
   profiled(WHOLE_PROFILE);
   assert.match(await detailOf("coolify", INSTANCE), /no project pinned/u);
-  assert.match(await detailOf("coolify", INSTANCE), /\.coolify\.json/u);
+  assert.match(await detailOf("coolify", INSTANCE), /in \S*projects[/\\]\S+[/\\]config\.json — forge coolify pin/u,
+    "the row names the record a pin would be read from and the command that writes one");
 });
 
 test("the coolify row names the way that answers and where it was read", async () => {

@@ -7,7 +7,7 @@ import { createServer } from "node:http";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom, ranAsync } from "../../../fixtures.mjs";
+import { projectEntry, projectRoom, tempRoom, ranAsync } from "../../../fixtures.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
@@ -104,8 +104,7 @@ before(async () => {
     coolifyRoute: "instance",
     coolify: { url: `http://127.0.0.1:${server.address().port}`, apiToken: TOKEN },
   }));
-  work = tempRoom("coolify-work-");
-  writeFileSync(join(work, ".coolify.json"), JSON.stringify({ project_uuid: "p-in" }));
+  work = projectRoom(tempRoom("coolify-work-"), home, { coolifyPin: { project_uuid: ["p-in"] } });
 });
 
 after(() => server?.close());
@@ -123,7 +122,7 @@ test("a uuid outside the pin is refused, and its own action path is never asked 
   const answer = await ran("app", "restart", "a-out", "--yes");
   assert.equal(answer.status, 1);
   assert.match(answer.stderr, /application a-out is outside the pinned project \(p-in\)/u);
-  assert.match(answer.stderr, /\.coolify\.json/u);
+  assert.ok(answer.stderr.includes(projectEntry(work, home)), "the refusal does not name the record the pin came from");
   assert.deepEqual(paths(answer).filter((one) => one.includes("a-out/restart")), []);
 });
 
@@ -133,7 +132,7 @@ test("a uuid inside the pin reaches its own action path", async () => {
   assert.ok(paths(answer).includes("/applications/a-in/restart"));
 });
 
-test("with nothing pinned every route-index command refuses and says what to write", async () => {
+test("with nothing pinned every route-index command refuses and names the command that pins one", async () => {
   asked = [];
   const bare = tempRoom("coolify-unpinned-");
   const answer = await ranAsync(FORGE, ["coolify", "app", "list"],
@@ -141,9 +140,23 @@ test("with nothing pinned every route-index command refuses and says what to wri
   assert.equal(answer.status, 1);
   assert.match(answer.stderr, /no project is pinned/u);
   assert.match(answer.stderr, /there is no unscoped mode/u);
-  assert.match(answer.stderr, /\.coolify\.json/u);
-  assert.match(answer.stderr, /"project_uuid"/u);
+  assert.match(answer.stderr, /forge coolify pin --app <name\|uuid>/u);
+  assert.match(answer.stderr, /forge coolify pin --project <name\|uuid>/u);
+  assert.doesNotMatch(answer.stderr, /\.coolify\.json|write one|"project_uuid"/u);
   assert.deepEqual(asked.map((one) => one.path), [], "an unpinned call sent something");
+});
+
+/* The Python CLI's file is what a checkout carried before the pin became this machine's record, and
+   one source keeps one answer: a checkout holding only that file is unpinned, and says so. */
+test("a .coolify.json in the checkout pins nothing", async () => {
+  asked = [];
+  const carried = projectRoom(tempRoom("coolify-carried-"), home, { slug: "carried" });
+  writeFileSync(join(carried, ".coolify.json"), JSON.stringify({ project_uuid: "p-in" }));
+  const answer = await ranAsync(FORGE, ["coolify", "app", "list"],
+    { ...process.env, XDG_CONFIG_HOME: home }, carried);
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /no project is pinned/u);
+  assert.deepEqual(asked.map((one) => one.path), [], "a call pinned by the file sent something");
 });
 
 test("a listing comes back cut to the pin, and says how many it dropped", async () => {
@@ -263,6 +276,7 @@ test("what resolved is reported with the token masked and the pin named", async 
   assert.ok(!answer.stdout.includes(TOKEN));
   assert.match(answer.stdout, new RegExp(`${TOKEN.length} chars`, "u"));
   assert.match(answer.stdout, /pinned {4}p-in/u);
+  assert.ok(answer.stdout.includes(`← ${projectEntry(work, home)}`), answer.stdout);
 });
 
 /* The escape is the defect this exists to prevent, so the case is what says there is none: the two
@@ -335,6 +349,7 @@ test("whoami names the instance, the team and the environments the pin resolves 
   assert.equal(answer.status, 0, answer.stderr);
   assert.match(answer.stdout, /instance {2}http:\/\/127\.0\.0\.1:\d+\/api\/v1/u);
   assert.match(answer.stdout, /scope {5}project p-in, environment ids 10/u);
+  assert.ok(answer.stdout.includes(`← ${projectEntry(work, home)}`), answer.stdout);
   assert.match(answer.stdout, /apps {6}1 in scope/u);
   assert.ok(!answer.stdout.includes(TOKEN));
 });

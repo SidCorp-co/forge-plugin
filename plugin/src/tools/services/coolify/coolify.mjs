@@ -7,7 +7,8 @@ import { fail } from "../../../resolve/settings.mjs";
 import { flags, helpAskedOf } from "../../../resolve/flags.mjs";
 import { didYouMean } from "../../../suggest.mjs";
 import { masked } from "../masked.mjs";
-import { NO_TARGET, SCOPE_FILE, coolifyTarget, pinned } from "./config.mjs";
+import { NO_TARGET, PIN_WAYS, configured, coolifyTarget, pinned } from "./config.mjs";
+import { PIN_USAGE, pin } from "./pin.mjs";
 import { holes, pinOnly, resolveCommand, servedNames } from "./routes.mjs";
 import { ask, session, struck } from "./client.mjs";
 import { active, applicationIds, check, environmentIds, filterList, label, makeScope } from "./scope.mjs";
@@ -20,13 +21,14 @@ import {
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
 export const USAGE = [
-  "Usage: forge coolify <login|accounts|whoami|app|deploy|deployment|project|resource> [args]",
+  "Usage: forge coolify <login|accounts|whoami|pin|app|deploy|deployment|project|resource> [args]",
   "A pinned project's deployments, on the instance `login` saved locally. Every resource command",
-  "runs inside the project `.coolify.json` names and refuses anything outside it.",
+  "runs inside the project `pin` recorded for this checkout and refuses anything outside it.",
   "",
   "  login       save the instance and its token, or forget them",
   "  accounts    what resolved, and from where",
   "  whoami      the instance, the team, and what this directory is pinned to",
+  "  pin         pin this checkout to a project, by an application's name or the project's",
   "  app         list, get, logs, env list, env create, env update, restart, start, stop",
   "  deploy      deploy one application, service or database by uuid",
   "  deployment  list, get, list-by-app, cancel",
@@ -97,6 +99,7 @@ export const SAYS = {
   login: LOGIN_USAGE,
   accounts: ACCOUNTS_USAGE,
   whoami: WHOAMI_USAGE,
+  pin: PIN_USAGE,
   app: APP_USAGE,
   deploy: DEPLOY_USAGE,
   deployment: DEPLOYMENT_USAGE,
@@ -106,8 +109,8 @@ export const SAYS = {
 
 const noPin = (from) =>
   `coolify: no project is pinned for ${from}, and there is no unscoped mode.\n`
-  + `  every resource command runs inside the project ${SCOPE_FILE} names, found by walking up from here\n`
-  + `  write one: {"project_uuid": "<the project's uuid>"}`;
+  + "  every resource command runs inside the project this machine's record of the checkout pins\n"
+  + `  pin one:\n${PIN_WAYS.join("\n")}`;
 
 const SWITCHES = ["--dry-run", "--yes", "--full", "--reveal", "--json", "--table"];
 
@@ -142,16 +145,11 @@ const showTarget = (argv) => {
     console.log(NO_TARGET);
     return;
   }
-  const { at, spec } = pinned();
+  const { at, spec, record } = pinned();
   console.log(`instance  ${target.url}`);
   console.log(`token     ${masked(target.token, full)}  ← ${target.from}`);
-  console.log(at ? `pinned    ${(spec.project_uuid ?? []).join(", ") || "no project"}  ← ${at}` : `pinned    no ${SCOPE_FILE} on the way up from here`);
-};
-
-const configured = () => {
-  const target = coolifyTarget();
-  if (!target.url) fail(NO_TARGET);
-  return target;
+  console.log(at ? `pinned    ${spec.project_uuid.join(", ")}  ← ${at}`
+    : `pinned    nothing${record ? ` in ${record}` : ", this directory belonging to no checkout"}`);
 };
 
 const whoami = async (argv) => {
@@ -163,14 +161,14 @@ const whoami = async (argv) => {
   say(token, `instance  ${held.target.url}`);
   say(token, `version   ${String(version).trim()}`);
   if (team && typeof team === "object") say(token, `team      ${team.name} (id ${team.id})`);
-  const pin = pinned();
-  const scope = makeScope(held, pin);
+  const recorded = pinned();
+  const scope = makeScope(held, recorded);
   if (!active(scope)) {
     console.log(`scope     none — every resource command refuses here\n${noPin(process.cwd())}`);
     return;
   }
   const ids = [...(await environmentIds(scope))].sort((one, two) => Number(one) - Number(two));
-  console.log(`scope     project ${label(scope)}, environment ids ${ids.join(", ") || "(none)"}  ← ${pin.at}`);
+  console.log(`scope     project ${label(scope)}, environment ids ${ids.join(", ") || "(none)"}  ← ${recorded.at}`);
   console.log(`apps      ${(await applicationIds(scope)).size} in scope`);
 };
 
@@ -238,9 +236,8 @@ const routed = async (argv) => {
   const found = resolveCommand(rest);
   if (found.unknown !== undefined) refuseUnserved(found);
   const target = configured();
-  const pin = pinned();
   const held = session(target, { dryRun: Boolean(switches["dry-run"]), reveal: Boolean(switches.reveal) });
-  const scope = makeScope(held, pin);
+  const scope = makeScope(held, pinned());
   if (!active(scope)) fail(noPin(process.cwd()));
   const { path, query, body, values } = readArgs(found.entry, found.rest);
   const secrets = switches.reveal ? [] : secretsIn(body);
@@ -254,7 +251,7 @@ const routed = async (argv) => {
   emit(cut.kept, { group: found.group, dropped: cut.dropped, unplaced: cut.unplaced, held: switches, token: target.token, secrets });
 };
 
-const BUILTIN = { login: saveTarget, accounts: showTarget, whoami };
+const BUILTIN = { login: saveTarget, accounts: showTarget, whoami, pin };
 
 /* Whether the other route has this name at all, asked of that route's own index and its own
    built-ins rather than of a list kept here. A word neither route serves is not the other route's,

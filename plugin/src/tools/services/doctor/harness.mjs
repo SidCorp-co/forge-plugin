@@ -6,7 +6,7 @@ import { consultCount } from "../../../codex/log/asked.mjs";
 import { gateway, machineRows, modelBehind } from "../../../resolve/machine/stores.mjs";
 import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool } from "../tool-config.mjs";
 import { accountCredentials } from "../../../resolve/settings.mjs";
-import { SCOPE_FILE, coolifyTarget, pinned } from "../coolify/config.mjs";
+import { coolifyTarget, pinned } from "../coolify/config.mjs";
 import { INSTANCE, coolifyRoute } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
 
@@ -45,9 +45,9 @@ const codexRow = () => {
 const instanceRow = (full) => {
   const { url, token, from } = coolifyTarget();
   const chosen = coolifyRoute().from;
-  const { at, spec } = pinned();
-  const projects = (spec.project_uuid ?? []).join(", ");
-  const pin = projects ? `project ${projects}  ← ${at}` : `no project pinned — no ${SCOPE_FILE} on the way up from here`;
+  const { at, spec, record } = pinned();
+  const pin = at ? `project ${spec.project_uuid.join(", ")}  ← ${at}`
+    : `no project pinned${record ? ` in ${record}` : ", this directory belonging to no checkout"} — forge coolify pin`;
   return { level: "ok",
     detail: `the saved instance  ← ${chosen}  ${url} ${masked(token, full)}  ← ${from}  ${pin}` };
 };

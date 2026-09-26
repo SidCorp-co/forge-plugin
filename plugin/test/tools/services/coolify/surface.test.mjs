@@ -173,7 +173,7 @@ const ranHelp = (...argv) => ranIn(INSTANCE_HOME, ...argv);
 
 test("the verb's own listing names every sub-verb, and each of them answers a help ask", () => {
   const listed = ranHelp("coolify", "-h");
-  for (const subject of ["login", "accounts", "whoami", "app", "deploy", "deployment", "project", "resource"]) {
+  for (const subject of ["login", "accounts", "whoami", "pin", "app", "deploy", "deployment", "project", "resource"]) {
     assert.match(listed, new RegExp(subject, "u"), `${subject} is not on the verb's own listing`);
     assert.match(ranHelp("coolify", subject, "-h"), /^Usage: forge coolify /u, `${subject} has no text of its own`);
   }

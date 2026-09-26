@@ -264,7 +264,25 @@ const statsRefusal = (given) => {
 const ROUTED = {
   flow: "forge doctor --flow <slug>, which writes it together with every key that flow asks this"
     + " project for",
+  coolifyPin: "forge coolify pin --app <name> | --project <name> [--environment <name>], which settles the"
+    + " project and its environment together, looked up on the saved instance",
   method: "forge doctor --flow <slug>: `method` is retired and the flow is what replaced it",
+};
+
+/* What `forge coolify pin` writes and the pin's reader takes: the project, and the environments
+   narrowing it where any were named. Never set a field at a time, because a project replaced beside
+   the environment of the one before it filters by a name the new project need not have. */
+const COOLIFY_FIELDS = ["project_uuid", "environment"];
+
+const coolifyRefusal = (given) => {
+  if (!given || typeof given !== "object" || Array.isArray(given)) return said("coolifyPin", "a table", given);
+  const stranger = Object.keys(given).find((one) => !COOLIFY_FIELDS.includes(one));
+  if (stranger !== undefined) {
+    return `\`coolifyPin.${stranger}\` in ${fromProject()} is read by nothing: the pin holds `
+      + `${COOLIFY_FIELDS.join(" and ")} alone.`;
+  }
+  return listOfNames("coolifyPin.project_uuid", given.project_uuid)
+    || (given.environment === undefined ? null : listOfNames("coolifyPin.environment", given.environment));
 };
 
 /** One row per top-level key of the project file. `paths` maps every path under it a value may be
@@ -311,6 +329,9 @@ export const PROJECT_KEYS = {
       || outside("feedback.project", given?.project, FEEDBACK_CHANNELS),
   },
   flow: { routed: ROUTED.flow },
+  /* Routed for `--set` and judged all the same: the pin's own write goes through `projectWrite`,
+     which holds it to this row's judge like any other key. */
+  coolifyPin: { routed: ROUTED.coolifyPin, judge: coolifyRefusal },
   drainedBy: { paths: { "": "text" }, judge: (given) => outside("drainedBy", given, DRAINS) },
   landing: { paths: { "": "text" }, judge: (given) => outside("landing", given, LANDING_ROUTES) },
   redBatch: { paths: { "": "text" }, judge: (given) => outside("redBatch", given, RED_BATCHES) },

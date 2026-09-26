@@ -1,37 +1,8 @@
 # Coolify — the saved instance
 
-What an instance of the platform on a credential this machine holds asks of a checkout before it
-will answer, and the three readings a faithful port of somebody else's client would have lost.
-
-## The pin is the feature
-
-An unpinned call answers for every application the token's team owns, and a mistyped uuid restarts
-somebody else's service. So `.coolify.json` — read by walking up from the working directory, and
-read from nowhere else — is what every route-index command runs inside. A resource the pin does not
-resolve to is turned away while the target is being worked out, not after the answer comes back,
-and no flag, variable or configuration key turns that off. A read-only subset without it would be
-worse than nothing, because it would read as safe.
-
-The pin is not a credential and does not travel with one. It is a property of the checkout, which
-is why a flag cannot retarget it: an argument that could would put the whole team back in reach
-from any directory.
-
-**A pin that resolves to nothing fails closed.** A mistyped project, or a named environment that no
-longer exists, leaves the guard with an empty set to check against — and an empty set that means
-"allow everything" is the whole team in reach by exactly the typo this was built for. The Python CLI
-prints a warning there and carries on; here the call is refused and the refusal says which uuid to
-check. It is the one state where being useless is the correct behaviour.
-
-**A deployment is placed by an id its own application's listing may not carry.** A deployment names
-its application by that application's id and by nothing else, and an instance may answer the
-applications route with the uuid alone — which leaves the allow-set holding nothing, and every
-deployment of the pinned project then reads as somebody else's and is counted as an ordinary
-exclusion. So the id is resolved through the resources route for whatever the applications route
-left unkeyed, and that route is read for the id only: which applications the pin admits stays the
-applications route's answer, because the other spans services and databases no deployment names. An
-application the pin admits that neither route can key refuses the call rather than shrinking the
-set — a set that is merely smaller turns that one application's deployments into another project's,
-which is the failure this whole guard exists to prevent wearing the face of it working.
+How the surface an instance of the platform answers on a credential this machine holds is derived,
+the three readings a faithful port of somebody else's client would have lost, and what a write
+owes. What every call there runs inside is [the pin](coolify-the-pin.md).
 
 ## The surface is derived, not typed
 

@@ -42,8 +42,9 @@ const addressOf = (url, query) => {
 export const session = (target, opts) => ({ target, opts, seen: new Map() });
 
 /* `internal` is the scope guard's own lookups. They run under `--dry-run` too, because suppressing
-   them would switch the guard off exactly where somebody is checking that it is on. */
-export const ask = async (held, method, path, { query, body, secrets = [], internal = false, cache = false } = {}) => {
+   them would switch the guard off exactly where somebody is checking that it is on. `absent` is
+   what a 404 answers instead of a refusal, for a lookup whose caller has a reading of "none". */
+export const ask = async (held, method, path, { query, body, secrets = [], internal = false, cache = false, absent } = {}) => {
   const { target, opts } = held;
   const url = addressOf(`${target.url}${path}`, query);
   const key = cache ? `${method} ${url}` : null;
@@ -81,6 +82,7 @@ export const ask = async (held, method, path, { query, body, secrets = [], inter
     if (response) throw dropped;
     return fail(`coolify: cannot reach ${struck(url, target.token)} — ${struck(dropped.message, target.token)}`);
   }
+  if (response.status === 404 && absent !== undefined) return absent;
   if (!response.ok) {
     const said = detailOf(text, [target.token, ...secrets]).slice(0, BODY_CUT);
     return fail(`coolify: HTTP ${response.status} on ${method} ${struck(url, target.token)}\n  ${said}${hint(response.status)}`);
@@ -92,4 +94,4 @@ export const ask = async (held, method, path, { query, body, secrets = [], inter
 
 /* What the guard reads while deciding, never what the caller asked for: cached and internal, so a
    scoped `app get` guard-checks the very object it then fetches without a second round trip. */
-export const look = (held, path) => ask(held, "GET", path, { internal: true, cache: true });
+export const look = (held, path, absent) => ask(held, "GET", path, { internal: true, cache: true, absent });

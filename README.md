@@ -127,7 +127,8 @@ The keys, each shown at a value some other project might hold rather than at thi
   "report": "daily",
   "reportOn": ["session", "release"],
   "lease": { "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)" },
-  "stats": { "commands": { "gate": "npm run check" } }
+  "stats": { "commands": { "gate": "npm run check" } },
+  "coolifyPin": { "project_uuid": ["u8wkc4s8ogo8gc44ow44kc"], "environment": ["production"] }
 }
 ```
 
@@ -241,6 +242,12 @@ which is how the plugin behaved before the key existed. Declare the commands tha
 something to run twice, not the gate: a run starts its own gate before it claims, and a pattern
 matching that refuses the run its own issue. A pattern that is not a regular expression is reported
 by `forge doctor` and read as no declaration at all.
+
+`coolifyPin` is the project of a saved Coolify instance this project's checkouts are pinned to, and
+the environments narrowing it, read only on the route `forge doctor --coolify-route instance`
+chooses. It is `forge coolify pin`'s, which looks the uuid up from an application's or a project's
+name and settles the two fields together, so `--set` names that command rather than writing one
+field beside a stale other. A `.coolify.json` in a checkout is not read.
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 
