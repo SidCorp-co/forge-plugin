@@ -164,8 +164,9 @@ const FINDING_CHARS = 900;
    A file outside the checkout is recorded by its real path and shown under it, and the reviewer anchors
    on the name it would write, `criteria.md` or `scratch/criteria.md` (ISS-2336, ISS-2171). Two recorded
    files sharing that tail make it no one's, and a relative path is only ever matched whole, because a
-   bare name in a checkout names many files the set never held. A recheck resolves against the consult's
-   own set as well as its narrower one, so naming one of two such files does not make the tail its. */
+   bare name in a checkout names many files the set never held. A tail resolves against the consult's own
+   set alone: naming one of two such files does not make the tail its, and naming a file the consult
+   never recorded does not hand it a finding the consult anchored elsewhere. */
 const tailOf = (file, anchor) => file === anchor || file.endsWith(`/${anchor}`);
 export const anchoredOn = (anchor, recorded) => {
   if (recorded.includes(anchor)) return anchor;
@@ -199,7 +200,6 @@ const clausesAfter = (reply, from) => {
 
 /* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against. `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. An empty list is no list — it says the caller named none, never that none may be cited — and it is what a consult given only issue keys records: read as a range admitting no path, it dropped every finding anchored to one, which is most of what a reviewer told to read the checkout writes. A reply that counts itself at zero made no findings, so nothing here is given a positional id: the severity words are the ones the prompt puts in front of the reviewer, and a summary bullet echoing them to say none was found was read as one for fourteen of 4409 logged replies, every one of which then had a verdict written against an id nobody raised (ISS-352, ISS-651, ISS-707, ISS-1532, ISS-1665). An id the reviewer wrote itself still stands, whatever the count says, because that is the model numbering a finding and not this parser inventing one. No predicate over the label's prose is attempted: two of the fourteen negate in Vietnamese and one, `Blocker floor is developed`, negates nothing at all. */
 export const numbered = (reply, files = null, recorded = null) => {
-  const among = [...new Set([...(recorded ?? []), ...(files ?? [])])];
   const whole = String(reply ?? "");
   const none = countedIn(whole)?.total === 0;
   const seen = new Set();
@@ -219,7 +219,8 @@ export const numbered = (reply, files = null, recorded = null) => {
     .filter((one) => one && !seen.has(one.id) && seen.add(one.id))
     .filter((one) => {
       const found = files?.length ? ANCHOR.exec(one.head) : null;
-      return !found || onTracker(found[1]) || files.includes(anchoredOn(found[1], among));
+      return !found || onTracker(found[1]) || files.includes(found[1])
+        || files.includes(anchoredOn(found[1], recorded?.length ? recorded : files));
     });
 };
 

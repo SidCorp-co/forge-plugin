@@ -114,3 +114,11 @@ test("an anchor naming no recorded file stays out, and a relative path is matche
   assert.deepEqual(bare.ids, [], "a bare name inside the checkout is not resolved to docs/FORGE-CLI.md");
   assert.deepEqual(recheckPlan([JUDGED], "/a", ["docs/FORGE-CLI.md"]).ids, ["F1"], "the exact relative path still matches");
 });
+
+test("a file the recheck adds is not handed a finding the consult anchored on a file it never recorded", () => {
+  const notes = "/tmp/run-9/scratch/notes.md";
+  const judged = outside("CODEX: 1 findings\n- **New — major:** `notes.md:4` — the lock is released by path.", [OUT]);
+  const plan = recheckPlan([judged], "/a", [OUT, notes]);
+  assert.deepEqual(plan.ids, [], "notes.md was never in the consult's set, so the recheck's copy of it does not reach F1");
+  assert.match(recheckOwed(plan, [OUT, notes]), /forge codex verdict --of o1/u);
+});
