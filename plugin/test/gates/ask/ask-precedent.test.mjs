@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { callHook, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { logOutcome } from "../../../src/asks/decided.mjs";
@@ -18,8 +18,8 @@ const project = (keys) => {
   const repo = realpathSync(tempRoom("ask-precedent-repo-"));
   projectRoom(repo, config, keys);
   const env = { ...process.env, XDG_CONFIG_HOME: config, HOME: tempRoom("ask-precedent-home-"), TMPDIR: tempRoom("ask-precedent-tmp-") };
-  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks");
-  return { repo, env, room, layer: join(room, slugFor(repo)) };
+  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", slugFor(repo));
+  return { repo, env, room };
 };
 
 const answered = (held, id, answer) => callHook(HOOK, {
@@ -28,8 +28,8 @@ const answered = (held, id, answer) => callHook(HOOK, {
   tool_response: { questions: [QUESTION], answers: { [QUESTION.question]: answer }, annotations: { [QUESTION.question]: { notes: "and quickly" } } },
 }, held.env, held.repo);
 
-const rows = (held) => (existsSync(join(held.layer, "precedents.jsonl"))
-  ? readFileSync(join(held.layer, "precedents.jsonl"), "utf8").split("\n").filter(Boolean).map((one) => JSON.parse(one)) : []);
+const rows = (held) => (existsSync(join(held.room, "precedents.jsonl"))
+  ? readFileSync(join(held.room, "precedents.jsonl"), "utf8").split("\n").filter(Boolean).map((one) => JSON.parse(one)) : []);
 
 test("a question the owner answers joins the project's layer with the answer and their note", () => {
   const held = project({ asks: { mode: "decide" } });
@@ -63,6 +63,6 @@ test("a project that has not opted in keeps nothing", () => {
   for (const keys of [{}, { asks: { mode: "off" } }]) {
     const held = project(keys);
     answered(held, "toolu_owner", "A page");
-    assert.equal(existsSync(held.room), false, JSON.stringify(keys));
+    assert.equal(existsSync(dirname(held.room)), false, JSON.stringify(keys));
   }
 });

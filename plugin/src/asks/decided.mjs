@@ -1,19 +1,22 @@
 /* Where one project's ask state lives, and the log of what the gate did with each question: beside
-   that project's config, so nothing one project decided is read for another. The owner reads the
+   that project's config and under its checkout's own name, since two checkouts whose root folders
+   share a name share the config entry, so nothing one checkout decided is read for another. The owner reads the
    log to review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { appendJsonl } from "../hooks/log/hook-log-file.mjs";
-import { projectFilePath } from "../resolve/settings.mjs";
+import { projectFilePath, projectRepository } from "../resolve/settings.mjs";
+import { slugFor } from "../stats/corpus/corpus.mjs";
 
 export const DECIDED = "decided";
 export const OWNER = "owner";
 
-/** The project's ask directory, or null where this process stands in no checkout. */
+/** The checkout's ask directory, or null where this process stands in no checkout. */
 export const asksRoom = () => {
   const entry = projectFilePath();
-  return entry ? join(dirname(entry), "asks") : null;
+  const repository = projectRepository();
+  return entry && repository ? join(dirname(entry), "asks", slugFor(repository.replace(/\/+$/u, "") || "/")) : null;
 };
 
 export const decidedPath = (room = asksRoom()) => (room ? join(room, "decided.jsonl") : null);
