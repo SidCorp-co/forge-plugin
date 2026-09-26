@@ -207,17 +207,13 @@ test("the checkout picks the angles, and one angle is not a board", () => {
 
 /* Four sites asked this, two guarding a null and two not; one answer now, and the strict one. */
 test("a ref is read from where the branch parted only where the caller typed it as the base (ISS-228)", () => {
-  const named = consultArgs(["a.mjs", "--base", "origin/master"]).readFromParting;
-  assert.equal(named("origin/master"), true, "the base the caller typed");
-  assert.equal(named("HEAD"), false, "and no other ref");
-  assert.equal(named(null), false);
-  assert.equal(consultArgs(["a.mjs", "--base", "HEAD"]).readFromParting("HEAD"), true,
-    "HEAD typed as the base is the caller's, as any other ref is");
-  const guessed = consultArgs(["a.mjs", "--diff"]);
-  assert.equal(guessed.base, "HEAD");
-  assert.equal(guessed.readFromParting("HEAD"), false, "where --diff's own HEAD is this end's guess");
-  assert.equal(guessed.readFromParting(null), false, "and a null ref matches no base nobody named");
-  assert.equal(consultArgs(["a.mjs"]).readFromParting(null), false);
+  const asked = (argv, refs) => refs.map((ref) => consultArgs(["a.mjs", ...argv]).readFromParting(ref));
+  assert.deepEqual(asked(["--base", "origin/master"], ["origin/master", "HEAD", null]), [true, false, false],
+    "the base the caller typed, and no other ref");
+  assert.deepEqual(asked(["--base", "HEAD"], ["HEAD"]), [true], "HEAD typed as the base is the caller's too");
+  assert.deepEqual(asked(["--diff"], ["HEAD", null]), [false, false],
+    "where --diff's own HEAD is this end's guess, and a null ref matches no base nobody named");
+  assert.deepEqual(asked([], [null]), [false]);
 });
 
 /* Zero cache reads in 92 consults: the history opens every call and was resent as fresh text. */
