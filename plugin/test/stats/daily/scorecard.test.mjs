@@ -1,12 +1,11 @@
 /* The scorecard's table and its arithmetic: what each metric declares, how a day's value, its
-   baseline and its verdict are read off the corpora, and which tile each section of the page's
-   reading points at. Runs are the `stats runs` fixture moved onto chosen days, whose friction is
+   baseline and its verdict are read off the corpora, and which tile a figure of the page's reading
+   feeds. Runs are the `stats runs` fixture moved onto chosen days, whose friction is
    one refusal, one command typed three times and one long wait over sixteen calls. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { METRICS, changeSaid, scorecardOf, tileOfSection, verdictOf } from "../../../src/stats/daily/scorecard.mjs";
-import { SECTIONS } from "../../../src/stats/daily/reading/figures.mjs";
+import { METRICS, changeSaid, scorecardLines, scorecardOf, tileFedBy, verdictOf } from "../../../src/stats/daily/scorecard.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
 import { consult, runOn } from "./fixture-daily.mjs";
 
@@ -86,12 +85,22 @@ test("a metric no reader computes is a tile with no figure, naming the issue tha
   }
 });
 
-test("every section of the page's reading answers to exactly one tile", () => {
-  for (const section of SECTIONS) {
-    const answering = METRICS.filter((one) => one.answers.includes(section.id));
-    assert.equal(answering.length, 1, `${section.id} is answered by ${answering.map((one) => one.id).join(", ") || "no tile"}`);
-    assert.equal(tileOfSection(section.id), answering[0]);
+test("a figure feeds a tile only where the tile's value is made of it, and a tile no reader computes is fed by none", () => {
+  const content = { opportunities: { listed: [{ kind: "refusal" }, { kind: "wait" }] } };
+  const fed = (key) => tileFedBy(key, content)?.id ?? null;
+  assert.equal(fed("friction.headline.refusals"), "wasted");
+  assert.equal(fed("opportunities.listed[#1].calls"), "wasted");
+  assert.equal(fed("opportunities.listed[#2].calls"), null, "a wait is a call that ran, which the tile leaves out");
+  assert.equal(fed("opportunities.listed[#1].runs"), null);
+  assert.equal(fed("consults.headline.atBudget"), "atBudget");
+  assert.equal(fed("consults.headline.answered"), null);
+  for (const key of ["runs.headline.day.medianMinutes", "moved.phases.rose.now", "releases.landed[3.36.343].after.medianMinutes", "landings.headline.passes"]) {
+    assert.equal(fed(key), null, `${key} feeds no computed tile, so a decision citing it points at its section`);
   }
-  const named = METRICS.flatMap((one) => one.answers);
-  assert.ok(named.every((id) => SECTIONS.some((section) => section.id === id)), "and no metric names a section the reading lacks");
+  for (const metric of METRICS.filter((one) => one.missing)) assert.equal(metric.fedBy, undefined, metric.id);
+});
+
+test("a tile with no value on the day says so once in its terminal line", () => {
+  const [line] = scorecardLines(scorecardOf(readingOf(), DAY)).filter((one) => one.includes("consults that ended at their call budget"));
+  assert.equal(line, "  consults that ended at their call budget: none on this day (lower is better, G-06)");
 });

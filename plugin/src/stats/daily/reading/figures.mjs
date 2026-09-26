@@ -10,14 +10,19 @@ const ROW_FIGURES = [["runs", "runs"], ["medianMinutes", "median minutes a run"]
 
 const rowKey = (path, name) => `${path}[${name}]`;
 
-/* One figure, or none where the page holds no value for it: an absent figure is not a nought. */
-const one = (key, said, value) => (value === null || value === undefined || Number.isNaN(value) ? [] : [{ key, said, value }]);
+/* One figure, or none where the page holds no value for it: an absent figure is not a nought. A
+   baseline is a window the page computed for the day to be read against, which a verdict of better or
+   worse cites; a trend's earlier day is one day and not a window, so it is never one. */
+const one = (key, said, value, baseline = false) => (value === null || value === undefined || Number.isNaN(value)
+  ? [] : [{ key, said, value, ...(baseline ? { baseline: true } : {}) }]);
+
+const WINDOWS = new Set(["before", "week"]);
 
 const figureRow = (path, label, row) => ROW_FIGURES.flatMap(([field, said]) =>
   one(`${rowKey(path, row.name)}.${field}`, `${said}, ${label} ${row.name}, the day`, row[field]));
 
 const headline = (path, side, label, held) => ROW_FIGURES.flatMap(([field, said]) =>
-  one(`${path}.${side}.${field}`, `${said}, ${label}`, held?.[field]));
+  one(`${path}.${side}.${field}`, `${said}, ${label}`, held?.[field], WINDOWS.has(side)));
 
 const trend = (path, field, said, rows) => (rows ?? []).flatMap((row) =>
   one(`${rowKey(path, row.day)}.${field}`, `${said} on ${row.day}`, row[field]));
@@ -26,7 +31,7 @@ const movedOf = (moved, kind) => ["rose", "fell"].flatMap((way) => {
   const held = moved?.[kind]?.[way];
   if (!held) return [];
   const label = `the ${kind.slice(0, -1)} whose median ${way} most, ${held.row}`;
-  return [...one(`moved.${kind}.${way}.before`, `median minutes a run, ${label}, the seven days before`, held.before),
+  return [...one(`moved.${kind}.${way}.before`, `median minutes a run, ${label}, the seven days before`, held.before, true),
     ...one(`moved.${kind}.${way}.now`, `median minutes a run, ${label}, the day`, held.now)];
 });
 

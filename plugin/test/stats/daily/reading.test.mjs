@@ -23,8 +23,9 @@ const answerFor = (body) => {
   return {
     sections: data.sections.map((one) => ({ section: one.section, verdict: "steady", why: `nothing moved in ${one.section}` })),
     decisions: [
-      { action: "raise", what: "the effort reading is still owed", figure: "runs.headline.day.runs", command: "ISS-2424" },
-      { action: "file", what: "made up", figure: "runs.madeUp", command: "forge new" },
+      { action: "file", what: "the effort reading is still owed", figure: "runs.headline.day.runs",
+        title: "Runs are read by the effort they ran at", cause: "no reader computes it", category: "enhancement" },
+      { action: "file", what: "made up", figure: "runs.madeUp", title: "t", cause: "c", category: "bug" },
     ],
     nothing: false,
   };
@@ -82,14 +83,21 @@ test("a written page opens with the judged Decisions, each section with its line
     const page = pageOf(held);
     assert.ok(page.indexOf('<section id="scorecard">') < page.indexOf('<section id="decisions">'), "the scorecard comes first");
     assert.ok(page.indexOf('<section id="decisions">') < page.indexOf("<details"), "the block stands above every drill-down");
-    assert.match(page, /<li><strong>raise<\/strong> — the effort reading is still owed<br><span class="note"><span class="figure" title="runs\.headline\.day\.runs">runs, the day: 1<\/span>\. Tile: <a href="#tile-minutesPerClosed">agent minutes per closed issue<\/a>\. Carried out by <code>ISS-2424<\/code>\.<\/span><\/li>/u);
-    assert.ok(page.includes('id="tile-minutesPerClosed"'), "and the tile it links to is on the page; what a tile shows is page.test's");
+    assert.ok(page.includes("<li><strong>file</strong> — the effort reading is still owed Title: Runs are read by the effort they ran at. "
+      + "Cause: no reader computes it. No open issue was checked for it: the plugin&#39;s backlog, forge-plugin, is not a project registered on this device. "
+      + "The body the command reads on stdin is yours to write, with the sections a enhancement asks for."
+      + '<br><span class="note"><span class="figure" title="runs.headline.day.runs">runs, the day: 1</span>. Section: <a href="#runs">Runs</a>. '
+      + "Carried out by <code>forge new - --title &#39;Runs are read by the effort they ran at&#39; --category enhancement</code>.</span></li>"), page);
     assert.doesNotMatch(page.slice(0, page.indexOf("<script")), />[^<]*runs\.headline\.day\.runs/u, "the key is a hover, never page text");
     assert.match(page, /1 reading\(s\) dropped before this page was written: 1 at judge, cited a figure the page does not hold\./u);
     assert.match(page, /<details id="friction"><summary><h2>Friction<\/h2>.*?<\/summary><p class="verdict"><strong>steady<\/strong> — nothing moved in friction<\/p>/u);
+    assert.ok(page.includes('<details id="friction"><summary><h2>Friction</h2><span class="mark steady">Friction: steady</span>'
+      + '<span class="mark steady">Opportunities: steady</span>'), "the collapsed row carries its sections' verdicts");
+    assert.ok(page.includes('<details id="runs"><summary><h2>Runs</h2><span class="mark steady">steady</span>'));
     assert.match(page, /What reading this page cost: explore: cx\/explorer, 6 call\(s\), 300 input and 30 output token\(s\); review: cx\/reviewer-max, 6 call\(s\), 300 input and 30 output token\(s\); judge: cx\/judge, 1 call\(s\), 50 input and 5 output token\(s\)\./u);
     assert.ok(written.stdout.startsWith("Scorecard, the day against"), written.stdout);
-    assert.ok(written.stdout.includes("\nDecisions:\n1. raise: the effort reading is still owed — runs, the day: 1 — ISS-2424\n"), written.stdout);
+    assert.ok(written.stdout.includes("\nDecisions:\n1. file: the effort reading is still owed — runs, the day: 1 Title: Runs are read by the effort they ran at."), written.stdout);
+    assert.ok(written.stdout.includes(" — forge new - --title 'Runs are read by the effort they ran at' --category enhancement\n"), written.stdout);
     assert.ok(!written.stdout.includes("issue-flow run(s) across"), "the scorecard and the decisions stand in place of the template sentences");
     const sent = JSON.stringify(gateway.seen);
     assert.ok(!sent.includes(held.room), "no path under this device's home travelled");
@@ -111,7 +119,7 @@ test("a held page's reading is read back by a later open and by --json with no c
     assert.equal((await run(held, ["--day", daysAgo(1)])).status, 0);
     const asked = gateway.seen.length;
     const again = await run(held, ["--day", daysAgo(1)]);
-    assert.ok(again.stdout.includes("\nDecisions:\n1. raise:"), again.stdout);
+    assert.ok(again.stdout.includes("\nDecisions:\n1. file:"), again.stdout);
     /* A run landing on the day after the page was written: --json still prints what the reading read. */
     const later = join(held.room, ".claude", "projects", slugFor(held.checkout), "session-later", "subagents");
     mkdirSync(later, { recursive: true });
@@ -120,7 +128,8 @@ test("a held page's reading is read back by a later open and by --json with no c
     assert.equal(gateway.seen.length, asked, "neither the open nor --json asked again");
     assert.deepEqual(printed, contentOf(pageOf(held)), "the held content whole, not fresh figures beside an old reading");
     assert.equal(printed.runs.headline.day.runs, 1);
-    assert.deepEqual(printed.judgement.decisions.map((one) => [one.action, one.figure.key, one.command]), [["raise", "runs.headline.day.runs", "ISS-2424"]]);
+    assert.deepEqual(printed.judgement.decisions.map((one) => [one.action, one.figure.key, one.command]),
+      [["file", "runs.headline.day.runs", "forge new - --title 'Runs are read by the effort they ran at' --category enhancement"]]);
     assert.equal(printed.judgement.sections.runs.verdict, "steady");
     assert.equal(printed.judgement.cost.judge.calls, 1);
     assert.equal((await run(held, ["--day", daysAgo(1), "--force"])).status, 0);

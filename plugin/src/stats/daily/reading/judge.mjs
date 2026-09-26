@@ -2,14 +2,17 @@
    figures and proposes findings, review keeps the ones those figures support, and the judge reads
    every section's findings and writes the decisions and one line per section. Every figure a reading
    cites is checked here against the figures it was shown, and a reading citing anything else is
-   dropped and counted rather than written. What a stage that does not run leaves the next one, and
-   why a model's reading sits on a page of figures at all: docs/cli/stats-the-reading.md. */
+   dropped and counted rather than written; what a decision and a section line must carry is
+   decisions.mjs's. What a stage that does not run leaves the next one, and why a model's reading sits
+   on a page of figures at all: docs/cli/stats-the-reading.md. */
 import { readingInput } from "./figures.mjs";
-import { ROLES } from "../store.mjs";
+import { decisionOf, routedFiling, sectionLineOf, trimmed } from "./decisions.mjs";
+import { ROLES, shownDeep } from "../store.mjs";
 import { modelCall } from "../../../wire/model-call.mjs";
+import { refusing } from "../../../resolve/settings.mjs";
 import {
-  ACTIONS, DIRECTIONS, EXPLORE_ROLE, EXPLORE_TOOL, ISSUE_KEY, JUDGE_ROLE, JUDGE_TOOL, MOST_CANDIDATES, MOST_DECISIONS,
-  NO_COMMAND, REVIEW_ROLE, REVIEW_TOOL, TEXT_CHARS, VERDICTS,
+  DIRECTIONS, EXPLORE_ROLE, EXPLORE_TOOL, JUDGE_ROLE, JUDGE_TOOL, MOST_CANDIDATES, MOST_DECISIONS,
+  REVIEW_ROLE, REVIEW_TOOL, TEXT_CHARS,
 } from "./roles.mjs";
 
 const tally = () => new Map();
@@ -21,8 +24,6 @@ const droppedList = (dropped) => [...dropped].map(([key, count]) => {
   const [stage, reason] = key.split("\0");
   return { stage, reason, count };
 });
-
-const trimmed = (value) => String(value ?? "").trim();
 
 /* A stage's call, counted against its role whether it answered or not. */
 const asked = async (role, spec, held) => {
@@ -81,41 +82,40 @@ const reviewedOf = (input, candidates, dropped) => {
   return { kept, rejected };
 };
 
-const keysIn = (value) => String(value ?? "").match(ISSUE_KEY) ?? [];
-
-/* A decision is kept only where every figure and key it names is one the page holds. */
-const decisionOf = (one, { figures, keys }, dropped) => {
-  const figure = figures.get(trimmed(one?.figure));
-  const what = trimmed(one?.what);
-  const command = trimmed(one?.command);
-  const action = ACTIONS.includes(one?.action) ? one.action : null;
-  const reject = (reason) => {
-    drop(dropped, "judge", reason);
-    return null;
-  };
-  if (!action) return reject("named no action it may take");
-  if (!figure) return reject("cited a figure the page does not hold");
-  if (!what || what.length > TEXT_CHARS || command.length > TEXT_CHARS) return reject(`said nothing, or more than ${TEXT_CHARS} characters`);
-  if ([...keysIn(what), ...keysIn(command)].some((key) => !keys.has(key))) return reject("named an issue key the page does not name");
-  if (!command && action !== NO_COMMAND) return reject("named no command to carry it out");
-  if (command && !command.startsWith("forge ") && !keys.has(command)) return reject("named a command that is neither one of this CLI's nor an issue key the page names");
-  return { action, what, figure, command: command || null };
+/* The open issue a text matches, or why none could be asked; a search that failed is no match. */
+const matchOf = async (backlog, text) => {
+  if (!backlog.match) return { unchecked: backlog.refused };
+  try {
+    return { match: await refusing(() => backlog.match(text)) };
+  } catch (error) {
+    return { unchecked: String(error.message).split("\n")[0] };
+  }
 };
 
-const judgedOf = (input, held, sections, dropped) => {
-  const decisions = [];
+/* Each kept filing set against the open backlog, where an issue that already covers it takes it as a comment. */
+const routed = (decisions, backlog) => Promise.all(decisions.map(async (one) => (one.action === "file"
+  ? routedFiling(one, await matchOf(backlog, `${one.title}: ${one.cause}`)) : one)));
+
+const judgedOf = async (input, held, { sections, backlog, dropped }) => {
+  const kept = [];
   for (const one of Array.isArray(input.decisions) ? input.decisions : []) {
-    const kept = decisionOf(one, held, dropped);
-    if (!kept) continue;
-    if (decisions.length >= MOST_DECISIONS) drop(dropped, "judge", `past the ${MOST_DECISIONS} decisions a page carries`);
-    else decisions.push(kept);
+    const judged = decisionOf(one, held);
+    if (judged.dropped) drop(dropped, "judge", judged.dropped);
+    else if (kept.length >= MOST_DECISIONS) drop(dropped, "judge", `past the ${MOST_DECISIONS} decisions a page carries`);
+    else kept.push(judged.kept);
   }
+  const decisions = await routed(kept, backlog);
   for (const one of Array.isArray(input.sections) ? input.sections : []) {
     const section = sections[trimmed(one?.section)];
-    const why = trimmed(one?.why);
-    if (!section) drop(dropped, "judge", "named a section the page does not have");
-    else if (!VERDICTS.includes(one?.verdict) || !why || why.length > TEXT_CHARS) drop(dropped, "judge", "gave a section line with no verdict, or one over the length");
-    else if (!section.verdict) Object.assign(section, { verdict: one.verdict, why });
+    if (!section) {
+      drop(dropped, "judge", "named a section the page does not have");
+      continue;
+    }
+    const line = sectionLineOf(one, held.bySection.get(section.id));
+    if (line.dropped) drop(dropped, "judge", line.dropped);
+    if (section.verdict || section.verdictDropped) continue;
+    if (line.line) Object.assign(section, line.line);
+    else if (line.verdict) section.verdictDropped = line.verdict;
   }
   /* Nothing to decide is the judge's word only where it proposed nothing: a proposal that failed the
      checks leaves a day the judge thought held something. */
@@ -123,7 +123,18 @@ const judgedOf = (input, held, sections, dropped) => {
   return { decisions, nothing: proposed === 0 && input.nothing === true };
 };
 
-const shownFinding = (one) => ({ figure: one.figure.key, said: one.figure.said, value: one.figure.value, reading: one.reading, direction: one.direction });
+const shownFinding = (one) => ({ figure: one.figure.key, said: one.figure.said, value: one.figure.value, reading: one.reading,
+  direction: one.direction, ...(one.open ? { open: one.open.key } : {}) });
+
+/* Each finding the judge will read set beside the open issue its reading matches, where one does:
+   what a filing resting on it would duplicate. */
+const withOpen = async (findings, backlog) => {
+  if (!backlog.match) return;
+  await Promise.all(findings.map(async (one) => {
+    const { match } = await matchOf(backlog, one.reading);
+    if (match) one.open = match;
+  }));
+};
 
 /* One section through explore and review, or as far as the roles and the gateway let it go. */
 const sectionRead = async (section, held) => {
@@ -137,7 +148,10 @@ const sectionRead = async (section, held) => {
   }
   const candidates = exploredOf(explored.input, section.figures, held.dropped);
   Object.assign(read, { input: "candidates", findings: candidates });
-  if (!held.roles.review || !candidates.length) return read;
+  if (!held.roles.review || !candidates.length) {
+    await withOpen(candidates, held.backlog);
+    return read;
+  }
   const reviewed = await asked("review", { system: REVIEW_ROLE, tool: REVIEW_TOOL, data: { section: section.id,
     title: section.title, figures: section.figures,
     candidates: candidates.map((one, at) => ({ candidate: at + 1, figure: one.figure.key, reading: one.reading, direction: one.direction })) } }, held);
@@ -146,6 +160,7 @@ const sectionRead = async (section, held) => {
     return read;
   }
   const { kept, rejected } = reviewedOf(reviewed.input, candidates, held.dropped);
+  await withOpen(kept, held.backlog);
   return Object.assign(read, { input: "findings", findings: kept, rejected });
 };
 
@@ -170,15 +185,31 @@ export const blockedBy = ({ disabled, gateway, roles }) => {
   return null;
 };
 
+/* The keys the page names, and every open issue a finding matched, each with its status and priority
+   as the backlog holds them, null where it could not be asked. */
+const offeredIssues = (issues, reads, backlog) => {
+  const held = new Map(issues.map((one) => [one.key, one]));
+  for (const read of reads) {
+    for (const one of read.findings) {
+      if (one.open && !held.has(one.open.key)) {
+        held.set(one.open.key, { key: one.open.key, title: one.open.title, where: `the open issue matching a finding of ${read.title}` });
+      }
+    }
+  }
+  /* A matched title is the tracker's text, masked as the page's own strings are before any stage reads it. */
+  return shownDeep([...held.values()].map((one) => ({ ...one, status: null, priority: null, ...(backlog.issue?.(one.key) ?? {}) })), []);
+};
+
 /** The page's reading: every section explored and reviewed as the roles allow, then judged once.
- *  `call` stands in for the model call in the suite; nothing here throws. */
-export const judgeDay = async (content, { roles, gateway, disabled = false, call = modelCall, now = Date.now() }) => {
+ *  `call` stands in for the model call and `backlog` for the plugin's backlog in the suite; nothing here throws. */
+export const judgeDay = async (content, { roles, gateway, disabled = false, call = modelCall, now = Date.now(),
+  backlog = { refused: "no backlog was asked" } }) => {
   const blocked = blockedBy({ disabled, gateway, roles });
   if (blocked) return unjudged(blocked);
   const given = roles.roles;
   const input = readingInput(content);
   const held = {
-    roles: given, call, dropped: tally(),
+    roles: given, call, backlog, dropped: tally(),
     endpoint: { url: gateway.values.ANTHROPIC_BASE_URL, key: gateway.values.ANTHROPIC_AUTH_TOKEN },
     cost: Object.fromEntries(ROLES.filter((role) => given[role]).map((role) => [role, { model: given[role], calls: 0, failed: 0, input: 0, output: 0 }])),
   };
@@ -189,14 +220,17 @@ export const judgeDay = async (content, { roles, gateway, disabled = false, call
   let judged = { decisions: [], nothing: false };
   let why = null;
   if (given.judge) {
+    const issues = offeredIssues(input.issues, reads, backlog);
     const answer = await asked("judge", { system: JUDGE_ROLE, tool: JUDGE_TOOL, data: {
-      sections: reads.map((read, at) => judgeSection(read, input.sections[at])), issues: input.issues } }, held);
+      sections: reads.map((read, at) => judgeSection(read, input.sections[at])), issues } }, held);
     if (answer.failed) why = `the judge did not answer: ${answer.failed}`;
     else {
-      judged = judgedOf(answer.input, {
+      judged = await judgedOf(answer.input, {
         figures: new Map(input.sections.flatMap((section) => section.figures).map((one) => [one.key, one])),
-        keys: new Set(input.issues.map((one) => one.key)),
-      }, sections, held.dropped);
+        bySection: new Map(input.sections.map((section) => [section.id, new Map(section.figures.map((one) => [one.key, one]))])),
+        keys: new Set(issues.map((one) => one.key)),
+        issues: new Map(issues.map((one) => [one.key, one])),
+      }, { sections, backlog, dropped: held.dropped });
     }
   }
   return {

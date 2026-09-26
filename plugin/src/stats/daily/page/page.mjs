@@ -3,8 +3,8 @@
    its footer. Everything is inline — style, script, charts — so the file opens with no network and
    travels as one file. Colour only ever repeats what the words beside it say: docs/cli/stats.md. */
 import { contentBlock } from "../store.mjs";
-import { droppedLine, emptySaid, stageLines } from "./summary.mjs";
-import { changeSaid, moveSaid, tileOfSection, withUnit } from "../scorecard.mjs";
+import { decisionDetail, droppedLine, emptySaid, stageLines } from "./summary.mjs";
+import { changeSaid, moveSaid, tileFedBy, withUnit } from "../scorecard.mjs";
 import { SECTIONS } from "../reading/figures.mjs";
 import { redBatchSaid } from "../../marks/red-batches.mjs";
 import { RUNG_UNKNOWN } from "../../corpus/transcripts.mjs";
@@ -124,10 +124,15 @@ const scorecardHtml = (scorecard) => (scorecard?.length
    the content's address and no reader's word, is the hover. */
 const figureSaid = (figure) => `<span class="figure" title="${esc(figure.key)}">${esc(figure.said)}: ${esc(figure.value)}</span>`;
 
-const tileLink = (tile) => (tile ? ` Tile: <a href="#tile-${esc(tile.id)}">${esc(tile.label)}</a>.` : "");
+const targetLink = (target) => {
+  if (target?.tile) return ` Tile: <a href="#tile-${esc(target.tile.id)}">${esc(target.tile.label)}</a>.`;
+  return target?.section ? ` Section: <a href="#${esc(target.section.drill)}">${esc(target.section.title)}</a>.` : "";
+};
 
-const decisionHtml = (one, tileFor) => `<li><strong>${esc(one.action)}</strong> — ${esc(one.what)}`
-  + `<br><span class="note">${figureSaid(one.figure)}.${tileLink(tileFor(one.figure.key))}`
+const detailHtml = (one) => decisionDetail(one).map((said) => ` ${esc(said)}`).join("");
+
+const decisionHtml = (one, tileFor) => `<li><strong>${esc(one.action)}</strong> — ${esc(one.what)}${detailHtml(one)}`
+  + `<br><span class="note">${figureSaid(one.figure)}.${targetLink(tileFor(one.figure.key))}`
   + `${one.command ? ` Carried out by <code>${esc(one.command)}</code>.` : ""}</span></li>`;
 
 const judgedBody = (judgement, tileFor) => {
@@ -136,7 +141,7 @@ const judgedBody = (judgement, tileFor) => {
 };
 
 /** The Decisions block, or the one line saying why the page carries none; nothing for a page written
- *  before the reading existed. `tileFor` names the tile a cited figure's section answers to. */
+ *  before the reading existed. `tileFor` names the tile a cited figure feeds, else its section. */
 export const decisionsHtml = (judgement, tileFor = () => null) => {
   if (!judgement) return "";
   const notes = [...stageLines(judgement), droppedLine(judgement)].filter(Boolean);
@@ -159,25 +164,45 @@ const findingHtml = (one) => `<li>${esc(one.reading)} <span class="note">(${figu
 export const sectionHead = (judgement, id) => {
   const read = judgement?.sections?.[id];
   if (!read) return "";
-  if (read.verdict) return `<p class="verdict"><strong>${esc(read.verdict)}</strong> — ${esc(read.why)}</p>`;
-  if (read.input === "figures" || !read.findings.length) return "";
+  if (read.verdict) {
+    return `<p class="verdict"><strong>${esc(read.verdict)}</strong> — ${esc(read.why)}`
+      + `${read.baseline ? ` <span class="note">(against ${figureSaid(read.baseline)})</span>` : ""}</p>`;
+  }
+  const dropped = read.verdictDropped
+    ? `<p class="note">No verdict: the judge's ${esc(read.verdictDropped)} was dropped, citing no baseline figure of this section.</p>` : "";
+  if (read.input === "figures" || !read.findings.length) return dropped;
   const said = read.input === "findings" ? "Reviewed findings" : "Unreviewed findings";
-  return `<p class="note">${said}, no judge having ruled on this section:</p><ul>${read.findings.map(findingHtml).join("")}</ul>`;
+  const ruled = read.verdictDropped ? `${said}:` : `${said}, no judge having ruled on this section:`;
+  return `${dropped}<p class="note">${ruled}</p><ul>${read.findings.map(findingHtml).join("")}</ul>`;
 };
 
-/* The section of the page's reading each figure key sits in, off the reading's own table, so a
-   decision points at the tile of the section whose figures it cites. */
+/* The drill-down each section of the reading is shown in, where it is not the section's own. */
+const DRILL_OF = { opportunities: "friction" };
+
+/* Where a decision points: the computed tile its figure feeds, else the drill-down holding the section
+   the figure came from, off the reading's own table; a figure feeding a tile no reader computes yet
+   points at its section, since the tile holds nothing it says. */
 const tileFinder = (content) => {
   const sectionOf = new Map();
   for (const section of SECTIONS) {
-    for (const figure of section.figures(content)) sectionOf.set(figure.key, section.id);
+    const where = { drill: DRILL_OF[section.id] ?? section.id, title: section.title };
+    for (const figure of section.figures(content)) sectionOf.set(figure.key, where);
   }
-  return (key) => (sectionOf.has(key) ? tileOfSection(sectionOf.get(key)) : null);
+  return (key) => {
+    const tile = tileFedBy(key, content);
+    if (tile) return { tile };
+    return sectionOf.has(key) ? { section: sectionOf.get(key) } : null;
+  };
 };
 
-/** A drill-down: closed when the page opens, its summary the title and one line. */
-const drill = (id, title, line, body) => `<details id="${esc(id)}"><summary><h2>${esc(title)}</h2>`
-  + `<span class="note">${line}</span></summary>${body}</details>`;
+/** Each section's kept verdict for a drill-down's summary row, coloured as the tiles are; named by
+ *  its section where the drill-down holds more than one. */
+export const verdictMarks = (judgement, ids) => ids.map((id) => judgement?.sections?.[id]).filter((read) => read?.verdict)
+  .map((read) => `<span class="mark ${esc(read.verdict)}">${ids.length > 1 ? `${esc(read.title)}: ` : ""}${esc(read.verdict)}</span>`).join("");
+
+/** A drill-down: closed when the page opens, its summary the title, the verdicts and one line. */
+const drill = (id, title, line, body, marks = "") => `<details id="${esc(id)}"><summary><h2>${esc(title)}</h2>`
+  + `${marks}<span class="note">${line}</span></summary>${body}</details>`;
 
 const figureRow = (row) => [row.name, row.runs, said(row.medianMinutes), said(row.medianCalls)];
 
@@ -202,17 +227,17 @@ const phasesHtml = (runs) => {
     bars ? `<ol class="bars">${bars}</ol>` : "<p>No run ended on this day.</p>");
 };
 
-const runsHtml = (runs, days, head) => {
+const runsHtml = (runs, days, { head, marks }) => {
   const { day, before, week } = runs.headline;
   return drill("runs", "Runs", `${esc(day.runs)} issue-flow run(s), median ${esc(said(day.medianMinutes, " min"))}`, head
     + `<p>${side("The day:", day)}. ${side("The day before:", before)}. The seven days before: a median of ${esc(said(week.runs))} run(s) a day, `
     + `${esc(said(week.medianMinutes, " min"))} and ${esc(said(week.medianCalls))} calls, over the ${esc(week.days)} day(s) that held a run.</p>`
     + chartSvg("Issue-flow runs a day", "runs", days, runs.trend.map((one) => one.runs))
     + chartSvg("Median minutes a run", "minutes", days, runs.trend.map((one) => one.medianMinutes))
-    + ranRows("project", runs.projects) + ranRows("model", runs.models) + ranRows("rung", runs.rungs));
+    + ranRows("project", runs.projects) + ranRows("model", runs.models) + ranRows("rung", runs.rungs), marks);
 };
 
-const landingsHtml = (landings, days, head) => {
+const landingsHtml = (landings, days, { head, marks }) => {
   const held = landings.headline;
   const line = held ? `${esc(held.passes)} landing pass(es)` : "no landing pass";
   const top = held
@@ -222,12 +247,12 @@ const landingsHtml = (landings, days, head) => {
     : "<p>No landing pass was typed and no run ended on this day, so no landing figure is read.</p>";
   return drill("landings", "Landings", line, head + top
     + (landings.redBatches ? `<p>Red batches: ${esc(redBatchSaid(landings.redBatches))}.</p>` : "")
-    + chartSvg("Landing passes a day", "passes", days, landings.trend.map((one) => one.passes)));
+    + chartSvg("Landing passes a day", "passes", days, landings.trend.map((one) => one.passes)), marks);
 };
 
 const pct = (value) => (value === null ? "none ruled" : `${value}%`);
 
-const consultsHtml = (consults, days, head) => {
+const consultsHtml = (consults, days, { head, marks }) => {
   const held = consults.headline;
   return drill("consults", "Consults", `${esc(held.answered)} answered consult(s)`, head
     + `<p>${esc(held.answered)} answered consult(s), ${esc(held.atBudget)} of the ${esc(held.budgeted)} that recorded a budget `
@@ -236,7 +261,7 @@ const consultsHtml = (consults, days, head) => {
     + table(["model", "prompt", "consults", "findings", "ruled", "kept", "ruled on how", "right about how"],
       consults.groups.map((one) => [one.model, one.prompt, one.consults, one.findings, one.ruled,
         { value: one.kept ?? -1, html: esc(pct(one.kept)) }, one.how, { value: one.rightAboutHow ?? -1, html: esc(pct(one.rightAboutHow)) }]))
-    + "<p>A share is over the findings ruled in its own row, one model and one prompt version, and never pooled across two.</p>");
+    + "<p>A share is over the findings ruled in its own row, one model and one prompt version, and never pooled across two.</p>", marks);
 };
 
 /** How many friction items the drill-down lists: the rest stay in `--json`. */
@@ -248,7 +273,7 @@ const matchCell = (one) => {
   return { value: "~~", html: "matches no open issue: no filing yet" };
 };
 
-const frictionHtml = (friction, opportunities, days, heads) => {
+const frictionHtml = (friction, opportunities, days, { head: heads, marks }) => {
   const top = opportunities.listed.slice(0, FRICTION_SHOWN);
   const inJson = opportunities.listed.length - top.length;
   const rest = [inJson && `${inJson} more listed in <code>--json</code>`,
@@ -260,12 +285,12 @@ const frictionHtml = (friction, opportunities, days, heads) => {
         top.map((one, index) => [index + 1, one.kind, one.met, one.runs, one.calls, matchCell(one)]))}`
         + (rest.length ? `<p>${rest.join("; ")}.</p>` : "")
       : "<p>No refusal, error, repeat, re-read or long wait was recorded on this day.</p>")
-    + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p>`);
+    + `<p>This list ranks and counts, and proposes no change. What to change is the evaluator's reading: <code>${esc(opportunities.evaluator)}</code>, or the harness-eval skill.</p>`, marks);
 };
 
 const issueSaid = (one) => (one.unread ? `${esc(one.key)} (could not be read: ${esc(one.unread)})` : `${esc(one.key)} ${esc(one.title ?? "untitled")}`);
 
-const releasesHtml = (releases, head) => drill("releases", "Harness implementation",
+const releasesHtml = (releases, { head, marks }) => drill("releases", "Harness implementation",
   `${esc(releases.landed.length)} release(s) written and ${esc(releases.installed.length)} cop(ies) installed`, head
   + (releases.landed.length
     ? `<ul class="releases">${releases.landed.map((one) => `<li>${esc(one.version)} at ${esc(at(one.at))}Z: `
@@ -273,7 +298,7 @@ const releasesHtml = (releases, head) => drill("releases", "Harness implementati
     : "<p>No release was written on this day.</p>")
   + (releases.installed.length
     ? `<p>Installed: ${releases.installed.map((one) => `${esc(one.copy)} at ${esc(at(one.at))}Z`).join(", ")}.</p>`
-    : ""));
+    : ""), marks);
 
 /** Every reading no reader computes yet, once each, whether a tile or a section wanted it. */
 const unbuilt = (content) => {
@@ -329,6 +354,7 @@ const DAILY_STYLE = `.tiles{display:grid;grid-template-columns:repeat(auto-fill,
 .tile .value{font-size:1.6rem;font-weight:600}.tile .goal,.tile .baseline{font-size:.8rem;color:#555;display:block}
 .tile.better{border-left-color:#1a7f37}.tile.better .move{color:#1a7f37}.tile.worse{border-left-color:#b42318}.tile.worse .move{color:#b42318}
 .tile.greyed{background:#f3f3f3;color:#777;border-left-color:#ccc}.tile.greyed .value{font-size:1.1rem}
+.mark{font-weight:600;border-left:6px solid #999;padding:0 .4rem;margin-right:.6rem}.mark.better{border-left-color:#1a7f37;color:#1a7f37}.mark.worse{border-left-color:#b42318;color:#b42318}
 details{margin-top:1.25rem;border-top:1px solid #ddd}summary{cursor:pointer;padding:.4rem 0}summary h2{display:inline;border:0;font-size:1.15rem;margin:0 .6rem 0 0}
 .chart{margin:.75rem 0;width:100%}.chart svg{width:100%;height:auto;display:block}.chart figcaption{font-size:.85rem;color:#444}
 .chart .line{fill:none;stroke:#555;stroke-width:1.5}.chart circle{fill:#555}.chart .grid{stroke:#e5e5e5}.chart .scale,.chart .axis{font-size:13px;fill:#555}
@@ -339,7 +365,7 @@ footer{margin-top:2.5rem;font-size:.9rem;color:#444}`;
 /** The whole page for a day's content: the scorecard, the decisions, the drill-downs, the gaps. */
 export const pageOf = (content) => {
   const days = content.trendDays;
-  const head = (id) => sectionHead(content.judgement, id);
+  const head = (...ids) => ({ head: ids.map((id) => sectionHead(content.judgement, id)).join(""), marks: verdictMarks(content.judgement, ids) });
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Harness daily report ${esc(content.day)}</title>`
     + `<meta name="viewport" content="width=device-width,initial-scale=1"><style>${STYLE}\n${DAILY_STYLE}</style></head><body>`
     + `<h1>Harness daily report — ${esc(content.day)}</h1>`
@@ -349,7 +375,7 @@ export const pageOf = (content) => {
     + decisionsHtml(content.judgement, tileFinder(content))
     + phasesHtml(content.runs) + runsHtml(content.runs, days, head("runs")) + landingsHtml(content.landings, days, head("landings"))
     + consultsHtml(content.consults, days, head("consults"))
-    + frictionHtml(content.friction, content.opportunities, days, head("friction") + head("opportunities"))
+    + frictionHtml(content.friction, content.opportunities, days, head("friction", "opportunities"))
     + releasesHtml(content.releases, head("releases"))
     + gapsFooter(content)
     + `<script>${SORT_SCRIPT}</script>${contentBlock(content)}</body></html>\n`;

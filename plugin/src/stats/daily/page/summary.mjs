@@ -23,6 +23,19 @@ const followedLine = (followed) => (followed
 /** The index's line for a day: the phase that moved most and the release it followed. */
 export const indexLineOf = (content) => `${movedLine(content.moved)}; following ${followedLine(content.followed)}`;
 
+const filingSaid = (one) => `Title: ${one.title}. Cause: ${one.cause}.`;
+
+/** What a decision carries past its words and its figure, in sentences the page and the terminal
+ *  both print: a raise's issue and its two priorities, a filing's title and cause, and what the
+ *  reader still owes a filing. A decision held from before these fields existed carries none. */
+export const decisionDetail = (one) => {
+  if (one.action === "raise" && one.issue) return [`${one.issue} from ${one.from} to ${one.to}.`];
+  if (one.action === "comment") return [`${one.issue} is open and matches this filing, so it goes there as a comment.`, filingSaid(one)];
+  if (one.action !== "file" || !one.title) return [];
+  return [filingSaid(one), ...(one.unchecked ? [`No open issue was checked for it: ${one.unchecked}.`] : []),
+    `The body the command reads on stdin is yours to write, with the sections a ${one.category} asks for.`];
+};
+
 /** What the terminal prints of the models' reading: the decisions where a judge ran, else the one line
  *  saying why none did, each followed by what did not run and what was dropped. */
 export const decisionsSaid = (judgement) => {
@@ -30,8 +43,8 @@ export const decisionsSaid = (judgement) => {
   const notes = [...stageLines(judgement), droppedLine(judgement)].filter(Boolean);
   if (!judgement.judged) return [`No decisions: ${judgement.why ?? "no judge ran"}.`, ...notes];
   const items = judgement.decisions.length
-    ? judgement.decisions.map((one, at) => `${at + 1}. ${one.action}: ${one.what} — ${one.figure.said}: ${one.figure.value}`
-      + `${one.command ? ` — ${one.command}` : ""}`)
+    ? judgement.decisions.map((one, at) => [`${at + 1}. ${one.action}: ${one.what} — ${one.figure.said}: ${one.figure.value}`,
+      ...decisionDetail(one)].join(" ") + `${one.command ? ` — ${one.command}` : ""}`)
     : [emptySaid(judgement)];
   return ["Decisions:", ...items, ...notes];
 };
