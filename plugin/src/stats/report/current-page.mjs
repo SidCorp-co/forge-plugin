@@ -1,6 +1,6 @@
 /* The current report's content as HTML. Everything is inline, as the day's page is, and every figure
    is said in words beside any drawing of it — docs/cli/stats.md. */
-import { SORT_SCRIPT, STYLE, at, esc, missing, said, table, trendSvg } from "../daily/page.mjs";
+import { SORT_SCRIPT, STYLE, at, esc, missing, said, table, trendSvg } from "../daily/page/page.mjs";
 import { contentBlock } from "../daily/store.mjs";
 
 const TODAY = "today so far";

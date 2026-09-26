@@ -58,8 +58,8 @@ test("the daily page's Landings section prints the day's red-batch figures", () 
   const held = device({ days: [daysAgo(1)], marks: [...onDay(daysAgo(1)), ...onDay(daysAgo(3))] });
   assert.equal(daily(held, "--day", daysAgo(1)).status, 0);
   const page = readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8");
-  const landings = page.slice(page.indexOf('<section id="landings">'));
-  assert.ok(landings.slice(0, landings.indexOf("</section>")).includes(`<p>Red batches: ${SAID}.</p>`), landings);
+  const landings = page.slice(page.indexOf('<details id="landings">'));
+  assert.ok(landings.slice(0, landings.indexOf("</details>")).includes(`<p>Red batches: ${SAID}.</p>`), landings);
 });
 
 test("the daily --json carries the day's red-batch figures", () => {

@@ -7,11 +7,12 @@ import { dayIn, dayRefusal, heldRange, yesterday } from "./day.mjs";
 import { contentOf, corporaOf, landingsFrom, readingOf } from "./gather.mjs";
 import { backlogMatcher } from "./opportunities.mjs";
 import { judgeDay, unjudged } from "./reading/judge.mjs";
-import { pageOf } from "./page.mjs";
+import { pageOf } from "./page/page.mjs";
 import { printCurrent, writeCurrent, writerFrom } from "../report/current.mjs";
 import { projectsOn, registered } from "./projects.mjs";
 import { clearMark, contentOf as heldContentOf, pagePath, readPage, reportRoles, reportsDir, shownDeep, writePage } from "./store.mjs";
-import { decisionsSaid, summaryOf } from "./summary.mjs";
+import { decisionsSaid } from "./page/summary.mjs";
+import { scorecardLines, scorecardOf } from "./scorecard.mjs";
 import { gateway } from "../../resolve/machine/stores.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -20,17 +21,17 @@ const VERB = "stats daily";
 
 export const DAILY_USAGE = [
   "Usage: forge stats daily [--day YYYY-MM-DD] [--open] [--json] [--force] | --current [--open] [--json]",
-  "One page for a calendar day on this device: what the issue-flow runs, landings and consults of",
-  "every project registered here cost, where they met friction, which plugin releases landed, and",
-  "where rounds could be saved, each figure beside the day before and the seven days before. It",
-  "reads, and writes that day's page and then the current report, nothing else. Where they are",
-  "written: the `reports` key of this device's config.json, or `reports` beside it. A project whose",
-  "`report` key is `daily` has its session starts write yesterday's page when it is missing.",
+  "One page for a calendar day on this device. It opens with a scorecard, one tile per goal metric:",
+  "the day against the median of the seven days before, marked better or worse. Below, folded until",
+  "opened: what the runs, landings and consults of every project registered here cost, their friction",
+  "and the plugin releases. It reads, and writes that day's page and then the current report,",
+  "nothing else. Where: the `reports` key of this device's config.json, or `reports` beside it.",
+  "A project whose `report` key is `daily` has its session starts write yesterday's page when missing.",
   "",
   "As a table, `reports` holds that directory as `dir` and, as `roles`, the gateway model id for each",
   "stage of the page's reading: `explore` and `review` once per section, `judge` once per page, writing",
-  "the Decisions at the top and a line per section. A citation the page does not hold is dropped and",
-  "counted. The reading is kept with the page; --force redoes it. An unset role skips its stage.",
+  "the Decisions under the scorecard and a line per section. A citation the page does not hold is",
+  "dropped and counted. The reading is kept with the page; --force redoes it. An unset role is skipped.",
   "",
   "`forge stats daily --current` writes the current report instead, as index.html beside the pages:",
   "runs, minutes, calls, refusals, consults, landings and releases each as a series over every day",
@@ -64,8 +65,8 @@ const modelsReading = async (content) => {
   }
 };
 
-/* The models' reading a held page carries, or null for one written before it or by hand. */
-const heldReading = (dir, day) => heldContentOf(readPage(dir, day) ?? "")?.judgement ?? null;
+/* The content a held page carries, or null for one written by hand. */
+const heldContent = (dir, day) => heldContentOf(readPage(dir, day) ?? "");
 
 const heldSaid = (path, day) => `${path}\n${day} is already written and was left as it is; `
   + `\`forge stats daily --day ${day} --force\` rewrites it.`;
@@ -92,12 +93,15 @@ export const printDaily = async (rest) => {
       if (open) {
         console.log(path);
         console.error(heldSaid(path, day).split("\n")[1]);
-      } else console.log([...decisionsSaid(heldReading(reports.dir, day)), heldSaid(path, day)].join("\n"));
+      } else {
+        const kept = heldContent(reports.dir, day);
+        console.log([...scorecardLines(kept?.scorecard), ...decisionsSaid(kept?.judgement ?? null), heldSaid(path, day)].join("\n"));
+      }
       return null;
     }
     /* A held reading is printed with the content it read, never beside figures gathered since: a key
        it cites names whatever sits there now, and an opportunity's rank is not its identity. */
-    const kept = json && held ? heldContentOf(readPage(reports.dir, day) ?? "") : null;
+    const kept = json && held ? heldContent(reports.dir, day) : null;
     if (kept?.judgement) return console.log(JSON.stringify(kept, null, 2));
     const found = projectsOn();
     /* The page reads the landings from its trend's first day, as it always has; the current report,
@@ -108,9 +112,9 @@ export const printDaily = async (rest) => {
     const reading = readingOf({ projects: whole.map((one) => ({ ...one, passes: one.passes.filter((pass) => pass.at >= since) })) });
     refusedIfDue(day, reading);
     const allowed = [reports.dir, ...found.read.map((one) => one.checkout)];
-    const content = shownDeep(await contentOf(reading, day, {
+    const content = shownDeep({ ...await contentOf(reading, day, {
       unread: found.unread, match: await backlogMatcher(registered()),
-    }), allowed);
+    }), scorecard: scorecardOf(reading, day) }, allowed);
     if (json) {
       return console.log(JSON.stringify({ ...content, judgement: unjudged(held
         ? `the page held for ${day} carries no reading; \`forge stats daily --day ${day} --force\` reads it`
@@ -120,7 +124,7 @@ export const printDaily = async (rest) => {
     writePage(reports.dir, `${day}.html`, pageOf(content));
     const current = await writeCurrent(reports.dir, writerFrom(readingOf({ projects: whole, entries: reading.entries, hooks: reading.hooks }), found));
     if (open) return console.log(path);
-    console.log([...(content.judgement.judged ? [] : summaryOf(content)), ...decisionsSaid(content.judgement), "",
+    console.log([...scorecardLines(content.scorecard), ...decisionsSaid(content.judgement), "",
       `${held ? `Rewrote the page held for ${day}` : `Wrote ${day}`}: ${path}`,
       current ? `The current report, listing every day held: ${current.path}`
         : "A writer holds the current report; it writes once more before it exits, listing this day.",

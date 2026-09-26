@@ -7,7 +7,7 @@ import test from "node:test";
 import { daily, daysAgo, device } from "./fixture-daily.mjs";
 import { SECTIONS, readingInput } from "../../../src/stats/daily/reading/figures.mjs";
 import { blockedBy, judgeDay } from "../../../src/stats/daily/reading/judge.mjs";
-import { decisionsHtml, sectionHead } from "../../../src/stats/daily/page.mjs";
+import { decisionsHtml, sectionHead } from "../../../src/stats/daily/page/page.mjs";
 
 const held = device({ days: [daysAgo(1), daysAgo(1), daysAgo(2)] });
 const content = JSON.parse(daily(held, "--day", daysAgo(1), "--json").stdout);

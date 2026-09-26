@@ -99,12 +99,15 @@ What each row of the profile is — the classifier and the wrong rows it was bui
 ## The daily report
 
 **Every figure on the page is another reader's.** `forge stats daily` cuts what `stats runs`,
-`codex stats` and the hook log already compute to one calendar day, and computes nothing of its own,
-so a number on the page and the same number on a verb's screen cannot disagree. Where the page wants
-a figure no reader computes, it names the missing reading and the issue that owes it rather than
-printing a nought, and the fix is that reader, never a second count here.
+`codex stats` and the hook log already compute to one calendar day, and computes nothing but
+quotients and medians of them, so a number on the page and the same number on a verb's screen cannot
+disagree. Where the page wants a figure no reader computes, it names the missing reading and the
+issue that owes it rather than printing a nought, and the fix is that reader, never a second count here.
 
-**The page's reading is models'**, over these figures: [`stats-the-reading.md`](stats-the-reading.md).
+**The page opens on the goals**, and the models' reading of it is
+[`stats-the-reading.md`](stats-the-reading.md). A tile is per closed issue or per day, never per run
+(G-11); its direction and goal sit beside its definition, where every surface reads them. A metric no
+reader computes keeps a greyed tile naming the issue.
 
 **A session start is the schedule.** A cron entry or a timer is a change to the person's own
 machine. The first session start after a day ends, in a project whose `report` key is `daily`,
