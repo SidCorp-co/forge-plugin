@@ -162,13 +162,13 @@ const FINDING_CHARS = 900;
 
 /* The file of `recorded` an anchor names: its exact path, or the one absolute path it is the tail of.
    A file outside the checkout is recorded by its real path and shown under it, and the reviewer anchors
-   on the name it would write, `criteria.md` or `scratch/criteria.md` (ISS-2336, ISS-2171). Two recorded
+   on the name it would write, the bare name or a tail of the path (ISS-2336, ISS-2171). Two recorded
    files sharing that tail make it no one's, and a relative path is only ever matched whole, because a
    bare name in a checkout names many files the set never held. A tail resolves against the consult's own
    set alone: naming one of two such files does not make the tail its, and naming a file the consult
    never recorded does not hand it a finding the consult anchored elsewhere. */
 const tailOf = (file, anchor) => file === anchor || file.endsWith(`/${anchor}`);
-export const anchoredOn = (anchor, recorded) => {
+const anchoredOn = (anchor, recorded) => {
   if (recorded.includes(anchor)) return anchor;
   const tails = recorded.filter((file) => tailOf(file, anchor));
   return tails.length === 1 && isAbsolute(tails[0]) ? tails[0] : null;
