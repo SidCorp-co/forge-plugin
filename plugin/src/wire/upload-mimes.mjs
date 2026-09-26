@@ -1,6 +1,6 @@
 /* An upload is judged on the type its multipart part carries, so this CLI is what puts one there;
    the pairs are the types the tracker's refusal body lists, and the argument docs/cli/one-transport.md's. */
-export const UPLOAD_MIMES = {
+const UPLOAD_MIMES = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",

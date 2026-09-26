@@ -88,7 +88,8 @@ export const batchRefusal = (reference, { sent, refused, unsent }) => {
       + `${unsent.join(", ")}.`);
   }
   if (sent.length) {
-    lines.push(`Up already: ${sent.join(", ")}. Cite them by name rather than by path, which would collide:`
+    lines.push(`Up already: ${sent.join(", ")}. Cite ${sent.length === 1 ? "it" : "them"} by name rather `
+      + `than by path, which would collide:`
       + `\n  --evidence ${sent.join(" --evidence ")}`);
   }
   if (typed.length) {
