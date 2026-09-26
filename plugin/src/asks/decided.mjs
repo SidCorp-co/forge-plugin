@@ -43,8 +43,8 @@ const canonical = (row) => ({
       })) }),
 });
 
-/** One outcome appended; false where there is no project, the row is not an outcome, or the write
- *  failed — a decision the owner could not review later is one the gate does not take. */
+/** One outcome appended in its canonical shape; false where there is no project, the row has no
+ *  known shape, or the write failed. */
 export const logOutcome = (entry, room = asksRoom()) => {
   const path = decidedPath(room);
   if (!path || !wellFormed(entry)) return false;

@@ -14,8 +14,8 @@ import { DECLARED } from "./declared.mjs";
 export const OWNER_KIND = "owner";
 export const DECISION_KIND = "decision";
 
-/** The two files of one layer, and the transcript directory it is filled from; null where this
- *  process stands in no checkout, which has no transcripts to call its own. */
+/** The layer's two files and the transcripts it is filled from, keyed on the repository; absent
+ *  outside a checkout, which has no transcripts to call its own. */
 export const layerPaths = (room, repository = projectRepository()) => (room && repository
   ? {
       precedents: join(room, "precedents.jsonl"),
@@ -61,7 +61,7 @@ const labelsOf = (question) =>
    writing their own answer, which is precedent too — the strongest sign the options were wrong. */
 const freeText = (answer, labels) => !String(answer).split(", ").every((one) => labels.includes(one));
 
-/** One question the owner answered, as a precedent row; null where it holds no answer. */
+/** A precedent row built from one answered question; nothing where the answer is empty. */
 export const ownerRow = ({ id, at, question, answer, notes = null }) => {
   if (typeof answer !== "string" || !answer.trim() || !question?.question) return null;
   const labels = labelsOf(question);
