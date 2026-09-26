@@ -28,6 +28,9 @@ const aboutTheFile = ({ status }) => status >= 400 && status < 500 && ![401, 403
 
 const typeRefused = (one) => one.said.includes("MIME_NOT_ALLOWED");
 
+/* No answer, or a failure on the tracker's side of it: the file may be up with the answer lost. */
+const unanswered = (one) => !one.status || one.status >= 500;
+
 /* The tracker's own set, off its refusal body: a copy kept here is one that goes stale unseen. */
 const acceptedSet = (refused) => {
   const allowed = refused.find((one) => one.details?.allowed)?.details.allowed;
@@ -65,10 +68,18 @@ const wayOut = (one) => (one.utf8
  *  file refused for its type. */
 export const batchRefusal = (reference, { sent, refused, unsent }) => {
   const total = sent.length + refused.length + unsent.length;
-  const lines = [`${sent.length} of ${total} file(s) went up to ${reference}, and ${refused.length} `
-    + `${refused.length === 1 ? "was" : "were"} refused${unsent.length ? `; ${unsent.length} not sent` : ""}:`];
+  const lost = refused.filter(unanswered);
+  const judged = refused.length - lost.length;
+  const lines = [`${sent.length} of ${total} file(s) went up to ${reference}, and ${judged} `
+    + `${judged === 1 ? "was" : "were"} refused${lost.length ? `; ${lost.length} had no answer` : ""}`
+    + `${unsent.length ? `; ${unsent.length} not sent` : ""}:`];
   for (const one of refused) {
-    lines.push(`  ${one.name} — ${one.said}${typeRefused(one) ? `\n    ${bytesSaid(one)}` : ""}`);
+    const why = typeRefused(one) ? `\n    ${bytesSaid(one)}` : "";
+    const maybe = unanswered(one)
+      ? `\n    It may be up with the answer lost: read ${reference} before sending it again, and cite `
+        + `${one.name} by name if it is there.`
+      : "";
+    lines.push(`  ${one.name} — ${one.said}${why}${maybe}`);
   }
   const typed = refused.filter(typeRefused);
   if (typed.length) lines.push(acceptedSet(typed));
@@ -122,7 +133,7 @@ export const uploadAll = async (target, targetId, paths, { renewing, sending = (
       sending(name);
     });
     if (row?.refused) {
-      refused.push({ ...file, said: row.refused, details: row.details ?? null });
+      refused.push({ ...file, said: row.refused, status: row.status ?? null, details: row.details ?? null });
       if (aboutTheFile(row)) continue;
       return { sent, refused, unsent: files.slice(at + 1).map((one) => one.name) };
     }

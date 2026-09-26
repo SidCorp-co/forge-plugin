@@ -85,3 +85,21 @@ test("one refused evidence file leaves the rest going up, writes no record, and 
   assert.match(run.stderr, /No record was written: nothing of it reached ISS-80\./u);
   assert.doesNotMatch(run.stderr, /were begun before this stopped/u, "every file had its answer, so no stranded line");
 });
+
+/* The field a record writes goes after the uploads as its comment does, so a refused file stops both. */
+test("a refused evidence file stops the field a kind beside it would write, as it stops the comment", async () => {
+  sent.length = 0;
+  const room = tempRoom("per-file-field-files-");
+  const [text, binary] = ["deployed.log", "screen.bin"].map((name) => join(room, name));
+  writeFileSync(text, "served at the deployed head\n");
+  writeFileSync(binary, Buffer.from([0x89, 0x00, 0x02]));
+  const before = written().length;
+  const run = await ask("record", "verification", "ISS-80", "--where", "https://staging.test", "--commit", COMMIT,
+    "--evidence", text, "--evidence", binary,
+    "--also", "note", "--section", "Fixed", "--user", "Evidence files attach whatever they are called.");
+  assert.deepEqual(sent, ["deployed.log", "screen.bin"]);
+  assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+  assert.match(run.stderr, /No record was written/u);
+  assert.equal(written().length, before, "neither the release note's field nor the verification's comment was sent");
+  assert.equal(ISSUE.releaseNotes, undefined);
+});

@@ -140,8 +140,8 @@ test("a readable file whose name reads as a commit goes up as a file, and says s
 /* The tracker's refusal body as the live one answered on 2026-09-27, trimmed to what is read. */
 const ALLOWED = { reason: "not-text", allowed: { mimes: ["image/png", "text/plain", "text/html"], anyExtensionIfText: true } };
 const NOT_TEXT = "MIME_NOT_ALLOWED: mime not allowed: text/plain — the bytes are binary, and this type carries text";
-const refusedOne = (name, { utf8 = true, said = NOT_TEXT, details = ALLOWED } = {}) =>
-  ({ name, path: join(DIR, name), utf8, said, details });
+const refusedOne = (name, { utf8 = true, said = NOT_TEXT, details = ALLOWED, status = 400 } = {}) =>
+  ({ name, path: join(DIR, name), utf8, said, details, status });
 
 /* ISS-80: the set printed was this CLI's copy of the tracker's, so a name missing from it read as refused. */
 test("a type refusal names the file in the tracker's words and prints the set the tracker's body carried", () => {
@@ -189,13 +189,28 @@ test("bytes that do not decode as text are answered with the read of what they a
 /* A 401 or a dropped answer is no fact about the file, so no set and no way out is offered against it. */
 test("a refusal that is not about the type offers no set, and names the files it left unsent", () => {
   const said = batchRefusal("ISS-1", {
-    sent: ["first.txt"], refused: [refusedOne("second.txt", { said: "Forge answered 401: token expired", details: null })],
+    sent: ["first.txt"],
+    refused: [refusedOne("second.txt", { said: "Forge answered 401: token expired", details: null, status: 401 })],
     unsent: ["third.txt", "fourth.txt"],
   });
   assert.match(said, /^1 of 4 file\(s\) went up to ISS-1, and 1 was refused; 2 not sent:$/mu);
   assert.match(said, /token expired/u);
   assert.match(said, /^Not sent, the write stopping at second\.txt, which the tracker did not judge: third\.txt, fourth\.txt\.$/mu);
   assert.doesNotMatch(said, /The tracker takes|named no set|Do this/u);
+});
+
+/* A request with no answer may have landed, so it is neither up nor refused, and a retry of its path
+   could put it up twice. */
+test("a file with no answer is counted apart, and the caller is sent to read the issue before resending it", () => {
+  const said = batchRefusal("ISS-1", {
+    sent: ["first.txt"],
+    refused: [refusedOne("second.txt", { said: "Forge did not answer POST /issues/u/attachments", details: null, status: null })],
+    unsent: ["third.txt"],
+  });
+  assert.match(said, /^1 of 3 file\(s\) went up to ISS-1, and 0 were refused; 1 had no answer; 1 not sent:$/mu);
+  assert.match(said, /^ {4}It may be up with the answer lost: read ISS-1 before sending it again, and cite second\.txt by name if it is there\.$/mu);
+  const failed = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("x.txt", { said: "Forge answered 502", details: null, status: 502 })], unsent: [] });
+  assert.match(failed, /1 had no answer/u, "a failure on the tracker's side may have stored the file too");
 });
 
 /* The one action a refusal prints is only an action if running it does what it says, so it is run:

@@ -212,6 +212,23 @@ test("a refusal that is not the tracker's verdict on the file stops the write, n
   assert.ok(!sunk().includes("third-of-three.txt"), `sent ${sunk().join(", ")}`);
 });
 
+/* A failure on the tracker's side may have stored the file, so it is no refusal and the rest wait. */
+test("a file the tracker failed on stops the write and is named as possibly up", async () => {
+  order.length = 0;
+  const own = state.answer.forge_uploads;
+  state.answer.forge_uploads = (args) => {
+    if (args?.data?.name !== "lost-answer.txt") return own(args);
+    order.push(`sent ${args.data.name}`);
+    return { http: 502 };
+  };
+  const run = await ask("attach", "issue", "ISS-1", wrote("lost-answer.txt"), wrote("behind-lost.txt"));
+  state.answer.forge_uploads = own;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^0 of 2 file\(s\) went up to ISS-1, and 0 were refused; 1 had no answer; 1 not sent:$/mu);
+  assert.match(run.stderr, /It may be up with the answer lost: read ISS-1 before sending it again/u);
+  assert.deepEqual(order, ["sent lost-answer.txt"], "nothing followed a request whose outcome is unknown");
+});
+
 /* What a write puts up is what it scanned, and between the two passes the digest is what says so. */
 test("a file rewritten between the scan and its request is refused, and no bytes follow", async () => {
   const first = wrote("scanned-first.txt");

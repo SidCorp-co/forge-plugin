@@ -462,7 +462,8 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
     sending: sent.push.bind(sent),
     said: [...new Set(prepared.map((one) => one.said).filter(Boolean))].join("\n") || null,
   });
-  /* Every file had its answer, so the account is the batch's own and not the stranded line's. */
+  /* The batch's account names each file, the one whose answer was lost among them, so the stranded
+     line would say the same thing a second time. */
   if (batch.refused.length) {
     process.off("exit", stranded);
     fail(`${batchRefusal(reference, batch)}\n\nNo record was written: nothing of it reached ${reference}.`);
