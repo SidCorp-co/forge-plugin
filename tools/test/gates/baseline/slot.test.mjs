@@ -76,9 +76,8 @@ test("a baseline whose wait runs out spends no step, exits as a deadline, and na
   try {
     const said = run(other, ["--baseline", "ISS-7", "--wait", "slot", "0.02"]);
     assert.equal(said.status, DEADLINE, `${said.stdout}${said.stderr}`);
-    assert.ok(said.stderr.includes(`Wait again, in a call that returns:\n  ${WAITS_AGAIN}\n`)
-      || said.stderr.endsWith(`Wait again, in a call that returns:\n  ${WAITS_AGAIN}`),
-    `the deadline names no baseline wait:\n${said.stderr}`);
+    assert.ok(said.stderr.includes(`Wait again, in a call that returns:\n  ${WAITS_AGAIN}`),
+      `the deadline names no baseline wait:\n${said.stderr}`);
     assert.ok(!said.stdout.includes("Nothing is published for"), `it measured anyway:\n${said.stdout}`);
     assert.ok(!existsSync(runsFile(other)), "a baseline that never got a place spent a step");
   } finally {
