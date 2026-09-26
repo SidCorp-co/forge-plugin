@@ -97,8 +97,8 @@ agent learns what a status wants.
   re-mints the issue's context, the baseline with the result its gate gave and the review with its
   outcome and the head it judged, these being what a resuming run needs before anything else.
 - **AC-05-1-17** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the footer counts the typed records it read and points at the report for the ones it gave no line"
-  WHEN the CLI re-mints an issue's context THEN it SHALL say how many typed records it read, and how
-  many of those a later record of their kind superseded.
+  WHEN the CLI re-mints an issue's context THEN it SHALL say how many typed records it read and,
+  where a later record of their kind superseded any of those, how many.
 - **AC-05-1-18** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the footer counts the typed records it read and points at the report for the ones it gave no line"
   WHERE the full report prints more records than the re-minted context shows, the CLI SHALL say how
   many more there are and name the command that prints them, and SHALL say nothing of it where the
