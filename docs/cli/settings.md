@@ -22,9 +22,8 @@ at each use, so a rotated credential reaches a running probe; a write to one is 
 redirected, the machine's file being what the home protects; a borrow resolving to nothing is
 refused rather than read as no credential. The secret keys of the one borrowable table are what a
 workspace's ending searches its scratch for. A home holding no project record reads the machine's,
-the one project's and the registry a device-wide reader walks alike, and its own alone once it holds
-any: per home, so the two never disagree and are never merged. It refuses a write to the machine's,
-which in the home would shadow every key that record decides.
+for one project and for a device-wide reader alike, and its own alone once it holds any, so the two
+never disagree or merge. A write to the machine's is refused: in the home it would shadow every key it decides.
 
 Which checkout this process stands in, and which repository that checkout belongs to, are read off
 the disk rather than asked of git, and what that walk has to do differently from `git rev-parse`:
