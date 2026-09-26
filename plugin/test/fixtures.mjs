@@ -10,6 +10,7 @@ import { OWN as OWN_KEYS } from "./fixtures/own-keys.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { answeringThrows, body } from "./fixtures/served.mjs";
 import { madeIn } from "./fixtures/room.mjs";
+import { labelsOf } from "./fixtures/labels.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 const PLAN_BODY = {
@@ -352,10 +353,13 @@ export const fakeTracker = async (state) => {
     const rows = pool.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
     return { issues: rows, returned: rows.length, hasMore: false };
   };
+  const { attributed, relabel, labels } = labelsOf(state);
   const issues = (args) => {
     if (args.action === "list") return listed(args.filters);
+    if (args.action === "attributed") return attributed(args);
     if (args.action === "get") return (state.issues ?? []).find((one) => one.documentId === args.documentId) ?? {};
     if (args.action === "create") return { documentId: state.mint ?? "filed-uuid", ...(state.key ? { issueId: state.key } : {}), ...args.data };
+    if (args.action === "update" && args.data?.labels) return relabel(args);
     return { documentId: args.documentId, ...(args.data ?? {}) };
   };
   /* A created comment answers with the author the `forge_comments.create` route projects, as the tracker's does: a reader telling a person's comment from an agent's keys on that field. */
@@ -428,6 +432,7 @@ export const fakeTracker = async (state) => {
     if (name === "forge_config" && SETTINGS[args.action]) return settings(SETTINGS[args.action], args);
     if (name === "forge_memory.search") return { hits: memory(args) };
     if (name === "forge_issues") return issues(args);
+    if (name === "forge_labels") return labels(args);
     if (name === "forge_comments") return comments(args);
     if (name === "forge_projects.list") return { projects: [{ ...OWN, slug: ownSlug() }] };
     return {};
@@ -468,8 +473,15 @@ export const fakeTracker = async (state) => {
   /* One row per route the CLI may call: the pattern it matches, and the envelope its tool-shaped
      answer becomes. `parts` names what a route serves out of a body the handler answered whole. */
   const ROUTES = [
-    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) =>
-      windowOn(q, answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
+    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) => windowOn(q, q.get("withModules")
+      ? answered("forge_issues", { action: "attributed", statuses: q.getAll("status"),
+        statusNot: q.getAll("statusNot"), module: q.get("module") })
+      : answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
+    [/^\/api\/projects\/[^/]+\/labels$/u, (q, sent, method) =>
+      answered("forge_labels", method === "POST" ? { action: "create", data: sent } : { action: "list" })],
+    [/^\/api\/labels\/([^/]+)$/u, (q, sent, method, [id]) =>
+      answered("forge_labels", method === "PATCH" ? { action: "update", labelId: id, data: sent }
+        : { action: "delete", labelId: id })],
     [/^\/api\/projects\/([^/]+)\/issues$/u, (q, sent, method, [project]) => {
       if (method === "POST") return asRow(answered("forge_issues", { action: "create", project, data: sent }));
       /* Omitted where the query narrowed on nothing, exactly as the caller omits it: a handler

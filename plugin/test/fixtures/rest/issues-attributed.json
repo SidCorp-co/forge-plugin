@@ -1,0 +1,81 @@
+{
+  "taken": "2026-09-26",
+  "routes": {
+    "answer": "GET /projects/:project/issues/search"
+  },
+  "rest": {
+    "answer": {
+      "items": [
+        {
+          "id": "d7086af0-04d0-4ee1-93b1-2b614cf931f1",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 2588,
+          "title": "A project's modules are managed from forge doctor, filed into, and weighed by the rank from project config",
+          "status": "confirmed",
+          "waitingKind": null,
+          "priority": "high",
+          "category": "enhancement",
+          "complexity": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "createdVia": "web",
+          "reportedBy": null,
+          "detectorKey": null,
+          "source": "manual",
+          "externalId": null,
+          "reopenCount": 0,
+          "mergedAt": null,
+          "mergedCommitSha": null,
+          "releaseBatchRunId": null,
+          "metadata": null,
+          "archivedAt": null,
+          "createdAt": "2026-09-26T08:50:12.202Z",
+          "updatedAt": "2026-09-26T09:26:41.367Z",
+          "displayId": "ISS-2588",
+          "mergeMark": "unmarked",
+          "modules": [],
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": false,
+          "creatorLabel": "thanhnh@sidcorp.co"
+        },
+        {
+          "id": "40744dde-f44c-4c7e-a707-3757a1a3c857",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 2594,
+          "title": "The daily report opens with a goal scorecard — value, baseline, better or worse — and folds the rest into drill-downs",
+          "status": "open",
+          "waitingKind": null,
+          "priority": "high",
+          "category": "enhancement",
+          "complexity": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "createdVia": "web",
+          "reportedBy": null,
+          "detectorKey": null,
+          "source": "manual",
+          "externalId": null,
+          "reopenCount": 0,
+          "mergedAt": null,
+          "mergedCommitSha": null,
+          "releaseBatchRunId": null,
+          "metadata": null,
+          "archivedAt": null,
+          "createdAt": "2026-09-26T09:10:39.615Z",
+          "updatedAt": "2026-09-26T09:10:39.615Z",
+          "displayId": "ISS-2594",
+          "mergeMark": "unmarked",
+          "modules": [],
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": false,
+          "creatorLabel": "thanhnh@sidcorp.co"
+        }
+      ],
+      "returned": 2,
+      "total": 1104,
+      "limit": 2,
+      "offset": 0,
+      "hasMore": true
+    }
+  }
+}

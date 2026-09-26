@@ -81,3 +81,10 @@ ISS-1397, which meant declaring an issue large cost it points against saying not
 incentive not to size, written into the thing that decides what gets worked next. Every declared size
 now scores strictly above declaring none, so sizing an issue always pays, whichever size it turns out
 to be.
+
+## A module is worth what the project says, and nothing where it says nothing
+
+`rank.module` is the one table whose rows are the project's own names, the modules its tracker
+defines, so the plugin ships it holding `unset` alone. Why the names are the tracker's and the numbers
+the project's, why a module inherits its parent's row, and why no module is read where no table is
+set or no module defined: [modules](modules.md).

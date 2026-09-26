@@ -30,9 +30,13 @@ const points = (table, name, fallback = 0) =>
 const aged = (days, weights) =>
   Math.min(days * weights.agePerDay, weights.ageCap === null ? Infinity : weights.ageCap);
 
+/** The module term where the caller weighed none: no `rank.module` table, or no module defined. */
+const UNWEIGHED = { said: "not weighed", points: 0 };
+
 /** The total and its parts, `now` passed rather than read: age is the one weight a clock moves, and
- *  a case that could not fix the clock could not pin the order. */
-export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
+ *  a case that could not fix the clock could not pin the order. `module` is the term the caller read
+ *  off the project's modules, which is a read this pure score cannot make. */
+export const scoreOf = (row, { weights, chain = [], now = Date.now(), module = UNWEIGHED }) => {
   const complexity = complexityOf(row);
   const filed = Date.parse(row?.createdAt ?? "");
   const days = Number.isFinite(filed) ? Math.max(0, Math.floor((now - filed) / DAY)) : 0;
@@ -42,6 +46,7 @@ export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
     ["priority", String(row?.priority ?? "none"), points(weights.priority, row?.priority ?? "none")],
     ["kind", String(row?.category ?? "feature"), points(weights.kind, row?.category ?? "feature")],
     ["complexity", said, points(weights.complexity, complexity, weights.complexity.unset)],
+    ["module", module.said, module.points],
     ["age", `${days}d`, aged(days, weights)],
     ["reopened", `${reopened}`, reopened ? weights.reopened : 0],
     ["blocks", `${chain.length} chained`, chain.length * weights.blocks],

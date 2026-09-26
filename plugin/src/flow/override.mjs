@@ -3,7 +3,7 @@ import { refuse } from "../refusal.mjs";
 import { pairOf, pairsFrom } from "../resolve/flags.mjs";
 import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
-import { lengthOf, ownsField, writeFields } from "../tracker/field-write.mjs";
+import { lengthOf, ownsField, rowOf, writeFields } from "../tracker/field-write.mjs";
 import { valueOutsideSet } from "../tracker/issue-shape.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";
@@ -56,6 +56,7 @@ export const BODY_FIELDS = ["description", "plan", "acceptanceCriteria"];
 const setPair = (given, ref) => {
   const { key: field, value } = pairOf(String(given ?? ""), "--set");
   if (!value.trim()) refuse(`--set ${field}= names no value, and an override that clears a field is not one this verb writes.`);
+  if (ownsField(field) && rowOf(field).by) refuse(`${field} is written by ${rowOf(field).by}, and not by an override.`);
   if (ownsField(field)) {
     refuse(`${field} is written by a record and not by an override: \`forge record -h\` names the `
       + "kind that writes it, and a payload the entry checks read is what that status is earned by.");

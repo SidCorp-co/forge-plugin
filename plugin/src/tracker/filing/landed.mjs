@@ -2,6 +2,7 @@
    write answered with. Why nothing here refuses, whatever it finds: docs/cli/filing.md. */
 import { commentPage, cutIn } from "../comments.mjs";
 import { tried } from "../rest.mjs";
+import { carriesPrimary } from "../modules.mjs";
 
 const AGAIN = "Do not send this call again before reading that id: a write the tracker took and a "
   + "write it dropped answer alike, and a second send files the body twice.";
@@ -39,7 +40,7 @@ const noId = (what, answer) => {
 };
 
 /** A row carrying no id is the tracker denying it, and still no evidence the write was dropped. */
-export const issueLanded = async (answer) => {
+export const issueLanded = async (answer, { module = null } = {}) => {
   const documentId = idOf(answer);
   if (!documentId) return noId("filing", answer);
   const back = await asked(() => tried("forge_issues", { action: "get", documentId }));
@@ -48,7 +49,13 @@ export const issueLanded = async (answer) => {
   if (back?.refused) return unread(`${said} and the read-back could not run: ${oneLine(back.refused)}.`);
   if (!plain(back)) return unread(`${said} and the read-back answered with no record to read.`);
   if (back.documentId === documentId) {
-    return verified(`${back.issueId ?? documentId} is filed at ${documentId}, read back from the tracker.`);
+    const key = back.issueId ?? documentId;
+    if (module && !carriesPrimary(back.labels, module)) {
+      return unread(`${key} is filed at ${documentId}, and the read-back does not carry ${module.name} as `
+        + "its primary module, so that half of the filing is unverified.");
+    }
+    return verified(`${key} is filed at ${documentId}${module ? ` under ${module.name}, its primary module,` : ","}`
+      + " read back from the tracker.");
   }
   if (back.documentId) {
     return unread(`${said} and the read-back answered about something else, so the filing is unverified.`);

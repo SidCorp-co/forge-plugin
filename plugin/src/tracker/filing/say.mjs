@@ -25,6 +25,10 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
     keepOnFailure(null);
     echo(filed.answer);
     console.log(foldedInto(filed.joined, filed.answer));
+    if (asked.module) {
+      console.log(`No module was written: the filing folded onto ${filed.joined.issueId} as a comment, and a `
+        + `comment carries none. The same call with \`--new\` files it as its own issue under ${asked.module.name}.`);
+    }
     const { documentId, issueId } = filed.joined;
     return sayLanded(await commentLanded(documentId, filed.answer, issueId));
   }
@@ -35,5 +39,5 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
   console.log(filedAs(filed.answer, filed.ranked.said));
   const offered = keysOffered(filed.shape.keys, withKeys);
   if (offered) console.log(offered);
-  return sayLanded(await issueLanded(filed.answer));
+  return sayLanded(await issueLanded(filed.answer, { module: asked.module ?? null }));
 };

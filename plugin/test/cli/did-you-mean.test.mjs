@@ -345,7 +345,7 @@ test("the same answer in the other direction, off the list call's own row", asyn
 test("a flag standing in the body slot is this verb's own unknown flag", async () => {
   const run = await ran("new", "--read", "--title", "T");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No new flag named --read\. The set is --title, --category,/u);
+  assert.match(run.stderr, /No new flag named --read\.\nUsage: forge new <file\.md\|@file\|-> --title T --category C/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
   assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "nor after a credential was looked for");
 });

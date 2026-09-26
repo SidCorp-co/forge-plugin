@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, ISSUE_PARTS, ROUTES, UNTYPED, answersOf, asToolCall, keyOf,
-  mimeForName, partsAmong, rowFor, served } from "../../src/tracker/routes.mjs";
+import { DECLARES, ISSUE_PARTS, ROUTES, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
+  from "../../src/tracker/routes.mjs";
+import { UNTYPED, mimeForName } from "../../src/tracker/upload-mimes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
 import { CHOSEN, staleDeclarations } from "../../src/tracker/declared/name-join.mjs";
 
@@ -64,6 +65,8 @@ const PROJECT_ROWS = ["forge_projects.create", "forge_projects.read", "forge_pro
    projection at all, so there is no shape here to judge and the absence is what is asserted. */
 const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config.pipeline",
   "forge_config.set_pipeline", "forge_config.facts", "forge_config.set_facts",
+  /* A label's delete answers 204 and nothing: `forge doctor modules` reads the list back instead. */
+  "forge_labels.delete",
   /* The deployment platform's own words, which this CLI does not own and does not rename: a
      projection over them would be this file's guess at a shape the tracker is free to grow. */
   "forge_coolify.list", "forge_coolify.targets", "forge_coolify.status",
@@ -151,6 +154,10 @@ const SHAPES = {
   "comments-attach": { key: "forge_uploads.request", keys: ["documentId", "name", "mime", "size", "url"] },
   "knowledge-upsert": { key: "forge_knowledge.upsert", keys: ["id", "slug"] },
   "knowledge-delete": { key: "forge_knowledge.delete", keys: ["deleted"] },
+  /* A module is a label whose kind says so: the reading prints its parent and its description. */
+  "labels-create": { key: "forge_labels.create", keys: ["id", "name", "kind", "parentId", "description"] },
+  "labels-update": { key: "forge_labels.update", keys: ["id", "name", "kind", "parentId", "description"] },
+  "labels-list": { key: "forge_labels.list", keys: ["labels"] }, "issues-attributed": { key: "forge_issues.attributed", keys: ["issues", "returned", "limit", "hasMore"] },
 };
 
 describe("the route table answers with the shape the tool answered with", () => {

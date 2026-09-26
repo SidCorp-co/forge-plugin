@@ -247,7 +247,7 @@ const TOOLS = [
   "forge_issues", "forge_uploads", "forge_comments", "forge_knowledge", "forge_memory.search",
   "forge_guide", "forge_project_pm", "forge_config", "forge_projects.list", "forge_projects.create",
   "forge_projects.update", "forge_projects.read", "forge_projects.get", "forge_projects.archive",
-  "forge_projects.unarchive", "forge_coolify",
+  "forge_projects.unarchive", "forge_coolify", "forge_labels",
 ];
 
 const failing = (answer) => Object.fromEntries(TOOLS.map((name) => [name, () => ({ ...answer })]));
@@ -280,6 +280,8 @@ const PROBES = [
   ["GET", "/api/projects/p1/integrations/coolify"],
   ["GET", "/api/projects/p1/pipeline-config"],
   ["GET", "/api/projects/p1/project-facts"],
+  ["GET", "/api/projects/p1/labels"],
+  ["PATCH", "/api/labels/l1"],
   ["POST", "/api/projects/p1/archive"],
   ["POST", "/api/projects/p1/unarchive"],
   ["GET", "/api/projects/p1"],

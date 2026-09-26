@@ -217,12 +217,10 @@ export const KINDS_HELP = [
   ...KINDS.flatMap(kindRows),
   "",
   "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
-  "`What it is now` is a today one. `forge new` refuses a filing that names no category; a create sent",
-  `through the tracker's own tool carries no flag to refuse, so one arriving there is read as`
-  + ` ${article(DEFAULT_KIND)}`,
+  "`What it is now` is a today one. `forge new` refuses a filing that names no category; one sent",
+  `through the tracker's own tool, which has no flag to refuse, is read as ${article(DEFAULT_KIND)}`,
   `${DEFAULT_KIND}. A filing whose \`complexity\` claims a rung below the top is read against no`,
-  "section and against no category, so nothing is read of it and nothing is said — the value is not",
-  "an exemption from the flag.",
+  "section and no category, and nothing is said of it — the value is no exemption from the flag.",
 ].join("\n");
 
 /** One string, printed by both verbs that file, so the sentence a filer meets at the moment of filing is one sentence; `forge guide issue-flow learning` is the rule's home and this cites it. */

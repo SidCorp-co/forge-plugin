@@ -208,6 +208,29 @@ const TRACKER = [
   "Not in a bare reading. A bare call prints what refused here and nothing that answered.",
 ].join("\n");
 
+/* The one subject whose flags are typed after its name: they write the project's tracker rather
+   than a file of this machine's or the project's, and six more on the verb's row would be read by
+   every other subject's call as flags it drops. docs/cli/modules.md. */
+const MODULES = [
+  "Usage: forge doctor modules [--add <name> [--parent <module>] [--description <text>]",
+  "         | --edit <name> [--parent <module|none>] [--description <text>] | --remove <name> [--to <module|none>]]",
+  "This project's modules as its own tracker defines them, each with its parent, its description,",
+  "the open issues carrying it as primary, and the rank weight it scores with and where that weight",
+  "was read; then how many open issues carry no module. A bare reading prints the count and share.",
+  "",
+  "  --add <name>     define a module; --parent puts it under another, --description says what",
+  "                   belongs in it",
+  "  --edit <name>    --parent moves it, `none` to the top; --description replaces its text",
+  "  --remove <name>  delete a module no issue and no child module carries. Where issues carry it,",
+  "                   --to names the module they move to, keeping whether it was their primary, or",
+  "                   `none` to take it off them; a child module is moved with --edit first",
+  "",
+  "Each writes the project's own tracker and is read back before it reports. The weights live in",
+  "the project's own configuration as `rank.module`, keyed by these names, with `unset` for an",
+  "issue carrying none: `forge doctor --set rank.module.<name>=<points>`. Open is every status but",
+  "closed and dropped.",
+].join("\n");
+
 /** Every subject in the order the report prints it: the slug, the line the verb's own help gives it,
  *  whether a bare call reads it, and its own text. `bare` false is the reading a bare call prints
  *  only the faults of — the repository's health, the plugin's internals, the tracker's own. */
@@ -222,6 +245,7 @@ export const SUBJECTS = [
   { slug: "services", bare: true, full: true, says: "the hosts the harness calls, and which of their keys are held", text: SERVICES },
   { slug: "repo", bare: false, says: "this checkout's own health: what it declares, and what CLAUDE.md claims", text: REPO },
   { slug: "tracker", bare: false, full: true, says: "what the tracker answers for: its routes, its clock, its capabilities", text: TRACKER },
+  { slug: "modules", bare: false, says: "the project's modules, the open issues each carries, the weight each scores", text: MODULES },
 ];
 
 export const SUBJECT_SLUGS = SUBJECTS.map((one) => one.slug);

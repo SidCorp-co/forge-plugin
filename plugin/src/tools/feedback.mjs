@@ -12,6 +12,7 @@ import { briefGoals, servesOwed } from "../tracker/knowledge/brief.mjs";
 import { goalBlock } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
+import { moduleForFiling } from "../tracker/modules.mjs";
 import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracker/filing/plugin-defect.mjs";
 
 const USAGE = () => [
@@ -25,6 +26,7 @@ const USAGE = () => [
   `              ${allowedKinds()[0]}, and a body is read against the shape the kind it names needs`,
   "  --with ISS-45   file it with a `relates` edge to that issue, or to each of several separated",
   "              by commas; the keys the note's own body names are listed under the reply instead",
+  "  --module M  its primary module, one the plugin's project defines",
   "  --new       file it even where it would have folded onto a neighbour, and say which",
   "",
   CAUSE_HELP,
@@ -76,7 +78,7 @@ export const feedback = async (argv) => {
   }
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
-  const { title, new: fresh, with: rides, kind: asksKind } = flags(rest, "feedback", ["--new"],
+  const { title, new: fresh, with: rides, kind: asksKind, module: named } = flags(rest, "feedback", ["--new"],
     { usage: usageOf("feedback") });
   if (!title) fail("A note needs --title: one line saying what is true once it is fixed.");
   const kind = kindAsked(asksKind);
@@ -96,6 +98,9 @@ export const feedback = async (argv) => {
   aimed();
   const unnamed = await servesOwed(read.description, "This note's `Serves:` line", onThisRepository());
   if (unnamed) fail(unnamed);
+  /* Resolved against the plugin's own modules, the project being aimed by now. */
+  const { module, refusal: unknownModule } = await moduleForFiling(named, "feedback");
+  if (unknownModule) fail(unknownModule);
   /* After the project is aimed, and not before: a key names an issue of the plugin's backlog, and
      the same key resolved against the caller's project would relate somebody else's issue. */
   const relations = withKeys.length
@@ -110,7 +115,7 @@ export const feedback = async (argv) => {
     console.error(`warning: ${short}\nA neighbour outside what was reached is not shown under this`
       + " note and is not folded onto, so the note is filed as a second issue rather than a finding.");
   }
-  return fileAndSay({ ...asked, fresh, relations, page, soft: true },
+  return fileAndSay({ ...asked, fresh, relations, page, soft: true, module },
     { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost });
 };
 

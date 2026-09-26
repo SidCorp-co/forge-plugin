@@ -58,6 +58,9 @@ import {
   addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
 } from "../guides/contract.mjs";
 
+/* The subject whose flags follow its name, which the verb's parser is never handed. */
+const MODULES = "modules";
+
 /* Which part resolved and from where, never the value: `--full` is for a human holding two tokens. */
 /* The sentence rides on the row that answered: a table here keyed on those names is a second copy a
    new source would throw against. The level stays this file's, and the read mints nothing. */
@@ -272,6 +275,13 @@ export const trackerId = async (projectId) => {
   }
 };
 
+/* One row under the project: the module count and the share of open issues carrying none. */
+const checkModules = async () => {
+  if (!shown("project") || !projectScope().value) return;
+  under("project");
+  report([await (await import("./services/doctor/modules.mjs")).moduleSummaryRow()]);
+};
+
 const checkEndpoint = async (full, credentials) => {
   const { forgetProjects, projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
   const { nameJoinRows } = await import("../tracker/declared/name-join.mjs");
@@ -399,6 +409,7 @@ export const doctor = async (argv) => {
   const usage = usageOf("doctor");
   const help = helpAskedOf(argv, SUBJECT_SLUGS);
   if (help) return console.log(help.subject ? SAYS[help.subject] : `${usage}\n${SUBJECT_USAGE}`);
+  if (argv[0] === MODULES) return (await import("./services/doctor/modules.mjs")).modulesSubject(argv.slice(1));
   const subject = SUBJECT_SLUGS.includes(argv[0]) ? argv[0] : null;
   reading(subject);
   const { values: pairs, rest } = pullRepeated(subject ? argv.slice(1) : argv, "--meta", "doctor", { usage });
@@ -574,6 +585,7 @@ export const doctor = async (argv) => {
       process.exit(1);
     }
     await checkEndpoint(full, credentials);
+    await checkModules();
     if (owing) {
       under("repo");
       report(owingEscapeRows(owingEscapesFrom(await owing)));

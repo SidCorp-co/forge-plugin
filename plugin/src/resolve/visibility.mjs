@@ -31,7 +31,7 @@ export const VERBS = [
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
       at: "`forge issue ISS-45`",
       update: "`forge issue --set`", link: "`forge issue --blocks`", unlink_edge: "`forge issue --unlink`" } }],
-  ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--new]",
+  ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--module M] [--new]",
     "file one, read against the shape its category needs",
     "forge_issues", { group: BACKLOG, wraps: { create: "`forge new`" } }],
   ["comment", "<uuid|ISS-45> [<file.md|@file|->] [--title T]",
@@ -59,7 +59,7 @@ export const VERBS = [
     "forge_issues", { group: BACKLOG }],
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
-    { group: BACKLOG }],
+    { group: BACKLOG, wraps: { attributed: "`forge next`" } }],
   ["baseline", "publish --commit <sha> --result R --scope whole [--gate G] [--version V]",
     "a release's whole-tree gate result, published for the commit it pushed so a branch cut there cites it",
     null, { group: FLOW }],
@@ -118,7 +118,7 @@ export const VERBS = [
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null, { group: HARNESS }],
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
-  ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
+  ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--module M] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
   ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
@@ -130,6 +130,10 @@ export const VERBS = [
     "forge_config", { group: HARNESS, needs: null,
       wraps: {
         get: "`forge doctor`",
+        "forge_labels.list": "`forge doctor modules`",
+        "forge_labels.create": "`forge doctor modules`",
+        "forge_labels.update": "`forge doctor modules`",
+        "forge_labels.delete": "`forge doctor modules`",
         pipeline: "`forge doctor`",
         set_pipeline: "`forge doctor --set`",
         facts: "`forge doctor`",
