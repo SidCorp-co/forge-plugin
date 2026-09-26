@@ -141,8 +141,23 @@ test("an --of naming no answered consult here is refused by that id, and one wit
   assert.equal(rowsOf(home).length, 1, "neither refusal logged a consult");
 });
 
+/* The recorded set is the consult's word and not the caller's: a file that consult saw, deleted and
+   committed since, is in neither the tree nor HEAD, and a named path there is refused as a typo. */
+test("a recheck given --of keeps a recorded file whose deletion was committed since", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const head = git(room, "rev-parse", "HEAD").stdout.trim();
+  git(room, "rm", "-q", "other.txt");
+  git(room, "commit", "-qm", "the file the finding was about, deleted");
+  const reply = "CODEX: 1 findings\n- **F1 — New — major:** `other.txt:1` — the file should not exist.";
+  const home = seeded([consultRow(root, { id: "c1", head, files: ["judged.txt", "other.txt"], reply })]);
+  const { status, said } = await forge(room, home, ["consult", "--recheck", "--of", "c1", "--rounds", "1"]);
+  assert.equal(status, 0, said);
+  assert.deepEqual(recheckRow(home).files, ["judged.txt", "other.txt"], "the deletion travelled as the anchor's diff shows it");
+});
+
 test("consult -h lists --of", async () => {
   const room = checkout();
   const { said } = await forge(room, seeded([]), ["consult", "-h"]);
-  assert.match(said, /^ {2}--of <id> {6}the consult a recheck answers/mu);
+  assert.match(said, /^ {2}--of <id> {6}the answered consult a recheck pins by id, in any worktree of this repository;/mu);
 });

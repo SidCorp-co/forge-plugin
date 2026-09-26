@@ -135,11 +135,17 @@ export const reviewSet = ({ root, named, keys = [], base, readFromParting, held,
   };
 };
 
-/* Where no file is named, a recheck pinned by `--of` sends the set that consult recorded: it is on the record, so a recheck taken after a commit emptied the turn record needs no copy of it typed back (ISS-378). */
-export const pinnedNamed = (named, pinned) => {
-  if (!pinned || named.length) return named;
+/** The set a recheck pinned by `--of` sends where no file is named: the one that consult recorded,
+ *  which is on the record, so a recheck taken after a commit emptied the turn record needs no copy of
+ *  it typed back. Taken as recorded rather than as named paths, so a deletion since committed stays in
+ *  the set for the anchor's diff to show (ISS-378). */
+export const pinnedSet = (pinned) => {
   const files = pinned.files ?? [];
   if (!files.length) fail(`codex: consult ${pinned.id} recorded no file, so a recheck of it has no set of its own. Name the files it is about.`);
-  console.error(`codex: a recheck of ${pinned.id}, so the ${files.length} file(s) it recorded travel.`);
-  return files;
+  return {
+    rels: [...files],
+    offered: (many) => `${many} ${pinned.id} recorded`,
+    said: [`a recheck of ${pinned.id}, so the ${files.length} file(s) it recorded travel.`],
+    gone: [],
+  };
 };

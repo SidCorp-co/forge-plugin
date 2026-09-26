@@ -22,7 +22,7 @@ import { anglesRefusal } from "./angles/refusal.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
-import { pinnedNamed, reviewSet, shownOf, unchangedAll } from "./codex-set.mjs";
+import { pinnedSet, reviewSet, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, askedRounds, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
@@ -110,8 +110,8 @@ const CONSULT_USAGE = [
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
-  "  --of <id>      the consult a recheck answers, whichever consult shares its files; with no file",
-  "                 named, the files that consult recorded travel",
+  "  --of <id>      the answered consult a recheck pins by id, in any worktree of this repository;",
+  "                 with no file named, the files that consult recorded travel",
   "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt; all five by default",
   "  --effort e     minimal | low | medium | high, for this consult only",
   "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
@@ -291,7 +291,8 @@ const consult = async (given) => {
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
   const entries = logEntries();
   const pinned = of ? consultOf(entries, root, of) : null;
-  const set = reviewSet({ root, named: pinnedNamed(named, pinned), keys: issues, base, readFromParting, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
+  const set = pinned && !named.length ? pinnedSet(pinned)
+    : reviewSet({ root, named, keys: issues, base, readFromParting, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
   const { offered, gone } = set;
   let rels = set.rels;
   for (const line of set.said) console.error(`codex: ${line}`);
