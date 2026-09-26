@@ -240,10 +240,10 @@ export const dayFiguresOf = (reading, day) => {
 };
 
 /** The first moment anything was recorded on this device, for the range a refusal names. */
-const firstOf = (all, entries, passes) => {
+const firstOf = (all, entries, passes, attempts) => {
   const moments = [...all.map((run) => run.startedAt), ...passes.map((one) => one.at),
-    ...answered(entries).map((one) => Date.parse(one.at)).filter(Number.isFinite)];
-  return moments.length ? Math.min(...moments) : null;
+    ...[...answered(entries), ...attempts].map((one) => Date.parse(one.at)).filter(Number.isFinite)];
+  return moments.length ? moments.reduce((least, one) => Math.min(least, one)) : null;
 };
 
 /** Every registered project's corpus, read once each, and its landings from `since` on. */
@@ -262,7 +262,7 @@ export const corporaOf = async (read, since = null) => {
 export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntries(), attempts = marksOf(ATTEMPTS, null) }) => {
   const all = projects.flatMap((one) => one.runs).sort((left, right) => left.startedAt - right.startedAt);
   const passes = projects.flatMap((one) => one.passes ?? []);
-  return { projects, all, passes, entries, hooks, attempts, first: firstOf(all, entries, passes) };
+  return { projects, all, passes, entries, hooks, attempts, first: firstOf(all, entries, passes, attempts) };
 };
 
 export const contentOf = async (reading, day, { unread = [], match } = {}) => {

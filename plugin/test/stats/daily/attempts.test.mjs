@@ -81,3 +81,13 @@ test("ISS-2425 33, 35. the daily --json carries the day's attempt figures and th
   const tile = content.scorecard.find((one) => one.metric === "firstGate");
   assert.deepEqual([tile.value, tile.baseline, tile.baselineDays, tile.change, tile.missing], [50, 50, 1, 0, null]);
 });
+
+test("a day whose only records are a landing's attempts is a day held, and both the page and its --json show them", () => {
+  const held = device({ marks: onDay(daysAgo(1)) });
+  assert.equal(daily(held, "--day", daysAgo(1)).status, 0);
+  const page = readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8");
+  assert.ok(page.includes(`<p>Attempts: ${SAID}.</p>`), page);
+  const run = daily(held, "--day", daysAgo(1), "--json");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(JSON.parse(run.stdout).landings.attempts, FIGURES);
+});
