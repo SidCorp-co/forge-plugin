@@ -194,7 +194,7 @@ test("keys with no file name the subject, and the turn's record is not pulled in
   git("add", ".");
   git("commit", "-qm", "one");
   writeFileSync(join(dir, "changed.md"), "this turn's own work\n");
-  const asks = { root: dir, named: [], keys: ["ISS-1"], namedBase: null, held: ["kept.md"], pattern: "^docs/" };
+  const asks = { root: dir, named: [], keys: ["ISS-1"], readFromParting: () => false, held: ["kept.md"], pattern: "^docs/" };
   const held = reviewSet({ ...asks, base: null });
   assert.deepEqual(held.rels, [], "no file under review");
   assert.match(held.said[0], /ISS-1 named and no file, so no file is under review/u);
