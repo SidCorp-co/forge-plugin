@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 
 import { DECLARES, ISSUE_PARTS, ROUTES, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
   from "../../src/tracker/routes.mjs";
-import { UNTYPED, mimeForName } from "../../src/tracker/upload-mimes.mjs";
+import { UNTYPED, mimeForName } from "../../src/wire/upload-mimes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
 import { CHOSEN, staleDeclarations } from "../../src/tracker/declared/name-join.mjs";
 

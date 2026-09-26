@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../../fixtures.mjs";
-import { movedLabels } from "../../../src/tools/services/doctor/modules.mjs";
+import { movedLabels } from "../../../src/tools/services/doctor/modules/manage.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "src", "cli.mjs");
 const SLUG = "modules-fixture";

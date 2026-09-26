@@ -279,7 +279,7 @@ export const trackerId = async (projectId) => {
 const checkModules = async () => {
   if (!shown("project") || !projectScope().value) return;
   under("project");
-  report([await (await import("./services/doctor/modules.mjs")).moduleSummaryRow()]);
+  report([await (await import("./services/doctor/modules/reading.mjs")).moduleSummaryRow()]);
 };
 
 const checkEndpoint = async (full, credentials) => {
@@ -409,7 +409,7 @@ export const doctor = async (argv) => {
   const usage = usageOf("doctor");
   const help = helpAskedOf(argv, SUBJECT_SLUGS);
   if (help) return console.log(help.subject ? SAYS[help.subject] : `${usage}\n${SUBJECT_USAGE}`);
-  if (argv[0] === MODULES) return (await import("./services/doctor/modules.mjs")).modulesSubject(argv.slice(1));
+  if (argv[0] === MODULES) return (await import("./services/doctor/modules/manage.mjs")).modulesSubject(argv.slice(1));
   const subject = SUBJECT_SLUGS.includes(argv[0]) ? argv[0] : null;
   reading(subject);
   const { values: pairs, rest } = pullRepeated(subject ? argv.slice(1) : argv, "--meta", "doctor", { usage });

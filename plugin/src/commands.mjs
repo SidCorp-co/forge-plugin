@@ -26,7 +26,7 @@ import {
 } from "./tracker/issue-shape.mjs";
 import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
-import { moduleForFiling } from "./tracker/modules.mjs";
+import { moduleForFiling } from "./tracker/modules/definition.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { COMPLEXITY_NAMES } from "./ladder.mjs";

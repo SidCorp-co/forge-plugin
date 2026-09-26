@@ -3,7 +3,7 @@
    lets the captured pairs under plugin/test/fixtures/rest judge it. docs/cli/one-transport.md. */
 
 import { relationsOf } from "./edges/kinds.mjs";
-import { UPLOAD_MIMES, mimeForName } from "./upload-mimes.mjs";
+import { UPLOAD_MIMES, mimeForName } from "../wire/upload-mimes.mjs";
 
 const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));

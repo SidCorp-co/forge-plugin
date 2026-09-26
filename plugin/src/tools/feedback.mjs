@@ -12,7 +12,7 @@ import { briefGoals, servesOwed } from "../tracker/knowledge/brief.mjs";
 import { goalBlock } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
-import { moduleForFiling } from "../tracker/modules.mjs";
+import { moduleForFiling } from "../tracker/modules/definition.mjs";
 import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracker/filing/plugin-defect.mjs";
 
 const USAGE = () => [
