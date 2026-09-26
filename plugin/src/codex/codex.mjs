@@ -183,6 +183,7 @@ export const consultArgs = (given) => {
   const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
   /* Split here, where the positionals are read: `relsOf` exits on a path neither the tree nor HEAD holds. */
   const keys = positionals.filter((one) => HUMAN_REF.test(one));
+  const namedBase = held.base ?? null;
   return {
     named: positionals.filter((one) => !keys.includes(one)),
     issues: [...new Set(keys.map((one) => one.toUpperCase()))],
@@ -191,7 +192,11 @@ export const consultArgs = (given) => {
     allowEcho: Boolean(held["allow-echo"]),
     /* Asking what to diff against is asking for the diff, so `--base` implies `--diff` rather than being silently dropped — one fewer rule to learn and one fewer way to be ignored. Kept apart from `named` because HEAD from `--diff` is this end's guess and a recheck may still improve on it, where a base the caller typed is theirs and is never moved. */
     base: held.base ?? (held.diff ? "HEAD" : null),
-    namedBase: held.base ?? null,
+    namedBase,
+    /* The one answer to "is this ref the base the caller typed, so read it from where the branch
+       parted", spent by every site that asks. Null only where nothing was named, so a null ref and
+       `--diff`'s own HEAD are never read from the parting point. */
+    readFromParting: (ref) => namedBase !== null && ref === namedBase,
     effort: chosenEffort(held.effort),
     cap: askedRounds(held.rounds),
     /* The mode named and not the mode resolved, the set that decides the default being settled well after the flags are. */
@@ -288,12 +293,12 @@ const ruledSaid = (plan, offset, reply, id, entries) => {
 };
 
 const consult = async (given) => {
-  const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, send, recheck, angles, scope, checks } = consultArgs(given);
+  const { named, issues, risks, only, allowEcho, base, namedBase, readFromParting, effort: askedEffort, cap, send, recheck, angles, scope, checks } = consultArgs(given);
   const { problem, values, path } = gateway();
   if (problem) fail(`codex: the consult has no gateway to be sent to — ${problem}.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const set = reviewSet({ root, named, keys: issues, base, namedBase, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
+  const set = reviewSet({ root, named, keys: issues, base, readFromParting, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
   const { offered, gone } = set;
   let rels = set.rels;
   for (const line of set.said) console.error(`codex: ${line}`);
@@ -329,7 +334,7 @@ const consult = async (given) => {
   /* A base the caller named is read from where the branch left it, so a ref that moved under the run
      presents nothing of its own side; a recheck's anchor is a head this run chose and is taken as
      given. `parted` is null where the ref is still behind HEAD, which is the same diff either way. */
-  const fromParting = anchor !== null && anchor === namedBase;
+  const fromParting = readFromParting(anchor);
   const parted = fromParting ? divergedFrom(root, anchor) : null;
   if (parted) console.error(`codex: ${anchor} has moved under this branch, so the diff is from ${parted.slice(0, 7)}, where they parted.`);
 
@@ -353,7 +358,7 @@ const consult = async (given) => {
      recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
      nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
   const still = anchor && unchangedAll(bundled);
-  if (still && anchor === namedBase) fail(unmovedSaid(root, rels, namedBase, parted));
+  if (still && fromParting) fail(unmovedSaid(root, rels, namedBase, parted));
   if (still) console.error(`codex: nothing differs from ${anchor}, so this recheck carries no diff — the findings are asked for on the tree as it stands.`);
   const parts = still ? bundle(root, rels) : bundled;
   /* The point diffed from, not the ref: a row anchored to a name replays against wherever that name

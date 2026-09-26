@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, specFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
+import { reviewSet } from "../../src/codex/codex-set.mjs";
 import { AROUND_CHECK_MS, CHECK_MS_SPARED } from "../../src/resolve/settings.mjs";
 import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
 import { tapOf } from "./check/tap-of.mjs";
@@ -137,6 +138,15 @@ test("a base that moved under the branch is read from where they parted (ISS-129
   assert.equal(held.diff.unchanged, true, "so the file the other side moved travels as context");
   const [asStands] = withDiffs(root, bundle(root, ["kept.txt"]), base, false);
   assert.match(asStands.diff.text, /\+kept/u, "where before it travelled as a hunk to review");
+});
+
+test("the checkout's change against a moved base is the branch's own only where the base was named (ISS-228)", () => {
+  const { root, base } = parted();
+  const asks = { root, named: [], base, held: [], pattern: "^docs/" };
+  assert.deepEqual(reviewSet({ ...asks, readFromParting: (ref) => ref === base }).rels, ["mine.txt"],
+    "named, the base is read from where the branch parted");
+  assert.deepEqual(reviewSet({ ...asks, readFromParting: () => false }).rels, ["kept.txt", "mine.txt"],
+    "and not named, the other side's change reads as this branch's");
 });
 
 /* The report asked for literal `<base>...HEAD`, which makes HEAD the other side and drops the

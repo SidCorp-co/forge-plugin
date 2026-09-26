@@ -205,6 +205,17 @@ test("the checkout picks the angles, and one angle is not a board", () => {
   assert.equal(consultArgs(["a.mjs"]).recheck, false);
 });
 
+/* Four sites asked this, two guarding a null and two not; one answer now, and the strict one. */
+test("a ref is read from where the branch parted only where the caller typed it as the base (ISS-228)", () => {
+  const asked = (argv, refs) => refs.map((ref) => consultArgs(["a.mjs", ...argv]).readFromParting(ref));
+  assert.deepEqual(asked(["--base", "origin/master"], ["origin/master", "HEAD", null]), [true, false, false],
+    "the base the caller typed, and no other ref");
+  assert.deepEqual(asked(["--base", "HEAD"], ["HEAD"]), [true], "HEAD typed as the base is the caller's too");
+  assert.deepEqual(asked(["--diff"], ["HEAD", null]), [false, false],
+    "where --diff's own HEAD is this end's guess, and a null ref matches no base nobody named");
+  assert.deepEqual(asked([], [null]), [false]);
+});
+
 /* Zero cache reads in 92 consults: the history opens every call and was resent as fresh text. */
 test("the opening is the same text as blocks, with the history cached", () => {
   const parts = [{ rel: "a.mjs", text: "code", chars: 4, sha: "x" }];

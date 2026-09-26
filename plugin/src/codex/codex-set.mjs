@@ -101,11 +101,11 @@ const committedSaid = (record, pattern, base) => (record.length
 /** What the caller named, else — a recheck excepted, that being about findings — the checkout's change
  *  against the base, which wins whatever the turn record holds (ISS-703); else the record, nothing
  *  differing leaving no subset. `gone` is every route's and not the base's alone (ISS-952). */
-export const reviewSet = ({ root, named, keys = [], base, namedBase, held, pattern, recheck }) => {
+export const reviewSet = ({ root, named, keys = [], base, readFromParting, held, pattern, recheck }) => {
   const record = [...new Set(held)];
   if (named.length || (keys.length && !base)) {
     const from = base ?? "HEAD";
-    const gone = goneFrom(root, record, from, base !== null && base === namedBase);
+    const gone = goneFrom(root, record, from, readFromParting(base));
     const said = gone.length ? [goneSaid(gone, from)] : [];
     const rels = named.length ? [...new Set(relsOf(root, named))] : [];
     return { rels, offered: TOUCHED, said: named.length ? said : [keysSaid(keys), ...said], gone };
@@ -113,7 +113,7 @@ export const reviewSet = ({ root, named, keys = [], base, namedBase, held, patte
   if (!base) return { rels: record, offered: TOUCHED, said: recordSaid(record, pattern), gone: [] };
   /* A recheck answers findings, and the tree winning here loses the file they are about the moment anything else is dirty — the round then refuses instead of ruling (ISS-703). */
   if (recheck && record.length) return { rels: record, offered: TOUCHED, said: recheckSaid(record), gone: [] };
-  const changed = changedAgainst(root, base, base === namedBase);
+  const changed = changedAgainst(root, base, readFromParting(base));
   if (!changed) {
     fail(`codex: --base ${base} is no ref this checkout can read, so what changed against it is unknown. `
       + "Name the base, or name the files.");
