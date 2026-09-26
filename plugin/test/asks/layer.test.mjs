@@ -2,7 +2,7 @@
    it never takes, and how little a later build reads. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appendFileSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
@@ -22,6 +22,13 @@ const decision = (id, command) => `${JSON.stringify({
   type: "assistant", timestamp: "2026-09-20T08:00:00.000Z",
   message: { role: "assistant", content: [{ type: "tool_use", id, name: "Bash", input: { command } }] },
 })}\n`;
+
+/* A thread as `forge comment` prints it, one decision record among its comments. */
+const thread = (issue, reading) => [
+  `--- ${issue}, comment 1 of 2, 0000, posted 2026-09-20T08:00:00 ---`, "## Plan", "",
+  `--- ${issue}, comment 2 of 2, 0001, posted 2026-09-20T08:01:00 ---`, "## Decision", "", "```forge-record",
+  `decision: ${reading}`, "serves: G-11", "```", "", "`forge-record: decision · contract 1`", "",
+].join("\n");
 
 const result = (id, text, isError = false) => `${JSON.stringify({
   type: "user", timestamp: "2026-09-20T08:00:01.000Z",
@@ -43,10 +50,11 @@ test("a build takes every answered question, free text included, and every recor
     '{"type":"user","message":{"content":"a line that is not an answer"}}\n',
   ].join(""));
   writeFileSync(join(paths.source, "session", "subagents", "agent-1.jsonl"),
-    decision("toolu_d", 'forge record decision ISS-9 --decision "Keep one file | it is small | split it" --serves G-11')
-    + result("toolu_d", "## Decision recorded"));
+    result("toolu_read", thread("ISS-9", "Keep one file | it is small | split it")));
   assert.deepEqual(refreshLayer(paths), { added: 3, complete: true });
-  const [owner, free, recorded] = precedentsIn(paths).sort((left, right) => left.id.localeCompare(right.id));
+  const held = precedentsIn(paths);
+  const [owner, free, recorded] = [held.find((one) => one.id === "toolu_a#0"), held.find((one) => one.id === "toolu_b#0"),
+    held.find((one) => one.kind === "decision")];
   assert.equal(owner.answer, "A page on the tracker");
   assert.equal(owner.matched, false, "the owner did not take the recommendation");
   assert.equal(owner.recommended, "A file on this device (Recommended)");
@@ -98,21 +106,18 @@ test("the shortlist holds what is close and nothing under the floor", () => {
   assert.deepEqual(shortlistFor({ question: "Which font? [reversible: x]", options: [{ label: "Serif" }, { label: "Sans" }] }, rows), []);
 });
 
-test("a decision joins the layer only once its own result says the write went through", () => {
+test("a decision joins the layer only as the tracker holds it, read back, and once however often it is read", () => {
   const paths = layer();
   const file = join(paths.source, "s1.jsonl");
-  const asked = (id) => decision(id, `forge record decision ISS-${id.length} --decision "Take ${id} | a | b"`);
   writeFileSync(file, [
-    decision("toolu_echo", 'echo "forge record decision ISS-1 --decision \\"Said | not | run\\""'),
-    result("toolu_echo", "forge record decision ISS-1"),
-    asked("toolu_failed"), result("toolu_failed", "exit 1", true),
-    asked("toolu_refused"), result("toolu_refused", "the plan field is empty; nothing was written"),
-    asked("toolu_later"),
+    decision("toolu_ask", 'forge record decision ISS-1 --decision "Asked | not | confirmed"'),
+    result("toolu_ask", "## Decision\n```forge-record\ndecision: Asked | not | confirmed\n```"),
+    result("toolu_read1", thread("ISS-4", "Take the page | the owner reads it there | move it back")),
+    result("toolu_read2", thread("ISS-4", "Take the page | the owner reads it there | move it back")),
   ].join(""));
-  assert.equal(refreshLayer(paths).added, 0, "an echo, a failure, a refusal and a result not yet written record nothing");
-  appendFileSync(file, result("toolu_later", "## Decision recorded"));
-  assert.equal(refreshLayer(paths).added, 1, "and a result that arrives in a later build is paired with its command");
-  assert.deepEqual(precedentsIn(paths).map((one) => one.readings), [["Take toolu_later | a | b"]]);
+  assert.equal(refreshLayer(paths).added, 1, "a command asking for a write, and its echo, are no record");
+  const [row] = precedentsIn(paths);
+  assert.deepEqual([row.kind, row.issue, row.readings], ["decision", "ISS-4", ["Take the page | the owner reads it there | move it back"]]);
 });
 
 test("equally close precedents are never cut apart at the cap, so a disagreeing one is still shown", () => {
@@ -129,4 +134,13 @@ test("a transcript that cannot be read leaves the build incomplete", () => {
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
   symlinkSync(join(paths.source, "gone.jsonl.target"), join(paths.source, "s2.jsonl"));
   assert.equal(refreshLayer(paths).complete, false);
+  const shut = layer();
+  chmodSync(join(shut.source, "session"), 0o000);
+  try {
+    assert.equal(refreshLayer(shut).complete, false, "and so does a directory that cannot be listed");
+  } finally {
+    chmodSync(join(shut.source, "session"), 0o755);
+  }
+  assert.equal(refreshLayer({ ...layer(), source: join(tempRoom("asks-none-"), "absent") }).complete, true,
+    "while a project with no transcripts at all is simply read to its end");
 });

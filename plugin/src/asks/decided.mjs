@@ -44,11 +44,17 @@ const outcomes = (room) => {
   const rows = [];
   for (const [at, line] of text.split("\n").entries()) {
     if (!line.trim()) continue;
+    let row;
     try {
-      rows.push(JSON.parse(line));
+      row = JSON.parse(line);
     } catch {
-      return { unreadable: `${path} line ${at + 1} is not a record` };
+      row = null;
     }
+    /* A decided row that does not name its call cannot keep that call's answer out of the layer. */
+    const named = row && typeof row === "object" && typeof row.outcome === "string"
+      && (row.outcome !== DECIDED || (typeof row.toolUseId === "string" && row.toolUseId));
+    if (!named) return { unreadable: `${path} line ${at + 1} is not a record this gate wrote` };
+    rows.push(row);
   }
   return { rows };
 };
@@ -57,5 +63,5 @@ const outcomes = (room) => {
 export const decidedIds = (room = asksRoom()) => {
   const held = outcomes(room);
   return held.unreadable ? held
-    : { ids: new Set(held.rows.filter((one) => one.outcome === DECIDED && one.toolUseId).map((one) => one.toolUseId)) };
+    : { ids: new Set(held.rows.filter((one) => one.outcome === DECIDED).map((one) => one.toolUseId)) };
 };

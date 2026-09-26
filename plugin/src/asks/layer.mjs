@@ -2,6 +2,7 @@
    recorded, read out of that project's own transcripts into its own ask directory, and the shortlist
    a new question is judged against. Nothing here reads another project's transcripts or layer.
    plugin/hooks/how/ask-decide.md. */
+import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -63,64 +64,65 @@ const ownerRows = (record, skip) => {
     .filter(Boolean);
 };
 
-/* In command position only, so a sentence or an `echo` carrying the words records nothing. */
-const DECISION_RUN = /(?:^|[;&|(]\s*)(?:\S*\/)?forge\s+record\s+decision\s/u;
-const DECISION_FLAG = /--decision\s+(?:"((?:[^"\\]|\\.)*)"|'([^']*)')/gu;
-const DECISION_ISSUE = /forge\s+record\s+decision\s+([A-Za-z]+-\d+)/u;
-const REFUSED = /nothing was written|refused/iu;
-
-/* A decision a session asked to record, held until its result says the write went through: the
-   tracker lists comments one issue at a time, and these are the ones this project's own runs wrote. */
-const decisionsAsked = (record, pending) => {
-  for (const one of Array.isArray(record?.message?.content) ? record.message.content : []) {
-    const command = one?.type === "tool_use" && one.name === "Bash" ? String(one.input?.command ?? "") : "";
-    if (!DECISION_RUN.test(command)) continue;
-    const readings = [...command.matchAll(DECISION_FLAG)].map((hit) => (hit[1] ?? hit[2]).replace(/\\(.)/gu, "$1"));
-    if (readings.length) {
-      pending[one.id] = { id: one.id, kind: DECISION_KIND, at: record.timestamp ?? null, issue: DECISION_ISSUE.exec(command)?.[1] ?? null, readings };
-    }
-  }
-};
+const DECISION_FOOTER = "`forge-record: decision";
+const COMMENT_HEADER = /^--- ([A-Z][A-Z0-9]*-\d+), comment /mu;
+const RECORD_BLOCK = /```forge-record\n([\s\S]*?)\n```/u;
+const READING = /^decision: (.+)$/gmu;
 
 const textOfResult = (block) => (typeof block.content === "string" ? block.content
   : Array.isArray(block.content) ? block.content.map((one) => one?.text ?? "").join("\n") : "");
 
-const decisionsRecorded = (record, pending) => (Array.isArray(record?.message?.content) ? record.message.content : [])
-  .filter((one) => one?.type === "tool_result" && pending[one.tool_use_id])
-  .flatMap((one) => {
-    const row = pending[one.tool_use_id];
-    delete pending[one.tool_use_id];
-    return one.is_error === true || REFUSED.test(textOfResult(one)) ? [] : [row];
-  });
+/* A decision record exactly as the tracker holds it, read back through the CLI that owns its shape:
+   a thread this project's sessions read carries each one under its issue's comment header. A command
+   that only asked for one to be written proves nothing, so none is read from a command. */
+const decisionRows = (record) => (Array.isArray(record?.message?.content) ? record.message.content : [])
+  .filter((one) => one?.type === "tool_result")
+  .flatMap((one) => textOfResult(one).split(/\n(?=--- [A-Z][A-Z0-9]*-\d+, comment )/u))
+  .filter((chunk) => chunk.includes(DECISION_FOOTER))
+  .map((chunk) => {
+    const block = RECORD_BLOCK.exec(chunk)?.[1] ?? "";
+    const readings = [...block.matchAll(READING)].map((hit) => hit[1].trim());
+    const issue = COMMENT_HEADER.exec(chunk)?.[1] ?? null;
+    return readings.length
+      ? { id: `decision-${createHash("sha1").update(`${issue}\0${block}`).digest("hex").slice(0, 16)}`, kind: DECISION_KIND,
+          at: record.timestamp ?? null, issue, readings }
+      : null;
+  })
+  .filter(Boolean);
 
-/* Parsed only where it could hold something: an answer, a decision asked for, or the result of one. */
-const worthParsing = (line, pending) => line.includes("\"toolUseResult\"") || line.includes("record decision")
-  || Object.keys(pending).some((id) => line.includes(id));
+/* Parsed only where it could hold something: an answer, or a decision record read back. */
+const worthParsing = (line) => line.includes("\"toolUseResult\"") || line.includes(DECISION_FOOTER);
 
-const rowsOfLine = (line, skip, pending) => {
-  if (!worthParsing(line, pending)) return [];
+const rowsOfLine = (line, skip) => {
+  if (!worthParsing(line)) return [];
   let record;
   try {
     record = JSON.parse(line);
   } catch {
     return [];
   }
-  decisionsAsked(record, pending);
-  return [...ownerRows(record, skip), ...decisionsRecorded(record, pending)];
+  return [...ownerRows(record, skip), ...decisionRows(record)];
 };
 
-const transcriptsUnder = (dir) => {
+/* A directory that is not there holds no transcripts; one that is there and cannot be listed may hold
+   the answer that disagrees, so it leaves the build incomplete. */
+const transcriptsUnder = (dir, top = true) => {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return [];
+  } catch (error) {
+    return { files: [], complete: top && error.code === "ENOENT" };
   }
-  return entries.flatMap((one) => {
+  const found = { files: [], complete: true };
+  for (const one of entries) {
     const path = join(dir, one.name);
-    if (one.isDirectory()) return transcriptsUnder(path);
-    return one.name.endsWith(".jsonl") ? [path] : [];
-  });
+    if (one.isDirectory()) {
+      const inner = transcriptsUnder(path, false);
+      found.files.push(...inner.files);
+      found.complete &&= inner.complete;
+    } else if (one.name.endsWith(".jsonl")) found.files.push(path);
+  }
+  return found;
 };
 
 const CHUNK = 32 * 1024 * 1024;
@@ -158,9 +160,9 @@ const eachLineRun = (path, from, to, visit) => {
 const readScanned = (path) => {
   try {
     const held = JSON.parse(readFileSync(path, "utf8"));
-    return held && typeof held.files === "object" ? { pending: {}, ...held } : { files: {}, pending: {} };
+    return held && typeof held.files === "object" ? held : { files: {} };
   } catch {
-    return { files: {}, pending: {} };
+    return { files: {} };
   }
 };
 
@@ -173,8 +175,9 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
   const scanned = readScanned(paths.scanned);
   const held = new Set(precedentsIn(paths).map((one) => one.id));
   let added = 0;
-  let complete = true;
-  for (const file of transcriptsUnder(paths.source).sort()) {
+  const listed = transcriptsUnder(paths.source);
+  let { complete } = listed;
+  for (const file of listed.files.sort()) {
     if (Date.now() > until) {
       complete = false;
       break;
@@ -191,7 +194,7 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
     if (from >= size) continue;
     const end = eachLineRun(file, from, size, (text) => {
       for (const line of text.split("\n")) {
-        for (const row of rowsOfLine(line, skip, scanned.pending)) {
+        for (const row of rowsOfLine(line, skip)) {
           if (held.has(row.id)) continue;
           held.add(row.id);
           appendJsonl(paths.precedents, row);
