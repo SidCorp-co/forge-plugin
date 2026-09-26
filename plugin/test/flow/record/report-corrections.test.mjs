@@ -40,6 +40,9 @@ const project = {
       row(correction("note", "the note names the order")),
       row(correction("issue:status", "the status set by hand")),
       row(render("correction", { moved: "an old correction", why: "written before the field" })),
+      row(render("finding", { expected: "the list sorted", seen: "sorted by id", evidence: [], quoted: "first look" }, "0"), "f1a2b3c4-one"),
+      row(render("finding", { expected: "the list sorted", seen: "sorted by date", evidence: [], quoted: "second look" }, "0"), "d5e6f7a8-two"),
+      row(correction(`finding:${handleOf("f1a2b3c4-one")}`, "the first finding misquoted the order")),
     ],
   },
   answer: {
@@ -90,6 +93,12 @@ test("the criteria are printed whole under a heading of their own", async () => 
 
 test("a correction naming nothing the report prints stays in the counted list", async () => {
   const out = await report();
-  assert.match(out, /^2 of the 7 Correction records, the rest beside what each corrects, oldest first\nCorrection .*\n {2}What moved: the status set by hand\n/mu);
+  assert.match(out, /^2 of the 8 Correction records, the rest beside what each corrects, oldest first\nCorrection .*\n {2}What moved: the status set by hand\n/mu);
   assert.match(out, /^ {2}What moved: an old correction$/mu, "one written before the field is among them");
+});
+
+test("a correction naming one record of a repeating kind by its handle stands under that record alone", async () => {
+  const out = await report();
+  assert.match(out, /Seen: sorted by id\n(?: {2}\S.*\n)* {2}Correction .*\n {4}What moved: the first finding misquoted the order/u);
+  assert.doesNotMatch(out, /Seen: sorted by date\n(?: {2}\S.*\n)* {2}Correction/u, "and not under the other one");
 });

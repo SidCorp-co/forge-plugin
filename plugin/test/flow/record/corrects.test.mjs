@@ -19,10 +19,10 @@ const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process
 
 test("--corrects takes a kind this verb writes or a field of the issue, either with an occasion after it", () => {
   for (const kind of KINDS) assert.equal(check({ corrects: kind }), null, `${kind} is a kind the verb writes`);
-  for (const good of ["plan:steps", "criteria:3", "verdict:2", "review:43b811e", "issue:status", "issue:complexity,priority"]) {
+  for (const good of ["plan:steps", "criteria:3", "verdict:2", "review:43b811e", "issue:status", "issue:status:2", "issue:complexity,priority"]) {
     assert.equal(check({ corrects: good }), null, good);
   }
-  for (const bad of ["plans", "superseded", "folded", "issue", "issue:", "plan:", "plan: steps", "issue:status:x"]) {
+  for (const bad of ["plans", "superseded", "folded", "issue", "issue:", "plan:", "plan: steps", "issue::2", "issue:status:"]) {
     assert.match(check({ corrects: bad }), new RegExp(`^--corrects as a record kind, or \`issue:<field>\`.*, not \`${bad.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}\``, "u"),
       `${bad} is refused with the form it takes`);
   }

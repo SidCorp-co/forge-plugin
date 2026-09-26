@@ -13,7 +13,9 @@ import { CLOSES_AT, setForm } from "../../earned.mjs";
 import { assemble, printRecord } from "../page.mjs";
 import { criteriaLines } from "../fields.mjs";
 import { issueOf } from "./posting.mjs";
-import { besideOf } from "./beside.mjs";
+import { besideOf, repeatedPlace } from "./beside.mjs";
+
+const LISTED_BESIDE = ["correction", "superseded"];
 
 export const recordReport = async (reference) => {
   const { documentId, body } = await issueOf(reference);
@@ -34,6 +36,10 @@ export const recordReport = async (reference) => {
     ...[...verdicts.keys()].map((number) => `verdict:${number}`),
     ...(plan ? ["plan"] : []), ...(listed ? ["criteria"] : []), ...(note ? ["note"] : []),
   ]);
+  /* A record of a repeating kind is a place too, found by its handle; the two lists beside records are not, whose own entries print only where they are loose. */
+  for (const kind of Object.keys(repeated).filter((one) => !LISTED_BESIDE.includes(one))) {
+    for (const one of repeated[kind]) if (one.id) printed.add(repeatedPlace(kind, one.id));
+  }
   const beside = besideOf(repeated, printed);
   /* Each correction under the record it names, and under it every payload that correction let a write replace. */
   const withBeside = (place) => {
@@ -52,7 +58,10 @@ export const recordReport = async (reference) => {
         ? `${held.length} of the ${whole} ${SHAPES[kind].heading} records, the rest beside what each corrects`
         : heldSaid(kind, held.length);
       if (said) console.log(`${said}, oldest first`);
-      for (const one of held) printRecord(one);
+      for (const one of held) {
+        printRecord(one);
+        if (one.id && !LISTED_BESIDE.includes(kind)) withBeside(repeatedPlace(kind, one.id));
+      }
     } else if (latest[kind]) {
       printRecord(latest[kind]);
       withBeside(kind);

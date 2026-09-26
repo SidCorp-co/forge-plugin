@@ -28,6 +28,8 @@ const state = {
   issues: [],
   comments: {},
   refuseUpdate: 0,
+  refuseUpload: 0,
+  refuseSuperseded: 0,
   calls: [],
   answer: {
     forge_config: () => ({ config: state.config }),
@@ -49,13 +51,21 @@ const state = {
       const id = args.filters?.issue ?? args.data?.issue ?? state.issues[0].documentId;
       const held = (state.comments[id] ??= []);
       if (args.action === "list") return { comments: held, returned: held.length, hasMore: false };
+      if (state.refuseSuperseded > 0 && /Superseded payload/u.test(args.data.body)) {
+        state.refuseSuperseded -= 1;
+        return { refused: "the tracker would not take this comment" };
+      }
       const row = { documentId: `c-${held.length + 1}-${id}`, createdAt: stamp(), authorDeviceId: "a-device", body: args.data.body };
       state.calls.push({ name: "comment-posted", body: args.data.body });
       held.push(row);
       return row;
     },
     forge_uploads: (args) => {
-      state.calls.push({ name: "upload-sent", file: args.data?.name });
+      if (state.refuseUpload > 0) {
+        state.refuseUpload -= 1;
+        return { refused: "the tracker would not take this file" };
+      }
+      state.calls.push({ name: "upload-sent", file: args.data?.name, bytes: String(args.part?.bytes ?? "") });
       return { id: `up-${state.calls.length}`, name: args.data?.name };
     },
   },
@@ -186,7 +196,9 @@ test("a replaced value too long for one comment is named by the record and carri
   assert.equal(run.status, 0, run.stderr);
   const superseded = posted().find((one) => one.kind === "superseded");
   assert.equal(superseded.fields.was, undefined, "no inline copy past the comment cap");
-  assert.equal(superseded.fields.attached, named("upload-sent")[0].file, "the attachment carries it");
+  const [sent] = named("upload-sent");
+  assert.equal(superseded.fields.attached, sent.file, "the record names the attachment");
+  assert.equal(sent.bytes, `${long.trim()}\n`, "and the attachment carries the replaced value whole");
 });
 
 test("a replacement whose field update fails leaves its correction unspent, and the same write goes through again", async () => {
@@ -200,4 +212,27 @@ test("a replacement whose field update fails leaves its correction unspent, and 
   assert.equal(retried.status, 0, retried.stderr);
   assert.equal(held.plan, `${NEW_PLAN}\n`);
   assert.equal(named("upload-sent").length, 2, "the retry puts up a copy of its own");
+});
+
+test("an upload the tracker refuses leaves the field as it was and the correction unspent", async () => {
+  const held = issue("ISS-7415", { status: "in_progress", plan: OLD_PLAN }, [correctionOf("plan")]);
+  state.refuseUpload = 1;
+  const failed = await ask("plan", "ISS-7415", fileOf("plan.md", NEW_PLAN));
+  assert.notEqual(failed.status, 0, "the upload was refused");
+  assert.equal(held.plan, OLD_PLAN, "nothing was replaced");
+  assert.deepEqual(named("field-write"), []);
+  const retried = await ask("plan", "ISS-7415", fileOf("plan.md", NEW_PLAN));
+  assert.equal(retried.status, 0, retried.stderr);
+  assert.equal(named("upload-sent")[0].bytes, `${OLD_PLAN}\n`, "the retry puts the old value up");
+});
+
+test("a superseded record the tracker refuses leaves the old value readable in the file already up", async () => {
+  const held = issue("ISS-7416", { status: "in_progress", plan: OLD_PLAN }, [correctionOf("plan")]);
+  state.refuseSuperseded = 1;
+  const failed = await ask("plan", "ISS-7416", fileOf("plan.md", NEW_PLAN));
+  assert.notEqual(failed.status, 0, "the comment was refused");
+  assert.equal(held.plan, `${NEW_PLAN}\n`, "the field was written before it");
+  assert.equal(named("upload-sent")[0].bytes, `${OLD_PLAN}\n`, "and the old value is on the issue as a file");
+  const again = await ask("plan", "ISS-7416", fileOf("plan.md", NEW_PLAN));
+  assert.equal(again.status, 0, `the same write, equal to what is held, goes through: ${again.stderr}`);
 });

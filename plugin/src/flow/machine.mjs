@@ -349,9 +349,11 @@ export const correctedKind = (corrects) => String(corrects ?? "").split(":")[0];
 const correctsProblem = (value) => {
   const [target, ...rest] = String(value).split(":");
   const kinds = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), ...FIELD_KINDS];
-  const occasion = rest.join(":");
+  /* `issue` owes the field it names before any occasion; a kind owes nothing after it. */
+  const [field, ...after] = target === ISSUE_TARGET ? rest : [null, ...rest];
+  const occasion = after.join(":");
   const known = target === ISSUE_TARGET || kinds.includes(target);
-  const shaped = target === ISSUE_TARGET ? OCCASION.test(occasion) : !rest.length || /^\S+$/u.test(occasion);
+  const shaped = (field === null || OCCASION.test(field ?? "")) && (!after.length || /^\S+$/u.test(occasion));
   if (known && shaped) return null;
   return `--corrects as ${CORRECTS_TAKES}, not \`${value}\``
     + (known ? "" : `; the kinds are ${kinds.join(", ")}`);
