@@ -45,6 +45,23 @@ const noteFor = (decision, question, log) =>
   `Decided without the owner by the ask-decide gate, following ${precedentSaid(decision.precedent)}: `
   + `${decision.reason} Undo: ${reversalOf(question)}. Logged in ${log}.`;
 
+/* The owner's precedent as it stands now, or the doubt that stops the gate using it. The decision log is
+   read again once the build is done: another session's gate may have answered a call, and the host
+   written it down, while this build was reading, and that answer must not stand as the owner's. */
+const precedentRows = (room) => {
+  const decided = decidedIds(room);
+  if (decided.unreadable) return { doubt: decided.unreadable };
+  const paths = layerPaths(room);
+  const built = refreshLayer(paths, { skip: decided.ids, until: Date.now() + remaining() * BUILD_SHARE });
+  if (built.unreadable) return { doubt: built.unreadable };
+  if (!built.complete) return { doubt: "the precedent layer is not yet read to the end of its transcripts" };
+  const layer = readLayer(paths);
+  if (layer.unreadable) return { doubt: layer.unreadable };
+  const after = decidedIds(room);
+  if (after.unreadable) return { doubt: after.unreadable };
+  return { held: layer.rows.filter((one) => !after.ids.has(one.id.split("#")[0])) };
+};
+
 const decide = async (ev, questions, room) => {
   const categories = ownerCategories(asksOwnerTerms());
   const before = questions.map((one) => ownersBefore(one, categories));
@@ -54,16 +71,9 @@ const decide = async (ev, questions, room) => {
     if (!reversalOf(questions[held]) && !askedAlready(ev, "ask-decide", "ask-declare")) context(TEACH);
     return;
   }
-  const decided = decidedIds(room);
-  if (decided.unreadable) return toOwner(ev, questions, decided.unreadable, room);
-  const paths = layerPaths(room);
-  const built = refreshLayer(paths, { skip: decided.ids, until: Date.now() + remaining() * BUILD_SHARE });
-  if (built.unreadable) return toOwner(ev, questions, built.unreadable, room);
-  if (!built.complete) return toOwner(ev, questions, "the precedent layer is not yet read to the end of its transcripts", room);
-  const layer = readLayer(paths);
-  if (layer.unreadable) return toOwner(ev, questions, layer.unreadable, room);
-  const { rows } = layer;
-  const shortlists = questions.map((one) => shortlistFor(one, rows));
+  const rows = precedentRows(room);
+  if (rows.doubt) return toOwner(ev, questions, rows.doubt, room);
+  const shortlists = questions.map((one) => shortlistFor(one, rows.held));
   const bare = shortlists.findIndex((list) => !list.some((one) => one.kind === OWNER_KIND));
   if (bare >= 0) return toOwner(ev, questions, `"${questions[bare].question}" has no close owner precedent`, room);
   const { problem, values } = gateway();

@@ -14,16 +14,17 @@ import { DECLARED } from "./declared.mjs";
 export const OWNER_KIND = "owner";
 export const DECISION_KIND = "decision";
 
+const pathsFor = (room, repository) => {
+  const own = join(room, slugFor(repository));
+  return { precedents: join(own, "precedents.jsonl"), scanned: join(own, "scanned.json"),
+    source: join(durableBase(), slugFor(repository)), repository };
+};
+
 /** The layer's two files and the transcripts it is filled from, keyed on the repository; absent
- *  outside a checkout, which has no transcripts to call its own. */
+ *  outside a checkout, which has no transcripts to call its own. Two checkouts whose root folders
+ *  share a name share a project entry, so each keeps a layer of its own beneath it. */
 export const layerPaths = (room, repository = projectRepository()) => (room && repository
-  ? {
-      precedents: join(room, "precedents.jsonl"),
-      scanned: join(room, "scanned.json"),
-      source: join(durableBase(), slugFor(repository.replace(/\/+$/u, "") || "/")),
-      repository: repository.replace(/\/+$/u, "") || "/",
-    }
-  : null);
+  ? pathsFor(room, repository.replace(/\/+$/u, "") || "/") : null);
 
 export const precedentsIn = (paths) => (paths ? jsonlAt(paths.precedents) : []);
 

@@ -63,10 +63,11 @@ const answeredLine = (id, question, answer, cwd) => JSON.stringify({
 });
 
 /** One project, its config home, its home with transcripts, and the gateway profile. */
-const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], decide = follows, within = null } = {}) => {
+const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], decide = follows, within = null, named = null } = {}) => {
   const config = within?.config ?? tempRoom("ask-decide-config-");
   const home = within?.home ?? tempRoom("ask-decide-home-");
-  const repo = realpathSync(tempRoom("ask-decide-repo-"));
+  const repo = named ? join(realpathSync(tempRoom("ask-decide-parent-")), named) : realpathSync(tempRoom("ask-decide-repo-"));
+  mkdirSync(repo, { recursive: true });
   projectRoom(repo, config, keys);
   const store = join(home, ".claude", "projects", slugFor(repo));
   mkdirSync(store, { recursive: true });
@@ -80,7 +81,7 @@ const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], dec
   delete env.FORGE_URL;
   delete env.FORGE_TOKEN;
   const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks");
-  return { repo, env, gateway, room, store, config, home };
+  return { repo, env, gateway, room, layer: join(room, slugFor(repo)), store, config, home };
 };
 
 const ask = (held, questions, extra = {}) => callHookAsync(HOOK, {
@@ -229,7 +230,7 @@ test("a question this gate decided never joins the layer when the transcript hol
   writeFileSync(join(held.store, "s2.jsonl"), `${answeredLine("toolu_self", reportQuestion(), OPTIONS[0].label, held.repo)}\n`);
   await ask(held, [reportQuestion()], { id: "toolu_next" });
   held.gateway.close();
-  const ids = readFileSync(join(held.room, "precedents.jsonl"), "utf8").split("\n").filter(Boolean).map((one) => JSON.parse(one).id);
+  const ids = readFileSync(join(held.layer, "precedents.jsonl"), "utf8").split("\n").filter(Boolean).map((one) => JSON.parse(one).id);
   assert.equal(ids.includes("toolu_self#0"), false);
   assert.ok(ids.includes("toolu_old0#0"), "while the owner's own answer is there");
 });
@@ -244,8 +245,38 @@ test("one project's layer is never read for another project's question", async (
   second.gateway.close();
   assert.equal(said, null, "the second project has no precedent of its own, whatever the first holds");
   assert.equal(second.gateway.asked.length, 0);
-  assert.ok(existsSync(join(first.room, "precedents.jsonl")), "the first project's layer is there to be misread");
+  assert.ok(existsSync(join(first.layer, "precedents.jsonl")), "the first project's layer is there to be misread");
   assert.notEqual(dirname(first.room), dirname(second.room));
+});
+
+test("two checkouts whose folders share a name keep a layer each under the one project entry they share", async () => {
+  const first = await project({ asks: { mode: "decide" } }, { named: "app" });
+  assert.equal((await ask(first, [reportQuestion()]))?.permissionDecision, "allow", "the first checkout decides from its own precedent");
+  first.gateway.close();
+  const second = await project({ asks: { mode: "decide" } }, { precedents: [], within: first, named: "app" });
+  assert.equal(second.room, first.room, "one project entry for both, as the config home keys it");
+  const said = await ask(second, [reportQuestion()]);
+  second.gateway.close();
+  assert.equal(said, null, "the second checkout has no precedent of its own, whatever the first holds");
+  assert.equal(second.gateway.asked.length, 0);
+  assert.notEqual(second.layer, first.layer);
+});
+
+test("an answer another session's gate logged while this build read its transcript never stands as the owner's", async () => {
+  const held = await project({ asks: { mode: "decide" } }, { precedents: [] });
+  /* The layer already holds that answer, read before its call was logged: the build that races the
+     other session's log is the one that left it there. */
+  mkdirSync(held.layer, { recursive: true });
+  writeFileSync(join(held.layer, "precedents.jsonl"), `${JSON.stringify({ id: "toolu_raced#0", kind: "owner", at: "2026-09-24T08:00:00.000Z",
+    question: PRECEDENT.question, header: "Delivery", options: OPTIONS.map((one) => one.label), answer: OPTIONS[0].label,
+    recommended: OPTIONS[0].label, free: false, matched: true })}\n`);
+  writeFileSync(join(held.room, "decided.jsonl"), `${JSON.stringify({ at: "2026-09-24T08:00:01.000Z", session: "other",
+    toolUseId: "toolu_raced", outcome: "decided", model: "cx/judge", questions: [{ question: PRECEDENT.question,
+      option: OPTIONS[0].label, reason: "r", reversal: "u", precedent: { id: "toolu_old0#0" } }] })}\n`);
+  const said = await ask(held, [reportQuestion()]);
+  held.gateway.close();
+  assert.equal(said, null, "with the gate's own answer set aside there is no precedent left");
+  assert.equal(held.gateway.asked.length, 0);
 });
 
 test("a precedent layer not read to its end, or a decision log that cannot be read, leaves the question with the owner", async () => {
@@ -261,10 +292,10 @@ test("a precedent layer not read to its end, or a decision log that cannot be re
   assert.equal(await ask(torn, [reportQuestion()]), null);
   torn.gateway.close();
   assert.equal(torn.gateway.asked.length, 0);
-  assert.equal(existsSync(join(torn.room, "precedents.jsonl")), false, "and no transcript is read past it");
+  assert.equal(existsSync(join(torn.layer, "precedents.jsonl")), false, "and no transcript is read past it");
   const partial = await project({ asks: { mode: "decide" } });
-  mkdirSync(partial.room, { recursive: true });
-  writeFileSync(join(partial.room, "precedents.jsonl"), `${JSON.stringify({ id: "d1", kind: "decision" })}\n`);
+  mkdirSync(partial.layer, { recursive: true });
+  writeFileSync(join(partial.layer, "precedents.jsonl"), `${JSON.stringify({ id: "d1", kind: "decision" })}\n`);
   assert.equal(await ask(partial, [reportQuestion()]), null);
   partial.gateway.close();
   assert.equal(partial.gateway.asked.length, 0);
