@@ -6,8 +6,8 @@ import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { loud } from "../checkout.mjs";
-import { LINKED } from "./install.mjs";
+import { loud } from "../../checkout.mjs";
+import { LINKED } from "../install.mjs";
 
 export const roomFor = (root, commit, prefix = "forge-landing-") => {
   const path = mkdtempSync(join(tmpdir(), prefix));

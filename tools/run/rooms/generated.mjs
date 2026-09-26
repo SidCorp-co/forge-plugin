@@ -9,8 +9,8 @@ import { spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, gitOut, parsed, Stop } from "../checkout.mjs";
-import { LINKED } from "./install.mjs";
+import { git, gitOut, parsed, Stop } from "../../checkout.mjs";
+import { LINKED } from "../install.mjs";
 import { dropRoom, roomFor } from "./room.mjs";
 
 export const GENERATE = "generate:";

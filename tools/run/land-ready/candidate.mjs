@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { git, gitOut, loud, REMOTE, stop } from "../../checkout.mjs";
 import { remoteHeadOf, shortly } from "../install.mjs";
 import { changeMoved } from "../landing.mjs";
-import { regenerated } from "../generated.mjs";
+import { regenerated } from "../rooms/generated.mjs";
 
 export const remoteHead = (tree, base) => {
   const held = remoteHeadOf(tree, base);

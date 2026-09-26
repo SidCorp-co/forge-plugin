@@ -9,10 +9,10 @@ import { spawnSync } from "node:child_process";
 import { cpSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ROOT } from "./run-fixtures.mjs";
-import { tempRoom } from "../../../plugin/test/fixtures.mjs";
+import { ROOT } from "../../run-fixtures.mjs";
+import { tempRoom } from "../../../../../plugin/test/fixtures.mjs";
 
-const { GENERATE } = await import("../../run/generated.mjs");
+const { GENERATE } = await import("../../../../run/rooms/generated.mjs");
 
 const RECORD = join("docs", "requirements", "digests.json");
 const { scripts } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));

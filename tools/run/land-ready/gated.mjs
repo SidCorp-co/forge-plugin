@@ -8,7 +8,7 @@ import { DECLINED, LANDING_ENV } from "../../gates/machine.mjs";
 import { LANDING_WAIT_ENV } from "../../gates/landing/wait.mjs";
 import { runOf } from "../../gates/verdict.mjs";
 import { treeOf } from "./candidate.mjs";
-import { roomFor } from "../room.mjs";
+import { roomFor } from "../rooms/room.mjs";
 
 /* Each line of a gate run beside another under the keys it gates, so two at once still read apart. */
 const passed = (to, label) => {

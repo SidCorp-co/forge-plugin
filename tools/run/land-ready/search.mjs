@@ -6,7 +6,7 @@
 import { gatesOn, runnersOf } from "../../gates/machine.mjs";
 import { parallelRuns } from "../../../plugin/src/resolve/settings.mjs";
 import { chainOver, treeOf } from "./candidate.mjs";
-import { dropRoom } from "../room.mjs";
+import { dropRoom } from "../rooms/room.mjs";
 import { attributed, casesOf } from "./fault.mjs";
 import { gateOver } from "./gated.mjs";
 
