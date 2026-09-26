@@ -1,9 +1,9 @@
 // Add a question the owner answered to the project's precedent layer, where the project opted in, and
 // never one the ask-decide gate answered itself. how/ask-precedent.md.
 
-import { asksScope } from "../../src/resolve/settings.mjs";
-import { asksRoom, decidedIds } from "../../src/asks/decided.mjs";
-import { addPrecedent, layerPaths, ownerRow } from "../../src/asks/layer.mjs";
+import { asksScope } from "../../../src/resolve/settings.mjs";
+import { asksRoom, decidedIds } from "../../../src/asks/decided.mjs";
+import { addPrecedent, layerPaths, ownerRow } from "../../../src/asks/layer.mjs";
 
 export const run = (ev) => {
   if (ev.tool_name !== "AskUserQuestion" || asksScope().value !== "decide") return;

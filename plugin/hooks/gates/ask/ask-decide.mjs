@@ -1,13 +1,13 @@
 // Answer a question the session declared reversible from the owner's own precedent, where the project
 // opted in, and leave every other question to the owner. how/ask-decide.md.
 
-import { answer, askedAlready, context, remaining } from "../_hook.mjs";
-import { asksOwnerTerms, asksScope } from "../../src/resolve/settings.mjs";
-import { gateway } from "../../src/resolve/machine/stores.mjs";
-import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../src/asks/declared.mjs";
-import { DECIDED, OWNER, asksRoom, decidedIds, decidedPath, logOutcome } from "../../src/asks/decided.mjs";
-import { OWNER_KIND, layerPaths, readLayer, refreshLayer, shortlistFor } from "../../src/asks/layer.mjs";
-import { judge, judgeModel } from "../../src/asks/judge.mjs";
+import { answer, askedAlready, context, remaining } from "../../_hook.mjs";
+import { asksOwnerTerms, asksScope } from "../../../src/resolve/settings.mjs";
+import { gateway } from "../../../src/resolve/machine/stores.mjs";
+import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../../src/asks/declared.mjs";
+import { DECIDED, OWNER, asksRoom, decidedIds, decidedPath, logOutcome } from "../../../src/asks/decided.mjs";
+import { OWNER_KIND, layerPaths, readLayer, refreshLayer, shortlistFor } from "../../../src/asks/layer.mjs";
+import { judge, judgeModel } from "../../../src/asks/judge.mjs";
 
 const ASKS = "AskUserQuestion";
 /* What the build and the goals may take of the clock, so the judge keeps the larger part of it. */
@@ -21,7 +21,7 @@ const TEACH = "The ask-decide gate: this project decides a question from the own
 
 /* The project's goals, bounded: a tracker that does not answer costs the judge its goals, not the question. */
 const goalsWithin = async (ms) => {
-  const { briefGoals } = await import("../../src/tracker/knowledge/brief.mjs");
+  const { briefGoals } = await import("../../../src/tracker/knowledge/brief.mjs");
   const timeout = new Promise((done) => {
     setTimeout(() => done({ goals: [], why: "the tracker did not answer in time" }), ms).unref();
   });

@@ -5,10 +5,10 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, projectRoom, tempRoom } from "../fixtures.mjs";
-import { logOutcome } from "../../src/asks/decided.mjs";
+import { callHook, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { logOutcome } from "../../../src/asks/decided.mjs";
 
-const HOOK = new URL("../../hooks/entries/ask-precedent.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../../hooks/entries/ask/ask-precedent.mjs", import.meta.url).pathname;
 const QUESTION = { question: "Where should the weekly report go?", header: "Delivery",
   options: [{ label: "A file (Recommended)" }, { label: "A page" }] };
 

@@ -375,25 +375,25 @@ and answers it in the owner's place only when they point at one offered option; 
 the owner's, as before. `plugin/hooks/how/ask-decide.md` carries the argument and the subjects that
 are always the owner's.
 
-- **AC-06-8-1** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "unset, off and an unknown mode each leave the call alone and write nothing under the project's state"
+- **AC-06-8-1** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "unset, off and an unknown mode each leave the call alone and write nothing under the project's state"
   WHERE a project has not set the ask mode to decide, the CLI SHALL leave every question to the owner
   and SHALL read, build and log nothing for it.
-- **AC-06-8-2** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "a declared question the judge decides from precedent is allowed with the chosen label as its answer"
+- **AC-06-8-2** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "a declared question the judge decides from precedent is allowed with the chosen label as its answer"
   WHEN every question of a call declares its reversal and the judge follows a close owner precedent to
   an offered option for each THEN the CLI SHALL answer the call with those options in the owner's place.
-- **AC-06-8-3** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "the owner's seven documented overrides reach the owner even when each declares a reversal"
+- **AC-06-8-3** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "the owner's seven documented overrides reach the owner even when each declares a reversal"
   IF a question names a subject that is always the owner's THEN the CLI SHALL leave it to the owner,
   whatever it declares.
-- **AC-06-8-4** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "a judge that cannot be reached, or that names what it was not offered, leaves the question with the owner"
+- **AC-06-8-4** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "a judge that cannot be reached, or that names what it was not offered, leaves the question with the owner"
   IF the judge fails, sends the question to the owner, or names an option or a precedent it was not
   offered THEN the CLI SHALL leave the whole call to the owner.
-- **AC-06-8-5** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "one project's layer is never read for another project's question"
+- **AC-06-8-5** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "one project's layer is never read for another project's question"
   WHILE a project decides from precedent the CLI SHALL read only that project's own answers and
   decisions, never another project's.
-- **AC-06-8-6** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "each outcome is one line in the project's log, with option, reason, precedent and reversal"
+- **AC-06-8-6** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "each outcome is one line in the project's log, with option, reason, precedent and reversal"
   WHEN the CLI answers a question in the owner's place THEN it SHALL record the option, the reason,
   the precedent followed and the reversal where the owner can review it.
-- **AC-06-8-7** · Rev: 1 · Proof: plugin/test/gates/ask-decide.test.mjs "a question this gate decided never joins the layer when the transcript holding it is read"
+- **AC-06-8-7** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "a question this gate decided never joins the layer when the transcript holding it is read"
   IF a question was answered in the owner's place THEN the CLI SHALL never take that answer as the
   owner's precedent.
 

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { OWNER_OVERRIDES } from "../fixtures/asks-overrides.mjs";
+import { OWNER_OVERRIDES } from "./owner-overrides.mjs";
 import { ownerCategories, ownersBefore } from "../../src/asks/declared.mjs";
 
 test("every question of the override corpus is the owner's even when it declares a reversal", () => {

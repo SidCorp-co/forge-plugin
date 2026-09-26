@@ -7,11 +7,11 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFi
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 
-import { answered, callHookAsync, projectRoom, tempRoom } from "../fixtures.mjs";
-import { OWNER_OVERRIDES } from "../fixtures/asks-overrides.mjs";
-import { slugFor } from "../../src/stats/corpus/corpus.mjs";
+import { answered, callHookAsync, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { OWNER_OVERRIDES } from "../../asks/owner-overrides.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 
-const HOOK = new URL("../../hooks/entries/ask-decide.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../../hooks/entries/ask/ask-decide.mjs", import.meta.url).pathname;
 const REPORT = "Where should the weekly report go? [reversible: move the report file back to where it was]";
 const OPTIONS = [{ label: "A file on this device (Recommended)", description: "Written under the reports folder." },
   { label: "A page on the tracker", description: "Read in the browser." }];
