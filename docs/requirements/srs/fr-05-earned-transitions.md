@@ -106,7 +106,7 @@ deciding a status.
 - **AC-05-2-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the flow table names one next status, and a disposition sends the issue to dropped"
   WHEN every entry criterion of the next status is met THEN the CLI SHALL transition the issue to
   that status and report the status it left and the status it entered.
-- **AC-05-2-2** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
+- **AC-05-2-2** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved needs the plan with every required declaration, and numbered criteria"
   IF the record lacks an item the next status is earned by THEN the CLI SHALL refuse the transition
   and name every missing item, not the first.
 - **AC-05-2-3** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "--owed reads the line the last write left, and an issue without one offers none"
@@ -240,10 +240,13 @@ superseded history and the check simply stops being met.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-02
 
-The plan's two declarations — whether this is a screen change, whether it couples to a schema — are
-read at the ship steps rather than at the write. Entering `testing`, a screen change owes an
+Which declarations a plan must answer is decided in one place, and the plan write and `approved`
+both read it, so a plan one accepts is never one the other refuses for a missing line; today it
+holds whether this is a screen change, whether it couples to a schema and whether it couples to a
+deploy. What a screen change and schema coupling declare is read at the ship steps rather than at
+the write. Entering `testing`, a screen change owes an
 attachment on every verdict and schema coupling owes the migration risk classification. Entering
 `awaiting_release`, a screen change owes a person's answer instead. Whether that
 person is owed at all is the project's to decide in its own configuration, because a project whose
@@ -257,9 +260,9 @@ for.
   IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
   for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL
   refuse `awaiting_release`.
-- **AC-05-7-3** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
-  IF the plan declares neither THEN the CLI SHALL refuse `approved` and quote the two lines it
-  reads.
+- **AC-05-7-3** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved needs the plan with every required declaration, and numbered criteria"
+  IF the plan leaves a required declaration unanswered THEN the CLI SHALL refuse `approved` and
+  quote the line of every required declaration it lacks.
 - **AC-05-7-4** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "the project's release policy decides whether a user-facing outcome parks"
   WHERE the project's configuration releases without a person, the CLI SHALL earn `awaiting_release` from
   the verification and the release note with no person's answer owed.
@@ -341,8 +344,8 @@ that write reaches this status having met nothing.
 - **AC-05-9-3** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "schema coupling and deploy coupling each owe the way back at the write and here"
   WHERE a plan declares schema coupling or deploy coupling and carries no way back, the CLI SHALL
   refuse `approved`.
-- **AC-05-9-4** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
-  WHEN a plan carries every section it owes, both required declarations and a step for every
+- **AC-05-9-4** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
+  WHEN a plan carries every section it owes, every required declaration and a step for every
   criterion THEN the CLI SHALL earn `approved` from it with nothing owed of the plan.
 - **AC-05-9-5** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
   IF a step of the plan cites no criterion, or cites only numbers the issue does not hold, THEN the
