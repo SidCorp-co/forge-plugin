@@ -79,12 +79,16 @@ export const REPLAY_HELP = [
   "where a consult could carry them: readable, not empty, and inside the per-file cap, in which case",
   "it prints the pass that completes the read at this head. Where one of them can be carried by no",
   "pass at all it says so and lets the ship through, a refusal no command clears being a run",
-  "stranded at its landing rather than a review made honest.",
+  "stranded at its landing rather than a review made honest. Passes short of the set whose head is",
+  "also on no lineage this step accepts are refused the same way, naming the lost head and the files",
+  "they left unread and asking for the whole set at the head that would land, since passes completing",
+  "the set at a head that is gone would still be a read of what no longer lands; off lineage they",
+  "count only as the outgrown read does, where every path they covered is still one this change lands.",
   "It is silent where the log holds no read of this change at all, where the only read of the whole",
-  "set sent diffs rather than bodies, where the read was taken over a working tree and its head is",
-  "therefore where the pass was taken rather than what it read, and where that head is no commit",
-  "this checkout can resolve; it says which of the four, because a check that found nothing to judge",
-  "and one that judged read alike otherwise.",
+  "set sent diffs rather than bodies, a lost head said beside it, where the read was taken over a",
+  "working tree and its head is therefore where the pass was taken rather than what it read, and",
+  "where that head is no commit this checkout can resolve; it says which of the four, because a",
+  "check that found nothing to judge and one that judged read alike otherwise.",
   "",
   "Between the two it asks whether the change takes back work that landed under it, which no gate",
   "sees: a replay resolved the wrong way, or copies staged by `git add -u` that predate the base,",
@@ -167,6 +171,9 @@ export const ownReplay = (tree, at, head) => {
     && held.some((one) => carries(tree, at, one)));
 };
 
+/* A head this step's lineage does not accept: neither HEAD carries it nor the ship's own replay moved it. */
+const lostAt = (tree, at, head) => !carries(tree, at, "HEAD") && !ownReplay(tree, at, head);
+
 /* Both faults at once, each of which is refused alone: the head is gone from this history and the set
    grew past it. One read clears both, so this names both findings and prints that read once. */
 const outgrewLost = (of, at, head, added, held) =>
@@ -210,7 +217,7 @@ const pathsIn = (tree, from, to) => {
 const outgrew = (tree, was, root, held, head) => {
   for (const one of judgedBy(logEntries(), root, held).reverse()) {
     if (one.dirty || !gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
-    const lost = !carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head);
+    const lost = lostAt(tree, one.head, head);
     const from = gitOut(["merge-base", one.head, was], tree);
     const covered = from ? pathsIn(tree, from, one.head) : [];
     const added = held.filter((rel) => !covered.includes(rel));
@@ -230,6 +237,20 @@ const shortOf = (of, at, head, missing, ask) =>
   + `Take it as this run, at this head, and it joins the passes already taken; then rewrite the `
   + `review record at ${shortly(head)}, and ship.`;
 
+/* A shortfall at a head the history lost. Completing the set at that head would read what no longer
+   lands, so the read this prints is the whole set at the head that would, and not the missing files. */
+const shortLost = (of, at, head, missing, held) =>
+  `the bodies passes this change was read by, the newest of them consult ${of}, were taken `
+  + `at ${shortly(at)}, a head neither ${shortly(head)}'s history nor this ship's recorded replay reaches — `
+  + `the commits they were taken over were rewritten afterwards, by a rebase, an amend or a reset — and `
+  + `they carry no whole body for ${missing.join(", ")}. The review record names a head this branch no `
+  + `longer holds and answers for part of the set; the base under the change is fine, so replaying `
+  + `clears neither, and a pass completing the set at that head would still read a head that is gone. `
+  + `One read clears both, the whole of what the change touches at the head that would land, and `
+  + `nothing here re-reads for you:\n`
+  + `    echo "<what you were doing>" | forge codex consult --send bodies ${held.map(pathed).join(" ")}\n`
+  + `Then rewrite the review record at ${shortly(head)}, and ship.`;
+
 const stuckOn = (missing, stuck) =>
   `  the bodies passes this change was read by carry no whole body for ${missing.join(", ")}, and the `
   + `read that would cover that cannot be taken: ${stuck.join(", ")} can be carried by no pass at all `
@@ -237,40 +258,50 @@ const stuckOn = (missing, stuck) =>
   + `consult clears it, so this step names it rather than refusing a ship nothing would let through: `
   + `the review answers for the rest of the set, and what it does not answer for is the line above`;
 
-const sentDiffs = (of, at, head, held) =>
-  `  consult ${of} read this change's whole set of ${held.length} file(s) at ${shortly(at)}, and `
-  + `sent diffs rather than bodies. The head, the root and the set are each what this step asks for; `
-  + `the send mode is the one thing that is not, and only a bodies pass earns an approving review. `
+/* At a lost head the head is not what this step asks for either, and the notice says so rather than
+   vouching for it; it stays a notice, a diffs read never having earned the review a refusal protects. */
+const sentDiffs = (of, at, head, held, lost) =>
+  `  consult ${of} read this change's whole set of ${held.length} file(s) at ${shortly(at)}, `
+  + (lost
+    ? `a head neither ${shortly(head)}'s history nor this ship's recorded replay reaches, and sent diffs `
+      + `rather than bodies. Neither that head nor the send mode is what this step asks for, and only a `
+      + `bodies pass at the head that would land earns an approving review. `
+    : `and sent diffs rather than bodies. The head, the root and the set are each what this step asks `
+      + `for; the send mode is the one thing that is not, and only a bodies pass earns an approving review. `)
   + `Nothing here re-reads for you:\n`
   + `    echo "<what you were doing>" | forge codex consult --send bodies ${held.map(pathed).join(" ")}\n`
   + `  Then rewrite the review record at ${shortly(head)}, and ship.`;
 
 /* A read of this change and not of a file it happens to name: the same question `outgrew` asks, and
-   for the same reason — at a head the change had no paths at, a whole body is the old file. */
-const ofThisChange = (tree, was, one) => {
+   for the same reason — at a head the change had no paths at, a whole body is the old file. At a lost
+   head a covered path this change no longer writes makes it some other change's read (ISS-2567). */
+const ofThisChange = (tree, was, one, held, lost) => {
   const from = gitOut(["merge-base", one.head, was], tree);
-  return Boolean(from && pathsIn(tree, from, one.head).length);
+  const covered = from ? pathsIn(tree, from, one.head) : [];
+  return covered.length > 0 && (!lost || covered.every((rel) => held.includes(rel)));
 };
 
-/* Which of the set the passes on this lineage carry, taken one run and one head at a time as
-   `wholeReadOf` does, so a partial sequence is told from two unrelated consults that happen to
-   overlap. The best-covering group is the one this change was read by; a group carrying none of the
+/* Which of the set the passes carry, taken one run and one head at a time as `wholeReadOf` does, so
+   a partial sequence is told from two unrelated consults that happen to overlap. The best-covering
+   group is the one this change was read by, one on this lineage before any whose head is lost, so a
+   lost group never displaces the refusal a lineage one already earns; a group carrying none of the
    set is no read of it. */
 const coveredBy = (tree, was, root, held, head) => {
   const groups = new Map();
   for (const one of judgedBy(logEntries(), root, held)) {
     if (one.dirty || one.send !== "bodies") continue;
     if (!gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
-    if (!carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head)) continue;
-    if (!ofThisChange(tree, was, one)) continue;
+    const lost = lostAt(tree, one.head, head);
+    if (!ofThisChange(tree, was, one, held, lost)) continue;
     const key = one.run ? `${one.head} ${one.run}` : (one.id ?? one.at);
-    groups.set(key, [...(groups.get(key) ?? []), one]);
+    groups.set(key, { lost, group: [...(groups.get(key)?.group ?? []), one] });
   }
   let best = null;
-  for (const group of groups.values()) {
+  for (const { lost, group } of groups.values()) {
     const missing = held.filter((rel) => !group.some((one) => shortOfWhole(one, [rel]).whole));
     if (missing.length === held.length) continue;
-    if (!best || missing.length < best.missing.length) best = { group, missing };
+    const better = !best || (best.lost && !lost) || (best.lost === lost && missing.length < best.missing.length);
+    if (better) best = { group, missing, lost };
   }
   return best;
 };
@@ -286,7 +317,8 @@ const shortSays = (tree, was, root, held, head) => {
   const stuck = bundle(root, ask)
     .filter((part) => part.missing || !(part.chars > 0) || part.chars > FILE_CHARS)
     .map((part) => part.rel);
-  if (!stuck.length) stop(shortOf(last.id ?? last.at, last.head, head, best.missing, ask));
+  const says = best.lost ? shortLost : shortOf;
+  if (!stuck.length) stop(says(last.id ?? last.at, last.head, head, best.missing, ask));
   console.log(stuckOn(best.missing, stuck));
   return true;
 };
@@ -300,8 +332,8 @@ const sentDiffsFor = (tree, was, root, held, head) => {
     const short = shortOfWhole(one, held);
     if (one.dirty || !one.head || !short.diffs || short.unread.length || short.part.length) continue;
     if (!gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
-    if (!carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head)) continue;
-    if (ofThisChange(tree, was, one)) return one;
+    const lost = lostAt(tree, one.head, head);
+    if (ofThisChange(tree, was, one, held, lost)) return { one, lost };
   }
   return null;
 };
@@ -319,7 +351,10 @@ const readSays = (tree, was) => {
     if (grew) stop(says(grew.one.id ?? grew.one.at, grew.one.head, head, grew.added, held));
     if (root && shortSays(tree, was, root, held, head)) return undefined;
     const diffed = root ? sentDiffsFor(tree, was, root, held, head) : null;
-    if (diffed) return console.log(sentDiffs(diffed.id ?? diffed.at, diffed.head, head, held));
+    if (diffed) {
+      const { one, lost } = diffed;
+      return console.log(sentDiffs(one.id ?? one.at, one.head, head, held, lost));
+    }
     return console.log(`  no consult in this log read the whole of this change's ${held.length} `
       + `file(s) at a recorded head of ${root ?? "this tree"}, so the head the review was earned at `
       + `is not something this can read — it judges nothing here and the read stands where it was taken`);
