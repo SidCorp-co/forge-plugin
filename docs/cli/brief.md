@@ -14,9 +14,10 @@ dispatcher sends, so the fix removes it there.
 
 - **The tree**: its branch and head come from `git worktree list`. The id and scratch directory come
   from the records in that tree's own git directory, and a line is printed only where its record
-  exists. Beside the scratch directory goes the route a probe borrows the credentials by, from the
-  one source this repository's workspace start prints it from: a run never told it copied the token
-  into its scratch (ISS-2619).
+  exists. Beside the scratch directory goes the run's own configuration home, borrowing the
+  credentials, from the one source this repository's workspace start prints it from: a run never
+  told it copied the token into its scratch (ISS-2619), and that home is where the tree's hooks read
+  its consults (ISS-2651).
 - **The run id, written where the tree has none**: a brief naming an issue and a tree gives that tree
   its `forge-run-id`, in the one form the lease reads, `iss-<n>[+<n>...]-<8 hex>` — the key, then each
   `--batch` key. Without it a run is never placed as the one its issue was dispatched to, and the only

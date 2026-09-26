@@ -14,6 +14,7 @@ import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
+import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
@@ -230,7 +231,8 @@ export const run = (ev, held = heldAndSilent) => {
     say(`lint ${one.split(" — ")[0]}`, `Linter: ${one}\n  Clear it: edit the file until the finding is gone.`);
   }
 
-  const open = unverdicted(logBytes(), repoRoot(tree) ?? tree);
+  /* Read where the tree's own run logs its consults, which is not this hook's environment. */
+  const open = inRunHome(tree, () => unverdicted(logBytes(), repoRoot(tree) ?? tree));
   if (open) {
     say(`consult ${open.id}`,
       `Consult ${open.id} made ${open.open.join(", ")} and nothing says what became of them.\n`
