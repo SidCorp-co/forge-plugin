@@ -1,7 +1,7 @@
 /* How each route's answer becomes the shape its callers read: the row shapers the declared table in
    routes.mjs names. Pure, as that table is — docs/cli/one-transport.md. */
 
-import { relationsOf } from "./edges/kinds.mjs";
+import { relationsOf } from "../edges/kinds.mjs";
 
 export const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));

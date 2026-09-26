@@ -1,14 +1,15 @@
 /* What a projection keeps of each row it shapes, over a captured body: the envelope verdicts of
-   routes.test.mjs say a page came through, and these say the row a caller reads is in it. */
+   plugin/test/tracker/routes.test.mjs say a page came through, and these say the row a caller
+   reads is in it. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { ROUTES } from "../../src/tracker/routes.mjs";
+import { ROUTES } from "../../../src/tracker/routes.mjs";
 
-const captures = join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "rest");
+const captures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "fixtures", "rest");
 
 const held = (name) => JSON.parse(readFileSync(join(captures, `${name}.json`), "utf8"));
 

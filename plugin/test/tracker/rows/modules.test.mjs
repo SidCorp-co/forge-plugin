@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { ROUTES } from "../../src/tracker/routes.mjs";
+import { ROUTES } from "../../../src/tracker/routes.mjs";
 
-const captures = join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "rest");
+const captures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "fixtures", "rest");
 const held = (name) => JSON.parse(readFileSync(join(captures, `${name}.json`), "utf8"));
 
 /* What the module reading and the rank read off these two rows: the kind that tells a module from a

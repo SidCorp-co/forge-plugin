@@ -4,7 +4,7 @@
 
 import { UPLOAD_MIMES, mimeForName } from "../wire/upload-mimes.mjs";
 import { PROJECT_ROW, attachmentOf, attributedOf, browseOf, citingOf, commentOf, configOf, eventsOf,
-  filled, issueOf, labelOf, paged, pick, projectOf, rowsIn, threadOf, writtenRow } from "./projections.mjs";
+  filled, issueOf, labelOf, paged, pick, projectOf, rowsIn, threadOf, writtenRow } from "./answers/projections.mjs";
 
 const PAGE = ({ page }) => page;
 
