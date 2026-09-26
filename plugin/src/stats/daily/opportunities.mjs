@@ -34,8 +34,9 @@ const ranked = (entries) => [...entries].sort((left, right) =>
 const endpointHeld = () => Boolean(accountCredentials().url.value && accountCredentials().token.value);
 
 /** A matcher over the plugin's open backlog, the nearest neighbour `neighboursOf` keeps being an
- *  entry's owner; or why the backlog could not be asked. The tracker's two reads are the caller's to
- *  stand in for. */
+ *  entry's owner, and each issue's status and priority by its key; or why the backlog could not be
+ *  asked. Every status is read, since a raise asks after an issue that is not open.
+ *  The tracker's two reads are the caller's to stand in for. */
 export const backlogMatcher = async (registered, { read = everyIssue, near = neighboursOf, held = endpointHeld } = {}) => {
   const plugin = registered.find((one) => one.slug === PROJECT);
   if (!plugin) return { refused: `the plugin's backlog, ${PROJECT}, is not a project registered on this device` };
@@ -43,14 +44,20 @@ export const backlogMatcher = async (registered, { read = everyIssue, near = nei
   try {
     return await refusing(async () => {
       useProject({ slug: PROJECT, from: "the plugin's own backlog" });
-      const open = await read({ status: "open" }, { soft: true });
-      if (open.refused) return { refused: String(open.refused).split("\n")[0] };
+      const all = await read({}, { soft: true });
+      if (all.refused) return { refused: String(all.refused).split("\n")[0] };
       /* A backlog read short cannot say an entry matches none of it. */
-      const short = shortOf(open, "the plugin's open backlog");
+      const short = shortOf(all, "the plugin's backlog");
       if (short) return { refused: short.split("\n")[0] };
+      const open = all.rows.filter((one) => one.status === "open");
+      const byKey = new Map(all.rows.map((one) => [String(one.issueId ?? "").toUpperCase(), one]));
       return {
+        issue: (key) => {
+          const row = byKey.get(String(key ?? "").toUpperCase());
+          return row ? { status: row.status ?? null, priority: row.priority ?? "none" } : null;
+        },
         match: async (text) => {
-          const found = await near({ seed: text, place: null }, open.rows);
+          const found = await near({ seed: text, place: null }, open);
           const nearest = found.suggestions.find((one) => one.score !== null) ?? null;
           /* A search that could not run found nothing and is not a backlog without a match. */
           if (!nearest && found.notes.length) throw new Error(found.notes[0]);

@@ -1,15 +1,25 @@
 /* What each role of the page's reading is told, and the one tool it answers through; what each role
    is for is judge.mjs's opening. The schema bounds each answer and judge.mjs checks it anyway, since a
    bound a model was told is not one it kept. */
+import { DECLARES } from "../../../tracker/routes.mjs";
+
 /** The longest a reading, a reason or a decision may be: two lines of the page. */
 export const TEXT_CHARS = 200;
 export const MOST_DECISIONS = 5;
 export const MOST_CANDIDATES = 6;
-export const ACTIONS = ["raise", "file", "drop", "revert", "leave alone"];
+/* Only the two a command of this CLI carries out: a raise and a filing. Leaving a movement alone,
+   dropping an issue and reverting a release are carried out by no one command, so an item naming one
+   is advice and not a decision: docs/cli/stats-the-reading.md. */
+export const ACTIONS = ["raise", "file"];
+export const CATEGORIES = ["bug", "enhancement"];
 export const VERDICTS = ["better", "worse", "steady"];
+/** The verdicts that claim a movement, and so owe the baseline it moved against. */
+export const MOVED = ["better", "worse"];
 export const DIRECTIONS = [...VERDICTS, "unclear"];
-export const NO_COMMAND = "leave alone";
 export const ISSUE_KEY = /\bISS-\d+\b/gu;
+
+/** The tracker's priorities, lowest first, so a raise is a move up this list. */
+export const PRIORITIES = [...DECLARES.forge_issues.priority].reverse();
 
 const text = (maxLength, description) => ({ type: "string", maxLength, description });
 
@@ -65,12 +75,17 @@ export const JUDGE_TOOL = {
         section: { type: "string", description: "The section's id, exactly as given." },
         verdict: { type: "string", enum: VERDICTS },
         why: text(TEXT_CHARS, "What in that section's findings decided it."),
+        baseline: { type: "string", description: "For better or worse, the key of the section's baseline figure the day moved against, exactly as given." },
       }, required: ["section", "verdict", "why"] } },
       decisions: { type: "array", maxItems: MOST_DECISIONS, items: { type: "object", properties: {
         action: { type: "string", enum: ACTIONS },
         what: text(TEXT_CHARS, "What to do, in words a person acts on."),
         figure: { type: "string", description: "The key of the one figure that supports it, exactly as given." },
-        command: { type: "string", description: "The one command of this CLI, or one of the issue keys given, that carries it out; empty only for leave alone." },
+        issue: { type: "string", description: "For raise: the issue key given, exactly as given." },
+        priority: { type: "string", enum: PRIORITIES, description: "For raise: the priority to raise it to, above its current one." },
+        title: text(TEXT_CHARS, "For file: what is true once it is fixed, one line."),
+        cause: text(TEXT_CHARS, "For file: what the figures say causes it, one line."),
+        category: { type: "string", enum: CATEGORIES, description: "For file: bug where something meant to work does not, else enhancement." },
       }, required: ["action", "what", "figure"] } },
       nothing: { type: "boolean", description: "True where the day holds nothing to decide." },
     },
@@ -102,15 +117,19 @@ export const REVIEW_ROLE = [
 export const JUDGE_ROLE = [
   "You judge one day of a coding-agent harness's cost from its daily report. For each section you are given the",
   "reviewed findings, or the unreviewed candidates where no review ran, or the figures themselves where no",
-  "finding was proposed; and the issue keys the page names, each with where it sits.",
+  "finding was proposed; a finding may carry the open issue its reading matches. You are also given the issue",
+  "keys the page names, each with where it sits, its status and its priority.",
   "Answer by calling `judge` once:",
-  "- For every section, one line: better, worse or steady for the harness's cost, and why.",
-  `- At most ${MOST_DECISIONS} decisions. A decision is something to do: raise an issue given (it deserves attention sooner),`,
-  "  file a new one, drop an issue given, revert a release, or leave a movement alone. A reading with no decision",
-  "  behind it is not a decision. Each names the key of the one figure that supports it, exactly as given, and the",
-  "  command that carries it out: one of the issue keys given, or a command of this CLI such as `forge new`,",
-  "  `forge issue ISS-n`, `forge stats eval` or `forge stats diagnose`, named by its verb rather than every flag.",
-  "  Leave alone needs no command.",
+  "- For every section, one line: better, worse or steady for the harness's cost, and why. Better or worse names,",
+  "  as `baseline`, the key of a figure of that section marked `baseline` (sent among its figures, or as its",
+  "  `baselines` beside its findings): the window the day moved against. A section with none is steady, since a",
+  "  trend's earlier day is not a baseline.",
+  `- At most ${MOST_DECISIONS} decisions, each one a command carries out. Only two actions are decisions:`,
+  "  raise an issue given to a higher priority than its own (name it as `issue` and the target as `priority`), or",
+  "  file a new one (a `title`, a one-line `cause` and a `category`). Where a finding carries an open issue that",
+  "  covers the matter, raise that issue rather than filing. A closed or dropped issue is not raised. Leaving a",
+  "  movement alone, investigating, evaluating or monitoring is no decision and goes unsaid. Each names the key",
+  "  of the one figure that supports it, exactly as given.",
   "- A day with nothing to decide says `nothing` true with no decisions; that is a whole answer.",
   "Cite only figure keys and issue keys you were given.",
 ].join("\n");

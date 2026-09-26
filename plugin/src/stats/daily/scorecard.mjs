@@ -36,25 +36,37 @@ const atBudgetOf = (reading, day) => {
 
 const CLOSED_READER = { reading: "the issues closed a day and the agent minutes that went to them", issue: "ISS-2599" };
 
-/** The metrics, in the order the tiles stand. `answers` names the sections of the page's reading
- *  whose figures bear on this metric, so a decision citing one of them points at this tile; `of`
- *  reads the metric's value for a day, and a metric without one names the reader it waits for. */
+/* The figures of the page's reading a tile's value is made of: the day's refused calls and each listed
+   opportunity's lost calls are wasted calls, a wait apart, and the consults at their budget over those
+   that recorded one are that tile's two terms. */
+const LISTED_CALLS = /^opportunities\.listed\[#(\d+)\]\.calls$/u;
+
+const wastedFrom = (key, content) => {
+  if (key === "friction.headline.refusals") return true;
+  const listed = LISTED_CALLS.exec(key);
+  return Boolean(listed) && content?.opportunities?.listed?.[Number(listed[1]) - 1]?.kind !== WAIT;
+};
+
+const atBudgetFrom = (key) => key === "consults.headline.atBudget" || key === "consults.headline.budgeted";
+
+/** The metrics, in the order the tiles stand. `fedBy` says whether a figure of the page's reading, by
+ *  its key, is one the tile's value is made of, so a decision citing it points at this tile; a metric
+ *  no reader computes is made of no figure. `of` reads the metric's value for a day, and a metric
+ *  without one names the reader it waits for. */
 export const METRICS = [
-  { id: "closed", label: "issues closed", unit: "", better: HIGHER, goal: "G-11", answers: [], missing: CLOSED_READER },
-  { id: "minutesPerClosed", label: "agent minutes per closed issue", unit: " min", better: LOWER, goal: "G-11",
-    answers: ["runs", "releases"], missing: CLOSED_READER },
+  { id: "closed", label: "issues closed", unit: "", better: HIGHER, goal: "G-11", missing: CLOSED_READER },
+  { id: "minutesPerClosed", label: "agent minutes per closed issue", unit: " min", better: LOWER, goal: "G-11", missing: CLOSED_READER },
   { id: "firstGate", label: "landings that passed their first gate", unit: PERCENT, better: HIGHER, goal: "G-11",
-    answers: ["landings"], missing: MISSING.firstGate },
-  { id: "ownerWait", label: "owner wait minutes", unit: " min", better: LOWER, goal: "G-11", answers: [],
+    missing: MISSING.firstGate },
+  { id: "ownerWait", label: "owner wait minutes", unit: " min", better: LOWER, goal: "G-11",
     missing: { reading: "the minutes work waited on a person each day", issue: "ISS-2600" } },
-  { id: "wasted", label: "wasted calls, of all calls", unit: PERCENT, better: LOWER, goal: "G-11",
-    answers: ["friction", "opportunities"], of: wastedOf },
+  { id: "wasted", label: "wasted calls, of all calls", unit: PERCENT, better: LOWER, goal: "G-11", of: wastedOf, fedBy: wastedFrom },
   { id: "atBudget", label: "consults that ended at their call budget", unit: PERCENT, better: LOWER, goal: "G-06",
-    answers: ["consults"], of: atBudgetOf },
+    of: atBudgetOf, fedBy: atBudgetFrom },
 ];
 
-/** The tile a section of the page's reading answers to. */
-export const tileOfSection = (section) => METRICS.find((one) => one.answers.includes(section)) ?? null;
+/** The tile a figure of the page's reading feeds, or null where it feeds none that is computed. */
+export const tileFedBy = (key, content) => METRICS.find((one) => one.of && one.fedBy?.(key, content)) ?? null;
 
 /** Which way a change reads under the metric's declared direction, or null where there is nothing to judge. */
 export const verdictOf = (better, change) => {
@@ -100,6 +112,7 @@ export const moveSaid = (tile) => {
 const lineOf = (tile) => {
   const declared = `${tile.better} is better, ${tile.goal}`;
   if (tile.missing) return `  ${tile.label}: not computed yet, ${tile.missing.issue} owes its reader (${declared})`;
+  if (tile.value === null) return `  ${tile.label}: ${moveSaid(tile)} (${declared})`;
   const against = tile.baseline === null ? "" : ` against ${withUnit(tile.baseline, tile.unit)}`;
   return `  ${tile.label}: ${withUnit(tile.value, tile.unit)}${against}, ${moveSaid(tile)} (${declared})`;
 };

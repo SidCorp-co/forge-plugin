@@ -70,7 +70,9 @@ const tileHtml = (page, id) => {
 
 const JUDGED = { judged: true, at: "2026-09-21T06:00:00Z", why: null, stages: {}, dropped: [], cost: {},
   decisions: [{ action: "raise", what: "the rule costs calls", figure: { key: "friction.headline.refusals", said: "refused calls, the day", value: 4 },
-    command: "ISS-9" }],
+    issue: "ISS-9", from: "low", to: "high", command: "forge issue ISS-9 --set priority=high --why 'refused calls, the day: 4'" },
+  { action: "file", what: "runs grew", figure: { key: "runs.headline.day.runs", said: "runs, the day", value: 1 },
+    title: "Runs stay few", cause: "more runs", category: "bug", command: "forge new - --title 'Runs stay few' --category bug" }],
   sections: { friction: { title: "Friction", verdict: "worse", why: "more refusals", notes: [], findings: [],
     input: "findings" } } };
 
@@ -130,10 +132,13 @@ test("a metric no reader computes is a greyed tile naming the issue that owes it
   assert.doesNotMatch(page, /missing: /u, "no red missing line in the body");
 });
 
-test("a decision names and links the tile its figure's section answers to, and shows its figure by label and value", () => {
+test("a decision links the tile its figure feeds, or else its figure's section, and shows its figure by label and value", () => {
   const page = pageOf(content({ judgement: JUDGED }));
   assert.ok(page.includes('<span class="figure" title="friction.headline.refusals">refused calls, the day: 4</span>. '
     + 'Tile: <a href="#tile-wasted">wasted calls, of all calls</a>.'), page);
+  assert.ok(page.includes('<span class="figure" title="runs.headline.day.runs">runs, the day: 1</span>. Section: <a href="#runs">Runs</a>.'),
+    "a runs figure feeds no computed tile, the greyed one included, so it points at its section");
+  assert.ok(page.includes("ISS-9 from low to high."));
   assert.doesNotMatch(page.slice(0, page.indexOf("<script")), />[^<]*friction\.headline\.refusals/u, "the key is only a hover");
 });
 
@@ -144,6 +149,14 @@ test("every drill-down is closed when the page opens, and carries its section's 
   }
   assert.doesNotMatch(page, /<details[^>]*\bopen\b/u);
   assert.match(page, /<details id="friction"><summary>.*?<\/summary><p class="verdict"><strong>worse<\/strong> — more refusals<\/p>/u);
+});
+
+test("a collapsed drill-down's summary row carries its section's verdict in the colour a tile gives it", () => {
+  const page = pageOf(content({ judgement: JUDGED }));
+  assert.ok(page.includes('<details id="friction"><summary><h2>Friction</h2><span class="mark worse">Friction: worse</span><span class="note">'), page);
+  assert.ok(page.includes('<details id="runs"><summary><h2>Runs</h2><span class="note">'), "a section with no verdict carries no mark");
+  assert.match(page, /\.mark\.worse\{border-left-color:#b42318;color:#b42318\}/u);
+  assert.match(page, /\.mark\.better\{border-left-color:#1a7f37;color:#1a7f37\}/u);
 });
 
 test("the phases are bars of their share of the day's run minutes, each with its change against the seven days before", () => {
@@ -276,7 +289,7 @@ test("a backlog read short, or a search that could not run, is said as not match
   const held = () => true;
   const near = async () => ({ suggestions: [], notes: [] });
   const short = await backlogMatcher(registered, { held, near, read: async () => ({ rows: [], whole: false, pages: 1 }) });
-  assert.match(short.refused, /the plugin's open backlog reached 0 issue\(s\) over 1 page\(s\) and the reading is incomplete/u);
+  assert.match(short.refused, /the plugin's backlog reached 0 issue\(s\) over 1 page\(s\) and the reading is incomplete/u);
   const found = await opportunitiesOf(friction({ refusalCauses: [entry(0)] }), short);
   assert.deepEqual([found.listed[0].match, found.listed[0].unmatched], [null, short.refused]);
   const whole = await backlogMatcher(registered, { held, read: async () => ({ rows: [], whole: true, pages: 1 }),
@@ -284,4 +297,22 @@ test("a backlog read short, or a search that could not run, is said as not match
   await assert.rejects(() => whole.match("x"), /could not run: 503/u);
   const none = await backlogMatcher(registered, { held, near, read: async () => ({ rows: [], whole: true, pages: 1 }) });
   assert.equal(await none.match("x"), null);
+});
+
+test("the backlog is read at every status once, matched over its open rows, and answers each key's status and priority", async () => {
+  const registered = [{ name: "forge-plugin", slug: "forge-plugin" }];
+  const asked = [];
+  const rows = [{ issueId: "ISS-1", status: "open", priority: "medium", title: "a" }, { issueId: "ISS-2", status: "closed", priority: "high", title: "b" },
+    { issueId: "ISS-3", status: "confirmed", title: "c" }];
+  let offered = null;
+  const matcher = await backlogMatcher(registered, { held: () => true,
+    read: async (filters) => { asked.push(filters); return { rows, whole: true, pages: 1 }; },
+    near: async (_, live) => { offered = live; return { suggestions: [], notes: [] }; } });
+  assert.deepEqual(asked, [{}], "one walk, every status");
+  assert.deepEqual(matcher.issue("ISS-1"), { status: "open", priority: "medium" });
+  assert.deepEqual(matcher.issue("iss-2"), { status: "closed", priority: "high" });
+  assert.deepEqual(matcher.issue("ISS-3"), { status: "confirmed", priority: "none" }, "an unranked issue stands at none");
+  assert.equal(matcher.issue("ISS-4"), null);
+  await matcher.match("x");
+  assert.deepEqual(offered.map((one) => one.issueId), ["ISS-1"], "an opportunity is still owned by an open issue only");
 });

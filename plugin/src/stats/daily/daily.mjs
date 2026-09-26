@@ -57,9 +57,9 @@ const refusedIfDue = (given, reading) => {
 };
 
 /* The models' reading of a page about to be written; a fault in it costs the reading, never the figures. */
-const modelsReading = async (content) => {
+const modelsReading = async (content, backlog) => {
   try {
-    return await judgeDay(content, { roles: reportRoles(), gateway: gateway(), disabled: process.env.FORGE_CODEX_DISABLE === "1" });
+    return await judgeDay(content, { roles: reportRoles(), gateway: gateway(), backlog, disabled: process.env.FORGE_CODEX_DISABLE === "1" });
   } catch (error) {
     return unjudged(`the page's reading stopped: ${String(error.message).split("\n")[0]}`);
   }
@@ -112,15 +112,16 @@ export const printDaily = async (rest) => {
     const reading = readingOf({ projects: whole.map((one) => ({ ...one, passes: one.passes.filter((pass) => pass.at >= since) })) });
     refusedIfDue(day, reading);
     const allowed = [reports.dir, ...found.read.map((one) => one.checkout)];
+    const backlog = await backlogMatcher(registered());
     const content = shownDeep({ ...await contentOf(reading, day, {
-      unread: found.unread, match: await backlogMatcher(registered()),
+      unread: found.unread, match: backlog,
     }), scorecard: scorecardOf(reading, day) }, allowed);
     if (json) {
       return console.log(JSON.stringify({ ...content, judgement: unjudged(held
         ? `the page held for ${day} carries no reading; \`forge stats daily --day ${day} --force\` reads it`
         : `no page is written for ${day}; \`forge stats daily --day ${day}\` writes and reads it`) }, null, 2));
     }
-    content.judgement = shownDeep(await modelsReading(content), allowed);
+    content.judgement = shownDeep(await modelsReading(content, backlog), allowed);
     writePage(reports.dir, `${day}.html`, pageOf(content));
     const current = await writeCurrent(reports.dir, writerFrom(readingOf({ projects: whole, entries: reading.entries, hooks: reading.hooks }), found));
     if (open) return console.log(path);
