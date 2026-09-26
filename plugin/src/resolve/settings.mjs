@@ -7,43 +7,9 @@ import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:pa
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { escaped } from "../markdown.mjs";
 import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
+import { fail } from "./failing.mjs";
 
-/* Registered by a caller holding something no exit may lose — a body that arrived on stdin, or a
-   line owed only once a write lands. Several, each dropped by the caller that registered it. */
-const kept = [];
-
-export const keepOnFailure = (text) => {
-  const held = { text };
-  kept.push(held);
-  return () => {
-    const at = kept.indexOf(held);
-    if (at >= 0) kept.splice(at, 1);
-  };
-};
-
-/** What `fail` throws inside `refusing`, where there is no process of this CLI's own to end — the release script files an issue mid-release, and an exit there leaves one half done. */
-export class Refusal extends Error {}
-
-let embedded = 0;
-
-/** Inside `refusing()` the argv is the embedding script's, so nothing is built from it (ISS-842). */
-export const embeddedRun = () => embedded > 0;
-
-export const refusing = async (run) => {
-  embedded += 1;
-  try {
-    return await run();
-  } finally {
-    embedded -= 1;
-  }
-};
-
-export const fail = (message) => {
-  if (embedded) throw new Refusal(message);
-  console.error(message);
-  for (const one of kept) console.error(one.text);
-  process.exit(1);
-};
+export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "./failing.mjs";
 
 const ancestors = (start) => {
   const seen = [];
@@ -165,15 +131,17 @@ export const mcpForgeIgnored = () => {
 
 const sourced = (from, value) => (value ? { value, from } : { value: null, from: null });
 
-export const accountCredentials = once(() => {
+/* Read at each call and never memoised: under a borrow the value is the one the borrowed file holds at
+   the moment of use, and a memo would keep the one it held at the first read (ISS-2612). */
+export const accountCredentials = () => {
   const saved = userConfig();
   return {
     url: sourced(configSource("url"), saved.url),
     token: sourced(configSource("token"), saved.token),
   };
-});
+};
 
-export const settings = once(() => {
+export const settings = () => {
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) {
     /* The file this call read, not the one it would have read with the configuration directory left where it defaults: a run under a redirected home was told the live path was the one place either is read from, and went looking in a file nothing had opened (ISS-189). */
@@ -186,7 +154,7 @@ export const settings = once(() => {
   }
   const bearer = token.value.startsWith("Bearer ") ? token.value : `Bearer ${token.value}`;
   return { url: url.value, token: bearer };
-});
+};
 
 export const projectScope = once(() => sourced(fromProject(), forgeJson().parsed?.slug));
 

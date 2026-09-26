@@ -6,7 +6,18 @@ import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../../../../plugin/test/fixtures.mjs";
-import { copiesIn } from "../../../run/workspace/credential-copies.mjs";
+import { copiesIn, machineSecrets } from "../../../run/workspace/credential-copies.mjs";
+
+/* This process's own home, set before the first read, holding the machine's values the secrets are
+   taken from. */
+const HOME = tempRoom("copies-home-");
+mkdirSync(join(HOME, "forge"));
+writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({
+  url: "https://tracker.example/mcp", token: "a-machine-token-0123456789",
+  cloudflare: { accounts: [{ name: "main", accountId: "a-public-account-id-0123456789", apiToken: "a-cloudflare-token-0123456789" }] },
+}));
+process.env.XDG_CONFIG_HOME = HOME;
+process.env.CLAUDE_PROXY_ENV = join(HOME, "no-profile.env");
 
 const SECRET = "a-machine-token-0123456789";
 
@@ -34,4 +45,15 @@ test("a scratch that is gone, or a machine holding no secret, names nothing", ()
   const scratch = tempRoom("copies-none-");
   writeFileSync(join(scratch, "any.log"), "anything\n");
   assert.deepEqual(copiesIn(scratch, []), []);
+});
+
+test("the secrets are the credentials themselves, not an endpoint or an account id printed beside them", () => {
+  const held = machineSecrets();
+  assert.ok(held.includes("a-machine-token-0123456789"), held.join(", "));
+  assert.ok(held.includes("a-cloudflare-token-0123456789"), held.join(", "));
+  assert.ok(!held.includes("a-public-account-id-0123456789"), "an account id is not a credential");
+  assert.ok(!held.includes("https://tracker.example/mcp"), "an endpoint is not a credential");
+  const scratch = tempRoom("copies-id-");
+  writeFileSync(join(scratch, "report.txt"), "account a-public-account-id-0123456789 answered\n");
+  assert.deepEqual(copiesIn(scratch, held), [], "a report naming the account is not a copy of its token");
 });

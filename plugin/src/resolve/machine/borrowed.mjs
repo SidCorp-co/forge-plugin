@@ -7,12 +7,16 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 
+import { fail } from "../failing.mjs";
+
 export const BORROW_VAR = "FORGE_BORROW_FROM";
 
 /* Which keys a run home may borrow, and which of them are secret: the one declaration of both, beside
    the table of this machine's harness keys, which a test holds this list to. `secret` is what a
    workspace's ending searches its scratch for, so an endpoint is borrowed and never searched for — a
-   url turns up in every log that ever named it. Google's tokens are left out: a refresh rewrites
+   url turns up in every log that ever named it. `within` narrows a structured value to the field that
+   is the secret, an account id beside a token being printed by every report that names the account.
+   Google's tokens are left out: a refresh rewrites
    them, and a write this home refuses there would break the run rather than protect anything. */
 export const BORROWED = [
   { key: "url" },
@@ -27,7 +31,7 @@ export const BORROWED = [
   { key: "anthropic.key", secret: true },
   { key: "coolify.url" },
   { key: "coolify.apiToken", secret: true },
-  { key: "cloudflare.accounts", secret: true },
+  { key: "cloudflare.accounts", secret: true, within: "apiToken" },
 ];
 
 const partsOf = (key) => key.split(".");
@@ -52,11 +56,6 @@ export const isBorrowed = (key) => BORROWED.some((row) => key === row.key || key
    file again, or a path naming the machine's config, which is what `start` prints. */
 const UNSET = `unset ${BORROW_VAR}, or set it to the absolute path of this machine's own forge config.json`;
 
-const refused = (message) => {
-  console.error(message);
-  process.exit(1);
-};
-
 const sameFile = (one, other) => {
   const real = (path) => {
     try {
@@ -72,20 +71,20 @@ const sameFile = (one, other) => {
    no-endpoint refusal, which names the run home's file and not the reference that failed. */
 const readBorrowed = (path, own) => {
   const said = `${BORROW_VAR}=${path}`;
-  if (!isAbsolute(path)) refused(`${said} is not an absolute path, so which file it names turns on where this call stands. Nothing was read: ${UNSET}.`);
+  if (!isAbsolute(path)) fail(`${said} is not an absolute path, so which file it names turns on where this call stands. Nothing was read: ${UNSET}.`);
   if (sameFile(path, own)) {
-    refused(`${said} names ${own}, the config this home already reads, so there is nothing to borrow. `
+    fail(`${said} names ${own}, the config this home already reads, so there is nothing to borrow. `
       + `A run borrows into a home of its own: point XDG_CONFIG_HOME at a directory under the run's scratch, or ${UNSET}.`);
   }
   let values;
   try {
     values = JSON.parse(readFileSync(path, "utf8"));
   } catch (error) {
-    refused(`${said} names a file that does not read as a config (${error.code ?? error.message}), so no borrowed key `
+    fail(`${said} names a file that does not read as a config (${error.code ?? error.message}), so no borrowed key `
       + `resolves. Nothing was read: ${UNSET}.`);
   }
   if (!values || typeof values !== "object" || Array.isArray(values)) {
-    refused(`${said} names a file holding no JSON object, so no borrowed key resolves. Nothing was read: ${UNSET}.`);
+    fail(`${said} names a file holding no JSON object, so no borrowed key resolves. Nothing was read: ${UNSET}.`);
   }
   return values;
 };
@@ -107,7 +106,7 @@ export const refuseBorrowedWrite = (values, borrowed, own) => {
   const named = BORROWED.filter((row) => valueAt(values, row.key) !== undefined).map((row) => row.key);
   if (!named.length) return;
   const home = dirname(dirname(borrowed));
-  refused(`${named.map((key) => `\`${key}\``).join(" and ")} ${named.length > 1 ? "are" : "is"} borrowed from ${borrowed} `
+  fail(`${named.map((key) => `\`${key}\``).join(" and ")} ${named.length > 1 ? "are" : "is"} borrowed from ${borrowed} `
     + `under ${BORROW_VAR}, so ${own} may not hold ${named.length > 1 ? "them" : "it"}: nothing was written. Write it `
     + `where it lives, from a shell that does not borrow: ${BORROW_VAR}= XDG_CONFIG_HOME=${home} and the same command.`);
 };

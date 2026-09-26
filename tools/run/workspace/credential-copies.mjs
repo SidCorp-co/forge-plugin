@@ -23,11 +23,14 @@ const storeKey = (key) => {
     ? [store, field] : null;
 };
 
+const narrowed = (value, within) => (within && Array.isArray(value) ? value.map((one) => one?.[within]) : value);
+
 /* Each secret the way a reader of this machine resolves it: a store key through its fallback file too,
    the codex gateway key living in the profile on a box that never saved it here. */
+
 export const machineSecrets = () => [...new Set(BORROWED.filter((row) => row.secret).flatMap((row) => {
   const store = storeKey(row.key);
-  return leaves(store ? machineValue(...store).value : valueAt(userConfig(), row.key));
+  return leaves(narrowed(store ? machineValue(...store).value : valueAt(userConfig(), row.key), row.within));
 }))];
 
 const filesUnder = (dir) => {

@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -119,8 +119,11 @@ test("a borrow naming no other readable config file is refused with the path and
   const missing = join(tempRoom("borrowed-missing-"), "config.json");
   const broken = join(tempRoom("borrowed-broken-"), "config.json");
   writeFileSync(broken, "{ not json");
+  const alias = join(tempRoom("borrowed-alias-"), "config.json");
+  symlinkSync(join(home, "forge", "config.json"), alias);
   const cases = [["forge/config.json", /is not an absolute path/u], [missing, /does not read as a config/u],
-    [broken, /does not read as a config/u], [join(home, "forge", "config.json"), /the config this home already reads/u]];
+    [broken, /does not read as a config/u], [join(home, "forge", "config.json"), /the config this home already reads/u],
+    [alias, /the config this home already reads/u]];
   for (const [path, said] of cases) {
     const run = probe(home, path, "return config.userConfig().token ?? null;");
     assert.equal(run.status, 1, `${path} resolved rather than refused: ${run.stdout}`);
@@ -159,4 +162,33 @@ test("a store key the borrowed file lacks resolves from that store's fallback fi
   const run = probe(home, borrowed, `return stores.machineValue("codex", "key");`, { CLAUDE_PROXY_ENV: profile });
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(run.out, { value: "profile-gateway-key-0123456789", from: profile });
+});
+
+test("the account's readers answer a rotated token at the next call, not the first one they read", () => {
+  const borrowed = machineHome();
+  const home = runHome();
+  const settingsAt = new URL("../../src/resolve/settings.mjs", import.meta.url).href;
+  const run = probe(home, borrowed, `
+    const { accountCredentials, settings } = await import(${JSON.stringify(settingsAt)});
+    const first = [accountCredentials().token.value, settings().token];
+    writeFileSync(${JSON.stringify(borrowed)}, JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "rotated-token-0123456789abcdef" }));
+    return { first, second: [accountCredentials().token.value, settings().token] };`);
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(run.out.first, [TOKEN, `Bearer ${TOKEN}`]);
+  assert.deepEqual(run.out.second, ["rotated-token-0123456789abcdef", "Bearer rotated-token-0123456789abcdef"]);
+});
+
+test("a borrow refused inside an embedding script throws the refusal that script catches, rather than ending it", () => {
+  const home = runHome({});
+  const settingsAt = new URL("../../src/resolve/settings.mjs", import.meta.url).href;
+  const run = probe(home, "relative/config.json", `
+    const { Refusal, refusing } = await import(${JSON.stringify(settingsAt)});
+    try {
+      await refusing(async () => config.userConfig());
+      return "resolved";
+    } catch (error) {
+      return error instanceof Refusal ? error.message : "another error";
+    }`);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.out, /FORGE_BORROW_FROM=relative\/config\.json is not an absolute path/u, run.out);
 });
