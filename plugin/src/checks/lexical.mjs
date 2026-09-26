@@ -33,14 +33,6 @@ const wordEndingAt = (text, end) => {
   return text[start - 1] === "." ? "" : text.slice(start, end + 1);
 };
 
-/* Whether the `++` or `--` starting at `at` follows the value it updates, `count++ / total`, which
-   leaves a value; a prefix one, `++/re/.lastIndex`, still has its operand to come. */
-const postfix = (text, at) => {
-  let before = at - 1;
-  while (before >= 0 && (text[before] === " " || text[before] === "\t")) before -= 1;
-  return before >= 0 && (WORD.test(text[before]) || text[before] === ")" || text[before] === "]");
-};
-
 const stringAt = (text, at) => {
   const quote = text[at];
   let to = at + 1;
@@ -94,27 +86,40 @@ const walk = (text) => {
   const found = [];
   const holes = [];
   const parens = [];
-  let last = "";
-  let lastAt = -1;
+  /* The last three code characters, comments skipped, each with where it stood: a slash is decided
+     by the token before it, and `a++`, `1.` and `++a` are each told apart by the one before that. */
+  const recent = [];
+  const saw = (one, at) => {
+    recent.push({ one, at });
+    if (recent.length > 3) recent.shift();
+  };
   let closedControl = false;
+  const endsAValue = (token) => Boolean(token) && (token.one === VALUE || token.one === "]" || token.one === ")"
+    || (WORD.test(token.one) && !STARTS_AN_EXPRESSION.has(wordEndingAt(text, token.at))));
   const opensARegex = () => {
-    if (last === "") return true;
-    if (last === VALUE || last === "]") return false;
-    if ((last === "+" || last === "-") && text[lastAt - 1] === last) return !postfix(text, lastAt - 1);
-    if (last === ")") return closedControl;
-    if (WORD.test(last)) return STARTS_AN_EXPRESSION.has(wordEndingAt(text, lastAt));
+    const [before, previous, last] = [recent.at(-3), recent.at(-2), recent.at(-1)];
+    if (!last) return true;
+    if (last.one === VALUE || last.one === "]") return false;
+    /* A postfix `++` or `--` ends a value, `count++ / total`; a prefix one, `++/re/.lastIndex`, still
+       has its operand to come. */
+    const update = (last.one === "+" || last.one === "-") && previous?.one === last.one && previous.at === last.at - 1;
+    if (update) return !endsAValue(before);
+    /* A number may end in its point, `1. / 2`. */
+    if (last.one === "." && previous && previous.at === last.at - 1 && /^\d/u.test(wordEndingAt(text, previous.at))) return false;
+    if (last.one === ")") return closedControl;
+    if (WORD.test(last.one)) return STARTS_AN_EXPRESSION.has(wordEndingAt(text, last.at));
     return true;
   };
   const took = (region) => {
     found.push(region);
-    last = VALUE;
+    saw(VALUE, region.end - 1);
     return region.end;
   };
   const half = (at, template) => {
     const region = halfAt(text, at, template);
     found.push(region);
     if (region.hole) holes.push({ depth: 0, template });
-    last = region.hole ? "{" : VALUE;
+    saw(region.hole ? "{" : VALUE, region.end - 1);
     return region.end;
   };
   let at = 0;
@@ -132,12 +137,10 @@ const walk = (text) => {
     else {
       if (one === "{" && holes.length) holes.at(-1).depth += 1;
       if (one === "}" && holes.length) holes.at(-1).depth -= 1;
-      if (one === "(") parens.push(WORD.test(last) && CONTROL.has(wordEndingAt(text, lastAt)));
+      const last = recent.at(-1);
+      if (one === "(") parens.push(Boolean(last) && WORD.test(last.one) && CONTROL.has(wordEndingAt(text, last.at)));
       if (one === ")") closedControl = parens.pop() ?? false;
-      if (!SPACE.test(one)) {
-        last = one;
-        lastAt = at;
-      }
+      if (!SPACE.test(one)) saw(one, at);
       at += 1;
     }
   }
