@@ -34,7 +34,7 @@ import {
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
-import { readyChecks, readyChecksLines } from "./landing/ready-checks.mjs";
+import { readyChecks, readyChecksLines, runReadyChecks } from "./landing/ready-checks.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -450,6 +450,8 @@ export const claim = async (argv) => {
         lands: landsOn(await releasePolicy()),
       })
       : null);
+  /* After every refusal the lease and the checkpoint make, so a capture refused for either spends no check on it. */
+  const green = given.ready ? runReadyChecks(ref, readyChecks(), checkpoint.head) : null;
   const next = claimed(context, {
     holder, minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
     landing: checkpoint ?? undefined,
@@ -460,6 +462,7 @@ export const claim = async (argv) => {
   console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken, source)}`);
   if (state === "live") console.log(handedSaid(ref, lease));
   if (state === "gone") console.log(holderGoneSaid(lease, undefined, { asserted: given.stopped }));
+  if (green) console.log(green);
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);
   /* Off the block the write itself composed rather than a second reading of the same refs, so the
      line this run reads and the account a later one reads back are one sentence (ISS-1802). */
