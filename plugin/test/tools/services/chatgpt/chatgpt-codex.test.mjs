@@ -222,6 +222,16 @@ test("12. a 4xx or a 503 says no image was made", async () => {
   }
 });
 
+/* Every field of the gateway's error is somebody else's text, the code as much as the message. */
+test("12. a gateway error echoing the key in its code or message prints neither", async () => {
+  GATEWAY.echo = erring(400, KEY);
+  state.mode = "echo";
+  const run = await ran(["a fox", "--ratio", "1:1", "--via", "codex"]);
+  assert.equal(run.status, 1);
+  assert.ok(!both(run).includes(KEY), both(run));
+  assert.match(run.stderr, /400 <the key> — stub <the key>/u);
+});
+
 test("13. every failure after the send exits non-zero with one gateway request and none to ChatGPT web", async () => {
   for (const mode of ["502", "504", "500", "503", "400", "429", "torn", "drop"]) {
     state.mode = mode;

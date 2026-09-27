@@ -82,7 +82,7 @@ const nothingMade = (status) => (status >= 400 && status < 500) || status === 50
 
 const refusedBy = (answer, text, shown) => {
   const held = parsedOr(text)?.error;
-  const code = held?.code ?? held?.type ?? "no code";
+  const code = shown(held?.code ?? held?.type ?? "no code");
   const said = held?.message ? shown(held.message) : `${text.length} byte(s) that are not the gateway's error shape`;
   const after = answer.headers.get("retry-after");
   const wait = answer.status === 503 && after ? `\n  The gateway asks for ${after}s before another request.` : "";
