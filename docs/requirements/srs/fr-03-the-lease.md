@@ -285,12 +285,12 @@ the park that would set the issue down for a person, and the caller decides.
 - **AC-03-4-4** · Rev: 1 · Proof: none yet — ISS-35
   WHEN a crash park is written THEN it SHALL carry the claim history as typed evidence rather than
   as prose in its reason.
-- **AC-03-4-5** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a reclaim over a lease that declared nothing was worked is named and not counted"
+- **AC-03-4-5** · Rev: 1 · Proof: plugin/test/flow/lease/reading-reclaim.test.mjs "a reclaim over a lease that declared nothing was worked is named and not counted"
   IF a reclaim went over a lease whose own line declared that nothing was worked under it THEN the
   CLI SHALL leave that reclaim out of the count it names and SHALL say so beside it in the claim
   history, and SHALL count every other reclaim as before, since a reading that lapsed is not a run
   that died.
-- **AC-03-4-6** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a new holder does not inherit the line that says nothing was worked"
+- **AC-03-4-6** · Rev: 1 · Proof: plugin/test/flow/lease/reading-reclaim.test.mjs "a new holder does not inherit the line that says nothing was worked"
   IF a new holder claims without naming a next step over a lease whose line declared that nothing
   was worked THEN the CLI SHALL leave the new lease with no line, and SHALL carry any other line
   forward unchanged, since that declaration speaks for the lease that made it and not for one that
