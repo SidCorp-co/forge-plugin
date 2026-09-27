@@ -294,6 +294,23 @@ test("a skill directory the tree has never tracked is swept too", () => {
   assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "nothing named it and nothing tracked it");
 });
 
+/* The gate lets a project's own runbook through, so this half asking about it afterwards would be the same refusal a call later (ISS-379). */
+test("a project's own skill is neither swept nor asked about by name", () => {
+  const repo = tempRoom("landed-project-skill-");
+  const dir = join(repo, ".claude", "skills", "uat");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(repo, "README.md"), "a tree\n");
+  committed(repo, "README.md");
+  writeFileSync(join(dir, "SKILL.md"), "the runbook\n");
+  const call = (command) => answered(callHook(
+    HOOK,
+    { session_id: randomUUID(), tool_name: "Bash", tool_input: { command }, cwd: repo },
+    HOME,
+  ));
+  assert.equal(call("node make-skill.mjs"), null, "swept from the directory");
+  assert.equal(call(`printf x > ${pathed(join(dir, "SKILL.md"))}`), null, "named by the call");
+});
+
 /* The body `forge guide` serves lives under guides/skills/ with no SKILL.md beside it (ISS-353). */
 test("a served skill body under guides/skills is swept like the stub", () => {
   const session = randomUUID();

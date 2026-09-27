@@ -1,6 +1,7 @@
 /* Two entry points ask one question — before a write, and after one no check could read. */
 import { spawnSync } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative } from "node:path";
 
 import { canonical } from "../resolve/canonical.mjs";
@@ -17,8 +18,22 @@ export const BRIEF =
   + "cannot hold: a check, a default or a refusal that names the way is fixed or filed there instead, "
   + "since a memory reminds one agent and code holds every run. Most rounds record nothing.";
 
+/** Whether a path sits under a project's own `.claude/skills/`: the host loads that directory for the one
+ *  project holding it, so its text is a note about one repository by construction — the very thing a
+ *  skill's own text must not be — and the question this gate asks has no honest answer there. The home's
+ *  `.claude/skills/` serves every project and stays guarded, and so does an owner this cannot place: the
+ *  root, or the relative tail a variable nobody resolved left behind, which may well be the home. */
+export const projectSkill = (path) => {
+  const at = path.lastIndexOf("/.claude/skills/");
+  if (at < 0) return false;
+  const owner = path.slice(0, at);
+  if (owner.startsWith("~/")) return true;
+  if (!isAbsolute(owner)) return false;
+  return canonical(owner) !== canonical(homedir());
+};
+
 export const guarded = (path) =>
-  GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md";
+  GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md" && !projectSkill(path);
 
 /** Whether a path sits inside an installed copy of this plugin, as the host's install record places
  *  each: an update rewrites that directory whole, so no run records learning there, and a fresh stamp
