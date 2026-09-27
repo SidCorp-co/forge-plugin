@@ -218,6 +218,13 @@ export const state = {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
       if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
+      /* A new row of its own, which a later list returns: the batch reading a release files. */
+      if (args.action === "create") {
+        const filed = { documentId: `filed-${state.issues.length}`, issueId: `ISS-${900 + state.issues.length}`,
+          status: "open", createdAt: new Date().toISOString(), ...args.data };
+        state.issues.push(filed);
+        return filed;
+      }
       /* A mark names its issue in the payload rather than as the call's subject, so both are read. */
       const named = args.documentId ?? args.data?.issueId;
       const at = state.issues.findIndex((one) => one.documentId === named);
