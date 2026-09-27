@@ -5,13 +5,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ranAsync, tempHome } from "../fixtures.mjs";
-import { trackerFor } from "../fixtures/own-project.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override-module").path;
-const { UNREAD } = await import("../../src/flow/override.mjs");
+const { UNREAD } = await import("../../../src/flow/override.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const WHY = "the body names plugin/src/flow/lease.mjs and nothing outside it";
 
 const MODULES = [
