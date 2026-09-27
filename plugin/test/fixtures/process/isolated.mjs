@@ -18,8 +18,9 @@ delete process.env.FORGE_SESSION_ID;
 delete process.env.FORGE_BORROW_FROM;
 
 /* The configuration home is the process's own and empty, so a case reading configuration it never
-   wrote fails the same way on every machine instead of passing on the developer's credentials. The
-   prefix is the one `fixtures.mjs` sweeps, so a process killed before its exit handler leaves nothing. */
+   wrote fails the same way on every machine instead of passing on the developer's credentials. It is
+   made under the same temporary directory and prefix `fixtures.mjs` sweeps for dead owners, so a
+   process killed before its exit handler leaves its home to the next process importing the fixture. */
 const prefix = join(tmpdir(), `forge-plugin-test-${process.pid}-config-`);
 const home = madeIn(prefix, () => mkdtempSync(prefix));
 process.on("exit", () => rmSync(home, { recursive: true, force: true }));
