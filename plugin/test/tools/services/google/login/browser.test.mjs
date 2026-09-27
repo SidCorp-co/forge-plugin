@@ -27,24 +27,31 @@ after(() => fake?.close());
 
 let binCount = 0;
 
-/* A PATH directory holding each named opener; `failing` ones exit 1 without writing. */
+/* The PATH an opener runs under holds only its own directory, so the pause names sleep by path. */
+const SLEEP = spawnSync("sh", ["-c", "command -v sleep"], { encoding: "utf8" }).stdout.trim();
+
+/* A PATH directory holding each named opener; `failing` ones exit 1 without writing. An opener
+   creates its file and pauses before writing the line, so every run holds the moment a shell
+   redirection makes on a loaded machine: the file there, the address not yet in it. */
 const openers = (names, { failing = [] } = {}) => {
   binCount += 1;
   const bin = join(room, `bin-${binCount}`);
   mkdirSync(bin);
   for (const name of [...names, ...failing]) {
-    const body = failing.includes(name) ? "exit 1" : `printf '%s\\n' "$1" >> '${join(bin, `${name}.opened`)}'`;
+    const file = `'${join(bin, `${name}.opened`)}'`;
+    const body = failing.includes(name) ? "exit 1" : `: >> ${file}\n'${SLEEP}' 0.1\nprintf '%s\\n' "$1" >> ${file}`;
     writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`);
     chmodSync(join(bin, name), 0o755);
   }
-  const opened = (name) => (existsSync(join(bin, `${name}.opened`)) ? readFileSync(join(bin, `${name}.opened`), "utf8").trim() : null);
-  return { bin, opened };
-};
-
-/* The opener is detached and forgotten, so a case waits on the file it writes rather than on the child. */
-const openedBy = async (opened, name) => {
-  for (let tries = 0; tries < 100 && opened(name) === null; tries += 1) await new Promise((done) => setTimeout(done, 20));
-  return opened(name);
+  const written = (name) => (existsSync(join(bin, `${name}.opened`)) ? readFileSync(join(bin, `${name}.opened`), "utf8") : null);
+  const opened = (name) => written(name)?.trim() ?? null;
+  /* The opener is detached and forgotten, so a case waits on the line it writes rather than on the
+     child, and a file that exists without a whole line in it is still being written. */
+  const openedBy = async (name) => {
+    for (let tries = 0; tries < 100 && !written(name)?.endsWith("\n"); tries += 1) await new Promise((done) => setTimeout(done, 20));
+    return opened(name);
+  };
+  return { bin, opened, openedBy };
 };
 
 test("each platform's own opener is the one chosen: open on macOS, start through the command shell on Windows, xdg-open elsewhere", () => {
@@ -55,9 +62,9 @@ test("each platform's own opener is the one chosen: open on macOS, start through
 });
 
 test("on a terminal the platform's opener is started with the address, and no competing command is", async () => {
-  const { bin, opened } = openers(["open", "xdg-open"]);
+  const { bin, opened, openedBy } = openers(["open", "xdg-open"]);
   assert.equal(await openAddress(ADDRESS, { terminal: true, platform: "linux", env: { PATH: bin } }), "xdg-open");
-  assert.equal(await openedBy(opened, "xdg-open"), ADDRESS);
+  assert.equal(await openedBy("xdg-open"), ADDRESS);
   assert.equal(opened("open"), null);
 });
 
@@ -111,10 +118,10 @@ const CONSENT = /^ {2}(http:\/\/127\.0\.0\.1:\d+\/auth\?\S+)$/mu;
 const savedLogin = (home) => JSON.parse(readFileSync(join(home, "forge", "config.json"), "utf8")).google.accounts.owner;
 
 test("a login on a terminal opens the consent address with the platform's opener and prints it on stderr", ON_LINUX, async () => {
-  const { bin, opened } = openers(["xdg-open"]);
+  const { bin, openedBy } = openers(["xdg-open"]);
   const answer = await signedIn([], bin);
   assert.equal(answer.status, 0, answer.stderr);
-  assert.equal(await openedBy(opened, "xdg-open"), answer.stderr.match(CONSENT)[1]);
+  assert.equal(await openedBy("xdg-open"), answer.stderr.match(CONSENT)[1]);
   assert.match(answer.stderr, /Opened it with xdg-open; if no page appeared, open the address above by hand\./u);
 });
 
