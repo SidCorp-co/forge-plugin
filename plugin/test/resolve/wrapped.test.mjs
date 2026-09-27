@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
+import { TRACKER_SERVED } from "../../src/tools/services/coolify/chosen-route.mjs";
 import { noRouteRefusal } from "../../src/tracker/declared/no-route.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
 import { answered, callHookAsync, fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom }
@@ -318,4 +319,42 @@ test("a wrapped action is refused with no tracker to ask", async () => {
   await tracker.close();
   const said = await refusedBy(tracker.env, cwd, "mcp__forge__forge_issues", { action: "list" });
   assert.match(said, /forge_issues list is what `forge issue` wraps/u, said);
+});
+
+/* ISS-2725. The coolify row wraps the tracker's tool, and on the instance route no command of the
+   verb makes that call: the instance's own commands reach the saved instance, not this project's
+   binding. So the redirect there goes through the switch back first, and the routes the row claims
+   do not move with the machine, or which verb owns a route would depend on whose machine asked. */
+const VISIBILITY = new URL("../../src/resolve/visibility.mjs", import.meta.url).href;
+const coolifyKeys = `const v = await import(${JSON.stringify(VISIBILITY)});
+console.log(JSON.stringify(Object.keys(v.wrapsOf(v.rowFor("coolify")))));`;
+
+test("a raw coolify call is redirected to a command the route this machine chose accepts", async () => {
+  const tracker = await fakeTracker({ declared: ["forge_coolify"], answer: {} });
+  const home = tracker.env.XDG_CONFIG_HOME;
+  const cwd = projectRoom(tempRoom("wrapped-coolify-"), home, { slug: SLUG });
+  await tracker.close();
+  const at = join(home, "forge", "config.json");
+  const held = JSON.parse(readFileSync(at, "utf8"));
+  const chose = (mode) => writeFileSync(at, JSON.stringify(mode ? { ...held, coolifyRoute: mode } : held));
+  const actions = Object.entries(TRACKER_SERVED).map(([name, key]) => [name, key.split(".")[1]]);
+  const refusals = () => Promise.all(actions.map(([, action]) =>
+    refusedBy(tracker.env, cwd, "mcp__forge__forge_coolify", { action })));
+  const claimed = async () => (await ranAsync(process.execPath, ["--input-type=module", "-e", coolifyKeys],
+    tracker.env, cwd)).stdout;
+
+  chose("instance");
+  const instance = await refusals();
+  actions.forEach(([name], at) => assert.ok(instance[at].startsWith(
+    `Type \`forge doctor --coolify-route tracker\`, then \`forge coolify ${name}\`, instead.`), instance[at]));
+  const onInstance = await claimed();
+
+  for (const mode of ["tracker", null]) {
+    chose(mode);
+    const tracked = await refusals();
+    actions.forEach(([name], at) => assert.ok(
+      tracked[at].startsWith(`Type \`forge coolify ${name}\` instead.`), `${mode}: ${tracked[at]}`));
+    assert.equal(await claimed(), onInstance, "the routes the row claims are the same on either route");
+  }
+  assert.deepEqual(JSON.parse(onInstance), Object.values(TRACKER_SERVED));
 });
