@@ -10,7 +10,7 @@ import { besideGit, runIdAt, runsFor } from "../../src/resolve/session/run-id.mj
 
 const repo = repository();
 
-const READINGS = [/^ISS-\d+$/u, /^Tree: /u, /^FORGE_SESSION_ID=/u, /^TMPDIR=/u, /^XDG_CONFIG_HOME=/u, /^Held by the other trees/u,
+const READINGS = [/^ISS-\d+(?:, ISS-\d+)*$/u, /^Tree: /u, /^FORGE_SESSION_ID=/u, /^TMPDIR=/u, /^XDG_CONFIG_HOME=/u, /^Held by the other trees/u,
   /^ {2}\S/u, /^Plugin copy: /u, /^Restart owed: /u, /^Trees: /u];
 
 test("with --tree, the brief names that tree's branch, head, run id, scratch directory and borrowing route", () => {
@@ -18,6 +18,7 @@ test("with --tree, the brief names that tree's branch, head, run id, scratch dir
   const run = brief(["ISS-7", "--tree", repo.mine], repo.main, home.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^ISS-7\nTree: .*mine · branch mine · head [0-9a-f]{7}$/mu);
+  assert.equal(run.stdout.split("\n")[0], "ISS-7", "a tree minted for the key alone is briefed with that key alone");
   assert.match(run.stdout, new RegExp(`^FORGE_SESSION_ID=${RUN}$`, "mu"));
   assert.match(run.stdout, new RegExp(`^TMPDIR=/tmp/forge-run-${RUN}$`, "mu"));
   /* The line `run.mjs start` prints, so a dispatched run borrows rather than copying the credential. */
@@ -51,9 +52,11 @@ test("a batch is minted into one id at the first brief, the key first and each b
   const minted = runIdAt(fresh.idle);
   assert.deepEqual(runsFor(minted), ["iss-7", "iss-8", "iss-9"], `the brief wrote ${minted}`);
   assert.ok(run.stdout.split("\n").includes(`FORGE_SESSION_ID=${minted}`), `the brief printed:\n${run.stdout}`);
+  /* The run is handed this text exactly, so a batchmate named only inside the id is one it never works (ISS-2581). */
+  assert.equal(run.stdout.split("\n")[0], "ISS-7, ISS-8, ISS-9", "and names every member in its own text");
 });
 
-test("an id already naming the issue, as its head or as a batchmate, is printed as it stands", () => {
+test("an id already naming the issue, as its head or as a batchmate, is printed as it stands and heads the brief with every member", () => {
   const fresh = repository();
   writeFileSync(besideGit(fresh.idle, "forge-run-id"), "iss-7+8-0123abcd\n");
   for (const key of ["ISS-7", "ISS-8"]) {
@@ -61,6 +64,7 @@ test("an id already naming the issue, as its head or as a batchmate, is printed 
     assert.equal(run.status, 0, run.stderr);
     assert.match(run.stdout, /^FORGE_SESSION_ID=iss-7\+8-0123abcd$/mu, key);
     assert.equal(runIdAt(fresh.idle), "iss-7+8-0123abcd", `${key} left the id as it was`);
+    assert.equal(run.stdout.split("\n")[0], "ISS-7, ISS-8", `${key} briefed into a batch tree names the whole batch`);
   }
 });
 
@@ -128,6 +132,14 @@ test("a flag the verb does not take is refused, and nothing is printed", () => {
   assert.notEqual(run.status, 0);
   assert.equal(run.stdout, "");
   assert.match(run.stderr, /--tree/u);
+});
+
+test("a brief given no tree names its key alone", () => {
+  for (const from of [repo.main, tempRoom("brief-untreed-")]) {
+    const run = brief(["ISS-7"], from, homeFor().env);
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(run.stdout.split("\n")[0], "ISS-7", from);
+  }
 });
 
 test("outside any checkout the brief still prints, and says no trees were read", () => {
