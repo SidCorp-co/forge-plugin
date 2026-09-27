@@ -10,7 +10,7 @@ import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { headNow } from "./worklog.mjs";
 import { freshForm } from "./earned/baseline.mjs";
-import { citeForm, declaredGate, everPublished } from "./earned/published.mjs";
+import { citeForm, declaredGate, everPublished, publishedPath } from "./earned/published.mjs";
 import {
   BASELINE_AT,
   CHECKS,
@@ -280,7 +280,7 @@ export const baselineAhead = (view, ref, head = headNow()) => {
       + "on this machine, so the citation route stays closed and every baseline is a fresh run until a "
       + "release runs `forge baseline publish` for the head it pushed.";
     return `Ahead: ${BASELINE_AT} is earned by a baseline and no ship has published a whole-tree `
-      + `result for the commit this checkout stands at, so the run is this run's.${closed}\n`
+      + `result for the commit this checkout stands at (read from ${publishedPath()}), so the run is this run's.${closed}\n`
       + `  ${freshForm(ref, declaredGate())}`;
   }
   return `Ahead: ${BASELINE_AT} is earned by a baseline and a ship published a whole-tree result for `

@@ -11,7 +11,7 @@ import { flags, wantsHelp } from "../../resolve/flags.mjs";
 import { helpOf } from "../../resolve/visibility.mjs";
 import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { headNow } from "../worklog.mjs";
-import { FAILED, declaredGates, publishBaseline, publishedSaid } from "./published.mjs";
+import { BORROWED, FAILED, declaredGates, publishBaseline, publishedSaid } from "./published.mjs";
 
 const REMOTE = "origin";
 const REMOTE_MS = 30_000;
@@ -103,7 +103,7 @@ const publish = (argv) => {
     scope: WHOLE,
     version: asked.version?.trim() || null,
   });
-  if (outcome === FAILED) refused(publishedSaid(outcome, commit));
+  if (outcome === FAILED || outcome === BORROWED) refused(`${publishedSaid(outcome, commit)}.`);
   console.log(publishedSaid(outcome, commit));
 };
 

@@ -1,8 +1,9 @@
-/* The whole-tree gate result a release published for the head it pushed, which is the one authority a baseline citation rests on. Keyed on the project and the commit, because a commit is the only thing here that says the tree is the same tree: no ancestry walk and no newest-published fallback answers for a head nothing was published for. A release writes it — this repository's ship directly, any other project's through `forge baseline publish`, which refuses every commit but the one its remote's default branch holds — and the citing write reads it, and settling the authority at the write is what leaves every entry check judging the record alone. One machine's file, and said to be: docs/cli/the-published-baseline.md. */
-import { join } from "node:path";
+/* The whole-tree gate result a release published for the head it pushed, which is the one authority a baseline citation rests on. Keyed on the project and the commit, because a commit is the only thing here that says the tree is the same tree: no ancestry walk and no newest-published fallback answers for a head nothing was published for. A release writes it — this repository's ship directly, any other project's through `forge baseline publish`, which refuses every commit but the one its remote's default branch holds — and the citing write reads it, and settling the authority at the write is what leaves every entry check judging the record alone. One machine's file, and said to be: docs/cli/the-published-baseline.md. A run home borrowing this machine's config reads that file beside the config it borrows, where a release standing in the machine's home wrote it, and writes none (ISS-2653). */
+import { dirname, join } from "node:path";
 
 import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
-import { ASKED, WORKTREE, configDir, sessionSourced } from "../../resolve/config.mjs";
+import { ASKED, WORKTREE, configDir, configPath, sessionSourced } from "../../resolve/config.mjs";
+import { BORROW_VAR, borrowing } from "../../resolve/machine/borrowed.mjs";
 import { RUN_ID_VAR } from "../../resolve/session/run-id.mjs";
 import { declaredCommands, declaredIn } from "../../stats/corpus/declared.mjs";
 import { typedBack } from "../../refusal.mjs";
@@ -10,7 +11,18 @@ import { citedHead, freshForm } from "./baseline.mjs";
 
 const WHOLE = "whole";
 
-export const publishedPath = () => join(configDir("forge"), "gate-baselines.jsonl");
+const STORE = "gate-baselines.jsonl";
+
+/* The borrowed config's directory, or null where this home borrows nothing: the one reference a run
+   home holds to the machine's own, the same one `projectRecords` reads the machine's records through. */
+const machineDir = () => {
+  const borrowed = borrowing(configPath())?.path;
+  return borrowed ? dirname(borrowed) : null;
+};
+
+/** The one store this home reads: its own, or under a borrow the machine's. Never both, since two
+ *  stores could hold one commit with two results and a lookup would pick one without saying so. */
+export const publishedPath = () => join(machineDir() ?? configDir("forge"), STORE);
 
 const ofProject = (project) => (one) => (one.project ?? null) === (project ?? null);
 
@@ -32,12 +44,14 @@ export const WROTE = "wrote";
 export const HELD = "held";
 export const PART = "part";
 export const FAILED = "failed";
+export const BORROWED = "borrowed";
 
 /** A ship's publish, and the one word saying what became of it. A scope the ship cannot call whole is a defect in its own reading of the gate's record and not a green a later run may lean on, so it is not published at all. */
 export const publishBaseline = ({ project, commit, gate, result, scope, version = null }) => {
   if (scope !== WHOLE) return PART;
   try {
     if (publishedFor(project, commit)) return HELD;
+    if (machineDir()) return BORROWED;
     appendJsonl(
       publishedPath(),
       { project: project ?? null, commit, gate, result, scope, version, at: new Date().toISOString() },
@@ -54,10 +68,14 @@ export const publishedSaid = (outcome, commit) => ({
   [WROTE]: `the gate's whole-tree result is published for ${commit}, so a branch cut here cites it `
     + `rather than running one — \`forge advance <ref> --owed\` prints the write. It is readable on this `
     + `machine only, in ${publishedPath()}`,
-  [HELD]: `${commit} already holds a published result, so nothing was written`,
+  [HELD]: `${commit} already holds a published result in ${publishedPath()}, so nothing was written`,
   [PART]: `nothing is published for ${commit}: the gate's record does not hold every step of the `
     + `whole table green at it, and a result that cannot say \`whole\` is no result to cite`,
   [FAILED]: `nothing is published for ${commit}, so a branch cut here runs its own gate`,
+  [BORROWED]: `nothing is published for ${commit}: this home borrows ${process.env[BORROW_VAR]}, and `
+    + `${publishedPath()} beside it is that machine's store, which a borrowing home reads and never `
+    + `writes. Publish from a shell that does not borrow: ${BORROW_VAR}= `
+    + `XDG_CONFIG_HOME=${dirname(machineDir() ?? "")} and the same command`,
 }[outcome]);
 
 /* The two sources of a run's id the route below loses on its way into a fresh tree: that tree's git directory holds no id of its own, and a variable the refused call was prefixed with is gone from the shell the route is pasted into. The rest are read there alike, and carrying them would only rename where they came from (ISS-2556). */
@@ -84,7 +102,7 @@ export const citationProblem = (ref, project, got, held = sessionSourced()) => {
   if (!got.cited) return null;
   if (!publishedFor(project, got.commit)) {
     return `--commit to name a commit some ship published a whole-tree result for. Nothing is `
-      + `published for ${got.commit}, and only a ship publishes one — \`forge baseline publish\`, run by `
+      + `published for ${got.commit} in ${publishedPath()}, and only a ship publishes one — \`forge baseline publish\`, run by `
       + `a release for the head it pushed — so a citation naming it is a green from nowhere. Measure `
       + `this tree instead:\n  ${freshForm(ref, got.gate)}`;
   }
