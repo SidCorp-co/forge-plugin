@@ -3,10 +3,10 @@
    pushed once. It repairs no conflict and re-judges nothing. docs/cli/the-checkpoint.md. */
 import { join, resolve } from "node:path";
 
-import { gitOut, loud, REMOTE, stop, Stop } from "../checkout.mjs";
+import { gitOut, REMOTE, stop, Stop } from "../checkout.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
-import { tipSaid } from "./land-ready/branch.mjs";
+import { fetchedFor, tipSaid } from "./land-ready/branch.mjs";
 import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { versionAt } from "./landing.mjs";
@@ -85,8 +85,7 @@ const pinStep = async (one) => {
   const { at, ctx: { base, root, self } } = one;
   const nameless = at.members.find((member) => !member.landing.branch);
   if (nameless) stop(`the checkpoint on ${nameless.key} names no branch, so there is nothing to land.`);
-  loud("git", ["fetch", REMOTE, ...at.members.map((member) => member.landing.branch), base], root,
-    "Check the remote is reachable.");
+  fetchedFor(root, at.members, base, BRANCH);
   at.pin = remoteHead(root, base);
   console.log(`  ${base} is pinned at ${shortly(at.pin)}`);
   await perMember(at, async (member) => {
