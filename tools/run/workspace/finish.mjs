@@ -195,7 +195,7 @@ const corpusCarried = (at, retry) => {
   try {
     took = carried(at);
   } catch (error) {
-    stop(`The tree, its branch, its verdict record and the scratch are all untouched: the scratch holds the `
+    stop(`The tree, its branch, its verdict record and the scratch are all left standing: the scratch holds the `
       + `only copy of this run's consults.\n`
       + failedLine(`the scratch directory ${at}`, `its consult rows were not carried into the machine's log: `
         + error.message, retry));
