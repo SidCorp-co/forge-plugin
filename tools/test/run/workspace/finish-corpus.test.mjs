@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { BARE, OWN_SLUG, declaredIn, git, pushed, runIn } from "../run-fixtures.mjs";
@@ -131,6 +131,22 @@ test("finish whose machine log cannot be written leaves the whole workspace, end
   assert.equal(again.status, 0, again.stderr + again.stdout);
   assert.equal(readFileSync(machine, "utf8"), `${ROWS.join("\n")}\n`, again.stdout);
   assert.ok(!existsSync(scratch) && !existsSync(tree), again.stdout);
+});
+
+/* A borrow that reaches the scratch through a link names a log outside it and writes the one inside
+   it: what it would carry into is the copy being removed, so nothing may go. */
+test("finish whose machine log is the run home's own through a link leaves the whole workspace and says why", () => {
+  const { work, tree, scratch, home, env } = started("corpus-linked");
+  const own = logAt(join(scratch, "home"), ROWS);
+  writeFileSync(join(scratch, "home", "forge", "config.json"), "{}\n");
+  const link = join(home, "linked");
+  symlinkSync(join(scratch, "home", "forge"), link);
+
+  const run = runIn(work, ["finish", KEY], { ...env, FORGE_BORROW_FROM: join(link, "config.json") });
+  assert.equal(run.status, 1, run.stdout);
+  assert.ok(existsSync(scratch) && existsSync(tree), `the workspace did not stay:\n${run.stdout}${run.stderr}`);
+  assert.equal(readFileSync(own, "utf8"), `${ROWS.join("\n")}\n`);
+  assert.match(run.stderr, /inside the scratch itself, so no copy outlives it/u, run.stderr);
 });
 
 /* The layout a run whose home was the scratch itself left (ISS-189), which a scratch may still hold. */

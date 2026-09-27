@@ -2,8 +2,8 @@
    scratch. The machine's log is the corpus `forge codex stats`, the evaluator's windows and the daily
    report read, so a row that never reaches it is a consult those figures never counted: every run's,
    once the brief printed the run home for all of them (ISS-2659). */
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, appendFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve, isAbsolute } from "node:path";
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 import { configDir } from "../../../plugin/src/resolve/config.mjs";
 import { BORROW_VAR } from "../../../plugin/src/resolve/machine/borrowed.mjs";
@@ -23,8 +23,16 @@ const machineLog = () => {
   return borrowed ? join(dirname(borrowed), LOG) : join(configDir("forge"), LOG);
 };
 
+/* Where a path lands once every link on the part of it that exists is followed: a home reached
+   through a link into the scratch is the scratch, and the log there is the very copy being removed. */
+const landed = (path) => {
+  const at = resolve(path);
+  if (existsSync(at)) return realpathSync(at);
+  return dirname(at) === at ? at : join(landed(dirname(at)), basename(at));
+};
+
 const inside = (path, dir) => {
-  const rel = relative(resolve(dir), resolve(path));
+  const rel = relative(landed(dir), landed(path));
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 };
 
