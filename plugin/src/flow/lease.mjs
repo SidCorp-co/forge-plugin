@@ -6,6 +6,7 @@ import {
   UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere, workUnder,
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
+import { NO_LONGER_OWES } from "./earned/park-status.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -340,16 +341,28 @@ const tookByWriting = (ref, lease, left = null) =>
   + `${left ? ` The step the field still named: ${left}.` : ""}`
   + ` Work that follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
-/* The same sentence one rung down, where the field holds a lease rather than nothing (ISS-1660): a bare `forge claim` grants the reclaim outright at this age, the lapse outlasting the duration the holder itself named, so the write makes that claim. It names the run it came off and how long ago that lease ran out, because this caller reads no refusal before the write and is the one caller a takeover is invisible to. */
-const reclaimedByWriting = (ref, lease, over, { gone = false, handed = false, now = sharedNow() } = {}) =>
-  `${ref} was held by a lease ${gone
-    ? "whose holder the record proves gone"
-    : `that ran out ${agoIn(now - expiryOf(over))}`} and this write `
+const displacedAs = (over, { gone, settled, now }) => {
+  if (gone) return "whose holder the record proves gone";
+  if (settled) return `on an issue at \`${settled}\``;
+  return `that ran out ${agoIn(now - expiryOf(over))}`;
+};
+
+const tookWhy = (over, { gone, settled }) => {
+  if (gone) return holderGoneSaid(over);
+  if (settled) {
+    return `Nothing is worked at \`${settled}\`, so a lease there protects no work in progress however `
+      + `long it has left to run.`;
+  }
+  return "A lapse that old is one a reclaim needs nothing established about.";
+};
+
+/* The same sentence one rung down, where the field holds a lease rather than nothing (ISS-1660): a bare `forge claim` grants the reclaim outright at this age, the lapse outlasting the duration the holder itself named, so the write makes that claim. It names the run it came off and how long ago that lease ran out, or the settled status that left its window guarding nothing (ISS-491), because this caller reads no refusal before the write and is the one caller a takeover is invisible to. */
+const reclaimedByWriting = (ref, lease, over, { gone = false, handed = false, settled = null, now = sharedNow() } = {}) =>
+  `${ref} was held by a lease ${displacedAs(over, { gone, settled, now })} and this write `
   + `${handed ? "took the turn it was dispatched for" : "reclaimed it"}: it came off ${describe(over)}, `
-  + `and ${describe(lease)} holds the issue now. ${gone
-    ? holderGoneSaid(over)
-    : "A lapse that old is one a reclaim needs nothing established about."} The claim the refusal `
-  + `here used to name is one this write could make, and it made it.`
+  + `and ${describe(lease)} holds the issue now. ${tookWhy(over, { gone, settled })} ${settled
+    ? "A claim still waits out that window, so this write is the route that does not."
+    : "The claim the refusal here used to name is one this write could make, and it made it."}`
   + `${over.next ? ` The step that run left named: ${over.next}.` : ""}`
   + ` The lease covers the write and not this run: it goes back when the write lands. Work that `
   + `follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
@@ -414,8 +427,8 @@ export const anothersHold = async (documentId, ref) => {
 };
 
 /* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it. A release emptied the field leaves a line that IS one write's own doing: silence carries it forward and the transition's null clears it, which is the one place the two answers differ (codex F2, then F1 of the read after it). */
-const takenByWriting = async (documentId, ref, context, next, patch, over = null, gone = false) => {
-  const issue = await issueFor(documentId);
+const takenByWriting = async (documentId, ref, context, next, patch, over = null, { gone = false, settled = null, read = null } = {}) => {
+  const issue = read ?? await issueFor(documentId);
   const status = String(issue?.status ?? "");
   /* The same question `forge claim` asks of the same record, so a run cannot be handed the issue when it types the claim and charged a crash when it writes instead (ISS-919). */
   const handed = Boolean(over) && handedOn(issue?.issueId ?? ref, context, status);
@@ -438,7 +451,7 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
   await setLease(documentId, sent, ref, () => context);
   saidWritten(patch);
   console.error(over
-    ? reclaimedByWriting(ref, leaseOf(sent), over, { gone, handed })
+    ? reclaimedByWriting(ref, leaseOf(sent), over, { gone, handed, settled })
     : tookByWriting(ref, leaseOf(sent), left));
   OWED.set(documentId, { ref, turn: false });
   return sent;
@@ -494,10 +507,14 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   /* And the same reading the typed claim makes, on the one route that takes a lease with no refusal in front of it: a write taking what the claim refuses is the seam this closes, and `gone` needs none, having been reached through it (ISS-1903). */
   const stale = state === "expired" && !lapseUnproven(lease);
   if ((state === "gone" || (stale && !(workUnder(lease) ?? []).length)) && !finder) {
-    return takenByWriting(documentId, ref, context, next, patch, lease, state === "gone");
+    return takenByWriting(documentId, ref, context, next, patch, lease, { gone: state === "gone" });
   }
   if (state !== "mine" && state !== "lapsed") {
     if (finder) return false;
+    /* The third rung, read only where the write would otherwise be refused, so no write the lease already admits pays the round trip: an issue nothing moves on from has no work in progress for a lease to protect, so the holder's window guards nothing and a correction to a settled record is not made to wait it out (ISS-491). */
+    const read = await issueFor(documentId);
+    const settled = NO_LONGER_OWES.find((one) => one === String(read?.status ?? ""));
+    if (settled) return takenByWriting(documentId, ref, context, next, patch, lease, { settled, read });
     fail(writeRefusal(state, ref, lease));
   }
   let sent = null;
