@@ -61,7 +61,9 @@ test("one doctor call reads each contract part of each shipped flow exactly once
   assert.deepEqual(twice, [], "these contract parts were read more than once in one doctor call");
   /* The rows the reads answer, so a call that read once by printing less is no pass. */
   assert.match(out, /\[ {2}ok {2}\] contract\s+\S+ states contract 1 — `forge guide contract`/u);
+  const sets = out.split("\n").filter((one) => /\] flow set\s/u.test(one));
   for (const flow of FLOW_SLUGS) {
-    assert.match(out, new RegExp(`\\] flow set\\s+${flow}: ${partsOf(flow).length} part\\(s\\) — `, "u"));
+    const said = `${flow}: ${partsOf(flow).length} part(s) — `;
+    assert.ok(sets.some((one) => one.includes(said)), `no flow set row says ${said}`);
   }
 });
