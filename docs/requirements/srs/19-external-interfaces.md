@@ -709,3 +709,30 @@ rather than inferred. What the surface is derived from and why each write owes c
 - **AC-19-12-5** · Rev: 1 · Proof: plugin/test/tools/services/google/refresh.test.mjs "a fetch that drops a served method is refused with 4 naming it, and nothing is written"
   IF a refresh of the carried surface would drop a method this product serves THEN the CLI SHALL
   refuse the refresh naming that method, and SHALL write nothing.
+
+### EI-13 — The image endpoint of the review gateway
+
+Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt-codex.mjs`
+
+The gateway the review provider is reached over also draws pictures, from pooled accounts, in the
+shape of a widely used images API. It is reached only when the caller names it, never as a fallback
+from the chat backend or to it, on the same endpoint and key the review is sent with. One request
+crosses per invocation, and an answer that never arrived may still have made the picture and spent
+the account's quota, so nothing is sent again and the caller is told which of the two it was. Why
+the model is a label and the size a hint is `docs/cli/chatgpt-image.md`'s.
+
+- **AC-19-13-1** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "1. one POST to the gateway's generations route, under the codex key, with the image model and n 1"
+  WHEN a picture is asked for over this route THEN the CLI SHALL send one request to the endpoint
+  the review gateway is configured with, under its key, and SHALL send nothing to the chat backend.
+- **AC-19-13-2** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "10. no codex endpoint or key is refused before anything is sent, naming both doctor flags"
+  IF the review gateway's endpoint or key is unconfigured THEN the CLI SHALL refuse before anything
+  is sent and SHALL name what sets each.
+- **AC-19-13-3** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "11. a 502, 504, other 5xx, torn answer, dropped connection or timeout says the image may have been made"
+  IF the request ends without the gateway's word that nothing was drawn THEN the CLI SHALL say the
+  picture may already have been made and counted, and SHALL send no second request.
+- **AC-19-13-4** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "5. no base64 of the image reaches the terminal, on success or on any failure"
+  WHERE the answer carries the picture's bytes the CLI SHALL write them only to the file the caller
+  named, and SHALL print none of them.
+- **AC-19-13-5** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "14. a web failure on no_browser or upstream_rate_limited prints the --via codex command, and it runs"
+  WHEN a picture asked of the chat backend fails because it could not draw at all THEN the CLI SHALL
+  print the command that asks this route for the same picture, and SHALL send it nothing itself.
