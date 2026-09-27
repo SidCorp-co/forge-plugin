@@ -23,8 +23,7 @@ configured.
 
 An agent is offered what it can use and nothing else. A verb disappears for one of two reasons:
 
-- **The capability behind it refuses.** `forge doctor` probes and records that; the verb then leaves
-  the usage list, and its own `-h` goes with it, the fields it named being that verb's. A record is
+- **The capability behind it refuses**, which `forge doctor` probes and records. A record is
   keyed by project and dated, so a refusal that was true once is not read as true forever.
 - **A human ran `forge doctor --hide <verb>`, or turned on a job with `forge doctor --job <name>`**,
   which withholds every verb outside that job at once. Either way the verb is unlisted and still

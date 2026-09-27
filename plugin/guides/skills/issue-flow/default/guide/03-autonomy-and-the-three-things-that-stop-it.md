@@ -12,11 +12,12 @@ Exactly three:
 Everything else proceeds unasked: plan, comments, evidence, branch, commits, push, deploy, status,
 release note, close.
 
-**A park is not a stop.** It sets one issue down with its reason recorded and moves you to the next;
-`forge record park -h` lists the kinds. A change a person is owed a reading of is a park, not a
-fourth stop: it is set down with the thing to read attached, and the run carries on elsewhere.
+**A stop sets the issue down, never the run.** Each of the three is taken as a park, which records
+the reason on that one issue and moves you to the next; `forge record park -h` lists the kinds. Not
+every park is a stop: a change a person is owed a reading of is parked too, with the thing to read
+attached, and it is no fourth stop because nothing about it is irreversible.
 
 Two obligations stand in for a gate before the work: know the way back before the step that needs
 one, established in Phase 0; and a decision ledger in the report, every choice taken under an
 assumption with how to reverse it. **The report is a record, not a request.** One that ends by
-asking whether to continue is a stop, and the only stops are the three above.
+asking whether to continue halts the run, which not even the three above do.

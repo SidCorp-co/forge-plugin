@@ -14,17 +14,17 @@ outside the checkout, and in every other case under a directory the run makes fo
 system's temporary one. A directory keyed on the session id is not the run's own wherever that id
 was inherited: every agent a session dispatches carries it, so the host's scratchpad is the whole
 wave's, and a sibling writing the same name there replaces the file with nothing said.
-`forge doctor` says which of the two this run was handed. Both writes take a path and nothing but a path,
-so a file left in the working tree is one the project's own checkers walk, and what comes back names
+`forge doctor` says which of the two this run was handed. A payload left in the working tree is one
+the project's own checkers walk, and what comes back names
 a repository checker rather than the change: at the baseline that is the shape of a tree already
 red, which a run either believes or spends the round disproving. Outside the checkout is also the
 only answer that holds where the worktree is not the checkout root, which is where a delegated run
 always stands. Every later file a verb reads off a path goes the same way.
 
-Criteria are numbered, one outcome per line a reader could check without opening the diff, and the
-write refuses the compounds it can prove. What it cannot prove is a conjunction inside one outcome —
-two nouns, two subjects under one verb, a condition joined to its outcome — which is one claim and
-stands. They are written before the code; a wrong one is corrected in the open with `forge record
+Criteria are numbered, one outcome per line a reader could check without opening the diff. A
+conjunction inside one outcome — two nouns, two subjects under one verb, a condition joined to its
+outcome — is one claim and stands, and `forge record criteria -h` says which compounds the write
+turns back. They are written before the code; a wrong one is corrected in the open with `forge record
 correction` rather than relaxed to match what got built, and a plan that turns out wrong is replaced
 in the field so the issue carries one plan, the current one.
 
@@ -40,17 +40,14 @@ an independent one, the access shortfall by itself, the verdict there belonging 
 judges.
 
 <!-- forge:when tool.codex configured -->
-**Both are read before the issue takes them**: `forge record plan` and `forge record criteria` each
-refuse a file no consult has read, and one consult over both clears both writes with no flag to
-remember, unless this machine's own configuration names a send mode — `forge codex consult -h` says
-how the issue and the two bodies reach the reviewer. Every later phase is built against this text, so
+**Both are read by a consult before the issue takes them**, and `forge codex consult -h` says how
+the issue and the two bodies reach the reviewer. Every later phase is built against this text, so
 the intent names the load-bearing assumption rather than the prose, and the findings are owed a
 verdict as any consult's are.
 <!-- forge:end -->
 <!-- forge:when tool.codex unconfigured -->
 **Both are read before the issue takes them, and this machine has no reviewer to read them.**
-`forge record plan` and `forge record criteria` each refuse a file no consult has read, and nothing
-here relaxes that: the reviewer is unreachable, not optional. `forge doctor` names what configures
-it, and until it is configured the two writes are blocked and that is the finding to report rather
-than a step to work around.
+Nothing here relaxes that: the reviewer is unreachable, not optional. `forge doctor` names what
+configures it, and until it is configured that is the finding to report rather than a step to work
+around.
 <!-- forge:end -->
