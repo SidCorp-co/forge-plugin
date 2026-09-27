@@ -42,13 +42,13 @@ const batchOf = (raw, key, tree) => {
   return keys;
 };
 
-/* The dispatch is the moment a run is bound to its issues, and this is the one verb of the plugin every dispatch runs, so a tree naming no run is given its id here rather than by a repository tool no other project has (ISS-1682). An id already there is read and never extended, since the run it names may still be standing in that tree. Every refusal comes before the write. */
+/* The dispatch is the moment a run is bound to its issues, and this is the one verb of the plugin every dispatch runs, so a tree naming no run is given its id here rather than by a repository tool no other project has (ISS-1682). An id already there is read and never extended, since the run it names may still be standing in that tree. Every refusal comes before the write. What it returns is every issue the binding names, which can be more than the call gave: the brief's text is handed to the run exactly, so a member left only inside the id is one the run never works (ISS-2581). */
 const bindTree = (tree, keys) => {
   const held = runIdAt(tree);
   if (held) {
-    const missing = keys.filter((one) => !runNames(held, one));
-    if (!missing.length) return;
     const names = runsFor(held).map((one) => one.toUpperCase());
+    const missing = keys.filter((one) => !runNames(held, one));
+    if (!missing.length) return names;
     fail(`brief: ${tree} already holds the run id ${held}, which names ${names.length ? listed(names) : "no issue"} `
       + `and not ${listed(missing)}, so a run dispatched from it would be refused the lease its dispatcher holds. `
       + "An id is never extended, since the run it names may still be standing in that tree. Brief a tree of its own:\n"
@@ -59,7 +59,7 @@ const bindTree = (tree, keys) => {
     fail(`brief: ${listed(foreign)} cannot go into a run id, which names only ISS- keys, so a run given one could `
       + `never be placed as the run dispatched to it. Brief the tree under the issue's ISS- key.`);
   }
-  mintRunId(tree, keys);
+  return runsFor(mintRunId(tree, keys)).map((one) => one.toUpperCase());
 };
 
 const heldLine = (tree, held) => {
@@ -96,8 +96,8 @@ const copyLines = (copies) => {
 };
 
 /** The brief itself, off readings already taken, so a case can hand it any it likes. */
-const briefText = ({ key, target, others, base, copies }) => [
-  ...(key ? [key] : []),
+const briefText = ({ members, target, others, base, copies }) => [
+  ...(members.length ? [listed(members)] : []),
   ...(target ? treeLines(target) : []),
   ...(others
     ? [`Held by the other trees, read now: uncommitted, and committed against ${base ?? "no default branch"}:`,
@@ -121,10 +121,10 @@ export const brief = async (argv) => {
     fail(`brief: ${asked.tree} is no worktree of this repository. \`git worktree list\` names the ones it has.`);
   }
   const batch = batchOf(asked.batch, key, target);
-  if (key && target) bindTree(target.path, [key, ...batch]);
+  const members = key && target ? bindTree(target.path, [key, ...batch]) : key ? [key] : [];
   const base = trees ? defaultRef(here) : null;
   const others = trees?.filter((one) => one !== target).map((tree) => ({ tree, held: heldBy(tree.path, base) })) ?? null;
-  const text = briefText({ key, target, others, base, copies: copiesFor() });
+  const text = briefText({ members, target, others, base, copies: copiesFor() });
   try {
     keepBrief(process.env.CLAUDE_CODE_SESSION_ID, text);
   } catch (error) {
