@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { join } from "node:path";
 
-import { BASE, forgetGateRuns, gateRuns, landingRan, ready, seeded, sha, state, tracker, world } from "./fixture.mjs";
+import { BASE, forgetGateRuns, gateRuns, landingRan, ready, seeded, sha, state, tracker, world } from "../fixture.mjs";
 
 state.unasked = ["forge_comments"];
 test.after(() => tracker.close());

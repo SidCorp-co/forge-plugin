@@ -6,6 +6,7 @@
    writes — and no third. docs/cli/the-checkpoint.md. */
 import { REMOTE, git, remoteRef } from "../../checkout.mjs";
 import { landingOf, landingTurn } from "../../../plugin/src/flow/landing/checkpoint.mjs";
+import { batchFor, membersOf } from "../../../plugin/src/flow/lease/batch.mjs";
 import { readContext } from "../../../plugin/src/flow/lease.mjs";
 import { refusing, shipMode } from "../../../plugin/src/resolve/settings.mjs";
 import { documentIdOf } from "../../../plugin/src/tracker/issues.mjs";
@@ -25,6 +26,13 @@ const checkpointOf = async (key) => {
   } catch (error) {
     return { unread: error?.message ?? String(error) };
   }
+};
+
+/* Every key the tree was started for, so the landing is named the whole batch and not the one key
+   `finish` was given (ISS-2656); the key alone where the tree's run id names no batch. */
+const batchKeys = (key, path) => {
+  const keys = membersOf(batchFor(key, path));
+  return keys.length ? keys : [key];
 };
 
 const turnSaid = (landing) => {
@@ -54,6 +62,6 @@ export const aheadRoute = async ({ key, root, path, base, branch, held, runner }
   const own = `${lacks}, which ${REMOTE}/${branch} carries for the landing to build from, and ${state}`;
   return landingTurn(read.landing) === LANDER
     ? { why: `${own}, so landing them is the landing's and not this run's: ${held.join("; ")}`,
-      how: `${runner(root, "run.mjs")} land-ready ${key}` }
+      how: `${runner(root, "run.mjs")} land-ready ${batchKeys(key, path).join(" ")}` }
     : { why: `${own}, so what lands them is whatever that turn owes: ${held.join("; ")}`, how: resume };
 };
