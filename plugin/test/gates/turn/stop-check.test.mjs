@@ -5,12 +5,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { answered, callHook, cleanRepo, escaped, pathed, projectRecord, projectRoom, tempRoom, typed }
   from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
+import { DEADLINES } from "../../../src/hooks/hook-switch.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 import { assertRouteFirst } from "../../fixtures/route-first.mjs";
@@ -358,11 +359,12 @@ test("what an earlier turn wrote is not this turn's to answer for", () => {
 });
 
 /* Every answer is thrown — silence included — so what a decision was is read off what it carried. */
-const decided = (ev, held) => {
+const decided = (ev, held, clock = () => performance.timeOrigin) => {
   /* In this process the event's clock runs from the file's own start, so the case pins it there: a
-     case late in a loaded run otherwise finds its readings spent by the neighbours (ISS-1205). */
+     case late in a loaded run otherwise finds its readings spent by the neighbours (ISS-1205). A case
+     about the clock itself hands its own. */
   const live = Date.now;
-  Date.now = () => performance.timeOrigin;
+  Date.now = clock;
   try {
     run(ev, held);
   } catch (answer) {
@@ -389,9 +391,10 @@ test("a lease this session holds with nothing written against it since the claim
 test("keys this session does not hold do not use up the cap the held ones are counted against", () => {
   const holder = "s-capped";
   const lease = { holder, renewedAt: AT, history: [{ at: AT, how: "claim", holder }] };
+  const theirs = { holder: "another-run", renewedAt: AT, history: [{ at: AT, how: "claim", holder: "another-run" }] };
   const rows = {
-    "ISS-701": { status: "closed" },
-    "ISS-702": { status: "closed" },
+    "ISS-701": { status: "in_progress", [FIELD]: { [KEY]: theirs } },
+    "ISS-702": { status: "in_progress", [FIELD]: { [KEY]: theirs } },
     "ISS-703": { status: "in_progress", [FIELD]: { [KEY]: lease } },
   };
   const asked = [];
@@ -399,10 +402,10 @@ test("keys this session does not hold do not use up the cap the held ones are co
     asked.push(argv[1]);
     return rows[argv[1]] ?? null;
   };
-  const said = ["ISS-701 and ISS-702 are done; ISS-703 is the one in hand"];
-  assert.deepEqual(heldAndSilent({}, ".", said, holder, read), ["ISS-703"],
-    `the two closed keys were read and passed over: ${asked.join(", ")}`);
-  assert.deepEqual(asked, ["ISS-701", "ISS-702", "ISS-703"], "each named key is read once, in order");
+  const said = ["ISS-701 and ISS-702 are another run's; ISS-703 is the one in hand"];
+  assert.deepEqual(heldAndSilent({}, ".", said, holder, read, () => new Set(Object.keys(rows))), ["ISS-703"],
+    `the two keys another run holds were read and passed over: ${asked.join(", ")}`);
+  assert.deepEqual(asked, ["ISS-701", "ISS-702", "ISS-703"], "each named key in progress is read once, in order");
 });
 
 /* And the cap still holds: two that qualify is where it stops, whatever follows them. */
@@ -415,8 +418,165 @@ test("the cap stops at two that qualify, and reads no key past them", () => {
     return { status: "in_progress", [FIELD]: { [KEY]: lease } };
   };
   const said = ["ISS-801 ISS-802 ISS-803"];
-  assert.deepEqual(heldAndSilent({}, ".", said, holder, read), ["ISS-801", "ISS-802"]);
+  const open = () => new Set(["ISS-801", "ISS-802", "ISS-803"]);
+  assert.deepEqual(heldAndSilent({}, ".", said, holder, read, open), ["ISS-801", "ISS-802"]);
   assert.deepEqual(asked, ["ISS-801", "ISS-802"], "the third is never asked for");
+});
+
+/* A wave's turn names every issue of its range, and a lease read is a Node start and two tracker
+   requests: one per name was the stop clock spent on keys that were never in progress. */
+test("the lease check lists what is in progress once and reads only the named keys in that list", () => {
+  const holder = "s-many";
+  const lease = { holder, renewedAt: AT, history: [{ at: AT, how: "claim", holder }] };
+  const lists = [];
+  const asked = [];
+  const list = (tree) => {
+    lists.push(tree);
+    return new Set(["ISS-906", "ISS-1234"]);
+  };
+  const read = (tree, argv) => {
+    asked.push(argv[1]);
+    return { status: "in_progress", [FIELD]: { [KEY]: lease } };
+  };
+  const said = [Array.from({ length: 11 }, (_, i) => `ISS-${901 + i}`).join(" ")];
+  assert.deepEqual(heldAndSilent({}, ".", said, holder, read, list), ["ISS-906"]);
+  assert.equal(lists.length, 1, "the in-progress set is asked for once");
+  assert.deepEqual(asked, ["ISS-906"], "only the named key the list shows in progress has its lease read");
+  assert.equal(heldAndSilent({}, ".", said, holder, read, () => null), null,
+    "a list that did not answer is a check that could not run, not one that found nothing");
+});
+
+/* A linter the clock is spent on: a delegate planted where `linting` finds a project's own, which
+   answers clean and marks the clock spent. The clock the case hands reads the mark, so the lint is
+   as slow as the whole event wherever it runs, and whatever ran before it had the clock whole. */
+const slowLint = () => {
+  const room = tempRoom("stop-check-slow-");
+  const scripts = join(room, "node_modules", "eslint-plugin-code-quality", "claude-plugin", "scripts");
+  mkdirSync(scripts, { recursive: true });
+  const spent = join(room, "spent");
+  writeFileSync(join(scripts, "lint-edited-file.mjs"),
+    `import { writeFileSync } from "node:fs";\nwriteFileSync(${JSON.stringify(spent)}, "");\n`);
+  const file = join(room, "slow.mjs");
+  writeFileSync(file, "export const x = 1;\n");
+  const clock = () => performance.timeOrigin + (existsSync(spent) ? 60 * DEADLINES.post : 0);
+  return { file, clock, spent };
+};
+
+test("a linter that spends the stop clock leaves the process check its answer", async () => {
+  const { wt } = freshWorktree();
+  const pid = spawnIn(wt);
+  const { file, clock, spent } = slowLint();
+  try {
+    await settled();
+    const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: wt };
+    const refused = decided(ev, () => [], clock);
+    assert.equal(existsSync(spent), true, "the planted linter never ran");
+    assert.equal(refused.kind, "block", refused.said);
+    assert.match(refused.said, new RegExp(`pid ${pid}`, "u"), "the process standing there is not named");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
+test("a linter that spends the stop clock leaves the lease check its answer", () => {
+  const { file, clock, spent } = slowLint();
+  const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: cleanRepo() };
+  const refused = decided(ev, () => ["ISS-999"], clock);
+  assert.equal(existsSync(spent), true, "the planted linter never ran");
+  assert.equal(refused.kind, "block", refused.said);
+  assert.match(refused.said, /forge record park ISS-999/u);
+});
+
+test("a linter that spends the stop clock leaves the worktree check its answer", () => {
+  const { wt } = freshWorktree();
+  writeFileSync(join(wt, "one.txt"), "tracked\n");
+  git(wt, "add", "one.txt");
+  git(wt, "commit", "-qm", "base");
+  writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
+  const { file, clock, spent } = slowLint();
+  const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: wt };
+  const refused = decided(ev, () => [], clock);
+  assert.equal(existsSync(spent), true, "the planted linter never ran");
+  assert.equal(refused.kind, "block", refused.said);
+  assert.match(refused.said, /is a worktree this turn left with tracked changes/u);
+  assert.match(refused.said, /git -C .*add -u && git commit/u);
+});
+
+/* A git that answers slower than the least a probe is given. The window is the whole of what
+   changed: near the end of the clock the probe is clamped under it and killed, which costs the
+   dirty-tree refusal and not the hook; with the clock whole the same git answers. */
+const slowGit = () => {
+  const bin = tempRoom("stop-check-git-");
+  const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  writeFileSync(join(bin, "git"), `#!/bin/sh\nsleep 0.8\nexec ${real} "$@"\n`);
+  chmodSync(join(bin, "git"), 0o755);
+  return bin;
+};
+
+const dirtyWorktree = () => {
+  const { wt } = freshWorktree();
+  writeFileSync(join(wt, "one.txt"), "tracked\n");
+  git(wt, "add", "one.txt");
+  git(wt, "commit", "-qm", "base");
+  writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
+  return wt;
+};
+
+const withPath = (bin, fn) => {
+  const was = process.env.PATH;
+  process.env.PATH = `${bin}:${was}`;
+  try {
+    return fn();
+  } finally {
+    process.env.PATH = was;
+  }
+};
+
+test("a git probe slower than what the nearly spent clock gives it gets no answer and raises no refusal", () => {
+  const wt = dirtyWorktree();
+  const bin = slowGit();
+  /* 4.2 s left on the event is 1.2 s past the gate's spare: the checks still run, and a probe is given half a second. */
+  const near = () => performance.timeOrigin + DEADLINES.post - 4_200;
+  const said = withPath(bin, () => decided({ session_id: `s-${randomUUID()}`, transcript_path: transcript(), cwd: wt }, () => [], near));
+  assert.equal(said.kind, "none", `a probe the clock could not cover answered anyway: ${said.said}`);
+});
+
+test("the same slow git probe answers with the clock whole and the dirty worktree refuses the stop", () => {
+  const wt = dirtyWorktree();
+  const bin = slowGit();
+  const said = withPath(bin, () => decided({ session_id: `s-${randomUUID()}`, transcript_path: transcript(), cwd: wt }, () => []));
+  assert.equal(said.kind, "block", said.said);
+  assert.match(said.said, /is a worktree this turn left with tracked changes/u);
+});
+
+/* Not read is not clean: every check the clock skipped, and every file the linter did not reach in a
+   tree that configures one, is named where the harness names a gate that did not run, and none of
+   them holds the stop. */
+test("what the spent clock left unread is named on stderr and does not refuse the stop", () => {
+  const repo = cleanRepo();
+  writeFileSync(join(repo, "eslint.config.mjs"), "export default [];\n");
+  const file = join(repo, "unread.mjs");
+  writeFileSync(file, "export const x = 1;\n");
+  const told = [];
+  const write = process.stderr.write;
+  process.stderr.write = (chunk) => {
+    told.push(String(chunk));
+    return true;
+  };
+  let said;
+  try {
+    const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: repo };
+    said = decided(ev, () => ["ISS-999"], () => performance.timeOrigin + DEADLINES.post - 1_000);
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.equal(said.kind, "none", `what could not be read refused the stop: ${said.said}`);
+  const line = told.join("");
+  assert.match(line, /stop-check did not read/u, `nothing said what went unread: ${line}`);
+  for (const check of ["the worktree check", "the live-process check", "the lease check"]) {
+    assert.match(line, new RegExp(`${check} \\(the stop clock ran out\\)`, "u"), `${check} is not named`);
+  }
+  assert.match(line, /unread\.mjs \(the stop clock ran out\)/u, "the file the linter never reached is not named");
 });
 
 /* The rule that reader spends, which no planted transcript could reach: every payload write renews
