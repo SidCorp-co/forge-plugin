@@ -76,6 +76,28 @@ test("a path whose name is already attached is refused, and the refusal names it
   assert.match(plan.refusal, /--evidence iss65-evidence\.md/u, "the one command that cites what is there");
 });
 
+/* The one collision keeps the message it always had, word for word (ISS-476). */
+test("a single collision is refused in the words it always was", () => {
+  const plan = attachPlan([FILE], ["iss65-evidence.md"], held(["iss65-evidence.md"]));
+  assert.equal(plan.refusal, `${FILE} is a file on disk and iss65-evidence.md is already on this issue, `
+    + "or named twice in this command. A name attached twice resolves to two documents. Cite the one "
+    + "that is there:\n  --evidence iss65-evidence.md\nor amend it under a name of its own and cite that.");
+});
+
+/* A refusal naming only the first collision cost one round per colliding path (ISS-476). */
+test("every collision of one plan is named, each with the citation that clears it", () => {
+  const room = join(DIR, "several");
+  mkdirSync(join(room, "twin"), { recursive: true });
+  const [up, own, same, twin] = ["up.txt", "own.txt", "same.txt", join("twin", "same.txt")].map((name) => join(room, name));
+  for (const path of [up, own, same, twin]) writeFileSync(path, "x\n");
+  const plan = attachPlan([up, own, same, "4e41dfd", twin], ["up.txt"], held(["up.txt"]));
+  assert.deepEqual([plan.upload, plan.cite], [[], []], "nothing goes up and nothing is cited");
+  assert.equal(plan.refusal, "2 files on disk carry a name already on this issue, or named twice in this "
+    + "command. A name attached twice resolves to two documents. Cite the one that is there in place of "
+    + `each path:\n  ${up}  --evidence up.txt\n  ${twin}  --evidence same.txt\n`
+    + "or amend each under a name of its own and cite that.");
+});
+
 test("a name, a URL and a commit are cited as they stand, and nothing is uploaded", () => {
   const names = ["a-screenshot.png"];
   const refs = ["a-screenshot.png", "https://example.test/run/1", "4e41dfd"];

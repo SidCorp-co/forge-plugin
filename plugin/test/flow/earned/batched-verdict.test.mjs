@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 import { createServer } from "node:http";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
@@ -171,7 +171,13 @@ state.answer.forge_comments = (args) => {
   return { documentId: id };
 };
 const { tracker, env: ENV } = await trackerFor(state);
-after(() => tracker.close());
+/* The sink first: the tracker's close throws for a route no case reached, which is every run of a
+   subset that sends no file, and a throw ahead of the sink's close left it listening and the file
+   hung rather than exiting (ISS-476). */
+after(() => {
+  sink.close();
+  tracker.close();
+});
 
 const sink = createServer((request, response) => {
   request.resume();
@@ -181,7 +187,6 @@ const sink = createServer((request, response) => {
   });
 });
 await new Promise((ready) => sink.listen(0, "127.0.0.1", ready));
-after(() => sink.close());
 state.answer.forge_uploads = (args) =>
   ({ uploadUrl: `http://127.0.0.1:${sink.address().port}/put/${args?.data?.name ?? "unnamed"}` });
 
@@ -318,4 +323,28 @@ test("a file two criteria cite goes up once, under the one name both of them car
   assert.equal(uploads() - before, 1, "one slot minted for one file");
   assert.equal(run.stdout.match(/^evidence: judged-run\.txt$/gmu).length, 2,
     "and both criteria cite the name it went up under");
+});
+
+/* A write refused once per colliding path cost one round of a twelve-block command each (ISS-476):
+   the walk that finds the first collision goes on to find every other before anything is sent. */
+test("every colliding path of one write is named in one refusal, and nothing is posted or sent", async () => {
+  judging.attachments = [{ name: "first.txt" }, { name: "second.txt" }];
+  mkdirSync(join(room, "again"), { recursive: true });
+  const [first, second, third, twin] = [["first.txt"], ["second.txt"], ["third.txt"], ["again", "third.txt"]]
+    .map((parts) => join(room, ...parts));
+  for (const path of [first, second, third, twin]) writeFileSync(path, "a run's output\n");
+  const [before, sent] = [posted(), uploads()];
+  const run = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--verdict", "pass",
+    "--criterion", "1", "--evidence", first,
+    "--criterion", "2", "--evidence", second,
+    "--criterion", "3", "--evidence", third, "--evidence", twin);
+  judging.attachments = [];
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^3 files on disk carry a name already on this issue/mu, run.stderr);
+  for (const [path, name] of [[first, "first.txt"], [second, "second.txt"], [twin, "third.txt"]]) {
+    assert.ok(run.stderr.includes(`\n  ${path}  --evidence ${name}\n`), `${path} and its citation: ${run.stderr}`);
+  }
+  assert.ok(!run.stderr.includes(`  ${third}  `), "the first file of a shared name is the one that goes up, not a collision");
+  assert.equal(posted(), before, "no record was posted");
+  assert.equal(uploads(), sent, "and no file was sent");
 });

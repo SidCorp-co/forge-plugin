@@ -226,19 +226,32 @@ export const localFile = (given) => {
 
 export const TWICE = "A name attached twice resolves to two documents.";
 
+/* Every collision in one refusal: a write refused once per colliding path cost one round each (ISS-476). */
+const collisionRefusal = (collided) => {
+  if (collided.length === 1) {
+    const [{ ref, name }] = collided;
+    return `${ref} is a file on disk and ${name} is already on this issue, or named twice in this `
+      + `command. ${TWICE} Cite the one that is there:\n  --evidence ${name}`
+      + `\nor amend it under a name of its own and cite that.`;
+  }
+  return `${collided.length} files on disk carry a name already on this issue, or named twice in this `
+    + `command. ${TWICE} Cite the one that is there in place of each path:\n`
+    + collided.map(({ ref, name }) => `  ${ref}  --evidence ${name}`).join("\n")
+    + `\nor amend each under a name of its own and cite that.`;
+};
+
 /** A name to cite as it stands, a file to put up under its base name, or a collision: a name
  *  attached twice resolves to two documents and every verdict citing it is ambiguous (ISS-55). */
 export const attachPlan = (refs, names, held) => {
   const plan = { upload: [], cite: [], refusal: null };
   const taken = [...names];
+  const collided = [];
   for (const ref of refs) {
     /* A readable file is a file whatever its name reads as: `deadbee` is seven hex digits too. */
     const here = localFile(ref);
     if (here && taken.includes(here.name)) {
-      plan.refusal = `${ref} is a file on disk and ${here.name} is already on this issue, or named `
-        + `twice in this command. ${TWICE} Cite the one that is there:\n  --evidence ${here.name}`
-        + `\nor amend it under a name of its own and cite that.`;
-      return { ...plan, upload: [], cite: [] };
+      collided.push({ ref, name: here.name });
+      continue;
     }
     /* Said, not refused: a refusal here would name the citation the author already made. */
     if (here && names.includes(ref)) {
@@ -256,7 +269,7 @@ export const attachPlan = (refs, names, held) => {
     }
     plan.cite.push(file ? file.name : ref);
   }
-  return plan;
+  return collided.length ? { upload: [], cite: [], refusal: collisionRefusal(collided) } : plan;
 };
 
 /** What either route that puts a file up says where the comment walk stopped short, and the one place
@@ -274,16 +287,26 @@ export const unreadNames = (reference, count, cut) => (cut
  *  where the comment page stopped short (ISS-137). */
 export const uploadRead = (paths, names, { reference, cut }) => {
   const taken = [...names];
+  const collided = [];
   for (const path of paths) {
     const name = basename(path);
-    if (taken.includes(name)) {
-      return {
-        refusal: `${name} is already a document on ${reference}, or is named twice in this command. `
-          + `${TWICE} Nothing was sent. What is up can be neither deleted nor replaced, so cite it `
-          + `by that name, or send the file under a name of its own.`,
-      };
-    }
-    taken.push(name);
+    if (taken.includes(name)) collided.push({ path, name });
+    else taken.push(name);
+  }
+  if (collided.length === 1) {
+    return {
+      refusal: `${collided[0].name} is already a document on ${reference}, or is named twice in this `
+        + `command. ${TWICE} Nothing was sent. What is up can be neither deleted nor replaced, so cite `
+        + `it by that name, or send the file under a name of its own.`,
+    };
+  }
+  if (collided.length) {
+    return {
+      refusal: `${collided.length} files carry a name already a document on ${reference}, or named `
+        + `twice in this command:\n${collided.map(({ path, name }) => `  ${path}  as ${name}`).join("\n")}`
+        + `\n${TWICE} Nothing was sent. What is up can be neither deleted nor replaced, so cite each by `
+        + `that name, or send the file under a name of its own.`,
+    };
   }
   const said = unreadNames(reference, names.length, cut);
   return said ? { said } : {};
