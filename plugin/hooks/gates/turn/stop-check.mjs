@@ -145,7 +145,7 @@ const forge = (tree, argv) => {
   }
 };
 
-/* The keys in progress on the tree's project, one child however many keys the turn named: the verb walks every page and prints bare keys on stdout. `null` where it did not answer, which is a lease check that could not run and not one that found nothing. */
+/* The keys in progress on the tree's project, one child however many keys the turn named: the verb walks every page and prints bare keys on stdout. A child that failed or was killed answers `null`, and `run` says so rather than reading it as nobody holding anything. */
 const inProgress = (tree) => {
   const said = cli(tree, ["issue", "--status", "in_progress", "--fields", "issueId"]);
   return said === null ? null : new Set(keysIn(said));
@@ -232,7 +232,7 @@ const UNREAD = {
   timeout: "the linter's own time limit",
 };
 
-/** What the linter said about the turn's writes, and each file it left unread with why — where the file's tree configures a linter, a project that decided nothing being owed silence, as the post-call gate reads it. */
+/** What the linter said about the turn's writes, and each file it left unread with why, filtered by `configuresLint` as the post-call gate filters it. */
 const linted = (ev, records) => {
   const found = [];
   const unread = [];
