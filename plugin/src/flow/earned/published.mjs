@@ -13,8 +13,7 @@ const WHOLE = "whole";
 
 const STORE = "gate-baselines.jsonl";
 
-/* The borrowed config's directory, or null where this home borrows nothing: the one reference a run
-   home holds to the machine's own, the same one `projectRecords` reads the machine's records through. */
+/* Where a release standing in the machine's home wrote, found through the borrow as project records are. */
 const machineDir = () => {
   const borrowed = borrowing(configPath())?.path;
   return borrowed ? dirname(borrowed) : null;
