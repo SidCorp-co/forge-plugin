@@ -22,6 +22,9 @@ export const standing = (rank) => configured("rank-project-", rank ? { rank } : 
 
 export const declaring = (drain) => configured("rank-drain-", { drainedBy: drain });
 
+/** A room declaring the volume that earns a batch reading; the case makes it a checkout. */
+export const reviewing = (review) => configured("rank-review-", { review });
+
 /** Where this machine's record of a room built above sits, which is what a report of that room names
  *  as the source of a key it read. */
 export const recordOf = (room) => projectEntry(room, HOME);

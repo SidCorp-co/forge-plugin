@@ -197,6 +197,35 @@ test("a second ship at the same mark names the issue already there and files not
   assert.equal(ref(work), from, "a row already there is no reason to move the mark either");
 });
 
+/* The reading was filed and nobody took it: every later ship said "owed" in the same words on day five
+   as on day one, and the range grew fifteen times past its threshold behind that word (ISS-2719). */
+const waiting = (from, held) => ({ issueId: "ISS-777", documentId: "u-777", status: "open",
+  createdAt: "2026-09-22T19:21:00.000Z",
+  title: `The batch ${from.slice(0, 7)}..deadbee is read once as a whole`, ...held });
+
+test("a reading left open and untaken is reported with its age, its range's multiple and the call that starts it", () => {
+  const { work, from } = owedAt("overdue");
+  noBacklog({ key: "ISS-777", issues: [waiting(from, { status: "confirmed" })] });
+  const run = lastStep(work);
+  assert.equal(seen("create").length, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout,
+    /ISS-777 holds this reading, confirmed and untaken since 2026-09-22 \(\d+ day\(s\)\); its range is now 1x the 1500-line threshold/u,
+    run.stdout);
+  assert.match(run.stdout, /start it: node \S*tools\/run\.mjs start ISS-777/u, run.stdout);
+});
+
+test("a reading somebody started, holds a live lease on, or whose lease cannot be read, is not reported as untaken", () => {
+  const lease = { lease: { holder: "another-run", agent: "an agent", pid: "9",
+    renewedAt: new Date().toISOString(), minutes: 60, history: [] } };
+  for (const held of [{ status: "in_progress" }, { sessionContext: lease }, { documentId: null }]) {
+    const { work, from } = owedAt(`taken-${Object.keys(held)[0]}`);
+    noBacklog({ key: "ISS-777", issues: [waiting(from, held)] });
+    const run = lastStep(work);
+    assert.match(run.stdout, /ISS-777 is (open|in_progress) for this mark already, so nothing was filed/u, run.stdout);
+    assert.doesNotMatch(run.stdout, /untaken|start it:/u, `${JSON.stringify(held)}:\n${run.stdout}`);
+  }
+});
+
 /* Two ships that cross one mark inside the window between the lookup and the create both find nothing
    and both file; the tracker keys nothing on the mark, and a lock a crashed ship left would cost more
    than the duplicate. The read after the create is what reconciles them (ISS-133). */

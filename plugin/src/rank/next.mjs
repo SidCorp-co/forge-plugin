@@ -1,7 +1,7 @@
 /* `forge next` — the open issues this project should work next, ranked and written nowhere. The
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { complexitySpread, weightLines, weightsFrom } from "./weights.mjs";
-import { moduleTermsFor } from "./modules.mjs";
+import { moduleTermsFor } from "./terms/modules.mjs";
 import { complexitiesOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
 import { chainOf, complexitySaid, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
@@ -9,6 +9,7 @@ import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs"
 import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/corpus/corpus.mjs";
 import { resolverIn, treeAt } from "./checkout.mjs";
+import { readingTerm } from "./terms/reading.mjs";
 import { batchesOf } from "./batch.mjs";
 import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines, judgingShort }
   from "./print.mjs";
@@ -324,6 +325,10 @@ export const next = async (argv) => {
   }
   const rows = read.rows;
   const { blocks, blockedBy, named, unresolved } = edgesFrom(carried, rows);
+  const tree = treeAt(asked.checkout ?? process.cwd());
+  const reading = readingTerm(tree, weights);
+  if (reading.refusal) console.error(`warning: ${reading.refusal}\nSo no issue is weighed by the reading it holds.`);
+  const termsOf = (row) => ({ module: terms.termOf(row), reading: reading.termOf(row) });
 
   const alive = holdingKeys(rows);
   const statusOf = new Map(rows.map((one) => [one.issueId, String(one.status ?? "")]));
@@ -331,7 +336,7 @@ export const next = async (argv) => {
   const preScored = ordered(takeable.map((row) => ({
     issueId: row.issueId,
     row,
-    score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive), module: terms.termOf(row) }),
+    score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive), ...termsOf(row) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
   const judging = await judgingIn(rows, weights);
@@ -347,8 +352,7 @@ export const next = async (argv) => {
     const body = bodies.get(one.issueId);
     const text = body?.description ?? "";
     const read = bodies.has(one.issueId);
-    const score = scoreOf(one.row, { weights, chain: chainOf(one.issueId, blocks, alive),
-      module: terms.termOf(one.row) });
+    const score = scoreOf(one.row, { weights, chain: chainOf(one.issueId, blocks, alive), ...termsOf(one.row) });
     const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
       ({ otherDisplayId: key, otherStatus: statusOf.get(key) ?? "unknown", kind: "blocks" }));
     const verdict = eligibilityOf(one.row, {
@@ -399,7 +403,7 @@ export const next = async (argv) => {
     relates: new Map(judged.map((one) => [one.issueId, one.relates])),
     nearOf: searcher(eligible.slice(0, count), (head) => nearFor(head, bodies, live, weights)),
     paths,
-    resolves: resolverIn(treeAt(asked.checkout ?? process.cwd())),
+    resolves: resolverIn(tree),
   }, weights, count);
   /* An aside met again as a head is the issue twice; one naming a path resolving to nothing is not.
      The cap is the related issues' alone: a path said nowhere else is not a row to make room. */

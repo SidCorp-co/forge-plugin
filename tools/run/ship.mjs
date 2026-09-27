@@ -23,8 +23,8 @@ import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
-import { readingFor, readingTitle, REVIEWED, reviewBody, reviewedAt, reviewReported, reviewSays,
-  spannedIn, whereFrom } from "./review.mjs";
+import { overdueSays, readingFor, readingTitle, REVIEWED, reviewBody, reviewedAt, reviewReported,
+  reviewSays, spannedIn, untaken, whereFrom } from "./review.mjs";
 import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
@@ -431,7 +431,7 @@ const reviewOwed = async (tree) => {
   if (!from) return console.error(`  ${NO_MARK(SELF)}`);
   const said = reviewSays(tree, from);
   if (said.refusal) return console.error(`  ${said.refusal}`);
-  const { owed, range, count, volume, threshold, paths, source } = said;
+  const { owed, range, count, volume, threshold, paths, source, changed } = said;
   if (!owed) {
     return console.log(`  ${count} under ${paths.join(", ")} since ${from.slice(0, 7)}, short `
       + `of the ${threshold} line(s) that call for a reading  ← ${source}`);
@@ -482,7 +482,16 @@ const reviewOwed = async (tree) => {
   }
   const left = edgesLeft(asked.related);
   if (left) console.log(`    the range named more than the filing relates: ${left}`);
+  if (!asked.filed && !asked.second) await overdue(asked, { changed, threshold });
   console.log(`  ${launch(asked.key)}`);
+};
+
+/* A lease that cannot be read says nothing either way, so the line is withheld rather than guessed. */
+const overdue = async (asked, range) => {
+  const waiting = await refusing(() => untaken(asked)).catch(() => false);
+  if (!waiting) return;
+  console.log(`    ${overdueSays(asked, range)}`);
+  console.log(`    start it: ${SELF} start ${asked.key}`);
 };
 
 export const ship = async ({ flags }) => {

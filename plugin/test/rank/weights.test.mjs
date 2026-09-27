@@ -34,6 +34,7 @@ test("a weight the table does not hold is refused, not dropped", () => {
     [{ blocks: "three" }, /is a number/u],
     [{ blocks: null }, /is a number/u],
     [{ complexity: { xs: null } }, /number of points/u],
+    [{ reading: "high" }, /`rank\.reading` is a number/u],
   ]) {
     const { refusal, value } = foldWeights(given);
     assert.match(refusal ?? "", matching, JSON.stringify(given));
