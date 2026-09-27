@@ -190,8 +190,8 @@ function readTurn(path, tail, cap) {
       if (span >= cap) {
         const at = promptAt(handle, size);
         if (at >= 0) return parsed(spanOf(handle, at, size).toString("utf8"));
-        /* A subagent's transcript opens on the prompt it was handed, which nobody typed, so the tail
-           is not its turn and the gate would judge the last cap's worth of a longer run (ISS-535). */
+        /* No record bounds a turn here, so every record is in it: the tail alone leaves out the start
+           of any run longer than the cap (ISS-535). */
         return recordsBefore(handle, size, cap);
       }
     }
