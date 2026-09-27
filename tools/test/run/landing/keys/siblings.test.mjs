@@ -53,8 +53,8 @@ test("a batch sibling at another head is named as left out, and its checkpoint a
   const theirs = ready(next, base);
   batched(ready(head, base), theirs);
   const said = await landingRan([KEY], work);
-  assert.match(said, new RegExp(`${NEXT_KEY}, on ${KEY}'s batch, is left out: its checkpoint names ${BRANCH} `
-    + `at ${next.slice(0, 7)}, and this landing takes ${BRANCH} at ${head.slice(0, 7)}`, "u"), said);
+  assert.ok(said.includes(`${NEXT_KEY}, on ${KEY}'s batch, is left out: its checkpoint names ${BRANCH} `
+    + `at ${next.slice(0, 7)}, and this landing takes ${BRANCH} at ${head.slice(0, 7)}`), said);
   assert.match(said, new RegExp(`forge resume ${NEXT_KEY}`, "u"), said);
   assert.deepEqual(landing(NEXT_UUID), theirs, `its checkpoint is unchanged:\n${said}`);
   assert.equal(marks(NEXT_UUID).length, 0, said);
