@@ -225,6 +225,10 @@ test("what a quote, a backslash or a comment made data no longer costs the grant
     [`export FORGE_SESSION_ID=a-run; echo \\(x\\); ${WRITE}`]: "a parenthesis a backslash made literal",
     [`FORGE_SESSION_ID=a-run \\\n${WRITE}`]: "a prefix a continuation joins to its writer",
     [`export \\\nFORGE_SESSION_ID=a-run; ${WRITE}`]: "an export a continuation joins to its name",
+    [`export FORGE_SESSION_ID=a-run; echo # $'x' $(forge issue ISS-30)\n${WRITE}`]:
+      "an ANSI-C opener and a substitution a comment holds, neither of which the shell reads",
+    [`${PREFIXED} # $'x' ; unset FORGE_SESSION_ID`]: "the same opener in a comment beside a take-back",
+    [`${PREFIXED} \\$'x'; echo ok`]: "a dollar a backslash made literal, which leaves an ordinary apostrophed word",
   };
   for (const [command, what] of Object.entries(reads)) {
     assert.equal(idGrantedBy(command), "a-run", what);

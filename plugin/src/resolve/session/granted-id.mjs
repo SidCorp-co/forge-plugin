@@ -31,11 +31,11 @@ const readOf = (text) => {
   return { code: marks.map(({ one }) => one).join(""), under: marks.map(({ under }) => under).join("") };
 };
 
-/* The quoting `quoting` cannot place, and the whole of what this reader does about it: after a `$'…'` every apostrophe could be the one a backslash kept, and an expansion carries a word of its own whose quotes nest — `"${x:-"it's $(…)"}"` runs a substitution the flat reading calls data, where one inside single quotes nests nothing because nothing nests there; `$[`, whose deprecated body no shell this runs on is read for, is the same. Where either stands the reading is a guess, and every reader here answers a guess the way ISS-858 did: as if the quotes were not there. */
-const ANSI_C = /\$'/u;
-const NESTS = /\$[{[]/gu;
-const unplaced = ({ code, under }) => ANSI_C.test(code)
-  || [...code.matchAll(NESTS)].some(({ index }) => !["'", "#", "\\"].includes(under[index]));
+/* The quoting `quoting` cannot place, and the whole of what this reader does about it: after a live `$'…'` every apostrophe could be the one a backslash kept, and an expansion carries a word of its own whose quotes nest — `"${x:-"it's $(…)"}"` runs a substitution the flat reading calls data, where one inside single quotes nests nothing because nothing nests there; `$[`, whose deprecated body no shell this runs on is read for, is the same. Where either stands the reading is a guess, and every reader here answers a guess the way ISS-858 did: as if the quotes were not there. */
+const GUESSED = /\$['{[]/gu;
+/* Where the walk itself put the `$` in a single quote, a comment or behind a backslash, the shell reads it as data, and nothing after it is a guess on its account. */
+const unplaced = ({ code, under }) =>
+  [...code.matchAll(GUESSED)].some(({ index }) => !["'", "#", "\\"].includes(under[index]));
 
 /* Which openers a quoting runs, `shell-spans` having answered what the quoting is: a double quote keeps only a command substitution, a backslash on any of an opener's own characters ends it, and what this cannot place falls through to refused. */
 const acts = (opener, under) =>
