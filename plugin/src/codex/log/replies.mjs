@@ -605,7 +605,7 @@ const scoped = (root, scope) => {
   };
 };
 
-/* For the commit gate, with the one command that clears it: three gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. A `scope` of `{ repo, run }` reads every worktree of the repository and, where `run` is given, that run's consults alone — the verdict verb's and the review capture's question; the gates ask without one and read this checkout (ISS-898). */
+/* For the commit gate, with the one command that clears it: three gates print that line in sentences of their own and the flags are the same in all three. A later consult that found nothing does not answer for an earlier one's findings. A `scope` of `{ repo, run }` reads every worktree of the repository and, where `run` is given, that run's consults alone — the verdict verb's and the review capture's question; the gates ask without one and read this checkout (ISS-898). */
 export const unverdicted = (bytes, root, scope = null) => {
   const scored = new Map();
   const { marks, keeps } = scoped(root, scope);
