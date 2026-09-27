@@ -159,12 +159,10 @@ export const flowJudgeConflict = (flow, judge, policy) => {
 const correctionsIn = (view) => (view.repeated?.correction ?? [])
   .filter((one) => !shapeGaps("correction", one.record, view.names).length)
   .map((one) => one.record.fields);
-const movedIn = (view) => correctionsIn(view).map((one) => one.moved);
+const movedIn = (view, which = () => true) => correctionsIn(view).filter(which).map((one) => one.moved);
 
 /* The corrections that extend the plan's list, for `namedIn`: those naming the plan as what they correct, and those written before `corrects` existed, which the read-back excuses the field. A correction of a review verdict, a criterion or a field of the issue says what moved in *that* record, and a path in its prose — one saying the file was left untouched as readily as one saying it was written — is no file the change was planned to write (ISS-415). The field and not the sentence, because the sentence cannot be read for what it asserts. */
-const planMovedIn = (view) => correctionsIn(view)
-  .filter((one) => one.corrects === undefined || correctedKind(one.corrects) === "plan")
-  .map((one) => one.moved);
+const ofPlan = (one) => one.corrects === undefined || correctedKind(one.corrects) === "plan";
 
 export const rungFieldsOf = (view) => (view.rungFields ??= {
   plan: unwrap(view.issue.plan),
@@ -446,7 +444,7 @@ const deployOwed = (view, ref) => {
 /** The plan's own text and the corrections of the plan extending it, and not a path list, a plan being prose; `wrote` is not `moved`. Blank where the plan field holds no text, whatever the corrections name: a correction is what a plan's list is extended by and never what stands in for one, so the climb the ladder prints to every run that outgrows its rung leaves this blank rather than turning it into a list that names no path (ISS-402, ISS-1018). The test is the field and not the rung, a rung climbed by a correction past `approved` having no plan to be held to either. The composer of the note is the second reader — `namedFor` in `record/merged.mjs` — so the carve-out is here and not in either reader, which would otherwise each keep a copy of the same question. */
 export const namedIn = (view) => {
   const plan = unwrap(view.issue.plan);
-  return plan ? [plan, ...planMovedIn(view)].join("\n") : "";
+  return plan ? [plan, ...movedIn(view, ofPlan)].join("\n") : "";
 };
 
 /* A rung below `feature` writes no plan, and refusing against a list the ladder excused would take
