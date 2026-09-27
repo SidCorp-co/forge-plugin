@@ -31,7 +31,7 @@ const SHAPE =
   "One file, one fact: `name`, a `description` saying when it applies, `metadata.type` "
   + `(${FILE_TYPES.join("|")}), one pointer line in MEMORY.md.`;
 
-/* A skill's own text under either shape a served method takes: one file, or one directory of parts under the flow that serves them. A selector reading only `guide.md` guards nothing in a copy that has split it, and looks exactly like a copy nobody writes to. */
+/* A skill's own text under either shape a served method takes: one file, or one directory of parts under the flow that serves them. A selector reading only the one file, guide.md, guards nothing in a copy that has split it, and looks exactly like a copy nobody writes to. */
 const OWN_TEXT = /\/(?:SKILL\.md|guide\.md|(?:guide|references)\/[^/]+\.md)$/;
 
 /** The directory whose text is served together, which is what a duplicate is judged within: one flow's own for served text, since two flows carrying a part word for word is the expected shape; the one holding SKILL.md for a stub. */

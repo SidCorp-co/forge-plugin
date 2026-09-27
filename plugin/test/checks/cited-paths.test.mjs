@@ -31,7 +31,8 @@ const TREE = list();
 const INDEXED = new Set(lines("ls-files", "--cached"));
 const DESCRIBES_THIS_TREE = [".claude-plugin", ".gitignore", "CLAUDE.md", "LICENSE",
   "README.md", "docs", "eslint.config.mjs", "package.json", "packages", "plugin/.claude-plugin",
-  "plugin/guides", "plugin/scripts", "plugin/src", "plugin/vi-natural", "tools"];
+  "plugin/bin", "plugin/guides", "plugin/hooks", "plugin/scripts", "plugin/src", "plugin/vi-natural",
+  "tools"];
 const ANOTHER_TREE = {
   "VI-NATURAL.md": "the vi-natural CLI's own manual, whose locale paths are its caller's",
   "package-lock.json": "npm's transcription of the packages it fetched, down to each one's own bin",
@@ -41,9 +42,6 @@ const ANOTHER_TREE = {
   "packages/code-quality/claude-plugin": "the copy sync:skills:check pins to plugin/skills",
   "packages/code-quality/package-lock.json": "the same transcription for that package's dependencies",
   "packages/code-quality/test": "a source tree each case writes under a temporary root and deletes",
-  "plugin/bin": "shims whose target is a shell variable expanded at run time, so the path they name"
-    + " belongs to whichever copy was invoked — ISS-197's shape in sh",
-  "plugin/hooks": "module specifiers node resolves and the working tree does not — ISS-197",
   "plugin/skills": "method loaded into another checkout, held by check:skill-paths to naming no path",
   "plugin/guides/skills": "the same method, served by forge guide and held by the same check",
   "plugin/agents": "role definitions read from wherever they are installed, held by the same check",
@@ -72,13 +70,17 @@ const bytesOf = (rel, bytes, indexed = INDEXED) => {
 const READ = POPULATION.map((rel) => bytesOf(rel, readFileSync(join(ROOT, rel))));
 const files = READ.filter((one) => !one.refused);
 
-const said = (rel, text) => problems([{ rel, text }], TREE);
+/* The packages node resolves a bare specifier into, read where the tree declares them (ISS-197). */
+const { dependencies = {}, devDependencies = {} } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+const MODULES = Object.keys({ ...dependencies, ...devDependencies });
+
+const said = (rel, text, modules = MODULES) => problems([{ rel, text }], TREE, modules);
 
 test("nothing this repository says of itself cites a path that names no file", () => {
   assert.ok(TREE.length > 300, `${TREE.length} path(s) tracked; the tree is read too narrowly`);
   assert.ok(files.length > 200,
     `${files.length} file(s) in the population; the selector matches too little`);
-  const found = problems(files, TREE);
+  const found = problems(files, TREE, MODULES);
   assert.deepEqual(found, [], `a citation names no file:\n${found.join("\n")}`);
 });
 
@@ -283,4 +285,46 @@ test("a citation is read bare, in a code span and in a link target alike", () =>
     "a bare filename is a name any project has and no claim about a path");
   const twice = citedIn("a/b.md\nx\na/b.md\n");
   assert.deepEqual(twice.map(({ line }) => line), [1, 3], "each citation reports its own line");
+});
+
+/* A quoted string whose head is a package is what node resolves through node_modules, never through
+   this tree; the same text as a link, a span or prose is still a claim about the tree (ISS-197). */
+test("a quoted specifier naming a dependency is no finding, and the same path anywhere else is one", () => {
+  assert.ok(MODULES.includes("eslint"), "the tree declares the package the vendored hook resolves");
+  assert.deepEqual(said("plugin/hooks/vendor/x.mjs", 'require.resolve("eslint/package.json");\n'), [],
+    "a double-quoted specifier");
+  assert.deepEqual(said("plugin/hooks/vendor/x.mjs", "import rules from 'eslint/use-at-your-own-risk.js';\n"),
+    [], "and a single-quoted one");
+  assert.deepEqual(said("docs/x.md", 'call `require.resolve("eslint/package.json")` first\n'), [],
+    "and one a document shows as code, the literal still being a specifier");
+  for (const text of ["[configuration](eslint/gone.json)\n", "see `eslint/gone.json`\n",
+    "the limits live in eslint/gone.json\n"]) {
+    const found = said("docs/x.md", text);
+    assert.equal(found.length, 1, `${text.trim()} is a claim about the tree:\n${found.join("\n")}`);
+    assert.match(found[0], /cites eslint\/gone\.json, which names no file/u);
+  }
+  const both = said("docs/x.md", 'require("eslint/gone.json") and [x](eslint/gone.json)\n');
+  assert.equal(both.length, 1, `a quoted twin does not swallow the link on its line:\n${both.join("\n")}`);
+});
+
+test("a dependency name is read off the caller, and never hides a directory this tree carries", () => {
+  const unnamed = said("plugin/hooks/vendor/x.mjs", 'require.resolve("eslint/package.json");\n', []);
+  assert.equal(unnamed.length, 1, "with no names passed, the specifier is judged as a path");
+  const shadowed = said("plugin/src/x.mjs", 'const step = "packages/gone.mjs";\n', ["packages"]);
+  assert.equal(shadowed.length, 1, `a dependency named like a top-level directory:\n${shadowed.join("\n")}`);
+  assert.match(shadowed[0], /cites packages\/gone\.mjs/u);
+});
+
+test("a path into node_modules is no claim about the tree in any form", () => {
+  for (const text of ["run `node_modules/some-dep/bin/setup.mjs`\n", 'const bin = "node_modules/x/y.mjs";\n',
+    "the binary at node_modules/some-dep/bin/setup.mjs\n"]) {
+    assert.deepEqual(said("docs/x.md", text, []), [], text.trim());
+  }
+});
+
+/* The rest of the token names a file of whichever copy was invoked, which no base here expands. */
+test("a path opened by a shell variable is a template and not a citation", () => {
+  assert.deepEqual(citedIn('exec node "$DIR/src/dispatch.mjs" src/cli.mjs "$@"\n').map(({ path }) => path),
+    ["src/cli.mjs"], "the variable's path is no citation, and the argument beside it still is");
+  assert.deepEqual(said("plugin/bin/forge", 'exec node "$DIR/src/gone.mjs"\n'), []);
 });

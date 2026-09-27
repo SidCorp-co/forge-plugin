@@ -15,22 +15,31 @@ const NAMED = new RegExp(`^(?:\\.\\.?/)?${SEGMENT}(?:/${SEGMENT})*\\.${SOURCE}$`
    the `.md` that resolves, and none starts after a separator — `<project>/lib/x.ts` is another tree's. */
 const A_NOUN = /^\.[\w.]+$/u;
 const PLACE = /[#?].*$/u;
+/* A `$` before it makes the token a template: `$DIR/src/cli.mjs` names a file of whichever copy
+   was invoked, which no base here expands (ISS-197). */
 const SHAPES = [
-  new RegExp(`(?<![\\w.@/-])((?:\\.\\.?/)?${SEGMENT}(?:/${SEGMENT})+\\.${SOURCE})`
+  new RegExp(`(?<![\\w.@/$-])((?:\\.\\.?/)?${SEGMENT}(?:/${SEGMENT})+\\.${SOURCE})`
     + "(?![\\w-])(?!\\.[\\w-])", "gu"),
   new RegExp("`(" + SEGMENT + "\\." + SOURCE + ")`", "gu"),
   new RegExp(LINK_TARGET_PATTERN, "gu"),
 ];
 
+/* Only the bare shape carries a string literal, so only it can be a specifier: a span quoting code
+   still quotes the literal, while a lone spanned filename and a link target never are one. */
+const QUOTES = new Set(["\"", "'"]);
+
 export const citedIn = (text) => {
   const held = String(text ?? "");
-  const found = SHAPES.flatMap((shape) =>
-    [...held.matchAll(shape)].map(({ 1: path, index }) =>
-      ({ path: path.replace(PLACE, ""), line: lineAt(held, index) })));
+  const found = SHAPES.flatMap((shape, which) =>
+    [...held.matchAll(shape)].map(({ 1: path, index }) => ({
+      path: path.replace(PLACE, ""),
+      line: lineAt(held, index),
+      quoted: which === 0 && QUOTES.has(held[index - 1]),
+    })));
   const seen = new Set();
   return found
-    .filter(({ path, line }) => {
-      const key = `${line}\0${path}`;
+    .filter(({ path, line, quoted }) => {
+      const key = `${line}\0${path}\0${quoted}`;
       if (seen.has(key) || !NAMED.test(path) || A_NOUN.test(path)) return false;
       seen.add(key);
       return true;
@@ -43,9 +52,20 @@ const names = (rel, path, tree, tails) =>
   || tree.has(posix.normalize(path))
   || tails.has(path);
 
-/** `paths` is the working tree; the citing file is never its own candidate. */
-export const problems = (files, paths) => {
+/* A quoted string whose head is a package the caller names is what node resolves through
+   node_modules, and node_modules is never part of the tree read; a head this tree also carries at its
+   root stays a claim about the tree, so a package named like a directory hides nothing (ISS-197). */
+const INSTALLED = "node_modules/";
+const specifier = ({ path, quoted }, modules, roots) =>
+  path.startsWith(INSTALLED)
+  || (quoted && !roots.has(path.split("/")[0])
+    && modules.some((name) => path === name || path.startsWith(`${name}/`)));
+
+/** `paths` is the working tree and `modules` the packages it declares; the citing file is never its
+ *  own candidate. */
+export const problems = (files, paths, modules = []) => {
   const tree = new Set(paths);
+  const roots = new Set(paths.map((one) => one.split("/")[0]));
   const tails = new Set();
   const byName = new Map();
   for (const one of paths) {
@@ -57,7 +77,7 @@ export const problems = (files, paths) => {
   }
   return files.flatMap(({ rel, text }) =>
     citedIn(text)
-      .filter(({ path }) => !names(rel, path, tree, tails))
+      .filter((one) => !specifier(one, modules, roots) && !names(rel, one.path, tree, tails))
       .map(({ path, line }) => {
         const elsewhere = (byName.get(posix.basename(path)) ?? []).filter((one) => one !== rel);
         const said = elsewhere.length
