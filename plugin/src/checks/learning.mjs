@@ -22,7 +22,8 @@ export const BRIEF =
  *  project holding it, so its text is a note about one repository by construction — the very thing a
  *  skill's own text must not be — and the question this gate asks has no honest answer there. The home's
  *  `.claude/skills/` serves every project and stays guarded, and so does an owner this cannot place: the
- *  root, or the relative tail a variable nobody resolved left behind, which may well be the home. */
+ *  root, or the relative tail a variable nobody resolved left behind, which may well be the home. A
+ *  rooted tail left behind by one is no owner either, and `guardedShape` is what its caller reads. */
 export const projectSkill = (path) => {
   const at = path.lastIndexOf("/.claude/skills/");
   if (at < 0) return false;
@@ -32,8 +33,11 @@ export const projectSkill = (path) => {
   return canonical(owner) !== canonical(homedir());
 };
 
-export const guarded = (path) =>
-  GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md" && !projectSkill(path);
+/** A memory file or a skill's own text by its shape alone, the owner unasked: what a path is judged by where the command built what stands before it rather than spelling it. */
+export const guardedShape = (path) =>
+  GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md";
+
+export const guarded = (path) => guardedShape(path) && !projectSkill(path);
 
 /** Whether a path sits inside an installed copy of this plugin, as the host's install record places
  *  each: an update rewrites that directory whole, so no run records learning there, and a fresh stamp

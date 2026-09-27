@@ -8,7 +8,7 @@ import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPa
 import { struck } from "../../src/hooks/shell-spans.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
-import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, projectSkill } from "../../src/checks/learning.mjs";
+import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill } from "../../src/checks/learning.mjs";
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The reading is `_hook.mjs`'s, so a name it would read is a name this reads. */
 const MD_ONLY = "md";
 
@@ -124,14 +124,15 @@ export const run = (ev) => {
   if (tool === "Bash") {
     const written = writtenPaths(struck(shellWrites(ti.command)), ev.cwd || process.cwd(), MD_ONLY);
     if (written.length === 0) done();
-    for (const { trees, paths } of written) {
-      /* A relative name answers for the trees it was placed in, not for its own spelling: `.claude/skills/…` spelt bare is a project's own wherever it stands. */
+    for (const { trees, paths, spelt } of written) {
+      /* A relative name answers for the trees it was placed in, not for its own spelling: `.claude/skills/…` spelt bare is a project's own wherever it stands. And an owner the command built rather than spelt is none a project exemption can rest on: `${BASE}/dev/.claude/…` may be the home's. */
       const placed = trees.length ? paths.slice(1) : paths;
-      const resolved = placed.find(guarded);
+      const judged = spelt ? guarded : guardedShape;
+      const resolved = placed.find(judged);
       if (resolved) {
         const memory = resolved.includes("/memory/");
         const kind = memory ? "a memory file" : "a skill's own text";
-        const doubt = placed.every(guarded) ? "" : UNSURE;
+        const doubt = placed.every(judged) ? "" : UNSURE;
         /* A file that exists is a correction, and Edit is where that file's own question is asked: the new-file bar here would read as "write nothing" to a run fixing a wrong line. */
         if (existsSync(resolved)) {
           deny(
