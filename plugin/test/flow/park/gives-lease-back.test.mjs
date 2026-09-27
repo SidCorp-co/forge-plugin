@@ -135,3 +135,36 @@ test("a rehearsed park gives nothing back", async () => {
   assert.equal(lease().holder, PARKER, "the lease is where it was");
   assert.doesNotMatch(rehearsed.stderr, /is free again/u);
 });
+
+/* The third route a park is written by: the triage that rules the expectation outside the
+   specification parks the issue from a plain advance, and that advance ends the turn as a typed park
+   does. */
+test("the park a triage routes a plain advance into gives the lease back too", async () => {
+  heldBy(PARKER);
+  Object.assign(ISSUE, {
+    status: "developed",
+    mergedAt: "2026-09-27T03:00:00.000Z",
+    reopenCount: 0,
+    plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.",
+    acceptanceCriteria: "1. The list comes back in the order the criterion names.",
+    attachments: [{ name: "shot.png" }],
+    complexity: "m",
+    relations: { blockedBy: [{ kind: "blocks", otherDisplayId: "ISS-197", otherStatus: "open", validUntil: null, expired: false }] },
+  });
+  const steps = [
+    ["advance", "ISS-2679", "--reopen", "--why", "criterion 1 is not what the running change does"],
+    ["record", "finding", "ISS-2679", "--criterion", "1", "--expected", "the order criterion 1 names",
+      "--seen", "the order it was filed in", "--evidence", "shot.png"],
+    ["record", "triage", "ISS-2679", "--outcome", "not-in-spec", "--would-have-caught", "a clause for the order"],
+  ];
+  for (const argv of steps) {
+    const step = await ran(argv, PARKER);
+    assert.equal(step.status, 0, `${argv.slice(0, 2).join(" ")}:\n${step.stdout}${step.stderr}`);
+  }
+  assert.equal(lease().holder, PARKER, "every step before the park kept the issue");
+  const parked = await ran(["advance", "ISS-2679"], PARKER);
+  assert.equal(parked.status, 0, `the routed park should have gone through:\n${parked.stdout}${parked.stderr}`);
+  assert.equal(ISSUE.status, "on_hold", "the triage's route parked it");
+  assert.equal(lease().holder, "", "and nothing holds the issue afterwards");
+  assert.match(parked.stderr, /ISS-2679 is free again: the turn this run held is over/u);
+});
