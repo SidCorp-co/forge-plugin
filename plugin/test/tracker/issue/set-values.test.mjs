@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fieldSets } from "../../../src/resolve/value-sets.mjs";
+import { fieldSets } from "../../../src/tracker/declared/value-sets.mjs";
 import { homeEnv, ranAsync } from "../../fixtures.mjs";
 
 const env = homeEnv("set-values");

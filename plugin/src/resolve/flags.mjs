@@ -2,7 +2,7 @@
 import { typed } from "../hooks/shell-spans.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { embeddedRun, fail } from "./settings.mjs";
-import { setsFor, valueRefusal } from "./value-sets.mjs";
+import { setsFor, valueRefusal } from "../tracker/declared/value-sets.mjs";
 
 export const FLAG_WORD = /^--[^\s=]*$/u;
 

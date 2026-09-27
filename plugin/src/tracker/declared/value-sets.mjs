@@ -2,11 +2,11 @@
    outside one is refused with. The parser holds each flag's name and value together, so it judges
    the value where it judges the name and no verb writes a judge per flag: a verb that forgot one
    sent the value and composed its reply from whatever came back (ISS-936, ISS-1135). */
-import { COMPLEXITY_NAMES } from "../ladder.mjs";
-import { nearestOutside } from "../suggest.mjs";
-import { KIND_NAMES, valueOutsideSet } from "../tracker/issue-shape.mjs";
-import { DECLARES, declaredFor } from "../tracker/routes.mjs";
-import { rowFor } from "./visibility.mjs";
+import { COMPLEXITY_NAMES } from "../../ladder.mjs";
+import { nearestOutside } from "../../suggest.mjs";
+import { KIND_NAMES, valueOutsideSet } from "../issue-shape.mjs";
+import { DECLARES, declaredFor } from "../routes.mjs";
+import { rowFor } from "../../resolve/visibility.mjs";
 
 /* Keyed by the tool: `--kind` is a knowledge entry's kind on one verb and no set at all on another. */
 const OWN_SETS = {

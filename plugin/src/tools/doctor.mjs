@@ -38,7 +38,7 @@ import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
-import { setsOf } from "../resolve/value-sets.mjs";
+import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";

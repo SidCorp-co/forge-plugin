@@ -7,16 +7,16 @@ import test from "node:test";
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { flags, pullRepeated } from "../../src/resolve/flags.mjs";
-import { Refusal, refusing } from "../../src/resolve/settings.mjs";
-import { setsFor, setsOf } from "../../src/resolve/value-sets.mjs";
-import { declaredValue } from "../../src/tracker/rest.mjs";
-import { LIST_USAGE } from "../../src/commands.mjs";
-import { usageOf } from "../../src/resolve/visibility.mjs";
-import { homeEnv, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
+import { flags, pullRepeated } from "../../../src/resolve/flags.mjs";
+import { Refusal, refusing } from "../../../src/resolve/settings.mjs";
+import { setsFor, setsOf } from "../../../src/tracker/declared/value-sets.mjs";
+import { declaredValue } from "../../../src/tracker/rest.mjs";
+import { LIST_USAGE } from "../../../src/commands.mjs";
+import { usageOf } from "../../../src/resolve/visibility.mjs";
+import { homeEnv, projectRoom, ranAsync, tempRoom } from "../../fixtures.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const SRC = new URL("../../src", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const SRC = new URL("../../../src", import.meta.url).pathname;
 const env = homeEnv("value-sets");
 const room = projectRoom(tempRoom("value-sets-"), env.XDG_CONFIG_HOME, { slug: "value-sets" });
 const ran = (...argv) => ranAsync(FORGE, argv, env, room);

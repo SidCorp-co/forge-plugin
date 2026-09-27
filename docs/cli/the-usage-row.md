@@ -98,4 +98,4 @@ A value is judged where its flag's name is, for the same reason: the parser hold
 so a flag whose values this CLI declares is refused outside its set before any verb runs, and no verb
 writes a judge per flag that a new flag could be added without. Which flags carry a set is read off
 the tool the verb's row names, or declared on the parser row where a verb takes another tool's set:
-`plugin/src/resolve/value-sets.mjs`. This page is held by cases alone.
+`plugin/src/tracker/declared/value-sets.mjs`. This page is held by cases alone.
