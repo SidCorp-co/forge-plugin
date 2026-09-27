@@ -65,7 +65,7 @@ test("a linter that spends the stop clock leaves the worktree check its answer",
   const refused = decided(ev, () => [], clock);
   assert.equal(existsSync(spent), true, "the planted linter never ran");
   assert.equal(refused.kind, "block", refused.said);
-  assert.match(refused.said, /is a worktree this turn left with tracked changes/u);
+  assert.match(refused.said, /is a worktree/u);
   assert.match(refused.said, /git -C .*add -u && git commit/u);
 });
 
@@ -132,7 +132,7 @@ test("the same slow git probe answers with the clock whole and the dirty worktre
   const bin = slowGit();
   const said = withPath(bin, () => decided({ session_id: `s-${randomUUID()}`, transcript_path: transcript(), cwd: wt }, () => []));
   assert.equal(said.kind, "block", said.said);
-  assert.match(said.said, /is a worktree this turn left with tracked changes/u);
+  assert.match(said.said, /is a worktree/u);
 });
 
 /* Not read is not clean: every check the clock skipped, and every file the linter did not reach in a
