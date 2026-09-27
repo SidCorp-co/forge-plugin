@@ -4,6 +4,7 @@
    that most needed the citation that nothing had ever been published (ISS-2653). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -62,6 +63,22 @@ test("a borrowing home publishes nothing into either store, and names the shell 
   assert.equal(publish(HEAD), HELD, "a head the machine's store holds is held rather than refused");
   assert.ok(publishedSaid(HELD, HEAD).includes(`already holds a published result in ${MACHINE_STORE}`));
   assert.equal(readFileSync(MACHINE_STORE, "utf8"), machineHeld);
+});
+
+test("the shell a borrowing home is sent to is printed as one argument, however its path is spelt", () => {
+  const odd = join(tempHome("published-odd").path, "a machine's home");
+  mkdirSync(join(odd, "forge"), { recursive: true });
+  writeFileSync(join(odd, "forge", "config.json"), "{}\n");
+  process.env.FORGE_BORROW_FROM = join(odd, "forge", "config.json");
+  try {
+    const said = publishedSaid(BORROWED, OTHER);
+    const home = /XDG_CONFIG_HOME=('(?:[^']|'\\'')*') and the same command/u.exec(said)?.[1];
+    assert.ok(home, `the home is not quoted as one argument:\n${said}`);
+    const parsed = spawnSync("sh", ["-c", `printf %s ${home}`], { encoding: "utf8" }).stdout;
+    assert.equal(parsed, odd, "the printed home does not read back as the machine's home");
+  } finally {
+    process.env.FORGE_BORROW_FROM = MACHINE_CONFIG;
+  }
 });
 
 test("a home that borrows nothing reads and writes its own store alone", () => {

@@ -75,7 +75,7 @@ export const publishedSaid = (outcome, commit) => ({
   [BORROWED]: `nothing is published for ${commit}: this home borrows ${process.env[BORROW_VAR]}, and `
     + `${publishedPath()} beside it is that machine's store, which a borrowing home reads and never `
     + `writes. Publish from a shell that does not borrow: ${BORROW_VAR}= `
-    + `XDG_CONFIG_HOME=${dirname(machineDir() ?? "")} and the same command`,
+    + `XDG_CONFIG_HOME=${typedBack(dirname(machineDir() ?? ""))} and the same command`,
 }[outcome]);
 
 /* The two sources of a run's id the route below loses on its way into a fresh tree: that tree's git directory holds no id of its own, and a variable the refused call was prefixed with is gone from the shell the route is pasted into. The rest are read there alike, and carrying them would only rename where they came from (ISS-2556). */
