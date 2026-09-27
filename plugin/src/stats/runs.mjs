@@ -2,12 +2,14 @@
    Two profiles of this corpus were written by hand as throwaway scripts, which is a measurement
    taken once. What each figure means, and what it deliberately does not: docs/cli/stats.md. */
 import {
+  CLAIM_CLASS,
   DEPLOY,
   EDIT_ROUTES,
   FORGE_ROW,
   GUIDE_INDEX,
   POLL,
   READY_CLASS,
+  RECHECK_CLASS,
   WAIT,
   WHOLE_SET_CLASS,
   classesFor,
@@ -206,7 +208,7 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
       longest.push({ minutes: minutes(call.wait), what: said(typedAs).slice(0, 110), key: said(runless(typedAs)).slice(0, 110) });
     }
   }
-  const claim = calls.find((call) => call.class === "forge claim");
+  const claim = calls.find((call) => call.class === CLAIM_CLASS);
   const counted = (label) => byClass.get(label)?.calls ?? 0;
   return {
     path,
@@ -240,7 +242,7 @@ export const runFrom = (path, session, text, classes = undefined, answers = BUIL
     /* Both consult classes, summed inside the run: the split is about which phase a call opens,
        and a figure that fell because a class was renamed reads as a run that consulted less. */
     consults: counted("forge codex consult") + counted(WHOLE_SET_CLASS),
-    rechecks: counted("forge codex recheck"),
+    rechecks: counted(RECHECK_CLASS),
     verdicts: counted("forge record verdict"),
     ships: shipsIn(calls),
     passes: passesIn(calls),
@@ -268,7 +270,7 @@ const flowRun = (path, session, text, classes, answers) => {
   const run = runFrom(path, session, text, classes, answers);
   if (!run) return { run: null, flow: false };
   /* Either class a claim carries: a run whose only one is the landing checkpoint is a run. */
-  return { run, flow: FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") || run.byClass.has(READY_CLASS) };
+  return { run, flow: FLOW_BRIEF.test(run.brief) || run.byClass.has(CLAIM_CLASS) || run.byClass.has(READY_CLASS) };
 };
 
 /** Every transcript under the derived root, folded. A file that is not an issue-flow run is

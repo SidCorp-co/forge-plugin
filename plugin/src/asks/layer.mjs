@@ -122,8 +122,6 @@ const decisionRows = (record) => (Array.isArray(record?.message?.content) ? reco
    bytes, so the lines holding neither — nearly all of them — are never decoded. */
 const MARKS = [Buffer.from("\"toolUseResult\""), Buffer.from(DECISION_FOOTER)];
 
-/** The rows one line holds; null for a line that should hold some and cannot be read, which the
- *  build treats as evidence it has not seen rather than evidence that is not there. */
 /* The host names a project's transcript directory by a slug two repositories can share, so a row is
    this project's only where the session that wrote it stood in this repository. One that says where it
    stood elsewhere is another project's; one that does not say cannot be told apart, and is doubt. */
@@ -132,6 +130,8 @@ const standsIn = (record, repository) => {
   return record.cwd === repository || record.cwd.startsWith(`${repository}/`);
 };
 
+/** The rows one line holds; null for a line that should hold some and cannot be read, which the
+ *  build treats as evidence it has not seen rather than evidence that is not there. */
 const rowsOfLine = (bytes, skip, repository) => {
   if (!MARKS.some((one) => bytes.includes(one))) return [];
   let record;

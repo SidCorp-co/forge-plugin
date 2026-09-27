@@ -13,10 +13,10 @@ import { didYouMean, suggest } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
 import { partsIn, prefixesOf } from "./filing/parts.mjs";
+import { NO_LONGER_OWES } from "../flow/earned/park-status.mjs";
 
 export { partsIn };
 
-const SETTLED = ["closed", "dropped"];
 const CANDIDATES = 4;
 const TOKENS = 3;
 const SEARCHED = MAX_LIMIT;
@@ -258,7 +258,7 @@ export const keysOffered = (keys, held = []) => {
 };
 
 export const openTitles = (rows) =>
-  rows.filter((one) => !SETTLED.includes(one.status)).map((one) => ({
+  rows.filter((one) => !NO_LONGER_OWES.includes(one.status)).map((one) => ({
     issueId: one.issueId ?? "",
     documentId: one.documentId ?? null,
     title: String(one.title ?? "").trim(),

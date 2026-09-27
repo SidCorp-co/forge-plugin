@@ -29,6 +29,6 @@
   "standing": {
     "vacuousAssertions": 18,
     "sourcePins": 20,
-    "testOnlyExports": 40
+    "testOnlyExports": 39
   }
 }

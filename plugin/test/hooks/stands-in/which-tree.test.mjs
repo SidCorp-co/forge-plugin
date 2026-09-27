@@ -7,7 +7,8 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { NOWHERE, movedTo, standsIn } from "../../../hooks/_hook.mjs";
+import { NOWHERE, standsIn } from "../../../hooks/_hook.mjs";
+import { movedTo } from "../../../src/hooks/shell-spans.mjs";
 import { callHook, cleanRepo, dirtyRepo, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
 
 const HOOK = new URL("../../../hooks/entries/bash-guard.mjs", import.meta.url).pathname;

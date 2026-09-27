@@ -13,7 +13,7 @@
 
 import { dirname, join, normalize } from "node:path";
 
-import { lineAt } from "../../markdown.mjs";
+import { escaped, lineAt } from "../../markdown.mjs";
 import { KINDS, literalsIn } from "../source/lexical.mjs";
 import { blanked, closesAfter } from "../suite/wall-clock.mjs";
 import { argumentsAt } from "./calls.mjs";
@@ -30,8 +30,6 @@ const GLOBALS = ["process", "globalThis", "console", "Date", "Math", "JSON", "Bu
 const RULE = new RegExp(String.raw`node:|(?<![\w$.])(?:${GLOBALS.join("|")})\b`, "u");
 
 const READ = /(?<![\w$.])(?:readFileSync|readFile)\s*\(/gu;
-
-const escapedName = (name) => name.replace(/\$/gu, "\\$");
 
 /** A string literal's text, cut at its first interpolation, which is then `partial`. */
 const unquoted = (held) => {
@@ -58,7 +56,7 @@ const statementEnd = (code, from) => {
 /** The source text a name was last declared with before `at`. */
 const declaredAs = (ctx, name, at) => {
   let found = null;
-  for (const one of ctx.code.matchAll(new RegExp(String.raw`\b(?:const|let|var)\s+${escapedName(name)}\s*=\s*`, "gu"))) {
+  for (const one of ctx.code.matchAll(new RegExp(String.raw`\b(?:const|let|var)\s+${escaped(name)}\s*=\s*`, "gu"))) {
     if (one.index >= at) break;
     const from = one.index + one[0].length;
     found = ctx.text.slice(from, statementEnd(ctx.code, from)).trim();
@@ -153,7 +151,7 @@ const matchesOn = (text, code, holders, inline) => {
     if (!span) return false;
     const lead = span.from + code.slice(span.from, span.to).search(/\S/u);
     return holders.some((one) => one.from < lead && lead < one.until
-      && new RegExp(String.raw`^${escapedName(one.name)}(?![\w$])`, "u").test(code.slice(lead, span.to)))
+      && new RegExp(String.raw`^${escaped(one.name)}(?![\w$])`, "u").test(code.slice(lead, span.to)))
       || inline.some((one) => span.from <= one.from && one.to <= span.to);
   };
   const said = ({ from, to }) => text.slice(from, to).trim();

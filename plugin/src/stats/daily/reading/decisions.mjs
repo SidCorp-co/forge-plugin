@@ -4,8 +4,9 @@
    the baseline it moved against. An answer failing a check comes back as the reason it was dropped,
    for the caller to count: docs/cli/stats-the-reading.md. */
 import { ACTIONS, CATEGORIES, ISSUE_KEY, MOVED, PRIORITIES, TEXT_CHARS, VERDICTS } from "./roles.mjs";
+import { NO_LONGER_OWES } from "../../../flow/earned/park-status.mjs";
 
-const SETTLED = new Set(["closed", "dropped"]);
+const SETTLED = new Set(NO_LONGER_OWES);
 const ONE_KEY = /^ISS-\d+$/u;
 
 export const trimmed = (value) => String(value ?? "").trim();

@@ -99,17 +99,17 @@ export const ANGLES = {
 
 const NAMES = Object.keys(ANGLES);
 
+/** The clause every statement of what these readings leave out turns on, `stats change`'s among them. */
+export const A_PRICE = "a price — what a run spent, never what it came back with — so all of them "
+  + "improving is as consistent with runs having skipped what they owed as with the harness needing "
+  + "less of them.";
+
 /** What the whole set leaves out, printed with the verdicts rather than left to a topic, because the
  *  reader who needs it is the one who did not go looking. The count is the shipped set's and comes off
  *  that set: a number written here would be wrong the first time an angle is added, and it is not the
  *  asked-for selection's count because the claim is about what this verb measures at all rather than
  *  about what one call chose to print. The claim that every one of them is a price is held by a case
  *  and not by this sentence, which cannot check itself. */
-/** The clause every statement of what these readings leave out turns on, `stats change`'s among them. */
-export const A_PRICE = "a price — what a run spent, never what it came back with — so all of them "
-  + "improving is as consistent with runs having skipped what they owed as with the harness needing "
-  + "less of them.";
-
 export const NOT_MEASURED = `what none of the ${NAMES.length} angles this verb holds measures: every `
   + `one is ${A_PRICE} No figure in this reading is a quality measure.`;
 

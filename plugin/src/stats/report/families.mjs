@@ -6,6 +6,7 @@
 import { FLOOR, neighboursOf } from "../../tracker/filing/neighbours.mjs";
 import { PROJECT } from "../../tracker/filing/plugin-defect.mjs";
 import { otherOf } from "../../tracker/edges/kinds.mjs";
+import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";
 import { everyIssue, shortOf } from "../../tracker/issues.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { accountCredentials, refusing, useProject } from "../../resolve/settings.mjs";
@@ -13,7 +14,7 @@ import { accountCredentials, refusing, useProject } from "../../resolve/settings
 /** How many causes one write asks the tracker to match, past the ones an earlier write matched. */
 export const MATCHED = 30;
 
-const SETTLED = new Set(["closed", "dropped"]);
+const SETTLED = new Set(NO_LONGER_OWES);
 const CLOSED = "closed";
 const MARKER = /\[gate-recurrence(?:-group)? [0-9a-f]+\]/u;
 

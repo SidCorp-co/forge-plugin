@@ -132,7 +132,6 @@ export const shipLine = (held) => {
     + `${held.ships.resumed} resumed with --from, a push rejected in ${held.ships.rejectedRuns} run(s)`;
 };
 
-/** What an unrecognised class says to do about it, and nothing where every class was recognised. */
 const summed = (rows) => rows.reduce((sum, [, many]) => sum + many, 0);
 
 /** The two totals of the failed calls no refusal of this plugin's own was read in: the errors, whose
@@ -143,6 +142,7 @@ export const failureLines = (held) => [
     + `${held.answers.length ? `: ${held.answers.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
 ];
 
+/** What an unrecognised class says to do about it, and nothing where every class was recognised. */
 export const declareLines = (held) => (held.unrecognised.length
   /* Named as a command and not as a file: the record belongs to the checkout that was PROFILED and
      `fromProject()` would answer for the one this process stands in, which is a different project

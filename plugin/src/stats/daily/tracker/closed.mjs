@@ -7,14 +7,13 @@ import { MOVED, NO_ENDPOINT, TRACKER, endpointHeld, firstLine, oncePerSlug, walk
 import { byAlias, documentsOf, pairsOf } from "../../eval/outcomes.mjs";
 import { shortOf } from "../../../tracker/issues.mjs";
 import { refusing, useProject } from "../../../resolve/settings.mjs";
+import { tenth } from "../../figures.mjs";
 
 const CLOSED = "closed";
 
 export const SPLIT = "a run that owned several issues lends each an equal share of its minutes";
 export const REOPENED = "an issue closed again after a reopen counts on each day it closed";
 const NO_READING = "no tracker reading was made for this page";
-
-const tenth = (value) => Math.round(value * 10) / 10;
 
 const closesIn = (events) => events.filter((one) => one.action === MOVED && one.to === CLOSED);
 

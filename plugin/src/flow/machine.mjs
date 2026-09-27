@@ -229,10 +229,10 @@ export const restoreMachine = (text, held = {}) => {
 };
 
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage
-   list all read: a field named in two places is a shape that disagrees with itself. Kept beside
-   the block it is written into, and importing nothing, so either side may reach it. */
+   list all read: a field named in two places is a shape that disagrees with itself. The block it is
+   written into is `machine/block.mjs`'s, which imports nothing from here, so either side may reach it. */
 export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded"];
-/* The status `closed` is entered from. Here, not beside ORDER: record.mjs cannot import earned.mjs. */
+/* The status `closed` is entered from. */
 export const CLOSES_FROM = "awaiting_release";
 export const PARKS = [
   "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
@@ -276,7 +276,7 @@ export const OUTCOMES = ["approved", "changes-requested"];
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
 /* `many` flags repeat; `oneOf` names the values; `each` is the rule over every one of them and `form` the words it and the kind's own help both state, so a caller reads the grammar before composing rather than out of the refusal (ISS-457); `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it; `prose` is a value made of sentences, which a blank and a route to its text are both refused at, and a field naming a place does not carry it (record/prose-route.mjs).
-   `takes` is what a sentence about the field says it holds where the label cannot say it: the label is `labelledIn`'s read key above, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
+   `takes` is what a sentence about the field says it holds where the label cannot say it: the label is the read key of `labelledIn` in `machine/block.mjs`, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
@@ -359,7 +359,7 @@ const correctsProblem = (value) => {
     + (known ? "" : `; the kinds are ${kinds.join(", ")}`);
 };
 
-/* Said once, by the shape and by whatever turns a write back, so both name the same two grounds. */
+/* The two grounds a finding stands on, said by the finding shape when it turns a write back. */
 const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it, or --evidence "
   + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
   + "is an assertion nothing on the record stands behind";

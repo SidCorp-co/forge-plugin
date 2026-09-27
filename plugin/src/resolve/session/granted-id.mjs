@@ -59,7 +59,7 @@ const asRun = (read) => {
     (under[at] === " " || (under[at] !== "#" && SPELLS.test(one)) ? one : " ")).join("");
 };
 
-const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
+export const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
 
 export const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*forge(?![\w-])`, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;

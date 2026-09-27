@@ -1,5 +1,6 @@
 /* The three signals printed beside the score and folded into none of it: docs/cli/next.md. */
 import { callsIn } from "../stats/corpus/transcripts.mjs";
+import { CLAIM_CLASS } from "../stats/corpus/classes.mjs";
 import { readTranscript } from "../stats/corpus/corpus.mjs";
 import { keysIn } from "../tracker/issues.mjs";
 import { meets, pathsNamed } from "./eligible.mjs";
@@ -9,7 +10,7 @@ import { runsUnder } from "../stats/runs.mjs";
 import { median } from "../stats/median.mjs";
 
 const claimedIn = (text) => {
-  const claim = callsIn(text).calls.find((call) => call.class === "forge claim");
+  const claim = callsIn(text).calls.find((call) => call.class === CLAIM_CLASS);
   return claim ? keysIn(claim.command)[0] ?? null : null;
 };
 

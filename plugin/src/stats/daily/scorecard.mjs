@@ -9,6 +9,7 @@ import { REOPENED, SPLIT, closedOn } from "./tracker/closed.mjs";
 import { waitsOn } from "./tracker/waits.mjs";
 import { entriesOf } from "./opportunities.mjs";
 import { median } from "../median.mjs";
+import { tenth } from "../figures.mjs";
 
 const LOWER = "lower";
 const HIGHER = "higher";
@@ -17,7 +18,6 @@ const PERCENT = "%";
 /* The kind the opportunities ranking prices in minutes waited: a wait is a call that ran, not one lost. */
 const WAIT = "wait";
 
-const tenth = (value) => Math.round(value * 10) / 10;
 const percentOf = (part, whole) => (whole ? tenth((part / whole) * 100) : null);
 
 /** The calls the opportunities ranking counts as paid over a set of runs, waits apart, beside every

@@ -4,6 +4,7 @@
    carries no cause and a landing run in the background leaves no transcript. What each figure counts
    and what it cannot see: docs/cli/stats-the-landing.md. */
 import { ATTEMPTS, WRITTEN, marksOf, scopeOrNone, writeMark } from "./marks.mjs";
+import { tenth } from "../figures.mjs";
 
 const OPENED = "opened";
 const ENDED = "ended";
@@ -76,8 +77,6 @@ export const gateRecorded = ({ root, candidate, members, verdict, seconds = null
   written({ kind: ATTEMPTS, scope: scopeOrNone(root), phase: GATE, gate: `${candidate}@${at}`, at, candidate,
     members, verdict, seconds: Number.isFinite(seconds) ? seconds : null }, `the gate over ${String(candidate).slice(0, 7)}`);
 };
-
-const tenth = (value) => Math.round(value * 10) / 10;
 
 /* How many judged gates named the issue after its previous landing and at or before this one. */
 const judgedBefore = (ending, gates, landings) => {

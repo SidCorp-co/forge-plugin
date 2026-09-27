@@ -1,5 +1,5 @@
 /* No commit gate reaches a plan or its criteria, so the verbs that write them ask. docs/cli/codex-the-consult.md. */
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
@@ -68,8 +68,8 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   /* These verbs write from any directory, so no stand-down: one `cd` would be the way past the rule. */
   const here = repoRoot(cwd);
   const root = here ?? repoRoot(real);
-  /* No root to try first, so the real path is the whole of the name. */
-  const held = !file ? null : root ? locate(root, real) : { rel: realpathSync(real), real: realpathSync(real) };
+  /* With no root to try first, `locate` names the file by its real path alone. */
+  const held = file ? locate(root, real) : null;
   if (!held) {
     return refusing(`${path} is not a regular file, so no consult can be shown it.\n\nDo this: `
       + `write the text to a file and name that. ${OFF}`);
