@@ -49,6 +49,8 @@ test("the home's skills are still guarded, however the path reaches them", () =>
   mkdirSync(join(project, ".claude"), { recursive: true });
   symlinkSync(join(home, ".claude", "skills"), join(project, ".claude", "skills"));
   assert.equal(edit(join(project, ".claude", "skills", "demo", "SKILL.md")).allowed, false, "and a project's link to the home's is the home's");
+  const fresh = join(project, ".claude", "skills", "not-made-yet", "SKILL.md");
+  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: fresh, content: "x" } }).allowed, false, "for a skill it has not made yet too");
 });
 
 test("an owner the command built rather than spelt is no project's", () => {

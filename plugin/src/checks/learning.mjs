@@ -4,7 +4,7 @@ import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
-import { canonical } from "../resolve/canonical.mjs";
+import { canonical, landing } from "../resolve/canonical.mjs";
 import { memoryDir } from "../hooks/transcripts.mjs";
 import { installedPaths } from "../tools/plugin-copy.mjs";
 
@@ -28,7 +28,7 @@ export const projectSkill = (path) => {
   /* Placed and resolved first, since a `..` or a link anywhere in it can lead out of the project into the home or a plugin. */
   const spelt = path.startsWith("~/") ? join(homedir(), path.slice(2)) : path;
   if (!isAbsolute(spelt)) return false;
-  const full = join(canonical(dirname(resolve(spelt))), basename(spelt));
+  const full = landing(spelt);
   const at = full.lastIndexOf("/.claude/skills/");
   if (at <= 0) return false;
   return canonical(full.slice(0, at)) !== canonical(resolve(homedir()));
