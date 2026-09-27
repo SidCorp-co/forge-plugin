@@ -25,7 +25,7 @@ import { CITED, laneLines } from "../guides/phases.mjs";
 import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
-import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
+import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
 
 export const USAGE = [
   usageOf("advance"),
@@ -206,9 +206,16 @@ export const parkAs = async (view, ref, kind, why, evidence = [], { left = null,
   }
 };
 
+/* A park sets the issue down, so the run that wrote it has finished its turn on it whatever the kind:
+   the lease it held goes back as the call ends, and the run dispatched to the issue next claims it at
+   once. Left standing, that lease named a holder minted for the same issue, which the dispatched
+   claim reads as a run at work and refuses with no flag to clear it (ISS-2679). Queued by each verb
+   that parks — this one twice, and a park record through `forge record` — and never by `parkAs`,
+   whose other caller is the landing's and ends no turn of its own. */
 const park = async (view, ref, kind, why, evidence, asked = null) => {
   parkChecked(view, ref, kind, evidence);
   await parkAs(view, ref, kind, why, evidence, { asked });
+  oweRelease(view.documentId, ref);
 };
 
 /* A named target is checked rather than obeyed: the only legal one is where the route says the
@@ -506,7 +513,10 @@ const run = async (argv, readAs) => {
   }
   /* The triage that puts the expectation outside the specification writes its park here, because a
      park is a record and a status and the route decided both from the triage the record holds. */
-  if (routed) return parkAs(view, ref, routed.kind, routed.why, [], { left: routed.left });
+  if (routed) {
+    await parkAs(view, ref, routed.kind, routed.why, [], { left: routed.left });
+    return oweRelease(view.documentId, ref);
+  }
   /* Both notes, where a form resumed a park: what moved it and what was typed to move it are two
      facts, and dropping either leaves the line answering a question nobody asked. */
   const note = `${resumed ? "  (resumed where its park left it)" : ""}`
