@@ -33,7 +33,7 @@ const statusOf = async (documentId) =>
 /* Read for whether the status is there rather than for whether the move was tried: `done` written
    over a refusal would certify a status nothing earned. `ask` is how a caller's reads fail: the
    landing turns a tracker refusal into its own stop. */
-export const moveTo = async (key, to, documentId, ask = direct) => {
+const moveTo = async (key, to, documentId, ask = direct) => {
   const status = await ask(() => statusOf(documentId));
   if (atLeast(status, to)) {
     console.log(`  ${key} is ${status} already`);
