@@ -34,14 +34,6 @@ appends nothing to the history and counts as no reclaim.
 **A claim writes the lease and never parks**: only the caller knows it is alive, so the reclaim
 count is said to it (ISS-693).
 
-**The count leaves out a reclaim over a lease that declared nothing was worked**, read off the line
-the reclaim's row already keeps — the line of the lease it went over, which is the lease whose lapse
-the row is evidence about. A lease that said of itself that no work followed and then lapsed is the
-reading `forge claim -h` teaches, not a run that died, and counting it spent an issue's whole budget on
-two dispatcher readings. That declaration is therefore never inherited: a new holder's silence
-leaves its lease with no line rather than one saying its own work never happened, which would
-exempt that holder's death in turn (ISS-1537).
-
 The holder is the harness's own session, read twice to check that it is stable for the life of a
 process tree. Outside a harness it is a file under the config directory, which names a machine
 rather than a run: two runs there look like one holder and neither is refused. **Inside one, so do
