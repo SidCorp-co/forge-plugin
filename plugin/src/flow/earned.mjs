@@ -3,7 +3,7 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, TRIAGES, looksIn, looksTo, need, planFlags,
+  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, TRIAGES, correctedKind, looksIn, looksTo, need, planFlags,
   somebodyLooked, unwrap, valuesOf, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
@@ -156,9 +156,15 @@ export const flowJudgeConflict = (flow, judge, policy) => {
 };
 
 /* What the corrections on a record say moved, for the rung and for `namedIn`, which are its only readers. `correction` repeats since ISS-11, so `assemble` has already filed every one of them off the parse it made, and the hand parse of `view.comments` this replaced was a second parse for one answer (ISS-161, ISS-847). Whole payloads only: a comment carrying `moved` and no `why` reaches the page through any client no gate sits before, and it is no correction — read as a climb it would un-lighten an issue on a payload nothing wrote, and read as a path named it would excuse a landing that wrote one. The report counts what is on the page rather than what is a correction, which is a different question and stays `record.mjs`'s. */
-const movedIn = (view) => (view.repeated?.correction ?? [])
+const correctionsIn = (view) => (view.repeated?.correction ?? [])
   .filter((one) => !shapeGaps("correction", one.record, view.names).length)
-  .map((one) => one.record.fields.moved);
+  .map((one) => one.record.fields);
+const movedIn = (view) => correctionsIn(view).map((one) => one.moved);
+
+/* The corrections that extend the plan's list, for `namedIn`: those naming the plan as what they correct, and those written before `corrects` existed, which the read-back excuses the field. A correction of a review verdict, a criterion or a field of the issue says what moved in *that* record, and a path in its prose — one saying the file was left untouched as readily as one saying it was written — is no file the change was planned to write (ISS-415). The field and not the sentence, because the sentence cannot be read for what it asserts. */
+const planMovedIn = (view) => correctionsIn(view)
+  .filter((one) => one.corrects === undefined || correctedKind(one.corrects) === "plan")
+  .map((one) => one.moved);
 
 export const rungFieldsOf = (view) => (view.rungFields ??= {
   plan: unwrap(view.issue.plan),
@@ -437,10 +443,10 @@ const deployOwed = (view, ref) => {
   return out;
 };
 
-/** The plan's own text and the corrections extending it, and not a path list, a plan being prose; `wrote` is not `moved`. Blank where the plan field holds no text, whatever the corrections name: a correction is what a plan's list is extended by and never what stands in for one, so the climb the ladder prints to every run that outgrows its rung leaves this blank rather than turning it into a list that names no path (ISS-402, ISS-1018). The test is the field and not the rung, a rung climbed by a correction past `approved` having no plan to be held to either. The composer of the note is the second reader — `namedFor` in `record/merged.mjs` — so the carve-out is here and not in either reader, which would otherwise each keep a copy of the same question. */
+/** The plan's own text and the corrections of the plan extending it, and not a path list, a plan being prose; `wrote` is not `moved`. Blank where the plan field holds no text, whatever the corrections name: a correction is what a plan's list is extended by and never what stands in for one, so the climb the ladder prints to every run that outgrows its rung leaves this blank rather than turning it into a list that names no path (ISS-402, ISS-1018). The test is the field and not the rung, a rung climbed by a correction past `approved` having no plan to be held to either. The composer of the note is the second reader — `namedFor` in `record/merged.mjs` — so the carve-out is here and not in either reader, which would otherwise each keep a copy of the same question. */
 export const namedIn = (view) => {
   const plan = unwrap(view.issue.plan);
-  return plan ? [plan, ...movedIn(view)].join("\n") : "";
+  return plan ? [plan, ...planMovedIn(view)].join("\n") : "";
 };
 
 /* A rung below `feature` writes no plan, and refusing against a list the ladder excused would take

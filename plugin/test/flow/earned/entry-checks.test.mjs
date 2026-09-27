@@ -190,6 +190,18 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   assert.equal(halved.length, 1, "and a correction extends that list");
   assert.match(halved[0].what, /earned\.mjs/u);
   assert.doesNotMatch(halved[0].what, /run\.mjs/u, "by the path it names and no other");
+  /* Only a correction of the plan extends it: one of a review verdict, a criterion or an issue field says what moved in that record, and its prose names a file as readily when it says the file was left untouched (ISS-415). A correction carrying no `corrects` is the shape written before the field, which the read-back excuses. */
+  const grown = "; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs";
+  const correcting = (corrects) => owed(planned, [...wrote(grown), recorded("correction",
+    { moved: "the reversal leaves tools/run.mjs untouched", why: "the review read it", corrects })]).map((one) => one.what);
+  for (const other of ["review", "criteria:3", "issue:complexity", "note"]) {
+    const refused = correcting(other);
+    assert.equal(refused.length, 1, `a correction of ${other} does not extend the plan`);
+    assert.match(refused[0], /tools\/run\.mjs/u, `so the path its prose names is still outside the plan, under ${other}`);
+  }
+  for (const plan of ["plan", "plan:2", undefined]) {
+    assert.deepEqual(correcting(plan), [], `a correction of ${plan ?? "no named record"} extends the plan by the path it names`);
+  }
 });
 
 /* ISS-402 and ISS-1018: a correction is what a plan's list is extended by and never what stands in for one, so the carve-out is the plan field's own blankness — keyed on the joined text instead, the rung climb the ladder prints to every run that outgrows its rung handed back the demand that rung had dropped. */
@@ -222,6 +234,8 @@ test("one reader answers for the corrections a record holds, and both its reader
   });
   const climb = sealed(view(fix, [moved({ moved: "Rung: fix -> feature", why: "the work grew a second tree" })]));
   assert.equal(rungOf(rungFieldsOf(climb)), "feature", "the rung is read off the assembled record alone");
+  const typed = view(fix, [moved({ moved: "Rung: fix -> feature", why: "the work grew a second tree", corrects: "issue:complexity" })]);
+  assert.equal(rungOf(rungFieldsOf(typed)), "feature", "whatever the correction names as corrected, which only the plan's list reads (ISS-415)");
   const path = sealed(view(fix, [moved({ moved: "the change also wrote tools/run.mjs", why: "the ship prints it" })]));
   assert.match(namedIn(path), /tools\/run\.mjs/u, "and so is the path a correction names");
   const source = readFileSync(new URL("../../../src/flow/earned.mjs", import.meta.url), "utf8");
