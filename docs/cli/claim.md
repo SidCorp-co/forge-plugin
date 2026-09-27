@@ -107,10 +107,6 @@ the key does not take refuses the capture too, since reading it as no list would
 checks nobody ran.
 
 **The arming capture asks origin whether it holds the branch at the captured head, and refuses where
-it does not.** A landing fetches the branch the checkpoint names from origin, so a head only this
-disk has arms a landing that fails at its first step, and that failure reads as a network fault
-rather than a missing push (ISS-2662). It is asked after every refusal of the lease and the
-checkpoint and before any check runs. A remote that does not answer refuses too, since the capture's
-own claim is that the head is pushed. The plain `--pushed` asks nothing remote: Phase 4 takes it
-before the first push, and the opening's reachability stays offline, as
-[the work](the-work.md) argues.
+it does not.** A landing fetches the branch from origin, so a head only this disk has arms a landing
+that fails at its first step as if the network were down (ISS-2662). A remote that does not answer
+refuses too. The plain `--pushed` asks nothing remote, since Phase 4 takes it before the first push.

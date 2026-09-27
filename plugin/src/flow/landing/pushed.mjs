@@ -20,7 +20,7 @@ const again = (ref) => `forge claim ${ref} --pushed --ready`;
    and with no prompt for credentials, since nobody is at this terminal to answer one and a capture
    that waits forever is not a refusal; the bound is the one `forge baseline publish` gives the same
    question. */
-export const REMOTE_MS = 30_000;
+const REMOTE_MS = 30_000;
 
 export const remoteTip = (branch, { cwd = process.cwd(), ms = REMOTE_MS } = {}) => {
   const run = spawnSync("git", ["ls-remote", REMOTE, `refs/heads/${branch}`],
