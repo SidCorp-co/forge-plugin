@@ -4,6 +4,11 @@
    whichever side reads it. Checked by plugin/src/checks/surface/edge-kinds.mjs (ISS-769). */
 const expired = (until) => Boolean(until) && Date.parse(until) < Date.now();
 
+/** Retracted, read off the tracker's own `expired` where the edge carries one and off its
+ *  `validUntil` where it does not. An edge carrying neither holds: absent evidence is no retraction. */
+export const edgeExpired = (edge) =>
+  typeof edge?.expired === "boolean" ? edge.expired : expired(edge?.validUntil);
+
 const edgeOf = (edge, side) => ({
   edgeId: edge?.id ?? null,
   kind: edge?.kind ?? null,
@@ -15,7 +20,7 @@ const edgeOf = (edge, side) => ({
   otherStatus: edge?.[`${side}Status`] ?? null,
   otherMergedAt: edge?.[`${side}MergedAt`] ?? null,
   validUntil: edge?.validUntil ?? null,
-  expired: expired(edge?.validUntil),
+  expired: edgeExpired(edge),
 });
 
 export const RELATES = "relates";

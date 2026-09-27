@@ -46,14 +46,14 @@ export const DECLARES = {
       { name: "testing", step: true },
       { name: "tested", replacedBy: "awaiting_release" },
       { name: "awaiting_release", step: true },
-      { name: "releasing", writtenByNobody: "the release path's own status: the release button "
+      { name: "releasing", past: "awaiting_release", writtenByNobody: "the release path's own status: the release button "
         + "enters it and the release batch alone leaves it" },
       { name: "closed", step: true },
       { name: "reopen" },
       { name: "on_hold" },
       { name: "needs_info" },
       { name: "draft" },
-      { name: "dropped" },
+      { name: "dropped", landsNothing: true },
     ],
     caps: {
       title: { self: 500, halves: {} },
