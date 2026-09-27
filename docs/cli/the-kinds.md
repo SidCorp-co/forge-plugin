@@ -13,9 +13,9 @@ the tracker's own field, and prose answers neither: the same headings carry a bu
 a field left empty is one nothing downstream can filter on. The requirement is the filing route's
 alone — a comment owes no shape and has no field to fill, and `forge comment` is a verb of its own
 rather than a flag of this one, so a category is asked for wherever a body is read against a shape
-and nowhere else. A create sent through the tracker's own tool has no flag to refuse and is still
-read as a feature; a light `--complexity` is not an exemption either, a filing calling itself small
-being a filing still.
+and nowhere else. A create sent through the tracker's own tool is no way round it, being refused for
+its route before its body is read; a light `--complexity` is not an exemption either, a filing
+calling itself small being a filing still.
 
 The set is four: three measured rather than picked, and one this CLI files itself. Across the 101 issues this project had filed, the
 tracker's field for a kind was empty on every one, so nothing could be read off the field and the
