@@ -141,17 +141,28 @@ export function turnRecords(path, { tail = TAIL, cap = TAIL_CAP } = {}) {
   return turns.get(key);
 }
 
+/* Where the line holding `from` ends, a window at a time: one record longer than a window is still
+   one record, and cutting it where the window ends would parse two fragments and keep neither. */
+const lineEnd = (handle, from, end, window) => {
+  for (let at = from; at < end; at += window) {
+    const found = spanOf(handle, at, Math.min(end, at + window)).indexOf(NEWLINE);
+    if (found >= 0) return at + found + 1;
+  }
+  return end;
+};
+
 /* The records before `end`, a window at a time and each window cut at its last newline, because one
-   string holding a file past the runtime's own limit on a string's length is no string at all. A
-   single line longer than a window is the one record this loses, as a cut line is everywhere here. */
+   string holding a file past the runtime's own limit on a string's length is no string at all. */
 const recordsBefore = (handle, end, window) => {
   const found = [];
   for (let from = 0; from < end; ) {
-    const held = spanOf(handle, from, Math.min(end, from + window));
-    const cut = from + held.length < end ? held.lastIndexOf(NEWLINE) + 1 : 0;
-    const upTo = cut > 0 ? cut : held.length;
-    for (const one of parsed(held.subarray(0, upTo).toString("utf8"))) found.push(one);
-    from += upTo;
+    let held = spanOf(handle, from, Math.min(end, from + window));
+    if (from + held.length < end) {
+      const cut = held.lastIndexOf(NEWLINE) + 1;
+      held = cut > 0 ? held.subarray(0, cut) : spanOf(handle, from, lineEnd(handle, from + held.length, end, window));
+    }
+    for (const one of parsed(held.toString("utf8"))) found.push(one);
+    from += held.length;
   }
   return found;
 };
