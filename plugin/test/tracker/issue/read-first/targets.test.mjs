@@ -397,31 +397,38 @@ test("a token the tracker turns down stands the gate down in the answer, not in 
   }
 });
 
-/* The other half of this gate: a filing carries no issue to read the comments of, and what it owes
-   is the shape the flow needs. The refusal is the lint's, and the pointer is its own topic page. */
+/* A filing through the tracker's own tool is refused for its route before anything else is read:
+   the route refuses it whatever the body says, so what the body owes is `forge new`'s to say at its
+   own door, and a backlog walked to write a refusal that never depended on it is a PreToolUse hook
+   every raw create waits on (ISS-494). */
 const WHOLE = "## Outcome\n\nThe filing is read where it is made, on every route.\n\n## Rules\n\n"
   + "- A body that meets the shape files with nothing said.\n\n## Out of scope\n\nJudging whether it is true.";
 const TITLED = "the filing is read where it is made on every route";
+const BROKEN = { title: "fix", description: "It is broken." };
 
 const filing = async (data, options = {}) => raw({ action: "create", data }, options);
 
-test("a create whose body cannot carry the flow is denied, and the pointer is the shape's own page", async () => {
-  const run = await filing({ title: "fix", description: "It is broken." });
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(because(run), /naming the outcome/u,
-    "the section the shape refusal found missing, which says the body and not the route was judged");
-  assert.match(because(run), /forge hooks --how issue-shape/u,
-    "one gate refuses two things, and each argument has its own page");
+test("a raw create is refused for its route whatever body it carries, and the shape is not what refused it", async () => {
+  const bodies = {
+    "one meeting the shape": { title: TITLED, description: WHOLE },
+    "one missing a section": BROKEN,
+    "an empty one": { title: TITLED, description: "" },
+    "none at all": undefined,
+  };
+  for (const [which, data] of Object.entries(bodies)) {
+    const run = await filing(data, { session: `probe-body-${which.replaceAll(" ", "-")}` });
+    assert.equal(run.out?.hookSpecificOutput?.permissionDecision, "deny", which);
+    assert.match(because(run), /^Type `forge new` instead\./u, which);
+    assert.match(because(run), /forge_issues create is what `forge new` wraps/u, which);
+    assert.doesNotMatch(because(run), /forge hooks --how issue-shape/u, `${which}: the shape page is not what refused it`);
+  }
 });
 
-/* ISS-335. The shape is read first and the route second, so a body that cannot carry the flow still
-   hears about the body: fixing it is owed on either route, and hearing the verb first would cost the
-   caller the same two rounds in the other order. */
-test("a create that meets the shape is refused for its route, and named the verb that reads it", async () => {
-  const run = await filing({ title: TITLED, description: WHOLE });
+test("a raw create is refused before the gate asks the tracker anything, the open backlog included", async () => {
+  const before = (state.calls ?? []).length;
+  const run = await filing(BROKEN, { session: "probe-no-request" });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(because(run), /forge_issues create is what `forge new` wraps/u);
-  assert.doesNotMatch(because(run), /forge hooks --how issue-shape/u, "the shape is not what refused it");
+  assert.deepEqual((state.calls ?? []).slice(before), [], "no request reached the tracker, so no page of the backlog was walked");
 });
 
 /* ISS-2501. The harness report follows a refusal by the name its How line gives, whatever it says
@@ -433,22 +440,8 @@ test("each refusal this gate writes names its cause on the How line", async () =
   whole({ [UUID]: Array.from({ length: 401 }, (_, at) => comment(`cause${at}`, "one of four hundred and one")) });
   assert.equal(causeOf(await gate("forge advance ISS-29")), "thread-unaccounted");
   whole({});
-  assert.equal(causeOf(await filing({ title: "fix", description: "It is broken." })), "filing-shape");
+  assert.equal(causeOf(await filing(BROKEN)), "raw-call");
   assert.equal(causeOf(await filing({ title: TITLED, description: WHOLE })), "raw-call");
-});
-
-/* ISS-261. The tool's door reads a parts claim under the prefixes the project's rows are keyed in,
-   as `forge new` does, so one body gets one answer whichever door it is sent through. */
-test("a create claiming two of its project's own APP- keys as parts is refused for them at the tool", async () => {
-  const held = state.issues;
-  state.issues = [{ issueId: "APP-1", documentId: UUID }, { issueId: "APP-2", documentId: OTHER }];
-  try {
-    const run = await filing({ title: TITLED, description: `${WHOLE}\n\nParts: APP-1 and APP-2.` });
-    assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
-    assert.match(because(run), /a line naming APP-1 and APP-2 as this issue's parts/u);
-  } finally {
-    state.issues = held;
-  }
 });
 
 test("a comment made through the tool is named its own verb, not the filing's", async () => {
@@ -466,17 +459,18 @@ test("an update is claimed by the verb that writes a field no check earned, and 
 /* ISS-1414. The two checks above ask the tracker something and stand down where it cannot be asked;
    which verb wraps a route is this CLI's own table, and silence there was the way round a withholding. */
 test("with no endpoint saved a filing is judged for its route and not for its shape", async () => {
-  const run = await filing({ title: "fix", description: "It is broken." }, { url: "" });
+  const run = await filing(BROKEN, { url: "" });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
   assert.match(because(run), /forge_issues create is what `forge new` wraps/u);
   assert.doesNotMatch(because(run), /a heading naming the outcome/u,
-    "the shape is a question for the tracker and stands down; the route is not and does not");
+    "the route is refused before any shape is read, with an endpoint or without one");
 });
 
 test("the refusal a raw create earns with no endpoint saved is the one it earns with one", async () => {
-  /* One session each: the line saying where to file a wrong refusal is shown once per session. */
-  const saved = await filing({ title: TITLED, description: WHOLE }, { session: "probe-with-endpoint" });
-  const none = await filing({ title: TITLED, description: WHOLE }, { url: "", session: "probe-no-endpoint" });
+  /* One session each: the line saying where to file a wrong refusal is shown once per session. A body
+     the shape refuses, because that is the body whose answer used to turn on the endpoint. */
+  const saved = await filing(BROKEN, { session: "probe-with-endpoint" });
+  const none = await filing(BROKEN, { url: "", session: "probe-no-endpoint" });
   assert.equal(because(none), because(saved), "the same call, so the same words: the credential is not part of the question");
   assert.match(because(none), /forge_issues create is what `forge new` wraps/u);
 });

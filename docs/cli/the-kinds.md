@@ -49,11 +49,9 @@ Required is refused and nice-to-have is said, because the two shortfalls cost di
 missing the section its kind is defined by cannot be confirmed at all, and pays that again at every
 status; one that does not say where costs a reader a single search. A filing whose `complexity`
 claims a rung below the top is read against no section, so it is told nothing about them: the value
-is already the answer to what shape the flow should ask of it. Where a kind still does not reach the reader — the raw create — the
-feature shape is what a body is held to, which is the shape every filing was held to before kinds
-existed, so nothing filed under the older rule is refused for having followed it. The field stays
-empty on that route rather than being defaulted, because a value written there for a filing that
-chose nothing reads later as a kind somebody chose, and the measurement above is what that spoils.
+is already the answer to what shape the flow should ask of it. The raw create, which has no flag to
+require, is not read for a shape at all: it is refused for its route before its body is, so what a
+body owes is said once, by `forge new`, and a hook never walks the backlog to say it.
 
 Both words are the tracker's. `--category` is the flag, `category` is what the answer comes back
 saying, and `--complexity` takes the tracker's own five values beside it — this CLI translates
