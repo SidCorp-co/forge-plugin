@@ -39,19 +39,19 @@ const readSoftly = async (read, key) => {
 const leftOut = (sibling, key, why) =>
   console.log(`  ${sibling}, on ${key}'s batch, is left out: ${why}. Nothing of it moves:\n    forge resume ${sibling}`);
 
-/** `keys` with each named key's batch siblings after it, where each sibling's own record agrees.
+/** `keys` with each named key's batch siblings after it, where each sibling's own record agrees. A
+ *  sibling one named key leaves is read again under the next, whose batch it may be. 
  *  `read` is the landing's read of one record; `alone` is a route that takes one change per candidate,
  *  where no sibling is added and each is named instead. */
 export const withSiblings = async (keys, { read, startsAtPin, alone }) => {
   const out = [];
-  const seen = new Set(keys.map(upper));
+  const taken = new Set(keys.map(upper));
   for (const key of keys) {
     out.push(key);
     const own = await readSoftly(read, key);
     if (own.unread || !landingOf(own.context)) continue;
-    const siblings = membersOf(worklogOf(own.context)?.batch).map(upper).filter((one) => !seen.has(one));
+    const siblings = membersOf(worklogOf(own.context)?.batch).map(upper).filter((one) => !taken.has(one));
     for (const sibling of siblings) {
-      seen.add(sibling);
       if (alone) {
         leftOut(sibling, key, alone);
         continue;
@@ -62,6 +62,7 @@ export const withSiblings = async (keys, { read, startsAtPin, alone }) => {
         continue;
       }
       console.log(`  ${sibling}, on ${key}'s batch at the same branch and head, is taken with it`);
+      taken.add(sibling);
       out.push(sibling);
     }
   }

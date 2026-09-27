@@ -6,7 +6,7 @@ import test from "node:test";
 import { join } from "node:path";
 
 import {
-  BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_UUID, OWNED, UUID,
+  BASE, BRANCH, KEY, NEXT_KEY, NEXT_UUID, OWNED, THIRD_KEY, THIRD_UUID, UUID,
   context, git, issue, landingRan, marks, ready, seeded, sha, tracker, world,
 } from "./fixture.mjs";
 
@@ -49,11 +49,12 @@ test("one member of a batch named at one branch and head lands both as one candi
 
 test("a batch sibling at another head is named as left out, and its checkpoint and record do not move", async () => {
   const { work, head, next, base } = world({ base: "other", second: true });
-  const theirs = ready(next, base, { branch: NEXT_BRANCH });
+  /* The same branch and only the head moved, so the head is what the reading turns on. */
+  const theirs = ready(next, base);
   batched(ready(head, base), theirs);
   const said = await landingRan([KEY], work);
-  assert.match(said, new RegExp(`${NEXT_KEY}, on ${KEY}'s batch, is left out: its checkpoint names ${NEXT_BRANCH} `
-    + `at ${next.slice(0, 7)}, and this landing takes iss-673 at ${head.slice(0, 7)}`, "u"), said);
+  assert.match(said, new RegExp(`${NEXT_KEY}, on ${KEY}'s batch, is left out: its checkpoint names ${BRANCH} `
+    + `at ${next.slice(0, 7)}, and this landing takes ${BRANCH} at ${head.slice(0, 7)}`, "u"), said);
   assert.match(said, new RegExp(`forge resume ${NEXT_KEY}`, "u"), said);
   assert.deepEqual(landing(NEXT_UUID), theirs, `its checkpoint is unchanged:\n${said}`);
   assert.equal(marks(NEXT_UUID).length, 0, said);
@@ -87,4 +88,17 @@ test("a same-head sibling at another turn is left out, and its checkpoint does n
   assert.match(said, new RegExp(`${NEXT_KEY}, on ${KEY}'s batch, is left out: its checkpoint reads \`builder-owed\``, "u"), said);
   assert.deepEqual(landing(NEXT_UUID), theirs, said);
   assert.equal(marks(NEXT_UUID).length, 0, said);
+});
+
+test("a sibling one named key's batch leaves is read again under the next named key, whose batch it is", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base), next: ready(head, base), last: ready(head, base) });
+  issue(UUID).sessionContext.worklog = { batch: `${KEY}, ${THIRD_KEY}` };
+  issue(NEXT_UUID).sessionContext.worklog = { batch: `${NEXT_KEY}, ${THIRD_KEY}` };
+  issue(THIRD_UUID).sessionContext.worklog = { batch: `${NEXT_KEY}, ${THIRD_KEY}` };
+  issue(NEXT_UUID).plan = issue(UUID).plan;
+  const said = await landingRan([KEY, NEXT_KEY], work);
+  assert.match(said, new RegExp(`${THIRD_KEY}, on ${KEY}'s batch, is left out: its own worklog names another batch`, "u"), said);
+  assert.match(said, new RegExp(`${THIRD_KEY}, on ${NEXT_KEY}'s batch at the same branch and head, is taken with it`, "u"), said);
+  assert.equal(marks(THIRD_UUID).length, 1, `it landed with the key whose batch it is:\n${said}`);
 });
