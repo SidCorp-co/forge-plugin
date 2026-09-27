@@ -95,6 +95,19 @@ test("two paths of one base name in one command are refused before either goes u
   assert.equal(asked(), before, "the paths are read whole before the first request");
 });
 
+/* Every collision in one refusal, whichever side it collides with: one refusal per name was one
+   round per name (ISS-476). */
+test("every colliding name of one command is named in one refusal, and nothing is sent", async () => {
+  const before = asked();
+  const [up, twin] = [wrote("gate-at-merge.txt"), wrote("pair.txt", "sub")];
+  const run = await ask("attach", "issue", "ISS-1", up, wrote("pair.txt"), twin);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^2 files carry a name already a document on ISS-1, or named twice in this command:$/mu, run.stderr);
+  assert.ok(run.stderr.includes(`\n  ${up}  as gate-at-merge.txt\n`), `the one already up: ${run.stderr}`);
+  assert.ok(run.stderr.includes(`\n  ${twin}  as pair.txt\n`), `and the one named twice: ${run.stderr}`);
+  assert.equal(asked(), before, "the paths are read whole before the first request");
+});
+
 test("a base name on none of the issue's documents is sent as before", async () => {
   const run = await ask("attach", "issue", "ISS-1", wrote("gate-at-27f1f70.txt"));
   assert.equal(run.status, 0, run.stderr);
