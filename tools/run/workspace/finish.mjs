@@ -9,8 +9,6 @@ import { existsSync, readdirSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
-import { consults } from "../../../plugin/src/codex/codex-log.mjs";
-import { jsonlAt } from "../../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typedBack } from "../../../plugin/src/refusal.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef, stop,
@@ -19,6 +17,7 @@ import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { treeKey } from "../../gates/timing.mjs";
 import { aheadRoute } from "./ahead-route.mjs";
+import { carried } from "./corpus-carried.mjs";
 import { copiesIn, machineSecrets } from "./credential-copies.mjs";
 import { endedOf, endedWritten } from "./ended.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
@@ -53,6 +52,12 @@ export const FINISH_HELP = [
   "home borrows this machine's credentials by reference, which `start` prints, so a copy in the",
   "scratch is one a run made and no record says it did. Removing the scratch with it would end the",
   "one trace of that, so the files are named and the workspace called clean only once they are gone.",
+  "",
+  "A run logs its consults in the home under its scratch, so before the scratch goes every row of",
+  "that log the machine's consult log lacks is appended to it, byte for byte and once, a row being",
+  "present when the same line already is. The machine's log is the one beside the config",
+  "FORGE_BORROW_FROM names, and the configuration home's otherwise. A carry that fails leaves the",
+  "scratch, and everything after it, standing: the scratch is the only copy of those rows.",
   "",
   "The route out of the second is `ship`, except where the project's ship mode is `ready` and the",
   "issue's landing checkpoint names this branch: a run there lands nothing of its own, so the refusal",
@@ -179,21 +184,28 @@ const refusals = (root, path, base, read, route) => [
   ...copyRefusal(read.copies),
 ].filter(Boolean);
 
-/* Said before the removal, because afterwards there is nothing left to read. A run whose configuration
-   home was this directory logged its consults here and into no other copy, and `forge stats eval` and
-   the evaluator role judge a release by a log that never saw them: missing data, from exactly the runs
-   a wave produces, with nothing failing to say so (ISS-189). */
-const corpusGoing = (at) => {
-  const log = join(at, "forge", "codex-log.jsonl");
-  const held = consults(jsonlAt(log)).length;
-  if (!held) return undefined;
-  return console.log(`  note     ${log} holds ${held} consult(s) and goes with the directory: that `
-    + `log is the corpus a release is read off, and a consult recorded only here reached no other copy`);
-};
-
 /* One line naming the removal and the call that retries it, last of all, since a caller reading the
    tail of this output is reading that line. */
 const failedLine = (what, why, retry) => `  failed   ${what} was not removed (${why}); retry it with: ${retry}`;
+
+/* Before the removal, because the scratch is the only copy of what a run logged in its home: a row
+   that never reaches the machine's log is a consult no eval counted (carried: corpus-carried.mjs). */
+const corpusCarried = (at, retry) => {
+  let took;
+  try {
+    took = carried(at);
+  } catch (error) {
+    stop(`The tree, its branch, its verdict record and the scratch are all left standing: the scratch holds the `
+      + `only copy of this run's consults.\n`
+      + failedLine(`the scratch directory ${at}`, `its consult rows were not carried into the machine's log: `
+        + error.message, retry));
+  }
+  if (!took.from.length) return undefined;
+  const from = took.from.join(" and ");
+  return console.log(took.rows
+    ? `  carried  ${took.rows} row(s), ${took.consults} of them consult(s), from ${from} into ${took.log}`
+    : `  carried  no row: ${from} holds none that ${took.log} lacks`);
+};
 
 const removedScratch = (at, retry) => {
   if (!at) {
@@ -202,7 +214,7 @@ const removedScratch = (at, retry) => {
   }
   if (!existsSync(at)) return console.log(`  gone     ${at} was already removed`);
   const held = readdirSync(at).length;
-  corpusGoing(at);
+  corpusCarried(at, retry);
   try {
     rmSync(at, { recursive: true, force: true });
   } catch (error) {
