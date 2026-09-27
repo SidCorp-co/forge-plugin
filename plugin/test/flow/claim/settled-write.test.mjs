@@ -36,6 +36,7 @@ const ISSUE = {
 /* Each case starts from the status and the lease it is about, so no case reads through the one before it. */
 const heldAt = (status, since, minutes = 180) => {
   ISSUE.status = status;
+  delete ISSUE.releaseNotes;
   ISSUE.sessionContext = {
     lease: {
       holder: THEIRS, agent: "a-test-agent", pid: "4242", renewedAt: ago(since), minutes, next: LEFT,
@@ -76,6 +77,8 @@ test("a note written to a closed issue under another run's live lease lands, and
   const wrote = await note();
   assert.equal(wrote.status, 0, `the correction should have landed:\n${wrote.stdout}${wrote.stderr}`);
   assert.doesNotMatch(wrote.stderr, /held by another run/u, "with nothing sending the caller to wait");
+  assert.match(JSON.stringify(ISSUE.releaseNotes ?? null), /The swipe gesture is gone\./u,
+    "and the note the caller typed is the one the issue now holds");
   const row = onTheRecord().history.at(-1);
   assert.equal(row.how, "reclaim", "the take is kept under the word a reclaim keeps");
   assert.equal(row.holder, OURS, "by the run that wrote");
