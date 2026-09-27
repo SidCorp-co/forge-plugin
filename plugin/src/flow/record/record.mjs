@@ -335,8 +335,8 @@ const quoteCriteria = (kind, blocks, body, reference) => {
   }
 };
 
-/* A park record's status left is the issue's own only where that is no side status: at one, it is
-   where the tracker's history says the issue came from, read before anything of the call is sent. */
+/* A park record at a side status takes its stamp from `../park/left.mjs`, asked before anything of
+   the call is sent so a refusal there leaves nothing up. */
 const stampOf = async (kind, { documentId, body, comments, names }, shape, reference) => {
   const held = String(body[shape.stamp.from ?? "status"] ?? "");
   if (kind !== "park" || !SIDE.includes(body.status)) return held;
