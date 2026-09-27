@@ -506,9 +506,11 @@ const spoken = (said) =>
 /* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
 const AIMED_AT = { options: false };
 
-/* A name is spelt whole where a shell word opens with it, an opening quote aside: anything else glued before it — a `${…}`, a `$`, a closed quote pair holding one — is part of the same word, built rather than written, and the name is only its tail. */
+/* A name is spelt whole where a shell word opens with it, an opening quote aside, in a command holding nothing the shell still expands or joins. Anything glued before it — a `${…}`, a closed quote pair, a line continued onto it — makes it the tail of a word built rather than written, and which of those a reading of neighbours has missed is not knowable here, so a command carrying any of them spells no name whole. */
 const OPENS = /[\s<>;&|(=]/u;
+const BUILDS = /[$`\\{}]/u;
 const spelled = (said, at) => {
+  if (BUILDS.test(said)) return false;
   const from = at > 0 && /["']/u.test(said[at - 1]) ? at - 1 : at;
   return from === 0 || OPENS.test(said[from - 1]);
 };

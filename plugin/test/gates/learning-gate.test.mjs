@@ -504,11 +504,12 @@ test("the home's skills and a tree nothing placed are still guarded", () => {
   assert.equal(at(home, "echo x > .claude/skills/demo/SKILL.md").allowed, false, "spelt from the home as well");
   assert.equal(decide("echo x > $HOME/.claude/skills/demo/SKILL.md").allowed, false, "a variable nobody resolved may be the home");
   const [parent, user] = [dirname(home), home.split("/").pop()];
-  const built = (target) => decided(callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash",
-    tool_input: { command: `echo x > ${target}` } }, { ...HOME, BASE: parent }));
+  const built = (target, verb = "echo x >") => decided(callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash",
+    tool_input: { command: `${verb} ${target}` } }, { ...HOME, BASE: parent }));
   const tail = `${user}/.claude/skills/demo/SKILL.md`;
   assert.equal(built(`\${BASE}/${tail}`).allowed, false, "and so may the rooted tail one leaves behind, which reads like an owner and is none");
   assert.equal(built(`"\${BASE}"/${tail}`).allowed, false, "with the substitution quoted apart from it too");
+  assert.equal(built(`\${BASE}\\\n/${tail}`, "touch").allowed, false, "or a line continued onto it");
   assert.equal(built(`"/home/dev/app/.claude/skills/demo/SKILL.md"`).allowed, true, "while a quoted owner spelt whole is one");
   assert.equal(decide("echo x > ~/.claude/skills/demo/SKILL.md").allowed, false, "and `~` is");
   assert.equal(decide("echo x > ~/app/.claude/skills/demo/SKILL.md").allowed, true, "while a project under it is not");
