@@ -506,13 +506,23 @@ const spoken = (said) =>
 /* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
 const AIMED_AT = { options: false };
 
+/* A name is spelt whole where a shell word opens with it, an opening quote aside, in a command holding nothing the shell still expands or joins. Anything glued before it — a `${…}`, a closed quote pair, a line continued onto it — makes it the tail of a word built rather than written, and which of those a reading of neighbours has missed is not knowable here, so a command carrying any of them spells no name whole. */
+const OPENS = /[\s<>;&|(=]/u;
+const BUILDS = /[$`\\{}]/u;
+const spelled = (said, at) => {
+  if (BUILDS.test(said)) return false;
+  const from = at > 0 && /["']/u.test(said[at - 1]) ? at - 1 : at;
+  return from === 0 || OPENS.test(said[from - 1]);
+};
+
 const namesIn = (said, tail, read) =>
   namesOf(said, tail, read).map(({ token, at }) => ({
     token,
     placed: token[0] !== "~" && said[at - 1] !== "$",
+    spelt: spelled(said, at),
   }));
 
-/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
+/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
 export const writtenPaths = (text, cwd, tail) => {
   const held = new Map();
   const standing = (at) => {
@@ -531,9 +541,9 @@ export const writtenPaths = (text, cwd, tail) => {
   const aimed = [...text.matchAll(REDIRECT)]
     .flatMap((one) => namesIn(one[1], tail, { ...AIMED_AT, whole: placed(one.index) })
       .map((each) => ({ ...each, at: one.index })));
-  return [...aimed, ...named].map(({ token, placed, at }) => {
+  return [...aimed, ...named].map(({ token, placed, spelt, at }) => {
     const trees = placed && !token.startsWith("/") ? standing(at) : [];
-    return { token, trees, paths: [token, ...trees.map((tree) => join(tree, token))] };
+    return { token, trees, spelt, paths: [token, ...trees.map((tree) => join(tree, token))] };
   });
 };
 

@@ -468,7 +468,21 @@ test("a copy reads its source and writes its destination", () => {
   assert.equal(decide(`dd if=${SKILL} of=/tmp/o.md`).allowed, true);
   assert.equal(decide(`rsync ${SKILL} /tmp/b.md`).allowed, true);
   assert.equal(decide(`cp a.md ${SKILL}`).allowed, false, "the destination is still a write");
-  assert.equal(decide(`cp -a ${SKILL} /tmp/backup.md`).allowed, false, "a source after a flag may be its value");
+  assert.equal(decide(`cp -a ${SKILL} /tmp/backup.md`).allowed, true, "`-a` takes no value, so its word is the source");
+  assert.equal(decide(`cp -a a.md ${SKILL}`).allowed, false, "and the destination after one is still a write");
+});
+
+/* A backup beside a guarded file was read as the file: the `.md` stopped short of the name's end and was taken anyway, so the one way back from an edit to an untracked runbook was refused (ISS-379). */
+test("a copy's backup beside a guarded file is not that file", () => {
+  assert.equal(decide(`cp ${SKILL} ${SKILL}.bak`).allowed, true);
+  assert.equal(decide(`cp -p ${SKILL} ${SKILL}~`).allowed, true, "an editor's spelling of one too");
+  assert.equal(decide(`echo x > ${SKILL}.md`).allowed, false, "while a name that ends in the extension still is");
+});
+
+/* `cp` and `mv` name the flags that take a value, so every other one is read as taking none; `-S` still takes the next word, and a guarded path there is kept as the candidate it may be. */
+test("a value a copy's flag takes is still that flag's", () => {
+  assert.equal(decide(`cp -S /p/skills/x/SKILL.md a b`).allowed, false);
+  assert.equal(decide(`cp -S .bak a.md ${SKILL}`).allowed, false, "and the destination after it is a write");
 });
 
 test("a verb that unlinks what it reads writes its source too", () => {
@@ -479,7 +493,7 @@ test("a verb that unlinks what it reads writes its source too", () => {
   assert.equal(decide(`sed '-i' s/a/b/ ${SKILL} | tee /tmp/ev.txt`).allowed, false, "as with a quoted `-i`");
 });
 
-/* Which flags take a value is not knowable here, so the word after one is never struck out. */
+/* Which of these verbs' flags take a value is not written here, so the word after one is never struck out. */
 test("a guarded path a flag carries is a target in either spelling", () => {
   assert.equal(decide(`rsync --log-file=${SKILL} a.md /tmp/b.md`).allowed, false);
   assert.equal(decide(`rsync --log-file ${SKILL} a.md /tmp/b.md`).allowed, false);

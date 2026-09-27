@@ -1,13 +1,14 @@
 /* Two entry points ask one question — before a write, and after one no check could read. */
 import { spawnSync } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative } from "node:path";
+import { homedir } from "node:os";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
-import { canonical } from "../resolve/canonical.mjs";
+import { canonical, landing } from "../resolve/canonical.mjs";
 import { memoryDir } from "../hooks/transcripts.mjs";
 import { installedPaths } from "../tools/plugin-copy.mjs";
 
-export const GUARDED = /\/memory\/|\/skills\//;
+const GUARDED = /\/memory\/|\/skills\//;
 export const FILE_TYPES = ["user", "feedback", "project", "reference"];
 export const SKILL_CATEGORIES = ["trap", "method", "invariant", "discovery", "boundary"];
 export const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
@@ -17,8 +18,27 @@ export const BRIEF =
   + "cannot hold: a check, a default or a refusal that names the way is fixed or filed there instead, "
   + "since a memory reminds one agent and code holds every run. Most rounds record nothing.";
 
-export const guarded = (path) =>
+/** Whether a path sits under a project's own `.claude/skills/`: the host loads that directory for the one
+ *  project holding it, so its text is a note about one repository by construction — the very thing a
+ *  skill's own text must not be — and the question this gate asks has no honest answer there. The home's
+ *  `.claude/skills/` serves every project and stays guarded, and so does an owner this cannot place: the
+ *  root, or the relative tail a variable nobody resolved left behind, which may well be the home. A
+ *  rooted tail left behind by one is no owner either, and `guardedShape` is what its caller reads. */
+export const projectSkill = (path) => {
+  /* Placed and resolved first, since a `..` or a link anywhere in it can lead out of the project into the home or a plugin. */
+  const spelt = path.startsWith("~/") ? join(homedir(), path.slice(2)) : path;
+  if (!isAbsolute(spelt)) return false;
+  const full = landing(spelt);
+  const at = full.lastIndexOf("/.claude/skills/");
+  if (at <= 0) return false;
+  return canonical(full.slice(0, at)) !== canonical(resolve(homedir()));
+};
+
+/** A memory file or a skill's own text by its shape alone, the owner unasked: what a path is judged by where the command built what stands before it rather than spelling it. */
+export const guardedShape = (path) =>
   GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md";
+
+export const guarded = (path) => guardedShape(path) && !projectSkill(path);
 
 /** Whether a path sits inside an installed copy of this plugin, as the host's install record places
  *  each: an update rewrites that directory whole, so no run records learning there, and a fresh stamp

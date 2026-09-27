@@ -310,7 +310,8 @@ const PATTERN = String.raw`[^*?[\]{}]`;
 
 /** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
 export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true } = {}) => {
-  const ending = new RegExp(`^${PATTERN}+\\.${tail}`, "u");
+  /* The extension ends the name: `SKILL.md.bak` and `notes.md~` carry none of the ones asked for, and the backup a copy makes beside a guarded file is not that file. */
+  const ending = new RegExp(`^${PATTERN}+\\.(?:${tail})(?![\\w~-]|\\.[\\w~-])`, "u");
   const names = [];
   const seen = new Set();
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
@@ -371,18 +372,23 @@ const RELOCATES = /^(?:cd|pushd|popd)$/u;
 const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
 const TARGETED = /\s(?:-[A-Za-z]*t[^\s-]*|--target-directory(?:=\S*)?)(?![\w-])/u;
 
-const notAnOperand = (words, at) => {
+/* The flags that take their value in the next word, for a verb whose every other flag takes none: `cp -a` is a flag alone, and the word after it is the file the copy reads. GNU's `cp` and `mv` take one after `-S` and `-t`, the last letter of a cluster being the one that takes it, and BSD's after none. A verb not named here keeps the reading that a word after any flag may be its value. */
+const VALUED = /^(?:-[A-Za-z]*[St]|--(?:suffix|target-directory))$/u;
+const VALUED_BY = { cp: VALUED, mv: VALUED };
+const takesValue = (program, flag) => FLAG.test(flag) && (VALUED_BY[program]?.test(flag) ?? true);
+
+const notAnOperand = (program, words, at) => {
   const { said } = words[at];
   const before = at > 0 ? words[at - 1].said : "";
-  return FLAG.test(said) || FLAG.test(before) || AIMED.test(said) || AIMED.test(before);
+  return FLAG.test(said) || takesValue(program, before) || AIMED.test(said) || AIMED.test(before);
 };
 
 /** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. It reads each word's own spelling, quotes off, because a shell takes `'--output'` for the option it is and reading the raw word left the destination beside it unguarded. */
-const operandsOf = (words) => words.filter((one, at) => !notAnOperand(words, at));
+const operandsOf = (program, words) => words.filter((one, at) => !notAnOperand(program, words, at));
 
 /** A word left out for standing after a flag, which is a value that flag takes or an operand that flag does not — this cannot tell the two apart. Nothing the write lands on, either way, except for the verbs whose destination arrives exactly there, and those are `none` above. A caller that must not invent a target reads it as a word the write does not land on; the default leaves it where it was, since a caller that must not miss one wants every candidate. */
-const afterFlagIn = (words) => words.filter(({ said }, at) =>
-  at > 0 && FLAG.test(words[at - 1].said) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
+const afterFlagIn = (program, words) => words.filter(({ said }, at) =>
+  at > 0 && takesValue(program, words[at - 1].said) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
 
 /** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
 const aimsOf = (program, operands, stage, said) => {
@@ -402,11 +408,11 @@ const readsIn = (stage, from, strict) => {
   const program = basename(words[at]?.said ?? "");
   if (RELOCATES.test(program)) return [];
   const rest = words.slice(at + 1);
-  const operands = operandsOf(rest);
+  const operands = operandsOf(program, rest);
   const said = ` ${words.map((one) => one.said).join(" ")}`;
   const aims = aimsOf(program, operands, stage, said);
   if (strict && AIMS[program] === "last" && TARGETED.test(said)) return null;
-  const spare = strict && AIMS[program] && AIMS[program] !== "none" ? afterFlagIn(rest) : [];
+  const spare = strict && AIMS[program] && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
   return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
 };
 
