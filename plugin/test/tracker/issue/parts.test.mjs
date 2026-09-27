@@ -64,3 +64,37 @@ test("the phrase that governs need not be the first on the line", () => {
   assert.deepEqual(partsIn("The parts of the plan, and its parts are ISS-48 and ISS-58.")?.keys,
     ["ISS-48", "ISS-58"], "stopping at the first occurrence would read this as a cross-reference");
 });
+
+/* ISS-261's body: a citation sentence that shares a line with a bare `part`, and the refusal it drew,
+   quoted back by the note reporting it. Neither makes the claim the arm reads. */
+test("a sentence citing the issue that holds the files and the reading that found them is no parts line", () => {
+  assert.equal(partsIn("... are both held by `ISS-231`, and the one home for this is `neighbours.mjs`, so "
+    + "`ISS-232` could land no part of it: the `feedback.mjs` half alone would be a helper with one caller."),
+  null, "the body ISS-261 was filed on, its two keys restored");
+});
+
+test("a body quoting the parts refusal back, both keys among its lines, is no parts line", () => {
+  const quoted = [
+    "> read: a line naming ISS-231 and ISS-232 as this issue's parts",
+    "> wants: the parts themselves as issues, held on an edge rather than claimed in this body's prose",
+    "> clear: take the claim off the line and re-send with `--with ISS-231,ISS-232`, which relates them "
+      + "in the same create; a line only citing them clears by rewording it so `part` no longer leads into the keys",
+    "> the parts themselves as issues, each naming the others: file each of them on its own, ISS-231 and ISS-232",
+  ].join("\n");
+  assert.equal(partsIn(quoted), null);
+});
+
+test("a parts line is read under every prefix the project holds, the legacy one among them", () => {
+  assert.deepEqual(partsIn("Parts: APP-1 and APP-2 are the halves.", ["APP"])?.keys, ["APP-1", "APP-2"]);
+  assert.deepEqual(partsIn("Parts: app-1 and ISS-2.", ["app"])?.keys, ["APP-1", "ISS-2"],
+    "in the tracker's spelling, and the legacy prefix still counted beside the project's own");
+  assert.deepEqual(partsIn("Parts: ISS-48 and ISS-58.", ["APP"])?.keys, ["ISS-48", "ISS-58"]);
+  assert.equal(partsIn("Parts: APP-1 and APP-2 are the halves."), null,
+    "and with no prefix named only the legacy one is a key, which is every caller passing a body alone");
+});
+
+test("a token shaped like a key under no prefix the project holds is never a part", () => {
+  assert.equal(partsIn("Parts: RFC-2119 and UTF-8 are the halves.", ["APP"]), null,
+    "a widened pattern would refuse this filing for parts it never named");
+  assert.equal(partsIn("Parts: FOO-1 and FOO-2.", ["APP"]), null);
+});

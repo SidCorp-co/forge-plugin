@@ -2,7 +2,7 @@
    is its flags and the lines it prints. Nothing here prints and nothing here exits: docs/cli/filing.md. */
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
 import { settledOf } from "./settled.mjs";
-import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
+import { filingRefusal, liveTitles, rankOf, shapeAgainst, shapeOf, shapeRefusal, trackerFields }
   from "../issue-shape.mjs";
 import { write } from "../rest.mjs";
 import { notAReference } from "../issues.mjs";
@@ -121,8 +121,10 @@ export const fileIssue = async ({
   const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
   if (held) return { refusal: refusalOf(held), description, shape: known };
   const seen = page ?? await liveTitles();
+  /* Shaped again once the rows are in, whose keys name the prefixes a parts claim is read under. */
+  const shaped = shapeAgainst({ title, body: description, kind, complexity }, seen, { everySection });
   const { refusal, shape, beside, declined } = await readFiling({ title, body: description, kind }, seen,
-    { routed, fresh, everySection, duplicates, shape: known });
+    { routed, fresh, everySection, duplicates, shape: shaped });
   if (refusal) return { refusal, description, shape };
   const { joined, answer: comment } =
     await foldFiling(beside, { title, body: description, kind, routed, fresh, declined, soft, onBeside });
