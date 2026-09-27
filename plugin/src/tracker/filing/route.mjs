@@ -121,7 +121,7 @@ export const fileIssue = async ({
   const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
   if (held) return { refusal: refusalOf(held), description, shape: known };
   const seen = page ?? await liveTitles();
-  /* Shaped again once the rows are in, whose keys name the prefixes a parts claim is read under. */
+  /* Once the rows are in, which `shapeAgainst` reads. */
   const shaped = shapeAgainst({ title, body: description, kind, complexity }, seen, { everySection });
   const { refusal, shape, beside, declined } = await readFiling({ title, body: description, kind }, seen,
     { routed, fresh, everySection, duplicates, shape: shaped });
