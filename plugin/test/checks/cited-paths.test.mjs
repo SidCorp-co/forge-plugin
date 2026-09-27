@@ -37,8 +37,6 @@ const ANOTHER_TREE = {
   "VI-NATURAL.md": "the vi-natural CLI's own manual, whose locale paths are its caller's",
   "package-lock.json": "npm's transcription of the packages it fetched, down to each one's own bin",
   "packages/code-quality/CHANGELOG.md": "history: an entry's paths were its consumer's when written",
-  "packages/code-quality/README.md": "its examples are literal config values a consumer types, so no"
-    + " root can be put in front of them — ISS-201",
   "packages/code-quality/claude-plugin": "the copy sync:skills:check pins to plugin/skills",
   "packages/code-quality/package-lock.json": "the same transcription for that package's dependencies",
   "packages/code-quality/test": "a source tree each case writes under a temporary root and deletes",
@@ -53,6 +51,17 @@ const unversioned = (rel) => rel.replace(/^plugin\/guides\/v\d+\//u, "plugin/gui
 const out = (rel) => Object.keys(ANOTHER_TREE).some((claim) =>
   [rel, unversioned(rel)].some((one) => one === claim || one.startsWith(`${claim}/`)));
 const POPULATION = list(...DESCRIBES_THIS_TREE).filter((one) => !out(one));
+/* Per citation where one page is two things (ISS-201): a published package's README is its consumer's
+   manual and a claim about this checkout at once, and a row above could only leave both unread. Each
+   literal a consumer types is named here, and every other path the page cites is judged. */
+const A_CONSUMERS_OWN = {
+  "packages/code-quality/README.md": {
+    why: "config values and file names matched against the installing project's own tree",
+    values: ["src/theme.ts", "src/mask.tsx", "src/mobile/phone-frame.tsx", "forms/input.tsx",
+      "foundation/icon-button.tsx", "legacy/page.tsx", "code-quality.json"],
+  },
+};
+const THEIRS = Object.fromEntries(Object.entries(A_CONSUMERS_OWN).map(([rel, { values }]) => [rel, values]));
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
 /* Which way out is the index's answer here too: a run's own scratch is sent to no list (ISS-1014). */
 const bytesOf = (rel, bytes, indexed = INDEXED) => {
@@ -80,8 +89,48 @@ test("nothing this repository says of itself cites a path that names no file", (
   assert.ok(TREE.length > 300, `${TREE.length} path(s) tracked; the tree is read too narrowly`);
   assert.ok(files.length > 200,
     `${files.length} file(s) in the population; the selector matches too little`);
-  const found = problems(files, TREE, MODULES);
+  const found = problems(files, TREE, MODULES, THEIRS);
   assert.deepEqual(found, [], `a citation names no file:\n${found.join("\n")}`);
+});
+
+const README = "packages/code-quality/README.md";
+const readme = readFileSync(join(ROOT, README), "utf8");
+const CHECKOUT_CLAIM = "test/cli/plugin-isolation.test.js";
+
+test("the package README is read, each value a consumer types is named once, and each says why", () => {
+  assert.ok(files.some(({ rel }) => rel === README), `${README} is in the population read`);
+  for (const [rel, { why, values }] of Object.entries(A_CONSUMERS_OWN)) {
+    assert.ok(files.some((one) => one.rel === rel), `${rel} declares values and is not read`);
+    assert.ok(why.length > 30, `${rel} says why its values are a consumer's`);
+    assert.equal(new Set(values).size, values.length, `${rel} names a value twice`);
+  }
+});
+
+/* The citation ISS-191 corrected by hand, from outside the population, planted back in its stale form. */
+test("a claim the package README makes about this checkout is judged, and its consumer's values are not", () => {
+  assert.ok(readme.includes(CHECKOUT_CLAIM), `the README still makes the claim ${CHECKOUT_CLAIM}`);
+  assert.deepEqual(problems([{ rel: README, text: readme }], TREE, MODULES, THEIRS), []);
+  const stale = readme.replace(CHECKOUT_CLAIM, "test/plugin-isolation.test.js");
+  const found = problems([{ rel: README, text: stale }], TREE, MODULES, THEIRS);
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /^packages\/code-quality\/README\.md:\d+ cites test\/plugin-isolation\.test\.js,/u);
+  assert.ok(found[0].includes(`packages/code-quality/${CHECKOUT_CLAIM} carries that name`), found[0]);
+  const undeclared = problems([{ rel: README, text: readme }], TREE, MODULES);
+  assert.deepEqual(undeclared.map((one) => one.split(" cites ")[1].split(",")[0]),
+    A_CONSUMERS_OWN[README].values, "the declaration is what keeps each value unreported");
+});
+
+test("a value declared a consumer's for one file is judged where any other file cites it", () => {
+  const found = problems([{ rel: "docs/x.md", text: "see src/theme.ts\n" }], TREE, MODULES, THEIRS);
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /^docs\/x\.md:1 cites src\/theme\.ts,/u);
+});
+
+test("a value declared a consumer's that its file no longer cites is a finding naming both", () => {
+  const found = problems([{ rel: "docs/x.md", text: "see `src/a.ts`\n" }], TREE, [],
+    { "docs/x.md": ["src/a.ts", "src/gone.ts"] });
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.ok(found[0].startsWith("docs/x.md declares src/gone.ts"), found[0]);
 });
 
 /* Refused either way, ISS-191 having decided that; which refusal is the index's answer and never the
