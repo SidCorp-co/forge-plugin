@@ -25,20 +25,24 @@ export const LANDER = "the-lander-run";
 export const git = (room, ...args) =>
   spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
 
-/* What `--pushed` reads: a base a remote head names, and a diff above it. The remote ref is written
-   by hand because a fixture with a real remote is a second repository for one merge-base. */
-const pushedRepo = (files) => {
-  const room = tempRoom("landing-repo-");
+/* What `--pushed` reads: a base a remote head names, and a diff above it. The remote is a real one,
+   because the arming capture asks origin whether it holds the branch at the head (ISS-2662). */
+export const pushedRepo = (files, prefix = "landing-repo-") => {
+  const room = tempRoom(prefix);
+  const origin = tempRoom(`${prefix}origin-`);
+  spawnSync("git", ["init", "-q", "--bare", origin], { cwd: origin, encoding: "utf8" });
   spawnSync("git", ["init", "-q", "-b", "iss-673-6", room], { cwd: dirname(room), encoding: "utf8" });
+  git(room, "remote", "add", "origin", origin);
   writeFileSync(join(room, "base.txt"), "the base\n");
   git(room, "add", "base.txt");
   git(room, "commit", "-qm", "base");
-  git(room, "update-ref", "refs/remotes/origin/master", git(room, "rev-parse", "HEAD").stdout.trim());
+  git(room, "push", "-q", "origin", "HEAD:refs/heads/master");
   for (const one of files) writeFileSync(join(room, one), `${one}, changed\n`);
   if (files.length) {
     git(room, "add", ...files);
     git(room, "commit", "-qm", "the change");
   }
+  git(room, "push", "-q", "-u", "origin", "iss-673-6");
   return room;
 };
 

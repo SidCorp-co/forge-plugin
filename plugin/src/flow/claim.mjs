@@ -36,6 +36,7 @@ import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction
 import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
 import { readyChecks, readyChecksLines, runReadyChecks } from "./landing/ready-checks.mjs";
+import { unpushedRefusal } from "./landing/pushed.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -457,6 +458,9 @@ export const claim = async (argv) => {
         lands: landsOn(await releasePolicy()),
       })
       : null);
+  /* Asked of the remote after every refusal the record makes and before any check runs: a head the landing cannot fetch is refused before it spends one (ISS-2662). */
+  const unpushed = given.ready ? unpushedRefusal(ref, checkpoint) : null;
+  if (unpushed) fail(unpushed);
   /* After every refusal the lease and the checkpoint make, so a capture refused for either spends no check on it. */
   const green = given.ready ? runReadyChecks(ref, readyChecks(), checkpoint.head) : null;
   const next = claimed(context, {
