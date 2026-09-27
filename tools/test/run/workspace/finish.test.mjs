@@ -6,8 +6,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, OWN_SLUG, declaredIn, git, pushed, runIn } from "../run-fixtures.mjs";
-import { escaped, tempRoom } from "../../../../plugin/test/fixtures.mjs";
+import { BARE, OWN_SLUG, SCRIPT, declaredIn, git, pushed, runIn } from "../run-fixtures.mjs";
+import { escaped, projectRoom, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 
 const KEY = "ISS-88";
 const HAS_PROC = existsSync(join("/proc", "self", "stat"));
@@ -286,6 +286,32 @@ test("a tree removed by hand still reads as a leak to recover", () => {
   assert.match(run.stdout, /nothing is there, so this workspace is already ended/u, run.stdout);
   assert.match(run.stdout, LEAK, run.stdout);
   assert.doesNotMatch(run.stdout, /finish already ended/u, run.stdout);
+});
+
+/* The retry lines finish prints are absolute script paths, so the checkout's own record names the
+   tree and the caller's directory does not: here that directory is a checkout recorded under another
+   slug, which names a path start never made (ISS-2666). */
+test("finish run from another checkout's directory ends the tree start made, not one named for that checkout", () => {
+  const { work, tree } = started("finish-elsewhere");
+  const elsewhere = projectRoom(tempRoom("finish-elsewhere-other-"), BARE.XDG_CONFIG_HOME, { slug: "another-project" });
+
+  const run = spawnSync(process.execPath, [join(work, SCRIPT), "finish", KEY], { cwd: elsewhere, encoding: "utf8", env: BARE });
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  assert.ok(run.stdout.includes(`was started with: ${tree}`), run.stdout);
+  assert.ok(!existsSync(tree), `the tree start made is still there:\n${run.stdout}${run.stderr}`);
+});
+
+/* A run home that borrows nothing holds no record of the project, so no slug names the path; the
+   tree start cut under the slug is elsewhere, and an empty folder-named path proves nothing. */
+test("finish under a home holding no record of the project refuses rather than calling the workspace ended", () => {
+  const { work, tree } = started("finish-slugless");
+  const env = { ...BARE, XDG_CONFIG_HOME: tempRoom("finish-slugless-home-") };
+
+  const run = runIn(work, ["finish", KEY], env);
+  assert.equal(run.status, 1, run.stdout + run.stderr);
+  assert.doesNotMatch(run.stdout + run.stderr, /already ended/u, run.stdout);
+  assert.match(run.stderr, /no record of .* names a slug/u, run.stderr);
+  assert.ok(existsSync(tree), "the tree start made went");
 });
 
 /* A file where the record's directory belongs: the one place the ending can be written refuses it,
