@@ -6,6 +6,7 @@ import { MOVED, NO_ENDPOINT, TRACKER, endpointHeld, firstLine, oncePerSlug, walk
 import { PARK_STATUS, answersByComment } from "../../../flow/earned/park-status.mjs";
 import { shortOf } from "../../../tracker/issues.mjs";
 import { refusing, useProject } from "../../../resolve/settings.mjs";
+import { tenth } from "../../figures.mjs";
 
 const CREATED = "issue.created";
 const MINUTE = 60_000;
@@ -16,8 +17,6 @@ const NO_START = "its history holds no creation to start the wait it began at";
 
 /** The statuses a park answered by a person lands an issue in, read off the flow's own table. */
 export const PERSON = new Set(Object.values(PARK_STATUS).filter(answersByComment));
-
-const tenth = (value) => Math.round(value * 10) / 10;
 
 /* The moves in the order they were made. Time orders them, and moves sharing a millisecond, which no
    cursor or page order says the order of, are put in the order whose statuses link: next is the one

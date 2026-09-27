@@ -49,12 +49,10 @@ export const decisionsSaid = (judgement) => {
   return ["Decisions:", ...items, ...notes];
 };
 
-const STAGE_NAMES = { explore: "explore", review: "review", judge: "judge" };
-
 /** One line per stage that did not run as configured, and per section a stage could not finish. */
 export const stageLines = (judgement) => [
   ...Object.entries(judgement.stages ?? {}).filter(([, stage]) => stage.skipped)
-    .map(([role, stage]) => `The ${STAGE_NAMES[role] ?? role} stage was skipped: ${stage.skipped}.`),
+    .map(([role, stage]) => `The ${role} stage was skipped: ${stage.skipped}.`),
   ...Object.values(judgement.sections ?? {}).flatMap((read) => read.notes.map((note) => `${read.title}: ${note}.`)),
 ];
 

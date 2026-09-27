@@ -9,6 +9,7 @@
    the only caller it has. */
 import { deadExports, exporting } from "../surface/dead-exports.mjs";
 import { codeOf } from "../tracker-names.mjs";
+import { escaped } from "../../markdown.mjs";
 
 export const CHECKERS = "plugin/src/checks/";
 
@@ -21,7 +22,7 @@ const held = (path) => exporting(path) && !path.startsWith(CHECKERS);
    without reading it, so every clause is cut before the name is counted. */
 const readsItself = (text, name) => {
   const code = codeOf(text).replace(/\bexport\s*\{[^}]*\}(?:\s*from\b)?/gu, "");
-  const spelled = new RegExp(String.raw`(?<![\w$])${name.replace(/\$/gu, "\\$")}(?![\w$])`, "gu");
+  const spelled = new RegExp(String.raw`(?<![\w$])${escaped(name)}(?![\w$])`, "gu");
   return (code.match(spelled) ?? []).length > 1;
 };
 

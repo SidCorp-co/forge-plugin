@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { basename, isAbsolute, join } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
-import { CALLS_THE_WRITER, runsACommand } from "./granted-id.mjs";
+import { CALLS_THE_WRITER, runsACommand, textOf } from "./granted-id.mjs";
 import { NOWHERE, directoryAt, spans } from "../../hooks/shell-spans.mjs";
 
 export const RUN_ID = "forge-run-id";
@@ -69,8 +69,6 @@ export const scratchAt = (path) => {
 };
 
 export const runNames = (id, key) => runsFor(id).includes(String(key ?? "").trim().toLowerCase());
-
-const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
 
 /** The tree the write this event carries will stand in, which is not the one the hook stands in.
  *  `directoryAt` is the reading taken, the one with every move applied; two `forge` calls

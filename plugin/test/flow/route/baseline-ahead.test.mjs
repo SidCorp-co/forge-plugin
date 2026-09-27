@@ -13,7 +13,8 @@ import { projectRecord, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs"
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("baseline-ahead").path;
-const { baselineAhead, headNow } = await import("../../../src/flow/route.mjs");
+const { baselineAhead } = await import("../../../src/flow/route.mjs");
+const { headNow } = await import("../../../src/flow/worklog.mjs");
 const { ANSWERED_BY_COMMENT, BASELINE_AT, NO_BASELINE, ORDER } = await import("../../../src/flow/earned.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { stampedNow } = await import("../../../src/flow/worklog.mjs");

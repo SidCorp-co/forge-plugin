@@ -2,6 +2,8 @@ import { median } from "./median.mjs";
 
 export const medianOrZero = (values) => median(values) ?? 0;
 
+export const tenth = (value) => Math.round(value * 10) / 10;
+
 export const minutes = (seconds) => Math.round((seconds / 60) * 10) / 10;
 /* A token figure crosses four orders of magnitude inside one line — a window's sum and a per-request
    mean — so the unit travels with the number rather than the reader counting digits. A figure no

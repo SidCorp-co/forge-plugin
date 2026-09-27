@@ -171,8 +171,8 @@ export const clearMark = (dir, day, pid = process.pid) => {
 const PATH = /(?<![\w.~-])\/[^\s"'`<>()[\]{}|;,]+/gu;
 
 /** A string as it may appear on a page: credentials masked by the refusal log's own mask, and every
- *  absolute path outside the directories named here cut to an ellipsis. */
-/* Judged resolved, so a `..` cannot walk a path that starts inside a root out of it. */
+ *  absolute path outside the directories named here cut to an ellipsis. Each path is judged resolved,
+ *  so a `..` cannot walk one that starts inside a root out of it. */
 const shown = (text, allowed) => masked(text).replace(PATH, (path) => {
   const whole = resolve(path);
   return allowed.some((root) => whole === resolve(root) || whole.startsWith(`${resolve(root)}/`)) ? path : "…";

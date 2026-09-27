@@ -1,8 +1,7 @@
 /* The one printer of the consult log's figures, off the objects `figures.mjs` returns: a window,
    a group of it, and a group on either side of the eval's two windows. docs/cli/codex-the-stats.md. */
 import { WHEN } from "../../stats/windows.mjs";
-
-export const share = (many, of) => (of ? `${Math.round((many / of) * 100)}%` : "—");
+import { share } from "../../stats/figures.mjs";
 
 /** A window's stats half, one figure a line. */
 export const statLines = (held) => {

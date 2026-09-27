@@ -319,7 +319,8 @@ export const outcomeOf = (held, id) => {
 /* What the resolved set kept out of the judged consult's findings, or null: the gate filters findings
    by no set, so a narrower one leaves the two disagreeing over whether one exists (ISS-1873). The
    route pins that consult by id, so a newer one sharing a file cannot take the selection; `why`
-   withholds it only where the consult's own set cannot reach the finding either (ISS-378). */
+   withholds it where the consult recorded no set, carries no id for `--of` to name, or its own set
+   cannot reach the finding either (ISS-378). */
 const leftOutOf = (judged, reply, kept, ruled) => {
   const held = new Set(kept.map((one) => one.id));
   const out = numbered(reply).filter((one) => !held.has(one.id));
@@ -355,8 +356,9 @@ const followed = (entries, one) => {
   return at;
 };
 
-/* A follow-up round rules on the last consult's findings about these files — another file's would
-   clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
+/* A follow-up round rules on the findings of the consult `--of` pins, else of the last consult on these
+   files as `followed` reads it — another file's would clear this one unread. Six open rounds each
+   found a narrower nit; asked to confirm, one converges. */
 export const recheckPlan = (entries, root, rels, pinned = null) => {
   const last = pinned ? null : judgedBy(entries, root, rels).at(-1);
   const judged = pinned ?? followed(entries, last);
@@ -458,7 +460,7 @@ export const recheckOwed = (plan, rels) => {
     return `${head}, and ${answers ? `${answers.id} has nothing left open` : "the log does not say which consult it answered"}, so there is nothing to recheck.\n`
       + `${read} — only where the tree has moved since, which this cannot see and you can.`;
   }
-  // `plan.judged` is the last consult sharing ANY of these files, which is why a shortfall is likely.
+  // `plan.judged` is the consult `--of` pinned, else the last consult sharing ANY of these files, which is why a shortfall is likely.
   const { unread, part, whole } = shortOfWhole(plan.judged, rels);
   if (whole) {
     return `consult ${of} read this set whole and found nothing${plan.judged.head ? `, taken at ${plan.judged.head}` : ""}: `
@@ -603,7 +605,7 @@ const scoped = (root, scope) => {
   };
 };
 
-/* For the commit gate, with the one command that clears it: two gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. A `scope` of `{ repo, run }` reads every worktree of the repository and, where `run` is given, that run's consults alone — the verdict verb's and the review capture's question; the gates ask without one and read this checkout (ISS-898). */
+/* For the commit gate, with the one command that clears it: three gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. A `scope` of `{ repo, run }` reads every worktree of the repository and, where `run` is given, that run's consults alone — the verdict verb's and the review capture's question; the gates ask without one and read this checkout (ISS-898). */
 export const unverdicted = (bytes, root, scope = null) => {
   const scored = new Map();
   const { marks, keeps } = scoped(root, scope);
