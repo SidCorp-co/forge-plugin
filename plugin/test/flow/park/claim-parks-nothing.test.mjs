@@ -34,13 +34,20 @@ const issue = (key, status, history) => ({
 const THIRD = issue("ISS-90", "in_progress", [reclaim(ago(300), "in_progress"), reclaim(ago(200), "in_progress")]);
 const FIRST = issue("ISS-91", "in_progress", [{ ...reclaim(ago(300), "in_progress"), how: "claim" }]);
 const SECOND = issue("ISS-93", "in_progress", [reclaim(ago(300), "in_progress")]);
+const NOTHING = "nothing was worked under this lease";
+const readingRow = (at, status) => ({ ...reclaim(at, status), next: NOTHING });
+/* The shape ISS-986 was measured in: every reclaim a reading, the lease it lapsed from one too. */
+const READINGS = issue("ISS-94", "in_progress", [readingRow(ago(300), "in_progress"), readingRow(ago(200), "in_progress")]);
+READINGS.sessionContext.lease.next = NOTHING;
+const MIXED = issue("ISS-95", "in_progress", [reclaim(ago(400), "in_progress"), readingRow(ago(300), "in_progress"),
+  reclaim(ago(200), "in_progress")]);
 const PARKED = issue("ISS-92", "on_hold", [reclaim(ago(400), "in_progress"), reclaim(ago(300), "in_progress"),
   reclaim(ago(200), "in_progress")]);
 
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
-  issues: [THIRD, FIRST, SECOND, PARKED],
+  issues: [THIRD, FIRST, SECOND, PARKED, READINGS, MIXED],
   comments: {
     [PARKED.documentId]: [{ documentId: "the-park", createdAt: ago(150), authorId: "agent",
       body: render("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress") }],
@@ -113,4 +120,23 @@ test("a claim of an issue parked as crashed writes its own row and no second one
   assert.deepEqual([history.at(-1).how, history.at(-1).status, history.at(-1).holder], ["reclaim", "on_hold", OURS]);
   assert.equal(PARKED.status, "on_hold", "the park stands as the person left it");
   assert.deepEqual(movesOf(PARKED.documentId), []);
+});
+
+/* A reclaim over a reading lease is a reading that lapsed, which the help teaches a dispatcher to take as often as it needs, so none of them spends the count (ISS-1537). */
+test("reclaims over leases that declared nothing was worked are not counted, however many there are", async () => {
+  const run = await claim("ISS-94");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /This reclaim of in_progress went over a lease that declared nothing was worked, so it counts for none: 0 counted at in_progress\. 3 reclaim\(s\) of in_progress went over/u);
+  assert.doesNotMatch(run.stdout, /forge record park|Reclaim \d/u, "three readings are not three deaths");
+  assert.equal(READINGS.sessionContext.lease.next, null, "and the declaration is not carried onto this run's lease");
+});
+
+test("past the threshold the history names which reclaims were readings, and counts only the rest", async () => {
+  const run = await claim("ISS-95");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /Reclaim 3 of in_progress: .* 1 reclaim\(s\) of in_progress went over a lease that declared nothing was worked, and are not counted\./u);
+  const history = run.stdout.split("\n").find((one) => one.startsWith("Claims at in_progress: ")).split(" | ");
+  assert.equal(history.length, 4, history.join("\n"));
+  assert.deepEqual(history.map((one) => one.endsWith("so not counted")), [false, true, false, false], history.join("\n"));
+  assert.match(run.stdout, /forge record park ISS-95 --kind crashed --why "3 reclaims of in_progress: /u);
 });

@@ -40,6 +40,10 @@ export const heldBy = () => (enforcementOf() === true
 
 export const NOTHING_WORKED = "nothing was worked under this lease";
 
+/** Whether a lease's line says that sentence of itself: at its end, where a dispatcher's own prefix leaves it ("triage only — nothing was worked under this lease"), and nowhere else, so a line that only mentions it does not pass for one that declares it. */
+export const declaresNothingWorked = (line) =>
+  typeof line === "string" && line.trim().replace(/\.$/u, "").endsWith(NOTHING_WORKED);
+
 /** The other lease a write can be owed, spent by `forge claim -h` and by the refusals a payload write with no lease still meets, so a run reaches it where it is stopped rather than in a document it may not open. It names no kind of write, because nothing here can tell a reading's output from a build's: the run knows whether work follows it and the CLI does not (ISS-840). What it asks a caller to type is also what a write that takes its own lease gives itself, `NOTHING_WORKED` being the one line both spend (ISS-1260). */
 export const nothingWorked = (ref = "<ref>") =>
   "A write that is the whole of what a run will do to the issue — a reading posted and the issue "
@@ -235,6 +239,8 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
   const state = landing?.state ?? landingOf(context)?.state ?? null;
   /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
   /* `over` is the lease this row's claim went over the top of, carried only where the caller never read a refusal naming it: a run that typed a reclaim was shown the holder and the expiry by the refusal it answered, and the write that takes a lapsed lease for itself is shown nothing before it writes. Without it the displaced run is recoverable only from an earlier row, which the history's own window drops, and the moment its lease ran out from nowhere at all (ISS-1660). */
+  /* A step is carried to whoever comes next, and a declaration that nothing was worked is not a step: it speaks for the lease that wrote it, so a new holder's silence leaves its own lease with no line rather than one that says its work never happened — which the count of reclaims would otherwise read as a reading when that holder dies (ISS-1537). */
+  const inherited = how && declaresNothingWorked(line) ? null : line;
   if (how) {
     history.push({
       holder, at, how, status, next: line,
@@ -255,7 +261,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       renewedAt: at,
       ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,
-      next: next === undefined ? line : nextLine(next),
+      next: next === undefined ? inherited : nextLine(next),
       history: history.slice(-HISTORY_KEPT),
     },
   };
