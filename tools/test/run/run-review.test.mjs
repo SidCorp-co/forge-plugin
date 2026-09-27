@@ -214,10 +214,10 @@ test("a reading left open and untaken is reported with its age, its range's mult
   assert.match(run.stdout, /start it: node \S*tools\/run\.mjs start ISS-777/u, run.stdout);
 });
 
-test("a reading somebody started, or holds a live lease on, is not reported as untaken", () => {
+test("a reading somebody started, holds a live lease on, or whose lease cannot be read, is not reported as untaken", () => {
   const lease = { lease: { holder: "another-run", agent: "an agent", pid: "9",
     renewedAt: new Date().toISOString(), minutes: 60, history: [] } };
-  for (const held of [{ status: "in_progress" }, { sessionContext: lease }]) {
+  for (const held of [{ status: "in_progress" }, { sessionContext: lease }, { documentId: null }]) {
     const { work, from } = owedAt(`taken-${Object.keys(held)[0]}`);
     noBacklog({ key: "ISS-777", issues: [waiting(from, held)] });
     const run = lastStep(work);

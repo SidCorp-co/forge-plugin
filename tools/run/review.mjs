@@ -49,10 +49,10 @@ const TAKEN = ["live", "mine"];
 
 /** Whether the row holding a reading still waits for a run: a status a run takes from, and no lease
  *  anybody holds. The lease is the one fact the lookup's row does not carry, so it is read only for a
- *  row whose status already says nobody started (ISS-2719). */
+ *  row whose status already says nobody started, and a row it cannot be read for is not called
+ *  untaken on the strength of a lease nobody read (ISS-2719). */
 export const untaken = async (held) => {
-  if (!TAKEABLE.includes(String(held.status ?? ""))) return false;
-  if (!held.documentId) return true;
+  if (!TAKEABLE.includes(String(held.status ?? "")) || !held.documentId) return false;
   const row = await scoped("forge_issues", { action: "get", documentId: held.documentId, fields: [] });
   return !TAKEN.includes(stateOf(leaseOf(row?.sessionContext), sessionOf()));
 };
