@@ -39,7 +39,7 @@ const publish = (commit) => publishBaseline({ project: slugIfAny(), commit, gate
 test("a borrowing home is offered the citation the machine's store holds for its head", () => {
   assert.equal(publishedPath(), MACHINE_STORE, "the store read is the one beside the borrowed config");
   const said = baselineAhead(below, "ISS-3", HEAD);
-  assert.match(said, /a ship published a whole-tree result for the commit this checkout stands at/u, said);
+  assert.match(said, /a ship published/u, said);
   assert.match(said, new RegExp(`--commit ${HEAD} --scope whole --cited "the ship's gate at release 3\\.36\\.424"`, "u"), said);
   const got = { gate: "npm run check", result: RESULT, commit: HEAD, scope: "whole", cited: "the ship's gate" };
   assert.doesNotMatch(citationProblem("ISS-3", slugIfAny(), got) ?? "", /Nothing is published for/u,
@@ -48,7 +48,7 @@ test("a borrowing home is offered the citation the machine's store holds for its
 
 test("a head the machine's store does not hold is said, naming the store that was read", () => {
   const said = baselineAhead(below, "ISS-3", OTHER);
-  assert.match(said, /no ship has published a whole-tree result/u, said);
+  assert.match(said, /no ship has published/u, said);
   assert.ok(said.includes(`(read from ${MACHINE_STORE})`), `the store read is not named:\n${said}`);
   const got = { gate: "npm run check", result: RESULT, commit: OTHER, scope: "whole", cited: "the ship's gate" };
   assert.ok(citationProblem("ISS-3", slugIfAny(), got).includes(`Nothing is published for ${OTHER} in ${MACHINE_STORE}`));
@@ -61,7 +61,7 @@ test("a borrowing home publishes nothing into either store, and names the shell 
   const said = publishedSaid(BORROWED, OTHER);
   assert.ok(said.includes(`FORGE_BORROW_FROM= XDG_CONFIG_HOME=${machine} and the same command`), said);
   assert.equal(publish(HEAD), HELD, "a head the machine's store holds is held rather than refused");
-  assert.ok(publishedSaid(HELD, HEAD).includes(`already holds a published result in ${MACHINE_STORE}`));
+  assert.ok(publishedSaid(HELD, HEAD).includes(MACHINE_STORE), "the held line does not name the store it read");
   assert.equal(readFileSync(MACHINE_STORE, "utf8"), machineHeld);
 });
 

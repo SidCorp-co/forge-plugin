@@ -14,8 +14,10 @@ const WHOLE = "whole";
 const STORE = "gate-baselines.jsonl";
 
 /* Where a release standing in the machine's home wrote, found through the borrow as project records are. */
+const borrowedConfig = () => borrowing(configPath())?.path ?? null;
+
 const machineDir = () => {
-  const borrowed = borrowing(configPath())?.path;
+  const borrowed = borrowedConfig();
   return borrowed ? dirname(borrowed) : null;
 };
 
@@ -71,7 +73,7 @@ export const publishedSaid = (outcome, commit) => ({
   [PART]: `nothing is published for ${commit}: the gate's record does not hold every step of the `
     + `whole table green at it, and a result that cannot say \`whole\` is no result to cite`,
   [FAILED]: `nothing is published for ${commit}, so a branch cut here runs its own gate`,
-  [BORROWED]: `nothing is published for ${commit}: this home borrows ${process.env[BORROW_VAR]}, and `
+  [BORROWED]: `nothing is published for ${commit}: this home borrows ${borrowedConfig()}, and `
     + `${publishedPath()} beside it is that machine's store, which a borrowing home reads and never `
     + `writes. Publish from a shell that does not borrow: ${BORROW_VAR}= `
     + `XDG_CONFIG_HOME=${typedBack(dirname(machineDir() ?? ""))} and the same command`,
