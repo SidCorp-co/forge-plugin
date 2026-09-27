@@ -61,9 +61,32 @@ const specifier = ({ path, quoted }, modules, roots) =>
   || (quoted && !roots.has(path.split("/")[0])
     && modules.some((name) => path === name || path.startsWith(`${name}/`)));
 
-/** `paths` is the working tree and `modules` the packages it declares; the citing file is never its
- *  own candidate. */
-export const problems = (files, paths, modules = []) => {
+/* One page can be a consumer's manual and a claim about this checkout at once, so what is not a claim
+   is declared per citation rather than per file: a literal the installing project types is named for
+   the file that shows it and judged everywhere else, and a name its file stopped citing is reported,
+   a declaration outliving its text being the silent kind of stale this check exists for (ISS-201). */
+const declaredIn = (theirs, rel) => (Object.hasOwn(theirs, rel) ? theirs[rel] : []);
+
+const unclaimed = (rel, cited, declared) => {
+  const paths = new Set(cited.map(({ path }) => path));
+  return declared.filter((path) => !paths.has(path))
+    .map((path) => `${rel} declares ${path} a value its consumer types, and cites it nowhere: take it`
+      + " out of what that file declares");
+};
+
+const nowhere = (rel, path, line, byName) => {
+  const elsewhere = (byName.get(posix.basename(path)) ?? []).filter((one) => one !== rel);
+  const said = elsewhere.length
+    ? `${elsewhere.join(" and ")} carr${elsewhere.length === 1 ? "ies" : "y"} that name: cite`
+      + " the one meant, and cite it whole"
+    : "and nothing here carries that name either: correct it, or delete the claim";
+  return `${rel}:${line} cites ${path}, which names no file — not from ${posix.dirname(rel)},`
+    + ` not from the repository root, and not as the tail of any path here. ${said}`;
+};
+
+/** `paths` is the working tree, `modules` the packages it declares, and `theirs` each citing file's
+ *  consumer literals; the citing file is never its own candidate. */
+export const problems = (files, paths, modules = [], theirs = {}) => {
   const tree = new Set(paths);
   const roots = new Set(paths.map((one) => one.split("/")[0]));
   const tails = new Set();
@@ -75,16 +98,13 @@ export const problems = (files, paths, modules = []) => {
     const segments = one.split("/");
     for (let from = 1; from < segments.length; from += 1) tails.add(segments.slice(from).join("/"));
   }
-  return files.flatMap(({ rel, text }) =>
-    citedIn(text)
+  return files.flatMap(({ rel, text }) => {
+    const cited = citedIn(text);
+    const declared = declaredIn(theirs, rel);
+    return [...cited
+      .filter((one) => !declared.includes(one.path))
       .filter((one) => !specifier(one, modules, roots) && !names(rel, one.path, tree, tails))
-      .map(({ path, line }) => {
-        const elsewhere = (byName.get(posix.basename(path)) ?? []).filter((one) => one !== rel);
-        const said = elsewhere.length
-          ? `${elsewhere.join(" and ")} carr${elsewhere.length === 1 ? "ies" : "y"} that name: cite`
-            + " the one meant, and cite it whole"
-          : "and nothing here carries that name either: correct it, or delete the claim";
-        return `${rel}:${line} cites ${path}, which names no file — not from ${posix.dirname(rel)},`
-          + ` not from the repository root, and not as the tail of any path here. ${said}`;
-      }));
+      .map(({ path, line }) => nowhere(rel, path, line, byName)),
+    ...unclaimed(rel, cited, declared)];
+  });
 };
