@@ -157,16 +157,15 @@ export const weightLines = (weights) => [
   row("", "with no row takes its parent's, then `unset`. No table, or no module defined, weighs none"),
   row("agePerDay", `${weights.agePerDay} per day since it was filed, so nothing starves`),
   row("ageCap", weights.ageCap === null
-    ? "none — age never stops, so anything left sitting rises until somebody works it or drops it"
+    ? "none — age never stops, so what sits rises until it is worked or dropped"
     : `${weights.ageCap} — the most age alone can be worth, past which two filing dates score alike`),
   row("reopened", `${weights.reopened}`),
   row("blocks", `${weights.blocks} per open issue this one blocks, counted through the chain`),
-  row("reading", `${weights.reading} per multiple of \`review.lines\` the range past the review mark`),
-  row("", "holds, on the issue holding that batch's reading; none where the project declares no volume"),
+  row("reading", `${weights.reading} per multiple of \`review.lines\` owed, on that batch's reading`),
   row("similarity", `${weights.similarity} — the floor a search hit is read back as related at`),
   row("batchCap", `${weights.batchCap} members, and every one of them at the fix rung or below`),
   row("windowCap", `${weights.windowCap} — candidates whose body is read in one pass`),
-  row("readCap", `${weights.readCap} — the most bodies read in all, whatever the passes ask for`),
+  row("readCap", `${weights.readCap} — the most bodies read in all`),
   "",
   "Ties break on the filing date, oldest first.",
 ];
