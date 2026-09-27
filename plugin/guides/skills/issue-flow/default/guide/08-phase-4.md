@@ -17,12 +17,10 @@ names.
 **Two kinds of file take the tool route and no other** — a memory file, and a skill's own text —
 because `learning-gate` refuses the shell there and its refusal says why:
 `forge hooks --how learning-gate`. Everywhere else the route is the run's, and what this gives it
-is the figures rather than a rule. `forge stats runs` prints the median characters a call spends
-by route, and the order so far is `sed` cheapest, then `Edit`, then a heredoc, then a whole-file
-redirect, then `Write`; `Edit` owes on top of that a prior read of the file into the session,
-which the shell routes do not. Read the order off that verb rather than off this sentence, and
-read it as what the corpus did rather than what a route is worth — each route draws its own jobs,
-and `sed` draws the one-line substitutions that would be cheap whichever way they went. A new
+is the figures rather than a rule: `forge stats runs` prints what a call spends by route. `Edit`
+owes on top of that a prior read of the file into the session, which the shell routes do not. Read
+the figures as what the corpus did rather than what a route is worth — each route draws its own
+jobs, and one that draws the one-line substitutions reads cheap whichever way they went. A new
 file, and a file most of whose lines change, is written whole on any route: the content is
 transmitted either way.
 
@@ -54,9 +52,8 @@ break it alike. A run that wants one commit collapses the branch before it takes
 after.
 
 <!-- forge:when tool.codex configured -->
-**A fix made to close a finding is answered by a recheck**, `forge codex consult --recheck`, which
-verifies that consult's findings rather than roaming for new ones; what a recheck may not do is that
-verb's own help. The whole-set read is owed on top of it only where the fix widened the set or moved
+**A fix made to close a finding is answered by a recheck**, `forge codex consult --recheck`; what
+a recheck may not do is that verb's own help. The whole-set read is owed on top of it only where the fix widened the set or moved
 behaviour by the line above.
 <!-- forge:end -->
 <!-- forge:when tool.codex unconfigured -->

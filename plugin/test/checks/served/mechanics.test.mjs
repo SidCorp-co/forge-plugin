@@ -209,40 +209,9 @@ test("the walk reaches the served text, so a clean answer is a clean corpus and 
   }
 });
 
-/* What ISS-1568 empties, one entry per refusal and each carrying its own span, so a second
-   assertion written into a listed sentence fails here rather than hiding behind its line number.
-   An entry goes when its clause does; nothing here is a marker a site can be exempted with. */
-const OWED = [
-  ["contract/default/01-the-issue-flow-contract.md:3", "`forge doctor` reads the contract for it"],
-  ["contract/screen/01-the-issue-flow-contract.md:3", "`forge doctor` reads the contract for it"],
-  ["skills/dispatch/default/guide/08-phase-6.md:43", "The landing takes each issue as far as its record earns and the project's release allows"],
-  ["skills/dispatch/screen/guide/08-phase-6.md:43", "The landing takes each issue as far as its record earns and the project's release allows"],
-  ["skills/forge/default/references/configuration.md:26", "the verb then leaves the usage list"],
-  ["skills/forge/default/references/dependencies.md:5", "`forge issue ISS-nn --blocks ISS-mm` writes an edge there, `--relates ISS-mm` writes one that orders nothing"],
-  ["skills/forge/default/references/dependencies.md:8", "`forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up"],
-  ["skills/forge/screen/references/configuration.md:26", "the verb then leaves the usage list"],
-  ["skills/forge/screen/references/dependencies.md:5", "`forge issue ISS-nn --blocks ISS-mm` writes an edge there, `--relates ISS-mm` writes one that orders nothing"],
-  ["skills/forge/screen/references/dependencies.md:8", "`forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up"],
-  ["skills/issue-flow/default/guide/07-phase-3.md:15", "Both writes take a path and nothing but a path"],
-  ["skills/issue-flow/default/guide/07-phase-3.md:22", "the write refuses the compounds it can prove"],
-  ["skills/issue-flow/default/guide/07-phase-3.md:37", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
-  ["skills/issue-flow/default/guide/07-phase-3.md:46", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
-  ["skills/issue-flow/default/guide/08-phase-4.md:57", "which verifies that consult's findings rather than roaming for new ones"],
-  ["skills/issue-flow/screen/guide/07-phase-3.md:17", "Both writes take a path and nothing but a path"],
-  ["skills/issue-flow/screen/guide/07-phase-3.md:24", "the write refuses the compounds it can prove"],
-  ["skills/issue-flow/screen/guide/07-phase-3.md:43", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
-  ["skills/issue-flow/screen/guide/07-phase-3.md:52", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
-  ["skills/issue-flow/screen/guide/08-phase-4.md:57", "which verifies that consult's findings rather than roaming for new ones"],
-].map(([at, cut]) => `${at} ${cut}`);
-
-test("the served text describes a verb's behaviour at these sites and no others", () => {
+/* The corpus itself, with nothing owed: every refusal is printed whole, so the one that fires names
+   the span to cut and the sentence left once it is cut (ISS-1568). */
+test("the served text describes no verb's behaviour", () => {
   const found = served().flatMap((one) => mechanicsIn(readFileSync(one.path, "utf8"), one.rel));
-  const shape = /^(?<at>\S+) describes what a verb does rather than pointing at it: "(?<cut>.*?)"\. The verb's/su;
-  const seen = found.map((one) => {
-    const read = shape.exec(one);
-    assert.ok(read, `a refusal the case cannot read: ${one}`);
-    return `${read.groups.at} ${read.groups.cut}`;
-  });
-  assert.deepEqual(seen, OWED,
-    "a site added here is a mechanics description the served text gained; one missing is a cut ISS-1568 made and did not take out of this list");
+  assert.deepEqual(found, [], `a mechanics description the served text gained:\n${found.join("\n")}`);
 });

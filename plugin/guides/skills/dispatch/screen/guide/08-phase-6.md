@@ -40,9 +40,8 @@ deployment identity the checkpoint names — never the run that built the change
 earn nothing there. A checkpoint naming none refuses that judge nothing; it is the route the landing
 took that decides whether there is one to hand over. Its verdicts and its hand-back are what let the landing finish.
 
-**A status the landing could not reach is this phase's.** The landing takes each issue as far as its
-record earns and the project's release allows, which is to `closed` where that release owes a person
-nothing. Where it owes one, the issue rests at `awaiting_release`: the release note each run left
+**A status the landing could not reach is this phase's**, and `forge resume ISS-nn` says which one
+that is. Where the project's release owes a person an act, the issue rests at `awaiting_release`: the release note each run left
 drafted is published from here once the release is actually out, and the close follows it. A wave
 that lands every branch and leaves a rung nobody moves has left the queue exactly where a person has
 to finish it, which is the one outcome this method exists to remove.

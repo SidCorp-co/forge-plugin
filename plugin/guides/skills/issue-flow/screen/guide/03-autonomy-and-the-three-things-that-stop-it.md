@@ -12,18 +12,18 @@ Exactly three:
 Everything else proceeds unasked: plan, comments, evidence, branch, commits, push, deploy, status,
 release note, close.
 
-**Ending at `developed` for a judging run is not a stop.** A stop leaves this session waiting on a
-named somebody; that ending leaves the issue in nobody's hands at all — at a status any run may
-claim from, under no lease, with the record carrying everything the next one needs. Nothing is asked
-of a person and nothing is waited on, so the phase that ends there takes itself.
+**A stop sets the issue down, never the run.** Each of the three is taken as a park, which records
+the reason on that one issue and moves you to the next; `forge record park -h` lists the kinds. A
+screen change is still parked where the project's release waits for a person — the deploy rolls
+back, the people who saw the wrong screen do not — and that park is a person's look at a change the
+judge has already exercised, never a substitute for the judging.
 
-**A park is not a stop either.** It sets one issue down with its reason recorded and moves you to
-the next; `forge record park -h` lists the kinds. A screen change is still a park where the
-project's release waits for a person — the deploy rolls back, the people who saw the wrong screen do
-not — and that park is a person's look at a change the judge has already exercised, never a
-substitute for the judging.
+**Ending at `developed` for a judging run is not a stop.** A stop hands the issue to a named
+somebody; that ending leaves the issue in nobody's hands at all — at a status any run may claim
+from, under no lease, with the record carrying everything the next one needs. Nothing is asked of a
+person and nothing is waited on, so the phase that ends there takes itself.
 
 Two obligations stand in for a gate before the work: know the way back before the step that needs
 one, established in Phase 0; and a decision ledger in the report, every choice taken under an
 assumption with how to reverse it. **The report is a record, not a request.** One that ends by
-asking whether to continue is a stop, and the only stops are the three above.
+asking whether to continue halts the run, which not even the three above do.

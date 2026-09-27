@@ -2,14 +2,10 @@
 
 Read this before answering what blocks what, and before trusting anything called a dependency.
 
-**The tracker's own store is the one that orders.** `forge issue ISS-nn --blocks ISS-mm` writes an
-edge there, `--relates ISS-mm` writes one that orders nothing, and `--unlink ISS-mm` takes away the
-single edge the two have. A pair carrying both kinds loses neither: the removal is refused, both are
-printed, and `--kind` chooses. `forge issue ISS-mm --fields relations` reads them back, under
-`blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up, and `relates` for
-the ones that order nothing. One field is worth knowing before the list is read: `expired`, because an edge whose
-`validUntil` has passed comes back with the live ones, so a count of relations is not a count of
-blockers.
+**The tracker's own store is the one that orders.** An edge is written, removed and read back
+through `forge issue`, whose `-h` names the flag for each kind, and only a blocking edge orders
+anything. Before a count of relations is read as a count of blockers, read each edge's `expired`:
+one whose `validUntil` has passed holds nothing up.
 
 **A body's prose is the other store, and it gates nothing.** Some issues carry a sentence about their
 own edges. `forge next --graph [ISS-nn]` prints the tracker's edges and then, under a heading of its
