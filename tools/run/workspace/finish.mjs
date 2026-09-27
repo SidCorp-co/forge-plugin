@@ -20,7 +20,7 @@ import { aheadRoute } from "./ahead-route.mjs";
 import { carried } from "./corpus-carried.mjs";
 import { copiesIn, machineSecrets } from "./credential-copies.mjs";
 import { endedOf, endedWritten } from "./ended.mjs";
-import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
+import { KEY, slugless, whoseTree, worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";
 
 const REFUSED = 1;
@@ -375,6 +375,16 @@ export const finish = async ({ words: [given] }, { here, cwd = process.cwd(), ga
   const root = checkoutRoot(here);
   const path = worktreePath(root, key);
   console.log(`The workspace ${key} was started with: ${path}`);
+  const unnamed = slugless(root);
+  if (unnamed) console.error(`  note     ${unnamed}`);
+  if (unnamed && !existsSync(path)) {
+    console.error(`  refused  nothing was removed, because nothing at ${path} proves this workspace ended when no slug `
+      + `named the path: the trees below say whether it stands under another name. End it under the home `
+      + `that holds the record: XDG_CONFIG_HOME=<that home> ${runnerIn(root, "run.mjs")} finish ${key}`);
+    treesLeft(root);
+    process.exitCode = REFUSED;
+    return;
+  }
   if (!existsSync(path)) {
     alreadyGone(root, key, path);
     treesLeft(root);

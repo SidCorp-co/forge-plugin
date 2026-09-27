@@ -128,7 +128,8 @@ test("finish whose machine log cannot be written leaves the whole workspace, end
   assert.ok(retry, last);
 
   chmodSync(machine, 0o644);
-  const again = spawnSync("sh", ["-c", retry], { cwd: work, encoding: "utf8", env });
+  // From the suite's own directory, as a reader of the printed line would run it (ISS-2666).
+  const again = spawnSync("sh", ["-c", retry], { encoding: "utf8", env });
   assert.equal(again.status, 0, again.stderr + again.stdout);
   assert.equal(readFileSync(machine, "utf8"), `${ROWS.join("\n")}\n`, again.stdout);
   assert.ok(!existsSync(scratch) && !existsSync(tree), again.stdout);

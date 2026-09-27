@@ -4,13 +4,23 @@
 import { realpathSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { slugIfAny } from "../../../plugin/src/resolve/settings.mjs";
+import { projectAt, projectRecords } from "../../../plugin/src/resolve/settings.mjs";
 import { gitCommonDir, gitOut } from "../../checkout.mjs";
 import { runIdAt, RUN_ID_VAR } from "./run-id.mjs";
 
 export const KEY = /^ISS-\d+$/u;
 
-export const worktreePath = (root, key) => join(dirname(root), `wt-${slugIfAny() ?? basename(root)}-${key}`);
+/* Read for the checkout `root` names and never for the caller's directory: every retry `finish`
+   prints is an absolute script path, so it reads as runnable from anywhere and has to be (ISS-2666). */
+export const worktreePath = (root, key) => join(dirname(root), `wt-${projectAt(root) ?? basename(root)}-${key}`);
+
+/** Why the tree is named for the checkout's folder rather than a slug, or null where a slug resolved.
+ *  A tree cut under a home that held the record is named for that slug, so this name can miss it. */
+export const slugless = (root) => (projectAt(root)
+  ? null
+  : `no record of ${root}'s project under ${projectRecords().dir} names a slug, so its trees are named `
+    + `for the folder ${basename(root)}, and a tree cut under a home that held the record is named for `
+    + `that record's slug instead`);
 
 const resolved = (one) => {
   try {

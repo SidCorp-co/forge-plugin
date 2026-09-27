@@ -3,11 +3,12 @@
    `finish.test.mjs`'s, the landing verbs `run-script.test.mjs`'s, the review `run-review.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { BARE, committed, declaredIn, git, OWN_SLUG, runIn, scratch } from "../run-fixtures.mjs";
-import { tempRoom } from "../../../../plugin/test/fixtures.mjs";
+import { BARE, committed, declaredIn, git, OWN_SLUG, runIn, SCRIPT, scratch } from "../run-fixtures.mjs";
+import { projectRoom, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 import { runIdAt, runsFor } from "../../../../plugin/src/resolve/session/run-id.mjs";
 
 const checkout = (name) => {
@@ -42,6 +43,32 @@ test("start adds the worktree, links what the checkout installed, and names the 
   assert.equal(again.status, 1, again.stdout);
   assert.ok(again.stderr.includes(tree), `the refusal does not name the worktree already there:\n${again.stderr}`);
   assert.ok(again.stderr.includes("worktree remove"), again.stderr);
+});
+
+/* The path is the one finish derives, so it is read for the checkout the script belongs to and never
+   for the directory it was called from, here a checkout recorded under another slug (ISS-2666). */
+test("start run from another checkout's directory cuts the tree named for its own checkout's slug", () => {
+  const { work } = checkout("start-elsewhere");
+  const home = tempRoom("start-elsewhere-home-");
+  declaredIn(work, home);
+  const elsewhere = projectRoom(tempRoom("start-elsewhere-other-"), home, { slug: "another-project" });
+
+  const run = spawnSync(process.execPath, [join(work, SCRIPT), "start", "ISS-90"],
+    { cwd: elsewhere, encoding: "utf8", env: { ...BARE, XDG_CONFIG_HOME: home } });
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const tree = join(dirname(work), `wt-${OWN_SLUG}-ISS-90`);
+  assert.ok(existsSync(tree), `${tree} was not made:\n${run.stdout}${run.stderr}`);
+  assert.ok(!existsSync(join(dirname(work), "wt-another-project-ISS-90")), "the tree is named for the caller's checkout");
+});
+
+test("start under a home holding no record of the project says the tree is named for the checkout's folder", () => {
+  const { work } = checkout("start-slugless");
+  const home = tempRoom("start-slugless-home-");
+  const run = runIn(work, ["start", "ISS-91"], { ...BARE, XDG_CONFIG_HOME: home });
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  assert.ok(existsSync(join(dirname(work), `wt-${basename(work)}-ISS-91`)), run.stdout + run.stderr);
+  assert.match(run.stderr, /no record of .* names a slug, so its trees are named for the folder/u, run.stderr);
+  assert.ok(run.stderr.includes(join(home, "forge", "projects")), `the records directory read is not named:\n${run.stderr}`);
 });
 
 /* Every agent a session dispatches inherits that session's id, so a wave of runs writes under one

@@ -8,7 +8,7 @@ import { borrowRoute } from "../../../plugin/src/resolve/config.mjs";
 import { checkoutRoot, defaultBranch, git, loud, stop } from "../../checkout.mjs";
 import { endedDropped } from "./ended.mjs";
 import { borrowedInto, BROKEN } from "./links.mjs";
-import { KEY, occupied, worktreePath } from "./occupant.mjs";
+import { KEY, occupied, slugless, worktreePath } from "./occupant.mjs";
 import { mintRunId, RUN_ID_VAR, scratchMinted } from "./run-id.mjs";
 
 /* Made here rather than left to the run, so a run's logs and scratch files have a place whose name says whose they are and `finish` removes that one path. One that cannot be made is said and stops nothing: a run without one writes elsewhere and `finish` then finds nothing to remove, which is the safe answer either way. */
@@ -58,6 +58,8 @@ export const start = ({ words }, { here, self, write }) => {
   const [key] = keys;
   const root = checkoutRoot(here);
   const path = worktreePath(root, key);
+  const unnamed = slugless(root);
+  if (unnamed) console.error(`  note     ${unnamed}: end it under this same home.`);
   if (existsSync(path)) stop(occupied(root, path));
   const branch = `iss-${key.slice(4).toLowerCase()}${slug ? `-${slug}` : ""}`;
   const base = defaultBranch(root);
