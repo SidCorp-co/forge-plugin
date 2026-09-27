@@ -1,17 +1,14 @@
-// Three refusals, three pages: how/issue-read-first.md for where the write's reading sits,
-// how/issue-shape.md for a filing read before it is made, how/wrapped-route.md for a verb's action.
+// Two refusals, two pages: how/issue-read-first.md for where the write's reading sits,
+// how/wrapped-route.md for a verb's action.
 
 import { NOWHERE, deny, directoryAt, done, how, shellText, startsAt } from "../_hook.mjs";
 import { owedFor, refusalOf } from "../../src/tracker/comments.mjs";
 import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
-import { filingsOf, joined, ownChecked, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { joined, ownChecked, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
-import { filingRefusal, liveTitles, shapeAgainst } from "../../src/tracker/issue-shape.mjs";
 import { documentIdIfAny } from "../../src/tracker/issues.mjs";
 import { accountCredentials, fail, projectAt, useProject } from "../../src/resolve/settings.mjs";
-
-const SHAPE = "issue-shape";
 
 /* One `git rev-parse` per distinct directory: the walk is a process and a gate has a deadline. */
 const slugs = new Map();
@@ -61,22 +58,14 @@ export const run = async (ev) => {
   const said = spoken.map((one) => one.said);
   const call = { name: ev.tool_name, input: ev.tool_input };
   const refs = writeTargets(call, said);
-  const filings = filingsOf(call);
+  /* Before anything the tracker answers: this refusal reads no row, and a raw create is refused by it
+     whatever its body says, so what that body owes is `forge new`'s to say at its own door (ISS-494). */
   const wrapped = wrappedRefusal(toolOfCall(call.name), actionIn(call.input));
-  if (!refs.length && !filings.length && !wrapped) done();
-  const { url, token } = accountCredentials();
-  const canAskTracker = Boolean(url.value && token.value);
-  const here = ev.cwd || process.cwd();
-  // The shape first: a filing refused never happened, and its scope is the event's own directory.
-  if (canAskTracker && aimedAt(here)) {
-    const page = filings.length ? await liveTitles() : null;
-    for (const filing of filings) {
-      const refused = await filingRefusal(filing, shapeAgainst(filing, page), { page });
-      if (refused?.text) deny(refused.text + how(SHAPE, refused.cause));
-    }
-  }
   if (wrapped) deny(wrapped + how("wrapped-route", "raw-call"));
-  if (!canAskTracker) done();
+  if (!refs.length) done();
+  const { url, token } = accountCredentials();
+  if (!url.value || !token.value) done();
+  const here = ev.cwd || process.cwd();
   /* One group per command start: a compound may cross checkouts, and a tool call moves nowhere. */
   const groups = call.name === "Bash"
     ? spoken.map((one) => ({ at: directoryOf(text, one.at, here), refs: writeTargets(call, [one.said]) }))

@@ -140,20 +140,3 @@ export const ownChecked = ({ name }, spoken = []) => {
   const writes = spoken.map(spokenWrite).filter(Boolean);
   return writes.length > 0 && writes.every(({ verb }) => verb.own === true);
 };
-
-/* The kind and the complexity travel with the body: what a description is read against is the kind's own shape, and which rung it claims is what decides the light path. */
-const filingOf = (args) =>
-  (args?.action === "create" && args?.data && typeof args.data === "object"
-    ? [{
-      title: String(args.data.title ?? ""),
-      body: String(args.data.description ?? ""),
-      kind: args.data.category ?? null,
-      complexity: args.data.complexity ?? null,
-    }]
-    : []);
-
-/** Through a connected MCP client alone: `forge new` reads its body off a file this cannot see, and the shape a spoken filing had was a raw payload no verb takes now. */
-export const filingsOf = ({ name, input }) => {
-  const tool = toolOfCall(name);
-  return tool === "forge_issues" ? filingOf(input) : [];
-};

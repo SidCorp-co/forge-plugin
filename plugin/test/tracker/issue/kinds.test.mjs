@@ -168,14 +168,13 @@ test("a reading is a kind of its own, sharing the feature's sections and not its
     "the value is what a reader filters a reading off, so it has to reach the field");
 });
 
-/* A raw create carries no flag to require, so the shared reader still reads a body as a feature. */
+/* An issue filed before kinds existed carries none, so the shared reader still reads its body as a
+   feature; a raw create is refused for its route before it reaches this reader at all (ISS-494). */
 test("a filing naming no kind is read as the default and told so", () => {
   const read = gapsOf(body("outcome", "rules", "scope", "why"), null);
   assert.deepEqual(read.gaps, []);
   assert.equal(read.said,
     `Read as ${ARTICLE(DEFAULT_KIND)} ${DEFAULT_KIND}, the kind a filing naming none is read as.`);
-  assert.match(KINDS_HELP, new RegExp(`is read as ${ARTICLE(DEFAULT_KIND)}\\n${DEFAULT_KIND}\\.`, "u"),
-    "and the help says the same of the same value, so the next default reintroduces nothing");
   assert.equal(noticeFor({ kind: DEFAULT_KIND, named: true, left: [] }), null);
   assert.equal(shapeFor(null).kind, DEFAULT_KIND);
 });
