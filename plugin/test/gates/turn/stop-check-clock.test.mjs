@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import { cleanRepo, tempRoom } from "../../fixtures.mjs";
 import { DEADLINES } from "../../../src/hooks/hook-switch.mjs";
+import { hookLogPath, jsonlAt } from "../../../src/hooks/log/hook-log-file.mjs";
 import { decided, freshWorktree, git, settled, spawnIn, stopStanding, transcript, used } from "./fixture.mjs";
 
 /* A linter the clock is spent on: a delegate planted where `linting` finds a project's own, which
@@ -143,6 +144,7 @@ test("what the spent clock left unread is named on stderr and does not refuse th
   const file = join(repo, "unread.mjs");
   writeFileSync(file, "export const x = 1;\n");
   const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: repo };
+  const started = new Date().toISOString();
   const { answer: said, stderr: line } = told(() => decided(ev, () => ["ISS-999"], () => performance.timeOrigin + DEADLINES.post - 1_000));
   assert.equal(said.kind, "none", `what could not be read refused the stop: ${said.said}`);
   assert.match(line, /stop-check did not read/u, `nothing said what went unread: ${line}`);
@@ -150,4 +152,8 @@ test("what the spent clock left unread is named on stderr and does not refuse th
     assert.match(line, new RegExp(`${check} \\(the stop clock ran out\\)`, "u"), `${check} is not named`);
   }
   assert.match(line, /unread\.mjs \(the stop clock ran out\)/u, "the file the linter never reached is not named");
+  /* The event the log line carries is the one the harness read, and in-process there is none, so the line is found by when it was written; the cases in a file run one after another. */
+  const logged = jsonlAt(hookLogPath()).filter((one) => String(one.at) >= started);
+  assert.ok(logged.some((one) => one.decision === "error" && /stop-check did not read/u.test(one.reason)),
+    `the hook log carries no line saying what went unread: ${JSON.stringify(logged)}`);
 });
