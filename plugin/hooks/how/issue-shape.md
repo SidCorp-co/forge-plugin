@@ -3,16 +3,17 @@
 Why: four of nine issues filed off one refactor were one-sentence fixes to one verb each. Each
 would have spent an agent's hour and six consult rounds where a reviewer needs a minute.
 
-How to clear it: the refusal is the guide — each line says what was read, what the shape wants and
-what to add, for the kind it read the body as; `forge new -h` states the sections per kind. A body
-naming one verb, hook or file with no rule in it is a fix, and takes a route: `forge comment ISS-45
-notes.md` posts it there instead of filing — the body is a file, and the key alone is refused —
-`--with ISS-45` files and relates it, `--complexity s` files it at the fix rung's light path.
+How to clear it: each line of the refusal says what was read, what the shape wants and what to
+add, for the kind it read the body as; `forge new -h` states the sections per kind. A body naming
+one verb, hook or file with no rule in it is small, and takes a route: `forge comment ISS-45
+notes.md` posts that file there instead of filing, `--with ISS-45` files and relates it, and
+`--complexity xs` (trivial) or `s` (fix) files it on the light path, read against no section;
+`m`, `l` and `xl` claim a feature, read against their kind's sections.
 
-How to work through it: `forge advance ISS-45 --owed` says what a fix owes. Asked once per
-filing, never again on a filed one. `forge hooks --off issue-read-first` clears the gate, not this
-CLI's own copy, so a refusal you believe wrong goes to the tracker's own screens and a note there.
+How to work through it: `forge advance ISS-45 --owed` says what its rung owes. Asked once per
+filing. `forge hooks --off issue-read-first` clears the gate, not this CLI's own copy, so a refusal
+you believe wrong goes to the tracker's own screens and a note there.
 
-Not judged: whether the issue is true, worth doing or a fit; whether a body carrying the mark by
-hand is really a fix; whether a duplicate is one, the measure being shared words. No endpoint, or
-a tracker not answering: `forge hooks --how stood-down`.
+Not judged: whether the issue is true, worth doing or a fit; whether its complexity is right;
+whether a duplicate is one, the measure being shared words. No endpoint, or a tracker not
+answering: `forge hooks --how stood-down`.
