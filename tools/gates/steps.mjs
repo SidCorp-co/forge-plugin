@@ -120,7 +120,7 @@ export const STEPS = [
 
 export const readsWholeTree = (path) => WHOLE_TREE_TESTS.some((claim) => under(path, claim));
 
-export const argvForTests = (files) => [process.execPath, "--test", ISOLATED, ...testFlags(), ...files];
+export const argvForTests = (files) => [process.execPath, "--test", ...testFlags(), ISOLATED, ...files];
 
 // A path of this tree, to the end of its argument, stands for that file's content and not for where the tree sits (ISS-1763).
 const identity = (one, tree) => {

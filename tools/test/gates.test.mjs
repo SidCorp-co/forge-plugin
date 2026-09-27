@@ -8,6 +8,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join } from "node:path";
 
 import { STEPS, gateSteps, testWorkers } from "../gates/steps.mjs";
+import { ISOLATED } from "../gates/reporters/isolation.mjs";
 import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../gates/verdict.mjs";
 import { CALL_CEILING_SECONDS } from "../../plugin/src/host/call-ceiling.mjs";
 import { REVIEW } from "../gates/timing.mjs";
@@ -569,7 +570,7 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
   }
 });
 
-test("a test step runs on the workers this box derives, with node's own reporter, the per-file one and the failing-case one", () => {
+test("a test step runs on the workers this box derives, with node's own reporter, the per-file one and the failing-case one, under the suite's isolation", () => {
   const [tree, rest] = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).filter((step) => step.tests);
   const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", "reporters", name)}`;
   for (const step of [tree, rest]) {
@@ -578,7 +579,8 @@ test("a test step runs on the workers this box derives, with node's own reporter
       `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
       ours("file-times.mjs"), "--test-reporter-destination=stdout",
       ours("isolation.mjs"), "--test-reporter-destination=stdout"], step.label);
-    assert.ok(step.argv.slice(9).every((one) => one.endsWith(".test.mjs")), `the files follow the flags: ${step.argv.join(" ")}`);
+    assert.equal(step.argv[9], ISOLATED, `${step.label} starts its files outside the suite's isolation`);
+    assert.ok(step.argv.slice(10).every((one) => one.endsWith(".test.mjs")), `the files follow the flags: ${step.argv.join(" ")}`);
   }
 });
 
