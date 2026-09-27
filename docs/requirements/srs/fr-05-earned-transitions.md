@@ -260,7 +260,8 @@ superseded history and the check simply stops being met.
 - **AC-05-6-6** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a file the landing wrote and the plan does not name owes a correction"
   IF the merged mark records that the landing wrote a path which neither the plan's text nor a
   correction of the plan names THEN the CLI SHALL refuse `developed`, name that path, and print the
-  correction that clears it.
+  correction that clears it, a correction that does not say what it corrects counting as one of the
+  plan.
 - **AC-05-6-7** · Rev: 1 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "a whole fail standing on a criterion refuses awaiting_release and closed, naming the criterion"
   IF a criterion's latest verdict is a failed one THEN the CLI SHALL refuse `awaiting_release` and
   `closed` as it refuses `testing`, and name that criterion, because a rung past the judging that
