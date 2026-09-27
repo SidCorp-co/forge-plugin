@@ -16,11 +16,16 @@ const reasonOf = (text) => {
 
 const again = (ref) => `forge claim ${ref} --pushed --ready`;
 
-/* The sha origin answers for the branch, "" where it holds none, or the failure git gave. A prompt
-   for credentials is a failure too, since nobody is at this terminal to answer it. */
-const remoteTip = (branch) => {
+/* The sha origin answers for the branch, "" where it holds none, or the failure git gave. Bounded,
+   and with no prompt for credentials, since nobody is at this terminal to answer one and a capture
+   that waits forever is not a refusal; the bound is the one `forge baseline publish` gives the same
+   question. */
+export const REMOTE_MS = 30_000;
+
+export const remoteTip = (branch, { cwd = process.cwd(), ms = REMOTE_MS } = {}) => {
   const run = spawnSync("git", ["ls-remote", REMOTE, `refs/heads/${branch}`],
-    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
+    { cwd, encoding: "utf8", timeout: ms, killSignal: "SIGKILL", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
+  if (run.error?.code === "ETIMEDOUT") return { failed: `no answer inside ${ms / 1000}s` };
   if (run.error) return { failed: run.error.message };
   if (run.status !== 0) return { failed: reasonOf(run.stderr) || `git ls-remote exited ${run.status}` };
   const line = run.stdout.split("\n").find((one) => one.endsWith(`\trefs/heads/${branch}`));

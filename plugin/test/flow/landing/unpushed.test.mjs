@@ -70,3 +70,13 @@ test("a plain capture on a branch origin does not hold still writes the worklog"
   assert.equal(state.issues[0].sessionContext?.worklog?.branch, BRANCH);
   assert.equal(checkpoint(), null, "and arms nothing");
 });
+
+test("a remote that accepts the call and never answers is a refusal inside the bound, not a wait", async () => {
+  const { remoteTip } = await import("../../../src/flow/landing/pushed.mjs");
+  const at = room("stalled");
+  git(at, "config", "remote.origin.uploadpack", "sleep 5; git-upload-pack");
+  const started = Date.now();
+  const asked = remoteTip(BRANCH, { cwd: at, ms: 1000 });
+  assert.ok(Date.now() - started < 4000, "it did not wait for the remote");
+  assert.deepEqual(asked, { failed: "no answer inside 1s" });
+});
