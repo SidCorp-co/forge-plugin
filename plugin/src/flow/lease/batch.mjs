@@ -9,7 +9,8 @@ import { worklogOf } from "../worklog.mjs";
 
 const JOIN = ", ";
 
-const membersOf = (batch) => String(batch ?? "").split(",").map((one) => one.trim()).filter(Boolean);
+/** The keys a worklog's `batch` field names, in the order written. */
+export const membersOf = (batch) => String(batch ?? "").split(",").map((one) => one.trim()).filter(Boolean);
 
 /** The batch a claim in `tree` declares for `key`: the run id's keys joined head first, or null where that id names `key` alone or not at all. */
 export const batchFor = (key, tree = process.cwd()) => {
@@ -36,16 +37,22 @@ export const batchSaid = (before, after, tree = process.cwd()) => {
 
 const sameSet = (one, two) => [...one].sort().join(JOIN) === [...two].sort().join(JOIN);
 
+/** Whether two `batch` fields name one set of keys: `same`, `none` where the second names none, or `other`. */
+export const batchAgrees = (mine, theirs) => {
+  const them = membersOf(theirs);
+  if (!them.length) return "none";
+  return sameSet(membersOf(mine), them) ? "same" : "other";
+};
+
 const siblingNow = async (key, members, read) => {
   const got = await read(key);
   if (got.refused) return { key, unreadable: String(got.refused).replace(/\s+/gu, " ").trim() };
   const work = worklogOf(got.body?.[FIELD]);
-  const theirs = membersOf(work?.batch);
   return {
     key,
     status: String(got.body?.status ?? "unknown"),
     head: work?.head ?? null,
-    batch: !theirs.length ? "none" : sameSet(theirs, members) ? "same" : "other",
+    batch: batchAgrees(members.join(JOIN), work?.batch),
   };
 };
 

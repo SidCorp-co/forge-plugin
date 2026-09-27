@@ -14,14 +14,14 @@ const UUID = "finish-ready-uuid";
 
 /** A tree `start` made for the key, one commit ahead of origin's default branch, pushed to its own
  *  remote branch or not, under a project whose ship mode is the case's. */
-const ahead = (name, { ship, push = true }) => {
+const ahead = (name, { ship, push = true, also = [] }) => {
   const { work } = pushed(name);
   writeFileSync(join(work, ".gitignore"), "node_modules\n");
   git(work, "add", ".gitignore");
   git(work, "commit", "-m", "what a linked worktree borrows");
   git(work, "push", "origin", "HEAD:master");
   declared(work, ship ? { ship } : {});
-  const started = runIn(work, ["start", KEY, "ready"], BARE);
+  const started = runIn(work, ["start", KEY, ...also, "ready"], BARE);
   assert.equal(started.status, 0, started.stderr + started.stdout);
   const tree = join(dirname(work), `wt-${OWN_SLUG}-${KEY}`);
   const branch = "iss-88-ready";
@@ -58,6 +58,15 @@ test("under ship ready, a checkpoint at the lander's turn and a pushed branch, f
   assert.doesNotMatch(said, /run\.mjs ship/u, said);
   assert.match(said, new RegExp(`which origin/${branch} carries for the landing to build from`, "u"), said);
   assert.doesNotMatch(said, /die with the tree/u, said);
+});
+
+/* ISS-2656: a tree started for a batch hands the landing every key it was started for, since the
+   landing's candidate is the batch's one branch and one head. */
+test("under ship ready, a tree started for two keys names both in the landing route", () => {
+  const { work, tree, branch, head } = ahead("finish-ready-batch", { ship: "ready", also: ["ISS-89"] });
+  onTracker(checkpoint(branch, head));
+  const said = refused(work, tree);
+  assert.match(said, new RegExp(`clear it: node \\S+tools/run\\.mjs land-ready ${KEY} ISS-89$`, "mu"), said);
 });
 
 test("under ship ready, a checkpoint at another turn names forge resume and not ship", () => {

@@ -193,3 +193,19 @@ test("a judging rung the verdicts do not earn goes back to the judge, not to the
   assert.doesNotMatch(said, /records-owed/u, `and never to the builder, whose verdict earns nothing:\n${said}`);
   assert.match(said, new RegExp(`forge claim ${KEY} --judged`, "u"), `with the route out of it:\n${said}`);
 });
+
+/* ISS-2656: under this route each member owes verdicts of its own, which no landing writes or borrows
+   from a batchmate, so a named key brings no sibling and names each one it leaves. */
+test("a named member's same-head batch sibling is named as left out, and only the named key is taken", async () => {
+  const { work, head, base } = world({ base: "other" });
+  const theirs = ready(head, base);
+  seeded({ landing: ready(head, base), next: theirs });
+  issue(UUID).sessionContext.worklog = { batch: `${KEY}, ${NEXT_KEY}` };
+  issue(NEXT_UUID).sessionContext.worklog = { batch: `${KEY}, ${NEXT_KEY}` };
+  const said = await ran([KEY], work);
+  assert.match(said, new RegExp(`${NEXT_KEY}, on ${KEY}'s batch, is left out: this project lands before-merge `
+    + "with an independent judge", "u"), said);
+  assert.doesNotMatch(said, new RegExp(`=== ${KEY} ${NEXT_KEY}`, "u"), said);
+  assert.equal(landing().state, "qa-owed", `the named key goes to its judge:\n${said}`);
+  assert.deepEqual(landing(NEXT_UUID), theirs, `and the sibling was not taken:\n${said}`);
+});

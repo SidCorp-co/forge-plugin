@@ -7,6 +7,7 @@ import { gitOut, REMOTE, stop, Stop } from "../checkout.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
 import { fetchedFor, tipSaid } from "./land-ready/branch.mjs";
+import { withSiblings } from "./land-ready/siblings.mjs";
 import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { versionAt } from "./landing.mjs";
@@ -188,7 +189,10 @@ const chainStep = async (one) => {
       held.push(member);
       return;
     }
-    const link = held.length ? linked(root, at.candidate, landing.head) : { conflicts: [], commit: alone };
+    /* A batch sibling at a head the candidate already carries is linked there, not merged a second time. */
+    const carried = held.length && carries(root, at.candidate, landing.head);
+    const link = held.length && !carried ? linked(root, at.candidate, landing.head)
+      : { conflicts: [], commit: carried ? at.candidate : alone };
     member.again = true;
     if (link.conflicts.length) {
       stop(`${landing.branch} does not merge onto the candidate the branches before it make: `
@@ -500,6 +504,11 @@ const NO_SET = (route) =>
   + `a fact about the set it was built from, and a set half of which came back judged is one nothing `
   + `rebuilds. They are landed one at a time.`;
 
+const ALONE_SAID = (route) =>
+  `this project lands ${route} with an independent judge between ${DEVELOPED} and ${JUDGED}, so each `
+  + `member owes verdicts of its own that no landing writes or borrows from a batchmate, and a key is `
+  + `landed only where it is named`;
+
 /** The verb: one finite task, the branches in the order they were named, as one candidate where the
  *  checkpoints allow it. A parked or handed-back branch is not the end of the run, because the branch
  *  after it is somebody else's release. */
@@ -522,8 +531,13 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `\`forge doctor --set landing=before-merge\`, and land again`);
   }
   console.log(`\nlanding ${route}, judgement ${judgement}`);
-  /* Named or found, one list from here down: nothing below it knows which of the two it was given. */
-  const keys = words.length ? words : await readyKeys(ctx, (landing) => owedAt(landing) === ORDER[0]);
+  const judged = judgement === INDEPENDENT && route === BEFORE_MERGE;
+  const startsAtPin = (landing) => owedAt(landing) === ORDER[0];
+  /* Named or found, one list from here down: nothing below it knows which of the two it was given. A
+     named key brings the batch its worklog declares; the empty call finds those siblings itself. */
+  const keys = words.length
+    ? await withSiblings(words, { read: readOf, startsAtPin, alone: judged ? ALONE_SAID(route) : null })
+    : await readyKeys(ctx, startsAtPin);
   const held = [];
   const read = [];
   for (const key of keys) {
@@ -553,7 +567,6 @@ export const landReady = async ({ flags, words }, ctx) => {
   /* Read and never taken: a key past the lander's turn still names the release that carried another. */
   for (const one of read) carried.push(...await carriedOn(one, held, full));
   const rest = held.filter((member) => !member.landing.intended && !carried.includes(member));
-  const judged = judgement === INDEPENDENT && route === BEFORE_MERGE;
   const eligible = judged ? [] : rest.filter((member) => setMember(member.landing));
   const set = eligible.length > 1 ? eligible : [];
   let over = [];
