@@ -16,7 +16,10 @@ first. The gate stamps what it asked about, so a write through it is never asked
 What it sees: a guarded file changed in the last two minutes — the path a command named, and the ones
 it did not, since this session's memory directory and the repository's skill directories are read too.
 A tracked file the tree agrees with was restamped rather than written, so `git checkout` is not
-answered for. What is left can be somebody else's uncommitted edit: say so, and it is not
-asked again.
+answered for. What is left can be somebody else's uncommitted edit, or a file the call only read
+while something else in it restamped the file: say which, and it is not asked again.
 
 Not judged: whether the fact is true or useful, and never a file outside `memory/` or `skills/`.
+Nor an installed copy of this plugin, wherever the host's install record places it: an update
+rewrites it whole, so no run records learning there, and the stamp a release leaves on it is not a
+write.

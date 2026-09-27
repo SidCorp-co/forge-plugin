@@ -6,7 +6,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { answered, callHook, escaped, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
@@ -398,4 +398,64 @@ test("a tracked link is judged by what it points at, not by its own name", () =>
 /* AC-07-3-4. One refusal, the files it names and the bar coming after the route. */
 test("every refusal this gate writes leads with its route", () => {
   assertRouteFirst(landed(randomUUID(), "arrived-in-order.md"), "a memory no route asked about");
+});
+
+/* ISS-302. The release rewrites the installed copy whole and the ship's closing line sends the run to
+   read it; no run records learning there, so the host's install record places it outside the gate. */
+const installed = join(tempRoom("landed-installed-"), "forge", "9.9.9");
+mkdirSync(join(installed, "skills", "forge", "references"), { recursive: true });
+mkdirSync(join(HOME.HOME, ".claude", "plugins"), { recursive: true });
+writeFileSync(join(HOME.HOME, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({
+  version: 2,
+  plugins: { "forge@forge-local": [{ scope: "user", installPath: installed, version: "9.9.9" }] },
+}));
+
+/* The call's own request, as the transcript records it: the floor a stamp has to clear to be this call's. */
+const calledAt = (at) => {
+  const path = join(tempRoom("landed-called-"), `${randomUUID()}.jsonl`);
+  writeFileSync(path, `${JSON.stringify({ type: "assistant", timestamp: new Date(at).toISOString() })}\n`);
+  return path;
+};
+
+const reading = (file, { before = "", transcript } = {}) => {
+  const run = callHook(
+    HOOK,
+    {
+      session_id: randomUUID(),
+      tool_name: "Bash",
+      tool_input: { command: `${before}head -5 ${pathed(file)}` },
+      cwd: dirname(file),
+      ...(transcript ? { transcript_path: transcript } : {}),
+    },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  return answered(run)?.reason ?? null;
+};
+
+test("a read of the installed copy is not a write, even in the call that restamped it", () => {
+  const file = join(installed, "skills", "forge", "references", "dependencies.md");
+  const transcript = calledAt(Date.now() - 1_000);
+  writeFileSync(file, "released\n");
+  assert.equal(reading(file, { before: "claude plugin update forge && ", transcript }), null,
+    "the release stamped it inside this call, and the call only read it");
+  assert.equal(reading(file), null, "nor where no transcript dates the call");
+});
+
+test("a guarded file stamped before the call is not this call's, outside any tree", () => {
+  const file = join(tempRoom("landed-read-before-"), "skills", "deploy", "SKILL.md");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, "the method\n");
+  utimesSync(file, new Date(Date.now() - 5_000), new Date(Date.now() - 5_000));
+  assert.equal(reading(file, { transcript: calledAt(Date.now() - 1_000) }), null);
+});
+
+test("a guarded file outside the installed copy that the call restamped is still asked about", () => {
+  const file = join(tempRoom("landed-read-after-"), "skills", "deploy", "SKILL.md");
+  mkdirSync(dirname(file), { recursive: true });
+  const transcript = calledAt(Date.now() - 1_000);
+  writeFileSync(file, "the method, regenerated\n");
+  const said = reading(file, { before: "node regenerate.mjs && ", transcript });
+  assert.match(said ?? "", /SKILL\.md/u, "no tree can say it was restamped, so the stamp stands");
+  assert.match(said ?? "", /or a file the call only read — say which/u, "and the way out is true for a read");
 });

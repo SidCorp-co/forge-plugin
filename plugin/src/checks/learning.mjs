@@ -1,10 +1,11 @@
 /* Two entry points ask one question — before a write, and after one no check could read. */
 import { spawnSync } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 
 import { canonical } from "../resolve/canonical.mjs";
 import { memoryDir } from "../hooks/transcripts.mjs";
+import { installedPaths } from "../tools/plugin-copy.mjs";
 
 export const GUARDED = /\/memory\/|\/skills\//;
 export const FILE_TYPES = ["user", "feedback", "project", "reference"];
@@ -18,6 +19,15 @@ export const BRIEF =
 
 export const guarded = (path) =>
   GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md";
+
+/** Whether a path sits inside an installed copy of this plugin, as the host's install record places
+ *  each: an update rewrites that directory whole, so no run records learning there, and a fresh stamp
+ *  on a skill file in it is the release's rather than a write to answer for. */
+export const installedCopy = (path) =>
+  installedPaths().some((dir) => {
+    const rel = relative(canonical(dir), path);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  });
 
 const GIT_MS = 2_000;
 const DEPTH = 3;
