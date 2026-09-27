@@ -233,8 +233,7 @@ export const releaseConflict = (policy) => {
 /* Three states, one value each: a policy read, `null` where no project is named, and this where the
    read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663). `at`
    is handed to `releaseScope`, whose own line says what a reading aimed elsewhere needs it for.
-   Memoised over the first caller's answer as the redirect above it is, one process reading one
-   project. */
+   Memoised over the first caller's answer, one process reading one project. */
 export const releasePolicy = once(async (at = null) => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_config", { action: "get" }, true);

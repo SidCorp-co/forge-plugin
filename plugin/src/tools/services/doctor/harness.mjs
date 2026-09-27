@@ -7,7 +7,7 @@ import { gateway, machineRows, modelBehind } from "../../../resolve/machine/stor
 import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool } from "../tool-config.mjs";
 import { accountCredentials } from "../../../resolve/settings.mjs";
 import { coolifyTarget, pinned } from "../coolify/config.mjs";
-import { INSTANCE, coolifyRoute } from "../coolify/chosen-route.mjs";
+import { coolifyRoute, onTracker } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
 
 const cloudflareRow = (full) => {
@@ -79,7 +79,7 @@ const bindingsSaid = async () => {
 const trackerRow = async () => ({ level: "ok",
   detail: `the tracker's own bindings  ← ${coolifyRoute().from}  ${await bindingsSaid()}` });
 
-const coolifyRow = (full) => (coolifyRoute().mode === INSTANCE ? instanceRow(full) : trackerRow());
+const coolifyRow = (full) => (onTracker() ? trackerRow() : instanceRow(full));
 
 /* The account a call would take, as `forge google auth status` describes it, and the file it was read from.
    Imported here rather than at the top: describing an account reads the service's scope table, and

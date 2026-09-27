@@ -46,6 +46,9 @@ const statementAround = (code, text, from, at) => {
 };
 
 export const laddersIn = (text, rel) => {
+  /* A statement is read off the source, so a file whose source never names the store holds no
+     statement that could, and none of its braces is worth walking. */
+  if (!text.includes(STORE)) return [];
   const code = blanked(text);
   const open = [];
   const out = [];

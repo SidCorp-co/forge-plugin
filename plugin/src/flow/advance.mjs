@@ -60,14 +60,14 @@ export const USAGE = [
   "`forge guide contract <status>` for the rule.",
 ].join("\n");
 
+/* What every correction of a status names as corrected: the issue's own field, which no record holds. */
+const STATUS_CORRECTED = "issue:status";
+
 /* Which set could have been a record instead: a rung of the lane the issue has not already passed. A
    side status is a park the caller is choosing and several refusals here send one there; a rung behind
    where it stands is how a landing is walked back, and the drop's own refusal prints that walk. Neither
    is a status anything on the page earns, so neither is worth a page. An issue standing outside the lane
    sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). */
-/* What every correction of a status names as corrected: the issue's own field, which no record holds. */
-const STATUS_CORRECTED = "issue:status";
-
 const couldBeEarned = (body, status) => ORDER.includes(status) && atLeast(status, body.status);
 
 /* Every plain advance is judged on the page, the one into `closed` included: that rung is entered on the verdicts and the folded findings as well as on the release policy, and a page skipped there read a failed verdict as none (ISS-2511). A set reads it only where the record could have earned the status instead. */
@@ -396,9 +396,9 @@ const settledAfter = async (view, ref, status, correction) => {
     + `and ${stamp}`].filter(Boolean).join("\n\n"));
 };
 
-/* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
+/* The status set with nothing earning it, its name judged against what `declaredValue` declares and the record against whether it already earns the move (`earnsInstead`), with the reply and the correction saying no entry check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why, asked) => {
-  /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
+  /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check of the name a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
   const kind = statusKind(status);
   if (kind?.replacedBy) {
     refuse(`\`${status}\` is no step of the flow: \`${kind.replacedBy}\` is the rung that took it over, `

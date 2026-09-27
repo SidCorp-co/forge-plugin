@@ -1,5 +1,5 @@
 /* What a call this CLI will not send is told, and the one table of the capabilities REST does not
-   serve. Pure and reached from `routes.mjs` rather than kept in it: a refusal is not a route, and
+   serve. Pure, and kept apart from `routes.mjs` rather than in it: a refusal is not a route, and
    the table beside the rows was what pushed that file past the size one pass reads.
    docs/cli/one-transport.md. */
 /* Every row's rather than a route's: `action` makes the key, `projectId` aims off the resolved slug. */

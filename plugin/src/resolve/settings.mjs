@@ -604,9 +604,12 @@ export const projectRepository = () => standing()?.repository ?? null;
  *  dropping it in silence is a value somebody set and nothing tells them about. Presence and never
  *  truthiness, for that same reason: a key edited to `null` or to a blank is a line somebody wrote
  *  at a level that has stopped answering for it. */
-export const shipLeftOnMachine = () => (Object.hasOwn(userConfig(), "ship")
-  ? { present: true, value: userConfig().ship, from: configPath() }
-  : { present: false, value: null, from: null });
+export const shipLeftOnMachine = () => {
+  const machine = userConfig();
+  return Object.hasOwn(machine, "ship")
+    ? { present: true, value: machine.ship, from: configPath() }
+    : { present: false, value: null, from: null };
+};
 
 export const PROJECT_SHAPES = ["storefront", "staged", "direct"];
 

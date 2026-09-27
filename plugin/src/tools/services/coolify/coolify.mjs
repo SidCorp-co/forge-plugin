@@ -16,7 +16,7 @@ import { hiddenNames, normalize, pickColumns, redact, renderObject, renderTable,
 import { readArgs } from "./args.mjs";
 import {
   BOTH_KIND, HELD_BACK_KIND, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE,
-  TRACKER, consentRefusal, coolifyRoute, trackerName,
+  consentRefusal, onTracker, trackerName,
 } from "./chosen-route.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
@@ -272,7 +272,7 @@ const refuseOffTracker = (found) => {
     `  ${found.instead}`]);
   }
   if (!onInstance(found.name)) {
-    fail(`coolify: ${didYouMean("command", found.name, TAKEN_HERE)}`);
+    return fail(`coolify: ${didYouMean("command", found.name, TAKEN_HERE)}`);
   }
   return said([`coolify: \`${found.name}\` is a command of the saved instance, which is not the `
     + "route answering here.",
@@ -297,7 +297,7 @@ const overTracker = async ([sub, ...rest]) => {
 };
 
 export const coolify = async (argv) => {
-  if (coolifyRoute().mode === TRACKER) return overTracker(argv);
+  if (onTracker()) return overTracker(argv);
   const [sub, ...rest] = argv;
   const help = helpAskedOf(argv, Object.keys(SAYS));
   if (help?.subject) {
