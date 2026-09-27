@@ -458,7 +458,7 @@ a wait no party can end.
   as the project's release allows THEN the CLI SHALL move those statuses and leave the checkpoint in
   the state that names no turn, because the landing's turn that hand-back returns to holds nothing
   but that walk and a turn that only a second landing call runs is one nobody runs.
-- **AC-03-6-29** · Rev: 1 · Proof: plugin/test/flow/landing/recorded.test.mjs "a records turn on an after-merge landing with an independent judge hands the release to the judge"
+- **AC-03-6-29** · Rev: 1 · Proof: plugin/test/flow/landing/hand-back/recorded.test.mjs "a records turn on an after-merge landing with an independent judge hands the release to the judge"
   IF a records turn has been handed back and an independent judge is owed the release THEN the CLI
   SHALL move the checkpoint to the judge's turn over that release and SHALL name the calls that take
   and end that turn, because a judge the hand-back does not name is a wait the builder cannot end.

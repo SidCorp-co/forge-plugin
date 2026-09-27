@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BUILDER, BUILT, checkpoint, field, lease, ran, state } from "./fixture.mjs";
+import { BUILDER, BUILT, checkpoint, field, lease, ran, state } from "../fixture.mjs";
 
 const RELEASE = "1a2b3c40000000000000000000000000000fade";
 const RECORDS = { ...BUILT, state: "records-owed", owed: "marked", intended: RELEASE };
