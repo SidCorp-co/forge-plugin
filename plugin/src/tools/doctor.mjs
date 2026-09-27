@@ -42,7 +42,7 @@ import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
-import { FLOW_SLUGS, flowRefusal } from "../guides/flow.mjs";
+import { FLOW_SLUGS, flowPinned, flowRefusal } from "../guides/flow.mjs";
 import { rankLines } from "./services/doctor/rank.mjs";
 import {
   SAYS, SUBJECT_SLUGS, USAGE as SUBJECT_USAGE, WIDENED,
@@ -193,9 +193,10 @@ const reportGuideTable = (served) => {
 /* The rules that are not code travel inside the plugin, so a copy without them is a copy whose every
    route to them is a dead end — which is what an installed copy was before ISS-78. */
 /* Reports and never refuses: a flow deliberately without a part is allowed and `stageLine` degrades gracefully for one, so this is here for the flow accidentally without it, at the moment a set is chosen rather than the moment a run reaches for the part. */
-const reportFlowSets = () => {
+/* The pinned flow's set arrives already read, so one call reads each part once (ISS-2720). */
+const reportFlowSets = (pinned) => {
   for (const flow of FLOW_SLUGS) {
-    const entries = contractParts({ flow });
+    const entries = flow === pinned.flow ? pinned.entries : contractParts({ flow });
     if (entries === null) continue;
     const absent = unansweredIn(addressed(entries), ORDER);
     const said = absent.length
@@ -208,15 +209,17 @@ const reportFlowSets = () => {
 const checkContract = () => {
   const refused = flowRefusal();
   if (refused) return line(BAD, "contract", refused);
-  const wrong = contractProblems({});
+  const flow = flowPinned().value;
+  const entries = contractParts({ flow });
+  const wrong = contractProblems({ flow, entries });
   for (const said of wrong) {
     line(BAD, "contract", `${said} — install the plugin again for a whole copy`);
   }
   if (wrong.length) return;
   const path = contractPath();
   for (const said of flowProblems()) line(BAD, "contract", said);
-  line(OK, "contract", `${path} states contract ${identityOf(contractParts({}))} — \`forge guide contract\``);
-  reportFlowSets();
+  line(OK, "contract", `${path} states contract ${identityOf(entries)} — \`forge guide contract\``);
+  reportFlowSets({ flow, entries });
 };
 
 /* The guide half, which needs the server. */
