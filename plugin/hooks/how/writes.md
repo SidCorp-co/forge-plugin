@@ -20,4 +20,4 @@ quoted with a space, quote or bracket; a `-c` body is code, so a verb there coun
 Not judged: what the write contains, or whether it belongs.
 
 Not seen: a name no spelling produces — a glob's match, a command's output, a variable set
-elsewhere, an inline `-c` assembly. Spell it, or reach for `Edit`.
+elsewhere. Spell it, or reach for `Edit`.
