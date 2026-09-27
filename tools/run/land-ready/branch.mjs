@@ -108,7 +108,11 @@ export const fetchedFor = (tree, members, base, cause) => {
   const holds = remoteHolds(tree, names);
   if (!holds) stop(`${failed}, and ${REMOTE} did not answer a listing of its branches either. Check the remote is reachable.`);
   const missing = members.filter((member) => !holds.has(member.landing.branch));
-  if (missing.length) stop(`${failed}, and ${REMOTE} answered, so this is no unreachable remote.\n${missing.map(missingSaid).join("\n")}`, cause);
-  if (!holds.has(base)) stop(`${failed}: ${REMOTE} answered and holds no branch ${base}, the base this landing pins. Set the project's base branch to one ${REMOTE} holds.`);
+  const baseSaid = holds.has(base) ? []
+    : [`${REMOTE} holds no branch ${base}, the base this landing pins. Set the project's base branch to one ${REMOTE} holds.`];
+  if (missing.length || baseSaid.length) {
+    stop(`${failed}, and ${REMOTE} answered, so this is no unreachable remote.\n`
+      + [...missing.map(missingSaid), ...baseSaid].join("\n"), missing.length ? cause : null);
+  }
   stop(`${failed}, and ${REMOTE} answered and holds every branch it was asked for, so the fetch failed for another reason: git's own lines above say which.`);
 };

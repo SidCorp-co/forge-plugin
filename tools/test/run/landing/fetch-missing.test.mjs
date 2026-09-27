@@ -7,10 +7,12 @@ import { join } from "node:path";
 
 import {
   BRANCH, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_UUID, NEXT_OWNED,
-  context, git, landingRan, ready, seeded, tracker, world,
+  context, ctx, git, landingRan, ready, seeded, tracker, world,
 } from "./fixture.mjs";
 
 const { landingOf } = await import("../../../../plugin/src/flow/landing/checkpoint.mjs");
+const { landReady } = await import("../../../run/land-ready.mjs");
+const { Stop } = await import("../../../checkout.mjs");
 
 test.after(() => tracker.close());
 
@@ -38,4 +40,31 @@ test("a remote that does not answer still reads as unreachable and names no bran
   const said = await landingRan([KEY, NEXT_KEY], work);
   assert.match(said, /Check the remote is reachable\./u, said);
   assert.doesNotMatch(said, /holds no branch/u, said);
+});
+
+/* The base the landing is handed, not the fixture's: the remote holds no `trunk`. */
+const ranOn = async (keys, work, base) => {
+  const out = [];
+  const kept = [console.log, console.error];
+  console.log = (...said) => out.push(said.join(" "));
+  console.error = (...said) => out.push(said.join(" "));
+  try {
+    await landReady({ flags: new Map(), words: keys }, { ...ctx(work), base });
+  } catch (error) {
+    if (!(error instanceof Stop)) throw error;
+    out.push(error.message);
+  } finally {
+    [console.log, console.error] = kept;
+    process.exitCode = 0;
+  }
+  return out.join("\n");
+};
+
+test("a remote that answers and lacks a member branch and the base names both in one refusal", async () => {
+  const { work, head, next, base } = world({ base: "other", second: true });
+  pair(head, next, base);
+  git(work, "push", "-q", "origin", "--delete", NEXT_BRANCH);
+  const said = await ranOn([KEY, NEXT_KEY], work, "trunk");
+  assert.match(said, new RegExp(`origin holds no branch ${NEXT_BRANCH}, which the checkpoint on ${NEXT_KEY} names`, "u"), said);
+  assert.match(said, /origin holds no branch trunk, the base this landing pins/u, said);
 });
