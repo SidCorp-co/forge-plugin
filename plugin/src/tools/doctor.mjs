@@ -417,9 +417,10 @@ export const doctor = async (argv) => {
   const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", ...SECRET_FLAGS] });
   const { full, credentials } = asked;
   /* Two readings of one stray word, told apart by whitespace: a mistyped subject earns the nearest
-     names, and a sentence is --line's prose, which no suggestion could be about. */
-  if (positionals.length && asked.line === undefined) {
-    const route = "and the prose of a line is --line's: forge doctor --line <n> <text>";
+     names, and a sentence is the prose of --line or --after, which no suggestion could be about. */
+  if (positionals.length && asked.line === undefined && asked.after === undefined) {
+    const route = "and the prose of a line is --line's or --after's: forge doctor --line <n> <text>, "
+      + "or forge doctor --after <n> <text>";
     fail(/\s/u.test(positionals[0])
       ? `doctor: \`${positionals[0]}\` names no flag, ${route}`
       : `doctor: ${didYouMean("doctor subject", positionals[0], SUBJECT_SLUGS)} A word here is a `

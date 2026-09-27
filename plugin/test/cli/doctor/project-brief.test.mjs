@@ -369,10 +369,10 @@ test("--was with no --line is refused, and writes neither the brief nor a config
   assert.equal(run.status, 1, run.stdout);
   assert.equal(upserts, before.upserts);
   assert.equal(store.get("project-brief").body, before.body);
-  assert.match(run.stderr, /no --line was given/u);
+  assert.match(run.stderr, /neither --line nor --after was given/u);
   const set = await ask("doctor", "--set", "fact.done-means=shipped", "--was", "# The map");
   assert.equal(set.status, 1, set.stdout);
-  assert.match(set.stderr, /no --line was given/u);
+  assert.match(set.stderr, /neither --line nor --after was given/u);
 });
 
 test("an empty --was is refused, since every line begins with one", async () => {

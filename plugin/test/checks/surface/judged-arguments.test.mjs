@@ -57,7 +57,7 @@ const SURFACE = {
   doctor: ["token", "url", "codex-url", "codex-key", "vi-url", "vi-key", "vi-model",
     "chatgpt-url", "chatgpt-key", "chatgpt-prefix", "anthropic-key", "anthropic-url", "coolify-route", "hide", "show", "job", "ship",
     "set", "flow",
-    "refresh", "confirm", "line", "was", "title", "confidence", "meta"],
+    "refresh", "confirm", "line", "after", "was", "title", "confidence", "meta"],
   stats: [],
   resume: [],
   record: [],

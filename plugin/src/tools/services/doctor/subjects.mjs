@@ -87,6 +87,8 @@ const BRIEF = [
   "  forge doctor --line <n> <text>   one line's prose, replaced, counting the body this subject",
   "                                   prints numbered. A source another line also reads is left",
   "                                   stale and is named.",
+  "  forge doctor --after <n> <text>  one line added below line <n>, for a fact the brief never",
+  "                                   carried. Its sources are stamped on the rule --line's are.",
   "  forge doctor --was <prose>       what line <n> begins with now, and it must open that one line",
   "                                   alone: the store has no undo, and every other view of it",
   "                                   counts a different body.",

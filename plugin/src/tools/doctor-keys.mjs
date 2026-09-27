@@ -169,5 +169,5 @@ export const MACHINE_KEYS = Object.fromEntries(
 export const MACHINE_KEY_NAMES = Object.keys(MACHINE_KEYS).sort();
 
 /* The project's half, beside the machine's: the refusal keeping a call to one store reads both, and reading them here is what keeps the module that writes them a dynamic import. What each writes is `forge doctor brief -h`'s. */
-export const WRITES = ["refresh", "confirm", "line"];
+export const WRITES = ["refresh", "confirm", "line", "after"];
 export const WITH_BODY = ["title", "confidence"];
