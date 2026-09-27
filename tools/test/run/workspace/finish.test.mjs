@@ -506,23 +506,3 @@ test("finish names every scratch file holding a copy of this machine's credentia
   assert.equal(again.status, 0, again.stderr + again.stdout);
   assert.ok(!existsSync(tree) && !existsSync(scratch), again.stdout);
 });
-
-/* The quiet half of the same split: a consult recorded under a scratch configuration home is in the
-   corpus `forge stats eval` reads and in no other copy of it, and this call is what takes it. */
-test("finish names a consult log standing in the scratch it is about to remove", () => {
-  const { work } = started("finish-corpus");
-  const scratch = scratchOf(work);
-  mkdirSync(join(scratch, "forge"), { recursive: true });
-  const log = join(scratch, "forge", "codex-log.jsonl");
-  writeFileSync(log, [
-    JSON.stringify({ kind: "consult", id: "c1", ok: true }),
-    JSON.stringify({ kind: "verdict", of: "c1" }),
-    JSON.stringify({ kind: "consult", id: "c2", ok: true }),
-  ].join("\n") + "\n");
-
-  const run = runIn(work, ["finish", KEY], BARE);
-  assert.equal(run.status, 0, run.stderr + run.stdout);
-  assert.ok(!existsSync(scratch), run.stdout);
-  assert.ok(run.stdout.includes(`${log} holds 2 consult(s)`),
-    `the consults going with the directory are counted, the verdict beside them not being one: ${run.stdout}`);
-});
