@@ -40,25 +40,37 @@ export const partFileProblem = (name, text) => {
   return heads.length > 1 ? `${name} carries ${heads.length} headings, and its name addresses one part` : null;
 };
 
-const partFilesIn = (dir) => {
+/** A part set's file names in order, or null where the directory holds none: a question of presence is answered here, without reading a part. */
+export const partNamesIn = (dir) => {
   try {
     const names = readdirSync(dir).filter((one) => one.endsWith(".md")).sort();
-    return names.length ? names.map((name) => [name, readFileSync(join(dir, name), "utf8")]) : null;
+    return names.length ? names : null;
   } catch {
     return null;
   }
 };
 
-const flowsIn = (dir) => {
+/* Absent is the one fault that means "nothing here": any other, a permission or a file where a
+   directory belongs, answered empty would read exactly like a copy that ships nothing there. */
+export const subdirectoriesIn = (dir) => {
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name);
-  } catch {
-    return [];
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
   }
 };
 
 export const partEntriesIn = (dir) =>
-  partFilesIn(dir)?.map(([name, text]) => ({ name, text })) ?? null;
+  partNamesIn(dir)?.map((name) => ({ name, text: readFileSync(join(dir, name), "utf8") })) ?? null;
+
+/** Each malformed part of a set read out of `dir`, named with that directory. */
+export const partSetProblems = (dir, entries) => entries
+  .map(({ name, text }) => {
+    const said = partFileProblem(name, text);
+    return said === null ? null : `${dir}: ${said}`;
+  })
+  .filter(Boolean);
 
 /** One flow's whole contract: one `readdir` and no merge, since a flow's set is complete and no sibling is ever read for a part it has not got. */
 export const contractParts = ({ root = PLUGIN_ROOT, flow = flowPinned().value } = {}) =>
@@ -74,7 +86,7 @@ export const identityOf = (entries) => statesContract(joinedParts(entries));
 export const readContract = (root = PLUGIN_ROOT, flow = flowPinned().value) => {
   const entries = contractParts({ root, flow });
   if (!entries) return null;
-  if (entries.some(({ name, text }) => partFileProblem(name, text))) return null;
+  if (partSetProblems(contractPath(root, flow), entries).length) return null;
   return joinedParts(entries);
 };
 
@@ -152,19 +164,15 @@ export const stageLine = (status, parts, path = contractPath()) => {
     + ` (${part.chars} characters).`;
 };
 
-/** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. The parts are resolved here rather than handed in, because a caller with no list to offer would otherwise switch the rule off and be told the contract is well formed (ISS-848). */
-export const contractProblems = ({ root = PLUGIN_ROOT, flow = flowPinned().value, reads = CONTRACT } = {}) => {
+/** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. The parts are resolved here unless a caller that already read them hands them in, and a caller with no list to offer gets them resolved rather than the rule switched off and the contract called well formed (ISS-848): a `null` handed in is an absent contract, never a skipped check. */
+export const contractProblems = ({
+  root = PLUGIN_ROOT, flow = flowPinned().value, reads = CONTRACT, entries = contractParts({ root, flow }),
+} = {}) => {
   const dir = contractPath(root, flow);
-  const entries = contractParts({ root, flow });
   if (entries === null) {
     return [`no contract at ${dir}, so this copy holds none of the rules that are not code`];
   }
-  const malformed = entries
-    .map(({ name, text }) => {
-      const said = partFileProblem(name, text);
-      return said === null ? null : `${dir}: ${said}`;
-    })
-    .filter(Boolean);
+  const malformed = partSetProblems(dir, entries);
   if (malformed.length) return malformed;
   const states = identityOf(entries);
   if (states === null) {
@@ -183,10 +191,10 @@ export const unansweredIn = (parts, statuses) => statuses.filter((one) => !partF
 export const flowProblems = (root = PLUGIN_ROOT, flows = FLOWS) => {
   const out = [];
   for (const flow of Object.keys(flows)) {
-    if (partFilesIn(contractPath(root, flow))) continue;
+    if (partNamesIn(contractPath(root, flow))) continue;
     out.push(`${flow} is declared and ${contractPath(root, flow)} holds no part — install the plugin again for a whole copy, or take the flow out of FLOWS`);
   }
-  for (const name of flowsIn(contractRoot(root))) {
+  for (const name of subdirectoriesIn(contractRoot(root))) {
     if (!Object.hasOwn(flows, name)) {
       out.push(`${contractRoot(root)} holds ${name} and FLOWS names no such flow — declare it, or delete the directory`);
     }
@@ -216,9 +224,9 @@ export const contractAnswer = ({ part = null, tracker = false, extra = [], rung 
   if (pinned) return { refusal: pinned };
   const noSuchRung = rungRefusal(rung);
   if (noSuchRung) return { refusal: noSuchRung };
-  const wrong = contractProblems({ root, flow });
-  if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const entries = contractParts({ root, flow });
+  const wrong = contractProblems({ root, flow, entries });
+  if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const parts = shownAt(addressed(entries), rung);
   const fence = parts.flatMap((one) => one.problems)[0];
   if (fence) return { refusal: `${SLUG}'s served text is marked wrong — ${fence}` };
