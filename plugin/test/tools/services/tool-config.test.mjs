@@ -160,7 +160,8 @@ test("the method text sends no run to a consult it cannot take", () => {
   const three = bare("guide", "issue-flow", "3").stdout;
   assert.doesNotMatch(three, /forge codex\s+consult/u, "phase 3 names no consult to take");
   assert.match(three, /forge doctor/u, "and points at the one surface that says what is missing");
-  assert.match(three, /refuse a file no consult has read/u, "while the write's demand is not relaxed");
+  assert.match(three, /Both are read before the issue takes them/u, "while the write's demand stands");
+  assert.match(three, /Nothing here relaxes that/u, "and is not relaxed for the missing reviewer");
   assert.doesNotMatch(bare("guide", "issue-flow", "4").stdout, /forge codex consult --recheck/u);
   assert.match(saved("guide", "issue-flow", "3").stdout, /forge codex\s+consult -h/u,
     "and a machine that saved a gateway is told to take one");
