@@ -68,13 +68,19 @@ same.
 
 `done` is final for the landing that wrote it and for no later one. Once a finding sends the change
 back, a second landing of the same issue needs a checkpoint of its own. The record says so: the
-issue stands at the reopen, or at a status of the flow below the one a build hands over at. So the
-capture at that push writes `ready` over the finished checkpoint, whole, and carries nothing of the
+issue stands at the reopen, or at the status a build stands at. So the capture at that push writes `ready` over the finished checkpoint, whole, and carries nothing of the
 first landing into the second. That record is the license, and the caller's word is not. At a status
 past the build the finished checkpoint still refuses the capture, since nothing on the record says
 the landing it describes was superseded. A head the first landing already carries is refused
 too, since landing it again merges nothing. A reopen moves only the status, so the first landing's
 checkpoint stays readable until that capture replaces it.
+
+No capture arms a landing below the status a build stands at, first landing or second. The landing
+walks the statuses on from that one, so a change it merges from earlier is a release whose status
+nothing can move, found at the one point in the flow where finding it costs a round after the
+release; and a resume reading the status names a phase the checkpoint calls over. The capture reads
+that status off the flow's own order and prints the advances owed rather than making them, a status
+being earned by a record the capture does not hold.
 
 What the commit a landing builds is, and what a reading taken over it is a fact about: [`the-candidate.md`](the-candidate.md).
 What a checkpoint nobody captured may say instead, and the one key a declaration buys: [`the-reconstruction.md`](the-reconstruction.md).

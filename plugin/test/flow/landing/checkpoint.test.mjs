@@ -394,12 +394,13 @@ test("a capture refused at a turn state names the command that ends that turn", 
 
 /* A reopen starts a second landing of the same issue, and the first one's `done` is what it met:
    the status licenses the capture over a finished landing, and nothing licenses one over a live
-   landing (ISS-2073). */
-const REBUILT = ["reopen", "open", "confirmed", "approved", "in_progress"];
+   landing (ISS-2073). A status before the build licenses none, finished landing or not (ISS-2604). */
+const UNBUILT = ["open", "confirmed", "approved"];
+const REBUILT = ["reopen", "in_progress"];
 const PAST = ["developed", "testing", "awaiting_release", "closed", "on_hold", "waiting"];
 
 test("a finished landing gives way to a capture once the issue is built again, and a live one never does", async () => {
-  for (const status of [...REBUILT, ...PAST]) {
+  for (const status of [...UNBUILT, ...REBUILT, ...PAST]) {
     for (const state of Object.keys(LANDING_STATES).filter((one) => !["ready", "head-owed", "records-owed", "builder-owed", "done"].includes(one))) {
       assert.ok(await readyAt(state, {}, status), `${state} is a landing in flight at ${status}, and the capture is refused`);
     }
@@ -413,6 +414,11 @@ test("a finished landing gives way to a capture once the issue is built again, a
     for (const name of ["candidate", "intended", "release", "deployment", "reconciled"]) {
       assert.equal(wrote[name], undefined, `and nothing of the first landing's ${name} is carried into the second`);
     }
+  }
+  for (const status of UNBUILT) {
+    const early = await readyAt("done", first, status);
+    assert.match(early, new RegExp(`ISS-673 stands at \`${status}\`, before \`in_progress\``, "u"),
+      `at ${status} the finished landing is no license, the build not having begun: ${early}`);
   }
 });
 

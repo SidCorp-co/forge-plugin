@@ -14,6 +14,7 @@ import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { valuesOf } from "../machine.mjs";
+import { BASELINE_AT, ORDER } from "../earned.mjs";
 import { landsAgain, reopenForm } from "../route.mjs";
 
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
@@ -139,7 +140,24 @@ const againRefused = (ref, head, landing, status) => {
     + `push it, then ask again:\n  forge claim ${ref} --pushed --ready`;
 };
 
+/* A landing moves the status on from the one a build stands at and from no earlier one, so a capture
+   taken before it arms a merge whose status nothing can then move, and a resume reads a phase this
+   checkpoint calls over (ISS-2604). Off the flow's own order: a status it does not place, a reopen or
+   a park, is left to the checks that read it. */
+const unbuiltRefusal = (ref, status) => {
+  const at = ORDER.indexOf(status);
+  const built = ORDER.indexOf(BASELINE_AT);
+  if (at < 0 || at >= built) return null;
+  return `claim --ready arms the landing of a built change, and ${ref} stands at \`${status}\`, `
+    + `before \`${BASELINE_AT}\`, the status a build stands at: the landing could move no status of `
+    + `it, and a resume would name a phase this checkpoint says is over. Advance it, then capture `
+    + `again:\n${ORDER.slice(at + 1, built + 1).map((to) => `  forge advance ${ref} --to ${to}\n`).join("")}`
+    + `  forge claim ${ref} --pushed --ready`;
+};
+
 export const readyCheckpoint = (ref, holder, patch, landing, status) => {
+  const unbuilt = unbuiltRefusal(ref, status);
+  if (unbuilt) fail(unbuilt);
   if (!patch?.head || !patch.base || !patch.touched) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
       + `no change — the \`--pushed\` line below says why. Capture at the push, before the merge:\n`

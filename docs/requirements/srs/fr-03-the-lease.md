@@ -452,6 +452,12 @@ a wait no party can end.
   again, because a check that is shown and not held is one a run can skip, and the landing that runs
   it next finds the failure at the landing's price.
 
+- **AC-03-6-30** · Rev: 1 · Proof: plugin/test/flow/landing/arming/unbuilt.test.mjs "a ready capture before the build is refused, writes nothing, and prints each advance then the capture"
+  IF a run declares its change ready to land while the issue stands before the status a build stands
+  at in the flow's own order THEN the CLI SHALL refuse the checkpoint, naming the status it read and
+  each advance owed up to that status, because the landing moves the status on from there and a
+  change it merged from earlier is a release whose status nothing can move.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
