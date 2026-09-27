@@ -1,9 +1,10 @@
-/* Paging, the browse projection and the reference-to-id lookup: docs/cli/the-projections.md. */
+/* Paging and the reference-to-id lookup: docs/cli/reading-a-whole-set.md. The browse projection:
+   docs/cli/the-projections.md. */
 import { fail, slugIfAny } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { readsAsDate, scoped } from "./rest.mjs";
 
-/* What the browse verb PRINTS; the wire ask is MAX_LIMIT, the route's own cap. the-projections.md. */
+/* What the browse verb PRINTS; the wire ask is MAX_LIMIT, the route's own cap. reading-a-whole-set.md. */
 export const DEFAULT_LIMIT = 200;
 export const MAX_LIMIT = 200;
 
