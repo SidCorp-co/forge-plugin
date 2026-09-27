@@ -11,7 +11,8 @@ import { conditionsAt } from "./conditions.mjs";
 import { CONFIGURABLE, configureSaid, unconfiguredTool } from "../tools/services/tool-config.mjs";
 import { roundLines, rungRefusal, rungServed } from "./rounds.mjs";
 import {
-  SLUG as CONTRACT_SLUG, contractKeys, contractRoot, joinedParts, partEntriesIn, partFileProblem,
+  SLUG as CONTRACT_SLUG, contractKeys, contractRoot, joinedParts, partEntriesIn, partNamesIn, partSetProblems,
+  subdirectoriesIn,
 } from "./contract.mjs";
 import { DEFAULT, flowPinned, flowRefusal, servedFor } from "./flow.mjs";
 import { openersOf, phasesOf, render } from "./render.mjs";
@@ -20,10 +21,6 @@ import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 const WITHIN = join("guides", "skills");
 export const GUIDE = "guide";
 const REFERENCES = "references";
-
-const folders = (dir) => (existsSync(dir)
-  ? readdirSync(dir, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name)
-  : []);
 
 const namesIn = (dir) => (existsSync(dir)
   ? readdirSync(dir).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)).sort()
@@ -47,42 +44,48 @@ export const servedBody = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) 
   return parts === null ? null : joinedParts(parts);
 };
 
+/** Whether the flow serves a method body for the skill, answered from the part names without reading a part. */
 export const hasBody = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
-  guideParts(slug, root, flow) !== null;
+  partNamesIn(join(skillFlowDir(slug, root, flow), GUIDE)) !== null;
 
-/** A method part answers to the contract's own one-heading rule, so a phase this copy lost its heading for is named rather than served under the phase above it. */
-export const bodyProblems = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
-  (guideParts(slug, root, flow) ?? [])
-    .map(({ name, text }) => {
-      const said = partFileProblem(name, text);
-      return said === null ? null : `${join(skillFlowDir(slug, root, flow), GUIDE)}: ${said}`;
-    })
-    .filter(Boolean);
+/** A method part answers to the contract's own one-heading rule, so a phase this copy lost its heading for is named rather than served under the phase above it. A caller that already read the parts hands them in. */
+export const bodyProblems = (slug, root = PLUGIN_ROOT, flow = flowPinned().value, parts = guideParts(slug, root, flow)) =>
+  partSetProblems(join(skillFlowDir(slug, root, flow), GUIDE), parts ?? []);
 
-/** Read off the directories, for the flow served. Where the keys name a flow this copy cannot serve every slug is offered anyway, because a slug this listing drops is one `forge guide` looks for among the tracker's guides instead and answers *no guide named that*. */
-export const skillGuideSlugs = (root = PLUGIN_ROOT, flow = flowPinned().value) => {
+/* What one skill holds under the flow, read once and handed to both the listing's filter and its row. */
+const holdingOf = (slug, root, flow) => ({ body: hasBody(slug, root, flow), references: referencesOf(slug, root, flow) });
+
+/* Read off the directories, for the flow served. Where the keys name a flow this copy cannot serve every slug is offered anyway, because a slug this listing drops is one `forge guide` looks for among the tracker's guides instead and answers *no guide named that*. */
+const offeredSkills = (root, flow) => {
   const refused = flowRefusal() !== null;
-  return folders(skillGuidesRoot(root))
-    .filter((slug) => refused
-      || hasBody(slug, root, flow) || referencesOf(slug, root, flow).length > 0)
-    .sort();
+  return subdirectoriesIn(skillGuidesRoot(root)).sort()
+    .map((slug) => ({ slug, holding: refused ? null : holdingOf(slug, root, flow) }))
+    .filter(({ holding }) => refused || holding.body || holding.references.length > 0);
 };
+
+export const skillGuideSlugs = (root = PLUGIN_ROOT, flow = flowPinned().value) =>
+  offeredSkills(root, flow).map(({ slug }) => slug);
 
 const sizeOf = (path) => (existsSync(path) ? statSync(path).size : 0);
 
 const INLINE = (slug) => `The ${slug} skill's method is its SKILL.md, loaded with the skill; this copy serves its references.`;
 
 /** The line `forge guide` prints for a skill: what it is, and the command that reads it. */
-export const skillListingRow = (slug, root = PLUGIN_ROOT) => {
-  const held = flowRefusal();
-  if (held) return `${slug}\n  ${held}`;
-  const count = `${referencesOf(slug, root).length} reference(s)`;
-  if (!hasBody(slug, root)) {
+export const skillListingRow = (slug, root = PLUGIN_ROOT, holding = null) => {
+  const refused = flowRefusal();
+  if (refused) return `${slug}\n  ${refused}`;
+  const { body, references } = holding ?? holdingOf(slug, root, flowPinned().value);
+  const count = `${references.length} reference(s)`;
+  if (!body) {
     return `${slug}\n  the ${slug} skill's references, this copy's own: \`forge guide ${slug} <reference>\` prints one of its ${count}`;
   }
   return `${slug}\n  the ${slug} skill's method, this copy's own:`
     + ` \`forge guide ${slug}\` prints it, and \`forge guide ${slug} <reference>\` one of its ${count}`;
 };
+
+/** Every skill the listing offers with its row, each built from the one reading that decided it is offered. */
+export const skillGuideRows = (root = PLUGIN_ROOT, flow = flowPinned().value) =>
+  offeredSkills(root, flow).map(({ slug, holding }) => ({ slug, row: skillListingRow(slug, root, holding) }));
 
 /* What is left of a reference is what decides, not what it is called and not that it names a tool: a
    text with one fenced paragraph still has the rest to serve, and a text that renders to nothing is
@@ -136,9 +139,10 @@ export const skillGuideAnswer = (slug, root = PLUGIN_ROOT, flow = flowPinned().v
   if (noSuchRung) return { refusal: noSuchRung };
   const dir = skillFlowDir(slug, root, flow);
   const tail = ["", ...roundLines(rung), "", ...servedFor(flow)];
-  const wrong = bodyProblems(slug, root, flow);
+  const parts = guideParts(slug, root, flow);
+  const wrong = bodyProblems(slug, root, flow, parts);
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
-  const body = servedBody(slug, root, flow);
+  const body = parts === null ? null : joinedParts(parts);
   if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir, rung), ...tail], rung);
   const withheld = toolFencing(dir, part, rung);
   if (withheld) {
@@ -149,11 +153,10 @@ export const skillGuideAnswer = (slug, root = PLUGIN_ROOT, flow = flowPinned().v
   if (namesIn(join(dir, REFERENCES)).includes(part)) {
     return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail, rung);
   }
-  const names = offeredIn(dir, rung);
   const phases = body === null ? [] : phasesOf(body);
   const phase = phases.find((one) => one.number === String(part));
   if (phase) return served(slug, phase.text, tail, rung);
-  return { refusal: didYouMean(`guide ${slug}`, part, [...names, ...phases.map((one) => one.number)],
+  return { refusal: didYouMean(`guide ${slug}`, part, [...offeredIn(dir, rung), ...phases.map((one) => one.number)],
     phases.length
       ? `\`forge guide ${slug}\` lists every reference, and each phase of the method is its number.`
       : `\`forge guide ${slug}\` lists every reference.`) };
@@ -174,8 +177,8 @@ const stubsOf = (root) =>
 export const unresolvedCitations = (root = PLUGIN_ROOT) => {
   const out = [];
   const files = stubsOf(root).map((file) => ({ file, flow: DEFAULT }));
-  for (const slug of folders(skillGuidesRoot(root))) {
-    for (const flow of folders(join(skillGuidesRoot(root), slug))) {
+  for (const slug of subdirectoriesIn(skillGuidesRoot(root))) {
+    for (const flow of subdirectoriesIn(join(skillGuidesRoot(root), slug))) {
       const dir = skillFlowDir(slug, root, flow);
       const at = (where, name) => ({ file: join(dir, where, name), flow });
       files.push(...(guideParts(slug, root, flow) ?? []).map(({ name }) => at(GUIDE, name)));
@@ -193,7 +196,7 @@ export const unresolvedCitations = (root = PLUGIN_ROOT) => {
 const FENCED_ON = "flow";
 
 const mdUnder = (dir, out = []) => {
-  for (const one of folders(dir)) mdUnder(join(dir, one), out);
+  for (const one of subdirectoriesIn(dir)) mdUnder(join(dir, one), out);
   out.push(...namesIn(dir).map((one) => join(dir, `${one}.md`)));
   return out;
 };

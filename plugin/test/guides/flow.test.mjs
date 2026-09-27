@@ -4,7 +4,7 @@
    back to it. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -13,7 +13,7 @@ import { escaped, flat, projectRoom, tempHome, tempRoom } from "../fixtures.mjs"
 process.env.XDG_CONFIG_HOME = tempHome("flow").path;
 const {
   addressed, contractAnswer, contractParts, contractPath, contractProblems, flowProblems,
-  partFileProblem, partFor, readContract, unansweredIn,
+  partFileProblem, partFor, readContract, subdirectoriesIn, unansweredIn,
 } = await import("../../src/guides/contract.mjs");
 const flowModule = await import("../../src/guides/flow.mjs");
 const { DEFAULT, FLOWS, FLOW_SLUGS, SCREEN, screensOf } = flowModule;
@@ -161,10 +161,39 @@ test("a directory FLOWS names no flow for is named, with the way out", () => {
   assert.match(said[0], /holds unnamed and FLOWS names no such flow — declare it, or delete the directory/u);
 });
 
+/* Absent is the one fault read as "nothing here". Anything else answered empty would read like a copy
+   that ships nothing there, and the finding above would send a developer to reinstall a copy whose
+   only fault is a permission (ISS-1136). A file where the directory belongs fails the same way under
+   every user; a directory it may not read does so only where the run is not root. */
+test("listing an absent directory is empty, and any other fault is thrown with its code", () => {
+  const room = tempRoom("subdirectories-");
+  assert.deepEqual(subdirectoriesIn(join(room, "absent")), []);
+  assert.deepEqual(flowProblems(room, { [DEFAULT]: { requires: [] } }).length, 1,
+    "a copy with no contract directory is one finding, not a crash");
+  writeFileSync(join(room, "a-file"), "not a directory\n");
+  assert.throws(() => subdirectoriesIn(join(room, "a-file")), { code: "ENOTDIR" });
+  const filed = join(tempRoom("contract-filed-"), "guides", "contract");
+  mkdirSync(filed, { recursive: true });
+  writeFileSync(join(filed, DEFAULT), "a file where the flow's directory belongs\n");
+  assert.throws(() => flowProblems(join(filed, "..", ".."), { [DEFAULT]: { requires: [] } }), { code: "ENOTDIR" },
+    "a flow directory that is a file was reported as a copy holding no part");
+  if (process.getuid?.() === 0) return;
+  const shut = join(room, "guides", "contract", DEFAULT);
+  mkdirSync(shut, { recursive: true });
+  chmodSync(shut, 0o000);
+  try {
+    assert.throws(() => subdirectoriesIn(shut), { code: "EACCES" });
+    assert.throws(() => flowProblems(room, { [DEFAULT]: { requires: [] } }), { code: "EACCES" },
+      "an unreadable flow directory was reported as a copy holding no part");
+  } finally {
+    chmodSync(shut, 0o700);
+  }
+});
+
 /* A join is one text, so a file that lost its heading would have its prose served under the part
    above it and a file with two would hold a part its name does not address. Both are named, and the
-   call that names them takes no file list: the parts are the directory's, so no caller can omit its
-   way past the rule and be told the contract is well formed (ISS-848). */
+   call that names them reads the directory itself unless handed the parts a caller already read, so
+   no caller can omit its way past the rule and be told the contract is well formed (ISS-848). */
 test("a part file with no heading of its own, or with two, is a finding naming that file", () => {
   const dir = join(tempRoom("contract-files-"), "guides", "contract", DEFAULT);
   mkdirSync(dir, { recursive: true });
@@ -180,6 +209,10 @@ test("a part file with no heading of its own, or with two, is a finding naming t
   assert.equal(two.length, 1, two.join("; "));
   assert.match(two[0], /02-second\.md carries 2 headings, and its name addresses one part/u);
   assert.deepEqual(partFileProblem("03-ok.md", "### `x` — reads y\n\nProse.\n"), null);
+  const handed = contractProblems({ root, entries: contractParts({ root }) });
+  assert.deepEqual(handed, two, "the parts a caller read are judged as the directory's own are");
+  assert.match(contractProblems({ root, entries: null })[0], /no contract at \S+/u,
+    "handing in no parts is an absent contract, never a skipped check");
 });
 
 /* Planted rather than handed in as a string: the parts are resolved by the call itself, so a room is
