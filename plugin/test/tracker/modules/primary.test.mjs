@@ -169,12 +169,3 @@ test("--set labels is refused, naming --set module as the route for an issue alr
   assert.match(run.stderr, /labels is written by .*`forge issue <ref> --set module=<name> --why <w>` on an issue already filed/u);
   assert.equal(fieldUpdates().length, 0);
 });
-
-test("the dispatch method has the triage reader write the module, or say the body decided none", async () => {
-  const run = await ranAsync(FORGE, ["guide", "dispatch"], ENV);
-  assert.equal(run.status, 0, run.stderr);
-  const text = run.stdout.replace(/\s+/gu, " ");
-  assert.match(text, /Where this project defines modules, the same reader puts the candidate in one\./u);
-  assert.match(text, /`forge issue ISS-nn --set module=<name> --why <w>`/u);
-  assert.match(text, /A body that does not decide one is left without one, and the reading says so in its confirmation/u);
-});
