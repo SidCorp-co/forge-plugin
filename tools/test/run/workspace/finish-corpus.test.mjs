@@ -150,7 +150,7 @@ test("finish whose machine log is the run home's own through a link leaves the w
 });
 
 /* The layout a run whose home was the scratch itself left (ISS-189), which a scratch may still hold. */
-test("finish carries a consult log standing at the scratch's own forge directory as it does one under its home", () => {
+test("finish carries a consult log kept directly under the scratch as it does one under its home", () => {
   const { work, scratch, env, machine } = started("corpus-legacy");
   const from = logAt(scratch, ROWS);
 
