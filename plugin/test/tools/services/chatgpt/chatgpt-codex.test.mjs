@@ -138,7 +138,7 @@ test("4. --save writes the image's bytes, from b64_json and from a url alike", a
     const run = await ran(["a fox", "--ratio", "1:1", "--via", "codex", "--save", path]);
     assert.equal(run.status, 0, run.stderr);
     assert.deepEqual(readFileSync(path), PNG, `the ${mode} answer did not land`);
-    assert.match(run.stdout, new RegExp(`^saved {5}${path}$`, "mu"));
+    assert.ok(run.stdout.includes(`saved     ${path}\n`), run.stdout);
     assert.equal(state.gateway[0].body.response_format, "b64_json", "a save asks for the bytes");
   }
 });
@@ -310,7 +310,7 @@ test("16. the wait is the larger of waitSeconds and 130 unless --wait sets it", 
 
 test("17. image -h names --via codex and --file", async () => {
   const run = await ran(["-h"]);
-  assert.match(run.stdout, /^ {2}--via codex {4}draw over the Codex gateway's images API/mu);
+  assert.match(run.stdout, /^ {2}--via codex {4}the Codex gateway draws instead; never a fallback/mu);
   assert.match(run.stdout, /^ {2}--file p\|url {3}with --via codex, a reference image/mu);
 });
 

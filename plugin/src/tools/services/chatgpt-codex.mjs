@@ -144,7 +144,8 @@ export const routeOf = (via, { resume, model, given }) => {
   }
   if (!via && given.length) {
     fail("chatgpt image: --file sends a reference image, which only the Codex route takes. Nothing was sent."
-      + "\n  Add --via codex, or drop --file.");
+      + "\n  Add --via codex, or drop --file; a file for ChatGPT web to read goes with a question:"
+      + '\n  forge chatgpt ask "<prompt>" --file path');
   }
   return via ?? "web";
 };
