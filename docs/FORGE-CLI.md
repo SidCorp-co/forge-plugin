@@ -10,7 +10,8 @@ how many topics there may be.
 | Topic | The decision it holds |
 |---|---|
 | [the way in](cli/the-way-in.md) | Why `-h` is intercepted before the verb, answers on stdout, and carries the tracker's write-time rules in the binary. |
-| [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a server-published name is kept. |
+| [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, why no local copy of a server-published name is kept, how the browse verb orders what it read, and which names one body may be asked for. |
+| [reading a whole set](cli/reading-a-whole-set.md) | Why every reader of a set walks it by offset, why `--limit` counts printed rows, how an answer says it was whole, and why a key is resolved by arithmetic and only `ISS` keys are references. |
 | [the drain key](cli/the-drain-key.md) | Why who judges is the tracker's key and who drains is the checkout's, what the pair's undo costs, and why a value it does not take names no master. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
 | [the flow axis](cli/the-flow-axis.md) | Why the axis over served text is a flow slug rather than a version number, and why a flow's directory is the whole of what it serves. |
