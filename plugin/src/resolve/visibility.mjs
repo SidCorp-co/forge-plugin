@@ -376,9 +376,14 @@ const unavailable = (verb) => {
   if (state) {
     return `\`forge ${verb}\` is ${state} on this machine${atJob()} — \`forge doctor --show ${verb}\` offers it again`;
   }
+  return blockedLine(verb);
+};
+
+/** The one sentence for a verb this credential is refused the capability of, typed or reached through the route it wraps, or nothing where it is not refused one. */
+export const blockedLine = (verb) => {
   const blocked = blockedBy(verb);
   return blocked
-    ? `\`forge ${verb}\` cannot spend ${blocked} on this credential — \`forge doctor\` measured that`
+    ? `\`forge ${verb}\` needs ${blocked}, which this credential may not call; \`forge doctor\` measured that, so re-run it after a credential change`
     : null;
 };
 

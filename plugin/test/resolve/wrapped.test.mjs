@@ -252,7 +252,7 @@ test("a form is refused by the capability its verb needs, and answers with the s
     for (const form of ["list", "get", "show", "read", "issues"]) {
       const run = await ran(form, "-h");
       assert.equal(run.status, 1, `forge ${form}: ${run.stdout}`);
-      assert.match(run.stderr, /needs forge_issues, which this credential may not call/u, run.stderr);
+      assert.equal(run.stderr.trim(), verb.stderr.trim(), `forge ${form} says what the verb it resolves to says`);
       assert.doesNotMatch(run.stderr, /^forge: read /mu, "and nothing ran, so no line says one did");
     }
   }
@@ -281,14 +281,22 @@ test("a recorded refusal of the tool doctor owns hides neither the verb nor its 
   }
 });
 
+/* Spelled out rather than read off blockedLine, which answers for this process's credential and not the child's. */
+const BLOCKED_KNOWLEDGE = "`forge knowledge` needs forge_knowledge, which this credential may not call; "
+  + "`forge doctor` measured that, so re-run it after a credential change";
+
 test("a gated verb with no refusal text of its own still says why it cannot be typed", async (t) => {
-  const { close, env, cwd } = await gatedKnowledge();
+  const { ran, close, env, cwd } = await gatedKnowledge();
   t.after(close);
   {
     const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
     assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
-    assert.match(said, /cannot spend forge_knowledge on this credential/u);
+    assert.ok(said.includes(`${BLOCKED_KNOWLEDGE}.`), said);
     assert.doesNotMatch(said, /type it instead/u, "the verb it names cannot be typed either");
+    const typed = await ran("knowledge", "search", "anything");
+    assert.equal(typed.status, 1, typed.stdout);
+    assert.equal(typed.stderr.trim(), `${BLOCKED_KNOWLEDGE}.`,
+      "typing the verb and taking the route it wraps say one sentence about one state");
   }
 });
 
