@@ -88,3 +88,61 @@ test("a session far larger than one turn is read in the time one turn takes", ()
   assert.equal(turnAt(records), "2026-09-01T12:00:00.000Z");
   assert.ok(spent < patience(1000), `${spent}ms for a 30 MB transcript: the window is not being used`);
 });
+
+/* A subagent's transcript opens on the prompt the Agent tool handed it, which carries no
+   `promptSource`, so no record in it is a typed prompt. Lines of uneven length, so a window's end
+   lands inside a record rather than on a boundary. */
+const handed = (count) => {
+  let text = "";
+  for (let at = 0; at < count; at += 1) {
+    const stamp = new Date(Date.UTC(2026, 8, 1, 15, 0, at)).toISOString();
+    text += `${JSON.stringify({ type: at ? "assistant" : "user", seq: at, timestamp: stamp, pad: "y".repeat(97 + (at * 37) % 300) })}\n`;
+  }
+  return text;
+};
+
+test("a transcript with no typed prompt, longer than the cap, is read whole", () => {
+  const path = wrote("subagent-past-cap.jsonl", handed(400));
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.equal(found.length, 400, "every record, not the capped tail");
+  assert.equal(found[0].seq, 0, "the prompt the subagent was handed comes first");
+  assert.equal(found.at(-1).seq, 399);
+  assert.equal(found[0].timestamp, "2026-09-01T15:00:00.000Z", "the stop gate's first moment of a subagent's turn");
+});
+
+test("no record is lost or split where one window of the whole read ends and the next begins", () => {
+  const path = wrote("subagent-windows.jsonl", handed(1500));
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.deepEqual(found.map((one) => one.seq), Array.from({ length: 1500 }, (_, at) => at));
+});
+
+test("a typed prompt further back than the cap still bounds the turn", () => {
+  const path = wrote(
+    "typed-past-cap.jsonl",
+    handed(50) + prompt("2026-09-01T16:00:00.000Z") + filler(40_000),
+  );
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.equal(found[0].promptSource, "typed", "the turn begins at the prompt");
+  assert.ok(!found.some((one) => "seq" in one), "and nothing before it comes back");
+});
+
+test("a record longer than a window of the whole read comes back whole, and the one after it too", () => {
+  const long = `${JSON.stringify({ type: "user", seq: 0, pad: "z".repeat(20_000) })}\n`;
+  const path = wrote("subagent-long-record.jsonl", long + handed(300).split("\n").slice(1).join("\n"));
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.equal(found[0].pad.length, 20_000, "the record three windows long");
+  assert.equal(found[1].seq, 1, "and the record after it");
+  assert.equal(found.length, 300);
+});
+
+/* The whole read past the cap is the path a long subagent run takes at every stop, and a stop event
+   has 30 s. The bound is loose enough that only a read gone quadratic, or one decoding the file per
+   window, breaks it. */
+test("a transcript with no typed prompt, thirty windows past the cap, is read whole in the time a stop has", () => {
+  const path = wrote("subagent-huge.jsonl", filler(30_000_000));
+  const started = Date.now();
+  const found = turnRecords(path, { cap: 1 << 20 });
+  const spent = Date.now() - started;
+  assert.equal(found.length, Math.ceil(30_000_000 / (filler(1).length)));
+  assert.ok(spent < patience(1000), `${spent}ms for a 30 MB transcript read whole`);
+});
