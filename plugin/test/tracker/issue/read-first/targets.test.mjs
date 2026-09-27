@@ -437,6 +437,20 @@ test("each refusal this gate writes names its cause on the How line", async () =
   assert.equal(causeOf(await filing({ title: TITLED, description: WHOLE })), "raw-call");
 });
 
+/* ISS-261. The tool's door reads a parts claim under the prefixes the project's rows are keyed in,
+   as `forge new` does, so one body gets one answer whichever door it is sent through. */
+test("a create claiming two of its project's own APP- keys as parts is refused for them at the tool", async () => {
+  const held = state.issues;
+  state.issues = [{ issueId: "APP-1", documentId: UUID }, { issueId: "APP-2", documentId: OTHER }];
+  try {
+    const run = await filing({ title: TITLED, description: `${WHOLE}\n\nParts: APP-1 and APP-2.` });
+    assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+    assert.match(because(run), /a line naming APP-1 and APP-2 as this issue's parts/u);
+  } finally {
+    state.issues = held;
+  }
+});
+
 test("a comment made through the tool is named its own verb, not the filing's", async () => {
   const run = await filing({ issue: "ISS-29", body: "x" }, { name: "mcp__forge__forge_comments" });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");

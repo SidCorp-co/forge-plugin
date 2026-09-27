@@ -12,6 +12,9 @@ import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean, suggest } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
+import { partsIn, prefixesOf } from "./filing/parts.mjs";
+
+export { partsIn };
 
 const SETTLED = ["closed", "dropped"];
 const CANDIDATES = 4;
@@ -351,29 +354,6 @@ export const twoChangesIn = (body) => {
   return null;
 };
 
-const PARTS_PHRASE = /\b(?:parts?|children|sub-?issues?|split into|consists of|made up of)\b/giu;
-const BARE = /^parts?$/iu;
-const LABEL = /\([^()]*\)/gu;
-/* Forward only, a bare "part" through a connective or not at all, and a label only between a key
-   and its separator: without those the arm catches "ISS-a and ISS-b split into the halves", "a
-   guide part ISS-a (the lesson) and ISS-b", and a citation inside a label read as a part. */
-const GOVERNED =
-  /^(?<link>(?:[\s`*_]*[:=]|\s+(?:are|is|both|these|the following)\b)*)[\s`*_]*(?<keys>ISS-\d+\b(?:[\s`*_]*(?:\([^()]{0,40}\))?[\s`*_]*(?:,\s*and|,|;|and|&)[\s`*_]*ISS-\d+\b)+)/iu;
-
-/** Two keys the phrase governs, never a line that merely holds both — that is a cross-reference
- *  (ISS-336); two because one may cite the issue this body sits beside. Every occurrence is tried. */
-export const partsIn = (body) => {
-  for (const line of String(body).split("\n")) {
-    for (const phrase of line.matchAll(PARTS_PHRASE)) {
-      const found = GOVERNED.exec(line.slice(phrase.index + phrase[0].length));
-      if (!found || (BARE.test(phrase[0]) && !found.groups.link)) continue;
-      const keys = [...new Set(keysIn(found.groups.keys.replace(LABEL, " ")))];
-      if (keys.length >= 2) return { line: line.trim(), keys };
-    }
-  }
-  return null;
-};
-
 const TITLE_WORD = /[A-Za-z][A-Za-z'-]*/gu;
 const PATH_IN_TITLE = /[\w.@-]*\/[\w./-]+|\.(?:mjs|cjs|js|jsx|ts|tsx|md|json|html|css|py|sh|ya?ml)\b/u;
 const WORK_VERB = new Set(
@@ -452,8 +432,10 @@ const keysOf = (body) => [...new Set(keysIn(body))];
 
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
  *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.
- *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md. */
-export const shapeOf = ({ title, body, kind = null, complexity = null }, { everySection = false } = {}) => {
+ *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md;
+ *  `prefixes` the ones the project's keys are spelled in, beside the legacy one. */
+export const shapeOf = ({ title, body, kind = null, complexity = null },
+  { everySection = false, prefixes = [] } = {}) => {
   const text = String(body ?? "");
   const written = text.replace(MARK_LINE, "").trim();
   const asks = { ...asksOf({ title, body: text, kind }), keys: keysOf(text) };
@@ -464,7 +446,7 @@ export const shapeOf = ({ title, body, kind = null, complexity = null }, { every
   }
   const gaps = titleGaps(title ?? "");
   const split = twoChangesIn(text) ?? null;
-  const parts = partsIn(text);
+  const parts = partsIn(text, prefixes);
   if (split) {
     gaps.push(need(
       `one sentence asking for two changes — "${split.sentence}"`,
@@ -476,7 +458,8 @@ export const shapeOf = ({ title, body, kind = null, complexity = null }, { every
     const related = parts.keys.join(",");
     gaps.push(need(`a line naming ${parts.keys.join(" and ")} as this issue's parts`,
       "the parts themselves as issues, held on an edge rather than claimed in this body's prose",
-      `take the claim off the line and re-send with \`--with ${related}\`, which relates them in the same create`));
+      `take the claim off the line and re-send with \`--with ${related}\`, which relates them in the same create; `
+      + `a line only citing them clears by rewording it so \`${parts.phrase}\` no longer leads into the keys`));
   }
   const tokens = tokensNamed(text);
   /* Before the complexity, which exempts the sections and not the set: a category nobody has decided
@@ -503,6 +486,11 @@ export const shapeOf = ({ title, body, kind = null, complexity = null }, { every
   return { ...asks, gaps, fix: false, tokens,
     said: noticeFor({ kind: shape.kind, named: namesKind(kind), left }) };
 };
+
+/** The shape against the project a page of its rows was read from: those rows' keys name the
+ *  prefixes a parts claim is read under. Both doors a filing reaches go through this. */
+export const shapeAgainst = (filing, page, options = {}) =>
+  shapeOf(filing, { ...options, prefixes: prefixesOf(page?.read?.rows) });
 
 /** Every issue still open to work, by title: the projection carries no description, so a title is
  *  all a duplicate is measured on. `read` travels with them — a reading that fell short changes what

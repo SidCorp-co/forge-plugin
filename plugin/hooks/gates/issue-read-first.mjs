@@ -7,7 +7,7 @@ import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
 import { filingsOf, joined, ownChecked, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
-import { filingRefusal, shapeOf } from "../../src/tracker/issue-shape.mjs";
+import { filingRefusal, liveTitles, shapeAgainst } from "../../src/tracker/issue-shape.mjs";
 import { documentIdIfAny } from "../../src/tracker/issues.mjs";
 import { accountCredentials, fail, projectAt, useProject } from "../../src/resolve/settings.mjs";
 
@@ -69,8 +69,9 @@ export const run = async (ev) => {
   const here = ev.cwd || process.cwd();
   // The shape first: a filing refused never happened, and its scope is the event's own directory.
   if (canAskTracker && aimedAt(here)) {
+    const page = filings.length ? await liveTitles() : null;
     for (const filing of filings) {
-      const refused = await filingRefusal(filing, shapeOf(filing));
+      const refused = await filingRefusal(filing, shapeAgainst(filing, page), { page });
       if (refused?.text) deny(refused.text + how(SHAPE, refused.cause));
     }
   }
