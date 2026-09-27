@@ -5,9 +5,21 @@
    allowance the caller declared for the attempt. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
+import { tempHome } from "../../fixtures.mjs";
 import { patience } from "../../patience.mjs";
 import { callTool } from "../../../src/tracker/rest.mjs";
+
+/* The account a call is sent under is this file's own stand-in, never the shell's home: every request
+   below answers from a replaced fetch, and a file that wrote none read the developer's credentials
+   where it passed and failed in a run's empty home (ISS-2681). The ladder is the transport's own 2s:
+   the give-up case below is timed against it, and at 0 it fails in company. */
+const HOME = tempHome("budget-pacing");
+mkdirSync(join(HOME.path, "forge"), { recursive: true });
+writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({ url: "https://stub.example/mcp", token: "t", retrySeconds: 2 }));
+process.env.XDG_CONFIG_HOME = HOME.path;
 
 let asks = 0;
 

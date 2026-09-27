@@ -210,6 +210,37 @@ test("a test step narrowed to fewer files keeps its reads, and its launcher name
   assert.deepEqual(narrowed.argv.filter((each) => TEST_FILE.test(each)), [one]);
 });
 
+/* A file that imports no fixture was isolated from nothing: a run's borrow reached one case and its
+   borrowless home failed two others, so no shell a delegated run was handed passed the suite (ISS-2681). */
+test("a test file importing no fixture starts with none of the shell's borrow, session ids or config home", () => {
+  const room = tempRoom("steps-isolated-");
+  const shellHome = join(room, "shell-home");
+  mkdirSync(join(shellHome, "forge"), { recursive: true });
+  writeFileSync(join(shellHome, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
+  const probe = join(room, "probe.test.mjs");
+  const out = join(room, "seen.json");
+  writeFileSync(probe, [
+    `import { readdirSync, writeFileSync } from "node:fs";`,
+    `import test from "node:test";`,
+    `test("probe", () => writeFileSync(${JSON.stringify(out)}, JSON.stringify({`,
+    `  borrow: process.env.FORGE_BORROW_FROM ?? null, session: process.env.FORGE_SESSION_ID ?? null,`,
+    `  claude: process.env.CLAUDE_CODE_SESSION_ID ?? null, home: process.env.XDG_CONFIG_HOME,`,
+    `  held: readdirSync(process.env.XDG_CONFIG_HOME) })));`,
+  ].join("\n"));
+  const env = { ...process.env, XDG_CONFIG_HOME: shellHome, FORGE_BORROW_FROM: join(shellHome, "forge", "config.json"),
+    FORGE_SESSION_ID: "the-shell's-run", CLAUDE_CODE_SESSION_ID: "the-shell's-session",
+    GATE_FILE_TIMES: "", GATE_FAILED_CASES: "" };
+  delete env.NODE_TEST_CONTEXT;
+  const [node, ...argv] = argvForTests([probe]);
+  execFileSync(node, argv, { cwd: ROOT, env, encoding: "utf8" });
+  const seen = JSON.parse(readFileSync(out, "utf8"));
+  assert.equal(seen.borrow, null, "the shell's borrow reached the file");
+  assert.equal(seen.session, null, "the shell's run id reached the file");
+  assert.equal(seen.claude, null, "the shell's session id reached the file");
+  assert.notEqual(seen.home, shellHome, "the file resolved its configuration under the shell's home");
+  assert.deepEqual(seen.held, [], "and the home it was given holds nothing to read");
+});
+
 /* The key every per-file read set is stored under is digested off the launcher, so one naming the tree it
    stands in left every worktree spending all 290 test files off a record it shares and cannot read (ISS-1763). */
 test("a launcher names a file of this tree by its repository path and content, and the tree nowhere", () => {

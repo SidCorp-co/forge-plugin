@@ -3,9 +3,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { clearInterval, setInterval } from "node:timers";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
+import { tempHome } from "../../fixtures.mjs";
 import { callTool } from "../../../src/tracker/rest.mjs";
 import { boundedBy } from "../../../src/wire/request.mjs";
+
+/* The account a call is sent under is this file's own stand-in, never the shell's home: every request
+   below answers from a replaced fetch, and a file that wrote none read the developer's credentials
+   where it passed and failed in a run's empty home (ISS-2681). */
+const HOME = tempHome("budget-ceiling");
+mkdirSync(join(HOME.path, "forge"), { recursive: true });
+writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({ url: "https://stub.example/mcp", token: "t", retrySeconds: 0 }));
+process.env.XDG_CONFIG_HOME = HOME.path;
 
 const CLOCK = "a case's clock";
 let asks = 0;
