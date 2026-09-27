@@ -366,8 +366,9 @@ test("every blocking edge is named with its kind, and the park with the status i
   assert.equal(edgeSaid({ kind: "blocks", gates: false, satisfied: false }), "not an edge the tracker gates dispatch on",
     "and the tracker's own answer is the only thing that says a blocks edge gates nothing");
   assert.equal(edgeSaid({ gates: false, satisfied: false }), "not an edge the tracker gates dispatch on");
-  /* An expired edge and a dropped blocker each read as holding the issue back, because the predicate
-     never read the expiry and put `dropped` below `developed` (ISS-347). */
+  /* An expired edge says it is expired and a dropped blocker says it is satisfied, each read off the
+     predicate the entry check spends; both printed as holding while it skipped the expiry and put
+     `dropped` below `developed` (ISS-347). */
   const edged = (edge) => brief({ relations: { blockedBy: [{ otherDisplayId: "ISS-9", kind: "blocks", ...edge }] } })
     .blockers.map(edgeSaid);
   assert.deepEqual(edged({ otherStatus: "open", expired: true }), ["expired, so it orders nothing"]);
