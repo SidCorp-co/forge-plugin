@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { quoting } from "../../../src/hooks/shell-spans.mjs";
-import { idGrantedBy, lastIdGranted } from "../../../src/resolve/session/granted-id.mjs";
+import { idGrantedBy, lastIdGranted, movesTheId } from "../../../src/resolve/session/granted-id.mjs";
 
 const WRITE = "./plugin/bin/forge comment ISS-29 -";
 
@@ -182,6 +182,66 @@ test("a granted call that can start a second command is granted nothing", () => 
   for (const [command, what] of Object.entries(refuses)) {
     assert.equal(idGrantedBy(command), null, what);
   }
+});
+
+/* ISS-1054. The take-back and the export's reach read a regex that paired quotes left to right, beside the walk the openers above read, and the two disagreed exactly where a caller would hide
+   something: an apostrophe a backslash or a comment keeps, or one an ANSI-C word keeps, opened a "quote" that blanked the `unset` behind it. One reading now answers all three, so each row is
+   a verdict that moved, named for the shape it hides — and the rows after these for the shapes it stopped mistaking for shell. */
+const PREFIXED = `FORGE_SESSION_ID=a-run ${WRITE}`;
+test("a take-back an apostrophe used to hide is read, by both readers", () => {
+  const refuses = {
+    [`${PREFIXED}; echo it\\'s; unset FORGE_SESSION_ID; echo 'x'`]: "an apostrophe a backslash made literal",
+    [`${PREFIXED} # it's\nunset FORGE_SESSION_ID; echo 'x'`]: "an apostrophe in a comment",
+    [`${PREFIXED}; echo $'it\\'s'; unset FORGE_SESSION_ID; echo 'x'`]: "the apostrophe an ANSI-C word keeps",
+    [`export FORGE_SESSION_ID=a-run && ${WRITE} <<'EOF'\nit's done\nEOF\nunset FORGE_SESSION_ID\necho 'x'`]:
+      "an apostrophe in a here-doc body, which is data the walk reads as shell",
+    [`${PREFIXED}; \\unset FORGE_SESSION_ID`]: "a backslash on the command word, which the shell removes",
+    [`${PREFIXED}; "unset" FORGE_SESSION_ID`]: "the command word quoted whole, which quote removal spells",
+    [`${PREFIXED}; un\\\nset FORGE_SESSION_ID`]: "a continuation splitting the word, which the write reader now joins as well",
+  };
+  for (const [command, what] of Object.entries(refuses)) {
+    assert.equal(idGrantedBy(command), null, what);
+    assert.equal(lastIdGranted([command]), null, what);
+  }
+});
+
+test("a body opener an apostrophe used to hide, or the second table missed, ends the export's reach", () => {
+  const refuses = {
+    [`export FORGE_SESSION_ID=a-run; echo it\\'s $(true) 'x'; ${WRITE}`]: "a substitution behind an escaped apostrophe",
+    [`export FORGE_SESSION_ID=a-run; echo "$(date)"; ${WRITE}`]: "a substitution a double quote still runs",
+    [`export FORGE_SESSION_ID=a-run; echo \${ date; }; ${WRITE}`]: "bash 5.3's brace substitution, which spans cuts inside",
+    [`export FORGE_SESSION_ID=a-run; echo "\${HOME}" "(x)"; ${WRITE}`]:
+      "a parenthesis beside an expansion whose quotes this reading cannot place",
+  };
+  for (const [command, what] of Object.entries(refuses)) {
+    assert.equal(idGrantedBy(command), null, what);
+  }
+});
+
+test("what a quote, a backslash or a comment made data no longer costs the grant", () => {
+  const reads = {
+    [`${PREFIXED} \\; unset FORGE_SESSION_ID`]: "a take-back behind a separator a backslash made literal",
+    [`${PREFIXED} # ; unset FORGE_SESSION_ID`]: "a take-back in a comment",
+    [`export FORGE_SESSION_ID=a-run; echo \\(x\\); ${WRITE}`]: "a parenthesis a backslash made literal",
+    [`FORGE_SESSION_ID=a-run \\\n${WRITE}`]: "a prefix a continuation joins to its writer",
+    [`export \\\nFORGE_SESSION_ID=a-run; ${WRITE}`]: "an export a continuation joins to its name",
+    [`export FORGE_SESSION_ID=a-run; echo # $'x' $(forge issue ISS-30)\n${WRITE}`]:
+      "an ANSI-C opener and a substitution a comment holds, neither of which the shell reads",
+    [`${PREFIXED} # $'x' ; unset FORGE_SESSION_ID`]: "the same opener in a comment beside a take-back",
+    [`${PREFIXED} \\$'x'; echo ok`]: "a dollar a backslash made literal, which leaves an ordinary apostrophed word",
+  };
+  for (const [command, what] of Object.entries(reads)) {
+    assert.equal(idGrantedBy(command), "a-run", what);
+    assert.equal(lastIdGranted([command]), "a-run", what);
+  }
+});
+
+test("whether a text moves the id is read under the same quoting", () => {
+  assert.equal(movesTheId(`${WRITE}; echo it\\'s; unset FORGE_SESSION_ID; echo 'x'`), true,
+    "a take-back behind an escaped apostrophe");
+  assert.equal(movesTheId(`${WRITE} # ; unset FORGE_SESSION_ID`), false, "a take-back in a comment");
+  assert.equal(movesTheId("echo 'FORGE_SESS\\\nION_ID=x'"), false,
+    "a backslash-newline inside single quotes, which joins nothing and so names nothing");
 });
 
 /* ISS-583. `plugin/hooks/gates/turn/stop-check.mjs` spelt this variable and its value a second time,

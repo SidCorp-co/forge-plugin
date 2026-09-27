@@ -18,33 +18,50 @@ const PREFIX_ON_THE_WRITER = new RegExp(
 const OPENER = String.raw`[$<>]\(|\$\{[\s|]|<<|${BACKTICK}`;
 const RUNS_A_COMMAND = new RegExp(OPENER, "u");
 const EVERY_OPENER = new RegExp(OPENER, "gu");
+/* Where this shell's reach ends: every opener above, and a bare `(` besides. A subshell runs no command a prefix could cover, so it is no opener to `runsACommand`, but it is a shell an export made inside it does not come back from. One table, and that alternative is the whole difference. */
+const BODY = String.raw`${OPENER}|\(`;
+const OPENS_A_BODY = new RegExp(BODY, "u");
+const EVERY_BODY = new RegExp(BODY, "gu");
 /* What a double quote still runs: a command substitution, in either spelling. A process substitution and a here-doc operator are text there, and commands anywhere a shell reads one. */
 const IN_DOUBLE = new RegExp(String.raw`^(?:\$[({]|${BACKTICK})`, "u");
-/* The quoting `quoting` cannot place, and the whole of what this reader does about it: after a `$'…'` every apostrophe could be the one a backslash kept, so the reading is a guess and the answer is the one ISS-858 landed. Read on the joined text, where a `$` and an apostrophe a continuation splits are the one the shell joins them into. */
-const ANSI_C = /\$'/u;
-const CONTINUED = /\\\n/gu;
+
+/* The one reading of a command every question below asks, out of one `quoting` walk: the text a shell reads, its continuations joined as the walk joins them, and beside it the quoting each of its characters stands under, offset for offset. */
+const readOf = (text) => {
+  const marks = quoting(text);
+  return { code: marks.map(({ one }) => one).join(""), under: marks.map(({ under }) => under).join("") };
+};
+
+/* The quoting `quoting` cannot place, and the whole of what this reader does about it: after a live `$'…'` every apostrophe could be the one a backslash kept, and an expansion carries a word of its own whose quotes nest — `"${x:-"it's $(…)"}"` runs a substitution the flat reading calls data, where one inside single quotes nests nothing because nothing nests there; `$[`, whose deprecated body no shell this runs on is read for, is the same. Where either stands the reading is a guess, and every reader here answers a guess the way ISS-858 did: as if the quotes were not there. */
+const GUESSED = /\$['{[]/gu;
+/* Where the walk itself put the `$` in a single quote, a comment or behind a backslash, the shell reads it as data, and nothing after it is a guess on its account. */
+const unplaced = ({ code, under }) =>
+  [...code.matchAll(GUESSED)].some(({ index }) => !["'", "#", "\\"].includes(under[index]));
 
 /* Which openers a quoting runs, `shell-spans` having answered what the quoting is: a double quote keeps only a command substitution, a backslash on any of an opener's own characters ends it, and what this cannot place falls through to refused. */
 const acts = (opener, under) =>
   !under.includes("\\") && under[0] !== "'" && (under[0] !== '"' || IN_DOUBLE.test(opener));
 
-/* The other quoting this reading cannot place: an expansion carries a word of its own, and the quotes in it nest — `"${x:-"it's $(…)"}"` runs a substitution the flat reading calls data, where one inside single quotes nests nothing because nothing nests there. So a live `${` is the fallback's too, and `$[`, whose deprecated body no shell this runs on is read for. */
-const NESTS_IN = /[{[]/u;
-const nests = (read) => read.some(({ one, under }, at) =>
-  one === "$" && under !== "'" && under !== "#" && under !== "\\"
-  && NESTS_IN.test(read[at + 1]?.one ?? ""));
+const opens = (read, every, any) => (unplaced(read)
+  ? any.test(read.code)
+  : [...read.code.matchAll(every)].some(({ 0: opener, index: at }) =>
+    acts(opener, read.under.slice(at, at + opener.length))));
 
-export const runsACommand = (said) => {
-  const joined = said.replace(CONTINUED, "");
-  const read = quoting(said);
-  if (ANSI_C.test(joined) || nests(read)) return RUNS_A_COMMAND.test(joined);
-  const code = read.map(({ one }) => one).join("");
-  return [...code.matchAll(EVERY_OPENER)].some(({ 0: opener, index: at }) =>
-    acts(opener, read.slice(at, at + opener.length).map(({ under }) => under)));
+export const runsACommand = (said) => opens(readOf(said), EVERY_OPENER, RUNS_A_COMMAND);
+const opensABody = (said) => opens(readOf(said), EVERY_BODY, OPENS_A_BODY);
+
+/* What a take-back is looked for in: the same text with what a quote, a comment or a backslash made data blanked, space for space, so an escaped or quoted separator starts nothing and a comment runs nothing. What still spells a word once the shell removes its quotes stays — `"unset"` and `\unset` run `unset` as surely as `""unset` does. A heredoc's body is data this walk reads as shell, where one unpaired apostrophe misplaces every quote after it, so a live `<<` makes the reading a guess here too, answered the same way. */
+const SPELLS = /[\w.-]/u;
+const HEREDOC = /<</gu;
+const asRun = (read) => {
+  const { code, under } = read;
+  if (unplaced(read) || [...code.matchAll(HEREDOC)].some(({ index }) => under.slice(index, index + 2) === "  ")) return code;
+  return code.split("").map((one, at) =>
+    (under[at] === " " || (under[at] !== "#" && SPELLS.test(one)) ? one : " ")).join("");
 };
 
+const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
+
 export const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*forge(?![\w-])`, "u");
-const OPENS_A_BODY = new RegExp(String.raw`[(${BACKTICK}]|<<`, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;
 
 const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+(?:-[ui]\b|--unset\b|--ignore-environment\b))/u;
@@ -64,22 +81,20 @@ const ASSIGNS = /^([A-Za-z_]\w*)=([\s\S]*)$/u;
 const ONE_NAME = new RegExp(String.raw`^${LITERAL}$`, "u");
 const dequoted = (word) => word.replace(/"([^"]*)"|'([^']*)'/gu, "$1$2");
 
-const masked = (text) => text.replace(/"[^"]*"|'[^']*'/gu, (one) => " ".repeat(one.length));
-
 const commandsIn = (text) => spans(text, { pipes: true })
   .map(({ start, end }) => ({ at: start, said: text.slice(start, end), after: text.slice(end) }));
 
 const sepAfter = (one) => SEPARATOR.exec(one?.after ?? "")?.[1] ?? "";
 
 const reachOf = (found) => {
-  const at = found.findIndex(({ said }) => OPENS_A_BODY.test(masked(said)));
+  const at = found.findIndex(({ said }) => opensABody(said));
   return at < 0 ? found.length : at + 1;
 };
 
 const inThisShell = (found, i) =>
   !["|", "&"].includes(sepAfter(found[i])) && sepAfter(found[i - 1]) !== "|";
 
-/* `spans` owns where a command begins and ends, so no grammar for one lives here; a `(`, a `<<` or a backtick opens what is not this shell, and neither is a pipeline stage or a background job.
+/* `spans` owns where a command begins and ends, so no grammar for one lives here; whatever `OPENS_A_BODY` names, wherever the shell would act on it, opens what is not this shell, and neither is a pipeline stage or a background job.
    An export covers a later call of this shell reached unconditionally, or joined to it by an unbroken `&&` no `||` can jump into, and being the environment it reaches a substitution too — where a
    prefix covers one command alone, so one carrying an opener a shell would act on is refused unread (ISS-858, ISS-949). */
 const grantedIn = (found) => {
@@ -114,10 +129,10 @@ const grantIn = (said) => {
   return found;
 };
 
-const grantEnding = (text, joined = text.replace(CONTINUED, "")) => [
-  ...commandsIn(joined).map(({ at, said }) => ({ at, id: grantIn(said) }))
+const grantEnding = (text, read = readOf(text)) => [
+  ...commandsIn(read.code).map(({ at, said }) => ({ at, id: grantIn(said) }))
     .filter(({ id }) => id !== undefined),
-  ...[...masked(joined).matchAll(EVERY_TAKE_BACK)].map((hit) => ({ at: hit.index, id: null })),
+  ...[...asRun(read).matchAll(EVERY_TAKE_BACK)].map((hit) => ({ at: hit.index, id: null })),
 ].sort((one, two) => one.at - two.at).at(-1)?.id ?? null;
 
 /** The other reader's question — which run a whole turn's writes went under — and why each call is read alone: docs/cli/the-granted-id.md. */
@@ -129,14 +144,14 @@ export const lastIdGranted = (commands) => {
 
 /** Whether the text assigns the name or takes the environment back at all, granting or not: a command that does either is not run under the id its run holds elsewhere. */
 export const movesTheId = (command) => {
-  const text = (Array.isArray(command) ? command.join("\n") : String(command ?? "")).replace(CONTINUED, "");
-  return ASSIGNS_THE_ID.test(text) || TAKEN_BACK.test(masked(text));
+  const read = readOf(textOf(command));
+  return ASSIGNS_THE_ID.test(read.code) || TAKEN_BACK.test(asRun(read));
 };
 
 export const idGrantedBy = (command) => {
-  const text = Array.isArray(command) ? command.join("\n") : String(command ?? "");
-  const granted = grantedIn(commandsIn(text));
-  if (!granted || TAKEN_BACK.test(masked(text))) return null;
-  const named = new Set([...text.matchAll(EVERY_VALUE)].map(valueIn));
+  const read = readOf(textOf(command));
+  const granted = grantedIn(commandsIn(read.code));
+  if (!granted || TAKEN_BACK.test(asRun(read))) return null;
+  const named = new Set([...read.code.matchAll(EVERY_VALUE)].map(valueIn));
   return named.size === 1 ? valueIn(granted) : null;
 };

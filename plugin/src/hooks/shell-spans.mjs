@@ -9,9 +9,11 @@ import { basename, isAbsolute, resolve } from "node:path";
 const OPENS = /[\s;&|()]/u;
 
 /* One walk, two answers: the spans below and the quoting each character stands under. Both are this loop's, because the quote state is the primitive the spans reading already spends, and a second walk of the same text elsewhere is a copy that can drift on one side only. */
-const walked = (text, pipes) => {
+const walked = (text, pipes, quoted = false) => {
   const out = [];
-  const under = new Array(text.length).fill(" ");
+  /* Built only for `quoting`: no reader of the spans alone reads it, and `spans` runs several times per Bash event. */
+  const under = quoted ? new Array(text.length).fill(" ") : null;
+  const mark = quoted ? (at, as) => { under[at] = as; } : () => {};
   let start = 0;
   let quote = "";
   let said = -1;
@@ -32,31 +34,31 @@ const walked = (text, pipes) => {
       if (one === "\n") {
         cut(at);
         start = at + 1;
-      } else under[at] = "#";
+      } else mark(at, "#");
       continue;
     }
     if (one === "\\" && quote !== "'") {
-      under[at] = "\\";
-      if (at + 1 < text.length) under[at + 1] = "\\";
+      mark(at, "\\");
+      if (at + 1 < text.length) mark(at + 1, "\\");
       at += 1;
       fresh = false;
       continue;
     }
     if (quote) {
-      under[at] = quote;
+      mark(at, quote);
       if (one === quote) quote = "";
       fresh = false;
       continue;
     }
     if (one === '"' || one === "'") {
-      under[at] = one;
+      mark(at, one);
       quote = one;
       fresh = false;
       continue;
     }
     if (fresh && one === "#") {
       said = at;
-      under[at] = "#";
+      mark(at, "#");
       continue;
     }
     if (one === "(") {
@@ -89,7 +91,7 @@ export const spans = (text, { pipes = false } = {}) => walked(text, pipes).out;
 /** Every character a shell reads, in order: `at` its offset, `one` the character, `under` the quoting it stands inside — a space bare, `'` or `"` that quote and its own delimiters, `#` a comment, `\` a character a backslash made literal. A line continuation is gone, both characters of it, because a shell removes the pair and joins what it separated; nothing else is, so an escaped character goes on separating what it separates and two neighbours here can be two apart in the text.
  *  What a quoting means for a character is the caller's: a shell runs a `$(` under a double quote and reads a `<(` there as text. And one quoting this cannot place, which the caller has to answer for: inside `$'…'` a backslash escapes, so the apostrophe that looks like the closing one may not be. */
 export const quoting = (text) => {
-  const { under } = walked(text, false);
+  const { under } = walked(text, false, true);
   const continued = (at) =>
     under[at] === "\\"
     && (text[at] === "\n" || (text[at + 1] === "\n" && under[at + 1] === "\\"));
@@ -215,8 +217,8 @@ export const waitsIn = (text) => {
 
 /* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
 const OPERATOR = /[;&|()<>$\\]/u;
-/* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one. The space because a quoted span carrying one is a sentence or a payload far more often than a filename, which is the narrowing `spoken` makes in the harness and the split that hands `touch 'a.md b.md'` its two candidates; the quotes — each spelt as its code point, a lone one in a source file being an unclosed string to everything that reads this repository as text — because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
-const ALWAYS = /[\s\x27\x22\x60]/u;
+/* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one. The space because a quoted span carrying one is a sentence or a payload far more often than a filename, which is the narrowing `spoken` makes in the harness and the split that hands `touch 'a.md b.md'` its two candidates; the quotes because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
+const ALWAYS = /[\s'"`]/u;
 /* And the two of the operators a single quote takes back, which is where a shell opens no subshell and a path plausibly carries one: the `;`, the `|`, the `<`, the `>`, the `$` and the backslash inside a quoted span say interpreter's body far more often than they say filename, and a reading that must not invent a target leaves them ending words as they always did. */
 const BRACKET = /[()]/u;
 
@@ -302,7 +304,7 @@ const worded = (text, alike) => {
 /* Where a name may begin inside its word, besides its start. Before it: the option a value may be attached to, which is one letter after a single hyphen and the whole word after two — `curl -onotes.md` writes what `--output=notes.md` does, and past a bare `--` there are no options left, so a file whose own name opens with a hyphen is read as one — and the first `=` or `:`, a key standing in front of the value it names. After it: the last `}`, since what follows the last substitution is the literal tail the program will build, and `f"{root}/skills/x/SKILL.md"` spells a guarded path while naming no `root` this can read. One of each and no more, so one word is read four ways rather than once per character of a 40 000-character operand. And a word standing against a quote is no option at all but a literal a body carries, an interpreter's own body arriving here with its quotes still in it — all three of them, a template's backtick as much as the other two — and `open("--trap.md", "w")` naming a file. */
 const OPTION = /^--[\w-]+|^-[A-Za-z0-9]/u;
 const KEYED = /[=:]/u;
-const QUOTES = /[\x22\x27\x60]/u;
+const QUOTES = /["'`]/u;
 /* And where the word itself is no name: behind a key, which is a word-part carrying no separator with a value spelled from somewhere behind it — the root, a home, this directory or the one above. A `dd` naming its output after an `of=` names the value alone; a directory whose own name carries an `=` names the whole word, and only the first has a key in front of it. */
 const KEY = /^[^/=:]*[=:](?:~|\.{0,2})\//u;
 /* And a word a shell or an interpreter would rewrite spells a file this text does not hold: what the write lands on is the pattern's match or the substitution's value, which is elsewhere. how/writes.md. */

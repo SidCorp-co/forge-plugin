@@ -4,9 +4,8 @@ A hook is handed no `FORGE_SESSION_ID`. It runs in the harness's process, so wha
 command it is judging: the name spelt in that text, or the tree that text will stand in when it runs
 (ISS-467). Two spellings put the name there, and `docs/cli/claim.md` says why a run needs one at
 all. This page says what each spelling survives and what the tree answers for, because a call whose
-name is lost falls back to the tree, and where there is no tree to fall back to it is credited to
-whatever dispatched the session — a whole wave of runs, under one id — and the next write is then
-held on the record the run itself just wrote.
+name is lost falls back to the tree, and with no tree to whatever dispatched the session — a whole
+wave of runs under one id — and the next write is held on the run's own record.
 
 ## The export form has no opener limit
 
@@ -24,6 +23,10 @@ What loses it besides is a name the reader cannot resolve or cannot trust. Spell
 reader has the text and not the shell that will run it, so `"$RUN_ID"` names nothing. One text names
 one run: two different ids, or a second id mentioned anywhere in the text, and the reader declines
 rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i`/`-u`, either spelling, takes the name back.
+
+**The take-back and the reach read the same quoting** as the openers below: `\unset` and `"unset"`
+take the name back, an escaped `;` or a comment's `unset` does not, and the reach ends at any opener
+below a shell would act on, a bare `(` too.
 
 **A second id is a second assignment to this name**, read wider than a grant is. A longer variable
 whose name ends in this one is a different variable and costs nothing. Everything else assigning
@@ -62,9 +65,8 @@ opener is the one a shell asks: would this run, written here. A line continuatio
 the reading, both characters of it, because the shell removes it and joins what it split — so a `$`
 and a `(` a backslash-newline sits between are one opener and lose the name.
 
-Nothing inside an opener that does run is read, and that is deliberate: a `forge` call nested in one
-would write under no name at all, so refusing unread is the safe direction, and no reading of what
-sits inside an opener has survived review.
+Nothing inside an opener that does run is read: a `forge` call nested in one would write under no
+name at all, so refusing unread is the safe direction.
 
 **The one quoting this cannot place: `$'…'`.** Inside an ANSI-C quoted word a backslash escapes, so
 the apostrophe that looks like the closing one may not be, and every single-quote boundary after it
@@ -104,20 +106,19 @@ words; the first word that is neither ends the run, which keeps `echo` and `grep
 Where a command begins is `spans`' answer, and each word is taken whole — so a quoted separator
 starts nothing and this name inside another word's value is no assignment. A prefix assignment's own
 name has to be unquoted, as a shell asks, and only its value is dequoted; a word handed to `export`
-or `env` is that wrapper's argument and is dequoted whole. A subshell's is that subshell's. Where the turn granted no name at all the gate falls back to
-the session's own key, and the cost of that is a lease the gate does not notice rather than one it
-names wrongly.
+or `env` is that wrapper's argument and is dequoted whole. A subshell's is that subshell's. Where the turn granted no name the gate falls back to the
+session's own key, which costs a lease the gate does not notice rather than one it names wrongly.
 
 ## Where a lost name shows
 
-Nothing refuses, and `forge doctor` will not show it. Two readers are in play and only one is
-affected: the CLI is handed `FORGE_SESSION_ID` in its own environment and goes on using it, which is
+Nothing refuses, and `forge doctor` will not show it. Of the two readers only one is affected: the
+CLI is handed `FORGE_SESSION_ID` in its own environment and goes on using it, which is
 what doctor reports, while the hook has only the text. Where that text will run in a tree naming its
 own run, the hook reads the same id from there and nothing is lost. Where it will not, the hook
 falls back to the dispatching session's id, the write lands under the run's own name and the *gate*
 credits the wave. The cost arrives one write later: the gate holds the next write to that issue and
-quotes the run its own record back. An identical re-send clears it, that being the whole of that
-gate's rule and not a second defect — `forge hooks --how issue-read-first`.
+quotes the run its own record back. An identical re-send clears it —
+`forge hooks --how issue-read-first`.
 
 Read with this: [`claim`](claim.md) for the lease the name is the key to, and
 [`the-consult`](codex-the-consult.md) for the other place a run's identity is recorded.
