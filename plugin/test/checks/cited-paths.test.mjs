@@ -295,6 +295,8 @@ test("a quoted specifier naming a dependency is no finding, and the same path an
     "a double-quoted specifier");
   assert.deepEqual(said("plugin/hooks/vendor/x.mjs", "import rules from 'eslint/use-at-your-own-risk.js';\n"),
     [], "and a single-quoted one");
+  assert.deepEqual(said("docs/x.md", 'call `require.resolve("eslint/package.json")` first\n'), [],
+    "and one a document shows as code, the literal still being a specifier");
   for (const text of ["[configuration](eslint/gone.json)\n", "see `eslint/gone.json`\n",
     "the limits live in eslint/gone.json\n"]) {
     const found = said("docs/x.md", text);

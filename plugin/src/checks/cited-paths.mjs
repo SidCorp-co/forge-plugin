@@ -24,7 +24,8 @@ const SHAPES = [
   new RegExp(LINK_TARGET_PATTERN, "gu"),
 ];
 
-/* Only the bare shape can be a string literal; a span or a link is a claim however it is quoted. */
+/* Only the bare shape carries a string literal, so only it can be a specifier: a span quoting code
+   still quotes the literal, while a lone spanned filename and a link target never are one. */
 const QUOTES = new Set(["\"", "'"]);
 
 export const citedIn = (text) => {
