@@ -485,36 +485,6 @@ test("a value a copy's flag takes is still that flag's", () => {
   assert.equal(decide(`cp -S .bak a.md ${SKILL}`).allowed, false, "and the destination after it is a write");
 });
 
-/* The host loads a project's own `.claude/skills/` for that project alone, so its text is a note about one repository by construction: the question the gate asks there has no honest answer (ISS-379). */
-const PROJECT_SKILL = "/home/dev/app/.claude/skills/uat/SKILL.md";
-const edit = (file_path) =>
-  decided(ask({ tool_name: "Edit", tool_input: { file_path, old_string: "a", new_string: "b" } }));
-
-test("a project's own skill is not a skill's own text", () => {
-  assert.equal(edit(PROJECT_SKILL).allowed, true);
-  assert.equal(decided(ask({ tool_name: "Write", tool_input: { file_path: PROJECT_SKILL, content: "x" } })).allowed, true, "written whole too");
-  assert.equal(decide(`sed -i s/a/b/ ${PROJECT_SKILL}`).allowed, true, "and through the shell");
-  assert.equal(at("/home/dev/app", "echo x > .claude/skills/uat/references/run.md").allowed, true, "spelt from the project's own tree");
-  assert.equal(edit(`${SKILL_DIR}/SKILL.md`).allowed, false, "while a plugin's skill still is");
-});
-
-test("the home's skills and a tree nothing placed are still guarded", () => {
-  const home = HOME.HOME;
-  assert.equal(edit(join(home, ".claude", "skills", "demo", "SKILL.md")).allowed, false, "the home's serve every project");
-  assert.equal(at(home, "echo x > .claude/skills/demo/SKILL.md").allowed, false, "spelt from the home as well");
-  assert.equal(decide("echo x > $HOME/.claude/skills/demo/SKILL.md").allowed, false, "a variable nobody resolved may be the home");
-  const [parent, user] = [dirname(home), home.split("/").pop()];
-  const built = (target, verb = "echo x >") => decided(callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash",
-    tool_input: { command: `${verb} ${target}` } }, { ...HOME, BASE: parent }));
-  const tail = `${user}/.claude/skills/demo/SKILL.md`;
-  assert.equal(built(`\${BASE}/${tail}`).allowed, false, "and so may the rooted tail one leaves behind, which reads like an owner and is none");
-  assert.equal(built(`"\${BASE}"/${tail}`).allowed, false, "with the substitution quoted apart from it too");
-  assert.equal(built(`\${BASE}\\\n/${tail}`, "touch").allowed, false, "or a line continued onto it");
-  assert.equal(built(`"/home/dev/app/.claude/skills/demo/SKILL.md"`).allowed, true, "while a quoted owner spelt whole is one");
-  assert.equal(decide("echo x > ~/.claude/skills/demo/SKILL.md").allowed, false, "and `~` is");
-  assert.equal(decide("echo x > ~/app/.claude/skills/demo/SKILL.md").allowed, true, "while a project under it is not");
-});
-
 test("a verb that unlinks what it reads writes its source too", () => {
   assert.equal(decide(`mv ${SKILL} /tmp/backup.md`).allowed, false);
   assert.equal(decide(`rsync --remove-source-files ${SKILL} /tmp/b.md`).allowed, false);

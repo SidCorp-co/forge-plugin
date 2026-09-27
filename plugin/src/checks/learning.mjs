@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 import { canonical } from "../resolve/canonical.mjs";
 import { memoryDir } from "../hooks/transcripts.mjs";
@@ -25,12 +25,13 @@ export const BRIEF =
  *  root, or the relative tail a variable nobody resolved left behind, which may well be the home. A
  *  rooted tail left behind by one is no owner either, and `guardedShape` is what its caller reads. */
 export const projectSkill = (path) => {
-  const at = path.lastIndexOf("/.claude/skills/");
-  if (at < 0) return false;
-  const owner = path.slice(0, at);
-  if (owner.startsWith("~/")) return true;
-  if (!isAbsolute(owner)) return false;
-  return canonical(owner) !== canonical(homedir());
+  /* Placed and resolved first, since a `..` or a link anywhere in it can lead out of the project into the home or a plugin. */
+  const spelt = path.startsWith("~/") ? join(homedir(), path.slice(2)) : path;
+  if (!isAbsolute(spelt)) return false;
+  const full = join(canonical(dirname(resolve(spelt))), basename(spelt));
+  const at = full.lastIndexOf("/.claude/skills/");
+  if (at <= 0) return false;
+  return canonical(full.slice(0, at)) !== canonical(resolve(homedir()));
 };
 
 /** A memory file or a skill's own text by its shape alone, the owner unasked: what a path is judged by where the command built what stands before it rather than spelling it. */
