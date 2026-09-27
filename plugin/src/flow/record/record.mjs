@@ -32,7 +32,7 @@ import { partForRecord } from "../../guides/served.mjs";
 import { scopeFrom, scopePath } from "./plan-scope.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
-import { renew, writtenBy } from "../lease.mjs";
+import { oweRelease, renew, writtenBy } from "../lease.mjs";
 import { issueOf, post, sayStored } from "./thread/posting.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
@@ -445,6 +445,8 @@ const writeRung = async (reference, blocks, { next, patch }) => {
   const { movedByRecord } = await import("../advance.mjs");
   const { rung } = await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page,
     body.status);
+  /* A park ends the turn here as it does through advance, whose `park` says why. */
+  if (blocks.some((one) => one.kind === "park")) oweRelease(documentId, reference);
   for (const one of blocks) sayPart(one.kind, rung);
 };
 
