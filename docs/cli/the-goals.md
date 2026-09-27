@@ -15,7 +15,7 @@ and worse than not answering, because a value refused there would have been weig
 that is not that project's.
 
 So the source is the project brief, the one artefact every project has: it is read before any code
-is, and `forge doctor --line` writes into it where nothing was written before. This repository's own
+is, and `forge doctor --after` writes into it where nothing was written before. This repository's own
 ten goals arrived by exactly that route, one `forge doctor --refresh` naming the file above as each
 line's provenance. That path is a source arrow on a stored line, and nothing goes looking for it at
 a write.

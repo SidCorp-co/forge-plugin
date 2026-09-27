@@ -265,27 +265,42 @@ export const confirmSource = async (source) => {
   ];
 };
 
-/** One line's prose, replaced. A digest is keyed by path and not by line, so a source another line
- *  also reads is left stale here and named: stamping it would clear that other line over prose
- *  nobody looked at, which is the silent staleness the `stale:` line exists to prevent. Once those
- *  lines have been judged too, `--confirm` is what closes the source. */
-export const replaceBriefLine = async (given, text, was) => {
-  const entry = await storedBrief();
-  const lines = (entry.body ?? "").split("\n");
+/** A line held against the stored body: the flag that took it, and the range `forge doctor` numbers. */
+const lineOf = (flag, given, lines) => {
   if (!/^[1-9]\d*$/u.test(given) || Number(given) > lines.length) {
-    fail(`--line takes a line of the stored brief, 1 to ${lines.length}, and \`${given}\` is not `
+    fail(`${flag} takes a line of the stored brief, 1 to ${lines.length}, and \`${given}\` is not `
       + "one. `forge doctor` prints the brief with those numbers down its margin.");
   }
-  const at = Number(given);
-  if (text.includes("\n")) {
-    fail("--line replaces one line and this text holds a newline. A brief whose prose has to move "
-      + "across lines is a brief being rewritten: forge doctor --refresh <brief.md>");
+  return Number(given);
+};
+
+/** The nearest line above `at` a `--was` prefix can open alone, or 0: a line of whitespace is one
+ *  `--was` refuses, and a line whose whole text another line begins with is one no prefix names. */
+const anchorAbove = (lines, at) => {
+  for (let one = at - 1; one >= 1; one -= 1) {
+    const text = lines[one - 1];
+    if (text.trim() && lines.filter((line) => line.startsWith(text)).length === 1) return one;
   }
-  const wrong = wrongLine(lines, at, was);
-  if (wrong) fail(`--was names the line --line replaces, and ${wrong} Nothing was written.`);
-  if (lines[at - 1] === text) return [`line ${at} already reads that, so nothing was written.`];
-  const body = [...lines.slice(0, at - 1), text, ...lines.slice(at)].join("\n");
-  const before = entry.metadata?.[DIGESTS] ?? {};
+  return 0;
+};
+
+/* A blank line opens with nothing a --was can quote, so it cannot be replaced; filling one was
+   always an insert, and the refusal names the insert that can be aimed. */
+const blankRoute = (lines, at) => {
+  if (lines[at - 1].trim()) return "";
+  const above = anchorAbove(lines, at);
+  return above
+    ? ` Line ${at} is blank and no --was can name it, so add the line instead: forge doctor --after `
+      + `${above} <text> --was <line ${above} as it stands>.`
+    : ` Line ${at} is blank and no --was can name it, and no line above it can anchor an insert, `
+      + "so the brief is rewritten whole: forge doctor --refresh <brief.md>.";
+};
+
+/** The digests a body is stored under once line `at` is new prose, and the lines saying so. A
+ *  digest is keyed by path and not by line, so a source another line also reads keeps the digest it
+ *  had and is named: stamping it would clear that other line over prose nobody looked at, the
+ *  silent staleness the `stale:` line exists to prevent. `--confirm` closes it once judged. */
+const restamped = (before, body, at, text) => {
   const namers = namersOf(body);
   const digests = {};
   const stamped = [];
@@ -304,10 +319,7 @@ export const replaceBriefLine = async (given, text, was) => {
   const unread = unhashable(text);
   const missing = stamped.filter((path) => digests[path] === null);
   const hashed = stamped.filter((path) => digests[path] !== null);
-  return [
-    ...wroteLines(await wroteBrief(entry, body, digests)),
-    `  line ${at} was: ${lines[at - 1]}`,
-    `  line ${at} now: ${text}`,
+  return { digests, said: [
     ...(hashed.length
       ? [`  stamped: ${hashed.join(", ")} — no other line of the brief reads `
         + `${hashed.length > 1 ? "them" : "it"}`]
@@ -326,5 +338,52 @@ export const replaceBriefLine = async (given, text, was) => {
       ? [`  not hashed: ${unread.join(", ")} — named as a source and not read as a path, so nothing `
         + "later can say one moved"]
       : []),
+  ] };
+};
+
+/** One line's prose, replaced. */
+export const replaceBriefLine = async (given, text, was) => {
+  const entry = await storedBrief();
+  const lines = (entry.body ?? "").split("\n");
+  const at = lineOf("--line", given, lines);
+  if (text.includes("\n")) {
+    fail("--line replaces one line and this text holds a newline. A brief whose prose has to move "
+      + "across lines is a brief being rewritten: forge doctor --refresh <brief.md>");
+  }
+  const wrong = wrongLine(lines, at, was);
+  if (wrong) {
+    fail(`--was names the line --line replaces, and ${wrong}${blankRoute(lines, at)} Nothing was written.`);
+  }
+  if (lines[at - 1] === text) return [`line ${at} already reads that, so nothing was written.`];
+  const body = [...lines.slice(0, at - 1), text, ...lines.slice(at)].join("\n");
+  const { digests, said } = restamped(entry.metadata?.[DIGESTS] ?? {}, body, at, text);
+  return [
+    ...wroteLines(await wroteBrief(entry, body, digests)),
+    `  line ${at} was: ${lines[at - 1]}`,
+    `  line ${at} now: ${text}`,
+    ...said,
+  ];
+};
+
+/** One line added below line `given`, for a fact the brief never carried: replacing a line to make
+ *  room loses its prose, and the whole-body write is the shape the narrow ones exist to avoid. The
+ *  anchor is checked by `--was` as `--line`'s target is, so no write here is aimed by a bare number. */
+export const addBriefLine = async (given, text, was) => {
+  const entry = await storedBrief();
+  const lines = (entry.body ?? "").split("\n");
+  const at = lineOf("--after", given, lines);
+  if (text.includes("\n")) {
+    fail("--after adds one line and this text holds a newline. Send each line as its own --after, "
+      + "or rewrite the brief whole: forge doctor --refresh <brief.md>");
+  }
+  const wrong = wrongLine(lines, at, was);
+  if (wrong) fail(`--was names the line --after adds below, and ${wrong} Nothing was written.`);
+  const body = [...lines.slice(0, at), text, ...lines.slice(at)].join("\n");
+  const { digests, said } = restamped(entry.metadata?.[DIGESTS] ?? {}, body, at + 1, text);
+  return [
+    ...wroteLines(await wroteBrief(entry, body, digests)),
+    `  after line ${at}: ${lines[at - 1]}`,
+    `  line ${at + 1} added: ${text}`,
+    ...said,
   ];
 };

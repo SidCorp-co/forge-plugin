@@ -18,7 +18,7 @@ import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../g
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
 import { projectRows, QA_MODES, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
-import { briefLines, confirmSource, readBrief, refreshBrief, replaceBriefLine }
+import { addBriefLine, briefLines, confirmSource, readBrief, refreshBrief, replaceBriefLine }
   from "../tracker/knowledge/brief.mjs";
 
 /* A nested value is its own width: a stage table printed whole is this report's longest line and
@@ -526,32 +526,45 @@ export const refuseUnchecked = (asked) => {
       + "begins with: forge doctor --line <n> <text> --was <the line as it stands>. `forge doctor` "
       + "prints the brief with the numbers <n> counts down its margin.");
   }
-  if (asked.was !== undefined && asked.line === undefined) {
-    fail("doctor: --was names the prose the line --line replaces begins with, and no --line was "
-      + "given. Nothing was sent: forge doctor --line <n> <text> --was <the line as it stands>");
+  if (asked.after !== undefined && asked.was === undefined) {
+    fail("doctor: --after adds a line to a store with no undo, so it names the prose the line it goes "
+      + "below begins with: forge doctor --after <n> <text> --was <line n as it stands>. `forge "
+      + "doctor` prints the brief with the numbers <n> counts down its margin.");
+  }
+  if (asked.was !== undefined && asked.line === undefined && asked.after === undefined) {
+    fail("doctor: --was names the prose of the line --line replaces or --after adds below, and "
+      + "neither --line nor --after was given. Nothing was sent: forge doctor --line <n> <text> "
+      + "--was <the line as it stands>, or forge doctor --after <n> <text> --was <line n as it stands>");
   }
   if (asked.was !== undefined && !asked.was.trim()) {
-    fail("doctor: --was is the prose the replaced line begins with, and every line begins with an "
+    fail("doctor: --was is the prose the line it names begins with, and every line begins with an "
       + "empty one, so this checks nothing. Quote enough of the line to name it alone.");
   }
 };
+
+/* The two writes that take one line of prose as their argument, and what that line is to each. */
+const PROSE = [
+  { flag: "line", prose: "the one line of prose replacing it", write: replaceBriefLine },
+  { flag: "after", prose: "the one line of prose added below it", write: addBriefLine },
+];
 
 export const briefRoute = async (asked, pairs, positionals) => {
   const asks = WRITES.filter((one) => asked[one] !== undefined);
   if (asks.length > 1) {
     fail(`doctor: ${asks.map((one) => `--${one}`).join(" and ")} each write the brief a different `
       + "way and one call takes one — --refresh the whole body, --confirm one source's digest, "
-      + "--line one line's prose.");
+      + "--line one line's prose, --after one line added.");
   }
   if (asks.length && asks[0] !== "refresh") {
     refuseCarried(asked, pairs, `--${asks[0]} carries the stored entry's forward untouched.`);
   }
-  if (asked.line !== undefined && positionals.length !== 1) {
-    fail("doctor: --line takes the line's number and the one line of prose replacing it, so quote "
-      + `that prose as a single argument: forge doctor --line <n> <text>${positionals.length
+  const narrow = PROSE.find((one) => asked[one.flag] !== undefined);
+  if (narrow && positionals.length !== 1) {
+    fail(`doctor: --${narrow.flag} takes the line's number and ${narrow.prose}, so quote that prose `
+      + `as a single argument: forge doctor --${narrow.flag} <n> <text>${positionals.length
         ? ` — ${positionals.length} arrived after it` : ""}`);
   }
   if (asked.confirm !== undefined) return confirmSource(asked.confirm);
-  if (asked.line !== undefined) return replaceBriefLine(asked.line, positionals[0], asked.was);
+  if (narrow) return narrow.write(asked[narrow.flag], positionals[0], asked.was);
   return refreshBrief(asked.refresh, { ...asked, pairs });
 };

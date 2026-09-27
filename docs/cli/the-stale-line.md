@@ -17,6 +17,7 @@ Both narrow writes are:
   re-stamped, and the lines it just vouched for are printed. It is the common case: the file moved
   and the fact did not.
 - `--line <n> <text>` replaces one line's prose, for where the fact did move.
+- `--after <n> <text>` adds one line below line n, for a fact the brief never carried.
 
 **A digest is keyed by path and not by line, and that is what decides the second flag.** Two lines
 of a brief often read the same file. Stamping that path because one of them was rewritten would
@@ -25,6 +26,9 @@ exists to break. So `--line` stamps a source only where the rewritten line is th
 reader, and where it is not, it names the lines that keep it stale and the `--confirm` that closes
 it once those have been judged too. The two flags compose; neither alone can lie about the other's
 lines.
+
+An added line is held to the same rule, since its sources are a rewritten line's in every respect
+but the prose it displaced.
 
 The alternative — stamp always, list the other lines as a courtesy — was refused for the reason the
 `not hashed:` listing exists at all: a listing beside a write nobody can undo is not the same as not
@@ -67,3 +71,16 @@ would restore prose another session put there while this one was deciding and re
 nothing, which is worse than the staleness it set out to fix. So it reads once more immediately
 before writing and refuses if the body or the digests moved. Nothing here can make the write atomic;
 this turns a silent overwrite into a refusal naming the read to redo.
+
+## Why adding a line is its own write
+
+*Why not replace a blank line, or the last one, when a fact is new?*
+
+Because replacing is the wrong verb for a fact the brief never held, and every way of bending it
+cost something. Replacing a trailing blank worked only where the body happened to end in one, and
+since `--was` has to quote a line, a blank line cannot be named at all: there is nothing on it to
+quote. Replacing a line of prose loses that prose. `--refresh` rewrites fifty lines to add one. So
+`--after` is the insert, and it is aimed exactly as `--line` is — the number, and a `--was` that must
+open that line alone — because an insert aimed by a bare number would be the one unchecked write
+left on a store with no undo. A `--line` aimed at a blank line is refused with the `--after` that
+lands the same line, anchored on the nearest line above that a prefix can name.
