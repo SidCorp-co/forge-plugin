@@ -18,7 +18,7 @@
     "generate:spec": "node plugin/src/cli.mjs spec check --record",
     "check": "node tools/gates.mjs",
     "check:package": "npm --prefix packages/code-quality run lint && npm --prefix packages/code-quality test",
-    "test": "node --test \"plugin/test/**/*.test.mjs\" \"tools/test/**/*.test.mjs\"",
+    "test": "node --test --import=./plugin/test/fixtures/process/isolated.mjs \"plugin/test/**/*.test.mjs\" \"tools/test/**/*.test.mjs\"",
     "check:skill-paths": "node plugin/scripts/skill-paths.mjs",
     "check:skill-boundaries": "node plugin/scripts/skill-boundaries.mjs",
     "check:skill-figures": "node plugin/scripts/skill-figures.mjs",

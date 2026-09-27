@@ -34,11 +34,12 @@ export const reachedFrom = (roots) => {
   return [...seen].sort();
 };
 
-// The runner, and the reporter `steps.mjs` names by path: a walk sees no runtime specifier.
+// The runner, and the reporter and the preload `steps.mjs` names by path: a walk sees no runtime specifier.
 // The modules the runner reaches only by a literal dynamic import, which a static reach cannot see:
 // `--baseline`'s, the two `worklog.mjs` loads in its turn, the clause reader `codex-tools.mjs` loads for `read_spec`,
 // and the brief reader `codex-api.mjs` loads for the debt angle's goals.
 export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs"),
+  join("plugin", "test", "fixtures", "process", "isolated.mjs"),
   join("tools", "gates", "baseline.mjs"), join("plugin", "src", "codex", "codex-log.mjs"),
   join("plugin", "src", "codex", "log", "replies.mjs"), join("plugin", "src", "spec", "verbs.mjs"),
   join("plugin", "src", "tracker", "knowledge", "brief.mjs")];

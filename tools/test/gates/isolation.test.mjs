@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { argvFor, casesFrom, CASES_ENV, HUMAN_REPORTER, patternFor } from "../../gates/reporters/isolation.mjs";
+import { argvFor, casesFrom, CASES_ENV, HUMAN_REPORTER, ISOLATED, patternFor } from "../../gates/reporters/isolation.mjs";
 import { tempRoom } from "../../../plugin/test/fixtures.mjs";
 
 const REPORTER = join(process.cwd(), "tools", "gates", "reporters", "isolation.mjs");
@@ -44,9 +44,9 @@ test("a name holding regex metacharacters is escaped and anchored, so it selects
   assert.equal(patternFor("plain name"), "^plain name$");
 });
 
-test("a case is re-run with one concurrency, node's own reporter and nothing that writes a record", () => {
+test("a case is re-run with one concurrency, node's own reporter, its step's isolation and nothing that writes a record", () => {
   const argv = argvFor({ file: "plugin/test/one.test.mjs", name: "the case", whole: false, inside: [] });
-  assert.deepEqual(argv, [process.execPath, "--test", "--test-concurrency=1",
+  assert.deepEqual(argv, [process.execPath, "--test", ISOLATED, "--test-concurrency=1",
     `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
     "--test-name-pattern=^the case$", "plugin/test/one.test.mjs"]);
 });

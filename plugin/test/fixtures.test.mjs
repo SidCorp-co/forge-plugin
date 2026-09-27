@@ -15,9 +15,10 @@ const FIXTURES = ["plugin/test/fixtures.mjs", "packages/code-quality/test/fixtur
 const STAMPS = "plugin/src/hooks/stamps.mjs";
 const GATE_ROOM = "tools/gates/stamp-room.mjs";
 /* The identifier rather than the call, so an alias or the async form is caught too, and the three
-   files that state the rule name it as well and are not held to it. */
+   files that state the rule name it as well and are not held to it. The preload every launcher loads
+   makes the one directory it removes on exit, which the first case here counts through the fixture. */
 const RAW = /\bmkdtemp(?:Sync)?\b/u;
-const STATED = [...FIXTURES, "plugin/test/fixtures.test.mjs"];
+const STATED = [...FIXTURES, "plugin/test/fixtures.test.mjs", "plugin/test/fixtures/process/isolated.mjs"];
 const KEEP = "KEEP_TEST_ROOMS";
 /* A case about the default states the default: a suite the developer started under the flag would
    otherwise hand it to every child here, which keeps a room and reads as the leak this counts. */

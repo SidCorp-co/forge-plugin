@@ -3,6 +3,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { escaped } from "../../../plugin/src/markdown.mjs";
 
@@ -10,6 +11,10 @@ import { escaped } from "../../../plugin/src/markdown.mjs";
 export const CASES_ENV = "GATE_FAILED_CASES";
 
 export const HUMAN_REPORTER = process.stdout.isTTY ? "spec" : "tap";
+
+/* Every launcher of the suite starts each file under this, so a case re-run alone stands in the
+   isolation its step gave it; `package.json`'s `test` script names the same module (ISS-2681). */
+export const ISOLATED = `--import=${fileURLToPath(new URL("../../../plugin/test/fixtures/process/isolated.mjs", import.meta.url))}`;
 
 const named = (one) => `${one.file}\t${one.name}`;
 
@@ -79,7 +84,7 @@ export const casesFrom = (at) => {
 // Anchored and escaped, so it selects that case and no case whose name merely contains it.
 export const patternFor = (name) => `^${escaped(name)}$`;
 
-export const argvFor = (one) => [process.execPath, "--test", "--test-concurrency=1",
+export const argvFor = (one) => [process.execPath, "--test", ISOLATED, "--test-concurrency=1",
   `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
   ...(one.whole ? [] : [`--test-name-pattern=${patternFor(one.name)}`]), one.file];
 

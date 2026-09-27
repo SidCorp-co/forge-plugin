@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
-import { HUMAN_REPORTER } from "./reporters/isolation.mjs";
+import { HUMAN_REPORTER, ISOLATED } from "./reporters/isolation.mjs";
 import { digestFile } from "./ledger.mjs";
 import { under } from "./scope.mjs";
 
@@ -57,7 +57,7 @@ export const TEST_FILE = /^(plugin|tools)\/test\/.*\.test\.mjs$/u;
 const SPAWNED = "a node child that left no record: a node standing here, importing tools/test/run";
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs",
+  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/test/fixtures/process/isolated.mjs",
   "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs", "plugin/test/fixtures/room.mjs",
   "plugin/test/fixtures/served.mjs", "plugin/test/fixtures/tracker/labels.mjs", "tools"];
 
@@ -120,7 +120,7 @@ export const STEPS = [
 
 export const readsWholeTree = (path) => WHOLE_TREE_TESTS.some((claim) => under(path, claim));
 
-export const argvForTests = (files) => [process.execPath, "--test", ...testFlags(), ...files];
+export const argvForTests = (files) => [process.execPath, "--test", ...testFlags(), ISOLATED, ...files];
 
 // A path of this tree, to the end of its argument, stands for that file's content and not for where the tree sits (ISS-1763).
 const identity = (one, tree) => {
