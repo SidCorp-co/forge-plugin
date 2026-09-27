@@ -80,6 +80,15 @@ share it only between worktrees of one clone, which is no wider than the machine
 travelled between machines would be a format other checkouts are made against, and a separate
 decision from this one.
 
+A run home is not a second machine. A delegated run points its home under its own scratch and
+borrows this machine's config by reference, and a store read under that home held nothing, so the
+one run that most needed the citation was told the route was closed while the machine's store held
+its head (ISS-2653). A borrowing home therefore reads the store beside the config it borrows, and
+only that one: two stores could hold one commit with two results, and a lookup would have to pick
+one without saying so. It writes none. A run writes nothing of the machine's own, and a publication
+written into its home would be read by nobody and removed with the scratch, so a publish from there
+is refused and names the shell that publishes.
+
 The rung is no part of it either, and used to be. While the rung was the condition, the saving read
 as a concession granted to a small issue — which had the rule backwards, since what a tree fails is
 a property of the tree. A `feature` cut from a published head is owed the same answer as a

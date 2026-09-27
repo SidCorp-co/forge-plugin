@@ -8,8 +8,9 @@ import { join } from "node:path";
 
 import { git, gitOut, lines, REMOTE, stop } from "../checkout.mjs";
 import { FILE_CHARS, bundle } from "../../plugin/src/codex/codex-api.mjs";
-import { judgedBy, logEntries, shortOfWhole, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
+import { judgedBy, logEntries, logPath, shortOfWhole, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
 import { repoRoot } from "../../plugin/src/git/repo-root.mjs";
+import { inRunHome } from "../../plugin/src/resolve/session/run-home.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { shortly } from "./install.mjs";
 import { candidateOf, mergedTree, movedBy, remoteHead } from "./land-ready/candidate.mjs";
@@ -45,9 +46,11 @@ export const REPLAY_HELP = [
   "That much proves the base unmoved and not that the review was earned at what is being landed: a",
   "run which rebases after taking its read makes the merge base the pin and clears the first question",
   "by itself, so the second is the head the read was taken at. It comes off the consult log, which",
-  "records that head at every consult, and it is the last answered `--send bodies` consult of this",
-  "checkout carrying a whole body for every file the change writes and still holds — the read a",
-  "review is earned by, one definition shared with what `--recheck` looks for. The step refuses where",
+  "records that head at every consult — the log under the home the shipped tree's scratch records,",
+  "where its run was handed one, and this shell's own where it was not — and it is the last answered",
+  "`--send bodies` consult of this checkout carrying a whole body for every file the change writes",
+  "and still holds — the read a review is earned by, one definition shared with what `--recheck`",
+  "looks for. The step refuses where",
   "the head that read was taken at is not an ancestor of the head it would land, which is a rebase,",
   "an amend or a reset between the read and the ship, and it names both heads. What clears it is",
   "a read of the whole set at the head that would land, whose command it prints; no replay and no",
@@ -147,6 +150,11 @@ const carries = (tree, of, head) => git(["merge-base", "--is-ancestor", of, head
 /* The one rewrite this step forgives, being the step's own: `owed` puts it back ahead of the gate on
    every resume, so a ship whose gate failed after rebasing would be refused for the replay it had
    just been told to make. Nothing else rides on it — a later rewrite by hand ends the chain. */
+/* The consult log the shipped tree's own run wrote: a run briefed with a home under its scratch logs
+   there, and this step runs in the landing's process and home (ISS-2653). The hooks answer the same
+   question through the same resolver, so the landing judges the record the commit gate judged. */
+const entriesOf = (tree) => inRunHome(tree, logEntries);
+
 const MARK = "forge-ship-replay";
 const markAt = (tree) => join(gitOut(["rev-parse", "--absolute-git-dir"], tree) ?? tree, MARK);
 
@@ -215,7 +223,7 @@ const pathsIn = (tree, from, to) => {
    off lineage, the merge base is the one tie left to this change, and a read of some other change in
    this checkout that shares a file with it is an absence and not a stale review of this one (ISS-1017). */
 const outgrew = (tree, was, root, held, head) => {
-  for (const one of judgedBy(logEntries(), root, held).reverse()) {
+  for (const one of judgedBy(entriesOf(tree), root, held).reverse()) {
     if (one.dirty || !gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
     const lost = lostAt(tree, one.head, head);
     const from = gitOut(["merge-base", one.head, was], tree);
@@ -288,7 +296,7 @@ const ofThisChange = (tree, was, one, held, lost) => {
    set is no read of it. */
 const coveredBy = (tree, was, root, held, head) => {
   const groups = new Map();
-  for (const one of judgedBy(logEntries(), root, held)) {
+  for (const one of judgedBy(entriesOf(tree), root, held)) {
     if (one.dirty || one.send !== "bodies") continue;
     if (!gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
     const lost = lostAt(tree, one.head, head);
@@ -328,7 +336,7 @@ const shortSays = (tree, was, root, held, head) => {
    absence notice below is right about that one, and this branch is only for the read whose every
    other clause held. */
 const sentDiffsFor = (tree, was, root, held, head) => {
-  for (const one of judgedBy(logEntries(), root, held).reverse()) {
+  for (const one of judgedBy(entriesOf(tree), root, held).reverse()) {
     const short = shortOfWhole(one, held);
     if (one.dirty || !one.head || !short.diffs || short.unread.length || short.part.length) continue;
     if (!gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
@@ -343,7 +351,7 @@ const sentDiffsFor = (tree, was, root, held, head) => {
 const readSays = (tree, was) => {
   const root = repoRoot(tree);
   const held = pathsIn(tree, was, "HEAD");
-  const read = root ? wholeReadOf(logEntries(), root, held) : null;
+  const read = root ? wholeReadOf(entriesOf(tree), root, held) : null;
   const head = gitOut(["rev-parse", "HEAD"], tree);
   if (!read) {
     const grew = root ? outgrew(tree, was, root, held, head) : null;
@@ -357,7 +365,8 @@ const readSays = (tree, was) => {
     }
     return console.log(`  no consult in this log read the whole of this change's ${held.length} `
       + `file(s) at a recorded head of ${root ?? "this tree"}, so the head the review was earned at `
-      + `is not something this can read — it judges nothing here and the read stands where it was taken`);
+      + `is not something this can read — it judges nothing here and the read stands where it was taken `
+      + `(read from ${inRunHome(tree, logPath)})`);
   }
   const of = read.id ?? read.at;
   if (read.dirty) {
