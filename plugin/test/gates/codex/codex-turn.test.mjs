@@ -275,13 +275,14 @@ test("a temp file a killed writer left behind is swept, and a live one is not", 
    reads "N refusal(s)" is what a false positive looks like from outside. */
 test("giving up on the lock leaves a note, and the note is not counted as a refusal", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { holding } = await import("../../../src/codex/codex.mjs");
+  const { updateState } = await import("../../../src/codex/codex-state.mjs");
   const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
   mkdirSync(dirname(lock), { recursive: true });
   writeFileSync(lock, "somebody-still-holding-it");
   let entered = false;
-  holding(() => {
+  updateState((held) => {
     entered = true;
+    return held;
   });
   rmSync(lock, { force: true });
   assert.ok(entered, "the write happened anyway");
@@ -302,12 +303,13 @@ test("giving up on the lock leaves a note, and the note is not counted as a refu
    config directory. */
 test("a writer whose lock was broken does not remove the one that replaced it", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { holding } = await import("../../../src/codex/codex.mjs");
+  const { updateState } = await import("../../../src/codex/codex-state.mjs");
   const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
   let entered = false;
-  holding(() => {
+  updateState((held) => {
     entered = true;
     writeFileSync(lock, "another-writer");
+    return held;
   });
   assert.ok(entered, "the lock was never taken");
   assert.equal(readFileSync(lock, "utf8"), "another-writer", "it removed a lock that was not its own");

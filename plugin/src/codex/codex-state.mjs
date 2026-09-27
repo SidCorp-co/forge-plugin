@@ -31,8 +31,6 @@ const lockPath = () => `${statePath()}.lock`;
    same one, and a second copy of a bounded stale-breaking lock is how the two answers drift. */
 const underLock = (fn) => holdingFile(lockPath(), fn);
 
-export { underLock as holding };
-
 /* The change is a function of the state read inside the lock, never of an earlier read. */
 export const updateState = (change) =>
   underLock(() => {
