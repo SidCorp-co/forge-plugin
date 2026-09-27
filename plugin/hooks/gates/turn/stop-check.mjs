@@ -151,11 +151,14 @@ const inProgress = (tree) => {
   return said === null ? null : new Set(keysIn(said));
 };
 
-/* Untrimmed: a status line begins with two columns and a space, and trimming eats the first one's. Given what the event has left, as the CLI child is: a probe that would answer at two and a half seconds with three left gets no answer, which costs one refusal, where a kill would cost all of them. */
+/* Untrimmed: a status line begins with two columns and a space, and trimming eats the first one's. Given what the event has left, as the CLI child is: a probe that would answer at two and a half seconds with three left gets no answer, which costs one refusal, where a kill would cost all of them. `undefined` where git gave no answer at all, `null` where it answered no. */
 const git = (tree, argv) => {
   const said = gitProbe(argv, { cwd: tree, ms: probeMs(left()) });
-  return said?.status === 0 ? said.out : null;
+  if (!said) return undefined;
+  return said.status === 0 ? said.out : null;
 };
+
+const NO_GIT = "git did not answer in the time the stop clock left it";
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer is a key this run read, not one it took. */
 const keysNamed = (said) => [...new Set(keysIn(said.join("\n")))];
@@ -188,8 +191,9 @@ export const heldAndSilent = (ev, tree, said, holder, read = forge, list = inPro
 
 /* A worktree this run made, and not the checkout it was made from: git answers the two directories relatively in the one and absolutely in the other, so both are placed before they are compared. */
 const isWorktree = (tree) => {
-  const [own, shared] = (git(tree, ["rev-parse", "--git-dir", "--git-common-dir"]) ?? "")
-    .split("\n").map((one) => one.trim());
+  const said = git(tree, ["rev-parse", "--git-dir", "--git-common-dir"]);
+  if (said === undefined) return undefined;
+  const [own, shared] = (said ?? "").split("\n").map((one) => one.trim());
   return Boolean(own && shared) && resolve(tree, own) !== resolve(tree, shared);
 };
 
@@ -197,6 +201,7 @@ const isWorktree = (tree) => {
    somebody else's work, and telling this run to put that away is the dangerous direction. */
 const leftDirty = (tree, since) => {
   const said = git(tree, ["status", "--porcelain", "--untracked-files=no"]);
+  if (said === undefined) return undefined;
   return Boolean(said) && said.split("\n").filter(Boolean).some((one) => {
     try {
       return statSync(join(tree, one.slice(3).split(" -> ").pop())).mtimeMs >= since;
@@ -211,10 +216,10 @@ const leftDirty = (tree, since) => {
    process from a sibling run's, both sharing the session's own working directory, and the calls
    the turn made are what does. Each answers `null` where the process table would not enumerate,
    and a reading that could not be made refuses nothing. */
-const stillRunning = (tree, since, calls) => {
+const stillRunning = (tree, since, calls, worktree) => {
   const found = new Map();
   const both = [
-    ...(isWorktree(tree) ? standingIn(tree, since) ?? [] : []),
+    ...(worktree ? standingIn(tree, since) ?? [] : []),
     ...(startedHere(calls) ?? []),
   ];
   for (const one of both) found.set(one.pid, one);
@@ -276,13 +281,22 @@ export const run = (ev, held = heldAndSilent) => {
   }
 
   const since = Date.parse(at);
-  if (Number.isFinite(since) && spare("the worktree check") && isWorktree(tree) && leftDirty(tree, since)) {
-    say("tree", `${typed(tree)} is a worktree this turn left with tracked changes uncommitted.\n`
-      + `  Clear it: \`git -C ${typed(tree)} add -u && git commit\`.`);
+  const timed = Number.isFinite(since);
+  /* Asked once, for both checks that turn on it. */
+  let own = false;
+  if (timed && spare("the worktree check")) {
+    own = isWorktree(tree);
+    const dirty = own ? leftDirty(tree, since) : false;
+    if (own === undefined || dirty === undefined) missed.push(`the worktree check (${NO_GIT})`);
+    else if (dirty) {
+      say("tree", `${typed(tree)} is a worktree this turn left with tracked changes uncommitted.\n`
+        + `  Clear it: \`git -C ${typed(tree)} add -u && git commit\`.`);
+    }
   }
 
-  if (Number.isFinite(since) && spare("the live-process check")) {
-    const standing = stillRunning(tree, since, calls);
+  if (timed && spare("the live-process check")) {
+    if (own === undefined) missed.push(`the live-process check inside the worktree (${NO_GIT})`);
+    const standing = stillRunning(tree, since, calls, own === true);
     if (standing.length) {
       const [first, ...rest] = standing;
       say("live", `This turn started ${standing.length === 1 ? "a process" : `${standing.length} processes`} `

@@ -532,13 +532,32 @@ const withPath = (bin, fn) => {
   }
 };
 
+/* What the gate writes on stderr while `fn` runs, and what `fn` returned. */
+const told = (fn) => {
+  const said = [];
+  const write = process.stderr.write;
+  process.stderr.write = (chunk) => {
+    said.push(String(chunk));
+    return true;
+  };
+  try {
+    return { answer: fn(), stderr: said.join("") };
+  } finally {
+    process.stderr.write = write;
+  }
+};
+
 test("a git probe slower than what the nearly spent clock gives it gets no answer and raises no refusal", () => {
   const wt = dirtyWorktree();
   const bin = slowGit();
   /* 4.2 s left on the event is 1.2 s past the gate's spare: the checks still run, and a probe is given half a second. */
   const near = () => performance.timeOrigin + DEADLINES.post - 4_200;
-  const said = withPath(bin, () => decided({ session_id: `s-${randomUUID()}`, transcript_path: transcript(), cwd: wt }, () => [], near));
-  assert.equal(said.kind, "none", `a probe the clock could not cover answered anyway: ${said.said}`);
+  const { answer, stderr } = told(() => withPath(bin,
+    () => decided({ session_id: `s-${randomUUID()}`, transcript_path: transcript(), cwd: wt }, () => [], near)));
+  assert.equal(answer.kind, "none", `a probe the clock could not cover answered anyway: ${answer.said}`);
+  assert.match(stderr, /the worktree check \(git did not answer/u, `the probe that went unanswered is not named: ${stderr}`);
+  assert.match(stderr, /the live-process check inside the worktree \(git did not answer/u,
+    `the live check's half that turns on the worktree is not named: ${stderr}`);
 });
 
 test("the same slow git probe answers with the clock whole and the dirty worktree refuses the stop", () => {
@@ -557,21 +576,9 @@ test("what the spent clock left unread is named on stderr and does not refuse th
   writeFileSync(join(repo, "eslint.config.mjs"), "export default [];\n");
   const file = join(repo, "unread.mjs");
   writeFileSync(file, "export const x = 1;\n");
-  const told = [];
-  const write = process.stderr.write;
-  process.stderr.write = (chunk) => {
-    told.push(String(chunk));
-    return true;
-  };
-  let said;
-  try {
-    const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: repo };
-    said = decided(ev, () => ["ISS-999"], () => performance.timeOrigin + DEADLINES.post - 1_000);
-  } finally {
-    process.stderr.write = write;
-  }
+  const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: repo };
+  const { answer: said, stderr: line } = told(() => decided(ev, () => ["ISS-999"], () => performance.timeOrigin + DEADLINES.post - 1_000));
   assert.equal(said.kind, "none", `what could not be read refused the stop: ${said.said}`);
-  const line = told.join("");
   assert.match(line, /stop-check did not read/u, `nothing said what went unread: ${line}`);
   for (const check of ["the worktree check", "the live-process check", "the lease check"]) {
     assert.match(line, new RegExp(`${check} \\(the stop clock ran out\\)`, "u"), `${check} is not named`);
