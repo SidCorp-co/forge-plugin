@@ -291,9 +291,9 @@ const blankRoute = (lines, at) => {
   const above = anchorAbove(lines, at);
   return above
     ? ` Line ${at} is blank and no --was can name it, so add the line instead: forge doctor --after `
-      + `${above} <text> --was <line ${above} as it stands>`
+      + `${above} <text> --was <line ${above} as it stands>.`
     : ` Line ${at} is blank and no --was can name it, and no line above it can anchor an insert, `
-      + "so the brief is rewritten whole: forge doctor --refresh <brief.md>";
+      + "so the brief is rewritten whole: forge doctor --refresh <brief.md>.";
 };
 
 /** The digests a body is stored under once line `at` is new prose, and the lines saying so. A
