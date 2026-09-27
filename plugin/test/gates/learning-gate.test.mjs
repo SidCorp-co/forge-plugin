@@ -451,6 +451,8 @@ test("an assembled path is held inside a -c or -e body as it is inside a heredoc
   assert.equal(decide(`node -e '${js} writeFileSync(path.join(root, "SKILL.md"), "x")'`).allowed, false, "path.join");
   const escaped = `python3 -c "import pathlib; root = \\"plugin/skills/issue-flow\\"; pathlib.Path(root + \\"/SKILL.md\\").write_text(\\"x\\")"`;
   assert.equal(decide(escaped).allowed, false, "a body quoting with escapes");
+  const beside = String.raw`python3 -c "p = \"a\" + \"/b\"; open(\"$PWD/${SKILL}\", \"w\")"`;
+  assert.equal(decide(beside).allowed, false, "and a fold elsewhere in it leaves an expansion the shell still makes");
 });
 
 test("an inline body keeps each join's own rule, and a binding it cannot read answers for nothing", () => {

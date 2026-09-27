@@ -350,6 +350,9 @@ test("an inline body is folded inside the quotes it was written in, and left as 
   const said = `python3 -c "root = \\"plugin/src\\"; open(root + \\"/glued.mjs\\", \\"w\\")"`;
   assert.equal(shellWrites(said), `python3 -c "root = \\"plugin/src\\"; open(\\"plugin/src/glued.mjs\\", \\"w\\")"`,
     "escaped inner quotes are one body, and go back escaped");
+  const expands = String.raw`python3 -c "p = \"a\" + \"/b\"; open(\"$PWD/c.md\", \"w\"); print(\"\$HOME \` \\\$x\")"`;
+  assert.equal(shellWrites(expands), expands.replace(String.raw`\"a\" + \"/b\"`, String.raw`\"a/b\"`),
+    "a bare `$` still expands and an escaped one, or an escaped backtick, stays a literal, beside a fold elsewhere in the body");
   for (const given of [`python3 -c 'print("a" + x)'`, `python3 -c "print(\\"a\\\\n\\" + x)"`, `node -e 'console.log(\`\${x}/a\`)'`]) {
     assert.equal(shellWrites(given), given, given);
   }
