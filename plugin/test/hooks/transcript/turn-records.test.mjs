@@ -88,3 +88,40 @@ test("a session far larger than one turn is read in the time one turn takes", ()
   assert.equal(turnAt(records), "2026-09-01T12:00:00.000Z");
   assert.ok(spent < patience(1000), `${spent}ms for a 30 MB transcript: the window is not being used`);
 });
+
+/* A subagent's transcript opens on the prompt the Agent tool handed it, which carries no
+   `promptSource`, so no record in it is a typed prompt. Lines of uneven length, so a window's end
+   lands inside a record rather than on a boundary. */
+const handed = (count) => {
+  let text = "";
+  for (let at = 0; at < count; at += 1) {
+    const stamp = new Date(Date.UTC(2026, 8, 1, 15, 0, at)).toISOString();
+    text += `${JSON.stringify({ type: at ? "assistant" : "user", seq: at, timestamp: stamp, pad: "y".repeat(97 + (at * 37) % 300) })}\n`;
+  }
+  return text;
+};
+
+test("a transcript with no typed prompt, longer than the cap, is read whole", () => {
+  const path = wrote("subagent-past-cap.jsonl", handed(400));
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.equal(found.length, 400, "every record, not the capped tail");
+  assert.equal(found[0].seq, 0, "the prompt the subagent was handed comes first");
+  assert.equal(found.at(-1).seq, 399);
+  assert.equal(found[0].timestamp, "2026-09-01T15:00:00.000Z", "the stop gate's first moment of a subagent's turn");
+});
+
+test("no record is lost or split where one window of the whole read ends and the next begins", () => {
+  const path = wrote("subagent-windows.jsonl", handed(1500));
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.deepEqual(found.map((one) => one.seq), Array.from({ length: 1500 }, (_, at) => at));
+});
+
+test("a typed prompt further back than the cap still bounds the turn", () => {
+  const path = wrote(
+    "typed-past-cap.jsonl",
+    handed(50) + prompt("2026-09-01T16:00:00.000Z") + filler(40_000),
+  );
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.equal(found[0].promptSource, "typed", "the turn begins at the prompt");
+  assert.ok(!found.some((one) => "seq" in one), "and nothing before it comes back");
+});

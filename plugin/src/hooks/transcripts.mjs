@@ -132,13 +132,29 @@ const promptAt = (handle, size) => {
 
 /** This turn, without reading the session for it: a transcript reaches hundreds of megabytes and the
  *  last prompt is at the end. Grown rather than fixed, because one turn's records can outrun a
- *  window, and a partial first line is dropped since a read cuts wherever the offset lands. */
+ *  window, and a partial first line is dropped since a read cuts wherever the offset lands. A
+ *  transcript with no typed prompt anywhere in it is a turn from its first record. */
 const turns = new Map();
 export function turnRecords(path, { tail = TAIL, cap = TAIL_CAP } = {}) {
   const key = `${path}\0${tail}\0${cap}`;
   if (!turns.has(key)) turns.set(key, readTurn(path, tail, cap));
   return turns.get(key);
 }
+
+/* The records before `end`, a window at a time and each window cut at its last newline, because one
+   string holding a file past the runtime's own limit on a string's length is no string at all. A
+   single line longer than a window is the one record this loses, as a cut line is everywhere here. */
+const recordsBefore = (handle, end, window) => {
+  const found = [];
+  for (let from = 0; from < end; ) {
+    const held = spanOf(handle, from, Math.min(end, from + window));
+    const cut = from + held.length < end ? held.lastIndexOf(NEWLINE) + 1 : 0;
+    const upTo = cut > 0 ? cut : held.length;
+    for (const one of parsed(held.subarray(0, upTo).toString("utf8"))) found.push(one);
+    from += upTo;
+  }
+  return found;
+};
 
 function readTurn(path, tail, cap) {
   let size = 0;
@@ -152,12 +168,20 @@ function readTurn(path, tail, cap) {
   try {
     for (let span = tail; ; span *= 2) {
       const from = Math.max(0, size - span);
-      const text = spanOf(handle, from, size).toString("utf8");
-      const records = parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
-      if (promptIndex(records) >= 0 || from === 0) return records;
+      const held = spanOf(handle, from, size);
+      /* A span without the key's bytes holds no prompt, so it is grown unparsed: parsing it only to
+         learn that spent every window up to the cap on a subagent's stop, whose transcript has none. */
+      if (from === 0 || held.includes(PROMPT_KEY)) {
+        const begins = from > 0 ? held.indexOf(NEWLINE) + 1 : 0;
+        const records = parsed(held.subarray(begins).toString("utf8"));
+        if (promptIndex(records) >= 0 || from === 0) return records;
+      }
       if (span >= cap) {
         const at = promptAt(handle, size);
-        return at >= 0 ? parsed(spanOf(handle, at, size).toString("utf8")) : records;
+        if (at >= 0) return parsed(spanOf(handle, at, size).toString("utf8"));
+        /* A subagent's transcript opens on the prompt it was handed, which nobody typed, so the tail
+           is not its turn and the gate would judge the last cap's worth of a longer run (ISS-535). */
+        return recordsBefore(handle, size, cap);
       }
     }
   } catch {
