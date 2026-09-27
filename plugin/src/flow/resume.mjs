@@ -101,6 +101,7 @@ const leased = (brief) => {
    shortfall below the first time the tracker gated an edge it had called something else. */
 export const edgeSaid = (one) => {
   if (one.gates) return "holding this issue back now";
+  if (one.expired) return "expired, so it orders nothing";
   return one.satisfied ? "satisfied" : "not an edge the tracker gates dispatch on";
 };
 

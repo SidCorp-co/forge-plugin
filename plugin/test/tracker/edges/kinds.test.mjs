@@ -52,4 +52,15 @@ describe("an edge kind is a row", () => {
     assert.equal(directedEdge(null), true);
     assert.equal(ordersEdge(undefined), false);
   });
+
+  /* The reading overwrote the tracker's own `expired` from `validUntil`, so an edge the tracker
+     called expired with no date read back as live and went on holding its dependant (ISS-347). */
+  it("an expiry the tracker sent is kept, and one it did not send is read off validUntil", () => {
+    const held = (extra) => relationsOf({ outgoing: [], incoming: [{ ...dep("blocks", "u-2"), ...extra }] })
+      .blockedBy[0].expired;
+    assert.equal(held({ expired: true }), true, "the tracker's word, with no date beside it");
+    assert.equal(held({ validUntil: "2026-01-01T00:00:00.000Z" }), true, "a date already past");
+    assert.equal(held({ validUntil: "2999-01-01T00:00:00.000Z" }), false, "a date still ahead");
+    assert.equal(held({}), false, "and neither is no retraction");
+  });
 });

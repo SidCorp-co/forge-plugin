@@ -7,7 +7,9 @@ import { sharedHolder } from "./lease/dispatched.mjs";
 import { workUnder } from "./lease/holder.mjs";
 import { SHAPES, atMinute, unwrap } from "./machine.mjs";
 import { rebuiltSaid } from "./landing/reconstruction.mjs";
-import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
+import { PARK_STATUS, SIDE, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
+import { blockerEnded } from "./earned/blockers.mjs";
+import { edgeExpired } from "../tracker/edges/kinds.mjs";
 import { finishedAtHead, methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { parseAll } from "./record/page.mjs";
@@ -82,7 +84,8 @@ const blockersOf = (view) =>
     status: one.otherStatus,
     kind: one.kind,
     gates: holdsBack(one),
-    satisfied: atLeast(one.otherStatus, "developed"),
+    satisfied: blockerEnded(one.otherStatus),
+    expired: edgeExpired(one),
   }));
 
 const leaseIn = (view) => {

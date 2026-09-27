@@ -48,7 +48,8 @@ than promised. Claiming eligibility for everything the chain reaches is false in
 cases.
 
 What ends a blocker is not this verb's to decide. `forge advance` already refuses a move past a
-blocker below `developed`, and the flow exports that answer, so a blocker here is exactly one the
+blocker below `developed` on an edge that has not expired, a dropped blocker ending the ordering as
+a closed one does since neither will land anything more, and the flow exports that answer, so a blocker here is exactly one the
 transition would refuse on — a rank that invented a stricter floor would name a wall no verb
 enforces, and one that invented a looser floor would send a run at an issue it cannot advance. That
 also settles what a chain walks through: an issue being worked or waiting on a person still holds up

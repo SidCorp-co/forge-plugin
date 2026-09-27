@@ -353,8 +353,8 @@ test("the worklog and the lease's line are read out of the field, and never from
    edge beside the tracker's own answer about whether it gates. */
 test("every blocking edge is named with its kind, and the park with the status it left", () => {
   assert.deepEqual(brief().blockers, [
-    { ref: "ISS-22", status: "closed", kind: "blocks", gates: false, satisfied: true },
-    { ref: "ISS-18", status: "open", kind: "relates", gates: false, satisfied: false },
+    { ref: "ISS-22", status: "closed", kind: "blocks", gates: false, satisfied: true, expired: false },
+    { ref: "ISS-18", status: "open", kind: "relates", gates: false, satisfied: false, expired: false },
   ]);
   assert.equal(brief().park, null, "an issue that is not parked is not parked");
   /* The tracker's answer, not the word on the edge: a line derived from the kind would tell the
@@ -366,6 +366,15 @@ test("every blocking edge is named with its kind, and the park with the status i
   assert.equal(edgeSaid({ kind: "blocks", gates: false, satisfied: false }), "not an edge the tracker gates dispatch on",
     "and the tracker's own answer is the only thing that says a blocks edge gates nothing");
   assert.equal(edgeSaid({ gates: false, satisfied: false }), "not an edge the tracker gates dispatch on");
+  /* An expired edge and a dropped blocker each read as holding the issue back, because the predicate
+     never read the expiry and put `dropped` below `developed` (ISS-347). */
+  const edged = (edge) => brief({ relations: { blockedBy: [{ otherDisplayId: "ISS-9", kind: "blocks", ...edge }] } })
+    .blockers.map(edgeSaid);
+  assert.deepEqual(edged({ otherStatus: "open", expired: true }), ["expired, so it orders nothing"]);
+  assert.deepEqual(edged({ otherStatus: "open", validUntil: "2026-01-01T00:00:00.000Z" }), ["expired, so it orders nothing"],
+    "and one the tracker sent no expired field for is read off its validUntil");
+  assert.deepEqual(edged({ otherStatus: "dropped", expired: false }), ["satisfied"]);
+  assert.deepEqual(edged({ otherStatus: "open", expired: false }), ["holding this issue back now"]);
   const parked = brief({ status: "on_hold" }, [recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress")]);
   assert.match(parked.park.said, /three reclaims of in_progress/u);
   /* The park the owed route resumes from, chosen the way that route chooses it: a newer park may

@@ -16,7 +16,7 @@ import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { findingsOwed } from "./earned/findings.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
-import { ordersEdge } from "../tracker/edges/kinds.mjs";
+import { blockersOwed, holdsBack, holdsBackFrom, ordersSaid } from "./earned/blockers.mjs";
 
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION } from "./lease.mjs";
@@ -42,6 +42,7 @@ export const BASELINE_AT = ORDER[ORDER.indexOf("developed") - 1];
 export const CLOSES_AT = ORDER.at(-1);
 
 export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
+export { blockersOwed, holdsBack, holdsBackFrom, ordersSaid };
 
 /** Five shortfalls a caller compares whole, named so a case holding an exact list names them rather
  *  than restating the wording the file that proves each one pins. */
@@ -176,36 +177,6 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
-
-/* The tracker answers this on the edge itself, so the check reads the edge rather than the list it
-   arrived in: `relations.blockedBy` carries mentions beside orderings. The kind's row is the
-   fallback where no such field came, and an edge carrying neither came from somewhere else. */
-const gatesDispatch = (edge) =>
-  edge.gatesDispatch === undefined ? ordersEdge(edge) : edge.gatesDispatch === true;
-
-/* The tracker gates on a merged mark and this contract's floor is `developed`, so the status is a
-   second and independent test — the *blocker's*, which a caller reading the blocker's own row names. */
-export const holdsBackFrom = (edge, blocker) => gatesDispatch(edge) && !atLeast(blocker, "developed");
-export const holdsBack = (edge) => holdsBackFrom(edge, edge.otherStatus);
-
-export const ordersSaid = (edge, blocker) => {
-  if (edge.expired) return "the edge expired";
-  if (!gatesDispatch(edge)) return `a ${edge.kind ?? "kindless"} edge orders none`;
-  return `the blocker is ${blocker ?? "unread"}`;
-};
-
-/* Named in the refusal: an ordering constraint and a mention read alike on a line of their own. */
-const edgeKind = (edge) => (edge.kind ? `a ${edge.kind} edge` : "an edge whose kind the tracker did not name");
-
-export const blockersOwed = ({ issue }) =>
-  (issue.relations?.blockedBy ?? [])
-    .filter(holdsBack)
-    .map((one) =>
-      need(
-        `${one.otherDisplayId} gates this by ${edgeKind(one)} and is ${one.otherStatus}, which is not yet developed`,
-        `forge advance ${one.otherDisplayId}`,
-      ),
-    );
 
 /* One shape, four answers: absent, rewritten, present but not a whole payload, or there to be read.
    A rewritten record is named as itself rather than as the fields it appears to lack: the write
