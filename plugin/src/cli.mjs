@@ -3,7 +3,7 @@
    credential may not call is not listed and does not run — docs/cli/withholding-a-verb.md. */
 import { commands } from "./commands.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { blockedBy, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, typedRefusal,
+import { blockedLine, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, typedRefusal,
   verbForPluginDefect } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/retiring.mjs";
@@ -91,11 +91,10 @@ if (turnedOff) {
   process.exit(1);
 }
 
-const needs = running ? blockedBy(running) : null;
+const needs = running ? blockedLine(running) : null;
 
 if (needs) {
-  console.error(`forge ${command} needs ${needs}, which this credential may not call.\n`
-    + "`forge doctor` measured that; re-run it after a credential change.");
+  console.error(`${needs}.`);
   process.exit(1);
 }
 
