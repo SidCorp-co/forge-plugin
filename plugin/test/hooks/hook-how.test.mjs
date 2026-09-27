@@ -37,17 +37,24 @@ test("every gate that points at its reasoning has some", () => {
 });
 
 /* A hook renamed leaves a document nothing reads, and `--how` would offer it. A shared topic is
-   allowed one, cited from whatever prints the pointer: the harness, or a gate refusing two
-   unrelated things, which the ceiling below leaves no room to argue on one page. A retired gate
-   keeps its page as the note, since `--how` on the name it printed has to answer with the
-   retirement and not with a did-you-mean. */
+   allowed one, cited from whatever prints the pointer: the harness, a gate refusing two unrelated
+   things, which the ceiling below leaves no room to argue on one page, or a verb of this CLI that
+   prints `forge hooks --how <name>` itself — printed, since a comment naming the page prints
+   nothing. A retired gate keeps its page as the note, since `--how` on the name it printed has to
+   answer with the retirement and not with a did-you-mean. */
 test("every document names a hook, a topic the code that prints it cites, or a retired name", () => {
   const citing = [join(HOOKS, "_hook.mjs"), ...gates]
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
+  const printing = under(join(PLUGIN, "src"))
+    .filter((one) => one.endsWith(".mjs"))
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n");
+  const printed = (name) => new RegExp(`forge hooks --how ${name}(?![\\w-])`, "u").test(printing);
   const retired = RETIRED.map((one) => one.name);
   for (const name of documented) {
-    const named = scripts.includes(`${name}.mjs`) || citing.includes(`how/${name}.md`) || retired.includes(name);
+    const named = scripts.includes(`${name}.mjs`) || citing.includes(`how/${name}.md`) || printed(name)
+      || retired.includes(name);
     assert.ok(named, `how/${name}.md names no hook, no harness or gate cites it, and nothing retired it`);
   }
   assert.ok(
