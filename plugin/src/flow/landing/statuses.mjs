@@ -8,7 +8,6 @@ import { Refused } from "../../refusal.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
 import { judgementOf, landingRoute, personOwedForRelease, releasePolicy } from "../../tracker/project-config.mjs";
-import { advance } from "../advance.mjs";
 import { CLOSES_AT, ORDER, atLeast, setForm } from "../earned.mjs";
 import { CLOSES_FROM } from "../machine.mjs";
 import { landingSaved, oweRelease } from "../lease.mjs";
@@ -39,6 +38,9 @@ const moveTo = async (key, to, documentId, ask = direct) => {
     console.log(`  ${key} is ${status} already`);
     return true;
   }
+  /* Asked for here and not at the top: `claim` loads this file, and a claim that walks nothing would
+     otherwise pay for the whole `advance` verb. */
+  const { advance } = await import("../advance.mjs");
   try {
     await refusing(() => advance([key, "--to", to]));
   } catch (error) {
