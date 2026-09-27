@@ -12,7 +12,7 @@ import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
-import { glued } from "../src/hooks/assembled.mjs";
+import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE } from "../src/refusal.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
@@ -428,8 +428,10 @@ export const starts = (text) => startsAt(text).map((one) => one.said);
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 
-/** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. `forge hooks --how writes`. */
-export const shellWrites = (command) => shellText(command, (body, at, runner) => glued(body, runner));
+/** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. A heredoc body and an inline one are folded alike, or a run held on one spelling learns the other. `forge hooks --how writes`. */
+export const shellWrites = (command) =>
+  shellText(command, (body, at, runner) => glued(body, runner))
+    .replace(RUNS, (all, runner, body) => `${all.slice(0, all.length - body.length)}${gluedQuoted(body, runner)}`);
 
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;

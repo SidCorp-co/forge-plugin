@@ -113,3 +113,35 @@ export const glued = (body, runner) => {
   }
   return out;
 };
+
+/* Inside double quotes a shell takes the backslash off only before these four and a newline, and keeps it before anything else. An escaped `$` or backtick is a literal and a bare one still
+   expands, so each escaped one is held as a character the body does not already hold, which no fold reads, and only those go back escaped. */
+const ESCAPED = /\\([\\"$`\n])/gu;
+const unheld = (text, from = 0xe000) => {
+  let at = from;
+  while (text.includes(String.fromCodePoint(at))) at += 1;
+  return String.fromCodePoint(at);
+};
+
+const doubleQuoted = (inner, runner) => {
+  const dollar = unheld(inner);
+  const tick = unheld(inner + dollar);
+  const held = { $: dollar, "`": tick };
+  const body = inner.replace(ESCAPED, (all, one) => (one === "\n" ? "" : held[one] ?? one));
+  const folded = glued(body, runner);
+  if (folded === body) return null;
+  const escapes = new RegExp(String.raw`\\(?=[\\"$\u0060${dollar}${tick}]|$)|"`, "gu");
+  return folded.replace(escapes, (one) => `\\${one}`).replaceAll(dollar, "\\$").replaceAll(tick, "\\`");
+};
+
+/** The same fold for an inline program, handed over still in the shell quotes it was written in: the quoting comes off for the reading and goes back on after, so a body quoting its own strings with
+ *  `\"` is one body, and a single-quoted one needs none back, holding no `'` and gaining none. What the fold resolved nothing in comes back as given, byte for byte. how/writes.md. */
+export const gluedQuoted = (quoted, runner) => {
+  const inner = quoted.slice(1, -1);
+  if (quoted[0] === '"') {
+    const back = doubleQuoted(inner, runner);
+    return back === null ? quoted : `"${back}"`;
+  }
+  const folded = glued(inner, runner);
+  return folded === inner ? quoted : `'${folded}'`;
+};

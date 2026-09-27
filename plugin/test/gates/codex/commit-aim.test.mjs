@@ -13,6 +13,9 @@ test("a string a program body assembles is not a command this ran", () => {
   const body = 'prefix = "note;git "\nmessage = prefix + "commit"';
   assert.equal(committing(ev(`python3 - <<'PY'\n${body}\nPY`)), false);
   assert.equal(commitAim(ev(`python3 - <<'PY'\n${body}\nPY`)).tree, null);
+  const inline = `python3 -c '${body.replace("\n", "; ")}'`;
+  assert.equal(committing(ev(inline)), false, "nor one an inline body assembles (ISS-444)");
+  assert.equal(commitAim(ev(inline)).tree, null);
 });
 test("a commit behind a quoted global with a space is a commit in that tree", () => {
   assert.equal(committing(ev(`git -C "/tmp/a b" commit -m x`)), true);

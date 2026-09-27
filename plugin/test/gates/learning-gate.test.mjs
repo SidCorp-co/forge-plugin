@@ -436,6 +436,33 @@ test("an assembled path is read only where the body really binds one", () => {
     "and a second assembly in the same body is folded too");
 });
 
+/* The same assemblies spelled as an inline program: a gate that folds one spelling and not the other teaches the run to change spelling (ISS-444). */
+test("an assembled path is held inside a -c or -e body as it is inside a heredoc", () => {
+  const bound = 'import os.path, pathlib, sys; root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 -c '${bound}; ${line}'`;
+  assert.equal(decide(py('pathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, false, "concatenated");
+  assert.equal(decide(py('pathlib.Path(f"{root}/SKILL.md").write_text("x")')).allowed, false, "an f-string");
+  assert.equal(decide(py('(pathlib.Path(root) / "SKILL.md").write_text("x")')).allowed, false, "pathlib's join");
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "SKILL.md")).write_text("x")')).allowed, false, "os.path.join");
+  const js = 'const root = "plugin/skills/issue-flow";';
+  const back = String.fromCharCode(96);
+  assert.equal(decide(`node -e '${js} writeFileSync(root + "/SKILL.md", "x")'`).allowed, false, "node's -e, concatenated");
+  assert.equal(decide(`node --eval '${js} writeFileSync(${back}\${root}/SKILL.md${back}, "x")'`).allowed, false, "--eval, a template");
+  assert.equal(decide(`node -e '${js} writeFileSync(path.join(root, "SKILL.md"), "x")'`).allowed, false, "path.join");
+  const escaped = `python3 -c "import pathlib; root = \\"plugin/skills/issue-flow\\"; pathlib.Path(root + \\"/SKILL.md\\").write_text(\\"x\\")"`;
+  assert.equal(decide(escaped).allowed, false, "a body quoting with escapes");
+  const beside = String.raw`python3 -c "p = \"a\" + \"/b\"; open(\"$PWD/${SKILL}\", \"w\")"`;
+  assert.equal(decide(beside).allowed, false, "and a fold elsewhere in it leaves an expansion the shell still makes");
+});
+
+test("an inline body keeps each join's own rule, and a binding it cannot read answers for nothing", () => {
+  const bound = 'import os.path, pathlib, sys; root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 -c '${bound}; ${line}'`;
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "/tmp/o.md")).write_text("x")')).allowed, true, "python's join drops what is before an absolute member");
+  assert.equal(decide(`python3 -c 'import pathlib; pathlib.Path(root + "/SKILL.md").write_text("x"); root = "plugin/skills/issue-flow"'`).allowed, true, "a binding after the write decides nothing");
+  assert.equal(decide(py('root = sys.argv[1]; pathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, true, "and one rebound to a value this cannot read unsets it");
+});
+
 test("a heredoc keeps the rest of its own operator line", () => {
   assert.equal(decide(`M=${MEMORY}\ncat <<EOF > $M/trap.md\nx\nEOF`).allowed, false);
 });
