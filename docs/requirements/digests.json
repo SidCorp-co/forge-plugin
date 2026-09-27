@@ -1985,6 +1985,14 @@
       "rev": 1,
       "digest": "f2dcd93d42516030e2f44624ce488125f0bc64d3e155fe5e7bf5d7d99aa2eec4"
     },
+    "AC-03-4-5": {
+      "rev": 1,
+      "digest": "b50cd9b487546f3f2379613f846adc1bb694aeac49671d6daef116c6249cc193"
+    },
+    "AC-03-4-6": {
+      "rev": 1,
+      "digest": "2dd0bf32450ee88ebbb0654ee00e8cb334619583eac2f75815c9819ba18e4858"
+    },
     "UC-03-5": {
       "rev": 1,
       "digest": "86d7ccbe6698beaeaed2685516bcc208a895b07978774e09ab61798dc6faafe7"

@@ -70,7 +70,7 @@ import {
   writeRefusal, HANDED,
   unheldRefusal,
 } from "./lease.mjs";
-import { RECLAIMS_BEFORE_PARK, historyLine, reclaimsOf } from "./lease/crash-park.mjs";
+import { RECLAIMS_BEFORE_PARK, historyLine, readingsOf, reclaimsOf, tookReading } from "./lease/crash-park.mjs";
 import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
@@ -323,7 +323,13 @@ const takeTurn = async (documentId, ref, issue, context, { holder, source, minut
 /* Said and never done, for the reason the threshold carries in crash-park.mjs: past it the caller reads the history and the park command, and decides. */
 const reclaimLines = (ref, lease, status) => {
   const count = reclaimsOf(lease, status);
-  const said = `Reclaim ${count} of ${status}: the lease before this one lapsed without being handed on.`;
+  const readings = readingsOf(lease, status);
+  const left = readings ? ` ${readings} reclaim(s) of ${status} went over a lease that declared nothing was `
+    + "worked, and are not counted." : "";
+  const said = tookReading(lease)
+    ? `This reclaim of ${status} went over a lease that declared nothing was worked, so it counts for none: `
+      + `${count} counted at ${status}.${left}`
+    : `Reclaim ${count} of ${status}: the lease before this one lapsed without being handed on.${left}`;
   if (count <= RECLAIMS_BEFORE_PARK) return [said];
   return [said,
     `Claims at ${status}: ${historyLine(lease, status)}`,
