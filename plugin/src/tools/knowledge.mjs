@@ -4,7 +4,7 @@
    brief writes through as well. docs/cli/knowledge.md. */
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { declaredFor, declaredValue, refuseCredential, scoped, write } from "../tracker/rest.mjs";
+import { declaredFor, refuseCredential, scoped, write } from "../tracker/rest.mjs";
 import { BRIEF_SLUG, KIND_WIDTH, SLUG_WIDTH, entryAt, entryLine, metaFrom, upsertEntry, wroteLines }
   from "../tracker/knowledge/store.mjs";
 import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
@@ -41,19 +41,6 @@ export const USAGE = [
   "second copy, and the reader who finds the overlap is the one who refuses it.",
 ].join("\n");
 
-/* The route refuses a value outside the set without naming the set, so the check stands here and
-   the set is the table's, whose own comment says what a refusal citing it owes its reader. */
-const checked = (value, field) => {
-  if (value === undefined) return undefined;
-  const near = declaredValue("forge_knowledge", field, value);
-  if (near) {
-    fail(`${near} That set is this CLI's own declaration of what the `
-      + `store takes, in \`plugin/src/tracker/routes.mjs\`, and the tracker names no set when it `
-      + `refuses one: a value the tracker has grown since is added there.`);
-  }
-  return value;
-};
-
 const slugsHere = async () => {
   const page = await scoped("forge_knowledge", { action: "list" });
   return (page?.rows ?? []).map((row) => row.slug);
@@ -68,9 +55,8 @@ const LIST_USAGE = "Usage: forge knowledge list [--kind K] [--injection I]";
 /* An empty store printed as nothing reads as a call that failed, and until the first reading writes
    to it that is the answer every run gets — so the empty case says which verb fills it. */
 const list = async (argv) => {
-  const given = flags(argv, "knowledge list", [], { usage: LIST_USAGE });
-  const kindFilter = checked(given.kind, "kind");
-  const injectionFilter = checked(given.injection, "injection");
+  /* The parser judges each against the store's own set, since the route refuses a value outside it without naming the set. */
+  const { kind: kindFilter, injection: injectionFilter } = flags(argv, "knowledge list", [], { usage: LIST_USAGE });
   const filtered = Boolean(kindFilter || injectionFilter);
   const page = await scoped("forge_knowledge", {
     action: "list",
@@ -118,9 +104,7 @@ const written = async (argv) => {
       + `  forge doctor --refresh ${path}`);
   }
   const given = flags(flagArgv, "knowledge write", [], { usage: WRITE_USAGE });
-  const kind = checked(given.kind, "kind");
-  const injection = checked(given.injection, "injection");
-  const confidence = checked(given.confidence, "confidence");
+  const { kind, injection, confidence } = given;
   const body = await bodyFrom(path);
   if (path === "-") keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`);
   const wrote = await upsertEntry({

@@ -38,6 +38,7 @@ import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
+import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
@@ -405,6 +406,9 @@ const wroteProject = async (asked, pairs, positionals) => {
   return brief ? briefRoute(asked, pairs, positionals) : null;
 };
 
+/* The brief is a knowledge entry, so --confidence takes the store's own set: doctor's tool declares none, which would pass any word to the brief write. */
+const BRIEF_SETS = { "--confidence": setsOf("forge_knowledge")["--confidence"] };
+
 export const doctor = async (argv) => {
   const usage = usageOf("doctor");
   const help = helpAskedOf(argv, SUBJECT_SLUGS);
@@ -414,7 +418,7 @@ export const doctor = async (argv) => {
   reading(subject);
   const { values: pairs, rest } = pullRepeated(subject ? argv.slice(1) : argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
-  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", ...SECRET_FLAGS] });
+  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", ...SECRET_FLAGS], sets: BRIEF_SETS });
   const { full, credentials } = asked;
   /* Two readings of one stray word, told apart by whitespace: a mistyped subject earns the nearest
      names, and a sentence is the prose of --line or --after, which no suggestion could be about. */

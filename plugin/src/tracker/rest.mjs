@@ -11,8 +11,8 @@ import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { fromProject, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
-import { didYouMean } from "../suggest.mjs";
-import { DECLARES, ROUTES, answersOf, keyOf, rowFor } from "./routes.mjs";
+import { nearestOutside } from "../suggest.mjs";
+import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
 
 const RETRY_ATTEMPTS = 4;
@@ -358,26 +358,11 @@ export const scoped = callTool;
 
 export const tried = async (name, args) => callTool(name, args, true);
 
-/** What the table declares in the tracker's stead, and a value judged against it — the nearest name, or null where the value is in the set or the table declares none.
- *  The set is this CLI's and goes stale when the tracker grows a value, which is what the caller's sentence around either of these has to say.
- *  A row carrying more than its own name answers with the name, so what a declared set holds is the values whatever each row says beside them; a declared field that is not a list at all — `caps` — passes through as it is. */
-export const declaredFor = (tool, field) => {
-  const held = DECLARES[tool]?.[field] ?? [];
-  return Array.isArray(held) ? held.map((one) => one?.name ?? one) : held;
-};
+/* Where the table's unwrap lives, re-exported so a verb reading a set and the transport name one module. */
+export { declaredFor };
 
-export const declaredValue = (tool, field, given) => {
-  const allowed = declaredFor(tool, field);
-  return !allowed.length || allowed.includes(given) ? null : didYouMean(field, given, allowed);
-};
-
-/** Throws rather than answering, so no call site judges the value and drops the judgement; the verb
- *  is the caller's, and undefined passes — an argument nobody gave is no value at all (ISS-936). */
-export const refuseUndeclared = (verb, flag, given, { field = flag, values, hint = undefined }) => {
-  if (given === undefined || !values.length || values.includes(given)) return;
-  fail(`${verb} --${flag}: ${didYouMean(field, given, values, hint)} Nothing was sent: the set is `
-    + "this CLI's own, so a name outside it is answered here rather than by whatever came back.");
-};
+/** A value judged against what the table declares: the nearest name, or null where the value is in the set or the table declares none. */
+export const declaredValue = (tool, field, given) => nearestOutside(field, given, declaredFor(tool, field));
 
 /** The whole of what this CLI reads a date as, and below it the judge a date slot spends because no declared set can hold every date. It is exported so this judge and whatever narrows rows against a caller's date ask one question: a second reading would disagree on some word and be the one nobody ran (ISS-1081). */
 export const readsAsDate = (given) => !Number.isNaN(Date.parse(given));

@@ -88,6 +88,14 @@ export const DECLARES = {
   },
 };
 
+/** What the table declares in the tracker's stead: the values of one field's set, or `[]` where it declares none.
+ *  A row carrying more than its own name answers with the name, so what a declared set holds is the values whatever each row says beside them; a declared field that is not a list at all — `caps` — passes through as it is. This is the one unwrap of a row, and `table` is there so a synthetic declaration is read by the same one.
+ *  The set is this CLI's and goes stale when the tracker grows a value, which is what the caller's sentence around it has to say. */
+export const declaredFor = (tool, field, table = DECLARES) => {
+  const held = table[tool]?.[field] ?? [];
+  return Array.isArray(held) ? held.map((one) => one?.name ?? one) : held;
+};
+
 const WIRE_FILTERS = Object.keys(FILTERS).filter((name) => FILTERS[name] === "wire");
 
 const query = (pairs) => {
