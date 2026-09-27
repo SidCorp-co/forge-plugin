@@ -156,6 +156,16 @@ test("the anchor named for a blank line skips a line no --was prefix can open al
   assert.match(run.stderr, /forge doctor --after 1 <text> --was <line 1 as it stands>/u);
 });
 
+test("the anchor named for a blank line skips a line holding only whitespace", async () => {
+  await written("after-blank-spaces", ["# Map", "   ", "", "End."]);
+  const run = await ask("doctor", "--line", "3", HOOKS_LINE, "--was", "End.");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /forge doctor --after 1 <text> --was <line 1 as it stands>/u);
+  await written("after-blank-spaces-only", ["   ", "", "End."]);
+  const none = await ask("doctor", "--line", "2", HOOKS_LINE, "--was", "End.");
+  assert.match(none.stderr, /no line above it can anchor an insert/u);
+});
+
 test("a blank line with no usable anchor above it names the whole-body rewrite", async () => {
   await written("after-blank-none", ["", "# The map", "End."]);
   const leading = await ask("doctor", "--line", "1", HOOKS_LINE, "--was", "End.");

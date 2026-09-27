@@ -274,11 +274,12 @@ const lineOf = (flag, given, lines) => {
   return Number(given);
 };
 
-/** The nearest line above `at` a `--was` prefix can open alone, or 0: a line whose whole text
- *  another line begins with is one no prefix can name, so an insert anchored there is refused too. */
+/** The nearest line above `at` a `--was` prefix can open alone, or 0: a line of whitespace is one
+ *  `--was` refuses, and a line whose whole text another line begins with is one no prefix names. */
 const anchorAbove = (lines, at) => {
   for (let one = at - 1; one >= 1; one -= 1) {
-    if (lines.filter((line) => line.startsWith(lines[one - 1])).length === 1) return one;
+    const text = lines[one - 1];
+    if (text.trim() && lines.filter((line) => line.startsWith(text)).length === 1) return one;
   }
   return 0;
 };
