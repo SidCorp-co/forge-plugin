@@ -1,7 +1,7 @@
 /* `forge next` — the open issues this project should work next, ranked and written nowhere. The
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { complexitySpread, weightLines, weightsFrom } from "./weights.mjs";
-import { moduleTermsFor } from "./modules.mjs";
+import { moduleTermsFor } from "./terms/modules.mjs";
 import { complexitiesOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
 import { chainOf, complexitySaid, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
@@ -9,7 +9,7 @@ import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs"
 import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/corpus/corpus.mjs";
 import { resolverIn, treeAt } from "./checkout.mjs";
-import { readingTerm } from "./reading.mjs";
+import { readingTerm } from "./terms/reading.mjs";
 import { batchesOf } from "./batch.mjs";
 import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines, judgingShort }
   from "./print.mjs";

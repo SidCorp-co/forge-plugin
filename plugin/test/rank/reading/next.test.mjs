@@ -6,8 +6,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { issue, rankRoom, reviewing, standing } from "./room.mjs";
-import { git } from "../fixtures.mjs";
+import { issue, rankRoom, reviewing, standing } from "../room.mjs";
+import { git } from "../../fixtures.mjs";
 
 const { load, ran, close } = await rankRoom();
 test.after(close);

@@ -2,7 +2,7 @@
    read off the same reckoning the ship and `forge doctor` print, so the three cannot disagree about
    how far past its threshold a range has grown. Why a reading ranks by its debt rather than by the
    fields it was filed with: docs/cli/next-weights.md. */
-import { readingCovers, reviewStanding } from "../git/reviewed.mjs";
+import { readingCovers, reviewStanding } from "../../git/reviewed.mjs";
 
 const SHORT = 7;
 

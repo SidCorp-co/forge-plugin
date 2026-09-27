@@ -3,9 +3,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULTS, foldWeights } from "../../src/rank/weights.mjs";
-import { multipleOf, readingTermFrom } from "../../src/rank/reading.mjs";
-import { ordered, scoreOf } from "../../src/rank/score.mjs";
+import { DEFAULTS, foldWeights } from "../../../src/rank/weights.mjs";
+import { multipleOf, readingTermFrom } from "../../../src/rank/terms/reading.mjs";
+import { ordered, scoreOf } from "../../../src/rank/score.mjs";
 
 const MARK = "290b5c5d2bc5c475d9a518d05a44d401d7cd7f28";
 const NOW = Date.parse("2026-09-27T00:00:00.000Z");

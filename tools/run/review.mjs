@@ -7,7 +7,7 @@ import { checkoutOf, readingFor, readingTitle, REVIEWED, reviewCounts, reviewedA
 import { gitOut, REMOTE } from "../checkout.mjs";
 import { isRelease } from "./landing.mjs";
 import { TAKEABLE } from "../../plugin/src/rank/weights.mjs";
-import { multipleOf } from "../../plugin/src/rank/reading.mjs";
+import { multipleOf } from "../../plugin/src/rank/terms/reading.mjs";
 import { leaseOf, stateOf } from "../../plugin/src/flow/lease.mjs";
 import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
