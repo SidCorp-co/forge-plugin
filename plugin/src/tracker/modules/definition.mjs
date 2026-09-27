@@ -90,3 +90,12 @@ export const moduleForFiling = async (name, verb) => {
 /** Whether an issue as read back carries `module` as its primary. */
 export const carriesPrimary = (labels, module) =>
   (labels ?? []).some((one) => one?.id === module.id && one?.isPrimary === true);
+
+/** The label set an issue is written back with once `module` is its primary: every label it carries
+ *  kept by id, the primary it held before dropped, and `module` added — or promoted where it was a
+ *  secondary — as the one object marking a primary. One primary is the tracker's rule, and a former
+ *  primary kept as a secondary would read as the issue sitting in two: docs/cli/modules.md. */
+export const primaryLabels = (labels, module) => [
+  ...(labels ?? []).filter((one) => !one?.isPrimary && one?.id !== module.id).map((one) => one.id),
+  { labelId: module.id, isPrimary: true },
+];

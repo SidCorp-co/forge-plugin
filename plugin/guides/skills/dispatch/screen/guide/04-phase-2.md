@@ -49,6 +49,13 @@ issue ISS-nn --set priority=<value> --why <w>`, the why naming what the issue co
 meets it. It is the reading the reach and the complexity already came from, so the reader who made
 those is the one who can show this one.
 
+**Where this project defines modules, the same reader puts the candidate in one.**
+`forge issue ISS-nn --set module=<name> --why <w>`, the why naming what in the body placed it, and
+`forge doctor modules` lists the names. It is the one module the change lands in, which is what lets
+a wave ask for a place rather than a search word, and decline to put two runs in it. A body that
+does not decide one is left without one, and the reading says so in its confirmation: a module
+guessed from the nearest tree reads exactly like a right one to whoever slices on it later.
+
 **A reading that leaves its issue holding neither band has not finished.** An issue with no priority
 and no complexity is not one somebody judged small — it is one nobody read, and nothing downstream
 can tell those two apart. Where the body gives the reader nothing to judge a cost from and no slot is
@@ -71,11 +78,12 @@ lowers nothing the reading behind a band has to carry.
 band set to clear a gate is a standard lowered on purpose, and it is never set that way without
 saying so. That is why the paragraph above is a rule and not a preference.
 
-**This phase's four writes — the confirmation, the candidate line, the complexity and the priority —
-belong to whoever did the reading, and that reader makes them.** The confirmation is the one that
-carries a disposition where there is one, so a verdict of *holds* drops none of the four. One handed back as a
+**This phase's writes — the confirmation, the candidate line, the complexity, the priority and,
+where the project defines modules, the module — belong to whoever did the reading, and that reader
+makes them.** The confirmation is the one that carries a disposition where there is one, so a verdict
+of *holds* drops none of them. One handed back as a
 recommendation is this phase left unfinished, and a fold that can say what it passed on rather than
-what it did. The candidate line takes no lease, being a finder's post; what lease the other three take
+what it did. The candidate line takes no lease, being a finder's post; what lease the others take
 is `forge claim -h`'s, which the refusal each of them meets without one prints as well. Where the
 CLI grows a route needing no lease for either, that route is the one this phase takes, and a lease
 the CLI withholds is not worked around.

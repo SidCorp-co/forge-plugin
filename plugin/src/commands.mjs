@@ -153,6 +153,10 @@ const SET_PROSE = "`--set f=v` sends the value through this project's prose lang
   + "write that language. `forge doctor` names the language, where it was read from, and the\n"
   + "setting that stores prose unchanged.";
 
+/* A module is a label the tracker holds as a set, so what a caller is owed is what happens to the rest of that set. */
+const SET_MODULE = "`--set module=<name>` puts the issue in one of this project's modules as its primary: the primary\n"
+  + "it held before is replaced and every other label stays. `forge doctor modules` lists the names.";
+
 /* Which of this verb's two outputs a program may key on, said where a caller looks for it: a column added to the browse rows once moved a positional parse one field along, and it kept finding the right issue and reading the wrong word off it (ISS-174). */
 const WHICH_SURFACE = "The rows a call prints with no `--fields` are for a person to read. Which columns they are,\n"
   + "and in what order, is a judgement that has changed and will change again, so nothing keys on\n"
@@ -193,7 +197,7 @@ const TWO_SELECTORS = "issue: --kind and --edge each name the edge --unlink remo
 const own = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (argv) => {
-    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}`);
+    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${SET_MODULE}`);
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);

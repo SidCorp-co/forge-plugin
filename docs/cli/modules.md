@@ -1,9 +1,10 @@
 # modules — the tracker's definition, the project's weights, and a removal that strands nothing
 
 A project's modules sort its backlog by the part of the product an issue's change lands in, so that
-the rank can tell a defect a user meets from a change to the repository's own gate (ISS-2588). Three
-verbs reach them: `forge doctor modules` manages the definition, `forge new` and `forge feedback` file
-into one, and `forge next` weighs by one. What each takes is its own `-h`. This page holds why the
+the rank can tell a defect a user meets from a change to the repository's own gate (ISS-2588). The
+verbs that reach them: `forge doctor modules` manages the definition, `forge new` and `forge feedback`
+file into one, `forge issue --set module=` puts an issue already filed in one, and `forge next` weighs
+by one. What each takes is its own `-h`. This page holds why the
 shape is what it is.
 
 ## The definition is the tracker's, and the weights are the project's
@@ -69,6 +70,20 @@ read or does not hold. A removal rewrites the label set of every
 issue carrying a module the caller named as a whole, and the write answers to the project's module
 definition rather than to anything an issue's thread says; reading hundreds of threads first would buy
 the move nothing.
+
+## An issue already filed takes its module on the override route
+
+The reading that decides an issue's module is the triage reading that already sets its complexity and
+priority by hand, so the module goes on the same route: `forge issue --set module=<name>`, one call
+and one correction for all three. `module` is no column of the tracker's; the name is held to the
+definition as a filing's is, and what goes up is the issue's whole label set, because the tracker's
+update replaces that set rather than adding to it. Every label the issue carries stays, and the
+primary it held before is dropped rather than kept as a secondary: one primary is the tracker's rule,
+and a former primary left beside the new one would read as an issue sitting in two modules, which is
+two changes wearing one key. The ask, the reply and the correction name the module as typed, not the
+ids that were sent, since those are what a reader of the page can check. Nothing clears a module: an
+issue whose body does not decide one was never given one, and a wrong one is replaced by naming the
+right one.
 
 ## A filing names its module before its body is read
 
