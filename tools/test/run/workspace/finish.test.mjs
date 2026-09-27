@@ -290,7 +290,7 @@ test("a tree removed by hand still reads as a leak to recover", () => {
 
 /* The retry lines finish prints are absolute script paths, so the checkout's own record names the
    tree and the caller's directory does not: here that directory is a checkout recorded under another
-   slug, which is the path finish used to look for and report already ended (ISS-2666). */
+   slug, which names a path start never made (ISS-2666). */
 test("finish run from another checkout's directory ends the tree start made, not one named for that checkout", () => {
   const { work, tree } = started("finish-elsewhere");
   const elsewhere = projectRoom(tempRoom("finish-elsewhere-other-"), BARE.XDG_CONFIG_HOME, { slug: "another-project" });
