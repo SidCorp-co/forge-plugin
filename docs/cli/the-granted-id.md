@@ -25,6 +25,14 @@ reader has the text and not the shell that will run it, so `"$RUN_ID"` names not
 one run: two different ids, or a second id mentioned anywhere in the text, and the reader declines
 rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i`/`-u`, either spelling, takes the name back.
 
+**The take-back and the reach are read under the same quoting as the prefix form's openers**, the one
+reading the next section names. So an `unset` behind an apostrophe a backslash, a comment or an
+ANSI-C word keeps is still read as one, and so is one spelt `\unset` or `"unset"`, which the shell
+runs; one behind an escaped `;`, or inside a comment, runs nothing and costs nothing. The reach ends
+at whatever that section's table names wherever a shell would act on it, a bare `(` besides, so a
+double-quoted `$(…)` ends it as a bare one does and a `\(` does not. Where the quoting cannot be
+placed, the same answer as there: read as if the quotes were not there, which only ever refuses more.
+
 **A second id is a second assignment to this name**, read wider than a grant is. A longer variable
 whose name ends in this one is a different variable and costs nothing. Everything else assigning
 *this* name is a second id, the unresolvable ones included: `FORGE_SESSION_ID=` with no value,
