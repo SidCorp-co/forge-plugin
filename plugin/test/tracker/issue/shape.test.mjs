@@ -17,12 +17,11 @@ process.env.XDG_CONFIG_HOME = home.path;
 projectRecord(ROOT, home.path, OWN);
 const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor,
   shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
-/* The refusal's text, as the gate prints it. */
+/* The refusal's text, as `forge new` prints it. */
 const refusalFrom = async (filing, shape, options) => (await filingRefusal(filing, shape, options))?.text ?? null;
 const { COMPLEXITY_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
 /* Prose now: `markFor` went with the second source (ISS-701), and a body already on the tracker still carries the line the emptiness strip reads. */
 const SIZE_LINE = "Size: fix.";
-const { filingsOf } = await import("../../../src/tracker/issue-read.mjs");
 const { refusing } = await import("../../../src/resolve/settings.mjs");
 
 const WHOLE = [
@@ -166,19 +165,6 @@ test("a filing that overlaps an open issue's title is a duplicate, and a settled
   assert.ok(same.score >= 0.34, `scored ${same?.score}`);
   assert.equal(same.where, "the title");
   assert.equal(duplicateOf({ title: TITLE, body: WHOLE }, live), null, "and an unrelated filing is not one");
-});
-
-test("a create is found on the tracker's own tool, and nothing else is", () => {
-  const mcp = (action, data) => filingsOf({ name: "mcp__forge__forge_issues", input: { action, data } });
-  assert.deepEqual(mcp("create", { title: "t", description: "b" }),
-    [{ title: "t", body: "b", kind: null, complexity: null }]);
-  assert.deepEqual(mcp("update", { title: "t" }), [], "an update files nothing");
-  assert.deepEqual(filingsOf({ name: "mcp__forge__forge_comments", input: { action: "create", data: {} } }), []);
-  /* Both tracker fields travel with the body, so the gate on this route reads the shape the verb does. */
-  assert.deepEqual(mcp("create", { title: "t", description: "b", category: "bug", complexity: "s" }),
-    [{ title: "t", body: "b", kind: "bug", complexity: "s" }]);
-  assert.deepEqual(filingsOf({ name: "Bash", input: { command: "forge new body.md --title t" } }), [],
-    "and a Bash line names no filing at all: the verb reads its own file, which this cannot see");
 });
 
 /* A rank is not a shape, and it is read in the same place for the same reason: two routes file, and

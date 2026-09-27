@@ -13,9 +13,9 @@ the tracker's own field, and prose answers neither: the same headings carry a bu
 a field left empty is one nothing downstream can filter on. The requirement is the filing route's
 alone — a comment owes no shape and has no field to fill, and `forge comment` is a verb of its own
 rather than a flag of this one, so a category is asked for wherever a body is read against a shape
-and nowhere else. A create sent through the tracker's own tool has no flag to refuse and is still
-read as a feature; a light `--complexity` is not an exemption either, a filing calling itself small
-being a filing still.
+and nowhere else. A create sent through the tracker's own tool is no way round it, being refused for
+its route before its body is read; a light `--complexity` is not an exemption either, a filing
+calling itself small being a filing still.
 
 The set is four: three measured rather than picked, and one this CLI files itself. Across the 101 issues this project had filed, the
 tracker's field for a kind was empty on every one, so nothing could be read off the field and the
@@ -49,11 +49,9 @@ Required is refused and nice-to-have is said, because the two shortfalls cost di
 missing the section its kind is defined by cannot be confirmed at all, and pays that again at every
 status; one that does not say where costs a reader a single search. A filing whose `complexity`
 claims a rung below the top is read against no section, so it is told nothing about them: the value
-is already the answer to what shape the flow should ask of it. Where a kind still does not reach the reader — the raw create — the
-feature shape is what a body is held to, which is the shape every filing was held to before kinds
-existed, so nothing filed under the older rule is refused for having followed it. The field stays
-empty on that route rather than being defaulted, because a value written there for a filing that
-chose nothing reads later as a kind somebody chose, and the measurement above is what that spoils.
+is already the answer to what shape the flow should ask of it. The raw create, which has no flag to
+require, is not read for a shape at all: it is refused for its route before its body is, so what a
+body owes is said once, by `forge new`, and a hook never walks the backlog to say it.
 
 Both words are the tracker's. `--category` is the flag, `category` is what the answer comes back
 saying, and `--complexity` takes the tracker's own five values beside it — this CLI translates

@@ -220,9 +220,9 @@ export const KINDS_HELP = [
   ...KINDS.flatMap(kindRows),
   "",
   "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
-  "`What it is now` is a today one. `forge new` refuses a filing that names no category; one sent",
-  `through the tracker's own tool, which has no flag to refuse, is read as ${article(DEFAULT_KIND)}`,
-  `${DEFAULT_KIND}. A filing whose \`complexity\` claims a rung below the top is read against no`,
+  "`What it is now` is a today one. `forge new` refuses a filing that names no category; the",
+  "tracker's own tool refuses a create for its route before reading it. A filing whose",
+  "`complexity` claims a rung below the top is read against no",
   "section and no category, and nothing is said of it — the value is no exemption from the flag.",
 ].join("\n");
 

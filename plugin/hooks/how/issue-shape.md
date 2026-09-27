@@ -11,8 +11,8 @@ notes.md` posts that file there instead of filing, `--with ISS-45` files and rel
 `m`, `l` and `xl` claim a feature, read against their kind's sections.
 
 How to work through it: `forge advance ISS-45 --owed` says what its rung owes. Asked once per
-filing. `forge hooks --off issue-read-first` clears the gate, not this CLI's own copy, so a refusal
-you believe wrong goes to the tracker's own screens and a note there.
+filing. The reading is `forge new`'s own and no hook switch clears it, so a refusal you believe
+wrong goes to the tracker's own screens and a note there.
 
 Not judged: whether the issue is true, worth doing or a fit; whether its complexity is right;
 whether a duplicate is one, the measure being shared words. No endpoint, or a tracker not
