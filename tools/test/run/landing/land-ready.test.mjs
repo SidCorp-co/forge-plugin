@@ -252,6 +252,8 @@ test("the builder writes the records the landing stops for, and the landing fini
   assert.equal(held.state, "records-owed", `the record earns no rung, so the turn is the builder's:\n${first}`);
   assert.equal(held.owed, "marked", first);
   assert.equal(exited, 0, `a turn handed over is what this step is for and not a failure of it:\n${first}`);
+  assert.match(first, /--recorded walks the statuses those records earn itself: it ends this landing at `done`/u,
+    `and it says what the hand-back does once the records are written (ISS-2690):\n${first}`);
   const landed = marks()[0].body.match(/at ([0-9a-f]{40})/u)[1];
 
   const took = await asBuilder(["claim", KEY, "--take"]);
@@ -277,17 +279,15 @@ test("the builder writes the records the landing stops for, and the landing fini
   const note = await asBuilder(["record", "note", KEY, "--section", "Fixed", "--user", "it works"]);
   assert.equal(note.status, 0, `${note.stdout}${note.stderr}`);
 
+  /* The hand-back walks every rung the landing stopped short of itself, so the landing's own turn,
+     which held nothing but that walk, is never owed (ISS-2690). */
   const back = await asBuilder(["claim", KEY, "--recorded"]);
-  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
-  assert.equal(landing().state, "marked", `the turn goes back to the state it came from:\n${back.stdout}`);
-
-  /* Twice: the builder's records are comments this lander has not been shown, and the gate every
-     write passes delivers them before it spends one. */
-  const shown = await ran([KEY], work);
-  assert.match(shown, /has not been shown/u, `the records reach the landing before they are spent:\n${shown}`);
-  const after = await ran([KEY], work);
-  assert.equal(issue().status, "awaiting_release", `the landing walks every rung it stopped short of:\n${after}`);
+  const after = `${back.stdout}${back.stderr}`;
+  assert.equal(back.status, 0, after);
+  assert.equal(issue().status, "awaiting_release", `the hand-back walks every rung the landing stopped short of:\n${after}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${after}`);
+  assert.match(after, /rests at `awaiting_release`/u, `the close being a person's, which it says:\n${after}`);
+  assert.match(after, new RegExp(`forge advance ${KEY} --set closed`, "u"), `with the set that closes it:\n${after}`);
   assert.equal(marks().length, 1, `over the release it already made:\n${after}`);
   assert.doesNotMatch(after, /records-owed/u, `with no second hand-back:\n${after}`);
 });

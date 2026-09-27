@@ -342,9 +342,10 @@ a wait no party can end.
   state naming the turn of the actor whose record earns that status, SHALL record on it the state
   the turn was handed back from where that actor is the builder, and SHALL name the run that answers
   for what is owed.
-- **AC-03-6-8** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the builder ends its records turn and the checkpoint goes back to the state it came from"
+- **AC-03-6-8** · Rev: 2 · Proof: plugin/test/flow/landing/take.test.mjs "the builder ends its records turn and the checkpoint goes back to the state it came from"
   WHEN the run holding that turn ends it THEN the CLI SHALL return the checkpoint to the state the
-  turn was handed back from, without reading back the records it was handed over for.
+  turn was handed back from and SHALL not refuse that return on the records it was handed over for,
+  because a hand-back its own holder could be refused is a state nobody can leave.
 - **AC-03-6-9** · Rev: 1 · Proof: plugin/test/flow/landing/reconciled-branch.test.mjs "a reconciliation over a branch that let the judged head go is refused, naming the push back"
   IF the branch the checkpoint names is proved, without reaching a remote, to no longer carry the
   head the checkpoint was written at, THEN the CLI SHALL refuse the reconciliation naming the push
@@ -451,6 +452,21 @@ a wait no party can end.
   SHALL refuse that checkpoint on the first one that fails, naming it and the command that runs it
   again, because a check that is shown and not held is one a run can skip, and the landing that runs
   it next finds the failure at the landing's price.
+
+- **AC-03-6-28** · Rev: 1 · Proof: tools/test/run/landing/auto-release.test.mjs "a release the project makes without a person is closed by the landing that made it"
+  WHEN a records turn has been handed back and the statuses its record earns carry the issue as far
+  as the project's release allows THEN the CLI SHALL move those statuses and leave the checkpoint in
+  the state that names no turn, because the landing's turn that hand-back returns to holds nothing
+  but that walk and a turn that only a second landing call runs is one nobody runs.
+- **AC-03-6-29** · Rev: 1 · Proof: plugin/test/flow/landing/hand-back/recorded.test.mjs "a records turn on an after-merge landing with an independent judge hands the release to the judge"
+  IF a records turn has been handed back and an independent judge is owed the release THEN the CLI
+  SHALL move the checkpoint to the judge's turn over that release and SHALL name the calls that take
+  and end that turn, because a judge the hand-back does not name is a wait the builder cannot end.
+- **AC-03-6-30** · Rev: 1 · Proof: plugin/test/flow/landing/arming/unbuilt.test.mjs "a ready capture before the build is refused, writes nothing, and prints each advance then the capture"
+  IF a run declares its change ready to land while the issue stands before the status a build stands
+  at in the flow's own order THEN the CLI SHALL refuse the checkpoint, naming the status it read and
+  each advance owed up to that status, because the landing moves the status on from there and a
+  change it merged from earlier is a release whose status nothing can move.
 
 ## Business rules enforced
 

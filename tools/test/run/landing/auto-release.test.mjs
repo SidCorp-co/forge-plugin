@@ -82,18 +82,19 @@ test("a release the project makes without a person is closed by the landing that
   const landed = markedCommit(comments(UUID));
   assert.ok(landed, `the mark names the sha this landing pushed:\n${first}`);
   verified(landed);
-  /* The turn the landing handed over, ended by the run it named. */
+  /* The turn the landing handed over, ended by the run it named, which walks the rungs its records
+     earn itself: the lander's turn it hands back to held nothing else (ISS-2690). */
   const took = await asBuilder(["claim", KEY, "--take"]);
   assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
   const back = await asBuilder(["claim", KEY, "--recorded"]);
-  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
-  assert.equal(landing().state, "marked", `and the turn is the lander's again:\n${back.stdout}`);
-
-  const said = await ran([KEY], work);
-  assert.equal(issue().status, "closed", `the landing took the last rung itself:\n${said}`);
-  assert.equal(landing().state, "done", `and nothing of it is left:\n${said}`);
+  const said = `${back.stdout}${back.stderr}`;
+  assert.equal(back.status, 0, said);
+  assert.equal(issue().status, "closed", `the hand-back took the last rung itself:\n${said}`);
+  assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
   assert.deepEqual(moves(), ["developed", "testing", "awaiting_release", "closed"],
     `one move per rung of the tail, in the table's order, and no jump:\n${said}`);
+  assert.match(said, /no landing call is owed/u, `so the hand-back says none is:\n${said}`);
+  assert.doesNotMatch(said, new RegExp(`forge claim ${KEY} --take`, "u"), `and names no take of a landing that is over:\n${said}`);
   assert.doesNotMatch(said, /rests at `awaiting_release`/u,
     `nothing is left for a person, so nothing says a person is owed:\n${said}`);
 });
