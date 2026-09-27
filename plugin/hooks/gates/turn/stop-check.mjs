@@ -10,21 +10,20 @@ import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { standingIn, startedHere } from "../../../src/flow/lease/holder.mjs";
-import { gitProbe } from "../../../src/hooks/git-probe.mjs";
-import { linting } from "../../../src/hooks/lint-delegate.mjs";
+import { gitProbe, probeMs } from "../../../src/hooks/git-probe.mjs";
+import { configuresLint, linting, MAX_FILES } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
-import { askedAlready, block, done, how, isSubagent, remaining, sinceTurn, transcriptOf, turnAt,
+import { askedAlready, block, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf, turnAt,
   turnRecords, turnWrites, typed } from "../../_hook.mjs";
 
 const MAX_ISSUES = 2;
 const SPARE_MS = 3_000;
 const CALL_MS = 8_000;
-const GIT_MS = 5_000;
 const CLI = join(PLUGIN_ROOT, "src", "cli.mjs");
 
 const left = () => remaining() - SPARE_MS;
@@ -121,27 +120,45 @@ const asked = (ev, at, item, set) => askedAlready(ev, `${item}@${at}`, "stop-che
 /* Read in a child process, not in here: the CLI exits the process on a missing credential and
    sleeps between retries, and either one inside this hook takes every gate's answer with it. The
    clock is the event's and it is spent, so each child is measured against what is left rather than
-   against what the first one had: a kill takes every refusal already gathered with it. `GIT_MS` above is flat instead, and clamping it to what is left changes which turns get a dirty-tree refusal, so it is ISS-388's. */
-const forge = (tree, argv) => {
+   against what the first one had: a kill takes every refusal already gathered with it. */
+const cli = (tree, argv) => {
   const ms = Math.min(CALL_MS, left());
   if (ms < 1000) return null;
   try {
-    return JSON.parse(execFileSync(process.execPath, [CLI, ...argv], {
+    return execFileSync(process.execPath, [CLI, ...argv], {
       cwd: tree,
       encoding: "utf8",
       timeout: ms,
       stdio: ["ignore", "pipe", "ignore"],
-    }));
+    });
   } catch {
     return null;
   }
 };
 
-/* Untrimmed: a status line begins with two columns and a space, and trimming eats the first one's. */
-const git = (tree, argv) => {
-  const said = gitProbe(argv, { cwd: tree, ms: GIT_MS });
-  return said?.status === 0 ? said.out : null;
+const forge = (tree, argv) => {
+  const said = cli(tree, argv);
+  try {
+    return said === null ? null : JSON.parse(said);
+  } catch {
+    return null;
+  }
 };
+
+/* The keys in progress on the tree's project, one child however many keys the turn named: the verb walks every page and prints bare keys on stdout. A child that failed or was killed answers `null`, and `run` says so rather than reading it as nobody holding anything. */
+const inProgress = (tree) => {
+  const said = cli(tree, ["issue", "--status", "in_progress", "--fields", "issueId"]);
+  return said === null ? null : new Set(keysIn(said));
+};
+
+/* Untrimmed: a status line begins with two columns and a space, and trimming eats the first one's. Given what the event has left, as the CLI child is: a probe that would answer at two and a half seconds with three left gets no answer, which costs one refusal, where a kill would cost all of them. `undefined` where git gave no answer at all, `null` where it answered no. */
+const git = (tree, argv) => {
+  const said = gitProbe(argv, { cwd: tree, ms: probeMs(left()) });
+  if (!said) return undefined;
+  return said.status === 0 ? said.out : null;
+};
+
+const NO_GIT = "git did not answer in the time the stop clock left it";
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer is a key this run read, not one it took. */
 const keysNamed = (said) => [...new Set(keysIn(said.join("\n")))];
@@ -155,13 +172,15 @@ export const silentSince = (lease, holder) => {
   return String(lease.renewedAt ?? "") <= claimed;
 };
 
-/** The issues this turn named that are in one of those. `said` is `readTurn`'s, handed down. */
-export const heldAndSilent = (ev, tree, said, holder, read = forge) => {
+/** The issues this turn named that are in one of those, or `null` where the tracker would not say which are in progress. `said` is `readTurn`'s, handed down. */
+export const heldAndSilent = (ev, tree, said, holder, read = forge, list = inProgress) => {
   const keys = keysNamed(said);
   if (!holder || !keys.length) return [];
+  const open = list(tree);
+  if (!open) return null;
   const out = [];
-  /* One read per key, status and lease together. The cap counts what qualifies and never what was named, or two closed keys hide the held one behind them; time is the other bound, `forge` answering null once the event's clock is spent. */
-  for (const key of keys) {
+  /* One list for every key, then one read per named key in progress, status and lease together: a turn naming every issue of a range costs what a turn naming one does. The cap counts what qualifies and never what was read, or two keys another run holds hide the held one behind them; time is the other bound, `forge` answering null once the event's clock is spent. */
+  for (const key of keys.filter((one) => open.has(one))) {
     if (out.length >= MAX_ISSUES) break;
     const held = read(tree, ["issue", key, "--fields", `status,${FIELD}`]);
     if (held?.status !== "in_progress") continue;
@@ -172,8 +191,9 @@ export const heldAndSilent = (ev, tree, said, holder, read = forge) => {
 
 /* A worktree this run made, and not the checkout it was made from: git answers the two directories relatively in the one and absolutely in the other, so both are placed before they are compared. */
 const isWorktree = (tree) => {
-  const [own, shared] = (git(tree, ["rev-parse", "--git-dir", "--git-common-dir"]) ?? "")
-    .split("\n").map((one) => one.trim());
+  const said = git(tree, ["rev-parse", "--git-dir", "--git-common-dir"]);
+  if (said === undefined) return undefined;
+  const [own, shared] = (said ?? "").split("\n").map((one) => one.trim());
   return Boolean(own && shared) && resolve(tree, own) !== resolve(tree, shared);
 };
 
@@ -181,6 +201,7 @@ const isWorktree = (tree) => {
    somebody else's work, and telling this run to put that away is the dangerous direction. */
 const leftDirty = (tree, since) => {
   const said = git(tree, ["status", "--porcelain", "--untracked-files=no"]);
+  if (said === undefined) return undefined;
   return Boolean(said) && said.split("\n").filter(Boolean).some((one) => {
     try {
       return statSync(join(tree, one.slice(3).split(" -> ").pop())).mtimeMs >= since;
@@ -195,25 +216,43 @@ const leftDirty = (tree, since) => {
    process from a sibling run's, both sharing the session's own working directory, and the calls
    the turn made are what does. Each answers `null` where the process table would not enumerate,
    and a reading that could not be made refuses nothing. */
-const stillRunning = (tree, since, calls) => {
+const stillRunning = (tree, since, calls, worktree) => {
   const found = new Map();
   const both = [
-    ...(isWorktree(tree) ? standingIn(tree, since) ?? [] : []),
+    ...(worktree ? standingIn(tree, since) ?? [] : []),
     ...(startedHere(calls) ?? []),
   ];
   for (const one of both) found.set(one.pid, one);
   return [...found.values()].sort((one, two) => String(one.since).localeCompare(String(two.since)));
 };
 
-const linted = (ev, records) => {
-  const found = [];
-  const at = (file) => repoRoot(file) ?? dirname(file);
-  for (const { file, said } of linting(ev, turnWrites(records), left, { at })) {
-    if (said) found.push(`${typed(file)} — ${said.split("\n")[0]}`);
-  }
-  return found;
+const UNREAD = {
+  cap: `past the first ${MAX_FILES} code files in path order, which is as many as one stop lints`,
+  clock: "the stop clock ran out",
+  timeout: "the linter's own time limit",
 };
 
+/** What the linter said about the turn's writes, and each file it left unread with why, filtered by `configuresLint` as the post-call gate filters it. */
+const linted = (ev, records) => {
+  const found = [];
+  const unread = [];
+  const at = (file) => repoRoot(file) ?? dirname(file);
+  for (const { file, said, unread: why } of linting(ev, turnWrites(records), left, { at })) {
+    if (said) found.push(`${typed(file)} — ${said.split("\n")[0]}`);
+    else if (why && configuresLint(file)) unread.push(`${typed(file)} (${UNREAD[why] ?? why})`);
+  }
+  return { found, unread };
+};
+
+/* Not a refusal: a check that did not run is said where the harness says a gate that did not run, stderr and the hook log, so "not read" never reads as "read and clean". */
+const unjudged = (missed) => {
+  if (!missed.length) return;
+  const line = `stop-check did not read, and did not hold the stop on: ${missed.join("; ")}`;
+  logged("error", line);
+  process.stderr.write(`forge hooks: ${line}\n`);
+};
+
+/* The cheap checks first and lint last, with whatever they left: a slow linter otherwise spends the clock the lease, the tree and the live checks answer on, and their guards skip them. The lint lines still lead the message. */
 export const run = (ev, held = heldAndSilent) => {
   if (process.env.FORGE_STOP_DISABLE === "1") done();
   if (!judgedStop(ev)) done();
@@ -223,13 +262,15 @@ export const run = (ev, held = heldAndSilent) => {
   const { shell, said, calls } = readTurn(records);
   const tree = treeOf(ev, records, shell);
   const lines = [];
-  const say = (item, line) => {
-    if (!asked(ev, at, item, true)) lines.push(line);
+  const missed = [];
+  const say = (item, line, into = lines) => {
+    if (!asked(ev, at, item, true)) into.push(line);
   };
-
-  for (const one of linted(ev, records)) {
-    say(`lint ${one.split(" — ")[0]}`, `Linter: ${one}\n  Clear it: edit the file until the finding is gone.`);
-  }
+  const spare = (name) => {
+    if (left() > 1000) return true;
+    missed.push(`${name} (the stop clock ran out)`);
+    return false;
+  };
 
   /* Read where the tree's own run logs its consults, which is not this hook's environment. */
   const open = inRunHome(tree, () => unverdicted(logBytes(), repoRoot(tree) ?? tree));
@@ -239,21 +280,23 @@ export const run = (ev, held = heldAndSilent) => {
       + `  Clear it: \`${verdictForm(open.id)}\`.`);
   }
 
-  if (left() > 1000 && !asked(ev, at, "lease", false)) {
-    for (const key of held(ev, tree, said, holderOf(ev, shell))) {
-      say("lease", `${key} is in_progress under this session's lease and nothing was written since the claim.\n`
-        + `  Clear it: \`forge record park ${key} --kind paused --why "<where you left it>"\`, or advance it.`);
+  const since = Date.parse(at);
+  const timed = Number.isFinite(since);
+  /* Asked once, for both checks that turn on it. */
+  let own = false;
+  if (timed && spare("the worktree check")) {
+    own = isWorktree(tree);
+    const dirty = own ? leftDirty(tree, since) : false;
+    if (own === undefined || dirty === undefined) missed.push(`the worktree check (${NO_GIT})`);
+    else if (dirty) {
+      say("tree", `${typed(tree)} is a worktree this turn left with tracked changes uncommitted.\n`
+        + `  Clear it: \`git -C ${typed(tree)} add -u && git commit\`.`);
     }
   }
 
-  const since = Date.parse(at);
-  if (left() > 1000 && Number.isFinite(since) && isWorktree(tree) && leftDirty(tree, since)) {
-    say("tree", `${typed(tree)} is a worktree this turn left with tracked changes uncommitted.\n`
-      + `  Clear it: \`git -C ${typed(tree)} add -u && git commit\`.`);
-  }
-
-  if (left() > 1000 && Number.isFinite(since)) {
-    const standing = stillRunning(tree, since, calls);
+  if (timed && spare("the live-process check")) {
+    if (own === undefined) missed.push(`the live-process check inside the worktree (${NO_GIT})`);
+    const standing = stillRunning(tree, since, calls, own === true);
     if (standing.length) {
       const [first, ...rest] = standing;
       say("live", `This turn started ${standing.length === 1 ? "a process" : `${standing.length} processes`} `
@@ -261,6 +304,24 @@ export const run = (ev, held = heldAndSilent) => {
         + "  Clear it: block on it before this turn ends — `forge hooks --how polling` names the wait.");
     }
   }
+
+  if (!asked(ev, at, "lease", false) && spare("the lease check")) {
+    const keys = held(ev, tree, said, holderOf(ev, shell));
+    if (keys === null) missed.push("the lease check (the tracker did not say which issues are in progress)");
+    for (const key of keys ?? []) {
+      say("lease", `${key} is in_progress under this session's lease and nothing was written since the claim.\n`
+        + `  Clear it: \`forge record park ${key} --kind paused --why "<where you left it>"\`, or advance it.`);
+    }
+  }
+
+  const { found, unread } = linted(ev, records);
+  const linterSaid = [];
+  for (const one of found) {
+    say(`lint ${one.split(" — ")[0]}`, `Linter: ${one}\n  Clear it: edit the file until the finding is gone.`, linterSaid);
+  }
+  lines.unshift(...linterSaid);
+  missed.push(...unread);
+  unjudged(missed);
 
   if (lines.length) {
     block(`Clear each item below before this turn ends, by the line under it.\n\nThis turn is ending with `
