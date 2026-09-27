@@ -506,14 +506,18 @@ const spoken = (said) =>
 /* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
 const AIMED_AT = { options: false };
 
-/* A name opening right after a `$` or a `}` is the tail of what a shell or an interpreter builds, so the command spells none of what stands before it. */
-const BUILT = /[$}]/u;
+/* A name is spelt whole where a shell word opens with it, an opening quote aside: anything else glued before it — a `${…}`, a `$`, a closed quote pair holding one — is part of the same word, built rather than written, and the name is only its tail. */
+const OPENS = /[\s<>;&|(=]/u;
+const spelled = (said, at) => {
+  const from = at > 0 && /["']/u.test(said[at - 1]) ? at - 1 : at;
+  return from === 0 || OPENS.test(said[from - 1]);
+};
 
 const namesIn = (said, tail, read) =>
   namesOf(said, tail, read).map(({ token, at }) => ({
     token,
     placed: token[0] !== "~" && said[at - 1] !== "$",
-    spelt: !BUILT.test(said[at - 1] ?? ""),
+    spelt: spelled(said, at),
   }));
 
 /** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */

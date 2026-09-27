@@ -20,8 +20,3 @@ read. The write's target counts, spelled out or assembled, and not a path beside
 the command counts where the verb is handed its file, and where no target position is held for it.
 
 Not judged: whether the fact is true or useful. Only that the write was decided on.
-
-Not guarded: a project's own `.claude/skills/`. The host loads it for that one project, so it is a
-note about one repository by construction, and the question a skill edit answers has no honest
-answer there. The home's `.claude/skills/` serves every project and is guarded, as is a path whose
-owner the command leaves to a variable nothing resolved.
