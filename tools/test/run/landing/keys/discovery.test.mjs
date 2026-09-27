@@ -10,7 +10,7 @@ import {
   BASE, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, PAIRED_GATE, THIRD_BRANCH, THIRD_KEY,
   THIRD_OWNED, THIRD_UUID,
   forgetGateRuns, forgetInstall, gateRuns, git, landingRan, ready, seeded, sha, state, tracker, world,
-} from "./fixture.mjs";
+} from "../fixture.mjs";
 
 test.after(() => tracker.close());
 

@@ -9,7 +9,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import {
-  BASE, BRANCH, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, OWNED,
+  BASE, BRANCH, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED,
   context, ctx, git, ready, seeded, sha, tracker, world,
 } from "./fixture.mjs";
 
@@ -22,13 +22,14 @@ const SELF = "node tools/run.mjs";
 
 test.after(() => tracker.close());
 
-const ran = async (keys, work) => {
+/* `base` is the landing's where a case hands it one the remote lacks. */
+const ran = async (keys, work, base = null) => {
   const out = [];
   const kept = [console.log, console.error];
   console.log = (...said) => out.push(said.join(" "));
   console.error = (...said) => out.push(said.join(" "));
   try {
-    await landReady({ flags: new Map(), words: keys }, ctx(work));
+    await landReady({ flags: new Map(), words: keys }, { ...ctx(work), ...(base ? { base } : {}) });
   } catch (error) {
     if (!(error instanceof Stop)) throw error;
     out.push(error.message);
@@ -175,4 +176,42 @@ test("a tip pushed after the fetch is the question unanswered, not a branch that
   assert.match(said, /does not hold/u, said);
   assert.doesNotMatch(said, /rewritten/u, "the ancestry went unanswered, so nothing is claimed of it");
   assert.doesNotMatch(said, /force-with-lease/u, "and no push is advised off a reading it could not make");
+});
+
+/* A branch gone from the remote is the far end of a branch that moved: the fetch fails, and why is
+   read off the remote's own listing, so a missing branch is named with the push that clears it and
+   a remote that does not answer still reads as unreachable (ISS-2663). */
+const pair = (head, next, base) => seeded({
+  landing: ready(head, base),
+  next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }),
+});
+
+test("a member branch the remote lacks is named with its push and its capture, and the other member is not", async () => {
+  const { work, head, next, base } = world({ base: "other", second: true });
+  pair(head, next, base);
+  git(work, "push", "-q", "origin", "--delete", NEXT_BRANCH);
+  const said = await ran([KEY, NEXT_KEY], work);
+  assert.match(said, new RegExp(`origin holds no branch ${NEXT_BRANCH}, which the checkpoint on ${NEXT_KEY} names`, "u"), said);
+  assert.match(said, new RegExp(`git push -u origin ${NEXT_BRANCH}\\n\\s+forge claim ${NEXT_KEY} --pushed --ready`, "u"), said);
+  assert.doesNotMatch(said, new RegExp(`holds no branch ${BRANCH}\\b`, "u"), said);
+  assert.doesNotMatch(said, /Check the remote is reachable/u, said);
+  assert.equal(landingOf(context(NEXT_UUID)).state, "ready", `nothing of it moved:\n${said}`);
+});
+
+test("a remote that does not answer still reads as unreachable and names no branch as missing", async () => {
+  const { at, work, head, next, base } = world({ base: "other", second: true });
+  pair(head, next, base);
+  git(work, "remote", "set-url", "origin", join(at, "gone.git"));
+  const said = await ran([KEY, NEXT_KEY], work);
+  assert.match(said, /Check the remote is reachable\./u, said);
+  assert.doesNotMatch(said, /holds no branch/u, said);
+});
+
+test("a remote that answers and lacks a member branch and the base names both in one refusal", async () => {
+  const { work, head, next, base } = world({ base: "other", second: true });
+  pair(head, next, base);
+  git(work, "push", "-q", "origin", "--delete", NEXT_BRANCH);
+  const said = await ran([KEY, NEXT_KEY], work, "trunk");
+  assert.match(said, new RegExp(`origin holds no branch ${NEXT_BRANCH}, which the checkpoint on ${NEXT_KEY} names`, "u"), said);
+  assert.match(said, /origin holds no branch trunk, the base this landing pins/u, said);
 });

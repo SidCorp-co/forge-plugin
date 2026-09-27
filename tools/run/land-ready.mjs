@@ -7,7 +7,6 @@ import { gitOut, REMOTE, stop, Stop } from "../checkout.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
 import { fetchedFor, tipSaid } from "./land-ready/branch.mjs";
-import { withSiblings } from "./land-ready/siblings.mjs";
 import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { versionAt } from "./landing.mjs";
@@ -23,7 +22,7 @@ import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { publishesVersion } from "./release/released-tag.mjs";
-import { readyKeys } from "./land-ready/ready.mjs";
+import { readyKeys, withSiblings } from "./land-ready/ready.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
 import {
