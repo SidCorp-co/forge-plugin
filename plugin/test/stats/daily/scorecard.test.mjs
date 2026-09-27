@@ -121,13 +121,27 @@ test("11, 16. minutes not read leave the count standing, and the terminal prints
   assert.equal(line, "  agent minutes per closed issue: not read: proj: its issue list came back short (lower is better, G-11)");
 });
 
-test("a metric no reader computes is a tile with no figure, naming the issue that owes its reader", () => {
-  const scorecard = scorecardOf(readingOf({ runs: runsOn(DAY) }), DAY);
-  for (const [id, issue] of [["firstGate", "ISS-2425"]]) {
-    const tile = tileIn(scorecard, id);
-    assert.equal(tile.missing.issue, issue, id);
-    assert.deepEqual([tile.value, tile.baseline, tile.change, tile.verdict], [null, null, null, null], id);
-  }
+/* A landing attempt as the store holds it: its opening, its ending and the one gate that judged it. */
+const attemptOn = (day, issue, outcome, hour = 10) => {
+  const at = (minute) => `${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`;
+  const attempt = `${issue}@${at(0)}`;
+  return [
+    { kind: "landing-attempts", phase: "opened", attempt, issue, at: at(0) },
+    { kind: "landing-attempts", phase: "gate", gate: `c-${issue}@${at(1)}`, candidate: `c-${issue}`, members: [issue], verdict: outcome === "landed" ? "green" : "red", seconds: 60, at: at(1) },
+    { kind: "landing-attempts", phase: "ended", attempt, issue, at: at(2), outcome, cause: outcome === "landed" ? null : "branch", candidate: `c-${issue}` },
+  ];
+};
+
+test("ISS-2425 33. the first-gate tile is the day's share against the median of the days before that held one, and a day with none has no value", () => {
+  const before = "2026-09-19";
+  const attempts = [...attemptOn(DAY, "ISS-1", "landed"), ...attemptOn(DAY, "ISS-2", "landed"), ...attemptOn(DAY, "ISS-3", "back"),
+    ...attemptOn(before, "ISS-4", "back"), ...attemptOn(before, "ISS-4", "landed", 11)];
+  const tile = tileIn(scorecardOf({ ...readingOf(), attempts }, DAY), "firstGate");
+  assert.deepEqual([tile.value, tile.baseline, tile.baselineDays, tile.change, tile.verdict], [100, 0, 1, 100, "better"],
+    "ISS-4 landed on its second gate the day before, and the five days before that held no landing and are not in the median");
+  assert.equal(tile.detail, "2 of 2 landing(s) on a judged gate");
+  const empty = tileIn(scorecardOf({ ...readingOf(), attempts: attemptOn(DAY, "ISS-3", "back") }, DAY), "firstGate");
+  assert.deepEqual([empty.value, empty.missing], [null, null], "a day with no landing has no share and still is no missing reader");
 });
 
 test("a figure feeds a tile only where the tile's value is made of it, and a tile no reader computes is fed by none", () => {
@@ -139,6 +153,9 @@ test("a figure feeds a tile only where the tile's value is made of it, and a til
   assert.equal(fed("opportunities.listed[#1].runs"), null);
   assert.equal(fed("consults.headline.atBudget"), "atBudget");
   assert.equal(fed("consults.headline.answered"), null);
+  assert.equal(fed("landings.attempts.firstGate.share"), "firstGate");
+  assert.equal(fed("landings.attempts.firstGate.first"), "firstGate");
+  assert.equal(fed("landings.attempts.gates.lostMinutes"), null);
   for (const key of ["runs.headline.day.medianMinutes", "moved.phases.rose.now", "releases.landed[3.36.343].after.medianMinutes", "landings.headline.passes"]) {
     assert.equal(fed(key), null, `${key} feeds no computed tile, so a decision citing it points at its section`);
   }

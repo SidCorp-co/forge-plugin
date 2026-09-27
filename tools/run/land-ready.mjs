@@ -36,6 +36,8 @@ import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
 import { boundSaid, gateStep, handsBack, strategyRefused } from "./land-ready/gate.mjs";
 import { takenBack } from "./land-ready/taken-back.mjs";
+import { attemptsEnded, attemptsOpened } from "./attempts/set.mjs";
+import { BRANCH, COMBINATION, JUDGE, MOVED_BASE } from "../../plugin/src/stats/marks/attempts.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
 const BEFORE_MERGE = "before-merge";
@@ -91,7 +93,7 @@ const pinStep = async (one) => {
     const { key, documentId, landing } = member;
     const moved = tipSaid(root, key, landing, self);
     if (moved?.back) await saveOn(member, { state: LANDING_HEAD_OWED });
-    if (moved) stop(moved.said);
+    if (moved) stop(moved.said, moved.back ? BRANCH : null);
     console.log(`  ${landing.branch} was judged at ${shortly(landing.head)}`);
     if (landing.state === LANDING_READY) {
       await saveOn(member, { state: LANDING_CANDIDATE, pinned: at.pin });
@@ -141,7 +143,7 @@ const mergeStep = async (one) => {
     /* The two commits the merge was taken between, and not the paths: the reader keeps a park whose
        evidence is a commit, and the paths are in the reason already (ISS-2449). */
     await asked(() => parkAs(view, key, "blocked", why, [landing.head, at.pin]));
-    stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`);
+    stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`, back ? BRANCH : null);
   });
 };
 
@@ -165,7 +167,7 @@ const handedBack = async (member, alone, moved) => {
     + `    ... read ${moved.join(", ")} as ${shortly(alone)} has them, then: `
     + `forge claim ${key} --reconciled ${alone}\n`
     + `    ... or, where that reading finds the candidate wrong, commit the answer, review that head (and `
-    + `judge it, where this run is the judge), push it, then: forge claim ${key} --pushed --ready`);
+    + `judge it, where this run is the judge), push it, then: forge claim ${key} --pushed --ready`, MOVED_BASE);
 };
 
 /* The reconciliation the landing can make itself, and the one it cannot: a merge that left a
@@ -192,7 +194,7 @@ const chainStep = async (one) => {
     if (link.conflicts.length) {
       stop(`${landing.branch} does not merge onto the candidate the branches before it make: `
         + `${link.conflicts.join(", ")} conflict. It is landed after them, against the base this `
-        + `landing leaves, where a conflict is the base's own and parks it.`);
+        + `landing leaves, where a conflict is the base's own and parks it.`, COMBINATION);
     }
     const mine = movedBy(root, landing.head, link.commit, landing.files);
     const theirs = held.flatMap((kept) => movedBy(root, kept.landing.head, link.commit, kept.landing.files));
@@ -200,7 +202,7 @@ const chainStep = async (one) => {
       stop(`the candidate this set makes moves ${[...mine, ...theirs].join(", ")}, which is not the `
         + `base's doing: ${landing.branch} and a branch beside it write the same paths. It is landed `
         + `after them, against the base this landing leaves, where the move is the base's and its own `
-        + `builder is asked about it.`);
+        + `builder is asked about it.`, COMBINATION);
     }
     member.again = false;
     console.log(`  the landing moved nothing of the change on ${landing.branch}`);
@@ -250,10 +252,10 @@ const judgeStep = async (one) => {
     at.rebuild = true;
     return stop(`the turn came back judged at ${shortly(landing.deployment)} and this landing built `
       + `${shortly(at.candidate)}, so what was judged is not what would be promoted.${said} The `
-      + `candidate is rebuilt and the judgement asked for again.`);
+      + `candidate is rebuilt and the judgement asked for again.`, MOVED_BASE);
   }
   await saveOn(member, { state: LANDING_QA_OWED, deployment: at.candidate });
-  return stop(OWED_TO_QA(key, member.landing, "the candidate"));
+  return stop(OWED_TO_QA(key, member.landing, "the candidate"), JUDGE);
 };
 
 const pushStep = async (one) => {
@@ -271,7 +273,7 @@ const pushStep = async (one) => {
   const rebuilt = async (now, why) => {
     for (const member of at.members) await voidedAt(root, member, now);
     at.rebuild = true;
-    stop(why);
+    stop(why, MOVED_BASE);
   };
   const first = landedAlready(root, base, intended);
   if (!first.known) stop(NOT_KNOWN(named, base, first.now, intended));
@@ -294,6 +296,8 @@ const pushStep = async (one) => {
     console.log(`  the push reported a failure and ${base} carries ${shortly(intended)} anyway, `
       + `so it landed and nothing is pushed again`);
   }
+  /* Landed from here on, whatever a later write stops for: the base carries the release. */
+  at.pushed = true;
   if (at.room) forgetBump(at.room);
   publishesVersion(root, intended, releaseOf(at), `Run the landing again: it comes back to this `
     + `step, where the branch is already there and only the publication is retried.`);
@@ -417,12 +421,17 @@ const landSet = async (taking, ctx, from) => {
     const at = { members, dropped: [], pin: null, room: null, candidate: null };
     const steps = landingSteps({ at, ctx });
     const order = [...steps.keys()].filter((one) => one >= (attempt > 1 ? 0 : from));
+    const opened = attemptsOpened(members, ctx.root, order[0] > ORDER.indexOf("gate"));
+    let whole = false;
     try {
-      const whole = await runLanding(steps, order, ctx.root, {
+      whole = await runLanding(steps, order, ctx.root, {
         ms: ctx.ms,
         held: (one) => Boolean(steps[one][2]),
         again: () => `The checkpoint says where this landing is, so no step number is owed: `
           + `${ctx.self} land-ready ${taking.map((one) => one.key).join(" ")}`,
+        stopped: (error) => {
+          at.cause = error.why ?? null;
+        },
       });
       if (whole) {
         console.log(`\n${keysOf(at)} landed as ${releaseOf(at)}.`);
@@ -440,6 +449,7 @@ const landSet = async (taking, ctx, from) => {
       if (!at.rebuild) return at.dropped.filter((one) => one.again);
       members = at.members;
     } finally {
+      attemptsEnded(opened, at, whole);
       dropRoom(ctx.root, at.room);
     }
   }

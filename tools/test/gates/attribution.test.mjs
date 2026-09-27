@@ -365,3 +365,20 @@ test("every file of the step still runs in the suite, the attribution adding no 
     rmSync(at, { recursive: true, force: true });
   }
 });
+
+/* The seconds a failing verdict carries, which a landing prices a red gate off as it prices a green one:
+   the step fails after a second and a half, so a verdict carrying none or nought of it is caught (ISS-2425). */
+const SLOW_RED = { step: "lint", command: "node -e \"setTimeout(() => process.exit(1), 1500)\"" };
+
+test("ISS-2425 15. a failing verdict carries the seconds its steps ran", () => {
+  const { at, work } = scratch("red-seconds", null, null, { needing: SLOW_RED });
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    assert.equal(run(work).status, 1);
+    const verdict = verdictRuns(work).at(-1);
+    assert.equal(verdict.verdict, "failed", JSON.stringify(verdict));
+    assert.ok(Number.isInteger(verdict.seconds) && verdict.seconds >= 1, `the failing step's time is not on the verdict: ${JSON.stringify(verdict)}`);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});

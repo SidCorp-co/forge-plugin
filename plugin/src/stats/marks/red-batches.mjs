@@ -3,7 +3,7 @@
    transcript. Two records a set — one the moment its candidate reads red, one once it is resolved —
    so a set whose resolution never reached the store is still a set, counted as unknown rather than
    as one that cost nothing. docs/cli/stats-the-landing.md. */
-import { BATCHES, WRITTEN, marksOf, scopeOf, writeMark } from "./marks.mjs";
+import { BATCHES, WRITTEN, marksOf, scopeOrNone, writeMark } from "./marks.mjs";
 
 const OPENED = "opened";
 const RESOLVED = "resolved";
@@ -35,14 +35,7 @@ const written = (record, what) => {
  *  resolution is written against. */
 export const batchOpened = ({ root, members, candidate, pin, strategy }) => {
   const at = new Date().toISOString();
-  let scope = null;
-  try {
-    scope = scopeOf(root);
-  } catch {
-    /* A checkout whose project file cannot be read is held under no scope: the daily page, which
-       reads every scope, still counts the set, and the landing is not stopped over a figure. */
-  }
-  const opened = { kind: BATCHES, scope, batch: `${candidate}@${at}`, strategy, members };
+  const opened = { kind: BATCHES, scope: scopeOrNone(root), batch: `${candidate}@${at}`, strategy, members };
   written({ ...opened, phase: OPENED, at, candidate, pin }, "the red set's opening");
   return opened;
 };

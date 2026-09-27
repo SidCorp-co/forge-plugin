@@ -24,6 +24,7 @@ const { landReady } = await import("../../../run/land-ready.mjs");
 const { Stop } = await import("../../../checkout.mjs");
 const { landingOf } = await import("../../../../plugin/src/flow/landing/checkpoint.mjs");
 const { render } = await import("../../../../plugin/src/flow/record/page.mjs");
+const { ATTEMPTS, marksOf } = await import("../../../../plugin/src/stats/marks/marks.mjs");
 
 test.after(() => tracker.close());
 
@@ -63,8 +64,11 @@ const judged = (numbers, evidence, commit) => {
 test("the candidate is built and gated, and the push waits on a judge the checkpoint names", async () => {
   const { at, work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base) });
+  const from = marksOf(ATTEMPTS).length;
   const said = await ran([KEY], work);
   assert.match(said, /landing before-merge, judgement independent/u, said);
+  const [ended] = marksOf(ATTEMPTS).slice(from).filter((one) => one.phase === "ended");
+  assert.deepEqual([ended.issue, ended.outcome, ended.cause], [KEY, "back", "judge"], `ISS-2425 11. the judge's turn ends the attempt:\n${said}`);
   const held = landing();
   /* Everything up to the push is paid before the turn is handed over: judging a candidate that had
      not been gated would spend a judge's pass on a tree the gate might still refuse. */

@@ -11,7 +11,7 @@ import {
 } from "../fixture.mjs";
 
 const { landingOf } = await import("../../../../../plugin/src/flow/landing/checkpoint.mjs");
-const { BATCHES, marksOf } = await import("../../../../../plugin/src/stats/marks/marks.mjs");
+const { ATTEMPTS, BATCHES, marksOf } = await import("../../../../../plugin/src/stats/marks/marks.mjs");
 
 test.after(() => tracker.close());
 
@@ -24,6 +24,7 @@ test("with redBatch one-by-one a combination the gate refuses lands one branch a
   seeded({ landing: ready(head, base), next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }) });
   forgetGateRuns();
   redTogether();
+  const from = marksOf(ATTEMPTS).length;
   const said = await landingRan([KEY, NEXT_KEY], work);
   assert.match(said, /3 gate run\(s\) at most: one for the candidate, and one for each branch/u, said);
   assert.match(said, /this project's `redBatch` is `one-by-one` rather than `attribute-then-split`, so no subset is searched for/u, said);
@@ -39,4 +40,9 @@ test("with redBatch one-by-one a combination the gate refuses lands one branch a
   assert.equal(resolved.outcome, "one-by-one", `the red set is on record however it was landed:\n${said}`);
   assert.equal(resolved.gates, 1, `the combined gate is the one it spent:\n${said}`);
   assert.deepEqual(resolved.alone, [KEY, NEXT_KEY], `and every member is landed alone:\n${said}`);
+  /* ISS-2425 6: the set's attempt ends for the combination, and each member's own attempt after it. */
+  const endings = (key) => marksOf(ATTEMPTS).slice(from).filter((one) => one.phase === "ended" && one.issue === key)
+    .map((one) => [one.outcome, one.cause]);
+  assert.deepEqual(endings(KEY), [["back", "combination"], ["landed", null]], said);
+  assert.deepEqual(endings(NEXT_KEY), [["back", "combination"], ["back", "branch"]], said);
 });

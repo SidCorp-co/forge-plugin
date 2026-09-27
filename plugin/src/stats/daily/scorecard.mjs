@@ -4,7 +4,7 @@
    read them off this table. Why a metric is per day or per closed issue and never per run, and what
    arithmetic this page does over the readers' figures: docs/cli/stats.md. */
 import { weekBefore } from "./day.mjs";
-import { MISSING, consultsSection, frictionOf, runsOn } from "./gather.mjs";
+import { attemptsOn, consultsSection, frictionOf, runsOn } from "./gather.mjs";
 import { REOPENED, SPLIT, closedOn } from "./tracker/closed.mjs";
 import { waitsOn } from "./tracker/waits.mjs";
 import { entriesOf } from "./opportunities.mjs";
@@ -35,6 +35,21 @@ const atBudgetOf = (reading, day) => {
   if (!budgeted) return null;
   return { value: percentOf(atBudget, budgeted), detail: `${atBudget} of ${budgeted} consult(s) that recorded a budget` };
 };
+
+/* The share of the day's landed attempts on a judged gate that landed on their first; a day with none
+   has no share, and the landings with no judged gate on record are said beside it and never counted. */
+const firstGateOf = (reading, day) => {
+  const { firstGate } = attemptsOn(reading, day);
+  const gated = firstGate.landed - firstGate.ungated;
+  if (firstGate.share === null) return { value: null, detail: firstGate.ungated ? `${firstGate.ungated} landing(s) with no judged gate on record` : null };
+  return { value: firstGate.share, detail: `${firstGate.first} of ${gated} landing(s) on a judged gate`
+    + `${firstGate.ungated ? `, ${firstGate.ungated} with no judged gate on record` : ""}` };
+};
+
+/* The figures of the page's reading the share is made of: its two terms, what is set apart, and itself. */
+const FIRST_GATE_AT = "landings.attempts.firstGate.";
+const FIRST_GATE_TERMS = ["first", "landed", "ungated", "share"];
+const firstGateFrom = (key) => key.startsWith(FIRST_GATE_AT) && FIRST_GATE_TERMS.includes(key.slice(FIRST_GATE_AT.length));
 
 /* The two tiles a close feeds: a count not read is not read, never nought, and a day with no close has
    no quotient to take. */
@@ -90,7 +105,7 @@ export const METRICS = [
   { id: "closed", label: "issues closed", unit: "", better: HIGHER, goal: "G-11", of: closedCountOf },
   { id: "minutesPerClosed", label: "agent minutes per closed issue", unit: " min", better: LOWER, goal: "G-11", of: minutesPerClosedOf },
   { id: "firstGate", label: "landings that passed their first gate", unit: PERCENT, better: HIGHER, goal: "G-11",
-    missing: MISSING.firstGate },
+    of: firstGateOf, fedBy: firstGateFrom },
   { id: "ownerWait", label: "owner wait minutes", unit: " min", better: LOWER, goal: "G-11", of: ownerWaitOf },
   { id: "wasted", label: "wasted calls, of all calls", unit: PERCENT, better: LOWER, goal: "G-11", of: wastedOf, fedBy: wastedFrom },
   { id: "atBudget", label: "consults that ended at their call budget", unit: PERCENT, better: LOWER, goal: "G-06",

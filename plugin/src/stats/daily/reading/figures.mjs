@@ -56,8 +56,24 @@ const LANDING_FIGURES = [["passes", "landing passes"], ["outsideRuns", "landing 
   ["resumed", "landing passes resumed with --from"], ["rejectedRuns", "runs with a rejected push"],
   ["gateCalls", "gate calls"], ["gateMinutes", "gate minutes"]];
 
+const ATTEMPT_FIGURES = [["attempts", "landing attempts"], ["landed", "landing attempts that landed"],
+  ["back", "landing attempts that did not land"]];
+const FIRST_GATE_FIGURES = [["first", "landings on their first gate"], ["landed", "landings"],
+  ["ungated", "landings with no judged gate on record"], ["share", "per cent of landings on a judged gate that landed on their first"]];
+const GATE_FIGURES = [["judged", "judged gates"], ["minutes", "gate minutes spent"], ["lostMinutes", "gate minutes lost"],
+  ["declined", "gates declined for a place"], ["error", "gates that could not run"], ["unpriced", "judged gates with no seconds on record"]];
+
+const attemptFigures = (held) => (held ? [
+  ...ATTEMPT_FIGURES.flatMap(([field, said]) => one(`landings.attempts.${field}`, `${said}, the day`, held[field])),
+  ...Object.entries(held.causes).flatMap(([cause, many]) =>
+    one(`landings.attempts.causes.${cause}`, `landing attempts not landed for cause ${cause}, the day`, many)),
+  ...FIRST_GATE_FIGURES.flatMap(([field, said]) => one(`landings.attempts.firstGate.${field}`, `${said}, the day`, held.firstGate[field])),
+  ...GATE_FIGURES.flatMap(([field, said]) => one(`landings.attempts.gates.${field}`, `${said}, the day`, held.gates[field])),
+] : []);
+
 const landingsFigures = ({ landings }) => [
   ...LANDING_FIGURES.flatMap(([field, said]) => one(`landings.headline.${field}`, `${said}, the day`, landings.headline?.[field])),
+  ...attemptFigures(landings.attempts),
   ...trend("landings.trend", "passes", "landing passes", landings.trend),
 ];
 
@@ -123,7 +139,7 @@ const offeredKeys = (content) => {
   for (const release of content.releases.landed) {
     for (const issue of release.issues) add(issue.key, issue.title, `landed in release ${release.version}`);
   }
-  for (const missing of [content.runs.effort, ...content.landings.missing, ...content.consults.missing]) {
+  for (const missing of [content.runs.effort, ...content.consults.missing]) {
     add(missing?.issue, null, `owes the reader of ${missing?.reading}`);
   }
   return [...held.values()];

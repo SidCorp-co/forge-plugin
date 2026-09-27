@@ -121,10 +121,10 @@ test("a figure no reader computes is named once in the footer with its issue, an
   const page = readFileSync(join(held.reports, `${daysAgo(1)}.html`), "utf8");
   const footer = page.slice(page.indexOf("<footer>"), page.indexOf("</footer>"));
   for (const [reading, issue] of [["issue-flow runs by the effort they ran at", "ISS-2424"],
-    ["hand-backs by cause", "ISS-2425"], ["gate minutes lost", "ISS-2425"],
     ["consult calls lost to transport failures", "ISS-2426"]]) {
     assert.ok(footer.includes(`<li>Not computed yet: ${reading}, owed by ${issue}.</li>`), reading);
   }
+  assert.ok(!footer.includes("ISS-2425"), "ISS-2425 34. the first-gate share, the causes and the lost gate minutes have their reader");
   assert.ok(!footer.includes("ISS-2600"), "15. the owner wait has its reader");
   assert.doesNotMatch(page, /missing: /u, "no red missing line anywhere on the page");
 });

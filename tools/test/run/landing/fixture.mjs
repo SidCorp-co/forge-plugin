@@ -91,7 +91,8 @@ export const PAIRED_GATE = "node tools/paired.mjs";
 
 /** A gate that says why it is red the way the real one does: a verdict record under the room's own
  *  key naming the failing step, its cases and what each read, and the step's section of the output
- *  naming paths. The rules are a case's own, first match wins, each over which of the three changes
+ *  naming paths. A run that judged the tree records when it was decided and the seconds its steps
+ *  ran, three more than the run took, so a case can tell them from nought. The rules are a case's own, first match wins, each over which of the three changes
  *  the gated tree holds; one line per run, JSON, with when it started and ended (ISS-2480). */
 const JUDGED_RULES = join(ROOM, "judged-rules.json");
 const JUDGED_RUNS = join(ROOM, "judged-runs.txt");
@@ -117,13 +118,15 @@ const JUDGED = [
   "await new Promise((done) => setTimeout(done, sleepMs));",
   `appendFileSync(${JSON.stringify(JUDGED_RUNS)}, JSON.stringify({ present, red: Boolean(rule), status: rule?.status ?? 0, started, ended: Date.now(), `
     + `below: execFileSync("git", ["rev-list", "--first-parent", "HEAD"], { encoding: "utf8" }).split("\\n").filter(Boolean) }) + "\\n");`,
-  "if (!rule) process.exit(0);",
   "const root = realpathSync(process.cwd());",
+  'const dir = join(execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" }).trim(), "gate-ledger");',
+  'const key = `${basename(root).replace(/[^\\w.-]+/gu, "-")}.${createHash("sha256").update(root).digest("hex").slice(0, 8)}`;',
+  "const decided = { tree: root, pid: process.pid, at: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000) + 3 };",
+  "if (!rule || rule.status !== 75) mkdirSync(dir, { recursive: true });",
+  'if (!rule) appendFileSync(join(dir, `verdict-${key}`), JSON.stringify({ ...decided, verdict: "pass", code: 0 }) + "\\n");',
+  "if (!rule) process.exit(0);",
   "if (rule.status !== 75) {",
-  '  const dir = join(execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" }).trim(), "gate-ledger");',
-  '  const key = `${basename(root).replace(/[^\\w.-]+/gu, "-")}.${createHash("sha256").update(root).digest("hex").slice(0, 8)}`;',
-  "  mkdirSync(dir, { recursive: true });",
-  '  const verdict = { tree: root, pid: process.pid, verdict: "failed", code: 1, step: rule.step, ...(rule.cases ? { cases: rule.cases, reads: rule.reads } : {}) };',
+  '  const verdict = { ...decided, verdict: "failed", code: 1, step: rule.step, ...(rule.cases ? { cases: rule.cases, reads: rule.reads } : {}) };',
   '  appendFileSync(join(dir, `verdict-${key}`), JSON.stringify(verdict) + "\\n");',
   '  process.stdout.write(`\\n=== ${rule.step} ===\\n${rule.says ?? ""}\\n`);',
   "  process.stderr.write(`\\nGate failed: ${rule.step} — the tree judged: ${root}\\n`);",

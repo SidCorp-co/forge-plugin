@@ -12,16 +12,19 @@ const TRACKING = `refs/remotes/${REMOTE}/`;
 
 export class Stop extends Error {}
 
-export const stop = (message) => {
-  throw new Stop(message);
+/** `why` is the landing's cause for the stop, where it has one: the attempt it ends is recorded with it. */
+export const stop = (message, why = null) => {
+  throw Object.assign(new Stop(message), why ? { why } : {});
 };
 
 export const git = (args, cwd = process.cwd(), beside = {}) =>
   spawnSync("git", args, { cwd, encoding: "utf8", ...beside });
 
 /** Loud, because a step's own output is the evidence that it did what it says. */
-export const loud = (command, args, cwd, why) => {
+/** `heard` is handed the finished run before any stop, for a caller that records how it exited. */
+export const loud = (command, args, cwd, why, heard = () => {}) => {
   const run = spawnSync(command, args, { cwd, encoding: "utf8", stdio: "inherit" });
+  heard(run);
   if (run.error) stop(`${command} could not be run: ${run.error.message}. ${why}`);
   if (run.status !== 0) stop(`${command} ${args.join(" ")} exited ${run.status}. ${why}`);
 };

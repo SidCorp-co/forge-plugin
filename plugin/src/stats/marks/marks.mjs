@@ -22,6 +22,8 @@ export const RELEASES = "releases";
 export const CLAIMS = "claims";
 /* How a landing resolved a red set: an opening record and a resolution record per set, docs/cli/stats-the-landing.md. */
 export const BATCHES = "red-batches";
+/* A landing's attempts and gates: an opening, an ending and a record per gate, docs/cli/stats-the-landing.md. */
+export const ATTEMPTS = "landing-attempts";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
@@ -60,6 +62,16 @@ export const scopeOf = (directory) => {
      repositories, and a key that could not tell them apart would resolve one's readings for the
      other, which is the defect this scope exists to end (consult 6f21 F3). */
   return `${NO_PROJECT}${repository ?? directory}`;
+};
+
+/** The scope a landing's record is held under, or none where the checkout's project file cannot be
+ *  read: the daily page, which reads every scope, still counts it, and no landing stops over a figure. */
+export const scopeOrNone = (root) => {
+  try {
+    return scopeOf(root);
+  } catch {
+    return null;
+  }
 };
 
 const readAll = () => jsonlAt(marksPath());
@@ -238,6 +250,7 @@ const identityOf = (record) => {
      carries the moment: holding them by issue alone would make a revised claim a no-op write. */
   if (record.kind === CLAIMS) return `${record.issue}@${record.at}`;
   if (record.kind === BATCHES) return `${record.batch}:${record.phase}`;
+  if (record.kind === ATTEMPTS) return `${record.attempt ?? record.gate}:${record.phase}`;
   return record.mark;
 };
 

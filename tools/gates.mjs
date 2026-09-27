@@ -307,9 +307,14 @@ const spentFiles = [];
 let unitless = 0;
 const spent = () => (spentFiles.length > 0 || unitless > 0 ? { files: spentFiles, unitless } : {});
 
+/* Set when the first step starts, so a failing exit records the seconds its steps ran as a passing one
+   does: a landing reads a red gate's minutes as the ones it lost. A refusal before any step has none. */
+let stepsFrom = null;
+const stepSeconds = () => (stepsFrom === null ? {} : { seconds: Math.round((Date.now() - stepsFrom) / 1000) });
+
 const finish = (code, verdict, figures = {}) => {
   if (dirty.length > 0 && allowDirty) console.log(`\n${banner}`);
-  console.log(said(gateDecided(ROOT, opened, { verdict, code, ...spent(), ...figures })));
+  console.log(said(gateDecided(ROOT, opened, { verdict, code, ...spent(), ...stepSeconds(), ...figures })));
   process.exit(code);
 };
 
@@ -468,6 +473,7 @@ if (planned.length > 0) {
 }
 
 const started = Date.now();
+stepsFrom = started;
 const [load] = loadavg();
 const cores = availableParallelism();
 const declared = parallelRuns();

@@ -18,6 +18,7 @@ import { CEILINGS, climbForm, overCeiling } from "../../plugin/src/ladder.mjs";
 import { REPLAYED, replaySays, replayedBy } from "./replayed.mjs";
 import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./land.mjs";
 import { checkpointsFinished, keysHere } from "./ship/checkpoint.mjs";
+import { gatedShip, pushedShip, shipAttempt, shipLeft } from "./attempts/ship.mjs";
 import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
@@ -220,7 +221,7 @@ export const named = () => ({
 
 const GATE = "the gate";
 
-const shipSteps = (tree, root, base, note) => {
+const shipSteps = (tree, root, base, note, attempt) => {
   const { market, plugin } = named();
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
   const push = `push to ${REMOTE}/${base}`;
@@ -251,8 +252,8 @@ const shipSteps = (tree, root, base, note) => {
       replayedBy(tree, from);
     }, LANDS],
     /* After the rebase, the range being what the release ships, so the gate judges the content that goes out. Where it sits relative to the bump decides nothing now: a release's own version is no part of a step's digest (ISS-1716). */
-    [GATE, () => loud("npm", CHECK, tree,
-      "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
+    [GATE, () => gatedShip(attempt, tree, base, (heard) => loud("npm", CHECK, tree,
+      "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run.", heard)), LANDS],
     [`a version above ${REMOTE}/${base}`,
       () => versionAbove(tree, base, note), LANDS],
     [push, () => {
@@ -265,13 +266,13 @@ const shipSteps = (tree, root, base, note) => {
         stop(`this tree's package.json names no version to publish, read from `
           + `${join(tree, "package.json")}. Nothing is pushed.`);
       }
-      pushing(tree, base, () => `Rejected means the remote moved${unwound(tree)}. A lost race is `
+      pushedShip(attempt, tree, base, () => pushing(tree, base, () => `Rejected means the remote moved${unwound(tree)}. A lost race is `
         + `not a stale review: whether the review still stands turns on whether that landing wrote any `
         + `of this change's own paths, and step ${step(REPLAYED)} of the resume prints both sets and `
         + `judges it. Where the landing wrote none, the review stands at the head the resume's own `
         + `rebase makes and the resume is the whole remedy; where it wrote one, that step refuses naming `
         + `it, and a read at the new head is owed before the push. Rebase nothing by hand first: a replay `
-        + `the ship did not make takes the reviewed head off the lineage that step accepts. The resume: ${releases()}`);
+        + `the ship did not make takes the reviewed head off the lineage that step accepts. The resume: ${releases()}`));
       forgetBump(tree);
       publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), version, resume());
     }, PUSHES],
@@ -492,7 +493,8 @@ export const ship = async ({ flags }) => {
   const tree = process.cwd();
   const root = checkoutRoot(tree);
   const base = defaultBranch(tree);
-  const steps = shipSteps(tree, root, base, note);
+  const attempt = shipAttempt();
+  const steps = shipSteps(tree, root, base, note, attempt);
   if (!Number.isInteger(from) || from < 1 || from > steps.length) {
     stop(`--from takes a step between 1 and ${steps.length}, not \`${asked}\`.`);
   }
@@ -511,11 +513,18 @@ export const ship = async ({ flags }) => {
      an install reads. A resume aimed past both spends the gate again, and holding the branch through
      that would block every sibling for a landing nobody makes. */
   const lands = order.some((at) => SHARED.has(steps[at][2])) ? (at) => Boolean(steps[at][2]) : () => false;
-  const whole = await runLanding(steps, order, tree, {
-    ms,
-    held: lands,
-    again: (at) => `Resume from there: ${SELF} ship --from ${at + 1}`,
-  });
+  /* An attempt is a pass that gates and pushes: a resume past the push re-runs the gate and lands nothing. */
+  attempt.armed = order.includes(at(GATE)) && order.includes(pushes);
+  let whole = false;
+  try {
+    whole = await runLanding(steps, order, tree, {
+      ms,
+      held: lands,
+      again: (at) => `Resume from there: ${SELF} ship --from ${at + 1}`,
+    });
+  } finally {
+    shipLeft(attempt);
+  }
   if (!whole) return;
   console.log(`\nReleased. Verify the change against the installed copy by its own path, not \`forge\` on PATH.`);
 };

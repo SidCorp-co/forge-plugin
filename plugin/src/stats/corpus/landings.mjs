@@ -9,6 +9,7 @@ import { sessionsUnder, readTranscript } from "./corpus.mjs";
 import { shellOf } from "./transcripts.mjs";
 import { scopeOf } from "../marks/marks.mjs";
 import { redBatchLine, redBatchesOver } from "../marks/red-batches.mjs";
+import { attemptsLine, attemptsOver } from "../marks/attempts.mjs";
 
 /** The row every landing pass is filed under, whichever route a project lands by. */
 const SHIP_CLASS = "ship";
@@ -78,14 +79,19 @@ export const landingsOver = (passes) => ({
   outsideRuns: passes.filter((one) => !one.inRun).length,
 });
 
-/** What `stats runs` holds of the landings: the passes, off every transcript, and the red sets, off
- *  the records the landing wrote under this checkout's project — each over the same window. */
-export const landingsHeld = ({ root, classes, passes, from, directory }) => ({
-  landings: landingsOver(landingsUnder(root, classes, passes, from)),
-  redBatches: redBatchesOver(scopeOf(directory), from),
-});
+/** What `stats runs` holds of the landings: the passes, off every transcript, and the red sets and the
+ *  attempts, off the records the landing wrote under this checkout's project — each over the same window. */
+export const landingsHeld = ({ root, classes, passes, from, directory }) => {
+  const scope = scopeOf(directory);
+  return {
+    landings: landingsOver(landingsUnder(root, classes, passes, from)),
+    redBatches: redBatchesOver(scope, from),
+    attempts: attemptsOver(scope, from),
+  };
+};
 
 const landingLine = (held) => `landings        ${held.passes} pass(es) in every transcript of the project, `
   + `${held.outsideRuns} of them in a session no issue-flow run holds, ${held.resumed} resumed with --from`;
 
-export const landingLines = (held) => [landingLine(held.landings), ...(held.redBatches ? [redBatchLine(held.redBatches)] : [])];
+export const landingLines = (held) => [landingLine(held.landings), ...(held.redBatches ? [redBatchLine(held.redBatches)] : []),
+  ...(held.attempts ? [attemptsLine(held.attempts)] : [])];
