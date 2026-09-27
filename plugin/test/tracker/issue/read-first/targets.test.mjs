@@ -468,7 +468,7 @@ test("with no endpoint saved a filing is judged for its route and not for its sh
 
 test("the refusal a raw create earns with no endpoint saved is the one it earns with one", async () => {
   /* One session each: the line saying where to file a wrong refusal is shown once per session. A body
-     the shape refuses, because that is the body whose answer used to turn on the endpoint. */
+     the shape refuses, since the shape is the one reading of a filing that needs an endpoint. */
   const saved = await filing(BROKEN, { session: "probe-with-endpoint" });
   const none = await filing(BROKEN, { url: "", session: "probe-no-endpoint" });
   assert.equal(because(none), because(saved), "the same call, so the same words: the credential is not part of the question");
