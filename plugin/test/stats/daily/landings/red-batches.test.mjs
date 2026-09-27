@@ -7,8 +7,8 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { SLUG, daily, daysAgo, device, envOf } from "./fixture-daily.mjs";
-import { FORGE } from "../fixture-runs.mjs";
+import { SLUG, daily, daysAgo, device, envOf } from "../fixture-daily.mjs";
+import { FORGE } from "../../fixture-runs.mjs";
 
 const at = (on, time) => `${on}T${time}.000Z`;
 /* A set is keyed by the candidate and the moment it was opened, so each day's sets are its own. */
