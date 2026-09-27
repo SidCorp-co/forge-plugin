@@ -8,9 +8,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { answered, callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
 const HOME = homeEnv("learning-gate-project-skill");
 const SKILL_DIR = "/home/dev/app/plugin/skills/issue-flow";
 const PROJECT_SKILL = "/home/dev/app/.claude/skills/uat/SKILL.md";
