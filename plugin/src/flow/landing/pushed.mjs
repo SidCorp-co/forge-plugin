@@ -1,7 +1,7 @@
 /* Whether the head a ready capture names is the one origin holds for its branch, asked of origin
    itself. The capture is the one read that goes to the remote: a landing fetches the branch it names
-   from there, and a head only this disk has armed a landing that then failed at its first fetch
-   (ISS-2662). docs/cli/claim.md. */
+   from there, and a head only this disk has armed a landing whose first step then failed, reading
+   as a network fault (ISS-2662). docs/cli/claim.md. */
 import { spawnSync } from "node:child_process";
 
 import { shortSha } from "../../tracker/evidence.mjs";
