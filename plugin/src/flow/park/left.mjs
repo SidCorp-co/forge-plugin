@@ -14,7 +14,7 @@ const firstLine = (text) => String(text ?? "").split("\n")[0];
 /** Walked back through the history newest first from the move into `status`: when that move was, and
  *  the status the issue stood at before it entered side statuses at all — a park from one side status
  *  to another leaves where the first left — or `unread` saying why neither was found. */
-export const moveInto = async (documentId, status) => {
+const moveInto = async (documentId, status) => {
   let before = null;
   let at = null;
   for (let page = 0; page < PAGES; page += 1) {
