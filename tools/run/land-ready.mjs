@@ -8,6 +8,7 @@ import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
 import { fetchedFor, tipSaid } from "./land-ready/branch.mjs";
 import { publishes } from "./publish.mjs";
+import { releaseOwes } from "./release/owed.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { versionAt } from "./landing.mjs";
 import {
@@ -353,8 +354,17 @@ const installStep = async (one) => {
       at.installing = false;
     }
     publishes(at.room, base, release);
+    await releaseOwes({ tree: at.room, self, landed: at.members.map((member) => changeOf(at, member)) });
   }
   for (const member of at.members) await saveOn(member, { state: "installed" });
+};
+
+/* A member's own commits and not the candidate's, so a batch holds each change to its own rung: from
+   where its judged head leaves the pin's line, which a resume reads off the checkpoint's pin. */
+const changeOf = (at, { key, landing }) => {
+  const pin = at.pin ?? landing.pinned;
+  const was = pin && landing.head ? gitOut(["merge-base", pin, landing.head], at.room) : null;
+  return { ref: key, was, at: landing.head };
 };
 
 /* The table the resume points into, one row per name in ORDER. */
