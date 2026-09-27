@@ -172,12 +172,19 @@ test("listing an absent directory is empty, and any other fault is thrown with i
     "a copy with no contract directory is one finding, not a crash");
   writeFileSync(join(room, "a-file"), "not a directory\n");
   assert.throws(() => subdirectoriesIn(join(room, "a-file")), { code: "ENOTDIR" });
+  const filed = join(tempRoom("contract-filed-"), "guides", "contract");
+  mkdirSync(filed, { recursive: true });
+  writeFileSync(join(filed, DEFAULT), "a file where the flow's directory belongs\n");
+  assert.throws(() => flowProblems(join(filed, "..", ".."), { [DEFAULT]: { requires: [] } }), { code: "ENOTDIR" },
+    "a flow directory that is a file was reported as a copy holding no part");
   if (process.getuid?.() === 0) return;
-  const shut = join(room, "shut");
-  mkdirSync(shut);
+  const shut = join(room, "guides", "contract", DEFAULT);
+  mkdirSync(shut, { recursive: true });
   chmodSync(shut, 0o000);
   try {
     assert.throws(() => subdirectoriesIn(shut), { code: "EACCES" });
+    assert.throws(() => flowProblems(room, { [DEFAULT]: { requires: [] } }), { code: "EACCES" },
+      "an unreadable flow directory was reported as a copy holding no part");
   } finally {
     chmodSync(shut, 0o700);
   }

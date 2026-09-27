@@ -40,26 +40,25 @@ export const partFileProblem = (name, text) => {
   return heads.length > 1 ? `${name} carries ${heads.length} headings, and its name addresses one part` : null;
 };
 
-/** A part set's file names in order, or null where the directory holds none: a question of presence is answered here, without reading a part. */
-export const partNamesIn = (dir) => {
-  try {
-    const names = readdirSync(dir).filter((one) => one.endsWith(".md")).sort();
-    return names.length ? names : null;
-  } catch {
-    return null;
-  }
-};
-
 /* Absent is the one fault that means "nothing here": any other, a permission or a file where a
    directory belongs, answered empty would read exactly like a copy that ships nothing there. */
-export const subdirectoriesIn = (dir) => {
+const listed = (dir, options) => {
   try {
-    return readdirSync(dir, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name);
+    return readdirSync(dir, options);
   } catch (error) {
     if (error.code === "ENOENT") return [];
     throw error;
   }
 };
+
+/** A part set's file names in order, or null where the directory holds none: a question of presence is answered here, without reading a part. */
+export const partNamesIn = (dir) => {
+  const names = listed(dir).filter((one) => one.endsWith(".md")).sort();
+  return names.length ? names : null;
+};
+
+export const subdirectoriesIn = (dir) =>
+  listed(dir, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name);
 
 export const partEntriesIn = (dir) =>
   partNamesIn(dir)?.map((name) => ({ name, text: readFileSync(join(dir, name), "utf8") })) ?? null;
