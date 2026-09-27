@@ -59,3 +59,11 @@ where something was said between an old announcement and the record straight aft
 reversal is why the
 tracker's announcement no longer counts as the person's look a screen park waits for: what kept it
 out was where it sat, and it now sits under the record rather than over it.
+
+A move-first park that dies between its two writes leaves the issue in `on_hold` with no record, and
+the page is no help: `on_hold` announces nothing, and the status the issue holds is the one no park
+ever left from. So the status left is read off the tracker's own history of the issue, the newest
+move into that status, wherever a park or a park record is written at a side status; and a park sent
+again at the status it lands in, with no park of that landing written since that move, is the record
+alone. A history that names no step of the flow is refused rather than guessed at, since a record
+naming anything else is one no advance can resume.
