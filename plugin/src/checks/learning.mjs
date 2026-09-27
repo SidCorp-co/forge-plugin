@@ -8,7 +8,7 @@ import { canonical, landing } from "../resolve/canonical.mjs";
 import { memoryDir } from "../hooks/transcripts.mjs";
 import { installedPaths } from "../tools/plugin-copy.mjs";
 
-export const GUARDED = /\/memory\/|\/skills\//;
+const GUARDED = /\/memory\/|\/skills\//;
 export const FILE_TYPES = ["user", "feedback", "project", "reference"];
 export const SKILL_CATEGORIES = ["trap", "method", "invariant", "discovery", "boundary"];
 export const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
