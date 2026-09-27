@@ -35,6 +35,7 @@ import {
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
+import { recordsWalked } from "./landing/statuses.mjs";
 import { readyChecks, readyChecksLines, runReadyChecks } from "./landing/ready-checks.mjs";
 import { unpushedRefusal } from "./landing/pushed.mjs";
 import {
@@ -273,7 +274,8 @@ const RETURNS = {
 };
 
 /* The third route out, the same shape as the two above. It reads no record back — a hand-back its own
-   holder could be refused is a state nobody can leave — so an empty one is the walk's. the-turn.md. */
+   holder could be refused is a state nobody can leave — so an empty one is the walk's, which the
+   caller runs straight after it. the-turn.md. */
 const handRecords = async (documentId, ref, context, holder) => {
   const landing = landingOf(context);
   if (landing?.state !== LANDING_RECORDS_OWED) {
@@ -296,8 +298,8 @@ const handRecords = async (documentId, ref, context, holder) => {
   if (refused) fail(refused);
   const saved = await landingSaved(documentId, ref, back);
   console.log(`${ref}  recorded: ${landingLine(saved)}`);
-  console.log(`The records this turn was handed back for are on the issue, so nothing more `
-    + `of ${ref} is this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
+  console.log(`The records this turn was handed back for are on the issue, so the statuses they `
+    + `earn are walked here rather than by a second landing call:`);
   return saved;
 };
 
@@ -396,7 +398,10 @@ export const claim = async (argv) => {
     return advise(documentId, issue, worklog, await reconcile(documentId, ref, context, holder, given.reconciled));
   }
   if (given.recorded) {
-    return advise(documentId, issue, worklog, await handRecords(documentId, ref, context, holder));
+    const walked = await recordsWalked(documentId, ref, await handRecords(documentId, ref, context, holder));
+    /* Read again, the walk having moved the status the opening and the lane are printed at. */
+    const now = await scoped("forge_issues", { action: "get", documentId, fields: [] });
+    return advise(documentId, now ?? issue, worklog, walked);
   }
   if (given.landed) {
     await finishLanded(documentId, ref, issue, context);

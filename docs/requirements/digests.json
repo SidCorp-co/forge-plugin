@@ -2010,8 +2010,8 @@
       "digest": "4c731fa17ca3c166b831099a2bb44523e39f05aca2eb704e99d0d534a5e5782b"
     },
     "AC-03-6-8": {
-      "rev": 1,
-      "digest": "a8f0d675cf9a403cdec85364c8c85a376a93eef7a4ef9ad1562baa02cafa93bf"
+      "rev": 2,
+      "digest": "c88380b81f071165c98cff563e488176ead2e010e975ecee90ee28067926a008"
     },
     "AC-03-6-9": {
       "rev": 1,
@@ -2088,6 +2088,14 @@
     "AC-03-6-27": {
       "rev": 1,
       "digest": "541b9520f92dbac6093687f84500b47b45f3f0d26761bdd073624e652108cb98"
+    },
+    "AC-03-6-28": {
+      "rev": 1,
+      "digest": "59f6b813cfb69c360c6960c62a73e1ce7292ed53e58e7ee333fc2e312790c766"
+    },
+    "AC-03-6-29": {
+      "rev": 1,
+      "digest": "8efb8a777a10eebe7548a1125958977046445c5993e0b68279d0cfba9ee94e18"
     },
     "AC-03-6-30": {
       "rev": 1,

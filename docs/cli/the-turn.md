@@ -89,8 +89,17 @@ discharge, over whatever identity the checkpoint is holding when it does.
 
 What `--recorded` does not do is read those records back. It is the reading `--judged` makes, for the
 same reason: a hand-back its own holder could be refused is a state nobody can leave. A turn handed
-back with nothing written is answered by the walk, which stops at the same rung and hands it over
-again, having earned nothing on the way.
+back with nothing written is answered by the walk, which stops at the same rung, having earned
+nothing on the way.
+
+That walk is the hand-back's own, run straight after it. The lander's turn a records turn returns to
+holds nothing but the status step, so leaving it to a second landing call left every such landing at
+`marked` until somebody remembered — closed issues included. The hand-back therefore ends the
+landing at `done` where the record carries the issue as far as the release allows, gives the turn to
+the judge where one is owed the release, and otherwise stays where it returned and names the
+landing's take, the rung still unearned being one the landing would hand back again. One rule in one
+place: the landing's step and the hand-back call the same walk, so the two cannot disagree about
+what a record earns.
 
 `--pushed --ready` is the records turn's other way out, where the turn's own review finds the landed
 change short. That review is what the turn exists to take, and what it can find is owed a new head
