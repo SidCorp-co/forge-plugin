@@ -105,3 +105,8 @@ where the commands a project writes expect to stand. A tree holding what the hea
 refused before anything runs, because a green over uncommitted files answers for no commit; a value
 the key does not take refuses the capture too, since reading it as no list would arm a landing on
 checks nobody ran.
+
+**The arming capture asks origin whether it holds the branch at the captured head, and refuses where
+it does not.** A landing fetches the branch from origin, so a head only this disk has arms a landing
+that fails at its first step as if the network were down (ISS-2662). A remote that does not answer
+refuses too. The plain `--pushed` asks nothing remote, since Phase 4 takes it before the first push.
