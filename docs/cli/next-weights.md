@@ -1,4 +1,4 @@
-# `forge next`'s weights — the one source of a complexity, the age term that does not stop, what a kind is worth, and what an unweighed issue is worth
+# `forge next`'s weights — the one source of a complexity, the age term that does not stop, what a kind is worth, what an unweighed issue is worth, and what an owed reading is worth
 
 `forge next -h` prints the table and the points in it; a `rank` object in a project's own settings
 overrides one weight at a time. What follows is what the table cannot carry: which of these numbers
@@ -88,3 +88,25 @@ to be.
 defines, so the plugin ships it holding `unset` alone. Why the names are the tracker's and the numbers
 the project's, why a module inherits its parent's row, and why no module is read where no table is
 set or no module defined: [modules](modules.md).
+
+## An owed batch reading is worth what it owes, not what it was filed with
+
+The reading the ship files for a batch is filed as a `review`, at the largest complexity, in whatever
+module this project weighs its own internals at, and with no priority: every field the table reads
+says *last*. On this repository that scored it at -2 while its range grew fifteen times past
+`review.lines`, and no priority set by hand lifted it past the backlog above it, because age grows
+at the same rate for everything and that backlog never drains (ISS-2719). The fields are the wrong
+question for this one issue. What it owes is the unread range, and the ship and `forge doctor` already
+count that range off the review mark.
+
+So `rank.reading` is points per multiple of `review.lines` the range past the mark holds, given to
+the one takeable issue whose title opens the batch at that mark — the same test the ship uses to find
+the reading it filed, so the two cannot name different issues. It is linear rather than a step: a
+reading at the threshold lands near the top of a fresh backlog, and every further threshold's worth
+of unread change lifts it again, so an untaken reading rises instead of sitting. The default is set so
+that at one multiple a reading with no priority outscores any fresh issue the built-in table can
+score; a project that wants its readings earlier or later sets the number.
+
+A project that declared no `review` key is weighed by nothing here, and neither is a range still
+short of its volume: a reading is only owed where the project said what earns one.
+

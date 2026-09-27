@@ -39,6 +39,9 @@ export const DEFAULTS = {
   ageCap: null,
   reopened: 5,
   blocks: 3,
+  /* Per multiple of `review.lines` the range past the review mark holds, on the one issue holding
+     that reading: the fields a reading is filed with rank it last whatever it owes (ISS-2719). */
+  reading: 60,
   similarity: 0.78,
   batchCap: 3,
   windowCap: 12,
@@ -158,6 +161,8 @@ export const weightLines = (weights) => [
     : `${weights.ageCap} — the most age alone can be worth, past which two filing dates score alike`),
   row("reopened", `${weights.reopened}`),
   row("blocks", `${weights.blocks} per open issue this one blocks, counted through the chain`),
+  row("reading", `${weights.reading} per multiple of \`review.lines\` the range past the review mark`),
+  row("", "holds, on the issue holding that batch's reading; none where the project declares no volume"),
   row("similarity", `${weights.similarity} — the floor a search hit is read back as related at`),
   row("batchCap", `${weights.batchCap} members, and every one of them at the fix rung or below`),
   row("windowCap", `${weights.windowCap} — candidates whose body is read in one pass`),

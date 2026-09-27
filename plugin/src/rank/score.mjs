@@ -35,8 +35,9 @@ const UNWEIGHED = { said: "not weighed", points: 0 };
 
 /** The total and its parts, `now` passed rather than read: age is the one weight a clock moves, and
  *  a case that could not fix the clock could not pin the order. `module` is the term the caller read
- *  off the project's modules, which is a read this pure score cannot make. */
-export const scoreOf = (row, { weights, chain = [], now = Date.now(), module = UNWEIGHED }) => {
+ *  off the project's modules, and `reading` the one it read off the review mark — reads this pure
+ *  score cannot make. `reading` is a part only on the row it was given for, being one issue's alone. */
+export const scoreOf = (row, { weights, chain = [], now = Date.now(), module = UNWEIGHED, reading = null }) => {
   const complexity = complexityOf(row);
   const filed = Date.parse(row?.createdAt ?? "");
   const days = Number.isFinite(filed) ? Math.max(0, Math.floor((now - filed) / DAY)) : 0;
@@ -50,6 +51,7 @@ export const scoreOf = (row, { weights, chain = [], now = Date.now(), module = U
     ["age", `${days}d`, aged(days, weights)],
     ["reopened", `${reopened}`, reopened ? weights.reopened : 0],
     ["blocks", `${chain.length} chained`, chain.length * weights.blocks],
+    ...(reading ? [["reading", reading.said, reading.points]] : []),
   ];
   return { total: parts.reduce((sum, one) => sum + one[2], 0), parts, complexity, days, chain };
 };

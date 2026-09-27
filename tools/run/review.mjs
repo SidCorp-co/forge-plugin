@@ -6,6 +6,11 @@ import { checkoutOf, readingFor, readingTitle, REVIEWED, reviewCounts, reviewedA
   reviewSourced, reviewUncountable, whereFrom } from "../../plugin/src/git/reviewed.mjs";
 import { gitOut, REMOTE } from "../checkout.mjs";
 import { isRelease } from "./landing.mjs";
+import { TAKEABLE } from "../../plugin/src/rank/weights.mjs";
+import { multipleOf } from "../../plugin/src/rank/reading.mjs";
+import { leaseOf, stateOf } from "../../plugin/src/flow/lease.mjs";
+import { sessionOf } from "../../plugin/src/resolve/config.mjs";
+import { scoped } from "../../plugin/src/tracker/rest.mjs";
 
 export { readingFor, readingTitle, REVIEWED, reviewedAt, reviewReported, whereFrom };
 
@@ -32,10 +37,35 @@ export const reviewSays = (given, from) => {
     range: `${from.slice(0, 7)}..HEAD`,
     count: `${releasesIn(tree, from)} release(s), ${files} file(s), ${lines} changed line(s)`,
     volume: `${files} file(s) and ${lines} changed line(s)`,
+    changed: lines,
     threshold: declared.lines.value,
     paths: declared.paths.value,
     source: whereFrom(declared),
   };
+};
+
+const DAY = 86_400_000;
+const TAKEN = ["live", "mine"];
+
+/** Whether the row holding a reading still waits for a run: a status a run takes from, and no lease
+ *  anybody holds. The lease is the one fact the lookup's row does not carry, so it is read only for a
+ *  row whose status already says nobody started (ISS-2719). */
+export const untaken = async (held) => {
+  if (!TAKEABLE.includes(String(held.status ?? ""))) return false;
+  if (!held.documentId) return true;
+  const row = await scoped("forge_issues", { action: "get", documentId: held.documentId, fields: [] });
+  return !TAKEN.includes(stateOf(leaseOf(row?.sessionContext), sessionOf()));
+};
+
+/** The line a reading left waiting earns on every ship: how long it has waited and how far past the
+ *  threshold its range has grown since, so day five does not read like day one. */
+export const overdueSays = ({ key, status, filedAt }, { changed, threshold }, now = Date.now()) => {
+  const filed = Date.parse(filedAt ?? "");
+  const since = Number.isFinite(filed)
+    ? `since ${new Date(filed).toISOString().slice(0, 10)} (${Math.max(0, Math.floor((now - filed) / DAY))} day(s))`
+    : "since a filing date the tracker did not carry";
+  return `${key} holds this reading, ${status} and untaken ${since}; its range is now `
+    + `${multipleOf(changed, threshold)}x the ${threshold}-line threshold`;
 };
 
 const KEY = /ISS-\d+/gu;

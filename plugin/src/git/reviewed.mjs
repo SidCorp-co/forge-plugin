@@ -18,8 +18,9 @@ export const readingTitle = (from, to) =>
   + `mark moves`;
 
 /** A title holds this debt where the range it names opens at the mark: one that ends there is the
- *  previous batch, read already, and answering with it leaves this range no row and no route to one. */
-const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}..`);
+ *  previous batch, read already, and answering with it leaves this range no row and no route to one.
+ *  The rank asks the same question of a row, so the two cannot name different holders. */
+export const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}..`);
 
 const NOT_A_READING = "dropped";
 const UNREAD = "the search for the issue holding this mark's reading";
@@ -38,7 +39,10 @@ export const readingFor = async (from, { again = false } = {}) => {
   const [row] = read.rows.filter((one) => readingCovers(one.title, from) && one.status !== NOT_A_READING)
     .sort(FIRST_FILED);
   const cut = read.refused ? String(read.refused) : shortOf(read, UNREAD);
-  if (row) return { key: row.issueId, status: row.status ?? null, ...(cut ? { cut } : {}) };
+  if (row) {
+    return { key: row.issueId, status: row.status ?? null, filedAt: row.createdAt ?? null,
+      documentId: row.documentId ?? null, ...(cut ? { cut } : {}) };
+  }
   return cut ? { short: cut } : { key: null };
 };
 
