@@ -94,6 +94,8 @@ A flag accepted and named nowhere is declared beside the verb that takes it rath
 names this CLI's flag instead. No suggestion may offer any of them: a refusal naming a flag its caller
 may not act on has leaked the thing that rule keeps off every other surface.
 
-One sentence above has a checker now: `plugin/src/checks/surface/judged-arguments.mjs` refuses an
-argument whose values this CLI declares and whose verb spends no judge on it before the call, with
-`refuseUndeclared` as that sentence. The rest of this page is held by cases alone.
+A value is judged where its flag's name is, for the same reason: the parser holds the two together,
+so a flag whose values this CLI declares is refused outside its set before any verb runs, and no verb
+writes a judge per flag that a new flag could be added without. Which flags carry a set is read off
+the tool the verb's row names, or declared on the parser row where a verb takes another tool's set:
+`plugin/src/resolve/value-sets.mjs`. This page is held by cases alone.

@@ -55,3 +55,7 @@ export const didYouMean = (kind, given, candidates, hint) => {
   return `No ${kind} named ${given}.${nearest}${set}${route}`;
 };
 
+/** A value judged against a declared set: null where it is in the set, or where the set is empty because nothing declares one, else the sentence naming the nearest. The one home of both rules, so a verb that answers and one that refuses cannot disagree on either (ISS-936). */
+export const nearestOutside = (kind, given, values, hint) =>
+  (!values.length || values.includes(given) ? null : didYouMean(kind, given, values, hint));
+

@@ -1,6 +1,6 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { declaredFor, refuseUndeclared, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
+import { declaredFor, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
 import { EDGE_KINDS } from "./tracker/edges/kinds.mjs";
 import { wroteEdge } from "./tracker/edges/write.mjs";
 import { partsAmong } from "./tracker/routes.mjs";
@@ -17,13 +17,7 @@ import {
 } from "./tracker/issues.mjs";
 import { commentPage, cutIn, mustBeShown, postComment, readThread } from "./tracker/comments.mjs";
 import { attachmentNames, batchRefusal, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
-import {
-  KINDS_HELP,
-  KIND_NAMES,
-  complexityRefusal,
-  kindNeeded,
-  kindRefusal,
-} from "./tracker/issue-shape.mjs";
+import { KINDS_HELP, KIND_NAMES, kindNeeded } from "./tracker/issue-shape.mjs";
 import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { moduleForFiling } from "./tracker/modules/definition.mjs";
@@ -43,7 +37,7 @@ import { retiredFlagIn } from "./resolve/retiring.mjs";
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 
-/* Every entry of the table below is a loader: called with nothing, it answers with the verb's own handler and runs none of it. The table named all nineteen verb modules at the top of this file until ISS-1775, so `forge -h` loaded every verb's imports to print a list of names and any one verb cost the lot. A specifier here is the only place a verb's module is named, which is what `sourceFor` in checks/surface/judged-arguments.mjs reads to find where a verb judges its arguments. */
+/* Every entry of the table below is a loader: called with nothing, it answers with the verb's own handler and runs none of it. The table named all nineteen verb modules at the top of this file until ISS-1775, so `forge -h` loaded every verb's imports to print a list of names and any one verb cost the lot. A specifier here is the only place a verb's module is named. */
 const loads = (module, name) => async () => (await import(module))[name];
 
 /* Absence means empty; the schema already says the field exists. */
@@ -140,8 +134,6 @@ const fieldsIn = (given) =>
   (given ? { fields: given.split(",").map((name) => name.trim()) } : {});
 
 export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n] [--fields a,b]";
-/* Seventeen names are a list rather than a sentence, so the route out is where they are counted. */
-const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues carry.";
 
 export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46 --kind k|--unlink ISS-46 --edge id]";
@@ -202,16 +194,7 @@ const own = {
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
       const { limit: raw, offset: atRaw, fields: named, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
-      /* Each named at its own call, not looped: the value a caller typed is what the judge is handed, and a loop would name the field and pass whatever the loop held (ISS-936). */
-      refuseUndeclared("issue", "status", filters.status,
-        { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
-      refuseUndeclared("issue", "statusNot", filters.statusNot,
-        { field: "status", values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
-      refuseUndeclared("issue", "priority", filters.priority,
-        { values: declaredFor("forge_issues", "priority") });
-      refuseUndeclared("issue", "category", filters.category, { values: KIND_NAMES });
-      refuseUndeclared("issue", "complexity", filters.complexity, { values: COMPLEXITY_NAMES });
-      /* The three whose values are a shape, so no declared set reaches them and the checker holding the five above cannot either (ISS-1081). */
+      /* A filter whose values are a declared set was judged by the parser above. These three take a shape instead, which no declared set can hold (ISS-1081). */
       refuseUnreadableDate("issue", "createdAfter", filters.createdAfter);
       refuseUnreadableDate("issue", "createdBefore", filters.createdBefore);
       refuseUnreadableDate("issue", "updatedAfter", filters.updatedAfter);
@@ -260,10 +243,6 @@ const own = {
     if (retired) fail(retired);
     const { with: rides, complexity, category, priority, new: fresh, module: named, ...given } = flags(rest, "new", ["--new"], row);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
-    refuseUndeclared("new", "status", given.status,
-      { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
-    if (complexity !== undefined && !COMPLEXITY_NAMES.includes(complexity)) fail(complexityRefusal(complexity));
-    if (category !== undefined && !KIND_NAMES.includes(category)) fail(kindRefusal(category));
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);
     const relating = withKeys.length > 0;

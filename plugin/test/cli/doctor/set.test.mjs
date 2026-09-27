@@ -172,7 +172,8 @@ test("a write and a brief write in one call are refused rather than one of them 
 /* The brief's body fields are the one write that takes a body: beside a key write they would be
    dropped, and a caller told a title was set that nothing stored has been told the wrong thing. */
 test("a body's field beside --set is refused rather than dropped, and nothing is sent", async () => {
-  for (const carried of [["--title", "A title"], ["--confidence", "high"], ["--meta", "k=v"]]) {
+  /* A confidence inside the store's set, so the refusal reached is this one and not the parser's of the value. */
+  for (const carried of [["--title", "A title"], ["--confidence", "verified"], ["--meta", "k=v"]]) {
     state.calls = [];
     const run = await ask("--set", "autoProdDeploy=true", ...carried);
     assert.equal(run.status, 1, run.stdout);

@@ -2,6 +2,7 @@
 import { typed } from "../hooks/shell-spans.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { embeddedRun, fail } from "./settings.mjs";
+import { setsFor, valueRefusal } from "./value-sets.mjs";
 
 export const FLAG_WORD = /^--[^\s=]*$/u;
 
@@ -124,6 +125,12 @@ export const repeatedFlag = (verb, flag, values, again) => {
 /* Which of a verb's flags carries a credential is the verb's own declaration, beside `boolean` and `hidden` and for the same reason: a second list here would drift from the row the caller was shown. A refusal naming the flag is the whole of what a caller needs, and both values printed is a token in a transcript. */
 const HIDDEN_VALUE = "***";
 
+/* Which flags carry a declared set is the row's `sets` where a verb declares them, and otherwise the tool its own row names: judged here, with the name and the word the caller typed after it in hand, rather than at a call per flag, which a new flag could be written without and whose loop would have held some other value (ISS-1135). */
+const judgedValue = (verb, flag, value, row) => {
+  const said = valueRefusal(verb, flag, value, row.sets ?? setsFor(verb));
+  if (said) fail(said);
+};
+
 export const flags = (argv, verb, boolean = [], row = {}) => {
   strangerIn(argv, verb, { ...row, boolean });
   const found = {};
@@ -142,6 +149,7 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
       const values = pairs.flatMap((word, at) => (at % 2 === 0 && word === key ? [shown(pairs[at + 1])] : []));
       fail(repeatedFlag(verb, key, values, row.again?.[key]));
     }
+    judgedValue(verb, key, value, row);
     found[name] = value;
     index += 1;
   }
@@ -208,6 +216,7 @@ export const pullRepeated = (argv, flag, verb, row = {}) => {
     }
     const value = argv[index + 1];
     if (value === undefined || FLAG_WORD.test(value)) fail(noValue(verb, flag, value));
+    judgedValue(verb, flag, value, row);
     values.push(value);
     index += 1;
   }
