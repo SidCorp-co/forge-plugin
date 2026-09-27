@@ -3,7 +3,7 @@
 import { fail, slugIfAny } from "../../resolve/settings.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { citationProblem } from "../earned/published.mjs";
-import { answersByComment } from "../earned/park-status.mjs";
+import { SIDE, answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
@@ -335,12 +335,21 @@ const quoteCriteria = (kind, blocks, body, reference) => {
   }
 };
 
+/* A park record's status left is the issue's own only where that is no side status: at one, it is
+   where the tracker's history says the issue came from, read before anything of the call is sent. */
+const stampOf = async (kind, { documentId, body, comments, names }, shape, reference) => {
+  const held = String(body[shape.stamp.from ?? "status"] ?? "");
+  if (kind !== "park" || !SIDE.includes(body.status)) return held;
+  const { parkLeft } = await import("../park/left.mjs");
+  return (await parkLeft({ documentId, issue: body, comments, names }, reference)).left;
+};
+
 /* Every refusal a shaped payload can earn, before any write of the call: a second block's bad field costs the first block nothing. */
 const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) => {
   const shape = SHAPES[kind];
   const blocks = blocksOf(kind, argv, reference);
   const asks = shape.fields.some((one) => one.evidence || one.commit);
-  const { body } = await issue();
+  const { documentId, body } = await issue();
   answerChecked(kind, reference, body);
   const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
   finderChecked(kind, reference, body, { comments, cut });
@@ -372,7 +381,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   await derive(kind, blocks, body, { say, reference });
   await servesChecked(kind, blocks);
   quoteCriteria(kind, blocks, body, reference);
-  const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;
+  const stamp = shape.stamp ? await stampOf(kind, { documentId, body, comments, names: onIssue }, shape, reference) : null;
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");

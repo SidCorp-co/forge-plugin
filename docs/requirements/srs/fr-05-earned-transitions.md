@@ -215,6 +215,11 @@ kind speaks to exactly one reader, which is what decides the status.
   WHEN the agent carries a person's answer to a park onto the record, naming who gave it and in their
   words, THEN the CLI SHALL resume the park as it would on that person's own comment, whatever
   credential the record was written on.
+- **AC-05-4-8** · Rev: 1 · Proof: plugin/test/flow/park/finish.test.mjs "a claim of an issue whose park record did not go up names the record that finishes it"
+  IF a park moved the issue and its record did not go up THEN the CLI SHALL name, to whoever claims
+  or advances the issue, the record that finishes the park, and SHALL stamp that record with the
+  status the tracker's own history says the issue left, or SHALL refuse to write it and name the
+  status set that clears it where that history names no step of the flow.
 
 ### UC-05-5 — Drop an issue
 

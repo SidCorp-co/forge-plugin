@@ -7,6 +7,7 @@ import { Refused, refuse } from "../../refusal.mjs";
 import { parse, render } from "../record/page.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm, shapeGaps } from "../earned.mjs";
 import { undoForm } from "../record/merged.mjs";
+import { finishes, parkLeft } from "./left.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
 export const ASKS_A_QUESTION = "question";
@@ -106,12 +107,14 @@ const indented = (value) => String(value).split("\n").join("\n    ");
 /** `--owed` beside a park or a drop: the same checks and the same composition the move makes, printed
  *  and not sent. A refusal is the answer rather than a failure, as a shortfall is to `--owed`; the
  *  record comes last and whole, so what follows its heading is the text the move would post. */
-export const rehearsePark = (view, ref, kind, why, evidence, asked) => {
+export const rehearsePark = async (view, ref, kind, why, evidence, asked) => {
   const move = kind === "dropped" ? "drop" : `${kind} park`;
   let composed;
+  let standing;
   try {
     parkChecked(view, ref, kind, evidence);
-    composed = parkPayload(view, ref, kind, why, evidence, { asked });
+    standing = await parkLeft(view, ref);
+    composed = parkPayload(view, ref, kind, why, evidence, { left: standing.left, asked });
   } catch (error) {
     if (!(error instanceof Refused)) throw error;
     console.log(`Rehearsed, and nothing was written: the ${move} of ${ref} would be refused.\n${error.message}`);
@@ -119,6 +122,11 @@ export const rehearsePark = (view, ref, kind, why, evidence, asked) => {
   }
   const { status, said, body } = composed;
   console.log(`Rehearsed, and nothing was written: the ${move} of ${ref}.`);
+  if (finishes(view, status, standing.at)) {
+    console.log(`  ${ref}  ${status} already, with no park record since it moved there: no move would be `
+      + `sent, and the record below goes up alone.\n\n${body}`);
+    return;
+  }
   console.log(`  ${ref}  ${view.issue.status} -> ${status}`);
   console.log("Sent with the move:");
   for (const [field, value] of Object.entries(said)) console.log(`  ${field}: ${indented(value)}`);

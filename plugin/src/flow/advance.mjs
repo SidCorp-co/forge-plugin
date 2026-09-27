@@ -15,6 +15,7 @@ import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/thread/posting.mjs";
 import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, waitsFor } from "./park/compose.mjs";
 import { ANSWERED_BY_COMMENT, ORDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
+import { finishes, parkLeft } from "./park/left.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { hereOf, logEntries, runOf } from "../codex/codex-log.mjs";
@@ -177,12 +178,19 @@ const moveTo = async (view, ref, status, { note = "", said, credit, heard = null
 };
 
 export const parkAs = async (view, ref, kind, why, evidence = [], { left = null, asked = null } = {}) => {
-  const { status, said, body } = parkPayload(view, ref, kind, why, evidence, { left, asked });
+  const standing = left ? { left, at: null } : await parkLeft(view, ref);
+  const { status, said, body } = parkPayload(view, ref, kind, why, evidence, { left: standing.left, asked });
   const move = (soft = false) =>
     moveTo(view, ref, status, { said, credit: "the park's transition" }, soft);
   if (answersByComment(status)) {
     await post(view.documentId, body, { ref });
     await movedAfterRecord(view, ref, status, move);
+    return;
+  }
+  if (finishes(view, status, standing.at)) {
+    await post(view.documentId, body, { ref });
+    console.log(`${ref}  ${status} already, with no park record since it moved there: the record is up `
+      + `now, naming ${standing.left} as the status it left, and no move was sent.`);
     return;
   }
   await move();
@@ -193,8 +201,7 @@ export const parkAs = async (view, ref, kind, why, evidence = [], { left = null,
     /* A record written now would stamp the side status as the one it left. The body goes back on
        stdin: a quoted argument would end on the apostrophes and newlines it holds. */
     refuse(`${ref} moved to ${status} and its park record did not go up: ${error.message}\n`
-      + `Nothing on the page now says where it left, and \`forge record park\` would stamp `
-      + `${status} as that status. Put this body up as it stands:\n\n`
+      + `Nothing on the page now says where it left. Put this body up as it stands:\n\n`
       + `forge comment ${view.documentId} - <<'FORGE_PARK_RECORD'\n${body}\nFORGE_PARK_RECORD`);
   }
 };

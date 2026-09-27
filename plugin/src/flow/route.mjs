@@ -21,6 +21,7 @@ import {
   SIDE,
   SILENT,
   announcedAt,
+  answersByComment,
   atLeast,
   atThisReopen,
   buildsAt,
@@ -300,18 +301,27 @@ const unpaired = (view, status) => {
       + `into ${status}, so nothing says that park is what moved it. `;
 };
 
+/* Where a park's move landed and its record did not, the record alone finishes it, stamped from the
+   tracker's history; only where a comment is not read as the answer, which would unpark the issue. */
+const finishedBy = (ref, status) => {
+  if (answersByComment(status)) return null;
+  const kinds = Object.keys(PARK_STATUS).filter((one) => sameLanding(PARK_STATUS[one], status));
+  return `Where a park moved it and its record is what did not go up, write that record: it names the `
+    + `status the tracker's history says ${ref} left, and the advance after it reads it:\n`
+    + `  forge record park ${ref} --kind <${kinds.join("|")}> --why "<why it was parked>"\n`
+    + "Where nothing parked it, whoever";
+};
+
 export const targetOf = (view, ref) => {
   const status = view.issue.status;
   const held = SIDE.includes(status) ? parkThatSet(view, status) : null;
   if (SIDE.includes(status)) {
     if (!held) {
-      /* No write earns the way back: a park now would stamp the side status as the one it left. */
       refuse(`${ref} is ${status} and no park record on the page is paired with the entry into it, `
         + `so nothing says where it came from. ${unpaired(view, status)}`
         + `${view.cut ? `${view.cut} The record that would say may be behind the cut. ` : ""}`
-        + `A park written now would name ${status} as the status it left, which is no step of the `
-        + `flow, so nothing here earns the way back. Whoever knows where it belongs sets it, and `
-        + `this writes a status no entry check read:\n  ${setForm(ref, "<status>")}`);
+        + `${finishedBy(ref, status) ?? "Whoever"} knows where it belongs sets it, and this writes a `
+        + `status no entry check read:\n  ${setForm(ref, "<status>")}`);
     }
     const left = held.record.fields.left;
     if (!ORDER.includes(left)) {

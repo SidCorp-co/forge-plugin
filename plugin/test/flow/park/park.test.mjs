@@ -166,6 +166,10 @@ test("a park landing in waiting writes its record before its transition", async 
 
 test("every park kind that lands in waiting carries the kind the tracker demands", async () => {
   for (const kind of PARKS.filter((one) => PARK_STATUS[one] === "waiting")) {
+    /* Each from a flow status: a park from a side status reads where it left off the tracker's
+       history, which this fixture does not serve and `finish.test.mjs` does (ISS-425). */
+    Object.assign(PARKING, { status: "awaiting_release" });
+    state.comments["parking-uuid"] = [];
     state.calls.length = 0;
     const run = await parked("ISS-97", kind);
     assert.equal(run.status, 0, `${kind}: ${run.stdout}${run.stderr}`);
