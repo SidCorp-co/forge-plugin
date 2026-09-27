@@ -310,9 +310,9 @@ test("a quoted specifier naming a dependency is no finding, and the same path an
 test("a dependency name is read off the caller, and never hides a directory this tree carries", () => {
   const unnamed = said("plugin/hooks/vendor/x.mjs", 'require.resolve("eslint/package.json");\n', []);
   assert.equal(unnamed.length, 1, "with no names passed, the specifier is judged as a path");
-  const shadowed = said("plugin/src/x.mjs", 'const step = "tools/gone.mjs";\n', ["tools"]);
+  const shadowed = said("plugin/src/x.mjs", 'const step = "packages/gone.mjs";\n', ["packages"]);
   assert.equal(shadowed.length, 1, `a dependency named like a top-level directory:\n${shadowed.join("\n")}`);
-  assert.match(shadowed[0], /cites tools\/gone\.mjs/u);
+  assert.match(shadowed[0], /cites packages\/gone\.mjs/u);
 });
 
 test("a path into node_modules is no claim about the tree in any form", () => {
