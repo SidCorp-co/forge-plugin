@@ -11,6 +11,7 @@ import { flags, pullRepeated } from "../../../src/resolve/flags.mjs";
 import { Refusal, refusing } from "../../../src/resolve/settings.mjs";
 import { setsFor, setsOf } from "../../../src/tracker/declared/value-sets.mjs";
 import { declaredValue } from "../../../src/tracker/rest.mjs";
+import { complexityRefusal, kindRefusal, valueOutsideSet } from "../../../src/tracker/issue-shape.mjs";
 import { LIST_USAGE } from "../../../src/commands.mjs";
 import { usageOf } from "../../../src/resolve/visibility.mjs";
 import { homeEnv, projectRoom, ranAsync, tempRoom } from "../../fixtures.mjs";
@@ -60,12 +61,13 @@ test("every declared-set flag of a filing is refused by the parser, with the fie
     const said = await refused(() => flags(["--title", "t", flag, outside], "new", ["--new"], NEW_ROW));
     assert.match(said, new RegExp(`^new ${flag}: No \\w+ named ${outside}\\.`, "u"), said);
   }
+  /* Compared against what the issue's fields compose, since the sentence is theirs and only carried here. */
   const category = await refused(() => flags(["--category", "chore"], "new", ["--new"], NEW_ROW));
-  assert.match(category, /files an issue against this plugin/u, "the kind's own route out survives");
+  assert.ok(category.includes(kindRefusal("chore")), category);
   const complexity = await refused(() => flags(["--complexity", "huge"], "new", ["--new"], NEW_ROW));
-  assert.match(complexity, /the tracker's own five, smallest first/u);
+  assert.ok(complexity.includes(complexityRefusal("huge")), complexity);
   const priority = await refused(() => flags(["--priority", "urgent"], "new", ["--new"], NEW_ROW));
-  assert.match(priority, /That set is what the route table declares this tracker takes/u);
+  assert.ok(priority.includes(valueOutsideSet("priority", "urgent").said), priority);
 });
 
 test("a value inside its set passes the parser on every declared-set flag", async () => {
