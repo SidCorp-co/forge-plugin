@@ -65,9 +65,7 @@ export const setsFor = (verb) => {
   return tool ? setsOf(tool) : {};
 };
 
-/** The refusal of a value outside the set its flag carries, or null where the flag carries none, the
- *  value is inside it, or nothing declares one. The value is the caller's own word, handed over by
- *  the parser with the flag it followed. */
+/** What the parser fails with, if anything, for one flag and the caller's own word after it. */
 export const valueRefusal = (verb, flag, given, sets) => {
   const set = sets[flag];
   if (!set) return null;
