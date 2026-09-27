@@ -113,3 +113,19 @@ export const glued = (body, runner) => {
   }
   return out;
 };
+
+/* Inside double quotes a shell takes the backslash off only before these four and a newline, and keeps it before anything else. */
+const ESCAPED = /\\([\\"$`\n])/gu;
+const ESCAPES = /\\(?=[\\"$`]|$)|["$`]/gu;
+
+/** The same fold for an inline program, handed over still in the shell quotes it was written in: the quoting comes off for the reading and goes back on after, so a body quoting its own strings with
+ *  `\"` is one body, and a single-quoted one needs none back, holding no `'` and gaining none. What the fold resolved nothing in comes back as given, byte for byte. how/writes.md. */
+export const gluedQuoted = (quoted, runner) => {
+  const outer = quoted[0];
+  const inner = quoted.slice(1, -1);
+  const body = outer === '"' ? inner.replace(ESCAPED, (all, one) => (one === "\n" ? "" : one)) : inner;
+  const folded = glued(body, runner);
+  if (folded === body) return quoted;
+  if (outer === "'") return `'${folded}'`;
+  return `"${folded.replace(ESCAPES, (one) => `\\${one}`)}"`;
+};

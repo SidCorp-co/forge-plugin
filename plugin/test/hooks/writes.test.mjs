@@ -340,9 +340,19 @@ test("a path an interpreter body assembled from a binding of its own is one too"
   );
   assert.deepEqual(
     touched(bash(`python3 -c 'root = "plugin/src"; open(root + "/glued.mjs", "w").write("z")'`, at)),
-    [],
-    "an inline body is not folded, only a heredoc's — ISS-444, and how/writes.md names it",
+    [file],
+    "an inline body, folded as a heredoc's is (ISS-444)",
   );
+});
+
+/* An inline body arrives still inside the shell's quotes, so the fold takes them off to read it and puts them back, and a body it resolves nothing in is handed on untouched (ISS-444). */
+test("an inline body is folded inside the quotes it was written in, and left as given where nothing folds", () => {
+  const said = `python3 -c "root = \\"plugin/src\\"; open(root + \\"/glued.mjs\\", \\"w\\")"`;
+  assert.equal(shellWrites(said), `python3 -c "root = \\"plugin/src\\"; open(\\"plugin/src/glued.mjs\\", \\"w\\")"`,
+    "escaped inner quotes are one body, and go back escaped");
+  for (const given of [`python3 -c 'print("a" + x)'`, `python3 -c "print(\\"a\\\\n\\" + x)"`, `node -e 'console.log(\`\${x}/a\`)'`]) {
+    assert.equal(shellWrites(given), given, given);
+  }
 });
 
 /* The case a reader that resolved *instead of* reading the raw text would lose. */
