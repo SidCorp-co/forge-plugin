@@ -153,7 +153,10 @@ export { helpAskedOf, wantsHelp } from "./help-word.mjs";
 
 /* What the caller asked for, counted where argv is read, so the layer that reports on the work answers to the call rather than to its own input: a layer given a narrowed instruction cannot tell it was narrowed (ISS-945). `wordFor` is the ask's own vocabulary — how one thing a reporting layer holds is put into the words the ask was written in — so neither reporting layer chooses between the two. */
 const askedFor = (verb, flag, items) => Object.freeze({
-  verb, flag, items: Object.freeze([...items]), wordFor: ({ field, value }) => `${field}=${value}`,
+  verb, flag, items: Object.freeze([...items]), wordFor: (one) => {
+    const { field, value } = one.typed ?? one;
+    return `${field}=${value}`;
+  },
 });
 
 /** The ask a caller names in its own source rather than off argv, written where the call is. It exists so that a writer reached with no ask and a writer reached with an ask of one are two different values, which is the whole of the rule — an absent record of the call reads exactly like a complete one. Several fields where one call writes several: the caller that names two and reaches the write with one is the shortfall this reports, and an ask of one could not tell it. */

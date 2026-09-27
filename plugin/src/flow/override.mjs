@@ -5,6 +5,7 @@ import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
 import { lengthOf, ownsField, rowOf, writeFields } from "../tracker/field-write.mjs";
 import { valueOutsideSet } from "../tracker/issue-shape.mjs";
+import { moduleDefinition, moduleNamed, primaryLabels } from "../tracker/modules/definition.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";
 import { issueOf, post } from "./record/thread/posting.mjs";
@@ -101,6 +102,28 @@ const pairsOf = (given, ref) => {
   return pairs;
 };
 
+/* `module` is no column of the tracker's: it names one of this project's modules, and what goes up is
+   the issue's whole label set with that module primary. The pair keeps the words it was typed in, so
+   the ask, the reply and the correction name the module rather than a set of ids: docs/cli/modules.md. */
+const MODULE_WORD = "module";
+
+const writtenAs = async (pairs, body) => {
+  const typed = pairs.find(({ field }) => field === MODULE_WORD);
+  if (!typed) return pairs;
+  const { modules, refused } = await moduleDefinition({ soft: true });
+  if (refused) {
+    refuse(`--set ${MODULE_WORD} could not be checked: the tracker would not list this project's labels: `
+      + `${refused} Nothing was sent.`);
+  }
+  const { found, refusal } = moduleNamed(modules, typed.value, `--set ${MODULE_WORD}`);
+  if (refusal) {
+    refuse(`${refusal} Nothing was sent: \`forge doctor modules --add ${typed.value}\` defines it, where `
+      + "the project means to have it.");
+  }
+  return pairs.map((one) => (one === typed
+    ? { field: "labels", value: primaryLabels(body?.labels, found), typed } : one));
+};
+
 /* One record for the call and not one per field: a correction naming a subset of what was asked is true about what happened and misleading about what was asked, and no later reader can tell those apart (ISS-930). */
 const movedSaid = (pairs) =>
   `${pairs.map(({ field, value }) => `${field} set to \`${value}\``).join(", ")} by \`forge issue --set\``;
@@ -124,7 +147,7 @@ export const overrideFields = async (reference, given, why, { next, patch, ask }
     await correctionFor(documentId, reference, movedSaid(moved), said,
       { corrects: `issue:${moved.map(({ field }) => field).join(",")}` });
   };
-  const back = await writeFields(documentId, pairs, {
+  const back = await writeFields(documentId, await writtenAs(pairs, body), {
     ref: reference, next, patch, refuse, ask, override: true, partly: (moved) => told(moved, null),
   });
   await told(pairs, back);

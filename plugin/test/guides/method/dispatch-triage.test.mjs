@@ -119,15 +119,26 @@ test("the top band names itself and what reaches it, being the whole of the tabl
   ]);
 });
 
-test("the priority is this phase's fourth write, and a reading leaving neither band is unfinished", () => {
+test("the priority is one of this phase's writes, and a reading leaving neither band is unfinished", () => {
   carries("2", [
     ["the write and its field", "The priority goes with it, by the same reader and into the tracker's `priority` field"],
     ["what the why names", "the why naming what the issue costs and the act that meets it"],
-    ["the count", "This phase's four writes — the confirmation, the candidate line, the complexity and the priority"],
+    ["the writes", "This phase's writes — the confirmation, the candidate line, the complexity, the priority and,"
+      + " where the project defines modules, the module — belong to whoever did the reading"],
     ["neither band", "A reading that leaves its issue holding neither band has not finished"],
     ["what neither band means", "it is one nobody read, and nothing downstream can tell those two apart"],
     ["the unreadable body with no slot waiting", "Where the body gives the reader nothing to judge a cost from and no slot is waiting on it, that inability is itself the finding"],
     ["what is written with it", "it is recorded, and the band written with it is the one that reading supports, rather than the write being left off"],
+  ]);
+});
+
+/* The module is decided by the reading that was already open on the issue, and only where the project
+   defines modules, so a project that has not decided is told nothing (ISS-1331). */
+test("the triage reader writes the module where the project defines modules, or says the body decided none", () => {
+  carries("2", [
+    ["the write and its condition", "Where this project defines modules, the same reader puts the candidate in one."],
+    ["the call", "`forge issue ISS-nn --set module=<name> --why <w>`"],
+    ["the undecided body", "A body that does not decide one is left without one, and the reading says so in its confirmation"],
   ]);
 });
 

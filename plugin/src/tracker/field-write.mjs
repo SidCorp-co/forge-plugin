@@ -76,7 +76,8 @@ const fields = () => (rows ??= {
   /* The set is replaced whole and moved by a module's removal over issues nobody holds for it, so it
      takes no lease and reads no thread: docs/cli/modules.md. */
   labels: { same: labelsLandedAs, renews: false,
-    by: "`forge new --module` on a filing and `forge doctor modules --remove <name> --to` on a move" },
+    by: "`forge new --module` on a filing, `forge issue <ref> --set module=<name> --why <w>` on an issue "
+      + "already filed, and `forge doctor modules --remove <name> --to` on a move" },
 });
 
 const mismatch = (row, field, ref, back) =>
@@ -140,12 +141,14 @@ export const ownsField = (field) => Boolean(rowOf(field));
 
 /** Every field of one write, in one update, so a caller naming several either writes all of them or names none as written. The gate and the renewal are the write's rather than each field's, and the read-back reports per field because a `PATCH` the tracker refuses for one key documents nothing about the others. */
 export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, ask, expect, override = false, settling = false }) => {
-  const rows = given.map(({ field, value }) => {
-    const row = override ? { same: landedAs } : rowOf(field);
+  /* An override row keeps the comparator of a field that has one, a label set being compared as a set;
+     `typed` is the pair as the caller spelt it, where what is written is not that pair. */
+  const rows = given.map(({ field, value, typed }) => {
+    const row = override ? { same: rowOf(field)?.same ?? landedAs } : rowOf(field);
     if (!row) {
       refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
     }
-    return { field, value, row };
+    return { field, value, row, ...(typed ? { typed } : {}) };
   });
   /* What the call asked for, before the renewal, which writes the lease's own field through this same writer: a comparison beside the send would refuse a short call only after an update had gone out (ISS-945). Being the one place a field is written says where a write goes and nothing about where its instruction came from, so a call reaching here with no ask at all is refused too. */
   const short = shortOfAsk(ask, rows);
@@ -191,10 +194,10 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   const wrong = owed.filter((one) => !one.row.same(back?.[one.field], one.sent));
   if (!wrong.length) return back;
   /* A field that read back as written has moved, and the caller's record of why is owed before this exits: refusing on its neighbour would leave the tracker holding a value with nothing on the page saying who set it. */
-  const landed = owed.filter((one) => !wrong.includes(one)).map(({ field, value }) => ({ field, value }));
+  const landed = owed.filter((one) => !wrong.includes(one)).map(({ field, value, typed }) => typed ?? { field, value });
   if (landed.length) await partly?.(landed);
   refuse([
-    ...wrong.map((one) => mismatch(one.row, one.field, ref, back?.[one.field])),
+    ...wrong.map((one) => mismatch(one.row, one.typed?.field ?? one.field, ref, back?.[one.field])),
     ...(landed.length ? [`${landed.map((one) => one.field).join(", ")} did read back as written and stands.`] : []),
   ].join(" "));
   return back;
