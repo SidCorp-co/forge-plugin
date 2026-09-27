@@ -44,8 +44,12 @@ const switchOf = (config, release) => (release.value
    there and forbids reading it elsewhere, so it is null here wherever the model has none rather than
    whatever the row happened to carry. The strategy goes the same way, being how a promotion moves
    code and nothing where there is no promotion. `said` is what the project declared, kept so a
-   refusal can name a value this CLI did not recognise instead of calling it absent. */
-export const releaseFrom = (config, release = releaseScope()) => ({
+   refusal can name a value this CLI did not recognise instead of calling it absent. A caller that
+   hands no reading gets the one an unset key gives, never the calling process's own file: that file
+   belongs to whichever checkout the process stands in, which is not the project `config` came from. */
+const UNDECLARED = { value: null, from: null };
+
+export const releaseFrom = (config, release = UNDECLARED) => ({
   staging: config?.baseBranch ?? null,
   model: MODELS.includes(config?.releaseModel) ? config.releaseModel : null,
   said: config?.releaseModel ?? null,
@@ -233,16 +237,27 @@ export const releaseConflict = (policy) => {
 /* Three states, one value each: a policy read, `null` where no project is named, and this where the
    read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663). `at`
    is handed to `releaseScope`, whose own line says what a reading aimed elsewhere needs it for.
-   Memoised over the first caller's answer, one process reading one project. */
-export const releasePolicy = once(async (at = null) => {
-  if (!slugIfAny()) return null;
+   Memoised per pair of the two things the answer is read off: the project the tracker half is asked
+   under, which `useProject` can move mid-process, and the checkout the switch is read out of. Keyed
+   on either alone, a second reading gets the first one's other half back (ISS-2730). */
+const policies = new Map();
+
+const readPolicy = async (at) => {
   const answer = await scoped("forge_config", { action: "get" }, true);
   if (answer?.config) return releaseFrom(answer.config, releaseScope(at));
   const why = answer?.refused ?? "the tracker answered for this project with no config on it";
   console.error(`release policy: ${UNREAD_CONFIG}, so every reading of it this command makes is of a `
     + `project that has declared nothing — which this one may not be: ${firstLine(why)}`);
   return unreadFrom(why);
-});
+};
+
+export const releasePolicy = (at = null) => {
+  const slug = slugIfAny();
+  if (!slug) return Promise.resolve(null);
+  const key = JSON.stringify([slug, at]);
+  if (!policies.has(key)) policies.set(key, readPolicy(at));
+  return policies.get(key);
+};
 
 const HOST = /^https?:\/\//u;
 
