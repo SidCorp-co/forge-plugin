@@ -19,6 +19,8 @@ export const CONSTANT_EXPORTS = ["GROUPS", "VERB_NAMES"];
 
 const WHOLE_MODULE = "the module whole";
 
+const MODULE_NEEDLE = "resolve/visibility.mjs";
+const CHILD_NEEDLE = "XDG_CONFIG_HOME";
 const MODULE = String.raw`["'][^"']*resolve/visibility\.mjs["']`;
 const LOCAL = String.raw`[A-Za-z_$][\w$]*`;
 
@@ -48,8 +50,7 @@ const clauseOf = (clause) => clause.split(",")
 /** Every binding this file takes of that module in its own process, earliest first, each as its
  *  line, the exports it asked for, the locals they arrived under and the span of the binding itself.
  *  A namespace binding reads every export there is and so is never exempt. */
-export const readsIn = (text) => {
-  const code = blanked(text);
+export const readsIn = (text, code = blanked(text)) => {
   const found = [];
   const add = (hit, pairs) => found.push({
     line: lineAt(code, hit.index),
@@ -87,7 +88,7 @@ const AS_A_PIN = new RegExp(
 const placed = (text, code, pattern) => {
   for (const hit of text.matchAll(pattern)) {
     const at = hit.index + hit[0].length - 1;
-    if (code[at] === text[at]) return hit.index;
+    if (inCode(text, code, at)) return hit.index;
   }
   return null;
 };
@@ -151,9 +152,12 @@ const says = (rel, line, names, late) => `${rel}:${line} reads ${names.join(", "
  *  reach. And the mask shared with the two rules beside this blanks a template whole, so a read
  *  spelt inside an interpolation is one this does not see: ISS-2212. */
 export const splitIn = (text, rel) => {
+  /* Both shapes spell their needle literally, and the mask only ever blanks, so a file whose text
+     lacks either holds neither and is not worth a mask at all. */
+  if (!text.includes(CHILD_NEEDLE) || !text.includes(MODULE_NEEDLE)) return [];
   const code = blanked(text);
   if (placed(text, code, AS_A_CHILD) === null) return [];
-  const bindings = readsIn(text);
+  const bindings = readsIn(text, code);
   if (bindings.length === 0) return [];
   const pin = placed(text, code, AS_A_PIN);
   if (pin !== null && pin < firstUse(code, bindings)) return [];

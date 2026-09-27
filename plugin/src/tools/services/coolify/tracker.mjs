@@ -7,7 +7,7 @@ import { documentIdOf } from "../../../tracker/issues.mjs";
 import { callTool } from "../../../tracker/rest.mjs";
 import { rowFor } from "../../../tracker/routes.mjs";
 import { renderObject, renderTable } from "./shape.mjs";
-import { TRACKER_SCOPE, consentRefusal } from "./chosen-route.mjs";
+import { TO_INSTANCE, TRACKER_SCOPE, consentRefusal } from "./chosen-route.mjs";
 
 export const TRACKER_USAGE = [
   "Usage: forge coolify <login|accounts|list|targets|status|rollback-images|deploy|cancel> [args]",
@@ -24,7 +24,7 @@ export const TRACKER_USAGE = [
   "  cancel           stop a deployment that is still queued or building",
   "",
   "  applications, logs, runtime-logs and rollback are refused here, each saying what reaches it.",
-  "  The saved instance and the commands that are its own: `forge doctor --coolify-route instance`.",
+  `  The saved instance and the commands that are its own: \`${TO_INSTANCE}\`.`,
   "  A write needs --yes; --dry-run prints the request and sends nothing; --json and --table",
   "  choose the shape.",
 ].join("\n");

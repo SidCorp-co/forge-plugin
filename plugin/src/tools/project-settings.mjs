@@ -313,7 +313,6 @@ export const writeSetting = async (given) => {
 
 const FLOW_USAGE = "forge doctor --flow <slug>";
 
-/** What the one failure this route cannot undo says. Exported so a case can read it: a write of a file that succeeds and a write of the same bytes back that does not is a pair no call through the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
 /** How far a run standing in a checkout of this project goes, into that project's own record. Whose
  *  the option is and why the machine's file no longer answers it: `shipMode` in resolve/settings.mjs.
  *  One key, one store and one writer — this is `--set ship=` under its own spelling, so the two
@@ -331,6 +330,7 @@ export const writeShip = (mode) => {
     : `Runs of ${which} now land their own change. No other project on this machine is moved by it.`];
 };
 
+/** What the one failure this route cannot undo says. Exported so a case can read it: a write of a file that succeeds and a write of the same bytes back that does not is a pair no call through the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
 export const restoreFailed = (path, slug, why) =>
   `--flow: ${path} was set to \`flow: ${slug}\` and putting its previous bytes back failed: ${why}. `
   + `That file holds the new flow now and nothing here changed it further — read it, then set the `
