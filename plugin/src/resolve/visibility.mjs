@@ -9,7 +9,7 @@ import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
 import { STORES } from "./machine/stores.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
-import { TAKEN_HERE, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
+import { TAKEN_HERE, TO_TRACKER, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
 import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
@@ -104,9 +104,12 @@ export const VERBS = [
   () => (onTracker()
     ? "this project's own deployment bindings, on the credential already held"
     : "a pinned project's deployments, and nothing outside it"), null,
+  /* The routes claimed are the tracker's on either way, so which verb owns one does not turn on whose
+     machine asks; what the redirect names does, the instance's commands making none of these calls. */
   { group: HARNESS,
-    wraps: Object.fromEntries(Object.entries(TRACKER_SERVED)
-      .map(([name, key]) => [key, `\`forge coolify ${name}\``])) }],
+    wraps: () => Object.fromEntries(Object.entries(TRACKER_SERVED)
+      .map(([name, key]) => [key, onTracker() ? `\`forge coolify ${name}\``
+        : { line: `\`forge coolify ${name}\``, first: `\`${TO_TRACKER}\`` }])) }],
   ["google", "<service> <resource...> <method> | schema | auth | discovery | +<helper>",
     "Drive, Sheets, Docs, Gmail, Calendar and Meet, on a saved service account or Google-account login",
     null, { group: HARNESS }],
@@ -345,7 +348,7 @@ const routeKey = (owns, action) => (String(action).includes(".") ? String(action
 
 /* The routes this verb is the ROUTE for, not every route it spends; wrapped.test.mjs keeps the two apart. */
 export const wrapsOf = (row) => {
-  const claims = row?.[4]?.wraps
+  const claims = said(row?.[4]?.wraps)
     ?? (row?.[4]?.action ? { [row[4].action]: `\`forge ${row[0]}\`` } : null);
   if (!claims) return null;
   return Object.fromEntries(Object.entries(claims)
@@ -364,7 +367,10 @@ export const verbFor = (tool, action) => {
   const wanted = String(tool).includes(".") ? String(tool) : routeKey(tool, action);
   for (const row of VERBS) {
     const claimed = wrapsOf(row);
-    if (claimed && Object.hasOwn(claimed, wanted)) return { verb: row[0], line: claimed[wanted], key: wanted };
+    if (!claimed || !Object.hasOwn(claimed, wanted)) continue;
+    /* A claim is the command, or the command with the one `first` that has to run before it answers. */
+    const { line, first = null } = typeof claimed[wanted] === "string" ? { line: claimed[wanted] } : claimed[wanted];
+    return { verb: row[0], line, first, key: wanted };
   }
   return null;
 };
@@ -395,13 +401,14 @@ export const wrappedRefusal = (tool, action) => {
   if (!found) return null;
   /* Named off the key that matched, not the arguments: a caller naming the whole pair in the tool slot leaves the action slot empty, and `<key> null` is a refusal that reads as a bug. */
   const said = found.key.replace(".", " ");
+  const asked = found.first ? `${found.first}, then ${found.line},` : found.line;
+  const wraps = `${said} is what ${found.line} wraps${found.first ? ` once ${found.first} has run` : ""}`;
   const gone = unavailable(found.verb);
   if (gone) {
-    return `Use ${found.line} and not the raw call — ${gone.replace(/\.$/u, "")}.\n\n`
-      + `${said} is what ${found.line} wraps, and the raw call is not the way round its absence.`;
+    return `Use ${asked} and not the raw call — ${gone.replace(/\.$/u, "")}.\n\n`
+      + `${wraps}, and the raw call is not the way round its absence.`;
   }
-  return `Type ${found.line} instead.\n\n${said} is what ${found.line} wraps: it makes this call `
-    + "and takes the reading this route skips.";
+  return `Type ${asked} instead.\n\n${wraps}: it makes this call and takes the reading this route skips.`;
 };
 
 export const offeredVerbs = () => {

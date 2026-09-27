@@ -10,6 +10,7 @@ export const ROUTE_MODES = [TRACKER, INSTANCE];
 
 export const ROUTE_KEY = "coolifyRoute";
 export const TO_INSTANCE = `forge doctor --coolify-route ${INSTANCE}`;
+export const TO_TRACKER = `forge doctor --coolify-route ${TRACKER}`;
 
 const DEFAULTED = "the plugin's default, this machine having chosen neither";
 

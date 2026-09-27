@@ -184,6 +184,10 @@ status it reports is read as that platform means it rather than as it spells it.
 - **AC-19-10-15** · Rev: 1 · Proof: plugin/test/tools/services/coolify/pin.test.mjs "a pin naming a project the instance does not know is refused naming the pin, which then answers"
   IF a pinned project resolves to nothing on the instance THEN the refusal SHALL name a command that
   answers under that same pin.
+- **AC-19-10-16** · Rev: 1 · Proof: plugin/test/resolve/wrapped.test.mjs "a raw coolify call is redirected to a command the route this machine chose accepts"
+  IF a raw call to the tracker's own deployment tool is refused on a machine that chose the saved
+  instance THEN the first command the refusal names SHALL be the change back to the tracker's way,
+  and the command that makes that call SHALL come after it.
 
 ### EI-07 — The version-control host
 
