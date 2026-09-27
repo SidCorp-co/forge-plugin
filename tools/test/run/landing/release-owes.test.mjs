@@ -5,7 +5,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { KEY, git, landingRan, ready, seeded, state, tracker, world } from "./fixture.mjs";
+import {
+  KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, git, landingRan, ready, seeded, state, tracker, world,
+} from "./fixture.mjs";
 
 const { readingTitle } = await import("../../../../plugin/src/git/reviewed.mjs");
 
@@ -33,8 +35,8 @@ test("a landing past the review volume files the batch reading after its install
   const key = state.issues.at(-1).issueId;
   assert.ok(said.includes(`filed ${key}`), said);
   assert.ok(said.includes(`Work ${key}. Use the Skill tool: skill forge:issue-flow, args ${key}.`), said);
-  assert.match(said, /^ {2}(the gate: |what this tree's gate runs have taken could not be read)/mu,
-    `no gate figure after the install:\n${said}`);
+  /* The fixture's gate keeps no timing record, so the figure is the reader's own word for none. */
+  assert.match(said, /^ {2}the gate: no run is recorded/mu, `no gate figure after the install:\n${said}`);
   assert.match(said, new RegExp(`${KEY} is a \`fix\` and landed 1 file\\(s\\) and 2 changed line\\(s\\), `
     + "against that rung's ceiling of 15 and 500", "u"), `no ladder backstop for the member:\n${said}`);
 });
@@ -48,4 +50,17 @@ test("a landing whose owed reading already has an issue names it and files none"
   const said = await landingRan([KEY], work);
   assert.equal(creates().length, 0, `a second row was filed for one mark:\n${said}`);
   assert.match(said, /ISS-501 is in_progress for this mark already, so nothing was filed/u, said);
+});
+
+/* Each member over its own commits: the candidate holds both changes, two files and three lines,
+   and a backstop measuring that would hold each change to the other's lines as well. */
+test("a batch landing holds each member to its own rung over its own commits, never the candidate's", async () => {
+  const { work, head, next, base } = world({ base: "other", second: true, project: OWED });
+  git(work, "update-ref", "refs/forge/reviewed", base);
+  seeded({ landing: ready(head, base), next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }) });
+  for (const one of state.issues) one.complexity = "s";
+  const said = await landingRan([KEY, NEXT_KEY], work);
+  assert.match(said, new RegExp(`${KEY} is a \`fix\` and landed 1 file\\(s\\) and 2 changed line\\(s\\),`, "u"), said);
+  assert.match(said, new RegExp(`${NEXT_KEY} is a \`fix\` and landed 1 file\\(s\\) and 1 changed line\\(s\\),`, "u"), said);
+  assert.doesNotMatch(said, /landed 2 file\(s\)/u, `a member was measured over the candidate:\n${said}`);
 });
