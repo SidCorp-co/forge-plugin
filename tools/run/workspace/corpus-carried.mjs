@@ -3,7 +3,7 @@
    report read, so a row that never reaches it is a consult those figures never counted: every run's,
    once the brief printed the run home for all of them (ISS-2659). */
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { configDir } from "../../../plugin/src/resolve/config.mjs";
 import { BORROW_VAR } from "../../../plugin/src/resolve/machine/borrowed.mjs";
@@ -33,7 +33,14 @@ const landed = (path) => {
 
 const inside = (path, dir) => {
   const rel = relative(landed(dir), landed(path));
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+  return rel === "" || (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel));
+};
+
+const refusedInside = (log, scratch) => {
+  if (!inside(log, scratch)) return;
+  throw new Error(`the machine's consult log resolves to ${log}, inside the scratch itself, so no copy `
+    + `outlives it: run finish with ${BORROW_VAR} naming this machine's config.json, or with `
+    + `XDG_CONFIG_HOME at this machine's own home`);
 };
 
 /* A row is a line that parses as a JSON object: a log written by appends is torn at the line it
@@ -104,12 +111,10 @@ export const carried = (scratch) => {
   const from = logsIn(scratch).filter(existsSync);
   const rows = from.flatMap(rowsOf);
   if (!rows.length) return { log, from, rows: 0, consults: 0 };
-  if (inside(log, scratch)) {
-    throw new Error(`the machine's consult log resolves to ${log}, inside the scratch itself, so no copy `
-      + `outlives it: run finish with ${BORROW_VAR} naming this machine's config.json, or with `
-      + `XDG_CONFIG_HOME at this machine's own home`);
-  }
+  refusedInside(log, scratch);
   const lines = absentFrom(log, rows);
   if (lines.length) appended(log, lines);
+  // Again once the file exists: a link left dangling into the scratch lands only when the append made its target.
+  refusedInside(log, scratch);
   return { log, from, rows: lines.length, consults: lines.filter(isConsult).length };
 };

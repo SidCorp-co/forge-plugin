@@ -92,7 +92,8 @@ test("a second carry of the same log adds nothing, and a machine log torn at its
     assert.deepEqual([again.rows, again.consults], [0, 0]);
     assert.equal(readFileSync(machine, "utf8"), first);
   } finally {
-    process.env.XDG_CONFIG_HOME = was;
+    if (was === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = was;
   }
 });
 
@@ -147,6 +148,30 @@ test("finish whose machine log is the run home's own through a link leaves the w
   assert.ok(existsSync(scratch) && existsSync(tree), `the workspace did not stay:\n${run.stdout}${run.stderr}`);
   assert.equal(readFileSync(own, "utf8"), `${ROWS.join("\n")}\n`);
   assert.match(run.stderr, /inside the scratch itself, so no copy outlives it/u, run.stderr);
+});
+
+/* The same log reached two more ways: a link left dangling into the scratch, whose target only the
+   append makes, and a directory of the scratch whose name opens with two dots. */
+test("finish refuses a machine log that lands in the scratch through a dangling link or a dot-dot name", () => {
+  const { work, tree, scratch, home, env } = started("corpus-spelled");
+  const own = logAt(join(scratch, "home"), ROWS);
+  mkdirSync(join(scratch, "sink"));
+  const beside = join(home, "dangling");
+  mkdirSync(beside);
+  writeFileSync(join(beside, "config.json"), "{}\n");
+  symlinkSync(join(scratch, "sink", "codex-log.jsonl"), join(beside, "codex-log.jsonl"));
+  const dotted = join(scratch, "..machine");
+  mkdirSync(dotted);
+  writeFileSync(join(dotted, "config.json"), "{}\n");
+  declaredIn(work, scratch);
+
+  for (const borrowed of [join(beside, "config.json"), join(dotted, "config.json")]) {
+    const run = runIn(work, ["finish", KEY], { ...env, FORGE_BORROW_FROM: borrowed });
+    assert.equal(run.status, 1, `${borrowed}:\n${run.stdout}`);
+    assert.match(run.stderr, /inside the scratch itself, so no copy outlives it/u, run.stderr);
+  }
+  assert.ok(existsSync(scratch) && existsSync(tree), "the workspace did not stay");
+  assert.equal(readFileSync(own, "utf8"), `${ROWS.join("\n")}\n`);
 });
 
 /* The layout a run whose home was the scratch itself left (ISS-189), which a scratch may still hold. */
