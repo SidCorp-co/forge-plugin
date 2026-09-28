@@ -56,7 +56,9 @@ verb to make a read, and the refusal that told it so had to exist. The brief and
 verb's two depths, and `--json` and `--report` are separate readings: asking for both is refused.
 
 Two smaller measurements. A section with nothing in it is left out, not printed empty, which is what
-made the brief fit a screen at all. And the comments it reads are not shown as themselves: the typed
+made the brief fit a screen at all. The record is the one exception: left out, it read as no work
+done on an issue whose change had merged and was serving, so where nothing is typed the block says
+whether the row carries a merged mark or a branch. And the comments it reads are not shown as themselves: the typed
 kinds are, one line each, so a plain comment a person left reaches nobody through this verb. It
 therefore credits nothing to the read-before-write rule, which delivers the bodies in its own
 refusal instead — a digest of the record is not the record.
