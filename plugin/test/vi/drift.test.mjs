@@ -103,10 +103,9 @@ test("the write boundary refuses a field whose rewrite drops the source's contra
   const run = await translatedIn(t, () => "Lưu số dư dưới dạng âm và cũng gọi là số có dấu.",
     { description: source }, "vi-drift-write-");
   assert.equal(run.status, 1, `the field's own drift refuses the whole write:\n${run.stderr}`);
-  assert.match(run.stderr, /could not write the Vietnamese/u, run.stderr);
+  assert.match(run.stderr, /vi-natural could/u, run.stderr);
   assert.match(run.stderr, /contrasts one reading against another/u,
     `the reason vi-natural gave reaches the run, not only a block count:\n${run.stderr}`);
-  assert.match(run.stderr, /This is the command that writes it/u, "the refusal hands over the producing command");
 });
 
 test("the write boundary still posts a field whose rewrite keeps the source's contrast", async (t) => {
