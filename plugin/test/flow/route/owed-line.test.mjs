@@ -19,6 +19,11 @@ const TYPED = ["## Files touched", "a", "## Before", "a", "## After", "a", "## D
 
 const asked = async (session) => {
   process.env.FORGE_SESSION_ID = session;
+  return (await owedSaid(ISSUE, held, [], "ISS-3")).said;
+};
+
+const answered = async (session) => {
+  process.env.FORGE_SESSION_ID = session;
   return owedSaid(ISSUE, held, [], "ISS-3");
 };
 
@@ -28,10 +33,15 @@ test("the ladder is said to a session that has not read it", async () => {
   assert.match(said, /ISS-3/u, "and it names the issue it is about");
 });
 
+/* The line and whether it moved, never an empty string standing for both "unchanged" and "nothing
+   owed": the caller prints on the flag and keeps the line either way. */
 test("the same ladder after the next write is not said twice", async () => {
-  const first = await asked("owed-twice");
-  assert.ok(first.trim(), "the first write carries it");
-  assert.equal(await asked("owed-twice"), "", "and the write after it, owing the same, says nothing");
+  const first = await answered("owed-twice");
+  assert.ok(first.said.trim(), "the first write carries it");
+  assert.equal(first.changed, true, "and says it is news");
+  const again = await answered("owed-twice");
+  assert.equal(again.changed, false, "the write after it, owing the same, is told it did not change");
+  assert.equal(again.said, first.said, "and still holds the line, so no reader mistakes it for nothing owed");
 });
 
 test("another session is owed it whole, having read nothing", async () => {
@@ -45,19 +55,20 @@ test("another session is owed it whole, having read nothing", async () => {
 test("a ladder that moved and came back is said again", async () => {
   process.env.FORGE_SESSION_ID = "owed-moved";
   const first = await owedSaid(ISSUE, held, [], "ISS-3");
-  assert.ok(first.trim());
+  assert.ok(first.changed);
   const moved = await owedSaid(ISSUE, { ...held, status: "open" }, [], "ISS-3");
-  assert.ok(moved.trim(), "a different ladder is a different line");
-  assert.notEqual(moved, first);
+  assert.ok(moved.changed, "a different ladder is a different line");
+  assert.notEqual(moved.said, first.said);
   const back = await owedSaid(ISSUE, held, [], "ISS-3");
-  assert.equal(back, first, "and the first one is owed again, the session having been told another since");
+  assert.equal(back.changed, true, "and the first one is owed again, the session having been told another since");
+  assert.equal(back.said, first.said);
 });
 
 /* The line counts the items and never names them, so a reader held to it alone is told a number twice and the
    second set of names not at all. What is said and what the session is credited with are therefore one text (ISS-1103). */
 test("the items are said under the line, and a set that changed under an unchanged count is said again", async () => {
   process.env.FORGE_SESSION_ID = "owed-items";
-  const said = await owedSaid(ISSUE, held, [], "ISS-3");
+  const { said } = await owedSaid(ISSUE, held, [], "ISS-3");
   assert.match(said, /item\(s\) owed\.$/mu, "the line, first and alone on its own line");
   const under = said.split("\n").slice(1).filter((one) => one.trim());
   assert.ok(under.length >= 2, `the items under it, each with the command that supplies it: ${said}`);
@@ -66,9 +77,9 @@ test("the items are said under the line, and a set that changed under an unchang
   const bare = { status: "confirmed" };
   const mismatched = { status: "confirmed", acceptanceCriteria: "1. One outcome.", plan: TYPED };
   process.env.FORGE_SESSION_ID = "owed-same-count";
-  const first = await owedSaid(ISSUE, bare, [], "ISS-3");
-  const second = await owedSaid(ISSUE, mismatched, [], "ISS-3");
+  const { said: first } = await owedSaid(ISSUE, bare, [], "ISS-3");
+  const { said: second, changed } = await owedSaid(ISSUE, mismatched, [], "ISS-3");
   assert.equal(second.split("\n")[0], first.split("\n")[0], "the line is the same, so the count is");
   assert.notEqual(second, first, "and the items are not, so the second is a reading nobody has read");
-  assert.ok(second.trim(), "which is why it is said rather than credited to the first");
+  assert.equal(changed, true, "which is why it is said rather than credited to the first");
 });

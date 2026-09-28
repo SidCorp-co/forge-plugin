@@ -57,6 +57,16 @@ The delta is per line, and belongs to the first reading. A text is credited both
 line, so a paragraph that grew by a sentence owes the sentence, not the paragraph again. Where no
 line of a text was ever shown, the whole of it is owed — a delta equal to the text is the text.
 
+**A refusal is handed in its parts, and the delta falls on its body alone.** A gate composes every
+refusal out of the same two fixed lines — what to do instead, and the route to the reason — around
+a body that varies, and a per-line delta over the whole text cut exactly those two first, because
+every firing of the gate shares them. The second refusal of a session then arrived as its fresh
+lines alone: a quoted pair with nothing saying what to do, or a doubt with nothing naming the page.
+So a refusal names its action, its body and its route, and whatever else changed, the action and the
+route print whole on every firing that is not a whole repeat. The surface stays the gate's rather
+than becoming the rule's: keyed per rule, a rule whose body changed would still be cut to its new
+lines, which settles nothing.
+
 **A surface may want the whole text and no delta, and then it asks what is owed rather than for what
 to say.** A served phase of the method is one: it is owed to be identical to what `forge guide`
 prints for the same phase, and a delta is by definition not that. So it reads whether the whole text
@@ -82,6 +92,15 @@ reading of "shown" answers across every surface, a delegated run's included.
 
 The same caution applies anywhere the text of a message is narrower than the occasion that owes it.
 Keying on the text is only safe where the text is the whole of what the surface has to say.
+
+## A fact told once is not an item shown
+
+That a session was told an issue's thread could not be read whole is a fact said once about the
+issue, not a thing delivered on a surface. Kept among the items it spent the budget that decides
+which comments a session keeps credit for, so a session met by several short reads was shown again
+comments it had already read — and a mark on the comments' own surface evicts a comment at exactly
+the kept length. So a told fact is a row of its own kind in the same journal, read back under its
+key, and no item budget counts it.
 
 ## Why it is a journal and not a file that gets rewritten
 

@@ -1,6 +1,6 @@
 /* An issue's comments, and the delivery owed a session not shown them: the gate refusing a write and
    the verb making it must agree. One surface of the ledger, docs/cli/the-shown-ledger.md. */
-import { KEPT, credit, creditedTo, creditsForAny } from "../shown/journal.mjs";
+import { KEPT, credit, creditedTo, shownToAny, tell } from "../shown/journal.mjs";
 import { sessionKey } from "../shown/ledger.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
@@ -148,13 +148,12 @@ export const delivered = (owed) => threadSaid(
 /* One reading of "not yet delivered", so the refusing gate and the crediting one cannot drift. */
 const unshownIn = (shown, comments) => comments.filter((one) => !shown.has(idOf(one)));
 
-/* Shed as a comment is, one refusal again the cost, but on a surface of its own: a surface keeps its
-   last `KEPT.items`, and a thread of exactly that many would evict a comment for this and this for it.
-   A thread longer than that cannot be credited at all — one comment stays owed and crediting it evicts
-   the next — so it is never delivered comment by comment: said once, and then said (ISS-697). */
+/* Told, never credited: a thread of exactly `KEPT.items` would evict a comment for a mark on its own
+   surface and the mark for it, and a mark among the items spends the budget comments are kept by
+   (ISS-771). A thread longer than that cannot be credited at all — one comment stays owed and crediting
+   it evicts the next — so it is never delivered comment by comment: said once, and then said (ISS-697). */
 const SHORT_READ = "thread:not-read-whole";
 const OVER_KEEP = "thread:beyond-credit";
-const threadOn = (documentId) => `${documentId}:thread`;
 
 const keepLine = ({ comments = [], total = null } = {}) =>
   `The thread holds ${comments.length} comment(s)${total === null ? "" : ` of ${total}`}, past the `
@@ -183,8 +182,8 @@ const shortage = (page) => {
 const readOf = async (shown, { ref, documentId }) => {
   const page = await commentPage(documentId);
   const owes = shortage(page);
-  const unshown = owes?.mark === OVER_KEEP ? [] : unshownIn(shown(documentId), page.comments);
-  return { ref, documentId, page, unshown, owes: owes && { ...owes, told: shown(threadOn(documentId)).has(owes.mark) } };
+  const unshown = owes?.mark === OVER_KEEP ? [] : unshownIn(shown.credited(documentId), page.comments);
+  return { ref, documentId, page, unshown, owes: owes && { ...owes, told: shown.told(documentId).has(owes.mark) } };
 };
 
 /* One key, as every caller but the gate hands it, or a function of the target naming the wider set to check and the one a fresh credit belongs under (ISS-1558). */
@@ -195,7 +194,7 @@ const keysOf = async (sessions, target) => (typeof sessions === "function"
 const unshownFor = async (targets, sessions) => {
   const read = await Promise.all(targets.map(async (one) => {
     const { check } = await keysOf(sessions, one);
-    return readOf(creditsForAny(check), one);
+    return readOf(shownToAny(check), one);
   }));
   return {
     owed: read.filter(({ unshown }) => unshown.length)
@@ -213,7 +212,7 @@ export const owedFor = async (targets, sessions) => {
 /* Recorded once the text exists, so a list that fails halfway credits nothing it never delivered. */
 const noteDelivered = async (sessions, { owed = [], first = [] }) => {
   for (const one of owed) noteShown((await keysOf(sessions, one)).credit, one.documentId, one.unshown);
-  for (const one of first) credit((await keysOf(sessions, one)).credit, threadOn(one.documentId), [one.mark]);
+  for (const one of first) tell((await keysOf(sessions, one)).credit, one.documentId, [one.mark]);
 };
 
 /** The refusal a look has earned, credited as the text is built, or null where nothing holds. */

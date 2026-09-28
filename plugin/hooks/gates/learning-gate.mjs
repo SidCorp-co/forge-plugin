@@ -194,11 +194,14 @@ export const run = (ev) => {
               `        ${lb} already says: ${b.slice(0, 140)}`,
           )
           .join("\n");
-        const full = "Keep it in one place and cite it from the other. If the existing wording is "
-          + "the worse one, replace it rather than adding beside it.\n\n"
-          + "This repeats what the skill already says — that is a defect, not a style "
-          + "preference: two authorities for one rule diverge the first time someone corrects only "
-          + `the copy they found.\n\n${joined}` + how(null, CAUSE.restated);
+        const full = {
+          lead: "Keep it in one place and cite it from the other. If the existing wording is "
+            + "the worse one, replace it rather than adding beside it.",
+          body: "This repeats what the skill already says — that is a defect, not a style "
+            + "preference: two authorities for one rule diverge the first time someone corrects only "
+            + `the copy they found.\n\n${joined}`,
+          how: how(null, CAUSE.restated),
+        };
         deny(sayOnce(readerKey(ev), "learning-gate", full, {
           route: "learning-gate",
           shape: `\`${basename(path)}\` repeats what the skill already says: keep it in one place and cite it from the other.`,
