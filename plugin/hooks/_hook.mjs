@@ -422,14 +422,22 @@ export const starts = (text) => startsAt(text).map((one) => one.said);
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 
+/* What an inline-program match said before its body: the runner and its flags, for the body put back in its place. */
+const runnerOf = (all, body) => all.slice(0, all.length - body.length);
+
+/* Per command, since one event's gates each ask it of the same call and the answer is a string of it alone. */
+const writesOf = new Map();
+
 /** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. A heredoc body and an inline one are folded alike, or a run held on one spelling learns the other. `forge hooks --how writes`. */
-export const shellWrites = (command) =>
-  shellText(command, (body, at, runner) => glued(body, runner))
-    .replace(RUNS, (all, runner, body) => `${all.slice(0, all.length - body.length)}${gluedQuoted(body, runner)}`);
+export const shellWrites = (command) => {
+  const said = String(command ?? "");
+  return memo(writesOf, said, () => shellText(said, (body, at, runner) => glued(body, runner))
+    .replace(RUNS, (all, runner, body) => `${runnerOf(all, body)}${gluedQuoted(body, runner)}`));
+};
 
 /** What a call wrote through a name the gates cannot resolve, read off the text its own shell runs: a program body is blanked, since its names are its interpreter's, and reading them as the shell's claimed writes out of a regex literal and a docstring (ISS-450). how/writes.md. */
 export const unseenWrites = (command) => unseenNames(
-  shellText(command, () => " ").replace(RUNS, (all, runner, body) => `${all.slice(0, all.length - body.length)}''`),
+  shellText(command, () => " ").replace(RUNS, (all, runner, body) => `${runnerOf(all, body)}''`),
 );
 
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */

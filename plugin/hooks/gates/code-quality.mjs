@@ -43,11 +43,13 @@ const unlinted = (ev, files) => {
 /* Three named are enough to find the command by; the rest are counted. */
 const SHOWN = 3;
 
-/* Said once a session, and only where no file of the call reached the gates, which is what keeps "no gate read it" true of a loop over names the command also spelled (ISS-450). */
+/* Said once a session, and only where no file of the call reached the gates, which is what keeps "no gate read it" true of a loop over names the command also spelled (ISS-450). The stamp is read before the command is parsed, since every call after the one that said it would parse only to say nothing. */
+const UNSEEN = "unseen-names";
 const unseen = (ev) => {
   if (ev.tool_name !== "Bash" || touched(ev).length) return "";
+  if (askedAlready(ev, UNSEEN, "code-quality", { set: false })) return "";
   const said = unseenWrites(ev.tool_input?.command);
-  if (!said.length || askedAlready(ev, "unseen-names", "code-quality")) return "";
+  if (!said.length || askedAlready(ev, UNSEEN, "code-quality")) return "";
   const more = said.length > SHOWN ? ` and ${said.length - SHOWN} more` : "";
   return `Not seen, so no gate read what this call's write through ${said.slice(0, SHOWN).map((one) => `\`${one}\``).join(", ")}${more} `
     + `landed on, if it ran: no spelling in the command produces ${said.length > 1 ? "those names" : "that name"}.\n`
