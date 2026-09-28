@@ -21,9 +21,13 @@ test.after(() => tracker.close());
 const PAGES = join("docs", "pages");
 const LIST = join("docs", "pages.txt");
 const GEN = join("tools", "gen.mjs");
+const ORDER = join("tools", "order.mjs");
 const GENERATOR = `import { readdirSync, writeFileSync } from "node:fs";
-writeFileSync(${JSON.stringify(LIST)}, readdirSync(${JSON.stringify(PAGES)}).sort().map((one) => one + "\\n").join(""));
+import { order } from "./order.mjs";
+writeFileSync(${JSON.stringify(LIST)}, order(readdirSync(${JSON.stringify(PAGES)})).map((one) => one + "\\n").join(""));
 `;
+/* A hand-written source the generator loads, so a room that removes it fails the generator. */
+const ORDERING = "export const order = (names) => [...names].sort();\n";
 
 const remote = (at) => sha(join(at, "origin.git"), `refs/heads/${BASE}`);
 const landing = () => landingOf(context());
@@ -47,8 +51,9 @@ const generating = () => {
   const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
   put(work, "package.json", JSON.stringify({ ...held, scripts: { ...held.scripts, "generate:pages": `node ${GEN}` } }, null, 2));
   put(work, GEN, GENERATOR);
+  put(work, ORDER, ORDERING);
   for (const name of ["a.md", "k.md", "m.md", "n.md"]) page(work, name);
-  git(work, "add", "package.json", GEN);
+  git(work, "add", "package.json", GEN, ORDER);
   git(work, "commit", "-qm", "the base declares a generator");
   git(work, "push", "-q", "origin", `HEAD:${BASE}`);
   const base = sha(work, BASE);
@@ -72,9 +77,9 @@ const serverAdds = (at, name, also = () => {}) => {
   return sha(clone, "HEAD");
 };
 
-const landed = async (also) => {
+const landed = async (also, files = []) => {
   const { at, work, base, head } = generating();
-  seeded({ landing: ready(head, base, { files: [OWNED, join(PAGES, "b.md"), LIST] }) });
+  seeded({ landing: ready(head, base, { files: [OWNED, join(PAGES, "b.md"), LIST, ...files] }) });
   forgetInstall();
   const theirs = serverAdds(at, "z.md", also);
   const said = await landingRan([KEY], work);
@@ -142,6 +147,22 @@ test("a base that moved a source path beside the generated one hands the branch 
   assert.equal(remote(at), theirs, `nothing was pushed:\n${said}`);
 });
 
+/* The shape ISS-1444's landing met: the base moved a source its generator loads beside the file it
+   writes. Each path is removed alone, so the generator fails for the source and clears the list. */
+test("a base that moved a source the generator loads clears the generated file and hands back the source alone", async () => {
+  const { at, head, theirs, said, held } = await landed((clone) => {
+    appendFileSync(join(clone, ORDER), "// the base's own note\n");
+    git(clone, "add", ORDER);
+  }, [ORDER]);
+  assert.equal(held.state, "builder-owed", said);
+  assert.equal(held.moved, ORDER, `the source path alone is the move:\n${said}`);
+  const told = said.split("\n").find((line) => line.includes(`${LIST} moved since ${head.slice(0, 7)}`));
+  assert.ok(told?.includes("wrote it back byte for byte"), `the generated file is cleared:\n${said}`);
+  assert.match(said, /generate:pages exited 1 once tools\/order\.mjs alone was removed and not with it in place/u,
+    `and the removal is named as what failed the generator:\n${said}`);
+  assert.equal(remote(at), theirs, `nothing was pushed:\n${said}`);
+});
+
 /* A path the merged head does not hold reads as unmoved once removed, whatever the generators did: a
    deletion is no file a generator wrote back, so it stays a move beside one that is cleared. */
 test("a path the merged head lacks is not taken as generated beside one its generator writes back", () => {
@@ -167,4 +188,23 @@ test("an ignored path the merged head lacks is not taken as generated when a gen
   const found = regenerated(work, sha(work, "HEAD"), [LIST, made]);
   assert.deepEqual(found.generated, [LIST], JSON.stringify(found));
   assert.match(found.why, /did not write docs\/made\.txt back byte for byte/u, found.why);
+});
+
+/* A source a generator reads rather than loads: removed alone, it fails nothing and moves the file that
+   generator writes, which names it as read rather than written, and the other path is still cleared. */
+test("a moved path whose removal alone moves another file is named as read, beside one cleared", () => {
+  const { work } = generating();
+  const source = join("docs", "source.txt");
+  const made = join("docs", "made.txt");
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  put(work, source, "from the source\n");
+  put(work, made, "from the source\n");
+  put(work, join("tools", "made.mjs"), `import { existsSync, readFileSync, writeFileSync } from "node:fs";\n`
+    + `writeFileSync(${JSON.stringify(made)}, existsSync(${JSON.stringify(source)}) ? readFileSync(${JSON.stringify(source)}, "utf8") : "none\\n");\n`);
+  put(work, "package.json", JSON.stringify({ ...held, scripts: { ...held.scripts, "generate:made": "node tools/made.mjs" } }, null, 2));
+  git(work, "add", "package.json", source, made, join("tools", "made.mjs"));
+  git(work, "commit", "-qm", "a generator that reads a source");
+  const found = regenerated(work, sha(work, "HEAD"), [LIST, source]);
+  assert.deepEqual(found.generated, [LIST], JSON.stringify(found));
+  assert.match(found.why, /removing docs\/source\.txt alone also moved docs\/made\.txt, so docs\/source\.txt is a file they read/u, found.why);
 });
