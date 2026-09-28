@@ -103,7 +103,15 @@ export const translated = (payload) => {
     const rewritten = path.at(-1) === "title" ? translatedTitle(source) : translatedBody(source);
     const written = restoreMachine(rewritten, marks);
     done = withLeaf(done, path, written);
-    console.error(`--- ${field} as posted ---\n${written}\n`);
+    /* AC-04-9-1..3: a title is short enough to check at a glance and stays posted-only; a field
+       the rewrite left byte for byte alone gets no source block to compare against itself; every
+       other rewritten field prints what was sent beside what was kept, so the one person who can
+       tell a dropped contrast from a faithful rewrite sees both in the same round as the write. */
+    console.error(
+      path.at(-1) !== "title" && written !== held
+        ? `--- ${field} as sent ---\n${held}\n\n--- ${field} as posted ---\n${written}\n`
+        : `--- ${field} as posted ---\n${written}\n`,
+    );
   }
   return done;
 };
