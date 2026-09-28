@@ -25,8 +25,8 @@ alone does not decide: a value holding an address anywhere — any scheme, in an
 user-info, a query or a fragment is guarded whatever it is filed under. The report still withholds the label —
 what is printed is that document's rule, not this one's.
 
-**What the tracker already stores is re-sent, not supplied, and it goes.** Every write re-sends an
-issue's stored `sessionContext` whole, because the lease is a field of it. Judging the whole payload
+**What the tracker already stores is re-sent, not supplied, and it goes.** Every write that renews
+the lease re-sends an issue's stored `sessionContext` whole, because the lease is a field of it. Judging the whole payload
 made one credential a run once wrote into that field refuse every later write to the issue, and it
 told a caller who had typed none to take it out (ISS-1380). So the seat is told what the record held
 when the payload was built from it. A string that record holds word for word in the same field tells

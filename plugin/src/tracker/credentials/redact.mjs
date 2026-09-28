@@ -14,7 +14,7 @@ const OUT_OF_REACH = `Only ${FIELD} as the tracker holds it now is rewritten her
   + "not rewritten by this flag.";
 
 const why = (hits) => `it carried this project's ${[...new Set(hits.map((hit) => hit.credential))].join(", ")}, `
-  + "which is read at the authentication step and echoed nowhere after it";
+  + "a copy an earlier write put into the stored field, where a test credential is not to be kept";
 
 /** Masks every test credential the issue's stored sessionContext carries, and says what it did. */
 export const redactStored = async (reference) => {

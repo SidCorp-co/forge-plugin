@@ -150,8 +150,9 @@ const SET_MODULE = "`--set module=<name>` puts the issue in one of this project'
   + "it held before is replaced and every other label stays. `forge doctor modules` lists the names.";
 
 /* The one write to sessionContext that is not the lease's, said where a caller sent by the guard looks for it. */
-const REDACT = "`--redact` masks every test credential the issue's stored sessionContext carries with\n"
-  + "`[withheld]`, leaves every other value of it as it was, and posts a correction naming the paths.\n"
+const REDACT = "`--redact` masks with `[withheld]` every string of the issue's stored sessionContext the\n"
+  + "credential guard would refuse, leaves every other value of it as it was, and posts a correction\n"
+  + "naming the paths. A short credential inside prose is past the guard's edge, and is left.\n"
   + "It is refused while another run's lease holds the issue, and writes nothing where the field\n"
   + "carries no credential.";
 

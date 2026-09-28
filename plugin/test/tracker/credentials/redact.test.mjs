@@ -137,6 +137,8 @@ test("--redact masks every credential in the stored sessionContext and leaves th
   assert.match(correction.args.data.body,
     /moved: sessionContext\.reviewFeedback\.1, sessionContext\.reviewFeedback\.2 redacted to `\[withheld\]` by `forge issue --redact`/u);
   assert.doesNotMatch(correction.args.data.body, new RegExp(PASSWORD, "u"));
+  assert.match(correction.args.data.body, /why: it carried this project's test credentials · password, test credentials · username, a copy an earlier write put into the stored field/u);
+  assert.doesNotMatch(correction.args.data.body, /echoed nowhere/u, "the record says the copy was taken in, which is why it is being taken off");
 });
 
 test("--redact on a stored record carrying no credential writes nothing and says so", async () => {
