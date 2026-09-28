@@ -12,7 +12,7 @@ import { escaped } from "../../markdown.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
-import { commitProblem } from "./content.mjs";
+import { commitProblem, commitTakes } from "./content.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
 
 /* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
@@ -31,12 +31,20 @@ const clauseOf = (said) => new RegExp(String.raw`\b${said} ([^;\n]+)`, "iu");
 export const CLAUSES = [
   { flag: "at", said: "at", label: "the sha the change landed at", commit: true },
   { flag: "reviewed", said: "reviewed head", label: "the head the review judged", commit: true },
-  { flag: "judged", said: "judged head", label: "the head the verdicts judged", commit: true },
+  { flag: "judged", said: "judged head", label: "the head the verdicts judged", commit: true,
+    none: "no verdict has judged any head yet" },
   { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved, as git reads --wrote between --judged and --at", read: true },
   { flag: "wrote", said: "landing wrote", label: "the paths this change itself landed" },
 ].map((one) => ({ ...one, reads: one.commit ? shaOf(one.said) : clauseOf(one.said) }));
 
 const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
+
+/* A head clause that may say none, under a builder whose project leaves the verdicts to another run
+   (ISS-1960): the word the path clauses take, followed by what it means in words, so the note says
+   no head was judged rather than leaving the clause out. Its sha reader finds nothing there, so
+   every reader of the head reads it as none. */
+const headSaid = (one, value) => (value === NOTHING ? `${NOTHING} — ${one.none}` : value);
+const noneOf = (one) => new RegExp(String.raw`\b${one.said} ${NOTHING}\b`, "iu");
 
 /** The note of the mark that stands: the latest, a re-mark after a second landing being the one
  *  that landed. */
@@ -132,16 +140,33 @@ export const correctionForm = (ref, paths) =>
   + `--why "<why each was needed>"`;
 
 /** The text `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle. */
-export const namedFor = async (documentId, comments = null) => {
-  const { namedIn, viewFrom } = await import("../earned.mjs");
+const viewOn = async (documentId, comments) => {
+  const { viewFrom } = await import("../earned.mjs");
   const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   const page = comments ?? (await commentPage(documentId)).comments ?? [];
-  return namedIn(viewFrom(documentId, issue ?? {}, page ?? []));
+  return viewFrom(documentId, issue ?? {}, page ?? []);
+};
+
+export const namedFor = async (documentId, comments = null) => {
+  const { namedIn } = await import("../earned.mjs");
+  return namedIn(await viewOn(documentId, comments));
+};
+
+/* `nothing` is true only where no verdict stands on the page: a run holding verdicts has the head
+   they judged, and the word would drop it and say none were taken. Refused naming every head those
+   verdicts judged, so the run re-sends with the one it means. */
+const judgedTruly = (view, judged, again) => {
+  if (judged !== NOTHING) return;
+  const held = [...view.verdicts.values(), ...(view.unreadable ?? [])];
+  const heads = [...new Set(held.map(({ record }) => record.fields?.commit).filter(Boolean))];
+  if (!heads.length) return;
+  refuse(`--judged ${NOTHING} says ${clause("judged").none}, and this page carries verdicts judged at `
+    + `${heads.join(", ")}, so nothing was written. Name the head they judged:\n  ${again(heads[0])}`);
 };
 
 const sentenceOf = ({ branch, at, reviewed, judged, moved, wrote, tail = "" }) =>
   `merged to ${branch} ${clause("at").said} ${at}; ${clause("reviewed").said} ${reviewed}; `
-  + `${clause("judged").said} ${judged}; ${clause("moved").said} ${pathsSaid(moved)}; `
+  + `${clause("judged").said} ${headSaid(clause("judged"), judged)}; ${clause("moved").said} ${pathsSaid(moved)}; `
   + `${clause("wrote").said} ${pathsSaid(wrote)}${tail}`;
 
 /* The room the note has, off the route table like every other field's cap: a composer fitting to a number of its own would be deciding the tracker's limit for it. */
@@ -191,7 +216,7 @@ const backSaid = (held) => {
 };
 
 const readsBack = (note, one) => (one.commit
-  ? one.reads.exec(note)?.[1] ?? null
+  ? one.reads.exec(note)?.[1] ?? (one.none && noneOf(one).test(note) ? NOTHING : null)
   : pathsIn(one.reads.exec(note)?.[1]?.trim()));
 
 const asGiven = (back, wanted) => (Array.isArray(wanted)
@@ -262,8 +287,11 @@ export const undoForm = (ref) => `forge record merged ${ref} --undo`;
 
 const valueOf = (one, given) => {
   if (one.commit) {
+    if (one.none && String(given).trim().toLowerCase() === NOTHING) return NOTHING;
     if (!isCommit(given)) {
-      refuse(`--${one.flag} ${commitProblem(one, given)}`);
+      refuse(`--${one.flag} ${one.none
+        ? `takes ${commitTakes(one)}, or the word \`${NOTHING}\` where ${one.none}, not \`${given}\`.`
+        : commitProblem(one, given)}`);
     }
     return given;
   }
@@ -298,6 +326,13 @@ const sameReading = (read, moved) =>
   read.every((path) => moved.some((entry) => under(entry, path)))
   && moved.every((entry) => read.some((path) => under(entry, path)));
 
+/* Where the landing's reading starts: the judged head, or the reviewed one where no verdict has judged
+   a head, which is the head the change stood at before the landing. No reader takes the clause
+   without a judged head, so there it says what the landing moved and stands no verdict up or down. */
+const movedFrom = ({ judged, reviewed }) => (judged === NOTHING
+  ? { sha: reviewed, flag: "--reviewed", said: clause("reviewed").said }
+  : { sha: judged, flag: "--judged", said: clause("judged").said });
+
 /* The clause that stands the verdicts down or lets them stand is git's reading and never the run's:
    a run listing every path a no-op merge touched re-owed twenty-six verdicts about identical bytes,
    and a run saying `nothing` over a merge that moved its file would have kept them (ISS-1362). So the
@@ -307,21 +342,22 @@ const sameReading = (read, moved) =>
    moved is the review's and the reconcile's to read at the landed head, never a verdict's. The
    directory a typed entry may name is kept in the note, since the value written is the value given. */
 const movedRead = (clauses, tree, again) => {
-  const { at, judged, moved, wrote } = clauses;
-  const gone = unreadableIn(tree, [judged, at]);
+  const { at, moved, wrote } = clauses;
+  const from = movedFrom(clauses);
+  const gone = unreadableIn(tree, [from.sha, at]);
   if (gone) {
-    const flag = gone === judged ? "--judged" : "--at";
+    const flag = gone === from.sha ? from.flag : "--at";
     refuse(`git in ${tree} cannot read ${gone}, which ${flag} names, and \`landing moved\` is git's `
-      + "reading of the --wrote paths between --judged and --at: no mark is written on a run's word for "
+      + `reading of the --wrote paths between ${from.flag} and --at: no mark is written on a run's word for `
       + "it. Fetch that commit into this checkout, or mark from the one that holds it, then run this "
       + "again:\n  git fetch");
   }
-  const read = movedBetween(tree, judged, at, wrote);
-  if (read === null) refuse(`git in ${tree} could not diff ${judged} against ${at}, so nothing was written.`);
+  const read = movedBetween(tree, from.sha, at, wrote);
+  if (read === null) refuse(`git in ${tree} could not diff ${from.sha} against ${at}, so nothing was written.`);
   if (moved === undefined) return { ...clauses, moved: read };
   if (sameReading(read, moved)) return clauses;
   return refuse(`--moved says ${pathsSaid(moved)}, and git reads ${pathsSaid(read)}: those are the paths `
-    + `of --wrote whose bytes differ between the judged head ${judged} and ${at}. The clause is that `
+    + `of --wrote whose bytes differ between the ${from.said} ${from.sha} and ${at}. The clause is that `
     + `reading, since it is what lets the verdicts at the judged head stand, so nothing was written. `
     + `Run it without --moved and the clause is git's reading:\n  ${again()}`);
 };
@@ -362,7 +398,7 @@ const marked = async (documentId, ref, note, clauses, { next, patch }) => {
   await renew(documentId, ref, next, patch);
   await markMerged(documentId, ref, note, { leased: true });
   console.log(`${ref}  marked merged at ${clauses.at}, and \`${clause("moved").said}\` is git's reading `
-    + `between ${clauses.judged} and ${clauses.at}: ${pathsSaid(clauses.moved)}. Its note:\n  ${note}`);
+    + `between ${movedFrom(clauses).sha} and ${clauses.at}: ${pathsSaid(clauses.moved)}. Its note:\n  ${note}`);
 };
 
 /** `forge record merged`: one flag per clause of the note, and `--undo` the one route back. Every
@@ -389,7 +425,10 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
     const said = mark ? markSaid(reference, mark) : stampSaid(reference, body.mergedAt);
     return { write: () => undone(documentId, reference, said, { next, patch }) };
   }
+  const view = await viewOn(documentId, comments);
+  judgedTruly(view, clauses.judged, (head) => withoutMoved(reference, { ...given, judged: head }));
+  const { namedIn } = await import("../earned.mjs");
   const note = markNote({ branch: await branchFor(given), ...clauses,
-    named: await namedFor(documentId, comments), ref: reference });
+    named: namedIn(view), ref: reference });
   return { write: () => marked(documentId, reference, note, clauses, { next, patch }) };
 };
