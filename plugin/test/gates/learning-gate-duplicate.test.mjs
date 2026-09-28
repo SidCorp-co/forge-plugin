@@ -36,3 +36,17 @@ test("a duplicate one agent was shown whole is shown whole to its sibling, and r
   assert.match(again, /^Refused again — `c\.md` repeats what the skill already says/u, again);
   assert.ok(again.includes("(cause: learning-gate/skill-restated)"), again);
 });
+
+/* AC-10-5-6, the learning gate's half. A second duplicate is a new quoted pair under the same
+   instruction and route, and a delta cutting those two would hand it the pair alone. */
+test("a second duplicate of another sentence carries the instruction and the route beside its new pair", () => {
+  const fixture = dupRoom();
+  const session = randomUUID();
+  dupWrite(session, fixture, { home: HOME, name: "one.md" });
+  const again = dupWrite(session, fixture, { home: HOME, name: "two.md", says: fixture.other });
+  assert.match(again, /^Keep it in one place and cite it from the other\./u, `the instruction leads it: ${again}`);
+  assert.ok(again.includes("payload file is written outside the checkout"), "beside the pair it is about");
+  assert.ok(again.includes("How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)"),
+    "and the route to the reason, cause and all");
+  assert.doesNotMatch(again, /two authorities for one rule/u, "the reason already read is the part cut");
+});

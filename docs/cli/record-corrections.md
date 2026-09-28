@@ -37,3 +37,32 @@ and a correction that could name only a record would leave them nothing true to 
 before the field existed reads back whole, and names nothing, so the report keeps it in the counted
 list; one that names a record the report prints stands under that record instead, with the payloads
 it let a write replace beneath it.
+
+## A criteria write that drops a number
+
+The correction above guards a payload a status was earned on, and below that status nothing guards
+anything: a criteria write sent to add nine criteria to an issue holding forty-four stored the nine
+and printed them back, which is what an addition would have printed too, and the loss was found only
+by counting the field afterwards (ISS-1444). Nothing attaches the replaced set at that status, so a
+drop there is not recoverable from the tracker at all.
+
+**Refused, not only reported.** ISS-2009 asked for the reply alone, on the ground that narrowing a
+set on purpose is legitimate. It is, and it stays one flag away; but a reply read after the write
+tells a caller what it has already lost, and the caller who needed it is the one who did not know
+the write replaces. So the count line is printed on every write, and the drop is refused until
+`--replace` says it was meant. A file that opens past the first number is held to the same, being
+the other shape a partial file takes.
+
+**A second condition, not a second route.** "One route out" above is about one refusal; this is
+another one with its own. Past the earned status a write that also drops numbers owes both, because
+they answer different questions: the correction says what moved in an earned payload and why, the
+flag says the numbers left out are left out on purpose. A correction written to add criteria would
+otherwise clear a drop its author never saw.
+
+**Numbers, never the words.** A project writing its prose in another language has the field
+rewritten on every write, so the stored words never equal the ones sent; the numbers are what a
+verdict names and what survives the rewrite, so they are all the comparison reads. Splitting a
+compound criterion and renumbering the tail keeps every held number and is never refused.
+
+The plan gets the reply and no refusal: it has no numbered unit whose loss can be told from an edit,
+and a typed plan missing a section is already refused.

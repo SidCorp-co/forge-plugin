@@ -19,7 +19,7 @@ writeFileSync(
 );
 process.env.XDG_CONFIG_HOME = HOME.path;
 
-const { KEPT, credit, creditedTo, creditsForAny, shedable } = await import("../../src/shown/journal.mjs");
+const { KEPT, credit, creditedTo, folded, shedable, shownToAny, tell } = await import("../../src/shown/journal.mjs");
 
 const STORE = join(HOME.path, "forge", "shown.json");
 const LOG = join(HOME.path, "forge", "shown.jsonl");
@@ -54,9 +54,9 @@ test("the state is keyed by session and by surface, and an empty credit records 
 test("a surface credited under either key in a set answers found, and a hole and a missing key cost nothing", () => {
   seed({});
   credit("session-alias", "surface-D", ["c1"]);
-  assert.ok(creditsForAny(["session-guess", "session-alias"])("surface-D").has("c1"),
+  assert.ok(shownToAny(["session-guess", "session-alias"]).credited("surface-D").has("c1"),
     "the alias's own credit answers even where the guess named first has none");
-  assert.equal(creditsForAny(["session-guess", null, ""])("surface-D").size, 0,
+  assert.equal(shownToAny(["session-guess", null, ""]).credited("surface-D").size, 0,
     "a hole in the set costs nothing, and a set with no real key finds nothing");
 });
 
@@ -113,6 +113,22 @@ test("past the item budget the coldest surface goes, and never the surface being
   assert.equal(held["surface-just-read"].length, KEPT.lines, "the surface this write read is kept");
   assert.equal(held["surface-0"], undefined, "and the coldest is the one paid with");
   assert.deepEqual(Object.keys(held).at(-1), "surface-just-read", "which is the last key, being newest");
+});
+
+/* A told fact is not a thing delivered, so it spends none of the budget comments are kept by: a mark
+   riding as an item shed a real credit, and the session was shown comments it had read (ISS-771). */
+test("a told fact is read back under its key and is no item a session's budget adds up", () => {
+  seed({});
+  credit("teller", "an-issue", ["c1", "c2"]);
+  tell("teller", "an-issue", ["thread:not-read-whole"]);
+  assert.ok(shownToAny(["someone-else", "teller"]).told("an-issue").has("thread:not-read-whole"),
+    "the fact is found under either key of a set");
+  assert.equal(shownToAny("teller").credited("an-issue").has("thread:not-read-whole"), false,
+    "and it is on no surface of the item credits");
+  const surfaces = folded().teller.surfaces;
+  assert.deepEqual(Object.values(surfaces).flat().sort(), ["c1", "c2"], "the items counted are the comments alone");
+  credit("teller", "an-issue", ["c3"]);
+  assert.ok(shownToAny("teller").told("an-issue").has("thread:not-read-whole"), "and a later credit keeps it");
 });
 
 test("one surface keeps the last four hundred items and no more", () => {

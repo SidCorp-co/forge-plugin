@@ -84,7 +84,8 @@ const {
 const { sessionKey } = await import("../../src/shown/ledger.mjs");
 const { refusing } = await import("../../src/resolve/settings.mjs");
 /* How a credit survives is the journal's, and its cases went with it to test/shown/journal.test.mjs. */
-const { creditedTo: shownTo } = await import("../../src/shown/journal.mjs");
+const { creditedTo: shownTo, folded, shownToAny } = await import("../../src/shown/journal.mjs");
+const toldTo = (session, key) => shownToAny(session).told(key);
 
 const one = (id, text, at = "2026-09-03T05:22:18.757Z") =>
   ({ documentId: id, createdAt: at, body: fenced(text) });
@@ -416,8 +417,10 @@ test("a thread of exactly the kept 400 that cannot be read whole still stops ref
   assert.equal(shownTo("session-four-hundred", ISSUE).size, 400, "every comment still credited");
   assert.equal(shownTo("session-four-hundred", ISSUE).has("thread:not-read-whole"), false,
     "the marker is on no comment's surface, which is what keeps all 400 of them");
-  assert.ok(shownTo("session-four-hundred", `${ISSUE}:thread`).has("thread:not-read-whole"),
-    "and on one of its own, credited where the hold was delivered");
+  assert.ok(toldTo("session-four-hundred", ISSUE).has("thread:not-read-whole"),
+    "and told as a fact of the issue, where the hold was delivered");
+  const items = Object.values(folded()["session-four-hundred"].surfaces).flat();
+  assert.equal(items.length, 400, "so the items the session's budget adds up are its 400 comments and no mark");
 });
 
 /* One comment past what a surface keeps, and every credit for the set evicts one of its own: the
@@ -435,8 +438,10 @@ test("a thread past the credits one issue keeps is said, not delivered, and stop
   }
   feed = null;
   assert.equal(shownTo("session-past-keep", ISSUE).size, 0, "no comment is credited, none having been shown");
-  assert.ok(shownTo("session-past-keep", `${ISSUE}:thread`).has("thread:beyond-credit"),
-    "and the hold is credited where it was delivered");
+  assert.ok(toldTo("session-past-keep", ISSUE).has("thread:beyond-credit"),
+    "and the hold is told where it was delivered");
+  assert.equal(folded()["session-past-keep"].surfaces?.[`${ISSUE}:thread`], undefined,
+    "on no surface of the item credits");
 });
 
 test("two pages holding one comment between them deliver it once", async () => {

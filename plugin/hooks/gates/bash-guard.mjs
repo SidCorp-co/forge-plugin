@@ -277,7 +277,7 @@ export const run = (ev) => {
     const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
     /* The route first, lower-cased onto the marker so the marker is never a sentence on its own. */
-    const full = `Refused — ${lead(instead)}${unsure}\n\n${cause}${how(topic, name)}`;
+    const full = { lead: `Refused — ${lead(instead)}${unsure}`, body: cause, how: how(topic, name) };
     const shape = `\`${spanOf(hit.said)}\`: ${lead(instead)}${unsure}`;
     deny(sayOnce(readerKey(ev), "bash-guard", full, { route: topic || "bash-guard", shape, cause: `bash-guard/${name}` }));
   }

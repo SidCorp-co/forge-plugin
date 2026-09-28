@@ -57,7 +57,7 @@ const kindRows = (caps) => [
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
   `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
-    + "numbered lines, from a file a consult has read",
+    + "numbered lines, from a file a consult has read  [--replace]",
 ];
 
 /* What each kind is for, one phrase each, because `forge record -h` is the list of kinds and a
@@ -121,6 +121,21 @@ const PLAN_BLOCKS = [
   "whose numbers name no criterion the issue holds, and a criterion no step names.",
 ];
 
+/* The success line echoes what was sent, which reads the same for an append and a replace, so each
+   of the two says which one it is before a caller has to learn it from a read-back (ISS-1444). */
+const WHOLE_BLOCKS = {
+  criteria: [
+    "The write replaces the whole set the field holds and never adds to it. One that leaves out a",
+    "number the field holds, or whose set does not open at 1, is refused naming both counts and the",
+    "numbers it would drop: send every criterion the issue is to hold, or pass --replace to write",
+    "the set as it stands. Every write says on stderr how many criteria the field held and holds now.",
+  ],
+  plan: [
+    "The write replaces the whole plan the field holds, and says on stderr how many lines the field",
+    "held and holds now.",
+  ],
+};
+
 /* The two kinds whose file is written from what a consult read, which is why the citation belongs on their help and not only in the entry check's refusal: by the refusal the consult has been spent. */
 const CITES = ["plan", "criteria"];
 
@@ -138,6 +153,11 @@ const MERGED_BLOCKS = [
   "none rather than as silence. --to is the branch the change landed on, read from this project's",
   "base branch where it is not given. --undo removes the mark whole, prints the note it removed and",
   "takes no clause beside it: a clause is written by the mark and not by its removal.",
+  ...CLAUSES.filter((one) => one.none).flatMap((one) => [
+    `--${one.flag} also takes the word \`${NOTHING}\`, where ${one.none}: the note says so in`,
+    "words, every reader of the clause takes it for no head, and `landing moved` is read between",
+    "--reviewed and --at. The word is refused where the page carries a verdict.",
+  ]),
 ];
 
 /* What each value records. The set is four because the outcomes are: only `skipped` says nobody
@@ -325,6 +345,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     row,
     ...(onePerBlocks(kind).length ? ["", ...onePerBlocks(kind)] : []),
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
+    ...(WHOLE_BLOCKS[kind] ? ["", ...WHOLE_BLOCKS[kind]] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),

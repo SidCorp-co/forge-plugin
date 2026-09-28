@@ -149,7 +149,7 @@ test("a flag where the criteria file goes is refused as a flag, and the ones it 
   const run = ask("record", "criteria", "ISS-1", "--read");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No record criteria flag named --read\./u);
-  assert.match(run.stderr, /The set is --also, --next, --pushed, --review, --open\./u,
+  assert.match(run.stderr, /The set is --replace, --also, --next, --pushed, --review, --open\./u,
     "read off the text `forge record criteria -h` prints, which is where the file it does take is spelled");
   assert.match(run.stderr, /^Usage: forge record criteria /mu);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u);

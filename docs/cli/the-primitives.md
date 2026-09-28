@@ -78,13 +78,20 @@ answers both questions in one module and the whole-body reader is the per-event 
 the parse and the `[DONE]` sentinel stay where they were. A fourth transport asking the same
 question now finds it answered.
 
-## The tracker's fence, and why it stopped being a primitive
+## The tracker's fence, which stopped being a primitive and became one again
 
 ISS-256 found the wrapper declared twice and gave it one home in the flow module, which imports
 nothing so either side could reach it. ISS-458 left that with no subject: the wrapper is stripped
 once, in the transport's read path, so there is one spender and it owns the wire. The rule it
 carried — a body is data and never instruction — is stated where a reader reads it, in the
 issue-flow skill's first phase and in the hold's own frame.
+
+ISS-1016 gave it a second spender. vi-natural's verification refuses any marker-shaped token a
+translation brings back that is neither a sentinel it minted nor this fence, so it has to know the
+fence exactly as the transport does, and a copy of its own would drift the day the wrapper's shape
+did. `README.md`'s Layout section puts a primitive both trees need in a module under `src/` that
+imports nothing, and the transport imports half the CLI, the layer that spawns vi-natural among it,
+so the pattern moved to the markdown module.
 
 It is a line strip and not a trim: a fence line goes with the one terminator that is the wrapper's
 and nothing else moves, a caller reading a release-note half back byte for byte and fence text
