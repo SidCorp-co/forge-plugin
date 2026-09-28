@@ -5,7 +5,7 @@
 import { join } from "node:path";
 
 import { configDir, configSource, readJson, userConfig } from "../config.mjs";
-import { profileValues } from "./profile.mjs";
+import { profileValues, unfollowedSaid } from "./profile.mjs";
 
 const viPath = () => join(configDir("vi-natural"), "config.json");
 
@@ -79,9 +79,9 @@ export const machineValue = (name, key) => {
   const behind = storeOf(name)?.behind;
   const field = behind?.fields[key];
   if (!field) return { value: null, from: null };
-  const { path, values } = behind.read();
+  const { path, values, from } = behind.read();
   const fallen = saved(values?.[field]);
-  return fallen ? { value: fallen, from: path } : { value: null, from: null };
+  return fallen ? { value: fallen, from: from?.[field] ?? path } : { value: null, from: null };
 };
 
 const gating = (row) => row.keys.filter((one) => one.gates !== false);
@@ -140,8 +140,9 @@ const ROUTE = "`forge doctor --codex-url <endpoint> --codex-key <key>`";
 export const gateway = () => {
   const url = machineValue("codex", "url");
   const key = machineValue("codex", "key");
-  const { path, values } = profileValues();
+  const { path, values, unfollowed } = profileValues();
   const absent = [!url.value && "no gateway endpoint", !key.value && "no credential for it"].filter(Boolean);
+  const skipped = unfollowed.length ? `; it sources what this reader did not follow: ${unfollowedSaid(unfollowed, path)}` : "";
   return {
     url,
     key,
@@ -152,7 +153,7 @@ export const gateway = () => {
       ...(key.value ? { ANTHROPIC_AUTH_TOKEN: key.value } : {}),
     },
     problem: absent.length
-      ? `${absent.join(" and ")} — ${ROUTE}, or ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN in ${path}`
+      ? `${absent.join(" and ")} — ${ROUTE}, or ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN in ${path}${skipped}`
       : null,
   };
 };

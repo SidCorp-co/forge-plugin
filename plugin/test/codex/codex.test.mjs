@@ -55,7 +55,7 @@ const PROFILE = [
 
 
 test("a profile line survives export, quotes and comments", () => {
-  const values = profileFrom(PROFILE);
+  const { values } = profileFrom(PROFILE);
   assert.equal(values.ANTHROPIC_BASE_URL, "https://gateway.example.com");
   assert.equal(values.ANTHROPIC_AUTH_TOKEN, "sk-secret");
   assert.equal(Object.hasOwn(values, "not a pair at all"), false);
@@ -63,7 +63,7 @@ test("a profile line survives export, quotes and comments", () => {
 
 /* The point of the verb: the slot named on the command line is not the model that answers. */
 test("the model slot resolves through the profile, not the flag", () => {
-  const values = profileFrom(PROFILE);
+  const { values } = profileFrom(PROFILE);
   assert.equal(modelBehind(values, "fable"), "cx/gpt-5.6-sol");
   assert.equal(modelBehind(values, "opus"), "cx/gpt-5.6-terra");
   assert.equal(modelBehind(values, "haiku"), null);
