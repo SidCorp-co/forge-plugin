@@ -214,3 +214,11 @@ test("both file kinds print the citation demand, and only where the project keep
     assert.doesNotMatch(none, /<id>~<rev>|requirements tree/u, `${kind} asks a project keeping no tree for nothing`);
   }
 });
+
+/* ISS-1444: the success line echoes what was sent, identical between an append and a replace, so the
+   help is where a caller learns which one the write is before a refusal or a read-back tells it. */
+test("record criteria -h and record plan -h say the write replaces the whole field", () => {
+  assert.match(kindHelp("criteria"), /replaces the whole set/u);
+  assert.match(kindHelp("criteria"), /--replace/u, "and names the flag a drop on purpose takes");
+  assert.match(kindHelp("plan"), /replaces the whole plan/u);
+});

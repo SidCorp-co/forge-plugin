@@ -516,6 +516,7 @@ const fieldsWritten = async (prepared, { reference, documentId, next, patch }) =
   const out = {};
   for (const one of fields) {
     console.log(one.shown);
+    if (one.changed) console.error(one.changed);
     out[one.field] = back?.[one.field] ?? one.value;
   }
   return out;
