@@ -1,12 +1,13 @@
 /* What both readers of `tools/run.mjs` exercise it on, since neither runs against this checkout.
    Not a `.test.mjs`, so the suite collects no test of its own here. */
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { afterEach, beforeEach } from "node:test";
 
 import { projectEntry, projectRecord, tempRoom } from "../../../plugin/test/fixtures.mjs";
 import { OWN } from "../../../plugin/test/fixtures/own-project.mjs";
-import { madeIn } from "../../../plugin/test/fixtures/room.mjs";
+import { childRefusal, madeIn, roomBuilt } from "../../../plugin/test/fixtures/room.mjs";
 import { derivationFiles } from "../../gates/scope.mjs";
 
 /* Before the shape reader is loaded: it reaches the tracker's own settings, and a module that read
@@ -26,9 +27,22 @@ export const SCRIPT = join("tools", "run.mjs");
    `claude`, and a machine that has it would prove nothing about what a missing step does. */
 export const BARE = { ...process.env, PATH: `${dirname(realpathSync(process.execPath))}:/usr/bin:/bin` };
 
-export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
-export const runIn = (work, argv, env = process.env, at = ".") =>
-  spawnSync(process.execPath, [join(work, SCRIPT), ...argv], { cwd: join(work, at), encoding: "utf8", env });
+/* A child that failed because the room is spent is the machine's refusal, never a verdict on what the
+   case asked of it: under a quota several gates share, git and the release's own npm fail that way and
+   read as the step under test failing (ISS-2785). Every other result comes back as it was. */
+const refusedOr = (ran, at, what) => {
+  const refused = childRefusal(ran, at, what);
+  if (refused) throw refused;
+  return ran;
+};
+
+export const git = (cwd, ...args) => refusedOr(spawnSync("git", args, { cwd, encoding: "utf8" }), cwd, `git ${args[0]}`);
+export const runIn = (work, argv, env = process.env, at = ".") => refusedOr(
+  spawnSync(process.execPath, [join(work, SCRIPT), ...argv], { cwd: join(work, at), encoding: "utf8", env }),
+  work, `node ${SCRIPT} ${argv.join(" ")}`);
+
+/** A git step that builds a room, checked, since the case would read a failed one as its subject's. */
+export const setUp = (cwd, ...args) => roomBuilt(git(cwd, ...args), cwd, `git ${args.join(" ")}`);
 
 export const tiedSpawn = (argv, outputs = ["pipe", "inherit"]) =>
   spawn(process.execPath, argv, { stdio: ["pipe", ...outputs] });
@@ -42,11 +56,31 @@ export const GATE = "node -e \"console.log('scratch gate ran')\"";
 /* Every file the script is, derived from it: a module added to the runner and missed here is a scratch checkout that loads nothing. */
 const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.startsWith("tools/"));
 
+/* A room is the case's that made it and goes when that case ends. One is about 2400 inodes and 18 MB,
+   and a file held every room it made until its process exited, so a gate running several such files
+   at once spent the per-user quota its own cases then failed on (ISS-2785). A room made outside a
+   case, at load or in a hook ahead of the first one, is the file's and is left to the exit handler,
+   as is one a process the case left behind still writes into. `KEEP_TEST_ROOMS` keeps them all, as it
+   keeps the process's root. */
+let caseRooms = null;
+beforeEach(() => {
+  caseRooms = process.env.KEEP_TEST_ROOMS === "1" ? null : [];
+});
+afterEach(() => {
+  for (const at of caseRooms ?? []) {
+    try {
+      rmSync(at, { recursive: true, force: true, maxRetries: 3 });
+    } catch { /* The process root that holds it is removed at exit. */ }
+  }
+  caseRooms = null;
+});
+
 /* The checkout's folder name is the room's own, never a constant: this machine's record of a
    project is keyed on the repository's root folder, so two scratch checkouts called the same thing
    would share one record and each case would be configured by whichever ran last. */
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
+  caseRooms?.push(at);
   const work = join(at, basename(at));
   return madeIn(at, () => filled(at, work, gate));
 };
@@ -90,10 +124,10 @@ export const declared = (work, keys = {}) => {
 export const recordOf = (work) => projectEntry(work, BARE.XDG_CONFIG_HOME);
 
 export const committed = (work, message) => {
-  for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
+  for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) setUp(work, "config", key, value);
   declared(work);
-  git(work, "add", "package.json", ".claude-plugin", "plugin", "tools", ".forge.json");
-  git(work, "commit", "-m", message);
+  setUp(work, "add", "package.json", ".claude-plugin", "plugin", "tools", ".forge.json");
+  setUp(work, "commit", "-m", message);
 };
 
 /* The endpoint the in-process filing reaches, one per module load: the release step's create is a
@@ -134,19 +168,21 @@ export const seen = (action, name = "forge_issues") =>
 /* Without the push the fetch has nothing to name and the range is undefined. */
 export const pushed = (name) => {
   const { at, work } = scratch(name);
-  git(at, "init", "--bare", "origin.git");
-  git(work, "init", "-b", "master");
+  setUp(at, "init", "--bare", "origin.git");
+  setUp(work, "init", "-b", "master");
   committed(work, "one");
-  git(work, "remote", "add", "origin", join(at, "origin.git"));
-  git(work, "push", "origin", "HEAD:master");
+  setUp(work, "remote", "add", "origin", join(at, "origin.git"));
+  setUp(work, "push", "origin", "HEAD:master");
   return { at, work };
 };
 
 export const landIn = (work, path, lines, message) => {
-  mkdirSync(join(work, dirname(path)), { recursive: true });
-  writeFileSync(join(work, path), "the change\n".repeat(lines));
-  git(work, "add", path);
-  git(work, "commit", "-m", message);
+  madeIn(work, () => {
+    mkdirSync(join(work, dirname(path)), { recursive: true });
+    writeFileSync(join(work, path), "the change\n".repeat(lines));
+  });
+  setUp(work, "add", path);
+  setUp(work, "commit", "-m", message);
 };
 
 /* The install step is `claude`, which BARE does not carry, so the release runs as far as it can and
@@ -208,7 +244,7 @@ process.exit(0);
 export const worktreeRoom = (name, key = "ISS-374") => {
   const { at, work } = pushed(name);
   const tree = join(at, `wt-${key}`);
-  git(work, "worktree", "add", tree, "-b", `iss-${key.slice(4)}`);
+  setUp(work, "worktree", "add", tree, "-b", `iss-${key.slice(4)}`);
   const bin = join(at, "bin");
   madeIn(at, () => {
     mkdirSync(bin, { recursive: true });
@@ -227,8 +263,8 @@ export const switched = (at, name, value = "") => writeFileSync(join(at, name), 
 export const shipping = (tree, version) => {
   const at = join("plugin", ".claude-plugin", "plugin.json");
   writeFileSync(join(tree, at), JSON.stringify({ name: "scratch", version }));
-  git(tree, "add", at);
-  git(tree, "commit", "-m", `the version this tree's plugin carries`);
+  setUp(tree, "add", at);
+  setUp(tree, "commit", "-m", `the version this tree's plugin carries`);
 };
 
 /** Which tree the marketplace names now, or nothing at all if it was never written. */
@@ -325,8 +361,8 @@ process.stdout.write(JSON.stringify({ documentId: "d", issueId: "ISS-777", title
 export const stubbed = (work) => {
   mkdirSync(join(work, "plugin", "bin"), { recursive: true });
   writeFileSync(join(work, "plugin", "bin", "forge"), STUB, { mode: 0o755 });
-  git(work, "add", join("plugin", "bin", "forge"));
-  git(work, "commit", "-m", "the tracker this checkout files through");
+  setUp(work, "add", join("plugin", "bin", "forge"));
+  setUp(work, "commit", "-m", "the tracker this checkout files through");
 };
 
 /** An issue at one rung with nothing on its record moving it: the complexity field claims it and the lane answers it, each written as the value its own reader reads back. `laneAt` moves the lane's answer alone, for the record where the two legitimately differ — a whole correction climbed the issue and the field still claims what the reporter typed. */

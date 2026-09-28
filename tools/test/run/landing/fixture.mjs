@@ -9,6 +9,7 @@ import { basename, dirname, join } from "node:path";
 import { fakeTracker, pathed, projectRecord, ranAsync, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 import { render } from "../../../../plugin/src/flow/record/page.mjs";
 import { noteShown } from "../../../../plugin/src/tracker/comments.mjs";
+import { childRefusal, madeIn, roomBuilt } from "../../../../plugin/test/fixtures/room.mjs";
 import { developerCorepack, lendCorepack } from "./room/corepack.mjs";
 
 export const LANDER = "the-lander-run";
@@ -298,15 +299,35 @@ export const comments = (documentId = UUID) => state.comments[documentId];
 export const marks = (documentId = UUID) =>
   state.comments[documentId].filter((one) => one.body.startsWith("mark_merged"));
 
-export const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
+/* A git whose room is spent is the machine's refusal, never the case's red; every other result comes
+   back as it was. Under a quota several gates share, a setup commit that failed unread left a sha
+   empty, and the landing under test said `not a valid object name` with nothing after it (ISS-2788). */
+export const git = (room, ...args) => {
+  const ran = spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
+  const refused = childRefusal(ran, room, `git ${args[0]}`);
+  if (refused) throw refused;
+  return ran;
+};
 
-export const sha = (room, rev) => git(room, "rev-parse", rev).stdout.trim();
+/** A git step that builds the world, checked, since the landing would read a failed one as its own. */
+const setUp = (room, ...args) => roomBuilt(git(room, ...args), room, `git ${args.join(" ")}`);
 
-const written = (room, path, text) => {
+/** A commit an object name is read for, which is never empty: an empty one is the read that failed. */
+export const sha = (room, rev) => {
+  const read = git(room, "rev-parse", "--verify", rev);
+  const said = read.stdout.trim();
+  if (read.status === 0 && said) return said;
+  throw new Error(`git rev-parse ${rev} in ${room} named no commit, exit ${read.status}:\n${read.stderr}`);
+};
+
+const written = (room, path, text) => madeIn(room, () => {
   mkdirSync(join(room, dirname(path)), { recursive: true });
   writeFileSync(join(room, path), text);
-};
+});
+
+const cloned = (at, clone) => roomBuilt(
+  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { cwd: dirname(clone), encoding: "utf8" }),
+  dirname(clone), "git clone");
 
 const SYNC = `import { readFileSync, writeFileSync } from "node:fs";
 const at = "plugin/.claude-plugin/plugin.json";
@@ -330,13 +351,13 @@ export const world = ({
   /* Named after the room, not a constant: this machine's record of a project is keyed on the
      repository's root folder, so every world called `checkout` would share one record. */
   const work = join(at, basename(at));
-  git(at, "init", "--bare", "origin.git");
+  setUp(at, "init", "--bare", "origin.git");
   mkdirSync(work, { recursive: true });
-  git(work, "init", "-b", BASE);
+  setUp(work, "init", "-b", BASE);
   /* In the repository's own config, not on each command line: the version commit is `git commit`
      inside a worktree of this one, and a worktree reads the repository's identity. */
-  git(work, "config", "user.email", "t@t");
-  git(work, "config", "user.name", "t");
+  setUp(work, "config", "user.email", "t@t");
+  setUp(work, "config", "user.name", "t");
   written(work, "package.json", JSON.stringify({ ...PACKAGE, scripts: { ...PACKAGE.scripts, check: gate } }, null, 2));
   /* This machine's record of the project this checkout belongs to, under the configuration home the
      tracker fixture put on this process and hands every child. */
@@ -349,17 +370,17 @@ export const world = ({
   written(work, join(".claude-plugin", "marketplace.json"),
     JSON.stringify({ name: MARKET, plugins: [{ name: PLUGIN, source: "./plugin" }] }));
   written(work, OWNED, TEN);
-  git(work, "add", ".");
-  git(work, "commit", "-qm", "the tree this landing starts from");
-  git(work, "remote", "add", "origin", join(at, "origin.git"));
-  git(work, "push", "-q", "origin", `HEAD:${BASE}`);
+  setUp(work, "add", ".");
+  setUp(work, "commit", "-qm", "the tree this landing starts from");
+  setUp(work, "remote", "add", "origin", join(at, "origin.git"));
+  setUp(work, "push", "-q", "origin", `HEAD:${BASE}`);
   const branched = (branch, path, text) => {
-    git(work, "checkout", "-qb", branch, BASE);
+    setUp(work, "checkout", "-qb", branch, BASE);
     written(work, path, text);
-    git(work, "add", path);
-    git(work, "commit", "-qm", `the change on ${branch}`);
-    git(work, "push", "-q", "origin", branch);
-    git(work, "checkout", "-q", BASE);
+    setUp(work, "add", path);
+    setUp(work, "commit", "-qm", `the change on ${branch}`);
+    setUp(work, "push", "-q", "origin", branch);
+    setUp(work, "checkout", "-q", BASE);
     return sha(work, branch);
   };
   const head = branched(BRANCH, OWNED, TEN.replace("line 2\n", "line 2, as the change wrote it\n"));
@@ -373,15 +394,15 @@ export const world = ({
   if (base === "moved" || base === "conflict") {
     const line = base === "conflict" ? "line 2\n" : "line 9\n";
     written(work, OWNED, TEN.replace(line, `${line.trim()}, as the base moved it\n`));
-    git(work, "add", OWNED);
-    git(work, "commit", "-qm", `the base over ${base === "conflict" ? "the change's own line" : "another line"}`);
-    git(work, "push", "-q", "origin", `HEAD:${BASE}`);
+    setUp(work, "add", OWNED);
+    setUp(work, "commit", "-qm", `the base over ${base === "conflict" ? "the change's own line" : "another line"}`);
+    setUp(work, "push", "-q", "origin", `HEAD:${BASE}`);
   }
   if (base === "other") {
     written(work, join("docs", "other.md"), "a page nobody's change touches\n");
-    git(work, "add", join("docs", "other.md"));
-    git(work, "commit", "-qm", "the base, elsewhere");
-    git(work, "push", "-q", "origin", `HEAD:${BASE}`);
+    setUp(work, "add", join("docs", "other.md"));
+    setUp(work, "commit", "-qm", "the base, elsewhere");
+    setUp(work, "push", "-q", "origin", `HEAD:${BASE}`);
   }
   writeFileSync(join(ROOM, "marketplace-source"), `${work}\n`);
   process.chdir(work);
@@ -392,13 +413,13 @@ export const world = ({
  *  was, which is the state a landing that pinned a head and looked again has to survive. */
 export const serverPushes = (at, version) => {
   const clone = join(at, `clone-${version}`);
-  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { cwd: dirname(clone), encoding: "utf8" });
+  cloned(at, clone);
   const held = JSON.parse(readFileSync(join(clone, "package.json"), "utf8"));
   written(clone, "package.json", JSON.stringify({ ...held, version }, null, 2));
   written(clone, join("plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: PLUGIN, version }, null, 2));
-  git(clone, "add", "package.json", join("plugin", ".claude-plugin", "plugin.json"));
-  git(clone, "commit", "-qm", `chore(release): ${version}, another clone's`);
-  git(clone, "push", "-q", "origin", `HEAD:${BASE}`);
+  setUp(clone, "add", "package.json", join("plugin", ".claude-plugin", "plugin.json"));
+  setUp(clone, "commit", "-qm", `chore(release): ${version}, another clone's`);
+  setUp(clone, "push", "-q", "origin", `HEAD:${BASE}`);
   return sha(clone, "HEAD");
 };
 
@@ -406,11 +427,11 @@ export const serverPushes = (at, version) => {
  *  alone: a base that moved this change's paths again reads differently from one that only moved. */
 export const serverRewrites = (at, name, rewrite) => {
   const clone = join(at, `clone-${name}`);
-  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { cwd: dirname(clone), encoding: "utf8" });
+  cloned(at, clone);
   written(clone, OWNED, rewrite(readFileSync(join(clone, OWNED), "utf8")));
-  git(clone, "add", OWNED);
-  git(clone, "commit", "-qm", `another clone over ${OWNED}: ${name}`);
-  git(clone, "push", "-q", "origin", `HEAD:${BASE}`);
+  setUp(clone, "add", OWNED);
+  setUp(clone, "commit", "-qm", `another clone over ${OWNED}: ${name}`);
+  setUp(clone, "push", "-q", "origin", `HEAD:${BASE}`);
   return sha(clone, "HEAD");
 };
 
