@@ -1,10 +1,11 @@
 /* Which of a change's moved paths the tree's own generators write back at the merged head, so a file
    no hand wrote is not a fresh subject for the landing (ISS-1421). A generator is a `generate:` script
    of the merged head's own package.json, where this repository writes every command line, so the
-   declaration is the writer and never a list of the files it writes. Each moved path is removed before
-   the generators run, which is what shows one of them writes it at all: a path they leave missing, one
-   they write back with other bytes, and one beside a generator that failed or moved anything else
-   stays a move. docs/cli/the-candidate.md. */
+   declaration is the writer and never a list of the files it writes. Each moved path is removed alone
+   before the generators run, which is what shows one of them writes it at all: a path they leave
+   missing, one they write back with other bytes, and one whose removal fails them or moves anything
+   else stays a move. Alone, because a moved source a generator loads would otherwise fail it for every
+   path removed with it (ISS-2817). docs/cli/the-candidate.md. */
 import { spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
@@ -34,9 +35,7 @@ const movedIn = (room) => {
 const ranIn = (room, scripts) => {
   for (const name of scripts) {
     const run = spawnSync("npm", ["run", "--silent", name], { cwd: room, encoding: "utf8" });
-    if (run.error || run.status !== 0) {
-      return `${name} exited ${run.error ? run.error.message : run.status}, so nothing it writes is taken as generated`;
-    }
+    if (run.error || run.status !== 0) return `${name} exited ${run.error ? run.error.message : run.status}`;
   }
   return null;
 };
@@ -46,20 +45,56 @@ const ranIn = (room, scripts) => {
    back — so neither an absent file nor an ignored one is cleared by reading as unlisted. */
 const tracked = (room, path) => git(["cat-file", "-e", `HEAD:${path}`], room).status === 0;
 
-const judged = (room, scripts, paths) => {
-  const held = paths.filter((path) => tracked(room, path));
-  for (const path of paths) rmSync(join(room, path), { force: true });
+/* The room put back at its commit, ignored files included and what the room borrowed kept, so one
+   run's removal, writes and caches are not the next run's starting tree. */
+const putBack = (room) => git(["reset", "-q", "--hard", "HEAD"], room).status === 0
+  && git(["clean", "-fdxq", ...LINKED.flatMap((one) => ["-e", `/${one}`])], room).status === 0;
+
+/** The generators run once over the room with `removed` gone: which script failed, or what they left moved. */
+const ranWithout = (room, scripts, removed) => {
+  if (!putBack(room)) return { why: "git could not put the room back at the merged head between runs" };
+  for (const path of removed) rmSync(join(room, path), { force: true });
   const failed = ranIn(room, scripts);
-  if (failed) return { generated: [], why: failed };
+  if (failed) return { failed };
   const moved = movedIn(room);
-  if (!moved) return { generated: [], why: "git could not read what the generators left in their room" };
-  const beside = moved.filter((path) => !paths.includes(path));
-  if (beside.length) {
-    return { generated: [], why: `they also moved ${beside.join(", ")}, so the merged head is not what its generators make` };
+  return moved ? { moved } : { why: "git could not read what the generators left in their room" };
+};
+
+/* Why a path whose removal failed the generators or moved another file is not taken as generated —
+   asked of the head with nothing removed, run once and only then, so the common landing pays one run
+   per path. A head its generators fail or move on their own is the candidate's, and clears nothing. */
+const headFault = (head) => {
+  if (head.why) return head.why;
+  if (head.failed) return `${head.failed}, so nothing it writes is taken as generated`;
+  return head.moved.length
+    ? `they also moved ${head.moved.join(", ")} with nothing removed, so the merged head is not what its generators make`
+    : null;
+};
+
+const blamed = (path, run) => (run.failed
+  ? `${run.failed} once ${path} alone was removed and not with it in place, so ${path} is a file they need rather than one they write`
+  : `removing ${path} alone also moved ${run.moved.filter((one) => one !== path).join(", ")}, so ${path} is a file they read rather than one they write`);
+
+const judged = (room, scripts, paths) => {
+  const generated = [];
+  const unwritten = paths.filter((path) => !tracked(room, path));
+  const needed = [];
+  let head = null;
+  for (const path of paths.filter((one) => !unwritten.includes(one))) {
+    const run = ranWithout(room, scripts, [path]);
+    if (run.why) return { generated: [], why: run.why };
+    if (!run.failed && run.moved.every((one) => one === path)) {
+      (run.moved.length ? unwritten : generated).push(path);
+      continue;
+    }
+    head ??= ranWithout(room, scripts, []);
+    const fault = headFault(head);
+    if (fault) return { generated: [], why: fault };
+    needed.push(blamed(path, run));
   }
-  const generated = held.filter((path) => !moved.includes(path));
-  const left = paths.filter((path) => !generated.includes(path));
-  return { generated, why: left.length ? `they did not write ${left.join(", ")} back byte for byte` : null };
+  const left = paths.filter((path) => unwritten.includes(path));
+  const why = [...(left.length ? [`they did not write ${left.join(", ")} back byte for byte`] : []), ...needed];
+  return { generated, why: why.length ? why.join("; ") : null };
 };
 
 const asked = new Map();

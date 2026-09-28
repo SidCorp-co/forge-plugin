@@ -62,10 +62,12 @@ the requirements tree's digest record, is written by every change that touches w
 so two unrelated changes met there and the second went back to its builder over bytes neither hand
 wrote. The generators are the `generate:` scripts of that head's own package.json, where every command
 line of a repository already lives, so what is declared is a writer and never a list of the files it
-writes. They run in a room of the merged head with the moved paths removed first, which is what shows
-a generator writes a path at all: a path they leave missing, write back with other bytes, or write
-beside a script that failed or a file anything else moved is a move, and a hand edit in a generated
-file reads as its generator disagreeing. The landing names the paths it took as generated and the
+writes. They run in a room of the merged head with one moved path removed at a time, which is what
+shows a generator writes a path at all: a path they leave missing, write back with other bytes, or
+whose removal fails a script or moves another file is a move, and a hand edit in a generated file
+reads as its generator disagreeing. One at a time, because a moved source a generator loads, removed
+beside the file it writes, failed the generator for both (ISS-2817); a failure the head shows with
+nothing removed is the candidate's own and clears nothing. The landing names the paths it took as generated and the
 scripts it ran, and says why where they did not clear one. The ship's step before its rebase reads the
 same, at the merge the rebase would make.
 
