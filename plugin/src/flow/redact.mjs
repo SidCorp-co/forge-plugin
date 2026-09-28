@@ -33,6 +33,6 @@ export const redactStored = async (reference) => {
   await setLease(documentId, redactedCopy(context, deploy), reference, () => context);
   for (const hit of hits) console.log(`${reference}  ${hit.field} redacted: it carried this project's ${hit.credential}`);
   console.log(OUT_OF_REACH);
-  const moved = `${hits.map((hit) => hit.field).join(", ")} redacted to \`[withheld]\` by \`forge issue --redact\``;
+  const moved = `${[...new Set(hits.map((hit) => hit.field))].join(", ")} redacted to \`[withheld]\` by \`forge issue --redact\``;
   await correctionFor(documentId, reference, moved, why(hits), { corrects: `issue:${FIELD}`, finder: true });
 };

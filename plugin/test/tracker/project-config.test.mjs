@@ -7,6 +7,7 @@ import test from "node:test";
 import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
 import { NOT_STATED } from "../../src/goals.mjs";
 import {
+  credentialHits,
   credentialLeak,
   deployFrom,
   redactedCopy,
@@ -335,6 +336,19 @@ test("a string the stored record already holds goes, and anything else carrying 
     "a string the tracker does not hold is refused though a stored one beside it goes");
   assert.equal(credentialLeak({ body: "signed in with correct-horse-battery" }, deploy, stored).field, "body",
     "and a field the stored record is not of is judged whole, word for word the same or not");
+});
+
+test("a string carrying two credentials is a hit for each, stored or supplied", () => {
+  const deploy = deployFrom(stagingOf({ testCredentials: [{ username: "long-test-username", password: "long-test-password" }] }));
+  const both = { sessionContext: { feedback: ["long-test-username / long-test-password"] } };
+  const hits = credentialHits(both, deploy);
+  assert.deepEqual(hits.map((one) => [one.field, one.credential]), [
+    ["sessionContext.feedback.0", "test credentials · username"],
+    ["sessionContext.feedback.0", "test credentials · password"],
+  ]);
+  assert.equal(storedCopies(both, deploy, both).length, 2, "and a re-sent copy names both");
+  assert.equal(credentialLeak(both, deploy).credential, "test credentials · username",
+    "while a refusal still names the first, as it did");
 });
 
 test("a redacted copy masks what the guard refuses and leaves every other string as it was", () => {

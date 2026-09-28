@@ -24,6 +24,29 @@ const sealed = () => ({
 
 const held = { documentId: ISSUE, issueId: "ISS-1", status: "open", title: "one", sessionContext: sealed() };
 
+/* Key-order-blind, as the tracker's jsonb comparison is. */
+const canonical = (value) => {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+};
+
+/* The tracker's own compare-and-set: a write conditional on a field that has moved is refused. `race`
+   is another run's write landing just before this one, which only the precondition can catch. */
+const updated = (args) => {
+  if (state.race) {
+    held.sessionContext = { ...held.sessionContext, raced: state.race };
+    state.race = null;
+  }
+  const expected = args.expect?.sessionContext;
+  if (args.expect && canonical(expected ?? null) !== canonical(held.sessionContext ?? null)) {
+    return { refused: "the stored sessionContext no longer matches expect", code: "SESSION_CONTEXT_MISMATCH" };
+  }
+  return Object.assign(held, structuredClone(args.data));
+};
+
 const state = {
   issues: [held],
   comments: { [ISSUE]: [] },
@@ -31,7 +54,7 @@ const state = {
     forge_issues: (args) => {
       if (args.action === "list") return { issues: [held], returned: 1, hasMore: false };
       if (args.action === "get") return structuredClone(held);
-      if (args.action === "update") return Object.assign(held, structuredClone(args.data));
+      if (args.action === "update") return updated(args);
       if (args.action === "transition") return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
@@ -138,4 +161,20 @@ test("doctor --credentials names where the credentials are stored and the route 
   const run = await ask("doctor", "project", "--credentials");
   assert.match(run.stdout, /test credentials\s+below, printed once {2}← the tracker's project detail/u, run.stdout);
   assert.match(run.stdout, /copied onto an issue\s+a copy an issue's stored sessionContext carries is taken off with forge issue <ref> --redact/u);
+});
+
+/* The lease read before the write cannot see a write that lands between the two; the precondition the
+   redaction's write carries is what refuses to write over it. */
+test("--redact writes over nothing another write landed first: the precondition refuses it", async () => {
+  fresh();
+  const run = await ask("issue", "ISS-1", "--redact");
+  assert.equal(run.status, 0, run.stderr);
+  fresh();
+  state.race = "another run";
+  const raced = await ask("issue", "ISS-1", "--redact");
+  assert.equal(raced.status, 1, raced.stdout);
+  assert.match(raced.stderr, /SESSION_CONTEXT_MISMATCH|did not read back as written/u, raced.stderr);
+  assert.equal(held.sessionContext.raced, "another run", "the write that landed first stands");
+  assert.ok(JSON.stringify(held.sessionContext).includes(PASSWORD), "and nothing of the redaction went over it");
+  assert.equal(created().length, 0, "nor a correction claiming it did");
 });

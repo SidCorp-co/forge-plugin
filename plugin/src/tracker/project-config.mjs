@@ -356,12 +356,13 @@ export const stagingDeploy = once(async () => {
 const SECRET = 12;
 const bare = (text) => text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 
-const matched = (text, guarded) =>
-  guarded.find((one) => {
-    if (one.value.length >= SECRET) return text.includes(one.value);
-    const held = bare(one.value);
-    return Boolean(held) && bare(text) === held;
-  });
+const holds = (text, one) => {
+  if (one.value.length >= SECRET) return text.includes(one.value);
+  const held = bare(one.value);
+  return Boolean(held) && bare(text) === held;
+};
+
+const matched = (text, guarded) => guarded.find((one) => holds(text, one));
 
 const MASK = "[withheld]";
 const AROUND = 40;
@@ -408,15 +409,15 @@ const nearOf = (text, guarded) => {
  *  file's bytes have no field. A display name is withheld from the report and guarded here never. */
 const guardedOf = (deploy) => deploy?.withheld.filter((one) => one.guarded) ?? [];
 
-/** Every string of a payload the guard would refuse, with where it sits and which credential it is. */
+/** Every string of a payload the guard would refuse, once for each credential it carries, with where
+ *  it sits: a string holding two is two hits, since a redaction masks both and says so. */
 export const credentialHits = (data, deploy) => {
   const guarded = guardedOf(deploy);
   if (!guarded.length) return [];
   return leaves(data).flatMap((one) => {
-    const found = matched(one.value, guarded);
-    return found
-      ? [{ at: one.at, field: one.at.join("."), credential: found.label, near: nearOf(one.value, guarded) }]
-      : [];
+    const labels = [...new Set(guarded.filter((held) => holds(one.value, held)).map((held) => held.label))];
+    const near = labels.length ? nearOf(one.value, guarded) : null;
+    return labels.map((credential) => ({ at: one.at, field: one.at.join("."), credential, near }));
   });
 };
 
