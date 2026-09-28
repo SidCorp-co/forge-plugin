@@ -13,6 +13,7 @@ import * as markdown from "../format/doc.mjs";
 import { CliError, err } from "../util.mjs";
 import { DOC_TASK } from "../text/prompts.mjs";
 import { translateItems } from "../gateway/engine.mjs";
+import * as placeholders from "../text/placeholders.mjs";
 
 const SHOWN = 10;
 
@@ -31,7 +32,11 @@ export async function translate(args, makeClient) {
   if (!text) throw new CliError("nothing to translate");
 
   const { config, client } = makeClient(args);
+  /* The doc kind's prompt names the ⟦VI…⟧ markers, so a string sent under it can come back holding
+     one it was never given, and every tracker title is sent that way (ISS-1016). */
+  const asDoc = args.kind === "doc" ? { verify: (source, got) => placeholders.diff(source, got) ?? markdown.verify(source, got) } : {};
   const { results, problems } = await translateItems(client, [["1", text]], {
+    ...asDoc,
     kind: args.kind === "prose" ? null : args.kind,
     glossary: config.glossary(),
     temperature: args.temperature,
