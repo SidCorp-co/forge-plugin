@@ -49,8 +49,8 @@ const unseen = (ev) => {
   const said = unseenWrites(ev.tool_input?.command);
   if (!said.length || askedAlready(ev, "unseen-names", "code-quality")) return "";
   const more = said.length > SHOWN ? ` and ${said.length - SHOWN} more` : "";
-  return `Not seen, so no gate read what this call wrote through ${said.slice(0, SHOWN).map((one) => `\`${one}\``).join(", ")}${more}: `
-    + `no spelling in the command produces ${said.length > 1 ? "those names" : "that name"}.\n`
+  return `Not seen, so no gate read what this call's write through ${said.slice(0, SHOWN).map((one) => `\`${one}\``).join(", ")}${more} `
+    + `landed on, if it ran: no spelling in the command produces ${said.length > 1 ? "those names" : "that name"}.\n`
     + "  Clear it: spell the path in the command, or write the file with Edit or Write. Said once a session: `forge hooks --how writes`.";
 };
 

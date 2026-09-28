@@ -12,7 +12,8 @@ formatted. A file is reported once per content in a session, and the log line ca
 fired.
 
 Not read is said: one call lints its first five code files by path, and a file past that, past the
-clock or past the linter's time limit is named after the call, refusing nothing.
+clock or past the linter's time limit is named after the call, refusing nothing. Not seen too:
+`forge hooks --how writes`.
 
 Which project: the one that holds the file. A worktree cut beside the checkout is outside the
 directory the session started in, and its files answer to the worktree's own configuration, not to

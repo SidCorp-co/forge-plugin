@@ -235,7 +235,8 @@ test("a write through a name no spelling produces is said once a session, with i
   const session = randomUUID();
   const first = bashIn(room, session, 'for f in *.mjs; do sed -i s/x/y/ "$f"; done');
   const said = told(first);
-  assert.match(said, /no gate read what this call wrote through `"\$f"`/u, "the spelling the shell wrote it through");
+  assert.match(said, /no gate read what this call's write through `"\$f"` landed on, if it ran/u,
+    "the spelling the shell wrote it through, claiming no write a branch never ran");
   assert.match(said, /spell the path in the command, or write the file with Edit or Write/u, "and the route");
   assert.equal(answered(first).decision, undefined, "a write nobody saw refuses nothing");
   assert.equal(bashIn(room, session, "echo x > $OUT/b.md").stdout.trim(), "", "the same session is not told twice");
