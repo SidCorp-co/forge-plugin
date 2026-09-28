@@ -48,10 +48,10 @@ export const UNRECOVERABLE = (holders) => (holders.length
 /** The one spelling of the write, so the refusals that ask for it and the refusal that sends a
  *  reader to it cannot drift into asking for different commands. Two routes rather than one:
  *  whether a deployment exists is a fact about the world no checkout can read, and a reader holding
- *  none was being sent to a slot it could not fill (ISS-1993). `gap` is the caller's, every printer
- *  of an owed item laying a command out at a depth of its own. */
-export const REBUILT_FORM = (ref, head, gap = "\n") =>
-  `forge claim ${ref} --rebuilt ${head} --deployment <the sha the deployment reports serving>${gap}`
+ *  none was being sent to a slot it could not fill (ISS-1993). The depth is the printer's, laid out
+ *  by `commandAt` like every other command of more than one line. */
+export const REBUILT_FORM = (ref, head) =>
+  `forge claim ${ref} --rebuilt ${head} --deployment <the sha the deployment reports serving>\n`
   + `forge claim ${ref} --rebuilt ${head} --undeployed`;
 
 export const RECOVER_THE_BUILDER = (holder) =>

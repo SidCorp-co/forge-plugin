@@ -13,7 +13,7 @@ import { parseAll } from "../record/page.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
-import { valuesOf } from "../machine.mjs";
+import { commandAt, valuesOf } from "../machine.mjs";
 import { BASELINE_AT, ORDER } from "../earned.mjs";
 import { landsAgain, reopenForm } from "../route.mjs";
 
@@ -49,12 +49,12 @@ export const rebuiltCheckpoint = (ref, holder, head,
   if (deployment && undeployed) {
     fail(`claim --rebuilt takes one statement about the deployment, and this call names an identity `
       + `and says the change reached none. Type whichever is true:\n`
-      + `  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
+      + `  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
   if (!deployment && !undeployed) {
     fail(`claim --rebuilt writes the checkpoint a verdict is judged against, and a verdict cites the `
       + `identity it judged: name the deployment, or say the change reached none and the head is `
-      + `what its verdicts answer to:\n  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
+      + `what its verdicts answer to:\n  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
   if (holders.length === 1) {
     fail(`claim --rebuilt declares the builder unrecoverable, and `
@@ -70,7 +70,7 @@ export const rebuiltCheckpoint = (ref, holder, head,
       + `where the change is genuinely unlanded what is owed is the capture and not this write. `
       + `${read.route ? "Settle the reading, then ask again" : "Ask from a checkout that can read that history"}:\n`
       + (read.route ? `  ${read.route}\n` : "")
-      + `  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
+      + `  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
   /* Absent and not present-and-empty: the write is compared with what the field reads back, and a
      key carrying `undefined` is one this side holds and the record does not (ISS-1993). */

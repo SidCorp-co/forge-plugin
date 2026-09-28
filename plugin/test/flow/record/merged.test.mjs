@@ -330,8 +330,8 @@ test("--undo takes down a stamp the row carries where no mark sits on the page",
   state.calls = [];
   const run = await marked("--undo");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /the row carried a merged stamp from 2026-09-22T04:29:26\.918Z/u, run.stdout);
-  assert.match(run.stdout, /which no mark of this issue's wrote/u, "and what it removed is not quoted as a note");
+  assert.match(run.stdout, /ISS-99 {2}the merged stamp is removed\. No mark on the page — the row carried a merged stamp from 2026-09-22T04:29:26\.918Z, which no mark of this issue's wrote\./u, `named for what it took down, as a close's repair names it, and not quoted as a note:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /merged mark is removed/u, "a stamp is not called a mark");
   assert.ok(state.calls.some((one) => one.args.action === "unmark"), "the route back is its own action");
   delete ISSUE.mergedAt;
 });
