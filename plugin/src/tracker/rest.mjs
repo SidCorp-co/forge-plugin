@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ceilingFrom, ceilingLeft, clockFor, deadlineOf, parsedOr, ranOut, secondsGiven, within } from "../wire/request.mjs";
+import { ceilingFrom, ceilingLeft, clockFor, deadlineOf, parsedOr, ranOut, secondsGiven, textWithin, within } from "../wire/request.mjs";
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
@@ -143,7 +143,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
       response = await make(clock);
       sawAnswer(response.headers, sentAt, performance.now());
       sawBudget(key, response.headers);
-      text = await response.text();
+      text = await textWithin(response, clock);
     } catch (error) {
       dropped = error;
     } finally {

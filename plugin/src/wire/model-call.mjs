@@ -4,7 +4,7 @@
    is not a review: no prompt of the consult's, no rounds, no log. A caller that needs a model to read
    figures and answer in a schema takes this rather than a second copy of the request. */
 import { consume } from "./messages-stream.mjs";
-import { clockFor, deadlineOf, ranOut, within } from "./request.mjs";
+import { clockFor, deadlineOf, ranOut, textWithin, within } from "./request.mjs";
 
 const ERROR_CHARS = 400;
 const DEFAULT_MAX_TOKENS = 16_000;
@@ -23,6 +23,7 @@ export const modelCall = async ({ endpoint, model, system, data, tool, maxTokens
   signal = null, send = fetch }) => {
   const deadline = within(deadlineOf());
   const started = Date.now();
+  const clock = clockFor(deadline, signal);
   let answer;
   try {
     answer = await send(`${endpoint.url.replace(/\/+$/u, "")}/v1/messages`, {
@@ -38,13 +39,13 @@ export const modelCall = async ({ endpoint, model, system, data, tool, maxTokens
         tools: [tool],
         tool_choice: { type: "tool", name: tool.name },
       }),
-      signal: clockFor(deadline, signal),
+      signal: clock,
     });
   } catch (error) {
     throw new Error(`${model} was not reached: ${ranOut(error, deadline)}`);
   }
   if (!answer.ok) {
-    const body = await answer.text().catch(() => "");
+    const body = await textWithin(answer, clock).catch(() => "");
     throw new Error(`the gateway answered ${answer.status} for ${model}: ${body.slice(0, ERROR_CHARS)}`);
   }
   let held;
