@@ -9,7 +9,7 @@ import { correctionFor } from "./override.mjs";
 
 /* Said whether or not anything was written, because a reader who finds the value somewhere else goes
    looking for the command that reaches it, and there is none here. */
-export const OUT_OF_REACH = `Only ${FIELD} as the tracker holds it now is rewritten here. An earlier copy `
+const OUT_OF_REACH = `Only ${FIELD} as the tracker holds it now is rewritten here. An earlier copy `
   + "the tracker may keep is out of this CLI's reach, and a copy in a comment or in the description is "
   + "not rewritten by this flag.";
 

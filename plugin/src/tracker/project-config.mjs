@@ -472,7 +472,7 @@ export const redactedCopy = (value, deploy) => {
   return mapLeaves(value, (text) => (text && matched(text, guarded) ? maskedLeaf(text, guarded) : text));
 };
 
-export const REDACT_ROUTE = (ref) => `forge issue ${ref} --redact`;
+const REDACT_ROUTE = (ref) => `forge issue ${ref} --redact`;
 
 /** Said of a copy the tracker already stores and a write re-sent: the write went, and the line is
  *  the route that takes the copy off, since no caller's input holds it to be taken out of. */
