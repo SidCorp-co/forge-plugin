@@ -6,7 +6,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut } from "../../wire/request.mjs";
+import { apiBaseOf, bytesWithin, clockFor, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut, textWithin }
+  from "../../wire/request.mjs";
 import { sseEvents } from "../../wire/sse.mjs";
 import { fail, refusing } from "../../resolve/settings.mjs";
 import { CHATGPT_PREFIX, chatgptSettings } from "../../resolve/machine/stores.mjs";
@@ -213,14 +214,15 @@ const uploaded = async (base, key, { path, bytes }, deadline, signal) => {
   let text = "";
   let answer = null;
   try {
+    const clock = clockFor(deadline, signal);
     answer = await fetch(`${base}/upload`, {
       method: "POST",
       headers: { authorization: `Bearer ${key}` },
       body: form,
-      signal: clockFor(deadline, signal),
+      signal: clock,
       redirect: "error",
     });
-    text = await answer.text();
+    text = await textWithin(answer, clock);
   } catch (error) {
     return { problem: `the upload of ${path} did not finish — ${shown(ranOut(error, deadline))}` };
   }
@@ -299,6 +301,7 @@ const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal
   let answer = null;
   let text = "";
   try {
+    const turn = clock();
     answer = await fetch(held.url, {
       method: "POST",
       headers: {
@@ -307,13 +310,13 @@ const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal
         accept: "application/json, text/event-stream",
       },
       body: JSON.stringify(body),
-      signal: clock(),
+      signal: turn,
       /* A 307 or 308 is followed with method and body intact, so a redirect is a second `tools/call`
          and no retry loop never enforced one turn by itself (consult 4d1f8e, F1). Not on the image
          `GET`, where following one is ordinary and costs no turn. */
       redirect: "error",
     });
-    text = await answer.text();
+    text = await textWithin(answer, turn);
   } catch (error) {
     ambiguous(shown(ranOut(error, deadline)), continues(resume));
   }
@@ -344,12 +347,13 @@ const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal
      it is spent whichever of them happens. It is handed back beside the problem rather than thrown
      away with it, and the recovery id is in those very lines (review a9f0, then 4bc7). */
   try {
-    const drawn = await fetch(out.imageUrl, { signal: clock() });
+    const image = clock();
+    const drawn = await fetch(out.imageUrl, { signal: image });
     if (!drawn.ok) {
       return { ...report, said: `chatgpt: the image at ${struck(out.imageUrl)} answered ${drawn.status}, `
         + `so ${save} is untouched.${KEPT}` };
     }
-    writeFileSync(save, Buffer.from(await drawn.arrayBuffer()));
+    writeFileSync(save, await bytesWithin(drawn, image));
   } catch (error) {
     return { ...report, said: `chatgpt: the image named by this turn did not reach ${save} — `
       + `${shown(ranOut(error, deadline))}.${KEPT}` };

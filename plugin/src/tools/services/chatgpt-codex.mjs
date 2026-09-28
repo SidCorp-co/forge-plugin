@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { extname } from "node:path";
 
-import { clockFor, deadlineOf, parsedOr, ranOut, waitSeconds } from "../../wire/request.mjs";
+import { bytesWithin, clockFor, deadlineOf, parsedOr, ranOut, textWithin, waitSeconds } from "../../wire/request.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { machineValue, storeMissing } from "../../resolve/machine/stores.mjs";
 import { pathed, typed } from "../../hooks/shell-spans.mjs";
@@ -93,9 +93,10 @@ const refusedBy = (answer, text, shown) => {
    failing here costs nothing but the file, and the URL is printed either way. */
 const savedFrom = async (item, save, deadline, struck) => {
   if (item.b64_json) return writeFileSync(save, Buffer.from(item.b64_json, "base64"));
-  const drawn = await fetch(item.url, { signal: clockFor(deadline) });
+  const clock = clockFor(deadline);
+  const drawn = await fetch(item.url, { signal: clock });
   if (!drawn.ok) throw new Error(`the image at ${struck(item.url)} answered ${drawn.status}`);
-  return writeFileSync(save, Buffer.from(await drawn.arrayBuffer()));
+  return writeFileSync(save, await bytesWithin(drawn, clock));
 };
 
 const delivered = async (held, save, deadline, struck, shown) => {
@@ -168,15 +169,16 @@ export const codexImage = async ({ prompt, ratio, save, given, asked }) => {
   let answer = null;
   let text = "";
   try {
+    const clock = clockFor(deadline);
     answer = await fetch(`${held.url}/v1/images/${images.length ? "edits" : "generations"}`, {
       method: "POST",
       headers: { authorization: `Bearer ${held.key}`, "content-type": "application/json" },
       body: JSON.stringify(body),
-      signal: clockFor(deadline),
+      signal: clock,
       /* A followed 307 is the same POST sent a second time, which is a second image. */
       redirect: "error",
     });
-    text = await answer.text();
+    text = await textWithin(answer, clock);
   } catch (error) {
     fail(`${VERB}: ${shown(ranOut(error, deadline))}\n  ${MAYBE}`);
   }
