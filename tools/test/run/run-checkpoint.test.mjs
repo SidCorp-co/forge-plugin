@@ -62,6 +62,14 @@ const released = ({ over = {}, holder = null, batch = false } = {}) => {
   return { ...room, id, built, env };
 };
 
+/* A release a case spends to build its room is read before the room is: one that stopped short left
+   a tree the case never meant, and the step under test then said nothing for want of it (ISS-1733). */
+const setupReleased = (room) => {
+  const setup = runIn(room.tree, ["ship"], room.env);
+  assert.match(setup.stdout, /step 10\/10/u,
+    `the setup release this case stands on stopped short, so nothing after it judges the step:\n${setup.stdout}${setup.stderr}`);
+};
+
 /** Every landing state this release sent to the tracker, in the order it sent them. */
 const sent = () => seen("update")
   .map((one) => one.args.data?.sessionContext?.landing?.state)
@@ -196,7 +204,7 @@ test("a resume onto the last step past a failed install leaves the checkpoint re
 test("a resume onto the last step over a tree that moved since the push leaves the checkpoint ready", () => {
   const room = released();
   assert.deepEqual(sent(), [], "the room was seeded with something already written");
-  runIn(room.tree, ["ship"], room.env);
+  setupReleased(room);
   seeded({ landing: checkpoint(at(room.tree)), holder: room.id });
   landIn(room.tree, join("plugin", "src", "two.mjs"), 2, "work the release did not carry");
   const run = runIn(room.tree, ["ship", "--from", "10"], room.env);
@@ -211,7 +219,7 @@ test("a resume onto the last step over a tree that moved since the push leaves t
    commit that release landed, names the same branch and a head that never went anywhere. */
 test("a checkpoint whose head this release does not carry is named and left where it stands", () => {
   const room = released();
-  runIn(room.tree, ["ship"], room.env);
+  setupReleased(room);
   const landed = at(room.tree);
   landIn(room.tree, join("plugin", "src", "two.mjs"), 2, "work captured after the release");
   seeded({ landing: checkpoint(at(room.tree)), holder: room.id });
