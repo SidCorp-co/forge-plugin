@@ -5,7 +5,7 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, WITNESSED, declarationLine, declarationsMissing, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+import { SECTIONS, WITNESSED, unwrap, declarationLine, declarationsMissing, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 import { compoundCriteria } from "../../prose.mjs";
 import { flowPinned, requiresOf, screensOf } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
@@ -17,6 +17,7 @@ import { kindUsage } from "./record-rows.mjs";
 import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
 import { supersedingOf } from "./corrections/superseding.mjs";
+import { REPLACE, criteriaSetChecked, planChanged } from "./criteria-set.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -196,21 +197,28 @@ export const planPrepared = async (argv, at) => {
   citationsChecked(plan, refuse);
   planChecked(plan);
   if (refusal) refuse(refusal);
-  return { field: "plan", value: plan, shown: plan, ...await supersedingOf("plan", plan, at) };
+  const changed = planChanged(unwrap((await at.issue()).body.plan), plan);
+  return { field: "plan", value: plan, shown: plan, changed, ...await supersedingOf("plan", plan, at) };
 };
 
 /** The criteria field, numbered and renumbered by nobody: the numbers a verdict names are stored. */
 export const criteriaPrepared = async (argv, at) => {
   /* The file's own shape first, the consult after it: a criterion this verb will refuse anyway is
      one no review round should have been spent on, which is the whole of ISS-483. */
-  const { refusal, text } = onlyFile("criteria", argv, CRITERIA_BODY);
+  const replace = argv.includes(REPLACE);
+  const file = argv.filter((one) => one !== REPLACE);
+  const { refusal, text } = onlyFile("criteria", file, CRITERIA_BODY);
   if (refusal && text === null) refuse(refusal);
-  const criteria = criteriaLines(text ?? await bodyFrom(argv[0]));
+  const criteria = criteriaLines(text ?? await bodyFrom(file[0]));
   criteriaChecked(criteria, refuse);
   compoundRefused(criteria);
+  /* Before the consult's refusal, for ISS-483's reason: a file this refuses is one no review round
+     should be spent on, and the read of the issue it costs is one the write makes anyway. */
+  const held = unwrap((await at.issue()).body.acceptanceCriteria);
+  const changed = criteriaSetChecked(at.reference, held, criteria, replace);
   if (refusal) refuse(refusal);
   const value = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  return { field: "acceptanceCriteria", value, shown: value, ...await supersedingOf("criteria", value, at) };
+  return { field: "acceptanceCriteria", value, shown: value, changed, ...await supersedingOf("criteria", value, at) };
 };
 
 /** The release note, in whichever of its two forms was typed. */

@@ -173,6 +173,10 @@ consult the write asks for, or the round it saves is the round it spends.
   WHILE a set of criteria written before this reading existed is read, the CLI SHALL refuse only the lines carrying two outcomes.
 - **AC-04-5-6** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "a compound line is refused before the consult the write asks for"
   IF a criterion carries two outcomes THEN the CLI SHALL raise its refusal before asking for a review of the file.
+- **AC-04-5-7** · Rev: 1 · Proof: plugin/test/flow/record/criteria/whole-set.test.mjs "a criteria file leaving out held numbers is refused, naming both counts, each dropped number and both routes"
+  IF a criteria write leaves out a number the field holds, or its set does not open at one, THEN the CLI SHALL refuse the write unless the caller asks for the replacement, and SHALL name both counts and each number the write would drop.
+- **AC-04-5-8** · Rev: 1 · Proof: plugin/test/flow/record/criteria/whole-set.test.mjs "--replace stores a set that drops held numbers, and stderr names the counts and what was dropped"
+  WHEN a criteria write lands THEN the CLI SHALL say how many criteria the field held and how many it holds now, and SHALL name each number the write dropped.
 
 ### UC-04-6 — A report is assembled, never remembered
 
