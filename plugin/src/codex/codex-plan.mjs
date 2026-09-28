@@ -85,7 +85,7 @@ const numberedOnly = (text) => {
 };
 
 /** The files of a set a consult reads as a proposal: outside the checkout, and a typed plan or a list of numbered lines — the two shapes the plan and criteria writes take. Read off where a file lies and what its text is, never off the intent, since an intent saying so was not enough for the reviewer to stop filing the unbuilt work (ISS-2500); a code copy outside the checkout is neither shape and keeps a plain review. docs/cli/codex-the-payload.md. */
-export const proposalsIn = (parts) => parts
+const proposalsIn = (parts) => parts
   .filter((part) => isAbsolute(part.rel) && typeof part.text === "string")
   .filter((part) => planTyped(part.text) || numberedOnly(part.text))
   .map((part) => part.rel);
