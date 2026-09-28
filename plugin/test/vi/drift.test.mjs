@@ -158,3 +158,15 @@ test("vi-natural doc and translate --kind doc answer the same exit code for a re
   assert.equal(asTranslate.status, 2, `translate --kind doc on the same failure, matching doc()'s own:\n${asTranslate.stderr}`);
   assert.match(asTranslate.stderr, /model returned nothing for this key/u, asTranslate.stderr);
 });
+
+/* Criterion 5: the title's own path rejects a drift the same way `doc` does, not only a structural
+   rejection (vi-marker.test.mjs) or a non-verify one (the case just above). */
+test("translate --kind doc rejects a dropped-contrast candidate the same way vi-natural doc does", async (t) => {
+  const room = await gatewayOn(t, () => "Lưu số dư dưới dạng âm và cũng gọi là số có dấu.", "vi-drift-translate-");
+  const run = await ranAsync(BIN, ["translate", "--kind", "doc", "--no-glossary",
+    "Store the balance as negative rather than as one somebody has signed."],
+    { ...process.env, XDG_CONFIG_HOME: room }, room);
+  assert.equal(run.status, 2, `the title path rejects the same drift doc() would:\n${run.stderr}`);
+  assert.equal(run.stdout, "", "no rewrite reaches stdout");
+  assert.match(run.stderr, /contrasts one reading against another/u, run.stderr);
+});
