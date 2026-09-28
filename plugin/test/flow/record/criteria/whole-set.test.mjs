@@ -27,7 +27,7 @@ const state = {
       if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
       const issue = state.issues.find((one) => one.documentId === args.documentId) ?? state.issues[0];
       if (args.action === "update") {
-        if (["plan", "acceptanceCriteria"].some((one) => one in args.data)) state.writes.push(args.data);
+        if (["acceptanceCriteria", "plan"].some((one) => one in args.data)) state.writes.push(args.data);
         Object.assign(issue, args.data);
       }
       return issue;
@@ -68,11 +68,12 @@ const fileOf = (text) => {
   return path;
 };
 
-const ask = (argv, over = env) => ranAsync(FORGE, ["record", ...argv], over);
+const askUnder = (over, ...argv) => ranAsync(FORGE, ["record", ...argv], over);
+const ask = (...argv) => askUnder(env, ...argv);
 
 test("a criteria file leaving out held numbers is refused, naming both counts, each dropped number and both routes", async () => {
   const held = issue("ISS-8101", { acceptanceCriteria: numbered(1, 53) });
-  const run = await ask(["criteria", "ISS-8101", fileOf(numbered(45, 53))]);
+  const run = await ask("criteria", "ISS-8101", fileOf(numbered(45, 53)));
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /ISS-8101 holds 53 criteria and this file holds 9/u, "both counts");
   assert.match(run.stderr, /would drop 44 of them: 1-44\b/u, "each held number the write drops");
@@ -84,7 +85,7 @@ test("a criteria file leaving out held numbers is refused, naming both counts, e
 
 test("a criteria set whose lowest number is not 1 is refused, with nothing held as well", async () => {
   issue("ISS-8102", {});
-  const run = await ask(["criteria", "ISS-8102", fileOf(numbered(10, 12))]);
+  const run = await ask("criteria", "ISS-8102", fileOf(numbered(10, 12)));
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /opens at 10/u);
   assert.match(run.stderr, /--replace/u);
@@ -93,7 +94,7 @@ test("a criteria set whose lowest number is not 1 is refused, with nothing held 
 
 test("--replace stores a set that drops held numbers, and stderr names the counts and what was dropped", async () => {
   const held = issue("ISS-8103", { acceptanceCriteria: numbered(1, 5) });
-  const run = await ask(["criteria", "ISS-8103", fileOf(numbered(1, 2)), "--replace"]);
+  const run = await ask("criteria", "ISS-8103", fileOf(numbered(1, 2)), "--replace");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(held.acceptanceCriteria, numbered(1, 2));
   assert.match(run.stderr, /^criteria: the field held 5 and now holds 2; dropped 3-5\.$/mu);
@@ -101,7 +102,7 @@ test("--replace stores a set that drops held numbers, and stderr names the count
 
 test("--replace on a write that drops nothing is refused as a flag this write does not use", async () => {
   issue("ISS-8104", { acceptanceCriteria: numbered(1, 2) });
-  const run = await ask(["criteria", "ISS-8104", fileOf(numbered(1, 3)), "--replace"]);
+  const run = await ask("criteria", "ISS-8104", fileOf(numbered(1, 3)), "--replace");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--replace drops criteria the field holds, and this write drops none/u);
   assert.deepEqual(state.writes, []);
@@ -109,14 +110,14 @@ test("--replace on a write that drops nothing is refused as a flag this write do
 
 test("a write rewording held numbers, or splitting one and renumbering the tail, lands and says the counts", async () => {
   const held = issue("ISS-8105", { acceptanceCriteria: numbered(1, 3) });
-  const reworded = await ask(["criteria", "ISS-8105", fileOf(numbered(1, 3, "reworded outcome"))]);
+  const reworded = await ask("criteria", "ISS-8105", fileOf(numbered(1, 3, "reworded outcome")));
   assert.equal(reworded.status, 0, reworded.stderr);
   assert.match(reworded.stderr, /^criteria: the field held 3 and now holds 3\.$/mu, "a full write is as legible as a reducing one");
   held.acceptanceCriteria = ["1. The list opens on the newest row.", "2. The count is shown and the filter is kept.",
     "3. An empty list says so."].join("\n");
   const halves = ["1. The list opens on the newest row.", "2. The count is shown.", "3. The filter is kept.",
     "4. An empty list says so."].join("\n");
-  const split = await ask(["criteria", "ISS-8105", fileOf(halves)]);
+  const split = await ask("criteria", "ISS-8105", fileOf(halves));
   assert.equal(split.status, 0, split.stderr);
   assert.equal(held.acceptanceCriteria, halves, "criterion 2 split in two, the tail renumbered from 3 to 4");
   assert.match(split.stderr, /^criteria: the field held 3 and now holds 4; added 4\.$/mu);
@@ -124,7 +125,7 @@ test("a write rewording held numbers, or splitting one and renumbering the tail,
 
 test("a plan write says how many lines the field held and how many it holds now", async () => {
   issue("ISS-8106", { plan: "The first reading.\nIts second line.\nIts third line." });
-  const run = await ask(["plan", "ISS-8106", fileOf("The second reading.")]);
+  const run = await ask("plan", "ISS-8106", fileOf("The second reading."));
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^plan: the field held 3 lines and now holds 1, replaced whole\.$/mu);
 });
@@ -133,7 +134,7 @@ test("a partial criteria file is refused for the drop before the consult it has 
   issue("ISS-8107", { acceptanceCriteria: numbered(1, 5) });
   const consulting = { ...env };
   delete consulting.FORGE_CODEX_DISABLE;
-  const run = await ask(["criteria", "ISS-8107", fileOf(numbered(1, 2))], consulting);
+  const run = await askUnder(consulting, "criteria", "ISS-8107", fileOf(numbered(1, 2)));
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /holds 5 criteria and this file holds 2/u);
   assert.doesNotMatch(run.stderr, /consult/iu, "no review round is asked for a file the write refuses anyway");
