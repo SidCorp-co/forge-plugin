@@ -354,7 +354,7 @@ const installStep = async (one) => {
       at.installing = false;
     }
     publishes(at.room, base, release);
-    await releaseOwes({ tree: at.room, self, landed: at.members.map((member) => changeOf(at, member)) });
+    await releaseOwes({ tree: at.room, self, landed: at.members.map((member) => changeOf(at, member)), gate: at.gate });
   }
   for (const member of at.members) await saveOn(member, { state: "installed" });
 };

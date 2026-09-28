@@ -160,6 +160,7 @@ export const gateStep = async (one) => {
   const read = await gateOver({ root, candidate: at.candidate, keys: keysOf(at), minutes: ms / 60_000 });
   if (read.green) {
     at.room = read.room;
+    at.gate = read.own;
     return undefined;
   }
   dropRoom(root, read.room);

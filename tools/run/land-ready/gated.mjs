@@ -32,7 +32,8 @@ const exitedAs = (status, error) => {
   return status === DECLINED ? PLACE_DECLINED : RED;
 };
 
-/** `{ status, green, declined, output, verdict, tree, room, error }`; the room is the caller's to drop. */
+/** `{ status, green, declined, output, verdict, own, tree, room, error }`, `own` being the record this
+ *  run wrote whatever it decided; the room is the caller's to drop. */
 export const gateOver = ({ root, candidate, keys, minutes, label = null }) => new Promise((done) => {
   const room = roomFor(root, candidate);
   const env = { ...process.env, [LANDING_ENV]: keys, [LANDING_WAIT_ENV]: String(minutes) };
@@ -56,7 +57,7 @@ export const gateOver = ({ root, candidate, keys, minutes, label = null }) => ne
       exited: exitedAs(status, error) });
     done({
       status, error, green: status === 0, declined: status === DECLINED, output: chunks.join(""),
-      verdict: status === 0 ? null : record ?? verdictIn(room), tree: treeOf(root, candidate), room, candidate,
+      verdict: status === 0 ? null : record ?? verdictIn(room), own: record ?? null, tree: treeOf(root, candidate), room, candidate,
     });
   };
   child.on("error", (error) => finished(null, error));

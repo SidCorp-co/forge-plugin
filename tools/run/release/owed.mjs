@@ -1,5 +1,5 @@
 /* What a release owes the repository once its copy is installed, whichever route released it: the
-   ladder's backstop for each change it landed, the newest gate figure, and the batch reading where
+   ladder's backstop for each change it landed, its own gate's figure beside the series', and the batch reading where
    the volume since the mark calls for one. One function for the ship and the landing alike, because
    a second route that grew its own step table dropped all three and read as nothing owed (ISS-2735). */
 import { execFile, spawnSync } from "node:child_process";
@@ -102,12 +102,29 @@ const reconciled = async (tree, from, key, related) => {
     undropped: dropped.why ? { said: dropped.why, command: `forge advance ${key} --drop --why '${why}'` } : null };
 };
 
-/* Beside the volume count: the gate this release just spent wrote the newest figure there is. */
-const gateGrew = (tree) => {
+const NOT_OURS = "so no figure below is this release's";
+
+/* Off the verdict record this release's own gate wrote for the tree it judged, which is keyed on that
+   tree: `undefined` is a pass that ran no gate, `null` a gate that left no record of its own. */
+const ownGate = (gate) => {
+  if (gate === undefined) return `this pass ran no gate of its own, ${NOT_OURS}`;
+  if (gate?.verdict === "unproved") return `this release's own passed on failed cases re-run alone, which times no gate, ${NOT_OURS}`;
+  if (!Number.isInteger(gate?.seconds)) return `this release's own left no record of what it took, ${NOT_OURS}`;
+  if (!Number.isInteger(gate.ran) || !Number.isInteger(gate.total)) return `this release's own took ${gate.seconds}s`;
+  const scoped = gate.ran < gate.total ? ", which is scoped and measures less than a whole gate" : "";
+  return `this release's own took ${gate.seconds}s over ${gate.ran} of ${gate.total} step(s)${scoped}`;
+};
+
+/* Two lines, because the series is every worktree's: under a wave its newest line is a sibling's, and
+   printed as this release's it credited the release with another run's cost (ISS-594). The series
+   line sits beside the volume count, both being what this run left the next one to answer for. */
+const gateGrew = (tree, gate) => {
+  console.log(`  the gate: ${ownGate(gate)}`);
   try {
-    console.log(`  the gate: ${runSays(recordDir(tree))}`);
+    console.log(`  the series every worktree of this checkout appends to, whose newest line may be another `
+      + `run's: ${runSays(recordDir(tree))}`);
   } catch (error) {
-    console.error(`  what this tree's gate runs have taken could not be read: ${error.message}`);
+    console.error(`  what this checkout's gate runs have taken could not be read: ${error.message}`);
   }
 };
 
@@ -227,10 +244,11 @@ const overdue = async (asked, range, self) => {
 };
 
 /** Every obligation above, in the order the ship always took them. `landed` is one row per change
- *  the release carries — its key and the range `was..at` that holds it — and `self` is the command
- *  a printed remedy names. Reports and refuses nothing a release could stop for. */
-export const releaseOwes = async ({ tree, self, landed = [] }) => {
+ *  the release carries — its key and the range `was..at` that holds it — `gate` the verdict record
+ *  of the gate this pass ran, and `self` is the command a printed remedy names. Reports and refuses
+ *  nothing a release could stop for. */
+export const releaseOwes = async ({ tree, self, landed = [], gate }) => {
   for (const one of landed) await tierCeiling(tree, one);
-  gateGrew(tree);
+  gateGrew(tree, gate);
   await reviewOwed(tree, self);
 };

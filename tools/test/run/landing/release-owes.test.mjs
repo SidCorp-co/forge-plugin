@@ -5,8 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import {
-  KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, git, landingRan, ready, seeded, state, tracker, world,
+  JUDGED_GATE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, forgetInstall, git, installedAt, judging, landingRan, ready,
+  seeded, state, tracker, world,
 } from "./fixture.mjs";
 
 const { readingTitle } = await import("../../../../plugin/src/git/reviewed.mjs");
@@ -35,8 +39,9 @@ test("a landing past the review volume files the batch reading after its install
   const key = state.issues.at(-1).issueId;
   assert.ok(said.includes(`filed ${key}`), said);
   assert.ok(said.includes(`Work ${key}. Use the Skill tool: skill forge:issue-flow, args ${key}.`), said);
-  /* The fixture's gate keeps no timing record, so the figure is the reader's own word for none. */
-  assert.match(said, /^ {2}the gate: no run is recorded/mu, `no gate figure after the install:\n${said}`);
+  /* The fixture's gate keeps no timing record, so each figure is its reader's own word for none. */
+  assert.match(said, /^ {2}the gate: this release's own left no record of what it took/mu, `no gate line after the install:\n${said}`);
+  assert.match(said, /whose newest line may be another run's: no run is recorded/u, `no series line after the install:\n${said}`);
   assert.match(said, new RegExp(`${KEY} is a \`fix\` and landed 1 file\\(s\\) and 2 changed line\\(s\\), `
     + "against that rung's ceiling of 15 and 500", "u"), `no ladder backstop for the member:\n${said}`);
 });
@@ -63,4 +68,35 @@ test("a batch landing holds each member to its own rung over its own commits, ne
   assert.match(said, new RegExp(`${KEY} is a \`fix\` and landed 1 file\\(s\\) and 2 changed line\\(s\\),`, "u"), said);
   assert.match(said, new RegExp(`${NEXT_KEY} is a \`fix\` and landed 1 file\\(s\\) and 1 changed line\\(s\\),`, "u"), said);
   assert.doesNotMatch(said, /landed 2 file\(s\)/u, `a member was measured over the candidate:\n${said}`);
+});
+
+/* The landing's gate runs in a room of its own, and the series it would be read against is every
+   worktree's: a sibling's full gate standing newest there is not this release's cost (ISS-594). The
+   judged gate records its steps' seconds as three more than they took, so its own figure is 3s. */
+test("a landing prints the gate it ran over its candidate as its own, and a sibling's newer line as the series'", async () => {
+  const { work, head, base } = world({ base: "other", gate: JUDGED_GATE });
+  judging([]);
+  const ledger = join(work, ".git", "gate-ledger");
+  mkdirSync(ledger, { recursive: true });
+  appendFileSync(join(ledger, "runs"), `${new Date(Date.now() + 60_000).toISOString()} 188s 14/14\n`);
+  seeded({ landing: ready(head, base) });
+  const said = await landingRan([KEY], work);
+  assert.match(said, /^ {2}the gate: this release's own took 3s$/mu, `the landing's own gate figure is not its gate line:\n${said}`);
+  assert.match(said, /^ {2}the series every worktree of this checkout appends to, whose newest line may be another run's: 188s over 14 of 14 step\(s\)/mu,
+    `the sibling's figure is not printed as the series':\n${said}`);
+  assert.doesNotMatch(said, /the gate: 188s/u, `a sibling's figure is credited to this release:\n${said}`);
+});
+
+/* Resumed at its install, a landing runs no gate in that pass, so nothing it could print is its own. */
+test("a landing resumed past its gate says it ran none, and credits the series to nobody", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base) });
+  installedAt("9.9.9");
+  const refused = await landingRan([KEY], work);
+  assert.match(refused, /would put the older copy in the cache/u, refused);
+  forgetInstall();
+  const said = await landingRan([KEY], work);
+  assert.match(said, /^ {2}the gate: this pass ran no gate of its own, so no figure below is this release's$/mu,
+    `a resume past the gate is not said to have run none:\n${said}`);
+  assert.doesNotMatch(said, /the gate: this release's own/u, `a gate this pass never ran is credited to it:\n${said}`);
 });

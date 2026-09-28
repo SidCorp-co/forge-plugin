@@ -46,9 +46,10 @@ const counting = () => {
 export const shipHelp = () => [
   "What a session registered, and the skills it loaded, reach it at its next start — gate code does",
   "not, being chosen per call — so the last step says whether a restart is owed and names the set it",
-  "filtered on. It says beside that what the gate run a step earlier took and how that compares with",
-  "the run before it, so a release that made the gate slower is visible where a release that wrote a",
-  "lot of unread code already is.",
+  "filtered on. It says beside that what this release's own gate took, and then the series every",
+  "worktree of the checkout appends to with how its newest whole run compares with the one before it,",
+  "so a release that made the gate slower is visible where a release that wrote a lot of unread code",
+  "already is.",
   "",
   "The version step costs the gate's record nothing. Every step's digest is keyed on the manifests,",
   "so the commit naming a release used to leave the whole record unreadable at the one head every",
@@ -280,7 +281,7 @@ const shipSteps = (tree, root, base, note, attempt) => {
       statesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), versionIn(tree), resume());
       const landed = releaseSays(tree, base);
       const was = shipFrom(tree);
-      await releaseOwes({ tree, self: SELF, landed: [{ ref: branchKey(tree), was, at: landed }] });
+      await releaseOwes({ tree, self: SELF, landed: [{ ref: branchKey(tree), was, at: landed }], gate: attempt.gate });
       publishes(tree, base, copy?.installed);
       await releaseReadings(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
         issues: keysHere(tree) });
