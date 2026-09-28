@@ -116,13 +116,16 @@ const toolRow = async (verb, full, bindings) => {
  *  (AC-01-3-1). Exported because the write that saves a key reports it in this same shape. */
 export const keySaid = (row, full) => (row.value
   ? `${row.secret ? masked(row.value, full) : row.value}  ← ${row.from}`
+    + (row.legacy ? `, held only there — the owner runs \`${row.route}\` once, from a shell that does`
+      + " not borrow, to move it into the store a run's borrow reads"
+      : "")
   : `no ${row.asks} — \`forge doctor --${row.flag} <${row.asks}>\`${row.without ? `, ${row.without}` : ""}`);
 
 export const keyLabel = (row) => `${row.label} ${row.said ?? row.key}`;
 
 const keyRow = (row, full, required) => ({
   label: keyLabel(row),
-  level: row.value ? "ok" : (required.includes(row.store) ? "miss" : "note"),
+  level: row.value ? (row.legacy ? "note" : "ok") : (required.includes(row.store) ? "miss" : "note"),
   detail: keySaid(row, full),
 });
 

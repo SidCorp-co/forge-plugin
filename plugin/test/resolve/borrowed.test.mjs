@@ -164,6 +164,37 @@ test("a store key the borrowed file lacks resolves from that store's fallback fi
   assert.deepEqual(run.out(), { value: "profile-gateway-key-0123456789", from: profile });
 });
 
+/* ISS-2840: on the machine `machineHome` here stands in for, the vi gateway key lives only in the
+   legacy vi-natural file beside `forge/config.json`, never in that file's own `vi` object. A run
+   home borrowing from it has to reach that legacy file by reference, the same way it reaches every
+   other borrowed key, rather than a copy — the only route a run had before this. */
+test("a vi key the borrowed file lacks resolves from the legacy file beside it, and the run home never copies it", () => {
+  const machine = tempRoom("borrowed-machine-vi-");
+  mkdirSync(join(machine, "forge"));
+  const borrowed = join(machine, "forge", "config.json");
+  writeFileSync(borrowed, JSON.stringify({
+    url: "http://127.0.0.1:1/mcp", token: TOKEN, codex: { key: GATEWAY }, retrySeconds: 0, waitSeconds: 0.05,
+  }));
+  mkdirSync(join(machine, "vi-natural"));
+  const legacy = join(machine, "vi-natural", "config.json");
+  writeFileSync(legacy, JSON.stringify({ base_url: "https://legacy-vi.example", api_key: VI_KEY, model: "vi/legacy-model" }));
+  const home = runHome();
+
+  const probed = probe(home, borrowed, `return stores.machineValue("vi", "key");`);
+  assert.equal(probed.status, 0, probed.stderr);
+  assert.deepEqual(probed.out(), { value: VI_KEY, from: legacy, legacy: true },
+    "resolved from the legacy file beside the borrowed one, and marked legacy so a report can name it");
+  assert.doesNotMatch(everything(home), new RegExp(VI_KEY, "u"),
+    "the run home holds no copy of the key it borrowed");
+
+  const doctored = cli(home, borrowed, ["doctor", "services"]);
+  assert.equal(doctored.status, 0, doctored.stderr);
+  const row = doctored.stdout.split("\n").find((line) => / vi-natural key /u.test(line)) ?? "";
+  assert.match(row, /^\[ note \]/u, `a legacy-only vi key is reported as a note under a borrow too:\n${row}`);
+  assert.match(row, /`forge doctor --vi-url <endpoint> --vi-key <key> --vi-model <id>`/u,
+    "and the row names the one command that moves it into the store the borrow reads");
+});
+
 test("the account's readers answer a rotated token at the next call, not the first one they read", () => {
   const borrowed = machineHome();
   const home = runHome();

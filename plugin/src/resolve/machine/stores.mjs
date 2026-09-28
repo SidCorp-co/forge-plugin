@@ -2,20 +2,40 @@
    holds it, the flag that writes it, whether it is a credential, and — for the two tools that had a
    file before this plugin did — which field of which file answers where this one does not. One table,
    a store declared beside it being the third file a new machine has to fill. docs/cli/settings.md. */
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
-import { configDir, configSource, readJson, userConfig } from "../config.mjs";
+import { configDir, configPath, configSource, readJson, userConfig } from "../config.mjs";
+import { borrowing } from "./borrowed.mjs";
 import { profileValues, unfollowedSaid } from "./profile.mjs";
 
-const viPath = () => join(configDir("vi-natural"), "config.json");
+/* The legacy file sits beside whichever `configPath()` answers for this call: this machine's own
+   `~/.config/forge/config.json` under an ordinary run, or — under a borrowed run home — the file
+   FORGE_BORROW_FROM names, read at the moment of use and never copied, so a run reaches a key this
+   project's own store never held without a home of its own ever holding a copy of it (ISS-2840).
+   Unborrowed, this is the same path `configDir("vi-natural")` always was. */
+const viPath = () => {
+  const borrow = borrowing(configPath());
+  return borrow
+    ? join(dirname(dirname(borrow.path)), "vi-natural", "config.json")
+    : join(configDir("vi-natural"), "config.json");
+};
 
 const PROFILE = {
   read: profileValues,
   fields: { url: "ANTHROPIC_BASE_URL", key: "ANTHROPIC_AUTH_TOKEN" },
 };
 
+/* `legacy` marks a file this project's own store supersedes, so a value answered from it is one
+   `forge doctor` can single out with the route that moves it — unlike `PROFILE`, an external shim's
+   own file that is never migrated off. */
 const VI_FILE = {
-  read: () => ({ path: viPath(), values: readJson(viPath()) }),
+  legacy: true,
+  /* One call to `viPath()`, not two: a second borrow read between them could hand `path` and
+     `values` two different layouts, naming one file while answering from another. */
+  read: () => {
+    const path = viPath();
+    return { path, values: readJson(path) };
+  },
   fields: { url: "base_url", key: "api_key", model: "model" },
 };
 
@@ -72,7 +92,9 @@ const saved = (value) => (typeof value === "string" && value.trim() ? value : nu
 
 /** One key's value and the file that answered for it: the plugin's own configuration first, the
  *  tool's own file where that key is unset. A precedence rule with no report of which layer won is
- *  a broken undo, which is why `from` travels with every value (BR-08). */
+ *  a broken undo, which is why `from` travels with every value (BR-08). `legacy` rides along only
+ *  where the fallback file is one this project's own store supersedes, so a reader can single it
+ *  out without also flagging the codex profile, which is never migrated off. */
 export const machineValue = (name, key) => {
   const held = saved(userConfig()[name]?.[key]);
   if (held) return { value: held, from: configSource(`${name}.${key}`) };
@@ -81,8 +103,16 @@ export const machineValue = (name, key) => {
   if (!field) return { value: null, from: null };
   const { path, values, from } = behind.read();
   const fallen = saved(values?.[field]);
-  return fallen ? { value: fallen, from: from?.[field] ?? path } : { value: null, from: null };
+  return fallen
+    ? { value: fallen, from: from?.[field] ?? path, ...(behind.legacy ? { legacy: true } : {}) }
+    : { value: null, from: null };
 };
+
+/** The one call that moves a store's keys off whatever file answered for them and into this
+ *  machine's own configuration, spelled once so `doctor-keys.mjs`'s write route and a legacy-sourced
+ *  row's note never drift apart (ISS-2840). */
+export const storeRoute = (store) =>
+  `forge doctor ${store.keys.map((row) => `--${row.flag} <${row.asks}>`).join(" ")}`;
 
 const gating = (row) => row.keys.filter((one) => one.gates !== false);
 
@@ -93,7 +123,9 @@ export const storeMissing = (name) =>
   gating(storeOf(name)).filter((one) => !machineValue(name, one.key).value);
 
 export const machineRows = () => STORES.flatMap((row) =>
-  row.keys.map((one) => ({ ...one, store: row.store, label: row.label, ...machineValue(row.store, one.key) })));
+  row.keys.map((one) => ({
+    ...one, store: row.store, label: row.label, route: storeRoute(row), ...machineValue(row.store, one.key),
+  })));
 
 export const SECRET_FLAGS = STORES.flatMap((row) =>
   row.keys.filter((one) => one.secret).map((one) => `--${one.flag}`));
