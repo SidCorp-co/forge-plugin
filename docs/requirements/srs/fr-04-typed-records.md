@@ -1,6 +1,6 @@
 # SRS §6 — FR-04 — Typed records
 
-Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-02, BR-03, BR-14 · Coupling: schema · Source: docs/issue-flow-contract.md
+Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-02, BR-03, BR-11, BR-14, BR-16 · Coupling: schema · Source: docs/issue-flow-contract.md
 
 ← [Index](./README.md) · [§5 FR-03 The lease](./fr-03-the-lease.md) · Next: [§7 FR-05 Earned transitions](./fr-05-earned-transitions.md)
 
@@ -278,6 +278,31 @@ field is named and the write is where it is refused.
   IF a clause of the merged mark that holds paths names the word it takes for no paths at all beside
   a path THEN the CLI SHALL refuse the write.
 
+### UC-04-9 — A rewritten field is shown beside what was sent
+
+Rev: 1 · Actors: agent · Enforces: BR-11, BR-16
+
+A project whose prose language rewrites a field before storing it (`docs/requirements/srs/fr-13-natural-vietnamese.md`,
+BR-16) can turn a criterion's qualifier around, drop a contrast or turn a category into an example,
+and the write still lands at exit 0: nothing here judges the rewrite's meaning, because that
+judgement is a person's and no gate reaches it (BR-16). What a gate can do is put the two texts in
+front of the one person positioned to catch a drift — the author, in the same round as the write,
+before the field is read back by anyone else. So every rewritten field prints beside what was sent
+to it rather than only what was kept, on the same stderr stream the write already used for the
+kept text alone.
+
+- **AC-04-9-1** · Rev: 1 · Proof: plugin/test/vi/rewrite-visibility.test.mjs "every rewritten field but the title prints its source beside what was posted"
+  WHEN a prose field other than the title is rewritten under a project's prose language THEN the CLI
+  SHALL print the text sent to the rewrite beside the text it posted, both under a heading naming
+  the field.
+- **AC-04-9-2** · Rev: 1 · Proof: plugin/test/vi/rewrite-visibility.test.mjs "a title still prints only what was posted"
+  WHERE the field is the title THEN the CLI SHALL print only what was posted, unchanged from before
+  this requirement, because a title is short enough to check at a glance and a second block would
+  cost a line for nothing it does not already show.
+- **AC-04-9-3** · Rev: 1 · Proof: plugin/test/vi/rewrite-visibility.test.mjs "a field the rewrite left unrewritten prints no source block"
+  IF the rewrite leaves a field byte for byte what was sent THEN the CLI SHALL print only the one
+  block, so a run reading the stream is not asked to compare a field against itself.
+
 ## The way back
 
 *What undoes a change here?*
@@ -301,4 +326,6 @@ owed, which refuses a status it should have earned rather than earning one it sh
 | BR-01 | a missing field is refused by name, with the write that supplies it |
 | BR-02 | every payload is on the record, and a report is assembled from it |
 | BR-03 | a correction stands beside what it corrects, and nothing is deleted |
+| BR-11 | a rewritten field's source is shown beside what the tracker's own language kept |
 | BR-14 | every field a record takes is used or refused |
+| BR-16 | the rewrite is shown beside its source, so the person it drifted past is the one who reads it |
