@@ -57,15 +57,12 @@ The delta is per line, and belongs to the first reading. A text is credited both
 line, so a paragraph that grew by a sentence owes the sentence, not the paragraph again. Where no
 line of a text was ever shown, the whole of it is owed — a delta equal to the text is the text.
 
-**A refusal is handed in its parts, and the delta falls on its body alone.** A gate composes every
-refusal out of the same two fixed lines — what to do instead, and the route to the reason — around
-a body that varies, and a per-line delta over the whole text cut exactly those two first, because
-every firing of the gate shares them. The second refusal of a session then arrived as its fresh
-lines alone: a quoted pair with nothing saying what to do, or a doubt with nothing naming the page.
-So a refusal names its action, its body and its route, and whatever else changed, the action and the
-route print whole on every firing that is not a whole repeat. The surface stays the gate's rather
-than becoming the rule's: keyed per rule, a rule whose body changed would still be cut to its new
-lines, which settles nothing.
+**A refusal is handed in its parts, and the delta falls on its body alone.** A gate builds every
+refusal from two fixed lines — what to do instead, and the route to the reason — around a body that
+varies, and a per-line delta over the whole text cuts those two first, every firing sharing them:
+a second refusal arrived as a quoted pair or a doubt with nothing saying what to do. So the action
+and the route print whole on every firing that is not a whole repeat. The surface stays the gate's:
+keyed per rule, a rule whose body changed would still be cut to its new lines.
 
 **A surface may want the whole text and no delta, and then it asks what is owed rather than for what
 to say.** A served phase of the method is one: it is owed to be identical to what `forge guide`
