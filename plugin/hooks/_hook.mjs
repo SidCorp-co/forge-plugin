@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, REDIRECT, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE } from "../src/refusal.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
@@ -21,7 +21,7 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, STARTS, WRITES, namesOf, spans, standsIn, unquote };
+export { NOWHERE, REDIRECT, STARTS, WRITES, namesOf, spans, standsIn, unquote };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
@@ -341,12 +341,6 @@ const EXECUTES_STDIN = new RegExp(
   "u",
 );
 
-/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer in `plugin/src/hooks/shell-spans.mjs`, spelt the same here (ISS-1555). */
-export const REDIRECT = new RegExp(
-  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^ \t\n;&|<>])+)`,
-  "gu",
-);
-
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
@@ -432,6 +426,11 @@ export const shellText = (command, onProgram) =>
 export const shellWrites = (command) =>
   shellText(command, (body, at, runner) => glued(body, runner))
     .replace(RUNS, (all, runner, body) => `${all.slice(0, all.length - body.length)}${gluedQuoted(body, runner)}`);
+
+/** What a call wrote through a name the gates cannot resolve, read off the text its own shell runs: a program body is blanked, since its names are its interpreter's, and reading them as the shell's claimed writes out of a regex literal and a docstring (ISS-450). how/writes.md. */
+export const unseenWrites = (command) => unseenNames(
+  shellText(command, () => " ").replace(RUNS, (all, runner, body) => `${all.slice(0, all.length - body.length)}''`),
+);
 
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;

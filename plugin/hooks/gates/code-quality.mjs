@@ -1,11 +1,11 @@
-// Hands every code file a call wrote to the linter the project configured. Owns the routes, never the rules; how/code-quality.md says why the split falls there.
+// Hands every code file a call wrote to the linter the project configured, and says when a call wrote where no gate could see. Owns the routes, never the rules; how/code-quality.md says why the split falls there.
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
 import { configuresLint, linting, MAX_FILES } from "../../src/hooks/lint-delegate.mjs";
-import { askedAlready, block, context, remaining, touched } from "../_hook.mjs";
+import { askedAlready, block, context, remaining, touched, unseenWrites } from "../_hook.mjs";
 
 const SPARE_MS = 5_000;
 
@@ -40,6 +40,20 @@ const unlinted = (ev, files) => {
     + `  Clear it: run the project's linter on them, or write them across calls of at most ${MAX_FILES} code files.`;
 };
 
+/* Three named are enough to find the command by; the rest are counted. */
+const SHOWN = 3;
+
+/* Said once a session, and only where no file of the call reached the gates, which is what keeps "no gate read it" true of a loop over names the command also spelled (ISS-450). */
+const unseen = (ev) => {
+  if (ev.tool_name !== "Bash" || touched(ev).length) return "";
+  const said = unseenWrites(ev.tool_input?.command);
+  if (!said.length || askedAlready(ev, "unseen-names", "code-quality")) return "";
+  const more = said.length > SHOWN ? ` and ${said.length - SHOWN} more` : "";
+  return `Not seen, so no gate read what this call wrote through ${said.slice(0, SHOWN).map((one) => `\`${one}\``).join(", ")}${more}: `
+    + `no spelling in the command produces ${said.length > 1 ? "those names" : "that name"}.\n`
+    + "  Clear it: spell the path in the command, or write the file with Edit or Write. Said once a session: `forge hooks --how writes`.";
+};
+
 export const run = (ev) => {
   const asked = (file) => {
     const before = shaOf(file);
@@ -56,7 +70,7 @@ export const run = (ev) => {
     const after = shaOf(file);
     if (after) askedAlready(ev, `${file}@${after}`, "code-quality");
   }
-  const note = unread.length ? unlinted(ev, unread) : "";
+  const note = [unread.length ? unlinted(ev, unread) : "", unseen(ev)].filter(Boolean).join("\n\n");
   /* The findings are the linter's words; the route ahead of them is this gate's. */
   if (reasons.length) block([FIX, ...reasons, note].filter(Boolean).join("\n\n"));
   if (note) context(note);

@@ -220,3 +220,54 @@ test("every refusal this gate writes leads with its route", () => {
     rmSync(file, { force: true });
   }
 });
+
+/* A write through a name no spelling produces reached no gate and said nothing, so it read the same as a
+   call that wrote nothing (ISS-450). Each case stands in a room that configured no linter and names no
+   file that exists, so the only thing the call can hear is that notice. */
+const unseenRoom = () => realpathSync(tempRoom("unseen-"));
+const bashIn = (room, session, command) =>
+  callHook(HOOK, { session_id: session, tool_name: "Bash", tool_input: { command }, cwd: room }, homeEnv("code-quality-unseen"));
+const told = (run) => answered(run)?.hookSpecificOutput?.additionalContext ?? "";
+const GLOB_LOOP = 'for f in *.md; do cp "$f" "$f.bak"; done';
+
+test("a write through a name no spelling produces is said once a session, with its spelling and the route", () => {
+  const room = unseenRoom();
+  const session = randomUUID();
+  const first = bashIn(room, session, 'for f in *.mjs; do sed -i s/x/y/ "$f"; done');
+  const said = told(first);
+  assert.match(said, /no gate read what this call wrote through `"\$f"`/u, "the spelling the shell wrote it through");
+  assert.match(said, /spell the path in the command, or write the file with Edit or Write/u, "and the route");
+  assert.equal(answered(first).decision, undefined, "a write nobody saw refuses nothing");
+  assert.equal(bashIn(room, session, "echo x > $OUT/b.md").stdout.trim(), "", "the same session is not told twice");
+  assert.match(told(bashIn(room, randomUUID(), "echo x > $OUT/b.md")), /`\$OUT\/b\.md`/u, "a new session is told");
+});
+
+/* The two readings the issue measured claiming writes that never happened, each read off a program body
+   as though its shell ran it. The glob loop after each is a write that did happen: it is what makes the
+   case red where nothing is said at all, and it shows the false claim did not spend the session's notice. */
+test("a regex literal ending in `$` inside a program body claims no write", () => {
+  const room = unseenRoom();
+  const session = randomUUID();
+  const body = ["node - <<'JS'", "const { readFileSync, writeFileSync } = require('fs');", "const f = 'notes.mjs';",
+    "if (/\\.mjs$/.test(f)) writeFileSync(f.replace(/\\.mjs$/u, '.md'), readFileSync(f));", "JS"].join("\n");
+  assert.equal(bashIn(room, session, body).stdout.trim(), "", "a regex is the program's, and no name its shell built");
+  assert.match(told(bashIn(room, session, GLOB_LOOP)), /`"\$f\.bak"`/u);
+});
+
+test("a triple-quoted string inside a program body claims no write", () => {
+  const room = unseenRoom();
+  const session = randomUUID();
+  const body = ["python3 - <<'PY'", "open('notes.txt', 'w').write('''the list is at $M/t.md''')", "PY"].join("\n");
+  assert.equal(bashIn(room, session, body).stdout.trim(), "", "a docstring is the program's payload, and no name its shell built");
+  assert.match(told(bashIn(room, session, GLOB_LOOP)), /`"\$f\.bak"`/u);
+});
+
+/* The gates did see these: the names are spelled in the loop's own list, and the disk answered for them. */
+test("a loop over names the command spells, which reached the gates, claims nothing", () => {
+  const room = unseenRoom();
+  const session = randomUUID();
+  for (const name of ["a.txt", "b.txt"]) writeFileSync(join(room, name), "x\n");
+  assert.equal(bashIn(room, session, 'for f in a.txt b.txt; do sed -i s/x/y/ "$f"; done').stdout.trim(), "",
+    "every file the loop wrote is one the gates read");
+  assert.match(told(bashIn(room, session, GLOB_LOOP)), /`"\$f\.bak"`/u);
+});

@@ -360,6 +360,12 @@ export const WRITES = new RegExp(
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
 );
 
+/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer above, spelt the same here (ISS-1555). */
+export const REDIRECT = new RegExp(
+  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^ \t\n;&|<>])+)`,
+  "gu",
+);
+
 /* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of `-o` or `-O`, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
 const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", rsync: "last", sed: "each", tee: "each", touch: "each", truncate: "each", wget: "none" };
 const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
@@ -440,4 +446,74 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
     for (const { from, to } of reads ?? []) blank(from, to);
   }
   return out;
+};
+
+/* What a shell still builds a name from, read where it expands: a binding, a positional, a substitution, and, bare only, a pattern or a brace list. Sticky, so each is asked at one offset. */
+const EXPANDS = /\$(?:\{?[A-Za-z_]|[0-9@*$]|\()|`/uy;
+const PATTERNS = /[*?[]|\{[^{}\s]*(?:,|\.\.)[^{}\s]*\}/uy;
+const DEVICE = /^\/dev\//u;
+/* Where `curl` and `wget` take the file they write, which is an option's value and never an operand. */
+const OUTPUTS = { curl: [/^(?:-o|--output)$/u, /^(?:-o|--output=)(?=.)/u], wget: [/^(?:-O|--output-document)$/u, /^(?:-O|--output-document=)(?=.)/u] };
+/* A `sed` reads its first operand as the script, unless an option handed it one. */
+const SCRIPTED = /\s(?:-[A-Za-z]*[ef]|--expression|--file)(?![\w-])/u;
+
+const outputsOf = (program, words) => {
+  const [alone, joined] = OUTPUTS[program];
+  return words.flatMap((one, at) => {
+    if (alone.test(one.said)) return words.slice(at + 1, at + 2);
+    const lead = joined.exec(one.said)?.[0].length;
+    return lead ? [{ ...one, from: one.from + lead }] : [];
+  });
+};
+
+/* One stage's words past what runs before its verb, each placed in the whole text, and the verb. */
+const argumentsOf = (text, stage) => {
+  const words = [...text.slice(stage.start, stage.end).matchAll(WORDS)]
+    .map((m) => ({ said: m[0], from: stage.start + m.index, to: stage.start + m.index + m[0].length }));
+  let at = 0;
+  while (at < words.length && BEFORE.test(words[at].said)) at += 1;
+  return { program: basename(unquote(words[at]?.said ?? "")), rest: words.slice(at + 1) };
+};
+
+/* The targets one write stage aims at: a verb's own, with the files it reads, its flags' values and a `sed` script struck, or the value of a fetch's output option. */
+const aimedIn = (text, stage, kept, bare) => {
+  const { program, rest: left } = argumentsOf(kept, stage);
+  const rest = left.filter((one) => !AIMED.test(bare.slice(one.from, one.to)));
+  if (OUTPUTS[program]) return outputsOf(program, rest);
+  const operands = rest.filter((one) => !FLAG.test(one.said));
+  if (program !== "sed" || SCRIPTED.test(bare.slice(stage.start, stage.end))) return operands;
+  const script = argumentsOf(text, stage).rest.find((one) => !FLAG.test(one.said));
+  return operands.filter((one) => one.from !== script?.from);
+};
+
+/** The spellings a shell-level text writes through that no spelling in it produces: a redirect's target, a write verb's own target, and a stage whose names `xargs`, `-exec` or `{}` hand over. A character counts only where the shell expands it, which is the quoting walk's to say: a `$` under a single quote or a backslash is text, a pattern under either quote is text, and a `>` under one is no redirect. A program body is the caller's to have taken out, being its interpreter's text and not the shell's. how/writes.md. */
+export const unseenNames = (text) => {
+  const under = new Array(text.length).fill("\\");
+  for (const one of quoting(text)) under[one.at] = one.under;
+  const bare = text.split("").map((one, at) => (under[at] === " " ? one : "_")).join("");
+  const asked = (pattern, at) => {
+    pattern.lastIndex = at;
+    return pattern.test(text);
+  };
+  const built = (from, to) => {
+    for (let at = from; at < to; at += 1) {
+      if ((under[at] === " " || under[at] === '"') && asked(EXPANDS, at)) return true;
+      if (under[at] === " " && asked(PATTERNS, at)) return true;
+    }
+    return false;
+  };
+  const found = [];
+  const say = (from, to) => {
+    if (!DEVICE.test(text.slice(from, to)) && built(from, to)) found.push(text.slice(from, to));
+  };
+  for (const one of bare.matchAll(REDIRECT)) say(one.index + one[0].length - one[1].length, one.index + one[0].length);
+  const kept = struck(text, { unplaceable: "strike" });
+  for (const stage of spans(text, { pipes: true })) {
+    const plain = bare.slice(stage.start, stage.end);
+    if (!WRITES.test(plain)) continue;
+    const handed = HANDED.exec(plain);
+    if (handed) found.push(handed[0].trim());
+    else for (const one of aimedIn(text, stage, kept, bare)) say(one.from, one.to);
+  }
+  return [...new Set(found)];
 };
