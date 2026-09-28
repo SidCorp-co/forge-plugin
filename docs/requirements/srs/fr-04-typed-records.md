@@ -271,12 +271,32 @@ field is named and the write is where it is refused.
 - **AC-04-8-6** · Rev: 1 · Proof: none yet — ISS-2123
   IF a filing names a complexity or a category the tracker does not take THEN the CLI SHALL refuse it
   naming the values the tracker takes.
-- **AC-04-8-7** · Rev: 1 · Proof: plugin/test/flow/record/merged.test.mjs "a phrase typed into a path clause is refused under the flag it came in on, and nothing is written"
+- **AC-04-8-7** · Rev: 1 · Proof: plugin/test/flow/record/merged/mark.test.mjs "a phrase typed into a path clause is refused under the flag it came in on, and nothing is written"
   IF a clause of the merged mark that holds paths is given a value with whitespace inside one of them
   THEN the CLI SHALL refuse the write and name the flag that value came in on.
-- **AC-04-8-8** · Rev: 1 · Proof: plugin/test/flow/record/merged.test.mjs "the word for none typed beside a path is refused, and nothing is written"
+- **AC-04-8-8** · Rev: 1 · Proof: plugin/test/flow/record/merged/mark.test.mjs "the word for none typed beside a path is refused, and nothing is written"
   IF a clause of the merged mark that holds paths names the word it takes for no paths at all beside
   a path THEN the CLI SHALL refuse the write.
+- **AC-04-8-9** · Rev: 1 · Proof: plugin/test/flow/record/merged/base.test.mjs "a sha origin/master does not carry is refused, and told to land it for real"
+  IF the merged mark's `--at` is not an ancestor of the branch the note names, as this checkout has
+  that branch's remote-tracking ref fetched, THEN the CLI SHALL refuse the write, naming the branch,
+  where it stands, and the route left — the checkpoint under a project whose ship mode leaves the
+  landing to another actor, landing the change for real onto that branch under any other mode.
+- **AC-04-8-10** · Rev: 1 · Proof: plugin/test/flow/record/merged/base.test.mjs "no origin/master fetched here: the mark stands exactly as it did before this fix"
+  IF this checkout has not fetched the branch the note names at all THEN the CLI SHALL write the mark
+  exactly as it would have before AC-04-8-9 existed, there being no ancestry to read it against.
+- **AC-04-8-11** · Rev: 1 · Proof: plugin/test/flow/record/merged/base.test.mjs "a shallow checkout cannot tell, and the refusal says so rather than guessing"
+  IF this checkout has fetched the branch the note names but git cannot tell whether it carries
+  `--at` (a shallow history, or git erroring on the read) THEN the CLI SHALL refuse the write naming
+  why, rather than accepting or refusing on a guess.
+- **AC-04-8-12** · Rev: 1 · Proof: plugin/test/flow/record/merged/base.test.mjs "a local branch or tag named after the remote-tracking ref does not stand in for it"
+  WHEN the branch the note names is read for AC-04-8-9 THEN the CLI SHALL read the remote-tracking
+  ref exactly, so a local branch or tag of that same name cannot stand in for a branch this checkout
+  has not fetched.
+- **AC-04-8-13** · Rev: 1 · Proof: plugin/test/flow/record/merged/base.test.mjs "a remote-tracking ref that names no commit cannot tell either, and is not read as absent"
+  IF the branch the note names has a remote-tracking ref here but git cannot peel it to a commit THEN
+  the CLI SHALL refuse the write as AC-04-8-11 does, and SHALL NOT treat it as AC-04-8-10's branch
+  never fetched.
 
 ### UC-04-9 — A rewritten field is shown beside what was sent
 
