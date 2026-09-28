@@ -31,10 +31,11 @@ export const afterRefused = (refused) => {
 };
 
 /** `corrects` is what the correction names as corrected, as `forge record correction --corrects` takes it. */
-export const correctionFor = async (documentId, ref, moved, why, { done = true, corrects } = {}) => {
+export const correctionFor = async (documentId, ref, moved, why, { done = true, corrects, finder = false } = {}) => {
   const body = render("correction", { moved, why, corrects });
-  /* `done` is the write this describes having happened, whose own renewal of the lease stands. */
-  const answer = await post(documentId, body, { ref, soft: true, renewed: done });
+  /* `done` is the write this describes having happened, whose own renewal of the lease stands; a
+     `finder` is a write that took no lease, whose record renews the caller's own and takes none. */
+  const answer = await post(documentId, body, { ref, soft: true, renewed: done && !finder, finder });
   if (!answer?.refused) return;
   const { unknown, said } = afterRefused(answer.refused);
   const opened = done

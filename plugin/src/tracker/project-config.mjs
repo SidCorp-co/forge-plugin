@@ -356,12 +356,13 @@ export const stagingDeploy = once(async () => {
 const SECRET = 12;
 const bare = (text) => text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 
-const matched = (text, guarded) =>
-  guarded.find((one) => {
-    if (one.value.length >= SECRET) return text.includes(one.value);
-    const held = bare(one.value);
-    return Boolean(held) && bare(text) === held;
-  });
+const holds = (text, one) => {
+  if (one.value.length >= SECRET) return text.includes(one.value);
+  const held = bare(one.value);
+  return Boolean(held) && bare(text) === held;
+};
+
+const matched = (text, guarded) => guarded.find((one) => holds(text, one));
 
 const MASK = "[withheld]";
 const AROUND = 40;
@@ -406,15 +407,91 @@ const nearOf = (text, guarded) => {
 /** Which field of a payload carries a value this project holds as a test credential, which
  *  credential, and the masked text around it. An empty `field` is a payload that is one string: a
  *  file's bytes have no field. A display name is withheld from the report and guarded here never. */
-export const credentialLeak = (data, deploy) => {
-  const guarded = deploy?.withheld.filter((one) => one.guarded) ?? [];
-  if (!guarded.length) return null;
-  for (const one of leaves(data)) {
-    const found = matched(one.value, guarded);
-    if (found) return { field: one.at.join("."), credential: found.label, near: nearOf(one.value, guarded) };
-  }
-  return null;
+const guardedOf = (deploy) => deploy?.withheld.filter((one) => one.guarded) ?? [];
+
+/** Every string of a payload the guard would refuse, once for each credential it carries, with where
+ *  it sits: a string holding two is two hits, since a redaction masks both and says so. */
+export const credentialHits = (data, deploy) => {
+  const guarded = guardedOf(deploy);
+  if (!guarded.length) return [];
+  return leaves(data).flatMap((one) => {
+    const labels = [...new Set(guarded.filter((held) => holds(one.value, held)).map((held) => held.label))];
+    const near = labels.length ? nearOf(one.value, guarded) : null;
+    return labels.map((credential) => ({ at: one.at, field: one.at.join("."), credential, near }));
+  });
 };
+
+/* A string the tracker already holds in the same field of the same record, word for word, is one a
+   write re-sends rather than supplies: sending it again gives the tracker nothing it has not taken,
+   and refusing it made an issue whose stored record once took a credential unwritable (ISS-1380). */
+const storedIn = (stored) => {
+  const held = new Map(Object.entries(stored ?? {}).map(([field, value]) =>
+    [field, new Set(leaves(value).map((one) => one.value))]));
+  return (hit, value) => Boolean(held.get(hit.at[0])?.has(value));
+};
+
+const splitHits = (data, deploy, stored) => {
+  const isStored = storedIn(stored);
+  const values = new Map(leaves(data).map((one) => [one.at.join("."), one.value]));
+  const hits = credentialHits(data, deploy);
+  return {
+    supplied: hits.filter((hit) => !isStored(hit, values.get(hit.field))),
+    stored: hits.filter((hit) => isStored(hit, values.get(hit.field))),
+  };
+};
+
+export const credentialLeak = (data, deploy, stored = null) => {
+  const [found] = splitHits(data, deploy, stored).supplied;
+  return found ? { field: found.field, credential: found.credential, near: found.near } : null;
+};
+
+/** The hits a write re-sends from the stored record rather than from its caller's input. */
+export const storedCopies = (data, deploy, stored) => splitHits(data, deploy, stored).stored;
+
+/* One value, and never a list of fields: a short credential is masked where the string is it, a
+   long one wherever it sits written exactly, which is the matching rule above read as a mask. The
+   bare form a refusal's quote also masks is no part of it: the guard refuses no string for holding
+   that alone, so a redaction masking it would rewrite text nothing refused. */
+const maskedLeaf = (text, guarded) => {
+  if (guarded.some((one) => one.value.length < SECRET && bare(one.value) && bare(one.value) === bare(text))) {
+    return MASK;
+  }
+  const spans = guarded
+    .filter((one) => one.value.length >= SECRET)
+    .flatMap((one) => {
+      const found = [];
+      for (let at = text.indexOf(one.value); at >= 0; at = text.indexOf(one.value, at + 1)) {
+        found.push([at, at + one.value.length]);
+      }
+      return found;
+    })
+    .sort((one, two) => one[0] - two[0]);
+  return maskSpans(text, spans);
+};
+
+const mapLeaves = (value, each) => {
+  if (typeof value === "string") return each(value);
+  if (Array.isArray(value)) return value.map((one) => mapLeaves(one, each));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, mapLeaves(held, each)]));
+  }
+  return value;
+};
+
+/** The value with every string the guard would refuse masked, and every other string as it was. */
+export const redactedCopy = (value, deploy) => {
+  const guarded = guardedOf(deploy);
+  return mapLeaves(value, (text) => (text && matched(text, guarded) ? maskedLeaf(text, guarded) : text));
+};
+
+const REDACT_ROUTE = (ref) => `forge issue ${ref} --redact`;
+
+/** Said of a copy the tracker already stores and a write re-sent: the write went, and the line is
+ *  the route that takes the copy off, since no caller's input holds it to be taken out of. */
+export const storedCopyLine = (hit, ref) =>
+  `${ref}: ${hit.field} carries this project's ${hit.credential} as the tracker already stores it. `
+  + "This write re-sent the stored copy unchanged and added nothing to it, so it went. The stored "
+  + `copy is taken off with:\n  ${REDACT_ROUTE(ref)}`;
 
 const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `awaiting_release` asks the "
   + "verification to name the deployment that built the commit this change landed at";
@@ -428,8 +505,13 @@ const UNSET = "unset on the project";
 /** One reading of `withheld`: the branches cannot disagree, and *none* is said rather than inferred from an absent line (ISS-477). */
 const credentialRows = (held, asked) => {
   const out = [{ level: "ok", label: "test credentials", detail: held.length
-    ? (asked ? "below, printed once" : "present, forge doctor --credentials") : "none" }];
-  if (asked) return [...out, ...held.map((one) => ({ level: "ok", label: one.label, detail: one.value }))];
+    ? `${asked ? "below, printed once" : "present, forge doctor --credentials"}  ← ${DEPLOY_SOURCE}`
+    : "none" }];
+  if (asked) {
+    return [...out, ...held.map((one) => ({ level: "ok", label: one.label, detail: one.value })),
+      { level: "ok", label: "copied onto an issue", detail: "a copy an issue's stored sessionContext "
+        + `carries is taken off with ${REDACT_ROUTE("<ref>")}` }];
+  }
   if (held.length) {
     out.push({ level: "ok", label: "held, not printed", detail: held.map((one) => one.label).join(", ") });
   }
