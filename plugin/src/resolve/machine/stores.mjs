@@ -30,7 +30,12 @@ const PROFILE = {
    own file that is never migrated off. */
 const VI_FILE = {
   legacy: true,
-  read: () => ({ path: viPath(), values: readJson(viPath()) }),
+  /* One call to `viPath()`, not two: a second borrow read between them could hand `path` and
+     `values` two different layouts, naming one file while answering from another. */
+  read: () => {
+    const path = viPath();
+    return { path, values: readJson(path) };
+  },
   fields: { url: "base_url", key: "api_key", model: "model" },
 };
 
