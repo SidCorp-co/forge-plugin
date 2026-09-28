@@ -145,7 +145,7 @@ test("a verdict at a later commit carrying the landing stands as one at the merg
   for (const flow of ["default", "screen"]) {
     const part = partFor(partsOf(readContract(undefined, flow)), "earning-and-unearning").text;
     assert.match(part, /\*\*A later commit can earn, too\.\*\*/u, `the ${flow} contract says a later commit earns`);
-    assert.match(part, /The verdict's write asks git whether the commit judged carries the merged commit, and records\s+the answer/u,
+    assert.match(part, /git's answer, recorded at the write, so the\s+write is made from a checkout that holds both commits: `forge record verdict -h`/u,
       `and how the ${flow} record comes to say so`);
   }
 });

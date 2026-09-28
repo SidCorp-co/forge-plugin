@@ -493,8 +493,8 @@ export const SHAPES = {
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
       FIELD("commit", "Commit", { commit: true, judged: true }),
-      /* In no usage row, so no flag reaches it. */
-      FIELD(CARRIES, "Carries the merged commit", { optional: true }),
+      /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
+      FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true, prose: true }),
       FIELD("filed", "Filed as", { optional: true }),

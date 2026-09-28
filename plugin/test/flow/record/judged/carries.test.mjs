@@ -122,8 +122,7 @@ test("the field is no flag, so a caller cannot type the ancestry", async () => {
 
 test("the verdict's help says a later commit carrying the landing earns the rung, and how", async () => {
   const run = await ask("record", "verdict", "-h");
-  assert.match(run.stdout + run.stderr, /--commit may be later than the merged commit, where it carries it/u);
-  assert.match(run.stdout + run.stderr, /The write asks this checkout's git, says what it read, and records the\nmerged commit it found carried, which `testing` reads as a verdict at the landing\. No flag sets it\./u);
+  assert.match(run.stdout + run.stderr, /A later --commit carrying the merged one earns `testing`: the write records what git says of it\./u);
 });
 
 test("a shallow history and a directory no checkout holds settle nothing", () => {
