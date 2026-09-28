@@ -47,6 +47,14 @@ export const minutesSince = (iso, now = sharedNow()) => {
   return Number.isFinite(at) ? Math.round((now - at) / 60_000) : null;
 };
 
+/* Single-quoted, POSIX-shell-safe: a `--reason` holding a double quote, a backslash or a `$(...)`
+   printed inside a double-quoted rerun would not read back as the reason it names, and a person
+   copying the suggested command would have to repair it by hand first — the one point this refusal
+   still puts a person in the loop, G-11, is one the escaping itself must not silently narrow. A
+   single quote inside the reason is the one character single quotes cannot carry, so it is closed,
+   escaped as its own quoted literal, and reopened. */
+const shellQuote = (text) => `'${text.replaceAll("'", `'\\''`)}'`;
+
 const boundLine = (bound) =>
   `  ${bound.name.padEnd(10)} crossed=${bound.crossed} measuredMs=${bound.measuredMs ?? "null"}`
     + ` thresholdMs=${bound.thresholdMs ?? "null"}\n    why: ${bound.why}`;
@@ -111,7 +119,7 @@ const rereadOrRefuse = async (runId, rerun, force) => {
 const clear = async ([runId, ...rest]) => {
   if (!runId || runId.startsWith("--")) fail(`${CLEAR_USAGE}\n\n${USAGE}`);
   const { reason, force } = flags(rest, "release-batch clear", ["--force"], { usage: CLEAR_USAGE });
-  const rerun = `forge release-batch clear ${runId} --reason "${reason ?? ""}"`;
+  const rerun = `forge release-batch clear ${runId} --reason ${shellQuote(reason ?? "")}`;
   if (!reason) {
     fail("release-batch clear: --reason is owed, and nothing was sent. Say why this batch is being "
       + `cleared:\n  forge release-batch clear ${runId} --reason "<text>"${force ? " --force" : ""}`);

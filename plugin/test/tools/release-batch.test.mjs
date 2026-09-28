@@ -137,8 +137,24 @@ test("clear on a run the tracker's own bounds do not call holding is refused aft
   const run = await ran("clear", RUN_ID, "--reason", "guessing it is dead");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /has crossed none of the tracker's own bounds/u);
-  assert.match(run.stderr, new RegExp(`forge release-batch clear ${RUN_ID} --reason "guessing it is dead" --force`, "u"));
+  assert.match(run.stderr, new RegExp(`forge release-batch clear ${RUN_ID} --reason 'guessing it is dead' --force`, "u"));
   assert.deepEqual(run.released, [ACTIVE_ROUTE, STATE_ROUTE], "nothing was aborted");
+});
+
+test("clear's printed rerun single-quotes a reason holding a double quote, so the line it prints reads back as the reason it names (codex F2)", async () => {
+  state.active = { runId: RUN_ID, issueIds: ISSUE_IDS, startedAt: STARTED_AT };
+  state.runState = { runId: RUN_ID, projectId: "p", runStatus: "running", bounds: boundsOf(false) };
+  const run = await ran("clear", RUN_ID, "--reason", `operator said "wait"`);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, new RegExp(`--reason 'operator said "wait"' --force`, "u"));
+});
+
+test("clear's printed rerun escapes a reason holding a single quote, so the line it prints still reads back as one shell argument", async () => {
+  state.active = { runId: RUN_ID, issueIds: ISSUE_IDS, startedAt: STARTED_AT };
+  state.runState = { runId: RUN_ID, projectId: "p", runStatus: "running", bounds: boundsOf(false) };
+  const run = await ran("clear", RUN_ID, "--reason", "it's stale");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /--reason 'it'\\''s stale' --force/u);
 });
 
 test("clear --force on a run whose state names no bounds at all is refused before abort, since nothing measured is nothing to force past", async () => {
