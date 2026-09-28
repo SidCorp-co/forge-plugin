@@ -199,10 +199,16 @@ const flatten = (value) => {
 
 const COLUMN_CAP = 8;
 
+/** The object rows of a listing, and none where the answer is not a list. */
+export const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
+
+/** Every key the rows carry, each once, in the order the rows first carry it. */
+export const keysOf = (rows) => [...new Set(rows.flatMap((row) => Object.keys(row)))];
+
 export const pickColumns = (rows) => {
-  const seen = new Set(rows.flatMap((row) => Object.keys(row)));
-  const preferred = PREFERRED.filter((one) => seen.has(one));
-  return preferred.length ? preferred : [...seen].slice(0, 6);
+  const seen = keysOf(rows);
+  const preferred = PREFERRED.filter((one) => seen.includes(one));
+  return preferred.length ? preferred : seen.slice(0, 6);
 };
 
 export const renderTable = (rows, columns) => {
@@ -231,7 +237,7 @@ export const renderObject = (object) => {
  *  through this, each choosing which columns a listing offers, and neither past the one cap. */
 export const rendered = (shown, asTable, columnsOf = pickColumns) => {
   if (Array.isArray(shown)) {
-    const rows = shown.filter((one) => one && typeof one === "object");
+    const rows = objects(shown);
     if (!rows.length) return asTable ? "(none)" : "[]";
     if (asTable) return `${renderTable(rows, columnsOf(rows).slice(0, COLUMN_CAP))}\n${rows.length} item(s)`;
     return JSON.stringify(shown, null, 2);
