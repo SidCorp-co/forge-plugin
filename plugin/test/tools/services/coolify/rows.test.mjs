@@ -3,7 +3,8 @@
    a flag typed a second time anywhere else is a mismatch here rather than a help line that quietly
    offers what the verb refuses. */
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -25,26 +26,24 @@ const { ROUTES } = await import("../../../../src/tracker/routes.mjs");
 
 const ROWS_FILE = new URL("../../../../src/tools/services/coolify/chosen-route.mjs", import.meta.url);
 
-/* A hook loads the rows' file through `visibility.mjs`: two of these that file loads itself, and the
-   third is the transport's no-route table, which imports nothing. */
-const LIGHT = ["../../../resolve/config.mjs", "../../../resolve/settings.mjs",
-  "../../../tracker/declared/no-route.mjs"];
-
-const NO_ROUTE_FILE = new URL("../../../../src/tracker/declared/no-route.mjs", import.meta.url);
-
 const chose = (mode) => {
   if (mode === null) delete userConfig().coolifyRoute;
   else userConfig().coolifyRoute = mode;
 };
 
-test("the rows' file imports nothing heavier than a table", () => {
-  const imported = [...readFileSync(ROWS_FILE, "utf8").matchAll(/^import .* from "([^"]+)";$/gmu)].map((one) => one[1]);
-  assert.deepEqual(imported, LIGHT);
-  const visibility = readFileSync(new URL("../../../../src/resolve/visibility.mjs", import.meta.url), "utf8");
-  for (const held of ["./config.mjs", "./settings.mjs"]) {
-    assert.ok(visibility.includes(`from "${held}"`), `visibility.mjs no longer loads ${held} itself`);
-  }
-  assert.doesNotMatch(readFileSync(NO_ROUTE_FILE, "utf8"), /^import\b/mu, "the no-route table imports nothing");
+/* A hook loads the rows through `visibility.mjs`, so the rows' module may pull in no other file of
+   this directory: `coolify.mjs` and the instance client are what a hook must never load. */
+test("loading the rows loads no other module of the coolify directory", () => {
+  const probe = [
+    'import { registerHooks } from "node:module";',
+    "const seen = [];",
+    "registerHooks({ resolve: (spec, context, next) => { const found = next(spec, context); seen.push(found.url); return found; } });",
+    `await import(${JSON.stringify(ROWS_FILE.href)});`,
+    'console.log(JSON.stringify(seen.filter((one) => one.includes("/services/coolify/"))));',
+  ].join("\n");
+  const loaded = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", probe],
+    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME } }));
+  assert.deepEqual(loaded, [ROWS_FILE.href]);
 });
 
 test("each tracker row names a route the table holds, and the served map is the rows'", () => {
@@ -93,4 +92,17 @@ test("the names refused as routeless are the no-route table's, and a mistyped ro
     { value: route.TRACKER, from: undefined, unknown: "trackr" });
   assert.equal(route.onTracker(), true, "a value the key does not take answers as the default does");
   chose(null);
+});
+
+/* Not a subcommand, and one list all the same: the fields a pin holds. The reader takes them and the
+   project-file write refuses any field beside them, naming the list, so the two cannot drift into a
+   pin that writes what nothing reads. */
+test("a field under coolifyPin outside the pin's own fields is refused naming them", async () => {
+  const { PROJECT_KEYS } = await import("../../../../src/tools/services/project-file.mjs");
+  const { PIN_FIELDS } = await import("../../../../src/tools/services/coolify/config.mjs");
+  const judged = PROJECT_KEYS.coolifyPin.judge({ project_uuid: ["p-in"], stray: "x" });
+  assert.match(judged, /`coolifyPin\.stray` .* is read by nothing: the pin holds /u);
+  assert.ok(judged.endsWith(`${PIN_FIELDS.join(" and ")} alone.`), judged);
+  assert.equal(PROJECT_KEYS.coolifyPin.judge(Object.fromEntries(PIN_FIELDS.map((one) => [one, ["v"]]))), null,
+    "every field the reader takes is one the write lets through");
 });

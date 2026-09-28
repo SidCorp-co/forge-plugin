@@ -212,15 +212,3 @@ test("the doctor row names the record the pin was read from", async () => {
   const said = `${answer.stdout}${answer.stderr}`;
   assert.ok(said.includes(`project p-in  ← ${entry}`), said);
 });
-
-/* The fields a pin holds are one list: the reader takes them and the project-file write refuses any
-   field beside them, naming the list, so the two cannot drift into a pin that writes what nothing reads. */
-test("a field under coolifyPin outside the pin's own fields is refused naming them", async () => {
-  const { PROJECT_KEYS } = await import("../../../../src/tools/services/project-file.mjs");
-  const { PIN_FIELDS } = await import("../../../../src/tools/services/coolify/config.mjs");
-  const judged = PROJECT_KEYS.coolifyPin.judge({ project_uuid: ["p-in"], stray: "x" });
-  assert.match(judged, /`coolifyPin\.stray` .* is read by nothing: the pin holds /u);
-  assert.ok(judged.endsWith(`${PIN_FIELDS.join(" and ")} alone.`), judged);
-  assert.equal(PROJECT_KEYS.coolifyPin.judge(Object.fromEntries(PIN_FIELDS.map((one) => [one, ["v"]]))), null,
-    "every field the reader takes is one the write lets through");
-});
