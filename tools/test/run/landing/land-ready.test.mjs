@@ -4,7 +4,7 @@
    for the right one, and the one thing none of these may do is release a change twice (ISS-673). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -319,6 +319,20 @@ test("a landing over a checkpoint whose records turn is out refuses, naming the 
   assert.match(said, /when the state names the lander's turn/u, said);
 });
 
+/* Before the take and before the pin, over a checkpoint that owes a step: a park a `--pushed --ready`
+   missed lifting, or a person's park written after that capture, is answered the same way — nothing
+   is merged, pushed or installed while the issue itself still reads a side status (ISS-2832). */
+test("a landing refuses to start on an issue a park still stands on, before the pin", async () => {
+  const { at, work, head, base } = world({ base: "other" });
+  const pinned = sha(work, BASE);
+  seeded({ landing: ready(head, base), status: "on_hold" });
+  const said = await ran([KEY], work);
+  assert.match(said, /ISS-673 is on_hold, parked, and a landing merges, pushes and installs nothing/u, said);
+  assert.match(said, new RegExp(`forge advance ${KEY}`, "u"), `with the one call that lifts it:\n${said}`);
+  assert.equal(landing().state, "ready", `the checkpoint this refusal read is untouched:\n${said}`);
+  assert.equal(remote(at), pinned, `nothing was pinned, merged or pushed:\n${said}`);
+});
+
 test("a reconciliation naming another candidate promotes nothing", async () => {
   const { at, work, head, base } = world({ base: "moved" });
   const pinned = sha(work, BASE);
@@ -369,6 +383,85 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   assert.notEqual(remote(at), pinned, `the second branch landed:\n${said}`);
   assert.match(fileAt(work, remote(at), NEXT_OWNED), /the second change/u, said);
   assert.deepEqual(strayWrites(), [], `and the park is inside the boundary too:\n${said}`);
+});
+
+/* The builder's answer to a conflict park: a head whose own line 2 no longer disagrees with the
+   base's, so it merges, plus a line of its own so the branch still carries a change. */
+const mergingFix = (work) => {
+  git(work, "checkout", "-q", BRANCH);
+  const held = readFileSync(join(work, OWNED), "utf8");
+  writeFileSync(join(work, OWNED), held.replace("line 2, as the change wrote it\n", "line 2\n") + "the fix that merges\n");
+  git(work, "add", OWNED);
+  git(work, "commit", "-qm", "a head that merges onto the base's own line 2");
+  git(work, "push", "-q", "origin", BRANCH);
+  return sha(work, BRANCH);
+};
+
+/* The first-hand case, ISS-2167: a checkpoint's own `ready` and an issue's own status are two
+   different writes, so a capture answering the first owes the second too, or the next landing walks
+   into a status nothing moved it past. This is that shape end to end: the park, the builder's fix,
+   the capture — which lifts the park it finds in the same call — and the landing after it, clean
+   (ISS-2832). */
+test("--pushed --ready lifts the conflict park it finds, and the next landing lands the fixed head", async () => {
+  const { at, work, head, base } = world({ base: "conflict" });
+  seeded({ landing: ready(head, base), earned: { acceptanceCriteria: "1. it lands" } });
+  const first = await ran([KEY], work);
+  assert.equal(issue().status, "on_hold", `parked as blocked:\n${first}`);
+  assert.equal(landing().state, "head-owed", `the checkpoint is the builder's again:\n${first}`);
+
+  const took = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+
+  const tip = mergingFix(work);
+  const review = await asBuilder(["record", "review", KEY, "--reviewer", "codex", "--commit", tip, "--outcome", "approved"]);
+  assert.equal(review.status, 0, `${review.stdout}${review.stderr}`);
+  const verdict = await asBuilder(["record", "verdict", KEY, "--criterion", "1", "--verdict", "pass",
+    "--commit", tip, "--evidence", tip]);
+  assert.equal(verdict.status, 0, `${verdict.stdout}${verdict.stderr}`);
+
+  const captured = await asBuilder(["claim", KEY, "--pushed", "--ready"]);
+  const said = `${captured.stdout}${captured.stderr}`;
+  assert.equal(captured.status, 0, said);
+  assert.equal(landing().state, "ready", said);
+  assert.equal(landing().head, tip, said);
+  assert.equal(issue().status, "in_progress",
+    `--ready lifted the park it found, in the same call as the checkpoint:\n${said}`);
+  assert.match(said, /on_hold -> in_progress/u, `and said so:\n${said}`);
+  assert.match(said, /resumed where its park left it/u, said);
+  /* The same call's own advisory, printed after the lift, reads the lifted status and not the stale
+     one this call read the issue at: `on_hold`'s own lane line names it "off the ladder's linear
+     path", and that line answers for nothing this call captured once the lift has moved it on. */
+  assert.doesNotMatch(said, /`on_hold` is off the ladder's linear path/u,
+    `the advisory below the lift is not printed against the status this call started at:\n${said}`);
+
+  /* The base and the fixed head still share the one path each of them touched, which this landing
+     always answers with a reading and not a merge alone (the same rule the "moved" case above
+     answers to) — so this second run hands back rather than landing, and what matters here is which
+     way: never the jump this issue was filed over. */
+  const second = await ran([KEY], work);
+  assert.doesNotMatch(second, /is on_hold and .* is next, not `?developed`?/u,
+    `no jump out of a status the lift already left:\n${second}`);
+  assert.equal(issue().status, "in_progress", `the lift held, and nothing parked it again:\n${second}`);
+  const handedBack = landing();
+  assert.equal(handedBack.state, "builder-owed", `handed back over the shared path, not stuck on a park:\n${second}`);
+  assert.equal(remote(at), base, `nothing pushed yet:\n${second}`);
+
+  const took2 = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took2.status, 0, `${took2.stdout}${took2.stderr}`);
+  const answered = await asBuilder(["claim", KEY, "--reconciled", handedBack.candidate]);
+  assert.equal(answered.status, 0, `${answered.stdout}${answered.stderr}`);
+
+  const third = await ran([KEY], work);
+  const landed = remote(at);
+  assert.notEqual(landed, base, `the fixed head landed:\n${third}`);
+  assert.equal(git(work, "merge-base", "--is-ancestor", tip, landed).status, 0,
+    `and it is the fixed head that landed:\n${third}`);
+  assert.equal(marks().length, 1, `and it was marked:\n${third}`);
+  /* `developed` itself asks for a review of the landed commit, which nothing here wrote — a
+     shortfall the record names, and not the jump ISS-2832 was filed over: the issue rests exactly
+     where the lift left it, `in_progress`, waiting on a record and never on a status a park held. */
+  assert.equal(issue().status, "in_progress", `still where the lift left it:\n${third}`);
+  assert.equal(landing().state, "records-owed", `the checkpoint waits on a record, not a park:\n${third}`);
 });
 
 /* ISS-730: the note is fitted to the tracker's cap, and the one shape it will not fit is a change
