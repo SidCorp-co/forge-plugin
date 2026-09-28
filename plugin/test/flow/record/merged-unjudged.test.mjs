@@ -8,8 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { escaped } from "../../../src/markdown.mjs";
-import { git, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, git, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged-unjudged").path;
@@ -111,7 +110,7 @@ test("with no judged head, landing moved is git's reading between the reviewed h
   const read = movedBetween(ROOM, REVIEWED, AT, CHANGE);
   assert.deepEqual(read, ["docs/a.md"], "the fixture moves one path of the change after the review");
   assert.deepEqual(landingMoved(page()), read);
-  assert.match(run.stdout, new RegExp(`git's reading between ${REVIEWED} and ${AT}: docs/a\\.md\\.`, "u"), run.stdout);
+  assert.match(run.stdout, new RegExp(`git's reading between ${escaped(REVIEWED)} and ${escaped(AT)}: docs/a\\.md\\.`, "u"), run.stdout);
 });
 
 test("a verdict under a mark that judged nothing is owed again at the merged commit", async () => {
@@ -129,9 +128,9 @@ test("--judged nothing on a page carrying verdicts is refused, naming every head
   state.comments[ISSUE.documentId] = [verdict(1, REVIEWED), verdict(2, OTHER)];
   const run = await unjudged();
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, new RegExp(`verdicts judged at ${REVIEWED}, ${OTHER}, so nothing was written`, "u"),
+  assert.match(run.stderr, new RegExp(`verdicts judged at ${escaped(REVIEWED)}, ${escaped(OTHER)}, so nothing was written`, "u"),
     run.stderr);
-  assert.match(run.stderr, new RegExp(`^ {2}forge record merged ISS-98 .*--judged ${REVIEWED}`, "mu"),
+  assert.match(run.stderr, new RegExp(`^ {2}forge record merged ISS-98 .*--judged ${escaped(REVIEWED)}`, "mu"),
     `the refusal carries the command that clears it:\n${run.stderr}`);
   assert.deepEqual(marks(), [], "and no mark was written");
   const again = await unjudged(REVIEWED);
@@ -142,7 +141,7 @@ test("--judged <sha> writes that head and reads landing moved from it", async ()
   state.comments[ISSUE.documentId] = [];
   const run = await unjudged(OTHER);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(lastMark(page()), new RegExp(`; judged head ${OTHER}; `, "u"));
+  assert.match(lastMark(page()), new RegExp(`; judged head ${escaped(OTHER)}; `, "u"));
   assert.equal(judgedHead(page()), OTHER);
   assert.deepEqual(landingMoved(page()), movedBetween(ROOM, OTHER, AT, CHANGE));
   assert.deepEqual(landingMoved(page()), [], "the only commit after that head moves a neighbour");
