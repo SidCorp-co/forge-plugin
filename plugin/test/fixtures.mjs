@@ -13,8 +13,8 @@ import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 /* The rooms a case stands in — a checkout, a git repository, a home directory — and this process's
    own share of the machine's temporary root: moved out for the line cap, re-exported here unchanged. */
-export * from "./fixtures/rooms.mjs";
-import { tempHome } from "./fixtures/rooms.mjs";
+export * from "./fixtures/rooms/lifecycle.mjs";
+import { tempHome } from "./fixtures/rooms/lifecycle.mjs";
 
 const PLAN_BODY = {
   Declarations: "Screen change: no\nSchema coupling: no\nDeploy coupling: no",

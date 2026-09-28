@@ -6,13 +6,16 @@
 
    Named `release-batch` rather than the bare word: `release` is already a form meaning the move to
    `awaiting_release` (`plugin/src/resolve/handler.mjs`), and a second meaning under one word is the
-   ambiguity a form exists to avoid rather than add. docs/cli/release-batch.md. */
-import { fail } from "../resolve/settings.mjs";
-import { flags, helpAskedOf, wantsHelp } from "../resolve/flags.mjs";
-import { didYouMean } from "../suggest.mjs";
-import { scoped, write } from "../tracker/rest.mjs";
-import { usageOf } from "../resolve/visibility.mjs";
-import { sharedNow } from "../wire/shared-clock.mjs";
+   ambiguity a form exists to avoid rather than add. docs/cli/release-batch.md.
+
+   Its own directory rather than a sibling file in `tools/`, alone though it is: that split alone
+   pushed `tools/` past its own file-count cap. */
+import { fail } from "../../resolve/settings.mjs";
+import { flags, helpAskedOf, wantsHelp } from "../../resolve/flags.mjs";
+import { didYouMean } from "../../suggest.mjs";
+import { scoped, write } from "../../tracker/rest.mjs";
+import { usageOf } from "../../resolve/visibility.mjs";
+import { sharedNow } from "../../wire/shared-clock.mjs";
 
 const STATUS_USAGE = "Usage: forge release-batch [status]";
 const CLEAR_USAGE = 'Usage: forge release-batch clear <runId> --reason "<text>" [--force]';

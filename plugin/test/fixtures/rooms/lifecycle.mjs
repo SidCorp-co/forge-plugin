@@ -1,14 +1,16 @@
 /* The rooms a suite stands its cases in, and this process's own share of the machine's temporary
    root: a checkout, a git repository, a home directory, each made once and swept once the process
-   that made it is gone. Split out of ../fixtures.mjs, whose own body stopped at the line cap this
-   file answers to; every export here is re-exported there unchanged. */
+   that made it is gone. Split out of ../../fixtures.mjs, whose own body stopped at the line cap
+   this file answers to, and given its own directory rather than a sibling of `room.mjs` because
+   that split alone pushed ../ past its own file-count cap; every export here is re-exported there
+   unchanged. */
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
-import { checkoutAt } from "../../src/git/checkout-at.mjs";
-import { madeIn } from "./room.mjs";
+import { checkoutAt } from "../../../src/git/checkout-at.mjs";
+import { madeIn } from "../room.mjs";
 
 /* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of inodes while gigabytes are free.
    So a suite's rooms go inside one root this process removes on its way out, the pid in its name because Ctrl-C runs no handler:
