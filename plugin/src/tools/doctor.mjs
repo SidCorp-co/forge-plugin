@@ -41,7 +41,7 @@ import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mj
 import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { ENUM_FLAGS, ENUM_KEYS } from "../resolve/enum-keys.mjs";
+import { ENUM_FLAGS, ENUM_KEYS } from "../resolve/project/enum-keys.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { FLOW_SLUGS, flowPinned, flowRefusal } from "../guides/flow.mjs";
 import { rankLines } from "./services/doctor/rank.mjs";
@@ -364,7 +364,7 @@ const BOOLEAN = ["--full", "--credentials", "--adopt"];
 /* The flags that each write one thing of the project's record, what each writes in the two shapes a
    refusal needs it — against another of these, and against everything else — and the write itself.
    One call writes one of them, the first returning before the report, so a second would be dropped
-   in silence. An enum-valued key's own flag is derived from its row in resolve/enum-keys.mjs, and
+   in silence. An enum-valued key's own flag is derived from its row in resolve/project/enum-keys.mjs, and
    its value, an empty one included, meets the key's judge exactly as `--set <key>=` does: an empty
    flag writing nothing is the machine's convention and not the project's. */
 const ONE_WRITE = {

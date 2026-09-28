@@ -1,4 +1,4 @@
-/* The enum-valued project keys, each declared once in resolve/enum-keys.mjs: every row held to what
+/* The enum-valued project keys, each declared once in resolve/project/enum-keys.mjs: every row held to what
    each of its consumers answers — the resolver, the write's judge, the report's row — so a row added
    to the table is covered here with no case of its own, and a list of values restated anywhere else
    in the source is a second declaration this names. */
@@ -7,14 +7,14 @@ import test from "node:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { ENUM_FLAGS, ENUM_KEYS, meaningOf, pathOf, valuesOf } from "../../src/resolve/enum-keys.mjs";
+import { ENUM_FLAGS, ENUM_KEYS, meaningOf, pathOf, valuesOf } from "../../src/resolve/project/enum-keys.mjs";
 import { enumOf, machineLeftovers } from "../../src/resolve/settings.mjs";
 import { PROJECT_KEYS } from "../../src/tools/services/project-file.mjs";
 import { enumRow, leftoverRows } from "../../src/tools/services/doctor/keys.mjs";
 import { usageOf } from "../../src/resolve/visibility.mjs";
 
 const SRC = new URL("../../src/", import.meta.url).pathname;
-const TABLE = "resolve/enum-keys.mjs";
+const TABLE = "resolve/project/enum-keys.mjs";
 const DEFAULT = "the plugin's default";
 const FILE = "the file under test";
 

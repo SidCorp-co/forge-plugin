@@ -6,7 +6,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { ENUM_FLAGS, ENUM_KEYS, pathOf, valuesOf } from "../../../../src/resolve/enum-keys.mjs";
+import { ENUM_FLAGS, ENUM_KEYS, pathOf, valuesOf } from "../../../../src/resolve/project/enum-keys.mjs";
 import { escaped, projectEntry, projectRoom, tempRoom } from "../../../fixtures.mjs";
 
 const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;

@@ -9,7 +9,7 @@ import { escaped } from "../markdown.mjs";
 import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
 import { BORROW_VAR, borrowing } from "./machine/borrowed.mjs";
 import { MACHINE_RETIRED } from "./machine/retired.mjs";
-import { ENUM_KEYS, pathOf, valuesOf } from "./enum-keys.mjs";
+import { ENUM_KEYS, pathOf, valuesOf } from "./project/enum-keys.mjs";
 import { fail } from "../refusal.mjs";
 
 export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "../refusal.mjs";
@@ -562,7 +562,7 @@ export const drainScope = once(() => {
   return held.unknown === undefined ? { ...held, declared } : { ...held, value: null, declared };
 });
 
-/** What an enum-valued key resolves to in one project record: the row in resolve/enum-keys.mjs
+/** What an enum-valued key resolves to in one project record: the row in resolve/project/enum-keys.mjs
  *  says which words it takes and what an absent or unlisted one falls back to. An absence names the
  *  plugin's default where that fallback is a value, and no source at all where it is none — `← null`
  *  would read as a file. */

@@ -3,7 +3,7 @@
 import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, OWED_DOORS, RUNS_TAKES,
   checkCeilingMs, codexCheck, codexOwed, checkoutRoot, enumScope, feedbackScope, machineLeftovers,
   parallelRuns, projectWorkPattern } from "../../../resolve/settings.mjs";
-import { ENUM_KEYS, meaningOf, valuesOf } from "../../../resolve/enum-keys.mjs";
+import { ENUM_KEYS, meaningOf, valuesOf } from "../../../resolve/project/enum-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
@@ -46,7 +46,7 @@ const flowRow = () => {
 const ignoredSaid = (left) => `\`${left.key}: ${JSON.stringify(left.value)}\` in ${left.from} is ignored — `
   + `the key that decides this is now ${left.now}, written by ${left.route}. Remove that line by hand`;
 
-/** One enum-valued key's row, off its row in resolve/enum-keys.mjs: the value in force with what it
+/** One enum-valued key's row, off its row in resolve/project/enum-keys.mjs: the value in force with what it
  *  means, the key's own sentence where it resolves to no value, or a miss naming the word it does not
  *  take. A leftover of the same name at the machine's level is said in the same row, composed apart
  *  from the value's own judgement: a project holding a word the key does not take and a machine

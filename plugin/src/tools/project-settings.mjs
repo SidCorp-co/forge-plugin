@@ -8,7 +8,7 @@ import { fromProject, Refusal, drainScope, fail, projectFileToWrite, projectSlug
   from "../resolve/settings.mjs";
 import { pairOf } from "../resolve/flags.mjs";
 import { configPath } from "../resolve/config.mjs";
-import { meaningOf } from "../resolve/enum-keys.mjs";
+import { meaningOf } from "../resolve/project/enum-keys.mjs";
 import { MACHINE_KEYS, MACHINE_KEY_NAMES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
   READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, setCall, spelled, withKey,

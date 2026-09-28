@@ -8,7 +8,7 @@ import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
 import { STORES } from "./machine/stores.mjs";
-import { ENUM_FLAGS, valuesOf } from "./enum-keys.mjs";
+import { ENUM_FLAGS, valuesOf } from "./project/enum-keys.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
 import { TAKEN_HERE, TO_TRACKER, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
 import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
