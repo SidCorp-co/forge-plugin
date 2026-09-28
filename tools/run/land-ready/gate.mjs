@@ -125,6 +125,8 @@ const carriedOn = async (found, one, moved) => {
   }
   /* The room is the landing's before the first write, so a save refused below leaves nothing its drop misses. */
   at.room = kept.candidate === candidate ? kept.room : (dropRoom(root, kept.room), roomFor(root, candidate));
+  /* The gate that read the tree this release lands, which is the figure its release block calls its own. */
+  at.gate = kept.own;
   await handedBack(found, at);
   at.members = found.green;
   at.candidate = candidate;
@@ -160,6 +162,7 @@ export const gateStep = async (one) => {
   const read = await gateOver({ root, candidate: at.candidate, keys: keysOf(at), minutes: ms / 60_000 });
   if (read.green) {
     at.room = read.room;
+    at.gate = read.own;
     return undefined;
   }
   dropRoom(root, read.room);

@@ -13,8 +13,9 @@ import {
 
 const VERB = "ship";
 
-/** The pass's side of it: `armed` once the caller knows the pass reaches both the gate and the push. */
-export const shipAttempt = () => ({ armed: false, candidate: null, handles: [] });
+/** The pass's side of it: `armed` once the caller knows the pass reaches both the gate and the push,
+ *  and `gate` the record its gate wrote, which the release block prints as this release's own. */
+export const shipAttempt = () => ({ armed: false, candidate: null, handles: [], gate: undefined });
 
 const endAll = (attempt, outcome, cause = null) => {
   for (const handle of attempt.handles) attemptEnded(handle, { outcome, cause, candidate: attempt.candidate });
@@ -54,7 +55,8 @@ export const gatedShip = (attempt, tree, base, run) => {
       heard = one;
     });
   } finally {
-    const { verdict } = gateNoted({ root: tree, tree, candidate: attempt.candidate, members, since, exited: exitedAs(heard) });
+    const { record, verdict } = gateNoted({ root: tree, tree, candidate: attempt.candidate, members, since, exited: exitedAs(heard) });
+    attempt.gate = record ?? null;
     if (verdict !== GREEN) endAll(attempt, BACK, CAUSE_OF[verdict] ?? null);
   }
 };

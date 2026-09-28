@@ -4,10 +4,8 @@
    responsibility; the release steps themselves are `run-script.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
+import { chmodSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-
-import { REVIEW } from "../../gates/timing.mjs";
 
 import { alsoOpen, BARE, called, git, LAST_STEP, lastStep, landIn, noBacklog, owedAt, pushed, ref,
   runIn, seen } from "./run-fixtures.mjs";
@@ -615,29 +613,4 @@ test("a move proves the target is on this history too, and the three refusals st
   const told = runIn(work, ["review", "--done", head], BARE);
   assert.equal(told.status, 0, told.stderr);
   assert.equal(ref(work), head, "a target ahead of the mark and behind the head is what the mark is for");
-});
-
-/* The gate this release spent a step earlier wrote the newest figure, so the release is where it is
-   freshest — and beside the volume count, because both are what this run left the next one to
-   answer for and a second place to look is a second thing to remember to read (ISS-166). */
-test("the last step prints the newest whole-run figure beside the volume count, and says when it has none", () => {
-  const { work } = pushed("timing");
-  runIn(work, ["review", "--done"], BARE);
-  landIn(work, join("plugin", "src", "one.mjs"), 4, "the change");
-
-  const blank = lastStep(work);
-  assert.match(blank.stdout, /the gate: no run is recorded, so nothing says whether this gate has grown/u, blank.stdout);
-  assert.match(blank.stdout, /npm run check -- --full/u, "a tree with no figure is told what plants one");
-
-  const dir = join(work, ".git", "gate-ledger");
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "runs"), "2026-01-01T00:00:00.000Z 80s 12/12\n2026-01-02T00:00:00.000Z 100s 12/12\n");
-  const said = lastStep(work);
-  assert.match(said.stdout, new RegExp(`the gate: 100s over 12 of 12 step\\(s\\) on 2026-01-02, \\d\\.\\d\\dx the ${REVIEW.seconds}s the review of `
-    + `${REVIEW.on} measured under load ${REVIEW.load} on ${REVIEW.cores} core\\(s\\) \\(${REVIEW.issue}\\); 1\\.25x the 80s before it`, "u"), said.stdout);
-
-  const lines = said.stdout.split("\n");
-  const figure = lines.findIndex((one) => one.includes("the gate: 100s"));
-  const volume = lines.findIndex((one) => one.includes("changed line(s) under"));
-  assert.equal(volume - figure, 1, `the figure and the volume count are not one place:\n${said.stdout}`);
 });
