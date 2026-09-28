@@ -13,7 +13,7 @@ import { jsonlAt } from "../hooks/log/hook-log-file.mjs";
    rebuild this file leave only the later's, and no lock closes that (ISS-661). */
 const STATE = () => join(configDir("forge"), "shown.json");
 const LOG = () => join(configDir("forge"), "shown.jsonl");
-export const KEPT = { items: 400, perSession: 6_000, days: 1, lines: 200 };
+export const KEPT = { items: 400, perSession: 6_000, days: 1, lines: 200, told: 400 };
 
 const DAY_MS = 86_400_000;
 
@@ -48,9 +48,14 @@ const journals = () => {
   return [LOG(), ...aside.map((one) => join(room, one))];
 };
 
+/* Two kinds of row: a credit of items shown on a surface, and a told fact about a key, which no
+   item budget counts because it is not a thing delivered (ISS-771). */
+const isCredit = (one) => Boolean(one?.surface) && Array.isArray(one.items);
+const isTold = (one) => Boolean(one?.told) && Array.isArray(one.facts);
+
 const creditsIn = (paths) => paths
   .flatMap(jsonlAt)
-  .filter((one) => one?.session && one?.surface && Array.isArray(one.items))
+  .filter((one) => one?.session && (isCredit(one) || isTold(one)))
   .sort((one, two) => {
     const [at, next] = [String(one.at), String(two.at)];
     return at < next ? -1 : Number(at > next);
@@ -70,16 +75,27 @@ const budgeted = (surfaces) => {
 
 /* Written into the accumulator rather than cloning it per row: `foldedFrom` is this function's only reach and the object it starts from is `base()`'s own parse, so no caller holds an intermediate that could see it change — where two hundred rows cost two hundred whole-object copies, and a surface's held items were re-scanned per row. `creditsIn` above orders by comparison for the same reason: ISO-8601 stamps sort lexically by construction, so the collator bought nothing at 20 times the cost.
    Defined rather than assigned, because a session is a caller's string: `FORGE_SESSION_ID=__proto__` assigns through the inherited setter and stores nothing, where the spread this replaces made an own property of it and the credit survived. */
+const defined = (into, key, value) =>
+  Object.defineProperty(into, key, { configurable: true, enumerable: true, value, writable: true });
+
+/* Moved to the end on every touch, as a surface is, so the coldest key is the one the bound drops. */
+const toldAdded = (told, one) => {
+  const mine = { ...told };
+  const kept = [...new Set([...(Object.hasOwn(mine, one.told) ? mine[one.told] : []), ...one.facts])];
+  delete mine[one.told];
+  return Object.fromEntries(Object.entries(defined(mine, one.told, kept)).slice(-KEPT.told));
+};
+
 const added = (all, one) => {
-  const mine = { ...(all[one.session]?.surfaces ?? {}) };
+  const was = all[one.session] ?? {};
+  const at = one.at ?? was.at ?? new Date().toISOString();
+  if (isTold(one)) return defined(all, one.session, { ...was, at, surfaces: was.surfaces ?? {}, told: toldAdded(was.told ?? {}, one) });
+  const mine = { ...(was.surfaces ?? {}) };
   const fresh = new Set(one.items);
   const older = (mine[one.surface] ?? []).filter((item) => !fresh.has(item));
   const kept = [...new Set([...older, ...one.items])].slice(-KEPT.items);
   delete mine[one.surface];
-  const at = one.at ?? all[one.session]?.at ?? new Date().toISOString();
-  const row = { at, surfaces: budgeted({ ...mine, [one.surface]: kept }) };
-  Object.defineProperty(all, one.session, { configurable: true, enumerable: true, value: row, writable: true });
-  return all;
+  return defined(all, one.session, { ...was, at, surfaces: budgeted({ ...mine, [one.surface]: kept }) });
 };
 
 const living = (all) => {
@@ -96,14 +112,16 @@ const creditsOf = (session, surface) => folded()[session]?.surfaces?.[surface] ?
 
 export const creditedTo = (session, surface) => new Set(creditsOf(session, surface));
 
-const creditsFor = (session) => {
-  const surfaces = folded()[session]?.surfaces ?? {};
-  return (surface) => new Set(surfaces[surface] ?? []);
-};
-
-export const creditsForAny = (sessions) => {
-  const fns = [sessions].flat().filter(Boolean).map(creditsFor);
-  return (surface) => new Set(fns.flatMap((fn) => [...fn(surface)]));
+/* One fold for every session asked about, read as the items credited on a surface and the facts told
+   about a key, each the union over those sessions. */
+export const shownToAny = (sessions) => {
+  const all = folded();
+  const rows = [sessions].flat().filter(Boolean).map((one) => all[one] ?? {});
+  const union = (pick) => (key) => new Set(rows.flatMap((row) => {
+    const held = pick(row);
+    return Object.hasOwn(held, key) ? held[key] : [];
+  }));
+  return { credited: union((row) => row.surfaces ?? {}), told: union((row) => row.told ?? {}) };
 };
 
 /** The newest item on a surface, or null: the list is kept in the order it was credited. */
@@ -196,12 +214,20 @@ const appended = (row) => {
   return false;
 };
 
-/** One credit: the items this session has now been shown on this surface. Folded on the way out, so
- *  the journal is bounded by whoever writes it rather than by whoever happens to read it next. */
-export const credit = (session, surface, items) => {
-  const kept = [...new Set(items.filter(Boolean).map(String))];
-  if (!session || !surface || !kept.length) return false;
-  if (!appended({ at: new Date().toISOString(), session, surface, items: kept })) return false;
+/* Folded on the way out, so the journal is bounded by whoever writes it rather than by whoever
+   happens to read it next. */
+const written = (session, key, values, row) => {
+  const kept = [...new Set(values.filter(Boolean).map(String))];
+  if (!session || !key || !kept.length) return false;
+  if (!appended({ at: new Date().toISOString(), session, ...row(kept) })) return false;
   fold();
   return true;
 };
+
+/** One credit: the items this session has now been shown on this surface. */
+export const credit = (session, surface, items) =>
+  written(session, surface, items, (kept) => ({ surface, items: kept }));
+
+/** One told fact: something this session was told once about `key`, outside every item budget. */
+export const tell = (session, key, facts) =>
+  written(session, key, facts, (kept) => ({ told: String(key), facts: kept }));

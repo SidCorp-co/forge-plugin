@@ -48,18 +48,39 @@ export const held = (route, { shape = null, cause = null } = {}) => {
 
 export { lastCredited as lastShown } from "./journal.mjs";
 
+/* Whether the owed line changed rides beside the line, never in its absence: an empty answer would
+   read the same whether nothing was owed or nothing had moved, and every caller would have to know
+   which. */
 export const sayIfChanged = (session, surface, text) => {
-  if (!session || !surface || !String(text).trim()) return String(text ?? "");
-  const whole = digestOf(text);
-  if (lastCredited(session, surface) === whole) return "";
+  const said = String(text ?? "");
+  if (!session || !surface || !said.trim()) return { said, changed: Boolean(said.trim()) };
+  const whole = digestOf(said);
+  if (lastCredited(session, surface) === whole) return { said, changed: false };
   credit(session, surface, [whole]);
-  return String(text);
+  return { said, changed: true };
 };
 
-export const sayOnce = (session, surface, text, { route = null, shape = null, cause = null } = {}) => {
-  if (!session || !surface || !String(text).trim()) return String(text ?? "");
+/* A refusal is handed in its parts, so the part that says what to do and the part that names the
+   route are never a candidate for the delta: only the body is cut to what this session has not read. */
+const partsOf = (said) => (said && typeof said === "object" ? said : null);
+
+const joinedOf = (parts) => [parts.lead, parts.body, parts.how]
+  .map((one) => String(one ?? "").trim()).filter(Boolean).join("\n\n");
+
+const deltaOf = (parts, delta) => {
+  if (!parts) return delta.length ? delta.join("\n") : null;
+  const fresh = segmentsOf(parts.body ?? "").filter((one) => delta.includes(one));
+  return joinedOf({ ...parts, body: fresh.join("\n") });
+};
+
+/** `said` is a string, whose delta is per line, or a refusal's `{ lead, body, how }`, whose lead and
+ *  how print on every firing that is not a whole repeat. */
+export const sayOnce = (session, surface, said, { route = null, shape = null, cause = null } = {}) => {
+  const parts = partsOf(said);
+  const text = parts ? joinedOf(parts) : String(said ?? "");
+  if (!session || !surface || !text.trim()) return text;
   const { owed, delta } = owedOf(session, surface, text);
   if (!owed) return route ? held(route, { shape, cause }) : "";
   noteShown(session, surface, text);
-  return delta?.length ? delta.join("\n") : String(text);
+  return (delta && deltaOf(parts, delta)) || text;
 };

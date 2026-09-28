@@ -403,7 +403,8 @@ export const shortfall = (ref, view, held) => {
 };
 
 /* The line and the items it counts, said together and held together: the line carries a number and
-   not the names, so a second shortfall of the same size would be deduped away whole (ISS-1103). */
+   not the names, so a second shortfall of the same size would be deduped away whole (ISS-1103).
+   Answers `{ said, changed }`, the caller printing on `changed`. */
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
   const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));
   const owed = owedIn(view, ref);

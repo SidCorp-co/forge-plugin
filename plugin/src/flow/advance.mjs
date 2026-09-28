@@ -274,8 +274,8 @@ const pageFor = async (documentId, held) =>
 /* A reading that may fail without the record losing anything, which is the whole of ISS-285. */
 const owedAfter = async (documentId, issue, ref, page) => {
   try {
-    const said = await owedSaid(documentId, issue, page.comments, ref, page.cut);
-    if (said) console.error(said);
+    const { said, changed } = await owedSaid(documentId, issue, page.comments, ref, page.cut);
+    if (changed) console.error(said);
   } catch (error) {
     console.error(`what this write now owes could not be read: ${error.message}`);
   }

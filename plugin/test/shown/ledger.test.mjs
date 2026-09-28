@@ -52,6 +52,23 @@ test("a text that grew since it was shown owes the lines it grew by and not the 
   assert.equal(sayOnce("session-d", "codex-turn", grown), "A third line, which is new.");
 });
 
+/* AC-10-5-6. A refusal's action and route are the lines every firing of one gate shares, so a delta
+   over the whole text cuts them first and leaves a second refusal with nothing saying what to do. */
+test("a refusal that changed since it was shown keeps its action and its route, and cuts only its body", () => {
+  const refusal = (pair) => ({
+    lead: "Refused — do the other thing.",
+    body: `Why the rule exists.\n\n${pair}`,
+    how: "How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)",
+  });
+  const first = sayOnce("session-parts", "learning-gate", refusal("the first pair"), { route: "learning-gate" });
+  assert.equal(first, "Refused — do the other thing.\n\nWhy the rule exists.\n\nthe first pair\n\n"
+    + "How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)", "the first is whole");
+  const again = sayOnce("session-parts", "learning-gate", refusal("a second pair"), { route: "learning-gate" });
+  assert.equal(again, "Refused — do the other thing.\n\na second pair\n\n"
+    + "How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)",
+  "the action and the route print again, and of the body only the line never shown");
+});
+
 /* Twice, because the delta prints one thing and credits another: the lines shown are the delta and
    the credit is the whole text, so a second growth reads its predecessor as already shown. */
 test("a text that grows twice owes each growth once and never the same line again", () => {
@@ -87,10 +104,11 @@ test("a subagent under its own id is shown a text its dispatcher was credited fo
 /* The second reading: only the text said last suppresses, so a surface reporting what is owed says
    a thing again once something else has been said since. The first reading cannot answer this. */
 test("a text said last is not said again, and one said before that is", () => {
-  assert.equal(sayIfChanged("session-h", "owed-next", "the first ladder"), "the first ladder");
-  assert.equal(sayIfChanged("session-h", "owed-next", "the first ladder"), "", "said last, so not again");
-  assert.equal(sayIfChanged("session-h", "owed-next", "a second ladder"), "a second ladder");
-  assert.equal(sayIfChanged("session-h", "owed-next", "the first ladder"), "the first ladder",
+  const said = (text) => sayIfChanged("session-h", "owed-next", text);
+  assert.deepEqual(said("the first ladder"), { said: "the first ladder", changed: true });
+  assert.deepEqual(said("the first ladder"), { said: "the first ladder", changed: false }, "said last, so not again");
+  assert.deepEqual(said("a second ladder"), { said: "a second ladder", changed: true });
+  assert.deepEqual(said("the first ladder"), { said: "the first ladder", changed: true },
     "another has been said since, so this one is news again");
 });
 

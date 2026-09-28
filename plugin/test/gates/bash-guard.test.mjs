@@ -113,6 +113,16 @@ test("the one-line repeat quotes the span refused, the rule's instead and its ca
     "and the page and the rule are named");
 });
 
+/* AC-10-5-6: a new doubt makes the same rule no whole repeat, and only the cause already read is cut. */
+test("a rule refused again with a new doubt keeps its instead and its route, and drops the cause it already gave", () => {
+  const session = randomUUID();
+  assert.match(asAgent("doubter", "git reset --hard", { session }), /discards every uncommitted change in the tree/u);
+  const again = asAgent("doubter", 'cd "$ELSEWHERE" && git reset --hard', { session });
+  assert.match(again, /^Refused — reset the specific paths.* cannot be read from the command/u, again);
+  assert.ok(again.includes("How: `forge hooks --how bash-guard` (cause: bash-guard/reset-hard)"), `the route: ${again}`);
+  assert.doesNotMatch(again, /discards every uncommitted change/u, "the cause it already read is the part cut");
+});
+
 test("a polling repeat names its topic page and the rule under the gate that refused it", () => {
   const session = randomUUID();
   const wait = "until grep -q done log.txt; do sleep 5; done";
