@@ -3,8 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULTS, UNSET } from "../../src/rank/weights.mjs";
-import { complexityOf, complexitySaid, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "../../src/rank/score.mjs";
+import { DEFAULTS, UNSET, complexityOf } from "../../src/rank/weights.mjs";
+import { complexitySaid, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "../../src/rank/score.mjs";
 
 const NOW = Date.parse("2026-09-05T00:00:00.000Z");
 

@@ -8,6 +8,9 @@ export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
 
 export const UNSET = "unset";
 
+/** The complexity the rank reads off the tracker's field and nothing else: the field's own value, so `l` and `xl` still score apart on a three-wide rung, and an issue holding none reads as unset rather than as the rung it would fall to. Beside the word it answers with, in a module that walks nothing at import, so a reader loaded by every codex hook takes it from here. */
+export const complexityOf = (row) => (row?.complexity ? String(row.complexity) : UNSET);
+
 /* Keyed off the tracker's kind vocabulary rather than off this object, so a kind this CLI can file
    and nobody weighed refuses in either direction rather than scoring by `points`'s fallback. */
 const KIND_POINTS = { bug: 8, enhancement: 4, review: 2, feature: 0 };

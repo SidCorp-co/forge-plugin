@@ -127,6 +127,24 @@ test("a refused answer is logged as the row's own refusal and a thrown call as f
   assert.match(rows[1].error, /503/u);
 });
 
+/* One clock read after the question settles, on either arm: a clock stepping a hundred at a read would
+   log two hundred had either arm read it twice. */
+test("an answered question and a thrown one each log one elapsed time, read once after it settles", async () => {
+  for (const ask of [answering({ complexity: "m", why: "x" }), async () => { throw new Error("gateway answered 503: down"); }]) {
+    let now = 1_000;
+    const clock = mock.method(Date, "now", () => (now += 100));
+    const rows = [];
+    try {
+      const held = await askComplexity(VALUES, "cx/x", ROW, { ask, log: rows.push.bind(rows), signal: new AbortController().signal });
+      assert.equal(held.ms, 100);
+      assert.equal(rows[0].ms, 100);
+      assert.equal(clock.mock.callCount(), 2, "the start and the one read after it settled");
+    } finally {
+      clock.mock.restore();
+    }
+  }
+});
+
 /* The first luna measurement hung for good: one socket to the gateway dead on its ninth retransmit, and
    the question on it had no deadline, so the batch and the run behind it waited forever. The consult
    gives its calls one clock; a question gets one of its own, and a caller's own signal is kept. */
@@ -189,7 +207,7 @@ test("both coefficients run over the runs holding a complexity on the tracker, a
   assert.equal(held.arms.proposed.rhoAll, spearman(RUNS.map((one) => [COMPLEXITY_NAMES.indexOf(one.proposed), one.minutes])),
     "and its coverage of every run is a second figure, printed apart");
   assert.match(held.said.join("\n"), /1 run\(s\) whose issue holds none, left out of both/u);
-  assert.match(held.said.join("\n"), /over every run, the unset included/u);
+  assert.match(held.said.join("\n"), /over every run, the unset included/u);  assert.deepEqual(held.agreement, { agreed: 3, of: 5 }, "the agreement count is over the same five, the unset run's xl left out");
 });
 
 test("the closing sentence names the arm whose coefficient is higher, or neither", () => {

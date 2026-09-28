@@ -4,7 +4,7 @@ import { CLAIM_CLASS } from "../stats/corpus/classes.mjs";
 import { readTranscript } from "../stats/corpus/corpus.mjs";
 import { keysIn } from "../tracker/issues.mjs";
 import { meets, pathsNamed } from "./eligible.mjs";
-import { complexityOf } from "./score.mjs";
+import { complexityOf } from "./weights.mjs";
 import { freezesSession } from "../tools/plugin-copy.mjs";
 import { runsUnder } from "../stats/runs.mjs";
 import { median } from "../stats/median.mjs";
