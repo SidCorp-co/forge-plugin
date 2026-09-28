@@ -138,3 +138,23 @@ test("a candidate the batch pass rejects for drift gets its retry told the reaso
     `the retry is told what the first answer was rejected for:\n${asked[1]}`);
   assert.equal(problems.length, 1, "still rejected twice, since the retry answered the same drifted text");
 });
+
+/* codex's own review of this issue (F1): the plan's own words scoped the exit-code fix to "a verify
+   problem", but the code answers `2` for any surviving problem, a drift rejection among them and not
+   the only one. `doc()` already answers `2` this same broad way for every kind of failure a block
+   can end in — a verify rejection, a gateway hiccup on the retry, an empty reply twice over — so
+   parity with it is the whole of what `translate --kind doc` owes, and covering only the drift case
+   would be one contract dressed as agreement with another. Proven on the kind `doc()` never needed a
+   test for either: an empty reply, twice, with no drift and no gateway error in it at all. */
+test("vi-natural doc and translate --kind doc answer the same exit code for a reply that never comes", async (t) => {
+  const room = await gatewayOn(t, () => "", "vi-drift-empty-");
+  writeFileSync(join(room, "body.md"), "Nothing about this sentence contrasts or negates anything.\n");
+  const asDoc = await ranAsync(BIN, ["doc", "-o", "body.vi.md", "body.md", "--no-glossary"],
+    { ...process.env, XDG_CONFIG_HOME: room }, room);
+  assert.equal(asDoc.status, 2, `doc() on an empty reply, twice:\n${asDoc.stderr}`);
+
+  const asTranslate = await ranAsync(BIN, ["translate", "--kind", "doc", "--no-glossary", "Nothing here contrasts or negates anything."],
+    { ...process.env, XDG_CONFIG_HOME: room }, room);
+  assert.equal(asTranslate.status, 2, `translate --kind doc on the same failure, matching doc()'s own:\n${asTranslate.stderr}`);
+  assert.match(asTranslate.stderr, /model returned nothing for this key/u, asTranslate.stderr);
+});
