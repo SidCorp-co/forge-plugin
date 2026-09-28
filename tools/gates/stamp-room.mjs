@@ -5,13 +5,28 @@ import { basename, join } from "node:path";
 import { madeIn } from "../../plugin/test/fixtures/room.mjs";
 import { stampRoom } from "../../plugin/src/hooks/stamps.mjs";
 
+/** Said where the root outlived its sweep: a machine that accumulates them is otherwise silent, and a throw out
+ *  of an exit handler replaces the code the run chose with node's own (ISS-1728). */
+const rootLeftSaid = (dir, error) => `This process could not remove its temporary root ${dir}: `
+  + `${error.code ?? error.message}. Something may still be writing into it, or a directory in it refuses the removal. `
+  + `Once nothing is, remove it:\n  rm -rf ${dir}\n`;
+
 /** One temp root per run, every step spawned under it. Removed however the run ends, since a throw from a step or the
- *  ledger exits past every verdict, and nothing else sweeps one; a kill leaves it, and `KEEP_TEST_ROOMS` keeps it. */
+ *  ledger exits past every verdict, and nothing else sweeps one; a SIGKILL leaves it, and `KEEP_TEST_ROOMS` keeps it.
+ *  Node's own retries cover a worker still dying into it; past them the root is named rather than thrown about. */
 export const gateTmp = () => {
   const at = join(tmpdir(), "forge-gate-tmp-");
   const dir = madeIn(at, () => mkdtempSync(at));
   if (process.env.KEEP_TEST_ROOMS === "1") process.stderr.write(`keeping this gate's temp root: ${dir}\n`);
-  else process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
+  else {
+    process.on("exit", () => {
+      try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      } catch (error) {
+        process.stderr.write(rootLeftSaid(dir, error));
+      }
+    });
+  }
   return dir;
 };
 

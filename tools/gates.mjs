@@ -4,7 +4,6 @@
    (ISS-117). This runs the steps a change can reach and skips the ones whose inputs have not moved
    since they passed; what it may not do is pass without having covered the change, so every path
    it cannot place widens the run instead of narrowing it. */
-import { spawnSync } from "node:child_process";
 import { availableParallelism, loadavg } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,6 +32,7 @@ import { ATTRIBUTION_HELP } from "./gates/help/attribution.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
 import { MACHINE_HELP } from "./gates/help/machine.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
+import { onStop, stepRun, stoppedCode } from "./gates/stop/step.mjs";
 import { alonePath, casesPath, CEILING_PERCENTILE, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
   runKey, seriesFile } from "./gates/timing.mjs";
 
@@ -152,6 +152,13 @@ and a run holding it knows to wait again rather than to go looking. The deadline
 what the newest whole gates recorded here took, which is what says whether one more wait reaches the
 verdict. A wait runs no gate and judges no tree, so it is refused
 beside --full and ${ANYWAY}, and the uncommitted paths of a shared checkout do not refuse it.
+
+A gate sent SIGINT, SIGTERM or SIGHUP by its pid stops as it would at Ctrl-C: it sends the same signal
+to every process of the step it is running — found by parent, and by a marker every process of that
+step inherits in its environment, so one whose parent already exited is found too — waits up to five
+seconds for all of them and then kills what is left, and a second signal kills them at once. Nothing
+outside that step is signalled, its caller and its own process group included. It then writes the
+verdict \`stopped\`, naming the signal and the step, and exits 128 plus the signal's number.
 
 ${WAIT} ${SLOT} is that same wait pointed at the other thing a run here waits on. A run declined for
 the ceiling has no gate of its own — the decline happens before the table, the record and the first
@@ -317,6 +324,11 @@ const finish = (code, verdict, figures = {}) => {
   console.log(said(gateDecided(ROOT, opened, { verdict, code, ...spent(), ...stepSeconds(), ...figures })));
   process.exit(code);
 };
+
+/* Past the start record, so a gate stopped anywhere from here writes a verdict a waiter can read rather
+   than leaving one it reads as a crash; and set before the first step it could leave running. */
+let stepAt = null;
+onStop((signal) => finish(stoppedCode(signal), "stopped", { signal, ...(stepAt ? { step: stepAt } : {}) }));
 
 if (dirty.length > 0 && !allowDirty) {
   console.error(`${ROOT} is the checkout every session shares and it holds ${dirty.length} `
@@ -519,7 +531,8 @@ for (const step of planned) {
   /* Before the step and again once it has passed, so the only note left standing is a refusal this
      run exited on or one a killed gate abandoned — as a killed gate abandons its temp root. */
   if (step.tests) forgetRoomRefusal(roomPath(record, step.label, mine));
-  const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
+  stepAt = step.label;
+  const { status, error } = await stepRun(step.argv, { cwd: ROOT, env });
   const took = Math.round((Date.now() - at) / 1000);
   const failed = Boolean(error) || status !== 0;
   if (spend === null) unitless += 1;
@@ -538,10 +551,10 @@ for (const step of planned) {
     }
     /* A step of thousands of cases that refuses on three of them says which three, and whether
        re-running each once, alone, at this head reproduces any of them (ISS-907). */
-    const said = step.tests && !error ? attribute(step, {
+    const said = step.tests && !error ? await attribute(step, {
       root: ROOT, scratch, cases: casesPath(scratch, step.label),
       record: alonePath(record, step.label), say: console.log,
-      audited: (room) => auditEnv(join(room, "gate-reads"), ROOT),
+      audited: (room) => auditEnv(join(room, "gate-reads"), ROOT), spawned: stepRun,
     }) : null;
     if (said) for (const line of attributionLines(said)) console.log(line);
     /* Before the branch below and not inside it: a recurrence beside a case that reproduced is a

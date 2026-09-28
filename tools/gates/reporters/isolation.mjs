@@ -1,6 +1,5 @@
 /* Whose a failing test step's cases are. A step of 2267 printed `Gate failed: test` and exited, so
    three runs told a regression from a starved process by hand, a gate each (ISS-907). */
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -93,13 +92,14 @@ export const argvFor = (one) => [process.execPath, "--test", ISOLATED, "--test-c
  *  both record variables emptied, or one case's re-run overwrites the whole step's per-file seconds.
  *  Under the instrument the step ran under, `audited` naming its environment for the room: a re-run
  *  without it differs from the step in the instrument as well as the company, and a case the
- *  instrument alone breaks reads as one its neighbours broke (ISS-2419). */
-const reran = (one, { root, scratch, audited }) => {
+ *  instrument alone breaks reads as one its neighbours broke (ISS-2419). `spawned` is the gate's own
+ *  runner, so a gate stopped mid-re-run takes the re-run with it as it takes a step (ISS-1785). */
+const reran = async (one, { root, scratch, audited, spawned }) => {
   const room = mkdtempSync(join(scratch, "isolation-"));
   const argv = argvFor(one);
   const at = Date.now();
   const env = { ...process.env, ...audited(room), TMPDIR: room, GATE_FILE_TIMES: "", [CASES_ENV]: "" };
-  const { status, error } = spawnSync(argv[0], argv.slice(1), { cwd: root, stdio: "inherit", env });
+  const { status, error } = await spawned(argv, { cwd: root, env });
   return { reproduced: Boolean(error) || status !== 0, took: Math.round((Date.now() - at) / 1000) };
 };
 
@@ -128,13 +128,14 @@ const remember = (at, digest, cases, when) => {
   }
 };
 
-export const attribute = (step, { root, scratch, cases, record, say, audited }) => {
+export const attribute = async (step, { root, scratch, cases, record, say, audited, spawned }) => {
   const found = casesFrom(cases);
   if (!found) return null;
   say(`\n=== isolation: ${step.label} — ${found.cases.length} failing case(s), `
     + `each re-run once, alone, at this head ===`);
   const seen = previously(record, step.digest);
-  const judged = found.cases.map((one) => ({ one, repeat: seen(one), ...reran(one, { root, scratch, audited }) }));
+  const judged = [];
+  for (const one of found.cases) judged.push({ one, repeat: seen(one), ...await reran(one, { root, scratch, audited, spawned }) });
   const quiet = judged.filter((each) => !each.reproduced).map((each) => each.one);
   const at = new Date().toISOString();
   remember(record, step.digest, quiet, at);
