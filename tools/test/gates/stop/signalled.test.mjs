@@ -8,9 +8,9 @@ import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } f
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { escaped, tempRoom } from "../../../plugin/test/fixtures.mjs";
-import { configHome, HANGS_IN, HOLDING, landed, ROOT, RUNNER, run, scratch, SHELL_ENV } from "./scratch.mjs";
-import { STEPS } from "../../gates/steps.mjs";
+import { escaped, tempRoom } from "../../../../plugin/test/fixtures.mjs";
+import { configHome, HANGS_IN, HOLDING, landed, ROOT, RUNNER, run, scratch, SHELL_ENV } from "../scratch.mjs";
+import { STEPS } from "../../../gates/steps.mjs";
 
 const HELD = "HELD_AT";
 const holdAs = (name, before = "") => `node -e "${before}require('fs').writeFileSync(process.env.${HELD}+'/${name}',`

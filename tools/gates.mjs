@@ -32,7 +32,7 @@ import { ATTRIBUTION_HELP } from "./gates/help/attribution.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
 import { MACHINE_HELP } from "./gates/help/machine.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { onStop, stepRun, stoppedCode } from "./gates/child.mjs";
+import { onStop, stepRun, stoppedCode } from "./gates/stop/step.mjs";
 import { alonePath, casesPath, CEILING_PERCENTILE, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
   runKey, seriesFile } from "./gates/timing.mjs";
 

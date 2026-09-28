@@ -10,7 +10,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { constants } from "node:os";
 import { join } from "node:path";
 
-import { PROC, startedAt } from "./machine.mjs";
+import { PROC, startedAt } from "../machine.mjs";
 
 const STOPS = ["SIGINT", "SIGTERM", "SIGHUP"];
 
