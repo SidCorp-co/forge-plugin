@@ -95,8 +95,7 @@ export const bytesWithin = (response, signal) => {
 };
 
 /** The body as `Response.text()` decodes it — UTF-8, a leading BOM dropped — under the deadline `bytesWithin` holds. */
-export const textWithin = async (response, signal) =>
-  (response.body ? UTF8.decode(await bytesWithin(response, signal)) : response.text());
+export const textWithin = async (response, signal) => UTF8.decode(await bytesWithin(response, signal));
 
 /* Takes the URL rather than reading one: two endpoints are configured now, so a function reading its own would derive one caller's origin from the other's host (ISS-791, consult 26a108 F2). */
 export const apiBaseOf = (url) => {
