@@ -202,7 +202,8 @@ const COLUMN_CAP = 8;
 /** The object rows of a listing, and none where the answer is not a list. */
 export const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
 
-/** Every key the rows carry, each once, in the order the rows first carry it. */
+/** The column set a table over these rows would need: whichever field name shows up on any row,
+ *  named once no matter how many rows carry it. */
 export const keysOf = (rows) => [...new Set(rows.flatMap((row) => Object.keys(row)))];
 
 export const pickColumns = (rows) => {
