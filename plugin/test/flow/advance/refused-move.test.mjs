@@ -39,7 +39,7 @@ state.answer.forge_issues = (args) => {
   if (args.action === "list") return { issues: [PARKED], returned: 1, hasMore: false };
   if (args.action === "get") return PARKED;
   if (args.action === "transition") {
-    if (state.refuses) return { refused: state.refuses };
+    if (state.refuses) return { refused: state.refuses, ...(state.code ? { code: state.code } : {}) };
     PARKED.status = args.data.status;
     return { ...PARKED };
   }
@@ -95,4 +95,26 @@ test("a move that neither landed nor failed claims nothing about the status and 
   assert.match(run.stderr, /neither landed nor failed cleanly/u, run.stderr);
   assert.match(run.stderr, /forge issue ISS-99 --fields status/u, "the read that settles it comes first");
   assert.doesNotMatch(run.stderr, /nothing was written/u, "and nothing asserts a move the transport could not see");
+});
+
+/* The tracker's work-evidence refusal names fields and never a verb, so the line the verb prints ends
+   on the capture that meets it, and the move stays refused with nothing written (ISS-2775). */
+test("a move refused for want of work evidence ends on the capture of the issue it was sent for", async () => {
+  state.refuses = "no branch, commit or code handoff is recorded for this issue";
+  state.code = "NO_WORK_EVIDENCE";
+  PARKED.status = "awaiting_release";
+  const before = state.calls.length;
+  try {
+    const run = await advance();
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /the move to closed was refused, so nothing was written\./u, run.stderr);
+    const under = run.stderr.split("What refused it:\n")[1] ?? "";
+    assert.match(under, /^NO_WORK_EVIDENCE: no branch, commit or code handoff is recorded for this issue\n/u, under);
+    assert.match(under, /`forge claim parked-uuid --pushed`/u, under);
+    assert.equal(PARKED.status, "awaiting_release", "the status the refusal left is the one it found");
+    const wrote = state.calls.slice(before).filter((one) => one.method === "POST" && /comment/u.test(`${one.name} ${one.path}`));
+    assert.deepEqual(wrote, [], "and no comment went up behind the refused move");
+  } finally {
+    state.code = null;
+  }
 });
