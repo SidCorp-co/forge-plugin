@@ -4,19 +4,37 @@
    (ISS-2785). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../../../plugin/test/fixtures.mjs";
 import { roomRefused, roomSpent } from "../../../plugin/test/fixtures/room.mjs";
-import { SCRIPT, git, landIn, runIn, scratch, setUp } from "./run-fixtures.mjs";
+import { SCRIPT, git, landIn, runIn, setUp } from "./run-fixtures.mjs";
 import { gitFailing, noted } from "./room-refusals.mjs";
 
 const QUOTA = "error: unable to write file .git/objects/ab/cdef: Disk quota exceeded";
 
-// Made at load, before any case began, so it is the file's room and not a case's.
+const FIXTURES = new URL("./run-fixtures.mjs", import.meta.url).href;
+const ISOLATED = new URL("../../../plugin/test/fixtures/process/isolated.mjs", import.meta.url).pathname;
+
+/* Two cases in a file of their own, since a room's life is read across the end of the case that made
+   it: the second reads what the first left, and the room made at load is the file's. */
+const ACROSS = `import assert from "node:assert/strict";
+import test from "node:test";
+import { existsSync } from "node:fs";
+import { scratch } from ${JSON.stringify(FIXTURES)};
 const early = scratch("rooms-at-load");
-let madeInACase = null;
+let made = null;
+test("a room a case makes stands while that case runs", () => {
+  made = scratch("rooms-in-a-case").at;
+  assert.ok(existsSync(made), "the room was never made");
+});
+test("the room the case before made is gone, and the room made at load still stands", () => {
+  assert.equal(existsSync(made), false, \`the room outlived the case that made it: \${made}\`);
+  assert.ok(existsSync(early.at), \`the file's own room went with a case: \${early.at}\`);
+});
+`;
 
 const repository = () => {
   const at = tempRoom("rooms-repo-");
@@ -38,15 +56,16 @@ const refusedWith = (name) => (error) => {
   return true;
 };
 
-test("a room a case makes stands while that case runs", () => {
-  madeInACase = scratch("rooms-in-a-case").at;
-  assert.ok(existsSync(madeInACase), "the room was never made");
-});
-
-test("the room the case before made is gone, and the room made at load still stands", () => {
-  assert.ok(madeInACase, "the case before made no room");
-  assert.equal(existsSync(madeInACase), false, `the room outlived the case that made it: ${madeInACase}`);
-  assert.ok(existsSync(early.at), `the file's own room went with a case: ${early.at}`);
+test("a room goes when the case that made it ends, and a room made at load stays for the file", () => {
+  const file = join(tempRoom("rooms-across-"), "across.test.mjs");
+  writeFileSync(file, ACROSS);
+  // Without the context the runner hands its own children, which would report to it rather than print.
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const ran = spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--import=${ISOLATED}`, file],
+    { encoding: "utf8", env });
+  assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
+  assert.match(ran.stdout, /^# pass 2$/mu, ran.stdout);
 });
 
 test("a setup git step that fails stops the case, naming the command and quoting git", () => {

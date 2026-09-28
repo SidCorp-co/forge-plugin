@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BASE, serverPushes, serverRewrites, sha, state, tracker, world } from "./fixture.mjs";
+import { BASE, git, serverPushes, serverRewrites, sha, state, tracker, world } from "./fixture.mjs";
 import { gitFailing, noted } from "../room-refusals.mjs";
 
 test.after(() => tracker.close());
@@ -25,11 +25,15 @@ test("a world whose first commit fails stops at that commit", () => {
     stoppedAt("git commit -qm the tree this landing starts from"));
 });
 
-test("a world whose commit is refused on a spent room throws the room refusal", () => {
-  noted(() => assert.throws(() => gitFailing("commit", QUOTA, () => world()), (error) => {
-    assert.match(error.message, /Could not make the temporary room at .*: EDQUOT$/mu, error.message);
-    return true;
-  }));
+const spent = (error) => {
+  assert.match(error.message, /Could not make the temporary room at .*: EDQUOT$/mu, error.message);
+  return true;
+};
+
+test("a spent room met in the world's setup, or by a case's own git call, throws the room refusal", () => {
+  noted(() => assert.throws(() => gitFailing("commit", QUOTA, () => world()), spent));
+  const { work } = world();
+  noted(() => assert.throws(() => gitFailing("commit", QUOTA, () => git(work, "commit", "-qm", "a case's own")), spent));
 });
 
 test("another clone's release whose push fails stops at that push", () => {
