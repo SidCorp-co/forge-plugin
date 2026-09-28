@@ -1,6 +1,7 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
 import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
 import { STORES } from "../resolve/machine/stores.mjs";
+import { MACHINE_RETIRED } from "../resolve/machine/retired.mjs";
 import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
 import { fromProject, JOB_ALL, declaredJobs, fail } from "../resolve/settings.mjs";
 import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER } from "./services/coolify/chosen-route.mjs";
@@ -148,15 +149,8 @@ const RECORDED = [
   { owns: ["google"], route: "forge google auth, which holds its own accounts" },
 ];
 
-/* A key this store held and no longer decides anything by. It is deliberately outside MACHINE_KEYS:
-   `ship` is the PROJECT's now (ISS-2174), so `--set ship=` has to reach the project's own table
-   rather than be refused here, and the only thing left to say about a value an older release wrote
-   is that it is ignored. `forge doctor` says it; nothing reads it. */
-export const MACHINE_RETIRED = [
-  { key: "ship", route: "forge doctor --ship ready|self, from inside a checkout of the project it is about",
-    now: "`ship` in this machine's record of that project" },
-];
-
+/* Held outside MACHINE_KEYS, so `--set` reaches the project's own table for a name this store once
+   held: resolve/machine/retired.mjs. */
 export const MACHINE_RETIRED_NAMES = MACHINE_RETIRED.map((one) => one.key);
 
 /** Every configuration key this machine owns outright, with the route that writes each. Derived

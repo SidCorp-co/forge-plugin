@@ -1,10 +1,9 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
-import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES,
-  OWED_DOORS, RUNS_TAKES, SHIP_MODES, checkCeilingMs, codexCheck, codexOwed, checkoutRoot,
-  PROJECT_SHAPES, RED_BATCH_KEY, RED_BATCHES, feedbackScope, landingScope, parallelRuns, projectWorkPattern,
-  redBatchScope, shapeScope, shipLeftOnMachine, shipMode } from "../../../resolve/settings.mjs";
-import { MACHINE_RETIRED } from "../../doctor-keys.mjs";
+import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, OWED_DOORS, RUNS_TAKES,
+  checkCeilingMs, codexCheck, codexOwed, checkoutRoot, enumScope, feedbackScope, machineLeftovers,
+  parallelRuns, projectWorkPattern } from "../../../resolve/settings.mjs";
+import { ENUM_KEYS, meaningOf, valuesOf } from "../../../resolve/project/enum-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
@@ -12,7 +11,7 @@ import { anglesShown } from "../../../codex/codex-plan.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
-import { accountCredentials, refusing, ASK_MODES, asksOwnerTerms, asksScope } from "../../../resolve/settings.mjs";
+import { accountCredentials, refusing, asksOwnerTerms, asksScope } from "../../../resolve/settings.mjs";
 import { OWNER_CATEGORIES } from "../../../asks/declared.mjs";
 import { asksRoom, decidedPath } from "../../../asks/decided.mjs";
 import { layerPaths, precedentCount } from "../../../asks/layer.mjs";
@@ -41,60 +40,32 @@ const flowRow = () => {
   return { label: "flow", detail: `${flow.value}  ← ${flow.from}` };
 };
 
-const landingRow = () => {
-  const landing = landingScope();
-  if (landing.unknown) {
-    return { level: MISS, label: "landing", detail: held({ ...landing, value: "the derived route" }, LANDING_ROUTES) };
+/* What a machine key an older release wrote is ignored in favour of, and what writes that key now. A
+   note and not a miss — no verb removes such a leftover, so a report that went red over one would
+   stay red until somebody edited that file by hand. */
+const ignoredSaid = (left) => `\`${left.key}: ${JSON.stringify(left.value)}\` in ${left.from} is ignored — `
+  + `the key that decides this is now ${left.now}, written by ${left.route}. Remove that line by hand`;
+
+/** One enum-valued key's row, off its row in resolve/project/enum-keys.mjs: the value in force with what it
+ *  means, the key's own sentence where it resolves to no value, or a miss naming the word it does not
+ *  take. A leftover of the same name at the machine's level is said in the same row, composed apart
+ *  from the value's own judgement: a project holding a word the key does not take and a machine
+ *  holding a leftover are two independent facts, and a row that returned at the first would drop
+ *  the second on the one box that has both. */
+export const enumRow = (key, one, left = null) => {
+  const row = ENUM_KEYS[key];
+  const ignored = left ? `; ${ignoredSaid(left)}` : "";
+  if (one.unknown) {
+    return { level: MISS, label: key, detail: `${held({ ...one, value: one.value ?? row.reads }, valuesOf(key))}${ignored}` };
   }
-  return { label: "landing", detail: landing.value
-    ? `${landing.value}  ← ${landing.from}`
-    : "unset, so the branches on the tracker's record derive where the merge sits" };
+  const detail = one.value === null ? `${row.unset}${ignored}`
+    : `${one.value} — ${meaningOf(key, one.value)}${arrow(one.from)}${ignored}`;
+  return left ? { level: NOTE, label: key, detail } : { label: key, detail };
 };
 
-const redBatchRow = () => {
-  const one = redBatchScope();
-  return { level: one.unknown ? MISS : undefined, label: RED_BATCH_KEY, detail: held(one, RED_BATCHES) };
-};
-
-/* What a value left at the other level means: `MACHINE_RETIRED` in doctor-keys.mjs. A note and not a
-   miss — no verb removes such a leftover, so a report that went red over one would stay red until
-   somebody edited that file by hand. */
-const [SHIP_RETIRED] = MACHINE_RETIRED;
-
-const shipRow = () => {
-  const ship = shipMode();
-  const left = shipLeftOnMachine();
-  /* Composed apart from the value's own judgement rather than under it: a project holding a word the
-     key does not take and a machine holding a leftover are two independent facts, and a row that
-     returned at the first would drop the second on the one box that has both. */
-  const ignored = left.present
-    ? `; \`${SHIP_RETIRED.key}: ${JSON.stringify(left.value)}\` in ${left.from} is ignored — the key `
-      + `that decides this is now ${SHIP_RETIRED.now}. Remove that line by hand`
-    : "";
-  const detail = `${held(ship, SHIP_MODES)}${ignored}`;
-  if (ship.unknown) return { level: MISS, label: "ship", detail };
-  return left.present ? { level: NOTE, label: "ship", detail } : { label: "ship", detail };
-};
-
-/* What each shape means for the run reading it, in the one place this CLI spells them out: a row
-   printing the bare word would leave every reader to infer the consequence, which is what the key
-   exists to stop. */
-const SHAPE_SAID = {
-  storefront: "no repository here; the store is its own source of truth",
-  staged: "a preview deployment somebody opens, then live",
-  direct: "live only, so work is exercised on this box and preview is localhost",
-};
-
-const shapeRow = () => {
-  const shape = shapeScope();
-  if (shape.unknown) {
-    return { level: MISS, label: "shape",
-      detail: held({ ...shape, value: "no shape at all" }, PROJECT_SHAPES) };
-  }
-  return { label: "shape", detail: shape.value
-    ? `${shape.value} — ${SHAPE_SAID[shape.value]}  ← ${shape.from}`
-    : "unset, so nothing here says whether work is exercised on a deployment or on this box" };
-};
+/** A leftover no declared key replaces, on a row of its own. */
+export const leftoverRows = (leftovers) => leftovers.filter((left) => !Object.hasOwn(ENUM_KEYS, left.key))
+  .map((left) => ({ level: NOTE, label: left.key, detail: ignoredSaid(left) }));
 
 const armedSaid = (label, commands) =>
   (commands.length ? `${label} at ${commands.map((one) => `\`${one}\``).join(" or ")}` : label);
@@ -240,19 +211,31 @@ const reviewRow = async () => {
     + `reading of what has landed${owed ? await holding(mark) : ""}  ← ${whereFrom(standing)}` };
 };
 
-/* The mode, and under `decide` what the gate reads: nothing past the mode is read under `off`, where the
-   layer does not exist and a count of it would be a number about nothing. */
-const asksRows = () => {
-  const mode = asksScope();
-  const rows = [{ level: mode.unknown ? MISS : undefined, label: "asks.mode", detail: held(mode, ASK_MODES) }];
-  if (mode.value !== "decide") return rows;
+/* Under `decide`, what the gate reads beside the mode: nothing past the mode is read under `off`,
+   where the layer does not exist and a count of it would be a number about nothing. */
+const asksDetail = () => {
+  if (asksScope().value !== "decide") return [];
   const room = asksRoom();
   const terms = asksOwnerTerms();
   return [
-    ...rows,
     { label: "asks.precedents", detail: `${precedentCount(layerPaths(room))} in this project's layer; outcomes logged in ${decidedPath(room)}` },
     { label: "asks.owner", detail: `${OWNER_CATEGORIES.map((one) => one.name).join("; ")}`
       + `${terms.length ? `; and this project's own: ${terms.join(", ")}` : ""}` },
+  ];
+};
+
+/* Rows a key's own row is followed by. */
+const AFTER = { "asks.mode": asksDetail };
+
+/* Every enum-valued key in the table's order, each followed by what its own row leads to. */
+const enumRows = () => {
+  const leftovers = machineLeftovers();
+  return [
+    ...Object.keys(ENUM_KEYS).flatMap((key) => [
+      enumRow(key, enumScope(key), leftovers.find((left) => left.key === key) ?? null),
+      ...(AFTER[key]?.() ?? []),
+    ]),
+    ...leftoverRows(leftovers),
   ];
 };
 
@@ -260,12 +243,8 @@ const asksRows = () => {
 export const projectKeyLines = async () => [
   ...Object.entries(feedbackScope()).map(([which, one]) =>
     ({ level: one.unknown ? MISS : undefined, label: `feedback.${which}`, detail: held(one, FEEDBACK_CHANNELS) })),
-  shapeRow(),
   flowRow(),
-  landingRow(),
-  redBatchRow(),
-  shipRow(),
-  ...asksRows(),
+  ...enumRows(),
   owedRow(),
   { label: "codex.angles", detail: anglesShown() },
   checkRow(),

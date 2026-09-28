@@ -65,7 +65,7 @@ test("a key the machine's record sets beside the slug reads the machine's value,
   const at = standing();
   const run = await forge(at, "doctor");
   /* `ready`, because `self` is what the plugin's default would answer. */
-  assert.match(rowOf(run.stdout, "ship") ?? "", new RegExp(`ship\\s+ready {2}← ${escaped(at.file)}$`, "u"), run.stdout);
+  assert.match(rowOf(run.stdout, "ship") ?? "", new RegExp(`ship\\s+ready — [^\n]+ {2}← ${escaped(at.file)}$`, "u"), run.stdout);
 });
 
 test("the reader aimed at a named directory returns the machine's record of that directory's project", () => {

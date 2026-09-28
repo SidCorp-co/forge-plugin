@@ -41,6 +41,7 @@ import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mj
 import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
+import { ENUM_FLAGS, ENUM_KEYS } from "../resolve/project/enum-keys.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { FLOW_SLUGS, flowPinned, flowRefusal } from "../guides/flow.mjs";
 import { rankLines } from "./services/doctor/rank.mjs";
@@ -360,27 +361,33 @@ const checkFlowKeys = async () => {
 };
 
 const BOOLEAN = ["--full", "--credentials", "--adopt"];
+/* The flags that each write one thing of the project's record, what each writes in the two shapes a
+   refusal needs it — against another of these, and against everything else — and the write itself.
+   One call writes one of them, the first returning before the report, so a second would be dropped
+   in silence. An enum-valued key's own flag is derived from its row in resolve/project/enum-keys.mjs, and
+   its value, an empty one included, meets the key's judge exactly as `--set <key>=` does: an empty
+   flag writing nothing is the machine's convention and not the project's. */
+const ONE_WRITE = {
+  set: { against: "--set writes one key you name", one: "one key of the project's configuration",
+    write: (settings, value) => settings.writeSetting(value) },
+  flow: { against: "--flow writes the flow with every key that flow asks for",
+    one: "the flow, with every key that flow asks the project for",
+    write: (settings, value) => settings.writeFlow(value) },
+  ...Object.fromEntries(ENUM_FLAGS.map((key) => [key, {
+    against: `--${key} writes ${ENUM_KEYS[key].flag}`, one: ENUM_KEYS[key].flag,
+    write: (settings, value) => settings.writeEnum(key, value),
+  }])),
+};
+
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
    are the project's half, and the keys doctor-keys.mjs writes this machine's. */
-const PROJECT_FLAGS = ["set", "flow", "ship", "adopt", "was", ...WRITES, ...WITH_BODY];
-
-/* The three flags that each write one thing of the project's record, and what each of them writes in
-   the two shapes a refusal needs it: against another of these, and against everything else. One call
-   writes one of them, the first returning before the report, so a second would be dropped in
-   silence. */
-const ONE_WRITE = {
-  set: { against: "--set writes one key you name", one: "one key of the project's configuration" },
-  flow: { against: "--flow writes the flow with every key that flow asks for",
-    one: "the flow, with every key that flow asks the project for" },
-  ship: { against: "--ship writes how far a run in this checkout goes",
-    one: "how far a run in this checkout goes" },
-};
+const PROJECT_FLAGS = [...Object.keys(ONE_WRITE), "adopt", "was", ...WRITES, ...WITH_BODY];
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
 const wroteProject = async (asked, pairs, positionals) => {
-  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked, writeFlow, writeSetting, writeShip }
-    = await projectSettings();
+  const settings = await projectSettings();
+  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked } = settings;
   refuseUnchecked(asked);
   const brief = briefAsked(asked);
   const writes = Object.keys(ONE_WRITE).filter((one) => asked[one] !== undefined);
@@ -403,8 +410,7 @@ const wroteProject = async (asked, pairs, positionals) => {
   }
   if (wrote !== undefined) {
     refuseCarried(asked, pairs, `--${wrote} writes ${ONE_WRITE[wrote].one} and takes neither.`);
-    if (wrote === "ship") return writeShip(asked.ship);
-    return wrote === "flow" ? writeFlow(asked.flow) : writeSetting(asked.set);
+    return ONE_WRITE[wrote].write(settings, asked[wrote]);
   }
   return brief ? briefRoute(asked, pairs, positionals) : null;
 };
