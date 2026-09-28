@@ -231,7 +231,35 @@ export const restoreMachine = (text, held = {}) => {
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage
    list all read: a field named in two places is a shape that disagrees with itself. The block it is
    written into is `machine/block.mjs`'s, which imports nothing from here, so either side may reach it. */
-export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded"];
+export const CAUSE_FIXED = "cause-fixed";
+export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded", CAUSE_FIXED];
+/* The findings that end an issue without code, read by every reader that counts a disposition rather
+   than each comparing with `holds`. A cause another change already fixed, with the deliverable the
+   issue states still owed, keeps the lane: the work its record names is still to be built (ISS-406). */
+export const DISPOSITIONS = FINDINGS.filter((one) => one !== FINDINGS[0] && one !== CAUSE_FIXED);
+/* The two halves a `cause-fixed` finding is refused without: what each holds, said by the help and
+   by the refusal alike. */
+const HALVES = {
+  fixed: "what was already fixed, and the evidence that settles it",
+  survives: "the deliverable still owed, and what will judge it",
+};
+const halfForm = (flag) => `${HALVES[flag]}; owed under --finding ${CAUSE_FIXED} and refused beside any other finding`;
+const causeFixedProblem = (got) => {
+  const flags = Object.keys(HALVES);
+  if (got.finding === CAUSE_FIXED) {
+    const lacking = flags.filter((flag) => !String(got[flag] ?? "").trim());
+    return lacking.length
+      ? `${lacking.map((flag) => `--${flag} <${HALVES[flag]}>`).join(" and ")}: a ${CAUSE_FIXED} finding names what was`
+        + " already fixed and what survives, and a run holding only one of the two is choosing between"
+        + " the other findings"
+      : null;
+  }
+  const given = flags.filter((flag) => got[flag] !== undefined);
+  return given.length
+    ? `no ${given.map((flag) => `--${flag}`).join(" or ")} beside --finding ${got.finding}: those halves`
+      + ` are read only under --finding ${CAUSE_FIXED}`
+    : null;
+};
 /* The status `closed` is entered from. */
 export const CLOSES_FROM = "awaiting_release";
 export const PARKS = [
@@ -372,8 +400,11 @@ export const SHAPES = {
       FIELD("where", "Where looked", { many: true, each: whereProblem, form: WHERE_TAKES }),
       FIELD("finding", "Finding", { oneOf: FINDINGS }),
       FIELD("detail", "Detail", { optional: true, prose: true }),
+      FIELD("fixed", "What was already fixed", { optional: true, prose: true, form: halfForm("fixed") }),
+      FIELD("survives", "What survives", { optional: true, prose: true, form: halfForm("survives") }),
       FIELD("rung", "Rung", { optional: true, derived: true }),
     ],
+    check: causeFixedProblem,
   },
   decision: {
     heading: "Decision record",

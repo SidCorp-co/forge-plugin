@@ -235,6 +235,10 @@ landed is closed, never dropped.
   dropped and SHALL take the finding as the reason.
 - **AC-05-5-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a drop is refused once the merged mark is set, and it is the mark that refuses"
   IF the merged mark is set THEN the CLI SHALL refuse to drop the issue.
+- **AC-05-5-3** · Rev: 1 · Proof: plugin/test/flow/advance/cause-fixed.test.mjs "a cause-fixed confirmation naming both halves is written, and takes the lane to approved"
+  WHEN the latest confirmation finds the reported cause already fixed and the stated deliverable still
+  owed, naming both, THEN the CLI SHALL make the next status the one a holding finding earns, and
+  SHALL NOT drop the issue.
 
 ### UC-05-6 — A later change unearns
 

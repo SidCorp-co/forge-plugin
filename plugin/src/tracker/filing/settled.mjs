@@ -2,13 +2,12 @@
    the reason its own record gives, and the ones it closed. Why they are shown and never folded onto:
    docs/cli/beside.md. */
 import { commentPage } from "../comments.mjs";
-import { FINDINGS } from "../../flow/machine.mjs";
+import { DISPOSITIONS } from "../../flow/machine.mjs";
 import { parseAll } from "../../flow/record/page.mjs";
 import { firstLine } from "../../resolve/flags.mjs";
 import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";
 
 const DROPPED = "dropped";
-const HOLDS = FINDINGS[0];
 const KEY = 8;
 /** A family of drops printed whole costs every filing thousands of characters, and the thread command gives the rest. */
 export const REASON_MAX = 280;
@@ -27,7 +26,7 @@ export const settledOf = (rows) => (rows ?? [])
 const dropSaid = ({ kind, fields }) => {
   if (kind === "park" && fields.kind === DROPPED) return fields.why ?? null;
   if (kind === "correction" && /`dropped`/u.test(String(fields.moved ?? ""))) return fields.why ?? null;
-  if (kind === "confirmation" && fields.finding && fields.finding !== HOLDS) {
+  if (kind === "confirmation" && DISPOSITIONS.includes(fields.finding)) {
     return `${fields.finding}: ${fields.is ?? ""}`.trim();
   }
   return null;
