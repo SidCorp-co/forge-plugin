@@ -17,6 +17,18 @@ a path belonging to another checkout is diffed in that checkout; and a mode the 
 account's own configuration names is never resolved this way, the default being the only thing the
 set overrules. `bodies` is also what the one pass below is owed, whatever the payload costs.
 
+**A plan or its criteria is sent as a proposal, and the set says which files are.** Sending the text
+whole was not enough: a reviewer holding `git_diff` over a clean tree read the criteria as a
+checklist, found the planned files absent, and filed the unbuilt work as blockers — on every plan
+round, whatever the intent said, since one saying the work was not yet written left the findings
+standing (ISS-2500). So a file lying outside the checkout whose text is one of the two shapes the
+plan and criteria writes take is named in a PROPOSAL section, and the instructions say that what it
+proposes being absent is the state it is written against. The tools stay: a reviewer that can read
+the tree is the one that says the file you propose already exists. The trigger is the location and
+the shape together, never a flag or the intent's wording, because a run that has to remember to ask
+is the run that forgot; and a copy of code outside the checkout is neither shape, so it keeps a
+plain review.
+
 **One pass reads the whole set, and it is the one a review is earned by.** A diff consult judges the
 diff and answers *not verified* on the rest, which nobody can approve on. So the earning read is a
 `--send bodies` pass over the whole touched set, at the commit; the diff rounds between edits close

@@ -36,7 +36,7 @@ export const ANGLES = {
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
-const PROMPT_VERSION = 7;
+const PROMPT_VERSION = 8;
 
 export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
 
@@ -96,15 +96,27 @@ const DEBT = `
   - These unnumbered lines, and your word that there were no goals to rule against, are written under the angle's heading after the findings line, and they follow \`CODEX: 0 findings\` as an OUT OF SCOPE section may: a review that found nothing still says what it removed and what it ruled against.
   - A style is not debt; a shape is. Judge by this repository's own configuration and rules, never by a preference of yours.`;
 
+/* In the system prompt and not only the opening, because the opening line and the FORM's list are
+   what the reviewer took the criteria for: a checklist to verify against the tree (ISS-2500). */
+const PROPOSAL = "\n- WHERE you are given a PROPOSAL section, the files it names are a plan and its acceptance "
+  + "criteria, written before the work they describe, and that work has deliberately not been done yet. "
+  + "Review them as a proposal: whether the plan is right about the code it will change, whether each "
+  + "criterion is one outcome a reader could check, and whether the steps reach every criterion. What they "
+  + "propose to create or change being absent from the checkout is the state they are written against and "
+  + "never a finding. Acceptance criteria, theirs or the issue's, are not a list for you to verify against "
+  + "this tree. Use the tools to test what the proposal claims about code the checkout already holds: a "
+  + "file it proposes that is there already, a function not shaped the way it says, a criterion no step "
+  + "can reach, a clause it cites that does not say what it needs.";
+
 const BOARD = "\n- Open each angle's part with a heading line carrying its name, `### <the angle's name>`, and write "
   + "that angle's findings under it.";
 
-export const roleFor = (angles = DEFAULT_ANGLES, { check = false, recheck = false, tracker = false, spec = false } = {}) => {
+export const roleFor = (angles = DEFAULT_ANGLES, { check = false, recheck = false, tracker = false, spec = false, proposal = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
   const board = named.length === 1
     ? `Reply as the ${named[0].split(" — ")[0]}:`
     : `Reply as a board of ${named.length}:`;
-  return `You are CODEX for this repository: a second model, on a different provider, reviewing work a coding agent has just done.
+  return `You are CODEX for this repository: a second model, on a different provider, reviewing work a coding agent has just done${proposal ? ", or proposes to do" : ""}.
 
 ${board}
 ${named.map((one) => `- ${one}`).join("\n")}
@@ -119,7 +131,7 @@ RULES
 ${SCOPED}
 - You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
 - You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${
-  check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}${tracker ? TRACKER : ""}${spec ? SPEC : ""}${angles.includes("debt") ? DEBT : ""}
+  check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}${tracker ? TRACKER : ""}${spec ? SPEC : ""}${proposal ? PROPOSAL : ""}${angles.includes("debt") ? DEBT : ""}
 ${UNTRUSTED}
 - You are given the coding agent's intent. Judge the work against that intent as well as against the repository's own rules, and say so plainly where the two disagree.
 - Severity: blocker, major, minor. At most 4 findings per angle. An angle with nothing real to add writes "nothing material".
@@ -407,6 +419,11 @@ const floorBlock = (only) =>
   `REPORT ONLY ${only.map((one) => one.toUpperCase()).join(" and ")} FINDINGS. A finding below that bar is left out `
   + `entirely rather than downgraded — this run is asking for precision, not coverage.`;
 
+const proposalBlock = (files) =>
+  `PROPOSAL — ${files.length === 1 ? "this file is" : `these ${files.length} files are`} a plan or acceptance `
+  + `criteria for work not yet done: ${files.join(", ")}. The checkout is the state before that work, so `
+  + "nothing they propose is in it yet.";
+
 const SEP = "\n\n---\n\n";
 
 /* Two halves, because the first is the one that repeats: the history opens every call of a consult
@@ -439,7 +456,7 @@ export const goalsFor = async (angles) => {
   return { ...read, unread: [WHY.endpoint, WHY.aimed, WHY.unread].includes(read.why) };
 };
 
-const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false, scope = "", checks = "", issues = [], goals = null } = {}) => {
+const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false, scope = "", checks = "", issues = [], goals = null, proposal = [] } = {}) => {
   /* Derived, not passed: a caller that says "anchored" while sending no diffs would be asking the
      reviewer to anchor to nothing. */
   const anchored = parts.some((part) => part.diff);
@@ -467,6 +484,7 @@ const promptSections = (intent, parts, history = [], { risks = [], only = [], bo
     ...(risks.length ? [verifyBlock(risks)] : []),
     ...(anchored ? [ANCHORED] : []),
     ...(only.length ? [floorBlock(only)] : []),
+    ...(proposal.length ? [proposalBlock(proposal)] : []),
     parts.length
       ? `THE FILES — ${parts.length} of them:\n\n${parts.map((part) => fileBlock(part, bodies)).join("\n\n")}`
       : "NO FILE IS UNDER REVIEW here: the issues named above are the whole subject, and nothing in this "
