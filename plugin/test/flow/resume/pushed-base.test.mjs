@@ -13,13 +13,17 @@ import { fakeTracker, projectRecord, tempRoom } from "../../fixtures.mjs";
 
 const state = {
   declared: null,
+  unread: false,
   answer: {
-    forge_config: (args) => (args.action === "get"
-      ? { config: { baseBranch: state.declared, releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } } }
-      : undefined),
+    /* `unread` answers with no config on it, which is how a reading that did not happen reaches the policy. */
+    forge_config: (args) => {
+      if (args.action !== "get") return undefined;
+      if (state.unread) return {};
+      return { config: { baseBranch: state.declared, releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } } };
+    },
   },
 };
-const SLUGS = ["declares-staging", "staging-unfetched", "declares-none", "record-too"];
+const SLUGS = ["declares-staging", "staging-unfetched", "declares-none", "record-too", "config-unread"];
 state.answer["forge_projects.list"] = () => ({
   projects: SLUGS.map((slug, at) => ({ slug, id: `1e1c1a1e-0000-4000-8000-00000000000${at + 1}` })),
 });
@@ -27,7 +31,7 @@ const tracker = await fakeTracker(state);
 for (const [name, value] of Object.entries(tracker.env)) process.env[name] = value;
 test.after(() => tracker.close());
 
-const { gitNow, patchFrom, unwrittenSaid } = await import("../../../src/flow/worklog.mjs");
+const { patchFrom, unwrittenSaid } = await import("../../../src/flow/worklog.mjs");
 const { pullRun } = await import("../../../src/flow/record/rung.mjs");
 const { useProject } = await import("../../../src/resolve/settings.mjs");
 
@@ -111,16 +115,23 @@ test("a project read to declare no branch measures the base against the remote's
   assert.deepEqual(block.touched.split(", ").sort(), ["change.txt", "staging-only.txt"]);
 });
 
-test("an unsettled reading, with no project named, keeps the remote's recorded default", async () => {
-  const { work } = diverged("unsettled");
-  const master = run(work, "rev-parse", "refs/remotes/origin/master").stdout.trim();
-  const was = process.cwd();
-  process.chdir(work);
-  try {
-    assert.equal(gitNow({ branch: null, unsettled: "this checkout names no project" }).base, master);
-    assert.equal(gitNow().base, master, "and so does a capture handed no reading at all");
-  } finally {
-    process.chdir(was);
+/* A capture is not terminal, so an unsettled reading keeps the guess it always made rather than
+   refusing every `--pushed` the way a landing refuses to end over one (AC-03-6-20). */
+test("an unsettled reading — no project named, or a configuration that did not read — keeps the remote's recorded default", async () => {
+  state.declared = "staging";
+  for (const [slug, unread] of [[undefined, false], ["config-unread", true]]) {
+    state.unread = unread;
+    const { work } = diverged(slug ?? "no-project");
+    const master = run(work, "rev-parse", "refs/remotes/origin/master").stdout.trim();
+    const error = console.error;
+    console.error = () => {};
+    try {
+      const block = await standingIn(work, slug, () => patchFrom({ pushed: true }));
+      assert.equal(block.base, master, `${slug ?? "no project"}: the remote's recorded default, not the declared branch`);
+    } finally {
+      console.error = error;
+      state.unread = false;
+    }
   }
 });
 
