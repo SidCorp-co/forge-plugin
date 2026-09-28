@@ -77,7 +77,8 @@ how many topics there may be.
 | [codex — the payload](cli/codex-the-payload.md) | What of a file travels, which passes earn a review, why a set too large is refused rather than clipped, and what never travels at all. |
 | [codex — the finding](cli/codex-the-finding.md) | What one finding must carry to be worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves a round's effort, what a review that could not check is owed, and what a recheck is anchored to. |
-| [codex — the complexity](cli/codex-the-complexity.md) | Why a proposed complexity is never the field, why the confidence gates nothing, why no date travels, which model answers and why its family is not refused, and what the measurement must show first. |
+| [codex — the complexity](cli/codex-the-complexity.md) | Why the verb writes no field, why the confidence gates nothing, why no date travels, which model answers and why its family is not refused, and what the measurement must show first. |
+| [the proposed fields](cli/proposed-fields.md) | Why a missing priority or complexity is written at filing, what the correction beside it records, why the scale and the switch are the project's, and why a failure has no fallback. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what masks it, whose consult a row is, and what makes anyone run the eval. |
 | [codex — the stats](cli/codex-the-stats.md) | Why `stats` is the log's one aggregation and `eval` is it over two windows, what a window answers, and why a pass and a recheck are priced apart. |

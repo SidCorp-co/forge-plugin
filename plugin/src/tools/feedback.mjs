@@ -32,7 +32,9 @@ const USAGE = () => [
   CAUSE_HELP,
   "",
   "The body is read against the shape the kind needs, which `forge new -h` prints, and Where is",
-  "filled in for you. Nothing here ranks the note and no lease is taken: docs/cli/feedback.md.",
+  "filled in for you. No finder ranks the note and no lease is taken for it; where this checkout is",
+  "the plugin's own project, the priority and complexity its record names models for are proposed and",
+  "written onto it, as `forge new` does: docs/cli/feedback.md.",
 ].join("\n");
 
 /* Typed by no caller: which version was running, which copy of it, whose project, and who met it. */
@@ -115,8 +117,14 @@ export const feedback = async (argv) => {
     console.error(`warning: ${short}\nA neighbour outside what was reached is not shown under this`
       + " note and is not folded onto, so the note is filed as a second issue rather than a finding.");
   }
+  /* A note carries no band flag, so both are absent; the record that switches a proposal is the
+     destination's, which only a checkout of it reads (docs/cli/proposed-fields.md). */
+  const { absentIn, proposeAtFiling, proposedElsewhere } = await import("../codex/proposed/fields.mjs");
+  const after = onThisRepository()
+    ? proposeAtFiling({ title, body: read.description, kind }, absentIn({}))
+    : proposedElsewhere(PROJECT);
   return fileAndSay({ ...asked, fresh, relations, page, soft: true, module },
-    { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost });
+    { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost, after });
 };
 
 /* Its own help, like every other verb that answers `-h` itself: the body slot takes a path, and the dispatcher answering first would read `-h` as one. */

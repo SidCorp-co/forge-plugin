@@ -5,9 +5,8 @@
    loads the verb table this sits in. docs/cli/codex-the-complexity.md. */
 import { COMPLEXITY_NAMES, rungFrom } from "../../ladder.mjs";
 import { median } from "../../stats/median.mjs";
-import { budgetMs, fail } from "../../resolve/settings.mjs";
+import { budgetMs, fail, projectCodex } from "../../resolve/settings.mjs";
 import { flags, partition } from "../../resolve/flags.mjs";
-import { userConfig } from "../../resolve/config.mjs";
 import { gateway, modelBehind, slotsIn } from "../../resolve/machine/stores.mjs";
 import { UNSET, complexityOf } from "../../rank/weights.mjs";
 import { HUMAN_REF, documentIdOf } from "../../tracker/issues.mjs";
@@ -16,8 +15,8 @@ import { askApi } from "../codex-api.mjs";
 import { PROPOSAL, logConsult } from "../codex-log.mjs";
 import { EFFORTS, defaultEffort, rungFor } from "../codex-plan.mjs";
 
-const DATE_MARK = "<date>";
-const COMPLEXITY_MARK = "<complexity>";
+export const DATE_MARK = "<date>";
+export const COMPLEXITY_MARK = "<complexity>";
 
 /* The ladder's names and never a list of this module's own, so a complexity added there is in the
    schema, the role and the redaction with no second edit (BR-09). */
@@ -95,18 +94,20 @@ export const readAnswer = (calls = []) => {
   return { proposed: given, confidence: numberOrNull(confidence), why: String(why ?? "").trim() };
 };
 
-/** One question, one log row under its own kind, whatever came back. `ask` and `log` are handed in so
- *  the suite asks a fake and logs to a list; the live pair is the consult's own. */
-export const askComplexity = async (values, model, row, { effort, signal, ask = askApi, log = logConsult } = {}) => {
+/** One typed question about one issue, one log row under the question's own kind, whatever came back.
+ *  `question` is the tool, the role, the reader of its calls, the log kind and what the tracker holds
+ *  for the field; `ask` and `log` are handed in so the suite asks a fake and logs to a list, the live
+ *  pair being the consult's own. The complexity question and the priority one are both this. */
+export const askTyped = async (values, model, row, question, { effort, signal, ask = askApi, log = logConsult } = {}) => {
   /* One question is a consult of one call and runs under the consult's clock: a socket the gateway
      let die held the first luna measurement forever, its question having no deadline of its own. */
   const deadline = signal ?? AbortSignal.timeout(budgetMs());
   const state = stateOf(row);
-  const tracker = complexityOf(row);
+  const tracker = question.held(row);
   const started = Date.now();
-  const record = { kind: PROPOSAL, at: new Date().toISOString(), model, effort: effort ?? null, key: state.key };
+  const record = { kind: question.kind, at: new Date().toISOString(), model, effort: effort ?? null, key: state.key };
   const settled = await ask(values, model, [{ role: "user", content: JSON.stringify(state) }],
-    { tools: [COMPLEXITY_TOOL], choose: COMPLEXITY_TOOL.name, system: COMPLEXITY_ROLE, effort, signal: deadline })
+    { tools: [question.tool], choose: question.tool.name, system: question.role, effort, signal: deadline })
     .then((answered) => ({ answer: answered }), (error) => ({ error }));
   const ms = Date.now() - started;
   const { answer, error } = settled;
@@ -114,10 +115,14 @@ export const askComplexity = async (values, model, row, { effort, signal, ask = 
     log({ ...record, ms, ok: false, error: error.message });
     return { key: state.key, tracker, refused: error.message, ms };
   }
-  const read = readAnswer(answer.calls);
+  const read = question.read(answer.calls);
   log({ ...record, ms, ok: true, usage: answer.usage, ...read });
   return { key: state.key, tracker, ...read, ms, usage: answer.usage ?? null };
 };
+
+const COMPLEXITY_QUESTION = { tool: COMPLEXITY_TOOL, role: COMPLEXITY_ROLE, read: readAnswer, kind: PROPOSAL, held: complexityOf };
+
+export const askComplexity = (values, model, row, options = {}) => askTyped(values, model, row, COMPLEXITY_QUESTION, options);
 
 /* Average ranks for ties, so two runs at one complexity share a rank rather than one of them taking the
    lower by the accident of order. */
@@ -214,20 +219,24 @@ export const agreementOf = (runs) => {
 };
 
 /** The model one question goes to, in the order a caller decides it: the flag for this run, the
- *  machine's `codex.complexityModel` for every run, and absent both the consult's own rung table and
- *  slot — what the verb did before the key existed. An id carries a slash and travels as typed; a bare
- *  word is a slot of the profile, refused with the slots the profile holds where it names none. */
+ *  project's `codex.complexityModel` for every run, and absent both the consult's own rung table and
+ *  slot — what the verb did before the key existed. */
 export const modelOf = (values, effort, asked, codex = {}) => {
   const named = asked ?? codex.complexityModel;
   if (named === undefined || named === null || named === "") return rungFor(effort, modelBehind(values));
+  const { model, refusal } = namedModel(values, named);
+  if (refusal) fail(`codex complexity: ${refusal} Nothing was sent.`);
+  return model;
+};
+
+/** A model a caller or a record named, resolved against the profile: an id carries a slash and travels
+ *  as typed, a bare word is a slot of the profile, and one the profile does not hold is the refusal. */
+export const namedModel = (values, named) => {
   const given = String(named).trim();
-  if (given.includes("/")) return given;
+  if (given.includes("/")) return { model: given };
   const behind = modelBehind(values, given.toLowerCase());
-  if (!behind) {
-    fail(`codex complexity: \`${given}\` is neither a gateway id nor a slot the profile holds; its slots are `
-      + `${slotsIn(values).join(", ") || "none"}. Name an id with a slash in it, or one of those. Nothing was sent.`);
-  }
-  return behind;
+  return behind ? { model: behind } : { refusal: `\`${given}\` is neither a gateway id nor a slot the profile holds; its slots are `
+    + `${slotsIn(values).join(", ") || "none"}. Name an id with a slash in it, or one of those.` };
 };
 
 export const COMPLEXITY_USAGE = [
@@ -236,7 +245,8 @@ export const COMPLEXITY_USAGE = [
   "One typed question to the second model per issue — which of the tracker's five complexities the work",
   "its body describes claims — answered through a tool whose only values are those five, and printed as a",
   "proposal beside the complexity the tracker holds. It writes nothing: a reader who agrees sets the field",
-  "with `forge issue ISS-nn --set complexity=<value> --why <w>`. The model's confidence is printed as given",
+  "with `forge issue ISS-nn --set complexity=<value> --why <w>`, and `forge issue ISS-nn --propose` writes",
+  "the project's own proposal onto an issue holding none. The model's confidence is printed as given",
   "and gates nothing; every date, span of time and complexity mention in the title and body is redacted",
   "before it travels, so the model reads the work and not the calendar.",
   "",
@@ -246,7 +256,7 @@ export const COMPLEXITY_USAGE = [
   "  --since 3d      only runs that ended inside the window; the whole corpus unless you say otherwise",
   "  --checkout dir  the tree whose past runs are read; the working directory unless you say otherwise",
   "  --model m       a gateway id as it is, or a slot of the profile; absent, `codex.complexityModel` in this",
-  "                  machine's config, and absent that the consult's own model",
+  "                  project's record, and absent that the consult's own model",
   "  --effort e      minimal | low | medium | high, for these questions only",
   "  --json          the proposals, or the measurement, as one object",
   "",
@@ -262,7 +272,7 @@ export const READERS = Object.freeze(["gateway", "model", "rowOf", "ask", "log",
 /* What the verb reaches when it runs and the suite replaces whole; `runs` is where the heavy readers live. */
 const live = () => ({
   gateway,
-  model: (values, effort, asked) => modelOf(values, effort, asked, userConfig().codex ?? {}),
+  model: (values, effort, asked) => modelOf(values, effort, asked, projectCodex()),
   rowOf: async (key) => scoped("forge_issues", { action: "get", documentId: await documentIdOf(key), fields: [] }),
   ask: askApi,
   log: logConsult,

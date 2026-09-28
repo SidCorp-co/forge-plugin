@@ -126,6 +126,36 @@ test("a value the key's own reader refuses is refused at the write, and the file
   }
 });
 
+/* The switches a proposal at filing reads, each written where the route the refusal names says it is: the
+   reply of a filing left unset prints these calls, so they have to land as printed (ISS-2167). */
+test("the proposal models and the priority scale are written into the project's record as the filing reply prints them", async () => {
+  fresh();
+  for (const given of ["codex.complexityModel=cx/luna", "codex.priorityModel=haiku", "priorities.high=a lost turn or a failed landing"]) {
+    const run = await ask("--set", given);
+    assert.equal(run.status, 0, `${given}: ${run.stderr}`);
+  }
+  const after = JSON.parse(now());
+  assert.equal(after.codex.complexityModel, "cx/luna");
+  assert.equal(after.codex.priorityModel, "haiku");
+  assert.deepEqual(after.priorities, { high: "a lost turn or a failed landing" });
+});
+
+test("a blank model, a blank level text and a level no proposal may answer with are refused at the write", async () => {
+  for (const [given, says] of [
+    ["codex.complexityModel=  ", /`codex\.complexityModel` in \S+ is a non-empty string/u],
+    ["codex.priorityModel=  ", /`codex\.priorityModel` in \S+ is a non-empty string/u],
+    ["priorities.low=  ", /`priorities\.low` in \S+ is a non-empty sentence saying what earns that level/u],
+    ["priorities.none=nobody judged it", /`priorities\.none` in \S+ is no level a proposal may answer with; they are critical, high, medium, low/u],
+    ["priorities.urgent=now", /priorities\.urgent/u],
+  ]) {
+    fresh();
+    const run = await ask("--set", given);
+    assert.equal(run.status, 1, `${given}: ${run.stdout}`);
+    assert.match(run.stderr, says, run.stderr);
+    assert.equal(now(), HELD, `${given} left the file changed`);
+  }
+});
+
 /* Named by its resource: `codex` is a head this machine owns too — the credential — and a bare key
    of that name is refused before the project's half is reached, so a case about the project's own
    `codex` keys says which store it means. */

@@ -10,6 +10,7 @@ import { closeSync, existsSync, fchmodSync, mkdirSync, openSync, readFileSync, r
 import { dirname } from "node:path";
 
 import { anglesRefusal } from "../../codex/angles/refusal.mjs";
+import { SCALE_KEY, proposable, scaleProblem } from "../../codex/proposed/scale.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { readyProblem } from "../../flow/landing/ready-checks.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
@@ -234,6 +235,10 @@ const codexRefusal = (given) => {
   if (clock.over !== undefined) {
     return said("codex.checkMs", CHECK_MS_AT_MOST(), given.checkMs);
   }
+  /* A model is named or the proposal is off, so a blank is refused: written, it would read as on and ask nothing. */
+  for (const key of ["complexityModel", "priorityModel"]) {
+    if (given[key] !== undefined && aString(`codex.${key}`, given[key])) return aString(`codex.${key}`, given[key]);
+  }
   if (given.angles !== undefined) {
     const angles = given.angles;
     const refusal = Array.isArray(angles) && angles.every((one) => typeof one === "string")
@@ -305,9 +310,11 @@ export const PROJECT_KEYS = {
   },
   deps: { paths: { "*": "text" }, judge: (given) => eachString("deps", given) },
   codex: {
-    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list", angles: "list" },
+    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list", angles: "list",
+      complexityModel: "text", priorityModel: "text" },
     judge: codexRefusal,
   },
+  [SCALE_KEY]: { paths: { "*": "text" }, names: { "*": proposable() }, judge: (given) => saidOf(scaleProblem(given)) },
   stop: { paths: { agents: "list" }, judge: (given) => listOfNames("stop.agents", given?.agents) },
   jobs: {
     paths: { "*": "list", "*.verbs": "list", "*.skills": "list" },

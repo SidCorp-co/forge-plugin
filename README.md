@@ -112,7 +112,9 @@ The keys, each shown at a value some other project might hold rather than at thi
   "translate": "vi",
   "runs": 2,
   "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" },
-  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$", "check": "npm test", "checkMs": 600000 },
+  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$", "check": "npm test", "checkMs": 600000,
+             "complexityModel": "cx/gpt-6-luna", "priorityModel": "cx/gpt-6-astra-medium" },
+  "priorities": { "critical": "stops the flow outright or loses a record", "high": "a lost turn or a failed landing", "medium": "friction with a way round it", "low": "wording, docs, cosmetic" },
   "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] },
   "jobs": { "ba": { "verbs": ["issue", "new", "comment"], "skills": ["forge"] } },
   "rank": { "agePerDay": 2, "kind": { "bug": 20 } },
@@ -150,7 +152,12 @@ clock costs the consult a tool call and returns nothing, so the two are read tog
 doctor` prints the command with the budget in force, and says how often this machine's consult log
 recorded that same command stopped at or above it. Set the clock below the one a whole consult runs
 under — `forge codex show` prints that too — because a check reaching a clock past it takes the
-consult with it instead of coming back as a call that was stopped. `stop.agents` names the subagents whose stop the stop gate judges, bare or with their
+consult with it instead of coming back as a call that was stopped. `codex.complexityModel` and
+`codex.priorityModel` name the model that proposes a complexity or a priority a filing left absent,
+and `priorities` says in the project's own words what earns each level the priority model may
+answer with; absent, the field is left unset and the filing's reply says so. `forge doctor --set`
+writes all three, and [`docs/cli/proposed-fields.md`](docs/cli/proposed-fields.md) says why they are the
+project's. `stop.agents` names the subagents whose stop the stop gate judges, bare or with their
 plugin's prefix; absent, no subagent's stop is judged, and the main agent's is judged regardless. A
 plugin's hooks reach every session on the machine, so which delegated agents answer to this one is
 the project's to say, and this repository names the four roles its dispatch sets up.
