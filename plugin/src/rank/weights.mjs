@@ -8,7 +8,7 @@ export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
 
 export const UNSET = "unset";
 
-/** The complexity the rank reads off the tracker's field and nothing else: the field's own value, so `l` and `xl` still score apart on a three-wide rung, and an issue holding none reads as unset rather than as the rung it would fall to. Beside the word it answers with, in a module that walks nothing at import, so a reader loaded by every codex hook takes it from here. */
+/** The tracker's own complexity value, never the rung it maps to, so `l` and `xl` score apart. Here beside UNSET because this module walks nothing at import, and every codex hook loads a reader of it. */
 export const complexityOf = (row) => (row?.complexity ? String(row.complexity) : UNSET);
 
 /* Keyed off the tracker's kind vocabulary rather than off this object, so a kind this CLI can file
