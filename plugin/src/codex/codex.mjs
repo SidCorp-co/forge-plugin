@@ -26,7 +26,7 @@ import { digestsAt, pinnedSet, reviewSet, shownOf, unchangedAll } from "./codex-
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, askedRounds, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
-  modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder, severities } from "./codex-plan.mjs";
+  modeFor, newFindingsIn, plannedFor, plannedLimits, proposalSaid, rungFor, rungLadder, severities } from "./codex-plan.mjs";
 import {
   askApi,
   bundle,
@@ -272,7 +272,8 @@ const unmovedSaid = (root, rels, namedBase, parted) => {
 /* The model and the channel beside the count, because which of the two carried the level is the one
    thing a reader cannot infer from the level itself. */
 const plannedSaid = ({ model, effort, kind, budget, ceiling, lines, clipped }) =>
-  `codex: ${budget} call(s) to ${model} at ${effort} effort, on the ${effortVia(model)}, `
+  `${clipped.length ? `codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.\n` : ""}`
+  + `codex: ${budget} call(s) to ${model} at ${effort} effort, on the ${effortVia(model)}, `
   + `for a ${kind} of ${lines} changed line(s)`
   + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}`
   + `${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`;
@@ -364,22 +365,21 @@ const consult = async (given) => {
   const anchoredTo = still ? null : reached;
   /* The whole plan before the intent is read, none of it needing one: it settles the model this
      consult will be sent to, so a rung that resolves nothing refuses here rather than after the wait. */
-  const { clipped, lines, budget, ceiling, effort, kind } = plannedFor({ parts, bodies, recheck, risks: risks.length, asked: cap, effort: askedEffort });
+  const { clipped, proposal, lines, budget, ceiling, effort, kind } = plannedFor({ parts, bodies, recheck, risks: risks.length, asked: cap, effort: askedEffort });
   const model = modelFor(values, path, allowEcho, effort);
-  if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
   console.error(plannedSaid({ model, effort, kind, budget, ceiling, lines, clipped }));
   /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
      an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
   console.error(`codex: ${rels.length} file(s) to review`
     + `${issues.length ? `, ${issues.join(", ")} for the reviewer to read off the tracker` : ""}`
-    + `, sending ${bodies ? "bodies" : "diffs"}; reading the intent from stdin.`);
+    + `, sending ${bodies ? "bodies" : "diffs"}${proposalSaid(proposal)}; reading the intent from stdin.`);
   const said = await stdinText();
   const intent = (said ?? "").trim();
   if (!intent) console.error(noIntentSaid(said));
   const id = randomBytes(3).toString("hex");
   const history = historyFor(entries, root, undefined, rels);
   const spec = await specFor(root);
-  const system = roleFor(angles, { check: Boolean(codexCheck()), recheck, tracker: issues.length > 0, spec: Boolean(spec) });
+  const system = roleFor(angles, { check: Boolean(codexCheck()), recheck, tracker: issues.length > 0, spec: Boolean(spec), proposal: proposal.length > 0 });
   const started = Date.now();
   const record = {
     id,
@@ -402,6 +402,7 @@ const consult = async (given) => {
     prompt: promptMark(system),
     ...(cap === undefined ? {} : { cap }),
     ...(issues.length ? { issues } : {}),
+    ...(proposal.length ? { proposal } : {}),
     ...(recheck ? { recheck: true, rechecked: plan.judged.id ?? plan.judged.at } : {}),
     ...(anchoredTo ? { anchoredTo } : {}),
     ...(risks.length ? { risks } : {}),
@@ -420,7 +421,7 @@ const consult = async (given) => {
   const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(),
     { anchor: reached, files: rels, issues, spec, by: started + budgetMs() });
   try {
-    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues, goals: await goalsFor(angles) });
+    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues, proposal, goals: await goalsFor(angles) });
     const held = await reviewed(
       values, model, opening, reach, streamed, askApi,
       { effort, budget, ceiling, system },

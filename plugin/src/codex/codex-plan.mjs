@@ -2,6 +2,7 @@
    reach: a rule you cannot run offline is a rule nobody checks. docs/cli/codex-the-consult.md. */
 import { isAbsolute } from "node:path";
 
+import { planTyped } from "../flow/machine.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { fail, fromProject, projectCodex } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
@@ -75,6 +76,24 @@ export const modeFor = (send, rels) => {
       : null,
   };
 };
+
+/* Numbered lines and nothing else, the shape `forge record criteria` takes, read without its refusals. */
+const NUMBERED = /^\d+\.\s+\S/u;
+const numberedOnly = (text) => {
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  return lines.length > 0 && lines.every((line) => NUMBERED.test(line));
+};
+
+/** The files of a set a consult reads as a proposal: outside the checkout, and a typed plan or a list of numbered lines — the two shapes the plan and criteria writes take. Read off where a file lies and what its text is, never off the intent, since an intent saying so was not enough for the reviewer to stop filing the unbuilt work (ISS-2500); a code copy outside the checkout is neither shape and keeps a plain review. docs/cli/codex-the-payload.md. */
+export const proposalsIn = (parts) => parts
+  .filter((part) => isAbsolute(part.rel) && typeof part.text === "string")
+  .filter((part) => planTyped(part.text) || numberedOnly(part.text))
+  .map((part) => part.rel);
+
+/** The clause the consult's own line carries, empty where nothing is a proposal. */
+export const proposalSaid = (proposal) => (proposal.length
+  ? `, ${proposal.length === 1 ? "one of them" : `${proposal.length} of them`} read as a proposal for work not yet done (${proposal.join(", ")})`
+  : "");
 
 /* Four jobs, and the size decides only for the one that says nothing about itself. */
 const STEPS = { recheck: -1, verify: 1, bodies: 1, diff: 0 };
@@ -163,6 +182,7 @@ export const plannedFor = ({ parts, bodies, recheck, risks = 0, asked, effort })
   const kind = kindOf({ recheck, bodies, risks });
   return {
     clipped: clipped.map((part) => part.rel),
+    proposal: proposalsIn(parts),
     lines,
     budget,
     kind,
