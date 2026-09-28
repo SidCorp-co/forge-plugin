@@ -107,13 +107,25 @@ export const edgeSaid = (one) => {
 
 /* Under the headlines, because it is what qualifies them: the correction on the line above is one
    of five, and a reader who takes it for the whole record judges against text four others moved. */
-const records = (brief) => [
+/* Only where the thread holds nothing typed: there the block would print nothing, and nothing reads
+   as no work even when the row carries a merge or a branch (ISS-607). */
+const rowSaid = ({ merged, branch }) => {
+  const held = [
+    ...(merged ? [`a merged mark at ${atMinute(merged.at)}${merged.commit ? ` on ${shortSha(merged.commit)}` : ""}`] : []),
+    ...(branch ? [`the branch \`${branch.name}\`, from ${branch.from}`] : []),
+  ];
+  return held.length
+    ? `none typed, and the row carries ${held.join(" and ")}: work was done that no record describes`
+    : "none typed, and the row carries neither a merged mark nor a branch";
+};
+
+export const records = (brief) => (brief.records.seen ? [
   ...Object.entries(brief.latest).map(([kind, one]) => `${kind.padEnd(13)} ${one.said}  (${one.at})`),
   ...(Object.keys(brief.repeated).length
     ? [`${"repeated".padEnd(13)} ${Object.entries(brief.repeated)
       .map(([kind, held]) => heldSaid(kind, held)).join(", ")}  (forge resume ${brief.ref} --report)`]
     : []),
-];
+] : [rowSaid(brief.row)]);
 
 const parks = (brief) => [
   ...(brief.park ? [`parked: ${brief.park.said}  (${brief.park.at})`] : []),
