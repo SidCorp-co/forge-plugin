@@ -434,6 +434,7 @@ export const commands = {
   knowledge: loads("./tools/knowledge.mjs", "knowledge"),
   cloudflare: loads("./tools/services/cloudflare.mjs", "cloudflare"),
   coolify: loads("./tools/services/coolify/coolify.mjs", "coolify"),
+  "release-batch": loads("./tools/release-batch/verb.mjs", "releaseBatch"),
   google: loads("./tools/services/google/google.mjs", "google"),
   feedback: loads("./tools/feedback.mjs", "feedback"),
   codex: loads("./codex/codex.mjs", "codex"),

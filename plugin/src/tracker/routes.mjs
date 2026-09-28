@@ -356,6 +356,28 @@ export const ROUTES = {
     requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
     sends: ["query", "topK", "scope", "strategy", "sourceFilter"],
   },
+  /* The tracker's own release-batch state, raw: `active` and `state` answer with the shape its own
+     REST surface already declares (ISS-764 in that repository) rather than one this CLI reprojects,
+     which is the same reading `forge_coolify.*` takes of the platform's own words. Three rows and no
+     fourth: `finish`, `method` and `attempts` are the release agent's own protocol and are nobody's
+     read or clear, which is the whole of what ISS-1484 asks the CLI for. */
+  "forge_release_batch.active": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches/active`),
+    sends: [],
+  },
+  "forge_release_batch.state": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches/${args.runId}/state`),
+    sends: ["runId"],
+  },
+  "forge_release_batch.abort": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches/${args.runId}/abort`, "POST",
+      filled({ reason: args.data?.reason })),
+    sends: ["runId", "data"],
+  },
   "forge_config.get": {
     project: true,
     requests: (args, project) => one(`/projects/${project}`),
