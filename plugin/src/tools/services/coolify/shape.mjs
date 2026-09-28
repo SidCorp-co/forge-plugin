@@ -157,9 +157,11 @@ const projected = (object, group) => {
    resource, so nothing was projected: one such listing answered 1.2 MB of whole build logs. */
 const WRAPPERS = ["deployments", "data", "items"];
 
-export const wrapper = (data) =>
+/** Which of `names` holds the records, where one does. The tracker route passes the keys its own
+ *  envelopes wrap a listing in; the instance route's are the default. */
+export const wrapper = (data, names = WRAPPERS) =>
   data && !Array.isArray(data) && typeof data === "object"
-    ? WRAPPERS.find((name) => Array.isArray(data[name])) ?? null
+    ? names.find((name) => Array.isArray(data[name])) ?? null
     : null;
 
 export const summarize = (data, group) => {
@@ -200,7 +202,7 @@ const COLUMN_CAP = 8;
 export const pickColumns = (rows) => {
   const seen = new Set(rows.flatMap((row) => Object.keys(row)));
   const preferred = PREFERRED.filter((one) => seen.has(one));
-  return (preferred.length ? preferred : [...seen].slice(0, 6)).slice(0, COLUMN_CAP);
+  return preferred.length ? preferred : [...seen].slice(0, 6);
 };
 
 export const renderTable = (rows, columns) => {
@@ -223,4 +225,19 @@ export const renderObject = (object) => {
       return `${key.padEnd(width)}  ${said === null || said === undefined ? "" : said}`;
     })
     .join("\n");
+};
+
+/** An answer as a person reads it: a table or JSON, an object as its fields. Both routes print
+ *  through this, each choosing which columns a listing offers, and neither past the one cap. */
+export const rendered = (shown, asTable, columnsOf = pickColumns) => {
+  if (Array.isArray(shown)) {
+    const rows = shown.filter((one) => one && typeof one === "object");
+    if (!rows.length) return asTable ? "(none)" : "[]";
+    if (asTable) return `${renderTable(rows, columnsOf(rows).slice(0, COLUMN_CAP))}\n${rows.length} item(s)`;
+    return JSON.stringify(shown, null, 2);
+  }
+  if (shown && typeof shown === "object") {
+    return asTable ? renderObject(shown) : JSON.stringify(shown, null, 2);
+  }
+  return String(shown);
 };

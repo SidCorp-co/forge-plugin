@@ -3,12 +3,12 @@
    and from there into a consult or a record. docs/cli/coolify.md. */
 import { clockFor, deadlineOf, parsedOr, ranOut, textWithin } from "../../../wire/request.mjs";
 import { fail } from "../../../resolve/settings.mjs";
-import { MASK, redact, striking } from "./shape.mjs";
+import { redact, striking } from "./shape.mjs";
 
 const BODY_CUT = 1500;
 
-export const struck = (text, token) =>
-  token ? String(text).split(token).join(MASK) : String(text);
+/** One line with the token struck, by the strike every answer's leaves take. */
+export const struck = (text, token) => striking(String(text), [token]);
 
 const hint = (status) => {
   if (status === 401) return "\n  token rejected — check `forge coolify login`, or the token's abilities";

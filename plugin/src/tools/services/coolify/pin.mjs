@@ -7,23 +7,10 @@ import { fail, projectFileToWrite } from "../../../resolve/settings.mjs";
 import { projectWrite } from "../project-file.mjs";
 import { look, session } from "./client.mjs";
 import { PIN_FORMS, configured, pinned } from "./config.mjs";
-import { asKey, environmentsOf } from "./scope.mjs";
-
-export const PIN_USAGE = [
-  "Usage: forge coolify pin [--app A | --project P [--environment E]] [--yes] [--dry-run]",
-  "Pin this checkout to a project of the saved instance, looked up by name, in this machine's",
-  "record of the project. With neither --app nor --project, lists the projects this token can see.",
-  "",
-  "  --app A          an application's name or uuid; pins its project and its environment",
-  "  --project P      a project's name or uuid",
-  "  --environment E  narrow a --project pin to one of that project's environments",
-  "  --yes            replace a different pin already recorded; without it that is refused",
-  "  --dry-run        print the pin and the file it would go to, and write nothing",
-].join("\n");
+import { asKey, environmentsOf, objects } from "./scope.mjs";
+import { PIN_USAGE } from "./chosen-route.mjs";
 
 const NOTHING = "so nothing was written";
-
-const listed = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
 
 const nameOf = (one) => String(one?.name ?? "");
 
@@ -48,7 +35,7 @@ const projectsSeen = (projects) => (projects.length
   : "  this token can see no project at all");
 
 const refuseEmpty = async (held) => {
-  const projects = listed(await look(held, "/projects"));
+  const projects = objects(await look(held, "/projects"));
   fail(`coolify pin: nothing to go on and no terminal to ask, ${NOTHING}. Name one:\n`
     + `${PIN_FORMS.join("\n")}\n${projectsSeen(projects)}`);
 };
@@ -56,14 +43,14 @@ const refuseEmpty = async (held) => {
 /* The environment id is the one link from an application to where it sits, and no project names
    its applications, so every project's environments are read until one holds that id. */
 const byApp = async (held, needle) => {
-  const app = matched(listed(await look(held, "/applications")), needle, "application");
+  const app = matched(objects(await look(held, "/applications")), needle, "application");
   if (!app) {
     fail(`coolify pin: no application this token can see is named or numbered \`${needle}\`, ${NOTHING}.\n`
       + "  forge coolify pin, with neither flag, lists the projects it can see");
   }
   const wanted = asKey(app.environment_id);
   if (wanted !== null) {
-    for (const project of listed(await look(held, "/projects"))) {
+    for (const project of objects(await look(held, "/projects"))) {
       for (const environment of await environmentsOf(held, project.uuid)) {
         if (asKey(environment.id) === wanted) return { project, environment, via: `application ${nameOf(app)}` };
       }
@@ -75,14 +62,14 @@ const byApp = async (held, needle) => {
 };
 
 const byProject = async (held, needle, environmentNeedle) => {
-  const projects = listed(await look(held, "/projects"));
+  const projects = objects(await look(held, "/projects"));
   const project = matched(projects, needle, "project");
   if (!project) {
     fail(`coolify pin: no project this token can see is named or numbered \`${needle}\`, ${NOTHING}.\n`
       + `${projectsSeen(projects)}`);
   }
   if (environmentNeedle === undefined) return { project, environment: null, via: null };
-  const environments = listed(await environmentsOf(held, project.uuid));
+  const environments = await environmentsOf(held, project.uuid);
   const environment = matched(environments, environmentNeedle, "environment");
   if (!environment) {
     fail(`coolify pin: project ${nameOf(project)} has no environment \`${environmentNeedle}\`, ${NOTHING}.\n`

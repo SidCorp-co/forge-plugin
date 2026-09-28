@@ -1,4 +1,4 @@
-/* Which level each harness row answers, state by state. None of the three credentials gates another verb — every one of them can be absent and every other verb still works — so each absence is a note and none of these rows is ever a miss. The row shape is the report's own, shared with the project's half, which is what lets a harness row say `miss` at all; that it says none today is the policy, and this is where a change to the shape would lose it by accident (ISS-1046, ISS-102). */
+/* Which level each harness row answers, state by state. None of the three credentials gates another verb — every one of them can be absent and every other verb still works — so each absence is a note and no absence here is ever a miss; a value a key does not take is, as every keyed choice's is. The row shape is the report's own, shared with the project's half, which is what lets a harness row say `miss` at all; that it says none today is the policy, and this is where a change to the shape would lose it by accident (ISS-1046, ISS-102). */
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -12,7 +12,7 @@ mkdirSync(join(HOME, "forge"));
 writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
 process.env.XDG_CONFIG_HOME = HOME;
 
-const { harnessLines } = await import("../../../src/tools/services/doctor/harness.mjs");
+const { harnessLines, startBindings } = await import("../../../src/tools/services/doctor/harness.mjs");
 const { userConfig } = await import("../../../src/resolve/config.mjs");
 
 /* The same write `saveConfig` makes, without the file: it assigns into the memoised object, so a reader called after this sees what a `forge doctor --chatgpt-key` in the same process would have left. */
@@ -53,9 +53,9 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   }
 });
 
-const detailOf = async (label, values = {}) => {
+const detailOf = async (label, values = {}, bindings = null) => {
   configured(values);
-  return (await harnessLines(false)).find((row) => row.label === label).detail;
+  return (await harnessLines(false, [], bindings)).find((row) => row.label === label).detail;
 };
 
 /* The instance route is the one a saved credential is about, so every case below that is about the
@@ -78,7 +78,7 @@ test("the coolify row is a note with no instance and an ok with one, and never s
    network fault as a missing credential, and this directory is not a pinned checkout. */
 test("the coolify row says which project this directory is pinned to, or that none is", async () => {
   profiled(WHOLE_PROFILE);
-  assert.match(await detailOf("coolify", INSTANCE), /no project pinned/u);
+  assert.match(await detailOf("coolify", INSTANCE), /pinned nothing/u);
   assert.match(await detailOf("coolify", INSTANCE), /in \S*projects[/\\]\S+[/\\]config\.json — forge coolify pin/u,
     "the row names the record a pin would be read from and the command that writes one");
 });
@@ -88,11 +88,43 @@ test("the coolify row names the way that answers and where it was read", async (
   const chosen = await detailOf("coolify", INSTANCE);
   assert.match(chosen, /^the saved instance {2}← .*forge[/\\]config\.json/u,
     "the way, and the file that said so rather than the command that writes it");
-  const fallen = await detailOf("coolify", {});
+  configured({});
+  const fallen = await detailOf("coolify", {}, startBindings());
   assert.match(fallen, /^the tracker's own bindings {2}← the plugin's default/u,
     "and with nothing chosen the default is named as a default rather than as a file");
   assert.match(fallen, /the tracker did not answer for them/u,
     "a tracker that could not be reached is said to be, never read back as a project bound to nothing");
+});
+
+/* The read is its caller's to start, beside that caller's other tracker reads: the rows await the
+   one they are handed and send none of their own, so a row handed nothing says it was not asked. */
+test("the coolify row renders off the bindings read it is handed and sends none of its own", async () => {
+  profiled(WHOLE_PROFILE);
+  const handed = Promise.resolve({ integrations: [{ stages: ["preview"], targets: [{ label: "Staging" }] }] });
+  assert.match(await detailOf("coolify", {}, handed), /preview → Staging$/u,
+    "the answer handed in is the one the row prints");
+  assert.match(await detailOf("coolify", {}), /their listing was not asked for/u,
+    "and handed nothing, the row sends nothing: the unreachable tracker this suite names would say otherwise");
+});
+
+test("the bindings read is started only on the tracker route", async () => {
+  configured({ coolifyRoute: "instance" });
+  assert.equal(startBindings(), null);
+  configured({});
+  const started = startBindings();
+  assert.ok(started instanceof Promise, "on the tracker route, with an endpoint and a credential, it is started");
+  await started;
+});
+
+/* A mistyped route is named the way every keyed choice's is, and the row still says what the route it
+   fell back to answered, which is what the verb does meanwhile. */
+test("a coolifyRoute value the key does not take makes the row a miss naming it and the command", async () => {
+  profiled(WHOLE_PROFILE);
+  assert.equal(await levelOf("coolify", { coolifyRoute: "trackr" }), "miss");
+  const said = await detailOf("coolify", { coolifyRoute: "trackr" });
+  assert.match(said, /`coolifyRoute`: trackr is no value of this key — it takes tracker, instance; reading tracker/u);
+  assert.match(said, /`forge doctor --coolify-route tracker\|instance`/u);
+  assert.match(said, /^the tracker's own bindings/u, "and the route it fell back to is the one described");
 });
 
 test("the cloudflare row is a note with no account and an ok with one", async () => {

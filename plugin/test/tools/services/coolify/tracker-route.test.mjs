@@ -11,6 +11,7 @@ import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../../../fixtures.
 import { OWN } from "../../../fixtures/own-keys.mjs";
 import { ROUTES } from "../../../../src/tracker/routes.mjs";
 import { ROUTELESS, TRACKER_SERVED } from "../../../../src/tools/services/coolify/chosen-route.mjs";
+import { NO_ROUTE_KEYS, noRouteRefusal } from "../../../../src/tracker/declared/no-route.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
@@ -28,7 +29,7 @@ const state = {
     forge_coolify: (args) => {
       if (args.action === "list") return { integrations: [BINDING] };
       if (args.action === "targets") return { integrationId: args.integrationId, targets: [{ ...BINDING.targets[0], found: true }] };
-      if (args.action === "status") return { deliveries: [{ integrationId: BINDING.id, status: "ok" }] };
+      if (args.action === "status") return { deliveries: state.deliveries ?? [{ integrationId: BINDING.id, status: "ok" }] };
       if (args.action === "rollback-images") return { current: "v2", images: [{ tag: "v2", isCurrent: true }] };
       if (args.action === "cancel") return { cancelled: true };
       return state.deploy ?? { dispatched: true, pendingHumanConfirm: false, integrationIds: [BINDING.id] };
@@ -173,6 +174,48 @@ test("a write is refused without --yes, and --dry-run prints the request without
   assert.deepEqual(shown.calls, [], "a preview sends nothing");
 });
 
+/* Consent is the route table's `writes`, read per subcommand, so this follows the row rather than a
+   list of names: a row that starts to act is refused here without a second edit anywhere. */
+test("each subcommand is refused without --yes exactly where its route row declares a write", async () => {
+  chose(null);
+  for (const [name, key] of Object.entries(TRACKER_SERVED)) {
+    const run = await ran(name);
+    if (ROUTES[key].writes) {
+      assert.equal(run.status, 1, `${name} writes and went out without --yes`);
+      assert.match(run.stderr, new RegExp(`coolify ${name}: a write is refused without --yes`, "u"));
+      assert.deepEqual(run.calls, [], `${name} sent a request on its way to the refusal`);
+    } else {
+      assert.equal(run.status, 0, `${name} reads and was refused: ${run.stderr}`);
+    }
+  }
+});
+
+/* The tracker's rows carry none of the instance's preferred field names, so the columns are the ones
+   its rows carry, in its order, under the one cap both routes' renderer holds. */
+test("a tracker-route table shows the first eight fields in the tracker's order, over a count", async () => {
+  chose(null);
+  const wide = Object.fromEntries(Array.from({ length: 10 }, (_, at) => [`field_${at}`, `v${at}`]));
+  state.deliveries = [wide, wide];
+  const run = await ran("status", "--table");
+  state.deliveries = undefined;
+  assert.equal(run.status, 0, run.stderr);
+  const [header] = run.stdout.split("\n");
+  assert.deepEqual(header.split(/\s{2,}/u), Array.from({ length: 8 }, (_, at) => `field ${at}`));
+  assert.match(run.stdout, /\n2 item\(s\)$/mu);
+});
+
+/* The project id is resolved once per report: every read the report starts shares one listing,
+   and the cache is dropped before any of them rather than between two of them. */
+test("forge doctor lists the tracker's projects once while its reads run together", async () => {
+  chose(null);
+  state.calls = [];
+  const run = await ranAsync(FORGE, ["doctor"], tracker.env, bare);
+  const listed = (state.calls ?? []).filter((one) => one.method === "GET" && one.path === "/api/projects");
+  assert.ok((state.calls ?? []).some((one) => one.path.endsWith("/integrations/coolify")),
+    `the bindings were read: ${run.stderr}`);
+  assert.equal(listed.length, 1, `the project listing went out ${listed.length} times`);
+});
+
 /* The row reaches the tracker, and `forge doctor` is the one command whose whole point is every
    finding at once: a report that stops on its second row because a key another row of it is already
    about is missing has taken the diagnostic down with the fault it was meant to name. */
@@ -227,7 +270,19 @@ test("the two rows that act are declared writes, and the four that read are not"
 });
 
 test("each name with no route is one the transport's own no-route table answers for", () => {
+  assert.deepEqual(Object.values(ROUTELESS), NO_ROUTE_KEYS.filter((key) => key.startsWith("forge_coolify.")),
+    "every coolify capability the transport refuses is a name this route refuses, and no other");
   for (const [name, key] of Object.entries(ROUTELESS)) {
     assert.equal(ROUTES[key], undefined, `${name} has a row, so it would be served rather than refused`);
+  }
+});
+
+test("a name with no route is refused in the no-route table's own words", async () => {
+  chose(null);
+  for (const [name, key] of Object.entries(ROUTELESS)) {
+    const run = await ran(name);
+    assert.equal(run.status, 1);
+    assert.ok(run.stderr.includes(noRouteRefusal(key)), `${name} was not refused with ${key}'s sentence`);
+    assert.deepEqual(run.calls, []);
   }
 });

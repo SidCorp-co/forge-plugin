@@ -10,7 +10,7 @@ import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs"
 import { STORES } from "./machine/stores.mjs";
 import { ENUM_FLAGS, valuesOf } from "./project/enum-keys.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
-import { TAKEN_HERE, TO_TRACKER, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
+import { INSTANCE_NAMES, TAKEN_HERE, TO_TRACKER, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
 import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
@@ -100,8 +100,7 @@ export const VERBS = [
     null, { group: HARNESS }],
   /* Two ways to one platform, and the row names the one that answers: a usage list offering the
      other way's commands offers every one of them to a refusal. */
-  ["coolify", () => `<${(onTracker() ? TAKEN_HERE
-    : ["login", "accounts", "whoami", "pin", "app", "deploy", "deployment", "project", "resource"]).join("|")}>`,
+  ["coolify", () => `<${(onTracker() ? TAKEN_HERE : INSTANCE_NAMES).join("|")}>`,
   () => (onTracker()
     ? "this project's own deployment bindings, on the credential already held"
     : "a pinned project's deployments, and nothing outside it"), null,

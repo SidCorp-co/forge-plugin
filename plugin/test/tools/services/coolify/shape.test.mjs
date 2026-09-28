@@ -12,6 +12,7 @@ import {
   redact,
   renderObject,
   renderTable,
+  rendered,
   summarize,
 } from "../../../../src/tools/services/coolify/shape.mjs";
 
@@ -116,6 +117,18 @@ test("an action's reply is passed through rather than projected into an empty ob
 test("a table takes the preferred columns present and the object render pads to the widest key", () => {
   assert.deepEqual(pickColumns([{ uuid: "a1", name: "web", docker_compose_raw: "x" }]), ["uuid", "name"]);
   assert.equal(renderObject({ uuid: "a1", name: "web" }), "uuid  a1\nname  web");
+});
+
+/* Both routes print through one renderer: the instance route's preferred columns by default, a
+   caller's own column choice otherwise, and neither past the one cap. */
+test("a table keeps the preferred columns by default and caps any column choice at eight", () => {
+  const row = { docker_compose_raw: "x", uuid: "a1", name: "web", status: "running", fqdn: "w.example",
+    type: "app", build_pack: "nixpacks", git_branch: "main", key: "K", value: "V", environment_id: 1 };
+  const [header] = rendered([row], true).split("\n");
+  assert.deepEqual(header.split(/\s{2,}/u), ["uuid", "name", "status", "fqdn", "type", "build pack", "git branch", "key"]);
+  const own = rendered([row], true, (rows) => Object.keys(rows[0])).split("\n");
+  assert.equal(own[0].split(/\s{2,}/u).length, 8, "a caller's own columns are held to the same cap");
+  assert.equal(own.at(-1), "1 item(s)");
 });
 
 /* One route answers with its records wrapped beside a count. The wrapper is two keys, so it is not

@@ -6,7 +6,8 @@ import { wrapper } from "./shape.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 import { PIN_WAYS } from "./config.mjs";
 
-const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
+/** The object rows of a listing, and none where the answer is not a list. */
+export const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
 
 const asList = (value) => {
   if (value === undefined || value === null || value === "") return [];

@@ -17,14 +17,16 @@ export const PIN_FORMS = [
 ];
 export const PIN_WAYS = [...PIN_FORMS, "  forge coolify pin, with neither, lists the projects this token can see"];
 
-/* One value or several, spelled either way round, so two projects pin as cheaply as one. */
+/* One value or several, as a list or comma-separated, so two projects pin as cheaply as one. */
 const asList = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.flatMap(asList);
   return String(value).split(",").map((one) => one.trim()).filter(Boolean);
 };
 
-const SCOPE_KEYS = ["project_uuid", "environment"];
+/** What a pin holds: the project, and the environments narrowing it where any were named. The
+ *  reader below takes these and the project-file write refuses any other field under the pin. */
+export const PIN_FIELDS = ["project_uuid", "environment"];
 
 /** The pin and the file it was read from. `at` is null where no project is pinned, which includes a
  *  directory in no checkout: a flag or a variable that could retarget it would follow you into
@@ -32,12 +34,19 @@ const SCOPE_KEYS = ["project_uuid", "environment"];
 export const pinned = () => {
   const held = projectCoolify();
   const spec = {};
-  for (const key of SCOPE_KEYS) {
+  for (const key of PIN_FIELDS) {
     const values = asList(held[key]);
     if (values.length) spec[key] = values;
   }
-  return { at: spec.project_uuid ? projectFilePath() : null, record: projectFilePath(), spec };
+  const record = projectFilePath();
+  return { at: spec.project_uuid ? record : null, record, spec };
 };
+
+/** What a pin reading says after the word `pinned`, in one sentence for every surface that prints
+ *  one, the route out on it where nothing is pinned. */
+export const pinSaid = ({ at, spec, record }) => (at
+  ? `project ${spec.project_uuid.join(", ")}  ← ${at}`
+  : `nothing${record ? ` in ${record}` : ", this directory belonging to no checkout"} — forge coolify pin`);
 
 /* The base path, appended where the saved URL stops at the host — which is what a browser gives. */
 const withBase = (raw) => {
