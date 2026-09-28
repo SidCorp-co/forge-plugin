@@ -25,6 +25,17 @@ alone does not decide: a value holding an address anywhere — any scheme, in an
 user-info, a query or a fragment is guarded whatever it is filed under. The report still withholds the label —
 what is printed is that document's rule, not this one's.
 
+**What the tracker already stores is re-sent, not supplied, and it goes.** Every write re-sends an
+issue's stored `sessionContext` whole, because the lease is a field of it. Judging the whole payload
+made one credential a run once wrote into that field refuse every later write to the issue, and it
+told a caller who had typed none to take it out (ISS-1380). So the seat is told what the record held
+when the payload was built from it. A string that record holds word for word in the same field tells
+the tracker nothing it has not taken already, so it passes, and a line names it as the stored copy
+along with `forge issue <ref> --redact`, the one write to that field that is not the lease's. Any other
+string is the caller's and is judged as before. The redaction masks exactly what the guard would
+refuse. It cannot reach a copy the tracker may keep of an earlier value, and it says so rather than
+leave a reader looking for the command that does.
+
 **A refusal says where in the author's own words the hit sits**, every guarded value in that text
 masked before the text is cut, so a false positive is recognisable from the refusal itself and the
 secret a true one found is not printed by the message about it.

@@ -176,6 +176,9 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
       }
     },
     soft,
+    /* The context the write is conditional on is the one the tracker stores, so what the value
+       re-sends from it is told apart from what the caller supplied (ISS-1380). */
+    { stored: asks && held ? { sessionContext: held } : null, ref },
   );
   const asked = asks && enforcementOf() === null ? await establish((one) => send(one, true)) : null;
   if (asked?.refused) refuse(asked.refused);

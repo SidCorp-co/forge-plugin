@@ -9,6 +9,8 @@ import { NOT_STATED } from "../../src/goals.mjs";
 import {
   credentialLeak,
   deployFrom,
+  redactedCopy,
+  storedCopies,
   deployed,
   judgementOf,
   landingRoute,
@@ -208,7 +210,8 @@ test("a project that declares no model is noted rather than read as one, and an 
 
 test("the report withholds a credential and names the one command that prints it", () => {
   const out = said({});
-  assert.match(out, /^test credentials: present, forge doctor --credentials$/mu);
+  assert.match(out, /^test credentials: present, forge doctor --credentials {2}← the tracker's project detail$/mu,
+    "and it names where the values it withholds are stored");
   assert.match(out, /^held, not printed: staging · urls · label, test credentials · username, test credentials · password$/mu);
   assert.doesNotMatch(out, /correct-horse-battery/u, "the value is the thing the flag is for");
   assert.doesNotMatch(out, /qa@example\.test/u);
@@ -219,8 +222,10 @@ test("the flag prints the values, and nothing else moves", () => {
   assert.match(out, /^test credentials · password: correct-horse-battery$/mu);
   assert.match(out, /^test credentials · username: qa@example\.test$/mu);
   assert.doesNotMatch(out, /held, not printed/u);
-  assert.match(out, /^test credentials: below, printed once$/mu,
+  assert.match(out, /^test credentials: below, printed once {2}← the tracker's project detail$/mu,
     "and the summary stops pointing at the flag the caller just used");
+  assert.match(out, /^copied onto an issue: a copy an issue's stored sessionContext carries is taken off with forge issue <ref> --redact$/mu,
+    "the route the stored-copy line names is where the refusal sends the caller too");
   assert.match(out, /^staging: https:\/\/beta\.example\.test$/mu);
 });
 
@@ -314,6 +319,31 @@ test("a payload holding no credential passes, and so does one on a project holdi
     deployFrom(stagingOf({ preview: { url: "https://x.test" }, testCredentials: [] }))), null);
   assert.equal(credentialLeak({ body: "correct-horse-battery" }, null), null,
     "a read this CLI could not make refuses nothing: that refusal would have no route out");
+});
+
+/* What the tracker already stores is re-sent rather than supplied, and only that: a string it does not
+   hold word for word in the same field is the caller's, and judged exactly as before (ISS-1380). */
+test("a string the stored record already holds goes, and anything else carrying a credential is refused", () => {
+  const deploy = deployFrom(HELD);
+  const stored = { sessionContext: { reviewFeedback: ["signed in with correct-horse-battery"] } };
+  const resent = { sessionContext: { reviewFeedback: ["signed in with correct-horse-battery"], lease: { holder: "me" } } };
+  assert.equal(credentialLeak(resent, deploy, stored), null, "the stored copy re-sent is not the caller's");
+  assert.deepEqual(storedCopies(resent, deploy, stored).map((one) => one.field), ["sessionContext.reviewFeedback.0"]);
+  assert.equal(credentialLeak(resent, deploy).field, "sessionContext.reviewFeedback.0", "with no stored record, as before");
+  const added = { sessionContext: { ...resent.sessionContext, note: "and again, correct-horse-battery" } };
+  assert.equal(credentialLeak(added, deploy, stored).field, "sessionContext.note",
+    "a string the tracker does not hold is refused though a stored one beside it goes");
+  assert.equal(credentialLeak({ body: "signed in with correct-horse-battery" }, deploy, stored).field, "body",
+    "and a field the stored record is not of is judged whole, word for word the same or not");
+});
+
+test("a redacted copy masks what the guard refuses and leaves every other string as it was", () => {
+  const deploy = deployFrom(stagingOf({ testCredentials: [{ username: "admin", password: "correct-horse-battery" }] }));
+  const value = { feedback: ["the admin screen", " admin ", "used correct-horse-battery twice: correct-horse-battery"],
+    count: 3, branch: "iss-1" };
+  assert.deepEqual(redactedCopy(value, deploy), { feedback: ["the admin screen", "[withheld]",
+    "used [withheld] twice: [withheld]"], count: 3, branch: "iss-1" });
+  assert.equal(credentialLeak(redactedCopy(value, deploy), deploy), null, "and nothing the guard refuses is left");
 });
 
 test("a credential nested anywhere in a payload is found, and the field says where", () => {
