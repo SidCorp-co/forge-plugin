@@ -1,12 +1,12 @@
 /* What both stop-check suites stand on: the gate loaded under a home of the suite's own, a turn
    written as a transcript, a worktree and a process to find in it, and the clock a case pins. */
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanRepo, projectRecord, tempRoom } from "../../fixtures.mjs";
+import { cleanRepo, git, jsonlOf, projectRecord, tempRoom } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 export const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, "");
@@ -33,12 +33,11 @@ export const transcript = (...records) => written([prompt, ...records]);
 
 export const written = (records) => {
   const path = join(tempRoom("stop-check-turn-"), "t.jsonl");
-  writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
+  writeFileSync(path, jsonlOf(records));
   return path;
 };
 
-export const git = (dir, ...argv) =>
-  spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: dir, encoding: "utf8" });
+export { git };
 
 /* A worktree cut fresh for each case, so one case's leftover process is never read by another's. */
 export const freshWorktree = () => {
