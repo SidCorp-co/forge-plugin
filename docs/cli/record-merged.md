@@ -37,6 +37,34 @@ composer lives in the same module as the parsers and why this is the only place 
 is the whole argument for one module holding the write and the read together: neither half can move
 without the other.
 
+## `--at` is checked against the base branch as fetched
+
+A head that exists only on the builder's own branch is no landing, however cleanly git reads it in
+that checkout — which is what a delegated run's own `forge record merged` hit on ISS-1480, marking a
+commit that never reached `origin/master` and walking the issue through three rungs on a landing
+that never happened. `markMerged` still writes whatever note it is handed, being the tracker's own
+write and not this verb's to narrow (`plugin/src/checks/one-writer.mjs` above); the check sits in
+`mergedPrepared` alone, so it never reaches the landing task's own call through `markMerged` — the
+candidate that call marks is one this checkout only just pushed, and asking it to already be
+`origin/<branch>`'s ancestor would refuse a landing for a fetch that has not happened yet.
+
+The read is `git merge-base --is-ancestor <the --at sha> origin/<the branch the note names>`, in the
+checkout the verb runs in, never a local branch of that name which a stale checkout could have moved
+anywhere. Three answers:
+
+- **It does.** The mark is written as asked.
+- **It does not.** Refused, naming the branch, where it stands, and the route left: under a project
+  whose ship mode leaves the landing to another actor, that there is none — the mark is the
+  landing's to write, and what stands ready for it is the checkpoint `forge claim --pushed --ready`
+  leaves; everywhere else, that the change is landed for real, onto that branch, before the same
+  mark is asked for again.
+- **Nothing here can tell.** A shallow checkout, or git erroring on the read, refuses the same way
+  rather than guessing either pass or fail — the fetch that would settle it is named.
+
+Where this checkout has never fetched `origin/<branch>` at all there is no ref to read the ancestry
+off, so none of the above fires and the mark stands exactly as it did before this check existed: the
+tracker's own "a claim Forge did not observe" line is what a reader already sees there.
+
 ## What each clause answers
 
 | Clause | Read by | What it decides |
