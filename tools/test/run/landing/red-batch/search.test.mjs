@@ -53,6 +53,8 @@ test("a red set whose failing step names one member's path alone hands that memb
   assert.equal(landing(NEXT_UUID).candidate, landing(THIRD_UUID).candidate, `on one candidate:\n${said}`);
   assert.equal(marks().length, 0, said);
   assert.match(said, /red batch: attributed by paths, 2 gate\(s\) spent, the candidate's among them/u, said);
+  /* The release block's gate line is the green gate over the two left, never the red one nor none (ISS-594). */
+  assert.match(said, /^ {2}the gate: this release's own took \d+s$/mu, `the searched landing's own gate is not its gate line:\n${said}`);
 });
 
 test("a failing test case falls to the member whose path its file read in the red run", async () => {
