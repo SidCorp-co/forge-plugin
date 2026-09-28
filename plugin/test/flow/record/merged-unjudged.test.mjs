@@ -134,6 +134,8 @@ test("--judged nothing on a page carrying verdicts is refused, naming every head
   assert.match(run.stderr, new RegExp(`^ {2}forge record merged ISS-98 .*--judged ${REVIEWED}`, "mu"),
     `the refusal carries the command that clears it:\n${run.stderr}`);
   assert.deepEqual(marks(), [], "and no mark was written");
+  const again = await unjudged(REVIEWED);
+  assert.equal(again.status, 0, `the head it names clears it, whatever other heads verdicts judged:\n${again.stderr}`);
 });
 
 test("--judged <sha> writes that head and reads landing moved from it", async () => {
