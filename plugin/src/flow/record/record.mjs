@@ -7,7 +7,7 @@ import { SIDE, answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
-import { SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
+import { CARRIES, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
 import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
@@ -37,6 +37,7 @@ import { issueOf, post, sayStored } from "./thread/posting.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
+import { carriedOnto } from "./judged/carried.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -378,6 +379,8 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
   }
+  /* After every refusal, so git is asked only of a write that goes up. */
+  if (shape.fields.some((one) => one.flag === CARRIES)) for (const got of blocks) carriedOnto(got, comments, say);
   await derive(kind, blocks, body, { say, reference });
   await servesChecked(kind, blocks);
   quoteCriteria(kind, blocks, body, reference);

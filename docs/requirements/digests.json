@@ -2590,16 +2590,16 @@
       "digest": "b04d94791d01af889b1cdd1e9f428083abb38d9dea7d51db36b3308b4de3f395"
     },
     "UC-05-6": {
-      "rev": 2,
-      "digest": "fc8d1d1ca303aeba6aa153d8b49c1461b73b5289d853795c86127d944a8e9f33"
+      "rev": 3,
+      "digest": "056de99ef55dc5292054bab9f8998657a85d7b95ad08e32ce8192aa7671612dd"
     },
     "AC-05-6-1": {
       "rev": 1,
       "digest": "77c498b67f31b52e960df1f839a01a806dea6522bd26a41c29f4c0ea4cc50cfa"
     },
     "AC-05-6-2": {
-      "rev": 2,
-      "digest": "9410508d65cbd555a204b69432cf4fed9b992f8104ad06cf7d4e3352758bc97e"
+      "rev": 3,
+      "digest": "8fd4ab48fcbe568b24551a59c2bb5a0346adade7534e8343879a0c0b37d71655"
     },
     "AC-05-6-3": {
       "rev": 1,
@@ -2620,6 +2620,10 @@
     "AC-05-6-7": {
       "rev": 1,
       "digest": "3d90666d4d4760eb6f9597d6cb91864959b5aade06dfb09d82386132073a3c0a"
+    },
+    "AC-05-6-8": {
+      "rev": 1,
+      "digest": "22f9c6d4459d65540ce16be14da244a008ba39e54e1e5e76c027c86ee4379cdf"
     },
     "UC-05-7": {
       "rev": 2,
