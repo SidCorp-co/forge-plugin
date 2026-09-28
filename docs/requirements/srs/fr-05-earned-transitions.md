@@ -367,7 +367,7 @@ part of what a page could hold.
 - **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-2124
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
   partial record, for every status whose entry criteria that record holds.
-- **AC-05-8-2** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "the status a close is earned from is the flow table's own tail, and it reads no record"
+- **AC-05-8-2** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "the status a close is earned from is the flow table's own tail, and a verification besides"
   WHERE the entry criteria of the next status name no payload, the CLI SHALL fetch no comment page
   to judge that transition, the exemption being of the record a page carries and not of the
   project's own configuration, which no page carries either.
