@@ -1,12 +1,16 @@
 // Markdown segmentation: translate the prose, leave the machinery alone.
 
-import { CODE_SPAN_NONEMPTY_PATTERN, LINK_TARGET_OPEN_PATTERN } from "../../src/markdown.mjs";
+import { CODE_SPAN_NONEMPTY_PATTERN, DATA_FENCE_PATTERN, LINK_TARGET_OPEN_PATTERN } from "../../src/markdown.mjs";
 
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 const SPLIT = /(\n[ \t]*\n)/;
 const INLINE_CODE = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "g");
 const LINK_TARGET = new RegExp(LINK_TARGET_OPEN_PATTERN, "g");
 const SENTINEL = /⟦VI\d+⟧/g;
+/* Anything the bracket pair makes, a lone bracket included: what comes back is judged on its own text,
+   since a block the protector gave no sentinel has an empty set on both sides to compare (ISS-1016). */
+const MARKER_SHAPED = /⟦[^⟦⟧\n]*⟧|[⟦⟧]/gu;
+const OWN_MARKER = new RegExp(`^(?:⟦VI\\d+⟧|${DATA_FENCE_PATTERN})$`, "u");
 const NOTHING_TO_SAY = /^[\s\W\d]*$/;
 const COMMENT_ONLY = /^\s*<!--[\s\S]*-->\s*$/;
 const LINK_DEF = /^\s*\[[^\]]+\]:\s*\S+\s*$/;
@@ -136,8 +140,13 @@ export function restoreInline(block, slots) {
 const found = (text, pattern) => (text.match(pattern) ?? []).sort();
 const hashes = (text) => text.trimStart().length - text.trimStart().replace(/^#+/, "").length;
 
-/** What a Markdown block must keep: its sentinels, and every target a `](` opens — a titled link is one the closed form reads nothing from. */
+/** The first marker-shaped token in a translation that is neither a sentinel nor the tracker's fence, or null. */
+const strayMarker = (translated) => (translated.match(MARKER_SHAPED) ?? []).find((token) => !OWN_MARKER.test(token)) ?? null;
+
+/** What a Markdown block must keep: its sentinels and no marker it was not given, and every target a `](` opens — a titled link is one the closed form reads nothing from. */
 export function verify(source, translated) {
+  const stray = strayMarker(translated);
+  if (stray) return `marker-shaped token ${stray} is no placeholder this block was given`;
   if (String(found(source, SENTINEL)) !== String(found(translated, SENTINEL))) {
     return "code span or placeholder token lost";
   }

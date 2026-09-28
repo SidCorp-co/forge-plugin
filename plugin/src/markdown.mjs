@@ -10,6 +10,8 @@ const MARGIN = String.raw`[ \t\r]*`;
 export const TABLE_ROW_PATTERN = `^${MARGIN}\\|(.*)\\|${MARGIN}$`;
 export const TABLE_SEPARATOR_PATTERN = `^${MARGIN}\\|[\\s:|-]+\\|${MARGIN}$`;
 export const MARKUP_PATTERN = "[*`_>[\\]()]";
+/* The tracker's untrusted-data fence, which the transport strips and vi-natural's verification lets pass: docs/cli/the-primitives.md. */
+export const DATA_FENCE_PATTERN = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
 /* A shown line is not a claimed line, and an unclosed fence runs on: docs/cli/the-rung-in-text.md. */
 const FENCE_PATTERN = String.raw`^[ \t]*(?<wall>(?<bar>\x60|~)\k<bar>{2,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>\k<bar>*[ \t]*$|$(?![\s\S]))`;
 const EXAMPLE_PATTERN = [FENCE_PATTERN, String.raw`^(?: {4}|\t)[^\n]*$`].join("|");

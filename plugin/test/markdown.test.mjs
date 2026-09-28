@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import {
   CODE_SPAN_NONEMPTY_PATTERN,
   CODE_SPAN_PATTERN,
+  DATA_FENCE_PATTERN,
   escaped,
   LINK_TARGET_OPEN_PATTERN,
   LINK_TARGET_PATTERN,
@@ -23,7 +24,6 @@ import {
   withoutMarkup,
   withoutSpans,
 } from "../src/markdown.mjs";
-import { FENCE_PATTERN } from "../src/tracker/rest.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
 import { DATA_FIELD, sseData } from "../src/wire/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
@@ -33,7 +33,6 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/wire/sse.mjs";
-const TRANSPORT = "plugin/src/tracker/rest.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 const SPEC_PARSE = "plugin/src/spec/parse.mjs";
@@ -126,7 +125,7 @@ const NEEDLES = [
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
-  ["the untrusted-data fence", TRANSPORT, [FENCE_WORD]],
+  ["the untrusted-data fence", MARKDOWN, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS],
   ["a line number from an index", MARKDOWN, LINE_AT_FORMS, WHOLE_TEXT],
   ["a log's name", LOG_READS, LOG_FORMS],
@@ -162,7 +161,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [MARKDOWN, SHELL, SSE, TRANSPORT, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL]) {
+  for (const home of [MARKDOWN, SHELL, SSE, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -216,7 +215,7 @@ test("the guard fires on a module that re-declares one", () => {
     `f.mjs declares a shell word of its own; ${SHELL} holds it`,
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
-    `j.mjs declares the untrusted-data fence of its own; ${TRANSPORT} holds it`,
+    `j.mjs declares the untrusted-data fence of its own; ${MARKDOWN} holds it`,
     `m.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `o.mjs declares a line number from an index of its own; ${MARKDOWN} holds it`,
@@ -310,15 +309,15 @@ test("escaping an apostrophe for a shell is not re-declaring the quoter", () => 
 });
 
 /* Tied back to the home's own source, so the needle cannot drift from the pattern it watches. */
-test("the fence needle is the source the transport holds, and catches a copy anchored any way", () => {
-  assert.ok(FENCE_PATTERN.includes(FENCE_WORD), "the needle no longer occurs in the pattern it watches");
+test("the fence needle is the source its home holds, and catches a copy anchored any way", () => {
+  assert.ok(DATA_FENCE_PATTERN.includes(FENCE_WORD), "the needle no longer occurs in the pattern it watches");
   const copies = [
     String.raw`const F = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;`,
     String.raw`const F = new RegExp("⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧", "u");`,
   ];
   for (const text of copies) {
     assert.deepEqual(redeclared([{ rel: "k.mjs", text }]),
-      [`k.mjs declares the untrusted-data fence of its own; ${TRANSPORT} holds it`]);
+      [`k.mjs declares the untrusted-data fence of its own; ${MARKDOWN} holds it`]);
   }
 });
 

@@ -11,6 +11,7 @@ import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { fromProject, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
+import { DATA_FENCE_PATTERN } from "../markdown.mjs";
 import { nearestOutside } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
@@ -49,9 +50,8 @@ export const retryAfter = (text, headers) => {
  *  verdict on the file from a call that failed by the first, and reads the accepted set off the second. */
 const refusing = (soft) => (message, answer = {}) => (soft ? { refused: message, ...answer } : fail(message));
 
-/* The tracker's fence: one home, and where each strip has to stand — docs/cli/the-primitives.md. */
-export const FENCE_PATTERN = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
-const FENCE = new RegExp(String.raw`(\r?\n)?^(${FENCE_PATTERN})[ \t]*$(\r?\n)?`, "gmu");
+/* Where each strip of the tracker's fence has to stand — docs/cli/the-primitives.md. */
+const FENCE = new RegExp(String.raw`(\r?\n)?^(${DATA_FENCE_PATTERN})[ \t]*$(\r?\n)?`, "gmu");
 const OPENER = "⟦";
 const CLOSER = "⟦END";
 
