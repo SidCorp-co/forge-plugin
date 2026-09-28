@@ -17,7 +17,7 @@ import { kindUsage } from "./record-rows.mjs";
 import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
 import { supersedingOf } from "./corrections/superseding.mjs";
-import { REPLACE, criteriaSetChecked, planChanged } from "./criteria-set.mjs";
+import { REPLACE, criteriaSetChecked, planChanged } from "./corrections/criteria-set.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 

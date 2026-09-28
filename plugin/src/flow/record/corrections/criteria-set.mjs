@@ -1,7 +1,7 @@
 /* What a field write does to the value it replaces, said before the write where it would drop held
    criteria and after it on every write. The argument for refusing rather than only reporting, and for
    comparing numbers rather than text: docs/cli/record-corrections.md. */
-import { refuse } from "../../refusal.mjs";
+import { refuse } from "../../../refusal.mjs";
 
 const NUMBERED = /^(\d+)\.\s/u;
 
