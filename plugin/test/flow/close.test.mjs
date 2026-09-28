@@ -27,14 +27,22 @@ const DECLARES_NO_MODEL = { baseBranch: "master", pipelineConfig: { autoProdDepl
 const NO_RELEASE_STEP = { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } };
 const PROMOTES = { baseBranch: "master", releaseModel: "promote", liveBranch: "live",
   pipelineConfig: { autoProdDeploy: false } };
-const owedOn = (config, view = { status: CLOSES_FROM }) =>
-  CHECKS.closed(viewFrom("the-uuid", view, [], null, config && releaseFrom(config)), "ISS-3");
+/* A verification naming a deployment, so every case below about the release policy is not also a
+   case about the half ISS-1480 added: presence and a deployment named, never a bare commit sha. Read
+   by `viewFrom` directly and not through the tracker fetch that strips the untrusted-data fence, so
+   this one is built unfenced like the other direct-`viewFrom` fixtures in this suite. */
+const verified = () => ({ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent", body: render("verification",
+  { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) });
+const owedOn = (config, view = { status: CLOSES_FROM }, comments = [verified()]) =>
+  CHECKS.closed(viewFrom("the-uuid", view, comments, null, config && releaseFrom(config)), "ISS-3");
 
-/* Pinned against the order: the constant is read where the flow table cannot be imported. */
-test("the status a close is earned from is the flow table's own tail, and it reads no record", () => {
+/* Pinned against the order: the constant is read where the flow table cannot be imported. Once a
+   project that releases itself owed nothing at all past the status; a verification naming the
+   deployment is owed beside it now, whatever the release policy answers (ISS-1480). */
+test("the status a close is earned from is the flow table's own tail, and a verification besides", () => {
   assert.equal(nextOf(CLOSES_FROM, {}), "closed", `${CLOSES_FROM} is not what closed follows`);
   assert.deepEqual(owedOn(RELEASES_ITSELF), [],
-    "a close reads nothing written where the project releases itself");
+    "a close reads nothing further where the project releases itself and the page already holds one");
 });
 
 /* The whole of the guard as a table: one state per row, each owing a sentence and a different way
@@ -93,7 +101,10 @@ const RECORDING = shippedAs("record-uuid", "ISS-101");
 const UNSET = shippedAs("unset-uuid", "ISS-102");
 const NO_STEP = shippedAs("none-uuid", "ISS-103");
 const PROMOTED = shippedAs("promote-uuid", "ISS-104");
-const verification = render("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] });
+/* A URL and never a bare commit sha: ISS-1480 made the deployment half of this record answer for the
+   close too, and a sha names no deployment there just as it does not at the rung above it. */
+const verification = render("verification",
+  { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] });
 const state = {
   calls: [],
   config: RELEASES_ITSELF,

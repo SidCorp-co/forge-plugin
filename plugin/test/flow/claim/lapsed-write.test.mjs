@@ -8,6 +8,7 @@ import test from "node:test";
 
 import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { render } from "../../../src/flow/record/page.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("lapsed-write").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -51,11 +52,16 @@ const heldBy = (holder, since, minutes) => {
 const ranOutOf = () =>
   new Date(Date.parse(displaced.renewedAt) + displaced.minutes * 60_000).toISOString().slice(0, 16);
 
+/* The rung this issue is set at asks for a verification naming the deployment (ISS-1480), which no
+   case below is about: the lease is the one thing each meets, so the record already holds one. */
+const VERIFIED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
+  body: render("verification",
+    { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) }];
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } },
   issues: [ISSUE],
-  comments: { [UUID]: [] },
+  comments: { [UUID]: VERIFIED },
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {

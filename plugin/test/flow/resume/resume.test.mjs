@@ -405,11 +405,23 @@ test("the owed section is what advance would say, and a refusal becomes the line
 /* A run's end is measured by `closed`, so a brief re-minted on an issue at the release rung says the
    close is owed rather than leaving the phase's name to imply that somebody else might make it (ISS-105). */
 test("a brief on an issue at the release rung owes the close, and names the phase that makes it", () => {
-  const one = brief({ status: "awaiting_release" });
+  const verified = recorded("verification",
+    { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] });
+  const one = brief({ status: "awaiting_release" }, [verified]);
   assert.equal(one.phase, "7 Ship, the close", "the deploying rung names the ship and its tail");
   assert.equal(one.owed.next, "closed");
-  assert.deepEqual(one.owed.missing, [], "the status is the whole of what a close is earned by");
+  assert.deepEqual(one.owed.missing, [],
+    "the status and a verification naming the deployment are the whole of what a close is earned by");
   assert.equal(one.ahead, null, "and nothing is ahead of it");
+});
+
+/* ISS-1480: the release rung alone is not enough, however far short a brief's own read of the
+   page falls — the same page `--owed` would read and refuse the close on. */
+test("a brief on an issue at the release rung with no verification still owes the close", () => {
+  const one = brief({ status: "awaiting_release" });
+  assert.equal(one.owed.next, "closed");
+  assert.ok(one.owed.missing.length, "no verification on the page is still something owed");
+  assert.match(one.owed.missing[0].what, /no verification/u);
 });
 
 test("the brief names the comments it read, which is the read the gate asks for", () => {
