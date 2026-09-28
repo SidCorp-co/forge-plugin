@@ -2,7 +2,7 @@
    environment, so this reads it and nothing here writes it — its model slots decide which model a
    subagent's frontmatter spawns on. Its grammar is its own, which is why it sits apart from the table
    that treats it as one store's fallback. docs/cli/settings.md. */
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 
@@ -17,7 +17,7 @@ const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
    guards it. Any other statement that sources is still recognised, so it is reported as not followed
    rather than dropped. */
 const WORD = String.raw`("[^"]*"|'[^']*'|[^\s'"&;|]+)`;
-const GUARD = String.raw`(?:\[\s+-[efr]\s+${WORD}\s+\]|test\s+-[efr]\s+${WORD})\s*&&\s*`;
+const GUARD = String.raw`(?:\[\s+-([efr])\s+${WORD}\s+\]|test\s+-([efr])\s+${WORD})\s*&&\s*`;
 const SOURCE_LINE = new RegExp(String.raw`^(?:${GUARD})?(?:\.|source)\s+${WORD}\s*;?$`, "u");
 const SOURCING = /(?:^|&&|\|\||;|\bthen\b|\bdo\b)\s*(?:\.|source)\s+\S/u;
 
@@ -58,6 +58,21 @@ const expanded = (word, values) => {
   return { path };
 };
 
+/* The file test as bash answers it: `-f` a regular file, `-e` anything there, `-r` readable. */
+const TESTS = {
+  f: (path) => statSync(path).isFile(),
+  e: (path) => Boolean(statSync(path)),
+  r: (path) => accessSync(path, constants.R_OK) === undefined,
+};
+
+const admitted = (operator, path) => {
+  try {
+    return TESTS[operator](path);
+  } catch {
+    return false;
+  }
+};
+
 const identity = (file) => {
   try {
     return realpathSync(file);
@@ -72,16 +87,17 @@ const followed = (state, line, file, reading) => {
     state.unfollowed.push({ file: line, in: file, why: "a statement this reader does not follow" });
     return;
   }
-  const [, guardBracket, guardTest, target] = matched;
+  const [, bracketTest, guardBracket, testTest, guardTest, target] = matched;
   const guard = guardBracket ?? guardTest;
+  const operator = bracketTest ?? testTest;
   if (guard) {
     const tested = expanded(guard, state.values);
     if (tested.why) {
       state.unfollowed.push({ file: guard, in: file, why: tested.why });
       return;
     }
-    if (!existsSync(tested.path)) {
-      state.unfollowed.push({ file: tested.path, in: file, why: "absent, so its guard skipped it" });
+    if (!admitted(operator, tested.path)) {
+      state.unfollowed.push({ file: tested.path, in: file, why: `not what its -${operator} guard admits, so it was skipped` });
       return;
     }
   }

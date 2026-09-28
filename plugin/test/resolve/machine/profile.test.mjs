@@ -70,15 +70,21 @@ test("a credential still missing names each source that was not followed, and wh
     null);
   const nested = join(home, ".claude", "claude-proxy-token.env");
   const shown = lineOf(forge(home, "codex", "show"), "profile");
-  assert.ok(shown.includes(`${nested} (absent, so its guard skipped it)`), shown);
+  assert.ok(shown.includes(`${nested} (not what its -f guard admits, so it was skipped)`), shown);
   assert.ok(shown.includes('"$ELSEWHERE/keys.env" ($ELSEWHERE, which neither the profile above it nor HOME sets)'), shown);
   assert.ok(shown.includes('source "$(dirname "$0")/t.env" (a statement this reader does not follow)'), shown);
   const consult = forge(home, "codex", "consult", "x.md");
   assert.notEqual(consult.status, 0);
-  assert.ok(consult.stderr.includes(`${nested} (absent, so its guard skipped it)`), consult.stderr);
+  assert.ok(consult.stderr.includes(`${nested} (not what its -f guard admits, so it was skipped)`), consult.stderr);
 });
 
-test("an unreadable sourced file is named as unreadable", () => {
+/* Bash's `-f` is false on a directory, so the guard skips it rather than the read failing on it. */
+test("a guard skips what its file test refuses, and an unguarded unreadable file is named as unreadable", () => {
+  const guarded = homeWith(`ANTHROPIC_BASE_URL=https://gw.example\n${GUARDED}\n`, null);
+  mkdirSync(join(guarded, ".claude", "claude-proxy-token.env"));
+  const skipped = lineOf(forge(guarded, "codex", "show"), "profile");
+  assert.ok(skipped.includes("(not what its -f guard admits, so it was skipped)"), skipped);
+  assert.ok(!skipped.includes("EISDIR"), skipped);
   const home = homeWith(`ANTHROPIC_BASE_URL=https://gw.example\n. ${join(HOME, "not-a-file")}/\n`, null);
   mkdirSync(join(HOME, "not-a-file"), { recursive: true });
   const shown = lineOf(forge(home, "codex", "show"), "profile");
