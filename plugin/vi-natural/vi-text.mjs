@@ -19,3 +19,4 @@ export const GLOSSARY_LINE = "- \"%s\" → %s";
 export const GLOSSARY_KEEP = "giữ nguyên";
 export const PLACEHOLDER_HINT = "\nBản dịch BẮT BUỘC chứa đúng những placeholder này, nguyên văn: %s";
 export const BARE_HINT = "\nĐây là nhãn nút. Trả về ĐỘNG TỪ TRẦN, không kèm tân ngữ: \"Lưu\", không phải \"Lưu khách hàng\".";
+export const VERIFY_HINT = "\nBản dịch trước bị từ chối vì lý do sau — sửa đúng lỗi này rồi dịch lại toàn bộ, đừng chỉ đổi từ khác: %s";

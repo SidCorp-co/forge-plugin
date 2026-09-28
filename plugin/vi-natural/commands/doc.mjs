@@ -14,6 +14,7 @@ import { CliError, err } from "../util.mjs";
 import { DOC_TASK } from "../text/prompts.mjs";
 import { translateItems } from "../gateway/engine.mjs";
 import * as placeholders from "../text/placeholders.mjs";
+import * as drift from "../text/drift.mjs";
 
 const SHOWN = 10;
 
@@ -34,7 +35,9 @@ export async function translate(args, makeClient) {
   const { config, client } = makeClient(args);
   /* The doc kind's prompt names the ⟦VI…⟧ markers, so a string sent under it can come back holding
      one it was never given, and every tracker title is sent that way (ISS-1016). */
-  const asDoc = args.kind === "doc" ? { verify: (source, got) => placeholders.diff(source, got) ?? markdown.verify(source, got) } : {};
+  const asDoc = args.kind === "doc"
+    ? { verify: (source, got) => placeholders.diff(source, got) ?? markdown.verify(source, got) ?? drift.diff(source, got) }
+    : {};
   const { results, problems } = await translateItems(client, [["1", text]], {
     ...asDoc,
     kind: args.kind === "prose" ? null : args.kind,
@@ -46,7 +49,10 @@ export async function translate(args, makeClient) {
   });
   if (problems.length) {
     for (const problem of problems) err(`! ${problem.reason}`);
-    return 1;
+    // `doc` reports the same shape of refusal — a block a verifier rejected twice — as exit 2, and
+    // a title goes through this command under `--kind doc` (ISS-1016), so the two paths a tracker
+    // field can take answer the same way rather than one of them collapsing into a bare error.
+    return args.kind === "doc" ? 2 : 1;
   }
   const written = results.get("1");
   process.stdout.write(`${written}\n`);
@@ -99,7 +105,7 @@ export async function doc(args, makeClient) {
     glossary,
     temperature: args.temperature,
     verbose: args.verbose,
-    verify: markdown.verify,
+    verify: (source, got) => markdown.verify(source, got) ?? drift.diff(source, got),
     register: config.register(),
     region: config.region(),
     contexts,
