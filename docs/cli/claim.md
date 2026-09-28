@@ -31,8 +31,9 @@ there, widening a window nothing in this CLI could close by as long as a comment
 reclaim is a handoff between two holders, though, so a holder taking its own lapsed lease back
 appends nothing to the history and counts as no reclaim.
 
-**A claim writes the lease and never parks**: only the caller knows it is alive, so the reclaim
-count is said to it (ISS-693).
+**A claim writes the lease and never parks its own status**: the reclaim count is said to the caller,
+who alone knows it is alive (ISS-693). One exception: `--ready` lifts a landing-authored conflict
+park, answering the landing's own status write (ISS-2832).
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
 process tree. Outside a harness it is a file under the config directory, which names a machine

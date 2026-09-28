@@ -1,8 +1,12 @@
 /* The pick: the lease a run takes before it writes anything, and the reclaim of one a dead run left
-   behind. It moves no status and posts no record: a park is `forge record park`'s. docs/cli/claim.md. */
+   behind. It moves no status of its own and posts no record: a park is `forge record park`'s. The one
+   exception is `--ready`'s own lift of a landing-authored conflict park, which answers a status write
+   the landing made and this call is the one place positioned to pair it with (ISS-2832).
+   docs/cli/claim.md. */
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { MINTED, sessionOf, sessionSourced } from "../resolve/config.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { fail, Refusal, refusing } from "../resolve/settings.mjs";
+import { Refused } from "../refusal.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
@@ -11,7 +15,8 @@ import { INDEPENDENT } from "./qa/verdicts.mjs";
 import { commentPage, cutIn, mustBeShown } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
-import { SIDE, namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
+import { SIDE, namedIn, parkThatSet, rungFieldsOf, viewFrom } from "./earned.mjs";
+import { isConflictPark } from "./landing/conflict-park.mjs";
 import { owedIn } from "./route.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
@@ -321,6 +326,34 @@ const takeTurn = async (documentId, ref, issue, context, { holder, source, minut
   return taken;
 };
 
+/* A park this landing wrote of its own account is answered by the head this call just captured, so
+   `--ready` lifts it back to the status it left in the same call rather than leaving the checkpoint
+   read `ready` over an issue a park still holds, which is the gap the next landing found refused with
+   no route out (ISS-2832). A park of another kind, or one this landing did not write, keeps its own
+   answer route and is named rather than touched. Returns the issue with its status moved, where the
+   lift landed, or null where nothing of it changed. */
+const liftedIfOwn = async (ref, documentId, issue, readyView, checkpointHead) => {
+  if (!SIDE.includes(issue.status)) return null;
+  const parkedAt = issue.status;
+  const view = readyView ?? viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
+  const held = parkThatSet(view, parkedAt);
+  if (!held || !isConflictPark(held.record.fields, checkpointHead)) {
+    console.log(`${ref} is still ${parkedAt}${held
+      ? `, parked as \`${held.record.fields.kind}\` by a park this landing did not write`
+      : ""}: a landing refuses to start until it is answered.\n  forge advance ${ref}`);
+    return null;
+  }
+  const { advance } = await import("./advance.mjs");
+  try {
+    await refusing(() => advance([ref]));
+    return { ...issue, status: held.record.fields.left };
+  } catch (error) {
+    if (!(error instanceof Refusal) && !(error instanceof Refused)) throw error;
+    console.log(`${ref} is still ${parkedAt}: the park this landing wrote did not lift. ${error.message}`);
+    return null;
+  }
+};
+
 /* Said and never done, for the reason the threshold carries in crash-park.mjs: past it the caller reads the history and the park command, and decides. */
 const reclaimLines = (ref, lease, status) => {
   const count = reclaimsOf(lease, status);
@@ -372,7 +405,7 @@ export const claim = async (argv) => {
   const line = nextLine(given.next);
   const captured = await patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
-  const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
+  let issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   const context = issue?.sessionContext ?? null;
   /* Into the capture's own object where there is one, which is the key its written line waits under. */
   const batched = batchPatch(issue?.issueId ?? ref, given.pushed);
@@ -454,9 +487,13 @@ export const claim = async (argv) => {
     [LANDING_RECORDS_OWED]: (view, independent) => reworkRefusal(ref, patch.head, landingHere, view, independent),
     [LANDING_BUILDER_OWED]: (view, independent) => answerRefusal(ref, patch.head, landingHere, view, independent),
   }[landingHere?.state] : null;
+  /* Fetched once for both the licensing question above and the park a `--ready` over a side status
+     may have to lift below, since both read the same page and neither owns fetching it twice. */
+  const readyView = given.ready && (licensing || SIDE.includes(issue.status))
+    ? viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? [])
+    : null;
   if (licensing) {
-    const view = viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
-    const refused = licensing(view, judgementOf(await releasePolicy()) === INDEPENDENT);
+    const refused = licensing(readyView, judgementOf(await releasePolicy()) === INDEPENDENT);
     if (refused) fail(refused);
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
@@ -504,6 +541,8 @@ export const claim = async (argv) => {
   /* A capture that arms nothing, which Phase 4 takes before the status moves and at each push, so the
      project's own pre-ready checks are read before the call that arms the landing (ISS-2515). */
   if (given.pushed && !turns.length) for (const one of readyChecksLines(ref, readyChecks())) console.log(one);
+  const lifted = given.ready ? await liftedIfOwn(ref, documentId, issue, readyView, landingHere?.head) : null;
+  if (lifted) issue = lifted;
   return advise(documentId, issue, worklogOf(next), next?.[LANDING]);
 };
 claim.answersHelp = true;
