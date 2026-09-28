@@ -4045,6 +4045,18 @@
       "rev": 1,
       "digest": "57a6857e9fe70a112d8388e3108e875fae5653d8c7255166373bcb4968d7f55a"
     },
+    "UC-13-4": {
+      "rev": 1,
+      "digest": "c37f2edef726f853336b9c53e5b72a077071eb9f94d8a30dd9afcc0b76dc5746"
+    },
+    "AC-13-4-1": {
+      "rev": 1,
+      "digest": "8718f11de65882008484905a1a3ed090f5bd55dfafe3208c1257a64229192587"
+    },
+    "AC-13-4-2": {
+      "rev": 1,
+      "digest": "f5a823523672681018eaef0514e139cb62523687d55c332842baf42f7409bf93"
+    },
     "FR-14": {
       "rev": 1,
       "digest": "715ebd27ddbb153dc79e14c95d0aee30214f12a232acd219848f01c5ce8aaad1"
