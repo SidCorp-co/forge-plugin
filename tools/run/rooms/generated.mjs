@@ -45,10 +45,10 @@ const ranIn = (room, scripts) => {
    back — so neither an absent file nor an ignored one is cleared by reading as unlisted. */
 const tracked = (room, path) => git(["cat-file", "-e", `HEAD:${path}`], room).status === 0;
 
-/* The room put back at its commit, what the room borrowed kept, so one run's removal and writes are
-   not the next run's starting tree. */
+/* The room put back at its commit, ignored files included and what the room borrowed kept, so one
+   run's removal, writes and caches are not the next run's starting tree. */
 const putBack = (room) => git(["reset", "-q", "--hard", "HEAD"], room).status === 0
-  && git(["clean", "-fdq", ...LINKED.flatMap((one) => ["-e", `/${one}`])], room).status === 0;
+  && git(["clean", "-fdxq", ...LINKED.flatMap((one) => ["-e", `/${one}`])], room).status === 0;
 
 /** The generators run once over the room with `removed` gone: which script failed, or what they left moved. */
 const ranWithout = (room, scripts, removed) => {

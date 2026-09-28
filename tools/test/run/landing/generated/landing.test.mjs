@@ -208,3 +208,23 @@ test("a moved path whose removal alone moves another file is named as read, besi
   assert.deepEqual(found.generated, [LIST], JSON.stringify(found));
   assert.match(found.why, /removing docs\/source\.txt alone also moved docs\/made\.txt, so docs\/source\.txt is a file they read/u, found.why);
 });
+
+/* A generator that leaves an ignored cache and writes otherwise once it finds one: each path is read
+   from the merged head as it stands, so no run sees what an earlier one left. */
+test("an ignored file one run leaves is gone before the next path is read", () => {
+  const { work } = generating();
+  const made = join("docs", "made.txt");
+  const marker = join("docs", "made.cache");
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  put(work, ".gitignore", `${marker}\n`);
+  put(work, made, "fresh\n");
+  put(work, join("tools", "made.mjs"), `import { existsSync, writeFileSync } from "node:fs";\n`
+    + `writeFileSync(${JSON.stringify(made)}, existsSync(${JSON.stringify(marker)}) ? "stale\\n" : "fresh\\n");\n`
+    + `writeFileSync(${JSON.stringify(marker)}, "cached\\n");\n`);
+  put(work, "package.json", JSON.stringify({ ...held, scripts: { ...held.scripts, "generate:made": "node tools/made.mjs" } }, null, 2));
+  git(work, "add", ".gitignore", "package.json", made, join("tools", "made.mjs"));
+  git(work, "commit", "-qm", "a generator that leaves an ignored cache");
+  const found = regenerated(work, sha(work, "HEAD"), [made, LIST]);
+  assert.deepEqual(found.generated, [made, LIST], JSON.stringify(found));
+  assert.equal(found.why, null, JSON.stringify(found));
+});
