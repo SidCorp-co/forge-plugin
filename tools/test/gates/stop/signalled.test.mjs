@@ -11,6 +11,7 @@ import { pathToFileURL } from "node:url";
 import { escaped, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 import { configHome, HANGS_IN, HOLDING, landed, ROOT, RUNNER, run, scratch, SHELL_ENV } from "../scratch.mjs";
 import { STEPS } from "../../../gates/steps.mjs";
+import { verdictRuns } from "../../../gates/verdict.mjs";
 
 const HELD = "HELD_AT";
 const holdAs = (name, before = "") => `node -e "${before}require('fs').writeFileSync(process.env.${HELD}+'/${name}',`
@@ -105,6 +106,8 @@ test("a gate stopped by its pid takes every process of its step, the orphaned on
     assert.equal(running(pids.orphan), false, `the orphaned grandchild ${pids.orphan} outlived the gate`);
     assert.equal(running(pids.sibling), true, `the gate's own child ${pids.sibling}, under no step, was signalled`);
     assert.match(gate.said, new RegExp(`gate verdict: stopped — at the step ${escaped(HANGS_IN)}, `, "u"), gate.said);
+    const written = verdictRuns(work).at(-1);
+    assert.deepEqual([written.verdict, written.signal, written.step, written.code], ["stopped", "SIGTERM", HANGS_IN, 143]);
     assert.deepEqual(rooms(tmp), [], `the stopped gate left its temp root:\n${gate.said}`);
     const waited = run(work, ["--wait", "1"]);
     assert.equal(waited.status, 143, waited.stdout + waited.stderr);
