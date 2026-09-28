@@ -231,7 +231,7 @@ export const restoreMachine = (text, held = {}) => {
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage
    list all read: a field named in two places is a shape that disagrees with itself. The block it is
    written into is `machine/block.mjs`'s, which imports nothing from here, so either side may reach it. */
-export const CAUSE_FIXED = "cause-fixed";
+const CAUSE_FIXED = "cause-fixed";
 export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded", CAUSE_FIXED];
 /* The findings that end an issue without code, read by every reader that counts a disposition rather
    than each comparing with `holds`. A cause another change already fixed, with the deliverable the
