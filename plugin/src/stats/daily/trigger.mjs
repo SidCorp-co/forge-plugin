@@ -10,17 +10,15 @@ import { join } from "node:path";
 import { yesterday } from "./day.mjs";
 import { RELEASE, SESSION, triggersOf } from "../report/settings.mjs";
 import { clearMark, markPath, pagePath, reportsWhere, takeMark, writerHolds } from "./store.mjs";
-import { projectFileAt } from "../../resolve/settings.mjs";
+import { enumOf, projectFileAt } from "../../resolve/settings.mjs";
 import { PLUGIN_ROOT } from "../../tools/plugin-copy.mjs";
 
-/** The project key's values: `off`, where a project that never set it stands, and `daily`. */
-export const REPORT_MODES = ["off", "daily"];
 const ON = "daily";
 
 /* Whether the project standing at a directory asked for the reports and names this act. */
 const asked = (cwd, act) => {
   const record = projectFileAt(cwd);
-  return record?.report === ON && triggersOf(record?.reportOn).includes(act);
+  return enumOf("report", record, `the project file under ${cwd}`).value === ON && triggersOf(record?.reportOn).includes(act);
 };
 
 /* The writer, detached; null where it could not be started. A spawn that fails does so on a later

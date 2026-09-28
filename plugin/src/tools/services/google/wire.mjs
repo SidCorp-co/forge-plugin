@@ -2,7 +2,7 @@
    runs under the configured deadline and through the origin `google.endpoint` may replace. Nothing
    here prints; what a failure says is the caller's, which knows which credential and which method. */
 import { userConfig } from "../../../resolve/config.mjs";
-import { clockFor, deadlineOf, ranOut } from "../../../wire/request.mjs";
+import { bytesWithin, clockFor, deadlineOf, ranOut } from "../../../wire/request.mjs";
 import { API, refuse, struck } from "./exits.mjs";
 
 /** The origin that stands in for every Google API, upload and discovery host, when one is configured. */
@@ -32,8 +32,9 @@ export const reach = async (method, url, { headers = {}, body = null } = {}) => 
   const deadline = deadlineOf(null);
   let response = null;
   try {
-    response = await fetch(url, { method, headers, signal: clockFor(deadline), ...(body === null ? {} : { body }) });
-    const bytes = Buffer.from(await response.arrayBuffer());
+    const clock = clockFor(deadline);
+    response = await fetch(url, { method, headers, signal: clock, ...(body === null ? {} : { body }) });
+    const bytes = await bytesWithin(response, clock);
     return { status: response.status, ok: response.ok, headers: response.headers, bytes };
   } catch (dropped) {
     if (dropped.name === "TimeoutError") return refuse(API, `google: did not answer ${method} ${struck(url)}: ${ranOut(dropped, deadline)}`);

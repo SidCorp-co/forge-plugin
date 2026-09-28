@@ -14,12 +14,11 @@ import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { readyProblem } from "../../flow/landing/ready-checks.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { answersProblem } from "../../stats/corpus/answers.mjs";
-import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
 import { TRIGGERS_KEY, triggersRefusal } from "../../stats/report/settings.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import { PIN_FIELDS } from "./coolify/config.mjs";
+import { ENUM_KEYS, valuesOf } from "../../resolve/project/enum-keys.mjs";
 import {
-  ASK_MODES,
   CHECK_MS_AT_MOST,
   CHECK_MS_TAKES,
   Refusal,
@@ -28,13 +27,8 @@ import {
   DRAINS,
   FEEDBACK_CHANNELS,
   fromProject,
-  LANDING_ROUTES,
-  RED_BATCHES,
   OWED_DOORS,
-  PROJECT_SHAPES,
-  RELEASE_MODES,
   RUNS_TAKES,
-  SHIP_MODES,
   checkMsOf,
   slugRouteHere,
   chosen,
@@ -184,6 +178,9 @@ export const withoutKey = (text, key) => {
 const said = (key, takes, given) =>
   `\`${key}\` in ${fromProject()} is ${takes}, not \`${JSON.stringify(given ?? null)}\`.`;
 
+/* A reader that judges its own key answers with the problem it found, or with none. */
+const saidOf = (problem) => (problem ? said(problem.key, problem.takes, problem.given) : null);
+
 /* Stated here and not borrowed: these keys are read as they come, so there is no reader's sentence to
    reach for and the shape each reader needs to function is the whole of what a write can check. */
 const aString = (key, given) =>
@@ -205,10 +202,17 @@ const outside = (key, given, allowed) => {
   return unknown === undefined ? null : said(key, `one of ${allowed.join(", ")}`, given);
 };
 
+const enumRefusal = (key, given) => outside(key, given, valuesOf(key));
+
+/* Every enum-valued key that is a key of its own at the top of the file, each judged off its row; one
+   nested in a table, `asks.mode`, is judged by that table's own row. */
+const ENUM_ROWS = Object.fromEntries(Object.keys(ENUM_KEYS).filter((key) => !key.includes("."))
+  .map((key) => [key, { paths: { "": "text" }, judge: (given) => enumRefusal(key, given) }]));
+
 /* `owner` only adds to the built-in categories, so an empty list is refused as a line that does nothing. */
 const asksRefusal = (given) => {
   if (!given || typeof given !== "object" || Array.isArray(given)) return said("asks", "a table", given);
-  return (given.mode === undefined ? null : outside("asks.mode", given.mode, ASK_MODES))
+  return (given.mode === undefined ? null : enumRefusal("asks.mode", given.mode))
     || (given.owner === undefined ? null : listOfNames("asks.owner", given.owner));
 };
 
@@ -242,8 +246,7 @@ const codexRefusal = (given) => {
 
 /* The answer table's own reader judges it, so a write refuses exactly what a reading would. */
 const answersRefusal = (given) => {
-  const problem = given === undefined ? null : answersProblem(given);
-  return problem ? said(problem.key, problem.takes, problem.given) : null;
+  return given === undefined ? null : saidOf(answersProblem(given));
 };
 
 const statsRefusal = (given) => {
@@ -318,10 +321,7 @@ export const PROJECT_KEYS = {
   review: { paths: { lines: "number", paths: "list" }, judge: reviewRefusalOf },
   tests: {
     paths: { root: "text", pattern: "text" },
-    judge: (given) => {
-      const problem = testsProblem(given);
-      return problem ? said(problem.key, problem.takes, problem.given) : null;
-    },
+    judge: (given) => saidOf(testsProblem(given)),
   },
   feedback: {
     paths: { plugin: "text", project: "text" },
@@ -333,20 +333,12 @@ export const PROJECT_KEYS = {
      which holds it to this row's judge like any other key. */
   coolifyPin: { routed: ROUTED.coolifyPin, judge: coolifyRefusal },
   drainedBy: { paths: { "": "text" }, judge: (given) => outside("drainedBy", given, DRAINS) },
-  landing: { paths: { "": "text" }, judge: (given) => outside("landing", given, LANDING_ROUTES) },
-  redBatch: { paths: { "": "text" }, judge: (given) => outside("redBatch", given, RED_BATCHES) },
-  ship: { paths: { "": "text" }, judge: (given) => outside("ship", given, SHIP_MODES) },
+  ...ENUM_ROWS,
   asks: { paths: { mode: "text", owner: "list" }, judge: asksRefusal },
   ready: {
     paths: { checks: "list" },
-    judge: (given) => {
-      const problem = readyProblem(given);
-      return problem ? said(problem.key, problem.takes, problem.given) : null;
-    },
+    judge: (given) => saidOf(readyProblem(given)),
   },
-  shape: { paths: { "": "text" }, judge: (given) => outside("shape", given, PROJECT_SHAPES) },
-  release: { paths: { "": "text" }, judge: (given) => outside("release", given, RELEASE_MODES) },
-  report: { paths: { "": "text" }, judge: (given) => outside("report", given, REPORT_MODES) },
   [TRIGGERS_KEY]: { paths: { "": "list" }, judge: (given) => triggersRefusal(given, said) },
   lease: {
     paths: { workingRe: "text" },

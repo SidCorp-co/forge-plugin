@@ -4,7 +4,7 @@
    and an assert inside a loop over an array that is empty. What an assertion should have said
    instead is a judgement, and the review's. */
 
-import { lineAt } from "../../markdown.mjs";
+import { escaped, lineAt } from "../../markdown.mjs";
 import { blanked, closesAfter } from "../suite/wall-clock.mjs";
 import { argumentsAt, atTopLevel } from "./calls.mjs";
 
@@ -40,7 +40,7 @@ const INSTEAD = {
 /** The function a name was last bound to the answer of before `at`: `const name = [await] callee(…)`
  *  with nothing after the call, so a method's answer or a chain's last link is not the callee's. */
 const calleeOf = (code, name, at) => {
-  const bound = new RegExp(String.raw`\b(?:const|let|var)\s+${name.replace(/\$/gu, "\\$")}\s*=\s*(?:await\s+)?(${NAME})\s*\(`, "gu");
+  const bound = new RegExp(String.raw`\b(?:const|let|var)\s+${escaped(name)}\s*=\s*(?:await\s+)?(${NAME})\s*\(`, "gu");
   let found = null;
   for (const one of code.matchAll(bound)) {
     if (one.index >= at) break;
@@ -51,7 +51,7 @@ const calleeOf = (code, name, at) => {
 };
 
 const callsAny = (body, names) =>
-  names.some((one) => new RegExp(String.raw`(?:^|[^\w$.])${one.replace(/\$/gu, "\\$")}\s*\(`, "u").test(body));
+  names.some((one) => new RegExp(String.raw`(?:^|[^\w$.])${escaped(one)}\s*\(`, "u").test(body));
 
 const FUNCTION = new RegExp(String.raw`\b(?:const|let)\s+(${NAME})\s*=\s*(?:async\s*)?(?:\([^)]*\)|${NAME})\s*=>|\bfunction\s*\*?\s*(${NAME})\s*\(`, "gu");
 

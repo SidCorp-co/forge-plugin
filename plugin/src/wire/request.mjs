@@ -67,6 +67,37 @@ export const clockFor = (deadline, signal = null) => {
   return signal ? AbortSignal.any([signal, held]) : held;
 };
 
+const UTF8 = new TextDecoder();
+
+/* Read from a reader this side holds, and cancelled from a listener this side adds, rather than left to fetch: undici follows the signal it was handed through a weak reference to a controller of its own, and on a request refusing redirects nothing else holds that controller once the headers are in, so a collection there leaves the read with no deadline at all and it runs to undici's own five minutes as `terminated` (ISS-2767). The cancel is also what closes the socket. A response with no stream has nothing that can stall, and is read as it is. */
+export const bytesWithin = (response, signal) => {
+  if (!response.body) return response.arrayBuffer().then((held) => Buffer.from(held));
+  const reader = response.body.getReader();
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    const stop = () => {
+      reader.cancel(signal.reason).catch(() => {});
+      reject(signal.reason);
+    };
+    const settled = (then) => (value) => {
+      signal.removeEventListener("abort", stop);
+      then(value);
+    };
+    const next = () => reader.read().then(({ done, value }) => {
+      if (done) return settled(resolve)(Buffer.concat(chunks));
+      chunks.push(value);
+      return next();
+    }, settled(reject));
+    if (signal.aborted) return stop();
+    signal.addEventListener("abort", stop, { once: true });
+    return next();
+  });
+};
+
+/** The body as `Response.text()` decodes it — UTF-8, a leading BOM dropped — under the deadline `bytesWithin` holds. */
+export const textWithin = async (response, signal) =>
+  (response.body ? UTF8.decode(await bytesWithin(response, signal)) : response.text());
+
 /* Takes the URL rather than reading one: two endpoints are configured now, so a function reading its own would derive one caller's origin from the other's host (ISS-791, consult 26a108 F2). */
 export const apiBaseOf = (url) => {
   if (typeof url !== "string" || !MCP_TAIL.test(url)) {

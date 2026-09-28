@@ -3,7 +3,7 @@
    through any binding of `node:child_process` whose command is spelt `git`, over the mask the two
    rules beside this share — which treats a template whole, interpolations and all. */
 
-import { lineAt } from "../../markdown.mjs";
+import { escaped, lineAt } from "../../markdown.mjs";
 import { blanked, closesAfter } from "./wall-clock.mjs";
 
 const SPAWNS = ["spawnSync", "spawn", "execFileSync", "execFile", "execSync", "exec", "fork"];
@@ -12,7 +12,7 @@ const FROM = /import\s+([^;]+?)\s+from\s+["']node:child_process["']/gu;
 
 const NAME = /^[A-Za-z_$][\w$]*$/u;
 
-const spelt = (names) => [...names].map((one) => one.replace(/\$/gu, "\\$")).join("|");
+const spelt = (names) => [...names].map(escaped).join("|");
 
 const GIT = /^(["'`])git\1$/u;
 

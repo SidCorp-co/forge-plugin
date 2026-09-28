@@ -1,11 +1,15 @@
 /* The clock one outbound attempt runs under, which both transports now share: every tracker call and every ChatGPT turn is bounded by these five functions, and until this file they were exercised only sideways, through whichever caller happened to be under test (ISS-1047). */
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 
-import { apiBaseOf, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut, secondsGiven, waitSeconds } from "../../src/wire/request.mjs";
+import { apiBaseOf, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut, secondsGiven, textWithin, waitSeconds }
+  from "../../src/wire/request.mjs";
 import { ranAsync, tempHome } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const SAYS_ITS_DEADLINE = 'import("./src/wire/request.mjs")'
   + ".then(({ deadlineOf }) => { const d = deadlineOf(null); console.log(`${d.value} ${d.from}`); })";
@@ -71,6 +75,25 @@ test("a request that ran out says so with the seconds and the source, and any ot
   const dropped = new Error("other side closed");
   dropped.name = "SocketError";
   assert.equal(ranOut(dropped, deadline), "other side closed", "a failure that is not the clock's is not the clock's to word");
+});
+
+/* Fetch handed no signal is the loss made certain: undici can drop the one it was handed once the headers are in, and a collection deciding when is not something a case can schedule (ISS-2767). */
+test("a body that stalls after its headers ends at the read's own deadline, and the connection it held is closed", async () => {
+  const stub = createServer((request, response) => {
+    request.resume();
+    request.on("end", () => response.writeHead(200).flushHeaders());
+  });
+  const closed = new Promise((gone) => stub.once("connection", (socket) => socket.once("close", () => gone("closed"))));
+  await new Promise((listening) => stub.listen(0, "127.0.0.1", listening));
+  try {
+    const answer = await fetch(`http://127.0.0.1:${stub.address().port}/`, { method: "POST", body: "x" });
+    const read = textWithin(answer, AbortSignal.timeout(50)).then(() => "answered", (dropped) => dropped.name);
+    assert.equal(await Promise.race([read, sleep(patience(5_000), "still reading")]), "TimeoutError");
+    assert.equal(await Promise.race([closed, sleep(patience(5_000), "still open")]), "closed");
+  } finally {
+    stub.closeAllConnections();
+    stub.close();
+  }
 });
 
 /* Off the URL it is handed rather than off one it reads: two endpoints are configured now, and a function reading its own would derive one caller's origin from the other's host (ISS-791). */

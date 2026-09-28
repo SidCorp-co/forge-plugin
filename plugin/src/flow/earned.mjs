@@ -156,10 +156,11 @@ export const flowJudgeConflict = (flow, judge, policy) => {
     + " ask for: change the flow, or the project's qa configuration";
 };
 
-/* What the corrections on a record say moved, for the rung and for `namedIn`, which are its only readers. `correction` repeats since ISS-11, so `assemble` has already filed every one of them off the parse it made, and the hand parse of `view.comments` this replaced was a second parse for one answer (ISS-161, ISS-847). Whole payloads only: a comment carrying `moved` and no `why` reaches the page through any client no gate sits before, and it is no correction — read as a climb it would un-lighten an issue on a payload nothing wrote, and read as a path named it would excuse a landing that wrote one. The report counts what is on the page rather than what is a correction, which is a different question and stays `record.mjs`'s. */
 const correctionsIn = (view) => (view.repeated?.correction ?? [])
   .filter((one) => !shapeGaps("correction", one.record, view.names).length)
   .map((one) => one.record.fields);
+
+/* What the corrections on a record say moved, for the rung and for `namedIn`, which are its only readers. `correction` repeats since ISS-11, so `assemble` has already filed every one of them off the parse it made, and the hand parse of `view.comments` this replaced was a second parse for one answer (ISS-161, ISS-847). Whole payloads only: a comment carrying `moved` and no `why` reaches the page through any client no gate sits before, and it is no correction — read as a climb it would un-lighten an issue on a payload nothing wrote, and read as a path named it would excuse a landing that wrote one. The report counts what is on the page rather than what is a correction, which is a different question and stays `record/thread/report.mjs`'s. */
 const movedIn = (view, which = () => true) => correctionsIn(view).filter(which).map((one) => one.moved);
 
 /* The corrections that extend the plan's list, for `namedIn`: those naming the plan as what they correct, and those written before `corrects` existed, which the read-back excuses the field. A correction of a review verdict, a criterion or a field of the issue says what moved in *that* record, and a path in its prose — one saying the file was left untouched as readily as one saying it was written — is no file the change was planned to write (ISS-415). The field and not the sentence, because the sentence cannot be read for what it asserts. */

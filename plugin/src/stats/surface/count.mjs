@@ -2,7 +2,7 @@
    undercounts this surface by construction, and bytes cannot express a figure that is billed per
    model. So every token this subject prints is an `input_tokens` answered here, and every way one
    could not be taken is a reason by name. docs/cli/stats-the-surface.md. */
-import { clockFor, deadlineOf, parsedOr, ranOut } from "../../wire/request.mjs";
+import { clockFor, deadlineOf, parsedOr, ranOut, textWithin } from "../../wire/request.mjs";
 import { machineValue } from "../../resolve/machine/stores.mjs";
 
 const STORE = "anthropic";
@@ -56,13 +56,14 @@ export const counterFor = ({ model, key, origin, fetchImpl = fetch, waits = slee
     /* The body read inside the same guard: a stalled or dropped body is as much a count not taken
        as a refused connection, and escaping here would take every other text's count with it. */
     try {
+      const clock = clockFor(deadline);
       answer = await fetchImpl(`${origin}${ROUTE}`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": VERSION },
         body: JSON.stringify({ model, messages: [{ role: "user", content: text }] }),
-        signal: clockFor(deadline),
+        signal: clock,
       });
-      body = await answer.text();
+      body = await textWithin(answer, clock);
     } catch (dropped) {
       return { unmeasured: `the count endpoint gave no answer: ${ranOut(dropped, deadline)}` };
     }

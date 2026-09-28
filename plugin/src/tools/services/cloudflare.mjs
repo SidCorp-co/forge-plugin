@@ -7,7 +7,7 @@
 import { configPath, saveNested, userConfig } from "../../resolve/config.mjs";
 import { NO_ACCOUNT, cloudflareAccounts } from "./tool-config.mjs";
 import { abbreviated, masked } from "./masked.mjs";
-import { clockFor, deadlineOf, parsedOr, ranOut } from "../../wire/request.mjs";
+import { clockFor, deadlineOf, parsedOr, ranOut, textWithin } from "../../wire/request.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
@@ -88,13 +88,14 @@ const cfFetch = async (token, path, method = "GET", body) => {
   let response = null;
   let text = "";
   try {
+    const clock = clockFor(deadline);
     response = await fetch(`${CF_BASE}${path}`, {
       method,
-      signal: clockFor(deadline),
+      signal: clock,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    text = await response.text();
+    text = await textWithin(response, clock);
   } catch (dropped) {
     if (dropped?.name !== "TimeoutError") throw dropped;
     throw new Error(`Cloudflare did not answer ${method} ${path}: ${ranOut(dropped, deadline)}`);

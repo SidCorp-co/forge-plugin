@@ -18,7 +18,7 @@ export const readingsOf = (lease, status) => reclaimsAt(lease, status).filter(re
 /** Whether the newest row is such a reclaim, which is the claim just made where one was. */
 export const tookReading = (lease) => reading((lease?.history ?? []).at(-1));
 
-/* One line, so the park command a claim prints can carry it as the reason, a field that takes no history; the run a row displaced is named where the row holds one, which is the take a write made and no other, that being the one pickup whose caller was shown no refusal naming whom it went over. */
+/* One line, printed under the reclaim count once the threshold is passed; the run a row displaced is named where the row holds one, which is the take a write made and no other, that being the one pickup whose caller was shown no refusal naming whom it went over. */
 export const historyLine = (lease, status) =>
   (lease?.history ?? [])
     .filter((one) => !status || one?.status === status)

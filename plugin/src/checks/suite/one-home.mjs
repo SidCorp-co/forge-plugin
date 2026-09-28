@@ -7,7 +7,7 @@
    Reached: a file that binds anything of `plugin/src/resolve/visibility.mjs` but the two lists of
    constant names, hands a child an `XDG_CONFIG_HOME`, and names none for itself before it reads. */
 
-import { lineAt } from "../../markdown.mjs";
+import { escaped, lineAt } from "../../markdown.mjs";
 import { blanked } from "./wall-clock.mjs";
 
 /** The exports of that module whose answer cannot move with a configuration: the verb names, taken
@@ -93,8 +93,6 @@ const placed = (text, code, pattern) => {
   return null;
 };
 
-const spelt = (name) => name.replace(/\$/gu, "\\$");
-
 /* The same word standing as a key of something else is not a read of the binding, and a rule that
    counted it would refuse a file for a shape that is right. What it costs is the one place a read is
    followed by a colon — the middle of a ternary — read here as a key and so not as a read. */
@@ -105,7 +103,7 @@ const firstUse = (code, bindings) => {
   let first = Infinity;
   for (const one of bindings) {
     for (const local of one.locals) {
-      const call = new RegExp(String.raw`(?<![.\w$])${spelt(local)}(?![\w$])`, "gu");
+      const call = new RegExp(String.raw`(?<![.\w$])${escaped(local)}(?![\w$])`, "gu");
       for (const hit of code.matchAll(call)) {
         const after = hit.index + hit[0].length;
         if (bindings.some((each) => hit.index >= each.at && hit.index < each.end)) continue;

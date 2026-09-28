@@ -265,9 +265,6 @@ export const credentialAhead = (view, ref) => {
     + "  forge guide issue-flow verification";
 };
 
-/* Re-exported where its readers first found it; it lives beside `stampedNow`, whose stamp it reads. */
-export { headNow };
-
 /* Said while a run can still take the cheap path, and refusing nothing: a store one machine holds is no entry criterion, or two checkouts advancing one issue would answer differently (AC-05-2-3). Said at every status below the one a baseline earns rather than only at the rehearsal of that status, because the phase that decides whether to spend a gate at all reads this before the issue is even confirmed, and a line that arrives two statuses later has been read after the decision it was for. The lookup is on this head alone — a result published for another commit answers for no tree but its own. */
 export const baselineAhead = (view, ref, head = headNow()) => {
   /* Membership of the sequence and not `!atLeast`, which is true of every side status too: a park from the judging rung sits in `waiting` and a reopen in a status of its own, and both are past the baseline rather than before it, so telling either to spend one names a phase already done and buries the park answer or the triage actually owed. */

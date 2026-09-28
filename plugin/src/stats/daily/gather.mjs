@@ -20,8 +20,8 @@ import { answered, logEntries } from "../../codex/codex-log.mjs";
 import { windowObject } from "../../codex/codex-stats.mjs";
 import { hookEntries } from "../../hooks/log/hook-log-file.mjs";
 
-/** What no reader computes yet, each with the issue that owes the reader: named on the page in the
- *  figure's place, never printed as a nought. */
+/** What no reader computes yet, each with the issue that owes the reader: named in the page's data
+ *  gaps footer, never printed as a nought. */
 export const MISSING = {
   effort: { reading: "issue-flow runs by the effort they ran at", issue: "ISS-2424" },
   transport: { reading: "consult calls lost to transport failures", issue: "ISS-2426" },
@@ -257,8 +257,9 @@ export const corporaOf = async (read, since = null) => {
   return projects;
 };
 
-/** What a day's report says. `held` is the corpora and logs already read, so the range a refusal
- *  names and the report itself come off one reading. */
+/** What a report says, the day's or the current one. `projects`, `entries`, `hooks` and `attempts` are
+ *  the corpora and logs already read, so the range a refusal names and the report itself come off one
+ *  reading. */
 export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntries(), attempts = marksOf(ATTEMPTS, null) }) => {
   const all = projects.flatMap((one) => one.runs).sort((left, right) => left.startedAt - right.startedAt);
   const passes = projects.flatMap((one) => one.passes ?? []);

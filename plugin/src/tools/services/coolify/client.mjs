@@ -1,7 +1,7 @@
 /* Requests to the configured Coolify instance. The token travels in a header and appears in
    nothing this prints: a gateway echoing a request back would otherwise put it in a transcript,
    and from there into a consult or a record. docs/cli/coolify.md. */
-import { clockFor, deadlineOf, parsedOr, ranOut } from "../../../wire/request.mjs";
+import { clockFor, deadlineOf, parsedOr, ranOut, textWithin } from "../../../wire/request.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 import { redact, striking } from "./shape.mjs";
 
@@ -63,9 +63,10 @@ export const ask = async (held, method, path, { query, body, secrets = [], inter
   let response = null;
   let text = "";
   try {
+    const clock = clockFor(deadline);
     response = await fetch(url, {
       method,
-      signal: clockFor(deadline),
+      signal: clock,
       headers: {
         Authorization: `Bearer ${target.token}`,
         Accept: "application/json",
@@ -73,7 +74,7 @@ export const ask = async (held, method, path, { query, body, secrets = [], inter
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    text = await response.text();
+    text = await textWithin(response, clock);
   } catch (dropped) {
     /* `response` says which stage dropped: a body failure of its own was never wrapped here. */
     if (dropped.name === "TimeoutError") {

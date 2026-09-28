@@ -2,6 +2,8 @@
    claim that held at five keys while the code read fifteen, the one a box must set among the ten it
    never named (ISS-1618). A route past the ones below would carry keys this walk cannot see, which
    reads like a section naming them all, so it is refused by name. */
+import { ENUM_KEYS } from "../../resolve/project/enum-keys.mjs";
+
 const BY_NAME = /forgeJson\(\)\.parsed\?\.(\w+)/gu;
 const AT_CALL = /\bwritten\("(\w+)"\)/gu;
 const OFF_FILE = /projectFileAt\([^()]*\)\?\.(\w+)/gu;
@@ -9,6 +11,15 @@ const OFF_FILE = /projectFileAt\([^()]*\)\?\.(\w+)/gu;
    read of `ready` that OFF_FILE already takes, and binding `one` as the parse reads its keys as the
    file's (ISS-2515). */
 const BOUND = /\bconst (\w+) = projectFileAt\([^()]*\)(?!\s*(?:\?\.|\.|\[))/gu;
+
+/* An enum-valued key is read through `enumOf`: by its name, or — in the one loop that reads them all
+   — by the table's own list, whose keys are then every one of the table's. A dotted key is a key of
+   the table at the top of the file. */
+const BY_ENUM = /\benumOf\("([\w.]+)"/gu;
+const ALL_ENUMS = /\benumOf\(key, forgeJson\(\)\.parsed\)/u;
+const topOf = (key) => key.split(".")[0];
+const enumsIn = (text) => found(text, BY_ENUM).concat(ALL_ENUMS.test(text) ? Object.keys(ENUM_KEYS) : [])
+  .map(topOf);
 
 const A_READ = /forgeJson\(\)\.parsed|projectFileAt\(/u;
 
@@ -25,10 +36,14 @@ const DOTTED = (name) => new RegExp(String.raw`\b${name}\??\.(\w+)`, "gu");
 const BRACKET = (name) => new RegExp(String.raw`\b${name}(?:\?\.)?\["(\w+)"\]`, "gu");
 const bareOf = (name) => new RegExp(String.raw`\b${name}\b`, "gu");
 
-const keysOff = (text, name) => found(text, DOTTED(name)).concat(found(text, BRACKET(name)));
+/* A bound parse handed to `enumOf` beside the key it reads is that key's read, like a dotted one. */
+const ENUM_OFF = (name) => new RegExp(String.raw`\benumOf\("([\w.]+)", ${name}\b`, "gu");
+
+const keysOff = (text, name) => found(text, DOTTED(name))
+  .concat(found(text, BRACKET(name)), found(text, ENUM_OFF(name)).map(topOf));
 
 const readIn = (text) => found(text, BY_NAME)
-  .concat(found(text, AT_CALL), found(text, OFF_FILE),
+  .concat(found(text, AT_CALL), found(text, OFF_FILE), enumsIn(text),
     ...found(text, BOUND).map((name) => keysOff(text, name)));
 
 const spent = (line, name) => line.match(bareOf(name))?.length ?? 0;

@@ -5,8 +5,8 @@
 import { configSource, userConfig } from "../../resolve/config.mjs";
 import { gateway, storeHeld, storeMissing } from "../../resolve/machine/stores.mjs";
 import { coolifyTarget } from "./coolify/config.mjs";
-import { onTracker } from "./coolify/chosen-route.mjs";
-import { googleHeld } from "./google/auth/configured.mjs";
+import { TO_TRACKER, onTracker } from "./coolify/chosen-route.mjs";
+import { ENV_TOKEN, googleHeld } from "./google/auth/configured.mjs";
 
 
 const CONFIGURED = "configured";
@@ -33,12 +33,12 @@ const TOOLS = [
   { verb: "coolify",
     held: () => onTracker() || Boolean(coolifyTarget().url),
     absent: () => "no instance, and this machine has chosen the instance route",
-    configure: "`forge coolify login --url <url> --token <token>`, or `forge doctor"
-      + " --coolify-route tracker` for the route that needs neither" },
+    configure: `\`forge coolify login --url <url> --token <token>\`, or \`${TO_TRACKER}\``
+      + " for the route that needs neither" },
   /* Any of the three routes holds it, the environment's token among them: that one is a CI run's whole credential. */
   { verb: "google",
     held: googleHeld,
-    absent: () => "no Google account saved and no FORGE_GOOGLE_ACCESS_TOKEN",
+    absent: () => `no Google account saved and no ${ENV_TOKEN}`,
     configure: "`forge google auth add <key.json>`, or `forge google auth login --client-secret <file> -s <services>`" },
   { verb: "codex",
     held: () => !gateway().problem,
