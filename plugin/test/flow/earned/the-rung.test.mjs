@@ -59,8 +59,8 @@ test("closed is entered from that rung, a verification naming the deployment, an
   const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
     + "landing moved nothing; landing wrote nothing";
   const mark = { createdAt: "2026-09-02T10:00:00.000Z", authorId: "agent", body: `mark_merged target=base — ${NOTE}` };
-  const verifiedAt = (commit) => ({ createdAt: "2026-09-02T10:01:00.000Z", authorId: "agent",
-    body: render("verification", { where: "https://app.example", commit, evidence: ["https://app.example/build/9"] }) });
+  const verifiedAt = (commit, evidence = ["https://app.example/build/9"]) => ({ createdAt: "2026-09-02T10:01:00.000Z",
+    authorId: "agent", body: render("verification", { where: "https://app.example", commit, evidence }) });
   const closed = (comments) => CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, comments, null, releases), "ISS-3");
 
   const bare = closed([mark]);
@@ -71,6 +71,12 @@ test("closed is entered from that rung, a verification naming the deployment, an
   assert.ok(stale.length, "a verification naming a commit the merged mark does not is not the rung's answer either");
   assert.match(stale[0].what, /eee109e/u);
   assert.match(stale[0].what, /43b811e/u);
+
+  /* A sha is a citation and never the deployment itself, at this rung exactly as at the one above
+     it (codex F1 on ISS-1480's whole-set review). */
+  const shaOnly = closed([mark, verifiedAt("43b811e", ["43b811e"])]);
+  assert.ok(shaOnly.length, "every evidence item being a bare commit sha is not the rung's answer either");
+  assert.match(shaOnly[0].what, /a sha names no deployment/u);
 
   assert.deepEqual(closed([mark, verifiedAt("43b811e")]), [],
     "the rung, a verification naming the deployment, and a project owing nobody an act are the whole criterion");
