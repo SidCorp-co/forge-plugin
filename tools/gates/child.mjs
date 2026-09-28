@@ -12,18 +12,15 @@ import { join } from "node:path";
 
 import { PROC, startedAt } from "./machine.mjs";
 
-export const STOPS = ["SIGINT", "SIGTERM", "SIGHUP"];
+const STOPS = ["SIGINT", "SIGTERM", "SIGHUP"];
 
-// Named in every step's environment, with a value no other gate run holds.
-export const MARK_ENV = "FORGE_GATE_STEP";
-const MARK = `${MARK_ENV}=${process.pid}-${randomUUID()}`;
+// Named in each step's environment, with a value no other step holds, of this gate run or any other.
+const MARK_ENV = "FORGE_GATE_STEP";
 
 const GRACE_MS = 5000;
 const KILLED_MS = 2000;
 const TICK_MS = 50;
 
-/** What a step is spawned with beside its own variables, so a stop can find all of it. */
-export const marked = (env) => ({ ...env, [MARK_ENV]: MARK.slice(MARK_ENV.length + 1) });
 
 const read = (path) => {
   try {
@@ -37,8 +34,8 @@ const read = (path) => {
 const fieldsOf = (stat) => stat.slice(stat.lastIndexOf(")") + 2).split(" ");
 
 /** Every process of this step in the table as it stands, pid to start tick: the roots, what descends from any
- *  process already known by parent, and whatever carries this gate's marker. Empty where there is no table. */
-export const stepProcesses = (roots, known = new Map(), proc = PROC) => {
+ *  process already known by parent, and whatever carries the step's marker. Empty where there is no table. */
+const stepProcesses = (roots, known, mark, proc = PROC) => {
   let names;
   try {
     names = readdirSync(proc).filter((one) => /^\d+$/u.test(one));
@@ -53,7 +50,7 @@ export const stepProcesses = (roots, known = new Map(), proc = PROC) => {
   const found = new Map(known);
   for (const row of rows) {
     if (roots.includes(row.pid) && !found.has(row.pid)) found.set(row.pid, startedAt(row.stat));
-    else if (!found.has(row.pid) && read(join(proc, String(row.pid), "environ"))?.split("\0").includes(MARK)) {
+    else if (!found.has(row.pid) && read(join(proc, String(row.pid), "environ"))?.split("\0").includes(mark)) {
       found.set(row.pid, startedAt(row.stat));
     }
   }
@@ -88,11 +85,12 @@ const pause = (ms) => new Promise((done) => setTimeout(done, ms));
 let running = null;
 let heard = null;
 let known = new Map();
+let mark = null;
 
 const living = () => [...known].filter(([pid, start]) => alive(pid, start));
 
 const signalAll = (signal) => {
-  known = stepProcesses([running.pid], known);
+  known = stepProcesses([running.pid], known, mark);
   if (known.size === 0) running.kill(signal);
   for (const [pid, start] of known) if (alive(pid, start)) send(pid, signal);
 };
@@ -106,7 +104,7 @@ const drained = async (signal, ms) => {
     if (Date.now() >= until) return false;
     await pause(TICK_MS);
     const before = new Set(known.keys());
-    known = stepProcesses([running.pid, ...living().map(([pid]) => pid)], known);
+    known = stepProcesses([running.pid, ...living().map(([pid]) => pid)], known, mark);
     for (const [pid, start] of known) if (!before.has(pid) && alive(pid, start)) send(pid, signal);
   }
 };
@@ -121,9 +119,11 @@ const ended = async (signal) => {
 
 /** Spawns one step and settles with how it exited. Once a stop has been heard it never settles: the stop is what ends the gate. */
 export const stepRun = (argv, options) => new Promise((settle) => {
-  const child = spawn(argv[0], argv.slice(1), { ...options, env: marked(options.env ?? process.env), stdio: "inherit" });
-  running = child;
+  const value = `${process.pid}-${randomUUID()}`;
+  mark = `${MARK_ENV}=${value}`;
   known = new Map();
+  const child = spawn(argv[0], argv.slice(1), { ...options, env: { ...options.env ?? process.env, [MARK_ENV]: value }, stdio: "inherit" });
+  running = child;
   let done = false;
   const end = (result) => {
     if (done || heard) return;

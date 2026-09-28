@@ -9,7 +9,8 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { escaped, tempRoom } from "../../../plugin/test/fixtures.mjs";
-import { configHome, HANGS_IN, landed, ROOT, RUNNER, run, scratch, SHELL_ENV } from "./scratch.mjs";
+import { configHome, HANGS_IN, HOLDING, landed, ROOT, RUNNER, run, scratch, SHELL_ENV } from "./scratch.mjs";
+import { STEPS } from "../../gates/steps.mjs";
 
 const HELD = "HELD_AT";
 const holdAs = (name, before = "") => `node -e "${before}require('fs').writeFileSync(process.env.${HELD}+'/${name}',`
@@ -18,6 +19,10 @@ const holdAs = (name, before = "") => `node -e "${before}require('fs').writeFile
 // A grandchild whose parent exits at once, so it is init's before the stop, and then the step's own holder.
 const ORPHANING = `(${holdAs("orphan")} &) ; ${holdAs("step")}`;
 const DEAF = holdAs("step", "for(const one of ['SIGINT','SIGTERM'])process.on(one,()=>{});");
+
+// A step that exits at once and leaves a process of its own running, carrying that step's marker and nobody's child.
+const LEAVES = `(sh -c 'echo $$ > "$${HELD}/leftover"; exec sleep 600' &)`;
+const LATER = STEPS.filter((step) => !step.tests).at(-2).label;
 
 const CASE = "plugin/test/tools/two.test.mjs";
 // Red in the step, which names its failing-case record, and hanging in the re-run alone, which empties it.
@@ -142,6 +147,25 @@ test("a second stop kills what is left of the step at once rather than waiting i
     assert.equal(code, 130, gate.said);
     assert.ok(exited - second < 4000, `the gate took ${exited - second}ms after the second signal, which is the grace run out`);
     assert.equal(running(pids.step), false, `the deaf step ${pids.step} outlived the gate`);
+  } finally {
+    await cleared(gate, at, Object.values(pids));
+  }
+});
+
+test("a stop reaches the step it is running and not what an earlier step left behind", async () => {
+  const { at, work, held: dir, env } = held("stop-earlier-",
+    { needing: { step: HANGS_IN, command: LEAVES }, hanging: LATER });
+  const gate = gateUnder(work, env);
+  let pids = {};
+  try {
+    pids = await pidsIn(dir, ["sibling", "leftover"], gate);
+    for (const until = Date.now() + 240_000; !gate.said.includes(HOLDING) && Date.now() < until;) await pause(100);
+    assert.ok(gate.said.includes(HOLDING), `the gate never reached ${LATER}:\n${gate.said}`);
+    process.kill(gate.pid, "SIGTERM");
+    const { code } = await gate.ended;
+    assert.equal(code, 143, gate.said);
+    assert.match(gate.said, new RegExp(`gate verdict: stopped — at the step ${escaped(LATER)}, `, "u"), gate.said);
+    assert.equal(running(pids.leftover), true, `what ${HANGS_IN} left, ${pids.leftover}, was stopped as part of ${LATER}`);
   } finally {
     await cleared(gate, at, Object.values(pids));
   }
