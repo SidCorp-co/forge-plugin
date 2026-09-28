@@ -5,8 +5,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../../plugin/test/fixtures.mjs";
-import { ROOM_ENV } from "../../../plugin/test/fixtures/room.mjs";
+import { tempRoom } from "../../../../plugin/test/fixtures.mjs";
+import { ROOM_ENV } from "../../../../plugin/test/fixtures/room.mjs";
 
 const REAL_GIT = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
 

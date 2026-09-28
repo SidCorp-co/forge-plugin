@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BASE, git, serverPushes, serverRewrites, sha, state, tracker, world } from "./fixture.mjs";
-import { gitFailing, noted } from "../room-refusals.mjs";
+import { gitFailing, noted } from "../rooms/refusals.mjs";
 
 test.after(() => tracker.close());
 /* These cases build the world a landing runs in and land nothing, so no route asks the tracker. */

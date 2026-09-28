@@ -8,15 +8,15 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../../plugin/test/fixtures.mjs";
-import { roomRefused, roomSpent } from "../../../plugin/test/fixtures/room.mjs";
-import { SCRIPT, git, landIn, runIn, setUp } from "./run-fixtures.mjs";
-import { gitFailing, noted } from "./room-refusals.mjs";
+import { tempRoom } from "../../../../plugin/test/fixtures.mjs";
+import { roomRefused, roomSpent } from "../../../../plugin/test/fixtures/room.mjs";
+import { SCRIPT, git, landIn, runIn, setUp } from "../run-fixtures.mjs";
+import { gitFailing, noted } from "./refusals.mjs";
 
 const QUOTA = "error: unable to write file .git/objects/ab/cdef: Disk quota exceeded";
 
-const FIXTURES = new URL("./run-fixtures.mjs", import.meta.url).href;
-const ISOLATED = new URL("../../../plugin/test/fixtures/process/isolated.mjs", import.meta.url).pathname;
+const FIXTURES = new URL("../run-fixtures.mjs", import.meta.url).href;
+const ISOLATED = new URL("../../../../plugin/test/fixtures/process/isolated.mjs", import.meta.url).pathname;
 
 /* Two cases in a file of their own, since a room's life is read across the end of the case that made
    it: the second reads what the first left, and the room made at load is the file's. `kept` is a run
