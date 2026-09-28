@@ -1,11 +1,11 @@
 /* `forge issue <ref> --redact`: the route that takes a test credential off what an issue's record
    already stores. Every write re-sends sessionContext whole, so a credential it once took stays on
    every later payload; the guard lets a re-sent copy go, and this is what removes it (ISS-1380). */
-import { refuse } from "../refusal.mjs";
-import { documentIdOf } from "../tracker/issues.mjs";
-import { credentialHits, redactedCopy, stagingDeploy, unreadRefusal } from "../tracker/project-config.mjs";
-import { FIELD, notAnothers, readContext, setLease } from "./lease.mjs";
-import { correctionFor } from "./override.mjs";
+import { refuse } from "../../refusal.mjs";
+import { documentIdOf } from "../issues.mjs";
+import { credentialHits, redactedCopy, stagingDeploy, unreadRefusal } from "../project-config.mjs";
+import { FIELD, notAnothers, readContext, setLease } from "../../flow/lease.mjs";
+import { correctionFor } from "../../flow/override.mjs";
 
 /* Said whether or not anything was written, because a reader who finds the value somewhere else goes
    looking for the command that reaches it, and there is none here. */

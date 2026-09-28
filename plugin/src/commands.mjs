@@ -225,7 +225,7 @@ const own = {
     }
     if (wrote === "redact") {
       if (why !== undefined) fail("--why belongs to --set; --redact states its own reason, the credential the field carried. Nothing was sent.");
-      const { redactStored } = await import("./flow/redact.mjs");
+      const { redactStored } = await import("./tracker/credentials/redact.mjs");
       return redactStored(reference);
     }
     if (wrote === "set") {
