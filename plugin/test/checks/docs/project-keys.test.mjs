@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { keysDocumented, keysRead, projectKeyProblems } from "../../../src/checks/docs/project-keys.mjs";
 import { PROJECT_KEY_NAMES } from "../../../src/tools/services/project-file.mjs";
+import { ENUM_KEYS } from "../../../src/resolve/project/enum-keys.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 
@@ -123,6 +124,23 @@ test("a read of the project file by a route the walk does not know is refused", 
   ]);
   assert.deepEqual(known.unexplained, []);
   assert.deepEqual(known.keys, ["codex"]);
+});
+
+/* The enum-valued keys go through `enumOf`: a call naming one reads that key's top segment, and the
+   loop reading the whole table reads every key of it. A line calling neither is still refused. */
+test("a key read through enumOf is a read of that key, and the loop over the table a read of all of them", () => {
+  const byName = keysRead([{ path: "a.mjs", text: 'enumOf("report", projectFileAt(cwd), "x"); enumOf("asks.mode", record);' }]);
+  assert.deepEqual(byName.keys, ["asks", "report"]);
+  assert.deepEqual(byName.unexplained, []);
+  const loop = keysRead([{ path: "b.mjs", text: "const all = keys.map((key) => enumOf(key, forgeJson().parsed));" }]);
+  assert.deepEqual(loop.keys, [...new Set(Object.keys(ENUM_KEYS).map((one) => one.split(".")[0]))].sort());
+  assert.deepEqual(loop.unexplained, []);
+  const bound = keysRead([{ path: "d.mjs", text: 'const record = projectFileAt(cwd);\nenumOf("report", record, "x");' }]);
+  assert.deepEqual(bound.keys, ["report"]);
+  assert.deepEqual(bound.unexplained, [], "a bound parse handed to enumOf with its key is that key's read");
+  const other = keysRead([{ path: "c.mjs", text: "const held = enumOf(name, forgeJson().parsed);" }]);
+  assert.deepEqual(other.keys, []);
+  assert.equal(other.unexplained.length, 1, "a call over some other list of names is a route this check does not know");
 });
 
 test("a value read off the parse and bound is a read of that key, never a second parse", () => {

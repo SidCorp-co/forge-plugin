@@ -579,17 +579,14 @@ const enumHere = Object.fromEntries(Object.keys(ENUM_KEYS)
 /** The same, for the project this process stands in, read once. */
 export const enumScope = (key) => enumHere[key]();
 
-export const LANDING_ROUTES = valuesOf("landing");
 export const landingScope = () => enumScope("landing");
 
-export const RED_BATCH_KEY = "redBatch";
-export const RED_BATCHES = valuesOf(RED_BATCH_KEY);
-export const redBatchScope = () => enumScope(RED_BATCH_KEY);
+export const RED_BATCHES = valuesOf("redBatch");
+export const redBatchScope = () => enumScope("redBatch");
 
 export const SHIP_MODES = valuesOf("ship");
 export const shipMode = () => enumScope("ship");
 
-export const ASK_MODES = valuesOf("asks.mode");
 export const asksScope = () => enumScope("asks.mode");
 
 /** The terms this project adds to the owner categories; anything but a list of strings adds none. */
@@ -609,9 +606,6 @@ export const projectRepository = () => standing()?.repository ?? null;
 export const machineLeftovers = (retired = MACHINE_RETIRED, machine = userConfig()) => retired
   .filter((one) => Object.hasOwn(machine, one.key))
   .map((one) => ({ ...one, value: machine[one.key], from: configPath() }));
-
-export const PROJECT_SHAPES = valuesOf("shape");
-export const shapeScope = () => enumScope("shape");
 
 export const RELEASE_MODES = valuesOf("release");
 
