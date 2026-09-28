@@ -112,9 +112,13 @@ test("a write rewording held numbers, or splitting one and renumbering the tail,
   const reworded = await ask(["criteria", "ISS-8105", fileOf(numbered(1, 3, "reworded outcome"))]);
   assert.equal(reworded.status, 0, reworded.stderr);
   assert.match(reworded.stderr, /^criteria: the field held 3 and now holds 3\.$/mu, "a full write is as legible as a reducing one");
-  const split = await ask(["criteria", "ISS-8105", fileOf(numbered(1, 4))]);
+  held.acceptanceCriteria = ["1. The list opens on the newest row.", "2. The count is shown and the filter is kept.",
+    "3. An empty list says so."].join("\n");
+  const halves = ["1. The list opens on the newest row.", "2. The count is shown.", "3. The filter is kept.",
+    "4. An empty list says so."].join("\n");
+  const split = await ask(["criteria", "ISS-8105", fileOf(halves)]);
   assert.equal(split.status, 0, split.stderr);
-  assert.equal(held.acceptanceCriteria, numbered(1, 4));
+  assert.equal(held.acceptanceCriteria, halves, "criterion 2 split in two, the tail renumbered from 3 to 4");
   assert.match(split.stderr, /^criteria: the field held 3 and now holds 4; added 4\.$/mu);
 });
 
