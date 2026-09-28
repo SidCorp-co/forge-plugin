@@ -20,6 +20,7 @@ const DISPATCHER = [
   [15, "forge record confirmation ISS-7 --finding already-fixed --evidence x"],
   [16, "forge record confirmation ISS-8 --finding duplicate --evidence x"],
   [17, "forge record confirmation ISS-9 --finding holds --evidence x"],
+  [17, "forge record confirmation ISS-10 --finding cause-fixed --fixed x --survives y"],
   [18, "forge advance ISS-99", { body: REFUSED_BODY, error: true }],
   [20, "forge record wave ISS-1 --member ISS-2 --role forge:runner --session run-b"],
   [25, "forge record wave ISS-1 --member ISS-3 --role forge:runner --session run-a"],
@@ -84,7 +85,7 @@ test("one row per wave off the dispatcher's own session, oldest first, with what
     const folded = lines.findIndex((one) => /^ISS-1 {2}folded /u.test(one));
     const opened = lines.findIndex((one) => /^ISS-1 {2}open /u.test(one));
     assert.ok(folded > 0 && opened > folded, shown.stdout);
-    assert.match(shown.stdout, /55 min, 11 call\(s\)/u);
+    assert.match(shown.stdout, /55 min, 12 call\(s\)/u);
     assert.match(shown.stdout, /hand-backs 2; replaced ISS-2; disposed without a run already-fixed 1, duplicate 1/u);
     assert.match(shown.stdout, /ISS-4 unreadable: .*not this project's/u);
   } finally {

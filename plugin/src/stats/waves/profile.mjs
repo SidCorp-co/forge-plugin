@@ -8,6 +8,7 @@ import { checkoutFrom, windowFrom } from "../runs.mjs";
 import { refusalIn } from "../corpus/refusals.mjs";
 import { cacheRoot, copyAt, installedCopies } from "../versions.mjs";
 import { readMember, wavesOf } from "../../flow/record/wave.mjs";
+import { DISPOSITIONS } from "../../flow/machine.mjs";
 import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";
 import { FIELD, HISTORY_KEPT } from "../../flow/lease.mjs";
 import { LANDING_BUILDER_OWED, LANDING_HEAD_OWED } from "../../flow/landing/checkpoint.mjs";
@@ -18,7 +19,6 @@ import { flags } from "../../resolve/flags.mjs";
 const HANDED_BACK = [LANDING_HEAD_OWED, LANDING_BUILDER_OWED];
 const RANKED = /\bforge next\b/u;
 const DISPOSED = /\bforge record confirmation (?<key>ISS-\d+)\b[^\n]*?--finding[ =](?<finding>[\w-]+)/u;
-const HOLDS = "holds";
 
 const stampOf = (text) => Date.parse(text ?? "") || null;
 
@@ -75,7 +75,7 @@ const replacedIn = (dispatches) => {
 /** The dispatcher's own dispositions in the span that ended an issue without a run, by finding. */
 const dispositionsIn = (calls) => tally(calls.filter(landed)
   .map((call) => DISPOSED.exec(call.shell)?.groups?.finding)
-  .filter((finding) => finding && finding !== HOLDS));
+  .filter((finding) => DISPOSITIONS.includes(finding)));
 
 const memberRows = async (keys, read, seen) => {
   const rows = [];

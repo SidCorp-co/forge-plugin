@@ -20,6 +20,12 @@ on the strength of the body alone — the body is the claim, and the evidence is
 
 Anything else *holds*, and holding is the ordinary answer. Most issues are real.
 
+**A cause already fixed is not always an issue already fixed.** Where another change fixed the
+reported cause and the deliverable the issue states — a probe, a test, a rule — is still owed, the
+finding is `cause-fixed`: it names what was fixed with the evidence that settles it and what survives
+with what will judge it, and the issue stays on the lane for a run to build. Holding only one of those
+halves is choosing between the rows above and *holds*.
+
 **Superseded is not obsolete.** Obsolete is the subject gone — the file, the verb, the surface.
 Superseded is the subject still standing, inside a flow a later release replaced or an ask a later
 release answered differently.

@@ -90,6 +90,9 @@ test("each of the three records a drop goes through is read for its reason", () 
   const other = fence("Park", ["kind: paused", "why: later", "left: open"]);
   assert.equal(reasonOf([comment("01", holds), comment("02", other)]), null,
     "a confirmation that holds and a park of another kind say no drop");
+  const causeFixed = fence("Confirmation", ["is: the clamp is in", "where: a.mjs", "finding: cause-fixed",
+    "fixed: the component clamps", "survives: the regression probe"]);
+  assert.equal(reasonOf([comment("01", causeFixed)]), null, "a cause already fixed keeps the lane, so it says no drop");
 });
 
 test("a reason past the cap is cut on a word and says it was cut", () => {

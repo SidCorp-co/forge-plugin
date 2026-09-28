@@ -3,7 +3,7 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, TRIAGES, correctedKind, looksIn, looksTo, need, planFlags,
+  ANSWERS_LOOK, CLOSES_FROM, DISPOSITIONS, TRIAGES, correctedKind, looksIn, looksTo, need, planFlags,
   somebodyLooked, unwrap, valuesOf, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
@@ -116,7 +116,7 @@ export const dispositionOf = (view) => {
   const held = view.latest?.confirmation;
   if (!held || shapeGaps("confirmation", held.record, view.names ?? []).length) return null;
   const finding = held.record.fields.finding;
-  return FINDINGS.includes(finding) && finding !== "holds" ? finding : null;
+  return DISPOSITIONS.includes(finding) ? finding : null;
 };
 
 export const stepAfter = (status) => {

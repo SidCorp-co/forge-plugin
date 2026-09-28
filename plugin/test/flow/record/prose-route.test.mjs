@@ -164,5 +164,5 @@ test("a place field takes a path that exists, and two lines opening `@` go up as
 test("a kind's own help names its prose flags and the form a file is passed in", async () => {
   assert.deepEqual(proseHelp("verification"), [], "a kind with no prose says nothing");
   const help = await ranAsync(FORGE, ["record", "confirmation", "-h"], env);
-  assert.match(help.stdout, /^Text only on --is and --detail: pass a file as --detail "\$\(cat -- file\.md\)", never `@file`\.$/mu, help.stdout);
+  assert.match(help.stdout, /^Text only on --is, --detail, --fixed and --survives: pass a file as --survives "\$\(cat -- file\.md\)", never `@file`\.$/mu, help.stdout);
 });

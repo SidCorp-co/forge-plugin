@@ -2577,6 +2577,10 @@
       "rev": 1,
       "digest": "5b9ec0c6ee8d7d52d1c1c7ca46acca620ed3e31140653af6f7a06178d6b0b56b"
     },
+    "AC-05-5-3": {
+      "rev": 1,
+      "digest": "b04d94791d01af889b1cdd1e9f428083abb38d9dea7d51db36b3308b4de3f395"
+    },
     "UC-05-6": {
       "rev": 2,
       "digest": "fc8d1d1ca303aeba6aa153d8b49c1461b73b5289d853795c86127d944a8e9f33"
