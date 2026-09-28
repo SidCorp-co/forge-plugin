@@ -228,8 +228,11 @@ const fetchedParts = async (key, row, args, soft, held) => {
     }
     const body = text ? parsedOr(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
-       tracker saying the row is not there. */
-    if (text && (typeof body !== "object" || body === null)) {
+       tracker saying the row is not there. `parsedOr` answers `null` both for that and for a body
+       that is genuinely the four bytes `null` — a route allowed to say so (`forge_release_batch.active`,
+       answering that no batch is running) — so the text itself, and not what it parsed to, is what
+       tells the two apart. */
+    if (text && text.trim() !== "null" && (typeof body !== "object" || body === null)) {
       return [part, refused(`${request.method ?? "GET"} ${request.path} answered 200 with no record: `
         + `${text.slice(0, 200)}`)];
     }
