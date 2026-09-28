@@ -135,7 +135,7 @@ const fieldsIn = (given) =>
 
 export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n] [--fields a,b]";
 
-export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
+export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W] [--propose]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46 --kind k|--unlink ISS-46 --edge id]";
 
 /* The one thing a row cannot hold: what this project's own configuration does to a value before it is stored, which a caller otherwise learns by reading the body back. Which language, which file it came from and which setting are `forge doctor`'s to name, so none of the three is here (ISS-1790). */
@@ -203,9 +203,9 @@ const own = {
     }
     const reference = first;
     const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full"], modes: [LIST_USAGE] });
-    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE, modes: [LIST_USAGE] });
+    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full", "--propose"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
-    const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
+    const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set", "propose"], "issue", "writes and a call makes one");
     /* Used or refused rather than read and dropped: `--kind` and `--edge` belong to `--unlink` alone,
        one of them at a time, and a kind this CLI does not serve is turned away before anything is sent. */
     for (const name of ["kind", "edge"]) {
@@ -216,6 +216,11 @@ const own = {
       if (!EDGE_KINDS.includes(asked.kind)) {
         fail(`issue: --kind takes ${EDGE_KINDS.join(" or ")}, and \`${asked.kind}\` is neither. Nothing was sent.`);
       }
+    }
+    if (wrote === "propose") {
+      if (why !== undefined) fail("--why belongs to --set; a proposal writes the model's own reason.");
+      const { proposeFor } = await import("./codex/proposed/fields.mjs");
+      return proposeFor(reference);
     }
     if (wrote === "set") {
       const { overrideFields } = await import("./flow/override.mjs");
@@ -261,6 +266,9 @@ const own = {
     const unnamed = await servesOwed(body, "This body's `Serves:` line");
     if (unnamed) fail(unnamed);
     const { title, ...carried } = given;
+    /* Asked of the flags and never of the tracker: a field the filer typed is theirs, and only an absent one is the model's. */
+    const absent = [priority === undefined && "priority", complexity === undefined && "complexity"].filter(Boolean);
+    const { proposeAtFiling } = await import("./codex/proposed/fields.mjs");
     return fileAndSay({
       title,
       body,
@@ -275,7 +283,7 @@ const own = {
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,
-    }, { withKeys });
+    }, { withKeys, after: absent.length ? proposeAtFiling({ title, body, kind: category }, absent) : null });
   },
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */

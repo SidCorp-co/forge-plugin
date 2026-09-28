@@ -126,6 +126,22 @@ test("every retired machine key present is a leftover, whatever it holds, and on
   assert.deepEqual(machineLeftovers(RETIRED, {}), []);
 });
 
+/* A retired key may be one field of a table the machine still owns — `codex.complexityModel` moved to
+   the project's record while `codex.url` stayed (ISS-2167) — so presence is read at its last segment. */
+test("a dotted retired key is a leftover where its table holds the field, and none where it does not", () => {
+  const retired = [{ key: "codex.complexityModel", now: "`codex.complexityModel` in the project's record", route: "`forge doctor --set codex.complexityModel=<model>`" }];
+  assert.deepEqual(machineLeftovers(retired, { codex: { url: "u", complexityModel: "cx/luna" } }).map((one) => [one.key, one.value]),
+    [["codex.complexityModel", "cx/luna"]]);
+  assert.deepEqual(machineLeftovers(retired, { codex: { url: "u" } }), [], "the table alone is no leftover");
+  assert.deepEqual(machineLeftovers(retired, {}), []);
+  const [moved] = machineLeftovers(undefined, { codex: { url: "u", complexityModel: "cx/luna" } });
+  assert.match(leftoverRows([moved])[0].detail,
+    /`codex\.complexityModel: "cx\/luna"` in \S+ is ignored — the key that decides this is now `codex\.complexityModel` in this machine's record of that project, written by `forge doctor --set codex\.complexityModel=<model>`/u,
+    "and the machine's own table carries that row, naming the command that sets the project's");
+  const [left] = machineLeftovers(retired, { codex: { complexityModel: null } });
+  assert.match(leftoverRows([left])[0].detail, /is ignored — the key that decides this is now `codex\.complexityModel` in the project's record/u);
+});
+
 test("a leftover is said on the row of the key that replaced it, or on a note row of its own", () => {
   const left = machineLeftovers(RETIRED, { oldKey: 1, ship: "ready" });
   const [ship, old] = left;

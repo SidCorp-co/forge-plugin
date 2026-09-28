@@ -15,8 +15,8 @@ const echo = (answer) => console.log(JSON.stringify(answer, null, 2));
    wrong about that would read a refusal as a filing. So the default says it rather than crashing. */
 const refused = (what, said) => fail(`the tracker refused ${what}: ${said}`);
 
-/** `withKeys` are what `--with` named, offered back rather than written; `intro` is the one line a route speaks for itself; `lost` is what a route soft enough to see the tracker's own refusal does with it. */
-export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = refused } = {}) => {
+/** `withKeys` are what `--with` named, offered back rather than written; `intro` is the one line a route speaks for itself; `lost` is what a route soft enough to see the tracker's own refusal does with it; `after` is a step on the issue once it exists — never on a fold, whose comment has no fields — handed the create's answer and answering with its lines, which print before the id line so that line stays last. */
+export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = refused, after = null } = {}) => {
   const filed = await fileIssue({ ...asked, onBeside: sayBeside });
   if (filed.refusal) fail(filed.refusal.text);
   if (filed.shape.said) console.error(filed.shape.said);
@@ -37,6 +37,7 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
   if (intro) console.log(intro);
   echo(filed.answer);
   console.log(filedAs(filed.answer, filed.ranked.said));
+  for (const line of after ? await after(filed.answer) : []) console.log(line);
   const offered = keysOffered(filed.shape.keys, withKeys);
   if (offered) console.log(offered);
   return sayLanded(await issueLanded(filed.answer, { module: asked.module ?? null }));

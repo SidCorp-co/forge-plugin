@@ -7,7 +7,7 @@ import { jsonLines } from "../../hooks/log/hook-log-file.mjs";
 import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";
-import { DIAGNOSTIC, PROPOSAL, answered, byRun, hereOf, inRepo, isAnswered, logBytes, logConsult, logEntries, logPath, maskedDeep,
+import { DIAGNOSTIC, PROPOSALS, answered, byRun, hereOf, inRepo, isAnswered, logBytes, logConsult, logEntries, logPath, maskedDeep,
   pairedLog, runOf, verdictsBy } from "../codex-log.mjs";
 import { budgetMs } from "../../resolve/settings.mjs";
 import { countedIn, misreasonedSaid, recheckSaid, unverdicted, verdictRecord } from "./replies.mjs";
@@ -65,16 +65,16 @@ export const logLine = (stored, full) => {
     const over = `  runs   ${(entry.runs ?? []).map((one) => `${one.label}${one.issues?.length ? ` ${one.issues.join(",")}` : ""}`).join("  ")}`;
     return [head, over, "", entry.reply ?? entry.error ?? "", ""].join("\n");
   }
-  /* A proposal row is about one issue and no file, so its line is the key and the complexity that came
-     back; a refusal is the row's own — the answer was outside the ladder — and never a review's
+  /* A proposal row is about one issue and no file, so its line is the question, the key and the value that
+     came back; a refusal is the row's own — the answer was outside the set — and never a review's
      `failed`, which is the gateway's. `--full` opens the why, the one thing a person reading the log back wants. */
-  if (entry.kind === PROPOSAL) {
+  if (PROPOSALS.includes(entry.kind)) {
     const proposed = stored.ok && !entry.refused;
     const came = proposed
       ? ` -> ${entry.proposed}${typeof entry.confidence === "number" ? `  confidence ${entry.confidence}` : ""}`
       : `  ${stored.ok ? `refused: ${entry.refused}` : answer}`;
     const head = `${id}${entry.at}  ${entry.model ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  `
-      + `complexity ${entry.key ?? "?"}${came}${wroteIt(entry)}`;
+      + `${entry.kind} ${entry.key ?? "?"}${came}${wroteIt(entry)}`;
     return full ? [head, "", entry.why ?? entry.error ?? "", ""].join("\n") : head;
   }
   const at = entry.head ? `${entry.head}${entry.dirty ? "+dirty" : ""}` : "no commit";
