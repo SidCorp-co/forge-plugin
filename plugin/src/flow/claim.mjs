@@ -33,6 +33,7 @@ import {
   takeRoute,
   landingOf,
 } from "./landing/checkpoint.mjs";
+import { commandAt } from "./machine.mjs";
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
@@ -354,7 +355,7 @@ export const claim = async (argv) => {
   if (aboutDeployment.length && !given.rebuilt) {
     fail(`claim ${aboutDeployment.map((one) => `--${one}`).join(" and ")} says what the checkpoint `
       + `--rebuilt writes holds about the deployment, and this call writes no checkpoint: the two `
-      + `are typed together:\n  ${REBUILT_FORM(ref, "<the sha the branch carries>", "\n  ")}`);
+      + `are typed together:\n  ${commandAt(REBUILT_FORM(ref, "<the sha the branch carries>"), "  ")}`);
   }
   const turns = ["ready", "take", "judged", "reconciled", "recorded", "landed", "rebuilt"]
     .filter((one) => given[one]);

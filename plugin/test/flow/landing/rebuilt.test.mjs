@@ -219,6 +219,8 @@ test("a reconstruction saying nothing about the deployment is refused, and the r
   assert.match(run.stderr, /--deployment <the sha the deployment reports serving>/u);
   assert.ok(run.stderr.includes(`forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --undeployed`),
     `the route a change that reached no deployment can run unchanged:\n${run.stderr}`);
+  assert.match(run.stderr, /\n {2}forge claim ISS-1784 --rebuilt \S+ --deployment [^\n]+\n {2}forge claim ISS-1784 --rebuilt \S+ --undeployed/u,
+    `the second route at the first one's depth, or it reads as prose rather than a thing to type:\n${run.stderr}`);
   assert.equal(checkpoint(), null, "and nothing was written");
 });
 
@@ -239,6 +241,8 @@ test("a statement about the deployment with no reconstruction to carry it is ref
   const alone = await ran(["claim", "ISS-1784", "--undeployed"], room);
   assert.equal(alone.status, 1, `${alone.stdout}${alone.stderr}`);
   assert.match(alone.stderr, /this call writes no checkpoint/u);
+  assert.match(alone.stderr, /\n {2}forge claim ISS-1784 --rebuilt <the sha the branch carries> --deployment [^\n]+\n {2}forge claim ISS-1784 --rebuilt <the sha the branch carries> --undeployed/u,
+    `both routes at one depth:\n${alone.stderr}`);
   const named = await ran(["claim", "ISS-1784", "--deployment", DEPLOYED], room);
   assert.equal(named.status, 1, `${named.stdout}${named.stderr}`);
   assert.match(named.stderr, /this call writes no checkpoint/u);

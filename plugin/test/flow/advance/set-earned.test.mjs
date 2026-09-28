@@ -146,6 +146,18 @@ test("a close that comes back stamped with no mark on the page has the stamp tak
   assert.equal(FIXED.mergedAt, undefined);
 });
 
+/* A walk back reads no page, so a stamp on its answer cannot be judged against a mark: the one the
+   walk leaves standing may name a change that really did land, and taking it down would unmake it. */
+test("a set that read no page leaves a stamp on its answer standing", async () => {
+  before("closed", []);
+  FIXED.mergedAt = STAMPED_AT;
+  const run = await advance("--set", "approved", "--why", "the commit was reverted");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(sent("unmark"), [], "a stamp the page was never read against was taken down");
+  assert.doesNotMatch(run.stdout, /came back stamped/u, run.stdout);
+  assert.equal(FIXED.mergedAt, STAMPED_AT);
+});
+
 test("a close whose page carries a merged mark keeps its stamp", async () => {
   before("confirmed", [MARK()]);
   const run = await advance("--set", "closed", "--why", "the release went out and I read the installed copy");

@@ -22,7 +22,7 @@ import { hereOf, logEntries, runOf } from "../codex/codex-log.mjs";
 import { readsIn, readsSaid, rowsOf } from "../codex/log/reads.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
-import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
+import { lastMark, stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
@@ -72,13 +72,14 @@ const STATUS_CORRECTED = "issue:status";
    sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). */
 const couldBeEarned = (body, status) => ORDER.includes(status) && atLeast(status, body.status);
 
-/* Every plain advance is judged on the page, the one into `closed` included: that rung is entered on the verdicts and the folded findings as well as on the release policy, and a page skipped there read a failed verdict as none (ISS-2511). A set reads it only where the record could have earned the status instead. */
+/* Every plain advance is judged on the page, the one into `closed` included: that rung is entered on the verdicts and the folded findings as well as on the release policy, and a page skipped there read a failed verdict as none (ISS-2511). A set reads it only where the record could have earned the status instead.
+   Decided here once and marked `unread` on the view, so every later reader of the page asks the view rather than judging the status again. */
 const readsTheRecord = (body, given) => (given.set ? couldBeEarned(body, given.set) : true);
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
   const cited = () => citedClauses(body);
-  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null, cited);
+  if (!readsTheRecord(body, given)) return { ...viewFrom(documentId, body, [], null, null, cited), unread: true };
   const page = await commentPage(documentId);
   /* Only the rehearsal prints the line, so only the rehearsal reads it; and neither read feeds the other. */
   const [deploy, release] = await Promise.all([
@@ -336,6 +337,7 @@ const reopenTo = async (view, ref, why) => {
    page: a shortfall read off comments nobody fetched is every item owed, which would refuse nothing and
    read as a record that earns nothing. */
 const earnsInstead = (view, ref, status) => {
+  if (view.unread) return;
   const held = owedIn(view, ref);
   if (!held.next || held.missing.length || sameLanding(held.next, status)) return;
   refuse(`${ref} is ${view.issue.status} and its record earns ${held.next}, not ${status}. A set is `
@@ -354,7 +356,7 @@ const stampTaken = async (view, ref, status, answer) => {
   const stamped = (answer?.issue ?? answer)?.mergedAt;
   /* An unread page holds no mark to find, so a set that fetched none would read every stamp as false —
      including the one a walk back to `approved` leaves standing on a change that really did land. */
-  if (!stamped || !couldBeEarned(view.issue, status) || lastMark(view.comments)) return null;
+  if (!stamped || view.unread || lastMark(view.comments)) return null;
   if (!view.whole) {
     return `${ref} came back stamped merged at ${stamped}, and whether a mark of this issue's names a `
       + `landing could not be read past the cut above. Read the thread, and where no mark names one, `
@@ -366,7 +368,7 @@ const stampTaken = async (view, ref, status, answer) => {
      with nothing saying what still stands on the row. */
   const answered = await unmarkMerged(view.documentId, ref, { soft: true });
   if (!answered?.refused) {
-    console.log(`${ref}  the merged stamp is removed.`);
+    console.log(stampRemoved(ref));
     return null;
   }
   /* An answer that never arrived leaves the row's own field the only thing that says whether the
@@ -389,7 +391,7 @@ const stampTaken = async (view, ref, status, answer) => {
    re-post. `stampTaken` reports rather than raises for that reason; the lease check and the credit
    inside `unmarkMerged` raise as they do for its other caller, being about the issue and not the
    stamp. */
-const settledAfter = async (view, ref, status, correction) => {
+const settledAfter = async (view, ref, status, correction, answer) => {
   let held = null;
   try {
     await correction();
@@ -398,7 +400,7 @@ const settledAfter = async (view, ref, status, correction) => {
     if (!(error instanceof Refused)) throw error;
     held = error.message;
   }
-  const stamp = await stampTaken(view, ref, status, view.answered);
+  const stamp = await stampTaken(view, ref, status, answer);
   if (!held && !stamp) return;
   refuse([held, stamp && `${ref} is ${status}${held ? "" : " and its correction is on the record"}, `
     + `and ${stamp}`].filter(Boolean).join("\n\n"));
@@ -420,13 +422,13 @@ const setStatus = async (view, ref, status, why, asked) => {
   const said = whyChecked("advance --set", why);
   const near = declaredValue("forge_issues", "status", status);
   if (near) refuse(`${near} That set is what the route table declares this tracker takes. Nothing was sent.`);
-  if (couldBeEarned(view.issue, status)) earnsInstead(view, ref, status);
+  earnsInstead(view, ref, status);
   const moved = `the status set to \`${status}\` by \`forge advance --set\`, from `
     + `\`${view.issue.status}\`, with no entry check read`;
-  const held = { ...view, answered: null };
+  let answered = null;
   const move = async (soft = false) => {
     const refused = await moveTo(view, ref, status,
-      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status), ...(asked ? { needs: asked } : {}) }, credit: "the set transition", heard: (answer) => { held.answered = answer; } }, soft);
+      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status), ...(asked ? { needs: asked } : {}) }, credit: "the set transition", heard: (answer) => { answered = answer; } }, soft);
     if (refused) return refused;
     console.log(UNREAD);
     return null;
@@ -439,7 +441,8 @@ const setStatus = async (view, ref, status, why, asked) => {
     return movedAfterRecord(view, ref, status, move);
   }
   await move();
-  return settledAfter(held, ref, status, () => correctionFor(view.documentId, ref, moved, said, { corrects: STATUS_CORRECTED }));
+  return settledAfter(view, ref, status,
+    () => correctionFor(view.documentId, ref, moved, said, { corrects: STATUS_CORRECTED }), answered);
 };
 
 export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;

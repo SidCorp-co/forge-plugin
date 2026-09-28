@@ -339,18 +339,23 @@ const branchFor = async (given) => {
     + "config names no base branch to read it from. Name it with --to <branch>.");
 };
 
+/** What taking a stamp down says, whichever verb took it: `advance --set` repairing a close and
+ *  `--undo` here are one unmark of one field, and two sentences for it read as two acts. */
+export const stampRemoved = (ref) => `${ref}  the merged stamp is removed.`;
+
 /* A stamp with no mark is what a close leaves: the tracker writes the row's field of its own accord and
    no mark of this issue's is on the page, so the removal has no note to quote and says where the stamp
    came from instead. Without this the one route to the tracker's unmerge is shut against exactly the
    rows that carry a landing nothing made, the mark being what `--undo` asked for (ISS-2125). */
-const stampSaid = (at) => (at
-  ? `no mark on the page — the row carried a merged stamp from ${at}, which no mark of this issue's wrote`
-  : null);
+const stampSaid = (ref, at) => `${stampRemoved(ref)} No mark on the page — the row carried a merged `
+  + `stamp from ${at}, which no mark of this issue's wrote.`;
 
-const undone = async (documentId, ref, held, { next, patch }) => {
+const markSaid = (ref, note) => `${ref}  the merged mark is removed. What it said:\n  ${note}`;
+
+const undone = async (documentId, ref, said, { next, patch }) => {
   await renew(documentId, ref, next, patch);
   await unmarkMerged(documentId, ref);
-  console.log(`${ref}  the merged mark is removed. What it said:\n  ${held}`);
+  console.log(said);
 };
 
 const marked = async (documentId, ref, note, clauses, { next, patch }) => {
@@ -376,12 +381,13 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
       refuse(`--undo removes the mark whole, so ${also.map((one) => `--${one}`).join(" and ")} `
         + "has no place beside it: a clause is written by the mark and not by its removal.");
     }
-    const held = lastMark(comments) ?? stampSaid(body?.mergedAt);
-    if (!held) {
+    const mark = lastMark(comments);
+    if (!mark && !body?.mergedAt) {
       refuse(`${reference} carries no merged mark and its row carries no merged stamp, so there is `
         + `nothing to remove. What a mark is written with:\n  ${mergedForm(reference)}`);
     }
-    return { write: () => undone(documentId, reference, held, { next, patch }) };
+    const said = mark ? markSaid(reference, mark) : stampSaid(reference, body.mergedAt);
+    return { write: () => undone(documentId, reference, said, { next, patch }) };
   }
   const note = markNote({ branch: await branchFor(given), ...clauses,
     named: await namedFor(documentId, comments), ref: reference });
