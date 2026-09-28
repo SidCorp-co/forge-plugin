@@ -8,6 +8,11 @@
 // a narrow claim: no counterpart at all is caught; one earned by some other sentence in the same
 // block, while the negated or contrasted clause itself loses its own, is not (ISS-1752's decision
 // record names the fix: a back-translation verifier behind this same `diff` shape).
+//
+// The Vietnamese counterpart lists a `said` message names come from vi-text.mjs, the one file this
+// tree lets carry Vietnamese literals — this module only interpolates them (tools/check-vi-text.mjs).
+
+import { CONTRAST_VI_WORDS, NEGATION_VI_WORDS } from "../vi-text.mjs";
 
 const CONTRAST_EN = /\brather than\b|\binstead of\b|\bas opposed to\b|\bwhereas\b/iu;
 const CONTRAST_VI = /thay vì|hơn là|chứ không|mà không|trái lại|ngược lại|trong khi/u;
@@ -19,12 +24,12 @@ const FAMILIES = [
   {
     inSource: CONTRAST_EN,
     inRewrite: CONTRAST_VI,
-    said: "the source contrasts one reading against another (\"rather than\"/\"instead of\"/\"as opposed to\"/\"whereas\"), and the rewrite carries none of its Vietnamese counterparts (thay vì, hơn là, chứ không, mà không, trái lại, ngược lại, trong khi)",
+    said: `the source contrasts one reading against another ("rather than"/"instead of"/"as opposed to"/"whereas"), and the rewrite carries none of its Vietnamese counterparts (${CONTRAST_VI_WORDS})`,
   },
   {
     inSource: NEGATION_EN,
     inRewrite: NEGATION_VI,
-    said: "the source negates a claim (\"not\"/\"never\"/\"without\"/\"no longer\"/\"cannot\"/\"nothing\"/\"nobody\"/\"neither\"), and the rewrite carries no Vietnamese negation (không, chẳng, chưa, đừng, chớ)",
+    said: `the source negates a claim ("not"/"never"/"without"/"no longer"/"cannot"/"nothing"/"nobody"/"neither"), and the rewrite carries no Vietnamese negation (${NEGATION_VI_WORDS})`,
   },
 ];
 
