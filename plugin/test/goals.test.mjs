@@ -129,6 +129,17 @@ test("the goals are the identified lines of that one section, and nothing under 
     "a goal's words end where the line's provenance starts");
 });
 
+test("a heading a determiner apart from the canonical one is still read as the section (ISS-1481)", () => {
+  for (const heading of ["What this project is for", "What the project is for",
+    "What our project is for", "What a project is for", "What project is for"]) {
+    const read = goalsIn(`## ${heading}\n\nERP-1 — rebuild the thing.\n`);
+    assert.deepEqual(read.goals.map((one) => one.id), ["ERP-1"], `${heading}: the determiner is not the section's identity`);
+    assert.equal(read.why, null, heading);
+  }
+  const unrelated = goalsIn("## What this project is forever\n\nERP-1 — rebuild the thing.\n");
+  assert.deepEqual(unrelated.goals, [], "a heading naming a different thing is still no match");
+});
+
 test("a brief with no such section states no goal, and says which reason", () => {
   const read = goalsIn("# a map\n\nBuild: none.\n");
   assert.deepEqual(read.goals, []);
