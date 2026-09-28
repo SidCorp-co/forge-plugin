@@ -8,7 +8,8 @@ import { median } from "../../stats/median.mjs";
 import { budgetMs, fail } from "../../resolve/settings.mjs";
 import { flags, partition } from "../../resolve/flags.mjs";
 import { userConfig } from "../../resolve/config.mjs";
-import { gateway, modelBehind } from "../../resolve/machine/stores.mjs";
+import { gateway, modelBehind, slotsIn } from "../../resolve/machine/stores.mjs";
+import { UNSET, complexityOf } from "../../rank/weights.mjs";
 import { HUMAN_REF, documentIdOf } from "../../tracker/issues.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { askApi } from "../codex-api.mjs";
@@ -94,11 +95,6 @@ export const readAnswer = (calls = []) => {
   return { proposed: given, confidence: numberOrNull(confidence), why: String(why ?? "").trim() };
 };
 
-/* What the tracker holds, in the rank's own word for none: read here rather than from rank/score.mjs
-   because that module walks the requirements tree at import and this one is loaded by every codex hook. */
-const UNSET = "unset";
-const trackerOf = (row) => (row?.complexity ? String(row.complexity) : UNSET);
-
 /** One question, one log row under its own kind, whatever came back. `ask` and `log` are handed in so
  *  the suite asks a fake and logs to a list; the live pair is the consult's own. */
 export const askComplexity = async (values, model, row, { effort, signal, ask = askApi, log = logConsult } = {}) => {
@@ -106,19 +102,18 @@ export const askComplexity = async (values, model, row, { effort, signal, ask = 
      let die held the first luna measurement forever, its question having no deadline of its own. */
   const deadline = signal ?? AbortSignal.timeout(budgetMs());
   const state = stateOf(row);
-  const tracker = trackerOf(row);
+  const tracker = complexityOf(row);
   const started = Date.now();
   const record = { kind: PROPOSAL, at: new Date().toISOString(), model, effort: effort ?? null, key: state.key };
-  let answer;
-  try {
-    answer = await ask(values, model, [{ role: "user", content: JSON.stringify(state) }],
-      { tools: [COMPLEXITY_TOOL], choose: COMPLEXITY_TOOL.name, system: COMPLEXITY_ROLE, effort, signal: deadline });
-  } catch (error) {
-    const ms = Date.now() - started;
+  const settled = await ask(values, model, [{ role: "user", content: JSON.stringify(state) }],
+    { tools: [COMPLEXITY_TOOL], choose: COMPLEXITY_TOOL.name, system: COMPLEXITY_ROLE, effort, signal: deadline })
+    .then((answered) => ({ answer: answered }), (error) => ({ error }));
+  const ms = Date.now() - started;
+  const { answer, error } = settled;
+  if (error) {
     log({ ...record, ms, ok: false, error: error.message });
     return { key: state.key, tracker, refused: error.message, ms };
   }
-  const ms = Date.now() - started;
   const read = readAnswer(answer.calls);
   log({ ...record, ms, ok: true, usage: answer.usage, ...read });
   return { key: state.key, tracker, ...read, ms, usage: answer.usage ?? null };
@@ -187,9 +182,15 @@ const closing = (tracker, proposed) => {
     : `On the shared runs the proposed complexity ordered minutes more closely (${saidProposed} against ${said}).`;
 };
 
-/** Two orderings of the same runs' minutes, by the complexity the tracker holds and by the one proposed.
- *  Both coefficients run over one population — the runs whose issue holds a complexity — so the arms
- *  are judged on the same runs; the proposed arm over every run is coverage, printed apart. */
+/* Agreement is agreement and nothing more: the tracker's value was set by a reader nobody has measured,
+   so a proposal that matches it more often has matched a reader, not a cost. The ordering figure is the
+   one about cost; this one is printed beside it and never folded into it. */
+const agreementWith = (shared) => ({ agreed: shared.filter((one) => one.proposed === one.tracker).length, of: shared.length });
+
+/** Two orderings of the same runs' minutes, by the complexity the tracker holds and by the one proposed,
+ *  and how often the two agree. Every figure runs over one population — the runs whose issue holds a
+ *  complexity — filtered once, so the arms and the agreement are judged on the same runs; the proposed
+ *  arm over every run is coverage, printed apart. */
 export const agreementOf = (runs) => {
   const shared = runs.filter((one) => COMPLEXITY_NAMES.includes(one.tracker));
   const unset = runs.length - shared.length;
@@ -209,15 +210,8 @@ export const agreementOf = (runs) => {
   said.push(`Spearman, complexity order against minutes, over those ${shared.length}: tracker ${figureOf(arms.tracker.rho)}, proposed ${figureOf(arms.proposed.rho)}.`);
   said.push(`Proposed over every run, the unset included: ${figureOf(arms.proposed.rhoAll)} over ${runs.length}.`);
   said.push(closing(arms.tracker.rho, arms.proposed.rho));
-  return { shared: shared.length, unset, arms, said };
+  return { shared: shared.length, unset, arms, said, agreement: agreementWith(shared) };
 };
-
-/* The profile's slots, by the name a person types: `haiku` for `ANTHROPIC_DEFAULT_HAIKU_MODEL`. */
-const SLOT_KEY = /^ANTHROPIC_DEFAULT_([A-Z0-9_]+)_MODEL$/u;
-const slotsIn = (values) => Object.keys(values ?? {})
-  .map((key) => SLOT_KEY.exec(key)?.[1]?.toLowerCase())
-  .filter(Boolean)
-  .sort();
 
 /** The model one question goes to, in the order a caller decides it: the flag for this run, the
  *  machine's `codex.complexityModel` for every run, and absent both the consult's own rung table and
@@ -312,14 +306,6 @@ const askAll = async (keys, deps, values, model, effort) => {
   return new Map(held);
 };
 
-/* Agreement is agreement and nothing more: the tracker's value was set by a reader nobody has measured,
-   so a proposal that matches it more often has matched a reader, not a cost. The ordering figure above
-   is the one about cost; this one is printed beside it and never folded into it. */
-const agreementWith = (runs) => {
-  const shared = runs.filter((one) => COMPLEXITY_NAMES.includes(one.tracker));
-  return { agreed: shared.filter((one) => one.proposed === one.tracker).length, of: shared.length };
-};
-
 /* What one question cost, over every question sent, refused ones included in the seconds — a refusal
    was paid for — and left out of the tokens, which only an answer carries. A key whose row the tracker
    would not give was never sent, and is no question here. */
@@ -378,9 +364,9 @@ export const complexity = async (rest, deps = live()) => {
   const measured = paired.filter((one) => one.proposed !== null);
   const dropped = paired.length - measured.length;
   const reading = agreementOf(measured);
-  const agreement = agreementWith(measured);
+  const { agreement } = reading;
   const cost = costOf([...held.values()]);
-  const out = { model, effort, runs: runs.length, issues: distinct.length, dropped, ...reading, agreement, cost };
+  const out = { model, effort, runs: runs.length, issues: distinct.length, dropped, ...reading, cost };
   if (asked.json) return console.log(JSON.stringify(out, null, 2));
   console.log(`${runs.length} run(s) over ${distinct.length} issue(s), asked to ${model} at ${effort} effort`
     + `${dropped ? `; ${dropped} run(s) left out, their question refused` : ""}.`);

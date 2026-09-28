@@ -69,11 +69,12 @@ export const logLine = (stored, full) => {
      back; a refusal is the row's own — the answer was outside the ladder — and never a review's
      `failed`, which is the gateway's. `--full` opens the why, the one thing a person reading the log back wants. */
   if (entry.kind === PROPOSAL) {
-    const came = stored.ok
-      ? (entry.refused ? `refused: ${entry.refused}` : `-> ${entry.proposed}${typeof entry.confidence === "number" ? `  confidence ${entry.confidence}` : ""}`)
-      : answer;
+    const proposed = stored.ok && !entry.refused;
+    const came = proposed
+      ? ` -> ${entry.proposed}${typeof entry.confidence === "number" ? `  confidence ${entry.confidence}` : ""}`
+      : `  ${stored.ok ? `refused: ${entry.refused}` : answer}`;
     const head = `${id}${entry.at}  ${entry.model ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  `
-      + `complexity ${entry.key ?? "?"}  ${came}${wroteIt(entry)}`.replace("  -> ", " -> ");
+      + `complexity ${entry.key ?? "?"}${came}${wroteIt(entry)}`;
     return full ? [head, "", entry.why ?? entry.error ?? "", ""].join("\n") : head;
   }
   const at = entry.head ? `${entry.head}${entry.dirty ? "+dirty" : ""}` : "no commit";

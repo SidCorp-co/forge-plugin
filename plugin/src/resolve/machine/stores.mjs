@@ -119,8 +119,18 @@ export const chatgptSettings = () => {
    the shim's: that same name is what Claude Code reads to spawn a subagent. */
 export const modelSlot = () => userConfig().codex?.model || "fable";
 
+/* The profile's key for a slot, spelled once: the lookup builds it and the list of slots parses it. */
+const [SLOT_HEAD, SLOT_TAIL] = ["ANTHROPIC_DEFAULT_", "_MODEL"];
+const SLOT_KEY = new RegExp(`^${SLOT_HEAD}([A-Z0-9_]+)${SLOT_TAIL}$`, "u");
+
 export const modelBehind = (values, slot = modelSlot()) =>
-  values?.[`ANTHROPIC_DEFAULT_${slot.toUpperCase()}_MODEL`] ?? null;
+  values?.[`${SLOT_HEAD}${slot.toUpperCase()}${SLOT_TAIL}`] ?? null;
+
+/** The slots a profile holds, by the name a person types: `haiku` for `ANTHROPIC_DEFAULT_HAIKU_MODEL`. */
+export const slotsIn = (values) => Object.keys(values ?? {})
+  .map((key) => SLOT_KEY.exec(key)?.[1]?.toLowerCase())
+  .filter(Boolean)
+  .sort();
 
 const ROUTE = "`forge doctor --codex-url <endpoint> --codex-key <key>`";
 

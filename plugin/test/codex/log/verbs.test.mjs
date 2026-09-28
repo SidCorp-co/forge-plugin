@@ -133,3 +133,15 @@ test("a proposal row reads as the issue it read and the complexity proposed, not
   assert.match(logLine({ ...row, ok: false, error: "the gateway streamed no text at all" }, false),
     /complexity ISS-457 {2}failed: the gateway streamed no text at all/u);
 });
+
+/* The separator is composed on the proposal's own arm, so a refusal or an error carrying the same two
+   spaces and an arrow is printed as it was stored rather than having its first such run collapsed. */
+test("a refusal or an error holding two spaces and an arrow prints as stored", () => {
+  const row = { kind: "complexity", at: "2026-09-22T10:00:00.000Z", model: "cx/gpt-5.6-sol", ms: 4_000, ok: true, key: "ISS-457" };
+  const refused = "`huge` is no complexity; read it as  -> m";
+  assert.equal(logLine({ ...row, refused }, false),
+    `2026-09-22T10:00:00.000Z  cx/gpt-5.6-sol  4s  complexity ISS-457  refused: ${refused}`);
+  const error = "gateway answered 502:  -> retry later";
+  assert.equal(logLine({ ...row, ok: false, error }, false),
+    `2026-09-22T10:00:00.000Z  cx/gpt-5.6-sol  4s  complexity ISS-457  failed: ${error}`);
+});
