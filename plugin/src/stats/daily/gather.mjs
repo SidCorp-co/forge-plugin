@@ -15,7 +15,7 @@ import { ATTEMPTS, marksOf } from "../marks/marks.mjs";
 import { movedIn } from "../eval/eval.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";
 import { median } from "../median.mjs";
-import { minutes } from "../figures.mjs";
+import { minutes, tenth } from "../figures.mjs";
 import { answered, logEntries } from "../../codex/codex-log.mjs";
 import { windowObject } from "../../codex/codex-stats.mjs";
 import { hookEntries } from "../../hooks/log/hook-log-file.mjs";
@@ -82,7 +82,7 @@ const phaseSharesOf = (profile, week) => profile.phases.map((one, at) => {
   const share = percentOf(one.totalMinutes, profile.totalMinutes);
   const baseline = percentOf(week.phases[at].totalMinutes, week.totalMinutes);
   return { name: one.name, minutes: one.totalMinutes, share, baseline,
-    change: share === null || baseline === null ? null : Math.round((share - baseline) * 10) / 10 };
+    change: share === null || baseline === null ? null : tenth(share - baseline) };
 });
 
 const runsSection = (all, day, projects) => {
@@ -168,7 +168,7 @@ const waitsOf = (runs) => {
     for (const one of run.longest) {
       const was = held.get(one.key) ?? { what: one.key, waits: 0, minutes: 0, runs: new Set() };
       was.waits += 1;
-      was.minutes = Math.round((was.minutes + one.minutes) * 10) / 10;
+      was.minutes = tenth(was.minutes + one.minutes);
       was.runs.add(run);
       held.set(one.key, was);
     }

@@ -151,7 +151,7 @@ const polled = (calls) => {
 /* Off the class the call already has, so the two cannot disagree: no run writes a phase into its transcript. `after` is the phase that must have opened first, and the last row carries one because the method types a gap where the run met it and reads the knowledge store at phase 0, so without it either would take a run that landed nothing to the last phase; the row above it carries none, having once closed its own phase and left the rest of the transcript in this one (ISS-1714). The numbers are the method's, read off `PHASES`: this table said 5 for the ship where the contract says 5 for the proving, and a figure is only worth a phase both readings can name (ISS-700). */
 export const MARKERS = [
   { phase: 1, classes: [CLAIM_CLASS] },
-  { phase: 2, classes: ["forge record confirmation"] },
+  { phase: 2, classes: [CONFIRMS] },
   { phase: 3, classes: ["forge record decision"] },
   { phase: 4, classes: ["forge record plan", "forge record criteria", "forge record baseline"] },
   { phase: 5, classes: [WHOLE_SET_CLASS], after: 4 },
