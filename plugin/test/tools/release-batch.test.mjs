@@ -6,6 +6,16 @@ import test, { after } from "node:test";
 
 import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-keys.mjs";
+import { minutesSince } from "../../src/tools/release-batch/verb.mjs";
+
+test("minutesSince reads the exact whole minutes between a stamp and a chosen now, rounding to the nearest", () => {
+  const at = "2026-09-01T00:00:00.000Z";
+  assert.equal(minutesSince(at, Date.parse(at)), 0);
+  assert.equal(minutesSince(at, Date.parse(at) + 5 * 60_000), 5);
+  assert.equal(minutesSince(at, Date.parse(at) + 90_000), 2, "90s rounds up to the nearest minute");
+  assert.equal(minutesSince(at, Date.parse(at) + 89_000), 1, "89s rounds down to the nearest minute");
+  assert.equal(minutesSince("not a date", Date.now()), null);
+});
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 
@@ -79,11 +89,10 @@ test("a batch running: status calls active then state, in that order, and prints
   const run = await ran();
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, new RegExp(RUN_ID, "u"));
-  const aged = run.stdout.match(/\((\d+) minute\(s\) ago\)/u);
-  assert.ok(aged, `no computed age in: ${run.stdout}`);
-  const expectedAge = Math.round((Date.now() - Date.parse(STARTED_AT)) / 60_000);
-  assert.ok(Math.abs(Number(aged[1]) - expectedAge) <= 2,
-    `age ${aged[1]} is not close to the age this ${STARTED_AT} computes to, ${expectedAge}`);
+  /* The exact arithmetic is `minutesSince`'s own unit test, against a chosen `now` and no real
+     clock; what this end-to-end case is owed is that a subprocess reading a real elapsed span
+     prints one, which real wall-clock elapsed time cannot bound by a constant (ISS-1274). */
+  assert.match(run.stdout, /\(\d+ minute\(s\) ago\)/u, `no computed age in: ${run.stdout}`);
   assert.match(run.stdout, new RegExp(`2 issue\\(s\\): ${ISSUE_IDS[0]}, ${ISSUE_IDS[1]}`, "u"));
   assert.match(run.stdout, /holding\s+no/u);
   assert.match(run.stdout, /total\s+crossed=false measuredMs=null thresholdMs=5400000/u);

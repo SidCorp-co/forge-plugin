@@ -39,9 +39,12 @@ const USAGE = [
 
 const SAYS = { clear: CLEAR_USAGE };
 
-const minutesSince = (iso) => {
+/* `now` takes a fixed instant so a case can prove this arithmetic exactly, on a constant it chose,
+   rather than against the real clock a subprocess spawn's own share of the machine would move
+   (ISS-1274: no case bounds elapsed wall-clock time by a constant). */
+export const minutesSince = (iso, now = sharedNow()) => {
   const at = Date.parse(iso ?? "");
-  return Number.isFinite(at) ? Math.round((sharedNow() - at) / 60_000) : null;
+  return Number.isFinite(at) ? Math.round((now - at) / 60_000) : null;
 };
 
 const boundLine = (bound) =>
