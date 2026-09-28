@@ -338,6 +338,12 @@ test("a string the stored record already holds goes, and anything else carrying 
     "and a field the stored record is not of is judged whole, word for word the same or not");
 });
 
+test("a redaction masks a long credential where it is written exactly, and its bare form nowhere", () => {
+  const deploy = deployFrom(stagingOf({ testCredentials: [{ password: "!hunter2hunter2!" }] }));
+  assert.deepEqual(redactedCopy({ note: "hunter2hunter2 then !hunter2hunter2!" }, deploy),
+    { note: "hunter2hunter2 then [withheld]" }, "the guard refuses no string for the bare form alone");
+});
+
 test("a string carrying two credentials is a hit for each, stored or supplied", () => {
   const deploy = deployFrom(stagingOf({ testCredentials: [{ username: "long-test-username", password: "long-test-password" }] }));
   const both = { sessionContext: { feedback: ["long-test-username / long-test-password"] } };

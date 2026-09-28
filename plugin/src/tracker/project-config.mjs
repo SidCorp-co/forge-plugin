@@ -449,12 +449,24 @@ export const credentialLeak = (data, deploy, stored = null) => {
 export const storedCopies = (data, deploy, stored) => splitHits(data, deploy, stored).stored;
 
 /* One value, and never a list of fields: a short credential is masked where the string is it, a
-   long one wherever it sits, which is the matching rule above read as a mask. */
+   long one wherever it sits written exactly, which is the matching rule above read as a mask. The
+   bare form a refusal's quote also masks is no part of it: the guard refuses no string for holding
+   that alone, so a redaction masking it would rewrite text nothing refused. */
 const maskedLeaf = (text, guarded) => {
   if (guarded.some((one) => one.value.length < SECRET && bare(one.value) && bare(one.value) === bare(text))) {
     return MASK;
   }
-  return maskSpans(text, spansOf(text, guarded.filter((one) => one.value.length >= SECRET)));
+  const spans = guarded
+    .filter((one) => one.value.length >= SECRET)
+    .flatMap((one) => {
+      const found = [];
+      for (let at = text.indexOf(one.value); at >= 0; at = text.indexOf(one.value, at + 1)) {
+        found.push([at, at + one.value.length]);
+      }
+      return found;
+    })
+    .sort((one, two) => one[0] - two[0]);
+  return maskSpans(text, spans);
 };
 
 const mapLeaves = (value, each) => {

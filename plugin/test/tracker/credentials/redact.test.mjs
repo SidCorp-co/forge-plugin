@@ -178,3 +178,13 @@ test("--redact writes over nothing another write landed first: the precondition 
   assert.ok(JSON.stringify(held.sessionContext).includes(PASSWORD), "and nothing of the redaction went over it");
   assert.equal(created().length, 0, "nor a correction claiming it did");
 });
+
+test("--redact beside --set, an edge flag or --why is refused, and nothing is sent", async () => {
+  for (const beside of [["--set", "title=x"], ["--blocks", "ISS-2"], ["--unlink", "ISS-2"], ["--why", "because"]]) {
+    fresh();
+    const run = await ask("issue", "ISS-1", "--redact", ...beside);
+    assert.equal(run.status, 1, `${beside[0]}: ${run.stdout}`);
+    assert.match(run.stderr, /Nothing was sent\./u, beside[0]);
+    assert.equal((state.calls ?? []).length, 0, `${beside[0]} reached the tracker`);
+  }
+});
