@@ -135,7 +135,7 @@ const fieldsIn = (given) =>
 
 export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n] [--fields a,b]";
 
-export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W] [--propose]"
+export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W] [--propose] [--redact]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46 --kind k|--unlink ISS-46 --edge id]";
 
 /* The one thing a row cannot hold: what this project's own configuration does to a value before it is stored, which a caller otherwise learns by reading the body back. Which language, which file it came from and which setting are `forge doctor`'s to name, so none of the three is here (ISS-1790). */
@@ -148,6 +148,13 @@ const SET_PROSE = "`--set f=v` sends the value through this project's prose lang
 /* A module is a label the tracker holds as a set, so what a caller is owed is what happens to the rest of that set. */
 const SET_MODULE = "`--set module=<name>` puts the issue in one of this project's modules as its primary: the primary\n"
   + "it held before is replaced and every other label stays. `forge doctor modules` lists the names.";
+
+/* The one write to sessionContext that is not the lease's, said where a caller sent by the guard looks for it. */
+const REDACT = "`--redact` masks with `[withheld]` every string of the issue's stored sessionContext the\n"
+  + "credential guard would refuse, leaves every other value of it as it was, and posts a correction\n"
+  + "naming the paths. A short credential inside prose is past the guard's edge, and is left.\n"
+  + "It is refused while another run's lease holds the issue, and writes nothing where the field\n"
+  + "carries no credential.";
 
 /* Which of this verb's two outputs a program may key on, said where a caller looks for it: a column added to the browse rows once moved a positional parse one field along, and it kept finding the right issue and reading the wrong word off it (ISS-174). */
 const WHICH_SURFACE = "The rows a call prints with no `--fields` are for a person to read. Which columns they are,\n"
@@ -189,7 +196,7 @@ const TWO_SELECTORS = "issue: --kind and --edge each name the edge --unlink remo
 const own = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (argv) => {
-    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${SET_MODULE}`);
+    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${SET_MODULE}\n\n${REDACT}`);
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
@@ -202,10 +209,10 @@ const own = {
       return printIssues(await everyIssue(filters), asked, declaredFor("forge_issues", "priority"));
     }
     const reference = first;
-    const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full"], modes: [LIST_USAGE] });
-    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full", "--propose"], { usage: READ_USAGE, modes: [LIST_USAGE] });
+    const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full", "--redact", "--propose"], modes: [LIST_USAGE] });
+    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full", "--redact", "--propose"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
-    const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set", "propose"], "issue", "writes and a call makes one");
+    const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set", "redact", "propose"], "issue", "writes and a call makes one");
     /* Used or refused rather than read and dropped: `--kind` and `--edge` belong to `--unlink` alone,
        one of them at a time, and a kind this CLI does not serve is turned away before anything is sent. */
     for (const name of ["kind", "edge"]) {
@@ -216,6 +223,11 @@ const own = {
       if (!EDGE_KINDS.includes(asked.kind)) {
         fail(`issue: --kind takes ${EDGE_KINDS.join(" or ")}, and \`${asked.kind}\` is neither. Nothing was sent.`);
       }
+    }
+    if (wrote === "redact") {
+      if (why !== undefined) fail("--why belongs to --set; --redact states its own reason, the credential the field carried. Nothing was sent.");
+      const { redactStored } = await import("./tracker/credentials/redact.mjs");
+      return redactStored(reference);
     }
     if (wrote === "propose") {
       if (why !== undefined) fail("--why belongs to --set; a proposal writes the model's own reason.");

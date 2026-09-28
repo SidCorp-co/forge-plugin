@@ -119,7 +119,7 @@ test("a verdict under a mark that judged nothing is owed again at the merged com
   const issue = { ...ISSUE, mergedAt: "2026-09-28T11:00:00.000Z", attachments: [{ name: "run.txt" }] };
   const owed = judgedOwed(viewFrom(ISSUE.documentId, issue, [...page(), verdict(1, REVIEWED)]), "ISS-98")
     .map((one) => one.what);
-  assert.ok(owed.includes(`the verdict on criterion 1 judged ${REVIEWED}, and the merged commit is ${AT}`),
+  assert.ok(owed.includes(`the verdict on criterion 1 judged ${REVIEWED}, and the merged commit is ${AT}: nothing on the record says ${REVIEWED} carries it`),
     owed.join("\n"));
   assert.ok(owed.includes("criterion 2 has no verdict"), owed.join("\n"));
 });

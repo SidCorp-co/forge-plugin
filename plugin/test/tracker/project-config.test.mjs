@@ -208,7 +208,8 @@ test("a project that declares no model is noted rather than read as one, and an 
 
 test("the report withholds a credential and names the one command that prints it", () => {
   const out = said({});
-  assert.match(out, /^test credentials: present, forge doctor --credentials$/mu);
+  assert.match(out, /^test credentials: present, forge doctor --credentials {2}← the tracker's project detail$/mu,
+    "and it names where the values it withholds are stored");
   assert.match(out, /^held, not printed: staging · urls · label, test credentials · username, test credentials · password$/mu);
   assert.doesNotMatch(out, /correct-horse-battery/u, "the value is the thing the flag is for");
   assert.doesNotMatch(out, /qa@example\.test/u);
@@ -219,8 +220,10 @@ test("the flag prints the values, and nothing else moves", () => {
   assert.match(out, /^test credentials · password: correct-horse-battery$/mu);
   assert.match(out, /^test credentials · username: qa@example\.test$/mu);
   assert.doesNotMatch(out, /held, not printed/u);
-  assert.match(out, /^test credentials: below, printed once$/mu,
+  assert.match(out, /^test credentials: below, printed once {2}← the tracker's project detail$/mu,
     "and the summary stops pointing at the flag the caller just used");
+  assert.match(out, /^copied onto an issue: a copy an issue's stored sessionContext carries is taken off with forge issue <ref> --redact$/mu,
+    "the route the stored-copy line names is where the refusal sends the caller too");
   assert.match(out, /^staging: https:\/\/beta\.example\.test$/mu);
 });
 

@@ -100,11 +100,54 @@ test("tested needs one verdict per criterion, passing, at the merged commit", ()
     ["the verdict on criterion 1 lacks --why, naming what the criterion did instead: a `fail` is what another run acts on"],
     "a fail is what the next run acts on, so what the criterion did instead is asked for at the write");
   assert.deepEqual(judging(view(issue, [landed, verdict(1, "pass", "43b811e"), verdict(2, "pass")])),
-    ["the verdict on criterion 1 judged 43b811e, and the merged commit is c8c3550"]);
+    ["the verdict on criterion 1 judged 43b811e, and the merged commit is c8c3550: nothing on the record says 43b811e carries it"]);
   assert.deepEqual(judging(view(issue, [landed, verdict(1, "skipped", "c8c3550", { why: "no screen" }), verdict(2, "pass")])),
     [], "a skip with its reason is judged");
   assert.deepEqual(judging(view(issue, [landed, verdict(1, "skipped"), verdict(2, "pass")])),
     ["the verdict on criterion 1 lacks --why, for a skipped check"], "the shape says what a skip owes");
+});
+
+/* A criterion another change made true is judged after the landing, at a commit carrying it, and the
+   write records that it carries it; before ISS-1302 the rung refused that verdict for its anchor and
+   printed a write citing the merged commit, which the judge never looked at. */
+test("a verdict at a later commit carrying the landing stands as one at the merged commit", () => {
+  const issue = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-02T13:49:51.777Z", attachments: ATTACHED };
+  const landed = mark("merged to master at c8c3550");
+  const verdict = (number, kind, commit, extra = {}) =>
+    recorded("verdict", { criterion: `${number} — text`, verdict: kind, commit, evidence: ["run.txt"], ...extra });
+  const later = (number, extra = {}) => verdict(number, "pass", "43b811e", { carries: "c8c3550", ...extra });
+
+  assert.deepEqual(judging(view(issue, [landed, later(1), later(2)])), [], "both verdicts carry the landing");
+  const failedFirst = verdict(1, "fail", "c8c3550", { why: "the other issue's fix had not landed" });
+  const superseded = view(issue, [landed, failedFirst, later(1), later(2)]);
+  assert.deepEqual(judging(superseded), [], "the latest verdict is the one read, so the fail before it holds nothing");
+  for (const rung of ["awaiting_release", "closed"]) {
+    assert.ok(!missing(rung, superseded).some((one) => /failed its verdict/u.test(one)), `nor at ${rung}`);
+  }
+  const failedLater = verdict(1, "fail", "43b811e", { carries: "c8c3550", why: "still empty" });
+  assert.deepEqual(judging(view(issue, [landed, failedLater, later(2)])), ["criterion 1 failed its verdict"],
+    "carrying the landing makes a fail no less one");
+
+  const moved = mark("merged to master at 9a4d36d");
+  assert.deepEqual(judging(view(issue, [landed, later(1), later(2), moved])), [
+    "the verdict on criterion 1 judged 43b811e, and the merged commit is 9a4d36d: nothing on the record says 43b811e carries it",
+    "the verdict on criterion 2 judged 43b811e, and the merged commit is 9a4d36d: nothing on the record says 43b811e carries it",
+  ], "a moved mark unearns what carried the old one");
+
+  const bare = view(issue, [landed, verdict(1, "pass", "43b811e"), later(2)]);
+  assert.deepEqual(judging(bare),
+    ["the verdict on criterion 1 judged 43b811e, and the merged commit is c8c3550: nothing on the record says 43b811e carries it"]);
+  const asked = judgingAsks(bare)[0];
+  assert.match(asked, /--criterion 1 --verdict <pass\|fail\|skipped\|short> --commit <the commit you judged, carrying c8c3550> /u);
+  assert.match(asked, /, from a checkout that holds both$/u);
+  assert.doesNotMatch(asked, /--commit c8c3550/u, "the write it prints never cites the merged commit for the judge");
+
+  for (const flow of ["default", "screen"]) {
+    const part = partFor(partsOf(readContract(undefined, flow)), "earning-and-unearning").text;
+    assert.match(part, /\*\*A later commit can earn, too\.\*\*/u, `the ${flow} contract says a later commit earns`);
+    assert.match(part, /git's answer, recorded at the write, so the\s+write is made from a checkout that holds both commits: `forge record verdict -h`/u,
+      `and how the ${flow} record comes to say so`);
+  }
 });
 
 /* Four runs on 2026-09-04 re-posted every verdict after their ship, one of them twenty-eight records
@@ -136,12 +179,12 @@ test("a verdict at the judged head stands where the landing moved none of the ch
 
   /* Every mark on the tracker today names no judged head, so the old refusal is what they must get. */
   assert.deepEqual(owed("reviewed head 37a0ffb"), [
-    "the verdict on criterion 1 judged bc40edc, and the merged commit is 9a4d36d",
-    "the verdict on criterion 2 judged bc40edc, and the merged commit is 9a4d36d",
+    "the verdict on criterion 1 judged bc40edc, and the merged commit is 9a4d36d: nothing on the record says bc40edc carries it",
+    "the verdict on criterion 2 judged bc40edc, and the merged commit is 9a4d36d: nothing on the record says bc40edc carries it",
   ], "no judged head clause, so nothing is excused");
   const other = recorded("verdict", { criterion: "2 — text", verdict: "pass", commit: "43b811e", evidence: ["run.txt"] });
   assert.deepEqual(judging(view(issue, [at("judged head bc40edc; landing moved nothing"), verdicts[0], other])),
-    ["the verdict on criterion 2 judged 43b811e, and the merged commit is 9a4d36d"],
+    ["the verdict on criterion 2 judged 43b811e, and the merged commit is 9a4d36d: nothing on the record says 43b811e carries it"],
     "the escape is the judged head and no other hash");
 });
 

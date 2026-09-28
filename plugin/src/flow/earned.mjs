@@ -3,7 +3,7 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  ANSWERS_LOOK, CLOSES_FROM, DISPOSITIONS, TRIAGES, correctedKind, looksIn, looksTo, need, planFlags,
+  ANSWERS_LOOK, CARRIES, CLOSES_FROM, DISPOSITIONS, TRIAGES, correctedKind, looksIn, looksTo, need, planFlags,
   somebodyLooked, unwrap, valuesOf, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
@@ -258,9 +258,15 @@ const failedOwed = (view, ref) => numbered(view.verdicts)
   .filter(([, { record }]) => record.fields.verdict === "fail" && !shapeGaps("verdict", record, view.names).length)
   .map(([number]) => need(`criterion ${number} failed its verdict`, askOne(ref, number, markedCommit(view.comments) ?? "<sha>")));
 
+/* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one
+   they did not look at. Their write, from a checkout holding both, records that it carries it (ISS-1302). */
+const carriedAsk = (ref, number, merged) =>
+  `${askOne(ref, number, `<the commit you judged, carrying ${merged}>`)}, from a checkout that holds both`;
+
 /* A landing brings other people's commits and leaves this change's own diff alone, so a verdict
    judged before it judged the code that landed; the review's recheck at the landed head guards the
-   tree they sit on. The note carries the predicate because git is asked where it can answer (ISS-156). */
+   tree they sit on. The note carries the predicate because git is asked where it can answer (ISS-156).
+   A verdict after it stands where its own write found the commit judged carrying the landing. */
 const verdictsOwed = (view, ref) => {
   const merged = markedCommit(view.comments);
   const judged = judgedHead(view.comments);
@@ -276,11 +282,12 @@ const verdictsOwed = (view, ref) => {
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
     else if (held.verdict === "fail") continue;
-    else if (!merged || sameCommit(held.commit, merged)) continue;
+    else if (!merged || sameCommit(held.commit, merged) || sameCommit(held[CARRIES], merged)) continue;
     else if (judged && sameCommit(held.commit, judged)) {
       if (!stands) atJudged.push(number);
     } else {
-      out.push(need(`the verdict on criterion ${number} judged ${held.commit}, and the merged commit is ${merged}`, ask(number)));
+      out.push(need(`the verdict on criterion ${number} judged ${held.commit}, and the merged commit is ${merged}: `
+        + `nothing on the record says ${held.commit} carries it`, carriedAsk(ref, number, merged)));
     }
   }
   if (atJudged.length) out.push(equivalenceOwed(view, ref, judged, moved, atJudged));

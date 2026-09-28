@@ -406,14 +406,25 @@ export const statusKind = (name) =>
 
 /* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
    next time a verb learns to write. `uploadAll` holds the other: bytes never pass here. */
-export const refuseCredential = async (value, what) => {
+/* `stored` is the record the payload was built from, by top-level field, and `ref` the issue it is: a
+   string that record already holds is re-sent rather than supplied, so it goes and is said once. */
+const saidStored = new Set();
+
+export const refuseCredential = async (value, what, { stored = null, ref = null, id = null } = {}) => {
   if (!value) return;
   const held = await import("./project-config.mjs");
   const deploy = await held.stagingDeploy();
   /* A reading that did not answer stops the write: there is no delete for what the tracker has taken, and a held write costs a retry — docs/cli/one-transport.md (ISS-487). */
   if (deploy?.refused) fail(held.unreadRefusal(deploy.refused, what));
-  const found = held.credentialLeak(value, deploy);
+  const found = held.credentialLeak(value, deploy, stored);
   if (found) fail(held.leakRefusal(found, what));
+  if (!stored) return;
+  for (const hit of held.storedCopies(value, deploy, stored)) {
+    /* Keyed by the issue and not by how the caller named it, a key and a uuid being one issue. */
+    const key = JSON.stringify([id ?? ref, hit.field, hit.credential]);
+    if (!saidStored.has(key)) console.error(held.storedCopyLine(hit, ref ?? "this issue"));
+    saidStored.add(key);
+  }
 };
 
 /* Every write announces its target, and hands the payload it sent back to a caller that asks: on a project with a prose language that copy and the one the caller wrote are different documents, and only the first can be read back and compared. */
@@ -432,8 +443,8 @@ const wroteFor = (name, args) => {
 
 const announced = new Set();
 
-export const write = async (name, args, onSent, soft = false) => {
-  await refuseCredential(args.data, `The payload ${name} was about to send`);
+export const write = async (name, args, onSent, soft = false, { stored = null, ref = null } = {}) => {
+  await refuseCredential(args.data, `The payload ${name} was about to send`, { stored, ref, id: args.documentId ?? null });
   const { target, own } = wroteFor(name, args);
   const language = own ? translateTarget() : {};
   /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700) — which is now the only sort of case that says it at all, and says it once for the command rather than once for each send the transport happened to make: docs/cli/what-a-write-says.md (ISS-1192). */

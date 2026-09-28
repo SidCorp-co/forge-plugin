@@ -307,6 +307,9 @@ export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
    `takes` is what a sentence about the field says it holds where the label cannot say it: the label is the read key of `labelledIn` in `machine/block.mjs`, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
+/** A verdict field's key, spelt once for its writer and its reader: `record/judged/carried.mjs`. */
+export const CARRIES = "carries";
+
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
    for the reason there is none, never half of one, so an absent record and an unasked question stop
    reading the same. Here rather than in the field loop, which cannot see one flag excusing three. */
@@ -490,6 +493,8 @@ export const SHAPES = {
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
       FIELD("commit", "Commit", { commit: true, judged: true }),
+      /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
+      FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true, prose: true }),
       FIELD("filed", "Filed as", { optional: true }),
