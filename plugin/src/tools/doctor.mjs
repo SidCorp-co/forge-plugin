@@ -417,6 +417,9 @@ const wroteProject = async (asked, pairs, positionals) => {
 /* The brief is a knowledge entry, so --confidence takes the store's own set: doctor's tool declares none, which would pass any word to the brief write. */
 const BRIEF_SETS = { "--confidence": setsOf("forge_knowledge")["--confidence"] };
 
+/* The subjects the endpoint read answers for. */
+const ENDPOINT_SUBJECTS = ["tracker", "serves", "repo", "project", "brief", "undecided"];
+
 /* The tracker reads this report overlaps with the rest of it, each awaited at its own row: `owing`
    walks eleven pages of the tracker, and a call spent while the rest of the reading runs costs the
    report almost none of its wall time. Neither starts where a subject leaves its row out or no
@@ -428,12 +431,9 @@ const startedReads = async (url, token) => {
   if (held && shown(...ENDPOINT_SUBJECTS, "services")) (await import("../tracker/rest.mjs")).forgetProjects();
   return {
     owing: (!asking() || shown("repo")) && held ? everyIssue({}, { soft: true }).catch(() => null) : null,
-    bindings: shown("services") ? startBindings() : null,
+    bindings: shown("services") ? startBindings(held) : null,
   };
 };
-
-/* The subjects the endpoint read answers for. */
-const ENDPOINT_SUBJECTS = ["tracker", "serves", "repo", "project", "brief", "undecided"];
 
 export const doctor = async (argv) => {
   const usage = usageOf("doctor");
