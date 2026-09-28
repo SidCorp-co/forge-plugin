@@ -307,7 +307,7 @@ export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
    `takes` is what a sentence about the field says it holds where the label cannot say it: the label is the read key of `labelledIn` in `machine/block.mjs`, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
-/** The verdict field naming the merged commit its judged commit carries, which the write fills and `testing` reads. */
+/** A verdict field's key, spelt once for its writer and its reader: `record/judged/carried.mjs`. */
 export const CARRIES = "carries";
 
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
@@ -493,7 +493,7 @@ export const SHAPES = {
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
       FIELD("commit", "Commit", { commit: true, judged: true }),
-      /* Filled by the write off git and in no usage row, so no flag reaches it: record/judged/carried.mjs. */
+      /* In no usage row, so no flag reaches it. */
       FIELD(CARRIES, "Carries the merged commit", { optional: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true, prose: true }),
