@@ -1,6 +1,7 @@
-/* Every surface that names a coolify subcommand reads it off one row, on both routes. Each case holds
-   a consumer against what the rows derive, so a name, a usage or a flag typed a second time anywhere
-   else is a mismatch here rather than a help line that quietly offers what the verb refuses. */
+/* Every surface that names a coolify subcommand reads it off one row, on both routes, in
+   `chosen-route.mjs`. Each case holds a consumer against what the rows derive, so a name, a usage or
+   a flag typed a second time anywhere else is a mismatch here rather than a help line that quietly
+   offers what the verb refuses. */
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,22 +16,35 @@ writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({}));
 process.env.XDG_CONFIG_HOME = HOME;
 
 const { userConfig } = await import("../../../../src/resolve/config.mjs");
-const rows = await import("../../../../src/tools/services/coolify/subcommands.mjs");
 const route = await import("../../../../src/tools/services/coolify/chosen-route.mjs");
+const rows = route;
 const { TRACKER_SAYS, TRACKER_USAGE } = await import("../../../../src/tools/services/coolify/tracker.mjs");
 const { SAYS, USAGE } = await import("../../../../src/tools/services/coolify/coolify.mjs");
 const { usageOf } = await import("../../../../src/resolve/visibility.mjs");
 const { ROUTES } = await import("../../../../src/tracker/routes.mjs");
 
-const ROWS_FILE = new URL("../../../../src/tools/services/coolify/subcommands.mjs", import.meta.url);
+const ROWS_FILE = new URL("../../../../src/tools/services/coolify/chosen-route.mjs", import.meta.url);
+
+/* A hook loads the rows' file through `visibility.mjs`: two of these that file loads itself, and the
+   third is the transport's no-route table, which imports nothing. */
+const LIGHT = ["../../../resolve/config.mjs", "../../../resolve/settings.mjs",
+  "../../../tracker/declared/no-route.mjs"];
+
+const NO_ROUTE_FILE = new URL("../../../../src/tracker/declared/no-route.mjs", import.meta.url);
 
 const chose = (mode) => {
   if (mode === null) delete userConfig().coolifyRoute;
   else userConfig().coolifyRoute = mode;
 };
 
-test("the rows import nothing, being what a hook loads through the route switch", () => {
-  assert.doesNotMatch(readFileSync(ROWS_FILE, "utf8"), /^\s*import\b/mu);
+test("the rows' file imports nothing heavier than a table", () => {
+  const imported = [...readFileSync(ROWS_FILE, "utf8").matchAll(/^import .* from "([^"]+)";$/gmu)].map((one) => one[1]);
+  assert.deepEqual(imported, LIGHT);
+  const visibility = readFileSync(new URL("../../../../src/resolve/visibility.mjs", import.meta.url), "utf8");
+  for (const held of ["./config.mjs", "./settings.mjs"]) {
+    assert.ok(visibility.includes(`from "${held}"`), `visibility.mjs no longer loads ${held} itself`);
+  }
+  assert.doesNotMatch(readFileSync(NO_ROUTE_FILE, "utf8"), /^import\b/mu, "the no-route table imports nothing");
 });
 
 test("each tracker row names a route the table holds, and the served map is the rows'", () => {

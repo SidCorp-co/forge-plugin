@@ -8,7 +8,7 @@ import { projectWrite } from "../project-file.mjs";
 import { look, session } from "./client.mjs";
 import { PIN_FORMS, configured, pinned } from "./config.mjs";
 import { asKey, environmentsOf, objects } from "./scope.mjs";
-import { PIN_USAGE } from "./subcommands.mjs";
+import { PIN_USAGE } from "./chosen-route.mjs";
 
 const NOTHING = "so nothing was written";
 

@@ -7,8 +7,9 @@ import { documentIdOf } from "../../../tracker/issues.mjs";
 import { callTool } from "../../../tracker/rest.mjs";
 import { rowFor } from "../../../tracker/routes.mjs";
 import { rendered, wrapper } from "./shape.mjs";
-import { REFUSED_HERE, TAKEN_HERE, TO_INSTANCE, TRACKER_SCOPE, consentRefusal } from "./chosen-route.mjs";
-import { TRACKER_BOTH, TRACKER_ROWS, listed, summaryLines } from "./subcommands.mjs";
+import {
+  REFUSED_HERE, TAKEN_HERE, TO_INSTANCE, TRACKER_BOTH, TRACKER_ROWS, TRACKER_SCOPE, consentRefusal, listed, summaryLines,
+} from "./chosen-route.mjs";
 
 export const TRACKER_USAGE = [
   `Usage: forge coolify <${TAKEN_HERE.join("|")}> [args]`,

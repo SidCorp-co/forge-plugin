@@ -15,10 +15,9 @@ import { active, applicationIds, check, environmentIds, filterList, label, makeS
 import { hiddenNames, normalize, redact, rendered, secretsIn, striking, summarize } from "./shape.mjs";
 import { readArgs } from "./args.mjs";
 import {
-  BOTH_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE,
-  consentRefusal, onTracker, trackerName,
+  BOTH_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_ROWS, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE,
+  TO_INSTANCE, consentRefusal, onTracker, summaryLines, trackerName,
 } from "./chosen-route.mjs";
-import { INSTANCE_ROWS, summaryLines } from "./subcommands.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
 export const USAGE = [
