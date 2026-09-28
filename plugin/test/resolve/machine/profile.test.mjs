@@ -46,9 +46,11 @@ test("a key held only in a guarded sourced file resolves, and the report names t
   const shown = forge(home, "codex", "show");
   assert.equal(lineOf(shown, "profile"), `profile   : ${join(home, ".claude", "claude-proxy.env")}`,
     "no problem stands beside the profile");
-  assert.match(lineOf(shown, "credential"), new RegExp(`set \\(${TOKEN.length} chars\\)  ← ${nested}$`, "u"));
+  const credential = lineOf(shown, "credential");
+  assert.ok(credential.endsWith(`set (${TOKEN.length} chars)  ← ${nested}`), credential);
   const doctor = forge(home, "doctor", "services");
-  assert.match(doctor.stdout, new RegExp(`codex key\\s+set \\(${TOKEN.length} chars\\)  ← ${nested}\\n`, "u"));
+  const key = doctor.stdout.split("\n").find((line) => line.includes("codex key")) ?? "";
+  assert.ok(key.endsWith(`set (${TOKEN.length} chars)  ← ${nested}`), key);
 });
 
 test("each source form the shell guards a profile with is followed", () => {
