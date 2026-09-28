@@ -53,6 +53,9 @@ const NO_ROUTE = {
   },
 };
 
+/** Every capability named above, which is where a verb refusing one by name reads its set from. */
+export const NO_ROUTE_KEYS = Object.keys(NO_ROUTE);
+
 export const noRouteRefusal = (key) => {
   const held = NO_ROUTE[key];
   if (held) {

@@ -25,7 +25,7 @@ import {
 } from "../resolve/settings.mjs";
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
-import { harnessLines } from "./services/doctor/harness.mjs";
+import { harnessLines, startBindings } from "./services/doctor/harness.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { owingEscapeRows, owingEscapesFrom } from "../checks/docs/owing-escapes.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
@@ -113,7 +113,7 @@ const checkVi = () => {
   line(OK, "vi-natural", BUNDLED);
 };
 
-const checkHarness = async (full, required) => report(await harnessLines(full, required));
+const checkHarness = async (full, required, bindings) => report(await harnessLines(full, required, bindings));
 
 /* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
    and recorded as a gate it hides the verb from every run after it (codex F4). */
@@ -287,11 +287,10 @@ const checkModules = async () => {
 };
 
 const checkEndpoint = async (full, credentials) => {
-  const { forgetProjects, projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
+  const { projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
   const { nameJoinRows } = await import("../tracker/declared/name-join.mjs");
   const { served } = await import("../tracker/routes.mjs");
   under("tracker");
-  forgetProjects();
   const declared = served().map((row) => ({ name: row.tool }));
   line(OK, "rest base", `${restBase()}  ← derived from the endpoint url above, its trailing /mcp off`);
   line(OK, "route table", `${declared.length} route(s) over ${groups(declared)} tool(s)`);
@@ -412,6 +411,24 @@ const wroteProject = async (asked, pairs, positionals) => {
 /* The brief is a knowledge entry, so --confidence takes the store's own set: doctor's tool declares none, which would pass any word to the brief write. */
 const BRIEF_SETS = { "--confidence": setsOf("forge_knowledge")["--confidence"] };
 
+/* The tracker reads this report overlaps with the rest of it, each awaited at its own row: `owing`
+   walks eleven pages of the tracker, and a call spent while the rest of the reading runs costs the
+   report almost none of its wall time. Neither starts where a subject leaves its row out or no
+   credential could answer, the box least able to spare a refused round trip. The project-id cache
+   is dropped once, before the first of them resolves an id, because a credential this call wrote can
+   change which ids resolve: dropped between two reads, the first answered for the old cache. */
+const startedReads = async (url, token) => {
+  const held = Boolean(url.value && token.value);
+  if (held && shown(...ENDPOINT_SUBJECTS, "services")) (await import("../tracker/rest.mjs")).forgetProjects();
+  return {
+    owing: (!asking() || shown("repo")) && held ? everyIssue({}, { soft: true }).catch(() => null) : null,
+    bindings: shown("services") ? startBindings() : null,
+  };
+};
+
+/* The subjects the endpoint read answers for. */
+const ENDPOINT_SUBJECTS = ["tracker", "serves", "repo", "project", "brief", "undecided"];
+
 export const doctor = async (argv) => {
   const usage = usageOf("doctor");
   const help = helpAskedOf(argv, SUBJECT_SLUGS);
@@ -459,14 +476,7 @@ export const doctor = async (argv) => {
   const release = shown("copy") ? startRelease() : null;
   under("machine");
   const { url, token } = accountCredentials();
-  /* Started here and awaited at its row, for the reason `startRelease` above is: the escapes are
-     judged against this project's whole issue list, which is eleven pages of the tracker, and a call
-     spent while the rest of the reading runs costs the report almost none of its wall time. Not
-     started at all where a subject leaves the row out or where no credential could answer it, which
-     is the box least able to spare a refused round trip. */
-  const owing = (!asking() || shown("repo")) && url.value && token.value
-    ? everyIssue({}, { soft: true }).catch(() => null)
-    : null;
+  const { owing, bindings } = await startedReads(url, token);
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
@@ -576,7 +586,7 @@ export const doctor = async (argv) => {
   checkVi();
   /* Asked for only where its rows would print: one of them reaches the tracker, and a subject that
      shows none of them may not pay for a request nobody reads. */
-  if (shown("services")) await checkHarness(full, language.value === "vi" ? ["vi"] : []);
+  if (shown("services")) await checkHarness(full, language.value === "vi" ? ["vi"] : [], bindings);
   under("repo");
   report(installRows(checkoutRoot()));
   checkClaudeMdLocally();
@@ -586,7 +596,7 @@ export const doctor = async (argv) => {
   if (release) report(await copyRows(release));
 
   /* One read answers for five subjects, so it is spent where any of them prints and not one alone. */
-  if (shown("tracker", "serves", "repo", "project", "brief", "undecided")) {
+  if (shown(...ENDPOINT_SUBJECTS)) {
     if (!url.value || !token.value) {
       for (const said of closing()) console.log(said);
       console.log("\nNot reaching the endpoint: the account half is incomplete.");

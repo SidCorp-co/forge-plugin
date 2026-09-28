@@ -7,105 +7,33 @@ import { fail } from "../../../resolve/settings.mjs";
 import { flags, helpAskedOf } from "../../../resolve/flags.mjs";
 import { didYouMean } from "../../../suggest.mjs";
 import { masked } from "../masked.mjs";
-import { NO_TARGET, PIN_WAYS, configured, coolifyTarget, pinned } from "./config.mjs";
-import { PIN_USAGE, pin } from "./pin.mjs";
+import { NO_TARGET, PIN_WAYS, configured, coolifyTarget, pinSaid, pinned } from "./config.mjs";
+import { pin } from "./pin.mjs";
 import { holes, pinOnly, resolveCommand, servedNames } from "./routes.mjs";
 import { ask, session, struck } from "./client.mjs";
 import { active, applicationIds, check, environmentIds, filterList, label, makeScope } from "./scope.mjs";
-import { hiddenNames, normalize, pickColumns, redact, renderObject, renderTable, secretsIn, striking, summarize } from "./shape.mjs";
+import { hiddenNames, normalize, redact, rendered, secretsIn, striking, summarize } from "./shape.mjs";
 import { readArgs } from "./args.mjs";
 import {
-  BOTH_KIND, HELD_BACK_KIND, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE,
+  BOTH_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE,
   consentRefusal, onTracker, trackerName,
 } from "./chosen-route.mjs";
+import { INSTANCE_ROWS, summaryLines } from "./subcommands.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
 export const USAGE = [
-  "Usage: forge coolify <login|accounts|whoami|pin|app|deploy|deployment|project|resource> [args]",
+  `Usage: forge coolify <${INSTANCE_NAMES.join("|")}> [args]`,
   "A pinned project's deployments, on the instance `login` saved locally. Every resource command",
   "runs inside the project `pin` recorded for this checkout and refuses anything outside it.",
   "",
-  "  login       save the instance and its token, or forget them",
-  "  accounts    what resolved, and from where",
-  "  whoami      the instance, the team, and what this directory is pinned to",
-  "  pin         pin this checkout to a project, by an application's name or the project's",
-  "  app         list, get, logs, env list, env create, env update, restart, start, stop",
-  "  deploy      deploy one application, service or database by uuid",
-  "  deployment  list, get, list-by-app, cancel",
-  "  project     list, get, env list",
-  "  resource    everything the pin holds, in one listing",
+  ...summaryLines(INSTANCE_ROWS),
   "",
   "  apps, logs, env, restart, start, stop, deployments, projects, ps are short for the above.",
   "  --dry-run prints the request and sends nothing; a write needs --yes; --reveal unmasks a",
   "  secret; --full prints a whole object; --json and --table choose the shape.",
 ].join("\n");
 
-const LOGIN_USAGE = [
-  "Usage: forge coolify login --url U --token T | --forget",
-  "Save the instance and its API token locally, at 0600, or drop them.",
-  "",
-  "  --url U        the instance, with or without its /api/v1 tail",
-  "  --token T      an API token made under Keys & Tokens",
-  "  --forget       drop what is saved",
-].join("\n");
-
-const ACCOUNTS_USAGE = [
-  "Usage: forge coolify accounts [--full]",
-  "What resolved and from where; the token is masked unless you ask.",
-  "",
-  "  --full         the ends of the token rather than its length alone",
-].join("\n");
-
-const WHOAMI_USAGE = "Usage: forge coolify whoami\nThe instance, its version, the team, and what this directory is pinned to.";
-
-const APP_USAGE = [
-  "Usage: forge coolify app <list|get|logs|env list|env create|env update|restart|start|stop> [uuid] [args]",
-  "Applications of the pinned project. A uuid outside it is refused before anything is sent.",
-  "",
-  "  --key K        which environment variable, on `env create` and `env update`",
-  "  --value V      what to set it to; masked in what --dry-run prints unless --reveal",
-  "  --lines n      how many log lines `logs` asks for",
-  "  --full         every field of one application rather than the summary",
-  "  --reveal       print a masked value as it stands",
-  "  --yes          carry out a write; without it a write is refused",
-  "  --dry-run      print the request that would be sent, and send nothing",
-].join("\n");
-
-const DEPLOY_USAGE = [
-  "Usage: forge coolify deploy --uuid U [--force] [--yes]",
-  "Deploy one application, service or database of the pinned project.",
-  "",
-  "  --uuid U       what to deploy; refused where it sits outside the pin",
-  "  --force        rebuild rather than reuse the cache",
-  "  --yes          carry it out; without it this is refused",
-  "  --dry-run      print the request that would be sent, and send nothing",
-].join("\n");
-
-const DEPLOYMENT_USAGE = [
-  "Usage: forge coolify deployment <list|get|list-by-app|cancel> [uuid]",
-  "Deployments of the pinned project's applications.",
-  "",
-  "  --take n       how many `list-by-app` returns",
-  "  --skip n       how many it passes over first",
-  "  --full         every field of one deployment, its logs among them",
-  "  --yes          carry out a cancel; without it the cancel is refused",
-].join("\n");
-
-const PROJECT_USAGE = "Usage: forge coolify project <list|get|env list> [uuid]\nThe pinned projects themselves, and their environments.";
-
-const RESOURCE_USAGE = "Usage: forge coolify resource list\nEverything the pin holds — applications, databases and services — in one listing.";
-
-export const SAYS = {
-  login: LOGIN_USAGE,
-  accounts: ACCOUNTS_USAGE,
-  whoami: WHOAMI_USAGE,
-  pin: PIN_USAGE,
-  app: APP_USAGE,
-  deploy: DEPLOY_USAGE,
-  deployment: DEPLOYMENT_USAGE,
-  project: PROJECT_USAGE,
-  resource: RESOURCE_USAGE,
-};
+export const SAYS = Object.fromEntries(INSTANCE_ROWS.map((row) => [row.name, row.usage]));
 
 const noPin = (from) =>
   `coolify: no project is pinned for ${from}, and there is no unscoped mode.\n`
@@ -127,7 +55,7 @@ const pullSwitches = (argv) => {
 };
 
 const saveTarget = (argv) => {
-  const { url, token, forget } = flags(argv, "coolify login", ["--forget"], { usage: LOGIN_USAGE, secret: ["--token"] });
+  const { url, token, forget } = flags(argv, "coolify login", ["--forget"], { usage: SAYS.login, secret: ["--token"] });
   if (forget) {
     saveNested("coolify", { url: null, apiToken: null });
     console.log(`Dropped the Coolify instance and its token from ${configPath()}`);
@@ -139,21 +67,19 @@ const saveTarget = (argv) => {
 };
 
 const showTarget = (argv) => {
-  const { full } = flags(argv, "coolify accounts", ["--full"], { usage: ACCOUNTS_USAGE });
+  const { full } = flags(argv, "coolify accounts", ["--full"], { usage: SAYS.accounts });
   const target = coolifyTarget();
   if (!target.url) {
     console.log(NO_TARGET);
     return;
   }
-  const { at, spec, record } = pinned();
   console.log(`instance  ${target.url}`);
   console.log(`token     ${masked(target.token, full)}  ← ${target.from}`);
-  console.log(at ? `pinned    ${spec.project_uuid.join(", ")}  ← ${at}`
-    : `pinned    nothing${record ? ` in ${record}` : ", this directory belonging to no checkout"}`);
+  console.log(`pinned    ${pinSaid(pinned())}`);
 };
 
 const whoami = async (argv) => {
-  flags(argv, "coolify whoami", [], { usage: WHOAMI_USAGE });
+  flags(argv, "coolify whoami", [], { usage: SAYS.whoami });
   const held = session(configured(), {});
   const token = held.target.token;
   const version = await ask(held, "GET", "/version");
@@ -198,19 +124,6 @@ const refuseLooseSelectors = (entry, values) => {
    how that would otherwise reach a transcript — and from a transcript a review or a comment. */
 const say = (token, text, stream = console.log) => stream(struck(text, token));
 
-const rendered = (shown, asTable) => {
-  if (Array.isArray(shown)) {
-    const rows = shown.filter((one) => one && typeof one === "object");
-    if (!rows.length) return asTable ? "(none)" : "[]";
-    if (asTable) return `${renderTable(rows, pickColumns(rows))}\n${rows.length} item(s)`;
-    return JSON.stringify(shown, null, 2);
-  }
-  if (shown && typeof shown === "object") {
-    return asTable ? renderObject(shown) : JSON.stringify(shown, null, 2);
-  }
-  return String(shown);
-};
-
 const emit = (answer, { group, dropped, unplaced, held, token, secrets }) => {
   if (answer === null) return;
   /* An answer can quote the request back, so what the caller wrote is struck out of it beside our
@@ -220,7 +133,9 @@ const emit = (answer, { group, dropped, unplaced, held, token, secrets }) => {
   const asTable = held.table || (process.stdout.isTTY && !held.json);
   const shown = held.full ? data : summarize(data, group);
   const hidden = held.full ? [] : hiddenNames(data, shown);
-  say(token, rendered(shown, asTable));
+  /* Struck at the leaves just above, which is the strike that holds: a table cell cut at its width
+     can carry part of a token that a pass over the finished line no longer matches. */
+  console.log(rendered(shown, asTable));
   if (hidden.length) {
     say(token, `${hidden.length} field(s) hidden by the summary — --full for: ${hidden.join(", ")}`, console.error);
   }

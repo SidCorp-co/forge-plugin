@@ -3,6 +3,9 @@
    reader could decide is a precedence rule with no undo, and a name in two tables is a fall-through
    to a credential the caller did not choose. docs/cli/coolify.md. */
 import { configPath, userConfig } from "../../../resolve/config.mjs";
+import { chosen } from "../../../resolve/settings.mjs";
+import { NO_ROUTE_KEYS } from "../../../tracker/declared/no-route.mjs";
+import { INSTANCE_ROWS, TRACKER_BOTH, TRACKER_ROWS } from "./subcommands.mjs";
 
 export const TRACKER = "tracker";
 export const INSTANCE = "instance";
@@ -14,36 +17,24 @@ export const TO_TRACKER = `forge doctor --coolify-route ${TRACKER}`;
 
 const DEFAULTED = "the plugin's default, this machine having chosen neither";
 
-/** Which way answers and what said so. The tracker's where nothing did, that being the one this
- *  machine needs no credential of its own for. A value outside the two reads as nothing said, the
- *  write being what refuses one before it is stored. */
-export const coolifyRoute = () => {
-  const held = userConfig()[ROUTE_KEY];
-  return ROUTE_MODES.includes(held)
-    ? { mode: held, from: configPath() }
-    : { mode: TRACKER, from: DEFAULTED };
-};
+/** Which way answers and what said so, in the shape every keyed choice comes in. The tracker's where
+ *  nothing did, that being the one this machine needs no credential of its own for; a value outside
+ *  the two answers the same and is carried as `unknown`, which is what `forge doctor` names. */
+export const coolifyRoute = () =>
+  chosen(userConfig()[ROUTE_KEY], ROUTE_MODES, TRACKER, { source: configPath(), absent: DEFAULTED });
 
-export const onTracker = () => coolifyRoute().mode === TRACKER;
+export const onTracker = () => coolifyRoute().value === TRACKER;
 
-/* The name typed and the capability behind it. Nine of the tracker tool's ten actions are here —
-   six with a row in the route table and three the transport refuses off its own no-route table,
-   which is where a capability REST does not serve is answered, so this file states no second
-   version of that. */
-export const TRACKER_SERVED = {
-  list: "forge_coolify.list",
-  targets: "forge_coolify.targets",
-  status: "forge_coolify.status",
-  "rollback-images": "forge_coolify.rollback_images",
-  deploy: "forge_coolify.deploy",
-  cancel: "forge_coolify.cancel",
-};
+/* The name typed and the capability behind it, off the rows. Nine of the tracker tool's ten actions
+   are named here — six served and three the transport refuses off its own no-route table, which is
+   where a capability REST does not serve is answered, so the typed name of each is read off that
+   table's key rather than listed a second time. */
+export const TRACKER_SERVED = Object.fromEntries(TRACKER_ROWS.map((row) => [row.name, row.key]));
 
-export const ROUTELESS = {
-  applications: "forge_coolify.applications",
-  logs: "forge_coolify.logs",
-  "runtime-logs": "forge_coolify.runtime_logs",
-};
+const TOOL = "forge_coolify.";
+
+export const ROUTELESS = Object.fromEntries(NO_ROUTE_KEYS.filter((key) => key.startsWith(TOOL))
+  .map((key) => [key.slice(TOOL.length).replaceAll("_", "-"), key]));
 
 /* The tenth action, and the one name here held back by a judgement rather than by a missing route.
    The tracker serves it, and its answer is chosen from a listing whose own read does not answer for
@@ -58,12 +49,18 @@ const HELD_BACK = {
 
 /** Shared by both ways, being about the instance credential itself rather than about a platform
  *  call: one saves it, one says what resolved. */
-const BOTH_WAYS = ["login", "accounts"];
+const BOTH_WAYS = TRACKER_BOTH.map((row) => row.name);
 
 /** What the tracker's way answers to, which is what its usage row offers, what a help ask resolves
  *  against and what a refusal lists. One list, because a usage row built apart from the refusal's is
  *  how a verb comes to offer a name it turns away. */
 export const TAKEN_HERE = [...BOTH_WAYS, ...Object.keys(TRACKER_SERVED)];
+
+/** What the tracker's way turns away by name, in the order a usage row lists them. */
+export const REFUSED_HERE = [...Object.keys(ROUTELESS), ...Object.keys(HELD_BACK)];
+
+/** What the saved instance's way answers to, for the same three readers on that route. */
+export const INSTANCE_NAMES = INSTANCE_ROWS.map((row) => row.name);
 
 /* A write nobody asked for is refused in one sentence, built here, naming the route that would have
    taken it: the same words composed in each route's own file leave a caller who reads the refusal

@@ -330,11 +330,26 @@ const writeCache = (patch) => {
   }
 };
 
+/* A listing still in flight, shared by every caller asking the same way while it is: the settled id
+   is the cache's, so only callers who arrive before it lands would otherwise each send their own —
+   which is what several reads started together, as `forge doctor` starts them, all do. */
+const listing = new Map();
+
+const projectsListed = (archived, soft, held) => {
+  const args = archived ? { archived: 1 } : {};
+  if (Object.keys(held).length) return callTool("forge_projects.list", args, soft, held);
+  const asked = `${archived}|${soft}`;
+  if (!listing.has(asked)) {
+    listing.set(asked, callTool("forge_projects.list", args, soft).finally(() => listing.delete(asked)));
+  }
+  return listing.get(asked);
+};
+
 /** One slug's id, off the cache or off the list — the archived too where asked, since the one verb that unarchives has to find its subject; a slug nothing matches answers with what was seen, and the caller words the refusal. The lookup is itself a call, which is why `soft` reaches it: `fail()` inside one exits past the caller that was holding the refusal. */
 export const projectIdOf = async (slug, { archived = false, soft = false, ...held } = {}) => {
   const known = stored().projects?.[slug];
   if (known) return { id: known };
-  const listed = await callTool("forge_projects.list", archived ? { archived: 1 } : {}, soft, held);
+  const listed = await projectsListed(archived, soft, held);
   if (listed?.refused) return listed;
   const projects = listed?.projects ?? (Array.isArray(listed) ? listed : []);
   const found = projects.find((project) => project.slug === slug || project.key === slug);

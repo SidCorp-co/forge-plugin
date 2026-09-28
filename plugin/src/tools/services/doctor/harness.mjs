@@ -6,8 +6,8 @@ import { consultCount } from "../../../codex/log/asked.mjs";
 import { gateway, machineRows, modelBehind } from "../../../resolve/machine/stores.mjs";
 import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool } from "../tool-config.mjs";
 import { accountCredentials } from "../../../resolve/settings.mjs";
-import { coolifyTarget, pinned } from "../coolify/config.mjs";
-import { coolifyRoute, onTracker } from "../coolify/chosen-route.mjs";
+import { coolifyTarget, pinSaid, pinned } from "../coolify/config.mjs";
+import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER, coolifyRoute, onTracker } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
 
 const cloudflareRow = (full) => {
@@ -42,44 +42,50 @@ const codexRow = () => {
    credential. Which is why the tracker route's half below is asked for softly and printed as what
    the tracker said — no credential of this machine's is in play on that route, so nothing a call
    answers there can be read back as a key this file failed to find. */
-const instanceRow = (full) => {
+const instanceRow = (full, origin) => {
   const { url, token, from } = coolifyTarget();
-  const chosen = coolifyRoute().from;
-  const { at, spec, record } = pinned();
-  const pin = at ? `project ${spec.project_uuid.join(", ")}  ← ${at}`
-    : `no project pinned${record ? ` in ${record}` : ", this directory belonging to no checkout"} — forge coolify pin`;
-  return { level: "ok",
-    detail: `the saved instance  ← ${chosen}  ${url} ${masked(token, full)}  ← ${from}  ${pin}` };
+  return `the saved instance  ${origin}  ${url} ${masked(token, full)}  ← ${from}  pinned ${pinSaid(pinned())}`;
 };
 
 const boundSaid = (answer) => {
   if (answer?.refused) return `the tracker did not answer for them: ${answer.refused.split("\n")[0]}`;
-  const held = answer?.integrations ?? [];
-  if (!held.length) {
+  const bound = answer?.integrations ?? [];
+  if (!bound.length) {
     return "this project is bound to nothing — an empty answer is the tracker's own word for a"
       + " project nothing deploys";
   }
-  return held.map((one) => `${(one.stages ?? []).join("+") || "no stage"} → `
+  return bound.map((one) => `${(one.stages ?? []).join("+") || "no stage"} → `
     + `${(one.targets ?? []).map((two) => two.label).join(", ") || "no target"}`).join("; ");
 };
 
-/* Asked for only where this machine holds what the transport needs. `settings()` exits the process
-   on an absent endpoint or credential, and a report whose whole point is every finding at once may
-   not stop on its second row because of a key another row of it is already about. */
-const bindingsSaid = async () => {
+/** The bindings read, started by the caller beside its other tracker reads so its round trip rides
+ *  with theirs, and null where it is not asked: off the tracker route, or where this machine holds no
+ *  endpoint or credential — `settings()` exits the process on either absence, and a report whose
+ *  whole point is every finding at once may not stop on a key another row is already about. */
+export const startBindings = () => {
+  if (!onTracker()) return null;
   const { url, token } = accountCredentials();
-  if (!url.value || !token.value) {
-    return "their listing was not asked for: this machine holds no tracker endpoint or credential"
-      + " — `forge doctor --token <pat> --url <endpoint>`";
-  }
-  const { callTool } = await import("../../../tracker/rest.mjs");
-  return boundSaid(await callTool("forge_coolify.list", {}, true));
+  if (!url.value || !token.value) return null;
+  return import("../../../tracker/rest.mjs").then(({ callTool }) => callTool("forge_coolify.list", {}, true));
 };
 
-const trackerRow = async () => ({ level: "ok",
-  detail: `the tracker's own bindings  ← ${coolifyRoute().from}  ${await bindingsSaid()}` });
+const trackerRow = async (origin, bindings) => `the tracker's own bindings  ${origin}  ${bindings
+  ? boundSaid(await bindings)
+  : "their listing was not asked for: this machine holds no tracker endpoint or credential"
+    + " — `forge doctor --token <pat> --url <endpoint>`"}`;
 
-const coolifyRow = (full) => (onTracker() ? trackerRow() : instanceRow(full));
+/* A value the key does not take is named as every keyed choice's is, and the row goes on to say
+   what the route it fell back to answered, that being what the verb does meanwhile. The sentence is
+   imported where it is needed: `keys.mjs` reaches this file back through `doctor-keys.mjs`, so a
+   static import would read that file's tables before they exist. */
+const coolifyRow = async (full, bindings) => {
+  const chosen = coolifyRoute();
+  const origin = chosen.unknown === undefined ? `← ${chosen.from}`
+    : `← \`${ROUTE_KEY}\`: ${(await import("./keys.mjs")).held(chosen, ROUTE_MODES)}`
+      + ` — \`forge doctor --coolify-route ${TRACKER}|${INSTANCE}\`;`;
+  const detail = chosen.value === TRACKER ? await trackerRow(origin, bindings) : instanceRow(full, origin);
+  return { level: chosen.unknown === undefined ? "ok" : "miss", detail };
+};
 
 /* The account a call would take, as `forge google auth status` describes it, and the file it was read from.
    Imported here rather than at the top: describing an account reads the service's scope table, and
@@ -97,12 +103,12 @@ const SAVED = {
 };
 
 /* Worth a line only when it is what withheld the verb: configured, it says nothing the rows below do. */
-const toolRow = async (verb, full) => {
+const toolRow = async (verb, full, bindings) => {
   if (unconfiguredTool(verb)) {
     return { label: verb, level: "note",
       detail: `${absentSaid(verb)} — ${configureSaid(verb)}, so \`forge ${verb}\` is in no help` };
   }
-  return SAVED[verb] ? { label: verb, ...(await SAVED[verb](full)) } : null;
+  return SAVED[verb] ? { label: verb, ...(await SAVED[verb](full, bindings)) } : null;
 };
 
 /** One key said in one line, carrying the `from` the reader answered with rather than a file the
@@ -120,8 +126,9 @@ const keyRow = (row, full, required) => ({
   detail: keySaid(row, full),
 });
 
-/** `required` names the stores this checkout cannot work without: an absence there is a fault. */
-export const harnessLines = async (full, required = []) => [
-  ...(await Promise.all(CONFIGURABLE.map((verb) => toolRow(verb, full)))).filter(Boolean),
+/** `required` names the stores this checkout cannot work without: an absence there is a fault.
+ *  `bindings` is what `startBindings` returned, awaited here and never sent from here. */
+export const harnessLines = async (full, required = [], bindings = null) => [
+  ...(await Promise.all(CONFIGURABLE.map((verb) => toolRow(verb, full, bindings)))).filter(Boolean),
   ...machineRows().map((row) => keyRow(row, full, required)),
 ];

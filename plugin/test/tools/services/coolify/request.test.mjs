@@ -39,6 +39,8 @@ const ANSWERS = {
     { uuid: "v1", key: "DB_PASSWORD", value: "hunter2" },
     { uuid: "v2", key: "DATABASE_URL", value: "postgres://app:hunter2@db.internal:5432/main" },
     { uuid: "v3", key: "NODE_ENV", value: "production" },
+    /* A value a table cuts at its cell width, with the token just past where the cut falls. */
+    { uuid: "v4", key: "BUILD_NOTE", value: { said: `${"x".repeat(30)} Bearer ${TOKEN}` } },
   ],
   "/applications/a-in/restart": { message: "restarted" },
   "POST /applications/a-in/envs": { uuid: "v9" },
@@ -275,7 +277,7 @@ test("what resolved is reported with the token masked and the pin named", async 
   assert.equal(answer.status, 0, answer.stderr);
   assert.ok(!answer.stdout.includes(TOKEN));
   assert.match(answer.stdout, new RegExp(`${TOKEN.length} chars`, "u"));
-  assert.match(answer.stdout, /pinned {4}p-in/u);
+  assert.match(answer.stdout, /pinned {4}project p-in/u);
   assert.ok(answer.stdout.includes(`← ${projectEntry(work, home)}`), answer.stdout);
 });
 
@@ -370,6 +372,15 @@ test("a successful answer echoing the token has it struck out on every route", a
   assert.equal(answer.status, 0, answer.stderr);
   assert.match(answer.stdout, /Bearer <redacted>/u, "the echoed token was not struck out");
   assert.ok(!answer.stdout.includes(TOKEN), "the token reached stdout of a successful call");
+});
+
+/* A table cuts an object's cell at its width, so a token only partly inside the cut survives any
+   strike made over the finished line: the leaves are where it has to go, before anything is cut. */
+test("a table cutting the cell that quoted the token prints none of the token", async () => {
+  const answer = await ran("env", "a-in", "--table");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.match(answer.stdout, /BUILD_NOTE/u);
+  assert.ok(!answer.stdout.includes(TOKEN.slice(0, 8)), `a cut piece of the token is on stdout:\n${answer.stdout}`);
 });
 
 /* `--reveal` unmasks what the platform calls a secret. It must never unmask ours. */

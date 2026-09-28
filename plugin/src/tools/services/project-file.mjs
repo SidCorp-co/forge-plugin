@@ -17,6 +17,7 @@ import { answersProblem } from "../../stats/corpus/answers.mjs";
 import { REPORT_MODES } from "../../stats/daily/trigger.mjs";
 import { TRIGGERS_KEY, triggersRefusal } from "../../stats/report/settings.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
+import { PIN_FIELDS } from "./coolify/config.mjs";
 import {
   ASK_MODES,
   CHECK_MS_AT_MOST,
@@ -269,17 +270,16 @@ const ROUTED = {
   method: "forge doctor --flow <slug>: `method` is retired and the flow is what replaced it",
 };
 
-/* What `forge coolify pin` writes and the pin's reader takes: the project, and the environments
-   narrowing it where any were named. Never set a field at a time, because a project replaced beside
-   the environment of the one before it filters by a name the new project need not have. */
-const COOLIFY_FIELDS = ["project_uuid", "environment"];
+/* What `forge coolify pin` writes is the pin reader's own field list. Never set a field at a time,
+   because a project replaced beside the environment of the one before it filters by a name the new
+   project need not have. */
 
 const coolifyRefusal = (given) => {
   if (!given || typeof given !== "object" || Array.isArray(given)) return said("coolifyPin", "a table", given);
-  const stranger = Object.keys(given).find((one) => !COOLIFY_FIELDS.includes(one));
+  const stranger = Object.keys(given).find((one) => !PIN_FIELDS.includes(one));
   if (stranger !== undefined) {
     return `\`coolifyPin.${stranger}\` in ${fromProject()} is read by nothing: the pin holds `
-      + `${COOLIFY_FIELDS.join(" and ")} alone.`;
+      + `${PIN_FIELDS.join(" and ")} alone.`;
   }
   return listOfNames("coolifyPin.project_uuid", given.project_uuid)
     || (given.environment === undefined ? null : listOfNames("coolifyPin.environment", given.environment));
