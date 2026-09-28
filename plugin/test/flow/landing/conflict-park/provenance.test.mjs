@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { CONFLICT_MARK, CONFLICT_PARK_KIND, isConflictPark } from "../../../src/flow/landing/conflict-park.mjs";
+import { CONFLICT_MARK, CONFLICT_PARK_KIND, isConflictPark } from "../../../../src/flow/landing/conflict-park.mjs";
 
 const HEAD = "9e24c2af0000000000000000000000000000abcd";
 const PIN = "c4890050000000000000000000000000000dcba";
