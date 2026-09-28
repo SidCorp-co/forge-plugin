@@ -74,11 +74,12 @@ drops the fallback with it.
 `~/.claude/claude-proxy.env` is read here and written nowhere. A shim outside this repository reads
 it too, and Claude Code consumes its `ANTHROPIC_*` values as environment, where the model slots
 decide which model a subagent's `model:` frontmatter spawns on — so the slot a consult resolves
-through is still read from that file and nothing here touches it. It is read the way the shell that
-sources it reads it, a `.` or `source` line followed, because a live key is kept out of it in a
-sibling file and a second copy to suit a parser is the cost that would charge; the environment is
-never a fallback for it, since a session's own `ANTHROPIC_*` may be another gateway's. Which values
-are this box's and can never be a project's: [settings](docs/cli/settings.md).
+through is still read from that file and nothing here touches it. Its `.` and `source` lines are
+followed, bare or behind a one-line file test, because a live key is kept out of it in a sibling file
+and a second copy to suit a parser is the cost that would charge; any other shell statement that
+sources is named as not followed rather than guessed at. The environment is never a fallback for it,
+since a session's own `ANTHROPIC_*` may be another gateway's. Which values are this box's and can
+never be a project's: [settings](docs/cli/settings.md).
 
 **Project** — everything a tracker decides for itself, in this machine's record of that project:
 
