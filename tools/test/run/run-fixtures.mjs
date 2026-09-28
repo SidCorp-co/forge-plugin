@@ -60,10 +60,11 @@ const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.sta
    and a file held every room it made until its process exited, so a gate running several such files
    at once spent the per-user quota its own cases then failed on (ISS-2785). A room made outside a
    case, at load or in a hook ahead of the first one, is the file's and is left to the exit handler,
-   as is one a process the case left behind still writes into. */
+   as is one a process the case left behind still writes into. `KEEP_TEST_ROOMS` keeps them all, as it
+   keeps the process's root. */
 let caseRooms = null;
 beforeEach(() => {
-  caseRooms = [];
+  caseRooms = process.env.KEEP_TEST_ROOMS === "1" ? null : [];
 });
 afterEach(() => {
   for (const at of caseRooms ?? []) {

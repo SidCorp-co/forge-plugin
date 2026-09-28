@@ -19,8 +19,9 @@ const FIXTURES = new URL("./run-fixtures.mjs", import.meta.url).href;
 const ISOLATED = new URL("../../../plugin/test/fixtures/process/isolated.mjs", import.meta.url).pathname;
 
 /* Two cases in a file of their own, since a room's life is read across the end of the case that made
-   it: the second reads what the first left, and the room made at load is the file's. */
-const ACROSS = `import assert from "node:assert/strict";
+   it: the second reads what the first left, and the room made at load is the file's. `kept` is a run
+   asked to keep its rooms, whose kept root sits inside this process's own and goes with it. */
+const pair = (kept) => `import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
 import { scratch } from ${JSON.stringify(FIXTURES)};
@@ -31,7 +32,7 @@ test("a room a case makes stands while that case runs", () => {
   assert.ok(existsSync(made), "the room was never made");
 });
 test("the room the case before made is gone, and the room made at load still stands", () => {
-  assert.equal(existsSync(made), false, \`the room outlived the case that made it: \${made}\`);
+  assert.equal(existsSync(made), ${kept}, \`the room a case made, asked to be kept: ${kept}: \${made}\`);
   assert.ok(existsSync(early.at), \`the file's own room went with a case: \${early.at}\`);
 });
 `;
@@ -56,14 +57,26 @@ const refusedWith = (name) => (error) => {
   return true;
 };
 
+// Without the context the runner hands its own children, which would report to it rather than print.
+const across = (file, over = {}) => {
+  const env = { ...process.env, ...over };
+  delete env.NODE_TEST_CONTEXT;
+  return spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--import=${ISOLATED}`, file],
+    { encoding: "utf8", env });
+};
+
 test("a room goes when the case that made it ends, and a room made at load stays for the file", () => {
   const file = join(tempRoom("rooms-across-"), "across.test.mjs");
-  writeFileSync(file, ACROSS);
-  // Without the context the runner hands its own children, which would report to it rather than print.
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  const ran = spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--import=${ISOLATED}`, file],
-    { encoding: "utf8", env });
+  writeFileSync(file, pair(false));
+  const ran = across(file);
+  assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
+  assert.match(ran.stdout, /^# pass 2$/mu, ran.stdout);
+});
+
+test("a run asked to keep its rooms keeps the room each case made", () => {
+  const file = join(tempRoom("rooms-kept-"), "across.test.mjs");
+  writeFileSync(file, pair(true));
+  const ran = across(file, { KEEP_TEST_ROOMS: "1" });
   assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
   assert.match(ran.stdout, /^# pass 2$/mu, ran.stdout);
 });
