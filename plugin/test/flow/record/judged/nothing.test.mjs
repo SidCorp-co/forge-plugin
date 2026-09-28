@@ -8,16 +8,16 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { escaped, git, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { escaped, git, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged-unjudged").path;
-const { judgedHead, landingMoved, lastMark } = await import("../../../src/flow/record/merged.mjs");
-const { movedBetween } = await import("../../../src/git/moved.mjs");
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { judgedHead, landingMoved, lastMark } = await import("../../../../src/flow/record/merged.mjs");
+const { movedBetween } = await import("../../../../src/git/moved.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { judgedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 /* The change is reviewed at one head, then moves a file of its own before it lands, so the reading
    from the reviewed head and the reading from the landed head's parent differ. */

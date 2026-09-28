@@ -50,9 +50,9 @@ without the other.
 ## A judged head nobody has taken yet
 
 Where the judgement between `developed` and `testing` is another run's, the builder writes the mark
-before any verdict exists, and a clause that only took a sha made it name one nobody judged. Sixteen
-filings met that (ISS-1960 and the duplicates folded onto it). `--judged` takes `nothing` there, and
-the note says in words that no verdict has judged a head.
+before any verdict exists, and a clause that only took a sha made it name one nobody judged: filed
+again from project after project, the duplicates folded onto ISS-1960. `--judged` takes `nothing`
+there, and the note says in words that no verdict has judged a head.
 
 The word is keyed to the page and not to the project's judgement setting. It is true wherever no
 verdict stands and false wherever one does, whichever run a project made the judge: a setting-keyed
