@@ -152,6 +152,10 @@ const VERDICT_BLOCKS = [
   "  skipped  no route reached it, so nobody looked and there is nothing to cite",
   "--filed takes the reference to that row and no sentence, a reader of the record having to follow",
   "it. It belongs to `short` alone and is refused on any other value.",
+  "",
+  "--commit may be later than the merged commit, where it carries it: a criterion another change",
+  "made true is judged there. The write asks this checkout's git, says what it read, and records the",
+  "merged commit it found carried, which `testing` reads as a verdict at the landing. No flag sets it.",
 ];
 
 /* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.
