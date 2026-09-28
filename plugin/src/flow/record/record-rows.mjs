@@ -138,6 +138,11 @@ const MERGED_BLOCKS = [
   "none rather than as silence. --to is the branch the change landed on, read from this project's",
   "base branch where it is not given. --undo removes the mark whole, prints the note it removed and",
   "takes no clause beside it: a clause is written by the mark and not by its removal.",
+  ...CLAUSES.filter((one) => one.none).flatMap((one) => [
+    `--${one.flag} also takes the word \`${NOTHING}\`, where ${one.none}: the note says so in`,
+    "words, every reader of the clause takes it for no head, and `landing moved` is read between",
+    "--reviewed and --at. The word is refused where the page carries a verdict.",
+  ]),
 ];
 
 /* What each value records. The set is four because the outcomes are: only `skipped` says nobody

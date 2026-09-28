@@ -43,9 +43,26 @@ without the other.
 |---|---|---|
 | `at <sha>` | `developed`, and every record that reads `--commit` off the mark | which commit landed; a mark naming none earns nothing |
 | `reviewed head <sha>` | `developed` | the head the review judged, so a squash that changed the hash still matches an approving review |
-| `judged head <sha>` | `testing` | the head the verdicts were taken at, which is what lets a verdict stand across the landing |
+| `judged head <sha>`, or `judged head nothing` | `testing` | the head the verdicts were taken at, which is what lets a verdict stand across the landing; `nothing` stands none, and every verdict is then owed at the landed commit |
 | `landing moved <paths>` | `testing` | whether the landing moved a path this change touched, as git reads it; empty is what makes the verdicts stand, and *silence is not empty* |
 | `landing wrote <paths>` | `developed` | what this change itself landed, so a path neither the plan nor a correction names refuses the status |
+
+## A judged head nobody has taken yet
+
+Where the judgement between `developed` and `testing` is another run's, the builder writes the mark
+before any verdict exists, and a clause that only took a sha made it name one nobody judged: filed
+again from project after project, the duplicates folded onto ISS-1960. `--judged` takes `nothing`
+there, and the note says in words that no verdict has judged a head.
+
+The word is keyed to the page and not to the project's judgement setting. It is true wherever no
+verdict stands and false wherever one does, whichever run a project made the judge: a setting-keyed
+rule refuses the truth to a builder-judged run that marks before judging, and lets an
+independent-judgement builder that wrote verdicts anyway drop the head they judged. So it is refused
+where the page carries a verdict, naming the heads those verdicts judged.
+
+With no judged head, `landing moved` is read from the reviewed head, which is where the change stood
+before the landing. No reader takes that clause without a judged head, so there it reports what moved
+and stands no verdict up or down.
 
 ## Marks already on the tracker still earn
 
