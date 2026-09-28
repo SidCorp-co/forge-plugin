@@ -120,7 +120,9 @@ test("no .mcp.json means no line about one", () => {
 test("a saved key with no gateway is reported, not passed", () => {
   const out = report({ api_key: "k-abc123" });
   assert.match(out, /\[ note \] vi-natural url\s+no endpoint — `forge doctor --vi-url <endpoint>`/u);
-  assert.match(out, /\[ {2}ok {2}\] vi-natural key/, "the half that is configured still reads as configured");
+  assert.match(out, /\[ note \] vi-natural key\s+set \(8 chars\)  ← [^\n]*, held only there/u,
+    "the half that is configured still reads as configured, and as legacy-only since the legacy"
+    + " file is the one place it lives (ISS-2840)");
 });
 
 /* Two verbs ask for these and every other one runs with neither saved (ISS-102). */
@@ -130,11 +132,13 @@ test("a machine with neither cloudflare nor codex configured reads as notes", ()
   assert.match(out, /\[ note \] codex\s+\S/);
 });
 
-test("all three configured read as configured", () => {
+/* Configured off the legacy file alone, so every one of the three is a note naming the one
+ * command that moves it into the plugin's own store rather than a plain ok (ISS-2840). */
+test("all three configured read as configured, and noted as legacy-only", () => {
   const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1", model: "gw/some-model" });
-  assert.match(out, /\[ {2}ok {2}\] vi-natural url/u);
-  assert.match(out, /\[ {2}ok {2}\] vi-natural key/u);
-  assert.match(out, /\[ {2}ok {2}\] vi-natural model/u);
+  assert.match(out, /\[ note \] vi-natural url\s+\S+  ← [^\n]*, held only there — the owner runs `forge doctor --vi-url <endpoint> --vi-key <key> --vi-model <id>` once, from a shell that does not borrow, to move it into the store a run's borrow reads/u);
+  assert.match(out, /\[ note \] vi-natural key\s+set \(8 chars\)  ← [^\n]*, held only there/u);
+  assert.match(out, /\[ note \] vi-natural model\s+\S+  ← [^\n]*, held only there/u);
 });
 
 test("a model is the third setting, and its absence is reported too", () => {

@@ -48,6 +48,17 @@ const rowsOf = (home) => {
 
 const configAt = (home) => JSON.parse(readFileSync(join(home, "forge", "config.json"), "utf8"));
 
+/* The bracketed level a row's own line opens with, read straight off `doctor services`'s stdout
+ *  rather than off `rowsOf`, which drops it: a legacy-sourced row is the one case here that is not
+ *  plain `ok`. */
+const levelOf = (home, label) => {
+  const said = run(home, FORGE, "doctor", "services").stdout;
+  const found = said.split("\n")
+    .map((line) => /^\[([^\]]+)\]\s+(\S.*?)\s\s+(.*)$/u.exec(line))
+    .find((match) => match && match[2] === label);
+  return found ? found[1].trim() : null;
+};
+
 /* The machine that worked before the plugin held a key of its own for either tool, which has to keep
    working, with the report saying which file it is working off. */
 test("a machine holding only the files each tool owns answers from those files, and the report names them", () => {
@@ -55,9 +66,13 @@ test("a machine holding only the files each tool owns answers from those files, 
   const rows = rowsOf(home);
   assert.equal(rows["codex url"], `${PROFILE_URL}  ← ${join(home, "proxy.env")}`);
   assert.ok(rows["codex key"].endsWith(`← ${join(home, "proxy.env")}`), rows["codex key"]);
-  assert.equal(rows["vi-natural url"], `${VI_URL}  ← ${join(home, "vi-natural", "config.json")}`);
-  assert.ok(rows["vi-natural model"].endsWith(`← ${join(home, "vi-natural", "config.json")}`),
-    rows["vi-natural model"]);
+  const viFile = join(home, "vi-natural", "config.json");
+  assert.ok(rows["vi-natural url"].startsWith(`${VI_URL}  ← ${viFile}`), rows["vi-natural url"]);
+  assert.match(rows["vi-natural url"], /held only there — the owner runs `forge doctor --vi-url/u,
+    "and the row names the migration route (ISS-2840), since a legacy file is the only source here");
+  assert.ok(rows["vi-natural model"].includes(viFile), rows["vi-natural model"]);
+  assert.equal(levelOf(home, "vi-natural url"), "note",
+    "a legacy-only credential is a note rather than a plain ok");
   assert.match(run(home, VI, "doctor").stdout, new RegExp(`base url\\s+: ${VI_URL}`, "u"),
     "and the bundled CLI reads the same file it always did");
 });
@@ -72,8 +87,12 @@ test("the plugin's own configuration answers before the file a tool owns, key by
   assert.ok(rows["codex key"].endsWith(`← ${join(home, "proxy.env")}`),
     "the key beside it is unset here and still answers from the profile");
   assert.equal(rows["vi-natural model"], `vi/plugin-model  ← ${own}`);
-  assert.ok(rows["vi-natural url"].endsWith(`← ${join(home, "vi-natural", "config.json")}`),
+  assert.equal(levelOf(home, "vi-natural model"), "ok",
+    "the plugin's own store answers this one, so it carries no legacy note");
+  assert.ok(rows["vi-natural url"].includes(`← ${join(home, "vi-natural", "config.json")}`),
     rows["vi-natural url"]);
+  assert.match(rows["vi-natural url"], /held only there — the owner runs `forge doctor --vi-url/u,
+    "the url beside it is still legacy-sourced, and still noted as such");
   assert.match(run(home, VI, "doctor").stdout, new RegExp(`model\\s+: vi/plugin-model`, "u"));
 });
 
