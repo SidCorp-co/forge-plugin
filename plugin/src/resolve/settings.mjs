@@ -8,6 +8,8 @@ import { checkoutAt } from "../git/checkout-at.mjs";
 import { escaped } from "../markdown.mjs";
 import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
 import { BORROW_VAR, borrowing } from "./machine/borrowed.mjs";
+import { MACHINE_RETIRED } from "./machine/retired.mjs";
+import { ENUM_KEYS, pathOf, valuesOf } from "./enum-keys.mjs";
 import { fail } from "../refusal.mjs";
 
 export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "../refusal.mjs";
@@ -560,35 +562,35 @@ export const drainScope = once(() => {
   return held.unknown === undefined ? { ...held, declared } : { ...held, value: null, declared };
 });
 
-export const LANDING_ROUTES = ["after-merge", "before-merge"];
+/** What an enum-valued key resolves to in one project record: the row in resolve/enum-keys.mjs
+ *  says which words it takes and what an absent or unlisted one falls back to. An absence names the
+ *  plugin's default where that fallback is a value, and no source at all where it is none — `← null`
+ *  would read as a file. */
+export const enumOf = (key, record, source = fromProject()) => {
+  const row = ENUM_KEYS[key];
+  const given = pathOf(key).reduce((held, one) => held?.[one], record);
+  return chosen(given, valuesOf(key), row.fallback,
+    { source, absent: row.fallback === null ? null : PLUGIN_DEFAULT });
+};
 
-export const landingScope = once(() =>
-  chosen(forgeJson().parsed?.landing, LANDING_ROUTES, null, { absent: null }));
+const enumHere = Object.fromEntries(Object.keys(ENUM_KEYS)
+  .map((key) => [key, once(() => enumOf(key, forgeJson().parsed))]));
+
+/** The same, for the project this process stands in, read once. */
+export const enumScope = (key) => enumHere[key]();
+
+export const LANDING_ROUTES = valuesOf("landing");
+export const landingScope = () => enumScope("landing");
 
 export const RED_BATCH_KEY = "redBatch";
-export const RED_BATCHES = ["attribute-then-split", "one-by-one"];
+export const RED_BATCHES = valuesOf(RED_BATCH_KEY);
+export const redBatchScope = () => enumScope(RED_BATCH_KEY);
 
-/** What a landing does with a set its combined gate refused: find the members at fault by what the
- *  failing cases read and by halves of the rest, landing the others as one candidate, or land every
- *  member alone as before ISS-2480. The PROJECT's, beside `landing` and `ship`, which describe the
- *  same landing; the first is the default because a red batch then costs a gate per round rather
- *  than one per member. */
-export const redBatchScope = once(() => chosen(forgeJson().parsed?.redBatch, RED_BATCHES, RED_BATCHES[0]));
+export const SHIP_MODES = valuesOf("ship");
+export const shipMode = () => enumScope("ship");
 
-export const SHIP_MODES = ["self", "ready"];
-
-/** Whether a run lands its own change or stops at a pushed branch and a landing checkpoint. The
- *  PROJECT's, beside `landing` and `drainedBy`, which describe the same landing this decides the
- *  existence of: two projects on one box may answer differently, and one value in the machine's own
- *  file answered for every checkout on it at once (ISS-2174). */
-export const shipMode = once(() => chosen(forgeJson().parsed?.ship, SHIP_MODES, SHIP_MODES[0]));
-
-export const ASK_MODES = ["off", "decide"];
-
-/** Whether a question this project's sessions declare reversible may be decided without the owner.
- *  The PROJECT's and nobody else's, `off` where unset or unreadable, because this plugin runs in
- *  repositories whose owners have not decided: plugin/hooks/how/ask-decide.md. */
-export const asksScope = once(() => chosen(forgeJson().parsed?.asks?.mode, ASK_MODES, ASK_MODES[0]));
+export const ASK_MODES = valuesOf("asks.mode");
+export const asksScope = () => enumScope("asks.mode");
 
 /** The terms this project adds to the owner categories; anything but a list of strings adds none. */
 export const asksOwnerTerms = once(() => {
@@ -599,47 +601,26 @@ export const asksOwnerTerms = once(() => {
 /** The repository this process stands in, whose root folder names the project's entry. */
 export const projectRepository = () => standing()?.repository ?? null;
 
-/** A `ship` a release before that move left in the machine's own file, read to be reported ignored
- *  and by nothing that decides: honouring it as a fallback is the second layer the move removed, and
- *  dropping it in silence is a value somebody set and nothing tells them about. Presence and never
- *  truthiness, for that same reason: a key edited to `null` or to a blank is a line somebody wrote
- *  at a level that has stopped answering for it. */
-export const shipLeftOnMachine = () => {
-  const machine = userConfig();
-  return Object.hasOwn(machine, "ship")
-    ? { present: true, value: machine.ship, from: configPath() }
-    : { present: false, value: null, from: null };
-};
+/** Every key a release before a move left in the machine's own file, read to be reported ignored
+ *  and by nothing that decides: honouring one as a fallback is the second layer the move removed,
+ *  and dropping it in silence is a value somebody set and nothing tells them about. Presence and
+ *  never truthiness, for that same reason: a key edited to `null` or to a blank is a line somebody
+ *  wrote at a level that has stopped answering for it. */
+export const machineLeftovers = (retired = MACHINE_RETIRED, machine = userConfig()) => retired
+  .filter((one) => Object.hasOwn(machine, one.key))
+  .map((one) => ({ ...one, value: machine[one.key], from: configPath() }));
 
-export const PROJECT_SHAPES = ["storefront", "staged", "direct"];
+export const PROJECT_SHAPES = valuesOf("shape");
+export const shapeScope = () => enumScope("shape");
 
-/** What kind of project a checkout belongs to, which decides where work is exercised: a `storefront`
- *  keeps no repository and the store is its own source of truth, a `staged` project has a preview
- *  deployment somebody opens before live, and a `direct` project is live only, so preview IS this
- *  box. Declared and never inferred — every reader before this one guessed it from whether the
- *  tracker happened to hold a preview environment, and two runs in one checkout reached opposite
- *  answers (ISS-2190). Absent is no shape rather than a fourth behaviour: a run that cannot read
- *  which of the three it is standing in is owed silence, not a default somebody never chose. */
-export const shapeScope = once(() =>
-  chosen(forgeJson().parsed?.shape, PROJECT_SHAPES, null, { absent: null }));
+export const RELEASE_MODES = valuesOf("release");
 
-export const RELEASE_MODES = ["auto", "manual"];
-
-/** Whether a change of this project goes out without a person's look. The PROJECT's, beside `ship`,
- *  `landing` and `drainedBy`, and the one source the flow reads for it as of ISS-2190 — the tracker's
- *  `pipelineConfig.autoProdDeploy` answered it before, at a level a checkout cannot set and a level
- *  no local declaration could ever override. Absent here is not `manual`: `releaseFrom` in
- *  tracker/project-config.mjs decides what an absence resolves to, one level down, so that a project
- *  which has not spoken is moved by no upgrade of this plugin.
- *
- *  A NAMED directory is read the way `declaredWork` above reads one, and for the same reason: a
+/** A NAMED directory is read the way `declaredWork` above reads one, and for the same reason: a
  *  reading aimed at another checkout takes the tracker half by slug and would otherwise take this
  *  half out of the file the shell happens to stand in, pairing one project's release model with
  *  another's switch. The source is that checkout's own file, never this process's (BR-08). */
-export const releaseScope = (at = null) => chosen(
-  at === null ? forgeJson().parsed?.release : projectFileAt(at)?.release,
-  RELEASE_MODES, null, { absent: null, source: at === null ? fromProject() : `the project file under ${at}` },
-);
+export const releaseScope = (at = null) => (at === null ? enumScope("release")
+  : enumOf("release", projectFileAt(at), `the project file under ${at}`));
 
 export const RUNS_TAKES = "a whole number above 0";
 

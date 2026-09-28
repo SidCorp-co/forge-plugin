@@ -21,11 +21,11 @@ const inProject = (config, argv) => {
 const report = (config) => inProject(config, [CLI, "doctor", "project"]).stdout;
 
 test("a project that set no redBatch is told the default searches, and that nobody chose it", () => {
-  assert.match(report({ slug: "demo" }), /\[ {2}ok {2}\] redBatch\s+attribute-then-split {2}← the plugin's default/u);
+  assert.match(report({ slug: "demo" }), /\[ {2}ok {2}\] redBatch\s+attribute-then-split — a red combined gate hands back the members its failing cases name, halves the rest and lands the others as one candidate {2}← the plugin's default/u);
 });
 
 test("a project that set one-by-one is read at that value, from its own file", () => {
-  assert.match(report({ slug: "demo", redBatch: "one-by-one" }), /\[ {2}ok {2}\] redBatch\s+one-by-one {2}← \S+config\.json/u);
+  assert.match(report({ slug: "demo", redBatch: "one-by-one" }), /\[ {2}ok {2}\] redBatch\s+one-by-one — a red combined gate lands every member alone {2}← \S+config\.json/u);
 });
 
 test("a word redBatch does not take is named in the report with the two it does", () => {
@@ -52,5 +52,5 @@ test("--set writes one-by-one into the project's record, and refuses a word the 
   assert.notEqual(refused.status, 0, refused.stdout);
   assert.match(refused.stderr + refused.stdout, /is one of attribute-then-split, one-by-one, not `"bisect"`\. Nothing was written/u);
   const back = spawnSync(process.execPath, [CLI, "doctor", "project"], { encoding: "utf8", cwd, env });
-  assert.match(back.stdout, /\[ {2}ok {2}\] redBatch\s+one-by-one {2}← \S+config\.json/u, "the refused write left the first in place");
+  assert.match(back.stdout, /\[ {2}ok {2}\] redBatch\s+one-by-one — a red combined gate lands every member alone {2}← \S+config\.json/u, "the refused write left the first in place");
 });

@@ -45,15 +45,15 @@ test("the landing mode is the project's: it is written to this machine's record 
   assert.equal(machineShip(saved), undefined,
     "and the account's configuration holds no such key: the project decided, not the box");
   assert.match(said, new RegExp(`${escaped(entry)}`, "u"), "the line it prints names the file it wrote");
-  assert.match(said, /Runs of `demo` now end at a pushed branch/u,
+  assert.match(said, /`demo` now reads `ship` as ready: a run stops at a pushed branch and a landing checkpoint/u,
     "and the sentence names the project it wrote for rather than this machine");
   assert.doesNotMatch(said, /on this machine now/u, "it claims nothing about the box");
 });
 
 test("the mode the report prints is the mode last written, either way", () => {
   const home = tempRoom("doctor-mode-home-");
-  assert.match(shipped(home, "ready").out, /\[ {2}ok {2}\] ship\s+ready {2}← \S+config\.json/u);
-  assert.match(shipped(home, "self").out, /\[ {2}ok {2}\] ship\s+self {2}← \S+config\.json/u,
+  assert.match(shipped(home, "ready").out, /\[ {2}ok {2}\] ship\s+ready — a run stops at a pushed branch and a landing checkpoint, and the landing is another actor's {2}← \S+config\.json/u);
+  assert.match(shipped(home, "self").out, /\[ {2}ok {2}\] ship\s+self — a run lands its own change {2}← \S+config\.json/u,
     "and self is written rather than cleared, so the report never has to guess which way a silence means");
 });
 
@@ -71,7 +71,7 @@ test("two projects on one machine answer the ship mode separately, each out of i
 
 test("a project that declares no ship mode is read at self, against the plugin's own default", () => {
   const { out } = ofProject({ slug: "demo" });
-  assert.match(out, /\[ {2}ok {2}\] ship\s+self {2}← the plugin's default/u,
+  assert.match(out, /\[ {2}ok {2}\] ship\s+self — a run lands its own change {2}← the plugin's default/u,
     "a project that never sets it behaves exactly as every run did before the key existed");
 });
 
@@ -98,10 +98,10 @@ test("a landing mode left in the account's configuration is reported ignored and
   const run = spawnSync(process.execPath, [CLI, "doctor", "project"], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(run.stdout, new RegExp(`\\[ note \\] ship\\s+ready {2}← ${escaped(entry)}; \`ship: "self"\``, "u"),
+  assert.match(run.stdout, new RegExp(`\\[ note \\] ship\\s+ready — a run stops at a pushed branch and a landing checkpoint, and the landing is another actor's {2}← ${escaped(entry)}; \`ship: "self"\``, "u"),
     run.stdout);
   assert.match(run.stdout,
-    /is ignored — the key that decides this is now `ship` in this machine's record of that project/u,
+    /is ignored — the key that decides this is now `ship` in this machine's record of that project, written by `forge doctor --ship <value>` run inside a checkout of that project/u,
     "the value left behind is named, and so is the key that replaced it");
 });
 
@@ -116,7 +116,7 @@ test("a leftover at the machine's level is named whatever value it holds", () =>
     const run = spawnSync(process.execPath, [CLI, "doctor", "project"], {
       encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
     });
-    assert.match(run.stdout, new RegExp(`\\[ note \\] ship\\s+self {2}← the plugin's default; `
+    assert.match(run.stdout, new RegExp(`\\[ note \\] ship\\s+self — a run lands its own change {2}← the plugin's default; `
       + `\`ship: ${escaped(JSON.stringify(value))}\` in \\S+config\\.json is ignored`, "u"), run.stdout);
   }
 });

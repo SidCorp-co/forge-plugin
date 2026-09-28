@@ -252,10 +252,10 @@ const asksRows = async (name, keys, precedents = 0) => {
 
 test("the ask rows print the mode with its source, the layer's count and the categories in force", async () => {
   const unset = await asksRows("asks-unset", {});
-  assert.match(unset.rows, /asks\.mode +off {2}← the plugin's default$/u);
+  assert.match(unset.rows, /asks\.mode +off — every question a session asks goes to the owner {2}← the plugin's default$/u);
   assert.doesNotMatch(unset.rows, /asks\.precedents/u, "a project that has not opted in has no layer to count");
   const on = await asksRows("asks-on", { asks: { mode: "decide", owner: ["pricing"] } }, 2);
-  assert.match(on.rows, new RegExp(`asks\\.mode +decide {2}← ${escaped(on.record)}`, "u"));
+  assert.match(on.rows, new RegExp(`asks\\.mode +decide — a question declared reversible may be answered from the owner's own earlier answers {2}← ${escaped(on.record)}`, "u"));
   assert.match(on.rows, /asks\.precedents +2 in this project's layer; outcomes logged in \S+decided\.jsonl/u);
   assert.match(on.rows, /asks\.owner +a secret or credential; spend; .*a contract others build against; and this project's own: pricing/u);
 });

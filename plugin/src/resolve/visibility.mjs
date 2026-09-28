@@ -8,6 +8,7 @@ import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
 import { STORES } from "./machine/stores.mjs";
+import { ENUM_FLAGS, valuesOf } from "./enum-keys.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
 import { TAKEN_HERE, TO_TRACKER, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
 import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
@@ -126,7 +127,8 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
     + " [--hide v|--show v] [--job name|all]"
-    + " [--ship ready|self] [--coolify-route m] [--set k=v] [--flow slug] [--adopt] [--credentials]"
+    + ENUM_FLAGS.map((key) => ` [--${key} ${valuesOf(key).join("|")}]`).join("")
+    + " [--coolify-route m] [--set k=v] [--flow slug] [--adopt] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text> --was <prose>]"
     + " [--after <n> <text> --was <prose>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
