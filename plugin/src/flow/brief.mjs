@@ -133,6 +133,26 @@ const recordsIn = (view, latest, park) => ({
   shown: Object.keys(latest).length + (park ? 1 : 0) + view.criteria.filter((one) => view.verdicts.has(one.number)).length,
 });
 
+/* What the row says of the work, beside the thread: a run whose records never reached the tracker
+   still leaves a merged mark or a branch on the row, and an empty record read alone says no work was
+   done where the change may be serving (ISS-607). The branch is the first of the three places a
+   branch is written, each named, so a reader can tell the CLI's capture from core's own field. */
+const BRANCH_FROM = [
+  ["the worklog", (view) => view.work?.branch],
+  ["the landing checkpoint", (view) => view.landing?.branch],
+  ["sessionContext.branch", (view) => view.issue?.[FIELD]?.branch],
+];
+
+const rowWork = (view) => {
+  const at = view.issue?.mergedAt;
+  const found = BRANCH_FROM.map(([from, read]) => [from, read(view)])
+    .find(([, name]) => typeof name === "string" && name.trim());
+  return {
+    merged: at ? { at: String(at), commit: view.issue.mergedCommitSha ? String(view.issue.mergedCommitSha) : null } : null,
+    branch: found ? { name: found[1].trim(), from: found[0] } : null,
+  };
+};
+
 export const briefOf = (view, ref) => {
   const status = view.issue.status;
   const method = methodOf(status, finishedAtHead(view));
@@ -157,6 +177,7 @@ export const briefOf = (view, ref) => {
     latest,
     repeated: repeatedIn(view),
     records: recordsIn(view, latest, park),
+    row: rowWork(view),
     next: held?.next ?? null,
     worklog: view.work,
     lease: held,
