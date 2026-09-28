@@ -1,4 +1,4 @@
-# Release
+# Release batch
 
 Why a release batch is readable and clearable from this CLI at all, what "holder" means where the
 tracker keeps no such field, and why a clear is gated on the tracker's own bounds reading rather than
@@ -33,4 +33,7 @@ was never about the batch. So `clear` refuses a run the tracker does not yet cal
 the exact rerun with `--force` added rather than only saying no: the person reading it has seen the
 same bounds this refusal is measured against, and a route through a refusal beats a wall every time
 one is affordable. `--force` never buys past a `runId` a fresh read disagrees with — there is nothing
-to force there, only a mistake to correct.
+to force there, only a mistake to correct — and it never buys past a state naming no bounds reading
+at all, a project with no probe channel configured included: a "not holding" `--force` overrides is
+a measurement the tracker took and named; an absent one is nothing the tracker measured, so there is
+nothing there for a person's own judgement to stand in for either.

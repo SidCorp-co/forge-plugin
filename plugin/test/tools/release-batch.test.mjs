@@ -132,6 +132,15 @@ test("clear on a run the tracker's own bounds do not call holding is refused aft
   assert.deepEqual(run.released, [ACTIVE_ROUTE, STATE_ROUTE], "nothing was aborted");
 });
 
+test("clear --force on a run whose state names no bounds at all is refused before abort, since nothing measured is nothing to force past", async () => {
+  state.active = { runId: RUN_ID, issueIds: ISSUE_IDS, startedAt: STARTED_AT };
+  state.runState = { runId: RUN_ID, projectId: "p", runStatus: "running" };
+  const run = await ran("clear", RUN_ID, "--reason", "guessing, with no bounds reading at all", "--force");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /did not come back/u);
+  assert.deepEqual(run.released, [ACTIVE_ROUTE, STATE_ROUTE], "nothing was aborted");
+});
+
 test("clear --force past a not-holding state sends the abort", async () => {
   state.active = { runId: RUN_ID, issueIds: ISSUE_IDS, startedAt: STARTED_AT };
   state.runState = { runId: RUN_ID, projectId: "p", runStatus: "running", bounds: boundsOf(false) };

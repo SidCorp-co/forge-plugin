@@ -17,7 +17,7 @@ import { sharedNow } from "../wire/shared-clock.mjs";
 const STATUS_USAGE = "Usage: forge release-batch [status]";
 const CLEAR_USAGE = 'Usage: forge release-batch clear <runId> --reason "<text>" [--force]';
 
-export const USAGE = [
+const USAGE = [
   usageOf("release-batch"),
   "Whether a release batch is running for this project, and clearing a dead one, without this",
   "CLI's MCP client.",
@@ -89,7 +89,12 @@ const rereadOrRefuse = async (runId, rerun, force) => {
       + "sent — read it again and clear that one if it is the one to clear: `forge release-batch`");
   }
   const state = await scoped("forge_release_batch.state", { runId });
-  if (!force && !state?.bounds?.holding) {
+  if (!state?.bounds) {
+    fail("release-batch clear: the tracker's own bounds reading for this run did not come back — no "
+      + "probe channel is configured for this project, or the state read named none — so nothing here "
+      + `has measured anything to force past. Read what the tracker did answer: \`forge release-batch\`.`);
+  }
+  if (!force && !state.bounds.holding) {
     fail("release-batch clear: this run has crossed none of the tracker's own bounds — nothing here "
       + "has decided it is dead, and clearing a batch that is still going is what ISS-1486 recorded "
       + `as a near-miss. Read what the tracker measured: \`forge release-batch\`. If you still mean `
