@@ -47,13 +47,33 @@ test("each rung is entered on its own half, and neither check reaches the other'
   assert.deepEqual(CHECKS[RUNG](view, "ISS-3"), deployed);
 });
 
-test("closed is entered from that rung and the project's release policy, and no record", () => {
+/* ISS-1480: nine issues reached `awaiting_release` with no verification record at all, or one
+   naming a local stack rather than a deployment, and `CHECKS.closed` — which is what `--owed` and
+   the move both read — cleared every one, because it tested the same three record kinds whatever
+   put the issue on the rung asked of instead of reading what the verification itself said. */
+test("closed is entered from that rung, a verification naming the deployment, and the project's release policy", () => {
   assert.equal(CLOSES_FROM, RUNG, "the close reads the rung's own name");
   assert.equal(nextOf(CLOSES_FROM, {}), "closed");
   const releases = { staging: "master", model: "publish", said: "publish", live: null,
     strategy: null, autoProd: true, from: "the fixture" };
-  assert.deepEqual(CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, [], null, releases), "ISS-3"),
-    [], "the rung and a project owing nobody an act are the whole criterion");
+  const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
+    + "landing moved nothing; landing wrote nothing";
+  const mark = { createdAt: "2026-09-02T10:00:00.000Z", authorId: "agent", body: `mark_merged target=base — ${NOTE}` };
+  const verifiedAt = (commit) => ({ createdAt: "2026-09-02T10:01:00.000Z", authorId: "agent",
+    body: render("verification", { where: "https://app.example", commit, evidence: ["https://app.example/build/9"] }) });
+  const closed = (comments) => CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, comments, null, releases), "ISS-3");
+
+  const bare = closed([mark]);
+  assert.ok(bare.length, "no verification record at all still owes one, wherever the issue arrived from");
+  assert.match(bare[0].what, /no verification/u);
+
+  const stale = closed([mark, verifiedAt("eee109e")]);
+  assert.ok(stale.length, "a verification naming a commit the merged mark does not is not the rung's answer either");
+  assert.match(stale[0].what, /eee109e/u);
+  assert.match(stale[0].what, /43b811e/u);
+
+  assert.deepEqual(closed([mark, verifiedAt("43b811e")]), [],
+    "the rung, a verification naming the deployment, and a project owing nobody an act are the whole criterion");
 });
 
 /* A write is checked against this list before its request is built, so it answers to the tracker

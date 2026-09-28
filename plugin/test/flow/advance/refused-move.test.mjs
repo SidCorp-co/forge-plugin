@@ -10,6 +10,7 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 const { AMBIGUOUS } = await import("../../../src/tracker/rest.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
 
 process.env.XDG_CONFIG_HOME = tempHome("advance-refused-move").path;
 
@@ -27,11 +28,16 @@ const PARKED = {
   releaseNotes: { section: "Skip", userFacing: "-" },
   sessionContext: { lease: LEASE },
 };
+/* This rung asks for a verification naming the deployment (ISS-1480), which is no part of what any
+   case below refuses on, so it is on the page before the tracker's own answer is ever consulted. */
+const VERIFIED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
+  body: render("verification",
+    { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) }];
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } },
   issues: [PARKED],
-  comments: { "parked-uuid": [] },
+  comments: { "parked-uuid": VERIFIED },
   answer: {},
 };
 state.answer.forge_config = () => ({ config: state.config });
