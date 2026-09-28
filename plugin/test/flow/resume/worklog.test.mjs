@@ -121,7 +121,7 @@ test("the git block is what git said when it was asked, with the time it was ask
   assert.match(now.head, /^[0-9a-f]{40}$/u, "the head, whole");
   assert.ok(now.branch, "and the branch it is on");
   assert.match(now.at, /^\d{4}-\d\d-\d\dT/u, "stamped, so a reader can tell a stale block");
-  assert.equal(gitNow.length, 0, "it takes nothing: there is no reading it from anywhere else");
+  assert.equal(gitNow.length, 0, "it needs nothing typed: the one thing it takes is the project's landing declaration, which picks the ref the base is measured from");
 });
 
 test("a patch is built only from what was asked for, and nothing else is invented", async () => {
