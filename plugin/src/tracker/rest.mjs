@@ -172,7 +172,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
 
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is
    stripped before its field name goes in front, the fence being anchored to the start of a line. */
-const said = (body, status) => {
+const said = (body, status, args) => {
   const details = body?.details ?? {};
   const lines = [
     ...(details.formErrors ?? []).map(unfenced),
@@ -181,8 +181,18 @@ const said = (body, status) => {
   ];
   const head = body?.message ? `${body.code ?? status}: ${unfenced(body.message)}` : `Forge answered ${status}`;
   const whole = lines.length ? `${head}\n${lines.join("\n")}` : head;
+  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${capturedBy(args?.documentId ?? args?.data?.issueId)}`;
   return status === 401 ? `${UNAUTHORIZED}\n\n${whole}` : whole;
 };
+
+/* The tracker's work-evidence refusal, met by a status move and by the merged mark alike, names two
+   fields a branch may be recorded in and never a command: one is the field `forge claim --pushed`
+   writes, and the other is one no verb here writes and `forge issue --set` refuses, so a run told
+   only the tracker's words is sent to a field it cannot reach (ISS-2775). */
+const NO_WORK_EVIDENCE = "NO_WORK_EVIDENCE";
+const capturedBy = (id) => `Capture the branch the work is on, which is not the project's base branch, `
+  + `with \`forge claim ${id ?? "<issue>"} --pushed\`: it writes sessionContext.worklog.branch, which `
+  + "that check reads. Then send the refused command again.";
 
 /* The tracker's words say the token was refused and never which token or where it came from, which
    left a run unable to tell a wrong one from an expired one without a person (ISS-45). */
@@ -213,7 +223,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
       + `${ranOut(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
-      return [part, refused(said(body, response.status),
+      return [part, refused(said(body, response.status, args),
         { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
     }
     const body = text ? parsedOr(text) : null;
