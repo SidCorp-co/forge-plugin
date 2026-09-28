@@ -421,13 +421,15 @@ export const credentialHits = (data, deploy) => {
   });
 };
 
-/* A string the tracker already holds in the same field of the same record, word for word, is one a
-   write re-sends rather than supplies: sending it again gives the tracker nothing it has not taken,
-   and refusing it made an issue whose stored record once took a credential unwritable (ISS-1380). */
+/* A string the tracker already holds at the same leaf path of the same record, word for word, is
+   one a write re-sends rather than supplies: sending it again gives the tracker nothing it has not
+   taken, and refusing it made an issue whose stored record once took a credential unwritable
+   (ISS-1380). The path is the whole of `hit.field`, not its top-level key: a stored value read at
+   one path and typed fresh at another is a new placement of that text, not the record it already
+   holds, and is judged as any caller-supplied string is (ISS-2837). */
 const storedIn = (stored) => {
-  const held = new Map(Object.entries(stored ?? {}).map(([field, value]) =>
-    [field, new Set(leaves(value).map((one) => one.value))]));
-  return (hit, value) => Boolean(held.get(hit.at[0])?.has(value));
+  const held = new Map(leaves(stored ?? {}).map((one) => [one.at.join("."), one.value]));
+  return (hit, value) => held.get(hit.field) === value;
 };
 
 const splitHits = (data, deploy, stored) => {
