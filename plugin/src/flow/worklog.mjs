@@ -58,21 +58,30 @@ const git = (args, env = null) => {
   return run.status === 0 ? (run.stdout ?? "").trim() : null;
 };
 
-/* The project's own answer first; the two common names are a guess, tried only after it. */
-const baseOf = () => {
-  const named = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]);
-  for (const ref of [named, ...REMOTES].filter(Boolean)) {
+/* Measured against the branch a change lands on, which is `landsOn`'s answer and the one
+   `carriedByLanding` reads: two readings of that branch in one file disagreed, and a capture on a
+   project landing on `staging` recorded every file between the remote's default and it as touched
+   — which `readyCheckpoint` then copied into the landing (ISS-1217). A declared branch is read and
+   nothing else, since a guess standing in for a ref not fetched is that defect again; where nothing
+   is declared, the remote's recorded default first and the two common names after it. */
+const baseOf = (lands) => {
+  const named = lands?.branch
+    ? [`refs/remotes/origin/${lands.branch}`]
+    : [git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]), ...REMOTES];
+  for (const ref of named.filter(Boolean)) {
     const found = git(["merge-base", "HEAD", ref]);
     if (found) return found;
   }
   return "";
 };
 
-/* Read here and nowhere else: a brief that consulted the tree would answer differently per machine. */
-export const gitNow = () => {
+/* Read here and nowhere else: a brief that consulted the tree would answer differently per machine.
+   `lands` is the project's declaration and never a caller's value, and it picks only the ref the
+   base is measured from. */
+export const gitNow = (lands = null) => {
   const head = git(["rev-parse", "HEAD"]);
   if (!head) return null;
-  const base = baseOf();
+  const base = baseOf(lands);
   const diffed = base ? git(["diff", "--name-only", `${base}..HEAD`]) : "";
   const touched = (diffed ?? "").split("\n").filter(Boolean);
   return {
@@ -146,7 +155,7 @@ const reviewNow = async (root = repoRoot(process.cwd())) => {
 /** Why a capture found no diff: after a fast-forward the base is the head and the touched set reads as none. */
 const EMPTY = {
   none: "git answered nothing about this checkout",
-  base: "no base: the checkout names no remote head to measure from",
+  base: "no base: this checkout holds no remote-tracking ref of the branch a change lands on to measure from, which `git fetch origin` settles",
   same: "the base is the head, which is what a fast-forward leaves",
   diff: "git would not read the diff between the base and the head",
   files: "the base and the head differ and no file does",
@@ -214,10 +223,16 @@ export const unwrittenSaid = () => {
   UNSAID.clear();
 };
 
+/* Loaded only by a capture, for the reason `consultLog` is: this module is on every call's path. */
+const landingBranch = async () => {
+  const { landsOn, releasePolicy } = await import("../tracker/project-config.mjs");
+  return landsOn(await releasePolicy());
+};
+
 /* Asked for and not made is not written silently: no git is the wrong directory, no consult is early. */
 export const patchFrom = async ({ pushed = false, review = false, open = [] }) => {
   const patch = {};
-  const now = pushed ? gitNow() : null;
+  const now = pushed ? gitNow(await landingBranch()) : null;
   if (pushed) {
     if (!now) fail(`--pushed reads the branch and head from git, and ${process.cwd()} is no checkout.`);
     Object.assign(patch, now, { copy: copyNow() });
