@@ -175,15 +175,13 @@ test("the arguments are read, not searched, and the tracker's own sources pass",
 /* A wrapper's own flags let `sudo -u touch <path>` inside an echo read as a write; only `xargs` needs them. */
 test("a wrapper's flags are not a licence for every quoted mention", () => {
   assert.equal(decide(`echo "sudo -u me touch ${SKILL}"`).allowed, true);
-  assert.equal(decide(`sudo touch ${MEMORY}/trap.md`).allowed, false, "the wrapper itself still counts");
-  assert.equal(decide(`exec touch ${MEMORY}/trap.md`).allowed, false, "and `exec`, which runs the command after it");
+  for (const runner of ["sudo", "exec"]) assert.equal(decide(`${runner} touch ${MEMORY}/trap.md`).allowed, false, `${runner} runs what follows`);
 });
 
 /* A wrapper counts where a verb counts: promoting a `-c` body promoted one quoted in a message too. */
 test("a `-c` body quoted inside an argument is not the shell running one", () => {
   assert.equal(decide(`git commit -m "ran sh -c 'cp a b'" -- ${MEMORY}/a.md`).allowed, true);
-  assert.equal(decide(`sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false, "at the start it is");
-  assert.equal(decide(`exec sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false, "and behind the `exec` that runs it");
+  for (const lead of ["", "exec "]) assert.equal(decide(`${lead}sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false, `${lead}at the start it is`);
   assert.equal(decide(`ls | xargs -I{} sh -c 'cp {} ${MEMORY}/trap.md'`).allowed, false, "after a wrapper too");
 });
 
