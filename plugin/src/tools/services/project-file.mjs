@@ -237,7 +237,8 @@ const codexRefusal = (given) => {
   }
   /* A model is named or the proposal is off, so a blank is refused: written, it would read as on and ask nothing. */
   for (const key of ["complexityModel", "priorityModel"]) {
-    if (given[key] !== undefined && aString(`codex.${key}`, given[key])) return aString(`codex.${key}`, given[key]);
+    const refused = given[key] === undefined ? null : aString(`codex.${key}`, given[key]);
+    if (refused) return refused;
   }
   if (given.angles !== undefined) {
     const angles = given.angles;
