@@ -4,7 +4,9 @@ import { createServer } from "node:http";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
+
+const LAYER = new URL("../../src/tools/vi.mjs", import.meta.url);
 
 /** A gateway answering every string with `reply` of it, and a room whose config points at it. */
 export const gatewayOn = async (t, reply, prefix = "vi-gateway-") => {
@@ -34,4 +36,15 @@ export const gatewayOn = async (t, reply, prefix = "vi-gateway-") => {
   const gateway = { base_url: `http://127.0.0.1:${server.address().port}/v1`, api_key: "k", model: "m" };
   writeFileSync(join(room, "vi-natural", "config.json"), JSON.stringify(gateway));
   return room;
+};
+
+/** `translated(payload)` through the write boundary a caller spawns, against a fake gateway, in a child
+ *  process, since the room a project's settings resolve from is read off `process.cwd()`/`HOME` at
+ *  import time. */
+export const translatedIn = async (t, reply, payload, prefix) => {
+  const room = await gatewayOn(t, reply, prefix);
+  projectRoom(room, room, { slug: "any", translate: "vi" });
+  const call = `import(${JSON.stringify(LAYER.href)})`
+    + `.then((m) => console.log(JSON.stringify(m.translated(${JSON.stringify(payload)}))))`;
+  return ranAsync(process.execPath, ["-e", call], { ...process.env, HOME: room, XDG_CONFIG_HOME: room }, room);
 };

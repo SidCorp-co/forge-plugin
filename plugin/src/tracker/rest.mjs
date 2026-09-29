@@ -429,12 +429,12 @@ export const refuseUnreadableDate = (verb, flag, given) => {
 export const statusKind = (name) =>
   DECLARES.forge_issues.status.find((one) => one.name === name) ?? null;
 
-/* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
-   next time a verb learns to write. `uploadAll` holds the other: bytes never pass here. */
-/* `stored` is the record the payload was built from, by top-level field, and `ref` the issue it is: a
-   string that record already holds is re-sent rather than supplied, so it goes and is said once. */
 const saidStored = new Set();
 
+/* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
+   next time a verb learns to write. `uploadAll` holds the other: bytes never pass here.
+   `stored` is the record the payload was built from, matched by leaf path, and `ref` the issue it is:
+   a string that record already holds is re-sent rather than supplied, so it goes and is said once. */
 export const refuseCredential = async (value, what, { stored = null, ref = null, id = null } = {}) => {
   if (!value) return;
   const held = await import("./project-config.mjs");

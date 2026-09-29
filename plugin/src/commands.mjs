@@ -280,7 +280,9 @@ const own = {
     const { title, ...carried } = given;
     /* Asked of the flags and never of the tracker: a field the filer typed is theirs, and only an absent one is the model's. */
     const absent = [priority === undefined && "priority", complexity === undefined && "complexity"].filter(Boolean);
-    const { proposeAtFiling } = await import("./codex/proposed/fields.mjs");
+    const after = absent.length
+      ? (await import("./codex/proposed/fields.mjs")).proposeAtFiling({ title, body, kind: category }, absent)
+      : null;
     return fileAndSay({
       title,
       body,
@@ -295,7 +297,7 @@ const own = {
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,
-    }, { withKeys, after: absent.length ? proposeAtFiling({ title, body, kind: category }, absent) : null });
+    }, { withKeys, after });
   },
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */

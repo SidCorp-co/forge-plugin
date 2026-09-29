@@ -43,7 +43,8 @@ export const configHomeConflict = (here = process.cwd(), refused = false) => {
 /** `forge doctor`'s report keeps running on a conflicted home; a write through one, to a store or to
  *  the tracker, is refused with the same text a plain call is. */
 export const refusedOnConflict = (writes, here = process.cwd()) => {
-  if (writes && configHomeConflict(here)) fail(configHomeConflict(here, true));
+  const said = writes ? configHomeConflict(here, true) : null;
+  if (said) fail(said);
 };
 
 /* What the last settle filled, for the doctor to say why the home is the one it is. */

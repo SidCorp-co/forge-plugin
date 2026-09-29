@@ -2,7 +2,7 @@
    project's own scale the issue a body describes earns — answered through a tool whose only values are
    the levels the scale states. The state it reads and the way it is asked are the complexity
    question's, so the two travel the same redaction and the same clock. docs/cli/proposed-fields.md. */
-import { COMPLEXITY_MARK, DATE_MARK, askTyped } from "../complexity/complexity.mjs";
+import { COMPLEXITY_MARK, DATE_MARK, askTyped, numberOrNull } from "../complexity/complexity.mjs";
 import { PRIORITY_PROPOSAL } from "../codex-log.mjs";
 
 const NAME = "priority";
@@ -44,7 +44,7 @@ export const readPriority = (levels) => (calls = []) => {
   const { priority: given, confidence, why } = call.input ?? {};
   const allowed = levels.map(([level]) => level);
   if (!allowed.includes(given)) return { refused: `\`${given}\` is no level of this project's scale; they are ${allowed.join(", ")}` };
-  return { proposed: given, confidence: typeof confidence === "number" ? confidence : null, why: String(why ?? "").trim() };
+  return { proposed: given, confidence: numberOrNull(confidence), why: String(why ?? "").trim() };
 };
 
 const heldPriority = (row) => (row?.priority ? String(row.priority) : null);

@@ -11,13 +11,12 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { projectRoom, ranAsync } from "../fixtures.mjs";
-import { gatewayOn } from "./fake-gateway.mjs";
+import { ranAsync } from "../fixtures.mjs";
+import { gatewayOn, translatedIn } from "./fake-gateway.mjs";
 import { diff } from "../../vi-natural/text/drift.mjs";
 import { translateItems } from "../../vi-natural/gateway/engine.mjs";
 
 const BIN = fileURLToPath(new URL("../../bin/vi-natural", import.meta.url));
-const LAYER = new URL("../../src/tools/vi.mjs", import.meta.url);
 
 test("drift.diff: a dropped contrast with no Vietnamese counterpart is named", () => {
   const source = "Store the balance as negative rather than as one somebody has signed.";
@@ -87,16 +86,6 @@ test("vi-natural doc posts a rewrite that keeps its contrast in its own words", 
   assert.equal(run.status, 0, run.stderr);
   assert.equal(readFileSync(run.path, "utf8"), `${kept}\n`);
 });
-
-/** `translated(payload)` through the write boundary a caller spawns, against a fake gateway —
- *  `rewrite-visibility.test.mjs`'s own pattern. */
-const translatedIn = async (t, reply, payload, prefix) => {
-  const room = await gatewayOn(t, reply, prefix);
-  projectRoom(room, room, { slug: "any", translate: "vi" });
-  const call = `import(${JSON.stringify(LAYER.href)})`
-    + `.then((m) => console.log(JSON.stringify(m.translated(${JSON.stringify(payload)}))))`;
-  return ranAsync(process.execPath, ["-e", call], { ...process.env, HOME: room, XDG_CONFIG_HOME: room }, room);
-};
 
 test("the write boundary refuses a field whose rewrite drops the source's contrast, before anything posts", async (t) => {
   const source = "Store the balance as negative rather than as one somebody has signed.";
