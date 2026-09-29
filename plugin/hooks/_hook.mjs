@@ -20,8 +20,8 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
-export { directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, REDIRECT, STARTS, WRITES, namesOf, spans, standsIn, unquote };
+export { directoryAt, spelled, struck, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { NOWHERE, REDIRECT, WRITES, namesOf, spans, standsIn };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
@@ -432,8 +432,6 @@ export const startsAt = (text) =>
       return past(one.slice(at)).map((said) => ({ said, at: lead + at }));
     });
   });
-
-export const starts = (text) => startsAt(text).map((one) => one.said);
 
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run — unwrapped before expanded, since the shell that takes a `-c` body is what an `env` prefix reaches. */
 export const shellText = (command, onProgram) =>

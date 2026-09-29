@@ -4,8 +4,7 @@
 import { statSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 
-import { deny, done, how, named, shellWrites, writtenPaths } from "../_hook.mjs";
-import { struck } from "../../src/hooks/shell-spans.mjs";
+import { deny, done, how, named, shellWrites, struck, writtenPaths } from "../_hook.mjs";
 import { repoRoot } from "../../src/git/repo-root.mjs";
 import { scopeHeld } from "../../src/flow/record/plan-scope.mjs";
 import { correctionForm, namesPath } from "../../src/flow/record/merged.mjs";
