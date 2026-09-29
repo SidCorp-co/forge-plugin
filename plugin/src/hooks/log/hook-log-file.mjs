@@ -45,6 +45,29 @@ export const jsonlAt = (path) => {
   }
 };
 
+/** A JSONL store read strictly, for a reader that decides from every row it holds: a line that will not parse, or that `accepts` turns down, may be the row that disagrees, so the whole read is `{ unreadable }` naming that line as not `what`. No file is an empty store. */
+export const strictJsonlAt = (path, accepts, what) => {
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    return error.code === "ENOENT" ? { rows: [] } : { unreadable: `${path} could not be read: ${error.message}` };
+  }
+  const rows = [];
+  for (const [at, line] of text.split("\n").entries()) {
+    if (!line.trim()) continue;
+    let row;
+    try {
+      row = JSON.parse(line);
+    } catch {
+      row = null;
+    }
+    if (!accepts(row)) return { unreadable: `${path} line ${at + 1} is not ${what}` };
+    rows.push(row);
+  }
+  return { rows };
+};
+
 /** The store's bytes, or none where there is no file yet: a question about one row is answered off the text, and decoding a 43 MB log to UTF-16 costs ten times reading it (ISS-1044). */
 export const jsonlBytes = (path) => {
   try {

@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { appendJsonl, jsonlAt } from "../hooks/log/hook-log-file.mjs";
+import { appendJsonl, jsonlAt, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
 import { durableBase, slugFor } from "../stats/corpus/corpus.mjs";
 import { projectRepository } from "../resolve/settings.mjs";
 import { DECLARED } from "./declared.mjs";
@@ -33,26 +33,7 @@ const wholeRow = (row) => Boolean(row) && typeof row.id === "string" && (row.kin
 
 /** The layer read strictly, for the one reader that decides from it: a row that will not parse may be
  *  the answer that disagrees, and the offsets already read past it will not bring it back. */
-export const readLayer = (paths) => {
-  let text;
-  try {
-    text = readFileSync(paths.precedents, "utf8");
-  } catch (error) {
-    return error.code === "ENOENT" ? { rows: [] } : { unreadable: `${paths.precedents} could not be read: ${error.message}` };
-  }
-  const rows = [];
-  for (const [at, line] of text.split("\n").entries()) {
-    if (!line.trim()) continue;
-    try {
-      const row = JSON.parse(line);
-      if (!wholeRow(row)) throw new Error("no row");
-      rows.push(row);
-    } catch {
-      return { unreadable: `${paths.precedents} line ${at + 1} is not a precedent` };
-    }
-  }
-  return { rows };
-};
+export const readLayer = (paths) => strictJsonlAt(paths.precedents, wholeRow, "a precedent");
 
 /** How many precedents a layer holds, read without building anything. */
 export const precedentCount = (paths) => precedentsIn(paths).length;

@@ -3,10 +3,9 @@
    settings.mjs says), so nothing one checkout decided is read for another. The owner reads the log to
    review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { appendJsonl } from "../hooks/log/hook-log-file.mjs";
+import { appendJsonl, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
 import { projectFilePath, projectRepository } from "../resolve/settings.mjs";
 
 export const DECIDED = "decided";
@@ -65,29 +64,7 @@ export const logOutcome = (entry, room = asksRoom()) => {
 
 /* A log that cannot be read whole cannot say which answers were the gate's, so it is reported rather
    than read as empty: an answer of the gate's taken for the owner's would decide the next question. */
-const outcomes = (room) => {
-  const path = decidedPath(room);
-  let text;
-  try {
-    text = path ? readFileSync(path, "utf8") : "";
-  } catch (error) {
-    if (error.code === "ENOENT") return { rows: [] };
-    return { unreadable: `${path} could not be read: ${error.message}` };
-  }
-  const rows = [];
-  for (const [at, line] of text.split("\n").entries()) {
-    if (!line.trim()) continue;
-    let row;
-    try {
-      row = JSON.parse(line);
-    } catch {
-      row = null;
-    }
-    if (!wellFormed(row)) return { unreadable: `${path} line ${at + 1} is not a record this gate wrote` };
-    rows.push(row);
-  }
-  return { rows };
-};
+const outcomes = (room) => strictJsonlAt(decidedPath(room), wellFormed, "a record this gate wrote");
 
 /** The calls the gate answered itself, which none may become precedent, or why they cannot be known. */
 export const decidedIds = (room = asksRoom()) => {
