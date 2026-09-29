@@ -225,6 +225,9 @@ const asksDetail = (mode) => {
   ];
 };
 
+/* Rows a key's own row is followed by, each handed the scope that row resolved. */
+const AFTER = { "asks.mode": asksDetail };
+
 /* Every enum-valued key in the table's order, each followed by what its own row leads to. */
 const enumRows = () => {
   const leftovers = machineLeftovers();
@@ -233,7 +236,7 @@ const enumRows = () => {
       const scope = enumScope(key);
       return [
         enumRow(key, scope, leftovers.find((left) => left.key === key) ?? null),
-        ...(key === "asks.mode" ? asksDetail(scope) : []),
+        ...(AFTER[key]?.(scope) ?? []),
       ];
     }),
     ...leftoverRows(leftovers),
