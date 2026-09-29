@@ -244,39 +244,37 @@ const correctedAway = (view, number) => (view.repeated?.correction ?? []).some((
    a correction names as dropped: a correction that removes the criterion this fail was judged
    against — the criterion itself proved wrong rather than the code, ISS-2362 — leaves no number here
    for a fresh verdict to answer, and holding a vanished number forever is no route anybody could take
-   (ISS-2430). */
-const failedOwed = (view, ref, exclude = EMPTY_SET) => {
-  const current = new Set(view.criteria.map((one) => one.number));
-  return numbered(view.verdicts)
-    .filter(([number, { record }]) => record.fields.verdict === "fail"
-      && !exclude.has(number)
-      && !shapeGaps("verdict", record, view.names).length
-      && (current.has(number) || !correctedAway(view, number)))
-    .map(([number]) => need(
-      `criterion ${number} failed its verdict`,
-      `${askOne(ref, number, markedCommit(view.comments) ?? "<sha>")}\n  or, where the criterion itself was wrong: ${correctedForm(ref, number)}`,
-    ));
+   (ISS-2430). One filter for this and a skip, the two differing only in what each need says. */
+const HELD_VERDICTS = {
+  fail: {
+    what: (number) => `criterion ${number} failed its verdict`,
+    or: "where the criterion itself was wrong",
+  },
+  /* Held the same way a fail is: core's own release sweep counts them alike (`unearnedCriteriaReports`,
+     ISS-2430). A skip earns the judging rung it was written at — VERDICTS, `somebodyLooked`, ISS-1875 —
+     but not the rungs after, until somebody looks again; ISS-1192 reached `closed` on one nothing here
+     had reread. The `--why` already on the skip is what a reader has of the look nobody took. */
+  skipped: {
+    what: (number, record) => `criterion ${number} was skipped ("${record.fields.why}"), and nothing on the record says it has been judged since`,
+    or: "where no route ever reaches it",
+  },
 };
 
-/* The same shape a fail already holds (ISS-2511), read for a skip instead: core's own release
-   sweep counts them alike (`unearnedCriteriaReports`, ISS-2430). A skip earns the judging rung it
-   was written at — VERDICTS, `somebodyLooked`, ISS-1875 — but not the rungs after, until somebody
-   looks again; ISS-1192 reached `closed` on one nothing here had reread. A fresh verdict is one
-   route; the other is a recorded correction naming this criterion gone, `correctedAway`'s own
-   question. The `--why` already on the skip is what a reader has of the look nobody took; the need
-   repeats neither route as the only one. */
-const skippedOwed = (view, ref, exclude = EMPTY_SET) => {
+const heldOwed = (view, ref, verdict, exclude = EMPTY_SET) => {
+  const { what, or } = HELD_VERDICTS[verdict];
   const current = new Set(view.criteria.map((one) => one.number));
   return numbered(view.verdicts)
-    .filter(([number, { record }]) => record.fields.verdict === "skipped"
+    .filter(([number, { record }]) => record.fields.verdict === verdict
       && !exclude.has(number)
       && !shapeGaps("verdict", record, view.names).length
       && (current.has(number) || !correctedAway(view, number)))
     .map(([number, { record }]) => need(
-      `criterion ${number} was skipped ("${record.fields.why}"), and nothing on the record says it has been judged since`,
-      `${askOne(ref, number, markedCommit(view.comments) ?? "<sha>")}\n  or, where no route ever reaches it: ${correctedForm(ref, number)}`,
+      what(number, record),
+      `${askOne(ref, number, markedCommit(view.comments) ?? "<sha>")}\n  or, ${or}: ${correctedForm(ref, number)}`,
     ));
 };
+
+const failedOwed = (view, ref, exclude) => heldOwed(view, ref, "fail", exclude);
 
 /* Every shortfall core's own release sweep counts unearned that a verdict already on the page can
    still carry past the judging rung — a fail, a skip, or one a reopen's triage already moved past
@@ -284,10 +282,10 @@ const skippedOwed = (view, ref, exclude = EMPTY_SET) => {
    number `judgedSince` already names is left out of the fail's or the skip's own message: one
    criterion, one reason (codex review). A criterion with no verdict at all stays out, the boundary
    `test/flow/earned/the-rung.test.mjs` (ISS-1065) keeps; a criterion a correction removed is not
-   that either, `failedOwed` and `skippedOwed` above already stopping at a number that is gone. */
+   that either, `heldOwed` above already stopping at a number that is gone. */
 const pastJudgingOwed = (view, ref) => {
   const stale = staleCriteria(view);
-  return [...failedOwed(view, ref, stale), ...skippedOwed(view, ref, stale), ...judgedSince(view, ref)];
+  return [...failedOwed(view, ref, stale), ...heldOwed(view, ref, "skipped", stale), ...judgedSince(view, ref, stale)];
 };
 
 /* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one
@@ -377,11 +375,12 @@ const staleCriteria = (view) => {
     .map(([number]) => number));
 };
 
-const judgedSince = (view, ref) => {
+/* `stale` is `staleCriteria(view)`, handed in by a caller that already read it. */
+const judgedSince = (view, ref, stale = staleCriteria(view)) => {
   /* No commit to read: whatever answers the finding has no sha on the record yet. */
   return foldVerdicts(
     ref,
-    [...staleCriteria(view)],
+    [...stale],
     "<sha>",
     (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
     (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
