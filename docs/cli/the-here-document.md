@@ -15,7 +15,7 @@ its tree.
 Four shapes are read as they were before, with the operator still an opener, because each one is a
 body this reader cannot vouch for:
 
-- **An unquoted delimiter whose body runs a substitution** — `$(…)`, a backtick, `${ …; }`. The
+- **An unquoted delimiter whose body runs a substitution** — `$(…)`, a backtick, `${ …; }` or `${| …; }`. The
   invoking shell runs it before the command and without a prefix's assignment. Inside the body a
   quote is data and stops nothing; only a `\` on the `$` or the backtick does, and a
   backslash-newline joins an opener it splits, as it does on a shell line.

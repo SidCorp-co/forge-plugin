@@ -23,6 +23,7 @@ test("a << that is no here-document, or one it cannot vouch for, leaves the text
     "echo 'a <<X'\nX\nforge comment ISS-1",
     "cat <<< X\nX\nforge comment ISS-1",
     "cat <<X\n$(forge advance ISS-2)\nX\nforge comment ISS-1",
+    "cat <<X\n${| forge advance ISS-2; }\nX\nforge comment ISS-1",
     "cat <<X\n$\\\n(forge advance ISS-2)\nX\nforge comment ISS-1",
     "cat <<X\nnever closed\nforge comment ISS-1",
   ]) assert.equal(withoutBodies(text), text, text);
