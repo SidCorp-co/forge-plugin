@@ -7,20 +7,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { projectRoom, ranAsync } from "../fixtures.mjs";
-import { gatewayOn } from "./fake-gateway.mjs";
-
-const LAYER = new URL("../../src/tools/vi.mjs", import.meta.url);
-
-/** `translated(payload)`, called in a child process against a fake gateway, since the room a
- *  project's settings resolve from is read off `process.cwd()`/`HOME` at import time. */
-const translatedIn = async (t, reply, payload, prefix) => {
-  const room = await gatewayOn(t, reply, prefix);
-  projectRoom(room, room, { slug: "any", translate: "vi" });
-  const call = `import(${JSON.stringify(LAYER.href)})`
-    + `.then((m) => console.log(JSON.stringify(m.translated(${JSON.stringify(payload)}))))`;
-  return ranAsync(process.execPath, ["-e", call], { ...process.env, HOME: room, XDG_CONFIG_HOME: room }, room);
-};
+import { translatedIn } from "./fake-gateway.mjs";
 
 test("every rewritten field but the title prints its source beside what was posted", async (t) => {
   const source = "Connect a statement source to a bank account.";
