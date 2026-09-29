@@ -1,5 +1,5 @@
 /* ISS-749. Five spellings of this CLI's binary disagreed on what a call of it is, and two of them in
-   one file cost a run its grant. The word is plugin/src/resolve/writer-word.mjs's, and a sixth
+   one file cost a run its grant. The word is plugin/src/resolve/session/writer-word.mjs's, and a sixth
    spelling fails here unless the line above it says why its reading differs. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
-const HOME = "plugin/src/resolve/writer-word.mjs";
+const HOME = "plugin/src/resolve/session/writer-word.mjs";
 const TREES = ["plugin/src", "plugin/hooks", "tools"];
 const SKIPPED = new Set(["vendor", "test", "node_modules"]);
 

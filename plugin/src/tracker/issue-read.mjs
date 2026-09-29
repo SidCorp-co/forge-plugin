@@ -3,7 +3,7 @@
    which call files a new one, which names no issue yet and so owes no comment delivery. */
 import { isReference } from "./issues.mjs";
 import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
-import { WRITER_WORD } from "../resolve/writer-word.mjs";
+import { WRITER_WORD } from "../resolve/session/writer-word.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;

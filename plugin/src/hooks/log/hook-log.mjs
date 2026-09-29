@@ -10,7 +10,7 @@ import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, offReach, setHook } 
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { helpOf } from "../../resolve/visibility.mjs";
-import { CALL_STARTS, WRITER_WORD } from "../../resolve/writer-word.mjs";
+import { CALL_STARTS, WRITER_WORD } from "../../resolve/session/writer-word.mjs";
 
 export { hookLogPath, hookEntries, jsonLines };
 

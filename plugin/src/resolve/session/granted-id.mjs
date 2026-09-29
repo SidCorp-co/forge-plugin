@@ -1,7 +1,7 @@
 /* The id a Bash command grants the process that will write, for a hook handed none of its own, read
    off the text's commands and not its first alone (ISS-672). The two forms: docs/cli/claim.md. */
 import { quoting, spans } from "../../hooks/shell-spans.mjs";
-import { CALL_STARTS, WRITER_WORD } from "../writer-word.mjs";
+import { CALL_STARTS, WRITER_WORD } from "./writer-word.mjs";
 
 const BACKTICK = "\\x60";
 const LITERAL = String.raw`[\w.@:+/-]+`;

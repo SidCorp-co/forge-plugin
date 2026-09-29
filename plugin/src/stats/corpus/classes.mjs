@@ -5,7 +5,7 @@ import { handledBy } from "../../resolve/handler.mjs";
 import { DECLARABLE, at, declares } from "./declared.mjs";
 import { HELP_WORD_PATTERN } from "../../resolve/help-word.mjs";
 import { WAITS_ON_PID } from "../../hooks/wait-idiom.mjs";
-import { WRITER_WORD } from "../../resolve/writer-word.mjs";
+import { WRITER_WORD } from "../../resolve/session/writer-word.mjs";
 
 /* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. `knowledge` is subbed because the store is read in phase 0 and written in the last phase, and one row over both filed a run's opening read under what it learned (ISS-1714). */
 const CALL = (verb) => String.raw`${WRITER_WORD}[ \t]+${verb}`
