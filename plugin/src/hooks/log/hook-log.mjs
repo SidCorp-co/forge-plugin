@@ -16,7 +16,7 @@ export { hookLogPath, hookEntries, jsonLines };
 
 const TAIL = 20;
 
-/* The shape a refusal refused goes beneath its line, since a false positive is found by its shape. */
+/* `refused` beneath the line: `_hook.mjs` `refusedIn` says why it is kept. */
 const line = (one) =>
   `${one.at}  ${(one.hook ?? "?").padEnd(16)} ${(one.decision ?? "?").padEnd(5)} `
   + `${(one.tool ?? "?").padEnd(8)} ${one.target ?? ""}${one.refused ? `\n    ${one.refused}` : ""}`;
