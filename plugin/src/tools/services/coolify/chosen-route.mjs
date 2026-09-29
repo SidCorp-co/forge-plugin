@@ -248,7 +248,7 @@ const ELSEWHERE_KIND = "elsewhere";
  *  to the saved instance. */
 export const trackerName = (name) => {
   if (BOTH_WAYS.includes(name)) return { kind: BOTH_KIND, name };
-  if (Object.hasOwn(TRACKER_SERVED, name)) return { kind: SERVED_KIND, name, key: TRACKER_SERVED[name] };
+  if (Object.hasOwn(TRACKER_SERVED, name)) return { kind: SERVED_KIND, name };
   if (Object.hasOwn(ROUTELESS, name)) return { kind: ROUTELESS_KIND, name, key: ROUTELESS[name] };
   if (Object.hasOwn(HELD_BACK, name)) return { kind: HELD_BACK_KIND, name, ...HELD_BACK[name] };
   return { kind: ELSEWHERE_KIND, name };
