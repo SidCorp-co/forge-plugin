@@ -429,22 +429,22 @@ export const refuseUnreadableDate = (verb, flag, given) => {
 export const statusKind = (name) =>
   DECLARES.forge_issues.status.find((one) => one.name === name) ?? null;
 
-/* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
-   next time a verb learns to write. `uploadAll` holds the other: bytes never pass here. */
-/* `stored` is the record the payload was built from, by top-level field, and `ref` the issue it is: a
-   string that record already holds is re-sent rather than supplied, so it goes and is said once. */
 const saidStored = new Set();
 
+/* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
+   next time a verb learns to write. `uploadAll` holds the other: bytes never pass here.
+   `stored` is the record the payload was built from, matched by leaf path, and `ref` the issue it is:
+   a string that record already holds is re-sent rather than supplied, so it goes and is said once. */
 export const refuseCredential = async (value, what, { stored = null, ref = null, id = null } = {}) => {
   if (!value) return;
   const held = await import("./project-config.mjs");
   const deploy = await held.stagingDeploy();
   /* A reading that did not answer stops the write: there is no delete for what the tracker has taken, and a held write costs a retry — docs/cli/one-transport.md (ISS-487). */
   if (deploy?.refused) fail(held.unreadRefusal(deploy.refused, what));
-  const found = held.credentialLeak(value, deploy, stored);
-  if (found) fail(held.leakRefusal(found, what));
+  const { leak, copies } = held.credentialSplit(value, deploy, stored);
+  if (leak) fail(held.leakRefusal(leak, what));
   if (!stored) return;
-  for (const hit of held.storedCopies(value, deploy, stored)) {
+  for (const hit of copies) {
     /* Keyed by the issue and not by how the caller named it, a key and a uuid being one issue. */
     const key = JSON.stringify([id ?? ref, hit.field, hit.credential]);
     if (!saidStored.has(key)) console.error(held.storedCopyLine(hit, ref ?? "this issue"));

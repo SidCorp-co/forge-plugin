@@ -404,9 +404,6 @@ const nearOf = (text, guarded) => {
   return `${from ? "…" : ""}${masked.slice(from, to)}${to < masked.length ? "…" : ""}`;
 };
 
-/** Which field of a payload carries a value this project holds as a test credential, which
- *  credential, and the masked text around it. An empty `field` is a payload that is one string: a
- *  file's bytes have no field. A display name is withheld from the report and guarded here never. */
 const guardedOf = (deploy) => deploy?.withheld.filter((one) => one.guarded) ?? [];
 
 /** Every string of a payload the guard would refuse, once for each credential it carries, with where
@@ -435,27 +432,33 @@ const storedIn = (stored) => {
 const splitHits = (data, deploy, stored) => {
   const isStored = storedIn(stored);
   const values = new Map(leaves(data).map((one) => [one.at.join("."), one.value]));
-  const hits = credentialHits(data, deploy);
-  return {
-    supplied: hits.filter((hit) => !isStored(hit, values.get(hit.field))),
-    stored: hits.filter((hit) => isStored(hit, values.get(hit.field))),
-  };
+  const split = { supplied: [], stored: [] };
+  for (const hit of credentialHits(data, deploy)) split[isStored(hit, values.get(hit.field)) ? "stored" : "supplied"].push(hit);
+  return split;
 };
 
-export const credentialLeak = (data, deploy, stored = null) => {
-  const [found] = splitHits(data, deploy, stored).supplied;
-  return found ? { field: found.field, credential: found.credential, near: found.near } : null;
-};
+const leakOf = (found) => (found ? { field: found.field, credential: found.credential, near: found.near } : null);
+
+/** Which field of a payload carries a value this project holds as a test credential, which
+ *  credential, and the masked text around it. An empty `field` is a payload that is one string: a
+ *  file's bytes have no field. A display name is withheld from the report and guarded here never. */
+export const credentialLeak = (data, deploy, stored = null) => leakOf(splitHits(data, deploy, stored).supplied[0]);
 
 /** The hits a write re-sends from the stored record rather than from its caller's input. */
 export const storedCopies = (data, deploy, stored) => splitHits(data, deploy, stored).stored;
+
+/** Both of the above off one reading of the payload, for the write that asks both of one value. */
+export const credentialSplit = (data, deploy, stored = null) => {
+  const split = splitHits(data, deploy, stored);
+  return { leak: leakOf(split.supplied[0]), copies: split.stored };
+};
 
 /* One value, and never a list of fields: a short credential is masked where the string is it, a
    long one wherever it sits written exactly, which is the matching rule above read as a mask. The
    bare form a refusal's quote also masks is no part of it: the guard refuses no string for holding
    that alone, so a redaction masking it would rewrite text nothing refused. */
 const maskedLeaf = (text, guarded) => {
-  if (guarded.some((one) => one.value.length < SECRET && bare(one.value) && bare(one.value) === bare(text))) {
+  if (guarded.some((one) => one.value.length < SECRET && holds(text, one))) {
     return MASK;
   }
   const spans = guarded
