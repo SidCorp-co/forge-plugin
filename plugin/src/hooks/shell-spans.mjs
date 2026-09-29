@@ -14,6 +14,8 @@ const walked = (text, pipes, quoted = false) => {
   /* Built only for `quoting`: no reader of the spans alone reads it, and `spans` runs several times per Bash event. */
   const under = quoted ? new Array(text.length).fill(" ") : null;
   const mark = quoted ? (at, as) => { under[at] = as; } : () => {};
+  /* The backslashes a shell takes out of the word, which is one standing outside every quote with a character behind it: under a double quote one stays in the word before most characters, and which is ISS-1533's. */
+  const gone = new Set();
   let start = 0;
   let quote = "";
   let said = -1;
@@ -38,6 +40,7 @@ const walked = (text, pipes, quoted = false) => {
       continue;
     }
     if (one === "\\" && quote !== "'") {
+      if (quoted && !quote && at + 1 < text.length) gone.add(at);
       mark(at, "\\");
       if (at + 1 < text.length) mark(at + 1, "\\");
       at += 1;
@@ -82,22 +85,22 @@ const walked = (text, pipes, quoted = false) => {
     }
   }
   cut(text.length);
-  return { out, under };
+  return { out, under, gone };
 };
 
 /** Where each command begins and ends, with the subshells its span opens and closes. A quoted body is never cut, nor a pipeline split: both hand the next command its arguments. An unclosed quote joins, a backslash escapes outside single quotes, and a comment is outside every span — its `|` is no pipeline. */
 export const spans = (text, { pipes = false } = {}) => walked(text, pipes).out;
 
-/** Every character a shell reads, in order: `at` its offset, `one` the character, `under` the quoting it stands inside — a space bare, `'` or `"` that quote and its own delimiters, `#` a comment, `\` a character a backslash made literal. A line continuation is gone, both characters of it, because a shell removes the pair and joins what it separated; nothing else is, so an escaped character goes on separating what it separates and two neighbours here can be two apart in the text.
+/** Every character a shell reads, in order: `at` its offset, `one` the character, `under` the quoting it stands inside — a space bare, `'` or `"` that quote and its own delimiters, `#` a comment, `\` a character a backslash made literal, the backslash included, and `removed` the backslash a shell takes out of the word, which is one standing outside every quote. A line continuation is gone, both characters of it, because a shell removes the pair and joins what it separated; nothing else is, so the character a removed backslash escaped is still placed where the text has it and two neighbours here can be two apart in the text.
  *  What a quoting means for a character is the caller's: a shell runs a `$(` under a double quote and reads a `<(` there as text. And one quoting this cannot place, which the caller has to answer for: inside `$'…'` a backslash escapes, so the apostrophe that looks like the closing one may not be. */
 export const quoting = (text) => {
-  const { under } = walked(text, false, true);
+  const { under, gone } = walked(text, false, true);
   const continued = (at) =>
     under[at] === "\\"
     && (text[at] === "\n" || (text[at + 1] === "\n" && under[at + 1] === "\\"));
   /* Split rather than spread: one entry per code unit, so `at` indexes this walk and a caller's own match, where a code point outside the BMP would put every offset after it one out. */
   return text.split("")
-    .map((one, at) => ({ at, one, under: under[at] }))
+    .map((one, at) => ({ at, one, under: under[at], removed: gone.has(at) }))
     .filter(({ at }) => !continued(at));
 };
 
@@ -245,7 +248,7 @@ export const waitsIn = (text) => {
   return out;
 };
 
-/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
+/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash — one the shell keeps, since one it removes makes the character behind it a character of the word, which is `worded`'s to read. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
 const OPERATOR = /[;&|()<>$\\]/u;
 /* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one. The space because a quoted span carrying one is a sentence or a payload far more often than a filename, which is the narrowing `spoken` makes in the harness and the split that hands `touch 'a.md b.md'` its two candidates; the quotes because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
 const ALWAYS = /[\s'"`]/u;
@@ -302,25 +305,31 @@ const worded = (text, alike) => {
   const whole = [];
   let word = null;
   for (let n = 0; n < marks.length; n += 1) {
-    const { at, one } = marks[n];
-    if (cuts(marks[n])) {
+    const { at, one, removed } = marks[n];
+    const escaped = removed && marks[n + 1]?.at === at + 1;
+    if (!escaped && cuts(marks[n])) {
       word = null;
       continue;
     }
-    if (!word) whole.push((word = { text: "", at: [], alone: alone[n] }));
-    word.text += one;
+    if (!word) whole.push((word = { text: "", at: [], literal: [], alone: alone[n] }));
+    /* A removed backslash and the character behind it are one character of the word, which is the second of them: the shell has made it literal, so nothing it is ends a word, and it is placed where its spelling begins (ISS-1592). */
+    if (escaped) n += 1;
+    word.text += escaped ? marks[n].one : one;
     word.at.push(at);
+    word.literal.push(escaped);
   }
+  /* A bracket an escape made literal is the name's and never code's, so it is no place the second reading cuts. */
+  const bare = (one, at) => !one.literal[at] && BRACKET.test(one.text[at]);
   const out = [];
   for (const one of whole) {
-    if (!BRACKET.test(one.text)) {
+    if (!one.text.split("").some((_, at) => bare(one, at))) {
       out.push(one);
       continue;
     }
     if (one.alone) out.push({ ...one, joined: true });
     let part = null;
     for (let at = 0; at < one.text.length; at += 1) {
-      if (BRACKET.test(one.text[at])) {
+      if (bare(one, at)) {
         part = null;
         continue;
       }
@@ -390,9 +399,9 @@ export const WRITES = new RegExp(
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
 );
 
-/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer above, spelt the same here (ISS-1555). */
+/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces, as one holding a backslash holds the character behind it: the newline a continuation joins the next line on with (ISS-2686), or a space the escape made part of the name (ISS-1592). The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer above, spelt the same here (ISS-1555). */
 export const REDIRECT = new RegExp(
-  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^ \t\n;&|<>])+)`,
+  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|\\[\s\S]|[^ \t\n;&|<>])+)`,
   "gu",
 );
 

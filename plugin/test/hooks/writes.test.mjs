@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { FRESH_MS, WRITES, callAt, namesOf, promptIndex, shellWrites, touched, turnRecords, writtenPaths } from "../../hooks/_hook.mjs";
 import { glued } from "../../src/hooks/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
+import { redirectsIn } from "../../src/hooks/shell-spans.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
 
@@ -182,6 +183,20 @@ test("a quoted target is read as a shell reads it, so a parenthesis in it opens 
     "and a quoted list is still two candidates, which is what a space ending a word is for");
   assert.deepEqual(writtenPaths("printf x > '/tmp/memory/(report).md'.txt", room, "md").map((one) => one.token), [],
     "and the redirect reader is handed the whole operand, since a quote closing is not where a target ends");
+});
+
+/* A redirect's operand stopped at the backslash of a continuation, and the next line was read as a
+   command whose first word is a path, so a guarded target spelled across two lines was no write at
+   all — while the same continuation after a verb was joined (ISS-2686). */
+test("a redirect continued onto the next line is the one word the shell joins", () => {
+  const continued = "echo x > /home/dev/p\\\n/memory/trap.md";
+  const tokens = (text) => writtenPaths(text, room).map((one) => one.token);
+  assert.deepEqual(tokens(continued), ["/home/dev/p/memory/trap.md"]);
+  assert.deepEqual(tokens(continued.replace(">", ">>")), ["/home/dev/p/memory/trap.md"], "appended as well");
+  assert.deepEqual(redirectsIn(continued), [{ at: 6, target: "/home/dev/p\\\n/memory/trap.md" }],
+    "the redirect's target spans both lines");
+  assert.ok(!tokens("echo x > '/home/dev/p\\\n/memory/trap.md'").includes("/home/dev/p/memory/trap.md"),
+    "and under a single quote a backslash-newline is two characters of the word, never a continuation");
 });
 
 test("a name is read from the word the command spelled it in, and never from the middle of one", () => {
