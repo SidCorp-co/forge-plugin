@@ -33,6 +33,18 @@ test("a screen change on a project with no test credential is told at the rehear
     "naming the rung that refuses the verdict, which is the judging one");
 });
 
+/* A skip taken here now holds awaiting_release and closed (ISS-2430), so a line offering it as the
+   way past owes what it leads to: a fresh verdict once a credential arrives, or, where none is
+   ever coming, correcting the criterion away instead of leaving the skip standing forever. */
+test("the line says a skip taken here holds past testing, and names both ways clear of that", () => {
+  const said = ahead({ status: "in_progress", plan: SCREEN }, NO_LOGIN);
+  assert.match(said, /holds awaiting_release/u, said);
+  assert.match(said, /and `closed` until it is judged again/u, said);
+  assert.match(said, /--corrects criteria:<n>/u, "the correction route is named beside the fresh verdict");
+  assert.match(said, /forge record criteria ISS-3 <criteria\.md> --replace/u,
+    "and the write that actually moves the criteria field carries --replace, so following it drops no number unanswered");
+});
+
 test("the line stays silent on every reading that is not a screen change without a login", () => {
   assert.equal(ahead({ status: "in_progress", plan: QUIET }, NO_LOGIN), null,
     "a user-facing outcome is not a screen change, which is the split the entry check already makes");

@@ -9,14 +9,16 @@ import {
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
-import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
 import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { findingsOwed } from "./earned/findings.mjs";
 import { rungReport } from "../ladder-report.mjs";
-import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
+import { attachmentNames, isCommit, sameCommit } from "../tracker/evidence.mjs";
 import { blockersOwed, holdsBack, holdsBackFrom, ordersSaid } from "./earned/blockers.mjs";
+import { shapeGaps } from "./earned/shape-gaps.mjs";
+
+export { shapeGaps };
 
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION } from "./lease.mjs";
@@ -26,7 +28,6 @@ import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/fields.mjs";
 import { assemble, parse } from "./record/page.mjs";
-import { SHAPES_AT, contractGap, shapesAt } from "./machine/contracts.mjs";
 import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
@@ -60,46 +61,6 @@ export const atLeast = (status, floor) =>
  *  status a build hands over at judged the change or landed it, and nothing on the record proposes
  *  it as the builder (ISS-2045). A status the sequence does not hold reads as a build. */
 export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELINE_AT) + 1]);
-
-/* `parse` resolves the keys and applies none of the shape's rules, so a comment carrying the tag and
-   little else — by hand, or through a client no gate sits before — is measured against the write's
-   own rules here: every field, the stamp the write reads off the issue, the evidence, the contract.
-   A commit that is not one compares equal to a short sha by prefix, which is why the form counts. */
-export const shapeGaps = (kind, record, names = [], table = SHAPES_AT) => {
-  const shapes = shapesAt(record.contract, table);
-  if (!shapes) return [contractGap(record.contract, table)];
-  const shape = shapes[kind];
-  if (!shape) return [`a ${kind} record, which contract ${record.contract} has no shape for`];
-  const got = Object.fromEntries(shape.fields.map((field) =>
-    [field.flag, field.many ? record.fields[field.flag] ?? [] : record.fields[field.flag]]));
-  const gaps = shape.fields
-    .filter((field) => {
-      const held = got[field.flag];
-      if (field.many) return held.length < (field.least ?? 1);
-      if (held === undefined) return !field.optional && !field.newer;
-      return Boolean(field.oneOf) && !field.oneOf.includes(held);
-    })
-    .map((field) => `--${field.flag}`);
-  for (const field of shape.fields) {
-    const held = got[field.flag];
-    if (field.many) {
-      const said = eachProblem(field, held);
-      if (said) gaps.push(`--${field.flag}, which ${said}`);
-      continue;
-    }
-    if (held === undefined) continue;
-    if (field.commit && !isCommit(held)) gaps.push(`--${field.flag} \`${held}\`, which is no commit`);
-    if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);
-  }
-  if (shape.stamp && record.fields[shape.stamp.flag] === undefined) gaps.push(`its ${shape.stamp.label} stamp`);
-  for (const field of shape.fields.filter((one) => one.evidence)) {
-    for (const ref of got[field.flag]) {
-      if (!evidenceHeld(ref, names)) gaps.push(`--${field.flag} \`${ref}\`, which is no attachment here, no URL and no commit`);
-    }
-  }
-  const said = shape.check?.(got);
-  return said ? [...gaps, said] : gaps;
-};
 
 export const criteriaOf = (issue) => {
   try {
@@ -250,25 +211,67 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
   );
 };
 
+/* A criterion the judgement proved impossible is corrected in the open rather than left to wait on
+   a verdict that can never come — `forge guide contract testing`'s own sentence, and the route
+   ISS-2362 names. Exported and read by `route.mjs`'s own advisory too, so the one line spelling the
+   two writes cannot drift between the two callers (ISS-2430 review, F1). The correction record alone
+   moves nothing on the field itself — ISS-1741 is open on exactly that gap — so the second write is
+   named beside it rather than assumed, and `--replace` with it since the route this need is for is
+   dropping a number the write otherwise refuses to lose silently. */
+export const correctedForm = (ref, number) =>
+  `forge record correction ${ref} --corrects criteria:${number} --moved "<the criterion as corrected>" `
+  + `--why "<the finding that showed it, or why no route ever reaches it>", then forge record criteria `
+  + `${ref} <criteria.md> --replace`;
+
+/* Whether a number the criteria field no longer holds was corrected away on the record, rather than
+   an edit nobody logged: a whole correction naming `--corrects criteria:<number>` is what a reader
+   can point to (ISS-2430 review, F2/F3). An edit with no such record still holds — the field can
+   change under an issue for reasons this file never reads — and a number a renumbering hands to a
+   different criterion is read as the same key it always was: every verdict here is keyed by number
+   alone, which is this file's existing property throughout and not a new one this predicate adds. */
+const correctedAway = (view, number) => (view.repeated?.correction ?? []).some((one) =>
+  correctedKind(one.record.fields.corrects) === "criteria"
+  && Number(String(one.record.fields.corrects).split(":")[1]) === number
+  && !shapeGaps("correction", one.record, view.names).length);
+
 /* A failed verdict holds every rung from the judging one to the close, whenever it was written: the
    builder's records turn writes its verdicts after the landing has entered `testing`, and a fail read
    by that rung alone held nothing once it was passed (ISS-2511). One reading for the three rungs, so
-   none of them can disagree with another about which criterion failed. */
-const failedOwed = (view, ref) => numbered(view.verdicts)
-  .filter(([, { record }]) => record.fields.verdict === "fail" && !shapeGaps("verdict", record, view.names).length)
-  .map(([number]) => need(`criterion ${number} failed its verdict`, askOne(ref, number, markedCommit(view.comments) ?? "<sha>")));
+   none of them can disagree with another about which criterion failed. Current criteria, or a number
+   a correction names as dropped: a correction that removes the criterion this fail was judged
+   against — the criterion itself proved wrong rather than the code, ISS-2362 — leaves no number here
+   for a fresh verdict to answer, and holding a vanished number forever is no route anybody could take
+   (ISS-2430). */
+const failedOwed = (view, ref) => {
+  const current = new Set(view.criteria.map((one) => one.number));
+  return numbered(view.verdicts)
+    .filter(([number, { record }]) => record.fields.verdict === "fail"
+      && !shapeGaps("verdict", record, view.names).length
+      && (current.has(number) || !correctedAway(view, number)))
+    .map(([number]) => need(
+      `criterion ${number} failed its verdict`,
+      `${askOne(ref, number, markedCommit(view.comments) ?? "<sha>")}\n  or, where the criterion itself was wrong: ${correctedForm(ref, number)}`,
+    ));
+};
 
 /* The same shape a fail already holds (ISS-2511), read for a skip instead: core's own release
    sweep counts them alike (`unearnedCriteriaReports`, ISS-2430). A skip earns the judging rung it
    was written at — VERDICTS, `somebodyLooked`, ISS-1875 — but not the rungs after, until somebody
-   looks again; ISS-1192 reached `closed` on one nothing here had reread. The `--why` is what a
-   reader is owed instead of the look nobody took. */
-const skippedOwed = (view, ref) => numbered(view.verdicts)
-  .filter(([, { record }]) => record.fields.verdict === "skipped" && !shapeGaps("verdict", record, view.names).length)
-  .map(([number, { record }]) => need(
-    `criterion ${number} was skipped ("${record.fields.why}"), and nothing on the record says it has been judged since`,
-    askOne(ref, number, markedCommit(view.comments) ?? "<sha>"),
-  ));
+   looks again; ISS-1192 reached `closed` on one nothing here had reread. A fresh verdict is one
+   route; the other is a recorded correction naming this criterion gone, `correctedAway`'s own
+   question. The `--why` already on the skip is what a reader has of the look nobody took; the need
+   repeats neither route as the only one. */
+const skippedOwed = (view, ref) => {
+  const current = new Set(view.criteria.map((one) => one.number));
+  return numbered(view.verdicts)
+    .filter(([number, { record }]) => record.fields.verdict === "skipped"
+      && !shapeGaps("verdict", record, view.names).length
+      && (current.has(number) || !correctedAway(view, number)))
+    .map(([number, { record }]) => need(
+      `criterion ${number} was skipped ("${record.fields.why}"), and nothing on the record says it has been judged since`,
+      `${askOne(ref, number, markedCommit(view.comments) ?? "<sha>")}\n  or, where no route ever reaches it: ${correctedForm(ref, number)}`,
+    ));
+};
 
 /* Every shortfall core's own release sweep counts unearned that a verdict already on the page can
    still carry past the judging rung — a fail, a skip, or one a reopen's triage already moved past
@@ -276,7 +279,8 @@ const skippedOwed = (view, ref) => numbered(view.verdicts)
    set (ISS-2430). A criterion with no verdict at all is deliberately left out: reading it again here
    crosses the boundary `judgedOwed` and `deployedOwed` keep apart
    (`test/flow/earned/the-rung.test.mjs`, ISS-1065), being a verdict missing rather than one already
-   written and since found wanting. */
+   written and since found wanting — and a criterion a correction removed is not that either, since
+   `failedOwed` and `skippedOwed` above already stop naming a number once it is gone. */
 const pastJudgingOwed = (view, ref) => [...failedOwed(view, ref), ...skippedOwed(view, ref), ...judgedSince(view, ref)];
 
 /* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one

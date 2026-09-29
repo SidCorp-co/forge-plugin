@@ -29,6 +29,9 @@ const verdict = (number, value, extra = {}) => comment(render("verdict", {
 const pass = (number) => verdict(number, "pass");
 const skip = (number, why = "no route in the fixture suite reaches this criterion") => verdict(number, "skipped", { why });
 const ruling = (outcome) => comment(render("triage", { outcome, "would-have-caught": "a criterion naming the order" }, "0"));
+const corrected = (number, why = "no route ever reaches it") => comment(render("correction", {
+  moved: "the criterion as corrected", why, corrects: `criteria:${number}`,
+}));
 
 const ISSUE = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-29T09:00:00.000Z", attachments: [] };
 const owed = (status, comments, issue = {}) =>
@@ -90,6 +93,36 @@ test("a verdict a reopen's triage already moved past holds awaiting_release and 
   const rejudged = [...page, pass(2)];
   for (const status of ["awaiting_release", "closed"]) {
     assert.deepEqual(naming(status, rejudged, 2), [], `${status}: a verdict written since the triage earns it again`);
+  }
+});
+
+test("the need names both routes clear of a skip: a fresh verdict, or correcting the criterion away", () => {
+  const page = [mark(), pass(1), skip(2)];
+  for (const status of ["awaiting_release", "closed"]) {
+    const [item] = naming(status, page, 2);
+    assert.match(item?.command ?? "",
+      /or, where no route ever reaches it: forge record correction ISS-7 --corrects criteria:2/u,
+      `${status}: the correction route is named beside the fresh verdict`);
+    assert.match(item?.command ?? "", /then forge record criteria ISS-7 <criteria\.md> --replace/u,
+      `${status}: and the write that actually moves the criteria field, carrying --replace`);
+  }
+});
+
+/* The route named above, taken: a criterion no route can ever reach is corrected away rather than
+   left waiting on a verdict that will never come (ISS-2362, ISS-2430). Correcting away means a
+   correction record naming the number, not only an edit of the field nobody logged (ISS-2430 review,
+   F2): the field alone still holds, exactly as an untouched page does. */
+test("correcting the criterion away clears the hold, and an edit with no correction record does not", () => {
+  const page = [mark(), pass(1), skip(2)];
+  const droppedField = { acceptanceCriteria: "1. The first outcome." };
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.ok(naming(status, page, 2, droppedField).length,
+      `${status}: the criteria field alone dropping the number is not a correction, so the old skip still holds`);
+  }
+  const withCorrection = [...page, corrected(2)];
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.deepEqual(naming(status, withCorrection, 2, droppedField), [],
+      `${status}: a recorded correction naming criterion 2 is what clears the old skip on that number`);
   }
 });
 

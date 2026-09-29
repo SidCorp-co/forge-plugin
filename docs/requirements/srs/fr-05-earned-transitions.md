@@ -294,6 +294,22 @@ superseded history and the check simply stops being met.
   a reopen has already moved past does not earn the rungs past the judging one either; a criterion
   with no verdict at all is not read again here, that being `judgedOwed` and `deployedOwed`'s own
   boundary (ISS-1065).
+- **AC-05-6-11** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "correcting the criterion away clears the hold, and an edit with no correction record does not", plugin/test/flow/verdicts/fail-holds.test.mjs "the need names both routes clear of a fail, and a recorded correction is what clears it"
+  IF a whole correction record names `--corrects criteria:<n>` for a number the criteria field no
+  longer holds, and a failed or a skipped verdict answered that number, THEN the CLI SHALL stop
+  refusing `awaiting_release` and `closed` on it, and `testing` too where the verdict was a fail,
+  because a criterion no route can ever reach is cleared by correcting it in the open rather than by
+  a verdict that will never come (ISS-2362, ISS-2430).
+- **AC-05-6-12** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "correcting the criterion away clears the hold, and an edit with no correction record does not", plugin/test/flow/verdicts/fail-holds.test.mjs "the need names both routes clear of a fail, and a recorded correction is what clears it"
+  IF the criteria field no longer holds a number a failed or a skipped verdict answered, and no
+  correction record names `--corrects criteria:<n>` for it, THEN the CLI SHALL still refuse
+  `awaiting_release` and `closed` on that number exactly as an unanswered one already refuses
+  `testing`, because the field can change for reasons this reading never sees and only a record a
+  reader can point to answers for why the number is gone.
+- **AC-05-6-13** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "the need names both routes clear of a skip: a fresh verdict, or correcting the criterion away", plugin/test/flow/route/credential-ahead.test.mjs "the line says a skip taken here holds past testing, and names both ways clear of that"
+  WHEN a fail or a skip holds `awaiting_release` or `closed` THEN the need it raises, and the
+  rehearsal that offers a skip as the way past a missing test credential, SHALL each name both routes
+  that clear it: a fresh verdict, and correcting the criterion away where no route ever reaches it.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 

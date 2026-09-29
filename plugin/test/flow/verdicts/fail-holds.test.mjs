@@ -29,6 +29,9 @@ const verdict = (number, value, extra = {}) => comment(render("verdict", {
 const pass = (number) => verdict(number, "pass");
 const fail = (number) => verdict(number, "fail", { why: "35 test files against a ceiling of 30" });
 const short = (number) => verdict(number, "short", { why: "one column rounds", filed: "ISS-9" });
+const corrected = (number, why = "the criterion itself was wrong") => comment(render("correction", {
+  moved: "the criterion as corrected", why, corrects: `criteria:${number}`,
+}));
 
 const ISSUE = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-25T09:00:00.000Z", attachments: [] };
 const owed = (status, comments, issue = {}) =>
@@ -71,6 +74,31 @@ test("a whole short verdict carrying its row holds neither awaiting_release nor 
 test("a fail superseded by a later pass on the same criterion holds nothing past the judging", () => {
   assert.deepEqual(naming("awaiting_release", [mark(), pass(1), fail(2), pass(2)], 2), [],
     "the latest verdict is the one standing");
+});
+
+/* A criterion the judgement proved wrong, not the code, is corrected in the open rather than left
+   waiting on a verdict the code cannot make (ISS-2362). The need names that route beside the fresh
+   verdict, and taking it — the number gone from the current criteria — clears the hold (ISS-2430). */
+test("the need names both routes clear of a fail, and a recorded correction is what clears it", () => {
+  const page = [mark(), pass(1), fail(2)];
+  for (const status of ["awaiting_release", "closed"]) {
+    const [item] = naming(status, page, 2);
+    assert.match(item?.command ?? "",
+      /or, where the criterion itself was wrong: forge record correction ISS-7 --corrects criteria:2/u,
+      `${status}: the correction route is named beside the fresh verdict`);
+    assert.match(item?.command ?? "", /forge record criteria ISS-7 <criteria\.md> --replace/u,
+      `${status}: carrying --replace, so the write it names does not itself refuse`);
+  }
+  const droppedField = { acceptanceCriteria: "1. The first outcome." };
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.ok(naming(status, page, 2, droppedField).length,
+      `${status}: the criteria field alone dropping the number is not a correction, so the old fail still holds`);
+  }
+  const withCorrection = [...page, corrected(2)];
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.deepEqual(naming(status, withCorrection, 2, droppedField), [],
+      `${status}: a recorded correction naming criterion 2 is what clears the old fail on that number`);
+  }
 });
 
 test("a failed carrier of a folded finding is named by exactly one item past the judging", () => {
