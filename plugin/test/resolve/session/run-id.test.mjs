@@ -173,3 +173,31 @@ test("a writer inside a span the shell would run is left unread, not credited to
     assert.equal(runHeldWhere(event(command, wt)).id, null, command);
   }
 });
+
+/* ISS-1717. The tree reading refused any text carrying `<<`, and the write a run makes most — a comment body by here-document, then the verb — fell through to the wave's id. */
+test("a here-document written behind the move neither hides the tree nor moves it", () => {
+  const at = root();
+  idIn(at, "iss-467-abcd1234");
+  const wt = join(at, "wt-one");
+  const command = `cd ${pathed(wt)} && cat > /tmp/b.md <<'X'\ncd /elsewhere && forge comment ISS-1\nX\n./plugin/bin/forge comment ISS-467 /tmp/b.md`;
+  assert.deepEqual(runHeldWhere(event(command, join(at, "checkout"))), { id: "iss-467-abcd1234", at: wt });
+});
+
+test("the key a hook credits under is the id the command grants past the here-document it writes", async () => {
+  const at = root();
+  process.env.XDG_CONFIG_HOME = join(at, "a-home");
+  const { sessionKey } = await import("../../../src/shown/ledger.mjs");
+  const was = { asked: process.env.FORGE_SESSION_ID, wave: process.env.CLAUDE_CODE_SESSION_ID };
+  try {
+    process.env.CLAUDE_CODE_SESSION_ID = "the-whole-wave";
+    delete process.env.FORGE_SESSION_ID;
+    const command = "cat > /tmp/b.md <<'X'\nsent under FORGE_SESSION_ID=other by the forge comment verb\nX\n"
+      + "FORGE_SESSION_ID=iss-1717-abcd1234 ./plugin/bin/forge comment ISS-1717 /tmp/b.md";
+    assert.equal(sessionKey(event(command, join(at, "checkout"))), "iss-1717-abcd1234");
+  } finally {
+    if (was.asked === undefined) delete process.env.FORGE_SESSION_ID;
+    else process.env.FORGE_SESSION_ID = was.asked;
+    if (was.wave === undefined) delete process.env.CLAUDE_CODE_SESSION_ID;
+    else process.env.CLAUDE_CODE_SESSION_ID = was.wave;
+  }
+});

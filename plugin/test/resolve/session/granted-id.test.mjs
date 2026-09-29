@@ -397,3 +397,48 @@ test("a later call of the writer nothing covers still drops the grant", () => {
     assert.equal(idGrantedBy(command), null, what);
   }
 });
+
+/* ISS-1717. A here-document's body is the stdin of the command it stands on, so what it says is no call, no id and no move of this shell's: the first send of a comment written by a heredoc
+   carried the comment's own quotes of the variable, and its reach ended at the operator, so the gate credited the wave while the re-send was read as the run. Where the invoking shell itself runs a
+   substitution in the body, or the body cannot be delimited, the operator is read as it was. */
+const BODY = (said, quote = "'") => `cat > /tmp/b.md <<${quote}X${quote}\n${said}\nX`;
+test("a here-document body is data to the grant, and its operator ends no export's reach", () => {
+  const reads = {
+    [`${BODY("sent as FORGE_SESSION_ID=other before")}\nFORGE_SESSION_ID=a-run ${WRITE}`]: "a second id the body quotes",
+    [`${BODY("then forge comment ISS-1041 went through")}\nFORGE_SESSION_ID=a-run ${WRITE}`]: "a forge word the body holds",
+    [`export FORGE_SESSION_ID=a-run && ${BODY("body")}\n${WRITE}`]: "an export behind which a body is written",
+    [`export FORGE_SESSION_ID=a-run && cat > /tmp/b.md <<'X' && ${WRITE}\nexport FORGE_SESSION_ID=<the run>\nX`]:
+      "the writer on the operator's own line, the body after it",
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\nit's \\$(not run), '$HOME' and \\\`not run\\\`\nEOF`]:
+      "an unquoted body whose substitutions a backslash escapes",
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<-EOF\n\tindented FORGE_SESSION_ID=other\n\tEOF`]: "a terminator its tabs are stripped from",
+    [`cat <<'A' <<"B"\nFORGE_SESSION_ID=one\nA\nforge advance ISS-2\nB\nFORGE_SESSION_ID=a-run ${WRITE}`]: "two bodies on one line",
+  };
+  for (const [command, what] of Object.entries(reads)) {
+    assert.equal(idGrantedBy(command), "a-run", what);
+  }
+});
+
+test("a here-document this shell expands, or cannot delimit, is read as it was", () => {
+  const refuses = {
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\necho '$(forge advance ISS-30)'\nEOF`]:
+      "a substitution a quote does not stop inside an unquoted body",
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\n\`forge advance ISS-30\`\nEOF`]: "the same, spelled with backticks",
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\n\${ forge advance ISS-30; }\nEOF`]: "and bash 5.3's brace form",
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\n$\\\n(forge advance ISS-30)\nEOF`]: "an opener a backslash-newline splits, which the shell joins",
+    [`export FORGE_SESSION_ID=a-run && cat > /tmp/b.md <<'X'\nnever closed\n${WRITE}`]: "a body with no terminator line",
+    [`export FORGE_SESSION_ID=a-run && cat > "\${T:-"x"}" <<'X'\nbody\nX\n${WRITE}`]:
+      "a quote an expansion nests before the operator, where the walk is a guess",
+    [`export FORGE_SESSION_ID=a-run && echo $((1 << 2))\n${WRITE}`]: "a shift inside arithmetic, which delimits nothing",
+  };
+  for (const [command, what] of Object.entries(refuses)) {
+    assert.equal(idGrantedBy(command), null, what);
+  }
+});
+
+test("a here-document body grants the turn nothing and moves no id", () => {
+  const body = BODY("export FORGE_SESSION_ID=other");
+  assert.equal(lastIdGranted(["export FORGE_SESSION_ID=a-run", `${body}\n${WRITE}`]), "a-run",
+    "the body's export is not the turn's last grant");
+  assert.equal(movesTheId(`${body}\n${WRITE}`), false, "nor does it move the id of the command it stands in");
+});

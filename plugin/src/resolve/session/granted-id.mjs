@@ -1,6 +1,7 @@
 /* The id a Bash command grants the process that will write, for a hook handed none of its own, read
    off the text's commands and not its first alone (ISS-672). The two forms: docs/cli/claim.md. */
 import { quoting, spans } from "../../hooks/shell-spans.mjs";
+import { withoutBodies } from "./here-doc.mjs";
 import { CALL_STARTS, WRITER_WORD } from "./writer-word.mjs";
 
 const BACKTICK = "\\x60";
@@ -139,18 +140,18 @@ const grantEnding = (text, read = readOf(text)) => [
 /** The other reader's question — which run a whole turn's writes went under — and why each call is read alone: docs/cli/the-granted-id.md. */
 export const lastIdGranted = (commands) => {
   let found = null;
-  for (const command of [commands ?? []].flat()) found = grantEnding(String(command ?? "")) ?? found;
+  for (const command of [commands ?? []].flat()) found = grantEnding(withoutBodies(command)) ?? found;
   return found;
 };
 
 /** Whether the text assigns the name or takes the environment back at all, granting or not: a command that does either is not run under the id its run holds elsewhere. */
 export const movesTheId = (command) => {
-  const read = readOf(textOf(command));
+  const read = readOf(withoutBodies(textOf(command)));
   return ASSIGNS_THE_ID.test(read.code) || TAKEN_BACK.test(asRun(read));
 };
 
 export const idGrantedBy = (command) => {
-  const read = readOf(textOf(command));
+  const read = readOf(withoutBodies(textOf(command)));
   const granted = grantedIn(commandsIn(read.code));
   if (!granted || TAKEN_BACK.test(asRun(read))) return null;
   const named = new Set([...read.code.matchAll(EVERY_VALUE)].map(valueIn));

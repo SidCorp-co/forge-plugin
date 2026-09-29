@@ -7,6 +7,7 @@ import { basename, isAbsolute, join } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { CALLS_THE_WRITER, runsACommand, textOf } from "./granted-id.mjs";
+import { withoutBodies } from "./here-doc.mjs";
 import { NOWHERE, directoryAt, spans } from "../../hooks/shell-spans.mjs";
 
 export const RUN_ID = "forge-run-id";
@@ -75,7 +76,7 @@ export const runNames = (id, key) => runsFor(id).includes(String(key ?? "").trim
  *  answering differently, or a text carrying an opener, name none. docs/cli/the-granted-id.md. */
 export const runHeldWhere = (ev = null) => {
   const here = ev?.cwd || process.cwd();
-  const text = textOf(ev?.tool_input?.command);
+  const text = withoutBodies(textOf(ev?.tool_input?.command));
   if (runsACommand(text)) return { id: null, at: here };
   const found = new Map();
   for (const { start, end } of spans(text, { pipes: true })) {

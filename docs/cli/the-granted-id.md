@@ -57,7 +57,8 @@ where the shell would run it there:
 | `` `…` `` | the same substitution, older spelling | single quotes, or a `\` on the backtick |
 | `${ …; }` and `${\| …; }` | bash 5.3's brace substitutions, which run in this shell but before the assignment applies | single quotes, or a `\` on the `$` inside double quotes |
 | `<(…)` and `>(…)` | a process substitution, likewise its own shell | either quote, since neither performs one |
-| `<<` and `<<<` | a body the shell expands, and one this reader does not model | either quote, for the same reason |
+| `<<` a body runs a substitution in, or undelimited | expanded first, or [not modelled](the-here-document.md) | a quoted delimiter |
+| `<<<` | a word the shell expands, and one this reader does not model | either quote |
 
 **What decides is the quoting, and one reader answers it.** `plugin/src/hooks/shell-spans.mjs` reads
 a shell text once and says what quoting each character stands under, so the question asked of an
@@ -116,9 +117,7 @@ CLI is handed `FORGE_SESSION_ID` in its own environment and goes on using it, wh
 what doctor reports, while the hook has only the text. Where that text will run in a tree naming its
 own run, the hook reads the same id from there and nothing is lost. Where it will not, the hook
 falls back to the dispatching session's id, the write lands under the run's own name and the *gate*
-credits the wave. The cost arrives one write later: the gate holds the next write to that issue and
-quotes the run its own record back. An identical re-send clears it —
-`forge hooks --how issue-read-first`.
+credits the wave, so whatever a gate showed the run is shown to it again under its own id.
 
 Read with this: [`claim`](claim.md) for the lease the name is the key to, and
 [`the-consult`](codex-the-consult.md) for the other place a run's identity is recorded.

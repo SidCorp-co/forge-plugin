@@ -433,6 +433,13 @@ test("the tree a subagent stood in is the one its commands moved to, whatever th
   assert.match(said?.reason ?? "", /is a worktree this turn left with tracked changes/u, said?.reason);
   assert.match(said.reason, new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"),
     "the worktree, not the checkout the event names");
+  /* ISS-1717: a body is the stdin of the command it stands on, and a `cd` it spells moves nothing. */
+  const bodied = handed(used("Bash", { command: `cd ${pathed(wt)}
+cat > /tmp/b.md <<'X'
+cd /no-such-tree
+X` }));
+  assert.match(stopped(room(), subagentStop({ agent_transcript_path: bodied, cwd: checkout }))?.reason ?? "",
+    new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"), "a cd inside a here-document body");
 });
 
 test("the lease a subagent is judged on is the id its own commands exported", () => {

@@ -363,6 +363,8 @@ test("the id a command grants the writer is a source, and every shape that does 
     `  cd /elsewhere && export FORGE_SESSION_ID="a-run" && forge advance ISS-29`,
     "FORGE_SESSION_ID=a-run forge advance ISS-29",
     "env FORGE_SESSION_ID=a-run ./plugin/bin/forge advance ISS-29",
+    /* ISS-1717: a body is the stdin of the command it stands on, so a value it names is not a second id. */
+    "export FORGE_SESSION_ID=a-run && forge comment ISS-29 <<EOF\nFORGE_SESSION_ID=b-run was the old id\nEOF",
   ]) assert.deepEqual(named(command), grants, command);
   for (const [command, why] of [
     ["export FORGE_SESSION_ID=a-run 2>&1 | tee run.log; forge advance ISS-29", "a pipeline stage keeps its own environment"],
@@ -375,7 +377,7 @@ test("the id a command grants the writer is a source, and every shape that does 
     ["(export FORGE_SESSION_ID=a-run) && forge advance ISS-29", "and a subshell's export dies with it"],
     [`FORGE_SESSION_ID=a-run echo "$(forge advance ISS-29)"`, "the substitution runs before the prefix reaches echo"],
     ["FORGE_SESSION_ID=a-run sudo forge advance ISS-29", "and the prefix names a launcher, not the writer"],
-    ["export FORGE_SESSION_ID=a-run && forge comment ISS-29 <<EOF\nFORGE_SESSION_ID=b-run was the old id\nEOF",
+    [`export FORGE_SESSION_ID=a-run && forge comment ISS-29 --why "FORGE_SESSION_ID=b-run was the old id"`,
       "a second value has no single answer, one key covering every target of the event"],
     [`FORGE_SESSION_ID="$CLAUDE_CODE_SESSION_ID" forge advance ISS-29`,
       "a value the shell expands is not the value the text spells"],
