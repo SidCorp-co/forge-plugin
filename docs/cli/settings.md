@@ -25,15 +25,6 @@ workspace's ending searches its scratch for. A home holding no project record re
 for one project and for a device-wide reader alike, and its own alone once it holds any, so the two
 never disagree or merge. A write to the machine's is refused: in the home it would shadow every key it decides.
 
-**A run's tree decides its home, for the CLI as for the hooks.** A run whose shell forgot the export
-its brief named wrote every consult and verdict into the developer's own log for half a run, twice,
-while the hooks read the run's home off the same tree (ISS-2824). So a call standing in a worktree a
-run was handed takes that run's home where the shell names none, borrowing the machine's config by
-reference as the brief does, and refuses a shell naming another home rather than overriding it: an
-override would hide the second place the run's records were going, and a refusal carries the export
-that ends it. `forge doctor` alone reports that conflict and keeps running, since it is the call a
-run reads first, and it writes nothing through it.
-
 Which checkout this process stands in, and which repository that checkout belongs to, are read off
 the disk rather than asked of git, and what that walk has to do differently from `git rev-parse`:
 [the checkout walk](the-checkout-walk.md).

@@ -17,7 +17,7 @@ const git = (cwd, ...argv) => spawnSync("git", ["-c", "user.name=t", "-c", "user
 
 /* A checkout, a worktree linked off it, and the run id and scratch record `start` would have written.
    Returns the tree, the home a hook reads there, and the file a run's brief borrows from. */
-const worktree = (id) => {
+const worktree = (id, { machineConfig = true } = {}) => {
   const at = tempRoom("config-home-guard-");
   const main = join(at, "main");
   mkdirSync(main);
@@ -31,7 +31,7 @@ const worktree = (id) => {
   const user = join(at, "user");
   mkdirSync(join(user, ".config", "forge"), { recursive: true });
   const machine = join(user, ".config", "forge", "config.json");
-  writeFileSync(machine, `${JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "fixture-token" })}\n`);
+  if (machineConfig) writeFileSync(machine, `${JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "fixture-token" })}\n`);
   return { tree, home: join(scratch, "home"), user, machine };
 };
 
@@ -49,6 +49,22 @@ test("a shell exporting no home reads and writes the tree's run home, borrowing 
   assert.ok(rowOf(done.stdout, "borrow")?.includes(`${machine}  ← `), done.stdout);
   assert.ok(rowOf(done.stdout, "token")?.includes(`← ${machine}`), "the credential is the borrow's");
   assert.ok(!existsSync(join(home, "forge", "config.json")), "and nothing was copied into the run's home");
+});
+
+test("a write from a shell exporting no home lands in the run's home and leaves the machine's config alone", () => {
+  const { tree, home, user, machine } = worktree("iss-2824-aaaa0007");
+  const before = readFileSync(machine, "utf8");
+  const done = run(tree, ["doctor", "--hide", "stats"], { HOME: user });
+  assert.equal(done.status, 0, done.stdout + done.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(join(home, "forge", "config.json"), "utf8")).withheld, { stats: "hidden" });
+  assert.equal(readFileSync(machine, "utf8"), before);
+});
+
+test("a machine holding no config of its own leaves the run home borrowing nothing, and says so", () => {
+  const { tree, home, user } = worktree("iss-2824-aaaa0008", { machineConfig: false });
+  const done = run(tree, ["doctor"], { HOME: user });
+  assert.ok(rowOf(done.stdout, "config home")?.includes(`${home}  ← `), done.stdout);
+  assert.match(rowOf(done.stdout, "borrow") ?? "", /^\[ note \] borrow\s+none, /u, done.stdout);
 });
 
 test("a shell whose XDG_CONFIG_HOME disagrees with the tree's own is refused before any verb runs", () => {
