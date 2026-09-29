@@ -8,7 +8,6 @@ import { trackerFor } from "../fixtures/own-project.mjs";
 import { NOTHING_WORKED } from "../../src/flow/lease.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
 const WRITER = "the-run-that-wrote-the-note";
 
 const day = (one) => `2026-09-0${one}T00:00:00.000Z`;
@@ -34,7 +33,7 @@ const state = { issues: BACKLOG, comments: {}, calls: [], answer: {} };
 const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const ran = (argv, stdin = null) => ranAsync(FORGE, argv, env, ROOT, stdin);
+const ran = (argv, stdin = null) => ranAsync(FORGE, argv, env, undefined, stdin);
 const cutTo = (rows, fits) => {
   const listed = pageOf(rows, fits);
   state.issues = rows;
@@ -69,7 +68,7 @@ test("a finder reaches the same key through forge comment, and is asked for no l
 test("the holder's verbs reach it too, the lookup being one, and the lease they wanted is taken", async () => {
   cutTo(BACKLOG, 2);
   const run = await ranAsync(FORGE, ["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"],
-    { ...env, FORGE_SESSION_ID: WRITER }, ROOT);
+    { ...env, FORGE_SESSION_ID: WRITER });
   assert.match(run.stderr, /ISS-1 carried no lease and this write took one/u,
     "the lease it wanted was taken on a key it had already resolved");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);

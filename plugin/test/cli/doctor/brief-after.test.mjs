@@ -6,10 +6,14 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeStore, fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeStore, fakeTracker, neutralCheckout, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+/* A source's digest is stamped from the checkout, so this stands in a copy of the repository's own
+   files rather than the empty room `ranAsync` defaults to — one naming no run, so an isolated
+   XDG_CONFIG_HOME never conflict-refuses against a dispatched worktree this file never asked about
+   (ISS-2824). */
+const ROOT = neutralCheckout();
 const { store, knowledge } = fakeStore();
 const ZERO = "0000000000000000";
 

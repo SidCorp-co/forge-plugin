@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { runsUnder } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 export const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 export const PROJECT = "/fixture/project";
@@ -38,6 +38,7 @@ export const rootOf = (room) => join(room, `claude-${process.getuid()}`, slugFor
 export const askStats = (room, argv, home = tempRoom("stats-eval-home-")) =>
   spawnSync(FORGE, ["stats", ...argv], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room, HOME: tempRoom("stats-eval-user-") },
   });
 

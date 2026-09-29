@@ -7,10 +7,10 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 const ISSUE = "33333333-3333-4333-8333-333333333333";
 const PASSWORD = "correct-horse-battery";
 const USERNAME = "qa-admin";

@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
-import { ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
+import { neutralRoom, ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
@@ -21,7 +21,7 @@ const { TWICE } = await import("../../../src/tracker/evidence.mjs");
 const { cutLine } = await import("../../../src/tracker/comments.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
+const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 /* The kinds and their rows are unchanged: a help word is the whole of what this reads. */
 test("a missing flag that is not a help word is refused as it was", () => {

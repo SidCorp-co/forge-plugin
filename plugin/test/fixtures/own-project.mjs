@@ -3,7 +3,7 @@
    the tracker fixture's home finds none unless one is written there.
 
    The keys themselves are `./own-keys.mjs`, which imports nothing and says why. */
-import { fakeTracker, projectRecord } from "../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord } from "../fixtures.mjs";
 
 export { OWN } from "./own-keys.mjs";
 import { OWN } from "./own-keys.mjs";
@@ -11,12 +11,16 @@ import { OWN } from "./own-keys.mjs";
 /** A tracker to answer the calls and the environment they are made in: one configuration home for
  *  both halves the child reads — the account's credentials the fixture wrote, and this checkout's
  *  record of its own project. `rooms` are the other checkouts a case stands a child in, each
- *  recorded under that same home as this project. */
+ *  recorded under that same home as this project.
+ *
+ *  `room` is the same checkout a cwd-less spawn already stands in by default (`neutralRoom()`),
+ *  carrying that same record — so a case that never names its own cwd still resolves a project. */
 export const trackerFor = async (state, rooms = []) => {
   const tracker = await fakeTracker(state);
   const home = tracker.env.XDG_CONFIG_HOME;
-  for (const at of [new URL("../../../", import.meta.url).pathname, ...rooms]) {
+  const room = neutralRoom();
+  for (const at of [new URL("../../../", import.meta.url).pathname, room, ...rooms]) {
     projectRecord(at, home, OWN);
   }
-  return { tracker, env: { ...tracker.env, HOME: home } };
+  return { tracker, env: { ...tracker.env, HOME: home }, room };
 };

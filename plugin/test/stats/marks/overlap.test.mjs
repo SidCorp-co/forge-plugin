@@ -11,7 +11,7 @@ import { WINDOW, evalRuns, flagsAsked, runsMark } from "../../../src/stats/eval/
 import { overlapOf } from "../../../src/stats/marks/overlap.mjs";
 import { CONSULTS, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { evalObject } from "../../../src/codex/codex-stats.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 import { FORGE, PROJECT, askStats, corpusOf, runsOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-overlap-home-");
@@ -129,7 +129,7 @@ test("the consult eval refuses a mark sharing most of its recent window, by plac
     process.env.XDG_CONFIG_HOME = was;
   }
   const asked = spawnSync(FORGE, ["codex", "eval", "--against", "100"], {
-    encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home },
+    encoding: "utf8", cwd: neutralRoom(), env: { ...process.env, XDG_CONFIG_HOME: home },
   });
   assert.equal(asked.status, 1);
   assert.equal(asked.stderr.trim(), "codex eval: mark 100 shares 70 of the recent 100 consult(s), so most of both sides "

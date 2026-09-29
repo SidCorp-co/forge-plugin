@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { projectRoom, tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, projectRoom, tempRoom } from "../../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so the caller's own project file is not the one read. */
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-angles-home-");
@@ -23,7 +23,7 @@ test("the debt angle is on by default, and a list without it turns it off", () =
 });
 
 test("the consult help names debt among the angles, and says all five are the default", () => {
-  const help = spawnSync(process.execPath, [CLI, "codex", "consult", "-h"], { encoding: "utf8" });
+  const help = spawnSync(process.execPath, [CLI, "codex", "consult", "-h"], { encoding: "utf8", cwd: neutralRoom() });
   assert.match(help.stdout, /--angles a,a +which angles review this consult: tech, ba, user, ux, debt; all five by default/u, help.stdout + help.stderr);
 });
 
@@ -44,7 +44,8 @@ test("show says whether the debt angle is on and where the list was read, and ho
 
 test("a list naming no angle is refused where a consult reads it, and show says so", () => {
   assert.match(shownIn({ slug: "own", codex: { angles: [] } }), /^angles {4}: none {2}← codex\.angles in \S+ — a list naming no angle, so a consult here is refused$/mu);
-  const run = spawnSync(process.execPath, [CLI, "codex", "consult", "a.mjs", "--angles", ","], { encoding: "utf8" });
+  const run = spawnSync(process.execPath, [CLI, "codex", "consult", "a.mjs", "--angles", ","],
+    { encoding: "utf8", cwd: neutralRoom() });
   assert.match(run.stderr, /codex: --angles names no angle\. Name some of tech, ba, user, ux, debt, or drop the key for the default, tech, ba, user, ux, debt\./u, run.stderr);
   assert.notEqual(run.status, 0);
 });

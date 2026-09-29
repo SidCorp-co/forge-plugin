@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 const home = tempHome("parts-prefix");
@@ -36,7 +36,7 @@ const BODY = [
 const state = { issues: APP, comments: {}, calls: [] };
 const tracker = await fakeTracker(state);
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
-projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME, OWN);
+projectRecord(neutralRoom(), tracker.env.XDG_CONFIG_HOME, OWN);
 test.after(() => tracker.close());
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

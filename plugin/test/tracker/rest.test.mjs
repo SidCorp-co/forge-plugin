@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../fixtures.mjs";
 import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
@@ -41,7 +41,7 @@ test("the identifying arguments are the ones that name a record, and no other", 
 });
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 
 /* A home of a case's own, carrying this checkout's project: the calls below are project-scoped and
    the record is this machine's, so a bare home refuses them for the slug before the transport is

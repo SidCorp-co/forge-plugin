@@ -58,7 +58,7 @@ const asRun = (id) => ({ ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", F
 const ran = async (argv, id = RUN) => {
   let run = null;
   for (const again of [1, 2]) {
-    run = await ranAsync(FORGE, argv, asRun(id), process.cwd());
+    run = await ranAsync(FORGE, argv, asRun(id));
     if (run.status === 0 || again === 2) return run;
   }
   return run;

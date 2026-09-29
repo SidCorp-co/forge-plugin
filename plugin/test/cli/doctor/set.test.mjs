@@ -5,12 +5,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync, statSync } from "node:fs";
 
-import { cleanRepo, escaped, fakeTracker, projectEntry, projectRecord, projectRoom, ranAsync,
-  tempHome } from "../../fixtures.mjs";
+import { cleanRepo, escaped, fakeTracker, neutralRoom, projectEntry, projectRecord, projectRoom,
+  ranAsync, tempHome } from "../../fixtures.mjs";
 import { MACHINE_KEYS } from "../../../src/tools/doctor-keys.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 
 const state = {
   answer: {

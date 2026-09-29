@@ -7,11 +7,11 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, neutralRoom, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 import { pathed } from "../../src/hooks/shell-spans.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 const PASSWORD = "correct-horse-battery";
 
 const rows = [

@@ -16,7 +16,7 @@ import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { unionSeconds } from "../../../src/stats/figures.mjs";
 import { scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { USAGE } from "../../../src/stats/stats.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 import {
   BASE, FORGE, PROJECT, ask, asked, at, corpus, indexIn, result, use,
 } from "../fixture-runs.mjs";
@@ -124,7 +124,7 @@ test("the whole corpus reports its reach, and a windowed reading reports none", 
   /* One config home across the calls, where `ask` takes a fresh one: this case is about a reading
      held between two of them. */
   const probe = (...argv) => spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv],
-    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room } });
+    { encoding: "utf8", cwd: neutralRoom(), env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room } });
 
   const silent = probe();
   assert.equal(silent.status, 0, silent.stderr);
@@ -182,6 +182,7 @@ test("nothing a caller writes is opened", () => {
 test("the subject is named, and a wrong one says which there is", () => {
   const asked = spawnSync(FORGE, ["stats", "-h"], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-") },
   });
   assert.equal(asked.status, 0);
@@ -191,6 +192,7 @@ test("the subject is named, and a wrong one says which there is", () => {
 
   const wrong = spawnSync(FORGE, ["stats", "consults"], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-") },
   });
   assert.equal(wrong.status, 1);

@@ -79,7 +79,7 @@ const cutFor = (prefix, keys) => {
 test.after(() => tracker.close());
 
 const claim = (argv = [], who = RUNNER, ref = "ISS-1091") =>
-  ranAsync(FORGE, ["claim", ref, ...argv], { ...ENV, FORGE_SESSION_ID: who });
+  ranAsync(FORGE, ["claim", ref, ...argv], { ...ENV, FORGE_SESSION_ID: who }, AWAY);
 const wrote = () => state.calls
   .filter((one) => one.name === "forge_issues" && one.args.action === "update")
   .map((one) => one.args.data?.sessionContext?.lease);

@@ -15,7 +15,7 @@ import {
   pricedParts, printSurface, repetitionOf, surfaceLines, surfaceReading,
 } from "../../src/stats/surface/surface.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 process.env.XDG_CONFIG_HOME = tempRoom("surface-home-");
@@ -279,7 +279,7 @@ test("the key and the origin are this machine's saved anthropic store, Anthropic
 });
 
 test("a flag the subject has not got is refused before anything is walked", () => {
-  const run = spawnSync(FORGE, ["stats", "surface", "--modle", "x"], { encoding: "utf8" });
+  const run = spawnSync(FORGE, ["stats", "surface", "--modle", "x"], { encoding: "utf8", cwd: neutralRoom() });
   assert.equal(run.status, 1);
   assert.match(run.stderr, /--modle/u);
 });

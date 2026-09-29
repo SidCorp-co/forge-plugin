@@ -37,6 +37,7 @@ import { flowRow } from "./copies/flow-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";
+import { configHomeConflict, configHomeRows, refusedOnConflict } from "../resolve/session/config-home.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
@@ -77,6 +78,13 @@ const checkSession = () => {
 const checkScratch = () => {
   const { owed, said } = scratchRow();
   line(owed ? NOTE : OK, "scratch", said);
+};
+
+/* What this call holds as its run: the id, the scratch and the home, settled by `cli.mjs` before anything read it. */
+const checkRun = () => {
+  checkSession();
+  checkScratch();
+  report(configHomeRows());
 };
 
 /* A gate a switch of its own holds down, read from the gates: printing one undo while another
@@ -144,7 +152,8 @@ const remember = (slug, findings) => {
   saveConfig({ capabilities });
 };
 
-const probe = async (scoped, slug) => {
+/* `conflicted` is a home other than this tree's run: the findings are printed and not recorded. */
+const probe = async (scoped, slug, conflicted) => {
   const findings = {};
   let gated = 0;
   const answers = await Promise.all(CAPABILITIES.map(([, tool, args]) => scoped(tool, args, true)));
@@ -158,7 +167,7 @@ const probe = async (scoped, slug) => {
       line(OK, label, `${tool} answers — ${why}`);
     }
   }
-  remember(slug, findings);
+  if (!conflicted) remember(slug, findings);
   const answered = Object.fromEntries(CAPABILITIES.map(([, tool], index) => [tool, answers[index]]));
   return { ...findings, gated, answered };
 };
@@ -287,7 +296,7 @@ const checkModules = async () => {
   report([await (await import("./services/doctor/modules/reading.mjs")).moduleSummaryRow()]);
 };
 
-const checkEndpoint = async (full, credentials) => {
+const checkEndpoint = async (full, credentials, conflicted) => {
   const { projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
   const { nameJoinRows } = await import("../tracker/declared/name-join.mjs");
   const { served } = await import("../tracker/routes.mjs");
@@ -324,7 +333,7 @@ const checkEndpoint = async (full, credentials) => {
      the subject's name is found the same way. */
   const names = nameJoinRows(() => wireBodies("forge_projects.get"),
     new Date().toISOString().slice(0, 10));
-  const findings = await probe(scoped, slug);
+  const findings = await probe(scoped, slug, conflicted);
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
   under("tracker");
   report(await names);
@@ -439,6 +448,7 @@ export const doctor = async (argv) => {
   const usage = usageOf("doctor");
   const help = helpAskedOf(argv, SUBJECT_SLUGS);
   if (help) return console.log(help.subject ? SAYS[help.subject] : `${usage}\n${SUBJECT_USAGE}`);
+  refusedOnConflict(argv[0] === MODULES);
   if (argv[0] === MODULES) return (await import("./services/doctor/modules/manage.mjs")).modulesSubject(argv.slice(1));
   const subject = SUBJECT_SLUGS.includes(argv[0]) ? argv[0] : null;
   reading(subject);
@@ -473,6 +483,7 @@ export const doctor = async (argv) => {
     fail(`doctor: \`--${project[0]}\` writes the project's own record and \`--${machine[0]}\` writes this `
       + "machine's, which are two stores and two calls. Nothing was sent: send one of them.");
   }
+  refusedOnConflict(project.length || machine.length);
   const wrote = await wroteProject(asked, pairs, positionals);
   if (wrote) return wrote.forEach((said) => console.log(said));
   for (const row of MACHINE_WRITES) {
@@ -487,8 +498,7 @@ export const doctor = async (argv) => {
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
-  checkSession();
-  checkScratch();
+  checkRun();
 
   const stale = mcpForgeIgnored();
   /* Each half is named separately: a project whose credentials are already saved and whose slug
@@ -608,7 +618,7 @@ export const doctor = async (argv) => {
       console.log("\nNot reaching the endpoint: the account half is incomplete.");
       process.exit(1);
     }
-    await checkEndpoint(full, credentials);
+    await checkEndpoint(full, credentials, Boolean(configHomeConflict()));
     await checkModules();
     if (owing) {
       under("repo");

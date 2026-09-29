@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const VI = new URL("../../../bin/vi-natural", import.meta.url).pathname;
@@ -35,6 +35,7 @@ const homeWith = (config) => {
 
 const run = (home, binary, ...argv) => spawnSync(binary, argv, {
   encoding: "utf8",
+  cwd: neutralRoom(),
   env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") },
 });
 

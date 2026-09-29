@@ -59,8 +59,9 @@ const verdictAt = (cwd, ...commit) =>
   ask(cwd, "record", "verdict", "ISS-7", "--criterion", "1", "--verdict", "pass", "--evidence", OLDER, ...commit);
 
 before(async () => {
-  await ask(process.cwd(), "claim", "ISS-7", "--unheld");
-  const claimed = await ask(process.cwd(), "claim", "ISS-7", "--unheld");
+  /* Any of this file's own fixture checkouts serves: the claim is not scoped to which one. */
+  await ask(DIRTY, "claim", "ISS-7", "--unheld");
+  const claimed = await ask(DIRTY, "claim", "ISS-7", "--unheld");
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 

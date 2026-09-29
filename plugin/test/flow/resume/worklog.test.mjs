@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, jsonlOf, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, jsonlOf, neutralRoom, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const HOME = tempHome("worklog");
 process.env.XDG_CONFIG_HOME = HOME.path;
@@ -310,7 +310,7 @@ test("--pushed outside a checkout is refused, naming the directory it was asked 
    log had nothing to give: what an input was is not what it produced. The report is `resume
    --report` now, and the rule holds there by the parser rather than by a sentence of its own. */
 test("the report refuses a capture flag it was given, whatever the log had to say", () => {
-  const run = spawnSync(FORGE, ["resume", "ISS-1", "--report", "--review"], { encoding: "utf8", env: process.env });
+  const run = spawnSync(FORGE, ["resume", "ISS-1", "--report", "--review"], { encoding: "utf8", env: process.env, cwd: neutralRoom() });
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /No resume flag named --review/u);
   assert.match(run.stderr, /--report/u, "and the rows name the reading it does take");
@@ -368,7 +368,7 @@ test("a capture over another branch says which one it replaced", () => {
 
 test("the two captures and the open line are on the flag list of both verbs that write", () => {
   for (const argv of [["claim", "-h"], ["record", "-h"]]) {
-    const run = spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
+    const run = spawnSync(FORGE, argv, { encoding: "utf8", env: process.env, cwd: neutralRoom() });
     assert.equal(run.status, 0, run.stderr);
     for (const flag of ["--pushed", "--review", "--open"]) {
       assert.ok(run.stdout.includes(flag), `${argv[0]} -h does not name ${flag}`);

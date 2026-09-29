@@ -15,7 +15,6 @@ import { fakeGateway } from "../../fixtures/model/gateway.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("proposed-fields").path;
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const CHECKOUT = new URL("../../../../", import.meta.url).pathname;
 const TITLE = "a missing field is proposed where the gap starts";
 const BODY = [
   "## Outcome", "", "A filing that names no field is given one by the model the project names.", "",
@@ -58,7 +57,7 @@ const state = {
   },
 };
 
-const { tracker, env } = await trackerFor(state);
+const { tracker, env, room: CHECKOUT } = await trackerFor(state);
 const gateway = await fakeGateway({
   complexity: { complexity: "m", confidence: 0.8, why: "two modules and a document travel with it" },
   priority: { priority: "high", confidence: 0.6, why: "a filing left unranked loses its place in the order" },

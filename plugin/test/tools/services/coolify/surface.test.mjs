@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../../fixtures.mjs";
 import { INSTANCE_NAMES, TAKEN_HERE } from "../../../../src/tools/services/coolify/chosen-route.mjs";
 
 import {
@@ -167,7 +167,7 @@ const INSTANCE_HOME = homeFor("instance");
 const TRACKER_HOME = homeFor("tracker");
 
 const ranIn = (home, ...argv) =>
-  execFileSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home } });
+  execFileSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: { ...process.env, XDG_CONFIG_HOME: home } });
 
 const ranHelp = (...argv) => ranIn(INSTANCE_HOME, ...argv);
 

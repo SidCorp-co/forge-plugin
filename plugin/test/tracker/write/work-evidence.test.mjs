@@ -5,11 +5,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync } from "../../fixtures.mjs";
 import { callTool } from "../../../src/tracker/rest.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 const tracker = await fakeTracker({ issues: [], comments: {}, calls: [] });

@@ -7,7 +7,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { dirtyRepo, tempRoom } from "../../fixtures.mjs";
+import { dirtyRepo, neutralRoom, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-baseline-");
 const { checked } = await import("../../../src/flow/record/record.mjs");
@@ -28,7 +28,7 @@ test("a baseline stamps the head its checkout is at, and reads it back off its o
     "every stamped key is present, so a value a caller typed is cleared and not left standing");
   const typed = spawnSync(new URL("../../../bin/forge", import.meta.url).pathname,
     ["record", "baseline", "ISS-43", "--gate", "g", "--result", "r", "--commit", at, "--scope", "whole",
-      "--head", at], { encoding: "utf8", env: process.env });
+      "--head", at], { encoding: "utf8", env: process.env, cwd: neutralRoom() });
   assert.equal(typed.status, 1);
   assert.match(typed.stderr, /No record baseline flag named --head\./u, typed.stderr);
   const back = parse(render("baseline",

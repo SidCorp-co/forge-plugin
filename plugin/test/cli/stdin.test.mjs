@@ -6,7 +6,7 @@ import test from "node:test";
 import { PassThrough } from "node:stream";
 import { spawnSync } from "node:child_process";
 
-import { homeEnv } from "../fixtures.mjs";
+import { homeEnv, neutralRoom } from "../fixtures.mjs";
 import { INTENT_MS, PAYLOAD_MS, stdinText } from "../../src/resolve/payload.mjs";
 import { patience } from "../patience.mjs";
 
@@ -103,6 +103,7 @@ test("a pipe that closes with nothing on it is a caller who meant to send someth
 test("a `-` payload on a pipe that closes empty is refused by name, by the reader and not the endpoint", () => {
   const run = spawnSync(FORGE, ["feedback", "-", "--title", "never filed"], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: homeEnv("stdin-empty"),
     input: "",
     timeout: 30_000,

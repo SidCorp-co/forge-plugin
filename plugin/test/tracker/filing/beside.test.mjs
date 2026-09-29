@@ -9,7 +9,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 import { parseAll } from "../../../src/flow/record/page.mjs";
@@ -26,11 +26,10 @@ const DROP_PARK = "## Park\n\n```forge-record\nkind: dropped\nwhy: Duplicate of 
 const state = { issues: [OPEN, SETTLED, ELSEWHERE], comments: {}, calls: [], memory: {} };
 const tracker = await fakeTracker(state);
 
-/* Every call here runs from this checkout, whose project is this machine's record of it now:
-   the record goes under the one configuration home the children are handed. */
+/* Every call here runs from the default room, whose project is this machine's record of it: the
+   record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
-projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
-  OWN);
+projectRecord(neutralRoom(), tracker.env.XDG_CONFIG_HOME, OWN);
 test.after(() => tracker.close());
 
 mkdirSync(join(home.path, "forge"), { recursive: true });
@@ -477,7 +476,7 @@ test("a body piped in is printed back by a refusal that comes after the read", a
   before();
   const body = "## Outcome\n\nthe piped body reaches the refusal and comes back out of it\n";
   const argv = ["new", "-", "--title", "the piped body survives what refuses it", "--category", "feature"];
-  const run = await ranAsync(FORGE, argv, ENV, process.cwd(), body);
+  const run = await ranAsync(FORGE, argv, ENV, neutralRoom(), body);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /Your body, so that nothing here loses it:/u);
   assert.match(run.stderr, /the piped body reaches the refusal and comes back out of it/u);
@@ -490,7 +489,7 @@ test("a filing with no kind is refused without reading the stdin it was piped", 
   before();
   const body = "## Outcome\n\nthe body nothing read is the body still in the sender's hand\n";
   const argv = ["new", "-", "--title", "the kind is asked for before the body is taken"];
-  const run = await ranAsync(FORGE, argv, ENV, process.cwd(), body);
+  const run = await ranAsync(FORGE, argv, ENV, neutralRoom(), body);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /A filing needs --category/u);
   assert.match(run.stderr, /bug, enhancement, feature, review/u);
@@ -504,7 +503,7 @@ test("a filing with no kind is refused without reading the stdin it was piped", 
 test("that refusal answers on a stdin nothing ever closes", async () => {
   before();
   const child = spawn(FORGE, ["new", "-", "--title", "the kind is asked for before the body is taken"],
-    { env: ENV, stdio: ["pipe", "pipe", "pipe"] });
+    { env: ENV, cwd: neutralRoom(), stdio: ["pipe", "pipe", "pipe"] });
   child.stdin.write("## Outcome\n\nheld open, and the sender still has it\n");
   const said = await new Promise((done) => {
     let err = "";

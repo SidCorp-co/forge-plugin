@@ -6,11 +6,11 @@ import test from "node:test";
 import { cpSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, fakeStore, fakeTracker, projectEntry, projectRecord, projectRoom, ranAsync,
-  tempHome } from "../../fixtures.mjs";
+import { escaped, fakeStore, fakeTracker, neutralRoom, projectEntry, projectRecord, projectRoom,
+  ranAsync, tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 const { knowledge } = fakeStore();
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 const PASSWORD = "correct-horse-battery";

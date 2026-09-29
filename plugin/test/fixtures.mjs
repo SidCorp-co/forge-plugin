@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { OWN as OWN_KEYS } from "./fixtures/own-keys.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { answeringThrows, body } from "./fixtures/served.mjs";
+import { neutralRoom } from "./fixtures/rooms/neutral.mjs";
 import { labelsOf } from "./fixtures/tracker/labels.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
@@ -44,9 +45,12 @@ export const jsonlOf = (rows) => Buffer.from(rows.map((one) => `${JSON.stringify
 
 export { answered, callHook, callHookAsync } from "./fixtures/answered.mjs";
 
+export { neutralCheckout, neutralRoom } from "./fixtures/rooms/neutral.mjs";
+
 /* A child awaited rather than waited on: anything that asks a server the test itself is running
-   deadlocks under `spawnSync`, which holds the loop that would answer it. */
-export const ranAsync = (command, argv, env = process.env, cwd = process.cwd(), stdin = null) =>
+   deadlocks under `spawnSync`, which holds the loop that would answer it. A case naming no directory
+   stands the child in `neutralRoom()`, which names no run. */
+export const ranAsync = (command, argv, env = process.env, cwd = neutralRoom(), stdin = null) =>
   new Promise((done) => {
     const child = spawn(command, argv, { env, cwd });
     let stdout = "";

@@ -16,7 +16,6 @@ import { ranAsync, tempHome } from "../../../fixtures.mjs";
 import { reached } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 
@@ -215,7 +214,7 @@ const ran = (env, ...argv) => {
   state.hold = 0;
   state.slow = [];
   state.refuse = [];
-  return ranAsync(FORGE, ["chatgpt", "ask", ...argv], env, ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", "ask", ...argv], env);
 };
 
 const asked = (mode, ...argv) => {

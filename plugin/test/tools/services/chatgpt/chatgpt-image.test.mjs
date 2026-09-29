@@ -12,7 +12,6 @@ import test from "node:test";
 import { ranAsync, tempHome } from "../../../fixtures.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const FRAMING = "Flat vector illustration, muted palette, no text anywhere.";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
@@ -59,7 +58,7 @@ const env = (prefix) => {
 
 const ran = (prefix, ...argv) => {
   state.sent.length = 0;
-  return ranAsync(FORGE, ["chatgpt", ...argv], env(prefix), ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", ...argv], env(prefix));
 };
 
 const promptSent = () => state.sent[0].params.arguments.prompt;
@@ -126,7 +125,7 @@ test("the resume line this verb printed is a call this verb takes, and it contin
   const argv = line.replace(/^resume\s+forge\s+/u, "").split(" ")
     .map((word) => (word === `"<next>"` ? "a badger" : word));
   state.sent.length = 0;
-  const second = await ranAsync(FORGE, argv, env(FRAMING), ROOT, null);
+  const second = await ranAsync(FORGE, argv, env(FRAMING));
   assert.equal(second.status, 0, second.stderr);
   assert.equal(state.sent.length, 1);
   assert.equal(state.sent[0].params.arguments.conversationId, "conv-7",

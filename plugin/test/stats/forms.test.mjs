@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { READ_AS } from "../../src/resolve/handler.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/project";
@@ -29,6 +29,7 @@ const result = (id, seconds, content, isError = false) => JSON.stringify({
 const ask = (room, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-forms-home-"), TMPDIR: room },
   });
 

@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { GUIDE_INDEX, guidePartOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { DEFAULT } from "../../../src/guides/flow.mjs";
-import { projectRoom, tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, projectRoom, tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/project";
@@ -56,7 +56,7 @@ const corpus = () => {
 
 const ask = (room, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
-    encoding: "utf8",
+    encoding: "utf8", cwd: neutralRoom(),
     env: { ...process.env, HOME: room, XDG_CONFIG_HOME: tempRoom("stats-guide-home-"), TMPDIR: room },
   });
 

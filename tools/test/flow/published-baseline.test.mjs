@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { projectRecord, ranAsync, tempHome, tempRoom } from "../../../plugin/test/fixtures.mjs";
+import { neutralRoom, projectRecord, ranAsync, tempHome, tempRoom } from "../../../plugin/test/fixtures.mjs";
 import { OWN, trackerFor } from "../../../plugin/test/fixtures/own-project.mjs";
 import { render } from "../../../plugin/src/flow/record/page.mjs";
 import { NAMED, reachedFrom } from "../gates/scratch.mjs";
@@ -249,7 +249,7 @@ state.answer.forge_comments = (args) => {
 const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 const env = { ...ENV, FORGE_SESSION_ID: "the-citing-run" };
-const writing = (commit, cwd = process.cwd(), extra = env) => ranAsync(FORGE, ["record", "baseline", "ISS-3", "--gate", "npm run check",
+const writing = (commit, cwd = neutralRoom(), extra = env) => ranAsync(FORGE, ["record", "baseline", "ISS-3", "--gate", "npm run check",
   "--result", "nothing fails", "--commit", commit, "--scope", "whole", "--cited", "the ship's gate"], extra, cwd);
 const posts = () => state.calls.filter((one) => one.name === "forge_comments" && one.args?.action !== "list").length;
 

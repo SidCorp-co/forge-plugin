@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/project";
@@ -79,6 +79,7 @@ const corpus = () => {
 const ask = (room, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, HOME: room, XDG_CONFIG_HOME: tempRoom("stats-help-home-"), TMPDIR: room },
   });
 

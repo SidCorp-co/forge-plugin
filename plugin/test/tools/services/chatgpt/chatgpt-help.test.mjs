@@ -10,7 +10,6 @@ import test from "node:test";
 import { ranAsync, tempHome } from "../../../fixtures.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../../..", import.meta.url).pathname;
 
 /* Counts and answers nothing: a dead port would prove no turn was sent by failing to connect. */
 const calls = [];
@@ -35,7 +34,7 @@ const ran = (...argv) => {
     chatgpt: { url: `${origin}/mcp`, key: "sm_stub_key_never_a_real_credential" },
   }));
   return ranAsync(FORGE, ["chatgpt", ...argv],
-    { ...process.env, XDG_CONFIG_HOME: home.path, FORGE_SESSION_ID: "chatgpt-help-suite" }, ROOT, null);
+    { ...process.env, XDG_CONFIG_HOME: home.path, FORGE_SESSION_ID: "chatgpt-help-suite" });
 };
 
 /* Through the CLI: without `answersHelp` the dispatcher answers `-h` and every line below is lost. */

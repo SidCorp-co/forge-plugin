@@ -12,7 +12,6 @@ import { DECLARES } from "../../src/tracker/routes.mjs";
 const SETS = DECLARES.forge_knowledge;
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
 
 const { store, knowledge } = fakeStore();
 
@@ -22,7 +21,7 @@ const state = { issues: [], comments: {}, calls: [], answer: { forge_knowledge: 
 const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const ran = (argv, stdin = null) => ranAsync(FORGE, argv, env, ROOT, stdin);
+const ran = (argv, stdin = null) => ranAsync(FORGE, argv, env, undefined, stdin);
 const upserts = () => state.calls.filter((one) => one.name === "forge_knowledge" && one.args.action === "upsert");
 
 const BODY = "What this module owns, read at plugin/src/tools/knowledge.mjs.\n";

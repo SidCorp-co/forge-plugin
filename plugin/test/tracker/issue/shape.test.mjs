@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
@@ -235,7 +235,7 @@ const tracker = await fakeTracker(state);
 
 /* And again under the home the children read, which is the tracker fixture's and not this one. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
-projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, OWN);
+projectRecord(neutralRoom(), tracker.env.XDG_CONFIG_HOME, OWN);
 test.after(() => tracker.close());
 
 const { mkdirSync, writeFileSync } = await import("node:fs");
