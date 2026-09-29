@@ -54,7 +54,19 @@ const wordAt = (text, from) => {
   return said ? { said, quoted, end: at } : null;
 };
 
-/* The next operator a shell acts on at or after `from`: both characters bare, and neither half of a `<<<` here-string. `null` for none, and `unread` on one whose word cannot be read. */
+/* Whether a bare parenthesis is still open at `at`. Inside `$((…))` or `((…))` a `<<` is a shift and not a redirection, and inside `$(…)` or a subshell the body is one this reader does not
+   follow, so an operator standing in any of them is left unread rather than told apart. */
+const nestedAt = (text, under, at) => {
+  let depth = 0;
+  for (let one = 0; one < at; one += 1) {
+    if (under[one] !== " ") continue;
+    if (text[one] === "(") depth += 1;
+    else if (text[one] === ")" && depth > 0) depth -= 1;
+  }
+  return depth > 0;
+};
+
+/* The next operator a shell acts on at or after `from`: both characters bare, and neither half of a `<<<` here-string. `null` for none, and `unread` on one this reader cannot place. */
 const operatorFrom = (text, under, from) => {
   for (let at = text.indexOf("<<", from); at >= 0; at = text.indexOf("<<", at + 1)) {
     if (text[at + 2] === "<") {
@@ -62,6 +74,7 @@ const operatorFrom = (text, under, from) => {
       continue;
     }
     if (under[at] !== " " || under[at + 1] !== " " || text[at - 1] === "<") continue;
+    if (nestedAt(text, under, at)) return { at, unread: true };
     const tabbed = text[at + 2] === "-";
     let start = at + 2 + (tabbed ? 1 : 0);
     while (text[start] === " " || text[start] === "\t") start += 1;
