@@ -309,3 +309,29 @@ test("a precedent layer not read to its end, or a decision log that cannot be re
   assert.equal(partial.gateway.asked.length, 0);
   assert.match(log(partial).at(-1).reason, /line 1 is not a precedent/u, "a layer row missing what the judge reads is refused, not crashed on");
 });
+
+test("a goals read the tracker never answers is closed at its bound, and the hook exits soon after it answers", async (t) => {
+  const opened = [];
+  const stalled = createServer((req) => {
+    const one = { url: req.url, closed: null };
+    opened.push(one);
+    req.socket.on("close", () => {
+      one.closed = Date.now();
+    });
+  });
+  t.after(() => new Promise((closed) => {
+    stalled.closeAllConnections();
+    stalled.close(closed);
+  }));
+  await new Promise((ready) => stalled.listen(0, "127.0.0.1", ready));
+  const held = await project({ slug: "stalled", asks: { mode: "decide" } });
+  writeFileSync(join(held.config, "forge", "config.json"), JSON.stringify({ url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t" }));
+  const started = Date.now();
+  const said = await ask(held, [reportQuestion()]);
+  const ended = Date.now();
+  held.gateway.close();
+  assert.equal(said?.permissionDecision, "allow", "the judge decided without the goals");
+  assert.ok(opened.length > 0, "the goals read reached the tracker");
+  assert.ok(opened.every((one) => one.closed !== null && one.closed <= ended), "and every request it opened was closed before the hook exited");
+  assert.ok(ended - started < 20_000, `the hook ran ${ended - started}ms, not to the tracker's own deadline`);
+});

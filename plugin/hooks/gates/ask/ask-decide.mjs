@@ -18,14 +18,13 @@ const TEACH = "The ask-decide gate: this project decides a question from the own
   + `ends with ${DECLARE_FORM} and names nothing that is always the owner's. This one declared nothing, so it went `
   + "to the owner. How: `forge hooks --how ask-decide`";
 
-/* The project's goals, bounded: a tracker that does not answer costs the judge its goals, not the question. */
+/* The project's goals, bounded: a tracker that does not answer costs the judge its goals, not the
+   question. The read is aborted at the bound, since one left running holds the process open after the
+   hook has answered. */
 const goalsWithin = async (ms) => {
   const { briefGoals } = await import("../../../src/tracker/knowledge/brief.mjs");
-  const timeout = new Promise((done) => {
-    setTimeout(() => done({ goals: [], why: "the tracker did not answer in time" }), ms).unref();
-  });
   try {
-    return await Promise.race([briefGoals(), timeout]);
+    return await briefGoals({ once: true, signal: AbortSignal.timeout(ms) });
   } catch (error) {
     return { goals: [], why: error.message };
   }
