@@ -68,6 +68,22 @@ the evidence, and the person is the judge.
   WHEN the route's output for the known inputs changes THEN the check SHALL show the difference
   rather than pass or fail on it.
 
+### UC-13-4 — A rewrite that drops a stated contrast or negation is refused
+
+Rev: 1 · Actors: agent · Enforces: BR-14
+
+A rewrite can stay fluent and structurally valid while dropping the one construct that decides what
+a sentence claims: a contrast between two readings, or a negation. Neither the placeholder check
+(UC-13-2) nor a markdown structure check reads for that, so this route reaches it by name.
+
+- **AC-13-4-1** · Rev: 1 · Proof: plugin/test/vi/drift.test.mjs "vi-natural doc leaves a dropped-contrast block in English and exits 2"
+  WHEN a translated block's source states a contrast between two readings and the candidate carries
+  none of that contrast's Vietnamese counterparts THEN the route SHALL leave the block untranslated
+  and SHALL report it.
+- **AC-13-4-2** · Rev: 1 · Proof: plugin/test/vi/drift.test.mjs "vi-natural doc leaves a dropped-negation block in English and exits 2"
+  WHEN a translated block's source negates a claim and the candidate carries no Vietnamese negation
+  THEN the route SHALL leave the block untranslated and SHALL report it.
+
 ## The way back
 
 *What undoes a change here?*

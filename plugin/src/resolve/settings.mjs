@@ -7,7 +7,7 @@ import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:pa
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { escaped } from "../markdown.mjs";
 import { configDir, configPath, configSource, once, readJson, userConfig } from "./config.mjs";
-import { BORROW_VAR, borrowing } from "./machine/borrowed.mjs";
+import { BORROW_VAR, borrowing, valueAt } from "./machine/borrowed.mjs";
 import { MACHINE_RETIRED } from "./machine/retired.mjs";
 import { ENUM_KEYS, pathOf, valuesOf } from "./project/enum-keys.mjs";
 import { fail } from "../refusal.mjs";
@@ -258,6 +258,8 @@ export const workPatternOf = (said, source = fromProject()) => {
 export const projectWorkPattern = (at = null) =>
   workPatternOf(declaredWork(at), at ? projectEntryAt(at) : fromProject());
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
+/** The record's `priorities` table as written; codex/proposed/scale.mjs is its reader. */
+export const projectPriorities = () => forgeJson().parsed?.priorities ?? null;
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
  *  `--git-common-dir` gets wrong in a worktree (ISS-1245). It answers whatever the walk answers,
@@ -598,14 +600,21 @@ export const asksOwnerTerms = once(() => {
 /** The repository this process stands in, whose root folder names the project's entry. */
 export const projectRepository = () => standing()?.repository ?? null;
 
+/* A dotted key is present where its last segment is, whatever it holds: presence, for the reason below. */
+const heldAt = (machine, key) => {
+  const parts = key.split(".");
+  const table = parts.length > 1 ? valueAt(machine, parts.slice(0, -1).join(".")) : machine;
+  return Boolean(table) && typeof table === "object" && Object.hasOwn(table, parts.at(-1));
+};
+
 /** Every key a release before a move left in the machine's own file, read to be reported ignored
  *  and by nothing that decides: honouring one as a fallback is the second layer the move removed,
  *  and dropping it in silence is a value somebody set and nothing tells them about. Presence and
  *  never truthiness, for that same reason: a key edited to `null` or to a blank is a line somebody
  *  wrote at a level that has stopped answering for it. */
 export const machineLeftovers = (retired = MACHINE_RETIRED, machine = userConfig()) => retired
-  .filter((one) => Object.hasOwn(machine, one.key))
-  .map((one) => ({ ...one, value: machine[one.key], from: configPath() }));
+  .filter((one) => heldAt(machine, one.key))
+  .map((one) => ({ ...one, value: valueAt(machine, one.key), from: configPath() }));
 
 export const RELEASE_MODES = valuesOf("release");
 

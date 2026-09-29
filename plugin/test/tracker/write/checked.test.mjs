@@ -22,7 +22,10 @@ const EXEMPT = {
    spelling a write is read as one, which over-reports rather than missing a site. Every offset and
    newline is kept, so a line number still counts. */
 const bare = (text) => maskOf(text, { blank: COMMENTS });
-const CALLS = /(?<![.\w])write\s*\(\s*(?:"(forge_\w+)")?/gu;
+/* The tool name's own dot, `tool.action`, is not the boundary the transport's route keys use it as
+   here: a write naming one whole (`forge_release_batch.abort`) is a tool this pair still has to
+   read correctly, not fall back on, or the fallback's own default reads it as `forge_issues`. */
+const CALLS = /(?<![.\w])write\s*\(\s*(?:"(forge_[\w.]+)")?/gu;
 /* The specifier's last segment, not the word `rest` in it: every module inside `tracker/` reaches the
    transport as `./rest.mjs` or `../rest.mjs`, which is where the writes are, and a pattern spelling
    the directory misses all of them. The separator is the boundary, so `interest.mjs` is not it. */
@@ -35,7 +38,7 @@ export const uncheckedIn = (name, source) => {
   for (const said of text.matchAll(CALLS)) {
     const at = text.slice(0, said.index).split("\n").length - 1;
     const near = lines.slice(at, at + 3).join(" ");
-    const tool = said[1] ?? /"(forge_\w+)"/u.exec(near)?.[1] ?? "forge_issues";
+    const tool = said[1] ?? /"(forge_[\w.]+)"/u.exec(near)?.[1] ?? "forge_issues";
     if (!["forge_issues", "forge_comments"].includes(tool)) continue;
     const before = lines.slice(Math.max(0, at - WINDOW), at + 1).join("\n");
     const action = /action:\s*"(\w+)"/u.exec(near)?.[1] ?? "";
@@ -60,6 +63,8 @@ test("the scan sees a write however it is spelled, and nothing that is not one",
   assert.equal(flagged('await renew(id, ref);\nawait write("forge_issues", { action: "update" });'), 0);
   assert.equal(flagged('process.stdout.write("hello");\nchild.stdin.write(body);'), 0, "a method of that name");
   assert.equal(flagged('await write("forge_uploads", { action: "request" });'), 0, "and a tool that is no issue");
+  assert.equal(flagged('await write("forge_release_batch.abort", { runId });'), 0,
+    "and a tool named whole, tool.action, read by its dot and not defaulted past it");
   assert.equal(flagged('/* write("forge_issues") is the transport */\n// await write("forge_comments", {});'), 0,
     "a comment naming the word is no call, on either form");
   assert.equal(flagged('const url = "http://host"; await write("forge_issues", { action: "update" });'), 1,

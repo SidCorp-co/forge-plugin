@@ -462,8 +462,11 @@ export const judgedOwed = (view, ref) => {
   return out;
 };
 
-/* The whole of what `awaiting_release` is entered on: the deploying actor's half, of a change already running. The two halves answer to different actors, which is why each has a rung — a rung demanding both could not say which one it was waiting for. */
-export const deployedOwed = (view, ref) => {
+/* The verification half alone, asked again at `closed` and not only at the rung it names: whatever
+   put an issue on `awaiting_release` — the entry check below, or a set this record never earned —
+   is not this check's to trust, so a verification absent or naming no deployment refuses the close
+   the same way it would have refused the entry (ISS-1480). */
+const verificationOwed = (view, ref) => {
   const verification = payloadOwed(
     view,
     "verification",
@@ -471,7 +474,12 @@ export const deployedOwed = (view, ref) => {
     verificationForm(ref, "<sha>", "<attachment|url|sha>"),
   );
   /* One or the other: a payload with gaps has no fields to compare against anything. */
-  const out = verification.length ? verification : deployOwed(view, ref);
+  return verification.length ? verification : deployOwed(view, ref);
+};
+
+/* The whole of what `awaiting_release` is entered on: the deploying actor's half, of a change already running. The two halves answer to different actors, which is why each has a rung — a rung demanding both could not say which one it was waiting for. */
+export const deployedOwed = (view, ref) => {
+  const out = verificationOwed(view, ref);
   /* Both forms, the sentence above offering two: a line naming one sends a change with no user-facing half hunting for the other, and the tracker refuses the close without the field at every rung (ISS-1485). */
   if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM, "note")) {
     out.push(need(NO_NOTE,
@@ -567,7 +575,8 @@ export const CHECKS = {
   },
   testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
   awaiting_release: (view, ref) => [...failedOwed(view, ref), ...deployedOwed(view, ref), ...foldedOwed(view, ref, true)],
-  closed: (view, ref) => [...failedOwed(view, ref), ...releaseOwed(view, ref), ...foldedOwed(view, ref, true)],
+  closed: (view, ref) => [...failedOwed(view, ref), ...releaseOwed(view, ref), ...verificationOwed(view, ref),
+    ...foldedOwed(view, ref, true)],
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */

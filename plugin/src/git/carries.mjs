@@ -22,7 +22,9 @@ const unsettled = (why) => ({ carries: null, why });
  *  checkout cannot answer, the reason saying what would let it. */
 export const commitCarries = (ancestor, descendant, cwd = process.cwd()) => {
   if (said(["rev-parse", "--git-dir"], cwd) === null) return unsettled("this directory is no git checkout");
-  if (said(["rev-parse", "--is-shallow-repository"], cwd) !== "false") {
+  const shallow = said(["rev-parse", "--is-shallow-repository"], cwd);
+  if (shallow === null) return unsettled("git could not tell whether this checkout is shallow");
+  if (shallow !== "false") {
     return unsettled("this checkout is shallow, so no ancestry read over it settles anything; `git fetch --unshallow` first");
   }
   const absent = [ancestor, descendant]

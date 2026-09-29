@@ -27,7 +27,7 @@ const STORE_FLAGS = STORES.flatMap((store) =>
   store.keys.map((one) => `[--${one.flag} ${one.key[0]}]`)).join(" ");
 
 export const VERBS = [
-  ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--full] [--set f=v... --why W] [--redact] [--blocks|--relates|--unlink ISS-46 --kind k|--edge id]",
+  ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--full] [--set f=v... --why W] [--propose] [--redact] [--blocks|--relates|--unlink ISS-46 --kind k|--edge id]",
     "every matching issue with no key, or one body and the edges on it with one",
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
       at: "`forge issue ISS-45`",
@@ -110,6 +110,11 @@ export const VERBS = [
     wraps: () => Object.fromEntries(Object.entries(TRACKER_SERVED)
       .map(([name, key]) => [key, onTracker() ? `\`forge coolify ${name}\``
         : { line: `\`forge coolify ${name}\``, first: `\`${TO_TRACKER}\`` }])) }],
+  ["release-batch", "[status | clear <runId> --reason R [--force]]",
+    "whether a release batch is running for this project, its age and roster, and clearing a dead one",
+    "forge_release_batch", { group: HARNESS,
+      wraps: { active: "`forge release-batch`", state: "`forge release-batch`",
+        abort: "`forge release-batch clear`" } }],
   ["google", "<service> <resource...> <method> | schema | auth | discovery | +<helper>",
     "Drive, Sheets, Docs, Gmail, Calendar and Meet, on a saved service account or Google-account login",
     null, { group: HARNESS }],

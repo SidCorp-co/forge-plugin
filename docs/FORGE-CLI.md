@@ -68,6 +68,7 @@ how many topics there may be.
 | [coolify](cli/coolify.md) | Why one platform is reached two ways, which of them answers where nothing was chosen, why a name the answering one does not serve is refused rather than sent on, and where the credential for the other lives. |
 | [coolify — the pin](cli/coolify-the-pin.md) | Why the pin came before the first command, where it is recorded, and how a checkout that has none reaches one. |
 | [coolify — the saved instance](cli/coolify-the-instance.md) | How the served surface is derived from a carried index, the three readings a faithful port would have lost, and what a write owes. |
+| [release-batch](cli/release-batch.md) | Why the verb is not named `release`, why "holder" is a run id and not a process, why `clear` is gated on the tracker's own bounds reading rather than a lease that answers the same either way, and what `--force` does and does not buy past. |
 | [google](cli/google.md) | Why the Workspace surface is carried rather than fetched, which writes take `--yes`, the three routes to a credential and the order they answer in, and why failures exit by class. |
 | [chatgpt](cli/chatgpt.md) | Why one turn is never sent twice, which two transports the backend forces, what makes a message an answer rather than one about it, and where the key must not reach. |
 | [chatgpt — asking for a picture](cli/chatgpt-image.md) | Why the framing and the ratio are refused rather than defaulted, where the framing is saved, why the ratio travels in the prompt, how a run of pictures stays one set, and why the Codex route is named by the caller and never a fallback. |
@@ -77,7 +78,8 @@ how many topics there may be.
 | [codex — the payload](cli/codex-the-payload.md) | What of a file travels, which passes earn a review, why a set too large is refused rather than clipped, and what never travels at all. |
 | [codex — the finding](cli/codex-the-finding.md) | What one finding must carry to be worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves a round's effort, what a review that could not check is owed, and what a recheck is anchored to. |
-| [codex — the complexity](cli/codex-the-complexity.md) | Why a proposed complexity is never the field, why the confidence gates nothing, why no date travels, which model answers and why its family is not refused, and what the measurement must show first. |
+| [codex — the complexity](cli/codex-the-complexity.md) | Why the verb writes no field, why the confidence gates nothing, why no date travels, which model answers and why its family is not refused, and what the measurement must show first. |
+| [the proposed fields](cli/proposed-fields.md) | Why a missing priority or complexity is written at filing, what the correction beside it records, why the scale and the switch are the project's, and why a failure has no fallback. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what masks it, whose consult a row is, and what makes anyone run the eval. |
 | [codex — the stats](cli/codex-the-stats.md) | Why `stats` is the log's one aggregation and `eval` is it over two windows, what a window answers, and why a pass and a recheck are priced apart. |

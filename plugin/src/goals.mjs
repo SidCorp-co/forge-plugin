@@ -4,15 +4,25 @@
 import { clauseOf } from "./spec/index.mjs";
 import { parseRef } from "./spec/parse.mjs";
 import { specTreeIfAny } from "./spec/tree.mjs";
-import { withoutExamples } from "./markdown.mjs";
+import { escaped, withoutExamples } from "./markdown.mjs";
 
-export const SECTION = "What this project is for";
+/* The section's words either side of its determiner, and the determiner itself: the one home
+   (BR-09) both `SECTION` and the heading matcher below render from, so a wording change to either
+   word made here moves both rather than one being a copy of the other typed twice. */
+const SECTION_WORDS = { before: "What", determiner: "this", after: "project is for" };
+export const SECTION = `${SECTION_WORDS.before} ${SECTION_WORDS.determiner} ${SECTION_WORDS.after}`;
 export const NONE_STATED = "none stated";
 export const NOT_STATED = "not stated";
 /* A brief line names its source after this, and a goal's words end where its provenance starts. */
 export const SOURCE_MARK = "←";
 
-const HEADING = new RegExp(String.raw`^#{1,6}[ \t]*${SECTION}[ \t]*$`, "imu");
+/* Matched by family and not by that wording (ISS-1481), the way an issue body's own sections are:
+   the determiner is the word a human writing a brief varies without thinking, so `the`, `our`, `a`
+   and none at all each still name this section. */
+const HEADING = new RegExp(
+  String.raw`^#{1,6}[ \t]*${escaped(SECTION_WORDS.before)}[ \t]+(?:this|the|our|a)?[ \t]*${escaped(SECTION_WORDS.after)}[ \t]*$`,
+  "imu",
+);
 const NEXT_HEADING = /^#{1,6}[ \t]/mu;
 
 /* The tree's own notation, emphasised or bare, so a project keeping one writes goals as clauses. */

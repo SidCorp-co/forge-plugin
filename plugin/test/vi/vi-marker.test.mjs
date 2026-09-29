@@ -60,12 +60,13 @@ test("a sentinel the protector minted still passes and comes back as its code sp
 });
 
 /* The route every tracker title takes: `src/tools/vi.mjs` sends it through `translate --kind doc`,
-   whose prompt names the same markers. */
+   whose prompt names the same markers. Its exit code is `doc`'s own for this class of rejection
+   (ISS-1752): a block a verifier rejected twice, whichever of the two commands carries it. */
 test("a string translated as doc that comes back holding an invented ⟦VI⟧ is refused", async (t) => {
   const room = await gatewayOn(t, () => INVENTED, "vi-marker-title-");
   const run = await ranAsync(BUNDLED, ["translate", "--kind", "doc", "--no-glossary", "Cite the right-hand column"],
     { ...process.env, XDG_CONFIG_HOME: room }, room);
-  assert.equal(run.status, 1, `refused, so the caller posts nothing:\n${run.stdout}${run.stderr}`);
+  assert.equal(run.status, 2, `refused, so the caller posts nothing:\n${run.stdout}${run.stderr}`);
   assert.equal(run.stdout, "", "and no translation reaches stdout");
   assert.match(run.stderr, /marker-shaped token ⟦VI⟧/u);
 });

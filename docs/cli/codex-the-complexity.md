@@ -1,18 +1,21 @@
-# `forge codex complexity` — a proposed complexity, never the field, and the measurement that has to come first
+# `forge codex complexity` — a proposed complexity the verb never writes, and the measurement that has to come first
 
 One typed question to the second model about one issue: which of the tracker's five complexities the
 work its body describes claims. The answer is a proposal on a terminal line and nothing else, and this
 page carries the decisions behind that shape. Where each is enforced, the checker's message is the
 rule; what is here is why.
 
-## The proposal is not the field
+## The verb writes nothing, and the filing is where a proposal is written
 
-A complexity is a reading of what the work costs this plugin, and the readers who earn it — a person,
-or the triage role — read the code. The model read the body. Those are two different acts, and the
-value each yields is trusted for different reasons, so the second is never written where the first
-belongs: the verb has no writer among its dependencies, and a person who agrees with the line sets the
-field with the write the flow already has, `--why` and all. A status is earned by a record (G-01), and
-a proposal is not one.
+A complexity is a reading of what the work costs, and the readers who earn it, a person or the triage
+role, read the code. The model read the body. This verb is the measurement and the look: it has no
+writer among its dependencies, and a person who agrees with a line sets the field with the write the
+flow already has, `--why` and all.
+
+Where the project turns the proposal on, it is written at filing and by `forge issue ISS-nn
+--propose`, onto an issue that holds no complexity. A correction names the model beside it, so the
+field still says which reader it came from. Why at filing, and why that correction:
+[`proposed-fields`](proposed-fields.md).
 
 ## The confidence is a sort key and never a threshold
 
@@ -41,14 +44,16 @@ The question is a closed set of five and a lower model answers it as well as the
 one is the measurement's to say, and `--measure` prints the two figures that say it: how often the
 proposal is the complexity the tracker already holds, and what one question costs in seconds and input
 tokens. So the model is the classifier's own: `--model` names a gateway id or a slot of the profile for
-one run, `codex.complexityModel` in this machine's config names the standing one, and absent both the
-consult's rung table and slot answer as they did before the key.
+one run, `codex.complexityModel` in the project's record names the standing one, and absent both the
+consult's rung table and slot answer as they did before the key. The key is the project's and not the
+machine's, because the same key is what turns on the proposal written at filing, and that is a
+decision about one project's issues ([`proposed-fields`](proposed-fields.md)).
 
 The second model's gateway is the switch: absent one the verb refuses with the same route the consult
 prints, and a project that has configured a second model has configured this. A key that
 turns on one verb a person types by hand, which writes nothing, would be a special case beside that
-configuration (G-12). An automatic use — a proposal inside `forge next`, or under a hook — would owe an
-explicit switch, and this verb is not one.
+configuration (G-12). An automatic use owes an explicit switch, and the one there is, the proposal
+written at filing, is switched by that same project key and by nothing else.
 
 ## The measurement decides whether the proposal is worth a glance
 

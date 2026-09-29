@@ -223,6 +223,7 @@ const FIELDS_OF = {
     + " query, scope, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
   coolify: "deploymentUuid, integrationId, issueId, pipelineRunId, resourceUuid",
+  "release-batch": "runId",
   google: null,
   codex: null,
   chatgpt: null,

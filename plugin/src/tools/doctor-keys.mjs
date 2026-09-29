@@ -1,6 +1,6 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
 import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
-import { STORES } from "../resolve/machine/stores.mjs";
+import { STORES, storeRoute } from "../resolve/machine/stores.mjs";
 import { MACHINE_RETIRED } from "../resolve/machine/retired.mjs";
 import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
 import { fromProject, JOB_ALL, declaredJobs, fail } from "../resolve/settings.mjs";
@@ -130,7 +130,7 @@ export const MACHINE_WRITES = [
   ...STORES.map((store) => ({
     flags: store.keys.map((row) => row.flag),
     owns: [store.store],
-    route: `forge doctor ${store.keys.map((row) => `--${row.flag} <${row.asks}>`).join(" ")}`,
+    route: storeRoute(store),
     write: setStore(store),
   })),
 ];

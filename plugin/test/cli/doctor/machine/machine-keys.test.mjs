@@ -132,8 +132,8 @@ test("every key this plugin reads out of the machine's store is declared in the 
   const declared = [...MACHINE_KEY_NAMES, ...MACHINE_RETIRED_NAMES];
   assert.deepEqual(read.filter((key) => !declared.includes(key)), [],
     "a key read at this level and declared at neither is written to the project's record instead");
-  assert.deepEqual(MACHINE_RETIRED_NAMES, ["ship"],
-    "and the one key allowed beside them is read here only to be reported ignored");
+  assert.deepEqual(MACHINE_RETIRED_NAMES, ["ship", "codex.complexityModel"],
+    "and the keys allowed beside them are read here only to be reported ignored");
   assert.equal(declared.includes("landing"), false,
     "while a project key this store has never held is a finding here whatever declares it elsewhere");
 });

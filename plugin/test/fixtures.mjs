@@ -1,18 +1,20 @@
 /* Unwrapping the answer stays each suite's: `deny()` and `block()` do not answer alike, and the git rules need a tree with work to lose. */
 import "./fixtures/process/isolated.mjs";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { checkoutAt } from "../src/git/checkout-at.mjs";
 import { OWN as OWN_KEYS } from "./fixtures/own-keys.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { answeringThrows, body } from "./fixtures/served.mjs";
-import { madeIn } from "./fixtures/room.mjs";
 import { labelsOf } from "./fixtures/tracker/labels.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
+
+/* The rooms a case stands in — a checkout, a git repository, a home directory — and this process's
+   own share of the machine's temporary root: moved out for the line cap, re-exported here unchanged. */
+export * from "./fixtures/rooms/lifecycle.mjs";
+import { tempHome } from "./fixtures/rooms/lifecycle.mjs";
 
 const PLAN_BODY = {
   Declarations: "Screen change: no\nSchema coupling: no\nDeploy coupling: no",
@@ -58,124 +60,6 @@ export const ranAsync = (command, argv, env = process.env, cwd = process.cwd(), 
     child.on("close", (status) => done({ stdout, stderr, status }));
     child.stdin.end(stdin ?? undefined);
   });
-
-/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of inodes while gigabytes are free.
-   So a suite's rooms go inside one root this process removes on its way out, the pid in its name because Ctrl-C runs no handler:
-   a root whose process is gone is swept by the next to ask for one, and one this fixture never named is nobody's — so the flag
-   renames rather than only spares, a kept root's pid being dead at once. Made at import because `TMPDIR` points at it below and
-   a gate stamps under `tmpdir()` per call, so a suite leaving that alone fills the room every hook reaps; `MACHINE` is first. */
-const OWNED = /^forge-plugin-test-(\d+)-/u;
-const MACHINE = tmpdir();
-
-const gone = (pid) => {
-  try {
-    process.kill(pid, 0);
-    return false;
-  } catch (refused) {
-    return refused.code === "ESRCH";
-  }
-};
-
-const sweep = () => {
-  for (const name of readdirSync(MACHINE)) {
-    const owner = OWNED.exec(name);
-    if (!owner || Number(owner[1]) === process.pid || !gone(Number(owner[1]))) continue;
-    try {
-      rmSync(join(MACHINE, name), { recursive: true, force: true });
-    } catch {
-      /* Another process sweeping the same root, or one that is not this user's to remove. */
-    }
-  }
-};
-
-const KEPT = process.env.KEEP_TEST_ROOMS === "1";
-const PREFIX = join(MACHINE, `forge-plugin-test-${KEPT ? "kept-" : ""}${process.pid}-`);
-const root = madeIn(PREFIX, () => mkdtempSync(PREFIX));
-if (KEPT) process.stderr.write(`keeping this test process's room: ${root}\n`);
-else process.on("exit", () => rmSync(root, { recursive: true, force: true }));
-sweep();
-
-process.env.TMPDIR = root;
-
-export const tempRoom = (prefix) => madeIn(join(root, prefix), () => mkdtempSync(join(root, prefix)));
-
-/* A case about which run a call is controls the tree it stands in as it controls the config home: a
-   suite run from a worktree naming its own run resolves that id, where a case written about the
-   inherited one wants a tree naming none (ISS-467).
-
-   The room is a checkout of its own, and a fresh `git init` names no run. It carried a committed
-   project file until ISS-1403, on the reasoning that leaving the checkout then moved nothing else;
-   that stopped being true when the project's configuration stopped being a file a directory could
-   carry, and a room in no checkout resolves no project at all — so a case standing
-   in one had every project-scoped call refused for want of a slug rather than answering about the
-   run. Where the case needs keys as well as a checkout, `projectRecord(at, home, keys)` writes
-   them. */
-export const standsInNoTree = (name) => {
-  const at = tempRoom(`${name}-no-tree-`);
-  spawnSync("git", ["init", "-q", at], { cwd: at, encoding: "utf8" });
-  process.chdir(at);
-  return at;
-};
-
-/** Where this machine's record of the project a room belongs to is kept, which is the path every
- *  report names after its arrow. Keyed on the room's REPOSITORY's root folder, exactly as the
- *  resolver keys it, so a linked worktree and the checkout it was added from compose one path — and
- *  so a case pinning a source pins a path its own home resolves to and not a shape. A room no
- *  checkout holds has no project at all, which is a case's mistake rather than an empty answer. */
-export const projectEntry = (room, home) => {
-  const repository = checkoutAt(room)?.repository;
-  if (!repository) throw new Error(`${room} belongs to no checkout, so it has no project record`);
-  return join(home, "forge", "projects", basename(repository), "config.json");
-};
-
-/** This machine's record of the project a room ALREADY belongs to, written where the resolver reads
- *  it, under the configuration home the case runs against. Returns the entry. */
-export const projectRecord = (room, home, config) => {
-  const entry = projectEntry(room, home);
-  mkdirSync(dirname(entry), { recursive: true });
-  writeFileSync(entry, `${JSON.stringify(config, null, 2)}\n`);
-  return entry;
-};
-
-/** A room that is a checkout, holding this machine's record of its project: `git init` gives a bare
- *  room a repository for the entry to be keyed on, and the record follows. Returns the room. A room
- *  that is already a checkout — this repository, or a worktree of it — takes `projectRecord`. */
-export const projectRoom = (room, home, config) => {
-  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
-  projectRecord(room, home, config);
-  return room;
-};
-
-export const tempHome = (name) => {
-  const path = tempRoom(`${name}-home-`);
-  return { path, remove: () => rmSync(path, { recursive: true, force: true }) };
-};
-
-export const homeEnv = (name) => {
-  const room = tempRoom(`${name}-home-`);
-  return { ...process.env, HOME: room, XDG_CONFIG_HOME: room };
-};
-
-export const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args],
-    { cwd: room, encoding: "utf8" });
-
-export const dirtyRepo = () => {
-  const room = tempRoom("dirty-repo-");
-  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
-  writeFileSync(join(room, "tracked.txt"), "committed\n");
-  git(room, "add", "tracked.txt");
-  git(room, "commit", "-qm", "base");
-  writeFileSync(join(room, "tracked.txt"), "changed, and never committed\n");
-  return room;
-};
-
-/** A repository with nothing to lose, which is where every git rule in bash-guard stands down. */
-export const cleanRepo = () => {
-  const room = tempRoom("clean-repo-");
-  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
-  return room;
-};
 
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 
@@ -541,6 +425,15 @@ export const fakeTracker = async (state) => {
       answered("forge_coolify", { action: what, ...Object.fromEntries(q), ...sent })],
     [/^\/api\/projects\/[^/]+\/integrations\/coolify$/u, () =>
       answered("forge_coolify", { action: "list" })],
+    /* The tracker's own release-batch record: an `active` read, a `state` read scoped to one run,
+       and the `abort` write, none of them reprojected — the same reason `integrations/coolify`
+       above is not either (ISS-1484). */
+    [/^\/api\/projects\/[^/]+\/release-batches\/active$/u, () =>
+      answered("forge_release_batch", { action: "active" })],
+    [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/state$/u, (q, sent, method, [runId]) =>
+      answered("forge_release_batch", { action: "state", runId })],
+    [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/abort$/u, (q, sent, method, [runId]) =>
+      answered("forge_release_batch", { action: "abort", runId, data: sent })],
     [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
       method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
     [/^\/api\/projects\/[^/]+\/project-facts$/u, (q, sent, method) => answered("forge_config",
@@ -629,7 +522,10 @@ export const fakeTracker = async (state) => {
       return;
     }
     response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(JSON.stringify(answer ?? {}));
+    /* `undefined` is a route that answered nothing, read as an empty record; `null` is a route that
+       answered null, which a case naming an absent thing (`release-batches/active` with none
+       running) needs to reach the caller as, and not as `{}`. */
+    response.end(JSON.stringify(answer === undefined ? {} : answer));
   };
   const served = createServer(answeringThrows(serve, (call) => askedOn.get(call)));
   await new Promise((ready) => served.listen(0, "127.0.0.1", ready));

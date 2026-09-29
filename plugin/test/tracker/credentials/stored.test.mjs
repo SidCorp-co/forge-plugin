@@ -31,6 +31,21 @@ test("a string the stored record already holds goes, and anything else carrying 
     "and a field the stored record is not of is judged whole, word for word the same or not");
 });
 
+/* A value the stored record holds at one leaf path is not the same field as the exact same text
+   written fresh at another leaf path under the same top-level key: the exemption is only as wide
+   as "this value, at this path, is already stored", not "this value, somewhere in this top-level
+   field" (ISS-2837). */
+test("a stored copy moved to another sessionContext path is refused, not read as already stored", () => {
+  const deploy = deployFrom(HELD);
+  const stored = { sessionContext: { reviewFeedback: ["signed in with correct-horse-battery"] } };
+  const moved = { sessionContext: { reviewFeedback: ["signed in with correct-horse-battery"],
+    note: "signed in with correct-horse-battery" } };
+  assert.equal(credentialLeak(moved, deploy, stored).field, "sessionContext.note",
+    "the same text word for word, but at a path the stored record does not hold it at, is the caller's");
+  assert.deepEqual(storedCopies(moved, deploy, stored).map((one) => one.field), ["sessionContext.reviewFeedback.0"],
+    "the leaf path that does match is still read as the stored resend it is");
+});
+
 test("a redaction masks a long credential where it is written exactly, and its bare form nowhere", () => {
   const deploy = deployFrom(stagingOf({ testCredentials: [{ password: "!hunter2hunter2!" }] }));
   assert.deepEqual(redactedCopy({ note: "hunter2hunter2 then !hunter2hunter2!" }, deploy),

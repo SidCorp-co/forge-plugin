@@ -2,10 +2,13 @@
    reading each earns, and the one route that hangs a mark or takes it down. Together because the
    note is prose on the wire, and a second spelling of a clause puts a sha in the slot the next
    status reads for another one. docs/cli/record-merged.md. */
+import { spawnSync } from "node:child_process";
+
 import { refuse, typedBack } from "../../refusal.mjs";
 import { flags } from "../../resolve/flags.mjs";
+import { shipMode } from "../../resolve/settings.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
-import { isCommit } from "../../tracker/evidence.mjs";
+import { isCommit, shortSha } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
 import { escaped } from "../../markdown.mjs";
@@ -13,6 +16,7 @@ import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 import { commitProblem, commitTakes } from "./content.mjs";
+import { commitCarries } from "../../git/carries.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
 
 /* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
@@ -375,6 +379,60 @@ const branchFor = async (given) => {
     + "config names no base branch to read it from. Name it with --to <branch>.");
 };
 
+/* `git show-ref --verify` on a name it holds no ref of exits fatally with this one sentence, never
+ *  printed for any other failure — a corrupt ref database or git itself failing to start reads some
+ *  other way, and is read below as an error and not as absence. */
+const NO_SUCH_REF = /not a valid ref/u;
+
+/* Whether `refs/remotes/origin/<ref>` names anything in this checkout: the same read `tipOf` in
+ *  worklog.mjs makes, and its own comment says why the exact ref and not a revision (ISS-2841).
+ *  `absent` is true only where the ref names nothing at all; a ref that exists but that git cannot
+ *  peel to a commit, or a read that fails some other way, answers `absent: false, commit: null`
+ *  instead — nothing here can tell and not nothing to check, the two read alike letting through the
+ *  one case this branch exists to catch. */
+const originTip = (ref, tree) => {
+  const opts = { cwd: tree, encoding: "utf8" };
+  const hash = spawnSync("git", ["show-ref", "--verify", "--hash", `refs/remotes/origin/${ref}`], opts);
+  if (hash.status !== 0) return { absent: !hash.error && NO_SUCH_REF.test(hash.stderr ?? ""), commit: null };
+  const commit = spawnSync("git", ["rev-parse", "--verify", "--quiet", `${hash.stdout.trim()}^{commit}`], opts);
+  return { absent: false, commit: commit.status === 0 ? commit.stdout.trim() : null };
+};
+
+/* What a builder is told instead of the mark: under a project whose ship mode leaves the landing to
+ * another actor there is no route this run may take to land it, so it is told the mark is not its to
+ * write; everywhere else the change is landed for real and the same mark asked for again. */
+const notLandedRoute = (ref, branch) => (shipMode().value === "self"
+  ? `Land it onto ${branch} for real — merge it and push — then mark it again:\n  ${mergedForm(ref)}`
+  : "This project's ship mode leaves the landing to another actor, so marking this merged is not "
+    + "the builder's to do: push the branch and leave the checkpoint for the landing to write the "
+    + `mark instead:\n  forge claim ${ref} --pushed --ready`);
+
+/* `--at` is checked against the base branch as this checkout has it fetched, `origin/<branch>`, and
+ * never a local branch that may be stale (ISS-2841): a head that exists only on the builder's own
+ * branch is no landing, however cleanly git can read it there. Where this checkout cannot even read
+ * that branch — no remote of that name fetched here — there is nothing to refuse on and the mark
+ * stands as it always has, the tracker's own "a claim Forge did not observe" line being what a
+ * reader is already told. Where the branch is read but nothing here can tell whether it carries the
+ * sha (a shallow history, or git erroring on the read), the refusal says so rather than guessing
+ * either way. */
+const cannotTell = (at, branch, tip, why) => refuse(`--at ${at} is checked against origin/${branch}`
+  + `${tip ? ` (${shortSha(tip)})` : ""} as this checkout has it fetched, and nothing here can tell `
+  + `whether it carries that commit: ${why}. Nothing was written until that reads for certain.`);
+
+const baseCarries = (at, branch, ref) => {
+  const tree = process.cwd();
+  const origin = originTip(branch, tree);
+  if (origin.absent) return;
+  if (!origin.commit) {
+    cannotTell(at, branch, null, `origin/${branch} names an object git could not read as a commit here`);
+  }
+  const read = commitCarries(at, origin.commit, tree);
+  if (read.carries) return;
+  if (read.carries === null) cannotTell(at, branch, origin.commit, read.why);
+  refuse(`--at ${at} is refused: origin/${branch} stands at ${shortSha(origin.commit)} and does not `
+    + `carry it, so this mark would claim a merge that never happened. ${notLandedRoute(ref, branch)}`);
+};
+
 /** What taking a stamp down says, whichever verb took it: `advance --set` repairing a close and
  *  `--undo` here are one unmark of one field, and two sentences for it read as two acts. */
 export const stampRemoved = (ref) => `${ref}  the merged stamp is removed.`;
@@ -427,7 +485,8 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
   }
   const { view, namedIn } = await viewOn(documentId, comments);
   judgedTruly(view, clauses.judged, (head) => withoutMoved(reference, { ...given, judged: head }));
-  const note = markNote({ branch: await branchFor(given), ...clauses,
-    named: namedIn(view), ref: reference });
+  const branch = await branchFor(given);
+  baseCarries(clauses.at, branch, reference);
+  const note = markNote({ branch, ...clauses, named: namedIn(view), ref: reference });
   return { write: () => marked(documentId, reference, note, clauses, { next, patch }) };
 };

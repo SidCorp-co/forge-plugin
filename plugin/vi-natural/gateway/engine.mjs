@@ -4,7 +4,7 @@ import * as cta from "../text/cta.mjs";
 import * as placeholders from "../text/placeholders.mjs";
 import * as script from "../text/script.mjs";
 import { BATCH_TASK, systemPrompt } from "../text/prompts.mjs";
-import { BARE_HINT, PLACEHOLDER_HINT } from "../vi-text.mjs";
+import { BARE_HINT, PLACEHOLDER_HINT, VERIFY_HINT } from "../vi-text.mjs";
 import { chunkItems, err, parseJsonObject } from "../util.mjs";
 
 export const MAX_CHARS = 6000;
@@ -36,19 +36,30 @@ function problemIn(key, source, candidate, gates) {
   return found.length ? found.join("; ") : null;
 }
 
-/** Every gate a candidate has to clear before it may be written. */
-function rejected(key, source, candidate, gates) {
-  if (problemIn(key, source, candidate, gates)) return true;
-  return gates.bareCta.has(key) && !cta.isBare(candidate, gates.ctaIndex);
+/** Every gate a candidate has to clear before it may be written, and why not when it does not —
+ *  a verifier's own reason first, since it is the one a retry cannot guess at from the source
+ *  alone, then the CTA rule restated. */
+function rejectionIn(key, source, candidate, gates) {
+  const verify = problemIn(key, source, candidate, gates);
+  if (verify) return verify;
+  if (gates.bareCta.has(key) && !cta.isBare(candidate, gates.ctaIndex)) {
+    return `a CTA still carries an object ("${candidate}")`;
+  }
+  return null;
 }
 
 /** Second chance for one string, with the rule it broke restated. */
 async function translateOne(client, system, task, entry, gates) {
-  const { key, source, temperature, contexts } = entry;
+  const { key, source, temperature, contexts, reason } = entry;
   const bare = gates.bareCta.has(key);
   const required = [...placeholders.extract(source).keys()].sort();
   let hint = required.length ? PLACEHOLDER_HINT.replace("%s", required.join(", ")) : "";
   if (bare) hint += BARE_HINT;
+  // Named beside whatever placeholder or CTA hint already applies, rather than instead of it — a
+  // reason a verifier gave the first candidate, restated so the retry is not asked to guess at the
+  // rule it broke from the source alone (a drift verifier's own reason is the one hint the two
+  // above never carried).
+  if (reason) hint += VERIFY_HINT.replace("%s", reason);
 
   let answer;
   try {
@@ -110,13 +121,16 @@ export async function translateItems(client, items, options = {}) {
     for (const [key, source] of batch) {
       const candidate = answer[String(key)];
       if (typeof candidate !== "string" || !candidate.trim()) retries.push([key, source]);
-      else if (rejected(key, source, candidate, gates)) retries.push([key, source]);
-      else results.set(key, candidate);
+      else {
+        const reason = rejectionIn(key, source, candidate, gates);
+        if (reason) retries.push([key, source, reason]);
+        else results.set(key, candidate);
+      }
     }
   }
 
-  for (const [key, source] of retries) {
-    const outcome = await translateOne(client, system, task, { key, source, temperature, contexts }, gates);
+  for (const [key, source, reason] of retries) {
+    const outcome = await translateOne(client, system, task, { key, source, temperature, contexts, reason }, gates);
     if (outcome.candidate === undefined) problems.push({ key, reason: outcome.reason, source });
     else results.set(key, outcome.candidate);
   }

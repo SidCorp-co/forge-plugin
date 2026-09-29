@@ -8,6 +8,7 @@ import test from "node:test";
 import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("gone-escapes").path;
+const { render } = await import("../../../src/flow/record/page.mjs");
 const { escapesOrphaned } = await import("../../../src/checks/docs/owing-escapes.mjs");
 const { NO_LONGER_OWES } = await import("../../../src/flow/earned/park-status.mjs");
 const { escapesIn, owedTo } = await import("../../../src/spec/claims/proof.mjs");
@@ -98,9 +99,15 @@ const READY = {
   releaseNotes: { section: "Skip", userFacing: "-" },
   sessionContext: { lease: LEASE },
 };
+/* The rung this issue is set at asks for a verification naming the deployment (ISS-1480): a bare
+   record with no comment on it would be one this test never meant to be about, so it is here rather
+   than owed by the case below. */
+const VERIFIED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
+  body: render("verification",
+    { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) }];
 const state = {
   issues: [READY],
-  comments: { [READY.documentId]: [] },
+  comments: { [READY.documentId]: VERIFIED },
   answer: {
     forge_config: () => ({ config: { baseBranch: "master", releaseModel: "publish",
       pipelineConfig: { autoProdDeploy: true } } }),

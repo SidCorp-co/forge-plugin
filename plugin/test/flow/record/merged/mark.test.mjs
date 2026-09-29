@@ -8,18 +8,18 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { git, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { git, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged").path;
 const {
   judgedHead, landingMoved, landingWrote, lastMark, markNote, markedCommit, reviewedHead,
-} = await import("../../../src/flow/record/merged.mjs");
-const { capsOf, lengthOf } = await import("../../../src/tracker/field-write.mjs");
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+} = await import("../../../../src/flow/record/merged.mjs");
+const { capsOf, lengthOf } = await import("../../../../src/tracker/field-write.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { judgedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 /* The clause `landing moved` is git's reading of the judged head against the landed commit, so the
    verb runs in a checkout whose commits are real (ISS-1362). The change writes two files off a base; a

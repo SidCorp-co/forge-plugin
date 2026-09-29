@@ -134,6 +134,19 @@ test("a proposal row reads as the issue it read and the complexity proposed, not
     /complexity ISS-457 {2}failed: the gateway streamed no text at all/u);
 });
 
+/* The priority question writes the same shape under its own kind, so the line says which question the
+   row answered: a level of the project's scale is not a complexity, and a reader of the log must not
+   have to guess which the value is (ISS-2167). */
+test("a priority proposal row reads as the issue it read and the level proposed, under its own kind", () => {
+  const row = {
+    kind: "priority", at: "2026-09-28T10:00:00.000Z", model: "cx/astra-test", ms: 3_000,
+    ok: true, key: "ISS-900", proposed: "high", confidence: 0.6, why: "a lost turn",
+  };
+  assert.equal(logLine(row, false), "2026-09-28T10:00:00.000Z  cx/astra-test  3s  priority ISS-900 -> high  confidence 0.6");
+  assert.match(logLine({ ...row, proposed: undefined, refused: "`urgent` is no level of this project's scale" }, false),
+    /priority ISS-900 {2}refused: `urgent` is no level/u);
+});
+
 /* The separator is composed on the proposal's own arm, so a refusal or an error carrying the same two
    spaces and an arrow is printed as it was stored rather than having its first such run collapsed. */
 test("a refusal or an error holding two spaces and an arrow prints as stored", () => {

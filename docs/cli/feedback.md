@@ -98,8 +98,10 @@ landed, and the transport is the one that knows which, so it keeps the note and 
 two writes are soft on top of that, which is only about the message being the tracker's own words
 rather than a stack.
 
-**No lease, and the fold's hold is survived rather than waived.** The lease is not taken because
-nothing about a note is work on the issue it lands under. The read-before-write check is not waived
+**No lease, and the fold's hold is survived rather than waived.** The note takes no lease, because
+nothing about a note is work on the issue it lands under. A priority or complexity proposed onto it
+([`proposed-fields`](proposed-fields.md)) is a field write, which takes the lease for that write and
+hands it back when the call ends. The read-before-write check is not waived
 either: the fold reads the thread of the issue it is about to land on, and a note aimed at one whose
 comments this session has not been shown waits a round like every other write. The waiver this
 paragraph used to claim was the exact-title route's, and went when that route did (ISS-334). What
