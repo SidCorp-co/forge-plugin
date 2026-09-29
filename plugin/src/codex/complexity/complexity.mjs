@@ -12,7 +12,7 @@ import { UNSET, complexityOf } from "../../rank/weights.mjs";
 import { HUMAN_REF, documentIdOf } from "../../tracker/issues.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { askApi } from "../codex-api.mjs";
-import { PROPOSAL, logConsult } from "../codex-log.mjs";
+import { COMPLEXITY_PROPOSAL, logConsult } from "../codex-log.mjs";
 import { EFFORTS, defaultEffort, rungFor } from "../codex-plan.mjs";
 
 export const DATE_MARK = "<date>";
@@ -82,7 +82,7 @@ export const COMPLEXITY_ROLE = [
 ].join("\n");
 
 /* Typed, never judged: the one place a confidence is looked at asks what it is and not how big. */
-const numberOrNull = (value) => (typeof value === "number" ? value : null);
+export const numberOrNull = (value) => (typeof value === "number" ? value : null);
 
 /** The typed answer, or the refusal: the first `complexity` call's input, its value held to the ladder.
  *  A confidence is carried as given and null where none was — nought is an estimate and its absence is not. */
@@ -120,7 +120,7 @@ export const askTyped = async (values, model, row, question, { effort, signal, a
   return { key: state.key, tracker, ...read, ms, usage: answer.usage ?? null };
 };
 
-const COMPLEXITY_QUESTION = { tool: COMPLEXITY_TOOL, role: COMPLEXITY_ROLE, read: readAnswer, kind: PROPOSAL, held: complexityOf };
+const COMPLEXITY_QUESTION = { tool: COMPLEXITY_TOOL, role: COMPLEXITY_ROLE, read: readAnswer, kind: COMPLEXITY_PROPOSAL, held: complexityOf };
 
 export const askComplexity = (values, model, row, options = {}) => askTyped(values, model, row, COMPLEXITY_QUESTION, options);
 

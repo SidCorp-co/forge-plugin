@@ -60,13 +60,13 @@ export const DIAGNOSTIC = "diagnostic";
 /** The kind one typed question writes under — one issue, one complexity proposed, no review — and the
  *  same claim as the kind above: `consults()` and `isAnswered()` hold it to be no consult, so the corpus
  *  every eval figure reads is what it was before the question was asked (ISS-2161). */
-export const PROPOSAL = "complexity";
+export const COMPLEXITY_PROPOSAL = "complexity";
 
 /** The priority question's kind, which a level of the project's scale is logged under apart from a size. */
 export const PRIORITY_PROPOSAL = "priority";
 
 /** Both typed questions, which the log prints alike: the key asked about and what came back. */
-export const PROPOSALS = [PROPOSAL, PRIORITY_PROPOSAL];
+export const PROPOSALS = [COMPLEXITY_PROPOSAL, PRIORITY_PROPOSAL];
 
 export const consults = (entries) => entries.filter((one) => one.kind === "consult");
 
