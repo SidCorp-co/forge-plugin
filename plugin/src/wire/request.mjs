@@ -94,7 +94,7 @@ export const bytesWithin = (response, signal) => {
   });
 };
 
-/** The body as `Response.text()` decodes it — UTF-8, a leading BOM dropped — under the deadline `bytesWithin` holds. */
+/** The body as `Response.text()` decodes it — UTF-8, a leading BOM dropped — under the deadline `bytesWithin` holds. A response with no stream is handed to its own `text()` rather than `bytesWithin`'s `arrayBuffer()` branch: a caller's response duck-types one or the other and not always both, and the two agree only where a real `Response` backs the call. */
 export const textWithin = async (response, signal) =>
   (response.body ? UTF8.decode(await bytesWithin(response, signal)) : response.text());
 

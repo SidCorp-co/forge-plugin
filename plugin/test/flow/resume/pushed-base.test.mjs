@@ -5,11 +5,10 @@
    base read off the wrong one names files this change never touched. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, git, projectRecord, tempRoom } from "../../fixtures.mjs";
 
 const state = {
   declared: null,
@@ -35,31 +34,29 @@ const { patchFrom, unwrittenSaid } = await import("../../../src/flow/worklog.mjs
 const { pullRun } = await import("../../../src/flow/record/rung.mjs");
 const { useProject } = await import("../../../src/resolve/settings.mjs");
 
-const run = (cwd, ...args) => spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", ...args],
-  { cwd, encoding: "utf8" });
 const commit = (cwd, file) => {
   writeFileSync(join(cwd, file), `${file}\n`);
-  run(cwd, "add", file);
-  run(cwd, "commit", "-qm", file);
-  return run(cwd, "rev-parse", "HEAD").stdout.trim();
+  git(cwd, "add", file);
+  git(cwd, "commit", "-qm", file);
+  return git(cwd, "rev-parse", "HEAD").stdout.trim();
 };
 
 /* master carries one commit staging does not, and the branch is cut from staging: the files a change
    touches are `change.txt` alone, and a base read off master adds `staging-only.txt` to them. */
 const diverged = (slug, { fetched = true } = {}) => {
   const at = tempRoom(`pushed-base-${slug}-`);
-  run(at, "init", "--bare", "-q", "origin.git");
-  run(at, "clone", "-q", join(at, "origin.git"), "work");
+  git(at, "init", "--bare", "-q", "origin.git");
+  git(at, "clone", "-q", join(at, "origin.git"), "work");
   const work = join(at, "work");
   commit(work, "root.txt");
-  run(work, "push", "-q", "origin", "HEAD:master");
-  run(work, "checkout", "-q", "-b", "staging");
+  git(work, "push", "-q", "origin", "HEAD:master");
+  git(work, "checkout", "-q", "-b", "staging");
   const fork = commit(work, "staging-only.txt");
-  run(work, "push", "-q", "origin", "staging");
-  run(work, "checkout", "-q", "-b", "iss-1217", "staging");
+  git(work, "push", "-q", "origin", "staging");
+  git(work, "checkout", "-q", "-b", "iss-1217", "staging");
   commit(work, "change.txt");
-  run(work, "remote", "set-head", "origin", "master");
-  if (!fetched) run(work, "update-ref", "-d", "refs/remotes/origin/staging");
+  git(work, "remote", "set-head", "origin", "master");
+  if (!fetched) git(work, "update-ref", "-d", "refs/remotes/origin/staging");
   projectRecord(work, process.env.XDG_CONFIG_HOME, { slug });
   return { work, fork };
 };
@@ -109,7 +106,7 @@ test("a declared branch this checkout holds no ref of leaves no base and no touc
 test("a project read to declare no branch measures the base against the remote's recorded default, as before", async () => {
   state.declared = null;
   const { work } = diverged("declares-none");
-  const master = run(work, "rev-parse", "refs/remotes/origin/master").stdout.trim();
+  const master = git(work, "rev-parse", "refs/remotes/origin/master").stdout.trim();
   const block = await standingIn(work, "declares-none", () => patchFrom({ pushed: true }));
   assert.equal(block.base, master, "origin/HEAD names master here, and that is what it reads");
   assert.deepEqual(block.touched.split(", ").sort(), ["change.txt", "staging-only.txt"]);
@@ -122,7 +119,7 @@ test("an unsettled reading — no project named, or a configuration that did not
   for (const [slug, unread] of [[undefined, false], ["config-unread", true]]) {
     state.unread = unread;
     const { work } = diverged(slug ?? "no-project");
-    const master = run(work, "rev-parse", "refs/remotes/origin/master").stdout.trim();
+    const master = git(work, "rev-parse", "refs/remotes/origin/master").stdout.trim();
     const error = console.error;
     console.error = () => {};
     try {

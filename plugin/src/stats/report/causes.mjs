@@ -8,6 +8,7 @@ import { frictionOf } from "../daily/gather.mjs";
 import { entriesOf } from "../daily/opportunities.mjs";
 import { FORMULAS } from "./settings.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";
+import { tenth } from "../figures.mjs";
 
 const DAY_MS = 86_400_000;
 
@@ -42,7 +43,7 @@ export const causesOf = (runs) => {
       const cause = held.get(causeKey(entry)) ?? blank(entry);
       const was = cause.byDay.get(day) ?? { calls: 0, runs: 0, minutes: 0 };
       cause.byDay.set(day, { calls: was.calls + entry.calls, runs: was.runs + 1,
-        minutes: Math.round((was.minutes + (entry.minutes ?? 0)) * 10) / 10 });
+        minutes: tenth(was.minutes + (entry.minutes ?? 0)) });
       cause.runs.push({ startedAt: run.startedAt, endedAt: run.endedAt, calls: entry.calls, minutes: entry.minutes ?? 0 });
       cause.firstAt = Math.min(cause.firstAt, run.endedAt);
       /* The wording of the latest run to meet it, which is the one a reader meets now. */
@@ -61,14 +62,14 @@ export const figuresOf = (causes, days) => {
   const series = days.map((day) => {
     const calls = sumOver(causes, (one) => one.byDay.get(day)?.calls ?? 0);
     const runs = sumOver(causes, (one) => one.byDay.get(day)?.runs ?? 0);
-    const minutes = Math.round(sumOver(causes, (one) => one.byDay.get(day)?.minutes ?? 0) * 10) / 10;
+    const minutes = tenth(sumOver(causes, (one) => one.byDay.get(day)?.minutes ?? 0));
     return { day, calls, runs, minutes };
   });
   const seen = series.filter((one) => one.runs > 0);
   const calls = sumOver(seen, (one) => one.calls);
   const minutes = sumOver(seen, (one) => one.minutes);
-  const perDay = (total) => (seen.length ? Math.round((total / seen.length) * 10) / 10 : 0);
-  return { series, daysSeen: seen.length, calls, minutes: Math.round(minutes * 10) / 10,
+  const perDay = (total) => (seen.length ? tenth(total / seen.length) : 0);
+  return { series, daysSeen: seen.length, calls, minutes: tenth(minutes),
     callsADay: perDay(calls), minutesADay: perDay(minutes), firstAt: Math.min(...causes.map((one) => one.firstAt)),
     runs: sumOver(seen, (one) => one.runs) };
 };
@@ -76,7 +77,7 @@ export const figuresOf = (causes, days) => {
 /** The score of a row by the configured formula, rounded to a tenth, with the figures it was made from. */
 export const scoreOf = (figures, settings) => {
   const made = { days: figures.daysSeen, calls: figures.callsADay, minutes: figures.minutesADay };
-  return { score: Math.round(FORMULAS[settings.formula].of(made, settings) * 10) / 10, formula: settings.formula, from: made };
+  return { score: tenth(FORMULAS[settings.formula].of(made, settings)), formula: settings.formula, from: made };
 };
 
 /** What met the causes in runs begun after a moment: their calls and the days they fell on. */
@@ -101,7 +102,7 @@ const sideOf = (series, runsADay, pick) => {
   const held = series.filter(pick);
   const days = held.length;
   const runs = sumOver(held, (one) => runsADay.get(one.day) ?? 0);
-  const perDay = (total) => (days ? Math.round((total / days) * 10) / 10 : null);
+  const perDay = (total) => (days ? tenth(total / days) : null);
   return { days, runs, thin: runs < FLOOR ? THIN : null,
     callsADay: perDay(sumOver(held, (one) => one.calls)), minutesADay: perDay(sumOver(held, (one) => one.minutes)) };
 };
@@ -115,10 +116,10 @@ export const realizedOf = (figures, release, { runsADay, today, earlyDays }) => 
   const after = sideOf(figures.series, runsADay, (one) => one.day > on && one.day < today);
   const early = before.days < earlyDays || after.days < earlyDays;
   if (early) return { early: true, before, after, earlyDays };
-  const calls = Math.round((before.callsADay - after.callsADay) * 10) / 10;
-  const minutes = Math.round((before.minutesADay - after.minutesADay) * 10) / 10;
+  const calls = tenth(before.callsADay - after.callsADay);
+  const minutes = tenth(before.minutesADay - after.minutesADay);
   return { early: false, before, after, difference: { calls, minutes },
-    cumulative: { calls: Math.round(calls * after.days * 10) / 10, minutes: Math.round(minutes * after.days * 10) / 10, days: after.days } };
+    cumulative: { calls: tenth(calls * after.days), minutes: tenth(minutes * after.days), days: after.days } };
 };
 
 /** What fixing an open row would save a week: its cost a day it appears times the share of the days
@@ -126,8 +127,8 @@ export const realizedOf = (figures, release, { runsADay, today, earlyDays }) => 
 export const projectedOf = (figures, heldCount) => {
   const share = heldCount ? figures.daysSeen / heldCount : 0;
   return {
-    callsAWeek: Math.round(figures.callsADay * share * 7 * 10) / 10,
-    minutesAWeek: Math.round(figures.minutesADay * share * 7 * 10) / 10,
+    callsAWeek: tenth(figures.callsADay * share * 7),
+    minutesAWeek: tenth(figures.minutesADay * share * 7),
     basis: `${figures.callsADay} call(s) and ${figures.minutesADay} wait minute(s) a day it appears, `
       + `on ${figures.daysSeen} of the ${heldCount} day(s) held, × 7`,
   };

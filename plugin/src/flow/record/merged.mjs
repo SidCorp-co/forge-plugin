@@ -39,7 +39,8 @@ export const CLAUSES = [
     none: "no verdict has judged any head yet" },
   { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved, as git reads --wrote between --judged and --at", read: true },
   { flag: "wrote", said: "landing wrote", label: "the paths this change itself landed" },
-].map((one) => ({ ...one, reads: one.commit ? shaOf(one.said) : clauseOf(one.said) }));
+].map((one) => ({ ...one, reads: one.commit ? shaOf(one.said) : clauseOf(one.said),
+  ...(one.none ? { readsNone: new RegExp(String.raw`\b${one.said} ${NOTHING}\b`, "iu") } : {}) }));
 
 const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
 
@@ -48,7 +49,6 @@ const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
    no head was judged rather than leaving the clause out. Its sha reader finds nothing there, so
    every reader of the head reads it as none. */
 const headSaid = (one, value) => (value === NOTHING ? `${NOTHING} — ${one.none}` : value);
-const noneOf = (one) => new RegExp(String.raw`\b${one.said} ${NOTHING}\b`, "iu");
 
 /** The note of the mark that stands: the latest, a re-mark after a second landing being the one
  *  that landed. */
@@ -143,17 +143,17 @@ export const correctionForm = (ref, paths) =>
   `forge record correction ${ref} --corrects plan --moved "the change also wrote ${paths.join(", ")}" `
   + `--why "<why each was needed>"`;
 
-/** The text `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle. */
+/** The view `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse, with the reader of that text beside it. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle, and it is made once per write. */
 const viewOn = async (documentId, comments) => {
-  const { viewFrom } = await import("../earned.mjs");
+  const { viewFrom, namedIn } = await import("../earned.mjs");
   const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   const page = comments ?? (await commentPage(documentId)).comments ?? [];
-  return viewFrom(documentId, issue ?? {}, page ?? []);
+  return { view: viewFrom(documentId, issue ?? {}, page ?? []), namedIn };
 };
 
 export const namedFor = async (documentId, comments = null) => {
-  const { namedIn } = await import("../earned.mjs");
-  return namedIn(await viewOn(documentId, comments));
+  const { view, namedIn } = await viewOn(documentId, comments);
+  return namedIn(view);
 };
 
 /* `nothing` is true only where no verdict stands on the page: a run holding verdicts has the head
@@ -220,7 +220,7 @@ const backSaid = (held) => {
 };
 
 const readsBack = (note, one) => (one.commit
-  ? one.reads.exec(note)?.[1] ?? (one.none && noneOf(one).test(note) ? NOTHING : null)
+  ? one.reads.exec(note)?.[1] ?? (one.none && one.readsNone.test(note) ? NOTHING : null)
   : pathsIn(one.reads.exec(note)?.[1]?.trim()));
 
 const asGiven = (back, wanted) => (Array.isArray(wanted)
@@ -483,11 +483,10 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
     const said = mark ? markSaid(reference, mark) : stampSaid(reference, body.mergedAt);
     return { write: () => undone(documentId, reference, said, { next, patch }) };
   }
-  const view = await viewOn(documentId, comments);
+  const { view, namedIn } = await viewOn(documentId, comments);
   judgedTruly(view, clauses.judged, (head) => withoutMoved(reference, { ...given, judged: head }));
   const branch = await branchFor(given);
   baseCarries(clauses.at, branch, reference);
-  const { namedIn } = await import("../earned.mjs");
   const note = markNote({ branch, ...clauses, named: namedIn(view), ref: reference });
   return { write: () => marked(documentId, reference, note, clauses, { next, patch }) };
 };

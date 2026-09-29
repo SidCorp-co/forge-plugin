@@ -2,12 +2,9 @@
    service, so a target outside the pin is refused here, before its request is built, and a listing
    is cut to the pin's own environments. There is no unscoped mode. docs/cli/coolify-the-pin.md. */
 import { look } from "./client.mjs";
-import { wrapper } from "./shape.mjs";
+import { objects, wrapper } from "./shape.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 import { PIN_WAYS } from "./config.mjs";
-
-/** The object rows of a listing, and none where the answer is not a list. */
-export const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
 
 const asList = (value) => {
   if (value === undefined || value === null || value === "") return [];

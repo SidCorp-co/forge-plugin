@@ -17,6 +17,7 @@ import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
+import { parsedOr } from "../../../src/wire/request.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
 import { askedAlready, block, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf, turnAt,
   turnRecords, turnWrites, typed } from "../../_hook.mjs";
@@ -138,11 +139,7 @@ const cli = (tree, argv) => {
 
 const forge = (tree, argv) => {
   const said = cli(tree, argv);
-  try {
-    return said === null ? null : JSON.parse(said);
-  } catch {
-    return null;
-  }
+  return said === null ? null : parsedOr(said);
 };
 
 /* The keys in progress on the tree's project, one child however many keys the turn named: the verb walks every page and prints bare keys on stdout. A child that failed or was killed answers `null`, and `run` says so rather than reading it as nobody holding anything. */
@@ -263,8 +260,9 @@ export const run = (ev, held = heldAndSilent) => {
   const tree = treeOf(ev, records, shell);
   const lines = [];
   const missed = [];
-  const say = (item, line, into = lines) => {
-    if (!asked(ev, at, item, true)) into.push(line);
+  const fresh = (item) => !asked(ev, at, item, true);
+  const say = (item, line) => {
+    if (fresh(item)) lines.push(line);
   };
   const spare = (name) => {
     if (left() > 1000) return true;
@@ -315,17 +313,15 @@ export const run = (ev, held = heldAndSilent) => {
   }
 
   const { found, unread } = linted(ev, records);
-  const linterSaid = [];
-  for (const one of found) {
-    say(`lint ${one.split(" — ")[0]}`, `Linter: ${one}\n  Clear it: edit the file until the finding is gone.`, linterSaid);
-  }
-  lines.unshift(...linterSaid);
+  const lint = found.filter((one) => fresh(`lint ${one.split(" — ")[0]}`))
+    .map((one) => `Linter: ${one}\n  Clear it: edit the file until the finding is gone.`);
   missed.push(...unread);
   unjudged(missed);
 
-  if (lines.length) {
+  const red = [...lint, ...lines];
+  if (red.length) {
     block(`Clear each item below before this turn ends, by the line under it.\n\nThis turn is ending with `
-      + `work it left red:\n\n${lines.join("\n")}${how()}`);
+      + `work it left red:\n\n${red.join("\n")}${how()}`);
   }
   done();
 };

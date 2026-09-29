@@ -9,6 +9,7 @@ import { SECTIONS } from "../reading/figures.mjs";
 import { redBatchSaid } from "../../marks/red-batches.mjs";
 import { attemptsSaid } from "../../marks/attempts.mjs";
 import { RUNG_UNKNOWN } from "../../corpus/transcripts.mjs";
+import { tenth } from "../../figures.mjs";
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export const esc = (value) => String(value ?? "").replace(/[&<>"']/gu, (one) => ESCAPES[one]);
@@ -61,7 +62,7 @@ export const table = (columns, rows) => `<table class="sortable"><thead><tr>${co
 /* Where a chart is drawn inside its viewBox: the scale's labels to the left, the days along the foot. */
 const CHART = { wide: 1100, high: 170, left: 56, right: 28, top: 22, foot: 26 };
 
-const tick = (value) => (Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10));
+const tick = (value) => (Number.isInteger(value) ? String(value) : String(tenth(value)));
 
 /** A value a day drawn across the text column with its scale labelled up the side, the days named
  *  along the foot and the axis named at its head; a day holding none is a gap. Each point's value is

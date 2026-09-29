@@ -5,7 +5,6 @@ import { logBytes, logPath } from "../../../codex/codex-log.mjs";
 import { consultCount } from "../../../codex/log/asked.mjs";
 import { gateway, machineRows, modelBehind } from "../../../resolve/machine/stores.mjs";
 import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool } from "../tool-config.mjs";
-import { accountCredentials } from "../../../resolve/settings.mjs";
 import { coolifyTarget, pinSaid, pinned } from "../coolify/config.mjs";
 import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER, coolifyRoute, onTracker } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
@@ -59,13 +58,12 @@ const boundSaid = (answer) => {
 };
 
 /** The bindings read, started by the caller beside its other tracker reads so its round trip rides
- *  with theirs, and null where it is not asked: off the tracker route, or where this machine holds no
- *  endpoint or credential — `settings()` exits the process on either absence, and a report whose
- *  whole point is every finding at once may not stop on a key another row is already about. */
-export const startBindings = () => {
-  if (!onTracker()) return null;
-  const { url, token } = accountCredentials();
-  if (!url.value || !token.value) return null;
+ *  with theirs, and null where it is not asked: off the tracker route, or where `held` says this
+ *  machine holds no endpoint or credential, the caller having read both already — `settings()` exits
+ *  the process on either absence, and a report whose whole point is every finding at once may not
+ *  stop on a key another row is already about. */
+export const startBindings = (held) => {
+  if (!onTracker() || !held) return null;
   return import("../../../tracker/rest.mjs").then(({ callTool }) => callTool("forge_coolify.list", {}, true));
 };
 

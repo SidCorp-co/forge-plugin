@@ -9,7 +9,7 @@ import { releaseDue } from "../daily/trigger.mjs";
 import { corpusOf } from "../corpus/read.mjs";
 import { deviceOf } from "../../resolve/machine/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
-import { flagSaid, stamp } from "../figures.mjs";
+import { flagSaid, stamp, tenth } from "../figures.mjs";
 import { UNRECORDED, copyAt, servedCopies, spansInstall } from "../versions.mjs";
 import {
   WHEN, byEnd, comparabilityOf, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows,
@@ -131,7 +131,7 @@ export const movedIn = (nowRows, beforeRows, key) => {
       row: now[key],
       before: before.medianMinutes,
       now: now.medianMinutes,
-      by: Math.round((now.medianMinutes - before.medianMinutes) * 10) / 10,
+      by: tenth(now.medianMinutes - before.medianMinutes),
       runsBefore: before.runs,
       runsNow: now.runs,
     }));
