@@ -10,12 +10,15 @@ import { repoRoot } from "../../src/git/repo-root.mjs";
 import { scopeHeld } from "../../src/flow/record/plan-scope.mjs";
 import { correctionForm, namesPath } from "../../src/flow/record/merged.mjs";
 
-/* Every path the call means to write, absolute. The shell reading is the strict one: a gate that must not invent a target takes nothing from a command whose destination it cannot place, and a relative name the command placed in no tree — a `cd -` this cannot follow — is one of those, where resolving it against the event's own directory would name a file in a tree the command never stood in. */
+/* Every path the call means to write, absolute. The shell reading is the strict one: a gate that must not invent a target takes nothing from a command whose destination it cannot place, and a relative name after a move this cannot follow — a `cd -`, a `cd "$(mktemp -d)"` — is one of those, where resolving it against the event's own directory would name a file in a tree the command never meant to stand in. That holds on its own line too, where the event's directory is only what a failed move leaves (ISS-2766). */
 const aimedBy = (ev) => {
   if (ev.tool_name !== "Bash") return named(ev);
   const here = ev.cwd || process.cwd();
   return writtenPaths(struck(shellWrites(ev.tool_input?.command), { unplaceable: "strike" }), here)
-    .flatMap((one) => (isAbsolute(one.token) ? [one.token] : one.trees.map((tree) => join(tree, one.token))));
+    .flatMap((one) => {
+      if (isAbsolute(one.token)) return [one.token];
+      return one.unplaced ? [] : one.trees.map((tree) => join(tree, one.token));
+    });
 };
 
 /* A directory today is a destination and not the file that lands in it, which the command names somewhere this cannot read; nothing under the tree's own git directory is the change either. */

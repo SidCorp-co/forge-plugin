@@ -245,7 +245,7 @@ function touching(ev, freshMs) {
   const names = [command, resolved].flatMap((text) => {
     const standing = standingIn(text, cwd);
     return [...namesOf(text), ...namesOf(text, undefined, AIMED_AT)].flatMap(({ token, at }) => {
-      const trees = placedAt(text, token, at) ? moved(standing(at)) : [];
+      const trees = placedAt(text, token, at) ? moved(standing(at).trees) : [];
       const once = `${token}\0${trees.join("\0")}`;
       if (seen.has(once)) return [];
       seen.add(once);
@@ -547,12 +547,16 @@ const namesIn = (said, tail, read) =>
     spelt: spelled(said, at),
   }));
 
-/** `standsIn` placed against `cwd`, asked once per offset of one text. */
+/** `standsIn` placed against `cwd`, asked once per offset of one text, `NOWHERE` kept apart as a flag. */
 const standingIn = (text, cwd) => {
   const held = new Map();
   return (at) => {
     if (!held.has(at)) {
-      held.set(at, standsIn(text, at).filter((one) => one !== NOWHERE).map((one) => resolve(cwd, one ?? ".")));
+      const could = standsIn(text, at);
+      held.set(at, {
+        trees: could.filter((one) => one !== NOWHERE).map((one) => resolve(cwd, one ?? ".")),
+        nowhere: could.includes(NOWHERE),
+      });
     }
     return held.get(at);
   };
@@ -561,7 +565,7 @@ const standingIn = (text, cwd) => {
 /* A name a shell would still expand is placed against the trees it could stand in; one it would not — a leading `~`, a `$` in front of it, a rooted path — answers for what it spells. */
 const placedAt = (text, token, at) => token[0] !== "~" && token[0] !== "/" && text[at - 1] !== "$";
 
-/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
+/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `unplaced` is true where one way the shell reached the name is a move whose destination the text does not carry, which `trees` cannot hold. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
 export const writtenPaths = (text, cwd, tail) => {
   const standing = standingIn(text, cwd);
   /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
@@ -575,8 +579,8 @@ export const writtenPaths = (text, cwd, tail) => {
     .flatMap(({ at, target }) => namesIn(target, tail, { ...AIMED_AT, whole: placed(at) })
       .map((each) => ({ ...each, at })));
   return [...aimed, ...named].map(({ token, placed, spelt, at }) => {
-    const trees = placed && !token.startsWith("/") ? standing(at) : [];
-    return { token, trees, spelt, paths: [token, ...trees.map((tree) => join(tree, token))] };
+    const { trees, nowhere } = placed && !token.startsWith("/") ? standing(at) : { trees: [], nowhere: false };
+    return { token, trees, unplaced: nowhere, spelt, paths: [token, ...trees.map((tree) => join(tree, token))] };
   });
 };
 
