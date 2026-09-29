@@ -258,6 +258,27 @@ const failedOwed = (view, ref) => numbered(view.verdicts)
   .filter(([, { record }]) => record.fields.verdict === "fail" && !shapeGaps("verdict", record, view.names).length)
   .map(([number]) => need(`criterion ${number} failed its verdict`, askOne(ref, number, markedCommit(view.comments) ?? "<sha>")));
 
+/* The same shape a fail already holds (ISS-2511), read for a skip instead: core's own release
+   sweep counts them alike (`unearnedCriteriaReports`, ISS-2430). A skip earns the judging rung it
+   was written at — VERDICTS, `somebodyLooked`, ISS-1875 — but not the rungs after, until somebody
+   looks again; ISS-1192 reached `closed` on one nothing here had reread. The `--why` is what a
+   reader is owed instead of the look nobody took. */
+const skippedOwed = (view, ref) => numbered(view.verdicts)
+  .filter(([, { record }]) => record.fields.verdict === "skipped" && !shapeGaps("verdict", record, view.names).length)
+  .map(([number, { record }]) => need(
+    `criterion ${number} was skipped ("${record.fields.why}"), and nothing on the record says it has been judged since`,
+    askOne(ref, number, markedCommit(view.comments) ?? "<sha>"),
+  ));
+
+/* Every shortfall core's own release sweep counts unearned that a verdict already on the page can
+   still carry past the judging rung — a fail, a skip, or one a reopen's triage already moved past
+   (`judgedSince`) — in one call, so `awaiting_release` and `closed` cannot come to hold a different
+   set (ISS-2430). A criterion with no verdict at all is deliberately left out: reading it again here
+   crosses the boundary `judgedOwed` and `deployedOwed` keep apart
+   (`test/flow/earned/the-rung.test.mjs`, ISS-1065), being a verdict missing rather than one already
+   written and since found wanting. */
+const pastJudgingOwed = (view, ref) => [...failedOwed(view, ref), ...skippedOwed(view, ref), ...judgedSince(view, ref)];
+
 /* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one
    they did not look at. Their write, from a checkout holding both, records that it carries it (ISS-1302). */
 const carriedAsk = (ref, number, merged) =>
@@ -574,9 +595,10 @@ export const CHECKS = {
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },
   testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
-  awaiting_release: (view, ref) => [...failedOwed(view, ref), ...deployedOwed(view, ref), ...foldedOwed(view, ref, true)],
-  closed: (view, ref) => [...failedOwed(view, ref), ...releaseOwed(view, ref), ...verificationOwed(view, ref),
+  awaiting_release: (view, ref) => [...pastJudgingOwed(view, ref), ...deployedOwed(view, ref),
     ...foldedOwed(view, ref, true)],
+  closed: (view, ref) => [...pastJudgingOwed(view, ref), ...releaseOwed(view, ref),
+    ...verificationOwed(view, ref), ...foldedOwed(view, ref, true)],
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */

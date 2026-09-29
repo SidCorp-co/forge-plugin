@@ -283,6 +283,17 @@ superseded history and the check simply stops being met.
   merged commit as its ancestor THEN the CLI SHALL record the merged commit on the verdict, and a
   verdict that records the merged commit the latest mark names SHALL earn `testing` as one at that
   commit does.
+- **AC-05-6-9** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "a whole skip standing on a criterion refuses awaiting_release and closed, naming the criterion and the why"
+  IF a criterion's latest verdict is a skip THEN the CLI SHALL refuse `awaiting_release` and `closed`,
+  name that criterion and the `--why` its skip carried, and SHALL still earn `testing` on it as
+  before, a skip being a gap in equipment rather than a decision that clears the rungs past the one
+  it was written at.
+- **AC-05-6-10** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "a verdict a reopen's triage already moved past holds awaiting_release and closed too"
+  IF a criterion's latest verdict was written before the ruling of the reopen it stands at THEN the
+  CLI SHALL refuse `awaiting_release` and `closed` on it as `testing` already refuses it, so a verdict
+  a reopen has already moved past does not earn the rungs past the judging one either; a criterion
+  with no verdict at all is not read again here, that being `judgedOwed` and `deployedOwed`'s own
+  boundary (ISS-1065).
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 

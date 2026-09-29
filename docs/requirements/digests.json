@@ -2661,6 +2661,14 @@
       "rev": 1,
       "digest": "22f9c6d4459d65540ce16be14da244a008ba39e54e1e5e76c027c86ee4379cdf"
     },
+    "AC-05-6-9": {
+      "rev": 1,
+      "digest": "5a1b7e8e66d589a263e611b0194eccde5afd4cdde689b2ed989dc6fd3f19be6e"
+    },
+    "AC-05-6-10": {
+      "rev": 1,
+      "digest": "03f550fc7b2c6cd53ca4e57d59c71421798bbc1a977158c006da11f8819528b3"
+    },
     "UC-05-7": {
       "rev": 2,
       "digest": "d3f19d02211b9683e7cbed9b6a96a930d641496b8f26fb1ff9d28689601b2658"
