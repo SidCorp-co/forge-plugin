@@ -104,7 +104,7 @@ export const STEPS = [
     reads: ["plugin/scripts", "plugin/src/markdown.mjs", "plugin/vi-natural", "tools"] },
   {
     label: "check:vendor",
-    reads: ["packages/code-quality", "plugin/hooks/vendor", "plugin/scripts/check-vendor.mjs"],
+    reads: ["packages/code-quality", "plugin/hooks/vendor", "plugin/scripts/check-vendor.mjs", "plugin/src/tools/plugin-copy.mjs"],
   },
   { label: "check:spec", reads: [".", "docs/requirements", "plugin/hooks/vendor", "plugin/src"] },
   { label: "check:skill-paths", reads: ["plugin"] },
