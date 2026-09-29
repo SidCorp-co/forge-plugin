@@ -63,15 +63,15 @@ export const settleConfigHome = (here = process.cwd()) => {
     process.env.XDG_CONFIG_HOME = tree;
     filled.push("XDG_CONFIG_HOME");
   }
-  if (!process.env[BORROW_VAR] && existsSync(developerConfigPath())) {
-    process.env[BORROW_VAR] = developerConfigPath();
+  if (!process.env.FORGE_BORROW_FROM && existsSync(developerConfigPath())) {
+    process.env.FORGE_BORROW_FROM = developerConfigPath();
     filled.push(BORROW_VAR);
   }
   return null;
 };
 
 const borrowRow = () => {
-  const borrow = process.env[BORROW_VAR] || null;
+  const borrow = process.env.FORGE_BORROW_FROM || null;
   const machine = developerConfigPath();
   if (!borrow) {
     return { level: "note", label: "borrow", detail: `none, and ${machine} is not there to borrow from, so this `
