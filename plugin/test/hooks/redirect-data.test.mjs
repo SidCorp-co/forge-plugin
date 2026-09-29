@@ -30,6 +30,8 @@ test("a > in an interpreter's heredoc body is its program's, and names no file",
     "r.count > best.count and limits.maxBytes > 1",
   ]) both(heredoc("python3", line, "    pass"), [], line);
   both(heredoc("node", "if (n > limits.maxBytes) process.exit(1);"), [], "a node body");
+  both(heredoc("python3", 'say = """the reply is newer > (asked.comment.createdAt) than the ask"""'), [],
+    "the recovered ISS-1633 shape, a triple-quoted string");
   both(`cd src/daemon && ${heredoc("python3", "if n > buf.len():", "    pass")}`, [], "after a cd");
   both([`python3 - <<PY`, "if n > buf.len():", "PY"].join("\n"), [], "an unquoted delimiter");
 });
