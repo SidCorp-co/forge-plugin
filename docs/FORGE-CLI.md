@@ -36,6 +36,7 @@ how many topics there may be.
 | [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
 | [the proven lapse](cli/the-proven-lapse.md) | Why a lease the record puts past its own duration is as free as none, which seam decides that and why it is the reclaim's own, and what the row a write writes over it holds. |
 | [the granted id](cli/the-granted-id.md) | Why an export reaches a substitution and a prefix does not, which openers lose a call its name unread, and which quoting leaves one as the prose it looks like. |
+| [the here-document](cli/the-here-document.md) | Why a body the id readers can delimit is data to them, which four they leave unread, and what a body a program runs costs. |
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and which branch a landing is read against. |
 | [`the candidate`](cli/the-candidate.md) | The commit a landing builds from the branches it carries, and what a reading taken over it is a fact about once the membership moves. |
 | [`the reconstruction`](cli/the-reconstruction.md) | What a checkpoint nobody captured may say instead, why a declared reconstruction buys one key and not the record's honesty, and which builder is derived rather than declared. |
