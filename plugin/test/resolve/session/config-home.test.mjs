@@ -53,8 +53,8 @@ test("a tree naming no run answers null, and a shell's own export never conflict
     assert.equal(settleConfigHome(at), null, "outside any run's worktree, this call is the environment's own");
     assert.equal(process.env.XDG_CONFIG_HOME, "/anywhere", "and never rewritten there");
     assert.equal(process.env.FORGE_BORROW_FROM, undefined, "nor handed a borrow");
-    assert.deepEqual(configHomeRows(at), [{ owed: false, label: "config home",
-      said: "/anywhere  ← XDG_CONFIG_HOME; no run's tree stands here" }]);
+    assert.deepEqual(configHomeRows(at), [{ level: "ok", label: "config home",
+      detail: "/anywhere  ← XDG_CONFIG_HOME; no run's tree stands here" }]);
   });
 });
 
@@ -82,9 +82,9 @@ test("an unset shell is filled silently from the tree, so a run that forgot the 
     assert.equal(process.env.XDG_CONFIG_HOME, home, "filled with the tree's own home");
     assert.equal(process.env.FORGE_BORROW_FROM, undefined, "and no borrow of a file that is not there");
     const [row, borrow] = configHomeRows(tree);
-    assert.match(row.said, /filled because the shell exported no XDG_CONFIG_HOME/u);
-    assert.equal(borrow.owed, true, "a home borrowing nothing is a row the run has an act on");
-    assert.match(borrow.said, /^none, and .* is not there to borrow from/u);
+    assert.match(row.detail, /filled because the shell exported no XDG_CONFIG_HOME/u);
+    assert.equal(borrow.level, "note", "a home borrowing nothing is a row the run has an act on");
+    assert.match(borrow.detail, /^none, and .* is not there to borrow from/u);
   });
 });
 
@@ -95,7 +95,7 @@ test("an unset borrow is filled with this machine's own config, by reference", (
     assert.equal(process.env.XDG_CONFIG_HOME, home);
     assert.equal(process.env.FORGE_BORROW_FROM, developerConfigPath());
     const [, borrow] = configHomeRows(tree);
-    assert.deepEqual([borrow.owed, borrow.said], [false,
+    assert.deepEqual([borrow.level, borrow.detail], ["ok",
       `${developerConfigPath()}  ← this machine's own config, filled because the shell exported no FORGE_BORROW_FROM; read, never written`]);
   });
 });
@@ -106,9 +106,9 @@ test("a borrow the shell already named is kept, and one naming another file is f
     assert.equal(settleConfigHome(tree), null);
     assert.equal(process.env.FORGE_BORROW_FROM, "/elsewhere/config.json", "never overridden");
     const [row, borrow] = configHomeRows(tree);
-    assert.match(row.said, /this tree's own run, as the shell exports$/u);
-    assert.equal(borrow.owed, true);
-    assert.ok(borrow.said.endsWith(`export FORGE_BORROW_FROM=${developerConfigPath()}`), borrow.said);
+    assert.match(row.detail, /this tree's own run, as the shell exports$/u);
+    assert.equal(borrow.level, "note");
+    assert.ok(borrow.detail.endsWith(`export FORGE_BORROW_FROM=${developerConfigPath()}`), borrow.detail);
   });
 });
 
@@ -132,8 +132,8 @@ test("a shell naming a different home is refused rather than silently overridden
     assert.equal(process.env.XDG_CONFIG_HOME, "/tmp/some-other-home", "the shell's own value stands");
     const rows = configHomeRows(tree);
     assert.equal(rows.length, 1, "the conflict is the one row the doctor prints");
-    assert.equal(rows[0].owed, true);
-    assert.ok(!rows[0].said.includes("No configuration was read"), "a doctor that keeps running does not claim it read nothing");
+    assert.equal(rows[0].level, "note");
+    assert.ok(!rows[0].detail.includes("No configuration was read"), "a doctor that keeps running does not claim it read nothing");
     assert.ok(said.includes("No configuration was read or written"), "a refused call does");
   });
 });

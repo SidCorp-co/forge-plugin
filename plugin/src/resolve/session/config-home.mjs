@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { fail } from "../../refusal.mjs";
 import { BORROW_VAR } from "../machine/borrowed.mjs";
 import { runHomeAt } from "./run-home.mjs";
 
@@ -39,6 +40,12 @@ export const configHomeConflict = (here = process.cwd(), refused = false) => {
     + `borrowing this machine's credentials read-only as its brief did:\n${exportLine(tree)}`;
 };
 
+/** `forge doctor`'s report keeps running on a conflicted home; a write through one, to a store or to
+ *  the tracker, is refused with the same text a plain call is. */
+export const refusedOnConflict = (writes, here = process.cwd()) => {
+  if (writes && configHomeConflict(here)) fail(configHomeConflict(here, true));
+};
+
 /* What the last settle filled, for the doctor to say why the home is the one it is. */
 let filled = [];
 
@@ -66,30 +73,30 @@ const borrowRow = () => {
   const borrow = process.env.FORGE_BORROW_FROM || null;
   const machine = developerConfigPath();
   if (!borrow) {
-    return { owed: true, label: "borrow", said: `none, and ${machine} is not there to borrow from, so this `
+    return { level: "note", label: "borrow", detail: `none, and ${machine} is not there to borrow from, so this `
       + "run's home reads no credential but its own config.json" };
   }
   if (resolve(borrow) !== resolve(machine)) {
-    return { owed: true, label: "borrow", said: `${borrow}  ← ${BORROW_VAR}, which is not this machine's own `
+    return { level: "note", label: "borrow", detail: `${borrow}  ← ${BORROW_VAR}, which is not this machine's own `
       + `config, the file a run's brief borrows: export ${BORROW_VAR}=${machine}` };
   }
   const why = filled.includes(BORROW_VAR) ? `this machine's own config, filled because the shell exported no ${BORROW_VAR}`
     : `this machine's own config, as ${BORROW_VAR} names`;
-  return { owed: false, label: "borrow", said: `${borrow}  ← ${why}; read, never written` };
+  return { level: "ok", label: "borrow", detail: `${borrow}  ← ${why}; read, never written` };
 };
 
 /** What `forge doctor` says of the home this call resolved and why, and of the borrow where a run's
- *  tree answered; `owed` marks a row the run has an act on. */
+ *  tree answered, as the rows its report prints; a `note` is a row the run has an act on. */
 export const configHomeRows = (here = process.cwd()) => {
   const { tree, asked, conflict } = configHomeRow(here);
-  if (conflict) return [{ owed: true, label: "config home", said: configHomeConflict(here) }];
+  if (conflict) return [{ level: "note", label: "config home", detail: configHomeConflict(here) }];
   if (!tree) {
     const home = asked ?? join(homedir(), ".config");
     const why = asked ? "XDG_CONFIG_HOME" : "this machine's default, the shell exporting no XDG_CONFIG_HOME";
-    return [{ owed: false, label: "config home", said: `${home}  ← ${why}; no run's tree stands here` }];
+    return [{ level: "ok", label: "config home", detail: `${home}  ← ${why}; no run's tree stands here` }];
   }
   const why = filled.includes("XDG_CONFIG_HOME")
     ? "this tree's own run, filled because the shell exported no XDG_CONFIG_HOME"
     : "this tree's own run, as the shell exports";
-  return [{ owed: false, label: "config home", said: `${tree}  ← ${why}` }, borrowRow()];
+  return [{ level: "ok", label: "config home", detail: `${tree}  ← ${why}` }, borrowRow()];
 };

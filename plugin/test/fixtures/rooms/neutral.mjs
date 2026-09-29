@@ -9,9 +9,9 @@
    case reads. */
 import { spawnSync } from "node:child_process";
 
-import { tempRoom } from "./rooms/lifecycle.mjs";
+import { tempRoom } from "./lifecycle.mjs";
 
-const REPO_ROOT = new URL("../../../", import.meta.url).pathname;
+const REPO_ROOT = new URL("../../../../", import.meta.url).pathname;
 
 let sharedRoom = null;
 let sharedCheckout = null;

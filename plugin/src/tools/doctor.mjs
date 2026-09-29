@@ -37,7 +37,7 @@ import { flowRow } from "./copies/flow-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";
-import { configHomeConflict, configHomeRows } from "../resolve/session/config-home.mjs";
+import { configHomeConflict, configHomeRows, refusedOnConflict } from "../resolve/session/config-home.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { setsOf } from "../tracker/declared/value-sets.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
@@ -80,9 +80,11 @@ const checkScratch = () => {
   line(owed ? NOTE : OK, "scratch", said);
 };
 
-/* `cli.mjs` settled the home before anything read it; this says which one it landed on and why. */
-const checkConfigHome = () => {
-  for (const row of configHomeRows()) line(row.owed ? NOTE : OK, row.label, row.said);
+/* What this call holds as its run: the id, the scratch and the home, settled by `cli.mjs` before anything read it. */
+const checkRun = () => {
+  checkSession();
+  checkScratch();
+  report(configHomeRows());
 };
 
 /* A gate a switch of its own holds down, read from the gates: printing one undo while another
@@ -150,8 +152,7 @@ const remember = (slug, findings) => {
   saveConfig({ capabilities });
 };
 
-/* Kept only where the home is this call's own: on a conflicted home the report still says what
-   answered and records none of it, since doctor keeps running there and never writes through it. */
+/* `conflicted` is a home other than this tree's run: the findings are printed and not recorded. */
 const probe = async (scoped, slug, conflicted) => {
   const findings = {};
   let gated = 0;
@@ -447,8 +448,7 @@ export const doctor = async (argv) => {
   const usage = usageOf("doctor");
   const help = helpAskedOf(argv, SUBJECT_SLUGS);
   if (help) return console.log(help.subject ? SAYS[help.subject] : `${usage}\n${SUBJECT_USAGE}`);
-  /* The report keeps running on a conflicted home; a write through one, to the tracker or to a store, does not. */
-  if (argv[0] === MODULES && configHomeConflict()) fail(configHomeConflict(process.cwd(), true));
+  refusedOnConflict(argv[0] === MODULES);
   if (argv[0] === MODULES) return (await import("./services/doctor/modules/manage.mjs")).modulesSubject(argv.slice(1));
   const subject = SUBJECT_SLUGS.includes(argv[0]) ? argv[0] : null;
   reading(subject);
@@ -483,7 +483,7 @@ export const doctor = async (argv) => {
     fail(`doctor: \`--${project[0]}\` writes the project's own record and \`--${machine[0]}\` writes this `
       + "machine's, which are two stores and two calls. Nothing was sent: send one of them.");
   }
-  if (configHomeConflict() && (project.length || machine.length)) fail(configHomeConflict(process.cwd(), true));
+  refusedOnConflict(project.length || machine.length);
   const wrote = await wroteProject(asked, pairs, positionals);
   if (wrote) return wrote.forEach((said) => console.log(said));
   for (const row of MACHINE_WRITES) {
@@ -498,9 +498,7 @@ export const doctor = async (argv) => {
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
-  checkSession();
-  checkScratch();
-  checkConfigHome();
+  checkRun();
 
   const stale = mcpForgeIgnored();
   /* Each half is named separately: a project whose credentials are already saved and whose slug
