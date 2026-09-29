@@ -45,8 +45,63 @@ export const ranOut = (dropped, deadline) => (dropped.name === "TimeoutError"
 /* A process its own caller kills at an instant — a hook, under what hooks.json registers — names that clock once, and every attempt and every wait between attempts stays inside it: a budget the retries can run past is not one (ISS-215). One process answers one event, so the clock is the process's; a process that names none keeps the ladder it had. */
 let ceiling = null;
 
+/* What held that clock, by kind, as the wall time under which at least one of the kind was under way:
+   parts sent together overlap, and a sum of each one's own time would account for more clock than
+   there was. Without it a stand-down could only say what the last attempt was given, which near a
+   budget's reset is the few milliseconds a pacing wait left of the whole clock (ISS-2385). */
+const KINDS = {
+  pacing: "pacing for the reset the tracker named",
+  retry: "waits between attempts",
+  call: "calls in flight",
+};
+
+const fresh = () => Object.fromEntries(Object.keys(KINDS).map((kind) => [kind, { open: 0, since: 0, total: 0 }]));
+
+let spent = fresh();
+let longestHeaders = 0;
+
 export const boundedBy = (left, from) => {
   ceiling = left ? { left, from } : null;
+  spent = fresh();
+  longestHeaders = 0;
+};
+
+/** Opens one span of `kind` and hands back what closes it; closing it twice closes it once. */
+export const spending = (kind) => {
+  const held = spent[kind];
+  if (held.open === 0) held.since = performance.now();
+  held.open += 1;
+  let closed = false;
+  return () => {
+    if (closed) return;
+    closed = true;
+    held.open -= 1;
+    if (held.open === 0) held.total += performance.now() - held.since;
+  };
+};
+
+/* The longest this process waited on an answer's headers, taken where a budget is read off those
+   same headers, so no reading exists without a measured wait behind it. */
+export const sawHeadersAfter = (millis) => {
+  longestHeaders = Math.max(longestHeaders, millis);
+};
+
+export const callRoom = () => longestHeaders;
+
+const heldFor = (held) => held.total + (held.open > 0 ? performance.now() - held.since : 0);
+
+const secondsSaid = (millis) => (millis > 0 ? `${(millis / 1000).toFixed(2)}s` : "none");
+
+/** The account `spending` keeps, as one sentence, or "" where no clock was named. */
+export const clockSpentSaid = () => {
+  if (!ceiling) return "";
+  const figures = Object.entries(KINDS).map(([kind, words]) => [words, heldFor(spent[kind])]);
+  if (figures.every(([, millis]) => millis <= 0)) {
+    return `No call, pacing wait or retry held any of ${ceiling.from}, so it went to the work this `
+      + "process did before them.";
+  }
+  const [pacing, retry, call] = figures.map(([words, millis]) => `${words} held ${secondsSaid(millis)}`);
+  return `Of ${ceiling.from}, ${pacing}, ${retry} and ${call}.`;
 };
 
 /** What the process's clock has left in milliseconds, or Infinity where nothing named one. */

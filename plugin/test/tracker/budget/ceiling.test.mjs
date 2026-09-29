@@ -74,7 +74,8 @@ test("a clock with nothing left sends nothing, and says which clock it was", asy
   boundedBy(() => 0, CLOCK);
   const answer = await answering(200, {}, read);
   assert.equal(asks, 0);
-  assert.equal(answer.refused, "Nothing was sent: a case's clock had no time left.");
+  assert.equal(answer.refused, "Nothing was sent: a case's clock had no time left. No call, pacing wait or "
+    + "retry held any of a case's clock, so it went to the work this process did before them.");
 });
 
 test("with no clock named the ladder is the four attempts it was", async () => {

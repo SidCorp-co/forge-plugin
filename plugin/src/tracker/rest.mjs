@@ -5,7 +5,10 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ceilingFrom, ceilingLeft, clockFor, deadlineOf, parsedOr, ranOut, secondsGiven, textWithin, within } from "../wire/request.mjs";
+import {
+  callRoom, ceilingFrom, ceilingLeft, clockFor, clockSpentSaid, deadlineOf, parsedOr, ranOut, sawHeadersAfter, secondsGiven,
+  spending, textWithin, within,
+} from "../wire/request.mjs";
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
@@ -31,6 +34,13 @@ export const retryOf = (status, repeatable) => {
 };
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
+
+/* Only where the attempt's bound was cut to the process's clock: a caller's own `waits` is a deadline
+   the account does not answer for. */
+const onClock = (said, deadline) => {
+  if (!ceilingFrom() || deadline?.from !== ceilingFrom()) return said;
+  return `${said}${/[.!?]$/u.test(said) ? "" : "."} ${clockSpentSaid()}`;
+};
 
 /* The first wait, doubled per attempt under the cap; `retrySeconds` in config.json sets it, 0 for a suite proving the message rather than the wait, and the attempt count and a 429's wait stay (ISS-736). */
 export const retrySeconds = (config = userConfig()) => secondsGiven(config.retrySeconds) ?? FALLBACK_RETRY_SECONDS;
@@ -108,13 +118,17 @@ const waited = (seconds, signal) => new Promise((done) => {
 });
 
 /* Predictable rather than discovered by the refusal after it (ISS-1849), against the tracker's own
-   clock, the reset being an instant in its frame, and inside what is left of the attempt's own. */
+   clock, the reset being an instant in its frame, and inside what is left of the attempt's own once
+   the call after the wait has room to be answered in: a wait that takes all of it leaves the call a
+   clock it cannot be answered inside, which is a stand-down bought with a wait (ISS-2385). */
 const paced = async (key, clock, left) => {
   while (!clock.aborted) {
-    const held = reserveIn(key, sharedNow(), left());
+    const held = reserveIn(key, sharedNow(), left() - callRoom());
     if (!held) return true;
     if (held.said) console.error(held.said);
+    const done = spending("pacing");
     await waited(held.seconds, clock);
+    done();
   }
   return false;
 };
@@ -127,26 +141,32 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
   let dropped = null;
   let bound = deadline;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const stop = spend?.() ?? (ceilingLeft() > 0 ? null : `Nothing was sent: ${ceilingFrom()} had no time left.`);
+    const stop = spend?.() ?? (ceilingLeft() > 0 ? null : `Nothing was sent: ${ceilingFrom()} had no time left. ${clockSpentSaid()}`);
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
     /* Only a reservation this attempt took is its to retire: one an abort ended before it took any
        would retire another call's, and the next window would lend that call's room twice. */
     let took = false;
-    const unpredicted = unpredictedIn(key);
+    let unpredicted = unpredictedIn(key);
+    let inFlight = null;
     try {
       bound = within(deadline);
       const clock = clockFor(bound, signal);
       const armed = performance.now();
       took = await paced(key, clock, () => bound.millis - (performance.now() - armed));
+      unpredicted = unpredictedIn(key);
+      inFlight = spending("call");
       const sentAt = performance.now();
       response = await make(clock);
-      sawAnswer(response.headers, sentAt, performance.now());
+      const gotAt = performance.now();
+      sawAnswer(response.headers, sentAt, gotAt);
+      sawHeadersAfter(gotAt - sentAt);
       sawBudget(key, response.headers);
       text = await textWithin(response, clock);
     } catch (error) {
       dropped = error;
     } finally {
+      inFlight?.();
       if (took) settled(key);
     }
     /* An attempt whose body dropped is a dropped attempt, whatever its headers said: those describe a request the server answered and `dropped` the connection dying before the answer arrived, so a 200 whose body stalled is no success and a 429's is judged no differently. What the rule costs rather than exempts: a 429 whose body stalls waits the ladder's number instead of the one the server sent (ISS-828). */
@@ -161,11 +181,13 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     const left = ceilingLeft();
     if (wait * 1000 >= left) {
       const spent = `Forge ${said.trimEnd()}, and waiting ${wait}s to send it again would outlast the `
-        + `${left / 1000}s left of ${ceilingFrom()}, so it was not sent again.`;
+        + `${left / 1000}s left of ${ceilingFrom()}, so it was not sent again. ${clockSpentSaid()}`;
       return { response, text, dropped, deadline: bound, spent };
     }
+    const resting = spending("retry");
     console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
     await sleep(wait);
+    resting();
   }
   return { response, text, dropped, deadline: bound };
 };
@@ -220,7 +242,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
     );
     if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
-      + `${ranOut(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
+      + `${onClock(ranOut(dropped, deadline), deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
       return [part, refused(said(body, response.status, args),
