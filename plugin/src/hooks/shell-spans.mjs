@@ -435,7 +435,7 @@ const operative = (text) => {
   return out.join("");
 };
 
-/** Each redirect a shell would make, with where it stands and its target as the command wrote it: matched where the shell reads a `>` as its own operator, and read off the text itself, so a quoted target keeps its quotes. how/writes.md. */
+/** Each redirect a shell would make, with where it stands and its target as the command wrote it: a `>` that is data opens none, and the target is sliced from the given text so a quoted one keeps its quotes. how/writes.md. */
 export const redirectsIn = (text) =>
   [...operative(text).matchAll(REDIRECT)].map((one) => {
     const end = one.index + one[0].length;
