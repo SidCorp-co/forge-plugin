@@ -433,8 +433,6 @@ export const startsAt = (text) =>
     });
   });
 
-export const starts = (text) => startsAt(text).map((one) => one.said);
-
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run — unwrapped before expanded, since the shell that takes a `-c` body is what an `env` prefix reaches. */
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));

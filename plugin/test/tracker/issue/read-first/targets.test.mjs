@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 
 import { joined, targetsOfTool, writeTargets } from "../../../../src/tracker/issue-read.mjs";
 import { isReference } from "../../../../src/tracker/issues.mjs";
-import { shellText, starts } from "../../../../hooks/_hook.mjs";
+import { shellText, startsAt } from "../../../../hooks/_hook.mjs";
 import { OWN } from "../../../fixtures/own-project.mjs";
 import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
 import { assertRouteFirst } from "../../../fixtures/route-first.mjs";
@@ -17,7 +17,7 @@ import { HOME, OTHER, UUID, because, comment, edgeWrite, gate, live, owed, raw, 
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the target is read where a command starts, so it is given the starts. */
-const targets = (command) => writeTargets(bash(command), starts(shellText(joined(command))));
+const targets = (command) => writeTargets(bash(command), startsAt(shellText(joined(command))).map((one) => one.said));
 
 test("every verb that writes the record names its issue, and the read verbs name none", () => {
   const owed = {
