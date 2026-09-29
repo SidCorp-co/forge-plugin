@@ -5,9 +5,9 @@ import test from "node:test";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { namesOf, touched, writtenPaths } from "../../hooks/_hook.mjs";
-import { quoting } from "../../src/hooks/shell-spans.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { namesOf, touched, writtenPaths } from "../../../hooks/_hook.mjs";
+import { quoting } from "../../../src/hooks/shell-spans.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 const room = tempRoom("escapes-");
 const bash = (command) => ({ session_id: "s1", tool_name: "Bash", tool_input: { command }, cwd: room, transcript_path: "" });
