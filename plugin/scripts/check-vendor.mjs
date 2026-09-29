@@ -6,12 +6,12 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const VENDOR = join(HERE, "..", "hooks", "vendor");
-const upstream = process.argv[2] ?? join(HERE, "..", "..", "packages", "code-quality");
+import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
+
+const VENDOR = join(PLUGIN_ROOT, "hooks", "vendor");
+const upstream = process.argv[2] ?? join(PLUGIN_ROOT, "..", "packages", "code-quality");
 
 const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
   cwd: upstream,

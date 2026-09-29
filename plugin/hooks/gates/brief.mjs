@@ -1,24 +1,17 @@
 // Refuse a dispatch to one of this plugin's roles whose message `forge brief` did not print: a typed
 // brief is where a dispatcher's method reached a run. how/brief.md says why.
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { deny, how } from "../_hook.mjs";
 import { FRESH_MS, generatedFor } from "../../src/brief/record.mjs";
-import { PLUGIN_ROOT } from "../../src/tools/plugin-copy.mjs";
+import { PLUGIN_ROOT, nameAt } from "../../src/tools/plugin-copy.mjs";
 
 const DISPATCHES = new Set(["Agent", "Task"]);
 const KEY = /\b[A-Z][A-Z0-9]*-\d+\b/u;
 
 /* The prefix a role of this plugin carries is its name, read off the copy that is running. */
 const rolePrefix = () => {
-  try {
-    const { name } = JSON.parse(readFileSync(join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"), "utf8"));
-    return name ? `${name}:` : null;
-  } catch {
-    return null;
-  }
+  const name = nameAt(PLUGIN_ROOT);
+  return name ? `${name}:` : null;
 };
 
 export const run = (ev) => {

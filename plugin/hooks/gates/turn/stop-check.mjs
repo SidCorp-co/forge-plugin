@@ -11,7 +11,7 @@ import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { standingIn, startedHere } from "../../../src/flow/lease/holder.mjs";
 import { gitProbe, probeMs } from "../../../src/hooks/git-probe.mjs";
-import { configuresLint, linting, MAX_FILES } from "../../../src/hooks/lint-delegate.mjs";
+import { lintConfigured, linting, unreadWhy } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
 import { withoutBodies } from "../../../src/resolve/session/here-doc.mjs";
@@ -224,20 +224,17 @@ const stillRunning = (tree, since, calls, worktree) => {
   return [...found.values()].sort((one, two) => String(one.since).localeCompare(String(two.since)));
 };
 
-const UNREAD = {
-  cap: `past the first ${MAX_FILES} code files in path order, which is as many as one stop lints`,
-  clock: "the stop clock ran out",
-  timeout: "the linter's own time limit",
-};
+const SAID = { by: "one stop", clock: "the stop clock" };
 
-/** What the linter said about the turn's writes, and each file it left unread with why, filtered by `configuresLint` as the post-call gate filters it. */
+/** What the linter said about the turn's writes, and each file it left unread with why, filtered by `lintConfigured` as the post-call gate filters it. */
 const linted = (ev, records) => {
   const found = [];
   const unread = [];
   const at = (file) => repoRoot(file) ?? dirname(file);
+  const configured = lintConfigured();
   for (const { file, said, unread: why } of linting(ev, turnWrites(records), left, { at })) {
     if (said) found.push(`${typed(file)} — ${said.split("\n")[0]}`);
-    else if (why && configuresLint(file)) unread.push(`${typed(file)} (${UNREAD[why] ?? why})`);
+    else if (why && configured(file)) unread.push(`${typed(file)} (${unreadWhy(why, SAID) ?? why})`);
   }
   return { found, unread };
 };

@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
-import { configuresLint, linting, MAX_FILES } from "../../src/hooks/lint-delegate.mjs";
+import { UNREAD, lintConfigured, linting, MAX_FILES, unreadWhy } from "../../src/hooks/lint-delegate.mjs";
 import { askedAlready, block, context, remaining, touched, unseenWrites } from "../_hook.mjs";
 
 const SPARE_MS = 5_000;
@@ -20,11 +20,7 @@ const shaOf = (file) => {
   }
 };
 
-const WHY = {
-  cap: `past the first ${MAX_FILES} code files in path order, which is as many as one call's gate lints`,
-  clock: "the event's clock ran out before them",
-  timeout: "the linter did not answer within its time limit",
-};
+const SAID = { by: "one call's gate", clock: "the event's clock" };
 
 /* Said rather than refused: a file never read and a file that passed were the same silence (ISS-38). */
 const unlinted = (ev, files) => {
@@ -32,8 +28,8 @@ const unlinted = (ev, files) => {
     const near = relative(ev.cwd || process.cwd(), file);
     return near.startsWith("..") || isAbsolute(near) ? file : near;
   };
-  const lines = Object.entries(WHY)
-    .map(([why, text]) => [text, files.filter((one) => one.unread === why).map((one) => shown(one.file))])
+  const lines = UNREAD
+    .map((why) => [unreadWhy(why, SAID), files.filter((one) => one.unread === why).map((one) => shown(one.file))])
     .filter(([, names]) => names.length)
     .map(([text, names]) => `  ${text}: ${names.join(", ")}`);
   return `Not linted, so nothing here says these pass:\n${lines.join("\n")}\n`
@@ -63,9 +59,10 @@ export const run = (ev) => {
   };
   const reasons = [];
   const unread = [];
+  const configured = lintConfigured();
   for (const one of linting(ev, touched(ev), () => remaining() - SPARE_MS, { skip: asked })) {
     const { file, said } = one;
-    if (one.unread && configuresLint(file)) unread.push(one);
+    if (one.unread && configured(file)) unread.push(one);
     if (!said) continue;
     reasons.push(said);
     /* Stamped as it stands after the delegate, which may have formatted it. */

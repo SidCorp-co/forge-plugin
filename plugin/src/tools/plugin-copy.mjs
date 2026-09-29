@@ -45,7 +45,8 @@ export const pluginCopy = (root = PLUGIN_ROOT) => {
   };
 };
 
-const nameAt = (root) => read(join(root, ".claude-plugin", "plugin.json"))?.name ?? null;
+/** This plugin's name, off the manifest of the copy at `root`; null where it names none. */
+export const nameAt = (root) => read(join(root, ".claude-plugin", "plugin.json"))?.name ?? null;
 
 export const installedPaths = (record = installRecord(), root = PLUGIN_ROOT) =>
   recordsOf(nameAt(root) ?? "", record).map((one) => one.installPath).filter((one) => typeof one === "string");

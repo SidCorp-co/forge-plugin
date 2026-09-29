@@ -25,11 +25,13 @@ test("the plugin root is the directory holding the plugin manifest, and it is th
   assert.ok(existsSync(join(ROOT, ROOT_MODULE)), `${ROOT_MODULE} is the file the checker exempts, and it exists`);
 });
 
-test("no module under plugin/src counts `..` off its own location", () => {
+test("no module under plugin/src or plugin/scripts counts `..` off its own location", () => {
   const files = walk(join(ROOT, "plugin", "src"), "plugin/src");
   assert.ok(files.length > 200, `the walk found ${files.length} files, and plugin/src has hundreds`);
   assert.ok(files.some((one) => one.rel === ROOT_MODULE), "the walk reaches the root module");
-  assert.deepEqual(problems(files), []);
+  const scripts = walk(join(ROOT, "plugin", "scripts"), "plugin/scripts");
+  assert.ok(scripts.some((one) => one.rel === "plugin/scripts/check-vendor.mjs"), "the walk reaches the scripts");
+  assert.deepEqual(problems([...files, ...scripts]), []);
 });
 
 test("a `..` off the module's own URL is refused with the line and the constant to import", () => {

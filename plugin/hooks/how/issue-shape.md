@@ -16,4 +16,4 @@ wrong goes to the tracker's own screens and a note there.
 
 Not judged: whether the issue is true, worth doing or a fit; whether its complexity is right;
 whether a duplicate is one, the measure being shared words. No endpoint, or a tracker not
-answering: `forge hooks --how stood-down`.
+answering: `forge new` refuses, since no hook reads a filing.

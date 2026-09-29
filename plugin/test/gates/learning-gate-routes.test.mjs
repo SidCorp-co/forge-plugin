@@ -1,5 +1,5 @@
 /* What each of learning-gate's refusals tells a run to do, and in which order. Beside the gate's own
-   suite rather than in it, which is at its length cap; the fixtures here are this file's own. */
+   suite rather than in it, which is at its length cap; the skill room is the duplicate fixture's. */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -11,6 +11,7 @@ import { appendedLine } from "../../src/refusal.mjs";
 import { refusalCauseIn } from "../../src/stats/corpus/refusals.mjs";
 import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
+import { dupRoom } from "../fixtures/skill-duplicate.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
 const HOME = homeEnv("learning-gate-routes");
@@ -34,10 +35,7 @@ const HELD = join(memory, "background-work-survives-tool-timeout.md");
 const FACT = "A Bash tool timeout stops the waiting and never the process, so an empty output file beside a "
   + "live pid means the work is still running rather than killed.";
 writeFileSync(HELD, `---\nname: background-work-survives-tool-timeout\nmetadata:\n  type: feedback\n---\n\n${FACT}\n`);
-const skill = join(tempRoom("learning-routes-skill-"), "skills", "demo");
-mkdirSync(join(skill, "references"), { recursive: true });
-const LINE = "A refusal names the shape it refused and the one action that clears it.";
-writeFileSync(join(skill, "SKILL.md"), `# demo\n\n${LINE}\n`);
+const { room: skill, line: LINE } = dupRoom();
 
 /* A correction sent through the shell was told the new-memory bar and "write nothing", and the run
    dropped the fix: Edit asks what a change to a file already there owes, so that is where one is sent,
