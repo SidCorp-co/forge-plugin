@@ -155,3 +155,14 @@ test("every refusal this gate writes leads with its route", async () => {
   assert.match(said.reason, /^Hold — post the correction, then re-send\.\n {2}forge record correction/u);
   assertRouteFirst(said.reason, "a write outside the plan");
 });
+
+/* ISS-2445: a `>` in the source a heredoc feeds an interpreter is that program's, and a refusal for
+   the word after it names a file nothing wrote; a redirect on the heredoc's own line still writes. */
+test("a > in an interpreter's heredoc body is no write, and a redirect on its own line is one", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const body = ["if n > buf.len():", "    pass", "PY"].join("\n");
+  assert.equal(runs(`cd plugin/src && python3 - <<'PY'\n${body}`).allowed, true);
+  const held = runs(`cd plugin/src && python3 - <<'PY' > unplanned.mjs\n${body}`);
+  assert.equal(held.allowed, false);
+  assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
+});
