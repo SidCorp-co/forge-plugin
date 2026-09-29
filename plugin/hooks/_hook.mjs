@@ -280,15 +280,19 @@ function touching(ev, freshMs) {
 }
 
 /** The paths a call spelled, resolved but not followed: `touched` answers with what a name points at,
- *  and a link is a different question from its target. */
+ *  and a link is a different question from its target. A relative name is placed in every tree a `cd`
+ *  before it could have left the shell in, since nothing here asks the disk which one it was, and in
+ *  the event's cwd where the text names none of them — the candidate `touched` falls back on too. */
 export const named = (ev) => {
   const ti = ev.tool_input ?? {};
   const cwd = ev.cwd || process.cwd();
-  const found =
-    ev.tool_name === "Bash"
-      ? namesOf(String(ti.command ?? "")).map((one) => one.token)
-      : [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean);
-  return found.map((one) => resolve(cwd, one));
+  if (ev.tool_name !== "Bash") return [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean).map((one) => resolve(cwd, one));
+  const command = String(ti.command ?? "");
+  const standing = standingIn(command, cwd);
+  return [...new Set(namesOf(command).flatMap(({ token, at }) => {
+    const { trees } = placedAt(command, token, at) ? standing(at) : { trees: [] };
+    return trees.length ? trees.map((tree) => resolve(tree, token)) : [resolve(cwd, token)];
+  }))];
 };
 
 export function deny(reason) {

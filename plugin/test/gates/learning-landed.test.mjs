@@ -72,6 +72,22 @@ test("a guarded name that links out of the tree is still a guarded write", () =>
   assert.match(said, /points-away\.md/u, "named by the link the call used");
 });
 
+/* The same link reached by a `cd` from another tree, which is how a delegated run reaches its
+   worktree: its spelling is placed where that `cd` took the shell, not in the event's cwd (ISS-2860). */
+test("a guarded name reached through a cd is still named by the link the call used", () => {
+  const outside = join(tempRoom("landed-outside-"), "kept.md");
+  writeFileSync(outside, "a line\n");
+  symlinkSync(outside, join(room, "points-away-by-cd.md"));
+  const run = callHook(HOOK, {
+    session_id: randomUUID(),
+    tool_name: "Bash",
+    tool_input: { command: `cd ${pathed(room)} && printf x > points-away-by-cd.md` },
+    cwd: tempRoom("landed-elsewhere-"),
+  }, HOME);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(answered(run)?.reason ?? "", /points-away-by-cd\.md/u, "named by the link the call used");
+});
+
 /* The other direction, and the only case where no name the call used is guarded: the file is not there
    yet, so the disk cannot follow it, and only its directory settling inside the tree says what it is. */
 test("a new file named through a directory link into the tree is a guarded write", () => {
