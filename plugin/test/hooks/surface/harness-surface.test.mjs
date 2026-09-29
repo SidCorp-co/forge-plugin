@@ -19,18 +19,45 @@ const filesUnder = (at) => readdirSync(at, { withFileTypes: true, recursive: tru
   .map((one) => join(one.parentPath ?? one.path, one.name))
   .filter((one) => one.endsWith(".mjs") && !one.includes("/node_modules/"));
 
-/* Every name a file takes from the harness: a named import by its own name rather than its alias,
-   and a namespace import by each member it reads off the namespace. */
+/* A module named as what an import reads, static or dynamic, so a comment or a string that only
+   mentions the path is no import of it. */
+const SPECIFIER = (path) => String.raw`"[^"]*${path}"`;
+const STATIC = (path) => String.raw`from\s*${SPECIFIER(path)}`;
+const DYNAMIC = (path) => String.raw`await\s+import\(\s*${SPECIFIER(path)}`;
+const SHELL_SPANS = String.raw`hooks\/shell-spans\.mjs`;
+const HARNESS = String.raw`\/_hook\.mjs`;
+const reachesShellSpans = (text) => new RegExp(`${STATIC(SHELL_SPANS)}|${DYNAMIC(SHELL_SPANS)}`, "u").test(text);
+
+const all = (text, pattern) => [...text.matchAll(new RegExp(pattern, "gu"))].map((one) => one[1]);
+
+/* Every name a file takes from the harness: a named import or a destructured dynamic one by its own
+   name rather than the one it is bound to, and a namespace, bound either way, by each member it
+   reads off it. */
 const takenFromHarness = (text) => {
-  const named = [...text.matchAll(/import\s*\{([^}]*)\}\s*from\s*"[^"]*\/_hook\.mjs"/gu)]
-    .flatMap((one) => one[1].split(",").map((name) => name.trim().split(/\s+as\s+/u)[0]).filter(Boolean));
-  const spaces = [...text.matchAll(/import\s*\*\s*as\s+(\w+)\s+from\s*"[^"]*\/_hook\.mjs"/gu)].map((one) => one[1]);
-  const members = spaces.flatMap((space) => [...text.matchAll(new RegExp(`\\b${space}\\.(\\w+)`, "gu"))].map((one) => one[1]));
-  return [...named, ...members];
+  const picks = [
+    ...all(text, String.raw`import\s*\{([^}]*)\}\s*${STATIC(HARNESS)}`),
+    ...all(text, String.raw`\{([^}]*)\}\s*=\s*${DYNAMIC(HARNESS)}`),
+  ].flatMap((list) => list.split(",").map((one) => one.trim().split(/\s+as\s+|\s*:\s*/u)[0]).filter(Boolean));
+  const spaces = [
+    ...all(text, String.raw`import\s*\*\s*as\s+(\w+)\s+${STATIC(HARNESS)}`),
+    ...all(text, String.raw`\b(\w+)\s*=\s*${DYNAMIC(HARNESS)}`),
+  ];
+  return [...picks, ...spaces.flatMap((space) => all(text, String.raw`\b${space}\.(\w+)`))];
 };
 
+test("an import is read off what an import names, in every form this repository writes one", () => {
+  assert.equal(reachesShellSpans('import { struck } from "../../src/hooks/shell-spans.mjs";'), true);
+  assert.equal(reachesShellSpans('const { struck } = await import("../../src/hooks/shell-spans.mjs");'), true);
+  assert.equal(reachesShellSpans("// a gate never imports hooks/shell-spans.mjs itself"), false, "a mention is no import");
+  assert.deepEqual(takenFromHarness('import {\n  NOWHERE,\n  spelled as bare,\n} from "../_hook.mjs";'), ["NOWHERE", "spelled"]);
+  assert.deepEqual(takenFromHarness('const { DEADLINES, remaining: left } = await import("../../hooks/_hook.mjs");'),
+    ["DEADLINES", "remaining"]);
+  assert.deepEqual(takenFromHarness('const harness = await import("../../hooks/_hook.mjs");\nharness.struck("x");'), ["struck"]);
+  assert.deepEqual(takenFromHarness('import * as harness from "../../hooks/_hook.mjs";\nharness.spans("x");'), ["spans"]);
+});
+
 test("a gate takes the shell reading through the harness and never the module itself", () => {
-  const reaching = filesUnder(GATES).filter((one) => readFileSync(one, "utf8").includes("hooks/shell-spans.mjs"));
+  const reaching = filesUnder(GATES).filter((one) => reachesShellSpans(readFileSync(one, "utf8")));
   assert.deepEqual(reaching, [], "a gate importing shell-spans directly splits the boundary the harness draws");
 });
 
