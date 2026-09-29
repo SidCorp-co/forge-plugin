@@ -242,6 +242,7 @@ test("a rule named in an argument is not a run", () => {
   assert.ok(decide(`echo "the note names ${STAGE_ALL} in prose" | forge codex consult`).allowed);
   assert.ok(decide(`grep -n "${BY_NAME}" plugin/hooks/entries/bash-guard.mjs`).allowed, "and a search for it");
   assert.equal(decide("sudo git reset --hard HEAD").allowed, false, "a runner still runs what follows");
+  assert.equal(decide("exec git reset --hard HEAD").allowed, false, "and `exec` is one");
   assert.equal(decide("sudo -u root git reset --hard").allowed, false, "past the runner's own options");
   const two = String.fromCharCode(34);
   assert.equal(

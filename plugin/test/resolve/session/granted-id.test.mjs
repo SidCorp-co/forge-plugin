@@ -340,6 +340,8 @@ test("the turn is credited to the last id one of its shell calls granted", () =>
       "and one whose value a quote inside it joins is still the one word in front of this assignment"],
     [["export FORGE_SESSION_ID=a-run", `FOO="a b" FORGE_SESSION_ID=b-run ${WRITE}`], "b-run",
       "the same where the quoted half carries a space"],
+    [[`export FORGE_SESSION_ID=a-run; A="x\\" FORGE_SESSION_ID=b-run" ${WRITE}`], "a-run",
+      "a backslash keeps a double quote open, so the assignment after it is the value of A"],
     [[`(FORGE_SESSION_ID=b-run) && ${WRITE}`], null, "a subshell's assignment is that subshell's own environment"],
     [[`cd /tmp\nexport FORGE_SESSION_ID=a-run\n${WRITE}`], "a-run", "a line down, as a worktree run writes it"],
     [[], null, "a turn with no shell call at all"],
