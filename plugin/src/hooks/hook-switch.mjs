@@ -62,23 +62,40 @@ export const gateFile = (name) =>
     ? join(GATES_DIR, `${name}.mjs`)
     : gatesByName().get(`${name}.mjs`) ?? null);
 
+const GATE_LINE = /hooks\/gate\.mjs((?:\s+[\w-]+)*)/u;
+const wordsOn = (command) => GATE_LINE.exec(command)?.[1].trim().split(/\s+/u).filter(Boolean) ?? null;
+
 /** The gate names one registered command runs, or the script's own where it names no gate: the registration is parsed here alone, so the checker that roots a rule at every hook reads the same line the runner does. */
 export const namesOn = (command) => {
-  const gate = /hooks\/gate\.mjs((?:\s+[\w-]+)*)/u.exec(command);
-  if (gate) return gate[1].trim().split(/\s+/u).filter((one) => one && !EVENT_KINDS.includes(one));
+  const words = wordsOn(command);
+  if (words) return words.filter((one) => !EVENT_KINDS.includes(one));
   const own = /hooks\/([\w-]+)\.mjs/u.exec(command);
   return own ? [own[1]] : [];
+};
+
+/** Each command a hooks.json registers: its event, the seconds the host gives it before killing it,
+ *  whether it runs through gate.mjs, and the clock that line names — the word `dispatch` takes its
+ *  deadline by — or null. */
+export const registrationsIn = (registered) => {
+  const found = [];
+  for (const [event, blocks] of Object.entries(registered?.hooks ?? {})) {
+    for (const block of blocks ?? []) {
+      for (const one of block.hooks ?? []) {
+        const command = one.command ?? "";
+        const words = wordsOn(command);
+        const clock = words?.find((word) => EVENT_KINDS.includes(word)) ?? null;
+        found.push({ event, command, timeout: one.timeout ?? null, gated: words !== null, clock });
+      }
+    }
+  }
+  return found;
 };
 
 /* Where a name becomes a type: one gate is on one event, or on the stop pair. Memoised — `offNow` asks per hook, and one run reads one hooks.json. */
 export const hookEvents = once(() => {
   const found = {};
-  for (const [event, blocks] of Object.entries(readJson(join(HOOKS_DIR, "hooks.json"))?.hooks ?? {})) {
-    for (const block of blocks ?? []) {
-      for (const one of block.hooks ?? []) {
-        for (const name of namesOn(one.command ?? "")) (found[name] ??= []).push(event);
-      }
-    }
+  for (const { event, command } of registrationsIn(readJson(join(HOOKS_DIR, "hooks.json")))) {
+    for (const name of namesOn(command)) (found[name] ??= []).push(event);
   }
   return found;
 });

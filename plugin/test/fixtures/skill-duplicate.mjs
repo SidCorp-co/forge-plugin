@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { callHook, tempRoom } from "../fixtures.mjs";
+import { agentRefusal, callHook, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
 
@@ -19,18 +19,11 @@ export const dupRoom = () => {
 };
 
 /* As the harness sends it. A run's own session sits on the event and in the environment both, the id
-   a run was handed outranking the event's. A subagent's names the dispatcher in `session_id` and the
-   run in `agent_id` alone, and its process carries the wave's id and none of the run's. */
+   a run was handed outranking the event's; a subagent's is `agentRefusal`'s. */
 export const dupWrite = (session, { room, line }, { home, name = "shape.md", agent = null, says = line }) => {
-  const env = agent ? { ...home, CLAUDE_CODE_SESSION_ID: "the-wave" } : { ...home, FORGE_SESSION_ID: session };
-  if (agent) delete env.FORGE_SESSION_ID;
-  const event = {
-    session_id: session,
-    ...(agent ? { agent_id: agent } : {}),
-    tool_name: "Write",
-    tool_input: { file_path: join(room, "references", name), content: `${says}\n` },
-  };
-  const run = callHook(HOOK, event, env);
+  const write = { tool_name: "Write", tool_input: { file_path: join(room, "references", name), content: `${says}\n` } };
+  if (agent) return agentRefusal(HOOK, { session, agent, ...write }, home);
+  const run = callHook(HOOK, { session_id: session, ...write }, { ...home, FORGE_SESSION_ID: session });
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
 };

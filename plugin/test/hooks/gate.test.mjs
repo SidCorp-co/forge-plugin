@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { answered, dirtyRepo, pathed, tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
 import { gateFile } from "../../src/hooks/hook-switch.mjs";
+import { deadlineProblems } from "../../src/checks/surface/deadlines.mjs";
 
 const GATE = new URL("../../hooks/gate.mjs", import.meta.url).pathname;
 const REGISTERED = new URL("../../hooks/hooks.json", import.meta.url).pathname;
@@ -154,7 +155,6 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
 
 test("the clock is the event's kind: before a call it is short, after one it is long", async () => {
   const { DEADLINES, dispatch, remaining } = await import("../../hooks/_hook.mjs");
-  assert.ok(DEADLINES.pre < 10_000 && DEADLINES.post < 90_000, "each under what hooks.json registers");
   /* Which ceiling is in force, read as the one the spend accounts against: after a pre the spend
      is this process's age out of the short budget, and after a post it is the same age out of the
      long one. Neither reads how long the run has taken to get here. */
@@ -315,4 +315,22 @@ test("a stand-down on a stop event is the answer's warning, that event having no
   const answer = answered(run(["stop", REFUSED], ev), { skipped: [REFUSED] });
   assert.match(answer.systemMessage, /refused-gate could not judge this call/u);
   assert.equal(answer.hookSpecificOutput, undefined, "and no tool event's field is sent on an event that has none");
+});
+
+/* The host kills a hook at its registered timeout, so each clock ends first: every clock the file
+   names, read off the parse `dispatch` shares, and not the two a hand-written number once covered. */
+test("every clock hooks.json registers through gate.mjs ends under the timeout it is given", () => {
+  const registered = JSON.parse(readFileSync(REGISTERED, "utf8"));
+  assert.deepEqual(deadlineProblems(registered), []);
+  const planted = { hooks: {
+    Stop: [{ hooks: [{ command: "node x/hooks/gate.mjs stop stop-check", timeout: 20 }] }],
+    SessionStart: [{ hooks: [{ command: "node x/hooks/link-cli.mjs", timeout: 1 }] }],
+    PostToolUse: [{ hooks: [{ command: "node x/hooks/gate.mjs post code-quality" }] }],
+    PreToolUse: [{ hooks: [{ command: "node x/hooks/gate.mjs pst bash-guard", timeout: 10 }] }],
+  } };
+  const found = deadlineProblems(planted, { stop: 25_000, post: 85_000 });
+  assert.equal(found.length, 3, found.join("\n"));
+  assert.match(found[0], /^Stop registers 20s and the stop deadline is 25s — lower DEADLINES\.stop/u);
+  assert.match(found[1], /^PostToolUse runs the post clock with no timeout registered/u);
+  assert.match(found[2], /^PreToolUse runs gate\.mjs naming no clock/u, "a mistyped clock is no clock");
 });

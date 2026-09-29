@@ -2,24 +2,15 @@
 
 import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
-import { logBytes } from "../../../src/codex/codex-log.mjs";
-import { allPathed, listed, unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
+import { listed, unverdicted } from "../../../src/codex/log/replies.mjs";
+import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unruled } from "../../../src/codex/log/owed-refusal.mjs";
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
-import { configDir } from "../../../src/resolve/config.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
-import { offReach } from "../../../src/hooks/hook-switch.mjs";
 import { NOWHERE, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
 
-const ESCAPE = `Past the gate: \`forge hooks --off codex-owed\`, ${offReach("codex-owed")} — an inline `
-  + "`FORGE_CODEX_DISABLE=1` prefix never reaches a hook.";
-
-const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
-  + "XDG_CONFIG_HOME clears nothing here.";
-
-const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, or drop `
-  + `the key and the commit alone asks. ${ESCAPE}\n\n${unknown} is no door this reads: that key in this project's `
-  + "configuration is a list of the doors a consult is demanded at.";
+const GATE = "codex-owed";
+const ESCAPE = escapeFor(GATE);
 
 /* One read of a tree's project file answers both halves: which commands that project calls its gate
    and its ship, and which doors it named. `commit` is codex-second's and matches no class here.
@@ -62,10 +53,8 @@ const heldBy = (text, cwd) => {
   return { found, unreadable };
 };
 
-/* What one tree's record owes, read under whichever home the caller has set. */
-const judged = (root, cwd) => {
-  let entries = null;
-  const log = () => (entries ??= logBytes());
+/* What one tree's record owes, read under whichever home the caller has set, off the call's one log reader. */
+const judged = (root, cwd, log) => {
   const cd = root === cwd ? "" : `cd ${typed(root)} && `;
   const waiting = pendingState(root);
   /* The working copy, which is what a consult reads and what this call would judge, where the
@@ -73,9 +62,7 @@ const judged = (root, cwd) => {
   const owed = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
   if (owed.length) {
     deny(
-      `Run \`${cd}echo "<what you were doing>" | forge codex consult --diff --only `
-        + `blocker,major ${allPathed(owed)}\`, then re-send. ${readIn()} `
-        + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
+      `Run ${consultFor(cd, owed)}, then re-send. ${readIn()} ${DROP} ${ESCAPE}\n\n`
         + `Codex has not read what this call would judge in ${root} (${listed(owed)}, recorded ${ageOf(waiting.at)}). `
         + "Every door this project names asks for that same reading, so clearing it here clears them all."
         + how(),
@@ -83,14 +70,8 @@ const judged = (root, cwd) => {
   }
   const open = unverdicted(log(), root);
   if (open) {
-    deny(
-      `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
-        + `A --recheck records the verdict for what it refutes. ${ESCAPE}\n\n`
-        + `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what `
-        + `became of ${open.open.join(", ")}, and this call would judge it in ${root}. Ruling on them `
-        + "clears every door this project names."
-        + how(),
-    );
+    deny(unruled(open, GATE, `, and this call would judge it in ${root}. Ruling on them clears every door `
+      + "this project names.") + how());
   }
 };
 
@@ -107,10 +88,11 @@ export const run = (ev) => {
         + how(),
     );
   }
+  const log = logReader();
   for (const { root, unknown } of found) {
-    if (unknown) deny(`${malformed(unknown)}${how()}`);
+    if (unknown) deny(`${malformed(unknown, GATE)}${how()}`);
     /* Each tree's record where its own run keeps it, which is not this hook's environment. */
-    inRunHome(root, () => judged(root, cwd));
+    inRunHome(root, () => judged(root, cwd, log));
   }
   done();
 };

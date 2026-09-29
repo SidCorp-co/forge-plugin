@@ -3,26 +3,30 @@
 import { dirname, resolve } from "node:path";
 
 import { hookRecord } from "../../../src/codex/codex.mjs";
-import { inRunHome, runHomeAt } from "../../../src/resolve/session/run-home.mjs";
+import { inHome, runHomeAt } from "../../../src/resolve/session/run-home.mjs";
 import { noteShown, sessionKey } from "../../../src/shown/ledger.mjs";
 import { askedAlready, context, touched, transcriptOf, turnAt, turnRecords } from "../../_hook.mjs";
 
-/* Each path into the record of the home its tree's run keeps, which the doors read it back from. */
+/* Each path into the record of the home its tree's run keeps, which the doors read it back from: one
+   walk to the git directory per directory the call touched, on every Write, Edit and Bash. */
 const byHome = (paths) => {
+  const homes = new Map();
   const groups = new Map();
   for (const path of paths) {
-    const home = runHomeAt(dirname(resolve(path))) ?? "";
+    const dir = dirname(resolve(path));
+    if (!homes.has(dir)) homes.set(dir, runHomeAt(dir));
+    const home = homes.get(dir);
     groups.set(home, [...(groups.get(home) ?? []), path]);
   }
-  return [...groups.values()];
+  return groups;
 };
 
 export const run = (ev) => {
   const at = turnAt(turnRecords(transcriptOf(ev)) ?? []);
   const told = (root) => askedAlready(ev, `${root} ${at}`, "codex-turn");
   let said = null;
-  for (const paths of byHome(touched(ev))) {
-    const one = inRunHome(dirname(resolve(paths[0])), () => hookRecord(ev, paths, told));
+  for (const [home, paths] of byHome(touched(ev))) {
+    const one = inHome(home, () => hookRecord(ev, paths, told));
     said ??= one;
   }
   if (!said) return;

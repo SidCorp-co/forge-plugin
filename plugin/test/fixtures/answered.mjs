@@ -48,3 +48,14 @@ export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd(
     child.on("close", (status, signal) => done({ stdout, stderr, status, signal }));
     child.stdin.end(JSON.stringify(event));
   }).then((run) => spoke(run, said));
+
+/** A pre-call hook fired as the harness fires a subagent's: the event names the dispatcher in
+ *  `session_id` and the run only in `agent_id`, and the process carries the wave's id and none of the
+ *  run's. Returns the refusal's reason. */
+export const agentRefusal = (hook, { session, agent, ...event }, home, cwd = process.cwd()) => {
+  const env = { ...home, CLAUDE_CODE_SESSION_ID: "the-wave" };
+  delete env.FORGE_SESSION_ID;
+  const run = callHook(hook, { session_id: session, agent_id: agent, ...event }, env, cwd);
+  assert.equal(run.status, 0, run.stderr);
+  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+};

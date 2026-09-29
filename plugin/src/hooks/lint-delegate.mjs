@@ -15,6 +15,16 @@ const SKIP = /\/(node_modules|dist|\.next|coverage|\.git)\//;
 /* A ceiling, under what the event's clock has left: a hook killed takes every gate's answer with it. */
 const FILE_MS = 60_000;
 export const MAX_FILES = 5;
+
+/** Why `linting` leaves a file unread, in the order a note lists them. */
+export const UNREAD = ["cap", "clock", "timeout"];
+
+/** The words for one of them: `by` is what lints the first `MAX_FILES` of a call, `clock` whose clock it was. */
+export const unreadWhy = (why, { by, clock }) => ({
+  cap: `past the first ${MAX_FILES} code files in path order, which is as many as ${by} lints`,
+  clock: `${clock} ran out`,
+  timeout: "the linter did not answer within its time limit",
+})[why];
 const CONFIGS = ["js", "mjs", "cjs", "ts", "mts", "cts"].map((one) => `eslint.config.${one}`);
 
 function delegateFor(file) {
@@ -37,15 +47,31 @@ const optedOut = (dir) => {
 
 /** Whether the tree holding a file configures ESLint for it and has not opted out: a file left
  *  unlinted is news only where a linter would have spoken, a project that decided nothing being
- *  owed silence (AC-11-1-2). Read up to the directory holding `.git`, the tree's own edge. */
-export function configuresLint(file) {
-  let found = false;
-  for (let dir = dirname(file); ; dir = dirname(dir)) {
-    if (optedOut(dir)) return false;
-    found ||= CONFIGS.some((name) => existsSync(join(dir, name)));
-    if (existsSync(join(dir, ".git")) || dirname(dir) === dir) return found;
-  }
-}
+ *  owed silence (AC-11-1-2). Read up to the directory holding `.git`, the tree's own edge: ESLint's
+ *  own lookup walks upward past the delegate's project root, so that edge is the nearer answer.
+ *  Handed out per call, each directory read once for the files that share it and never across calls,
+ *  since a tree that configured nothing may configure something before the next one. */
+export const lintConfigured = () => {
+  const seen = new Map();
+  /* From one directory to the edge: whether a directory on the way opted out, else whether one configures. */
+  const from = (dir) => {
+    if (seen.has(dir)) return seen.get(dir);
+    let said;
+    if (optedOut(dir)) said = { out: true, found: false };
+    else {
+      const here = CONFIGS.some((name) => existsSync(join(dir, name)));
+      const up = dirname(dir);
+      const above = existsSync(join(dir, ".git")) || up === dir ? { out: false, found: false } : from(up);
+      said = above.out ? above : { out: false, found: here || above.found };
+    }
+    seen.set(dir, said);
+    return said;
+  };
+  return (file) => {
+    const { out, found } = from(dirname(file));
+    return !out && found;
+  };
+};
 
 const RULE_AT_END = /^\d+:\d+\s.*\s([\w@/-]+)$/gmu;
 const headed = (text) => {

@@ -7,10 +7,10 @@ A gate stands down when what it needs will not answer — the tracker unreachabl
 a key not found, too little of the hook's clock left to retry — or when its own code throws. The
 call goes ahead, and the note beside it names the gate and the reason.
 
-Why through: what these gates guard, a thread delivered or a filing's shape, can be put right after
-the write, while refusing on no evidence stops every issue write for as long as the tracker or this
-machine's token is down. The CLI's own verbs refuse instead, because each one is the write itself
-and has nothing to send without the tracker.
+Why through: what these gates guard, a thread delivered before an issue write, can be put right
+after the write, while refusing on no evidence stops every issue write for as long as the tracker or
+this machine's token is down. The CLI's own verbs refuse instead, because each one is the write
+itself and has nothing to send without the tracker.
 
 How to clear it: `forge doctor` reads the endpoint, the token and the project a gate uses;
 `forge doctor --token <pat>` saves a token the tracker refused. A note calling it a defect in this

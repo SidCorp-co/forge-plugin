@@ -1,16 +1,15 @@
 // A commit waits for what a consult owes on what it stages: unread documents, unruled findings. how/codex-second.md.
 
-import { isAbsolute, resolve } from "node:path";
+import { resolve } from "node:path";
 
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, stagedIn } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
-import { logBytes } from "../../../src/codex/codex-log.mjs";
-import { allPathed, listed, unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
-import { configDir } from "../../../src/resolve/config.mjs";
+import { allPathed, listed, unverdicted } from "../../../src/codex/log/replies.mjs";
+import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unruled } from "../../../src/codex/log/owed-refusal.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
-import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
+import { codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
-import { offReach } from "../../../src/hooks/hook-switch.mjs";
+import { treeNamed } from "../../../src/git/tree-named.mjs";
 import {
   REDIRECT,
   COMMITS,
@@ -39,14 +38,9 @@ const OPAQUE = ["--pathspec-from-file", "--patch", "--interactive"];
    read, and `--patch` picks after the hook answers: each asks for the record whole. */
 const TWICE = new RegExp(COMMITS.source, "gu");
 /* A relative `-C` is that tree from where the shell stands, which a move before this commit — and
-   not one after it — has changed. Where the shell stands nowhere the text names, only an absolute
-   `-C` still answers, and the sentinel travels on: `resolve` would throw on it. */
-const treeAt = (text, one) => {
-  const named = gitTreeOf(text.slice(one.index, one.index + one[0].length));
-  const moved = directoryAt(text, one.index);
-  if (moved === NOWHERE) return named && isAbsolute(named) ? named : NOWHERE;
-  return named && !isAbsolute(named) && moved ? resolve(moved, named) : named ?? moved;
-};
+   not one after it — has changed. Unplaced, as the text spells it: the caller places it against the event's cwd. */
+const treeAt = (text, one) =>
+  treeNamed(directoryAt(text, one.index), gitTreeOf(text.slice(one.index, one.index + one[0].length)));
 
 export const commitAim = (ev) => {
   const text = shellText((ev.tool_input ?? {}).command);
@@ -91,19 +85,9 @@ export const commitAim = (ev) => {
   };
 };
 
-/* The switch a refused agent can reach, first, and then the variable as what it is: written as a
-   prefix on the refused command it reached no hook, and that refusal named no way out (ISS-70). */
-const ESCAPE = `Past the gate: \`forge hooks --off codex-second\`, ${offReach("codex-second")} — an inline `
-  + "`FORGE_CODEX_DISABLE=1` prefix never reaches a hook.";
-
+const GATE = "codex-second";
+const ESCAPE = escapeFor(GATE);
 const DOOR = "commit";
-const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, or drop `
-  + `the key and the commit alone asks. ${ESCAPE}\n\n${unknown} is no door this reads: that key in this project's `
-  + "configuration is a list of the doors a consult is demanded at.";
-
-/* The record and the log resolve under XDG_CONFIG_HOME, and a hook reads the session's or the tree's run home, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
-const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
-  + "XDG_CONFIG_HOME clears nothing here.";
 
 /* One call, two commits, one answer: the tree judged is the first commit's, and the second's is
    inspected by nothing. Saying which was judged is what the reader needs to split the call. */
@@ -129,8 +113,7 @@ const judged = (ev, root, aim, staged, also) => {
   /* Recorded this turn or a turn ago, staged here, and unread at the bytes this commit carries — the
      index with no `-a`: 7 of 30 landed unread, and an exact revert owed a consult with nothing in it. */
   const waiting = pendingState(root);
-  let entries = null;
-  const log = () => (entries ??= logBytes());
+  const log = logReader();
   const asked = demandIn(waiting.files, staged);
   const apart = aim.all ? [] : apartFrom(root, asked, probeMs(remaining()));
   const demand = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;
@@ -139,13 +122,12 @@ const judged = (ev, root, aim, staged, also) => {
     /* Every consult reads the working copy, so for a path the index holds apart from it no consult clears the hold and naming one is a refusal nobody can act on: staging what was read is the route (ISS-1011). */
     const stale = demand.filter((rel) => apart.includes(rel));
     const unread = demand.filter((rel) => !apart.includes(rel));
-    const consult = `\`${cd}echo "<what you were doing>" | forge codex consult --diff --only blocker,major `
-      + `${allPathed(unread)}\``;
+    const consult = consultFor(cd, unread);
     const stage = `\`${cd}git add ${allPathed(stale)}\`, or commit with \`-a\``;
     deny(
       `${unread.length ? `Run ${consult}` : `Stage what was read — ${stage}`}`
         + `${unread.length && stale.length ? `, and stage what was read — ${stage}` : ""}. Then re-send. `
-        + `${readIn()} \`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
+        + `${readIn()} ${DROP} ${ESCAPE}\n\n`
         + `Codex has not read what this commit stages in ${root} (${listed(demand)}, recorded ${ageOf(waiting.at)}).${also}`
         + `${stale.length ? ` The staged copy of ${listed(stale)} is not the copy on disk a consult would `
           + `read, so no consult clears ${stale.length > 1 ? "them" : "it"}.` : ""}`
@@ -155,12 +137,7 @@ const judged = (ev, root, aim, staged, also) => {
   /* 37 consults made findings nobody ruled on, and the next consult then read "still open" as a guess. */
   const open = unverdicted(log(), root);
   if (open) {
-    deny(
-      `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
-        + `A --recheck records the verdict for what it refutes. ${ESCAPE}\n\n`
-        + `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}`
-        + how(),
-    );
+    deny(unruled(open, GATE, `.${also}`) + how());
   }
 };
 
@@ -184,7 +161,7 @@ export const run = (ev) => {
   }
   const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
   const owed = codexOwedOf(projectFileAt(at)?.codex);
-  if (owed.unknown) deny(`${malformed(owed.unknown)}${how()}`);
+  if (owed.unknown) deny(`${malformed(owed.unknown, GATE)}${how()}`);
   if (!owed.value.includes(DOOR)) done();
   const root = repoRoot(at);
   if (!root) done();
