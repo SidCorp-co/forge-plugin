@@ -7,9 +7,11 @@ How to clear it: fix what each finding names, at the source. `--fix` is refused.
 inverts, so read that one twice: shortening a string raises the ratio, and the header comment is what
 to trim in the same edit.
 
-It writes: the project's `prettier` runs before the lint, so a file written by `sed` comes back
-formatted. A file is reported once per content in a session, and the log line carries the rules that
-fired.
+It writes: the project's `prettier` output, kept only where it creates no finding the edit's own
+text lacks, since joining lines moves a ratio such as comment density. So a file written by `sed`
+comes back formatted unless the formatting is what would refuse it, and a refusal says whether the
+file was reformatted. A file is reported once per content in a session, and the log line carries the
+rules that fired.
 
 Not read is said: one call lints its first five code files by path, and a file past that, past the
 clock or past the linter's time limit is named after the call, refusing nothing. Not seen too:

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.2, commit e6a96b5,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.3, commit eced00c,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -365,21 +365,62 @@ const text = (await formatted(require, editedFile, source)) ?? source;
 // No --max-warnings: severity is the project's decision, and a rule it enabled
 // at `warn` should not block an edit. The text goes on stdin under the file's own name, which is
 // what picks its configuration, so the verdict is read before anything is written.
-const result = spawnSync(
-  process.execPath,
-  [eslintBin, "--format", "json", "--no-cache", "--stdin", "--stdin-filename", editedFile],
-  {
-    cwd: workspace,
-    encoding: "utf8",
-    env: process.env,
-    input: text,
-    windowsHide: true,
-  },
+function lint(input) {
+  const result = spawnSync(
+    process.execPath,
+    [eslintBin, "--format", "json", "--no-cache", "--stdin", "--stdin-filename", editedFile],
+    {
+      cwd: workspace,
+      encoding: "utf8",
+      env: process.env,
+      input,
+      windowsHide: true,
+    },
+  );
+  if (result.error) fail(`could not start ESLint: ${result.error.message}`);
+  return result;
+}
+
+/** The rules a lint failed, by id: line numbers move under a formatter, a rule's name does not. */
+function failing({ stdout }) {
+  try {
+    return new Set(
+      JSON.parse(stdout || "[]").flatMap((report) =>
+        report.messages.filter((message) => message.severity === 2).map((message) => message.ruleId ?? "parsing"),
+      ),
+    );
+  } catch {
+    return new Set(["unreadable ESLint output"]);
+  }
+}
+
+const refuse = (result, note = "") =>
+  fail(`${path.relative(projectRoot, editedFile)}\n${formatLintOutput(result.stdout, result.stderr)}${note}`);
+
+const result = lint(text);
+if (result.status === 0) {
+  if (text !== source) replaceWith(editedFile, text);
+  process.exit(0);
+}
+if (text === source) refuse(result);
+
+// A rule that reads a ratio — comment-density above all — moves when prettier joins lines, so the
+// formatted text can fail where the author's passed. A finding only the formatting created is not
+// the edit's, and the formatting is what gives way (ISS-1089).
+const own = lint(source);
+const ownRules = failing(own);
+const created = [...failing(result)].filter((rule) => !ownRules.has(rule));
+if (created.length > 0) {
+  if (own.status === 0) process.exit(0);
+  refuse(
+    own,
+    `\n\nNot reformatted: the project's prettier output fails ${created.join(", ")}, which the text ` +
+      "the edit wrote passes, so the file stands as the edit wrote it and the findings above are that text's.",
+  );
+}
+replaceWith(editedFile, text);
+refuse(
+  result,
+  "\n\nReformatted by the project's prettier before this lint, and every rule above fails on the " +
+    "text the edit wrote as well, so the findings are the edit's.",
 );
-
-if (result.error) fail(`could not start ESLint: ${result.error.message}`);
-if (text !== source) replaceWith(editedFile, text);
-if (result.status === 0) process.exit(0);
-
-const diagnostic = formatLintOutput(result.stdout, result.stderr);
-fail(`${path.relative(projectRoot, editedFile)}\n${diagnostic}`);
