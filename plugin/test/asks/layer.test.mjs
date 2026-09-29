@@ -43,7 +43,7 @@ const result = (id, text, isError = false) => `${JSON.stringify({
 /* What a build says of itself, the rows it hands its caller left to the cases about them. */
 const built = (paths, options) => {
   const { rows, ...said } = refreshLayer(paths, options);
-  assert.ok(Array.isArray(rows) || said.unreadable, "a build that read the layer hands back its rows");
+  assert.equal(Array.isArray(rows), !said.unreadable, "a build that read the layer hands back its rows");
   return said;
 };
 

@@ -325,7 +325,7 @@ test("a goals read the tracker never answers is closed at its bound, and the hoo
   }));
   await new Promise((ready) => stalled.listen(0, "127.0.0.1", ready));
   const held = await project({ slug: "stalled", asks: { mode: "decide" } });
-  writeFileSync(join(held.config, "forge", "config.json"), JSON.stringify({ url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t" }));
+  writeFileSync(join(held.config, "forge", "config.json"), JSON.stringify({ url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t", retrySeconds: 0 }));
   const started = Date.now();
   const said = await ask(held, [reportQuestion()]);
   const ended = Date.now();

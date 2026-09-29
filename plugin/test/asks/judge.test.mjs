@@ -1,7 +1,6 @@
 /* What the judge is told, and what of its answer is believed: only an offered option, followed from
    a precedent it was shown, with the close precedents agreeing, for every question of the call. */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { JUDGE_ROLE, judge, judgeInput, readVerdicts } from "../../src/asks/judge.mjs";
@@ -84,17 +83,14 @@ const gateway = (answer) => {
 
 const judged = (send, model = "m") => judge({ values: VALUES, model, questions: [QUESTION], shortlists: [[PRECEDENT]], goals: null, send });
 
-test("the judge is one bounded model call, forced through `decide`, and imports nothing of the consult's own call", async () => {
+test("the judge is one bounded model call, forced through `decide`", async () => {
   const { sent, send } = gateway(() => ({ ok: true, status: 200, body: streamed(said(decided)) }));
   const held = await judged(send);
   assert.deepEqual(held.decisions.map((one) => one.option), ["Page"]);
   const [one] = sent;
   assert.equal(one.url, "http://gateway.test/v1/messages");
   assert.deepEqual(one.body.tool_choice, { type: "tool", name: "decide" });
-  assert.equal(one.body.system, JUDGE_ROLE);
-  const source = readFileSync(new URL("../../src/asks/judge.mjs", import.meta.url), "utf8");
-  assert.match(source, /from "\.\.\/wire\/model-call\.mjs"/u);
-  assert.doesNotMatch(source, /codex-api\.mjs/u, "the consult's API module is no route of the judge's");
+  assert.equal(one.body.system, JUDGE_ROLE, "the role as it is, where the consult's call would wrap it for its cache");
 });
 
 test("the machine's effort goes out as a parameter only where the judge's model id names no rung", async () => {

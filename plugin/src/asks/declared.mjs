@@ -6,7 +6,7 @@ import { escaped } from "../markdown.mjs";
 
 /* The tool's schema strips any key it does not declare before a hook sees the call, so the
    declaration rides the one field the owner also reads: the question's own last words. */
-export const DECLARED = /\[reversible:\s*([^\]\n]*[^\]\s])\s*\]\s*$/u;
+const DECLARED = /\[reversible:\s*([^\]\n]*[^\]\s])\s*\]\s*$/u;
 
 /** The question's own words, its declaration taken off: how it is undone is not what it asks. */
 export const withoutDeclaration = (question) => String(question?.question ?? "").replace(DECLARED, "");

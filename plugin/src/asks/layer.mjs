@@ -31,9 +31,9 @@ const wholeRow = (row) => Boolean(row) && typeof row.id === "string" && (row.kin
   ? typeof row.question === "string" && typeof row.answer === "string" && strings(row.options)
   : row.kind === DECISION_KIND && strings(row.readings) && row.readings.length > 0);
 
-/** The layer read strictly, for the one reader that decides from it: a row that will not parse may be
- *  the answer that disagrees, and the offsets already read past it will not bring it back. */
-export const readLayer = (paths) => strictJsonlAt(paths.precedents, wholeRow, "a precedent");
+/* The layer read strictly, for the one reader that decides from it: a row that will not parse may be
+   the answer that disagrees, and the offsets already read past it will not bring it back. */
+const readLayer = (paths) => strictJsonlAt(paths.precedents, wholeRow, "a precedent");
 
 /** How many precedents a layer holds, read without building anything. */
 export const precedentCount = (paths) => precedentsIn(paths).length;
