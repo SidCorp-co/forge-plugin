@@ -22,6 +22,12 @@ test("a relative move is placed against the base, and without one comes back as 
   assert.equal(directoryAt("forge advance ISS-1", 0), null, "and no move at all is no directory of its own");
 });
 
+/* A backslash keeps a double quote open, so the destination is the whole word and not the part before its space; how the word is then spelt is `spelled`'s. */
+test("a destination is cut where a shell word ends, an escaped quote inside it included", () => {
+  const text = String.raw`cd "/a\" b" && forge advance ISS-1`;
+  assert.ok(directoryAt(text, at(text, "forge"), "/cwd").endsWith(" b"), "the word runs past its escaped quote");
+});
+
 test("a destination the text does not carry is NOWHERE, whatever base is given", () => {
   for (const text of ["cd - && forge advance ISS-1", "cd && forge advance ISS-1", "cd \"$X\" && forge advance ISS-1"]) {
     assert.equal(directoryAt(text, at(text, "forge"), "/cwd"), NOWHERE, text);

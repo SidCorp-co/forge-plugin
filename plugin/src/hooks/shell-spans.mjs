@@ -105,10 +105,14 @@ export const quoting = (text) => {
 };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
-const AHEAD = String.raw`(?:[({]\s*|\b(?:if|elif|while|until|then|else|do)\s+)*`;
-const WORD = String.raw`(?:'[^']*'|"[^"]*"|\\.|[^\s;&|()<>])+`;
+const KEYWORDS = "if|elif|while|until|then|else|do";
+/* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from this one list, so a word gained here is gained by all of them. */
+const PREFIXES = `sudo|command|nohup|time|env|exec|${KEYWORDS}`;
+/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader. One reading, so a case a shell word gains is gained by every reader that splits one. */
+const shellWord = (stops) => String.raw`(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s${stops}])+`;
+const AHEAD = String.raw`(?:[({]\s*|\b(?:${KEYWORDS})\s+)*`;
 const MOVES = new RegExp(
-  `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-(?!-(?![\\w-]))[\\w-]+)*)(?:\\s+--)?(?:\\s+(${WORD}))?`,
+  `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-(?!-(?![\\w-]))[\\w-]+)*)(?:\\s+--)?(?:\\s+(${shellWord(";&|()<>")}))?`,
   "u",
 );
 const STAYS = /(?:^|\s)-[a-zA-Z]*n[a-zA-Z]*(?![\w-])/u;
@@ -386,7 +390,7 @@ export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
 /** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. */
 export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
-  + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
+  + String.raw`|\b(?:${PREFIXES})\s+|^)`;
 
 /** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option, and both read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow `-o` or `-O`, and only the long spellings keep one, which is what leaves `--outputting` the unknown option curl refuses rather than a write. how/writes.md. */
 export const WRITES = new RegExp(
@@ -457,8 +461,10 @@ const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
 const UNLINKS = /\s--remove-source-files(?![\w-])/u;
 
 /* A word, kept whole through its quotes; the three classes of word that are not a program's operands — what runs before the verb, a word carrying a redirect, which is `echo x>a` as much as `> a` and is the one reading struck text must not lose, and a flag, whose value a gate has no way to tell from a flag that takes none; and the move whose destination is read for the tree it leaves behind rather than as an operand. Last, where the destination is an option's value, attached to its letter or standing after it: the operand a last-operand verb then aims at is one of the files it reads, and which one is meant went out with every other flag's value. */
-const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s;&|])+/gu;
-const BEFORE = /^(?:[A-Za-z_]\w*=|(?:sudo|command|nohup|time|env|exec|do|then|else|elif|if|while|until)$)/u;
+const WORDS = new RegExp(shellWord(";&|"), "gu");
+/** The shell words of one command, each a match carrying its `index`, with a redirect still inside the word it touches. */
+export const wordsOf = (text) => [...text.matchAll(WORDS)];
+const BEFORE = new RegExp(String.raw`^(?:[A-Za-z_]\w*=|(?:${PREFIXES})$)`, "u");
 const AIMED = /[<>]/u;
 const FLAG = /^-/u;
 const RELOCATES = /^(?:cd|pushd|popd)$/u;
@@ -494,7 +500,7 @@ const aimsOf = (program, operands, stage, said) => {
 
 /** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Each word is unquoted once here and carried as `said`, since every reading below wants the shell's spelling; `text` stays because the offsets a strike works in are the raw word's. */
 const readsIn = (stage, from, strict) => {
-  const words = [...stage.matchAll(WORDS)]
+  const words = wordsOf(stage)
     .map((m) => ({ text: m[0], said: unquote(m[0]), from: from + m.index, to: from + m.index + m[0].length }));
   let at = 0;
   while (at < words.length && BEFORE.test(words[at].said)) at += 1;
@@ -553,7 +559,7 @@ const outputsOf = (program, words) => {
 
 /* One stage's words past what runs before its verb, each placed in the whole text, and the verb. */
 const argumentsOf = (text, stage) => {
-  const words = [...text.slice(stage.start, stage.end).matchAll(WORDS)]
+  const words = wordsOf(text.slice(stage.start, stage.end))
     .map((m) => ({ said: m[0], from: stage.start + m.index, to: stage.start + m.index + m[0].length }));
   let at = 0;
   while (at < words.length && BEFORE.test(words[at].said)) at += 1;

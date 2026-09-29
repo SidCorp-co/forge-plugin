@@ -1,6 +1,6 @@
 /* The id a Bash command grants the process that will write, for a hook handed none of its own, read
    off the text's commands and not its first alone (ISS-672). The two forms: docs/cli/claim.md. */
-import { quoting, spans } from "../../hooks/shell-spans.mjs";
+import { quoting, spans, wordsOf } from "../../hooks/shell-spans.mjs";
 import { withoutBodies } from "./here-doc.mjs";
 import { CALL_STARTS, WRITER_WORD } from "./writer-word.mjs";
 
@@ -70,14 +70,12 @@ const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s
 const EVERY_TAKE_BACK = new RegExp(TAKEN_BACK.source, "gu");
 
 const VAR = "FORGE_SESSION_ID";
-const ANY_WORD = String.raw`(?:"[^"]*"|'[^']*'|[^\s;&|])`;
 const ANY_VALUE = String.raw`(?:"([^"]*)"|'([^']*)'|([^\s;&|)]*))`;
 
 /** Every id the text names, read wider than one it may grant, and why that asymmetry is the safe direction: docs/cli/the-granted-id.md. */
 const EVERY_VALUE = new RegExp(String.raw`\bFORGE_SESSION_ID=${ANY_VALUE}`, "gu");
 const ASSIGNS_THE_ID = new RegExp(EVERY_VALUE.source, "u");
 
-const EVERY_WORD = new RegExp(String.raw`${ANY_WORD}+`, "gu");
 const WRAPPER = /^(?:export|env)$/u;
 const ASSIGNS = /^([A-Za-z_]\w*)=([\s\S]*)$/u;
 const ONE_NAME = new RegExp(String.raw`^${LITERAL}$`, "u");
@@ -120,7 +118,7 @@ const grantedIn = (found) => {
 const grantIn = (said) => {
   let found;
   let wrapped = false;
-  for (const [word] of said.matchAll(EVERY_WORD)) {
+  for (const [word] of wordsOf(said)) {
     if (WRAPPER.test(word)) wrapped = true;
     else {
       const hit = ASSIGNS.exec(wrapped ? dequoted(word) : word);
