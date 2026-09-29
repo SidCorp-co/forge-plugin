@@ -166,3 +166,25 @@ test("a > in an interpreter's heredoc body is no write, and a redirect on its ow
   assert.equal(held.allowed, false);
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
 });
+
+/* ISS-2766: a shell fixture moves into a directory it made and writes there. On its own line that
+   move leaves the shell in the call's cwd only where it failed, so the write is placed nowhere this
+   can read, as it is behind `&&`; a move the text spells still leaves the call's own tree a candidate. */
+test("a write after a cd this cannot follow is refused for no path on its own line too", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const fixture = `cd "$(mktemp -d)"\necho x > plugin/src/unplanned.mjs`;
+  assert.equal(runs(fixture).allowed, true);
+  assert.equal(runs(`bash <<'EOF'\n${fixture}\nEOF`).allowed, true);
+  assert.equal(runs(`bash <<EOF\n${fixture}\nEOF`).allowed, true);
+});
+
+test("a write after a cd the text spells, on its own line, is still refused in the call's own tree", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const away = tempRoom("plan-scope-cd-");
+  const moved = runs(`cd ${away}\necho x > plugin/src/unplanned.mjs`);
+  assert.equal(moved.allowed, false);
+  assert.match(moved.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
+  const stayed = runs("echo x > plugin/src/unplanned.mjs");
+  assert.equal(stayed.allowed, false);
+  assert.match(stayed.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
+});
