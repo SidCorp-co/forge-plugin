@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.3, commit eced00c,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.3, commit 4ac0390,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -280,8 +280,10 @@ function replaceWith(file, text) {
     writeFileSync(sibling, text, { flag: "wx" });
     chmodSync(sibling, statSync(file).mode);
     renameSync(sibling, file);
-  } catch {
+    return null;
+  } catch (error) {
     rmSync(sibling, { force: true });
+    return error.message;
   }
 }
 
@@ -381,45 +383,59 @@ function lint(input) {
   return result;
 }
 
-/** The rules a lint failed, by id: line numbers move under a formatter, a rule's name does not. */
+/** The rules a lint failed, by id, or null where ESLint gave no report to read them from: line
+ *  numbers move under a formatter, a rule's name does not. */
 function failing({ stdout }) {
+  let reports;
   try {
-    return new Set(
-      JSON.parse(stdout || "[]").flatMap((report) =>
-        report.messages.filter((message) => message.severity === 2).map((message) => message.ruleId ?? "parsing"),
-      ),
-    );
+    reports = JSON.parse(stdout);
   } catch {
-    return new Set(["unreadable ESLint output"]);
+    return null;
   }
+  if (!Array.isArray(reports)) return null;
+  return new Set(
+    reports.flatMap((report) =>
+      report.messages.filter((message) => message.severity === 2).map((message) => message.ruleId ?? "parsing"),
+    ),
+  );
 }
 
 const refuse = (result, note = "") =>
   fail(`${path.relative(projectRoot, editedFile)}\n${formatLintOutput(result.stdout, result.stderr)}${note}`);
 
+const settle = (result, note) => (result.status === 0 ? process.exit(0) : refuse(result, note));
+
 const result = lint(text);
-if (result.status === 0) {
-  if (text !== source) replaceWith(editedFile, text);
-  process.exit(0);
-}
-if (text === source) refuse(result);
+if (text === source) settle(result);
+const formattedRules = failing(result);
+// No report is no verdict, and nothing unjudged is written: the setup failure is the answer.
+if (formattedRules === null) refuse(result);
 
 // A rule that reads a ratio — comment-density above all — moves when prettier joins lines, so the
 // formatted text can fail where the author's passed. A finding only the formatting created is not
 // the edit's, and the formatting is what gives way (ISS-1089).
-const own = lint(source);
-const ownRules = failing(own);
-const created = [...failing(result)].filter((rule) => !ownRules.has(rule));
-if (created.length > 0) {
-  if (own.status === 0) process.exit(0);
-  refuse(
+const own = result.status === 0 ? null : lint(source);
+const ownRules = own ? (failing(own) ?? new Set()) : new Set();
+const created = [...formattedRules].filter((rule) => !ownRules.has(rule));
+if (own && created.length > 0) {
+  settle(
     own,
     `\n\nNot reformatted: the project's prettier output fails ${created.join(", ")}, which the text ` +
       "the edit wrote passes, so the file stands as the edit wrote it and the findings above are that text's.",
   );
 }
-replaceWith(editedFile, text);
-refuse(
+
+// A verdict on text that never reached the disk answers for nothing, so a write that failed hands
+// the verdict back to the text the edit wrote.
+const unwritten = replaceWith(editedFile, text);
+if (unwritten !== null) {
+  settle(
+    own ?? lint(source),
+    `\n\nNot reformatted: the project's prettier output could not be written back (${unwritten}), so ` +
+      "the findings above are of the text the edit wrote.",
+  );
+}
+settle(
   result,
   "\n\nReformatted by the project's prettier before this lint, and every rule above fails on the " +
     "text the edit wrote as well, so the findings are the edit's.",
