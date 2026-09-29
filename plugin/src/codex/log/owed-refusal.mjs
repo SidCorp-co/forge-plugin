@@ -28,7 +28,7 @@ export const consultFor = (cd, paths) =>
 
 export const DROP = "`forge codex pending --drop` discards them unread.";
 
-/** Consult `open` made findings nobody ruled on; `tail` is the gate's own account of what it judged. */
+/** The refusal over `open`'s unruled findings; `tail` is the gate's own account of what it judged. */
 export const unruled = (open, gate, tail) =>
   `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
   + `A --recheck records the verdict for what it refutes. ${escapeFor(gate)}\n\n`
