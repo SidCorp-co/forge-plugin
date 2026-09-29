@@ -396,6 +396,52 @@ export const REDIRECT = new RegExp(
   "gu",
 );
 
+/* Where a test opens: a `[[` standing where a word begins, since inside one a `>` compares two strings. */
+const TEST_OPENS = /[\s;&|(!]/u;
+
+/* The text with every `>` a shell reads as data spaced out, offset for offset: one under a quote, a comment or a backslash, and one a `[[ … ]]` test or a `(( … ))` arithmetic compares with. Under a double quote a `$(…)` or a backtick pair is still run, so its own `>` keeps its reading. */
+const operative = (text) => {
+  const out = text.split("");
+  let sub = 0;
+  let ticked = false;
+  let sum = 0;
+  let tested = false;
+  for (const { at, one, under } of quoting(text)) {
+    const next = text[at + 1];
+    if (under === " ") {
+      sub = 0;
+      ticked = false;
+    } else if (under !== '"' || (sub === 0 && !ticked)) {
+      if (under === '"' && one === "(" && text[at - 1] === "$") {
+        sub = 1;
+        if (next === "(") sum = 1;
+      } else if (under === '"' && one === "\x60") ticked = true;
+      else if (one === ">") out[at] = " ";
+      continue;
+    } else if (one === "\x60" && sub === 0) {
+      ticked = false;
+      continue;
+    } else if (one === "(") sub += 1;
+    else if (one === ")") sub -= 1;
+    if (sum > 0) {
+      if (one === "(") sum += 1;
+      else if (one === ")") sum -= 1;
+      else if (one === ">") out[at] = " ";
+    } else if (one === "(" && next === "(") sum = 1;
+    else if (!tested && one === "[" && next === "[" && (at === 0 || TEST_OPENS.test(text[at - 1]))) tested = true;
+    else if (tested && one === "]" && next === "]") tested = false;
+    else if (tested && one === ">") out[at] = " ";
+  }
+  return out.join("");
+};
+
+/** Each redirect a shell would make, with where it stands and its target as the command wrote it: matched where the shell reads a `>` as its own operator, and read off the text itself, so a quoted target keeps its quotes. how/writes.md. */
+export const redirectsIn = (text) =>
+  [...operative(text).matchAll(REDIRECT)].map((one) => {
+    const end = one.index + one[0].length;
+    return { at: one.index, target: text.slice(end - one[1].length, end) };
+  });
+
 /* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of `-o` or `-O`, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
 const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", rsync: "last", sed: "each", tee: "each", touch: "each", truncate: "each", wget: "none" };
 const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
