@@ -3,11 +3,10 @@
 // It also refuses the two shapes of a poll — a wait that sleeps, and one read of a log typed again
 // with nothing done between — which lose nothing and cost a turn per wake-up: how/polling.md.
 
-import { isAbsolute, resolve } from "node:path";
-
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
+import { treeNamed } from "../../src/hooks/tree-named.mjs";
 import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 
@@ -189,13 +188,10 @@ const instructions = (given) => {
 /* The tree it names, placed against each cwd `standsIn` allows. Memoised: one deadline for all rules.
    A cwd nobody can name leaves the tree unnamed too, unless the command spells an absolute one. */
 const GLOBALS = new RegExp(String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS, "u");
-const placed = (moved, cwd, named) =>
-  (moved === NOWHERE
-    ? (isAbsolute(named) ? named : NOWHERE)
-    : resolve(resolve(cwd || process.cwd(), moved ?? "."), named));
 const treesOf = (one, cwd) => {
-  const named = gitTreeOf(GLOBALS.exec(one.said)?.[0]) ?? ".";
-  one.trees ??= [...new Set(standsIn(one.source, one.at).map((moved) => placed(moved, cwd, named)))];
+  const named = gitTreeOf(GLOBALS.exec(one.said)?.[0]);
+  const base = cwd || process.cwd();
+  one.trees ??= [...new Set(standsIn(one.source, one.at).map((moved) => treeNamed(moved, named, base)))];
   return one.trees;
 };
 

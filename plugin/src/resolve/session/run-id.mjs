@@ -28,12 +28,9 @@ export const besideGit = (from, name) => {
   return dir ? join(dir, name) : null;
 };
 
-const heldBesideGit = (from, name) => {
-  const at = besideGit(from, name);
-  return at ? (answered(() => readFileSync(at, "utf8"))?.trim() || null) : null;
-};
+const heldIn = (dir, name) => (dir ? (answered(() => readFileSync(join(dir, name), "utf8"))?.trim() || null) : null);
 
-export const runIdAt = (from) => heldBesideGit(from, RUN_ID);
+export const runIdAt = (from) => heldIn(gitDirAt(from), RUN_ID);
 
 export const SCRATCH_AT = "forge-run-scratch";
 
@@ -63,8 +60,9 @@ export const mintRunId = (path, keys) => {
 /** The directory `start` made, off the record it wrote and never derived again: `start` prints that path as the run's
  *  own `TMPDIR`, so a run doing what it is told moves the root a second derivation reads. Null unless the record is absolute and named as this mints them; past that it is trusted — a forged record is a write to the git directory. */
 export const scratchAt = (path) => {
-  const id = runIdAt(path);
-  const at = heldBesideGit(path, SCRATCH_AT);
+  const dir = gitDirAt(path);
+  const id = heldIn(dir, RUN_ID);
+  const at = heldIn(dir, SCRATCH_AT);
   const named = Boolean(id) && MINTED_FOR.test(id) && basename(at ?? "") === `${SCRATCH}${id}`;
   return named && isAbsolute(at) ? at : null;
 };
