@@ -8,10 +8,14 @@ import { configDir } from "../../resolve/config.mjs";
 export const hookLogPath = () => join(configDir("forge"), "hook-log.jsonl");
 
 /** One line appended to a JSONL store, the file created at `0o600` while it is still empty because `appendFileSync` alone would leave it `0644`; it raises rather than answering, so each store keeps its own catch, its own return and its own sentence about the loss, and `dir` is the directory the caller means to make rather than always the file's own. */
-export const appendJsonl = (path, record, dir = dirname(path)) => {
+export const appendJsonl = (path, record, dir = dirname(path)) => appendJsonlRows(path, [record], dir);
+
+/** Several lines appended in the one write `appendJsonl` makes of one, and nothing touched for none. */
+export const appendJsonlRows = (path, records, dir = dirname(path)) => {
+  if (!records.length) return;
   mkdirSync(dir, { recursive: true });
   if (!existsSync(path)) closeSync(openSync(path, "a", 0o600));
-  appendFileSync(path, `${JSON.stringify(record)}\n`);
+  appendFileSync(path, records.map((one) => `${JSON.stringify(one)}\n`).join(""));
 };
 
 export const logHook = (record) => {

@@ -6,7 +6,7 @@ import { asksOwnerTerms, asksScope } from "../../../src/resolve/settings.mjs";
 import { gateway } from "../../../src/resolve/machine/stores.mjs";
 import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../../src/asks/declared.mjs";
 import { DECIDED, OWNER, asksRoom, decidedIds, decidedPath, logOutcome } from "../../../src/asks/decided.mjs";
-import { OWNER_KIND, layerPaths, readLayer, refreshLayer, shortlistFor } from "../../../src/asks/layer.mjs";
+import { OWNER_KIND, layerPaths, refreshLayer, shortlister } from "../../../src/asks/layer.mjs";
 
 const ASKS = "AskUserQuestion";
 /* What the build and the goals may take of the clock, so the judge keeps the larger part of it. */
@@ -50,15 +50,12 @@ const noteFor = (decision, question, log) =>
 const precedentRows = (room) => {
   const decided = decidedIds(room);
   if (decided.unreadable) return { doubt: decided.unreadable };
-  const paths = layerPaths(room);
-  const built = refreshLayer(paths, { skip: decided.ids, until: Date.now() + remaining() * BUILD_SHARE });
+  const built = refreshLayer(layerPaths(room), { skip: decided.ids, until: Date.now() + remaining() * BUILD_SHARE });
   if (built.unreadable) return { doubt: built.unreadable };
   if (!built.complete) return { doubt: "the precedent layer is not yet read to the end of its transcripts" };
-  const layer = readLayer(paths);
-  if (layer.unreadable) return { doubt: layer.unreadable };
   const after = decidedIds(room);
   if (after.unreadable) return { doubt: after.unreadable };
-  return { held: layer.rows.filter((one) => !after.ids.has(one.id.split("#")[0])) };
+  return { held: built.rows.filter((one) => !after.ids.has(one.id.split("#")[0])) };
 };
 
 const decide = async (ev, questions, room) => {
@@ -72,7 +69,8 @@ const decide = async (ev, questions, room) => {
   }
   const rows = precedentRows(room);
   if (rows.doubt) return toOwner(ev, questions, rows.doubt, room);
-  const shortlists = questions.map((one) => shortlistFor(one, rows.held));
+  const shortlist = shortlister(rows.held);
+  const shortlists = questions.map((one) => shortlist(one));
   const bare = shortlists.findIndex((list) => !list.some((one) => one.kind === OWNER_KIND));
   if (bare >= 0) return toOwner(ev, questions, `"${questions[bare].question}" has no close owner precedent`, room);
   const { problem, values } = gateway();
