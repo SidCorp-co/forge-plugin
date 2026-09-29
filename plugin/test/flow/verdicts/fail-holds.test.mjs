@@ -10,7 +10,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("fail-holds").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, judgedOwed, viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 const { foldedBody } = await import("../../../src/flow/earned/findings.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -32,6 +32,7 @@ const short = (number) => verdict(number, "short", { why: "one column rounds", f
 const corrected = (number, why = "the criterion itself was wrong") => comment(render("correction", {
   moved: "the criterion as corrected", why, corrects: `criteria:${number}`,
 }));
+const ruling = (outcome) => comment(render("triage", { outcome, "would-have-caught": "a criterion naming the order" }, "0"));
 
 const ISSUE = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-25T09:00:00.000Z", attachments: [] };
 const owed = (status, comments, issue = {}) =>
@@ -74,6 +75,25 @@ test("a whole short verdict carrying its row holds neither awaiting_release nor 
 test("a fail superseded by a later pass on the same criterion holds nothing past the judging", () => {
   assert.deepEqual(naming("awaiting_release", [mark(), pass(1), fail(2), pass(2)], 2), [],
     "the latest verdict is the one standing");
+});
+
+/* A fail written before a reopen's ruling is named twice at the later rungs — once by failedOwed
+   (which fires on `fail` alone, staleness or not) and once by judgedSince (the reopen's own
+   reading) — the same doubling `judgedOwed` already carries at `testing` for exactly this case
+   (verdictsOwed's own fail check, plus judgedSince). pastJudgingOwed reproduces that composition
+   rather than deduplicating it, so the two rungs cannot disagree with testing about the count
+   (codex review: deduplicating either pair is a separate, out-of-scope cleanup). */
+test("a stale fail is named by both the fail route and the reopen route, exactly as testing already names it twice", () => {
+  const staleFail = [mark(), fail(2), ruling("wrong-test")];
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.deepEqual(naming(status, staleFail, 2).map((one) => one.what), [
+      "criterion 2 failed its verdict",
+      "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
+    ], `${status}: named once for the fail itself and once for the reopen`);
+  }
+  assert.deepEqual(judgedOwed(viewFrom("the-uuid", ISSUE, staleFail), "ISS-7")
+    .filter((one) => one.what.includes("criterion 2")).length, 2,
+    "testing already names this stale fail twice, which is the count the later rungs now reproduce");
 });
 
 /* A criterion the judgement proved wrong, not the code, is corrected in the open rather than left

@@ -96,6 +96,27 @@ test("a verdict a reopen's triage already moved past holds awaiting_release and 
   }
 });
 
+/* A stale skip is named twice at the later rungs — once by skippedOwed (which fires on `skipped`
+   alone, staleness or not) and once by judgedSince (the reopen's own reading) — the same shape a
+   stale fail already carries there (verdictsOwed's own fail check, plus judgedSince), and testing
+   itself already accepts for a stale fail. Deduplicating either pair is a separate, out-of-scope
+   cleanup (codex review, rejected: parity with testing asks pastJudgingOwed to reproduce
+   judgedOwed's own composition, not to dedupe it) — this test locks in today's count rather than
+   leaving it an unproven side effect of folding skippedOwed and judgedSince together. */
+test("a stale skip is named by both the skip route and the reopen route, the same doubling a stale fail already carries", () => {
+  const staleSkip = [mark(), skip(2), ruling("wrong-test")];
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.deepEqual(naming(status, staleSkip, 2).map((one) => one.what), [
+      "criterion 2 was skipped (\"no route in the fixture suite reaches this criterion\"), and "
+        + "nothing on the record says it has been judged since",
+      "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
+    ], `${status}: named once for the skip itself and once for the reopen, matching a stale fail's own doubling`);
+  }
+  assert.deepEqual(judgedOwed(viewFrom("the-uuid", ISSUE, staleSkip), "ISS-7")
+    .filter((one) => one.what.includes("criterion 2")).length, 1,
+    "testing itself names it once, since a skip carries no evidence obligation for judgedSince's twin to duplicate there");
+});
+
 test("the need names both routes clear of a skip: a fresh verdict, or correcting the criterion away", () => {
   const page = [mark(), pass(1), skip(2)];
   for (const status of ["awaiting_release", "closed"]) {
