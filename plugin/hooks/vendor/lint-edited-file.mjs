@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.1, commit fc85bac,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.3, commit 4ac0390,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -11,12 +11,14 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
   realpathSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -232,13 +234,14 @@ function alreadySaid(sessionId, subject) {
 }
 
 /**
- * Prettier first, so a formatting nit is never one of the errors blocking an edit, and only where
- * the project installed it and configured it. In process, not through the CLI: this runs after
- * every edit, and a second Node start would cost more than the whole check. `getFileInfo` answers
- * what `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to
- * report with a line and a column.
+ * Prettier's text for the file, or null where there is nothing to apply, and only where the project
+ * installed it and configured it. In process, not through the CLI: this runs after every edit, and a
+ * second Node start would cost more than the whole check. `getFileInfo` answers what
+ * `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to report
+ * with a line and a column. Nothing is written here: the text is linted first, so a delegate's time
+ * limit landing mid-lint leaves the file as the edit wrote it.
  */
-async function format(require, file) {
+async function formatted(require, file, source) {
   const whole = (api) =>
     ["getFileInfo", "resolveConfig", "format"].every((name) => typeof api?.[name] === "function");
   let prettier;
@@ -248,20 +251,39 @@ async function format(require, file) {
     const loaded = await import(pathToFileURL(require.resolve("prettier")).href);
     prettier = [loaded, loaded.default].find(whole);
   } catch {
-    return;
+    return null;
   }
-  if (prettier === undefined) return;
+  if (prettier === undefined) return null;
   try {
     const { ignored, inferredParser } = await prettier.getFileInfo(file, { resolveConfig: true });
-    if (ignored || inferredParser === null) return;
+    if (ignored || inferredParser === null) return null;
     // No config is a project that has not chosen a style, and prettier's defaults are not its.
     const options = await prettier.resolveConfig(file);
-    if (options === null) return;
-    const source = readFileSync(file, "utf8");
-    const formatted = await prettier.format(source, { ...options, filepath: file });
-    if (formatted !== source) writeFileSync(file, formatted);
+    if (options === null) return null;
+    const text = await prettier.format(source, { ...options, filepath: file });
+    return text === source ? null : text;
   } catch {
-    return;
+    return null;
+  }
+}
+
+/**
+ * The text in place of the file by a rename of a finished sibling, never a truncate and a write: a
+ * kill between those two left a file empty over a slow mount (ISS-2819). A SIGTERM listener makes
+ * Node hold the delegate's signal until this synchronous stretch has run, so it cannot land between
+ * the sibling and its rename either; only a SIGKILL there leaves the sibling behind.
+ */
+function replaceWith(file, text) {
+  const sibling = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.code-quality`);
+  process.on("SIGTERM", () => process.exit(143));
+  try {
+    writeFileSync(sibling, text, { flag: "wx" });
+    chmodSync(sibling, statSync(file).mode);
+    renameSync(sibling, file);
+    return null;
+  } catch (error) {
+    rmSync(sibling, { force: true });
+    return error.message;
   }
 }
 
@@ -334,23 +356,87 @@ if (!eslintBin) {
   process.exit(0);
 }
 
-await format(require, editedFile);
+let source;
+try {
+  source = readFileSync(editedFile, "utf8");
+} catch (error) {
+  fail(`could not read ${path.relative(projectRoot, editedFile)}: ${error.message}`);
+}
+const text = (await formatted(require, editedFile, source)) ?? source;
 
 // No --max-warnings: severity is the project's decision, and a rule it enabled
-// at `warn` should not block an edit.
-const result = spawnSync(
-  process.execPath,
-  [eslintBin, "--format", "json", "--no-cache", editedFile],
-  {
-    cwd: workspace,
-    encoding: "utf8",
-    env: process.env,
-    windowsHide: true,
-  },
+// at `warn` should not block an edit. The text goes on stdin under the file's own name, which is
+// what picks its configuration, so the verdict is read before anything is written.
+function lint(input) {
+  const result = spawnSync(
+    process.execPath,
+    [eslintBin, "--format", "json", "--no-cache", "--stdin", "--stdin-filename", editedFile],
+    {
+      cwd: workspace,
+      encoding: "utf8",
+      env: process.env,
+      input,
+      windowsHide: true,
+    },
+  );
+  if (result.error) fail(`could not start ESLint: ${result.error.message}`);
+  return result;
+}
+
+/** The rules a lint failed, by id, or null where ESLint gave no report to read them from: line
+ *  numbers move under a formatter, a rule's name does not. */
+function failing({ stdout }) {
+  let reports;
+  try {
+    reports = JSON.parse(stdout);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(reports)) return null;
+  return new Set(
+    reports.flatMap((report) =>
+      report.messages.filter((message) => message.severity === 2).map((message) => message.ruleId ?? "parsing"),
+    ),
+  );
+}
+
+const refuse = (result, note = "") =>
+  fail(`${path.relative(projectRoot, editedFile)}\n${formatLintOutput(result.stdout, result.stderr)}${note}`);
+
+const settle = (result, note) => (result.status === 0 ? process.exit(0) : refuse(result, note));
+
+const result = lint(text);
+if (text === source) settle(result);
+const formattedRules = failing(result);
+// No report is no verdict, and nothing unjudged is written: the setup failure is the answer.
+if (formattedRules === null) refuse(result);
+
+// A rule that reads a ratio — comment-density above all — moves when prettier joins lines, so the
+// formatted text can fail where the author's passed. A finding only the formatting created is not
+// the edit's, and the formatting is what gives way (ISS-1089).
+const own = result.status === 0 ? null : lint(source);
+const ownRules = own ? (failing(own) ?? new Set()) : new Set();
+const created = [...formattedRules].filter((rule) => !ownRules.has(rule));
+if (own && created.length > 0) {
+  settle(
+    own,
+    `\n\nNot reformatted: the project's prettier output fails ${created.join(", ")}, which the text ` +
+      "the edit wrote passes, so the file stands as the edit wrote it and the findings above are that text's.",
+  );
+}
+
+// A verdict on text that never reached the disk answers for nothing, so a write that failed hands
+// the verdict back to the text the edit wrote.
+const unwritten = replaceWith(editedFile, text);
+if (unwritten !== null) {
+  settle(
+    own ?? lint(source),
+    `\n\nNot reformatted: the project's prettier output could not be written back (${unwritten}), so ` +
+      "the findings above are of the text the edit wrote.",
+  );
+}
+settle(
+  result,
+  "\n\nReformatted by the project's prettier before this lint, and every rule above fails on the " +
+    "text the edit wrote as well, so the findings are the edit's.",
 );
-
-if (result.error) fail(`could not start ESLint: ${result.error.message}`);
-if (result.status === 0) process.exit(0);
-
-const diagnostic = formatLintOutput(result.stdout, result.stderr);
-fail(`${path.relative(projectRoot, editedFile)}\n${diagnostic}`);

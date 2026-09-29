@@ -2,6 +2,34 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.3 - 2026-09-29
+
+### Fixed
+
+- The edit hook no longer refuses an edit for a finding its own formatting created. It judged the
+  file prettier made rather than the one the author left, and joining wrapped lines removes code
+  lines, so a file at its `comment-density` budget passed as written and failed once formatted,
+  refused for comment the author never added. Where the formatted text fails a rule the edit's own
+  text passes, the formatting is now withheld and the edit's text is the verdict, the report naming
+  the rule the formatting would have broken; where both fail the same rules, the formatted file
+  stands and the report says it was reformatted. The second lint runs only when the first fails.
+- A formatted text is written back only where ESLint gave a report on it, and a write back that
+  fails hands the verdict to the text the edit wrote, saying the file could not be reformatted. A
+  configuration that fails to load formatted the file anyway, and a directory that refused the
+  sibling file let the hook pass on a text that never reached the disk.
+
+## 0.16.2 - 2026-09-29
+
+### Fixed
+
+- The edit hook no longer leaves an edited file empty when it is killed. It wrote prettier's output
+  back by truncating the file and then writing it, and the time limit a caller runs it under could
+  land between the two, which over a network mount is a round trip wide. It also wrote before it
+  linted, so a kill during the lint left the formatted text on disk under a report of a timeout. The
+  formatted text is now linted first, on ESLint's standard input under the file's own name, and only
+  then written, to a sibling file that is renamed over the original with its mode. A kill before the
+  rename leaves the file as the edit wrote it.
+
 ## 0.16.1 - 2026-09-25
 
 ### Fixed
