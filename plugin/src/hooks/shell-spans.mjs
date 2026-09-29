@@ -137,12 +137,28 @@ const onto = (base, to) => {
 };
 
 /** Every directory a command at this point could run in: `null` the caller's own cwd, the first every move applied. */
-export const standsIn = (text, before) => {
+export const standsIn = (text, before) => standingsOf(text)(before);
+
+/* One walk of a text answers every offset of it, so a reader asking at each name of a long command pays for the command once rather than once per name (ISS-1608). The last few texts are kept, a hook asking about one command many times and about a handful in all. */
+const WALKED = new Map();
+const KEPT = 8;
+const standingsOf = (text) => {
+  if (!WALKED.has(text)) {
+    if (WALKED.size >= KEPT) WALKED.delete(WALKED.keys().next().value);
+    WALKED.set(text, walkedStanding(text));
+  }
+  return WALKED.get(text);
+};
+
+/* What each span leaves the shell in, in order, with the furthest end reached by then: a question at an offset is answered by the spans that ended at or before it, the first one ending past it stopping the reading. */
+const walkedStanding = (text) => {
+  const reached = [];
+  const states = [];
   const outer = [];
   let could = [null];
   let after = "";
+  let furthest = -1;
   for (const { start, end, opens, closes } of spans(text, { pipes: true })) {
-    if (end > before) break;
     const held = could;
     const one = text.slice(start, end).trim();
     for (let n = opens; n > 0; n -= 1) outer.push(could);
@@ -155,8 +171,22 @@ export const standsIn = (text, before) => {
     if (closes && outer.length) for (let n = closes; n > 0 && outer.length; n -= 1) could = outer.pop();
     else if (UNMOVED.test(after)) could = held;
     else if (EITHER.test(after) && said && !(PROVEN.test(next) && !INVERTED.test(one))) could = [...could, ...held];
+    furthest = Math.max(furthest, end);
+    reached.push(furthest);
+    states.push(could);
   }
-  return [...new Set(/\|\|/u.test(text.slice(0, before)) ? [...could, null] : could)];
+  const either = text.indexOf("||");
+  return (before) => {
+    let lo = 0;
+    let hi = reached.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (reached[mid] > before) hi = mid;
+      else lo = mid + 1;
+    }
+    const could = lo ? states[lo - 1] : [null];
+    return [...new Set(either >= 0 && either + 2 <= before ? [...could, null] : could)];
+  };
 };
 
 export const movedTo = (text, before) => {

@@ -234,32 +234,45 @@ function touching(ev, freshMs) {
   if (ev.tool_name !== "Bash") return [];
 
   const cwd = ev.cwd || process.cwd();
+  /* The event's own cwd is the last candidate already, so a tree is one only where a move led away from it. */
+  const moved = (trees) => trees.filter((one) => one !== cwd);
   const now = Date.now();
   const command = String(ti.command ?? "");
   /* Two texts: as written, and with a shell binding and a body's own assembly resolved, so a name the call computed is one to ask the disk about. Beside the raw scan and never instead — the resolved one drops a data heredoc's body. how/writes.md. */
   const resolved = shellWrites(command);
-  /* Both readings of each text, the disk being what answers here: a candidate that is not a file costs a lookup, while a word opening with a hyphen that really is one — a redirect's target — costs the write. */
-  const tokens = [...new Set([command, resolved]
-    .flatMap((one) => [...namesOf(one), ...namesOf(one, undefined, AIMED_AT)])
-    .map((one) => one.token))];
+  /* Both readings of each text, the disk being what answers here: a candidate that is not a file costs a lookup, while a word opening with a hyphen that really is one — a redirect's target — costs the write. Each occurrence keeps the trees a `cd` before it could have left the shell in, so one name after two moves is two files (ISS-1608). */
+  const seen = new Set();
+  const names = [command, resolved].flatMap((text) => {
+    const standing = standingIn(text, cwd);
+    return [...namesOf(text), ...namesOf(text, undefined, AIMED_AT)].flatMap(({ token, at }) => {
+      const trees = placedAt(text, token, at) ? moved(standing(at)) : [];
+      const once = `${token}\0${trees.join("\0")}`;
+      if (seen.has(once)) return [];
+      seen.add(once);
+      return [{ token, trees }];
+    });
+  });
   /* The run's own transcript, not the one the event hands over: a delegated run's call names the dispatching session, whose last message is a wave's idle wait away (ISS-1672). */
-  const since = tokens.length ? calledAt(ownTranscript(ev)) : 0;
-  /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. */
-  const claims = new Set(tokens.length ? writtenPaths(resolved, cwd).map((one) => one.token) : []);
-  const out = new Map();
-  for (const token of tokens) {
-    for (const cand of [token, join(cwd, token)]) {
+  const since = names.length ? calledAt(ownTranscript(ev)) : 0;
+  const fileAt = (token, trees) => {
+    for (const cand of new Set([...trees.map((tree) => join(tree, token)), token, join(cwd, token)])) {
       try {
         const st = statSync(cand);
-        if (st.isFile() && st.mtimeMs >= since && now - st.mtimeMs <= freshMs) {
-          const full = realpathSync(cand);
-          out.set(full, out.get(full) || claims.has(token));
-          break;
-        }
+        if (st.isFile() && st.mtimeMs >= since && now - st.mtimeMs <= freshMs) return realpathSync(cand);
       } catch {
         /* not a file */
       }
     }
+    return null;
+  };
+  /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. A claim is the file its own occurrence reached, so the same name only read in another tree is still a mention. */
+  const claims = new Set(names.length
+    ? writtenPaths(resolved, cwd).map(({ token, trees }) => fileAt(token, moved(trees))).filter(Boolean)
+    : []);
+  const out = new Map();
+  for (const { token, trees } of names) {
+    const full = fileAt(token, trees);
+    if (full) out.set(full, out.get(full) || claims.has(full));
   }
   const mentioned = [...out].filter(([, claimed]) => !claimed).map(([path]) => path);
   const restamped = mentioned.length ? agreedWithHead(mentioned, remaining) : new Set();
@@ -531,15 +544,23 @@ const namesIn = (said, tail, read) =>
     spelt: spelled(said, at),
   }));
 
-/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
-export const writtenPaths = (text, cwd, tail) => {
+/** `standsIn` placed against `cwd`, asked once per offset of one text. */
+const standingIn = (text, cwd) => {
   const held = new Map();
-  const standing = (at) => {
+  return (at) => {
     if (!held.has(at)) {
       held.set(at, standsIn(text, at).filter((one) => one !== NOWHERE).map((one) => resolve(cwd, one ?? ".")));
     }
     return held.get(at);
   };
+};
+
+/* A name a shell would still expand is placed against the trees it could stand in; one it would not — a leading `~`, a `$` in front of it, a rooted path — answers for what it spells. */
+const placedAt = (text, token, at) => token[0] !== "~" && token[0] !== "/" && text[at - 1] !== "$";
+
+/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
+export const writtenPaths = (text, cwd, tail) => {
+  const standing = standingIn(text, cwd);
   /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
   const placed = placeable(text);
   const named = spans(text).flatMap(({ start, end }) => {

@@ -90,6 +90,29 @@ test("a later turn is told even though the list from an earlier one is still pen
   assert.deepEqual(pending(ONE), ["docs/A.md", "docs/B.md", "docs/C.md"], "all three still pending");
 });
 
+/* AC-06-2-1, ISS-1608: a delegated run reaches its worktree with a `cd` in the same command, so the
+   event's cwd is some other directory and the write is recorded where the `cd` left the shell. */
+test("a write after a cd is recorded in the tree the cd reached, whatever the event's cwd", () => {
+  const root = repo("reached-by-cd");
+  const elsewhere = repo("event-cwd");
+  wrote(root, "docs/cd.md");
+  const run = callHook(
+    HOOK,
+    {
+      session_id: "s-cd",
+      tool_name: "Bash",
+      tool_input: { command: `cd ${pathed(root)} && printf x > docs/cd.md` },
+      transcript_path: transcript("2026-09-01T10:45:00.000Z"),
+      cwd: elsewhere,
+    },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(context(run), /docs\/cd\.md/u);
+  assert.deepEqual(pending(root), ["docs/cd.md"]);
+  assert.deepEqual(pending(elsewhere), [], "and nothing in the tree the event stood in");
+});
+
 test("a second session is its own turn, whatever the first one was told", () => {
   const at = "2026-09-01T11:00:00.000Z";
   assert.match(fired(ONE, "docs/D.md", at, "s2"), /docs\/D\.md/u);
