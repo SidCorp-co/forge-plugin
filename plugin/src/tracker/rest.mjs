@@ -441,10 +441,10 @@ export const refuseCredential = async (value, what, { stored = null, ref = null,
   const deploy = await held.stagingDeploy();
   /* A reading that did not answer stops the write: there is no delete for what the tracker has taken, and a held write costs a retry — docs/cli/one-transport.md (ISS-487). */
   if (deploy?.refused) fail(held.unreadRefusal(deploy.refused, what));
-  const { leak, copies } = held.credentialSplit(value, deploy, stored);
-  if (leak) fail(held.leakRefusal(leak, what));
+  const found = held.credentialLeak(value, deploy, stored);
+  if (found) fail(held.leakRefusal(found, what));
   if (!stored) return;
-  for (const hit of copies) {
+  for (const hit of held.storedCopies(value, deploy, stored)) {
     /* Keyed by the issue and not by how the caller named it, a key and a uuid being one issue. */
     const key = JSON.stringify([id ?? ref, hit.field, hit.credential]);
     if (!saidStored.has(key)) console.error(held.storedCopyLine(hit, ref ?? "this issue"));

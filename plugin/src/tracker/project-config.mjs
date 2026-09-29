@@ -437,21 +437,16 @@ const splitHits = (data, deploy, stored) => {
   return split;
 };
 
-const leakOf = (found) => (found ? { field: found.field, credential: found.credential, near: found.near } : null);
-
 /** Which field of a payload carries a value this project holds as a test credential, which
  *  credential, and the masked text around it. An empty `field` is a payload that is one string: a
  *  file's bytes have no field. A display name is withheld from the report and guarded here never. */
-export const credentialLeak = (data, deploy, stored = null) => leakOf(splitHits(data, deploy, stored).supplied[0]);
+export const credentialLeak = (data, deploy, stored = null) => {
+  const [found] = splitHits(data, deploy, stored).supplied;
+  return found ? { field: found.field, credential: found.credential, near: found.near } : null;
+};
 
 /** The hits a write re-sends from the stored record rather than from its caller's input. */
 export const storedCopies = (data, deploy, stored) => splitHits(data, deploy, stored).stored;
-
-/** Both of the above off one reading of the payload, for the write that asks both of one value. */
-export const credentialSplit = (data, deploy, stored = null) => {
-  const split = splitHits(data, deploy, stored);
-  return { leak: leakOf(split.supplied[0]), copies: split.stored };
-};
 
 /* One value, and never a list of fields: a short credential is masked where the string is it, a
    long one wherever it sits written exactly, which is the matching rule above read as a mask. The
