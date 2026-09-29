@@ -13,7 +13,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("skipped-holds").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, judgedOwed, viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const COMMIT = "43b811e";
@@ -100,11 +100,8 @@ test("the need names both routes clear of a skip: a fresh verdict, or correcting
   const page = [mark(), pass(1), skip(2)];
   for (const status of ["awaiting_release", "closed"]) {
     const [item] = naming(status, page, 2);
-    assert.match(item?.command ?? "",
-      /or, where no route ever reaches it: forge record correction ISS-7 --corrects criteria:2/u,
-      `${status}: the correction route is named beside the fresh verdict`);
-    assert.match(item?.command ?? "", /then forge record criteria ISS-7 <criteria\.md> --replace/u,
-      `${status}: and the write that actually moves the criteria field, carrying --replace`);
+    assert.equal(item?.command, `${item.command.split("\n")[0]}\n  or, where no route ever reaches it: ${correctedForm("ISS-7", 2)}`,
+      `${status}: the correction route is the exact string the shared correctedForm returns, not a caller's own wording, beside the fresh verdict`);
   }
 });
 

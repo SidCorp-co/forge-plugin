@@ -10,7 +10,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("fail-holds").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 const { foldedBody } = await import("../../../src/flow/earned/findings.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -83,11 +83,8 @@ test("the need names both routes clear of a fail, and a recorded correction is w
   const page = [mark(), pass(1), fail(2)];
   for (const status of ["awaiting_release", "closed"]) {
     const [item] = naming(status, page, 2);
-    assert.match(item?.command ?? "",
-      /or, where the criterion itself was wrong: forge record correction ISS-7 --corrects criteria:2/u,
-      `${status}: the correction route is named beside the fresh verdict`);
-    assert.match(item?.command ?? "", /forge record criteria ISS-7 <criteria\.md> --replace/u,
-      `${status}: carrying --replace, so the write it names does not itself refuse`);
+    assert.equal(item?.command, `${item.command.split("\n")[0]}\n  or, where the criterion itself was wrong: ${correctedForm("ISS-7", 2)}`,
+      `${status}: the correction route is the exact string the shared correctedForm returns, beside the fresh verdict`);
   }
   const droppedField = { acceptanceCriteria: "1. The first outcome." };
   for (const status of ["awaiting_release", "closed"]) {

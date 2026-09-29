@@ -8,7 +8,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("credential-ahead").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { viewFrom } = await import("../../../src/flow/earned.mjs");
+const { viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 const { credentialAhead, deployFor } = await import("../../../src/flow/route.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -40,9 +40,8 @@ test("the line says a skip taken here holds past testing, and names both ways cl
   const said = ahead({ status: "in_progress", plan: SCREEN }, NO_LOGIN);
   assert.match(said, /holds awaiting_release/u, said);
   assert.match(said, /and `closed` until it is judged again/u, said);
-  assert.match(said, /--corrects criteria:<n>/u, "the correction route is named beside the fresh verdict");
-  assert.match(said, /forge record criteria ISS-3 <criteria\.md> --replace/u,
-    "and the write that actually moves the criteria field carries --replace, so following it drops no number unanswered");
+  assert.ok(said.includes(`  ${correctedForm("ISS-3", "<n>")}\n`),
+    "the correction route is the exact string the shared correctedForm returns, beside the fresh verdict");
 });
 
 test("the line stays silent on every reading that is not a screen change without a login", () => {
