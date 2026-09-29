@@ -1,12 +1,13 @@
 /* Where one checkout's ask state lives, and the log of what the gate did with each question: beside
-   its project's config, under a key of the checkout's own (the config entry itself can be shared, as
-   settings.mjs says), so nothing one checkout decided is read for another. The owner reads the log to
+   the home's own record of its project, under a key of the checkout's own (the config entry itself can
+   be shared, as settings.mjs says), so nothing one checkout decided is read for another, and a run
+   home borrowing the machine's record writes none of it into the machine's tree. The owner reads the log to
    review a decision and reverse it: plugin/hooks/how/ask-decide.md. */
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 
 import { appendJsonl, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
-import { projectFilePath, projectRepository } from "../resolve/settings.mjs";
+import { ownProjectFilePath, projectRepository } from "../resolve/settings.mjs";
 
 export const DECIDED = "decided";
 export const OWNER = "owner";
@@ -18,7 +19,7 @@ export const checkoutKey = (repository) => createHash("sha256").update(repositor
 
 /** The checkout's ask directory, or null where this process stands in no checkout. */
 export const asksRoom = () => {
-  const entry = projectFilePath();
+  const entry = ownProjectFilePath();
   const repository = projectRepository();
   return entry && repository ? join(dirname(entry), "asks", checkoutKey(repository)) : null;
 };

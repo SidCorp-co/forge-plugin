@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { answered, callHookAsync, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { OWNER_OVERRIDES } from "../../asks/owner-overrides.mjs";
@@ -334,4 +334,17 @@ test("a goals read the tracker never answers is closed at its bound, and the hoo
   assert.ok(opened.length > 0, "the goals read reached the tracker");
   assert.ok(opened.every((one) => one.closed !== null && one.closed <= ended), "and every request it opened was closed before the hook exited");
   assert.ok(ended - started < 20_000, `the hook ran ${ended - started}ms, not to the tracker's own deadline`);
+});
+
+test("under a borrow the ask room is the run home's own, and nothing is written beside the machine's record", async () => {
+  const machine = await project({ asks: { mode: "decide" } });
+  const borrowed = join(machine.config, "forge", "config.json");
+  writeFileSync(borrowed, "{}\n");
+  const home = tempRoom("ask-decide-run-home-");
+  const said = await ask({ ...machine, env: { ...machine.env, XDG_CONFIG_HOME: home, FORGE_BORROW_FROM: borrowed } }, [reportQuestion()]);
+  machine.gateway.close();
+  assert.equal(said?.permissionDecision, "allow", "the machine's record still says this project decides");
+  assert.equal(existsSync(dirname(machine.room)), false, "nothing was written beside the machine's record");
+  const own = join(home, "forge", "projects", basename(machine.repo), "asks", checkoutKey(machine.repo));
+  assert.deepEqual(readdirSync(own).sort(), ["decided.jsonl", "precedents.jsonl", "scanned.json"], "the run home keeps the log and the layer");
 });

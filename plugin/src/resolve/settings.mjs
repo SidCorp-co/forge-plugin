@@ -106,6 +106,10 @@ const projectEntryAt = (directory) => recordFor(checkoutAt(directory)?.repositor
    caller sets reaches this without a previous call's home answering for it. */
 export const projectFilePath = () => recordFor(standing()?.repository ?? null);
 
+/** This home's own entry for the project, whether it exists or not: the place for state a run keeps
+ *  of its own, which `projectFilePath` cannot be once it names a borrowed file. */
+export const ownProjectFilePath = () => entryFor(standing()?.repository ?? null);
+
 /** The record a write lands in, the one every read takes it from, or null outside a checkout. `what`
  *  names what was about to be written, as the refusal says it. Refused where that record is the
  *  machine's read under a borrow: written there it is the machine's file the home exists not to
