@@ -3,6 +3,7 @@
    which call files a new one, which names no issue yet and so owes no comment delivery. */
 import { isReference } from "./issues.mjs";
 import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
+import { WRITER_WORD } from "../resolve/session/writer-word.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -88,7 +89,7 @@ const VERBS = {
   advance: { at: () => [0], when: (args) => !args.includes("--owed"), own: true },
 };
 
-const VERB = /^(?:\S*\/)?forge\s+([a-z]+)\b/u;
+const VERB = new RegExp(String.raw`^${WRITER_WORD}\s+([a-z]+)\b`, "u");
 /* The one raw surface left: this CLI has no verb that types a tool name, so a Bash line cannot name a route, and a connected MCP client still can — which is what `toolOfCall` is read for. */
 const MCP = /^mcp__forge__(forge_\w+)$/u;
 

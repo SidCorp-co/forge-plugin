@@ -5,9 +5,10 @@ import { handledBy } from "../../resolve/handler.mjs";
 import { DECLARABLE, at, declares } from "./declared.mjs";
 import { HELP_WORD_PATTERN } from "../../resolve/help-word.mjs";
 import { WAITS_ON_PID } from "../../hooks/wait-idiom.mjs";
+import { WRITER_WORD } from "../../resolve/session/writer-word.mjs";
 
 /* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. `knowledge` is subbed because the store is read in phase 0 and written in the last phase, and one row over both filed a run's opening read under what it learned (ISS-1714). */
-const CALL = (verb) => String.raw`(?:\S*/)?forge[ \t]+${verb}`
+const CALL = (verb) => String.raw`${WRITER_WORD}[ \t]+${verb}`
   + String.raw`(?:[ \t]+(?<slug>[a-z][\w-]*)(?:[ \t]+(?<part>[a-z][\w-]*))?)?`;
 const FORGE = at(CALL(String.raw`(?<verb>[a-z][a-z-]*)`));
 const SUB_WORD = /^[a-z][a-z-]*/u;
@@ -56,7 +57,7 @@ const forgeClass = (shell) => {
 };
 
 /* A help read is the help word standing whole in the verb's own slot or in the slot after its subject, so a call inside a pipeline or after a `cd` counts and a `-h` a run typed into a `--why` or a `--note` does not. Whether the subject is one that verb has is not asked and cannot be: each verb declares its own list and none is reachable from here — docs/cli/stats-the-help-reads.md carries what that costs. The word is inside the pattern rather than captured and tested after it, so a prose flag on an earlier command does not hide a real read on a later one. */
-const HELP = at(String.raw`(?:\S*/)?forge[ \t]+(?<verb>[a-z][a-z-]*)`
+const HELP = at(String.raw`${WRITER_WORD}[ \t]+(?<verb>[a-z][a-z-]*)`
   + String.raw`(?:[ \t]+(?<slug>[a-z][\w-]*))?[ \t]+` + HELP_WORD_PATTERN);
 
 /** Whose help a call read, as the row the class table already names that verb, or null where it read none. Which slots answer is `resolve/help-word.mjs`'s and not this reading's: the two go on agreeing only while this asks the same question. */
