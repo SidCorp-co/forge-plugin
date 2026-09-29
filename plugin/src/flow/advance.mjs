@@ -352,7 +352,7 @@ const earnsInstead = (view, ref, status) => {
    a landing happened here is the page's own merged mark and never the sha beside the stamp, which
    comes back null on every closed row this CLI reads, landed or not. A cut thread is not that
    reading, the mark being possibly behind it, so the stamp is reported and left alone. */
-const stampTaken = async (view, ref, status, answer) => {
+const stampTaken = async (view, ref, answer) => {
   const stamped = (answer?.issue ?? answer)?.mergedAt;
   /* An unread page holds no mark to find, so a set that fetched none would read every stamp as false —
      including the one a walk back to `approved` leaves standing on a change that really did land. */
@@ -400,7 +400,7 @@ const settledAfter = async (view, ref, status, correction, answer) => {
     if (!(error instanceof Refused)) throw error;
     held = error.message;
   }
-  const stamp = await stampTaken(view, ref, status, answer);
+  const stamp = await stampTaken(view, ref, answer);
   if (!held && !stamp) return;
   refuse([held, stamp && `${ref} is ${status}${held ? "" : " and its correction is on the record"}, `
     + `and ${stamp}`].filter(Boolean).join("\n\n"));

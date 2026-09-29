@@ -11,7 +11,7 @@ import { anglesShown } from "../../../codex/codex-plan.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
-import { accountCredentials, refusing, asksOwnerTerms, asksScope } from "../../../resolve/settings.mjs";
+import { accountCredentials, refusing, asksOwnerTerms } from "../../../resolve/settings.mjs";
 import { OWNER_CATEGORIES } from "../../../asks/declared.mjs";
 import { asksRoom, decidedPath } from "../../../asks/decided.mjs";
 import { layerPaths, precedentCount } from "../../../asks/layer.mjs";
@@ -212,9 +212,10 @@ const reviewRow = async () => {
 };
 
 /* Under `decide`, what the gate reads beside the mode: nothing past the mode is read under `off`,
-   where the layer does not exist and a count of it would be a number about nothing. */
-const asksDetail = () => {
-  if (asksScope().value !== "decide") return [];
+   where the layer does not exist and a count of it would be a number about nothing. `mode` is what
+   the key's own row just resolved. */
+const asksDetail = (mode) => {
+  if (mode.value !== "decide") return [];
   const room = asksRoom();
   const terms = asksOwnerTerms();
   return [
@@ -224,17 +225,17 @@ const asksDetail = () => {
   ];
 };
 
-/* Rows a key's own row is followed by. */
-const AFTER = { "asks.mode": asksDetail };
-
 /* Every enum-valued key in the table's order, each followed by what its own row leads to. */
 const enumRows = () => {
   const leftovers = machineLeftovers();
   return [
-    ...Object.keys(ENUM_KEYS).flatMap((key) => [
-      enumRow(key, enumScope(key), leftovers.find((left) => left.key === key) ?? null),
-      ...(AFTER[key]?.() ?? []),
-    ]),
+    ...Object.keys(ENUM_KEYS).flatMap((key) => {
+      const scope = enumScope(key);
+      return [
+        enumRow(key, scope, leftovers.find((left) => left.key === key) ?? null),
+        ...(key === "asks.mode" ? asksDetail(scope) : []),
+      ];
+    }),
     ...leftoverRows(leftovers),
   ];
 };

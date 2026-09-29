@@ -6,7 +6,7 @@ import { flags } from "../../../resolve/flags.mjs";
 import { documentIdOf } from "../../../tracker/issues.mjs";
 import { callTool } from "../../../tracker/rest.mjs";
 import { rowFor } from "../../../tracker/routes.mjs";
-import { rendered, wrapper } from "./shape.mjs";
+import { keysOf, rendered, wrapper } from "./shape.mjs";
 import {
   REFUSED_HERE, TAKEN_HERE, TO_INSTANCE, TRACKER_BOTH, TRACKER_ROWS, TRACKER_SCOPE, consentRefusal, listed, summaryLines,
 } from "./chosen-route.mjs";
@@ -64,11 +64,6 @@ const dispatchRefusal = (answer) => {
     + "  what this project is bound to: forge coolify list";
 };
 
-/* The instance route's column preference is that platform's own field names, and none of them is on
-   a row the tracker serves: a listing narrowed by it comes back one column wide. So the columns here
-   are the ones the rows actually carry, in the order the tracker wrote them. */
-const columnsOf = (rows) => [...new Set(rows.flatMap((row) => Object.keys(row)))];
-
 /* The one listing the answer carries, where it carries exactly one: a table of the row the caller
    asked about beats a table of the envelope it arrived in. */
 const LISTING = ["integrations", "targets", "deliveries", "images"];
@@ -80,10 +75,10 @@ const bodyOf = (answer) => {
 
 const SWITCHES = ["--yes", "--dry-run", "--json", "--table"];
 
-/** One subcommand of the tracker route, end to end. `key` is its row in the transport's own table,
- *  so the request, the retry decision and the refusal are all that table's. */
-export const runTracker = async (name, key, argv) => {
-  const usage = TRACKER_SAYS[name];
+/** One subcommand of the tracker route, end to end. Its row's `key` is its row in the transport's own
+ *  table, so the request, the retry decision and the refusal are all that table's. */
+export const runTracker = async (name, argv) => {
+  const { key, usage } = ROWS[name];
   const given = flags(argv, `coolify ${name}`, SWITCHES, { usage });
   const args = await argued(name, given);
   if (rowFor(key, args).writes && !given.yes && !given["dry-run"]) {
@@ -96,5 +91,8 @@ export const runTracker = async (name, key, argv) => {
   const answer = await callTool(key, args);
   if (name === "deploy" && answer?.dispatched === false) fail(dispatchRefusal(answer));
   const asTable = given.table || (process.stdout.isTTY && !given.json);
-  console.log(rendered(bodyOf(answer), asTable, columnsOf));
+  /* The instance route's column preference is that platform's own field names, and none of them is
+     on a row the tracker serves: a listing narrowed by it comes back one column wide. So the columns
+     here are the ones the rows actually carry, in the order the tracker wrote them. */
+  console.log(rendered(bodyOf(answer), asTable, keysOf));
 };

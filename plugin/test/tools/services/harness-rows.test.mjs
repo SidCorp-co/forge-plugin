@@ -89,7 +89,7 @@ test("the coolify row names the way that answers and where it was read", async (
   assert.match(chosen, /^the saved instance {2}← .*forge[/\\]config\.json/u,
     "the way, and the file that said so rather than the command that writes it");
   configured({});
-  const fallen = await detailOf("coolify", {}, startBindings());
+  const fallen = await detailOf("coolify", {}, startBindings(true));
   assert.match(fallen, /^the tracker's own bindings {2}← the plugin's default/u,
     "and with nothing chosen the default is named as a default rather than as a file");
   assert.match(fallen, /the tracker did not answer for them/u,
@@ -109,9 +109,9 @@ test("the coolify row renders off the bindings read it is handed and sends none 
 
 test("the bindings read is started only on the tracker route", async () => {
   configured({ coolifyRoute: "instance" });
-  assert.equal(startBindings(), null);
+  assert.equal(startBindings(true), null);
   configured({});
-  const started = startBindings();
+  const started = startBindings(true);
   assert.ok(started instanceof Promise, "on the tracker route, with an endpoint and a credential, it is started");
   await started;
 });

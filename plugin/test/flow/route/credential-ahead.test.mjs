@@ -8,7 +8,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("credential-ahead").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { viewFrom } = await import("../../../src/flow/earned.mjs");
+const { viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 const { credentialAhead, deployFor } = await import("../../../src/flow/route.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -31,6 +31,17 @@ test("a screen change on a project with no test credential is told at the rehear
     "and from the rung below the judging one, which is the last that can still act on it");
   assert.match(said, /^Ahead: testing wants an attachment/u,
     "naming the rung that refuses the verdict, which is the judging one");
+});
+
+/* A skip taken here now holds awaiting_release and closed (ISS-2430), so a line offering it as the
+   way past owes what it leads to: a fresh verdict once a credential arrives, or, where none is
+   ever coming, correcting the criterion away instead of leaving the skip standing forever. */
+test("the line says a skip taken here holds past testing, and names both ways clear of that", () => {
+  const said = ahead({ status: "in_progress", plan: SCREEN }, NO_LOGIN);
+  assert.match(said, /holds awaiting_release/u, said);
+  assert.match(said, /and `closed` until it is judged again/u, said);
+  assert.ok(said.includes(`  ${correctedForm("ISS-3", "<n>")}\n`),
+    "the correction route is the exact string the shared correctedForm returns, beside the fresh verdict");
 });
 
 test("the line stays silent on every reading that is not a screen change without a login", () => {

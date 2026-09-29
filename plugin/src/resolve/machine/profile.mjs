@@ -2,9 +2,10 @@
    environment, so this reads it and nothing here writes it — its model slots decide which model a
    subagent's frontmatter spawns on. Its grammar is its own, which is why it sits apart from the table
    that treats it as one store's fallback. docs/cli/settings.md. */
-import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
+import { accessSync, constants, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
+import { canonical } from "../canonical.mjs";
 
 
 const profilePath = () =>
@@ -73,14 +74,6 @@ const admitted = (operator, path) => {
   }
 };
 
-const identity = (file) => {
-  try {
-    return realpathSync(file);
-  } catch {
-    return file;
-  }
-};
-
 const followed = (state, line, file, reading) => {
   const matched = SOURCE_LINE.exec(line);
   if (!matched) {
@@ -111,7 +104,7 @@ const followed = (state, line, file, reading) => {
 
 const readInto = (state, text, file) => {
   const reading = (path, from) => {
-    const id = identity(path);
+    const id = canonical(path);
     if (state.stack.includes(id)) {
       state.unfollowed.push({ file: path, in: from, why: "already being read, so it would source itself" });
       return;
@@ -126,7 +119,7 @@ const readInto = (state, text, file) => {
     }
     readInto(state, nested, path);
   };
-  state.stack.push(file ? identity(file) : null);
+  state.stack.push(file ? canonical(file) : null);
   for (const raw of text.split("\n")) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;

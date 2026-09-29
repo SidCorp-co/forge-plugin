@@ -30,6 +30,9 @@ const ACCOUNTS_USAGE = [
   "  --full         the ends of the token rather than its length alone",
 ].join("\n");
 
+/** Shared by both routes as `login` is, and summarised alike on each. */
+const ACCOUNTS = { name: "accounts", line: "what resolved, and from where", usage: ACCOUNTS_USAGE };
+
 /* `writes` is not a field here: whether a subcommand acts is its route-table row's, which is also
    what decides whether a transient answer is sent again, and a second statement of it here is how a
    write comes to go out without consent. `takes` maps each flag to the argument the row sends. */
@@ -99,7 +102,7 @@ export const TRACKER_ROWS = [
 /** The two built-ins the tracker route answers too, each summarised as that route reads it. */
 export const TRACKER_BOTH = [
   { name: "login", line: "save a Coolify instance and its token, which the other route uses", usage: LOGIN_USAGE },
-  { name: "accounts", line: "what resolved, and from where", usage: ACCOUNTS_USAGE },
+  ACCOUNTS,
 ];
 
 export const PIN_USAGE = [
@@ -116,7 +119,7 @@ export const PIN_USAGE = [
 
 export const INSTANCE_ROWS = [
   { name: "login", line: "save the instance and its token, or forget them", usage: LOGIN_USAGE },
-  { name: "accounts", line: "what resolved, and from where", usage: ACCOUNTS_USAGE },
+  ACCOUNTS,
   { name: "whoami", line: "the instance, the team, and what this directory is pinned to",
     usage: "Usage: forge coolify whoami\nThe instance, its version, the team, and what this directory is pinned to." },
   { name: "pin", line: "pin this checkout to a project, by an application's name or the project's", usage: PIN_USAGE },

@@ -18,7 +18,8 @@ const GATE_ROOM = "tools/gates/stamp-room.mjs";
    files that state the rule name it as well and are not held to it. The preload every launcher loads
    makes the one directory it removes on exit, which the first case here counts through the fixture. */
 const RAW = /\bmkdtemp(?:Sync)?\b/u;
-const STATED = [...FIXTURES, "plugin/test/fixtures.test.mjs", "plugin/test/fixtures/process/isolated.mjs"];
+const STATED = [...FIXTURES, "plugin/test/fixtures.test.mjs", "plugin/test/fixtures/process/isolated.mjs",
+  "plugin/test/fixtures/rooms/lifecycle.mjs"];
 const KEEP = "KEEP_TEST_ROOMS";
 /* A case about the default states the default: a suite the developer started under the flag would
    otherwise hand it to every child here, which keeps a room and reads as the leak this counts. */
@@ -248,7 +249,7 @@ const TOOLS = [
   "forge_issues", "forge_uploads", "forge_comments", "forge_knowledge", "forge_memory.search",
   "forge_guide", "forge_project_pm", "forge_config", "forge_projects.list", "forge_projects.create",
   "forge_projects.update", "forge_projects.read", "forge_projects.get", "forge_projects.archive",
-  "forge_projects.unarchive", "forge_coolify", "forge_labels",
+  "forge_projects.unarchive", "forge_coolify", "forge_release_batch", "forge_labels",
 ];
 
 const failing = (answer) => Object.fromEntries(TOOLS.map((name) => [name, () => ({ ...answer })]));
@@ -279,6 +280,9 @@ const PROBES = [
   ["GET", "/api/projects/p1/integrations/coolify/status"],
   ["POST", "/api/projects/p1/integrations/coolify/deploy"],
   ["GET", "/api/projects/p1/integrations/coolify"],
+  ["GET", "/api/projects/p1/release-batches/active"],
+  ["GET", "/api/projects/p1/release-batches/r1/state"],
+  ["POST", "/api/projects/p1/release-batches/r1/abort"],
   ["GET", "/api/projects/p1/pipeline-config"],
   ["GET", "/api/projects/p1/project-facts"],
   ["GET", "/api/projects/p1/labels"],

@@ -26,6 +26,8 @@ import { publishesVersion } from "./release/released-tag.mjs";
 import { readyKeys, withSiblings } from "./land-ready/ready.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
+import { CONFLICT_MARK, CONFLICT_PARK_KIND } from "../../plugin/src/flow/landing/conflict-park.mjs";
+import { SIDE } from "../../plugin/src/flow/earned.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_HEAD_OWED, LANDING_JUDGED,
   LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE,
@@ -134,15 +136,17 @@ const mergeStep = async (one) => {
     const back = handsBack(member);
     if (back) await saveOn(member, { state: LANDING_HEAD_OWED });
     const why = `${landing.branch} does not merge onto ${base} at ${shortly(at.pin)}: `
-      + `${conflicts.join(", ")} conflict. The landing repairs no conflict${back
+      + `${conflicts.join(", ")} conflict. ${CONFLICT_MARK}${back
         ? `, so the checkpoint is at \`${LANDING_HEAD_OWED}\` and the run that built the branch `
           + `answers it with a head that merges:\n${RECAPTURE(key)}`
         : `, and the checkpoint reads \`${landing.state}\`, past the states a branch is handed back `
           + `from. Read where it is:\n  forge resume ${key}`}`;
     const view = await asked(() => viewOf(documentId));
     /* The two commits the merge was taken between, and not the paths: the reader keeps a park whose
-       evidence is a commit, and the paths are in the reason already (ISS-2449). */
-    await asked(() => parkAs(view, key, "blocked", why, [landing.head, at.pin]));
+       evidence is a commit, and the paths are in the reason already (ISS-2449). `CONFLICT_MARK`
+       inside `why` is this park's own signature, read again by `claim --pushed --ready`'s lift and by
+       the refusal below, in `taken`, over any landing this park still stands against (ISS-2832). */
+    await asked(() => parkAs(view, key, CONFLICT_PARK_KIND, why, [landing.head, at.pin]));
     stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`, back ? BRANCH : null);
   });
 };
@@ -417,6 +421,13 @@ const taken = async (key, { documentId, context, status }) => {
     stop(`the landing checkpoint on ${key} reads \`${landing.state}\`, which is not a step this task `
       + `owes: read where it is, and land it when the state names the lander's turn.\n`
       + `    forge resume ${key}`);
+  }
+  /* Before the take and before the pin, so a park that outlived the checkpoint that owed it — the
+     lift `claim --pushed --ready` makes over its own park having missed, or a person's park written
+     over a checkpoint already past it — merges, pushes and installs nothing (ISS-2832). */
+  if (SIDE.includes(status)) {
+    stop(`${key} is ${status}, parked, and a landing merges, pushes and installs nothing for an issue `
+      + `a park still stands on: lift it first, then land again.\n    forge advance ${key}`);
   }
   await asked(() => takeLease(documentId, key, context, {
     holder: sessionOf(), line: `landing ${landing.branch}`, status,

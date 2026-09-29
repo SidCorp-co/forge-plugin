@@ -9,7 +9,7 @@
    case reads. */
 import { spawnSync } from "node:child_process";
 
-import { tempRoom } from "../fixtures.mjs";
+import { tempRoom } from "./rooms/lifecycle.mjs";
 
 const REPO_ROOT = new URL("../../../", import.meta.url).pathname;
 

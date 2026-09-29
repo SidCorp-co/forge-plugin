@@ -66,7 +66,7 @@ const git = (args, env = null) => {
    is declared, the remote's recorded default first and the two common names after it. */
 const baseOf = (lands) => {
   const named = lands?.branch
-    ? [`refs/remotes/origin/${lands.branch}`]
+    ? [refFor(lands)]
     : [git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]), ...REMOTES];
   for (const ref of named.filter(Boolean)) {
     const found = git(["merge-base", "HEAD", ref]);

@@ -207,7 +207,7 @@ const overTracker = async ([sub, ...rest]) => {
   const found = trackerName(sub);
   if (found.kind === BOTH_KIND) return BUILTIN[sub](rest);
   if (found.kind !== SERVED_KIND) refuseOffTracker(found);
-  await runTracker(found.name, found.key, rest);
+  await runTracker(found.name, rest);
 };
 
 export const coolify = async (argv) => {

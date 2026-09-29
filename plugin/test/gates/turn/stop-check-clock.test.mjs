@@ -54,12 +54,17 @@ test("a linter that spends the stop clock leaves the lease check its answer", ()
   assert.match(refused.said, /forge record park ISS-999/u);
 });
 
-test("a linter that spends the stop clock leaves the worktree check its answer", () => {
+const dirtyWorktree = () => {
   const { wt } = freshWorktree();
   writeFileSync(join(wt, "one.txt"), "tracked\n");
   git(wt, "add", "one.txt");
   git(wt, "commit", "-qm", "base");
   writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
+  return wt;
+};
+
+test("a linter that spends the stop clock leaves the worktree check its answer", () => {
+  const wt = dirtyWorktree();
   const { file, clock, spent } = slowLint();
   const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: wt };
   const refused = decided(ev, () => [], clock);
@@ -78,15 +83,6 @@ const slowGit = () => {
   writeFileSync(join(bin, "git"), `#!/bin/sh\nsleep 0.8\nexec ${real} "$@"\n`);
   chmodSync(join(bin, "git"), 0o755);
   return bin;
-};
-
-const dirtyWorktree = () => {
-  const { wt } = freshWorktree();
-  writeFileSync(join(wt, "one.txt"), "tracked\n");
-  git(wt, "add", "one.txt");
-  git(wt, "commit", "-qm", "base");
-  writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
-  return wt;
 };
 
 const withPath = (bin, fn) => {

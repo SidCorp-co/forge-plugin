@@ -23,9 +23,12 @@ const REGISTRIES = new Set(["plugin/src/resolve/visibility.mjs", "plugin/src/com
 const KINDS = ["verb", "flag", "tool", "directory", "column"];
 const FIELDS = ["name", "kind", "release"];
 
-/* The one reading of a name written as a command and not used as a word — behind `forge`, leading a help row, at the head of a spawn's argv, or declared where verbs are. Spent by this checker and by the help tripwire, which held a bare-word copy and refused prose. */
+/* The one reading of a name written as a command and not used as a word — behind `forge`, leading a help row, at the head of a spawn's argv, or declared where verbs are. Spent by this checker and by the help tripwire, which held a bare-word copy and refused prose.
+   The first shape's own `\b` treats a hyphen as a boundary the same as a space, so `forge release-batch`
+   reads as `forge release` followed by a word `\b` cannot see is still attached; `(?!-)` is what tells
+   the two apart, so a verb naming a compound this checker's name is only a prefix of is not the verb. */
 export const commandShapes = (name, rel = "") => [
-  new RegExp(`\\bforge\\s+${name}\\b`, "gu"),
+  new RegExp(`\\bforge\\s+${name}\\b(?!-)`, "gu"),
   new RegExp(`^[ \\t]{1,4}${name}(?=[ \\t]+[<[]|[ \\t]{2,}\\S)`, "gmu"),
   new RegExp(`(?<=[(,]\\s{0,80}\\[\\s{0,80})(["'\`])${name}\\1`, "gu"),
   ...(REGISTRIES.has(rel) ? [new RegExp(`(?:(?<=[[{,]\\s*)(["'\`])${name}\\1|^\\s*${name}:)`, "gmu")] : []),

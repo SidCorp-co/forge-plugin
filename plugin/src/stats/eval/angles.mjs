@@ -2,7 +2,7 @@
    against this corpus's own adjacent-block floor rather than against zero. What an angle is, what
    its population means and what the floor is not — docs/cli/stats-the-angles.md. */
 import { median } from "../median.mjs";
-import { foldedWords, percent, scaled } from "../figures.mjs";
+import { foldedWords, percent, scaled, tenth } from "../figures.mjs";
 import { profileOf } from "../runs.mjs";
 import { UNAVAILABLE } from "./outcomes.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -317,7 +317,7 @@ const signed = (value) => `${value > 0 ? "+" : ""}${percent(value)}`;
    edit-character median of five digits, and a token price is eight. */
 const figure = (value) => {
   if (Math.abs(value) >= 1000) return scaled(value);
-  return Math.abs(value) >= 1 ? String(Math.round(value * 10) / 10) : String(Number(value.toFixed(4)));
+  return Math.abs(value) >= 1 ? String(tenth(value)) : String(Number(value.toFixed(4)));
 };
 
 /* Off the set rather than a number beside it, so an angle whose name is longer than the column keeps

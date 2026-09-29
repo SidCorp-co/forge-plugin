@@ -10,7 +10,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("fail-holds").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, judgedOwed, viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 const { foldedBody } = await import("../../../src/flow/earned/findings.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -29,6 +29,10 @@ const verdict = (number, value, extra = {}) => comment(render("verdict", {
 const pass = (number) => verdict(number, "pass");
 const fail = (number) => verdict(number, "fail", { why: "35 test files against a ceiling of 30" });
 const short = (number) => verdict(number, "short", { why: "one column rounds", filed: "ISS-9" });
+const corrected = (number, why = "the criterion itself was wrong") => comment(render("correction", {
+  moved: "the criterion as corrected", why, corrects: `criteria:${number}`,
+}));
+const ruling = (outcome) => comment(render("triage", { outcome, "would-have-caught": "a criterion naming the order" }, "0"));
 
 const ISSUE = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-25T09:00:00.000Z", attachments: [] };
 const owed = (status, comments, issue = {}) =>
@@ -71,6 +75,49 @@ test("a whole short verdict carrying its row holds neither awaiting_release nor 
 test("a fail superseded by a later pass on the same criterion holds nothing past the judging", () => {
   assert.deepEqual(naming("awaiting_release", [mark(), pass(1), fail(2), pass(2)], 2), [],
     "the latest verdict is the one standing");
+});
+
+/* A fail written before a reopen's ruling would be named twice at the later rungs — once by
+   failedOwed (which fires on `fail` alone, staleness or not) and once by judgedSince (the
+   reopen's own reading) — so pastJudgingOwed leaves a stale number out of failedOwed's own set,
+   naming it once, by judgedSince, instead: one criterion, one reason (codex review). Testing
+   itself is unaffected and unchanged: `verdictsOwed`'s own embedded fail check still runs beside
+   `judgedSince` there, out of this fix's scope, so the two counts need not agree. */
+test("a stale fail is named once, by the reopen route, not doubled with the fail route", () => {
+  const staleFail = [mark(), fail(2), ruling("wrong-test")];
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.deepEqual(naming(status, staleFail, 2).map((one) => one.what), [
+      "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
+    ], `${status}: named once, by the reopen route, not twice`);
+  }
+  assert.ok(judgedOwed(viewFrom("the-uuid", ISSUE, staleFail), "ISS-7")
+    .filter((one) => one.what.includes("criterion 2")).length >= 1,
+    "testing (out of this fix's scope, unchanged) still names it too, so the criterion is never left unheld anywhere");
+});
+
+/* A criterion the judgement proved wrong, not the code, is corrected in the open rather than left
+   waiting on a verdict the code cannot make (ISS-2362). The need names that route beside the fresh
+   verdict, and taking it — the number gone from the current criteria — clears the hold (ISS-2430). */
+test("the need names both routes clear of a fail, and a recorded correction is what clears it", () => {
+  const page = [mark(), pass(1), fail(2)];
+  for (const status of ["awaiting_release", "closed"]) {
+    const [item] = naming(status, page, 2);
+    assert.match(item?.command ?? "",
+      /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
+      `${status}: the fresh verdict, checked against the known form independently of correctedForm`);
+    assert.equal(item?.command, `${item.command.split("\n")[0]}\n  or, where the criterion itself was wrong: ${correctedForm("ISS-7", 2)}`,
+      `${status}: the correction route is the exact string the shared correctedForm returns, beside the fresh verdict`);
+  }
+  const droppedField = { acceptanceCriteria: "1. The first outcome." };
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.ok(naming(status, page, 2, droppedField).length,
+      `${status}: the criteria field alone dropping the number is not a correction, so the old fail still holds`);
+  }
+  const withCorrection = [...page, corrected(2)];
+  for (const status of ["awaiting_release", "closed"]) {
+    assert.deepEqual(naming(status, withCorrection, 2, droppedField), [],
+      `${status}: a recorded correction naming criterion 2 is what clears the old fail on that number`);
+  }
 });
 
 test("a failed carrier of a folded finding is named by exactly one item past the judging", () => {

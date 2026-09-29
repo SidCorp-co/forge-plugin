@@ -202,11 +202,10 @@ const listed = (given) =>
 
 const DEFAULT_FROM = "the plugin's default";
 
-/* Which angles review a consult here, and which level said so: one reading shared by the consult, by
-   `forge codex show` and by `forge doctor`, so the line a reader is shown is the list the consult runs. */
 /** The angles in effect and where they were read: the flag, else the checkout's file, else the
- *  machine's, else the default. Names are returned as given, an empty list included, because refusing
- *  what no consult can run under is the consult's to do. */
+ *  machine's, else the default. One reading shared by the consult, by `forge codex show` and by
+ *  `forge doctor`, so the line a reader is shown is the list the consult runs. Names are returned as
+ *  given, an empty list included, because refusing what no consult can run under is the consult's to do. */
 export const anglesInEffect = (raw) => {
   const said = [
     [raw, "--angles"],

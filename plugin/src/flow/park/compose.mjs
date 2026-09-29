@@ -102,8 +102,6 @@ export const parkChecked = (view, ref, kind, evidence) => {
   if (bad) refuse(bad);
 };
 
-const indented = (value) => String(value).split("\n").join("\n    ");
-
 /** `--owed` beside a park or a drop: the same checks and the same composition the move makes, printed
  *  and not sent. A refusal is the answer rather than a failure, as a shortfall is to `--owed`; the
  *  record comes last and whole, so what follows its heading is the text the move would post. */
@@ -129,7 +127,7 @@ export const rehearsePark = async (view, ref, kind, why, evidence, asked) => {
   }
   console.log(`  ${ref}  ${view.issue.status} -> ${status}`);
   console.log("Sent with the move:");
-  for (const [field, value] of Object.entries(said)) console.log(`  ${field}: ${indented(value)}`);
+  for (const [field, value] of Object.entries(said)) console.log(`  ${field}: ${commandAt(value, "    ")}`);
   const when = answersByComment(status) ? "before the move, a comment there being read as the answer" : "after the move";
   console.log(`The park record, posted ${when}:\n\n${body}`);
 };
