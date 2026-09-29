@@ -38,7 +38,7 @@ const counted = (hook, event, env, fn, suffix) => {
 const checkout = (room, name) => {
   const root = join(room, name);
   mkdirSync(join(root, "docs"), { recursive: true });
-  spawnSync("git", ["init", "-q", root]);
+  spawnSync("git", ["init", "-q", root], { cwd: room });
   return root;
 };
 
