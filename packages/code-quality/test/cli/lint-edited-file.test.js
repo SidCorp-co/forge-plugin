@@ -286,6 +286,39 @@ test("a reformatted file is replaced whole, keeping its mode and leaving nothing
   assert.deepEqual(readdirSync(path.dirname(file)), ["kept.js"]);
 });
 
+/* A directory that takes no new entry refuses the sibling, and a verdict on text that never reached
+   the disk would answer for nothing. */
+test("a formatted text that cannot be written back leaves the edit judged as it was written", {
+  skip: process.getuid?.() === 0 && "root writes through a read-only directory",
+}, () => {
+  const root = makeConsumer();
+  installPrettier(root, {});
+  const source = "// Previously this returned zero.\nexport const a = 1;\n";
+  const file = write(root, "src/locked/kept.js", source);
+  chmodSync(path.dirname(file), 0o555);
+  try {
+    const result = runHook(root, "src/locked/kept.js");
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(result.stderr, /no-historical-narration/);
+    assert.match(result.stderr, /could not be written back/);
+    assert.equal(readFileSync(file, "utf8"), source);
+  } finally {
+    chmodSync(path.dirname(file), 0o755);
+  }
+});
+
+test("an ESLint that gives no report leaves the formatted text unwritten", () => {
+  const root = makeConsumer({ config: false });
+  installPrettier(root, {});
+  writeFileSync(path.join(root, "eslint.config.js"), 'throw new Error("this config is broken");\n');
+  const source = "// Previously this returned zero.\nexport const a = 1;\n";
+  const file = write(root, "src/unjudged.js", source);
+  const result = runHook(root, "src/unjudged.js");
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /this config is broken/);
+  assert.equal(readFileSync(file, "utf8"), source);
+});
+
 /* The text is linted on stdin, and only the name passed beside it picks the configuration: a rule
    scoped to one directory and an ignored directory answer as they do for a path lint. */
 test("the lint of the text answers as a lint of the file by path does", () => {

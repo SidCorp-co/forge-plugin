@@ -13,6 +13,10 @@ All notable changes to this package are documented here.
   text passes, the formatting is now withheld and the edit's text is the verdict, the report naming
   the rule the formatting would have broken; where both fail the same rules, the formatted file
   stands and the report says it was reformatted. The second lint runs only when the first fails.
+- A formatted text is written back only where ESLint gave a report on it, and a write back that
+  fails hands the verdict to the text the edit wrote, saying the file could not be reformatted. A
+  configuration that fails to load formatted the file anyway, and a directory that refused the
+  sibling file let the hook pass on a text that never reached the disk.
 
 ## 0.16.2 - 2026-09-29
 
