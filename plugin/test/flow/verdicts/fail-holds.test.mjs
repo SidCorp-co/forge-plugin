@@ -77,23 +77,22 @@ test("a fail superseded by a later pass on the same criterion holds nothing past
     "the latest verdict is the one standing");
 });
 
-/* A fail written before a reopen's ruling is named twice at the later rungs — once by failedOwed
-   (which fires on `fail` alone, staleness or not) and once by judgedSince (the reopen's own
-   reading) — the same doubling `judgedOwed` already carries at `testing` for exactly this case
-   (verdictsOwed's own fail check, plus judgedSince). pastJudgingOwed reproduces that composition
-   rather than deduplicating it, so the two rungs cannot disagree with testing about the count
-   (codex review: deduplicating either pair is a separate, out-of-scope cleanup). */
-test("a stale fail is named by both the fail route and the reopen route, exactly as testing already names it twice", () => {
+/* A fail written before a reopen's ruling would be named twice at the later rungs — once by
+   failedOwed (which fires on `fail` alone, staleness or not) and once by judgedSince (the
+   reopen's own reading) — so pastJudgingOwed leaves a stale number out of failedOwed's own set,
+   naming it once, by judgedSince, instead: one criterion, one reason (codex review). Testing
+   itself is unaffected and unchanged: `verdictsOwed`'s own embedded fail check still runs beside
+   `judgedSince` there, out of this fix's scope, so the two counts need not agree. */
+test("a stale fail is named once, by the reopen route, not doubled with the fail route", () => {
   const staleFail = [mark(), fail(2), ruling("wrong-test")];
   for (const status of ["awaiting_release", "closed"]) {
     assert.deepEqual(naming(status, staleFail, 2).map((one) => one.what), [
-      "criterion 2 failed its verdict",
       "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
-    ], `${status}: named once for the fail itself and once for the reopen`);
+    ], `${status}: named once, by the reopen route, not twice`);
   }
-  assert.deepEqual(judgedOwed(viewFrom("the-uuid", ISSUE, staleFail), "ISS-7")
-    .filter((one) => one.what.includes("criterion 2")).length, 2,
-    "testing already names this stale fail twice, which is the count the later rungs now reproduce");
+  assert.ok(judgedOwed(viewFrom("the-uuid", ISSUE, staleFail), "ISS-7")
+    .filter((one) => one.what.includes("criterion 2")).length >= 1,
+    "testing (out of this fix's scope, unchanged) still names it too, so the criterion is never left unheld anywhere");
 });
 
 /* A criterion the judgement proved wrong, not the code, is corrected in the open rather than left

@@ -42,6 +42,9 @@ export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
 export const BASELINE_AT = ORDER[ORDER.indexOf("developed") - 1];
 export const CLOSES_AT = ORDER.at(-1);
 
+/* A default nothing ever mutates, for a call that owes no number the exclusion after it. */
+const EMPTY_SET = new Set();
+
 export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
 export { blockersOwed, holdsBack, holdsBackFrom, ordersSaid };
 
@@ -242,10 +245,11 @@ const correctedAway = (view, number) => (view.repeated?.correction ?? []).some((
    against — the criterion itself proved wrong rather than the code, ISS-2362 — leaves no number here
    for a fresh verdict to answer, and holding a vanished number forever is no route anybody could take
    (ISS-2430). */
-const failedOwed = (view, ref) => {
+const failedOwed = (view, ref, exclude = EMPTY_SET) => {
   const current = new Set(view.criteria.map((one) => one.number));
   return numbered(view.verdicts)
     .filter(([number, { record }]) => record.fields.verdict === "fail"
+      && !exclude.has(number)
       && !shapeGaps("verdict", record, view.names).length
       && (current.has(number) || !correctedAway(view, number)))
     .map(([number]) => need(
@@ -261,10 +265,11 @@ const failedOwed = (view, ref) => {
    route; the other is a recorded correction naming this criterion gone, `correctedAway`'s own
    question. The `--why` already on the skip is what a reader has of the look nobody took; the need
    repeats neither route as the only one. */
-const skippedOwed = (view, ref) => {
+const skippedOwed = (view, ref, exclude = EMPTY_SET) => {
   const current = new Set(view.criteria.map((one) => one.number));
   return numbered(view.verdicts)
     .filter(([number, { record }]) => record.fields.verdict === "skipped"
+      && !exclude.has(number)
       && !shapeGaps("verdict", record, view.names).length
       && (current.has(number) || !correctedAway(view, number)))
     .map(([number, { record }]) => need(
@@ -275,13 +280,15 @@ const skippedOwed = (view, ref) => {
 
 /* Every shortfall core's own release sweep counts unearned that a verdict already on the page can
    still carry past the judging rung — a fail, a skip, or one a reopen's triage already moved past
-   (`judgedSince`) — in one call, so `awaiting_release` and `closed` cannot come to hold a different
-   set (ISS-2430). A criterion with no verdict at all is deliberately left out: reading it again here
-   crosses the boundary `judgedOwed` and `deployedOwed` keep apart
-   (`test/flow/earned/the-rung.test.mjs`, ISS-1065), being a verdict missing rather than one already
-   written and since found wanting — and a criterion a correction removed is not that either, since
-   `failedOwed` and `skippedOwed` above already stop naming a number once it is gone. */
-const pastJudgingOwed = (view, ref) => [...failedOwed(view, ref), ...skippedOwed(view, ref), ...judgedSince(view, ref)];
+   (`judgedSince`) — in one call, so the two rungs cannot come to hold a different set (ISS-2430). A
+   number `judgedSince` already names is left out of the fail's or the skip's own message: one
+   criterion, one reason (codex review). A criterion with no verdict at all stays out, the boundary
+   `test/flow/earned/the-rung.test.mjs` (ISS-1065) keeps; a criterion a correction removed is not
+   that either, `failedOwed` and `skippedOwed` above already stopping at a number that is gone. */
+const pastJudgingOwed = (view, ref) => {
+  const stale = staleCriteria(view);
+  return [...failedOwed(view, ref, stale), ...skippedOwed(view, ref, stale), ...judgedSince(view, ref)];
+};
 
 /* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one
    they did not look at. Their write, from a checkout holding both, records that it carries it (ISS-1302). */
@@ -355,19 +362,26 @@ export const rulingAtThisReopen = (view) => {
 
 /* A reopen sends the judging back to its start: a wrong-test triage moves the criteria and no commit
    with them, so every verdict on the record still names the merged commit and would pass again. */
-const judgedSince = (view, ref) => {
+/* The numbers `judgedSince` folds into one message, on their own: `pastJudgingOwed` reads this
+   set too, to leave the same number out of a fail's or a skip's own message (codex review). Only
+   the criteria the issue still has: a wrong-test correction may drop or renumber the one that was
+   wrong, and a verdict asked for on a number the field no longer holds is refused at the write,
+   which would leave the issue unable to reach the rung at all. */
+const staleCriteria = (view) => {
   const held = rulingAtThisReopen(view);
   const outcome = held?.record.fields.outcome;
-  if (!outcome || outcome === TRIAGES[2]) return [];
-  /* Only the criteria the issue still has: a wrong-test correction may drop or renumber the one that was wrong, and a verdict asked for on a number the field no longer holds is refused at the write, which would leave the issue unable to reach the rung at all. */
+  if (!outcome || outcome === TRIAGES[2]) return EMPTY_SET;
   const current = new Set(view.criteria.map((one) => one.number));
-  const stale = numbered(view.verdicts)
+  return new Set(numbered(view.verdicts)
     .filter(([number, one]) => current.has(number) && one.at < held.at)
-    .map(([number]) => number);
+    .map(([number]) => number));
+};
+
+const judgedSince = (view, ref) => {
   /* No commit to read: whatever answers the finding has no sha on the record yet. */
   return foldVerdicts(
     ref,
-    stale,
+    [...staleCriteria(view)],
     "<sha>",
     (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
     (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
