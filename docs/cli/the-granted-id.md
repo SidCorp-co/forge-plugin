@@ -26,7 +26,8 @@ rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i`/`-u`,
 
 **The take-back and the reach read the same quoting** as the openers below: `\unset` and `"unset"`
 take the name back, an escaped `;` or a comment's `unset` does not, and the reach ends at any opener
-below a shell would act on, a bare `(` too.
+below a shell would act on, a bare `(` too. A here-document whose body is data is none of those:
+its operator is a redirection, and the export reaches past it.
 
 **A second id is a second assignment to this name**, read wider than a grant is. A longer variable
 whose name ends in this one is a different variable and costs nothing. Everything else assigning
@@ -57,7 +58,8 @@ where the shell would run it there:
 | `` `…` `` | the same substitution, older spelling | single quotes, or a `\` on the backtick |
 | `${ …; }` and `${\| …; }` | bash 5.3's brace substitutions, which run in this shell but before the assignment applies | single quotes, or a `\` on the `$` inside double quotes |
 | `<(…)` and `>(…)` | a process substitution, likewise its own shell | either quote, since neither performs one |
-| `<<` and `<<<` | a body the shell expands, and one this reader does not model | either quote, for the same reason |
+| `<<` whose body runs a substitution, or which this reader cannot delimit | the shell expands that body before the command runs, and a body with no end is one this reader does not model | a quoted delimiter, or a `\` on the `$` or backtick inside the body |
+| `<<<` | a word the shell expands, and one this reader does not model | either quote, since neither performs one |
 
 **What decides is the quoting, and one reader answers it.** `plugin/src/hooks/shell-spans.mjs` reads
 a shell text once and says what quoting each character stands under, so the question asked of an
@@ -76,6 +78,31 @@ present anywhere, and the name is lost. Spell the value with ordinary quotes and
 **So an identifier in a record's prose goes in as the rest of this repository writes it**, in
 backticks, inside single quotes. In double quotes a backtick still runs, so escape it or apostrophe
 the value; and the export form has none of this.
+
+## A here-document's body is data
+
+A body is the stdin of the command it stands on. What that process does with its stdin is its own,
+exactly as a script file handed to `bash` is, and this reader never opens one of those either. So
+where the body can be delimited exactly, every reader here takes it out before reading: the words
+in it are no call, no id and no move. A comment written by `cat > file <<'EOF'` can quote the
+variable and name every verb it likes, and the `forge` call after it keeps its grant, its reach and
+its tree.
+
+Three shapes are read as they were before, with the operator still an opener, because each one is a
+body this reader cannot vouch for:
+
+- **An unquoted delimiter whose body runs a substitution** — `$(…)`, a backtick, `${ …; }`. The
+  invoking shell runs it before the command and without a prefix's assignment. Inside the body a
+  quote is data and stops nothing; only a `\` on the `$` or the backtick does.
+- **No delimiter line.** The shell reads to the end of the text; this reader does not guess where the
+  author meant it to stop.
+- **A quoting the walk guesses at** before the operator's line ends — the `$'…'` and nested-quote
+  cases above.
+
+What that costs: a body a program runs — `bash <<'EOF'`, `node - <<'EOF'` — that calls `forge`
+itself is read as data too. Under an export that call inherits the id, so nothing is lost. Under a
+prefix on another call it does not, and the grant is wrong by one hold, which is what the lost
+name cost every heredoc command before. Put such a call in its own shell call.
 
 ## The tree the command will stand in
 

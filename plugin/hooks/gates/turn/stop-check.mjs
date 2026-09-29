@@ -14,6 +14,7 @@ import { gitProbe, probeMs } from "../../../src/hooks/git-probe.mjs";
 import { configuresLint, linting, MAX_FILES } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
+import { withoutBodies } from "../../../src/resolve/session/here-doc.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
@@ -76,7 +77,7 @@ const movedTo = (commands, from) => {
   for (const command of commands) {
     let at = from;
     let moved = false;
-    for (const hit of command.matchAll(CD)) {
+    for (const hit of withoutBodies(command).matchAll(CD)) {
       at = resolve(at, valueIn(hit));
       moved = true;
     }
