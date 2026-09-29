@@ -11,16 +11,21 @@ const GUESSED = /\$['[]|\$\{[^}]*['"]/gu;
 const guessed = (text, under, end) =>
   [...text.slice(0, end).matchAll(GUESSED)].some(({ index }) => !["'", "#", "\\"].includes(under[index]));
 
-/* Inside an unquoted body a quote is data and never stops an expansion, and a backslash escapes only these four, so the scan is the body's own and not the walk a shell line is read by. */
-const ESCAPES = new Set(["$", BACKTICK, "\\", "\n"]);
-const RUNS = /^(?:\$\(|\$\{[\s|]|\x60)/u;
+/* Inside an unquoted body a quote is data and never stops an expansion, a backslash-newline is removed and joins what it split, and a backslash makes only `$`, a backtick or a backslash
+   literal, so the scan reads the body as the shell does before it expands and not by the walk a shell line is read by. */
+const LITERAL_AFTER = new Set(["$", BACKTICK, "\\"]);
+const RUNS = /\$\(|\$\{[\s|]|\x60/u;
 
 const runsInBody = (body) => {
+  let read = "";
   for (let at = 0; at < body.length; at += 1) {
-    if (body[at] === "\\" && ESCAPES.has(body[at + 1])) at += 1;
-    else if (RUNS.test(body.slice(at, at + 3))) return true;
+    if (body[at] === "\\" && body[at + 1] === "\n") at += 1;
+    else if (body[at] === "\\" && LITERAL_AFTER.has(body[at + 1])) {
+      read += "\0";
+      at += 1;
+    } else read += body[at];
   }
-  return false;
+  return RUNS.test(read);
 };
 
 const underOf = (text) => {

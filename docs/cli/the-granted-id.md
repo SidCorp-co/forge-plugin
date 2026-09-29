@@ -93,7 +93,8 @@ body this reader cannot vouch for:
 
 - **An unquoted delimiter whose body runs a substitution** — `$(…)`, a backtick, `${ …; }`. The
   invoking shell runs it before the command and without a prefix's assignment. Inside the body a
-  quote is data and stops nothing; only a `\` on the `$` or the backtick does.
+  quote is data and stops nothing; only a `\` on the `$` or the backtick does, and a
+  backslash-newline joins an opener it splits, as it does on a shell line.
 - **No delimiter line.** The shell reads to the end of the text; this reader does not guess where the
   author meant it to stop.
 - **A quoting the walk guesses at** before the operator's line ends — the `$'…'` and nested-quote

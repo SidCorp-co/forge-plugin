@@ -425,6 +425,7 @@ test("a here-document this shell expands, or cannot delimit, is read as it was",
       "a substitution a quote does not stop inside an unquoted body",
     [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\n\`forge advance ISS-30\`\nEOF`]: "the same, spelled with backticks",
     [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\n\${ forge advance ISS-30; }\nEOF`]: "and bash 5.3's brace form",
+    [`FORGE_SESSION_ID=a-run ${WRITE} <<EOF\n$\\\n(forge advance ISS-30)\nEOF`]: "an opener a backslash-newline splits, which the shell joins",
     [`export FORGE_SESSION_ID=a-run && cat > /tmp/b.md <<'X'\nnever closed\n${WRITE}`]: "a body with no terminator line",
     [`export FORGE_SESSION_ID=a-run && cat > "\${T:-"x"}" <<'X'\nbody\nX\n${WRITE}`]:
       "a quote an expansion nests before the operator, where the walk is a guess",
