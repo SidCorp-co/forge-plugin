@@ -7,19 +7,19 @@ import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, re
 import { dirname, join } from "node:path";
 
 import { appendJsonlRows, jsonlAt, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
-import { durableBase, slugFor } from "../stats/corpus/corpus.mjs";
+import { durableRootFor } from "../stats/corpus/corpus.mjs";
 import { projectRepository } from "../resolve/settings.mjs";
-import { DECLARED } from "./declared.mjs";
+import { withoutDeclaration } from "./declared.mjs";
 
 export const OWNER_KIND = "owner";
 export const DECISION_KIND = "decision";
 
 /** The layer's two files and the transcripts it is filled from, keyed on the repository; absent
  *  outside a checkout, which has no transcripts to call its own. */
-export const layerPaths = (room, repository = projectRepository()) => {
-  const at = repository && (repository.replace(/\/+$/u, "") || "/");
-  return room && at ? { precedents: join(room, "precedents.jsonl"), scanned: join(room, "scanned.json"),
-    source: join(durableBase(), slugFor(at)), repository: at } : null;
+export const layerPaths = (room) => {
+  const repository = projectRepository();
+  return room && repository ? { precedents: join(room, "precedents.jsonl"), scanned: join(room, "scanned.json"),
+    source: durableRootFor(repository), repository } : null;
 };
 
 export const precedentsIn = (paths) => (paths ? jsonlAt(paths.precedents) : []);
@@ -123,7 +123,7 @@ const rowsOfLine = (bytes, skip, repository) => {
     return null;
   }
   const rows = [...ownerRows(record, skip), ...decisionRows(record)];
-  if (!rows.length || repository === undefined) return rows;
+  if (!rows.length) return rows;
   const here = standsIn(record, repository);
   if (here === null) return null;
   return here ? rows : [];
@@ -287,9 +287,9 @@ const textOfRow = (row) => (row.kind === DECISION_KIND
   ? row.readings.map((one) => String(one).split("|")[0]).join(" ")
   : [row.question, row.header, ...(row.options ?? [])].join(" "));
 
-/** The question's own words, the declaration dropped: a reversal is how it is undone, not what it asks. */
+/** The words a question is matched on: its own, its header and its labels. */
 const questionText = (question) =>
-  [String(question?.question ?? "").replace(DECLARED, ""), question?.header, ...labelsOf(question)].join(" ");
+  [withoutDeclaration(question), question?.header, ...labelsOf(question)].join(" ");
 
 const vectorOf = (tokens, idf) => {
   const counts = new Map();

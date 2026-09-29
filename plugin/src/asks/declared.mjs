@@ -8,6 +8,9 @@ import { escaped } from "../markdown.mjs";
    declaration rides the one field the owner also reads: the question's own last words. */
 export const DECLARED = /\[reversible:\s*([^\]\n]*[^\]\s])\s*\]\s*$/u;
 
+/** The question's own words, its declaration taken off: how it is undone is not what it asks. */
+export const withoutDeclaration = (question) => String(question?.question ?? "").replace(DECLARED, "");
+
 /** How one question says it is undone, or null where it says nothing. */
 export const reversalOf = (question) => DECLARED.exec(String(question?.question ?? ""))?.[1] ?? null;
 
@@ -69,19 +72,19 @@ export const ownerCategories = (terms = []) => [
 /* Everything a question puts in front of the owner, the declaration itself excepted: a reversal
    naming `git revert` is how the session says it is undone, not a subject. */
 const textOf = (question) => [
-  String(question?.question ?? "").replace(DECLARED, ""),
+  withoutDeclaration(question),
   question?.header,
   ...(Array.isArray(question?.options) ? question.options.flatMap((one) => [one?.label, one?.description]) : []),
 ].filter((one) => typeof one === "string").join("\n");
 
 /** The owner categories one question names, by name; empty where it names none. */
-export const namedCategories = (question, categories = OWNER_CATEGORIES) => {
+export const namedCategories = (question, categories) => {
   const text = textOf(question);
   return categories.filter((one) => one.pattern.test(text)).map((one) => one.name);
 };
 
 /** Why a question is the owner's before any precedent is read, or null where it may be judged. */
-export const ownersBefore = (question, categories = OWNER_CATEGORIES) => {
+export const ownersBefore = (question, categories) => {
   if (!reversalOf(question)) return "it declares no reversal";
   if (!Array.isArray(question?.options) || question.options.length < 2) return "it offers no options to choose between";
   const named = namedCategories(question, categories);

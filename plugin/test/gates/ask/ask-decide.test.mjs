@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 
 import { answered, callHookAsync, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { OWNER_OVERRIDES } from "../../asks/owner-overrides.mjs";
+import { checkoutKey } from "../../../src/asks/decided.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 
 const HOOK = new URL("../../../hooks/entries/ask/ask-decide.mjs", import.meta.url).pathname;
@@ -83,7 +84,7 @@ const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], dec
     TMPDIR: tempRoom("ask-decide-tmp-") };
   delete env.FORGE_URL;
   delete env.FORGE_TOKEN;
-  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", createHash("sha256").update(repo).digest("hex").slice(0, 16));
+  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", checkoutKey(repo));
   return { repo, env, gateway, room, store, config, home, parent };
 };
 

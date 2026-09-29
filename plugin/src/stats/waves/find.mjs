@@ -5,7 +5,7 @@
 import { readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 
-import { durableBase, readTranscript, rootFor } from "../corpus/corpus.mjs";
+import { durableRootFor, readTranscript } from "../corpus/corpus.mjs";
 import { callsIn } from "../corpus/transcripts.mjs";
 import { refusalIn } from "../corpus/refusals.mjs";
 
@@ -35,7 +35,7 @@ const sessionFiles = (directory) => {
  *  with its calls and those writes. `read` counts every session file opened, so a corpus holding
  *  no wave says how many sessions it looked through. */
 export const dispatchersOf = (directory) => {
-  const where = join(durableBase(), basename(rootFor(directory)));
+  const where = durableRootFor(directory);
   const sessions = [];
   let read = 0;
   let unreadable = 0;

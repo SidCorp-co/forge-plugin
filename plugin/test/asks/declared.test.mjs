@@ -12,8 +12,8 @@ test("a question declares its reversal only in the trailing form, and one withou
   assert.equal(reversalOf(asked("Which slice first? [reversible: git revert the slice commit]")), "git revert the slice commit");
   assert.equal(reversalOf(asked("Which slice first? [reversible: ] ")), null, "an empty declaration declares nothing");
   assert.equal(reversalOf(asked("[reversible: x] Which slice first?")), null, "and it is the question's last words or nothing");
-  assert.equal(ownersBefore(asked("Which slice first?")), "it declares no reversal");
-  assert.equal(ownersBefore(asked("Which slice first? [reversible: reorder the steps]")), null);
+  assert.equal(ownersBefore(asked("Which slice first?"), OWNER_CATEGORIES), "it declares no reversal");
+  assert.equal(ownersBefore(asked("Which slice first? [reversible: reorder the steps]"), OWNER_CATEGORIES), null);
 });
 
 test("a declared question naming any built-in owner category is the owner's, wherever in it the words sit", () => {
@@ -26,13 +26,13 @@ test("a declared question naming any built-in owner category is the owner's, whe
     ["a contract others build against", asked("How should progress reach the browser? [reversible: swap]", ["SSE", "WebSocket"])],
   ];
   for (const [name, question] of cases) {
-    assert.deepEqual(namedCategories(question), [name], question.question);
-    assert.match(ownersBefore(question), new RegExp(`it names ${name}`, "u"));
+    assert.deepEqual(namedCategories(question, OWNER_CATEGORIES), [name], question.question);
+    assert.match(ownersBefore(question, OWNER_CATEGORIES), new RegExp(`it names ${name}`, "u"));
   }
   const described = asked("Which order? [reversible: redo]", ["Keep it"]);
   described.options.push({ label: "Tidy it", description: "removes the old helper" });
-  assert.ok(ownersBefore(described), "an option's description is read too");
-  assert.equal(namedCategories(asked("Which slice first? [reversible: git reset --hard the slice]")).length, 0,
+  assert.ok(ownersBefore(described, OWNER_CATEGORIES), "an option's description is read too");
+  assert.equal(namedCategories(asked("Which slice first? [reversible: git reset --hard the slice]"), OWNER_CATEGORIES).length, 0,
     "while the declaration itself is how it is undone, not a subject");
 });
 

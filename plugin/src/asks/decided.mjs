@@ -11,9 +11,10 @@ import { projectFilePath, projectRepository } from "../resolve/settings.mjs";
 export const DECIDED = "decided";
 export const OWNER = "owner";
 
-/* The host's own slug for a path folds every separator and punctuation mark into one character, so
-   two checkouts can share it; a digest of the path cannot. */
-const checkoutKey = (repository) => createHash("sha256").update(repository.replace(/\/+$/u, "") || "/").digest("hex").slice(0, 16);
+/** The key one checkout's ask state is kept under. The host's own slug for a path folds every
+ *  separator and punctuation mark into one character, so two checkouts can share it; a digest of the
+ *  path cannot. */
+export const checkoutKey = (repository) => createHash("sha256").update(repository).digest("hex").slice(0, 16);
 
 /** The checkout's ask directory, or null where this process stands in no checkout. */
 export const asksRoom = () => {
@@ -22,7 +23,7 @@ export const asksRoom = () => {
   return entry && repository ? join(dirname(entry), "asks", checkoutKey(repository)) : null;
 };
 
-export const decidedPath = (room = asksRoom()) => (room ? join(room, "decided.jsonl") : null);
+export const decidedPath = (room) => (room ? join(room, "decided.jsonl") : null);
 
 const nonEmpty = (value) => typeof value === "string" && value.trim() !== "";
 
@@ -51,7 +52,7 @@ const canonical = (row) => ({
 
 /** One outcome appended in its canonical shape; false where there is no project, the row has no
  *  known shape, or the write failed. */
-export const logOutcome = (entry, room = asksRoom()) => {
+export const logOutcome = (entry, room) => {
   const path = decidedPath(room);
   if (!path || !wellFormed(entry)) return false;
   try {
@@ -67,7 +68,7 @@ export const logOutcome = (entry, room = asksRoom()) => {
 const outcomes = (room) => strictJsonlAt(decidedPath(room), wellFormed, "a record this gate wrote");
 
 /** The calls the gate answered itself, which none may become precedent, or why they cannot be known. */
-export const decidedIds = (room = asksRoom()) => {
+export const decidedIds = (room) => {
   const held = outcomes(room);
   return held.unreadable ? held
     : { ids: new Set(held.rows.filter((one) => one.outcome === DECIDED).map((one) => one.toolUseId)) };

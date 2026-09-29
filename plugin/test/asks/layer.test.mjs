@@ -13,7 +13,10 @@ import { decidedIds, logOutcome } from "../../src/asks/decided.mjs";
 const QUESTION = { question: "Where should each day's report go?", header: "Delivery",
   options: [{ label: "A file on this device (Recommended)" }, { label: "A page on the tracker" }] };
 
-const answered = (id, question, answer, notes, cwd) => `${JSON.stringify({
+/* Where every line written here says its session stood, unless a case says otherwise. */
+const REPO = "/work/app";
+
+const answered = (id, question, answer, notes, cwd = REPO) => `${JSON.stringify({
   type: "user", timestamp: "2026-09-24T08:00:00.000Z", cwd,
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "answered" }] },
   toolUseResult: { questions: [question], answers: { [question.question]: answer },
@@ -33,7 +36,7 @@ const thread = (issue, reading) => [
 ].join("\n");
 
 const result = (id, text, isError = false) => `${JSON.stringify({
-  type: "user", timestamp: "2026-09-20T08:00:01.000Z",
+  type: "user", timestamp: "2026-09-20T08:00:01.000Z", cwd: REPO,
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: text, is_error: isError }] },
 })}\n`;
 
@@ -48,7 +51,7 @@ const layer = () => {
   const room = tempRoom("asks-layer-");
   const source = join(room, "store");
   mkdirSync(join(source, "session", "subagents"), { recursive: true });
-  return { precedents: join(room, "asks", "precedents.jsonl"), scanned: join(room, "asks", "scanned.json"), source };
+  return { precedents: join(room, "asks", "precedents.jsonl"), scanned: join(room, "asks", "scanned.json"), source, repository: REPO };
 };
 
 test("a build takes every answered question, free text included, and every recorded decision", () => {
@@ -244,7 +247,7 @@ test("a row is this project's only where its session stood in this repository, w
   assert.deepEqual(built(paths), { added: 2, complete: true });
   assert.deepEqual(precedentsIn(paths).map((one) => one.id).sort(), ["toolu_below#0", "toolu_here#0"],
     "the repository whose path collapses to the same slug is another project");
-  appendFileSync(file, answered("toolu_unsaid", QUESTION, "A page on the tracker"));
+  appendFileSync(file, answered("toolu_unsaid", QUESTION, "A page on the tracker", null, null));
   assert.deepEqual(built(paths), { added: 0, complete: false }, "and a row that does not say where it stood is doubt");
 });
 
