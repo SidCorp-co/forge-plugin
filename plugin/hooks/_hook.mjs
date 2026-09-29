@@ -20,8 +20,8 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
-export { directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, REDIRECT, STARTS, WRITES, namesOf, spans, standsIn, unquote };
+export { directoryAt, spelled, struck, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { NOWHERE, REDIRECT, WRITES, namesOf, spans, standsIn };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
