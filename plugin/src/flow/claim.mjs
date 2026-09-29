@@ -331,11 +331,11 @@ const takeTurn = async (documentId, ref, issue, context, { holder, source, minut
    read `ready` over an issue a park still holds, which is the gap the next landing found refused with
    no route out (ISS-2832). A park of another kind, or one this landing did not write, keeps its own
    answer route and is named rather than touched. Returns the issue with its status moved, where the
-   lift landed, or null where nothing of it changed. */
-const liftedIfOwn = async (ref, documentId, issue, readyView, checkpointHead) => {
+   lift landed, or null where nothing of it changed. `view` is the page `claim` read for a `--ready`
+   over a side status, which is the only call that reaches past the first line. */
+const liftedIfOwn = async (ref, issue, view, checkpointHead) => {
   if (!SIDE.includes(issue.status)) return null;
   const parkedAt = issue.status;
-  const view = readyView ?? viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
   const held = parkThatSet(view, parkedAt);
   if (!held || !isConflictPark(held.record.fields, checkpointHead)) {
     console.log(`${ref} is still ${parkedAt}${held
@@ -541,7 +541,7 @@ export const claim = async (argv) => {
   /* A capture that arms nothing, which Phase 4 takes before the status moves and at each push, so the
      project's own pre-ready checks are read before the call that arms the landing (ISS-2515). */
   if (given.pushed && !turns.length) for (const one of readyChecksLines(ref, readyChecks())) console.log(one);
-  const lifted = given.ready ? await liftedIfOwn(ref, documentId, issue, readyView, landingHere?.head) : null;
+  const lifted = given.ready ? await liftedIfOwn(ref, issue, readyView, landingHere?.head) : null;
   if (lifted) issue = lifted;
   return advise(documentId, issue, worklogOf(next), next?.[LANDING]);
 };
