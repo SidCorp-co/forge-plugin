@@ -8,10 +8,10 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import * as harness from "../../hooks/_hook.mjs";
-import * as shellSpans from "../../src/hooks/shell-spans.mjs";
+import * as harness from "../../../hooks/_hook.mjs";
+import * as shellSpans from "../../../src/hooks/shell-spans.mjs";
 
-const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+const ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 const GATES = join(ROOT, "plugin/hooks/gates");
 const IMPORTERS = ["plugin", "packages", "tools"].map((one) => join(ROOT, one));
 
