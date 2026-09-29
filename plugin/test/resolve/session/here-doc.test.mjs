@@ -11,6 +11,7 @@ test("a here-document it can delimit loses its body and its operator, and nothin
     "cat <<-EOF\n\tcd /x\n\tEOF\nls": "cat       \nls",
     "cat <<A <<'B'\none\nA\ntwo\nB\nls": "cat          \nls",
     "cat <<X\n\\$(no)\nX": "cat    \n",
+    "cat <<X # a comment\nbody\nX\nls": "cat     # a comment\nls",
   };
   for (const [text, left] of Object.entries(cut)) assert.equal(withoutBodies(text), left, text);
 });
@@ -26,5 +27,6 @@ test("a << that is no here-document, or one it cannot vouch for, leaves the text
     "cat <<X\n${| forge advance ISS-2; }\nX\nforge comment ISS-1",
     "cat <<X\n$\\\n(forge advance ISS-2)\nX\nforge comment ISS-1",
     "cat <<X\nnever closed\nforge comment ISS-1",
+    "cat << # no word\nbody\n#\nforge comment ISS-1",
   ]) assert.equal(withoutBodies(text), text, text);
 });

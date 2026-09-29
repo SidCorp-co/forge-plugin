@@ -34,8 +34,10 @@ const underOf = (text) => {
   return under;
 };
 
-/* The delimiter word as a shell reads it: up to an unquoted blank or operator, its quotes and backslashes removed, and quoted — the body taken literally — where it carried any. */
+/* The delimiter word as a shell reads it: up to an unquoted blank or operator, its quotes and backslashes removed, and quoted — the body taken literally — where it carried any. A `#` where
+   the word would begin opens a comment, which leaves the operator no word at all. */
 const wordAt = (text, from) => {
+  if (text[from] === "#") return null;
   let at = from;
   let said = "";
   let quoted = false;
