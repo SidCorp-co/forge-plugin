@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.3 - 2026-09-29
+
+### Fixed
+
+- The edit hook no longer refuses an edit for a finding its own formatting created. It judged the
+  file prettier made rather than the one the author left, and joining wrapped lines removes code
+  lines, so a file at its `comment-density` budget passed as written and failed once formatted,
+  refused for comment the author never added. Where the formatted text fails a rule the edit's own
+  text passes, the formatting is now withheld and the edit's text is the verdict, the report naming
+  the rule the formatting would have broken; where both fail the same rules, the formatted file
+  stands and the report says it was reformatted. The second lint runs only when the first fails.
+
 ## 0.16.2 - 2026-09-29
 
 ### Fixed

@@ -214,7 +214,11 @@ test("a project that switched the hook off is not linted on edit", () => {
 
 // A stand-in for prettier, exercising the same three API calls the hook makes on the real one.
 // `config` is what resolveConfig answers, and null is prettier's word for a project with none.
-function installPrettier(root, config) {
+function installPrettier(
+  root,
+  config,
+  format = "(text) => text.split('\\n').filter((l) => !l.startsWith('// Previously')).join('\\n')",
+) {
   const home = path.join(root, "node_modules", "prettier");
   mkdirSync(home, { recursive: true });
   writeFileSync(
@@ -226,7 +230,7 @@ function installPrettier(root, config) {
     "module.exports = {\n" +
       "  getFileInfo: async (f) => ({ ignored: /ignored/.test(f), inferredParser: 'babel' }),\n" +
       `  resolveConfig: async () => (${JSON.stringify(config)}),\n` +
-      "  format: async (text) => text.split('\\n').filter((l) => !l.startsWith('// Previously')).join('\\n'),\n" +
+      `  format: async ${format},\n` +
       "};\n",
   );
 }
@@ -305,6 +309,55 @@ test("the lint of the text answers as a lint of the file by path does", () => {
     for (const rule of rules) assert.match(hook.stderr, new RegExp(`\\b${rule}\\b`), relative);
   }
   assert.match(runHook(root, "src/strict/a.js").stderr, /no-var/);
+});
+
+/* A stand-in prettier that joins a wrapped array onto one line, which is what the real one does to a
+   wrapped signature: four code lines become one, and comment-density's budget with them. */
+const JOIN = String.raw`(text) => text.replace("[\n  1,\n  2,\n]", "[1, 2]")`;
+const WRAPPED = "export const list = [\n  1,\n  2,\n];\n";
+
+function joiningConsumer(extraRules = "") {
+  const root = makeConsumer({ config: false });
+  writeFileSync(
+    path.join(root, "eslint.config.js"),
+    'import codeQuality from "eslint-plugin-code-quality";\n' +
+      `export default [...codeQuality.configs.recommended${extraRules}];\n`,
+  );
+  installPrettier(root, {}, JOIN);
+  return root;
+}
+
+/* The case ISS-1089 met: a file at its comment budget passes as written and fails once prettier has
+   joined its lines, and the edit was refused for the formatter's line count. */
+test("an edit whose own text passes is not refused for a finding only the formatting created", () => {
+  const root = joiningConsumer();
+  const source = `// The two numbers every caller here needs.\n${WRAPPED}`;
+  const file = write(root, "src/budget.js", source);
+  const result = runHook(root, "src/budget.js");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(readFileSync(file, "utf8"), source);
+});
+
+test("a finding the edit's own text shares is refused on the formatted file, saying it was formatted", () => {
+  const root = joiningConsumer();
+  const file = write(root, "src/over.js", `// Holds the two numbers every caller in this module needs today.\n${WRAPPED}`);
+  const result = runHook(root, "src/over.js");
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /comment-density/);
+  assert.match(result.stderr, /Reformatted by the project's prettier before this lint/);
+  assert.match(readFileSync(file, "utf8"), /\[1, 2\]/);
+});
+
+test("a withheld formatting leaves the edit's own findings, naming the rule it would have broken", () => {
+  const root = joiningConsumer(', { rules: { "no-var": "error" } }');
+  const source = `// The two numbers every caller here needs.\n${WRAPPED.replace("const", "var")}`;
+  const file = write(root, "src/own.js", source);
+  const result = runHook(root, "src/own.js");
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /no-var/);
+  assert.match(result.stderr, /Not reformatted: the project's prettier output fails code-quality\/comment-density/);
+  assert.doesNotMatch(result.stderr, /Cut \d+ characters of comment/);
+  assert.equal(readFileSync(file, "utf8"), source);
 });
 
 test("a prettier with no configuration to read formats nothing, and the rules still run", () => {
