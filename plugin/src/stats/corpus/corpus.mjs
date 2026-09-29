@@ -10,11 +10,17 @@ const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`)
 
 export const slugFor = (directory) => directory.replaceAll(/[^a-zA-Z0-9]/gu, "-");
 
-/** Where one project's transcripts sit; the trailing separator is cut first, or one checkout named two ways answers as two corpora. The identity a reading is held under, so a mark written against a corpus goes on resolving whatever else this module learns to read. */
-export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.replace(/\/+$/u, "") || "/"));
+/* The trailing separator is cut first, or one checkout named two ways answers as two corpora. */
+const slugOfCheckout = (directory) => slugFor(directory.replace(/\/+$/u, "") || "/");
+
+/** Where one project's transcripts sit. The identity a reading is held under, so a mark written against a corpus goes on resolving whatever else this module learns to read. */
+export const rootFor = (directory) => join(transcriptBase(), slugOfCheckout(directory));
 
 /** Where the host keeps the transcripts themselves. Read at the call and never at load, so a home the caller sets reaches it. */
 export const durableBase = () => join(homedir(), ".claude", "projects");
+
+/** Where the host keeps one project's own transcripts, under the slug `rootFor` names it by. */
+export const durableRootFor = (directory) => join(durableBase(), slugOfCheckout(directory));
 
 const namesIn = (directory) => {
   try {

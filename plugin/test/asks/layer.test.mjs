@@ -2,17 +2,21 @@
    it never takes, and how little a later build reads. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appendFileSync, chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import fs, { appendFileSync, chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
-import { addPrecedent, ownerRow, precedentsIn, refreshLayer, shortlistFor } from "../../src/asks/layer.mjs";
+import { addPrecedents, ownerRow, precedentsIn, refreshLayer, shortlister } from "../../src/asks/layer.mjs";
 import { decidedIds, logOutcome } from "../../src/asks/decided.mjs";
 
 const QUESTION = { question: "Where should each day's report go?", header: "Delivery",
   options: [{ label: "A file on this device (Recommended)" }, { label: "A page on the tracker" }] };
 
-const answered = (id, question, answer, notes, cwd) => `${JSON.stringify({
+/* Where every line written here says its session stood, unless a case says otherwise. */
+const REPO = "/work/app";
+
+const answered = (id, question, answer, notes, cwd = REPO) => `${JSON.stringify({
   type: "user", timestamp: "2026-09-24T08:00:00.000Z", cwd,
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "answered" }] },
   toolUseResult: { questions: [question], answers: { [question.question]: answer },
@@ -32,15 +36,22 @@ const thread = (issue, reading) => [
 ].join("\n");
 
 const result = (id, text, isError = false) => `${JSON.stringify({
-  type: "user", timestamp: "2026-09-20T08:00:01.000Z",
+  type: "user", timestamp: "2026-09-20T08:00:01.000Z", cwd: REPO,
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: text, is_error: isError }] },
 })}\n`;
+
+/* What a build says of itself, the rows it hands its caller left to the cases about them. */
+const built = (paths, options) => {
+  const { rows, ...said } = refreshLayer(paths, options);
+  assert.equal(Array.isArray(rows), !said.unreadable, "a build that read the layer hands back its rows");
+  return said;
+};
 
 const layer = () => {
   const room = tempRoom("asks-layer-");
   const source = join(room, "store");
   mkdirSync(join(source, "session", "subagents"), { recursive: true });
-  return { precedents: join(room, "asks", "precedents.jsonl"), scanned: join(room, "asks", "scanned.json"), source };
+  return { precedents: join(room, "asks", "precedents.jsonl"), scanned: join(room, "asks", "scanned.json"), source, repository: REPO };
 };
 
 test("a build takes every answered question, free text included, and every recorded decision", () => {
@@ -52,7 +63,7 @@ test("a build takes every answered question, free text included, and every recor
   ].join(""));
   writeFileSync(join(paths.source, "session", "subagents", "agent-1.jsonl"),
     result("toolu_read", thread("ISS-9", "Keep one file | it is small | split it")));
-  assert.deepEqual(refreshLayer(paths), { added: 3, complete: true });
+  assert.deepEqual(built(paths), { added: 3, complete: true });
   const held = precedentsIn(paths);
   const [owner, free, recorded] = [held.find((one) => one.id === "toolu_a#0"), held.find((one) => one.id === "toolu_b#0"),
     held.find((one) => one.kind === "decision")];
@@ -68,7 +79,7 @@ test("a later build reads only what the transcripts gained since the last one", 
   const paths = layer();
   const file = join(paths.source, "s1.jsonl");
   writeFileSync(file, answered("toolu_a", QUESTION, "A page on the tracker"));
-  refreshLayer(paths);
+  built(paths);
   const offset = JSON.parse(readFileSync(paths.scanned, "utf8")).files[file].offset;
   assert.equal(offset, readFileSync(file).length, "the build keeps where it stopped");
   /* Bytes before that offset are never read again: a row put there by hand stays unseen, while the
@@ -76,34 +87,34 @@ test("a later build reads only what the transcripts gained since the last one", 
   const earlier = answered("toolu_z", QUESTION, "A page on the tracker");
   assert.equal(Buffer.byteLength(earlier), offset, "a whole valid line, exactly as long as the one it replaces");
   writeFileSync(file, `${earlier}${answered("toolu_new", QUESTION, "A file on this device (Recommended)")}`);
-  assert.equal(refreshLayer(paths).added, 1);
+  assert.equal(built(paths).added, 1);
   assert.deepEqual(precedentsIn(paths).map((one) => one.id).sort(), ["toolu_a#0", "toolu_new#0"]);
 });
 
 test("a question the gate decided itself is taken from no transcript and by no append that names it", () => {
   const paths = layer();
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_self", QUESTION, "A page on the tracker"));
-  assert.equal(refreshLayer(paths, { skip: new Set(["toolu_self"]) }).added, 0);
-  assert.equal(addPrecedent(paths, ownerRow({ id: "toolu_owner#0", question: QUESTION, answer: "A page on the tracker" })), true);
-  assert.equal(addPrecedent(paths, ownerRow({ id: "toolu_owner#0", question: QUESTION, answer: "A page on the tracker" })), false,
+  assert.equal(built(paths, { skip: new Set(["toolu_self"]) }).added, 0);
+  assert.equal(addPrecedents(paths, [ownerRow({ id: "toolu_owner#0", question: QUESTION, answer: "A page on the tracker" })]), 1);
+  assert.equal(addPrecedents(paths, [ownerRow({ id: "toolu_owner#0", question: QUESTION, answer: "A page on the tracker" })]), 0,
     "and one row is kept once");
 });
 
 test("a build past its time keeps its place, and the next one carries on from there", (t) => {
   const paths = layer();
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
-  assert.deepEqual(refreshLayer(paths, { until: Date.now() - 1 }), { added: 0, complete: false });
+  assert.deepEqual(built(paths, { until: Date.now() - 1 }), { added: 0, complete: false });
   appendFileSync(join(paths.source, "s1.jsonl"), "");
-  assert.equal(refreshLayer(paths).added, 1);
+  assert.equal(built(paths).added, 1);
   /* One transcript is not one step: the time runs out between two of its lines, since a single
      session's file can run to hundreds of megabytes. Each reading of the clock is a second later. */
   appendFileSync(join(paths.source, "s1.jsonl"), answered("toolu_b", QUESTION, "A file on this device")
     + answered("toolu_c", QUESTION, "A page on the tracker"));
   let second = 0;
   t.mock.method(Date, "now", () => second++);
-  assert.deepEqual(refreshLayer(paths, { until: 1 }), { added: 1, complete: false }, "it stops inside the file");
+  assert.deepEqual(built(paths, { until: 1 }), { added: 1, complete: false }, "it stops inside the file");
   t.mock.restoreAll();
-  assert.deepEqual(refreshLayer(paths), { added: 1, complete: true }, "and the next build reads on from that line, once");
+  assert.deepEqual(built(paths), { added: 1, complete: true }, "and the next build reads on from that line, once");
   assert.deepEqual(precedentsIn(paths).map((one) => one.id), ["toolu_a#0", "toolu_b#0", "toolu_c#0"]);
 });
 
@@ -113,8 +124,8 @@ test("the shortlist holds what is close and nothing under the floor", () => {
     ownerRow({ id: "far", question: { question: "Which colour for the chart?", options: [{ label: "Red" }, { label: "Blue" }] }, answer: "Red" }),
   ];
   const asked = { ...QUESTION, question: "Where should the weekly report go? [reversible: move it back]" };
-  assert.deepEqual(shortlistFor(asked, rows).map((one) => one.id), ["near"]);
-  assert.deepEqual(shortlistFor({ question: "Which font? [reversible: x]", options: [{ label: "Serif" }, { label: "Sans" }] }, rows), []);
+  assert.deepEqual(shortlister(rows)(asked).map((one) => one.id), ["near"]);
+  assert.deepEqual(shortlister(rows)({ question: "Which font? [reversible: x]", options: [{ label: "Serif" }, { label: "Sans" }] }), []);
 });
 
 test("a decision joins the layer only as the tracker holds it, read back, and once however often it is read", () => {
@@ -126,7 +137,7 @@ test("a decision joins the layer only as the tracker holds it, read back, and on
     result("toolu_read1", thread("ISS-4", "Take the page | the owner reads it there | move it back")),
     result("toolu_read2", thread("ISS-4", "Take the page | the owner reads it there | move it back")),
   ].join(""));
-  assert.equal(refreshLayer(paths).added, 1, "a command asking for a write, and its echo, are no record");
+  assert.equal(built(paths).added, 1, "a command asking for a write, and its echo, are no record");
   const [row] = precedentsIn(paths);
   assert.deepEqual([row.kind, row.issue, row.readings], ["decision", "ISS-4", ["Take the page | the owner reads it there | move it back"]]);
 });
@@ -135,7 +146,7 @@ test("equally close precedents are never cut apart at the cap, so a disagreeing 
   const rows = Array.from({ length: 6 }, (one, at) => ownerRow({ id: `same${at}`, question: QUESTION,
     answer: at === 5 ? "A page on the tracker" : "A file on this device (Recommended)" }));
   const asked = { ...QUESTION, question: "Where should each day's report go? [reversible: move it back]" };
-  const shown = shortlistFor(asked, rows);
+  const shown = shortlister(rows)(asked);
   assert.equal(shown.length, 6);
   assert.ok(shown.some((one) => one.answer === "A page on the tracker"));
 });
@@ -144,15 +155,15 @@ test("a transcript that cannot be read leaves the build incomplete", () => {
   const paths = layer();
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
   symlinkSync(join(paths.source, "gone.jsonl.target"), join(paths.source, "s2.jsonl"));
-  assert.equal(refreshLayer(paths).complete, false);
+  assert.equal(built(paths).complete, false);
   const shut = layer();
   chmodSync(join(shut.source, "session"), 0o000);
   try {
-    assert.equal(refreshLayer(shut).complete, false, "and so does a directory that cannot be listed");
+    assert.equal(built(shut).complete, false, "and so does a directory that cannot be listed");
   } finally {
     chmodSync(join(shut.source, "session"), 0o755);
   }
-  assert.equal(refreshLayer({ ...layer(), source: join(tempRoom("asks-none-"), "absent") }).complete, true,
+  assert.equal(built({ ...layer(), source: join(tempRoom("asks-none-"), "absent") }).complete, true,
     "while a project with no transcripts at all is simply read to its end");
 });
 
@@ -162,10 +173,10 @@ test("a line that should hold an answer and cannot be read stops the build befor
   const whole = answered("toolu_b", QUESTION, "A file on this device (Recommended)");
   const torn = whole.slice(0, whole.indexOf("\"toolUseResult\"") + 30);
   writeFileSync(file, `${answered("toolu_a", QUESTION, "A page on the tracker")}${torn}\n${answered("toolu_c", QUESTION, "A page on the tracker")}`);
-  assert.deepEqual(refreshLayer(paths), { added: 1, complete: false }, "nothing past the unreadable answer is taken");
+  assert.deepEqual(built(paths), { added: 1, complete: false }, "nothing past the unreadable answer is taken");
   writeFileSync(file, `${answered("toolu_a", QUESTION, "A page on the tracker")}${answered("toolu_b", QUESTION, "A file on this device (Recommended)")}`
     + answered("toolu_c", QUESTION, "A page on the tracker"));
-  assert.deepEqual(refreshLayer(paths), { added: 2, complete: true }, "and once it reads whole, it and what follows are");
+  assert.deepEqual(built(paths), { added: 2, complete: true }, "and once it reads whole, it and what follows are");
 });
 
 test("the decision log takes only the outcome shapes it can read back, and names its calls", () => {
@@ -191,23 +202,23 @@ test("a last line still being written that may hold an answer leaves the build i
   const file = join(paths.source, "s1.jsonl");
   const last = answered("toolu_b", QUESTION, "A file on this device (Recommended)");
   writeFileSync(file, `${answered("toolu_a", QUESTION, "A page on the tracker")}${last.slice(0, -1)}`);
-  assert.deepEqual(refreshLayer(paths), { added: 1, complete: false });
+  assert.deepEqual(built(paths), { added: 1, complete: false });
   appendFileSync(file, "\n");
-  assert.deepEqual(refreshLayer(paths), { added: 1, complete: true });
+  assert.deepEqual(built(paths), { added: 1, complete: true });
 });
 
 test("a layer holding a row that will not parse is refused, rather than read without it", () => {
   const paths = layer();
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
-  refreshLayer(paths);
+  built(paths);
   appendFileSync(paths.precedents, '{"id":"toolu_b#0","kind":"owner","answer":\n');
-  assert.match(refreshLayer(paths).unreadable, /line 2 is not a precedent/u);
-  assert.equal(refreshLayer(paths).complete, false);
+  assert.match(built(paths).unreadable, /line 2 is not a precedent/u);
+  assert.equal(built(paths).complete, false);
   for (const partial of [{ id: "d1", kind: "decision" }, { id: "o1", kind: "owner", question: "Q?", options: ["A"] }]) {
     const whole = layer();
     mkdirSync(join(whole.precedents, ".."), { recursive: true });
     writeFileSync(whole.precedents, `${JSON.stringify(partial)}\n`);
-    assert.match(refreshLayer(whole).unreadable, /line 1 is not a precedent/u, `${JSON.stringify(partial)} is not a whole row`);
+    assert.match(built(whole).unreadable, /line 1 is not a precedent/u, `${JSON.stringify(partial)} is not a whole row`);
   }
 });
 
@@ -217,12 +228,12 @@ test("a link out of the project's own transcripts is never read, and leaves the 
   writeFileSync(foreign, answered("toolu_theirs", QUESTION, "A page on the tracker"));
   writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_mine", QUESTION, "A file on this device (Recommended)"));
   symlinkSync(foreign, join(paths.source, "s2.jsonl"));
-  assert.deepEqual(refreshLayer(paths), { added: 1, complete: false });
+  assert.deepEqual(built(paths), { added: 1, complete: false });
   assert.deepEqual(precedentsIn(paths).map((one) => one.id), ["toolu_mine#0"]);
   const inside = layer();
   writeFileSync(join(inside.source, "session", "real.jsonl"), answered("toolu_in", QUESTION, "A page on the tracker"));
   symlinkSync(join(inside.source, "session"), join(inside.source, "linked"));
-  assert.equal(refreshLayer(inside).complete, true, "while one landing inside them is read as they are");
+  assert.equal(built(inside).complete, true, "while one landing inside them is read as they are");
 });
 
 test("a row is this project's only where its session stood in this repository, whatever directory the host filed it under", () => {
@@ -233,9 +244,70 @@ test("a row is this project's only where its session stood in this repository, w
     answered("toolu_below", QUESTION, "A page on the tracker", null, "/work/team/app/plugin"),
     answered("toolu_theirs", QUESTION, "A file on this device (Recommended)", null, "/work/team-app"),
   ].join(""));
-  assert.deepEqual(refreshLayer(paths), { added: 2, complete: true });
+  assert.deepEqual(built(paths), { added: 2, complete: true });
   assert.deepEqual(precedentsIn(paths).map((one) => one.id).sort(), ["toolu_below#0", "toolu_here#0"],
     "the repository whose path collapses to the same slug is another project");
-  appendFileSync(file, answered("toolu_unsaid", QUESTION, "A page on the tracker"));
-  assert.deepEqual(refreshLayer(paths), { added: 0, complete: false }, "and a row that does not say where it stood is doubt");
+  appendFileSync(file, answered("toolu_unsaid", QUESTION, "A page on the tracker", null, null));
+  assert.deepEqual(built(paths), { added: 0, complete: false }, "and a row that does not say where it stood is doubt");
+});
+
+/* Every read and every append of one file, counted where the module under test makes them: a builtin's
+   named imports follow its object once the exports are synced. */
+const touches = (t, path) => {
+  const counts = { reads: 0, appends: 0 };
+  const [read, append] = [fs.readFileSync, fs.appendFileSync];
+  t.mock.method(fs, "readFileSync", (file, ...rest) => {
+    if (file === path) counts.reads += 1;
+    return read(file, ...rest);
+  });
+  t.mock.method(fs, "appendFileSync", (file, ...rest) => {
+    if (file === path) counts.appends += 1;
+    return append(file, ...rest);
+  });
+  syncBuiltinESMExports();
+  t.after(() => {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  });
+  return counts;
+};
+
+test("a build reads the layer once, appends what it found in one write, and hands back every row it holds", (t) => {
+  const paths = layer();
+  writeFileSync(join(paths.source, "s1.jsonl"), answered("toolu_a", QUESTION, "A page on the tracker"));
+  built(paths);
+  writeFileSync(join(paths.source, "s2.jsonl"), [answered("toolu_b", QUESTION, "A page on the tracker"),
+    answered("toolu_c", QUESTION, "A file on this device (Recommended)")].join(""));
+  const counts = touches(t, paths.precedents);
+  const { rows, added } = refreshLayer(paths);
+  assert.deepEqual(counts, { reads: 1, appends: 1 });
+  assert.equal(added, 2);
+  assert.deepEqual(rows.map((one) => one.id), ["toolu_a#0", "toolu_b#0", "toolu_c#0"], "what it read, and what it added");
+  assert.deepEqual(precedentsIn(paths).map((one) => one.id), ["toolu_a#0", "toolu_b#0", "toolu_c#0"]);
+});
+
+test("the answers of one call join the layer in one read and one write, and those held already are left out", (t) => {
+  const paths = layer();
+  addPrecedents(paths, [ownerRow({ id: "toolu_q#0", question: QUESTION, answer: "A page on the tracker" })]);
+  const counts = touches(t, paths.precedents);
+  const rows = [0, 1, 2].map((at) => ownerRow({ id: `toolu_q#${at}`, question: QUESTION, answer: "A page on the tracker" }));
+  assert.equal(addPrecedents(paths, [...rows, null]), 2);
+  assert.deepEqual(counts, { reads: 1, appends: 1 });
+});
+
+test("each question of a call is scored against the rows as it was before the rows were tokenised once for the call", () => {
+  const options = (labels) => labels.map((label) => ({ label }));
+  const rows = [
+    ownerRow({ id: "a", question: { question: "Where should each day's report go?", options: options(["A file (Recommended)", "A page"]) }, answer: "A page" }),
+    ownerRow({ id: "b", question: { question: "Which colour for the chart?", options: options(["Red", "Blue"]) }, answer: "Red" }),
+    ownerRow({ id: "c", question: { question: "Where should the weekly summary be written?", options: options(["A file", "A page (Recommended)"]) }, answer: "A file" }),
+    { id: "d", kind: "decision", readings: ["Write the report to a page | read there | move it back"], issue: "ISS-1" },
+    ownerRow({ id: "e", question: { question: "Which chart colour for the report?", options: options(["Red", "Green"]) }, answer: "Green" }),
+  ];
+  const shortlist = shortlister(rows);
+  const scored = (question, labels) => shortlist({ question, options: options(labels) }).map((one) => [one.id, one.score]);
+  /* The numbers the per-question build gave for these two questions. */
+  assert.deepEqual(scored("Where should the weekly report go? [reversible: move it back]", ["A file", "A page"]),
+    [["c", 0.59], ["a", 0.588], ["d", 0.396]]);
+  assert.deepEqual(scored("Which colour for the report chart? [reversible: x]", ["Red", "Blue"]), [["b", 0.926], ["e", 0.683]]);
 });

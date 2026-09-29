@@ -127,7 +127,7 @@ export const briefLines = (read) => {
   return [...out, "", ...numberedBody(read.entry.body)];
 };
 
-export const readBrief = async () => (slugIfAny() ? softEntryAt(BRIEF_SLUG) : null);
+export const readBrief = async (held = {}) => (slugIfAny() ? softEntryAt(BRIEF_SLUG, held) : null);
 
 /** The refusal a body's own `Serves:` line earns, or null. The read of the brief is inside the guard because a body with no such line owes it none, and reading one is a tracker call: the two verbs that file spend this rather than each spelling that condition. */
 export const servesOwed = async (text, what, asksTree = true) => {
@@ -135,11 +135,13 @@ export const servesOwed = async (text, what, asksTree = true) => {
   return values.length ? servesRefusal(values, await briefGoals(), what, asksTree) : null;
 };
 
-/** Not memoised: the store's answer is one project's, and `forge feedback` re-aims the scope. */
-export const briefGoals = async () => {
+/** Not memoised: the store's answer is one project's, and `forge feedback` re-aims the scope. `held`
+ *  is what the transport takes of a caller inside somebody else's clock — `once`, `signal` — so the
+ *  read ends where that caller stops waiting rather than outliving it. */
+export const briefGoals = async (held = {}) => {
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) return { goals: [], why: WHY.endpoint };
-  const read = await readBrief();
+  const read = await readBrief(held);
   if (!read) return { goals: [], why: WHY.aimed };
   if (read.refused) return { goals: [], why: WHY.unread };
   return read.entry ? goalsIn(read.entry.body) : { goals: [], why: WHY.stored };

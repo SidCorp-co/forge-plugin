@@ -6,20 +6,20 @@ import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { appendJsonl, jsonlAt } from "../hooks/log/hook-log-file.mjs";
-import { durableBase, slugFor } from "../stats/corpus/corpus.mjs";
+import { appendJsonlRows, jsonlAt, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
+import { durableRootFor } from "../stats/corpus/corpus.mjs";
 import { projectRepository } from "../resolve/settings.mjs";
-import { DECLARED } from "./declared.mjs";
+import { withoutDeclaration } from "./declared.mjs";
 
 export const OWNER_KIND = "owner";
 export const DECISION_KIND = "decision";
 
 /** The layer's two files and the transcripts it is filled from, keyed on the repository; absent
  *  outside a checkout, which has no transcripts to call its own. */
-export const layerPaths = (room, repository = projectRepository()) => {
-  const at = repository && (repository.replace(/\/+$/u, "") || "/");
-  return room && at ? { precedents: join(room, "precedents.jsonl"), scanned: join(room, "scanned.json"),
-    source: join(durableBase(), slugFor(at)), repository: at } : null;
+export const layerPaths = (room) => {
+  const repository = projectRepository();
+  return room && repository ? { precedents: join(room, "precedents.jsonl"), scanned: join(room, "scanned.json"),
+    source: durableRootFor(repository), repository } : null;
 };
 
 export const precedentsIn = (paths) => (paths ? jsonlAt(paths.precedents) : []);
@@ -31,33 +31,15 @@ const wholeRow = (row) => Boolean(row) && typeof row.id === "string" && (row.kin
   ? typeof row.question === "string" && typeof row.answer === "string" && strings(row.options)
   : row.kind === DECISION_KIND && strings(row.readings) && row.readings.length > 0);
 
-/** The layer read strictly, for the one reader that decides from it: a row that will not parse may be
- *  the answer that disagrees, and the offsets already read past it will not bring it back. */
-export const readLayer = (paths) => {
-  let text;
-  try {
-    text = readFileSync(paths.precedents, "utf8");
-  } catch (error) {
-    return error.code === "ENOENT" ? { rows: [] } : { unreadable: `${paths.precedents} could not be read: ${error.message}` };
-  }
-  const rows = [];
-  for (const [at, line] of text.split("\n").entries()) {
-    if (!line.trim()) continue;
-    try {
-      const row = JSON.parse(line);
-      if (!wholeRow(row)) throw new Error("no row");
-      rows.push(row);
-    } catch {
-      return { unreadable: `${paths.precedents} line ${at + 1} is not a precedent` };
-    }
-  }
-  return { rows };
-};
+/* The layer read strictly, for the one reader that decides from it: a row that will not parse may be
+   the answer that disagrees, and the offsets already read past it will not bring it back. */
+const readLayer = (paths) => strictJsonlAt(paths.precedents, wholeRow, "a precedent");
 
 /** How many precedents a layer holds, read without building anything. */
 export const precedentCount = (paths) => precedentsIn(paths).length;
 
-const RECOMMENDED = /\(recommended\)/iu;
+/** How an offered label says the session recommends it. */
+export const RECOMMENDED = /\(recommended\)/iu;
 
 const labelsOf = (question) =>
   (Array.isArray(question?.options) ? question.options.map((one) => String(one?.label ?? "")).filter(Boolean) : []);
@@ -141,7 +123,7 @@ const rowsOfLine = (bytes, skip, repository) => {
     return null;
   }
   const rows = [...ownerRows(record, skip), ...decisionRows(record)];
-  if (!rows.length || repository === undefined) return rows;
+  if (!rows.length) return rows;
   const here = standsIn(record, repository);
   if (here === null) return null;
   return here ? rows : [];
@@ -232,14 +214,15 @@ const readScanned = (path) => {
  *  last build reached; a file that shrank was replaced, and is read again from its start, rows
  *  already held being kept once. `skip` is the tool-use ids the gate decided itself, and `until` a
  *  time past which the build stops before its next line, inside a file as between files, and keeps
- *  its place for the next one. */
+ *  its place for the next one. `rows` is the layer as this build read it with what it added, which a
+ *  caller judges from rather than reading the file again: a row another session appends while this
+ *  build runs reaches the next call, as one appended a moment after this call would. */
 export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {}) => {
-  if (!paths) return { added: 0, complete: true };
   const layer = readLayer(paths);
   if (layer.unreadable) return { added: 0, complete: false, unreadable: layer.unreadable };
   const scanned = readScanned(paths.scanned);
   const held = new Set(layer.rows.map((one) => one.id));
-  let added = 0;
+  const found = [];
   const listed = transcriptsUnder(paths.source);
   let { complete } = listed;
   for (const file of listed.files.sort()) {
@@ -263,24 +246,28 @@ export const refreshLayer = (paths, { skip = new Set(), until = Infinity } = {})
       if (rows === null) return false;
       for (const row of rows.filter((one) => !held.has(one.id))) {
         held.add(row.id);
-        appendJsonl(paths.precedents, row);
-        added += 1;
+        found.push(row);
       }
       return true;
     });
     if (stopped) complete = false;
     scanned.files[file] = { offset: end };
   }
+  appendJsonlRows(paths.precedents, found);
   mkdirSync(dirname(paths.scanned), { recursive: true });
   writeFileSync(paths.scanned, `${JSON.stringify(scanned)}\n`, { mode: 0o600 });
-  return { added, complete };
+  return { added: found.length, complete, rows: [...layer.rows, ...found] };
 };
 
-/** One owner answer the post-call gate saw, added unless the layer holds it already. */
-export const addPrecedent = (paths, row) => {
-  if (!paths || !row || precedentsIn(paths).some((one) => one.id === row.id)) return false;
-  appendJsonl(paths.precedents, row);
-  return true;
+/** The owner answers the post-call gate saw, each added unless the layer holds it already, in one
+ *  write; how many were added. */
+export const addPrecedents = (paths, rows) => {
+  const given = rows.filter(Boolean);
+  if (!given.length) return 0;
+  const held = new Set(precedentsIn(paths).map((one) => one.id));
+  const fresh = given.filter((one) => !held.has(one.id));
+  appendJsonlRows(paths.precedents, fresh);
+  return fresh.length;
 };
 
 const STOP = new Set(("the and for are but not you your yours this that these those with from into onto what which who whom "
@@ -300,14 +287,14 @@ const textOfRow = (row) => (row.kind === DECISION_KIND
   ? row.readings.map((one) => String(one).split("|")[0]).join(" ")
   : [row.question, row.header, ...(row.options ?? [])].join(" "));
 
-/** The question's own words, the declaration dropped: a reversal is how it is undone, not what it asks. */
+/** The words a question is matched on: its own, its header and its labels. */
 const questionText = (question) =>
-  [String(question?.question ?? "").replace(DECLARED, ""), question?.header, ...labelsOf(question)].join(" ");
+  [withoutDeclaration(question), question?.header, ...labelsOf(question)].join(" ");
 
 const vectorOf = (tokens, idf) => {
   const counts = new Map();
   for (const one of tokens) counts.set(one, (counts.get(one) ?? 0) + 1);
-  const vector = new Map([...counts].map(([one, n]) => [one, n * (idf.get(one) ?? 0)]));
+  const vector = new Map([...counts].map(([one, n]) => [one, n * idf(one)]));
   const norm = Math.sqrt([...vector.values()].reduce((sum, one) => sum + one * one, 0));
   return { vector, norm };
 };
@@ -329,22 +316,27 @@ const SHORTLIST_DECISIONS = 3;
 const cutKeepingTies = (sorted, cap) => (sorted.length <= cap ? sorted
   : sorted.filter((one) => one.score >= sorted[cap - 1].score));
 
-/** The precedents closest to one question, owner answers and recorded decisions each capped apart,
- *  every one at or above the floor; the score travels with each so the judge sees how close. */
-export const shortlistFor = (question, rows, { floor = SHORTLIST_FLOOR } = {}) => {
+/** The shortlist of one call: the rows are tokenised once, and each question asked of it gets the
+ *  precedents closest to it, owner answers and recorded decisions each capped apart, every one at or
+ *  above the floor, the score travelling with each so the judge sees how close. The question counts
+ *  as one more document, so a word only it holds weighs what it would in any one row. */
+export const shortlister = (rows) => {
   const docs = rows.map((row) => ({ row, tokens: tokensOf(textOfRow(row)) }));
-  const asked = tokensOf(questionText(question));
-  const df = new Map();
-  for (const tokens of [asked, ...docs.map((one) => one.tokens)]) {
-    for (const one of new Set(tokens)) df.set(one, (df.get(one) ?? 0) + 1);
+  const inDocs = new Map();
+  for (const { tokens } of docs) {
+    for (const one of new Set(tokens)) inDocs.set(one, (inDocs.get(one) ?? 0) + 1);
   }
   const total = docs.length + 1;
-  const idf = new Map([...df].map(([one, n]) => [one, Math.log((total + 1) / (n + 1)) + 1]));
-  const target = vectorOf(asked, idf);
-  const scored = docs
-    .map(({ row, tokens }) => ({ ...row, score: Number(cosine(target, vectorOf(tokens, idf)).toFixed(3)) }))
-    .filter((one) => one.score >= floor)
-    .sort((left, right) => right.score - left.score);
-  return [...cutKeepingTies(scored.filter((one) => one.kind === OWNER_KIND), SHORTLIST_OWNER),
-    ...cutKeepingTies(scored.filter((one) => one.kind === DECISION_KIND), SHORTLIST_DECISIONS)];
+  return (question) => {
+    const asked = tokensOf(questionText(question));
+    const own = new Set(asked);
+    const idf = (one) => Math.log((total + 1) / ((inDocs.get(one) ?? 0) + (own.has(one) ? 1 : 0) + 1)) + 1;
+    const target = vectorOf(asked, idf);
+    const scored = docs
+      .map(({ row, tokens }) => ({ ...row, score: Number(cosine(target, vectorOf(tokens, idf)).toFixed(3)) }))
+      .filter((one) => one.score >= SHORTLIST_FLOOR)
+      .sort((left, right) => right.score - left.score);
+    return [...cutKeepingTies(scored.filter((one) => one.kind === OWNER_KIND), SHORTLIST_OWNER),
+      ...cutKeepingTies(scored.filter((one) => one.kind === DECISION_KIND), SHORTLIST_DECISIONS)];
+  };
 };

@@ -6,10 +6,11 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { answered, callHookAsync, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { OWNER_OVERRIDES } from "../../asks/owner-overrides.mjs";
+import { checkoutKey } from "../../../src/asks/decided.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 
 const HOOK = new URL("../../../hooks/entries/ask/ask-decide.mjs", import.meta.url).pathname;
@@ -83,7 +84,7 @@ const project = async (keys, { precedents = [[PRECEDENT, OPTIONS[0].label]], dec
     TMPDIR: tempRoom("ask-decide-tmp-") };
   delete env.FORGE_URL;
   delete env.FORGE_TOKEN;
-  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", createHash("sha256").update(repo).digest("hex").slice(0, 16));
+  const room = join(config, "forge", "projects", repo.split("/").at(-1), "asks", checkoutKey(repo));
   return { repo, env, gateway, room, store, config, home, parent };
 };
 
@@ -307,4 +308,43 @@ test("a precedent layer not read to its end, or a decision log that cannot be re
   partial.gateway.close();
   assert.equal(partial.gateway.asked.length, 0);
   assert.match(log(partial).at(-1).reason, /line 1 is not a precedent/u, "a layer row missing what the judge reads is refused, not crashed on");
+});
+
+test("a goals read the tracker never answers is closed at its bound, and the hook exits soon after it answers", async (t) => {
+  const opened = [];
+  const stalled = createServer((req) => {
+    const one = { url: req.url, closed: null };
+    opened.push(one);
+    req.socket.on("close", () => {
+      one.closed = Date.now();
+    });
+  });
+  t.after(() => new Promise((closed) => {
+    stalled.closeAllConnections();
+    stalled.close(closed);
+  }));
+  await new Promise((ready) => stalled.listen(0, "127.0.0.1", ready));
+  const held = await project({ slug: "stalled", asks: { mode: "decide" } });
+  writeFileSync(join(held.config, "forge", "config.json"), JSON.stringify({ url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t", retrySeconds: 0 }));
+  const started = Date.now();
+  const said = await ask(held, [reportQuestion()]);
+  const ended = Date.now();
+  held.gateway.close();
+  assert.equal(said?.permissionDecision, "allow", "the judge decided without the goals");
+  assert.ok(opened.length > 0, "the goals read reached the tracker");
+  assert.ok(opened.every((one) => one.closed !== null && one.closed <= ended), "and every request it opened was closed before the hook exited");
+  assert.ok(ended - started < 20_000, `the hook ran ${ended - started}ms, not to the tracker's own deadline`);
+});
+
+test("under a borrow the ask room is the run home's own, and nothing is written beside the machine's record", async () => {
+  const machine = await project({ asks: { mode: "decide" } });
+  const borrowed = join(machine.config, "forge", "config.json");
+  writeFileSync(borrowed, "{}\n");
+  const home = tempRoom("ask-decide-run-home-");
+  const said = await ask({ ...machine, env: { ...machine.env, XDG_CONFIG_HOME: home, FORGE_BORROW_FROM: borrowed } }, [reportQuestion()]);
+  machine.gateway.close();
+  assert.equal(said?.permissionDecision, "allow", "the machine's record still says this project decides");
+  assert.equal(existsSync(dirname(machine.room)), false, "nothing was written beside the machine's record");
+  const own = join(home, "forge", "projects", basename(machine.repo), "asks", checkoutKey(machine.repo));
+  assert.deepEqual(readdirSync(own).sort(), ["decided.jsonl", "precedents.jsonl", "scanned.json"], "the run home keeps the log and the layer");
 });

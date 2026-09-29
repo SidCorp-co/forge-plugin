@@ -3,7 +3,7 @@
 
 import { asksScope } from "../../../src/resolve/settings.mjs";
 import { asksRoom, decidedIds } from "../../../src/asks/decided.mjs";
-import { addPrecedent, layerPaths, ownerRow } from "../../../src/asks/layer.mjs";
+import { addPrecedents, layerPaths, ownerRow } from "../../../src/asks/layer.mjs";
 
 export const run = (ev) => {
   if (ev.tool_name !== "AskUserQuestion" || asksScope().value !== "decide") return;
@@ -15,9 +15,6 @@ export const run = (ev) => {
   const response = ev.tool_response && typeof ev.tool_response === "object" ? ev.tool_response : {};
   const answers = response.answers ?? {};
   const questions = Array.isArray(response.questions) ? response.questions : ev.tool_input?.questions ?? [];
-  const paths = layerPaths(room);
-  for (const [at, question] of questions.entries()) {
-    addPrecedent(paths, ownerRow({ id: `${id}#${at}`, at: new Date().toISOString(), question,
-      answer: answers[question?.question], notes: response.annotations?.[question?.question]?.notes ?? null }));
-  }
+  addPrecedents(layerPaths(room), questions.map((question, at) => ownerRow({ id: `${id}#${at}`, at: new Date().toISOString(),
+    question, answer: answers[question?.question], notes: response.annotations?.[question?.question]?.notes ?? null })));
 };

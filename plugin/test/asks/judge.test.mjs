@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { JUDGE_ROLE, judge, judgeInput, readVerdicts } from "../../src/asks/judge.mjs";
+import { defaultEffort } from "../../src/codex/codex-plan.mjs";
 import { ownerRow } from "../../src/asks/layer.mjs";
 
 const OPTIONS = [{ label: "File (Recommended)", description: "on this device" }, { label: "Page" }];
@@ -11,7 +12,7 @@ const QUESTION = { question: "Where should the weekly report go? [reversible: mo
 const PRECEDENT = { ...ownerRow({ id: "p1", at: "2026-09-24T08:00:00.000Z", question: { question: "Where should each day's report go?",
   options: OPTIONS }, answer: "Page" }), score: 0.6 };
 
-const said = (entry) => [{ name: "decide", input: { questions: [{ question: QUESTION.question, ...entry }] } }];
+const said = (entry) => ({ questions: [{ question: QUESTION.question, ...entry }] });
 const decided = { verdict: "decide", option: "Page", precedent: "p1", precedentsAgree: true, reason: "the owner chose a page" };
 
 test("the judge is told that close precedents disagreeing with each other is an owner answer", () => {
@@ -36,7 +37,7 @@ test("the judge is sent each question with its options, its recommendation, its 
 test("a decision is believed only as an offered option, followed from a shown precedent", () => {
   assert.deepEqual(readVerdicts(said(decided), [QUESTION], [[PRECEDENT]]).decisions.map((one) => [one.option, one.precedent.id]),
     [["Page", "p1"]]);
-  assert.match(readVerdicts([], [QUESTION], [[PRECEDENT]]).owner, /made no `decide` call/u);
+  assert.match(readVerdicts({}, [QUESTION], [[PRECEDENT]]).owner, /said nothing about/u);
   assert.match(readVerdicts(said({ ...decided, verdict: "owner" }), [QUESTION], [[PRECEDENT]]).owner, /sent .* to the owner/u);
   assert.match(readVerdicts(said({ ...decided, option: "Elsewhere" }), [QUESTION], [[PRECEDENT]]).owner, /does not offer/u);
   assert.match(readVerdicts(said({ ...decided, precedent: "p9" }), [QUESTION], [[PRECEDENT]]).owner, /not among the precedents/u);
@@ -56,29 +57,76 @@ test("an option picked while the close precedents are reported not to agree leav
 
 test("a call is decided whole or not at all", () => {
   const other = { ...QUESTION, question: "And the monthly one? [reversible: move it back]" };
-  const calls = [{ name: "decide", input: { questions: [{ question: QUESTION.question, ...decided }] } }];
-  assert.match(readVerdicts(calls, [QUESTION, other], [[PRECEDENT], [PRECEDENT]]).owner, /said nothing about "And the monthly one/u);
+  assert.match(readVerdicts(said(decided), [QUESTION, other], [[PRECEDENT], [PRECEDENT]]).owner, /said nothing about "And the monthly one/u);
+});
+
+const VALUES = { ANTHROPIC_BASE_URL: "http://gateway.test", ANTHROPIC_AUTH_TOKEN: "sk-test" };
+
+/* The gateway's stream carrying one `decide` call, as the bounded model call reads it. */
+const streamed = (input) => {
+  const events = [{ type: "message_start", message: { usage: {} } },
+    { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "j1", name: "decide" } },
+    { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: JSON.stringify(input) } },
+    { type: "content_block_stop", index: 0 }, { type: "message_delta", delta: { stop_reason: "tool_use" }, usage: {} }];
+  return [new TextEncoder().encode(events.map((one) => `event: ${one.type}\ndata: ${JSON.stringify(one)}\n\n`).join(""))];
+};
+
+/* A stand-in for `fetch` that keeps every body it was sent and answers the case's own way. */
+const gateway = (answer) => {
+  const sent = [];
+  const send = async (url, init) => {
+    sent.push({ url, body: JSON.parse(init.body) });
+    return answer(sent.length);
+  };
+  return { sent, send };
+};
+
+const judged = (send, model = "m") => judge({ values: VALUES, model, questions: [QUESTION], shortlists: [[PRECEDENT]], goals: null, send });
+
+test("the judge is one bounded model call, forced through `decide`", async () => {
+  const { sent, send } = gateway(() => ({ ok: true, status: 200, body: streamed(said(decided)) }));
+  const held = await judged(send);
+  assert.deepEqual(held.decisions.map((one) => one.option), ["Page"]);
+  const [one] = sent;
+  assert.equal(one.url, "http://gateway.test/v1/messages");
+  assert.deepEqual(one.body.tool_choice, { type: "tool", name: "decide" });
+  assert.equal(one.body.system, JUDGE_ROLE, "the role as it is, where the consult's call would wrap it for its cache");
+});
+
+test("the machine's effort goes out as a parameter only where the judge's model id names no rung", async () => {
+  const { sent, send } = gateway(() => ({ ok: true, status: 200, body: streamed(said(decided)) }));
+  await judged(send, "cx/judge");
+  await judged(send, "cx/judge-high");
+  assert.equal(sent[0].body.reasoning_effort, defaultEffort(), "an id with no rung carries the effort on the parameter");
+  assert.equal("reasoning_effort" in sent[1].body, false, "and one naming its rung carries it on the id alone");
 });
 
 test("a judge that throws, or runs out of time, is an owner answer", async () => {
-  const thrown = await judge({ values: {}, model: "m", questions: [QUESTION], shortlists: [[PRECEDENT]], goals: null,
-    ask: async () => { throw new Error("The operation was aborted due to timeout"); } });
-  assert.match(thrown.owner, /could not be asked: The operation was aborted due to timeout/u);
+  const thrown = await judged(async () => { throw Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }); });
+  assert.match(thrown.owner, /could not be asked: m was not reached: ran out after/u);
+  const refused = await judged(async () => ({ ok: false, status: 500, body: null, text: async () => "down" }));
+  assert.match(refused.owner, /could not be asked: the gateway answered 500/u);
+  const silent = await judged(async () => ({ ok: true, status: 200, body: [new TextEncoder().encode("")] }));
+  assert.match(silent.owner, /could not be asked: .*without calling `decide`/u, "an answer with no `decide` call");
 });
 
-test("a connection that never opened is tried once more, and a second failure is the owner's", async () => {
-  const refused = () => Object.assign(new Error("fetch failed"), { cause: { code: "ETIMEDOUT" } });
-  let asked = 0;
-  const flaky = async () => {
-    asked += 1;
-    if (asked === 1) throw refused();
-    return { calls: said(decided) };
-  };
-  const held = await judge({ values: {}, model: "m", questions: [QUESTION], shortlists: [[PRECEDENT]], goals: null, ask: flaky });
+test("a connection that never opened is tried once more", async () => {
+  const refused = () => Object.assign(new TypeError("fetch failed"), { cause: { code: "ETIMEDOUT" } });
+  const { sent, send } = gateway((count) => {
+    if (count === 1) throw refused();
+    return { ok: true, status: 200, body: streamed(said(decided)) };
+  });
+  const held = await judged(send);
+  assert.equal(sent.length, 2);
   assert.equal(held.decisions[0].option, "Page");
-  asked = 0;
-  const down = await judge({ values: {}, model: "m", questions: [QUESTION], shortlists: [[PRECEDENT]], goals: null,
-    ask: async () => { asked += 1; throw refused(); } });
+});
+
+test("a second connection that never opened is the owner's", async () => {
+  let asked = 0;
+  const down = await judged(async () => {
+    asked += 1;
+    throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNREFUSED" } });
+  });
   assert.equal(asked, 2, "twice and no more");
-  assert.match(down.owner, /could not be asked: fetch failed/u);
+  assert.match(down.owner, /could not be asked: m was not reached: fetch failed/u);
 });

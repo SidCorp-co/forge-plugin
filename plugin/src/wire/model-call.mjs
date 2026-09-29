@@ -7,7 +7,7 @@ import { consume } from "./messages-stream.mjs";
 import { clockFor, deadlineOf, ranOut, textWithin, within } from "./request.mjs";
 
 const ERROR_CHARS = 400;
-const DEFAULT_MAX_TOKENS = 16_000;
+const MAX_TOKENS = 16_000;
 
 /** What a call spent, in the provider's own counts; absent counts are nought, never guessed. */
 export const spentOf = (usage) => ({
@@ -16,13 +16,12 @@ export const spentOf = (usage) => ({
   output: Number(usage?.output_tokens ?? 0),
 });
 
-/** The tool input, what the call spent and how long it took; throws in words on anything else. The
- *  effort is whatever the model id carries: no reasoning parameter is sent, so an id naming its level
- *  is the one channel. `endpoint` is `{ url, key }`; `send` stands in for `fetch` in the suite. */
-export const modelCall = async ({ endpoint, model, system, data, tool, maxTokens = DEFAULT_MAX_TOKENS,
-  signal = null, send = fetch }) => {
+/** The tool input and what the call spent; throws in words on anything else, the error it caught kept
+ *  as the cause. An effort goes out as `reasoning_effort` only where the caller gives one; a caller
+ *  whose model id names its level gives none, since the gateway reads one channel or the other.
+ *  `endpoint` is `{ url, key }`; `send` stands in for `fetch` in the suite. */
+export const modelCall = async ({ endpoint, model, system, data, tool, effort = null, signal = null, send = fetch }) => {
   const deadline = within(deadlineOf());
-  const started = Date.now();
   const clock = clockFor(deadline, signal);
   let answer;
   try {
@@ -32,17 +31,18 @@ export const modelCall = async ({ endpoint, model, system, data, tool, maxTokens
         "x-api-key": endpoint.key },
       body: JSON.stringify({
         model,
-        max_tokens: maxTokens,
+        max_tokens: MAX_TOKENS,
         system,
         stream: true,
         messages: [{ role: "user", content: typeof data === "string" ? data : JSON.stringify(data) }],
         tools: [tool],
         tool_choice: { type: "tool", name: tool.name },
+        ...(effort ? { reasoning_effort: effort } : {}),
       }),
       signal: clock,
     });
   } catch (error) {
-    throw new Error(`${model} was not reached: ${ranOut(error, deadline)}`);
+    throw new Error(`${model} was not reached: ${ranOut(error, deadline)}`, { cause: error });
   }
   if (!answer.ok) {
     const body = await textWithin(answer, clock).catch(() => "");
@@ -52,9 +52,9 @@ export const modelCall = async ({ endpoint, model, system, data, tool, maxTokens
   try {
     held = await consume(answer.body, () => {});
   } catch (error) {
-    throw new Error(`${model}'s answer broke off: ${ranOut(error, deadline)}`);
+    throw new Error(`${model}'s answer broke off: ${ranOut(error, deadline)}`, { cause: error });
   }
   const call = held.calls.find((one) => one.name === tool.name);
   if (!call) throw new Error(`${model} answered without calling \`${tool.name}\`, so there is no answer to read`);
-  return { input: call.input, spent: spentOf(held.usage), ms: Date.now() - started };
+  return { input: call.input, spent: spentOf(held.usage) };
 };

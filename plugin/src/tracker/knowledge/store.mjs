@@ -25,8 +25,8 @@ export const entryAt = async (slug) => {
 };
 
 /** The same read without the refusal, for a reader that prints rather than writes: an absent entry and a store that would not answer are two different sentences, and only the first is an absence. */
-export const softEntryAt = async (slug) => {
-  const answer = await scoped("forge_knowledge", { action: "get", slug }, true);
+export const softEntryAt = async (slug, held = {}) => {
+  const answer = await scoped("forge_knowledge", { action: "get", slug }, true, held);
   if (!answer?.refused) return { entry: answer };
   return ABSENT.test(answer.refused) ? { entry: null } : { refused: answer.refused };
 };

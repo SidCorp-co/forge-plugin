@@ -8,10 +8,14 @@ import { configDir } from "../../resolve/config.mjs";
 export const hookLogPath = () => join(configDir("forge"), "hook-log.jsonl");
 
 /** One line appended to a JSONL store, the file created at `0o600` while it is still empty because `appendFileSync` alone would leave it `0644`; it raises rather than answering, so each store keeps its own catch, its own return and its own sentence about the loss, and `dir` is the directory the caller means to make rather than always the file's own. */
-export const appendJsonl = (path, record, dir = dirname(path)) => {
+export const appendJsonl = (path, record, dir = dirname(path)) => appendJsonlRows(path, [record], dir);
+
+/** Several lines appended in the one write `appendJsonl` makes of one, and nothing touched for none. */
+export const appendJsonlRows = (path, records, dir = dirname(path)) => {
+  if (!records.length) return;
   mkdirSync(dir, { recursive: true });
   if (!existsSync(path)) closeSync(openSync(path, "a", 0o600));
-  appendFileSync(path, `${JSON.stringify(record)}\n`);
+  appendFileSync(path, records.map((one) => `${JSON.stringify(one)}\n`).join(""));
 };
 
 export const logHook = (record) => {
@@ -43,6 +47,29 @@ export const jsonlAt = (path) => {
   } catch {
     return [];
   }
+};
+
+/** A JSONL store read strictly, for a reader that decides from every row it holds: a line that will not parse, or that `accepts` turns down, may be the row that disagrees, so the whole read is `{ unreadable }` naming that line as not `what`. No file is an empty store. */
+export const strictJsonlAt = (path, accepts, what) => {
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    return error.code === "ENOENT" ? { rows: [] } : { unreadable: `${path} could not be read: ${error.message}` };
+  }
+  const rows = [];
+  for (const [at, line] of text.split("\n").entries()) {
+    if (!line.trim()) continue;
+    let row;
+    try {
+      row = JSON.parse(line);
+    } catch {
+      row = null;
+    }
+    if (!accepts(row)) return { unreadable: `${path} line ${at + 1} is not ${what}` };
+    rows.push(row);
+  }
+  return { rows };
 };
 
 /** The store's bytes, or none where there is no file yet: a question about one row is answered off the text, and decoding a 43 MB log to UTF-16 costs ten times reading it (ISS-1044). */
