@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 
 import { sessionSourced } from "../resolve/config.mjs";
 import { credit, creditedTo, lastCredited } from "./journal.mjs";
+import { howPage } from "../refusal.mjs";
 
 export const sessionKey = (ev = null) => sessionSourced(ev).id || "";
 
@@ -40,7 +41,7 @@ export const HELD_OPENS = "Refused again";
 /* One line, which carries what this call needs — the shape refused, what to do instead, the rule's
    name — and leaves the paragraph's cause to the page it names. */
 export const held = (route, { shape = null, cause = null } = {}) => {
-  const page = `\`forge hooks --how ${route}\`${cause ? ` (cause: ${cause})` : ""}`;
+  const page = howPage(route, cause);
   return shape
     ? `${HELD_OPENS} — ${shape} The reason was shown in full earlier in this conversation: ${page}`
     : `${HELD_OPENS}, for the reason shown in full earlier in this conversation: ${page}`;
@@ -73,10 +74,12 @@ const deltaOf = (parts, delta) => {
   return joinedOf({ ...parts, body: fresh.join("\n") });
 };
 
-/** `said` is a string, whose delta is per line, or a refusal's `{ lead, body, how }`, whose lead and
- *  how print on every firing that is not a whole repeat. */
+/** `said` is a string, whose delta is per line, or a refusal's `{ lead, body }`, whose lead and How line
+ *  print on every firing that is not a whole repeat. The How line is built from `route` and `cause`,
+ *  the same two the repeat line names, so a caller states the cause once. */
 export const sayOnce = (session, surface, said, { route = null, shape = null, cause = null } = {}) => {
-  const parts = partsOf(said);
+  const given = partsOf(said);
+  const parts = given && route ? { ...given, how: `How: ${howPage(route, cause)}` } : given;
   const text = parts ? joinedOf(parts) : String(said ?? "");
   if (!session || !surface || !text.trim()) return text;
   const { owed, delta } = owedOf(session, surface, text);

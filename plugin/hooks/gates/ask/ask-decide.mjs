@@ -2,6 +2,7 @@
 // opted in, and leave every other question to the owner. how/ask-decide.md.
 
 import { answer, askedAlready, context, remaining } from "../../_hook.mjs";
+import { howPage } from "../../../src/refusal.mjs";
 import { asksOwnerTerms, asksScope } from "../../../src/resolve/settings.mjs";
 import { gateway } from "../../../src/resolve/machine/stores.mjs";
 import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../../src/asks/declared.mjs";
@@ -16,7 +17,7 @@ const MARGIN_MS = 3_000;
 
 const TEACH = "The ask-decide gate: this project decides a question from the owner's own precedent when the question "
   + `ends with ${DECLARE_FORM} and names nothing that is always the owner's. This one declared nothing, so it went `
-  + "to the owner. How: `forge hooks --how ask-decide`";
+  + `to the owner. How: ${howPage("ask-decide")}`;
 
 /* The project's goals, bounded: a tracker that does not answer costs the judge its goals, not the
    question. The read is aborted at the bound, since one left running holds the process open after the

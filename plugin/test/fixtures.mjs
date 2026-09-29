@@ -43,7 +43,7 @@ export { pathed, typed } from "../src/hooks/shell-spans.mjs";
 
 export const jsonlOf = (rows) => Buffer.from(rows.map((one) => `${JSON.stringify(one)}\n`).join(""));
 
-export { answered, callHook, callHookAsync } from "./fixtures/answered.mjs";
+export { agentRefusal, answered, callHook, callHookAsync } from "./fixtures/answered.mjs";
 
 export { neutralCheckout, neutralRoom } from "./fixtures/rooms/neutral.mjs";
 

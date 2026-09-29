@@ -11,9 +11,10 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, REDIRECT, STARTS, WRITES, namesOf, placeable, redirectsIn, spans, standsIn, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, STARTS, WRITES, namesOf, placeable, redirectsIn, spans, standsIn, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
-import { FILES_IT, WHOLE } from "../src/refusal.mjs";
+import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
+import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } from "../src/hooks/transcripts.mjs";
@@ -60,7 +61,7 @@ export const FILING_MS = 400;
 /** And the ceiling on the read itself, which is a Node start and one `git` — bounded by what it should cost rather than by what the event has left, so a wrapper that never answers costs a second and not the whole clock. */
 const RESOLVE_MS = 1_500;
 const FILING_SURFACE = "plugin-filing";
-const RESOLVER = new URL("../src/resolve/visibility.mjs", import.meta.url).href;
+const RESOLVER = pathToFileURL(join(PLUGIN_ROOT, "src", "resolve", "visibility.mjs")).href;
 const ASKS = `import(${JSON.stringify(RESOLVER)}).then((m) => `
   + `process.stdout.write(m.verbForPluginDefect() || ""))`;
 
@@ -305,7 +306,7 @@ export function deny(reason) {
  *  where one gate refuses two unrelated things and each argument wants its own page. `cause` is the
  *  gate's name for this one refusal, kept when its wording changes; `refusalCauseIn` is its reader. */
 export const how = (topic = null, cause = null) =>
-  `\n\nHow: \`forge hooks --how ${topic || gateName()}\`${cause ? ` (cause: ${gateName()}/${cause})` : ""}`;
+  `\n\nHow: ${howPage(topic || gateName(), cause ? `${gateName()}/${cause}` : null)}`;
 
 export function block(reason) {
   logged("block", reason);
@@ -360,7 +361,6 @@ const EXECUTES_STDIN = new RegExp(
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
-export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
 const BLANK = /^[ \t\n]+|[ \t\n]+$/gu;
 
 /** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text being returned the interpreter sits — for the `cd` it inherited — and which

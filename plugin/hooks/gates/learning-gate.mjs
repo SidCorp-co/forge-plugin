@@ -199,7 +199,6 @@ export const run = (ev) => {
           body: "This repeats what the skill already says — that is a defect, not a style "
             + "preference: two authorities for one rule diverge the first time someone corrects only "
             + `the copy they found.\n\n${joined}`,
-          how: how(null, CAUSE.restated),
         };
         deny(sayOnce(readerKey(ev), "learning-gate", full, {
           route: "learning-gate",

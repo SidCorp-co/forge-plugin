@@ -55,15 +55,13 @@ test("a text that grew since it was shown owes the lines it grew by and not the 
 /* AC-10-5-6. A refusal's action and route are the lines every firing of one gate shares, so a delta
    over the whole text cuts them first and leaves a second refusal with nothing saying what to do. */
 test("a refusal that changed since it was shown keeps its action and its route, and cuts only its body", () => {
-  const refusal = (pair) => ({
-    lead: "Refused — do the other thing.",
-    body: `Why the rule exists.\n\n${pair}`,
-    how: "How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)",
-  });
-  const first = sayOnce("session-parts", "learning-gate", refusal("the first pair"), { route: "learning-gate" });
+  const refusal = (pair) => ({ lead: "Refused — do the other thing.", body: `Why the rule exists.\n\n${pair}` });
+  /* The cause is stated once, and the How line is built from it. */
+  const named = { route: "learning-gate", cause: "learning-gate/skill-restated" };
+  const first = sayOnce("session-parts", "learning-gate", refusal("the first pair"), named);
   assert.equal(first, "Refused — do the other thing.\n\nWhy the rule exists.\n\nthe first pair\n\n"
     + "How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)", "the first is whole");
-  const again = sayOnce("session-parts", "learning-gate", refusal("a second pair"), { route: "learning-gate" });
+  const again = sayOnce("session-parts", "learning-gate", refusal("a second pair"), named);
   assert.equal(again, "Refused — do the other thing.\n\na second pair\n\n"
     + "How: `forge hooks --how learning-gate` (cause: learning-gate/skill-restated)",
   "the action and the route print again, and of the body only the line never shown");

@@ -73,16 +73,18 @@ export const namesOn = (command) => {
   return own ? [own[1]] : [];
 };
 
-/** Each command a hooks.json registers: its event, the seconds the host gives it before killing it, and
- *  the clock it names on its gate.mjs line — the word `dispatch` takes its deadline by — or null. */
+/** Each command a hooks.json registers: its event, the seconds the host gives it before killing it,
+ *  whether it runs through gate.mjs, and the clock that line names — the word `dispatch` takes its
+ *  deadline by — or null. */
 export const registrationsIn = (registered) => {
   const found = [];
   for (const [event, blocks] of Object.entries(registered?.hooks ?? {})) {
     for (const block of blocks ?? []) {
       for (const one of block.hooks ?? []) {
         const command = one.command ?? "";
-        const clock = wordsOn(command)?.find((word) => EVENT_KINDS.includes(word)) ?? null;
-        found.push({ event, command, timeout: one.timeout ?? null, clock });
+        const words = wordsOn(command);
+        const clock = words?.find((word) => EVENT_KINDS.includes(word)) ?? null;
+        found.push({ event, command, timeout: one.timeout ?? null, gated: words !== null, clock });
       }
     }
   }

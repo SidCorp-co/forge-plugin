@@ -440,6 +440,13 @@ cd /no-such-tree
 X` }));
   assert.match(stopped(room(), subagentStop({ agent_transcript_path: bodied, cwd: checkout }))?.reason ?? "",
     new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"), "a cd inside a here-document body");
+  /* A space escaped rather than quoted is one word to the shell, and to the reading every gate shares. */
+  const spaced = join(tempRoom("stop-check-agent-sp-"), "w t");
+  assert.equal(git(checkout, "worktree", "add", "-q", "-b", "spaced", spaced).status, 0);
+  writeFileSync(join(spaced, "one.txt"), "changed here too\n");
+  const escapedCd = handed(used("Bash", { command: `cd ${spaced.replaceAll(" ", "\\ ")} && git status --short` }));
+  assert.match(stopped(room(), subagentStop({ agent_transcript_path: escapedCd, cwd: checkout }))?.reason ?? "",
+    new RegExp(`git -C ${escaped(typed(spaced))} add -u`, "u"), "a cd to a path with an escaped space");
 });
 
 test("the lease a subagent is judged on is the id its own commands exported", () => {

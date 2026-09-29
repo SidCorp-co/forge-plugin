@@ -13,15 +13,15 @@ import { standingIn, startedHere } from "../../../src/flow/lease/holder.mjs";
 import { gitProbe, probeMs } from "../../../src/hooks/git-probe.mjs";
 import { lintConfigured, linting, unreadWhy } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
-import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
+import { lastIdGranted } from "../../../src/resolve/session/granted-id.mjs";
 import { withoutBodies } from "../../../src/resolve/session/here-doc.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { parsedOr } from "../../../src/wire/request.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
-import { askedAlready, block, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf, turnAt,
-  turnRecords, turnWrites, typed } from "../../_hook.mjs";
+import { NOWHERE, askedAlready, block, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
+  turnAt, turnRecords, turnWrites, typed } from "../../_hook.mjs";
 
 const MAX_ISSUES = 2;
 const SPARE_MS = 3_000;
@@ -69,19 +69,15 @@ const readTurn = (records) => {
   return { shell, said, calls };
 };
 
-const CD = /(?:^|&&|\|\||[;\n])\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&|]+))/gu;
-
-/* Each shell call starts over at `from`; within one, every `cd` moves from where the last one left. A path keeps a character class of its own where an id's is imported: the two are not one question. */
+/* Each shell call starts over at `from`, and where it ends is the shell reading's, every move applied;
+   the last call that moved decides, and one whose destination the text does not name leaves no answer. */
 const movedTo = (commands, from) => {
   let last = null;
   for (const command of commands) {
-    let at = from;
-    let moved = false;
-    for (const hit of withoutBodies(command).matchAll(CD)) {
-      at = resolve(at, valueIn(hit));
-      moved = true;
-    }
-    if (moved) last = at;
+    const text = withoutBodies(command);
+    const moved = directoryAt(text, text.length);
+    if (moved === NOWHERE) last = null;
+    else if (moved !== null) last = resolve(from, moved);
   }
   return last;
 };

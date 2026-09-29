@@ -16,9 +16,10 @@ export { hookLogPath, hookEntries, jsonLines };
 
 const TAIL = 20;
 
+/* The shape a refusal refused goes beneath its line, since a false positive is found by its shape. */
 const line = (one) =>
   `${one.at}  ${(one.hook ?? "?").padEnd(16)} ${(one.decision ?? "?").padEnd(5)} `
-  + `${(one.tool ?? "?").padEnd(8)} ${one.target ?? ""}`;
+  + `${(one.tool ?? "?").padEnd(8)} ${one.target ?? ""}${one.refused ? `\n    ${one.refused}` : ""}`;
 
 /* The event is in the answer because that is what a switch turns off: one gate on one hook type. */
 const switched = (name, off) => {

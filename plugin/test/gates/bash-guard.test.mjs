@@ -10,7 +10,7 @@ import test from "node:test";
 import { waitsIn } from "../../src/hooks/shell-spans.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { appendedLine } from "../../src/refusal.mjs";
-import { callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
+import { agentRefusal, callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
@@ -64,17 +64,10 @@ test("a rule this session already read in full is refused again in one line", ()
   assert.match(other.reason, /stages everything in the tree/u, "another session is owed the whole of it");
 });
 
-/* As the harness calls a subagent's hook: the event names the dispatcher in `session_id` and the run
-   only in `agent_id`, and the process carries the wave's id and none of the run's. */
+/* As the harness calls a subagent's hook. */
 const WAVE_HOME = homeEnv("bash-guard-wave");
-const asAgent = (agent, command, { cwd = DIRTY, session = "the-dispatcher" } = {}) => {
-  const env = { ...WAVE_HOME, CLAUDE_CODE_SESSION_ID: "the-wave" };
-  delete env.FORGE_SESSION_ID;
-  const event = { session_id: session, agent_id: agent, tool_name: "Bash", tool_input: { command }, cwd };
-  const run = callHook(HOOK, event, env);
-  assert.equal(run.status, 0, run.stderr);
-  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
-};
+const asAgent = (agent, command, { cwd = DIRTY, session = "the-dispatcher" } = {}) =>
+  agentRefusal(HOOK, { session, agent, tool_name: "Bash", tool_input: { command }, cwd }, WAVE_HOME);
 
 /* AC-10-5-5, through the hook. Every sighting on ISS-1028 was this: a sibling of one wave was told it
    had read a paragraph only another agent of the wave was shown, and so never learned the rule. */
@@ -186,14 +179,8 @@ test("a session is told where to file once, so a repeat stays the one line it wa
 /* The filing line is said once per reader too, and the reader is the transcript, as for the paragraph. */
 test("the filing line reaches a subagent that a sibling agent of its session was told it before", () => {
   const session = randomUUID();
-  const refused = (agent) => {
-    const env = { ...FILING_HOME, CLAUDE_CODE_SESSION_ID: "the-wave" };
-    delete env.FORGE_SESSION_ID;
-    const event = { session_id: session, agent_id: agent, tool_name: "Bash", tool_input: { command: STAGE_ALL }, cwd: DIRTY };
-    const run = callHook(HOOK, event, env, BUGS);
-    assert.equal(run.status, 0, run.stderr);
-    return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
-  };
+  const refused = (agent) => agentRefusal(HOOK,
+    { session, agent, tool_name: "Bash", tool_input: { command: STAGE_ALL }, cwd: DIRTY }, FILING_HOME, BUGS);
   assert.match(refused("files-first"), FILES_IT, "the first agent is told where to file");
   assert.match(refused("files-second"), FILES_IT, "and so is its sibling");
 });

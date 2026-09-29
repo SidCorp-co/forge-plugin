@@ -64,7 +64,10 @@ test("a mistyped hook filter is refused with the near miss", () => {
   const missed = forge("--hook", "bash-gaurd");
   assert.equal(missed.status, 1);
   assert.match(missed.stderr, /No hook named bash-gaurd\. Did you mean: bash-guard/u);
-  assert.match(forge("--hook", "bash-guard").stdout, /bash-guard\s+deny/u, "the real name filters");
+  const listed = forge("--hook", "bash-guard").stdout;
+  assert.match(listed, /bash-guard\s+deny/u, "the real name filters");
+  assert.match(listed, /deny[^\n]*git add -A\n {4}[^\n]*stages everything in the tree/u,
+    "and the shape it refused is printed beneath the line, the field's one reader");
 });
 
 /* Found by running it: two filters for one field ANDed to nothing, and the empty answer said the log

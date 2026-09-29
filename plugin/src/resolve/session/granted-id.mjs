@@ -7,7 +7,7 @@ import { CALL_STARTS, WRITER_WORD } from "./writer-word.mjs";
 const BACKTICK = "\\x60";
 const LITERAL = String.raw`[\w.@:+/-]+`;
 const ID_VALUE = String.raw`(?:"(${LITERAL})"|'(${LITERAL})'|(${LITERAL}))`;
-export const valueIn = (hit) => hit?.[1] ?? hit?.[2] ?? hit?.[3] ?? "";
+const valueIn = (hit) => hit?.[1] ?? hit?.[2] ?? hit?.[3] ?? "";
 
 const TOP_LEVEL_EXPORT =
   new RegExp(String.raw`^\s*export\s+FORGE_SESSION_ID=${ID_VALUE}\s*$`, "u");

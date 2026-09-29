@@ -326,9 +326,11 @@ test("every clock hooks.json registers through gate.mjs ends under the timeout i
     Stop: [{ hooks: [{ command: "node x/hooks/gate.mjs stop stop-check", timeout: 20 }] }],
     SessionStart: [{ hooks: [{ command: "node x/hooks/link-cli.mjs", timeout: 1 }] }],
     PostToolUse: [{ hooks: [{ command: "node x/hooks/gate.mjs post code-quality" }] }],
+    PreToolUse: [{ hooks: [{ command: "node x/hooks/gate.mjs pst bash-guard", timeout: 10 }] }],
   } };
   const found = deadlineProblems(planted, { stop: 25_000, post: 85_000 });
-  assert.equal(found.length, 2, found.join("\n"));
+  assert.equal(found.length, 3, found.join("\n"));
   assert.match(found[0], /^Stop registers 20s and the stop deadline is 25s — lower DEADLINES\.stop/u);
   assert.match(found[1], /^PostToolUse runs the post clock with no timeout registered/u);
+  assert.match(found[2], /^PreToolUse runs gate\.mjs naming no clock/u, "a mistyped clock is no clock");
 });

@@ -10,6 +10,10 @@ export const typedBack = (value) => (/^[\w.:@/-]+$/u.test(value) ? value : `'${v
 /* The lines the hook harness adds to a refusal a gate wrote, in one home: the harness prints them and
    the corpus reading has to see past them to the line that names the rule. */
 
+/** The page a refusal names, with the one refusal's cause where it has one, spelt `<gate>/<name>`:
+ *  every How line and every repeat line is this, so `refusalCauseIn` reads one form. */
+export const howPage = (topic, cause = null) => `\`forge hooks --how ${topic}\`${cause ? ` (cause: ${cause})` : ""}`;
+
 /** Said where a refused call held more than one command: the refusal refused all of it. */
 export const WHOLE = "Nothing in this command ran, the parts before the refused one included, so it is re-sent whole.";
 
