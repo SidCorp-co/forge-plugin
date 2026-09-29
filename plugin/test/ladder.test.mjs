@@ -8,7 +8,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome } from "./fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "./fixtures.mjs";
 import { OWN } from "./fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
@@ -77,7 +77,7 @@ const state = {
 const tracker = await fakeTracker(state);
 /* Every call below is project-scoped and stands in this checkout, and the slug resolves out of this
    machine's record of it — written under the configuration home the tracker fixture hands them. */
-const ROOT = new URL("../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME,
   OWN);
 test.after(() => tracker.close());

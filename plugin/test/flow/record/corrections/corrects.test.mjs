@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { tempHome } from "../../../fixtures.mjs";
+import { neutralRoom, tempHome } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("corrects").path;
 const { SHAPES, correctedKind } = await import("../../../../src/flow/machine.mjs");
@@ -15,7 +15,7 @@ const { KINDS } = await import("../../../../src/flow/record/record-rows.mjs");
 
 const { check } = SHAPES.correction;
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
+const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 test("--corrects takes a kind this verb writes or a field of the issue, either with an occasion after it", () => {
   for (const kind of KINDS) assert.equal(check({ corrects: kind }), null, `${kind} is a kind the verb writes`);

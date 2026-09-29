@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
 
-import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -34,7 +34,7 @@ const tracker = await fakeTracker(state);
 /* Every call here runs from this checkout, whose project is this machine's record of it now:
    the record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
-projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+projectRecord(neutralRoom(), tracker.env.XDG_CONFIG_HOME,
   OWN);
 after(() => tracker.close());
 

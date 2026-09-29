@@ -3,7 +3,7 @@ import test, { mock } from "node:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the live config directory holds a working token. */
 const sandbox = tempRoom("forge-codex-plan-");
@@ -563,7 +563,7 @@ test("a stored consult reading is the before window, scored as it was at the mar
   mkdirSync(dirname(logPath()), { recursive: true });
   writeFileSync(logPath(), `${[...rows, ...verdicts].map((one) => JSON.stringify(one)).join("\n")}\n`);
   const env = { ...process.env };
-  const ask = (...argv) => spawnSync(FORGE, ["codex", ...argv], { encoding: "utf8", env });
+  const ask = (...argv) => spawnSync(FORGE, ["codex", ...argv], { encoding: "utf8", cwd: neutralRoom(), env });
 
   const empty = ask("marks");
   assert.match(`${empty.status} ${empty.stdout}`, /^0 No reading is held on this device yet; the consult that brings the log to a multiple of a hundred answered consults writes one/u);

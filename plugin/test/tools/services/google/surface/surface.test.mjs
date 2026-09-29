@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { tempRoom } from "../../../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../../../fixtures.mjs";
 import { SCOPES, SERVED_SERVICES, carriedIndex } from "../../../../../src/tools/services/google/surface.mjs";
 import { levelText, resolveTyped } from "../../../../../src/tools/services/google/tree.mjs";
 
@@ -45,7 +45,8 @@ for (const service of SERVED_SERVICES) {
   });
 }
 
-const typed = (...argv) => spawnSync(FORGE, ["google", ...argv], { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("google-surface-"), FORGE_GOOGLE_ACCESS_TOKEN: "" } });
+const typed = (...argv) => spawnSync(FORGE, ["google", ...argv], { encoding: "utf8", cwd: neutralRoom(),
+  env: { ...process.env, XDG_CONFIG_HOME: tempRoom("google-surface-"), FORGE_GOOGLE_ACCESS_TOKEN: "" } });
 
 test("a chat or admin method is refused with 4, naming its service as carried and not served", () => {
   for (const [service, ...words] of [["chat", "spaces", "list"], ["admin", "users", "list"]]) {

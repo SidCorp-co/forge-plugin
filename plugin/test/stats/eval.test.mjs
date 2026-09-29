@@ -16,7 +16,7 @@ import { NO_WINDOW_BEFORE, shiftBetween, tallied, twoWindows } from "../../src/s
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { SAYS } from "../../src/stats/stats.mjs";
 import { scopeOf, writeMark } from "../../src/stats/marks/marks.mjs";
-import { escaped, projectRoom, tempRoom } from "../fixtures.mjs";
+import { escaped, neutralRoom, projectRoom, tempRoom } from "../fixtures.mjs";
 import { BASE, FORGE, HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "./fixture-eval.mjs";
 
 /* The mark writes a reading under the config directory, so the process's own is moved first. */
@@ -262,7 +262,8 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
     assert.match(refused.stderr, new RegExp(`stats eval: --size takes an integer of 1 or more, not \`${escaped(bad)}\``, "u"));
   }
   const relative = spawnSync(FORGE, ["stats", "eval", "--checkout", "../elsewhere"], {
-    encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-eval-home-"), TMPDIR: room },
+    encoding: "utf8", cwd: neutralRoom(),
+    env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-eval-home-"), TMPDIR: room },
   });
   assert.equal(relative.status, 1);
   assert.match(relative.stderr, /stats eval: --checkout takes an absolute directory, not `\.\.\/elsewhere`/u);
@@ -308,10 +309,10 @@ test("every bound the eval prints ends in its zone, git reads it alike in any zo
 
 test("the eval subject stands beside runs in the verb's own help", () => {
   const env = { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-eval-home-") };
-  const help = spawnSync(FORGE, ["stats", "eval", "-h"], { encoding: "utf8", env });
+  const help = spawnSync(FORGE, ["stats", "eval", "-h"], { encoding: "utf8", env, cwd: neutralRoom() });
   assert.equal(help.status, 0);
   assert.match(help.stdout, /Usage: forge stats eval/u);
-  const wrong = spawnSync(FORGE, ["stats", "consults"], { encoding: "utf8", env });
+  const wrong = spawnSync(FORGE, ["stats", "consults"], { encoding: "utf8", env, cwd: neutralRoom() });
   assert.equal(wrong.status, 1);
   assert.match(wrong.stderr, new RegExp(`no subject named consults\\. There is: ${Object.keys(SAYS).join(", ")}\\.`, "u"));
 });

@@ -12,7 +12,7 @@ import { CLAIMS, CONSULTS, RELEASES, RUNS, WRITTEN, marksOf, marksPath, scopeOf,
   from "../../../src/stats/marks/marks.mjs";
 import { evalObject } from "../../../src/codex/codex-stats.mjs";
 import { stamp } from "../../../src/stats/figures.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 import { FORGE, PROJECT, askStats, at, corpusOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-prune-home-");
@@ -377,7 +377,7 @@ test("every consumer of a stored reading reads the same with the two fields and 
     "while the two agree in every other field, which is what makes the readings below worth comparing");
 
   const asked = (home, argv) => spawnSync(FORGE, argv, {
-    encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room, HOME: user },
+    encoding: "utf8", cwd: neutralRoom(), env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room, HOME: user },
   });
   const CONSUMERS = [
     ["the runs eval against a count mark", ["stats", "eval", "--checkout", PROJECT, "--against", "100"]],

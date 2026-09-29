@@ -7,7 +7,7 @@ import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("rounds").path;
@@ -29,8 +29,7 @@ const [TRIVIAL] = RUNGS;
    record now lives beside the machine's own rather than in the checkout. Written before the first
    test is registered, because a test registered above the tracker runs while it is still coming up. */
 const HOME = tempRoom("rounds-home-");
-projectRecord(process.cwd(), HOME,
-  OWN);
+projectRecord(neutralRoom(), HOME, OWN);
 const homed = (extra = {}) => ({ ...process.env, HOME, XDG_CONFIG_HOME: HOME, ...extra });
 const guided = (...argv) => ranAsync(FORGE, ["guide", ...argv], homed());
 const SCOPED = "one scoped run when a unit of work is finished";

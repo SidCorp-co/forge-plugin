@@ -16,7 +16,6 @@ import { escaped, ranAsync, tempHome } from "../../../fixtures.mjs";
 import { patience } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const FRAMING = "Flat vector illustration, no text anywhere.";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
@@ -72,7 +71,7 @@ const env = (framing = FRAMING) => {
   return { ...process.env, XDG_CONFIG_HOME: home.path, FORGE_SESSION_ID: "chatgpt-detach-suite" };
 };
 
-const ran = (...argv) => ranAsync(FORGE, ["chatgpt", ...argv], env(), ROOT, null);
+const ran = (...argv) => ranAsync(FORGE, ["chatgpt", ...argv], env());
 
 const idIn = (stdout) => /^turn {6}(\S+)$/mu.exec(stdout)?.[1] ?? null;
 
@@ -120,7 +119,7 @@ const childOf = ({ framing = FRAMING }, id, deadlineIn, action, ...argv) => {
     deadlineAt: now + deadlineIn, pid: null, state: "running",
   }));
   return ranAsync(FORGE, ["chatgpt", action, ...argv, "--wait", "601"],
-    { ...env(framing), FORGE_CHATGPT_TURN: id }, ROOT, null);
+    { ...env(framing), FORGE_CHATGPT_TURN: id });
 };
 
 const detached = async (...argv) => {

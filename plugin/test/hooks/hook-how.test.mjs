@@ -10,10 +10,12 @@ import { fileURLToPath } from "node:url";
 import { NARRATES } from "../../src/checks/docs/doc-shape.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { ROUTE_NOT_VERDICT } from "../../src/hooks/log/hook-log.mjs";
+import { neutralRoom } from "../fixtures.mjs";
 
 const PLUGIN = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const HOOKS = join(PLUGIN, "hooks");
 const HOW = join(HOOKS, "how");
+const ROOM = neutralRoom();
 const CLI = join(PLUGIN, "src", "cli.mjs");
 
 const GATES = join(HOOKS, "gates");
@@ -47,7 +49,7 @@ test("every document names a hook, a topic the code that prints it cites, or a r
   const citing = [join(HOOKS, "_hook.mjs"), ...gates]
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
-  const help = spawnSync(process.execPath, [CLI, "-h", "--full"], { encoding: "utf8" });
+  const help = spawnSync(process.execPath, [CLI, "-h", "--full"], { encoding: "utf8", cwd: ROOM });
   assert.equal(help.status, 0, help.stderr);
   const printed = (name) => new RegExp(`forge hooks --how ${name}(?![\\w-])`, "u").test(help.stdout);
   const retired = RETIRED.map((one) => one.name);
@@ -112,7 +114,7 @@ test("a page that hands out its own gate's switch says it is account-wide and na
   }
 });
 
-const forge = (...argv) => spawnSync(process.execPath, [CLI, "hooks", ...argv], { encoding: "utf8" });
+const forge = (...argv) => spawnSync(process.execPath, [CLI, "hooks", ...argv], { encoding: "utf8", cwd: ROOM });
 
 test("the reasoning is what --how prints, and a near miss is named", () => {
   const out = forge("--how", "polling");

@@ -14,7 +14,6 @@ import { ranAsync, tempHome } from "../../../fixtures.mjs";
 import { patience, reached } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 const REFUSED_FILE = "the-backend-says-no.png";
@@ -81,7 +80,7 @@ const seeded = (waits) => {
 const ran = (env, ...argv) => {
   state.calls = [];
   state.uploads = 0;
-  return ranAsync(FORGE, ["chatgpt", "ask", ...argv], env, ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", "ask", ...argv], env);
 };
 
 /* The whole of the issue in one case: the file says one minute, the call says two seconds, and two

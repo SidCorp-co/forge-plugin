@@ -2,11 +2,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const ROOT = neutralRoom();
 const COUNT = 450;
 
 const at = (number) => ({
@@ -27,8 +27,7 @@ const tracker = await fakeTracker(state);
 /* Every call here runs from this checkout, whose project is this machine's record of it now:
    the record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
-projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
-  OWN);
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, OWN);
 test.after(() => tracker.close());
 
 const ran = (argv) => ranAsync(FORGE, argv, ENV, ROOT, null);

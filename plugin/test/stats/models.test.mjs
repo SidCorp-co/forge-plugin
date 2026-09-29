@@ -12,7 +12,7 @@ import { callsIn, modelRun } from "../../src/stats/corpus/transcripts.mjs";
 import { runFrom } from "../../src/stats/runs.mjs";
 import { FORGE, OPUS, PROJECT, at, indexIn, result, use } from "./fixture-runs.mjs";
 import { UNAVAILABLE } from "../../src/stats/eval/outcomes.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 const SONNET = "claude-sonnet-5";
 const SYNTHETIC = "<synthetic>";
@@ -53,6 +53,7 @@ const corpus = () => {
 const asked = (room, ...argv) =>
   spawnSync(FORGE, ["stats", "models", "--checkout", PROJECT, ...argv], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, HOME: room, XDG_CONFIG_HOME: tempRoom("stats-models-home-"), TMPDIR: room },
   });
 

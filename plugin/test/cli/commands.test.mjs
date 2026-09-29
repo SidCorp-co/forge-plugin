@@ -72,7 +72,6 @@ test("an upload reply prints its url, and a reply carrying none prints whole", (
    says which: the rank order is read off the schema the tracker declares, which no in-process call
    to the row printer would exercise. */
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
 
 const ROWS = [
   { issueId: "ISS-10", documentId: "u-10", status: "open", priority: "low", createdAt: "2026-01-01T00:00:00.000Z", title: "the oldest, and nobody has ranked it" },
@@ -87,7 +86,7 @@ const state = { issues: ROWS, comments: {}, calls: [] };
 const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const ran = (argv) => ranAsync(FORGE, argv, env, ROOT);
+const ran = (argv) => ranAsync(FORGE, argv, env);
 
 test("the browse page comes back in the order it is to be worked, not the order it was touched", async () => {
   state.issues = ROWS;

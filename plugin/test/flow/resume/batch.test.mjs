@@ -7,7 +7,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { git, projectRecord, ranAsync, tempRoom } from "../../fixtures.mjs";
+import { git, neutralRoom, projectRecord, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("batch-");
@@ -111,7 +111,7 @@ const LINE = "batch       with ISS-11 in_progress at abc1234; ISS-12 open, no ca
   + "ISS-13 developed at 1234567, names another batch; ISS-15 unreadable:";
 
 test("resume names every sibling with its status, its captured head and whether it names this batch", async () => {
-  const run = await forgeIn(process.cwd(), "resume", "ISS-10");
+  const run = await forgeIn(neutralRoom(), "resume", "ISS-10");
   assert.equal(run.status, 0, run.stderr);
   const line = lineOf(run.stdout);
   assert.ok(line?.startsWith(LINE), `${line}\n${run.stdout}`);
@@ -123,7 +123,7 @@ test("resume names every sibling with its status, its captured head and whether 
 test("each sibling is read at the moment of the resume, never off the member's own worklog", async () => {
   ISSUES[10].status = "developed";
   try {
-    const run = await forgeIn(process.cwd(), "resume", "ISS-10");
+    const run = await forgeIn(neutralRoom(), "resume", "ISS-10");
     assert.match(lineOf(run.stdout), /^batch {7}with ISS-11 developed at abc1234; /u);
   } finally {
     ISSUES[10].status = "in_progress";
@@ -131,15 +131,15 @@ test("each sibling is read at the moment of the resume, never off the member's o
 });
 
 test("the report prints the same batch line", async () => {
-  const brief = lineOf((await forgeIn(process.cwd(), "resume", "ISS-10")).stdout);
-  const report = await forgeIn(process.cwd(), "resume", "ISS-10", "--report");
+  const brief = lineOf((await forgeIn(neutralRoom(), "resume", "ISS-10")).stdout);
+  const report = await forgeIn(neutralRoom(), "resume", "ISS-10", "--report");
   assert.equal(report.status, 0, report.stderr);
   assert.ok(lineOf(report.stdout)?.startsWith(LINE), report.stdout);
   assert.equal(lineOf(report.stdout), brief);
 });
 
 test("--json carries the batch in the one shape batchLive owns", async () => {
-  const run = await forgeIn(process.cwd(), "resume", "ISS-10", "--json");
+  const run = await forgeIn(neutralRoom(), "resume", "ISS-10", "--json");
   assert.equal(run.status, 0, run.stderr);
   const { batch } = JSON.parse(run.stdout);
   assert.deepEqual(batch.members, ["ISS-10", "ISS-11", "ISS-12", "ISS-13", "ISS-15"]);
@@ -155,7 +155,7 @@ test("--json carries the batch in the one shape batchLive owns", async () => {
 
 test("a member naming no batch prints no batch line and reads no issue but its own", async () => {
   const before = project.calls.length;
-  const run = await forgeIn(process.cwd(), "resume", "ISS-20");
+  const run = await forgeIn(neutralRoom(), "resume", "ISS-20");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(lineOf(run.stdout), null);
   const read = project.calls.slice(before).filter((one) => one.name === "forge_issues")

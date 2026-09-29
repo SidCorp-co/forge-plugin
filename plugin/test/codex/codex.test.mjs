@@ -3,7 +3,7 @@ import test, { mock } from "node:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { projectEntry, projectRoom, tempRoom } from "../fixtures.mjs";
+import { neutralRoom, projectEntry, projectRoom, tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
 const sandbox = tempRoom("forge-codex-");
@@ -603,7 +603,8 @@ test.after(() => rmSync(sandbox, { recursive: true, force: true }));
 test("asking an action what to type prints that action's own usage", () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
   const asked = (...argv) => {
-    const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-help-") } });
+    const run = spawnSync(forge, argv,
+      { encoding: "utf8", cwd: neutralRoom(), env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-help-") } });
     assert.equal(run.status, 0, `${argv.join(" ")}: ${run.stderr}`);
     return `${run.stdout}${run.stderr}`;
   };

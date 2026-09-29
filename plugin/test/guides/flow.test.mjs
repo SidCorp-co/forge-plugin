@@ -260,6 +260,7 @@ const copyOfCode = (contract, argv = ["doctor"]) => {
   const home = tempRoom("contract-home-");
   const run = spawnSync(process.execPath, [join(held, "src", "cli.mjs"), ...argv], {
     encoding: "utf8",
+    cwd: held,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
   return `${run.stdout}${run.stderr}`;

@@ -58,6 +58,7 @@ test("a mistyped hook filter is refused with the near miss", () => {
   const forge = (...argv) =>
     spawnSync(process.execPath, [CLI, "hooks", ...argv], {
       encoding: "utf8",
+      cwd: room,
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
   const missed = forge("--hook", "bash-gaurd");
@@ -72,6 +73,7 @@ test("naming both refusals asks for either, and an empty answer is not an empty 
   const forge = (...argv) =>
     spawnSync(process.execPath, [CLI, "hooks", ...argv], {
       encoding: "utf8",
+      cwd: room,
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
   for (const [decision, hook] of [["deny", "bash-guard"], ["block", "claude-md"], ["note", "codex-turn"]]) {
@@ -95,6 +97,7 @@ test("a filtered listing still points at the notes, and says what it cut", () =>
   const forge = (...argv) =>
     spawnSync(process.execPath, [CLI, "hooks", ...argv], {
       encoding: "utf8",
+      cwd: room,
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
   const denied = forge("--deny");
@@ -153,6 +156,7 @@ test("the count is offered by the verb, and reads the log the gates write", () =
   const forge = (...argv) =>
     spawnSync(process.execPath, [CLI, "hooks", ...argv], {
       encoding: "utf8",
+      cwd: room,
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
   appendFileSync(

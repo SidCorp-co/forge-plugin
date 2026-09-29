@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ranAsync, tempRoom } from "../../../fixtures.mjs";
+import { neutralRoom, ranAsync, tempRoom } from "../../../fixtures.mjs";
 import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("wave-");
@@ -297,7 +297,7 @@ test("every wave on a page is read, each folded one with the dispatches its fold
 
 /* The dispatcher's own folds as the host keeps them, under the checkout the write is made from. */
 const foldedBefore = (many) => {
-  const where = join(ENV.HOME, ".claude", "projects", slugFor(process.cwd()));
+  const where = join(ENV.HOME, ".claude", "projects", slugFor(neutralRoom()));
   mkdirSync(where, { recursive: true });
   const calls = Array.from({ length: many }, (_, n) => [n, `forge record fold ISS-${100 + n} --summary s`]);
   writeFileSync(join(where, "dispatcher.jsonl"), `${session(calls)}\n`);

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-rows-");
 const { KINDS, USAGE, kindHelp, usage } = await import("../../../src/flow/record/record.mjs");
@@ -14,7 +14,7 @@ const { eachProblem } = await import("../../../src/flow/record/content.mjs");
 const { CITED_IN, citationBlocks } = await import("../../../src/spec/checked.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
+const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 test("every kind is on the usage line, and -h prints it without touching the tracker", () => {
   for (const kind of KINDS) assert.match(USAGE, new RegExp(`^  ${kind}\\b`, "mu"), kind);

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { basename, dirname, join } from "node:path";
 import test from "node:test";
 
-import { callHook, dirtyRepo, tempRoom } from "../fixtures.mjs";
+import { callHook, dirtyRepo, neutralRoom, tempRoom } from "../fixtures.mjs";
 
 import { GATES_DIR, gateFile, hookEvents, hookNames } from "../../src/hooks/hook-switch.mjs";
 
@@ -45,6 +45,7 @@ const refused = (home, extra = {}, skipped = []) => {
 const forgeIn = (home, extra, ...argv) =>
   spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, XDG_CONFIG_HOME: home, ...extra },
   });
 

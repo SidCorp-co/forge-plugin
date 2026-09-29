@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
+import { neutralRoom, ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
 import { repoRoot } from "../../src/git/repo-root.mjs";
 
@@ -22,7 +22,7 @@ const { releaseFrom } = await import("../../src/tracker/project-config.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
+const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -584,7 +584,8 @@ test("a drop is refused once the merged mark is set, and it is the mark that ref
 /* The count is read off the consult log in the home the verb runs under, for the repository it
    stands in, so a run learns what it has spent from the same call that says what it owes. */
 test("--owed prints the issue's whole-set reads beside what its rung allows", async () => {
-  const root = repoRoot(process.cwd());
+  /* The log's root is the repository the spawned verb stands in, which is `ranAsync`'s default room. */
+  const root = repoRoot(neutralRoom());
   const read = (head, id) => JSON.stringify({
     kind: "consult", id, ok: true, root, at: id, files: ["a.mjs"], sent: [{ rel: "a.mjs", chars: 9, clipped: false }],
     send: "bodies", head, issues: ["ISS-97"], reply: "CODEX: 0 findings",

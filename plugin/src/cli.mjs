@@ -11,6 +11,20 @@ import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/han
 import { fail } from "./resolve/settings.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
 import { unwrittenSaid } from "./flow/worklog.mjs";
+import { settleConfigHome } from "./resolve/session/config-home.mjs";
+
+const [command, ...rest] = process.argv.slice(2);
+
+/* Read before anything else touches a config path: the tree this call stands in decides its config
+   home, exactly as a hook already does, and a shell's own disagreeing export is refused before it
+   can be read from or written to — `forge doctor` alone keeps running on it, being the one call
+   this must report rather than silence (ISS-2824). */
+const homeConflict = settleConfigHome();
+
+if (homeConflict && command !== "doctor") {
+  console.error(homeConflict);
+  process.exit(1);
+}
 
 const offered = offeredVerbs();
 
@@ -59,7 +73,6 @@ const FEEDBACK = named
     + " refusal, a missing way out, a verb that surprised you: send it there, before the workaround."
   : "";
 
-const [command, ...rest] = process.argv.slice(2);
 const asked = wantsHelp([command]);
 
 /* Before the help word: a retired verb's `-h` is the same question, and gets the same line. */

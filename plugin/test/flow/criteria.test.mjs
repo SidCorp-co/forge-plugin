@@ -7,12 +7,12 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("criteria-");
 const { compoundCriteria } = await import("../../src/prose.mjs");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
+const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 /* ISS-474's twenty-seven criteria, ISS-500's sixteen and ISS-445's seventeen, byte for byte as the
    tracker held them at fa41167: the false-refusal oracle, frozen rather than queried because the

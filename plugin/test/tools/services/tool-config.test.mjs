@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 /* The tools whose verb this machine has to save something for. `coolify` is not one of them: the
@@ -44,6 +44,7 @@ writeFileSync(PROFILE, "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AU
 
 const ask = (home, profile, ...argv) => spawnSync(FORGE, argv, {
   encoding: "utf8",
+  cwd: neutralRoom(),
   env: { ...process.env, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: profile },
 });
 
@@ -92,8 +93,10 @@ test("google is offered on the environment's token alone, and withheld where no 
     writeFileSync(join(root, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0, google }));
     return root;
   };
-  const usage = (root, token) => spawnSync(FORGE, ["-h"], { encoding: "utf8", env: { ...process.env,
-    XDG_CONFIG_HOME: root, CLAUDE_PROXY_ENV: join(root, "absent.env"), FORGE_GOOGLE_ACCESS_TOKEN: token } }).stdout.split("\n")[0];
+  const usage = (root, token) => spawnSync(FORGE, ["-h"], { encoding: "utf8", cwd: neutralRoom(),
+    env: { ...process.env,
+      XDG_CONFIG_HOME: root, CLAUDE_PROXY_ENV: join(root, "absent.env"), FORGE_GOOGLE_ACCESS_TOKEN: token } })
+    .stdout.split("\n")[0];
   assert.ok(usage(home(undefined), "ya29.token").includes("|google|"), "the environment's token offers the verb");
   const two = { accounts: { one: { kind: "login", address: "a@example.com" }, two: { kind: "login", address: "b@example.com" } } };
   assert.ok(!usage(home(two), "").includes("|google|"), "two accounts and no default withhold it");

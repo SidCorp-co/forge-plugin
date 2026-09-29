@@ -22,12 +22,14 @@ import { WHY, goalBlock } from "../../src/goals.mjs";
 import { SHAPES } from "../../src/flow/machine.mjs";
 import { BODY_FIELDS } from "../../src/flow/override.mjs";
 import { configPath, userConfig } from "../../src/resolve/config.mjs";
-import { projectRecord, tempRoom } from "../fixtures.mjs";
+import { neutralRoom, projectRecord, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
 import { surfaceNodes } from "../../src/stats/surface/nodes.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../", import.meta.url).pathname;
+/* Where the spawned children stand; `ROOT` is what the audits below read this repository's source from. */
+const CHECKOUT = neutralRoom();
 /* One spawn per argv, held for the file: four walks ask the same names for help, and nothing asked here writes state. */
 const HOME = tempRoom("cli-help-");
 /* Every harness tool saved, and the gateway profile with them: the help drops a verb this machine
@@ -53,12 +55,12 @@ process.env.CLAUDE_PROXY_ENV = PROFILE;
 /* And this checkout's own project, for the same reason: the help a verb prints is narrower where a
    project resolves than where none does, and a home holding no record of this one would measure
    every walk below against a box with no project rather than against the table. */
-projectRecord(ROOT, HOME, OWN);
+projectRecord(CHECKOUT, HOME, OWN);
 const ASKED = new Map();
 const ask = (...argv) => {
   const key = argv.join("\0");
   if (!ASKED.has(key)) {
-    ASKED.set(key, spawnSync(FORGE, argv, { encoding: "utf8",
+    ASKED.set(key, spawnSync(FORGE, argv, { encoding: "utf8", cwd: CHECKOUT,
       env: { ...process.env, XDG_CONFIG_HOME: HOME, CLAUDE_PROXY_ENV: PROFILE } }));
   }
   return ASKED.get(key);
@@ -405,7 +407,7 @@ test("every verb and every action hands the parser its text before it reads or a
   for (const argv of EVERY_HELP) {
     const name = argv.join(" ");
     const run = spawnSync(FORGE, [...argv, ...(ARGS[name] ?? []), "--zzz", "x"],
-      { encoding: "utf8", env: NO_GATEWAY });
+      { encoding: "utf8", cwd: CHECKOUT, env: NO_GATEWAY });
     const said = `${run.stdout}${run.stderr}`;
     if (run.status !== (REFUSED_WITH[name] ?? 1)) wrong.push(`forge ${name} --zzz x exited ${run.status}: ${said}`);
     else if (!said.includes("--zzz")) wrong.push(`forge ${name} --zzz x named nothing: ${said}`);

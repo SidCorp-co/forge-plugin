@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 
 import { releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { RUNS, marksOf, marksPath, scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 import { PROJECT, corpusOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-once-home-");
@@ -39,6 +39,7 @@ const readsOf = (argv, env) => {
   const { preload, count } = counter();
   const ran = spawnSync(FORGE, argv, {
     encoding: "utf8",
+    cwd: neutralRoom(),
     env: { ...process.env, ...env, NODE_OPTIONS: `--import=${preload}`, COUNT_READS_TO: count },
   });
   return { ran, reads: Number(readFileSync(count, "utf8")) };

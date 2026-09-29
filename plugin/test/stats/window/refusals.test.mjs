@@ -7,12 +7,13 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { durationOf } from "../../../src/stats/window/duration.mjs";
 import { FORGE, PROJECT, corpusOf } from "../fixture-eval.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 
 const room = corpusOf(4);
 
 const refusalOf = (argv) => spawnSync(FORGE, [...argv, "--checkout", PROJECT], {
   encoding: "utf8",
+  cwd: neutralRoom(),
   env: { ...process.env, XDG_CONFIG_HOME: tempRoom("window-refusals-home-"), TMPDIR: room,
     HOME: tempRoom("window-refusals-user-") },
 });

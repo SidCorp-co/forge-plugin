@@ -4,7 +4,7 @@ import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 export const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 export const PROJECT = "/fixture/project";
@@ -168,6 +168,7 @@ export const corpus = () => {
 export const askedIn = (room, home, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", ...argv], {
     encoding: "utf8",
+    cwd: neutralRoom(),
     /* The home is the room's own: every home-rooted path this verb reads is read where it is used, so a case that left it would profile the developer's own store. */
     env: { ...process.env, HOME: room, XDG_CONFIG_HOME: home, TMPDIR: room },
   });

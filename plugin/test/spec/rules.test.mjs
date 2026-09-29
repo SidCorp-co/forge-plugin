@@ -11,9 +11,12 @@ import { join, relative } from "node:path";
 import { clauseIndex } from "../../src/spec/index.mjs";
 import { identifierProblems } from "../../src/spec/rules.mjs";
 import { matches, sectionsIn, shapeProblems } from "../../src/spec/shape.mjs";
+import { neutralCheckout } from "../fixtures.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const FORGE = join(ROOT, "plugin", "bin", "forge");
+/* This repository's own tree, copied into a checkout naming no run. */
+const TREE = neutralCheckout();
 
 const RULES = `# The tree
 
@@ -162,7 +165,8 @@ test("a finding is one line naming the file and line, the identifier, the rule a
   assert.equal(one.id, "## Actors");
   assert.equal(one.rule, "R-14");
   assert.match(one.fix, /Write the question this section answers/u);
-  const printed = execFileSync(FORGE, ["spec", "check"], { cwd: join(ROOT, "plugin"), encoding: "utf8" });
+  const printed = execFileSync(FORGE, ["spec", "check"],
+    { cwd: join(TREE, "plugin"), encoding: "utf8" });
   assert.equal(printed, "", "this repository's tree prints nothing, so the shape above is what a finding is");
 });
 
@@ -429,7 +433,7 @@ test("the verb prints nothing and exits 0 where the project keeps no requirement
 });
 
 test("the verb refuses an argument, because it reads the whole tree or nothing", () => {
-  assert.throws(() => execFileSync(FORGE, ["spec", "check", "FR-01"], { cwd: ROOT, encoding: "utf8" }),
+  assert.throws(() => execFileSync(FORGE, ["spec", "check", "FR-01"], { cwd: TREE, encoding: "utf8" }),
     /reads the whole tree and takes no argument/u);
 });
 
@@ -437,7 +441,7 @@ test("the verb refuses an argument, because it reads the whole tree or nothing",
    question and not the argument above, and the two arrive in the same position. */
 for (const word of ["-h", "--help"]) {
   test(`the sub-verb answers ${word} with its own usage rather than refusing it as an argument`, () => {
-    const ran = execFileSync(FORGE, ["spec", "check", word], { cwd: ROOT, encoding: "utf8" });
+    const ran = execFileSync(FORGE, ["spec", "check", word], { cwd: TREE, encoding: "utf8" });
     assert.match(ran, /^Usage: forge spec check \[--record\]$/mu);
     assert.match(ran, /prints\nnothing and exits 0 rather than refusing/u);
   });

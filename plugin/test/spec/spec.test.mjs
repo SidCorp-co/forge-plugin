@@ -5,7 +5,7 @@ import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { projectRoom, tempRoom } from "../fixtures.mjs";
+import { neutralCheckout, projectRoom, tempRoom } from "../fixtures.mjs";
 
 /* A fixture directory left behind is a directory left behind on every run: the quota on `/tmp` is
    what a run reaching it loses, and it takes the whole shell with it. */
@@ -23,7 +23,7 @@ const { ambiguousUnder, clauseIndex, lookup, nearest, withDescendants } = await 
 const { TREE } = await import("../../src/spec/tree.mjs");
 const { usageOf } = await import("../../src/resolve/visibility.mjs");
 
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const ROOT = neutralCheckout();
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env, cwd: ROOT });
 

@@ -12,7 +12,6 @@ import { ranAsync, tempHome } from "../../../fixtures.mjs";
 import { patience } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../../..", import.meta.url).pathname;
 const KEY = "sk_codex_stub_never_a_real_credential";
 const WEB_KEY = "sm_stub_key_never_a_real_credential";
 const FRAMING = "Flat vector illustration, muted palette, no text anywhere.";
@@ -91,7 +90,7 @@ const env = ({ codex = true, waitSeconds = 5 } = {}) => {
 const ran = (argv, options = {}) => {
   state.gateway.length = 0;
   state.web.length = 0;
-  return ranAsync(FORGE, ["chatgpt", "image", ...argv], env(options), ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", "image", ...argv], env(options));
 };
 
 const saveAt = (name) => {
@@ -258,7 +257,7 @@ test("14. a web failure on no_browser or upstream_rate_limited prints the --via 
   const line = (await ran(["a fox's den", "--ratio", "16:9", "--save", path])).stderr.split("\n")
     .find((one) => one.trim().startsWith("forge chatgpt image")).trim();
   /* Spawned without blocking: this process is also the stub the command talks to. */
-  const typed = await ranAsync("sh", ["-c", line.replace(/^forge /u, `${FORGE} `)], env(), ROOT, null);
+  const typed = await ranAsync("sh", ["-c", line.replace(/^forge /u, `${FORGE} `)], env());
   assert.equal(typed.status, 0, typed.stderr);
   assert.match(state.gateway[0].body.prompt, /\n\na fox's den\n\nAspect ratio: 16:9\./u);
   assert.deepEqual(readFileSync(path), PNG);
@@ -274,7 +273,7 @@ test("14. no other web failure prints it", async () => {
 const collected = async (id) => {
   const stop = Date.now() + patience(10_000);
   for (;;) {
-    const run = await ranAsync(FORGE, ["chatgpt", "collect", id], env({ waitSeconds: 700 }), ROOT, null);
+    const run = await ranAsync(FORGE, ["chatgpt", "collect", id], env({ waitSeconds: 700 }));
     if (!/still running/u.test(run.stderr) || Date.now() >= stop) return run;
     await new Promise((wake) => setTimeout(wake, 100));
   }

@@ -14,7 +14,7 @@ import {
 } from "../../../src/stats/eval/diagnose.mjs";
 import { DIAGNOSTIC, answered, consults } from "../../../src/codex/codex-log.mjs";
 import { refusing } from "../../../src/resolve/settings.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { neutralRoom, tempRoom } from "../../fixtures.mjs";
 import { classesFor } from "../../../src/stats/corpus/classes.mjs";
 import { runsUnder } from "../../../src/stats/runs.mjs";
 import { PROJECT, askStats, corpusOf, runsOf } from "../fixture-eval.mjs";
@@ -56,6 +56,7 @@ const asked = async (reply, argv, { room = corpusOf(4), home = tempRoom("stats-d
     'ANTHROPIC_DEFAULT_FABLE_MODEL="cx/gpt-5.6-sol"',
   ].join("\n"));
   const child = spawn(FORGE, ["stats", "diagnose", "--checkout", PROJECT, ...argv], {
+    cwd: neutralRoom(),
     env: { ...process.env, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env"),
       TMPDIR: room, HOME: tempRoom("stats-diagnose-user-") },
   });

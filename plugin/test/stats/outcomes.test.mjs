@@ -13,7 +13,7 @@ import {
 } from "../../src/stats/eval/outcomes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { RUNS_USAGE, runsUnder } from "../../src/stats/runs.mjs";
-import { fakeTracker, projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -420,7 +420,7 @@ after(() => tracker.close());
    tracker for a project nothing named. It is this checkout's own slug because that is the project
    the fixture serves. */
 const SLUG = OWN.slug;
-projectRecord(new URL("../../..", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
+projectRecord(neutralRoom(), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
 
 const runText = (n, key) => {
   const start = NOW - (200 - n) * HOUR;

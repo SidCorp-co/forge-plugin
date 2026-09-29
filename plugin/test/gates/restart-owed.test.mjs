@@ -13,7 +13,7 @@ import { FROZEN } from "../../src/tools/plugin-copy.mjs";
 import { ROUTE_NOT_VERDICT } from "../../src/hooks/log/hook-log.mjs";
 import { appendedLine } from "../../src/refusal.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
-import { callHook, escaped, pathed, tempRoom } from "../fixtures.mjs";
+import { callHook, escaped, neutralRoom, pathed, tempRoom } from "../fixtures.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const HOOK = join(PLUGIN, "hooks", "entries", "restart-owed.mjs");
@@ -134,17 +134,17 @@ test("the refusal states the rule and gives one action, and the page it names an
   const last = held.reason.trim().split("\n").findLast((line) => line.trim() && !appendedLine(line));
   assert.equal(last, "How: `forge hooks --how restart-owed`", held.reason);
 
-  const page = spawnSync(process.execPath, [CLI, "hooks", "--how", "restart-owed"], { encoding: "utf8", env: ENV });
+  const page = spawnSync(process.execPath, [CLI, "hooks", "--how", "restart-owed"], { cwd: neutralRoom(), encoding: "utf8", env: ENV });
   assert.equal(page.status, 0, page.stderr);
   assert.equal(page.stdout.trimEnd(),
     `${readFileSync(join(PLUGIN, "hooks", "how", "restart-owed.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`);
 });
 
 test("the switch reaches this gate by name, and says which event it is registered on", () => {
-  const off = spawnSync(process.execPath, [CLI, "hooks", "--off", "restart-owed"], { encoding: "utf8", env: ENV });
+  const off = spawnSync(process.execPath, [CLI, "hooks", "--off", "restart-owed"], { cwd: neutralRoom(), encoding: "utf8", env: ENV });
   assert.equal(off.status, 0, off.stderr);
   assert.match(off.stdout, /restart-owed \(PreToolUse\) is now off/u, off.stdout);
-  const on = spawnSync(process.execPath, [CLI, "hooks", "--on", "restart-owed"], { encoding: "utf8", env: ENV });
+  const on = spawnSync(process.execPath, [CLI, "hooks", "--on", "restart-owed"], { cwd: neutralRoom(), encoding: "utf8", env: ENV });
   assert.match(on.stdout, /restart-owed \(PreToolUse\) is now on/u, on.stdout);
 });
 

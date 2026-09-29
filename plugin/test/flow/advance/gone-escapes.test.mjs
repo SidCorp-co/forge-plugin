@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, neutralCheckout, projectRecord, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("gone-escapes").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -79,7 +79,7 @@ test("a project that keeps no requirements tree is told nothing at all", () => {
    helper passes with that line gone (codex F2). The key is read off this checkout's own tree, so the
    case follows the tree rather than pinning a criterion that may be reproved tomorrow. */
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const ROOT = neutralCheckout();
 
 const CITED = escapesIn(specTreeRead().documents);
 const KEY = [...CITED.reduce((held, one) =>

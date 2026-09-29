@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 const home = tempHome("module-filing");
@@ -15,7 +15,7 @@ const NEIGHBOUR = { issueId: "ISS-45", documentId: "uuid-45", status: "open",
 const state = { issues: [], labels: [], comments: {}, calls: [], memory: {} };
 const tracker = await fakeTracker(state);
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
-projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME, OWN);
+projectRecord(neutralRoom(), tracker.env.XDG_CONFIG_HOME, OWN);
 test.after(() => tracker.close());
 
 mkdirSync(join(home.path, "forge"), { recursive: true });

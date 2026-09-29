@@ -8,7 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { answered, callHook, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
+import { answered, callHook, homeEnv, neutralRoom, pathed, tempRoom } from "../../fixtures.mjs";
 
 const HOOK = new URL("../../../hooks/entries/codex/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
@@ -290,10 +290,10 @@ test("giving up on the lock leaves a note, and the note is not counted as a refu
   const noted = log.trim().split("\n").map((one) => JSON.parse(one)).filter((one) => one.decision === "note");
   assert.equal(noted.length, 1, "the unlocked write left no trace");
   assert.match(noted[0].reason, /without it/u);
-  const said = spawnSync(FORGE, ["hooks"], { encoding: "utf8", env: HOME }).stdout;
+  const said = spawnSync(FORGE, ["hooks"], { encoding: "utf8", env: HOME, cwd: neutralRoom() }).stdout;
   assert.doesNotMatch(said, /1 refusal\(s\)/u, "a note counted as a refusal");
   assert.match(said, /1 note\(s\)/u, "and it is reachable");
-  assert.match(spawnSync(FORGE, ["hooks", "--notes"], { encoding: "utf8", env: HOME }).stdout, /codex\.json\.lock/u);
+  assert.match(spawnSync(FORGE, ["hooks", "--notes"], { encoding: "utf8", env: HOME, cwd: neutralRoom() }).stdout, /codex\.json\.lock/u);
 });
 
 /* A stale break hands the lock file to whoever took it next. Releasing by path rather than by owner,
