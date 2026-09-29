@@ -8,9 +8,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { shellWrites, writtenPaths } from "../../hooks/_hook.mjs";
-import { struck } from "../../src/hooks/shell-spans.mjs";
-import { answered, callHook, homeEnv } from "../fixtures.mjs";
+import { shellWrites, writtenPaths } from "../../../hooks/_hook.mjs";
+import { struck } from "../../../src/hooks/shell-spans.mjs";
+import { answered, callHook, homeEnv } from "../../fixtures.mjs";
 
 const CWD = "/w/tree";
 const read = (command, unplaceable) =>
@@ -87,7 +87,7 @@ test("a > in a comment, a test, an arithmetic or behind a backslash redirects no
 });
 
 /* The learning gate's own suite is at its length cap, so its case for this reading stands here. */
-const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
+const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
 const HOME = homeEnv("redirect-data");
 const refused = (command) => {
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
