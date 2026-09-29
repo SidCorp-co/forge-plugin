@@ -88,7 +88,7 @@ in it are no call, no id and no move. A comment written by `cat > file <<'EOF'` 
 variable and name every verb it likes, and the `forge` call after it keeps its grant, its reach and
 its tree.
 
-Three shapes are read as they were before, with the operator still an opener, because each one is a
+Four shapes are read as they were before, with the operator still an opener, because each one is a
 body this reader cannot vouch for:
 
 - **An unquoted delimiter whose body runs a substitution** — `$(…)`, a backtick, `${ …; }`. The
@@ -98,6 +98,8 @@ body this reader cannot vouch for:
   author meant it to stop.
 - **A quoting the walk guesses at** before the operator's line ends — the `$'…'` and nested-quote
   cases above.
+- **An operator inside an open parenthesis.** In `$((…))` and `((…))` a `<<` is a shift, and in
+  `$(…)` or a subshell the body is one the reach already stops at.
 
 What that costs: a body a program runs — `bash <<'EOF'`, `node - <<'EOF'` — that calls `forge`
 itself is read as data too. Under an export that call inherits the id, so nothing is lost. Under a
