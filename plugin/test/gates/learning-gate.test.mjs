@@ -545,6 +545,8 @@ test("a redirect aimed at a guarded file is refused, appended or truncated", () 
   assert.equal(decide(`cat > ${MEMORY}/trap.md`).allowed, false);
   assert.equal(decide(`echo x >> ${MEMORY}/trap.md`).allowed, false);
   assert.equal(decide(`echo x > ${SKILL}`).allowed, false);
+  assert.equal(decide(`echo x > ${MEMORY}\\\n/trap.md`).allowed, false,
+    "and one whose target is continued onto the next line, which a shell joins into the same word (ISS-2686)");
 });
 
 /* A memory write is judged on content, so these need a real directory to compare against. */
