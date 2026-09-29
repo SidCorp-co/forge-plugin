@@ -26,6 +26,7 @@ import {
   atThisReopen,
   buildsAt,
   blockersOwed,
+  correctedForm,
   holdsBack,
   nextOf,
   lookAnswered,
@@ -258,9 +259,15 @@ export const credentialAhead = (view, ref) => {
 `
     + `it without one — a render taken where no login is needed, cited as the evidence, and a skip —
 `
-    + `and each names the credential nobody has in \`--why\`:
+    + `and each names the credential nobody has in \`--why\`. A skip taken here holds ${CLOSES_FROM}
+`
+    + `and \`closed\` until it is judged again (ISS-1875, ISS-2430): the fresh verdict once a credential
+`
+    + `arrives, or, where none is ever coming, a correction of the criterion in the open instead:
 `
     + `  forge record verdict ${ref} --commit <sha> --criterion <n> --verdict skipped --why "<which credential>"
+`
+    + `  ${correctedForm(ref, "<n>")}
 `
     + "  forge guide issue-flow verification";
 };
