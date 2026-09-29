@@ -11,6 +11,7 @@ let scopes = new Map();
 let routes = new Map();
 let unknown = new Map();
 let out = new Map();
+let outwaited = new Map();
 
 const numbered = (headers, name) => {
   const said = headers?.get?.(name);
@@ -126,6 +127,7 @@ const wentSaid = (held, scope) => {
 };
 
 export const reserveIn = (key, now, within = Infinity) => {
+  outwaited.delete(key);
   const held = scopes.get(routes.get(key));
   const went = () => {
     out.set(key, (out.get(key) ?? 0) + 1);
@@ -142,8 +144,12 @@ export const reserveIn = (key, now, within = Infinity) => {
     return went();
   }
   const seconds = Math.max(0, (held.resetAt + PAST_RESET_MS - now) / 1000);
-  /* The bound handed down is all this may spend: past it the call goes and meets what it would have. */
-  if (seconds * 1000 > within) return went();
+  /* The bound handed down is all this may spend: past it the call goes and meets what it would have,
+     and a refusal it meets was predicted, only not waited for (ISS-2385). */
+  if (seconds * 1000 > within) {
+    outwaited.set(key, seconds);
+    return went();
+  }
   const opens = edge && held.remaining > 0 ? edgeSaid(routes.get(key)) : wentSaid(held, routes.get(key));
   const said = held.announced ? null : `${opens}${Math.ceil(seconds)}s for `
     + "the reset the tracker named, rather than sending calls it would refuse.";
@@ -158,7 +164,11 @@ export const UNPACED = "having read no budget from this tracker to pace against"
 
 export const unpredictedIn = (key) => {
   const scope = routes.get(key);
-  return scope ? `on the ${scope} budget, which the reading it was paced against did not predict` : UNPACED;
+  if (!scope) return UNPACED;
+  return outwaited.has(key)
+    ? `on the ${scope} budget, whose reset the tracker named ${Math.ceil(outwaited.get(key))}s off, `
+      + "further than this call's clock could wait"
+    : `on the ${scope} budget, which the reading it was paced against did not predict`;
 };
 
 export const pacedBy = (key) => {
@@ -172,4 +182,5 @@ export const forgetBudget = () => {
   routes = new Map();
   unknown = new Map();
   out = new Map();
+  outwaited = new Map();
 };
