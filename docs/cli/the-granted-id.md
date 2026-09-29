@@ -24,6 +24,13 @@ reader has the text and not the shell that will run it, so `"$RUN_ID"` names not
 one run: two different ids, or a second id mentioned anywhere in the text, and the reader declines
 rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i`/`-u`, either spelling, takes the name back.
 
+**Every call the text makes owes the grant, so what counts as a call decides whether it holds.** A
+call is the word `forge`, or a path ending in `/forge`, wherever it stands in a command: a word
+that only contains the letters, like `myforge`, `.forge.json` or `~/.config/forge/`, is not one.
+Where the word sits is not read, so `echo forge` still counts. Telling a command word from an
+argument would miss `bash -c 'forge …'` and `npx forge`, and a call that is missed is one that runs
+without the name while the hook believes it has it.
+
 **The take-back and the reach read the same quoting** as the openers below: `\unset` and `"unset"`
 take the name back, an escaped `;` or a comment's `unset` does not, and the reach ends at any opener
 below a shell would act on, a bare `(` too.

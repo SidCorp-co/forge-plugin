@@ -10,6 +10,7 @@ import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, offReach, setHook } 
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { helpOf } from "../../resolve/visibility.mjs";
+import { CALL_STARTS, WRITER_WORD } from "../../resolve/writer-word.mjs";
 
 export { hookLogPath, hookEntries, jsonLines };
 
@@ -62,7 +63,7 @@ const reasoning = (name) => {
 const REFUSALS = ["deny", "block"];
 
 /* The write a refusal stood in front of, the unit a loop is counted in. */
-const WRITE = /forge\s+(?:claim|record|advance|comment|plan|attach|dep|new)\b|forge\s+call\s+forge_\w+/u;
+const WRITE = new RegExp(String.raw`${CALL_STARTS}${WRITER_WORD}\s+(?:(?:claim|record|advance|comment|plan|attach|dep|new)\b|call\s+forge_\w+)`, "u");
 const TOOL = /^mcp__forge__forge_\w+$/u;
 /* The one gate whose refusal of that tool is a write by construction, since it reads the event for
    the issues written to: the log keeps no operation, and ISS-75 owns the category it lacks. */

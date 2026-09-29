@@ -1,6 +1,7 @@
 /* The id a Bash command grants the process that will write, for a hook handed none of its own, read
    off the text's commands and not its first alone (ISS-672). The two forms: docs/cli/claim.md. */
 import { quoting, spans } from "../../hooks/shell-spans.mjs";
+import { CALL_STARTS, WRITER_WORD } from "../writer-word.mjs";
 
 const BACKTICK = "\\x60";
 const LITERAL = String.raw`[\w.@:+/-]+`;
@@ -11,7 +12,7 @@ const TOP_LEVEL_EXPORT =
   new RegExp(String.raw`^\s*export\s+FORGE_SESSION_ID=${ID_VALUE}\s*$`, "u");
 
 const PREFIX_ON_THE_WRITER = new RegExp(
-  String.raw`^[ \t]*(?:env[ \t]+)?FORGE_SESSION_ID=${ID_VALUE}[ \t]+(?:[\w./~-]*/)?forge(?=[ \t]|$)`,
+  String.raw`^[ \t]*(?:env[ \t]+)?FORGE_SESSION_ID=${ID_VALUE}[ \t]+${WRITER_WORD}`,
   "u",
 );
 
@@ -61,7 +62,7 @@ const asRun = (read) => {
 
 export const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
 
-export const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*forge(?![\w-])`, "u");
+export const CALLS_THE_WRITER = new RegExp(CALL_STARTS + WRITER_WORD, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;
 
 const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+(?:-[ui]\b|--unset\b|--ignore-environment\b))/u;

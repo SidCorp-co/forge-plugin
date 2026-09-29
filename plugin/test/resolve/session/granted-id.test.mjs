@@ -359,3 +359,41 @@ test("a text both readers grant names the same id to each", () => {
     assert.equal(idGrantedBy(command), lastIdGranted([command]), command);
   }
 });
+
+/* ISS-749. The call pattern and the prefix spelt the binary two ways, and a word the loose one took
+   for a call that the strict one could not cover dropped the whole grant. One word now spells it for
+   both, and it ends where a shell word ends. */
+test("a later word that only contains the letters forge leaves the grant standing", () => {
+  const granting = "FORGE_SESSION_ID=abc forge advance ISS-1";
+  const reads = {
+    [granting]: "the call alone",
+    [`${granting} && echo done`]: "a command after it that names nothing",
+    [`${granting} && cat notes-for-forge`]: "a word ending in the letters, after a hyphen",
+    [`${granting} && cat myforge`]: "a word ending in them, after a letter",
+    [`${granting} && cat .forge.json`]: "a word beginning with them, after a dot",
+    [`${granting} && cat forge.log`]: "a word beginning with the name and going on",
+    [`${granting} && cat ~/.config/forge/config.json`]: "a path through a directory named for it",
+    [`${granting} && ls ~/.config/forge/`]: "the same directory, its slash after it",
+  };
+  for (const [command, what] of Object.entries(reads)) {
+    assert.equal(idGrantedBy(command), "abc", what);
+  }
+});
+
+/* The other shoe: the word the fix narrowed must still see every writer a shell would run, or a
+   grant is answered for a process that never holds it. */
+test("a later call of the writer nothing covers still drops the grant", () => {
+  const granting = "FORGE_SESSION_ID=abc forge advance ISS-1";
+  const refuses = {
+    [`${granting} && forge record ISS-1`]: "bare",
+    [`${granting} && ./plugin/bin/forge record ISS-1`]: "by a relative path",
+    [`${granting} && /opt/forge+tools/forge record ISS-1`]: "by a path the old prefix could not spell",
+    [`${granting} && bash -c 'forge record ISS-1'`]: "inside a shell it starts",
+    [`${granting} && "forge" record ISS-1`]: "quoted whole",
+    [`${granting} && \\forge record ISS-1`]: "behind a backslash",
+    [`${granting} && npx forge record ISS-1`]: "handed to a runner as its argument",
+  };
+  for (const [command, what] of Object.entries(refuses)) {
+    assert.equal(idGrantedBy(command), null, what);
+  }
+});

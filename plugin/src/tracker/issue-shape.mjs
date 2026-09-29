@@ -295,6 +295,7 @@ const hasLine = (text) =>
   String(text ?? "").split("\n").some((line) => line.replace(/^[-*\d.\s]+/u, "").trim().split(/\s+/u).length >= SUBSTANTIAL);
 
 const CODE_SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "gu");
+/* Not the writer's word: a code span in prose names this CLI by its name alone, and one opening with a path names a file, which the identifier branch below keeps whole. */
 const VERB_SPAN = /^forge[ \t]+[a-z][\w-]*/u;
 const IDENTIFIER = /[_./]|^--/u;
 
