@@ -35,8 +35,8 @@ export const retryOf = (status, repeatable) => {
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 
-/* A refusal about the process's clock carries where that clock went, and one about any other deadline
-   does not: the account answers for the clock a caller names, which a caller's own `waits` is not. */
+/* Only where the attempt's bound was cut to the process's clock: a caller's own `waits` is a deadline
+   the account does not answer for. */
 const onClock = (said, deadline) => {
   if (!ceilingFrom() || deadline?.from !== ceilingFrom()) return said;
   return `${said}${/[.!?]$/u.test(said) ? "" : "."} ${clockSpentSaid()}`;

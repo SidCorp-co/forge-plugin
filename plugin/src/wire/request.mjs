@@ -81,9 +81,7 @@ export const spending = (kind) => {
 };
 
 /* The longest this process waited on an answer's headers, taken where a budget is read off those
-   same headers, so no reading exists without a measured wait behind it. It is the room a pacing wait
-   leaves the call after it: a wait that leaves less hands the call a clock it has never once been
-   answered inside. */
+   same headers, so no reading exists without a measured wait behind it. */
 export const sawHeadersAfter = (millis) => {
   longestHeaders = Math.max(longestHeaders, millis);
 };
@@ -94,7 +92,7 @@ const heldFor = (held) => held.total + (held.open > 0 ? performance.now() - held
 
 const secondsSaid = (millis) => (millis > 0 ? `${(millis / 1000).toFixed(2)}s` : "none");
 
-/** Where the process's clock went, one sentence every refusal about that clock carries, or "" where no clock was named. */
+/** The account `spending` keeps, as one sentence, or "" where no clock was named. */
 export const clockSpentSaid = () => {
   if (!ceiling) return "";
   const figures = Object.entries(KINDS).map(([kind, words]) => [words, heldFor(spent[kind])]);
