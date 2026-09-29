@@ -3,12 +3,14 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
   realpathSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -224,13 +226,14 @@ function alreadySaid(sessionId, subject) {
 }
 
 /**
- * Prettier first, so a formatting nit is never one of the errors blocking an edit, and only where
- * the project installed it and configured it. In process, not through the CLI: this runs after
- * every edit, and a second Node start would cost more than the whole check. `getFileInfo` answers
- * what `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to
- * report with a line and a column.
+ * Prettier's text for the file, or null where there is nothing to apply, and only where the project
+ * installed it and configured it. In process, not through the CLI: this runs after every edit, and a
+ * second Node start would cost more than the whole check. `getFileInfo` answers what
+ * `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to report
+ * with a line and a column. Nothing is written here: the text is linted first, so a delegate's time
+ * limit landing mid-lint leaves the file as the edit wrote it.
  */
-async function format(require, file) {
+async function formatted(require, file, source) {
   const whole = (api) =>
     ["getFileInfo", "resolveConfig", "format"].every((name) => typeof api?.[name] === "function");
   let prettier;
@@ -240,20 +243,37 @@ async function format(require, file) {
     const loaded = await import(pathToFileURL(require.resolve("prettier")).href);
     prettier = [loaded, loaded.default].find(whole);
   } catch {
-    return;
+    return null;
   }
-  if (prettier === undefined) return;
+  if (prettier === undefined) return null;
   try {
     const { ignored, inferredParser } = await prettier.getFileInfo(file, { resolveConfig: true });
-    if (ignored || inferredParser === null) return;
+    if (ignored || inferredParser === null) return null;
     // No config is a project that has not chosen a style, and prettier's defaults are not its.
     const options = await prettier.resolveConfig(file);
-    if (options === null) return;
-    const source = readFileSync(file, "utf8");
-    const formatted = await prettier.format(source, { ...options, filepath: file });
-    if (formatted !== source) writeFileSync(file, formatted);
+    if (options === null) return null;
+    const text = await prettier.format(source, { ...options, filepath: file });
+    return text === source ? null : text;
   } catch {
-    return;
+    return null;
+  }
+}
+
+/**
+ * The text in place of the file by a rename of a finished sibling, never a truncate and a write: a
+ * kill between those two left a file empty over a slow mount (ISS-2819). A SIGTERM listener makes
+ * Node hold the delegate's signal until this synchronous stretch has run, so it cannot land between
+ * the sibling and its rename either; only a SIGKILL there leaves the sibling behind.
+ */
+function replaceWith(file, text) {
+  const sibling = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.code-quality`);
+  process.on("SIGTERM", () => process.exit(143));
+  try {
+    writeFileSync(sibling, text, { flag: "wx" });
+    chmodSync(sibling, statSync(file).mode);
+    renameSync(sibling, file);
+  } catch {
+    rmSync(sibling, { force: true });
   }
 }
 
@@ -326,22 +346,31 @@ if (!eslintBin) {
   process.exit(0);
 }
 
-await format(require, editedFile);
+let source;
+try {
+  source = readFileSync(editedFile, "utf8");
+} catch (error) {
+  fail(`could not read ${path.relative(projectRoot, editedFile)}: ${error.message}`);
+}
+const text = (await formatted(require, editedFile, source)) ?? source;
 
 // No --max-warnings: severity is the project's decision, and a rule it enabled
-// at `warn` should not block an edit.
+// at `warn` should not block an edit. The text goes on stdin under the file's own name, which is
+// what picks its configuration, so the verdict is read before anything is written.
 const result = spawnSync(
   process.execPath,
-  [eslintBin, "--format", "json", "--no-cache", editedFile],
+  [eslintBin, "--format", "json", "--no-cache", "--stdin", "--stdin-filename", editedFile],
   {
     cwd: workspace,
     encoding: "utf8",
     env: process.env,
+    input: text,
     windowsHide: true,
   },
 );
 
 if (result.error) fail(`could not start ESLint: ${result.error.message}`);
+if (text !== source) replaceWith(editedFile, text);
 if (result.status === 0) process.exit(0);
 
 const diagnostic = formatLintOutput(result.stdout, result.stderr);

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   cpSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  statSync,
   symlinkSync,
   utimesSync,
   writeFileSync,
@@ -37,7 +39,7 @@ function makeConsumer({ eslint = true, plugin = true, config = true } = {}) {
   return root;
 }
 
-function runHook(root, filePath, { stdin, script = hookScript, env = {}, session } = {}) {
+function runHook(root, filePath, { stdin, script = hookScript, env = {}, session, timeout } = {}) {
   const event = {
     hook_event_name: "PostToolUse",
     tool_name: "Edit",
@@ -50,6 +52,7 @@ function runHook(root, filePath, { stdin, script = hookScript, env = {}, session
     encoding: "utf8",
     input: stdin ?? JSON.stringify(event),
     env: { ...process.env, TMPDIR: root, CLAUDE_PROJECT_DIR: root, ...env },
+    timeout,
   });
 }
 
@@ -242,6 +245,66 @@ test("the project's prettier runs first, so the rules judge the formatted file",
   const ignored = write(root, "src/ignored.js", "// Previously this returned zero.\nexport const b = 1;\n");
   assert.equal(runHook(root, "src/ignored.js").status, 2);
   assert.match(readFileSync(ignored, "utf8"), /Previously/);
+});
+
+/* The delegate kills the hook at its time limit, and a kill between the truncate and the write of an
+   in-place write-back left a file empty over sshfs (ISS-2819). The config below never finishes
+   loading, so the kill lands inside the lint, after prettier has answered. */
+test("a lint killed at its time limit leaves the file as the edit wrote it", () => {
+  const root = makeConsumer({ config: false });
+  installPrettier(root, {});
+  writeFileSync(
+    path.join(root, "eslint.config.js"),
+    "const parent = process.ppid;\n" +
+      "setInterval(() => { if (process.ppid !== parent) process.exit(1); }, 50);\n" +
+      "await new Promise(() => {});\nexport default [];\n",
+  );
+  const source = "// Previously this returned zero.\nexport const a = 1;\n";
+  const file = write(root, "src/slow.js", source);
+  const result = runHook(root, "src/slow.js", { timeout: 2500 });
+  assert.equal(result.error?.code, "ETIMEDOUT", result.stderr);
+  assert.equal(readFileSync(file, "utf8"), source);
+});
+
+test("a reformatted file is replaced whole, keeping its mode and leaving nothing beside it", () => {
+  const root = makeConsumer();
+  installPrettier(root, {});
+  const file = write(root, "src/kept.js", "// Previously this returned zero.\nexport const a = 1;\n");
+  chmodSync(file, 0o640);
+  const before = statSync(file);
+  const result = runHook(root, "src/kept.js");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(readFileSync(file, "utf8"), "export const a = 1;\n");
+  const after = statSync(file);
+  // A new inode is the rename: an in-place write keeps the old one, truncated for a moment.
+  assert.notEqual(after.ino, before.ino);
+  assert.equal(after.mode & 0o777, 0o640);
+  assert.deepEqual(readdirSync(path.dirname(file)), ["kept.js"]);
+});
+
+/* The text is linted on stdin, and only the name passed beside it picks the configuration: a rule
+   scoped to one directory and an ignored directory answer as they do for a path lint. */
+test("the lint of the text answers as a lint of the file by path does", () => {
+  const root = makeConsumer({ plugin: false, config: false });
+  writeFileSync(
+    path.join(root, "eslint.config.js"),
+    'export default [{ ignores: ["src/generated/**"] }, { files: ["src/strict/**"], rules: { "no-var": "error" } }];\n',
+  );
+  const eslint = path.join(localEslint, "bin", "eslint.js");
+  for (const relative of ["src/strict/a.js", "src/loose/a.js", "src/generated/a.js"]) {
+    write(root, relative, "var a = 1;\nexport { a };\n");
+    const byPath = spawnSync(process.execPath, [eslint, "--format", "json", relative], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const rules = JSON.parse(byPath.stdout).flatMap((one) =>
+      one.messages.filter((m) => m.severity === 2).map((m) => m.ruleId),
+    );
+    const hook = runHook(root, relative);
+    assert.equal(hook.status, rules.length ? 2 : 0, `${relative}: ${hook.stderr}`);
+    for (const rule of rules) assert.match(hook.stderr, new RegExp(`\\b${rule}\\b`), relative);
+  }
+  assert.match(runHook(root, "src/strict/a.js").stderr, /no-var/);
 });
 
 test("a prettier with no configuration to read formats nothing, and the rules still run", () => {

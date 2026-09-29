@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.2 - 2026-09-29
+
+### Fixed
+
+- The edit hook no longer leaves an edited file empty when it is killed. It wrote prettier's output
+  back by truncating the file and then writing it, and the time limit a caller runs it under could
+  land between the two, which over a network mount is a round trip wide. It also wrote before it
+  linted, so a kill during the lint left the formatted text on disk under a report of a timeout. The
+  formatted text is now linted first, on ESLint's standard input under the file's own name, and only
+  then written, to a sibling file that is renamed over the original with its mode. A kill before the
+  rename leaves the file as the edit wrote it.
+
 ## 0.16.1 - 2026-09-25
 
 ### Fixed
