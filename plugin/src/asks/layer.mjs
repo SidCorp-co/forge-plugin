@@ -57,7 +57,8 @@ export const readLayer = (paths) => {
 /** How many precedents a layer holds, read without building anything. */
 export const precedentCount = (paths) => precedentsIn(paths).length;
 
-const RECOMMENDED = /\(recommended\)/iu;
+/** How an offered label says the session recommends it. */
+export const RECOMMENDED = /\(recommended\)/iu;
 
 const labelsOf = (question) =>
   (Array.isArray(question?.options) ? question.options.map((one) => String(one?.label ?? "")).filter(Boolean) : []);

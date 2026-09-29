@@ -7,7 +7,6 @@ import { gateway } from "../../../src/resolve/machine/stores.mjs";
 import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../../src/asks/declared.mjs";
 import { DECIDED, OWNER, asksRoom, decidedIds, decidedPath, logOutcome } from "../../../src/asks/decided.mjs";
 import { OWNER_KIND, layerPaths, readLayer, refreshLayer, shortlistFor } from "../../../src/asks/layer.mjs";
-import { judge, judgeModel } from "../../../src/asks/judge.mjs";
 
 const ASKS = "AskUserQuestion";
 /* What the build and the goals may take of the clock, so the judge keeps the larger part of it. */
@@ -78,6 +77,8 @@ const decide = async (ev, questions, room) => {
   if (bare >= 0) return toOwner(ev, questions, `"${questions[bare].question}" has no close owner precedent`, room);
   const { problem, values } = gateway();
   if (problem) return toOwner(ev, questions, `no judge to ask: ${problem}`, room);
+  /* Loaded only here, so a question the owner answers before any judge is asked loads none of it. */
+  const { judge, judgeModel } = await import("../../../src/asks/judge.mjs");
   const model = judgeModel(values);
   if (!model) return toOwner(ev, questions, "no model is named for the judge", room);
   const goals = await goalsWithin(Math.min(GOALS_MS, remaining() / 4));

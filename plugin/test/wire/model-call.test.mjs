@@ -39,6 +39,7 @@ test("the call forces its one tool, carries the data as the user turn and no rea
   const answer = await modelCall({ endpoint: ENDPOINT, model: "cx/model-max", system: "Sum them.", data: { a: 2, b: 40 }, tool: TOOL, send });
   assert.deepEqual(answer.input, { sum: 42 });
   assert.deepEqual(answer.spent, { input: 25, output: 7 });
+  assert.deepEqual(Object.keys(answer).sort(), ["input", "spent"], "the tool input and the spend, and nothing no caller reads");
   const [one] = sent;
   assert.equal(one.url, "http://gateway.test/v1/messages");
   assert.equal(one.init.headers["x-api-key"], "sk-test");
@@ -59,6 +60,17 @@ test("a refused request, an answer with no call of the tool, a stream that errs 
   const erring = [new TextEncoder().encode(`data: ${JSON.stringify({ type: "error", error: { type: "overloaded_error" } })}\n\n`)];
   await assert.rejects(modelCall({ endpoint: ENDPOINT, model: "cx/x", system: "", data: {}, tool: TOOL,
     send: async () => ({ ok: true, status: 200, body: erring }) }), /cx\/x's answer broke off: gateway streamed an error: .*overloaded_error/u);
+});
+
+test("an effort the caller gives goes out as the parameter, and a failure keeps the error it caught as its cause", async () => {
+  const { sent, send } = replying(200, { content: [{ type: "tool_use", name: "answer", input: { sum: 1 } }] });
+  await modelCall({ endpoint: ENDPOINT, model: "cx/model", system: "", data: {}, tool: TOOL, effort: "medium", send });
+  assert.equal(sent[0].body.reasoning_effort, "medium");
+  assert.equal(sent[0].body.max_tokens, 16_000, "a bound of the call's own, which no caller sets");
+  const refused = Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNREFUSED" } });
+  const thrown = await modelCall({ endpoint: ENDPOINT, model: "cx/x", system: "", data: {}, tool: TOOL,
+    send: async () => { throw refused; } }).catch((error) => error);
+  assert.equal(thrown.cause, refused, "a caller deciding whether to try again reads the code off the cause");
 });
 
 test("what a call spent counts every input the provider bills and nought for what it did not say", () => {

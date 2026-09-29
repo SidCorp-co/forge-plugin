@@ -2,10 +2,10 @@
    the precedents shortlisted for each and says, per question, which offered option those precedents
    point to or that the owner has to answer. What it says is checked against what it was offered, and
    anything outside that is the owner's. plugin/hooks/how/ask-decide.md. */
-import { askApi } from "../codex/codex-api.mjs";
-import { defaultEffort, rungFor } from "../codex/codex-plan.mjs";
+import { defaultEffort, rungFor, rungIn } from "../codex/codex-plan.mjs";
 import { modelBehind } from "../resolve/machine/stores.mjs";
-import { DECISION_KIND, OWNER_KIND } from "./layer.mjs";
+import { modelCall } from "../wire/model-call.mjs";
+import { DECISION_KIND, OWNER_KIND, RECOMMENDED } from "./layer.mjs";
 import { reversalOf } from "./declared.mjs";
 
 const DECIDE = "decide";
@@ -72,7 +72,7 @@ export const judgeInput = (questions, shortlists, goals) => ({
     question: question.question,
     header: question.header ?? null,
     options: question.options.map((one) => ({
-      label: one.label, description: one.description ?? null, recommended: /\(recommended\)/iu.test(one.label ?? ""),
+      label: one.label, description: one.description ?? null, recommended: RECOMMENDED.test(one.label ?? ""),
     })),
     reversal: reversalOf(question),
     precedents: shortlists[at].map(precedentShown),
@@ -80,27 +80,26 @@ export const judgeInput = (questions, shortlists, goals) => ({
 });
 
 /** Each question's decision, or the reason the call is the owner's: a call is decided whole or not at
- *  all, since an answer map with a gap skips the dialog for the whole call. */
-export const readVerdicts = (calls, questions, shortlists) => {
-  const call = (calls ?? []).find((one) => one.name === DECIDE);
-  if (!call) return { owner: "the judge made no `decide` call" };
-  const given = Array.isArray(call.input?.questions) ? call.input.questions : [];
+ *  all, since an answer map with a gap skips the dialog for the whole call. `said` is the input the
+ *  judge gave its `decide` call. */
+export const readVerdicts = (said, questions, shortlists) => {
+  const given = Array.isArray(said?.questions) ? said.questions : [];
   const decisions = [];
   for (const [at, question] of questions.entries()) {
-    const said = given.find((one) => one?.question === question.question);
-    if (!said) return { owner: `the judge said nothing about "${question.question}"` };
-    if (said.verdict !== DECIDE) return { owner: `the judge sent "${question.question}" to the owner: ${said.reason ?? "no reason given"}` };
-    if (said.precedentsAgree !== true) return { owner: `the close precedents for "${question.question}" do not agree` };
-    const option = question.options.find((one) => one.label === said.option);
-    if (!option) return { owner: `the judge chose \`${said.option}\`, which "${question.question}" does not offer` };
-    const precedent = shortlists[at].find((one) => one.id === said.precedent);
-    if (!precedent) return { owner: `the judge followed \`${said.precedent}\`, which is not among the precedents it was given` };
+    const one = given.find((each) => each?.question === question.question);
+    if (!one) return { owner: `the judge said nothing about "${question.question}"` };
+    if (one.verdict !== DECIDE) return { owner: `the judge sent "${question.question}" to the owner: ${one.reason ?? "no reason given"}` };
+    if (one.precedentsAgree !== true) return { owner: `the close precedents for "${question.question}" do not agree` };
+    const option = question.options.find((each) => each.label === one.option);
+    if (!option) return { owner: `the judge chose \`${one.option}\`, which "${question.question}" does not offer` };
+    const precedent = shortlists[at].find((each) => each.id === one.precedent);
+    if (!precedent) return { owner: `the judge followed \`${one.precedent}\`, which is not among the precedents it was given` };
     /* Only an owner answer is followed, and only to the option it names: a judge whose choice its own
        precedent does not bear out has decided from something other than the owner. */
     if (precedent.kind !== OWNER_KIND || precedent.answer !== option.label) {
       return { owner: `the precedent the judge followed for "${question.question}" answered \`${precedent.answer ?? "no option"}\`, not \`${option.label}\`` };
     }
-    decisions.push({ question: question.question, option: option.label, precedent, reason: String(said.reason ?? "").trim() });
+    decisions.push({ question: question.question, option: option.label, precedent, reason: String(one.reason ?? "").trim() });
   }
   return { decisions };
 };
@@ -109,18 +108,27 @@ export const readVerdicts = (calls, questions, shortlists) => {
 export const judgeModel = (values) => rungFor(defaultEffort(), modelBehind(values));
 
 /* A connection that never opened reached no judge, so it is tried once more inside the same clock; an
-   answer the gateway refused, or a clock that ran out, is the owner's at once. */
+   answer the gateway refused, or a clock that ran out, is the owner's at once. The code sits on the
+   error fetch threw, which the call keeps as its own error's cause. */
 const UNREACHED = new Set(["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "UND_ERR_CONNECT_TIMEOUT"]);
-const unreached = (error) => UNREACHED.has(error?.cause?.code) || UNREACHED.has(error?.cause?.errors?.[0]?.code);
+const unreached = (error) => {
+  for (let at = error; at; at = at.cause) {
+    if (UNREACHED.has(at.code) || UNREACHED.has(at.errors?.[0]?.code)) return true;
+  }
+  return false;
+};
 const ATTEMPTS = 2;
 
-/** One call judged. `ask` is handed in so the suite asks a fake; a failure of any kind is the owner's. */
-export const judge = async ({ values, model, questions, shortlists, goals, signal, ask = askApi }) => {
-  const messages = [{ role: "user", content: JSON.stringify(judgeInput(questions, shortlists, goals)) }];
+/** One call judged. `send` stands in for `fetch` in the suite; a failure of any kind is the owner's. */
+export const judge = async ({ values, model, questions, shortlists, goals, signal, send = fetch }) => {
+  const request = {
+    endpoint: { url: values.ANTHROPIC_BASE_URL, key: values.ANTHROPIC_AUTH_TOKEN }, model, system: JUDGE_ROLE,
+    data: judgeInput(questions, shortlists, goals), tool: DECIDE_TOOL, effort: rungIn(model) ? null : defaultEffort(), signal, send,
+  };
   for (let attempt = 1; ; attempt += 1) {
     try {
-      const answer = await ask(values, model, messages, { tools: [DECIDE_TOOL], choose: DECIDE, system: JUDGE_ROLE, signal });
-      return readVerdicts(answer.calls, questions, shortlists);
+      const answer = await modelCall(request);
+      return readVerdicts(answer.input, questions, shortlists);
     } catch (error) {
       if (attempt < ATTEMPTS && unreached(error) && !signal?.aborted) continue;
       return { owner: `the judge could not be asked: ${error.message}` };
