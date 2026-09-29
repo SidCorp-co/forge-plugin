@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
-import { escapeFor, logReader, malformed } from "../../src/codex/owed-refusal.mjs";
+import { escapeFor, logReader, malformed } from "../../src/codex/log/owed-refusal.mjs";
 
 const homeWith = (rows) => {
   const home = tempRoom("owed-refusal-");

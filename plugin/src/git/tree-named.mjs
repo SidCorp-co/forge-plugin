@@ -2,7 +2,7 @@
    directory alone. Two gates read it: bash-guard and codex-second. */
 import { isAbsolute, join, resolve } from "node:path";
 
-import { NOWHERE } from "./shell-spans.mjs";
+import { NOWHERE } from "../hooks/shell-spans.mjs";
 
 /** `moved` is a `directoryAt` or `standsIn` reading, where the shell stands, and `named` is the tree the
  *  command's own globals name, null for none. With a `base` the answer is placed against it. With none,

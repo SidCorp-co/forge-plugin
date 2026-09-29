@@ -8,10 +8,10 @@ import { syncBuiltinESMExports } from "node:module";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { callHook, projectRecord, tempRoom } from "../fixtures.mjs";
+import { callHook, projectRecord, tempRoom } from "../../fixtures.mjs";
 
-const TURN = new URL("../../hooks/entries/codex/codex-turn.mjs", import.meta.url).pathname;
-const OWED = new URL("../../hooks/entries/codex/codex-owed.mjs", import.meta.url).pathname;
+const TURN = new URL("../../../hooks/entries/codex/codex-turn.mjs", import.meta.url).pathname;
+const OWED = new URL("../../../hooks/entries/codex/codex-owed.mjs", import.meta.url).pathname;
 
 const PRELOAD = join(tempRoom("walks-once-preload-"), "count.mjs");
 writeFileSync(PRELOAD, [
@@ -81,7 +81,7 @@ test("codex-owed reads the consult log once for a call gating two trees under on
 
 /* Criterion 8, in process: the predicate a gate is handed answers a directory once for every file in it. */
 test("the lint configuration check reads a directory once for the files that share it", async () => {
-  const { lintConfigured } = await import("../../src/hooks/lint-delegate.mjs");
+  const { lintConfigured } = await import("../../../src/hooks/lint-delegate.mjs");
   const room = tempRoom("walks-once-lint-");
   const root = checkout(room, "tree");
   writeFileSync(join(root, "eslint.config.js"), "export default [];\n");

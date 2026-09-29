@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { NOWHERE } from "../../src/hooks/shell-spans.mjs";
-import { treeNamed } from "../../src/hooks/tree-named.mjs";
+import { treeNamed } from "../../src/git/tree-named.mjs";
 import { commitAim } from "../../hooks/gates/codex/codex-second.mjs";
 
 test("a tree the shell stands nowhere in is named only by an absolute -C", () => {

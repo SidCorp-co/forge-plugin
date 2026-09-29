@@ -5,11 +5,11 @@ import { resolve } from "node:path";
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, stagedIn } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { allPathed, listed, unverdicted } from "../../../src/codex/log/replies.mjs";
-import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unruled } from "../../../src/codex/owed-refusal.mjs";
+import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unruled } from "../../../src/codex/log/owed-refusal.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
-import { treeNamed } from "../../../src/hooks/tree-named.mjs";
+import { treeNamed } from "../../../src/git/tree-named.mjs";
 import {
   REDIRECT,
   COMMITS,

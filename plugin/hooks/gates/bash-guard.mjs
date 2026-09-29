@@ -6,7 +6,7 @@
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
-import { treeNamed } from "../../src/hooks/tree-named.mjs";
+import { treeNamed } from "../../src/git/tree-named.mjs";
 import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 

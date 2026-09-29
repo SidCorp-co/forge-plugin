@@ -1,11 +1,11 @@
 /* What the two door gates say, codex-owed before a call and codex-second before a commit: one record and
    one reader, so one wording. Each gate keeps what differs — the subject it judged and the tail naming it. */
-import { configDir } from "../resolve/config.mjs";
-import { OWED_DOORS } from "../resolve/settings.mjs";
-import { offReach } from "../hooks/hook-switch.mjs";
-import { typed } from "../hooks/shell-spans.mjs";
-import { logBytes, logPath } from "./codex-log.mjs";
-import { allPathed, verdictForm } from "./log/replies.mjs";
+import { configDir } from "../../resolve/config.mjs";
+import { OWED_DOORS } from "../../resolve/settings.mjs";
+import { offReach } from "../../hooks/hook-switch.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
+import { logBytes, logPath } from "../codex-log.mjs";
+import { allPathed, verdictForm } from "./replies.mjs";
 
 /** The switch a refused agent can reach, first, and then the variable as what it is: written as a
  *  prefix on the refused command it reached no hook, and that refusal named no way out (ISS-70). */
