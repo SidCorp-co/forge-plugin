@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { tempHome } from "../fixtures.mjs";
 
-import { STAMP_MS, askedAlready, askedByAnyone, note, noted, reap, stampRoom } from "../../src/hooks/stamps.mjs";
+import { STAMP_MS, askedAlready, askedByAnyone, note, noted, stampRoom } from "../../src/hooks/stamps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCE = join(HERE, "..", "..", "src", "hooks", "stamps.mjs");
@@ -99,23 +99,4 @@ test("the note carries what the last call said, per session, and reaps nothing o
   assert.ok(existsSync(stale), "a note walks no directory, so nothing stale is swept by one");
   askedAlready({ session_id: "sweeper" }, "/w/a.md", "reaping");
   assert.equal(existsSync(stale), false, "which is what a stamp write does do");
-});
-
-/* The sweep plan-scope lists its own room through, so the bound is pinned on a clock of its own: a
-   file exactly a day old is past it, one a millisecond younger is not, and what is left is answered. */
-test("the sweep takes a room, a life and a clock, and answers with the names it left", () => {
-  const room = join(ROOT, "swept");
-  mkdirSync(room, { recursive: true });
-  const NOW = Date.parse("2026-09-15T00:00:00.000Z");
-  const at = (name, ageMs) => {
-    writeFileSync(join(room, name), "");
-    utimesSync(join(room, name), (NOW - ageMs) / 1000, (NOW - ageMs) / 1000);
-  };
-  at("a-day", STAMP_MS);
-  at("a-day-less-a-millisecond", STAMP_MS - 1);
-  at("an-hour", 3_600_000);
-  assert.deepEqual(reap(room, STAMP_MS, NOW).sort(), ["a-day-less-a-millisecond", "an-hour"]);
-  assert.deepEqual(readdirSync(room).sort(), ["a-day-less-a-millisecond", "an-hour"], "and the day-old one is gone");
-  assert.deepEqual(reap(room, 3_600_000, NOW), [], "a shorter life takes both");
-  assert.deepEqual(reap(join(ROOT, "never-made"), STAMP_MS, NOW), [], "a room nobody made answers with nothing");
 });

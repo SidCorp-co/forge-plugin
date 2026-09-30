@@ -1,9 +1,10 @@
 /* What a gate asked once and what its last call said, kept outside the files they are about. */
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { digestOf } from "../keys/digest.mjs";
+import { reap } from "../rooms/reap.mjs";
 
 /** Per call, so `TMPDIR` moves it; per user, since a shared temp root would let only its first owner write. */
 export const stampRoom = () => join(tmpdir(), `forge-hook-stamps-${process.getuid?.() ?? "one"}`);
@@ -11,30 +12,6 @@ export const stampRoom = () => join(tmpdir(), `forge-hook-stamps-${process.getui
 /** How long one answers: it is a session's memory and no session lasts a day. Unreaped they reached
  *  29,626 files and took a machine's temp filesystem to 97% of its inodes, killing a whole suite. */
 export const STAMP_MS = 86_400_000;
-
-/** Whether a file nothing has written for `life` is past it; a file already gone is not, being nobody's to remove. */
-export const aged = (at, life, now = Date.now()) =>
-  now - (statSync(at, { throwIfNoEntry: false })?.mtimeMs ?? now) >= life;
-
-/** Remove every entry of `room` past `life` and answer with the names left standing, so a reader that lists the room pays for the sweep in the same walk. An entry that cannot be read or removed is neither swept nor answered for, and one failure stops no other entry's sweep. */
-export function reap(room, life = STAMP_MS, now = Date.now()) {
-  let names;
-  try {
-    names = readdirSync(room);
-  } catch {
-    return [];
-  }
-  const kept = [];
-  for (const name of names) {
-    try {
-      if (aged(join(room, name), life, now)) rmSync(join(room, name), { force: true });
-      else kept.push(name);
-    } catch {
-      continue;
-    }
-  }
-  return kept;
-}
 
 function put(room, at, body) {
   try {
@@ -45,7 +22,7 @@ function put(room, at, body) {
 
 /* Reaped before the write: a temp root out of inodes refuses a write and allows a removal. */
 function place(room, stamp) {
-  reap(room);
+  reap(room, STAMP_MS);
   put(room, stamp, "");
 }
 

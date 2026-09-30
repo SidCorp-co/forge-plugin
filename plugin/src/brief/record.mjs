@@ -3,10 +3,11 @@
    one reading no added sentence survives; a reading of its words was refused (ISS-2147). Nothing here
    needs a checkout, so the hook holds wherever a dispatch is made. */
 import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir } from "../resolve/config.mjs";
+import { reap } from "../rooms/reap.mjs";
 
 /* A brief is readings taken now: ten minutes is long enough to send one, and short enough that what
    a tree held has not moved under it. */
@@ -28,23 +29,12 @@ const ageOf = (path, now) => {
   }
 };
 
-const pruned = (dir, now) => {
-  let names;
-  try {
-    names = readdirSync(dir);
-  } catch {
-    return;
-  }
-  for (const one of names) {
-    if ((ageOf(join(dir, one), now) ?? 0) > FRESH_MS) rmSync(join(dir, one), { recursive: true, force: true });
-  }
-};
-
-/** Keep what `session` was shown, dropping every record past its window on the way. */
+/** Keep what `session` was shown, dropping every record past its window on the way. The room above
+ *  the store holds one directory per session, so an aged one goes with what it holds. */
 export const keepBrief = (session, text, now = Date.now()) => {
   const store = storeOf(session);
-  pruned(join(store, ".."), now);
-  pruned(store, now);
+  reap(join(store, ".."), FRESH_MS, now, { whole: true });
+  reap(store, FRESH_MS, now);
   mkdirSync(store, { recursive: true });
   writeFileSync(join(store, digestOf(text)), "");
 };

@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { digestOf } from "../../keys/digest.mjs";
-import { aged, reap } from "../../hooks/stamps.mjs";
+import { aged, reap } from "../../rooms/reap.mjs";
 import { configDir, readJson, writeJsonPrivate } from "../../resolve/config.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
 import { NO_LONGER_OWES } from "../earned/park-status.mjs";
