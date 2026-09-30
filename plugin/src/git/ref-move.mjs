@@ -6,15 +6,17 @@ import { canonical } from "../resolve/canonical.mjs";
 import { gitProbe, probeMs } from "../hooks/git-probe.mjs";
 import { NOWHERE } from "../hooks/shell-spans.mjs";
 
-/* A shell word, adjacent quoted, substituted and bare fragments joined as the shell joins them: `'refs/heads/'main`. */
-const WORDS = /(?:"[^"]*"|'[^']*'|\$\([^)]*\)|`[^`]*`|[^\s"'`])+/gu;
-const FRAGMENT = /"([^"]*)"|'([^']*)'/gu;
+/* A shell word, adjacent quoted, escaped, substituted and bare fragments joined as the shell joins them: `'refs/heads/'main`, `land\ it`. */
+const WORDS = /(?:"(?:[^"\\]|\\.)*"|'[^']*'|\$\([^)]*\)|`[^`]*`|\\.|[^\s"'`\\])+/gu;
+const FRAGMENT = /"((?:[^"\\]|\\.)*)"|'([^']*)'|\\(.)/gu;
+const unquoted = (word) =>
+  word.replace(FRAGMENT, (_, d, s, e) => (e ?? s ?? d.replace(/\\([$`"\\])/gu, "$1")));
 const REDIRECTION = /^\d*[<>]{1,2}(?:&\d)?$/u;
 const VALUED = new Set(["-m"]);
 
 /** The operands and the two forms that change what they mean, off what follows `update-ref`. */
 const updateRefOf = (rest) => {
-  const words = (String(rest).match(WORDS) ?? []).map((word) => word.replace(FRAGMENT, (_, d, s) => d ?? s));
+  const words = (String(rest).match(WORDS) ?? []).map(unquoted);
   const operands = [];
   const flags = new Set();
   let past = false;

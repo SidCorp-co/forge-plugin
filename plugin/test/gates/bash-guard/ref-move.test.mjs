@@ -91,6 +91,9 @@ test("a ref or commit the shell builds is refused until spelt out, and a redirec
   assert.equal(sha.allowed, false);
   assert.match(sha.reason, /^Refused — spell `\$\(git rev-parse side\)` out/u);
   assert.equal(decide("git update-ref refs/heads/idle $SHA", repo.side).allowed, true, "no tree stands on idle");
+  const escaped = decide(`git update-ref -m land\\ it refs/heads/master ${to}`, repo.side);
+  assert.equal(escaped.allowed, false, "an escaped space keeps the reason one word");
+  assert.ok(escaped.reason.includes(`checked out at ${repo.main}`), escaped.reason);
   const traced = decide(`git update-ref 2>/tmp/trace refs/heads/master ${to}`, repo.side);
   assert.equal(traced.allowed, false);
   assert.ok(traced.reason.includes(`checked out at ${repo.main}`), traced.reason);
@@ -165,6 +168,9 @@ test("a worktree listing or a stale-path reading that fails refuses, saying whic
   const silent = decide(move, repo.side, failing("worktree", "exec sleep 30"));
   assert.equal(silent.allowed, false, "a listing that never answers is no listing");
   assert.match(silent.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
+  const untopped = decide("git update-ref --no-deref HEAD master", repo.side, failing("--show-toplevel"));
+  assert.equal(untopped.allowed, false, "a HEAD move whose tree git will not name");
+  assert.match(untopped.reason, /could not be read: git did not say which work tree/u);
   for (const does of [undefined, "exec sleep 30"]) {
     const undiffed = decide(move, repo.side, failing("diff", does));
     assert.equal(undiffed.allowed, false, does ?? "a diff git refused");
