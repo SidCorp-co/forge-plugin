@@ -27,6 +27,7 @@ import { REOPEN, baselineAhead, checkpointAhead, credentialAhead, deployFor, loo
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
 import { judgeOwed } from "./lease/judged.mjs";
+import { movedHere } from "./lease/after-move.mjs";
 import { movedBySaid } from "./earned/moved-by.mjs";
 
 export const USAGE = [
@@ -132,6 +133,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   const spelt = landed === status ? "" : `  (asked for ${status}, which this tracker spells ${landed})`;
   scopeFrom(landed, ref, namedIn(view));
   say(`${ref}  ${view.issue.status} -> ${landed}${note}${spelt}`);
+  movedHere(view.documentId, ref, say);
   /* `by` is what an earned move says moved it, which only the two earned callers pass: earned/moved-by.mjs. */
   if (by) say(by);
   /* The act that ends the owing is the act that reports what was owed to it: a criterion left

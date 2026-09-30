@@ -87,6 +87,10 @@ next write and the next claim take it where an empty one is refused.
   WHEN a lease is taken on a field a lease was given back in THEN the CLI SHALL keep the claim
   history rows that field already carried, SHALL keep the line it left where the caller names none
   of its own, and SHALL leave nothing on the new lease saying it was given back.
+- **AC-03-1-11** · Rev: 1 · Proof: plugin/test/flow/advance/held-after-move.test.mjs "the output cut to its last line with both streams joined still names the lease and its route out"
+  WHEN a call that moved an issue's status ends with a lease on that issue still live THEN the CLI
+  SHALL name that lease's holder and expiry in the last line the call prints, because a move reads
+  as a handoff and leaves the lease where the write before it renewed it.
 
 ### UC-03-2 — Refuse a second run
 

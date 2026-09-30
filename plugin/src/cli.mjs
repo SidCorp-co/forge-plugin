@@ -10,6 +10,7 @@ import { retiredRefusal } from "./resolve/retiring.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
+import { heldAfterMoves } from "./flow/lease/after-move.mjs";
 import { unwrittenSaid } from "./flow/worklog.mjs";
 import { settleConfigHome } from "./resolve/session/config-home.mjs";
 
@@ -125,6 +126,7 @@ if (form) {
   await verb(argv, { readAs: `forge ${form.verb}` });
   unwrittenSaid();
   await releaseOwed();
+  await heldAfterMoves();
   process.exit(0);
 }
 
@@ -158,6 +160,7 @@ try {
   await verb(rest);
   unwrittenSaid();
   await releaseOwed();
+  await heldAfterMoves();
 } catch (error) {
   /* Through `fail`, so a verb holding a payload nothing else holds gets it printed on a throw too. */
   fail(`forge ${command} failed: ${error?.message ?? error}`);
