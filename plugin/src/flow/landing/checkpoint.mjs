@@ -146,12 +146,15 @@ const deploymentSaid = (landing) => [
 ].join("");
 
 /* The landing this one replaced, whose verdicts are read against its own identity (ISS-2526). */
+/** Where a landing stood: `at <head>`, and the deployment it named where it named one. */
+export const landingAt = (landing) => `at ${shortSha(landing.head) || "no head"}`
+  + `${landing.deployment ? ` with deployment ${shortSha(landing.deployment)}` : ""}`;
+
 const supersededSaid = (landing) => {
   const earlier = landing[SUPERSEDED] ?? [];
   const last = earlier.at(-1);
   if (!last) return "";
-  return `; supersedes ${earlier.length} earlier landing(s), the last at ${shortSha(last.head) || "no head"}`
-    + `${last.deployment ? ` with deployment ${shortSha(last.deployment)}` : ""}`;
+  return `; supersedes ${earlier.length} earlier landing(s), the last ${landingAt(last)}`;
 };
 
 export const landingLine = (landing) =>
