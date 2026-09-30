@@ -1,8 +1,7 @@
 /* What a session has been shown, by surface and by the text itself, so a repeat costs a line and
    never a paragraph. What each surface owes, and why a credit follows the printing rather than
    leading it: docs/cli/the-shown-ledger.md. */
-import { createHash } from "node:crypto";
-
+import { digestOf } from "../digest.mjs";
 import { sessionSourced } from "../resolve/config.mjs";
 import { credit, creditedTo, lastCredited } from "./journal.mjs";
 import { howPage } from "../refusal.mjs";
@@ -16,8 +15,6 @@ export const readerKey = (ev = null) => {
   const session = ev?.session_id || sessionKey(ev);
   return session && ev?.agent_id ? `${session}/${ev.agent_id}` : session;
 };
-
-export const digestOf = (text) => createHash("sha1").update(String(text)).digest("hex").slice(0, 16);
 
 const segmentsOf = (text) => String(text).split("\n").map((one) => one.trim()).filter(Boolean);
 

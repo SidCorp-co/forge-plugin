@@ -2,10 +2,10 @@
    recorded, read out of that project's own transcripts into its own ask directory, and the shortlist
    a new question is judged against. Nothing here reads another project's transcripts or layer.
    plugin/hooks/how/ask-decide.md. */
-import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { digestOf } from "../digest.mjs";
 import { appendJsonlRows, jsonlAt, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
 import { durableRootFor } from "../stats/corpus/corpus.mjs";
 import { projectRepository } from "../resolve/settings.mjs";
@@ -94,7 +94,7 @@ const decisionRows = (record) => (Array.isArray(record?.message?.content) ? reco
     const readings = [...block.matchAll(READING)].map((hit) => hit[1].trim());
     const issue = COMMENT_HEADER.exec(chunk)?.[1] ?? null;
     return readings.length
-      ? { id: `decision-${createHash("sha1").update(`${issue}\0${block}`).digest("hex").slice(0, 16)}`, kind: DECISION_KIND,
+      ? { id: `decision-${digestOf(`${issue}\0${block}`)}`, kind: DECISION_KIND,
           at: record.timestamp ?? null, issue, readings }
       : null;
   })
