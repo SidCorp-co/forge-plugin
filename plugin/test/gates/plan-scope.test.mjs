@@ -188,3 +188,15 @@ test("a write after a cd the text spells, on its own line, is still refused in t
   assert.equal(stayed.allowed, false);
   assert.match(stayed.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
 });
+
+/* ISS-2427: a revision range a read-only stage takes after a flag is read, and a refusal naming it
+   asks for a correction naming a path nothing wrote; the `tee` target beside it is still judged. */
+test("a read-only stage piped into tee is refused only for the tee's own target", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const away = join(ENV.TMPDIR, "files.txt");
+  assert.equal(runs(`git diff --name-only origin/main...HEAD | tee ${away} | wc -l`).allowed, true);
+  const held = runs("git diff --name-only origin/main...HEAD | tee plugin/src/unplanned.mjs");
+  assert.equal(held.allowed, false);
+  assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
+  assert.doesNotMatch(held.reason, /origin\/main/u);
+});

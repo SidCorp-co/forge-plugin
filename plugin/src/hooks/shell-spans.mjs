@@ -381,29 +381,40 @@ const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", 
 const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
 const UNLINKS = /\s--remove-source-files(?![\w-])/u;
 
-/* A word, kept whole through its quotes; the three classes of word that are not a program's operands — what runs before the verb, a word carrying a redirect, which is `echo x>a` as much as `> a` and is the one reading struck text must not lose, and a flag, whose value a gate has no way to tell from a flag that takes none; and the move whose destination is read for the tree it leaves behind rather than as an operand. Last, where the destination is an option's value, attached to its letter or standing after it: the operand a last-operand verb then aims at is one of the files it reads, and which one is meant went out with every other flag's value. */
+/* A word, kept whole through its quotes; the four classes of word that are not a program's operands — what runs before the verb, a subshell's opening among it, a word carrying a redirect, which is `echo x>a` as much as `> a` and is the one reading struck text must not lose, a flag, whose value a gate has no way to tell from a flag that takes none, and the `)` closing a subshell the command stands in, which a last-operand verb would otherwise aim at; and the move whose destination is read for the tree it leaves behind rather than as an operand. Last, where the destination is an option's value, attached to its letter or standing after it: the operand a last-operand verb then aims at is one of the files it reads, and which one is meant went out with every other flag's value. */
 const WORDS = new RegExp(shellWord(";&|"), "gu");
 /** The shell words of one command, each a match carrying its `index`, with a redirect still inside the word it touches. */
 export const wordsOf = (text) => [...text.matchAll(WORDS)];
-const BEFORE = new RegExp(String.raw`^(?:[A-Za-z_]\w*=|(?:${PREFIXES})$)`, "u");
+const BEFORE = new RegExp(String.raw`^(?:[A-Za-z_]\w*=|\(+$|(?:${PREFIXES})$)`, "u");
 const AIMED = /[<>]/u;
+const CLOSES = /^\)+$/u;
 const FLAG = /^-/u;
 const RELOCATES = /^(?:cd|pushd|popd)$/u;
 const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
 const TARGETED = /\s(?:-[A-Za-z]*t[^\s-]*|--target-directory(?:=\S*)?)(?![\w-])/u;
 
-/* `cp -a` is a flag alone, and the word after it is the file the copy reads: a verb named here reads a value after the options it lists and after nothing else. GNU's `cp` and `mv` take one after `-S` and `-t`, its `install` after `-g`, `-m`, `-o` and those two, and BSD's none of them. A value is the rest of a cluster behind its letter, or the next word where nothing is left, so it is the last letter of a cluster that takes the next word. A verb not named here keeps the reading that a word after any flag may be its value. */
+/* `cp -a` is a flag alone, and the word after it is the file the copy reads: a verb named here reads a value after the options it lists and after nothing else. GNU's `cp` and `mv` take one after `-S` and `-t`, its `install` after `-g`, `-m`, `-o` and those two, its `touch` after `-d`, `-r` and `-t`, its `truncate` after `-r` and `-s`, and its `tee` after none, so `tee -a` is followed by the file it writes; BSD's take no more than these. A value is the rest of a cluster behind its letter, or the next word where nothing is left, so it is the last letter of a cluster that takes the next word. A verb not named here keeps the reading that a word after any flag may be its value. Only a verb taking `--target-directory` has a directory `-t` hands it. */
 const COPIES = { letters: "St", names: ["suffix", "target-directory"] };
-const VALUES = { cp: COPIES, install: { letters: "gmoSt", names: ["group", "mode", "owner", "suffix", "target-directory"] }, mv: COPIES };
-const VALUED_BY = Object.fromEntries(Object.entries(VALUES)
-  .map(([verb, { letters, names }]) => [verb, new RegExp(`^(?:-[A-Za-z]*[${letters}]|--(?:${names.join("|")}))$`, "u")]));
+const VALUES = {
+  cp: COPIES,
+  install: { letters: "gmoSt", names: ["group", "mode", "owner", "suffix", "target-directory"] },
+  mv: COPIES,
+  tee: { letters: "", names: [] },
+  touch: { letters: "drt", names: ["date", "reference"] },
+  truncate: { letters: "rs", names: ["reference", "size"] },
+};
+const valuedBy = ({ letters, names }) => {
+  const shapes = [letters && `-[A-Za-z]*[${letters}]`, names.length && `--(?:${names.join("|")})`].filter(Boolean);
+  return new RegExp(`^(?:${shapes.join("|") || "(?!)"})$`, "u");
+};
+const VALUED_BY = Object.fromEntries(Object.entries(VALUES).map(([verb, taken]) => [verb, valuedBy(taken)]));
 const takesValue = (program, flag) => FLAG.test(flag) && (VALUED_BY[program]?.test(flag) ?? true);
 
 /* The directory a GNU `-t` hands one of those verbs, with the offset of the word naming it: every operand is then a source, and each lands in it under its own last name. The last one given is the one the verb uses, and past a bare `--` there are no options left. */
 const LONG_TARGET = "--target-directory";
 const targetOf = (program, words) => {
-  const { letters } = VALUES[program] ?? {};
-  if (!letters) return null;
+  const { letters, names } = VALUES[program] ?? {};
+  if (!names?.includes(LONG_TARGET.slice(2))) return null;
   let found = null;
   for (let at = 0; at < words.length && words[at].said !== "--"; at += 1) {
     const { said, from } = words[at];
@@ -422,13 +433,13 @@ const targetOf = (program, words) => {
 const notAnOperand = (program, words, at) => {
   const { said } = words[at];
   const before = at > 0 ? words[at - 1].said : "";
-  return FLAG.test(said) || takesValue(program, before) || AIMED.test(said) || AIMED.test(before);
+  return FLAG.test(said) || CLOSES.test(said) || takesValue(program, before) || AIMED.test(said) || AIMED.test(before);
 };
 
 /** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. It reads each word's own spelling, quotes off, because a shell takes `'--output'` for the option it is and reading the raw word left the destination beside it unguarded. */
 const operandsOf = (program, words) => words.filter((one, at) => !notAnOperand(program, words, at));
 
-/** A word left out for standing after a flag, which is a value that flag takes or an operand that flag does not — this cannot tell the two apart. Nothing the write lands on, either way, except for the verbs whose destination arrives exactly there, and those are `none` above. A caller that must not invent a target reads it as a word the write does not land on; the default leaves it where it was, since a caller that must not miss one wants every candidate. */
+/** A word left out for standing after a flag, which is a value that flag takes or an operand that flag does not — this cannot tell the two apart for a verb `VALUES` does not name. Nothing the write lands on, either way, except for the verbs whose destination arrives exactly there, and those are `none` above; in a stage that writes nothing, such as a `git diff --stat` or a `python3 -c` body piped into `tee`, it is only ever read (ISS-2427). A caller that must not invent a target reads it as a word the write does not land on; the default leaves it where it was, since a caller that must not miss one wants every candidate. */
 const afterFlagIn = (program, words) => words.filter(({ said }, at) =>
   at > 0 && takesValue(program, words[at - 1].said) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
 
@@ -460,7 +471,7 @@ const readsIn = (stage, from, strict) => {
   const said = ` ${words.map((one) => one.said).join(" ")}`;
   const aims = aimsOf(program, operands, stage, said, targetOf(program, rest));
   if (strict && AIMS[program] === "last" && TARGETED.test(said)) return null;
-  const spare = strict && AIMS[program] && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
+  const spare = strict && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
   return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
 };
 
@@ -474,7 +485,7 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
   };
   for (const { start, end } of spans(text)) {
     const span = text.slice(start, end);
-    if (!WRITES.test(span)) continue;
+    if (!WRITES.test(span.trimStart())) continue;
     if (HANDED.test(span)) {
       if (strict) blank(start, end);
       continue;
