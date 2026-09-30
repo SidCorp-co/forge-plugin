@@ -50,9 +50,13 @@ test("a rewrite that loses a held name is refused and nothing is posted", async 
   }
 });
 
-test("words, hyphenated words, numbers and ordinals still reach the rewrite as prose", () => {
+test("words, hyphenated words, numbers and ordinals still reach the rewrite as prose", async (t) => {
   const prose = "The 3rd end-to-end run of 3rd-party code took 1886 ms at 3.36.141 on the 21st.";
   const slots = [];
   assert.equal(protectInline(prose, slots), prose);
   assert.deepEqual(slots, []);
+  for (const [payload, field] of [[{ body: prose }, "body"], [{ title: prose }, "title"]]) {
+    assert.equal(await posted(t, payload, field), prose);
+    assert.deepEqual(sent, [prose], `the ${field} reached the gateway as it was written, with no sentinel`);
+  }
 });
