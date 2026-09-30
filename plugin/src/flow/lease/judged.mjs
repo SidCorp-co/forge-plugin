@@ -28,8 +28,8 @@ const whose = (held) => `${held.id ?? "no id"}${held.said ? `, read from ${held.
 
 const again = () => `${RUN_ID_VAR}=<an id of its own> ${thisCall() ?? "forge record verdict <ref> ..."}`;
 
-/* A comment at those statuses is read by the tracker as the reply to the park and reopens the issue,
-   a status moved by a write that may move none. */
+/* The reason `finderChecked` in record.mjs gives for a finder's record, which a judge's verdict meets
+   the same way. */
 const parkReopens = (ref, status, lease) =>
   `${ref} is ${status} under another run's lease, and at that status the tracker reads a comment `
   + `as the reply to its park and reopens the issue, so a judge's verdict would move a status a `
