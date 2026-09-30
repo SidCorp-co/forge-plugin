@@ -13,7 +13,8 @@ A judging run is given no tree, because what it judges is already deployed. It s
 its captures — and in a wave of more than one they need a directory of its own like any run's.
 
 Whatever else a run cannot learn for itself at its start, `forge brief ISS-nn --tree <its tree>` reads
-now: what the other trees hold, uncommitted and committed, and whether the copy this session loaded
-is older than the one installed. Leave out `--tree` for a run given no tree. A run whose files another
-tree holds waits for that tree to land. When the brief says a restart is owed, the restart comes
-before the dispatch.
+now: what the other trees hold, uncommitted and committed. Leave out `--tree` for a run given no
+tree. A run whose files another tree holds waits for that tree to land. Whether the copy this session
+loaded is behind the installed one is yours rather than the run's, since only this session can
+restart, so it arrives on standard error beside the brief and never in it. When that line says a
+restart is owed, the restart comes before the dispatch.
