@@ -30,11 +30,26 @@ test("a target spelled with backslash escapes is the word the shell assembles, b
     "as is an escaped space");
   assert.deepEqual(writtenPaths(String.raw`printf x > /tmp/a\ b/written.md`, room).map((one) => one.token), ["/tmp/a b/written.md"],
     "which the redirect reader is handed whole, the escape carrying the operand past the space");
-  assert.deepEqual(names(String.raw`tee /tmp/a\[1\]/memory/x.md`), [],
-    "and an escaped glob bracket leaves the word unnamed rather than cut to the tail behind it");
+  assert.deepEqual(namesOf(String.raw`tee /tmp/a\[1\]/memory/x.md`), [{ token: "/tmp/a[1]/memory/x.md", at: 4 }],
+    "and an escaped glob bracket is a character of the name, placed where the word begins (ISS-2867)");
   assert.deepEqual(namesOf(String.raw`touch \(a\).md`), [{ token: "(a).md", at: 6 }],
     "a name opening with an escape is placed at the backslash, where its first character is written");
   const removed = (text) => quoting(text).filter((one) => one.removed).map((one) => one.at);
   assert.deepEqual(removed("a\\(b '\\x' \"\\y\" c\\"), [1],
     "and the backslash the shell removes is the one outside every quote with a character behind it");
+});
+
+/* A glob character a backslash made literal is one the shell never expands, so the file written carries
+   it; a bare one is a pattern whose match is elsewhere, and names nothing (ISS-2867). */
+test("a glob character a backslash made literal is a character of the name, and a bare one still ends it", () => {
+  const names = (text) => namesOf(text, "md").map((one) => one.token);
+  assert.deepEqual(names(String.raw`tee /tmp/a\*b.md`), ["/tmp/a*b.md"], "an escaped star");
+  assert.deepEqual(names(String.raw`tee /tmp/a\?b.md`), ["/tmp/a?b.md"], "an escaped question mark");
+  assert.deepEqual(names(String.raw`tee /tmp/a\{1\}/x.md`), ["/tmp/a{1}/x.md"],
+    "an escaped brace, which closes no substitution and so leaves no rooted `/x.md` behind it");
+  assert.deepEqual(names(String.raw`tee /tmp/x.md\]`), [], "one after the extension leaves the extension unread");
+  assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "a bare bracket");
+  assert.deepEqual(names("tee /tmp/*.md"), [], "a bare star");
+  assert.deepEqual(names(String.raw`tee /tmp/a\(b\)\[1\].md`), ["/tmp/a(b)[1].md"],
+    "and a word a bare parenthesis would split keeps each character's own reading");
 });

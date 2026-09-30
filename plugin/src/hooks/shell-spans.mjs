@@ -243,9 +243,10 @@ const worded = (text, alike) => {
         part = null;
         continue;
       }
-      if (!part) out.push((part = { text: "", at: [] }));
+      if (!part) out.push((part = { text: "", at: [], literal: [] }));
       part.text += one.text[at];
       part.at.push(one.at[at]);
+      part.literal.push(one.literal[at]);
     }
   }
   return out;
@@ -271,6 +272,9 @@ const QUOTES = /["'`]/u;
 const KEY = /^[^/=:]*[=:](?:~|\.{0,2})\//u;
 /* And a word a shell or an interpreter would rewrite spells a file this text does not hold: what the write lands on is the pattern's match or the substitution's value, which is elsewhere. how/writes.md. */
 const PATTERN = String.raw`[^*?[\]{}]`;
+/* A glob character a backslash made literal is one the shell never expands, so it is a character of the name, and a `}` among them closes no substitution: each is read through a stand-in `PATTERN` admits as a name's own character, which is the walk's literal flag and no second scan of the text (ISS-2867). */
+const GLOB = /[*?[\]{}]/u;
+const spelt = (word) => word.text.split("").map((one, at) => (word.literal[at] && GLOB.test(one) ? "_" : one)).join("");
 
 /* The extension ends the name: `SKILL.md.bak` and `notes.md~` carry none of the ones asked for, and the backup a copy makes beside a guarded file is not that file. */
 const endingIn = (tail) => new RegExp(`^${PATTERN}+\\.(?:${tail})(?![\\w~-]|\\.[\\w~-])`, "u");
@@ -288,14 +292,16 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
     const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
     const option = (options && !ended && !literal && (leads.get(word.at[0]) ?? OPTION.exec(word.text)?.[0].length)) || 0;
     /* A joined word is read from its start and nowhere else. The other three readings each say the name begins partway in, which is the opposite of what this word claims — that the span is one filename — and `'cache=/tmp/(r).md'` is a relative name the key reading would turn into a rooted one somewhere else entirely. */
+    const read = spelt(word);
     const starts = word.joined ? [0] : [
       ...(option || KEY.test(word.text) ? [] : [0]),
       ...(option && word.text[option] !== "=" ? [option] : []),
       ...past(KEYED.exec(word.text)?.index ?? -1),
-      ...past(word.text.lastIndexOf("}")),
+      ...past(read.lastIndexOf("}")),
     ];
     for (const at of new Set(starts)) {
-      const name = ending.exec(word.text.slice(at))?.[0];
+      const length = ending.exec(read.slice(at))?.[0].length;
+      const name = length && word.text.slice(at, at + length);
       /* One reading of a word and the other can spell the same name at the same place — `'a.md)'` whole and `'a.md'` past the operator — and one name read twice from one offset is one name. */
       const once = name && `${word.at[at]} ${name}`;
       if (once && !seen.has(once) && !(word.joined && name.length < word.text.length - at)) {
