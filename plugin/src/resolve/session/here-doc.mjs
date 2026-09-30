@@ -124,6 +124,8 @@ const lineOf = (text, under, first) => {
  *  quoting the walk guesses at, an unquoted body a substitution runs in — is left where it stands, and everything after it with it, so a reader asking of it answers as it did before. */
 export const withoutBodies = (command) => {
   let text = String(command ?? "");
+  /* No operator, no body, and no walk: `operatorFrom` finds nothing else. */
+  if (!text.includes("<<")) return text;
   for (let from = 0; ;) {
     const under = underOf(text);
     const first = operatorFrom(text, under, from);
