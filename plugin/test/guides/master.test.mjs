@@ -108,7 +108,10 @@ test("criteria 10, 11 and 16: the page carries no flag but the one sentence nami
 test("criterion 12: the caveat on forge stats waves is said", () => {
   const page = flat(pageOf(cli("guide", "master")));
   assert.match(page, /`forge stats waves` counts by checkout, not by master/u);
-  assert.match(page, /every session kept for that checkout, so the work of a person or another agent in the same tree is counted/u);
+  assert.match(page, /any of them that wrote a wave or fold record is read as a dispatcher/u,
+    "the sessions whose waves are counted are the ones that wrote a wave or fold record");
+  assert.match(page, /The count of sessions it opens with is every session it opened/u,
+    "and the count the header prints is every session opened, not the dispatchers");
 });
 
 /* The bare verb reads the tracker's own pages beside these, so the half this copy answers is read directly. */
