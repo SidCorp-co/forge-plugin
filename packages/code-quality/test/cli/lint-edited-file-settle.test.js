@@ -119,24 +119,60 @@ test("each kind of edit ends as it did before the resolver was folded", () => {
   assert.deepEqual([missing.status, missing.stderr], [0, ""]);
 });
 
-/* The workspace walk compares the real file with the root it is handed, and the root handed for a
-   file inside the session's directory is that directory as given. So under a session named through
-   a link the nested package's own configuration is not found and the root's rules answer, which is
-   what this case pins: folding the resolvers must hand on the same root, not the real path. */
-test("a nested package under a session named through a link is judged as it was", () => {
-  const real = makeConsumer("code quality real ");
-  write(
-    real,
-    "packages/lenient/eslint.config.js",
-    "export default [{ files: ['**/*.js'], rules: {} }];\n",
-  );
-  write(real, "packages/lenient/package.json", '{"type":"module","private":true}\n');
-  write(real, "packages/lenient/src/fail.js", NARRATION);
+/* The workspace walk is a prefix test of the real file against the root it is handed, so under a
+   session named through a link that root has to be real too, or no directory above the file matches
+   and the root answers for every nested package (ISS-2939). */
+function linkedConsumer(prefix, { eslint = true } = {}) {
+  const real = eslint ? makeConsumer(prefix) : tempRoom(prefix);
+  if (!eslint) {
+    writeFileSync(path.join(real, "package.json"), '{"type":"module","private":true}\n');
+    writeFileSync(path.join(real, "eslint.config.js"), "export default [];\n");
+  }
   const link = path.join(tempRoom("code quality link "), "session");
   symlinkSync(realpathSync(real), link, "dir");
+  return { real, link };
+}
 
+function nestedPackage(root, name) {
+  write(root, `packages/${name}/eslint.config.js`, "export default [{ files: ['**/*.js'], rules: {} }];\n");
+  write(root, `packages/${name}/package.json`, '{"type":"module","private":true}\n');
+  return write(root, `packages/${name}/src/fail.js`, NARRATION);
+}
+
+test("a nested package under a session named through a link is judged by its own configuration", () => {
+  const { real, link } = linkedConsumer("code quality real ");
+  nestedPackage(real, "lenient");
   const result = runHook(link, "packages/lenient/src/fail.js");
+  assert.deepEqual([result.status, result.stderr], [0, ""]);
+});
+
+test("a nested package's own opt-out holds under a session named through a link", () => {
+  const { real, link } = linkedConsumer("code quality opt out ");
+  nestedPackage(real, "quiet");
+  write(real, "packages/quiet/eslint.config.js", "throw new Error('the hook read a configuration it was told to leave');\n");
+  write(real, "packages/quiet/code-quality.json", '{"hook":false}\n');
+  const result = runHook(link, "packages/quiet/src/fail.js");
+  assert.deepEqual([result.status, result.stderr], [0, ""]);
+});
+
+test("a nested package configuring ESLint with none installed is told so under a link", () => {
+  const { real, link } = linkedConsumer("code quality bare ", { eslint: false });
+  nestedPackage(real, "bare");
+  const result = runHook(link, "packages/bare/src/fail.js");
   assert.equal(result.status, 2, result.stderr);
+  assert.ok(
+    result.stderr.startsWith(
+      `code-quality: ${path.join("packages", "bare", "eslint.config.js")} configures ESLint, but ESLint is not installed in ${path.join("packages", "bare")} `,
+    ),
+    result.stderr,
+  );
+});
+
+test("a refusal under a session named through a link names the file from the directory named", () => {
+  const { real, link } = linkedConsumer("code quality named ");
+  write(real, "src/fail.js", NARRATION);
+  const result = runHook(link, "src/fail.js");
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stderr.split("\n")[0], `code-quality: ${path.join("src", "fail.js")}`);
   assert.match(result.stderr, /no-historical-narration/);
-  assert.match(result.stderr, /packages[/\\]lenient[/\\]src[/\\]fail\.js/);
 });
