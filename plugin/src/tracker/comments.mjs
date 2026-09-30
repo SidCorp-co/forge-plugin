@@ -114,7 +114,7 @@ const heading = ({ ref, comments, hasMore, unshown, ...page }) =>
 export const readThread = async (ref, documentId, print, ev = null) => {
   const page = await commentPage(documentId);
   const cut = cutIn(page);
-  /* The project the key was resolved in, so a thread read off the wrong one says so (ISS-2910). */
+  /* The heading names the project for the reason `resolvedIn` in ../commands.mjs gives. */
   const said = [`${ref}: ${page.comments.length} comment(s), on project ${slugIfAny() ?? "(none)"}${cut ? `. ${cut}` : ""}`,
     ...bodies(ref, page.comments, true)];
   print(said.join("\n\n"));
