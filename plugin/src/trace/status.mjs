@@ -14,7 +14,7 @@ export const opensOn = (row, id) => criteriaOf(row)
 export const couldProve = (row, id) =>
   row?.status === "closed" && Boolean(row?.mergedAt) && opensOn(row, id).length > 0;
 
-/* Whether a verdict judged what landed, or null where nothing on the record says what did. */
+/* The test a passing verdict's identity is held to, one per shape the issue lands in. */
 const judgedLanded = (row, view) => {
   if (landsOutsideGit(view.issue ?? row)) {
     const landed = markedLanding(view.issue ?? row);
