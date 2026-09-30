@@ -1,7 +1,7 @@
 ## Phase 4 — Take the issue as far as its record earns, or set it down
 
-Claim the issue again first where a judging run has just had it: the lease that carried the reading
-was short by design and the writes below are this session's, not that run's.
+Claim the issue again first where a judging run has just reported: the claim renews the lease this
+session kept through the judging, and the writes below are this session's, not that run's.
 
 Walk the rungs with the verb that prints what each is owed, supplying what it names and stopping
 where it names something this session does not have. Nothing here decides what a status is earned by;

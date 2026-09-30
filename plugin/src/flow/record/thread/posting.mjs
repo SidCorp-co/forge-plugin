@@ -31,13 +31,15 @@ export const sayStored = (which, language = translateTo()) => {
   return said;
 };
 
-/* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it. */
-export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false, finder = false } = {}) => {
+/* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it; `judged` is a judge's verdict past another run's lease, `lease/judged.mjs` having found one standing. */
+export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false, finder = false, judged = false } = {}) => {
   refuseIfGated("forge_comments");
   sayStored("record");
   /* A finder's write renews the caller's own lease and touches no other, as `forge comment` does, and
-     so makes the thread's read check itself: a renewal that takes no lease makes none. */
-  if (finder) {
+     so makes the thread's read check itself: a renewal that takes no lease makes none. A judge's
+     verdict makes the same check and no lease write at all, the lease standing being another run's. */
+  if (judged) await mustBeShown([{ ref, documentId }]);
+  else if (finder) {
     await mustBeShown([{ ref, documentId }]);
     console.error(finderSaid(ref, await renew(documentId, ref, undefined, null, { finder: true })));
   } else if (!renewed) await renew(documentId, ref, next, patch);

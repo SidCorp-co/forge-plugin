@@ -22,11 +22,11 @@ the issue, the criterion numbers the plan named, the deployment identity where t
 and nothing else; the role decides its own model, effort and tools, and its method is `forge guide qa
 judging`.
 
-**The issue is that run's while it works, and this session lets it go before dispatching.** Whatever
-reading this one took is already written; holding the lease past it would refuse the judge the very
-claim its verdicts have to be written under, and waiting for the clock to run out is the cost the
-whole shape was built to remove. Take the issue back once that run has reported, which is where the
-phase below starts. A rule a checker
+**The issue stays this session's while that run works, and nothing is handed over.** A judge's
+verdicts are the one record written past another run's lease, under the judge's own id, so giving
+the lease up before the dispatch buys the judge nothing, and the lease kept is what stops a third run
+taking the issue while its judgement is out. Pick the issue up again once that run has reported,
+which is where the phase below starts. A rule a checker
 already enforces stays out of the message: the checker is its one home.
 
 **The number of runs this project declared is that project's total at once, and not this session's

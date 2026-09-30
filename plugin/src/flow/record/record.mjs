@@ -34,6 +34,7 @@ import { scopeFrom, scopePath } from "./plan-scope.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, oweRelease, renew, writtenBy } from "../lease.mjs";
+import { judgedPast, judgedSaid, moveHeld } from "../lease/judged.mjs";
 import { issueOf, post, sayStored } from "./thread/posting.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
@@ -466,7 +467,7 @@ const afterWrites = async (documentId, reference, { issue, page, again, posted }
 /* The one order in which a refusal costs nothing already written: every payload judged, then the
    uploads, whose scan is of bytes and cannot be judged earlier, then the fields in one update, which
    caps them all before either is sent, then the comments and the mark. */
-const writeRung = async (reference, blocks, { next, patch }) => {
+const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
   const issue = once(() => issueOf(reference));
   const page = once(async () => {
     const read = await commentPage((await issue()).documentId);
@@ -481,8 +482,12 @@ const writeRung = async (reference, blocks, { next, patch }) => {
     prepared.push(ready);
   }
   const { documentId, body } = await issue();
+  /* Asked once every payload is judged and before the uploads, so a flag error still costs no call and a judge refused here has sent nothing. */
+  const judged = judgedPast(reference, blocks.map((one) => one.kind), body, { flags });
+  if (judged?.refused) refuse(judged.refused);
   const read = await page();
-  const written = await postRung(prepared, { reference, documentId, body, comments: read.comments, next, patch });
+  const written = await postRung(prepared, { reference, documentId, body, comments: read.comments, next, patch, judged });
+  if (judged) console.error(judgedSaid(reference, judged));
   const after = await afterWrites(documentId, reference, {
     issue: written.issue,
     page: { comments: [...read.comments, ...written.posted], cut: read.cut },
@@ -490,8 +495,9 @@ const writeRung = async (reference, blocks, { next, patch }) => {
     posted: written.posted,
   });
   const { movedByRecord } = await import("../advance.mjs");
+  const holds = judged ? (to) => console.error(moveHeld(reference, to, judged)) : null;
   const { rung } = await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page,
-    body.status);
+    body.status, { holds });
   /* A park ends the turn here as it does through advance, whose `park` says why. */
   if (blocks.some((one) => one.kind === "park")) oweRelease(documentId, reference);
   for (const one of blocks) sayPart(one.kind, rung);
@@ -510,14 +516,14 @@ const scopeNoted = async (documentId, reference, issue, comments) => {
   } catch {}
 };
 
-const postRung = async (prepared, { reference, documentId, body, comments, next, patch }) => {
+const postRung = async (prepared, { reference, documentId, body, comments, next, patch, judged = null }) => {
   const uploads = prepared.flatMap((one) => one.uploads ?? []);
   const sent = [];
   /* Named from the line before the PUT: a file the tracker took with the answer lost is up all the same. */
   const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
   process.once("exit", stranded);
   const batch = await uploadAll("issue", documentId, uploads.map((one) => one.path), {
-    renewing: () => renew(documentId, reference),
+    renewing: judged ? undefined : () => renew(documentId, reference),
     sending: sent.push.bind(sent),
     said: [...new Set(prepared.map((one) => one.said).filter(Boolean))].join("\n") || null,
   });
@@ -529,13 +535,13 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   }
   const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
   const posted = [];
-  /* A finder's kind is written alone and touches nothing of the run holding the issue, its plan scope included. */
+  /* A finder's kind is written alone and touches nothing of the run holding the issue, its plan scope included, and a judge's verdict touches as little. */
   const finder = prepared.every((one) => SHAPES[one.kind]?.finder);
-  const noted = finder ? async () => {} : scopeNoted;
+  const noted = finder || judged ? async () => {} : scopeNoted;
   await noted(documentId, reference, issue, comments);
   /* A payload's record, then its note — a comment of its own, which no record's parse has to read past. */
   for (const body of prepared.flatMap((one) => [one.rendered, one.noted]).filter((said) => said !== undefined)) {
-    const answer = await post(documentId, body, { ref: reference, next, patch, finder });
+    const answer = await post(documentId, body, { ref: reference, next, patch, finder, judged: Boolean(judged) });
     /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
     posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body,
       createdAt: stampedLast([...comments, ...posted], answer) });
@@ -588,7 +594,7 @@ const run = async ([kind, reference, ...argv]) => {
   const finder = blocks.find((one) => SHAPES[one.kind]?.finder);
   if (finder) aloneChecked(finder.kind, reference, argv);
   const { next, patch, rest } = await pullRun(blocks);
-  return writeRung(reference, rest, { next, patch });
+  return writeRung(reference, rest, { next, patch, flags: RUN_FLAGS.filter((flag) => argv.includes(flag)) });
 };
 
 export const record = async (argv) => {
