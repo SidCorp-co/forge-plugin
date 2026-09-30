@@ -13,6 +13,9 @@ process.env.XDG_CONFIG_HOME = tempHome("judge-claim").path;
 const AWAY = projectRoom(tempRoom("judge-claim-away-"), process.env.XDG_CONFIG_HOME, OWN);
 process.chdir(AWAY);
 
+const { JUDGED_AT, ORDER } = await import("../../../src/flow/earned.mjs");
+const { JUDGING_AT } = await import("../../../src/flow/lease/dispatched.mjs");
+
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "5c67337e-0000-4000-8000-000000001798";
 const BUILDER = "iss-1798-3fe7c301";
@@ -116,4 +119,10 @@ test("the builder's owed read at in_progress names the capture its judge's verdi
   const out = `${owed.stdout}${owed.stderr}`;
   assert.match(out, /Ahead: testing is earned here by an independent judge's verdicts/u, out);
   assert.match(out, /\n {2}forge claim ISS-1798 --pushed --ready\n {2}forge claim ISS-1798 --landed/u, out);
+});
+
+/* The refusal spells its two rungs rather than importing the flow's order, which a hook would pay for. */
+test("the rungs the judge's route is named at are the flow's own: the one a verdict earns and the one before it", () => {
+  const judged = ORDER.indexOf(JUDGED_AT);
+  assert.deepEqual(JUDGING_AT, [ORDER[judged - 1], JUDGED_AT]);
 });

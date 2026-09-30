@@ -5,7 +5,6 @@ import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames, runsFor } from "../../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../../rank/weights.mjs";
 import { READ_THE_STATE, landingOf, landingTurn } from "../landing/checkpoint.mjs";
-import { JUDGED_AT, ORDER } from "../earned.mjs";
 import { describe, leaseOf } from "../lease.mjs";
 
 /* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
@@ -58,13 +57,10 @@ const whatTheTreeSays = (ref, key, at, asked) => {
     + `to, and a lease its dispatcher is only holding is the dispatched run's to take.${there}${asked}`;
 };
 
-/* The rung a verdict is written from and the rung it earns: where a claim meeting a live lease is
-   likelier a judge's than a builder's. */
-const judgingAt = (status) => {
-  const at = ORDER.indexOf(String(status));
-  const judged = ORDER.indexOf(JUDGED_AT);
-  return at === judged || at === judged - 1;
-};
+/** The rung a verdict is written from and the rung it earns: where a claim meeting a live lease is
+ *  likelier a judge's than a builder's. Spelled here rather than read off `ORDER` in earned.mjs,
+ *  whose imports every hook loading the lease would pay for; a case holds the two to one order. */
+export const JUDGING_AT = ["developed", "testing"];
 
 const OWN_SOURCES = [ASKED, WORKTREE];
 
@@ -84,7 +80,7 @@ export const notHandedHere = (ref, key, context, status, holder = sessionOf(), a
   if (!TAKEABLE.includes(String(status))) {
     return `${ref} is at \`${status}\`, past the statuses a run is dispatched at, so a live lease `
       + `here is a run at work and not a dispatcher holding one, whatever id this call holds.`
-      + `${judgingAt(status) ? judgeRoute(ref, holder, held) : ""}`;
+      + `${JUDGING_AT.includes(String(status)) ? judgeRoute(ref, holder, held) : ""}`;
   }
   if (!runNames(holder, named)) {
     const asked = held.id === holder && held.source === ASKED
