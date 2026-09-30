@@ -20,6 +20,13 @@ export const landingOwed = (view, held, what, ask) => {
   return [need(`${what} ${read}, and the merged mark says this change landed at ${merged}`, ask)];
 };
 
+/* The same question of an issue landing in git, where a record naming only a landing names no commit. */
+export const identityOwed = (view, held, what, ask) => {
+  if (landsOutsideGit(view.issue)) return landingOwed(view, held, what, ask);
+  if (held.commit !== undefined) return [];
+  return [need(`${what} the landing ${held.landing}, and this issue lands in git, so nothing on it names a commit`, ask)];
+};
+
 /* Both verdict shortfalls fold here, so neither drifts into the other's shape (ISS-297): several
    criteria are one item and one write, shared flags before the first --criterion `blocksIn` splits on. */
 export const askOne = (ref, number, id) =>

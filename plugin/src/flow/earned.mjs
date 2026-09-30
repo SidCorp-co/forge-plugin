@@ -10,7 +10,7 @@ import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
-import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, landingOwed, unreadId, verificationForm } from "./earned/asks.mjs";
+import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm } from "./earned/asks.mjs";
 
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
@@ -505,9 +505,9 @@ const verificationOwed = (view, ref) => {
   /* One or the other: a payload with gaps has no fields to compare against anything. Outside git
      there is no build to name a sha, so what is compared is the place the verification read. */
   if (verification.length) return verification;
-  if (!landsOutsideGit(view.issue)) return deployOwed(view, ref);
-  return landingOwed(view, view.latest.verification.record.fields, "the verification read",
+  const wrong = identityOwed(view, view.latest.verification.record.fields, "the verification read",
     verificationForm(ref, idAsk(view), "<what you read there>"));
+  return wrong.length || landsOutsideGit(view.issue) ? wrong : deployOwed(view, ref);
 };
 
 /* The whole of what `awaiting_release` is entered on: the deploying actor's half, of a change already running. The two halves answer to different actors, which is why each has a rung — a rung demanding both could not say which one it was waiting for. */

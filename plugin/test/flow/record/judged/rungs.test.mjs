@@ -94,6 +94,17 @@ test("a record holding both identities, or neither, is no whole payload and earn
   assert.match(badPlace.join("\n"), /the verification on the record is not a whole payload: it lacks --landing `c8c3550`, which takes where the change now is/u);
 });
 
+test("a verification naming only a landing on an issue landing in git is a shortfall asking for the commit", () => {
+  const git = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-30T09:00:00.000Z", landingShape: "git",
+    attachments: [{ name: "live.txt" }], releaseNotes: ISSUE.releaseNotes };
+  const note = comment("mark_merged target=base — merged to master at c8c3550; reviewed head c8c3550");
+  const one = viewFrom("the-uuid", git, [note, verdict(1, { commit: "c8c3550" }), verdict(2, { commit: "c8c3550" }),
+    verification({ landing: PLACE })]);
+  assert.deepEqual(said("awaiting_release", one),
+    [`the verification read the landing ${PLACE}, and this issue lands in git, so nothing on it names a commit`]);
+  assert.match(asks("awaiting_release", one), /forge record verification ISS-38 --where "<where it runs>" --commit c8c3550 /u);
+});
+
 test("an issue landing in git is still judged by its commit, whatever a record's landing says", () => {
   const git = { acceptanceCriteria: CRITERIA, mergedAt: "2026-09-30T09:00:00.000Z", landingShape: "git" };
   const note = comment("mark_merged target=base — merged to master at c8c3550; reviewed head c8c3550");
@@ -113,6 +124,9 @@ test("a passing verdict naming the mark's landing proves its clause, off the row
   assert.deepEqual(clauseStatus("FR-05", rows, views(PLACE)).provers, ["ISS-38"],
     "a listed row omits the shape and keeps the landing, which only an outside-git mark carries");
   assert.deepEqual(clauseStatus("FR-05", rows, views(ELSEWHERE)).provers, [], "and another place proves nothing");
+  const both = new Map([["the-uuid", viewFrom("the-uuid", { ...SPEC_ROW, plan: NO_SCREEN },
+    [MARK, verdict(1, { landing: PLACE, commit: "c8c3550" })])]]);
+  assert.deepEqual(clauseStatus("FR-05", rows, both).provers, [], "nor does a verdict naming both identities");
 });
 
 const INDEPENDENT = { qa: "independent" };

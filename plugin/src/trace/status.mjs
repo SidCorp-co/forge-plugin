@@ -30,7 +30,8 @@ const proved = (row, id, view) => {
   if (!numbers.length || !landed) return false;
   return numbers.every((number) => {
     const held = view.verdicts.get(number)?.record.fields;
-    return held?.verdict === "pass" && landed(held);
+    /* One identity or none: a verdict naming both is no whole payload, whichever of them matches. */
+    return held?.verdict === "pass" && (held.commit === undefined) !== (held.landing === undefined) && landed(held);
   });
 };
 
