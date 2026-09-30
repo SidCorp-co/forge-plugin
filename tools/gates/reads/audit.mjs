@@ -53,10 +53,11 @@ const NEITHER = new Set([
   "closeSync", "createWriteStream", "fchmod", "fchmodSync", "fchown", "fchownSync", "fdatasync",
   "fdatasyncSync", "fstat", "fstatSync", "fsync", "fsyncSync", "ftruncate", "ftruncateSync",
   "futimes", "futimesSync", "lchmod", "lchmodSync", "lchown", "lchownSync", "link", "linkSync",
-  "lutimes", "lutimesSync", "mkdir", "mkdirSync", "mkdtemp", "mkdtempSync", "read", "readSync",
+  "lutimes", "lutimesSync", "mkdir", "mkdirSync", "mkdtemp", "mkdtempDisposable", "mkdtempDisposableSync",
+  "mkdtempSync", "read", "readSync",
   "readv", "readvSync", "rename", "renameSync", "rm", "rmSync", "rmdir", "rmdirSync", "symlink",
   "symlinkSync", "truncate", "truncateSync", "unlink", "unlinkSync", "unwatchFile", "utimes",
-  "utimesSync", "write", "writeFile", "writeFileSync", "writeSync", "writev", "writevSync",
+  "utimesSync", "Utf8Stream", "write", "writeFile", "writeFileSync", "writeSync", "writev", "writevSync",
 ]);
 
 export const CLASSIFIED = [ASKS, LISTS, COPIES, WATCHES, GLOBS, BUILDS, SPAWNS, SHELLS, NEITHER];
