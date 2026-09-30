@@ -105,7 +105,7 @@ test("criteria 10, 11 and 16: the page carries no flag but the one sentence nami
   assert.deepEqual(flagsIn("A day-by-day read and a list:\n- one item"), [], "a hyphenated word and a bullet are no flag");
 });
 
-test("criterion 12: the caveat on forge stats waves is said", () => {
+test("criterion 13: the caveat on forge stats waves is said", () => {
   const page = flat(pageOf(cli("guide", "master")));
   assert.match(page, /`forge stats waves` counts by checkout, not by master/u);
   assert.match(page, /any of them that wrote a wave or fold record is read as a dispatcher/u,
@@ -115,7 +115,7 @@ test("criterion 12: the caveat on forge stats waves is said", () => {
 });
 
 /* The bare verb reads the tracker's own pages beside these, so the half this copy answers is read directly. */
-test("criterion 13: the bare listing offers the master page", () => {
+test("criterion 14: the bare listing offers the master page", () => {
   assert.ok(localSlugs().includes("master"), "the listing leaves the page out");
   assert.ok(localRows().some((row) => row.startsWith("master\n  ")), "and prints no row for it");
 });
