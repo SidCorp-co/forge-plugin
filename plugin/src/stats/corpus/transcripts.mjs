@@ -1,7 +1,7 @@
 /* A subagent run as the harness recorded it, read back as pairs of call and result — docs/cli/stats.md. */
 import { CLAIM_CLASS, CLASSES, POLL, READY_CLASS, WHOLE_SET_CLASS, classOf } from "./classes.mjs";
 import { NOTHING, logRead } from "../../hooks/log-reads.mjs";
-import { quoting } from "../../hooks/shell-spans.mjs";
+import { RUNNER, quoting } from "../../hooks/shell-spans.mjs";
 import { isHumanPrompt } from "../../hooks/transcripts.mjs";
 import { RUNGS, highest } from "../../ladder.mjs";
 import { stampedIn } from "../../flow/machine.mjs";
@@ -103,7 +103,7 @@ export const rungRun = (calls) => {
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1(?:[\s\S]*?^[ \t]*\2[ \t]*$|[\s\S]*)/gmu;
 const OPERATOR = /[\n;|&(){}]/u;
 const TEXT = new Set(["'", "#", "\\"]);
-const RUNS = /(?:^|[\s;&|(){}])(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:-\S+|[A-Za-z][\w-]*)\s+)*-[a-zA-Z]*c[a-zA-Z]*\s*$/u;
+const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
 

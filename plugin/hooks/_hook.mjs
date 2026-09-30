@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, STARTS, WRITES, namesOf, placeable, redirectsIn, spans, standsIn, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, STARTS, WRITES, namesOf, placeable, redirectsIn, spans, standsIn, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -385,16 +385,14 @@ export const bodiless = (text, onProgram = (body) => body) => {
 
 /** A shell runs a `-c` body and `eval` its argument, so a verb there is in command position. One holds
  *  another, so it runs to a fixed point, keeping the start it matched: that can carry an assignment. */
-const WRAPPED = new RegExp(
-  `(${STARTS})`
-    + String.raw`(?:(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c|eval)`
-    + String.raw`\s+("[^"]*"|'[^']*')`,
-  "gu",
-);
+const WRAPPED = new RegExp(`(?<start>${STARTS})(?:${RUNNER})` + String.raw`\s+(?<body>"[^"]*"|'[^']*')`, "gu");
 export const unwrapped = (text) => {
   let out = text;
   for (let hop = 0; hop < HOPS; hop += 1) {
-    const next = out.replace(WRAPPED, (all, start, body) => `${start} ; ${body.slice(1, -1)} ;`);
+    const next = out.replace(WRAPPED, (...all) => {
+      const { start, body } = all.at(-1);
+      return `${start} ; ${body.slice(1, -1)} ;`;
+    });
     if (next === out) break;
     out = next;
   }
