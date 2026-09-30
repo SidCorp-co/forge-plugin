@@ -19,7 +19,7 @@ import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { parsedOr } from "../../../src/wire/request.mjs";
-import { keysIn } from "../../../src/tracker/issues.mjs";
+import { distinctKeysIn, keysIn } from "../../../src/tracker/issues.mjs";
 import { NOWHERE, askedAlready, block, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
   turnAt, turnRecords, turnWrites, typed } from "../../_hook.mjs";
 
@@ -155,7 +155,7 @@ const git = (tree, argv) => {
 const NO_GIT = "git did not answer in the time the stop clock left it";
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer is a key this run read, not one it took. */
-const keysNamed = (said) => [...new Set(keysIn(said.join("\n")))];
+const keysNamed = (said) => distinctKeysIn(said.join("\n"));
 
 /** A lease this session took and has written nothing against since. Every payload write renews the
  *  lease and only a claim appends to its history, so a `renewedAt` still standing on the newest

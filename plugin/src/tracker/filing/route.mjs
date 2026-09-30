@@ -77,9 +77,7 @@ const relatedTo = (keys, rows) => {
   };
 };
 
-const readFiling = async (filing, read,
-  { routed = false, fresh = false, everySection = false, duplicates = true, shape: known = null } = {}) => {
-  const shape = known ?? shapeOf(filing, { everySection });
+const readFiling = async (filing, read, shape, { routed = false, fresh = false, duplicates = true } = {}) => {
   const refused = duplicates
     ? await filingRefusal(filing, shape, { routed, page: read, fresh })
     : shapeRefusal(shape);
@@ -93,6 +91,7 @@ const readFiling = async (filing, read,
 /** One filing, from what a route knows to an issue or a reason there is none. `routed` rides another
  *  issue's branch and owes no fold, `fresh` is `--new` declining one and the duplicate hold, `everySection` is a route with
  *  no lighter path, `duplicates` off the finder's route, where a refusal loses the finding.
+ *  `page`, `ranked` and `read` are the projection, the rank and `bodyOf`'s answer, for a caller that already holds them.
  *  `relations` are edges the caller resolved itself and `relateKeys` ones this resolves softly, and `onBeside` is the caller's own printer, handed the neighbours before the fold acts on them. */
 export const fileIssue = async ({
   title,
@@ -110,21 +109,22 @@ export const fileIssue = async ({
   fields = {},
   page = null,
   ranked: asked = null,
+  read = null,
   soft = false,
   onBeside = null,
   module = null,
 }) => {
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
-  const { description, shape: known } = bodyOf({ title, body, kind, sections, complexity, everySection });
+  const { description, shape: known } = read ?? bodyOf({ title, body, kind, sections, complexity, everySection });
   /* Only where the filing is aimed at the caller's own project: the verb carrying a plugin defect aims at the plugin's before it files, and holding that one would lose the finding. */
   const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
   if (held) return { refusal: refusalOf(held), description, shape: known };
   const seen = page ?? await liveTitles();
   /* Once the rows are in, which `shapeAgainst` reads. */
   const shaped = shapeAgainst({ title, body: description, kind, complexity }, seen, { everySection });
-  const { refusal, shape, beside, declined } = await readFiling({ title, body: description, kind }, seen,
-    { routed, fresh, everySection, duplicates, shape: shaped });
+  const { refusal, shape, beside, declined } = await readFiling({ title, body: description, kind }, seen, shaped,
+    { routed, fresh, duplicates });
   if (refusal) return { refusal, description, shape };
   const { joined, answer: comment } =
     await foldFiling(beside, { title, body: description, kind, routed, fresh, declined, soft, onBeside });

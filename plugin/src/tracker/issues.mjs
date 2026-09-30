@@ -16,6 +16,8 @@ export const HUMAN_REF = new RegExp(`^${KEY}$`, "iu");
 /* In the tracker's spelling whatever the text's: a session id and the claim typed from it are lowercase,
    and a key returned as found joins no row (ISS-2161: 58 of a corpus's 585 runs). */
 export const keysIn = (text) => (String(text ?? "").match(new RegExp(`\\b${KEY}\\b`, "giu")) ?? []).map((one) => one.toUpperCase());
+/* Beside `keysIn` rather than with its filing caller: a hook on the stop clock reaches this module and no heavier one. */
+export const distinctKeysIn = (text) => [...new Set(keysIn(text))];
 
 export const rowsOf = (payload, key = "issues") =>
   payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
