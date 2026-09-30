@@ -200,6 +200,13 @@ test("a judge's verdict at a park a comment answers is refused before anything i
     assert.match(run.stderr, new RegExp(`ISS-7 is ${status} under another run's lease, and at that status the tracker reads a comment as the reply`, "u"),
       `${status}: the refusal says why:\n${run.stderr}`);
     assert.equal(ISSUE.status, status, `${status}: the status did not move`);
+    const inherited = await asInherited("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+      "--criterion", "1", "--verdict", "pass");
+    assert.match(inherited.stderr, /FORGE_SESSION_ID=<an id of its own> forge record verdict ISS-7/u,
+      `${status}: an id the caller did not set is still told the one command that clears it first`);
+    const owed = await asJudge("advance", "ISS-7", "--owed");
+    assert.match(owed.stdout, new RegExp(`A verdict from this call would be refused: ISS-7 is ${status} under another run's lease`, "u"),
+      `${status}: the owed read predicts the refusal the write meets:\n${owed.stdout}${owed.stderr}`);
   }
   ISSUE.status = "developed";
   assert.equal(posted(), before, "nothing was posted");

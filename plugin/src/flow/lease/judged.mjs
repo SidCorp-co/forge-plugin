@@ -28,30 +28,35 @@ const whose = (held) => `${held.id ?? "no id"}${held.said ? `, read from ${held.
 
 const again = () => `${RUN_ID_VAR}=<an id of its own> ${thisCall() ?? "forge record verdict <ref> ..."}`;
 
+/* A comment at those statuses is read by the tracker as the reply to the park and reopens the issue,
+   a status moved by a write that may move none. */
+const parkReopens = (ref, status, lease) =>
+  `${ref} is ${status} under another run's lease, and at that status the tracker reads a comment `
+  + `as the reply to its park and reopens the issue, so a judge's verdict would move a status a `
+  + `judge's write may not. The park is the holder's to answer, ${lease.holder}'s`;
+
 /** The lease a judge's write goes past, or null where the write is an ordinary one. Only a write
  *  of verdicts alone is a judge's: a verdict beside another kind rides that kind's lease, and meets
  *  its refusal. A verdict under an id the caller did not set is refused here rather than written
- *  under a name that proves nothing, and so is a run flag, which writes onto a lease this takes none of. */
+ *  under a name that proves nothing, and so are one at a park a comment answers and a run flag,
+ *  which writes onto a lease this takes none of. The id is asked first, being the one refusal
+ *  whose way out is the caller's own. */
 export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced() } = {}) => {
   if (!kinds.length || kinds.some((kind) => kind !== VERDICT)) return null;
   const lease = standing(body?.sessionContext, held);
   if (!lease) return null;
-  /* There the tracker reads any comment as the reply to the park and reopens the issue, which is a
-     status moved by a write that may move none. */
-  if (answersByComment(body?.status)) {
-    return {
-      refused: `record verdict: ${ref} is ${body.status} under another run's lease, and at that status the `
-        + `tracker reads a comment as the reply to its park and reopens the issue, so a judge's verdict `
-        + `would move a status a judge's write may not. Nothing was sent. The park is the holder's to `
-        + `answer, ${lease.holder}'s; what it waits on:\n  forge advance ${ref} --owed`,
-    };
-  }
   if (!OWN.includes(held.source)) {
     return {
       refused: `${ref} is held by another run: ${describe(lease)}. A verdict is the one record `
         + `written past another run's lease, and only under an id the caller set for itself, so the `
         + `verdict says which run judged. This call holds ${whose(held)}. Nothing was sent. Give it `
         + `an id of its own and send this again:\n  ${again()}`,
+    };
+  }
+  if (answersByComment(body?.status)) {
+    return {
+      refused: `record verdict: ${parkReopens(ref, body.status, lease)}. Nothing was sent. What the `
+        + `park waits on:\n  forge advance ${ref} --owed`,
     };
   }
   if (flags.length) {
@@ -76,9 +81,12 @@ export const moveHeld = (ref, next, { lease }) =>
 
 /** What `advance --owed` tells a caller that does not hold the lease standing on the issue, before
  *  it judges anything rather than at the write that would refuse it. */
-export const judgeOwed = (ref, context, held = sessionSourced()) => {
-  const lease = standing(context, held);
+export const judgeOwed = (ref, { sessionContext, status } = {}, held = sessionSourced()) => {
+  const lease = standing(sessionContext, held);
   if (!lease) return null;
+  if (OWN.includes(held.source) && answersByComment(status)) {
+    return `A verdict from this call would be refused: ${parkReopens(ref, status, lease)}.`;
+  }
   if (OWN.includes(held.source)) {
     return `A verdict from this call is a judge's write: ${ref}'s lease is ${lease.holder}'s, and `
       + `\`forge record verdict\` posts past it under ${held.id} without taking it. No other record `

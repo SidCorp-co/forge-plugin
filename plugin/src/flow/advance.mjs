@@ -497,7 +497,7 @@ const run = async (argv, readAs) => {
   const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
-  const judging = given.owed ? judgeOwed(ref, view.issue?.sessionContext) : null;
+  const judging = given.owed ? judgeOwed(ref, view.issue) : null;
   if (judging) console.log(judging);
   if (!view.whole) console.log(cutSays(view.cut, ref));
   if (view.counted) console.log(countSays(view.counted));
