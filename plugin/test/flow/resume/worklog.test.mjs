@@ -16,7 +16,7 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  KEY, OPEN_KEPT, POINTER, capturedLine, gitNow, merged, owedOn, patchFrom, reachOf, workNow,
+  KEY, OPEN_KEPT, POINTER, branchNow, capturedLine, gitNow, merged, owedOn, patchFrom, reachOf, workNow,
   worklogFor, worklogLines, worklogOf,
 } = await import("../../../src/flow/worklog.mjs");
 const { workLines } = await import("../../../src/guides/phases.mjs");
@@ -247,7 +247,7 @@ test("the opening says what can be reached of the head, and never asks a remote"
     "no history inferred, and nothing claimed of a default branch this never read");
 });
 
-test("the reachability of a head is read off this checkout and off no network", () => {
+test("the reachability of a head is read off this checkout and off no network", async () => {
   const was = process.cwd();
   try {
     process.chdir(pushedRepo());
@@ -258,8 +258,8 @@ test("the reachability of a head is read off this checkout and off no network", 
     assert.equal(reachOf({ head: now.base }).remote, "origin/master", "the pushed one is");
     assert.deepEqual(reachOf({ head: "0".repeat(40) }), { here: false, remote: null });
     assert.equal(reachOf({}), null, "a worklog with no head is nothing to read");
-    assert.equal(workNow({ head: now.head }), null, "and a worklog with no branch is nothing to print");
-    assert.equal(workNow({ branch: "b", head: now.head }).reach.here, true);
+    assert.equal(await workNow({ head: now.head }), null, "and a worklog with no branch is nothing to print");
+    assert.equal((await workNow({ branch: "b", head: now.head })).reach.here, true);
     process.chdir(tempRoom("no-checkout-"));
     assert.equal(reachOf({ head: "0".repeat(40) }), null, "outside a checkout nothing is claimed");
   } finally {
@@ -295,6 +295,102 @@ test("no reachability read is one git may fetch to answer", () => {
     process.env.PATH = path;
     process.chdir(was);
   }
+});
+
+/* Which ref carried the head decides how a run opens, so the landing branch is named first, the
+   branch's own next, and a ref sorting first alphabetically only as what it is (ISS-1862). The head
+   rides three refs here, `origin/aaa-other` being the one the old reading named. */
+const carriedRepo = ({ landed = true, own = true } = {}) => {
+  const work = pushedRepo();
+  const run = (...args) => spawnSync("git", args, { cwd: work, encoding: "utf8" });
+  run("checkout", "-q", "-b", "iss-9");
+  const head = run("rev-parse", "HEAD").stdout.trim();
+  run("push", "-q", "origin", "HEAD:aaa-other");
+  if (own) run("push", "-q", "origin", "HEAD:iss-9");
+  if (landed) run("push", "-q", "origin", "HEAD:master");
+  run("fetch", "-q", "origin");
+  run("remote", "set-head", "origin", "master");
+  return { work, head, run };
+};
+const LANDS = { branch: "master", from: "declared", unsettled: null, route: null };
+const UNREAD = { branch: null, from: null, unsettled: "the configuration did not read", route: "forge doctor" };
+
+const inRepo = (work, take) => {
+  const was = process.cwd();
+  process.chdir(work);
+  try {
+    return take();
+  } finally {
+    process.chdir(was);
+  }
+};
+
+const reachLine = (work, head, lands) => inRepo(work, () => {
+  const held = { branch: "iss-9", head, base: "4e41dfd881e", at: AT };
+  return workLines({ ...held, reach: reachOf(held, lands) }).join("\n");
+});
+
+test("the reach names the branch this project lands on first where it carries the head", () => {
+  const { work, head } = carriedRepo();
+  assert.match(reachLine(work, head, LANDS), /origin\/master, the branch this project lands on, carried it as of the last fetch here, so what the capture found of the branch's own is in it/u);
+  assert.match(reachLine(work, head, { ...LANDS, branch: null, from: "recorded" }),
+    /origin\/master, the remote's recorded default, where this project lands, carried it/u, "and says which source named it");
+  assert.equal(/aaa-other/u.test(reachLine(work, head, LANDS)), false, "the ref sorting first is not the one named");
+});
+
+test("the reach names the branch's own ref next, and another branch's only with why and what it does not mean", () => {
+  const own = carriedRepo({ landed: false });
+  assert.match(reachLine(own.work, own.head, LANDS),
+    /origin\/iss-9, this branch's own remote-tracking ref, carried it as of the last fetch here, and origin\/master, the branch this project lands on, did not/u);
+  const other = carriedRepo({ landed: false, own: false });
+  const said = reachLine(other.work, other.head, LANDS);
+  assert.match(said, /origin\/aaa-other carried it as of the last fetch here — named only because neither the branch this project lands on nor this branch's own ref carries it/u);
+  assert.match(said, /which does not make the work that branch's/u);
+});
+
+test("a configuration that did not read has no ref called the branch this project lands on", () => {
+  const { work, head } = carriedRepo({ own: false });
+  const said = reachLine(work, head, UNREAD);
+  assert.equal(/, the branch this project lands on,|recorded default/u.test(said), false, said);
+  assert.match(said, /no branch this project lands on could be read/u, said);
+});
+
+test("the work line says where the branch stands now, beside the capture it read", () => {
+  const { work, head, run } = carriedRepo();
+  const now = (branch = "iss-9") => inRepo(work, () => workLines({ branch, head, at: AT, now: branchNow({ branch, head }) }).join("\n"));
+  assert.match(now(), /the branch here still stands at that commit/u);
+  for (const name of ["three.txt", "four.txt"]) {
+    writeFileSync(join(work, name), name);
+    run("add", name);
+    run("commit", "-qm", name);
+  }
+  assert.match(now(), /now stands at [0-9a-f]{7}, 2 commit\(s\) past that capture/u);
+  run("reset", "-q", "--hard", "HEAD~3");
+  assert.match(now(), /which does not carry that commit: it was rewritten or reset since the capture/u);
+  assert.match(now("iss-gone"), /no branch of that name is in this checkout, so where it stands now is unread/u);
+});
+
+test("the landing branch and the branch now are read without fetching", () => {
+  const { work, head } = carriedRepo();
+  const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  const bin = tempRoom("offline-now-bin-");
+  const log = join(bin, "asked.txt");
+  writeFileSync(join(bin, "git"),
+    `#!/bin/sh\nprintf '%s %s\\n' "\${GIT_NO_LAZY_FETCH-unset}" "$*" >> ${pathed(log)}\nexec ${pathed(real)} "$@"\n`,
+    { mode: 0o755 });
+  const path = process.env.PATH;
+  try {
+    process.env.PATH = `${bin}:${path}`;
+    inRepo(work, () => {
+      reachOf({ branch: "iss-9", head }, { ...LANDS, branch: null });
+      branchNow({ branch: "iss-9", head: "0".repeat(40) });
+    });
+  } finally {
+    process.env.PATH = path;
+  }
+  const asked = readFileSync(log, "utf8").trim().split("\n");
+  assert.ok(asked.some((one) => one.includes("symbolic-ref")) && asked.some((one) => one.includes("show-ref")), asked.join(" | "));
+  assert.deepEqual([...new Set(asked.map((one) => one.split(" ")[0]))], ["1"], `each one told not to fetch: ${asked.join(" | ")}`);
 });
 
 /* An input read and silently dropped is the family ISS-2 found six of: a capture asked for is made,

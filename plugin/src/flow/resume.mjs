@@ -187,12 +187,11 @@ export const readLines = (brief) => {
   ];
 };
 
-const print = (brief, view, ref) => {
+const print = (brief, view, ref, work) => {
   console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`
     + `${brief.reopens ? `  —  reopened ${brief.reopens} time(s)` : ""}`);
   /* Ahead of the issue's own opening: on a headline, the wave is what a restarted dispatcher came for (ISS-818). */
   block("Wave", waveLines(brief.wave, ref));
-  const work = workNow(brief.worklog);
   const kinds = kindsHeld(view);
   opening(brief.status, rungFieldsOf(view), kinds, work, finishedAtHead(view));
   block("Lease", leased(brief));
@@ -238,7 +237,7 @@ const run = async (argv) => {
   if (wave) brief.wave = wave;
   const batch = await batchLive(brief.worklog, body.issueId ?? ref);
   if (batch) brief.batch = batch;
-  return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
+  return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref, await workNow(brief.worklog));
 };
 
 export const resume = async (argv) => {

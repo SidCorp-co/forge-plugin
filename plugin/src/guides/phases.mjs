@@ -178,16 +178,52 @@ const SAID = {
   at: (work) => `captured ${atMinute(work.at)}`,
 };
 
-const reachSaid = (reach) => {
+const SEEN = "as of the last fetch here";
+
+/* Which ref carried the head decides how a run opens, so each gets its own sentence: the landing
+   branch says the work is in, the branch's own ref says it is pushed, and any other says only that
+   the commit survives there — never that the work is that branch's (ISS-1862). */
+const carriedSaid = (reach, work) => {
+  if (reach.as === "landing") {
+    const role = reach.declared ? "the branch this project lands on" : "the remote's recorded default, where this project lands";
+    const own = work.base && work.base !== work.head ? ", so what the capture found of the branch's own is in it" : "";
+    return `${reach.remote}, ${role}, carried it ${SEEN}${own}.`;
+  }
+  if (reach.as === "own") {
+    return `${reach.remote}, this branch's own remote-tracking ref, carried it ${SEEN}`
+      + `${reach.landing ? `, and ${reach.landing}, the branch this project lands on, did not` : ""}.`;
+  }
+  const why = reach.settled === false
+    ? "this branch's own ref does not carry it and no branch this project lands on could be read"
+    : "neither the branch this project lands on nor this branch's own ref carries it";
+  return `${reach.remote} carried it ${SEEN} — named only because ${why}, which does not make the work that branch's.`;
+};
+
+const reachSaid = (reach, work) => {
   if (!reach) return null;
   if (!reach.here) {
     return "no checkout here holds that commit. Fetch, and start this phase over if it does not arrive.";
   }
-  /* Both arms qualified, a remote-tracking ref being a reading of the last fetch and not of the remote: a force-push since leaves the first stale, a push from elsewhere leaves the second, and neither arm may say where the work is — only what this checkout has seen of it (consults 34d2ee F2, ecf127 F1). */
+  /* Every arm qualified, a remote-tracking ref being a reading of the last fetch and not of the remote: a force-push since leaves the first stale, a push from elsewhere leaves the second, and no arm may say where the work is — only what this checkout has seen of it (consults 34d2ee F2, ecf127 F1). */
   return reach.remote
-    ? `this checkout holds that commit, and ${reach.remote} carried it as of the last fetch here.`
+    ? `this checkout holds that commit, and ${carriedSaid(reach, work)}`
     : "this checkout holds that commit, and no remote-tracking ref here contains it as of the last "
       + "fetch, so nothing seen from here would survive losing this machine.";
+};
+
+/* The branch as the line is printed beside the capture it was at, so a successor cannot take a
+   reading of the capture's moment for the tree it is about to work in (ISS-1862). */
+const nowSaid = (now) => {
+  if (!now) return null;
+  if (!now.tip) return "no branch of that name is in this checkout, so where it stands now is unread and the line above is the capture's alone.";
+  if (now.carries === true) {
+    return now.past
+      ? `the branch here now stands at ${shortSha(now.tip)}, ${now.past} commit(s) past that capture, so the capture is not all it holds.`
+      : "the branch here still stands at that commit.";
+  }
+  return now.carries === false
+    ? `the branch here now stands at ${shortSha(now.tip)}, which does not carry that commit: it was rewritten or reset since the capture.`
+    : `the branch here now stands at ${shortSha(now.tip)}, and whether it carries that commit could not be read here.`;
 };
 
 const LEAD = "work: ";
@@ -196,11 +232,8 @@ const LEAD = "work: ";
 export const workLines = (work) => {
   if (!work?.branch) return [];
   const said = POINTER.map((name) => (work[name] ? SAID[name](work) : null)).filter(Boolean);
-  const reach = reachSaid(work.reach);
-  return [
-    `${LEAD}${said.join(", ")}`,
-    ...(reach ? [`${" ".repeat(LEAD.length)}${reach}`] : []),
-  ];
+  const under = [reachSaid(work.reach, work), nowSaid(work.now)].filter(Boolean);
+  return [`${LEAD}${said.join(", ")}`, ...under.map((one) => `${" ".repeat(LEAD.length)}${one}`)];
 };
 
 export const READ_OFF_THE_RECORD =

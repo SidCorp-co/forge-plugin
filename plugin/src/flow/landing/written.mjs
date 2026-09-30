@@ -9,7 +9,7 @@ import {
   LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, landingAt, notACommit, supersededBy, unjudgedAt,
 } from "./checkpoint.mjs";
 import { parseAll } from "../record/page.mjs";
-import { carriedByLanding } from "../worklog.mjs";
+import { carriedAtCapture, carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { commitCarries } from "../../git/carries.mjs";
@@ -221,6 +221,13 @@ export const readyCheckpoint = (ref, holder, patch, landing, status) => {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
       + `no change — the \`--pushed\` line below says why. Capture at the push, before the merge:\n`
       + `  forge claim ${ref} --pushed --ready`);
+  }
+  /* A head merged into the landing branch captures its own files, so the empty set above lets it through and this is what refuses it (ISS-1862). */
+  if (carriedAtCapture(patch)) {
+    fail(`claim --ready arms the landing of a change the branch it lands on does not carry yet, and `
+      + `that branch already carries ${shortSha(patch.head)}, so no landing is left to arm. A change `
+      + `that landed outside the checkpoint is written after the fact:\n`
+      + `  ${commandAt(REBUILT_FORM(ref, shortSha(patch.head)), "  ")}`);
   }
   if (landing?.state === LANDING_DONE) {
     const refused = againRefused(ref, patch.head, landing, status);

@@ -55,6 +55,18 @@ where the fetch brings nothing, *start over* is the right answer and saying noth
 the branch was ever pushed is reported and never enforced: no CLI can tell a private remote from
 none.
 
+## Which ref is named, and where the branch stands now
+
+Of the refs carrying the head, the one named decides how a successor opens, so it is chosen by role
+and not by sort order: the branch the project lands on first, since only its carrying says the work
+is in; the branch's own ref next; any other only as what it is. An alphabetical first once named
+another issue's branch as where landed work lived. Under a configuration that did not read, no ref
+is called the landing branch, the fallback name being the one a promoting project releases to.
+
+A capture is a reading of its own moment, and the run after it may have moved the branch before
+dying, so the line also says where the branch stands in this checkout as it is printed, off the
+branch's own ref and offline.
+
 ## The status a change is built under owes the branch
 
 `in_progress` is refused where the worklog names no branch, and the refusal names the capture that
@@ -77,8 +89,13 @@ nothing wrote nothing at the one moment the branch had to be on the record.
 The pointer is now written whenever git answers, and the touched set is cleared from that same
 reading. That is what the old silence was really buying: a block that is one reading of one
 checkout, rather than the branch of one and the file list of another. The line the capture prints
-says which of the four reasons left it with no diff, and a checkpoint offered to a landing is
+says which reason left it with no diff, and a checkpoint offered to a landing is
 refused on the diff rather than on the head, a branch carrying nothing being nothing to land.
+
+A branch the landing branch has merged is its own merge-base with it, so read plainly it holds
+nothing. The merge that took it in records where it stood, and the capture measures from there; a
+fast-forward leaves no such merge and the head stays its own base, and merges that disagree leave
+none, said as such. `--ready` refuses a head the landing branch carries on that fact.
 
 A capture naming a branch other than the one the worklog held says which it replaced, with the time
 that older block was taken. Nothing is refused for it — a run captures again from the default branch
