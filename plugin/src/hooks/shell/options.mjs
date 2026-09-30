@@ -29,7 +29,7 @@ const OPTIONS = {
 
 /** A verb the table names, anywhere in a text: only a text it matches is one the reader below can answer anything for. */
 export const NAMED = new RegExp(String.raw`\b(?:${Object.keys(OPTIONS).join("|")})\b`, "u");
-/** Whether the table names this verb; one it does not keeps the reading that the word after any flag may be its value. */
+/** Whether the table names this verb, which is what `optionsIn` answers `null` for. */
 export const known = (program) => Object.hasOwn(OPTIONS, program);
 /** Whether an option the reader answered names the file the verb writes, and, below, the directory it writes into. */
 export const writes = (program, name) => OPTIONS[program]?.writes?.includes(name) ?? false;
