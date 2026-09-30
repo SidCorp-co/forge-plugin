@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { COMMITS, WRITES, startsAt } from "../../../hooks/_hook.mjs";
+import { COMMITS, WRITES, startsAt, writtenPaths } from "../../../hooks/_hook.mjs";
 
 test("an exec starts a command at the head of one and behind any other start", () => {
   for (const lead of ["", "true; ", "(", "A=1 ", "sudo ", "then "]) {
@@ -39,4 +39,13 @@ test("a start's blanks do not run across a quoted program", () => {
   assert.deepEqual(said("true; 'rm' -rf /"), ["true", "rm -rf /"]);
   assert.deepEqual(said("A=1 'echo' rm -rf /"), ["echo rm -rf /"]);
   assert.deepEqual(said("sudo 'rm' -rf /"), ["rm -rf /"]);
+});
+
+/* The write reading takes a quoted span that cannot be one filename out of the text, and what stands in
+   for it has to stop a start as the quoted program did, or the head's blanks read its argument as the verb. */
+test("the word after a quoted program is that program's argument in the write reading", () => {
+  const named = (text) => writtenPaths(text, "/w").map((one) => one.token);
+  assert.deepEqual(named("'a b' cp x.md y.md"), []);
+  assert.deepEqual(named("true; 'a b' cp x.md y.md"), [], "behind an operator as at the head");
+  assert.deepEqual(named("cp x.md 'a b' y.md"), ["x.md", "y.md"], "and a copy carrying one still writes");
 });
