@@ -13,7 +13,7 @@
 
 export const OWN = {
   slug: "forge-plugin",
-  feedback: { plugin: "bugs", project: "bugs" },
+  feedback: { plugin: "bugs", project: "all" },
   runs: 2,
   jobs: {
     ba: {

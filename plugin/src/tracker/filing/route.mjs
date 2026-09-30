@@ -6,8 +6,7 @@ import { filingRefusal, liveTitles, rankOf, shapeAgainst, shapeOf, shapeRefusal,
   from "../issue-shape.mjs";
 import { write } from "../rest.mjs";
 import { notAReference } from "../issues.mjs";
-import { PROJECT, pluginDefectHold } from "./plugin-defect.mjs";
-import { projectTarget } from "../../resolve/settings.mjs";
+import { pluginDefectHold } from "./plugin-defect.mjs";
 
 const withSections = (body, sections) => {
   const written = String(body ?? "").replace(/\s*$/u, "");
@@ -117,8 +116,8 @@ export const fileIssue = async ({
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
   const { description, shape: known } = read ?? bodyOf({ title, body, kind, sections, complexity, everySection });
-  /* Only where the filing is aimed at the caller's own project: the verb carrying a plugin defect aims at the plugin's before it files, and holding that one would lose the finding. */
-  const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
+  /* The hold reads where this call is aimed: the verb carrying a plugin defect aims at the plugin's backlog before it files, and holding that one would lose the finding. */
+  const held = pluginDefectHold(description);
   if (held) return { refusal: refusalOf(held), description, shape: known };
   const seen = page ?? await liveTitles();
   /* Once the rows are in, which `shapeAgainst` reads. */

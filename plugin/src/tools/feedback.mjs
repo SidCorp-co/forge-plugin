@@ -4,6 +4,7 @@ import { bodyFrom } from "../resolve/payload.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail, keepOnFailure, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
 import { pluginChannel, usageOf } from "../resolve/visibility.mjs";
+import { kindsOn } from "../tracker/filing/channel.mjs";
 import { agentOf } from "../flow/lease/holder.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
@@ -15,7 +16,7 @@ import { goalBlock } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
 import { moduleForFiling } from "../tracker/modules/definition.mjs";
-import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracker/filing/plugin-defect.mjs";
+import { PROJECT, routingBlock, standsInPlugin } from "../tracker/filing/plugin-defect.mjs";
 
 const USAGE = () => [
   usageOf("feedback"),
@@ -24,8 +25,8 @@ const USAGE = () => [
   "nothing. Nothing goes to disk, and whatever refuses a body that was read prints it back.",
   "",
   "  --title T   what is true once it is fixed, one line",
-  `  --kind K    ${allowedKinds().join(", ")} — what this project allows on the channel; the default is`,
-  `              ${allowedKinds()[0]}, and a body is read against the shape the kind it names needs`,
+  `  --kind K    ${kindsOn("plugin").join(", ")} — what this project allows on the channel; the default is`,
+  `              ${kindsOn("plugin")[0]}, and a body is read against the shape the kind it names needs`,
   "  --with ISS-45   file it with a `relates` edge to that issue, or to each of several separated",
   "              by commas; the keys the note's own body names are listed under the reply instead",
   "  --module M  its primary module, one the plugin's project defines",
@@ -62,7 +63,7 @@ const aimed = () => useProject({ slug: PROJECT, from: "the CLI, for feedback on 
 
 /** One of the kinds this project allows on the channel, or a refusal naming what was asked for. */
 const kindAsked = (given) => {
-  const allowed = allowedKinds();
+  const allowed = kindsOn("plugin");
   if (given === undefined) return allowed[0];
   if (!KIND_NAMES.includes(given)) fail(kindRefusal(given));
   if (!allowed.includes(given)) {
@@ -76,9 +77,12 @@ const kindAsked = (given) => {
 /** `forge feedback <file.md|@file|-> --title T [--kind K]`. */
 export const feedback = async (argv) => {
   if (wantsHelp(argv)) {
+    /* Before the aim: the block says where a plugin defect goes from the caller's project, and after
+       it the call would read as one already on the plugin's backlog. The goals are the destination's. */
+    const routing = routingBlock();
     aimed();
-    const said = goalBlock(await briefGoals(), "A note filed here", onThisRepository());
-    return console.log([USAGE(), routingBlock(), said.join("\n")].join("\n\n"));
+    const said = goalBlock(await briefGoals(), "A note filed here", standsInPlugin());
+    return console.log([USAGE(), routing, said.join("\n")].join("\n\n"));
   }
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
@@ -100,7 +104,7 @@ export const feedback = async (argv) => {
   keep(read.description);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   aimed();
-  const unnamed = await servesOwed(read.description, "This note's `Serves:` line", onThisRepository());
+  const unnamed = await servesOwed(read.description, "This note's `Serves:` line", standsInPlugin());
   if (unnamed) fail(unnamed);
   /* Resolved against the plugin's own modules, the project being aimed by now. */
   const { module, refusal: unknownModule } = await moduleForFiling(named, "feedback");
@@ -122,7 +126,7 @@ export const feedback = async (argv) => {
   /* A note carries no band flag, so both are absent; the record that switches a proposal is the
      destination's, which only a checkout of it reads (docs/cli/proposed-fields.md). */
   const { absentIn, proposeAtFiling, proposedElsewhere } = await import("../codex/proposed/fields.mjs");
-  const after = onThisRepository()
+  const after = standsInPlugin()
     ? proposeAtFiling({ title, body: read.description, kind }, absentIn({}))
     : proposedElsewhere(PROJECT);
   return fileAndSay({ ...asked, read, fresh, relations, page, soft: true, module },

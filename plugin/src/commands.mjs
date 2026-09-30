@@ -24,6 +24,7 @@ import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { moduleForFiling } from "./tracker/modules/definition.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
+import { kindOffProjectChannel } from "./tracker/filing/channel.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { COMPLEXITY_NAMES } from "./ladder.mjs";
 import { helpOf, isGated, refuseIfGated, skillRefusal, usageOf } from "./resolve/visibility.mjs";
@@ -280,6 +281,8 @@ const own = {
     if (badKeys) fail(badKeys);
     const relating = withKeys.length > 0;
     if (category === undefined) fail(kindNeeded());
+    const offChannel = kindOffProjectChannel(category);
+    if (offChannel) fail(offChannel);
     /* Every refusal a call could not change is above this line, and this is the one call a filing
        makes before the body: a rank outside the tracker's own set is knowable without one, and the
        filing takes this answer rather than asking again. */

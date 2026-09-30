@@ -7,6 +7,7 @@ const RUNG = "rung";
 
 export const conditionsAt = (rung) => ({
   "feedback.plugin": { value: feedbackScope().plugin.value, allowed: FEEDBACK_CHANNELS },
+  "feedback.project": { value: feedbackScope().project.value, allowed: FEEDBACK_CHANNELS },
   ship: { value: shipMode().value, allowed: SHIP_MODES },
   [RUNG]: { value: rung, allowed: RUNGS },
   ...toolConditions(),

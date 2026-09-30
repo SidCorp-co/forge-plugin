@@ -12,7 +12,7 @@ import { OWN } from "../fixtures/own-project.mjs";
 process.env.XDG_CONFIG_HOME = tempRoom("channel-report-");
 projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME,
   OWN);
-const { onThisRepository, pluginFilingLine } = await import("../../src/tracker/filing/plugin-defect.mjs");
+const { standsInPlugin, pluginFilingLine } = await import("../../src/tracker/filing/plugin-defect.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const HELD = "44444444-4444-4444-8444-444444444444";
@@ -110,7 +110,7 @@ test("a round on this checkout that routed nothing reads none filed, the closed 
 
 /* The room above proves the branch; this proves the fact reaching it is the checkout's own. */
 test("the line asks the checkout it is called in, and this one is the plugin's", () => {
-  assert.equal(onThisRepository(), true, "the suite runs from this plugin's own checkout");
+  assert.equal(standsInPlugin(), true, "the suite runs from this plugin's own checkout");
   assert.match(pluginFilingLine(["ISS-1698"]), /^Plugin defect {2}ISS-1698$/u);
   assert.match(pluginFilingLine([]), /none filed/u, "and a run that routed nothing at all");
 });

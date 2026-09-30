@@ -3,16 +3,21 @@
 import { readdirSync } from "node:fs";
 
 import { article, originIn } from "../issue-shape.mjs";
-import { KIND_NAMES } from "../declared/kinds.mjs";
+import { kindsOn } from "./channel.mjs";
 import { pluginChannel, verbForPluginDefect } from "../../resolve/visibility.mjs";
-import { projectScope } from "../../resolve/settings.mjs";
+import { projectScope, projectTarget } from "../../resolve/settings.mjs";
 import { once } from "../../resolve/config.mjs";
 import { hereCopy } from "../../tools/plugin-copy.mjs";
 
 export const PROJECT = "forge-plugin";
 
-/** Here a plugin defect and a project issue are one thing: nothing to route, nothing to hold. */
-export const onThisRepository = () => projectScope().value === PROJECT;
+/* Two questions with two answers once a verb aims a call elsewhere, so each has its own name and a
+   caller says which it asked: where this call's filing lands, and which checkout it stands in. */
+/** The filing this call makes lands on the plugin's own backlog: nothing to route, nothing to hold. */
+export const aimsAtPlugin = () => projectTarget().value === PROJECT;
+
+/** This checkout is the plugin's own, whatever the call is aimed at. */
+export const standsInPlugin = () => projectScope().value === PROJECT;
 
 /* Read off this copy, never typed: the typed list was written before `plugin/agents/` existed and
    stopped matching a path this plugin ships, in silence (ISS-673). withholding-a-verb.md. */
@@ -34,19 +39,17 @@ const PLUGIN_SLUG = new RegExp(`\\b${PROJECT}\\b`, "u");
 const ISSUE_KEY = /\bISS-\d+\b/u;
 const IN_THE_PLUGIN = "A defect in this plugin itself — one of its verbs, its hooks or its gates —\nis not this project's issue";
 
-/** `bugs` is the one kind the channel carried before the key existed; `all` is every kind. */
-export const allowedKinds = () => (pluginChannel().value === "all" ? KIND_NAMES : [KIND_NAMES[0]]);
-
 const one = (name) => `${article(name)} ${name}`;
 
 const listed = (names) => (names.length > 1
   ? `${names.slice(0, -1).map(one).join(", ")} or ${one(names.at(-1))}`
   : one(names[0]));
 
+/** Off the aimed reading, the one the hold under it reads, so the two cannot disagree in one call. */
 export const routingBlock = () => {
-  if (onThisRepository()) {
+  if (aimsAtPlugin()) {
     return "A defect in this plugin is an issue of this project like any other and is filed here\n"
-      + "with the rest: this is the plugin's own checkout, so there is no second backlog to reach.";
+      + "with the rest: this call files on the plugin's own backlog, so there is no second one to reach.";
   }
   const verb = verbForPluginDefect();
   if (!verb && pluginChannel().value === "off") {
@@ -61,17 +64,17 @@ export const routingBlock = () => {
   }
   return `${IN_THE_PLUGIN}:\n`
     + `\`forge ${verb} <note.md> --title "<one line>"\` files it on the plugin's own backlog from\n`
-    + `whichever project you are standing in, as ${listed(allowedKinds())}.\n`
+    + `whichever project you are standing in, as ${listed(kindsOn("plugin"))}.\n`
     + "A round that met none says so in its report.";
 };
 
 /** The write under the block, only under `off`: a rule with no verb is satisfied with `forge new`. */
 export const pluginDefectHold = (description) => {
-  if (onThisRepository() || pluginChannel().value !== "off") return null;
+  if (aimsAtPlugin() || pluginChannel().value !== "off") return null;
   const origin = originIn(description);
   if (!PLUGIN_PATH()?.test(origin) && !PLUGIN_SLUG.test(origin)) return null;
-  return "This body says its cause is inside this plugin, and a defect in the plugin is not this "
-    + `project's issue: ${origin.trim().split("\n").find(Boolean)}\n`
+  return "This body says its cause is inside this plugin, and a defect in the plugin is not an issue "
+    + `of ${projectTarget().value}, where this call files: ${origin.trim().split("\n").find(Boolean)}\n`
     + `This project files none — feedback.plugin is off in ${pluginChannel().from} — so the finding `
     + "goes in the run's report, under the line saying it was withheld by the project, and nothing "
     + "is written to this backlog. A body whose cause is this project's own is filed here as it "
@@ -80,9 +83,9 @@ export const pluginDefectHold = (description) => {
 
 /** So a fold does not read a configured silence as a clean round; the destinations are records'. */
 export const pluginFilingLine = (destinations = []) => {
-  /* Which backlog a destination reached is the checkout's answer, off the predicate the routing
-     block routes by: off this one the slug it names, on it any issue of this project (ISS-1700). */
-  const here = onThisRepository();
+  /* Which backlog a destination reached is the checkout's answer, the report being read after the
+     call and never aimed: off this one the slug it names, on it any issue of this project (ISS-1700). */
+  const here = standsInPlugin();
   const filed = destinations.filter((one) => (here ? ISSUE_KEY : PLUGIN_SLUG).test(String(one ?? "")));
   if (filed.length) return `Plugin defect  ${filed.join("; ")}`;
   const channel = pluginChannel();

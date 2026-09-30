@@ -34,7 +34,7 @@ export const VERBS = [
       update: "`forge issue --set`", link: "`forge issue --blocks`", unlink_edge: "`forge issue --unlink`" } }],
   ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--module M] [--new]",
     "file one, read against the shape its category needs",
-    "forge_issues", { group: BACKLOG, wraps: { create: "`forge new`" } }],
+    "forge_issues", { group: BACKLOG, channel: "project", wraps: { create: "`forge new`" } }],
   ["comment", "<uuid|ISS-45> [<file.md|@file|->] [--title T] [--project <slug>]",
     "the thread whole with no body, or post one; the lease on the record decides whether it renews",
     "forge_comments", { group: BACKLOG,
@@ -128,7 +128,7 @@ export const VERBS = [
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--module M] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
-    null, { group: HARNESS }],
+    null, { group: HARNESS, channel: "plugin" }],
   ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
     + " [--hide v|--show v] [--job name|all]"
     + ENUM_FLAGS.map((key) => ` [--${key} ${valuesOf(key).join("|")}]`).join("")
@@ -327,16 +327,31 @@ const FEEDBACK_VERB = "feedback";
  *  neither grants what the other withholds, and a closed one is refused in a line naming the key. */
 export const pluginChannel = () => feedbackScope().plugin;
 
-const closedByProject = (verb) => verb === FEEDBACK_VERB && pluginChannel().value === "off";
+/* The channel a verb files through is its row's, so a verb a project can close says so where it is declared. */
+const channelOf = (verb) => rowFor(verb)?.[4]?.channel ?? null;
+
+const closedByProject = (verb) => {
+  const channel = channelOf(verb);
+  return channel !== null && feedbackScope()[channel].value === "off";
+};
 
 export const verbForPluginDefect = () =>
   (closedByProject(FEEDBACK_VERB) || withheldVerbs().has(FEEDBACK_VERB) ? null : FEEDBACK_VERB);
 
-export const channelRefusal = (verb) =>
-  (closedByProject(verb)
-    ? `\`forge ${verb}\` is withheld here: this project sets feedback.plugin to off in`
-      + ` ${pluginChannel().from}, so a defect in this plugin goes in the run's report and is filed nowhere.`
-    : null);
+/* What each channel's closing leaves a finding, said in the refusal because the verb it was reached for is gone. */
+const INSTEAD = {
+  plugin: "a defect in this plugin goes in the run's report and is filed nowhere",
+  project: "a run fixes a finding in the issue it is working and declares it there, or records it on "
+    + "that issue, and a person files one on the tracker's own screen",
+};
+
+const closedLine = (verb) => {
+  const channel = channelOf(verb);
+  return `\`forge ${verb}\` is withheld here: this project sets feedback.${channel} to off in`
+    + ` ${feedbackScope()[channel].from}, so ${INSTEAD[channel]}`;
+};
+
+export const channelRefusal = (verb) => (closedByProject(verb) ? `${closedLine(verb)}.` : null);
 
 /* Two jobs, two columns: `row[3]` is the tool whose routes this verb OWNS, `needs` the capability it
    SPENDS, and a verb can own a route it must not be hidden by. Read by presence, so an explicit
@@ -386,7 +401,7 @@ const unavailable = (verb) => {
   if (state) {
     return `\`forge ${verb}\` is ${state} on this machine${atJob()} — \`forge doctor --show ${verb}\` offers it again`;
   }
-  return blockedLine(verb);
+  return closedByProject(verb) ? closedLine(verb) : blockedLine(verb);
 };
 
 /** The one sentence for a verb this credential is refused the capability of, typed or reached through the route it wraps, or nothing where it is not refused one. */

@@ -22,7 +22,7 @@ const STATES = [
   { state: UNCONFIGURED, holds: unconfiguredTool,
     said: "unlisted because this machine saved nothing it needs, and still served when typed; each one's own row below names what configures it" },
   { state: CLOSED, holds: (verb) => channelRefusal(verb) !== null,
-    said: "unlisted because this project turned the channel off; the `feedback.plugin` row names it" },
+    said: "unlisted because this project turned off the channel the verb files through; that channel's `feedback.` row names the key" },
   { state: GATED, holds: (verb) => blockedBy(verb) !== null,
     said: "unlisted because this credential may not call what it needs, which `forge doctor` measured" },
   { state: ON, holds: () => true,

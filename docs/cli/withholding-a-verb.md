@@ -65,6 +65,25 @@ nothing to route and nothing to hold. And never on the verb that carries a note 
 backlog on purpose, which aims at that project before it files — a hold there would lose the
 finding, which is the one thing that route promises not to do.
 
+**Whose backlog a filing is for has two answers once a call can be aimed, and each is asked by
+name.** Where the call's filing lands is one question; which checkout it stands in is another, and
+they part the moment a verb aims a call at a project other than the one it stands in. The hold and
+the routing block ask the first, together, so a filing aimed elsewhere is never told it is on the
+plugin's own backlog; the run report's filing line, the goal list and the proposed fields ask the
+second, because each reads what only a checkout of that project holds. A verb that renders the
+block for a call it is about to aim renders it before the aim, which is what `forge feedback -h`
+does: the block says where a defect goes from the caller's project.
+
+**`feedback.project` is the same rule for the project's own backlog.** Each verb that files names
+on its row the channel it files through, and a channel at `off` closes that verb the way
+`feedback.plugin` closes `forge feedback`: unlisted, refused when typed, refused on the raw route it
+wraps, and placed under `closed` by `doctor`, each in a sentence naming the key. `bugs` lets `forge
+new` file a bug alone. `all` is the default and changes nothing. The key closes the verb for every
+caller of this CLI rather than for runs alone, since nothing a shell carries tells a run from a
+person reliably, so the refusal names the tracker's own screen as where a person files one. A key
+that is accepted, defaulted and printed by `doctor` has a reader, or it would say it is set and
+decide nothing.
+
 **A hook refusal ends with the key's answer too, and it is the one line in a refusal not written in
 the gate that prints it.** `docs/HOOKS.md` holds a refusal to what was refused, the rule, one action
 and the `--how` pointer, on the ground of what a refusal costs where it lands; the filing line is the
