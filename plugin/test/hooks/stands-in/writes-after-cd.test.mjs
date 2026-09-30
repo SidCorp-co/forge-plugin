@@ -9,7 +9,7 @@ import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { touched } from "../../../hooks/_hook.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { git, tempRoom } from "../../fixtures.mjs";
 import { patience } from "../../patience.mjs";
 
 const room = tempRoom("writes-cd-");
@@ -33,8 +33,6 @@ const asked = (at) => {
 };
 
 /* Two branches whose `a.md` differs, so a copy holding the second's bytes agrees with HEAD. */
-const git = (at, ...args) =>
-  spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: at, encoding: "utf8" });
 const repoWithBranches = () => {
   const at = tempRoom("writes-cd-repo-");
   spawnSync("git", ["init", "-q", "-b", "one", at], { cwd: dirname(at), encoding: "utf8" });
