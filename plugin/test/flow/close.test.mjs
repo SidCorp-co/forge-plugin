@@ -81,6 +81,10 @@ test("each state of the release policy names its own gap and its own way out of 
   assert.deepEqual(owedOn(RELEASES_ITSELF, { status: CLOSES_FROM }), []);
 });
 
+/* The line under a close, up to where the policy's own reading names its model. */
+const SAID_CLOSE = "  moved by its record, and by no person: nothing is owed at any rung, and the release policy "
+  + "reads: nobody owes this release an act\\. ";
+
 /* Its plan declares the person the rung wanted, so this measures the round a close does not pay. */
 const SHIPPED = {
   documentId: "shipped-uuid",
@@ -178,6 +182,8 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^forge: read close as forge advance ISS-96$/mu, run.stderr);
   assert.match(run.stdout, /ISS-96 {2}awaiting_release -> closed {2}\(read as forge advance ISS-96\)/u, run.stdout);
+  /* A publishing project that deploys itself owes nobody the release either, and the close says so (ISS-1750). */
+  assert.match(run.stdout, new RegExp(`-> closed[^\\n]*\\n${SAID_CLOSE}release model {2}publish[^\\n]*; production deploy {2}automatic`, "u"), run.stdout);
   assert.equal(listed("shipped-uuid"), pages + 2, "two pages, one read by the lease write's gate and one by the entry check");
   assert.deepEqual(wrote("shipped-uuid"), [], "nothing is written to close");
   assert.deepEqual(moved("shipped-uuid").map((one) => one.args.data.status), ["closed"]);
@@ -279,6 +285,8 @@ test("a project declaring no release step closes in the run that landed the chan
   const run = await ranAsync(FORGE, ["advance", "ISS-103"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("none-uuid").map((one) => one.args.data.status), ["closed"]);
+  /* The move nobody typed a status for says what moved it, in the policy's own words (ISS-1750). */
+  assert.match(run.stdout, new RegExp(`^ISS-103 {2}awaiting_release -> closed\\n${SAID_CLOSE}release model {2}none`, "mu"), run.stdout);
   assert.deepEqual(wrote("none-uuid"), [], "and nothing was written to earn it");
 });
 
