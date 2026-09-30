@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, STARTS, WRITES, landedIn, namesOf, placeable, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -383,11 +383,10 @@ export const handedIn = (body, runner) => {
 
 export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
 
-/** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. how/learning-gate.md. */
-const NAMED_SHELLS = String.raw`sh|bash|zsh`;
-export const SHELL = new RegExp(`^(?:${NAMED_SHELLS})$`, "u");
+/** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
+export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
 const EXECUTES_STDIN = new RegExp(
-  String.raw`(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|${NAMED_SHELLS})(?:\s+-\S+)*\s*-?\s*$`,
+  String.raw`(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|${SHELL_WORD})(?:\s+-\S+)*\s*-?\s*$`,
   "u",
 );
 
