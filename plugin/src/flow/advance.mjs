@@ -27,6 +27,7 @@ import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
 import { judgeOwed } from "./lease/judged.mjs";
+import { movedBySaid } from "./earned/moved-by.mjs";
 
 export const USAGE = [
   usageOf("advance"),
@@ -96,7 +97,7 @@ const viewOf = async (reference, given) => {
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs unless the record earns it, and a second lease write would cost three more calls. `said` is what a park adds to the payload; a plain advance sends the status alone and nothing else.
    `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
-export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log, heard = null } = {}) => {
+export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log, heard = null, by = null } = {}) => {
   if (!soft) await renew(view.documentId, ref, next);
   /* Asked softly whoever the caller is, so the refusal is worded here rather than printed bare by the transport: a refusal that makes a claim about this issue's status is read as true by a run that has nothing beside it to compare, and both statuses it could be compared against are values this call is already holding (ISS-1422). */
   const answer = await write("forge_issues",
@@ -131,6 +132,8 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   const spelt = landed === status ? "" : `  (asked for ${status}, which this tracker spells ${landed})`;
   scopeFrom(landed, ref, namedIn(view));
   say(`${ref}  ${view.issue.status} -> ${landed}${note}${spelt}`);
+  /* `by` is what an earned move says moved it, which only the two earned callers pass: earned/moved-by.mjs. */
+  if (by) say(by);
   /* The act that ends the owing is the act that reports what was owed to it: a criterion left
      standing on R-11's escape is owed to this issue, and nothing else ever reads the tree to find
      it. Said here rather than by a later audit because the person who moved it is the one who can
@@ -306,8 +309,9 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null, 
   if (moves) {
     const now = { ...view, issue: { ...view.issue, status: issue.status } };
     const note = resumes ? "  (resumed where its park left it)" : "";
+    const by = resumes ? null : movedBySaid(view, next);
     await movedAfterRecord(now, ref, next, (soft) =>
-      transitionTo(now, next, ref, { soft, note, say: console.error }));
+      transitionTo(now, next, ref, { soft, note, say: console.error, by }));
   }
   await owedAfter(documentId, moves ? { ...issue, status: next } : issue, ref, page);
   /* The effective rung of the view this already built, for the phase part the caller prints. */
@@ -533,7 +537,7 @@ const run = async (argv, readAs) => {
      facts, and dropping either leaves the line answering a question nobody asked. */
   const note = `${resumed ? "  (resumed where its park left it)" : ""}`
     + `${readAs ? `  (read as ${readAs} ${ref})` : ""}`;
-  return transitionTo(view, next, ref, { note, next: given.next ?? null });
+  return transitionTo(view, next, ref, { note, next: given.next ?? null, by: resumed ? null : movedBySaid(view, next) });
 };
 
 export const advance = async (argv, { readAs = null } = {}) => {

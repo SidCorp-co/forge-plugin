@@ -291,6 +291,14 @@ const ANSWER_BLOCKS = [
   "nothing, whoever composed it. The write resumes the issue where the park left it, in the same call.",
 ];
 
+/* The one place a park record would contradict the status it stands beside, which the row cannot
+   say (ISS-1750). */
+const PARK_BLOCKS = [
+  "This write moves no status, so it is refused on an issue at closed or dropped, which say nobody is",
+  "waited on. There, `forge advance <ref> --park <kind> --why W` writes the same record and moves the",
+  "status into the one the kind names, and the refusal prints that command with this call's values.",
+];
+
 /* Why the two are a finder's writes is what their rows cannot say, and a dispatcher reading only the
    row would expect the lease every other kind takes (ISS-818). */
 const WAVE_BLOCKS = [
@@ -359,6 +367,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
     ...(kind === "answer" ? ["", ...ANSWER_BLOCKS] : []),
+    ...(kind === "park" ? ["", ...PARK_BLOCKS] : []),
     ...(SHAPES[kind]?.finder ? ["", ...WAVE_BLOCKS] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS, ...capBlocks()] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),

@@ -3,7 +3,7 @@
 import { fail, slugIfAny } from "../../resolve/settings.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { citationProblem } from "../earned/published.mjs";
-import { SIDE, answersByComment } from "../earned/park-status.mjs";
+import { NO_LONGER_OWES, SIDE, answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
@@ -148,6 +148,13 @@ const finderChecked = (kind, reference, body, read) => {
   }
   const said = foldProblem(kind, reference, read);
   if (said) refuse(said);
+};
+
+/* A park record at a status that owes nothing further would contradict it: `../park/finished.mjs`. */
+const finishedChecked = async (kind, reference, blocks, read) => {
+  if (kind !== "park" || !NO_LONGER_OWES.includes(read.body.status)) return;
+  const { finishedRefusal } = await import("../park/finished.mjs");
+  finishedRefusal(reference, blocks, read);
 };
 
 /* A declining names a finding this issue carries, read off the page before anything is posted; the
@@ -395,6 +402,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   answerChecked(kind, reference, body);
   const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
   finderChecked(kind, reference, body, { comments, cut });
+  await finishedChecked(kind, reference, blocks, { documentId, body, comments });
   const onIssue = attachmentNames(body, comments);
   const held = [...onIssue, ...planned];
   /* The count is of names read off the issue, as `forge attach` gives it; a rung's earlier kind's pending upload is no name read. */
