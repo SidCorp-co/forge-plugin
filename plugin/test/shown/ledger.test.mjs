@@ -17,8 +17,9 @@ writeFileSync(
 process.env.XDG_CONFIG_HOME = HOME.path;
 standsInNoTree("shown-ledger");
 
-const { digestOf, held, lastShown, noteShown, owedOf, readerKey, sayIfChanged, sayOnce, sessionKey } =
+const { held, lastShown, noteShown, owedOf, readerKey, sayIfChanged, sayOnce, sessionKey } =
   await import("../../src/shown/ledger.mjs");
+const { digestOf } = await import("../../src/keys/digest.mjs");
 const { creditedTo } = await import("../../src/shown/journal.mjs");
 
 const PARAGRAPH = "The first line of it.\nThe second line of it.";
