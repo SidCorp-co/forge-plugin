@@ -310,9 +310,9 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
 
 export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
-/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. An `exec` counts only behind one of these, so the one another program takes as its argument starts nothing. */
+/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last, so a prefix standing at the head wins its position, and it takes the blanks after it: a span cut behind a `;`, a `&&` or a `|` opens with the one the operator left, and it is the same command it would be at the head of the text (ISS-2933). An `exec` counts only behind one of these, so the one another program takes as its argument starts nothing. */
 export const STARTS = String.raw`(?:(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
-  + String.raw`|\b(?:${WRAPPERS})\s+|^)(?:exec\s+)?)`;
+  + String.raw`|\b(?:${WRAPPERS})\s+|^\s*)(?:exec\s+)?)`;
 
 /** A word that names a shell: at any path, through `busybox` or not. The one answer to which word is a shell — for a `-c` body, for a heredoc a shell reads on stdin, and for whether a body is the caller's own language — so a shell one reading knows, the others know. Non-capturing, being spliced into a reader's pattern. */
 export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh`;
@@ -474,7 +474,7 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
   };
   for (const { start, end } of spans(text)) {
     const span = text.slice(start, end);
-    if (!WRITES.test(span.trimStart())) continue;
+    if (!WRITES.test(span)) continue;
     if (HANDED.test(span)) {
       if (strict) blank(start, end);
       continue;
@@ -488,7 +488,7 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
   return out;
 };
 
-/** The files a copy, a move or an install into a `-t` directory lands on, a name the command never spells: the directory joined with each source's last name, with the offset of the word naming the directory and the command span it stands in. Only a name carrying one of the extensions `tail` asks for. A span whose sources another command hands over names none, which is `struck`'s to answer. The verb is read where `commandOf` finds it rather than through `WRITES`, which misses a command a list's operator left a blank in front of (ISS-2933). The text is the command as written, since a struck one has already lost the sources. */
+/** The files a copy, a move or an install into a `-t` directory lands on, a name the command never spells: the directory joined with each source's last name, with the offset of the word naming the directory and the command span it stands in. Only a name carrying one of the extensions `tail` asks for. A span whose sources another command hands over names none, which is `struck`'s to answer. The text is the command as written, since a struck one has already lost the sources. */
 export const landedIn = (text, tail = "[A-Za-z0-9]+") => {
   /* Every spelling of an option holds a hyphen, so a text without one names no target directory. */
   if (!text.includes("-")) return [];

@@ -48,3 +48,12 @@ test("a `$` the shell would not expand where a write lands, or one where no writ
   ];
   for (const command of cases) assert.deepEqual(unseenWrites(command), [], command);
 });
+
+/* A stage a list or a pipe cut opens with the blank after its operator, which the write reading took for
+   no command at all, so only the first write of a list was ever named (ISS-2933). */
+test("a write in any stage of a list or a pipe is named as the same write standing alone is", () => {
+  for (const command of ["tee $D/a.md", "echo x | tee $D/a.md", "true && tee $D/a.md", "true; tee $D/a.md", "false || tee $D/a.md"]) {
+    assert.deepEqual(unseenWrites(command), ["$D/a.md"], command);
+  }
+  assert.deepEqual(unseenWrites("true && cp a $D/b.md"), ["$D/b.md"], "and a copy's source is no name it wrote through");
+});

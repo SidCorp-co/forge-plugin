@@ -18,3 +18,14 @@ test("an exec another program takes as its argument starts nothing", () => {
     assert.equal(COMMITS.test(`${one} git commit -m x`), false, `${one}, a commit`);
   }
 });
+
+/* A span cut behind a list operator opens with the blank the operator left, and the command is the same
+   one it would be at the head of the text: `WRITES` read every command of a list but the first as no
+   write, and a commit an indented call made was no commit (ISS-2933). */
+test("a command opening with a blank starts where the same command without it does", () => {
+  for (const lead of [" ", "\t", "  "]) {
+    assert.equal(WRITES.test(`${lead}cp a.md b.md`), true, `${JSON.stringify(lead)} then a copy`);
+    assert.equal(COMMITS.test(`${lead}git commit -m x`), true, `${JSON.stringify(lead)} then a commit`);
+  }
+  for (const one of [" echo x", " git status", " printf cp"]) assert.equal(WRITES.test(one), false, one);
+});
