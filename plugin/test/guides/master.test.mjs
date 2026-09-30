@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { flat, tempRoom } from "../fixtures.mjs";
 
-const { DEFAULT, SCREEN } = await import("../../src/guides/flow.mjs");
+const { DEFAULT, SCREEN, servedFor } = await import("../../src/guides/flow.mjs");
 const { skillGuideAnswer, skillGuideSlugs } = await import("../../src/guides/skill-guides.mjs");
 const { roundLines } = await import("../../src/guides/rounds.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
@@ -35,8 +35,8 @@ const cli = (...argv) => {
 
 /* What the page says, without the lines the verb appends to every page it serves. */
 const pageOf = (served) => {
-  const tail = new Set(roundLines(null).filter(Boolean));
-  return served.split("\n").filter((line) => !tail.has(line) && !/^Flow \S+, which this project runs/u.test(line))
+  const tail = new Set([...roundLines(null), ...servedFor(DEFAULT), ...servedFor(SCREEN)].filter(Boolean));
+  return served.split("\n").filter((line) => !tail.has(line))
     .join("\n").trim();
 };
 
@@ -60,15 +60,14 @@ const ROUTES = [
   ["Why a candidate was left out", "forge next"],
   ["What blocks what", "forge next"],
   ["Whether an issue is already open twice", "forge alike"],
-  ["What a run cannot read for itself", "forge brief"],
-  ["Where a wave stands", "forge resume"],
+  ["What a dispatched run is owed that it has no way to look up", "forge brief"],
+  ["Where a wave stands, asked of its headline", "forge resume"],
   ["How its waves went", "forge stats waves"],
   ["Where its time and spend went", "forge stats daily"],
   ["Why one run went wrong", "forge stats diagnose"],
   ["What resolves on this box", "forge doctor"],
   ["What the board holds at each status", "forge doctor project"],
   ["What the method says", "forge guide dispatch"],
-  ["A refusal that was wrong", "forge feedback"],
   ["Whether this box is refusing work", "forge-runner status"],
 ];
 
@@ -77,8 +76,8 @@ const bulletsOf = (page) => page.split(/\n(?=- )/u).filter((one) => one.startsWi
 test("criterion 1: forge guide master is served under both flows, each ending on the flow it was rendered for", () => {
   const served = cli("guide", "master");
   assert.match(served, /^# Master: /u, "the default flow serves the page");
-  assert.match(served.trim().split("\n").at(-1), /^Flow default, which this project runs/u);
-  assert.match(answered(SCREEN).split("\n").at(-1), /^Flow screen, which this project runs/u);
+  assert.equal(served.trim().split("\n").at(-1), servedFor(DEFAULT)[0]);
+  assert.equal(answered(SCREEN).split("\n").at(-1), servedFor(SCREEN)[0]);
   assert.equal(pageOf(answered(SCREEN)), pageOf(answered(DEFAULT)), "the map does not move with the flow");
 });
 
@@ -89,6 +88,9 @@ test("criteria 2 to 9: each question is routed to the command that answers it", 
     assert.ok(bullet, `no line of the page asks: ${question}`);
     assert.equal(/`([^`]+)`/u.exec(bullet)?.[1], command, `${question} is routed elsewhere: ${bullet}`);
   }
+  const filing = bullets.find((one) => one.startsWith("- How to file against this CLI"));
+  assert.match(filing ?? "", /the closing line of this CLI's own help/u,
+    "criterion 8: filing is routed to the line the CLI renders off the project's key, never to a verb named here");
   const runner = bullets.find((one) => one.includes("`forge-runner status`"));
   assert.match(runner, /the runner's own\s+verb, which ships with the runner and not with this CLI/u,
     "criterion 9: the runner's verb is named as the runner's");
@@ -106,7 +108,7 @@ test("criteria 10, 11 and 16: the page carries no flag but the one sentence nami
 test("criterion 12: the caveat on forge stats waves is said", () => {
   const page = flat(pageOf(cli("guide", "master")));
   assert.match(page, /`forge stats waves` counts by checkout, not by master/u);
-  assert.match(page, /every session under the checkout's directory, so a person or another agent working in that tree is inside its figures/u);
+  assert.match(page, /every session kept for that checkout, so the work of a person or another agent in the same tree is counted/u);
 });
 
 /* The bare verb reads the tracker's own pages beside these, so the half this copy answers is read directly. */
