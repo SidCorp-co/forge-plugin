@@ -135,6 +135,27 @@ test("a judge's verdict posts under its own id while the dispatcher's lease is l
     "and under which id the verdict went");
 });
 
+/* The admission reaches a lease lapsed inside its own duration as it reaches a live one: nothing
+   proves that holder gone, so the lease is still another run's, and the verdict replaces nothing. */
+test("a judge's verdict posts past a lease inside its duration and past one lapsed inside it, and each reads back as it stood", async () => {
+  const minute = 60_000;
+  const lapsed = { ...structuredClone(LEASE), renewedAt: new Date(Date.now() - 70 * minute).toISOString() };
+  try {
+    for (const [name, lease] of [["live", structuredClone(LEASE)], ["lapsed inside its duration", lapsed]]) {
+      ISSUE.sessionContext.lease = structuredClone(lease);
+      const [before, writes] = [posted(), leaseWrites()];
+      const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+        "--criterion", "1", "--verdict", "pass");
+      assert.equal(run.status, 0, `${name}: the judge's verdict should have gone up:\n${run.stdout}${run.stderr}`);
+      assert.equal(posted() - before, 1, `${name}: one verdict comment posted`);
+      assert.equal(leaseWrites(), writes, `${name}: no field write and no status move reached the tracker`);
+      assert.deepEqual(ISSUE.sessionContext.lease, lease, `${name}: the lease reads back exactly as it stood`);
+    }
+  } finally {
+    ISSUE.sessionContext.lease = structuredClone(LEASE);
+  }
+});
+
 test("a judge's record that earns the next status moves none, and names the holder's advance", async () => {
   const writes = leaseWrites();
   const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
