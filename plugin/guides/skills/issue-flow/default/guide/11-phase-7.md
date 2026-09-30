@@ -7,6 +7,12 @@ phase goes, and the text below is the route that mode names.
 **The landing is this phase's first step**: the change goes onto the default branch here, after the
 judging. What the mark written there carries: `forge guide contract developed`.
 
+**Where the judgement is an independent run's, a capture comes before that step.** That judge's
+verdicts are read against a checkpoint naming the run that built the change, and a capture this run
+takes before the change goes onto the default branch is the only write that names it rather than
+inferring it. `forge advance ISS-nn --owed` says when it is owed, and prints the write before the
+merge and the one after it.
+
 Then verify the change where it now runs, post the release note, and move the status, in that
 order: a note published before the change ships announces what has not happened, and the status is
 what other people's queries filter on, so it moves last. What the move is owed:

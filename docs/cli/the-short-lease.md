@@ -104,6 +104,12 @@ is the run the dispatch already reached, which is the wave of several runners th
 left. One route for all four would send three of them back to the refusal they have just read, which
 costs the turn a guess — this repository's own rule about what a refusal owes.
 
+**Past the dispatch statuses the status is named before the id**, because there no id takes the
+lease, and a sentence about the tree an id comes from sends the caller to a route that cannot work.
+At the rungs a verdict is written from, the caller is most often a judge, and the tree it was sent to
+brief is one its own method says it does not hold. So the refusal there names the judge's write
+instead, which takes no lease (ISS-1798).
+
 **What this does not do is read the holder's prose.** The route first built matched the sentence
 above inside the holder's `--next` line, and the review retired it: the note the incident was filed
 from does not contain that sentence, a `next` line survives a change of holder so a second run would
