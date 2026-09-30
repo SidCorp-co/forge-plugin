@@ -5,8 +5,8 @@
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { declaredFor, refuseCredential, scoped, write } from "../tracker/rest.mjs";
-import { BRIEF_SLUG, KIND_WIDTH, SLUG_WIDTH, entryAt, entryLine, metaFrom, upsertEntry, wroteLines }
-  from "../tracker/knowledge/store.mjs";
+import { BRIEF_SLUG, KIND_WIDTH, SLUG_WIDTH, entryAt, entryLine, liveRows, metaFrom, upsertEntry,
+  wroteLines } from "../tracker/knowledge/store.mjs";
 import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
@@ -43,7 +43,7 @@ export const USAGE = [
 
 const slugsHere = async () => {
   const page = await scoped("forge_knowledge", { action: "list" });
-  return (page?.rows ?? []).map((row) => row.slug);
+  return liveRows(page).map((row) => row.slug);
 };
 
 const noSuchEntry = async (slug) =>
@@ -63,7 +63,7 @@ const list = async (argv) => {
     ...(kindFilter ? { kindFilter } : {}),
     ...(injectionFilter ? { injectionFilter } : {}),
   });
-  const rows = page?.rows ?? [];
+  const rows = liveRows(page);
   for (const row of rows) console.log(entryLine(row));
   console.log(`\n${rows.length} entr${rows.length === 1 ? "y" : "ies"}`);
   if (!rows.length && !filtered) {

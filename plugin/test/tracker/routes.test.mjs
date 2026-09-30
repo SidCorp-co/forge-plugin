@@ -63,7 +63,7 @@ const PROJECT_ROWS = ["forge_projects.create", "forge_projects.read", "forge_pro
 /* The rows that answer the page as it came. A write whose answer nothing reads declares no
    projection at all, so there is no shape here to judge and the absence is what is asserted. */
 const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config.pipeline",
-  "forge_config.set_pipeline", "forge_config.facts", "forge_config.set_facts",
+  "forge_config.set_pipeline",
   /* A label's delete answers 204 and nothing: `forge doctor modules` reads the list back instead. */
   "forge_labels.delete",
   /* The deployment platform's own words, which this CLI does not own and does not rename: a

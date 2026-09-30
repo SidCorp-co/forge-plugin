@@ -40,7 +40,7 @@ Every key this plugin reads out of that file is known before any call goes out, 
 routes there and no tracker resource is read for it. That is the only way a slug reaches a checkout
 that has not got one yet — the read that would route it needs the very value it is being asked to
 write — and it is why the route holds while the tracker is down or has retired a resource beside it. A
-tracker fact carrying the same bare name is reached by `fact.<k>`.
+pipeline key carrying the same bare name is reached by `pipeline.<k>`.
 
 A key nothing here reads is refused with the list of what the file holds, and is offered no
 `project.<k>` route at all: a value written under it would be a line in somebody's configuration that

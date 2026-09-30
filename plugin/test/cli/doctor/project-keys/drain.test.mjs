@@ -43,7 +43,7 @@ const fresh = (drain, qa = "independent") => {
   if (existsSync(file)) chmodSync(file, 0o644);
   writeFileSync(file, `{\n  "slug": "forge-plugin",\n${drain === null ? ""
     : `  "drainedBy": ${JSON.stringify(drain)},\n`}  "runs": 2\n}\n`);
-  state.settings = { pipelineConfig: { autoProdDeploy: false, qa }, projectFacts: {} };
+  state.settings = { pipelineConfig: { autoProdDeploy: false, qa } };
   state.calls = [];
 };
 

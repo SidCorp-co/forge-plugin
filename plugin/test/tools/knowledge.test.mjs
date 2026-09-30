@@ -355,3 +355,49 @@ test("a refusal naming something else that is not found is not read as an absent
   assert.match(run.stderr, /the store could not be read for module-knowledge/u);
   assert.equal(store.get("module-knowledge").body, BODY, "and the stored entry is untouched");
 });
+
+/* The store still serves an entry its owner took down, with `archivedAt` set, and the issue that
+   moved project prose here says such an entry is absent (ISS-1650): printed, suggested or carried
+   into a write, a withdrawn body would speak as live. */
+const archived = (slug) => store.set(slug, {
+  id: `k-${slug}`, slug, kind: "rule", title: "Withdrawn", body: "A rule its owner took down.\n",
+  injection: "always", confidence: "verified", authoredBy: "agent", metadata: { issue: "ISS-9" },
+  updatedAt: "2026-09-04T21:00:00.000Z", archivedAt: "2026-09-20T10:00:00.000Z",
+});
+
+test("an archived entry is refused by get the way a slug the store does not hold is", async () => {
+  archived("withdrawn-rule");
+  const run = await ran(["knowledge", "get", "withdrawn-rule"]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^No entry named withdrawn-rule\./mu, run.stderr);
+  assert.doesNotMatch(run.stdout, /A rule its owner took down/u, "the withdrawn body was printed");
+});
+
+test("list prints and counts no archived row, and no suggestion names one", async () => {
+  await created();
+  archived("module-knowledge-old");
+  const run = await ran(["knowledge", "list"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^module-knowledge /mu, run.stdout);
+  assert.doesNotMatch(run.stdout, /module-knowledge-old/u, "an archived row was listed");
+  assert.match(run.stdout, /^1 entry$/mu, "and counted");
+  const near = await ran(["knowledge", "get", "module-knowledge-ol"]);
+  assert.equal(near.status, 1, near.stdout);
+  assert.doesNotMatch(near.stderr, /module-knowledge-old/u, `an archived slug was suggested: ${near.stderr}`);
+});
+
+test("a write over an archived slug carries none of its fields and is a create", async () => {
+  archived("withdrawn-rule");
+  const kindless = await ran(["knowledge", "write", "withdrawn-rule", "-", "--title", "Back"], BODY);
+  assert.equal(kindless.status, 1, kindless.stdout);
+  assert.match(kindless.stderr, /a new entry needs --kind/u, kindless.stderr);
+  assert.deepEqual(upserts(), [], "the archived entry's kind stood in for the one not given");
+  const run = await ran(["knowledge", "write", "withdrawn-rule", "-", "--kind", "reference", "--title", "Back"], BODY);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^created {2}withdrawn-rule/mu, run.stdout);
+  assert.doesNotMatch(run.stdout, /carried from the stored entry/u, run.stdout);
+  const [sent] = upserts();
+  assert.equal(sent.args.injection, undefined, "the archived entry's injection was carried");
+  assert.equal(sent.args.confidence, undefined, "and its confidence");
+  assert.equal(sent.args.metadata, undefined, "and its metadata");
+});

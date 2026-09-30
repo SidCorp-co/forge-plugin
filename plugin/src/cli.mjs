@@ -54,7 +54,7 @@ const PREAMBLE = [
   "  Ordering needs a `blocks` edge — `forge issue ISS-45 --blocks ISS-46` writes one. Prose gates",
   "    nothing, and `forge next --graph` prints what only prose claims under a heading of its own.",
   "  Attach a file rather than pasting it; nested config is replace-not-merge, so read before you",
-  "    patch `pipelineConfig` or `projectFacts`.",
+  "    patch `pipelineConfig`.",
   "  `forge guide` lists the tracker's guides this flow stands behind, and `forge guide contract` is",
   "    this plugin's own, one part per call, which is what holds where it and a guide disagree.",
 ].join("\n");

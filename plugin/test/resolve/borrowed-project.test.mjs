@@ -38,7 +38,7 @@ const MACHINE_RECORD = { slug: "forge-plugin", ship: "ready", drainedBy: "qa-mas
 const standing = (record = MACHINE_RECORD) => {
   const room = projectRoom(tempRoom("borrowed-project-"), machine, record);
   const file = projectEntry(room, machine);
-  state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "independent" }, projectFacts: {} };
+  state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "independent" } };
   state.calls = [];
   return { room, file, bytes: readFileSync(file, "utf8"), home: tempRoom("borrowed-project-home-") };
 };

@@ -1,5 +1,5 @@
-/* The project's own configuration: the two typed resources the tracker keeps per project, reported
-   with the source each key was read from and written one key at a time. Whose the decision is, and
+/* The project's own configuration: the typed resource the tracker keeps per project and this
+   checkout's own file, reported with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
 import { accessSync, constants, readFileSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
@@ -33,11 +33,6 @@ const shown = (value) => {
   return String(value);
 };
 
-/* A fact is a guide a whole prompt carries, so its width and whether it is injected are what a
-   reader acts on; the body itself is the tracker's to hand to an agent. */
-const factShown = (text, key, answer) =>
-  `${String(text ?? "").length} characters${answer?.projectFactsConfig?.[key]?.alwaysInject === true ? ", always-inject" : ""}`;
-
 const RESOURCES = {
   pipeline: {
     said: "the tracker's pipeline configuration",
@@ -48,15 +43,6 @@ const RESOURCES = {
     typed: true,
     shown,
   },
-  fact: {
-    said: "the tracker's project facts",
-    read: "facts",
-    written: "set_facts",
-    keysIn: (answer) => answer?.projectFacts ?? {},
-    bodyFor: (key, value) => ({ projectFacts: { [key]: value } }),
-    typed: false,
-    shown: factShown,
-  },
   project: {
     said: fromProject(),
     local: true,
@@ -66,11 +52,11 @@ const RESOURCES = {
 
 const NAMES = Object.keys(RESOURCES);
 const LOCAL = "project";
-/* The two the tracker answers for: `forge doctor` already reports the third key by key. */
+/* The one the tracker answers for: `forge doctor` already reports the project's own file key by key. */
 const TRACKED = NAMES.filter((name) => !RESOURCES[name].local);
 
-/* A pipeline key is typed and a fact is prose, so the coercion is the resource's: `enabled=false`
-   arriving as the string "false" is a value the tracker's schema drops in silence. */
+/* A pipeline key is typed, so the coercion is the resource's: `enabled=false` arriving as the string
+   "false" is a value the tracker's schema drops in silence. */
 const valueFor = (resource, given) => {
   if (!resource.typed) return given;
   if (given === "true" || given === "false") return given === "true";
@@ -110,11 +96,6 @@ const keySets = (read) =>
   NAMES.map((name) => `${name}: ${name === LOCAL
     ? writablePaths().join(", ")
     : Object.keys(RESOURCES[name].keysIn(read[name])).sort().join(", ") || "nothing set"}`);
-
-const ambiguous = (given, both) =>
-  `--set: \`${given}\` is a key ${both.join(" and ")} both hold, so a bare name says nothing about `
-  + `which one to write and nothing was sent. Name the resource: `
-  + both.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
 
 /* No prefix for the project's row: a route offered for a key nothing reads recommends a second refusal. */
 const unknownKey = (given, read) =>
@@ -165,9 +146,18 @@ const projectRoute = (key) => {
   return { name: LOCAL, key, ...declared };
 };
 
-/* A prefixed key names its resource outright and costs no read — the only way to write a key the
-   project does not hold yet, and the only way to write one both hold, a bare key both answer with
-   routing nowhere: one is a deploy switch, so picking for the caller is wrong half the time. */
+/* Project prose left the configuration resources for the knowledge store, whose entry carries a kind,
+   a title and an injection that a `key=value` has no slot for, so the store's own verb is the one
+   writer of it and `fact.` is refused by name rather than read as an unknown resource. */
+const RETIRED_FACTS = "fact";
+const proseRefused = (key) =>
+  fail(`--set: \`${RETIRED_FACTS}.${key}\` names the tracker's project facts, which it retired: project prose `
+    + "is a knowledge entry now, and one writer owns those. Nothing was sent. Run "
+    + `\`forge knowledge write ${key || "<slug>"} <file.md> --kind K --title T --injection always|on_demand|none\`, `
+    + "and `forge knowledge -h` for the sets each flag takes.");
+
+/* A prefixed key names its resource outright and costs no read, which is the only way to write a key
+   the project does not hold yet. */
 const routeFor = async (given) => {
   /* Before any resource is read: a key this machine owns is refused by name rather than costing a
      tracker round trip that would answer about a project it is not a key of. A name this plugin
@@ -177,6 +167,7 @@ const routeFor = async (given) => {
   const at = given.indexOf(".");
   const head = at > 0 ? given.slice(0, at) : null;
   if (head === LOCAL) return projectRoute(given.slice(at + 1));
+  if (head === RETIRED_FACTS) return proseRefused(given.slice(at + 1));
   if (head && NAMES.includes(head)) return { name: head, key: given.slice(at + 1) };
   if (readsProjectKey(given)) return projectRoute(given);
   const read = await readSettings();
@@ -186,7 +177,6 @@ const routeFor = async (given) => {
       + `key is routed by which resource holds it, so nothing was sent: ${read[refused[0]].refused}`);
   }
   const found = TRACKED.filter((name) => Object.hasOwn(RESOURCES[name].keysIn(read[name]), given));
-  if (found.length > 1) fail(ambiguous(given, found));
   if (!found.length) fail(unknownKey(given, read));
   return { name: found[0], key: given };
 };
