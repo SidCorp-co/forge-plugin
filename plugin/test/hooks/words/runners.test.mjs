@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { unwrapped } from "../../../hooks/_hook.mjs";
+import { shellWrites, unwrapped, writtenPaths } from "../../../hooks/_hook.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
 import { shellOf } from "../../../src/stats/corpus/transcripts.mjs";
 import { answered, callHook, homeEnv } from "../../fixtures.mjs";
@@ -43,10 +43,29 @@ const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "ho
 const HOME = homeEnv("runners");
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 
+/* A shell reads a heredoc on its stdin as its program, whatever word names it (ISS-2928). */
+const fed = (shell, line) => `${shell} <<'EOF'\n${line}\nEOF`;
+
 test("a write inside a body the gates did not open before is refused by learning-gate", () => {
-  for (const runner of ["/bin/bash -c", "ash -c", "bash -o pipefail -c", "/bin/busybox ash -c", "bash --norc -c", "bash -ce"]) {
-    const command = `${runner} 'cp a ${MEMORY}/trap.md'`;
+  const write = `cp a ${MEMORY}/trap.md`;
+  const inline = ["/bin/bash -c", "ash -c", "bash -o pipefail -c", "/bin/busybox ash -c", "bash --norc -c", "bash -ce"]
+    .map((runner) => `${runner} '${write}'`);
+  for (const command of [...inline, ...["bash", "/bin/bash", "dash", "ash"].map((shell) => fed(shell, write))]) {
     const said = answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME));
-    assert.equal(said?.hookSpecificOutput?.permissionDecision, "deny", runner);
+    assert.equal(said?.hookSpecificOutput?.permissionDecision, "deny", command);
+  }
+});
+
+test("a heredoc a shell reads on stdin is commands, whatever word names the shell", () => {
+  for (const shell of ["bash", "/bin/bash", "dash", "ash", "ksh", "/usr/bin/zsh", "/bin/busybox ash", "sh -s"]) {
+    const written = writtenPaths(shellWrites(fed(shell, "cp a /m/memory/x.md")), "/w").map((one) => one.token);
+    assert.ok(written.includes("/m/memory/x.md"), `${shell}: ${JSON.stringify(written)}`);
+  }
+});
+
+test("a heredoc whose reader is no shell the declaration names keeps its body as data", () => {
+  for (const reader of ["cat > deploy.sh", "tee notes.md", "csh"]) {
+    const written = writtenPaths(shellWrites(fed(reader, "cp a /m/memory/x.md")), "/w").map((one) => one.token);
+    assert.ok(!written.includes("/m/memory/x.md"), `${reader}: ${JSON.stringify(written)}`);
   }
 });

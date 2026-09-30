@@ -375,6 +375,9 @@ test("a body a shell runs is commands, whatever names it happens to carry", () =
   assert.equal(decide(`sh <<'SH'\ngrep -rn ${SPAWNING} .\ngit checkout -- a.txt\nSH`).allowed, false);
   assert.equal(decide(`zsh <<'SH'\necho ${NODE_ESCAPE}\n${STAGE_ALL}\nSH`).allowed, false);
   assert.ok(decide(`bash <<'SH'\necho "git ${verb}"\nSH`).allowed, "while a literal there is still an argument");
+  for (const shell of ["/bin/bash", "dash", "ash"]) {
+    assert.equal(decide(`${shell} <<'SH'\ngit ${verb}\nSH`).allowed, false, `${shell} reads its stdin as commands too (ISS-2928)`);
+  }
 });
 
 /* The three shapes counted in the transcripts, and the routes the refusal has to offer instead:

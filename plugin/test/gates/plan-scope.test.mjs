@@ -167,6 +167,14 @@ test("a > in an interpreter's heredoc body is no write, and a redirect on its ow
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
 });
 
+/* ISS-2928: a shell reads a heredoc on its stdin as its program, whichever word names it, so a write there is one the plan answers for. */
+test("a write in a heredoc a shell reads is refused outside the plan, whatever word names the shell", async () => {
+  await scope([["ISS-411", PLAN]]);
+  for (const shell of ["bash", "/bin/bash", "dash", "ash"]) {
+    assert.equal(runs(`${shell} <<'EOF'\necho x > plugin/src/unplanned.mjs\nEOF`).allowed, false, shell);
+  }
+});
+
 /* ISS-2766: a shell fixture moves into a directory it made and writes there. On its own line that
    move leaves the shell in the call's cwd only where it failed, so the write is placed nowhere this
    can read, as it is behind `&&`; a move the text spells still leaves the call's own tree a candidate. */
