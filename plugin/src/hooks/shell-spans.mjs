@@ -489,6 +489,8 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
 
 /** The files a copy, a move or an install into a `-t` directory lands on, a name the command never spells: the directory joined with each source's last name, with the offset of the word naming the directory and the command span it stands in. Only a name carrying one of the extensions `tail` asks for. A span whose sources another command hands over names none, which is `struck`'s to answer. The verb is read where `commandOf` finds it rather than through `WRITES`, which misses a command a list's operator left a blank in front of (ISS-2933). The text is the command as written, since a struck one has already lost the sources. */
 export const landedIn = (text, tail = "[A-Za-z0-9]+") => {
+  /* A span can only match where the whole text does: every span ends at an operator, a comment or the end, none of which the pattern's look-ahead refuses. */
+  if (!TARGETED.test(text)) return [];
   const ending = endingIn(tail);
   const out = [];
   for (const { start, end } of spans(text)) {
