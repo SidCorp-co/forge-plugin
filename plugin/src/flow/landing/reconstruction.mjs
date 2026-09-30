@@ -64,8 +64,6 @@ const RECOVER_THE_BUILDER = (holder) =>
   + `than declaring it unrecoverable: the write reads that builder off the claim history, and keeps this `
   + `checkpoint readable under the one it writes.`;
 
-/* The clause the refusal below carries: the builder the history names, which the late write now
-   names too rather than refusing (ISS-2608). */
 const DERIVED_BUILDER = (subject, holder) =>
   `the claim history on ${subject} names exactly one run that held it while the change was being `
   + `built, \`${holder}\`: a builder the record answers for is derived and not declared`;
