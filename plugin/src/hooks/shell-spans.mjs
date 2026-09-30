@@ -14,8 +14,10 @@ const KEYWORDS = "if|elif|while|until|then|else|do";
 /* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from these two lists, so a word gained here is gained by all of them. `exec` is kept off the wrappers: as the argument of `docker`, `podman` or `kubectl` it names a subcommand whose command runs inside a container, so it counts only where a start stands before it (ISS-2877). */
 const WRAPPING = ["sudo", "command", "nohup", "time", "env"];
 const PREFIXES = `${WRAPPING.join("|")}|${KEYWORDS}|exec`;
-/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader. One reading, so a case a shell word gains is gained by every reader that splits one. */
-const shellWord = (stops) => String.raw`(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s${stops}])+`;
+/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader — a quote or a backslash among those only where nothing closes or follows it. One reading, so a case a shell word gains is gained by every reader that splits one. Each character opens exactly one of the arms, since a pattern spliced in front of something that can fail — a wrapper option's value before a verb that is no write — tries every way of cutting the word it could, and `'a'` read as a run or as three characters doubled the ways with each quoted part. */
+const DOUBLED = String.raw`(?:[^"\\]|\\[\s\S])*`;
+const shellWord = (stops) =>
+  String.raw`(?:'[^']*'|'(?![^']*')|"${DOUBLED}"|"(?!${DOUBLED}")|\\[\s\S]|\\$|[^\s'"\\${stops}])+`;
 /* A wrapper's word with the options it may carry before its command, by its row of the wrappers' table; the value one of them takes is a shell word. */
 const OPTION_VALUE = shellWord(";&|()<>");
 const wrapped = (name) => `${name}${optionsAfter(name, OPTION_VALUE)}`;

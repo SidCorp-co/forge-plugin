@@ -41,3 +41,14 @@ test("a quoted mention of a wrapped write leaves the redirect beside it read", (
     assert.deepEqual(strict(`echo "${lead} touch plugin/skills/x/SKILL.md" > plugin/x.md`), ["plugin/x.md"], lead);
   }
 });
+
+/* An option's value is spliced in front of a verb that may be no write, so each way of cutting it is
+   tried before the answer is no: a value of quoted parts read as runs or as characters doubled that
+   with each part, and eighteen of them held a hook for over a second. */
+test("a wrapper's value of many quoted parts is read in one way, in bounded time", () => {
+  for (const part of ["'a'", '"a"', "'a'\\ "]) {
+    const began = performance.now();
+    assert.equal(WRITES.test(`sudo -p ${part.repeat(18)} true`), false, part);
+    assert.ok(performance.now() - began < 500, `${part}: ${Math.round(performance.now() - began)}ms`);
+  }
+});
