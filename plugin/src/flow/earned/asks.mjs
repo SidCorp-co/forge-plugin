@@ -6,7 +6,7 @@ import { identityAsk, landsOutsideGit, markedLanding, samePlace } from "../recor
 
 /* The identity every ask spends: a commit in git, the mark's landing outside it (ISS-2402). */
 export const identityOf = (view) => markedIdentity(view.issue, view.comments);
-export const idAsk = (view, placeholder) => identityAsk(identityOf(view), placeholder);
+export const idAsk = (view) => identityAsk(identityOf(view));
 
 /* The identity asked of a verdict whose answer has no commit on the record yet: a placeholder sha in
    git, and outside git the landing, which stands before anything is judged. */
