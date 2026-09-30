@@ -24,7 +24,9 @@ const decide = (command) => {
 test("a memory write through an escaped glob bracket is refused as the plain spelling is", () => {
   const plain = decide("echo x | tee /home/dev/.claude/projects/-a1/memory/trap.md");
   const escaped = decide(String.raw`echo x | tee /home/dev/.claude/projects/-a\[1\]/memory/trap.md`);
-  assert.equal(escaped.allowed, false);
-  assert.match(escaped.reason, /Record only what cost a cycle/u, "with the conditions the answer has to meet");
-  assert.equal(escaped.reason, plain.reason);
+  for (const [one, said] of [[plain, "plain"], [escaped, "escaped"]]) {
+    assert.equal(one.allowed, false, said);
+    assert.match(one.reason, /Record only what cost a cycle/u, `${said}, with the conditions the answer has to meet`);
+  }
+  assert.equal(escaped.reason, plain.reason, "and the two refusals are one");
 });
