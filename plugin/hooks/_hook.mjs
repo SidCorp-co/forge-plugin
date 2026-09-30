@@ -352,6 +352,35 @@ const NODE = anyOf([String.raw`child_process`, String.raw`execSync`, String.raw`
 const SPAWNS = anyOf([PYTHON.source, NODE.source]);
 const ESCAPES = { python: PYTHON, python3: PYTHON, node: NODE, deno: NODE, bun: NODE };
 export const spawnsIn = (runner) => ESCAPES[runner] ?? SPAWNS;
+
+/* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
+   read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
+export const LITERALS = /'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/gu;
+
+/** One literal's text as it is handed over, and an inline body's with the shell's quoting taken off: the quoting rule is `WORD`'s below, and this undoes it. */
+export const literal = (one) => {
+  if (/^('''|""")/u.test(one)) return one.slice(3, -3);
+  const inner = one.slice(1, -1);
+  return one.startsWith('"') ? inner.replace(/\\\n/gu, "").replace(/\\(["\\$`])/gu, "$1") : inner;
+};
+
+/* Literals standing next to each other with nothing but whitespace, a comment or a continuation between are one string to python. */
+const ADJACENT = /^(?:\s|#[^\n]*|\\\n)*$/u;
+
+/** The strings a program body hands a shell, each as that shell is given it, or null where it hands none: a shell's own body is its commands already, and a body naming no spawn call its language has hands nothing. how/learning-gate.md. */
+export const handedIn = (body, runner) => {
+  if (SHELL.test(runner) || !spawnsIn(runner).test(body)) return null;
+  const out = [];
+  let last = null;
+  for (const one of body.matchAll(LITERALS)) {
+    const text = literal(one[0]);
+    if (last !== null && ADJACENT.test(body.slice(last, one.index))) out[out.length - 1] += text;
+    else out.push(text);
+    last = one.index + one[0].length;
+  }
+  return out;
+};
+
 export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. how/learning-gate.md. */
@@ -444,14 +473,29 @@ const runnerOf = (all, body) => all.slice(0, all.length - body.length);
 /* Per command, since one event's gates each ask it of the same call and the answer is a string of it alone. */
 const writesOf = new Map();
 
-/* A `>` in a heredoc body a shell does not run is its program's comparison or its data, and never a redirect; a space ends a word wherever it did. */
-const programmed = (body, runner) => (SHELL.test(runner) ? body : body.replace(/>/gu, " "));
+/* Each in a subshell of its own, where the program ran them, since each is its own shell's program: a `cd` in one moves neither the next nor the caller, and one that leaves a quote, a test or an arithmetic open — which its shell refuses — is left out rather than let it read the next one's redirect as data. */
+const PROBE = "forge-probe";
+const closes = (one) => redirectsIn(`${one}\n>${PROBE}`).some(({ target }) => target === PROBE);
+const spawned = (body, runner) => {
+  const given = (handedIn(body, runner) ?? []).filter(closes);
+  return given.map((one) => `\n(\n${one}\n)\n`).join("");
+};
+
+/* A `>` in a heredoc body a shell does not run is its program's comparison or its data, and never a redirect, a space ending a word wherever it did; a string it hands a shell is that shell's command, read ahead of the body so nothing the body leaves open reaches it. */
+const programmed = (body, runner) => (SHELL.test(runner) ? body : spawned(body, runner) + body.replace(/>/gu, " "));
+
+/* An inline body the same, where the null command after its strings takes what followed the body. */
+const inline = (all, runner, body) => {
+  const kept = gluedQuoted(body, runner);
+  const given = spawned(literal(kept), runner);
+  return `${runnerOf(all, body)}${kept}${given && `${given}:`}`;
+};
 
 /** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. A heredoc body and an inline one are folded alike, or a run held on one spelling learns the other. `forge hooks --how writes`. */
 export const shellWrites = (command) => {
   const said = String(command ?? "");
   return memo(writesOf, said, () => shellText(said, (body, at, runner) => programmed(glued(body, runner), runner))
-    .replace(RUNS, (all, runner, body) => `${runnerOf(all, body)}${gluedQuoted(body, runner)}`));
+    .replace(RUNS, inline));
 };
 
 /** What a call wrote through a name the gates cannot resolve, read off the text its own shell runs: a program body is blanked, since its names are its interpreter's, and reading them as the shell's claimed writes out of a regex literal and a docstring (ISS-450). how/writes.md. */

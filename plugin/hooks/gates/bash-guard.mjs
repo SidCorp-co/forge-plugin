@@ -7,7 +7,7 @@ import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { treeNamed } from "../../src/git/tree-named.mjs";
-import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, LITERALS, NOWHERE, RUNS, bodiless, clearNote, deny, gitTreeOf, handedIn, literal, note, noted, remaining, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
@@ -159,28 +159,18 @@ function worktreeCount(cwd) {
   return Math.max(1, said.out.split("\n").filter((line) => line.startsWith("worktree ")).length);
 }
 
-/* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
-   read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
-const QUOTED = /'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/gu;
-
-/* The body as a shell would hand it over — the quoting rule is WORD's in `_hook.mjs`; this undoes it. */
-const bare = (one) => {
-  if (/^('''|""")/u.test(one)) return one.slice(3, -3);
-  const inner = one.slice(1, -1);
-  return one.startsWith('"') ? inner.replace(/\\\n/gu, "").replace(/\\(["\\$`])/gu, "$1") : inner;
-};
-
 /* A handed program keeps its interpreter's position, so it inherits that point's moves: hence the pad. */
 const instructions = (given) => {
   const handed = [];
   const held = (body, at, runner) => {
-    if (SHELL.test(runner) || !spawnsIn(runner).test(body)) return body.replace(QUOTED, " ");
-    handed.push(...[...body.matchAll(QUOTED)].map((one) => ({ text: bare(one[0]), at })));
+    const given = handedIn(body, runner);
+    if (!given) return body.replace(LITERALS, " ");
+    handed.push(...given.map((text) => ({ text, at })));
     return " ";
   };
   const outer = bodiless(given, held).replace(
     RUNS,
-    (all, runner, body, at) => held(bare(body), at, runner) && " ".repeat(all.length),
+    (all, runner, body, at) => held(literal(body), at, runner) && " ".repeat(all.length),
   );
   return { outer, handed };
 };
