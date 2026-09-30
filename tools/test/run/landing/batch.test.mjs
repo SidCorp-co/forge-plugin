@@ -13,7 +13,7 @@ import {
   BASE, BUILDER, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, PAIRED_GATE, RECORD,
   THIRD_BRANCH, THIRD_KEY, THIRD_OWNED, THIRD_UUID, UUID,
   comments, context, ctx, forgetGateRuns, forgetInstall, gateRuns, git, issue, marks,
-  ready, redTogether, seeded, sha, state, strayWrites, tracker, world,
+  ready, redTogether, seeded, sha, state, strayWrites, tracker, unmarked, world,
 } from "./fixture.mjs";
 import { escaped, ranAsync } from "../../../../plugin/test/fixtures.mjs";
 
@@ -216,8 +216,8 @@ test("a set run again after a death before its push rebuilds the same candidate 
   };
   again();
   again(NEXT_UUID);
-  comments().length = 0;
-  comments(NEXT_UUID).length = 0;
+  unmarked();
+  unmarked(NEXT_UUID);
   const said = await ran([KEY, NEXT_KEY], work);
   assert.match(said, new RegExp(`candidate ${built.slice(0, 7)}`, "u"),
     `the same candidate, rebuilt:\n${said}`);
@@ -238,7 +238,7 @@ test("a reconciliation taken in another set is voided and made again at this set
     issue(uuid).sessionContext.landing = {
       ...landing(uuid), state: "reconciled", intended: "", release: "",
     };
-    comments(uuid).length = 0;
+    unmarked(uuid);
   }
   assert.equal(landing().reconciled, gone, first);
   const said = await ran([KEY, NEXT_KEY, THIRD_KEY], work);
@@ -267,8 +267,8 @@ test("a set interrupted between its promoting saves pushes the release it intend
   issue(NEXT_UUID).sessionContext.landing = {
     ...landing(NEXT_UUID), state: "reconciled", intended: "", release: "",
   };
-  comments().length = 0;
-  comments(NEXT_UUID).length = 0;
+  unmarked();
+  unmarked(NEXT_UUID);
   forgetGateRuns();
   const said = await ran([NEXT_KEY, KEY], work);
   assert.ok(said.indexOf(`=== ${KEY}`) < said.indexOf(`=== ${NEXT_KEY}`),
@@ -307,8 +307,8 @@ test("a release the base does not carry recovers nobody, and that member takes i
   issue(NEXT_UUID).sessionContext.landing = {
     ...landing(NEXT_UUID), state: "reconciled", intended: "", release: "",
   };
-  comments().length = 0;
-  comments(NEXT_UUID).length = 0;
+  unmarked();
+  unmarked(NEXT_UUID);
   forgetGateRuns();
   const said = await ran([KEY, NEXT_KEY], work);
   const landed = remote(at);
@@ -333,7 +333,7 @@ test("a release its own landing finished carries the member left behind, off a c
   issue(NEXT_UUID).sessionContext.landing = {
     ...landing(NEXT_UUID), state: "reconciled", intended: "", release: "",
   };
-  comments(NEXT_UUID).length = 0;
+  unmarked(NEXT_UUID);
   const kept = JSON.stringify(context());
   const marked = marks().length;
   forgetGateRuns();
@@ -365,8 +365,8 @@ test("a release nobody installed recovers nobody, and nothing of that member is 
   issue(NEXT_UUID).sessionContext.landing = {
     ...landing(NEXT_UUID), state: "reconciled", intended: "", release: "",
   };
-  comments().length = 0;
-  comments(NEXT_UUID).length = 0;
+  unmarked();
+  unmarked(NEXT_UUID);
   forgetGateRuns();
   forgetInstall();
   const said = await ran([KEY, NEXT_KEY], work);
@@ -407,7 +407,7 @@ test("a key past its push is left out of the set and landed on its own, before a
   assert.equal(landing().state, "records-owed", first);
   /* Its release is on the branch and the mark is all it has left, which is no candidate's business. */
   issue().sessionContext.landing = { ...landing(), state: "installed" };
-  comments().length = 0;
+  unmarked();
   const said = await ran([NEXT_KEY, KEY], work);
   assert.doesNotMatch(said, /as one candidate/u, `no set is formed of the two:\n${said}`);
   assert.ok(said.indexOf(`=== ${KEY}`) < said.indexOf(`=== ${NEXT_KEY}`),

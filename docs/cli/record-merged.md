@@ -42,9 +42,9 @@ without the other.
 A head that exists only on the builder's own branch is no landing, however cleanly git reads it in
 that checkout — which is what a delegated run's own `forge record merged` hit on ISS-1480, marking a
 commit that never reached `origin/master` and walking the issue through three rungs on a landing
-that never happened. `markMerged` still writes whatever note it is handed, being the tracker's own
-write and not this verb's to narrow (`plugin/src/checks/one-writer.mjs` above); the check sits in
-`mergedPrepared` alone, so it never reaches the landing task's own call through `markMerged` — the
+that never happened. `markMerged` takes whatever note it is handed and never asks where its commit
+sits, the ancestry being this verb's question and not the tracker's write (`plugin/src/checks/one-writer.mjs`
+above); the check sits in `mergedPrepared` alone, so it never reaches the landing task's own call through `markMerged` — the
 candidate that call marks is one this checkout only just pushed, and asking it to already be
 `origin/<branch>`'s ancestor would refuse a landing for a fetch that has not happened yet.
 
@@ -64,6 +64,30 @@ anywhere. Three answers:
 Where this checkout has never fetched `origin/<branch>` at all there is no ref to read the ancestry
 off, so none of the above fires and the mark stands exactly as it did before this check existed: the
 tracker's own "a claim Forge did not observe" line is what a reader already sees there.
+
+## The commit travels as the tracker's own field too
+
+The route takes a typed `commit` beside the note, and until ISS-1808 the mark never sent it, so the
+tracker's audit line fell back to the commit it had recorded for the issue's handoff — a sha from
+an earlier round, or none after an unmark — while the note beside it named `--at`. The mark sends
+the commit it names now, from the verb and from the landing task alike, because both reach the
+write through `markMerged`.
+
+The row's commit field is the tracker's and not the note's: it takes only a commit the tracker
+observed for itself, a merge it saw or a repository read it made, and a mark that is a claim
+leaves it empty. Empty is therefore an answer, and the verb says so with the tracker's own sentence
+for the kind of mark it recorded. A field naming a *different* commit is the one disagreement, and
+it is refused after the write with the removal that clears it, because the note and the row would
+otherwise name two commits and nothing would say which to believe.
+
+**A standing stamp refuses the re-mark before it is sent.** The tracker keeps the first stamp a row
+carries and answers a second mark `already_merged`, yet still posts the new note as its audit
+comment, and every reader here takes the latest note as the mark that stands. A mark over a stamp
+naming no commit, or another commit, would leave the two apart the moment it landed, so it is
+refused, naming `--undo` — which the tracker's own answer calls the only correction. A stamp already
+naming the same commit moves nothing a reader relies on, and that mark is written. The landing
+task's resume, finding its own note up, reads the row the same way before it counts the mark as
+done, so a disagreement the write refused is not saved as finished on the second pass.
 
 ## What each clause answers
 

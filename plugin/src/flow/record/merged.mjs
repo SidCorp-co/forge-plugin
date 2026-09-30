@@ -265,13 +265,54 @@ export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [],
 
 const TARGET = "base";
 
-/** The mark, and the audit comment it causes credited in the same breath: the next write to the issue is refused for a comment nothing has read, and every route that causes one clears it. The lease is checked here rather than only at the call site because the landing task marks a merge too, holding a lease this must not renew — a renewal would rewrite the landing state saved a step before it — so a check no caller can reach the write without is a read and not a renewal. `leased` is the caller that renewed a moment ago, whose renewal was that read. */
-export const markMerged = async (documentId, ref, note, { leased = false, landing } = {}) => {
+export const undoForm = (ref) => `forge record merged ${ref} --undo`;
+
+/* One commit where either sha is the other's prefix: the row holds the whole sha, and `--at` may be seven characters of it. */
+const sameCommit = (one, two) => {
+  if (!one || !two) return false;
+  const [held, given] = [String(one).toLowerCase(), String(two).toLowerCase()];
+  return held.startsWith(given) || given.startsWith(held);
+};
+
+const rowOf = (documentId) => scoped("forge_issues", { action: "get", documentId, fields: [] });
+
+/* The tracker keeps the first stamp a row carries and answers a second mark `already_merged`, while the audit comment it writes still carries the new note — which every reader here takes as the mark that stands. So a mark over a stamp naming no commit or another one would leave the note naming one commit and the row another (ISS-1808), and is refused before it is sent. */
+const stampStands = (row, ref, commit) => {
+  if (!row?.mergedAt || sameCommit(row.mergedCommitSha, commit)) return;
+  refuse(`${ref} already carries a merged stamp from ${row.mergedAt}, `
+    + `${row.mergedCommitSha ? `at ${row.mergedCommitSha}` : "naming no commit"}, and the tracker keeps the `
+    + `first stamp, so a mark at ${commit} would post a note the row contradicts: nothing was written. `
+    + `Take the standing stamp down, then mark again:\n  ${undoForm(ref)}`);
+};
+
+/** What the row's commit field holds once a mark at `commit` stands, refused where it names another commit. The column is the tracker's and takes only a commit it observed, so empty is an answer and not a disagreement. Spent after a write and by the landing task before it counts a mark already up as done. */
+export const stampHolds = async (documentId, ref, commit) => {
+  const held = (await rowOf(documentId))?.mergedCommitSha ?? null;
+  if (!held || sameCommit(held, commit)) return held;
+  return refuse(`${ref}'s mark names ${commit} and the row's commit field holds ${held}, the commit the `
+    + `tracker observed landing, so the note and the row name different commits. Take the mark down, `
+    + `and mark again at the commit that landed:\n  ${undoForm(ref)}`);
+};
+
+/* `already_merged` is the tracker keeping the stamp it held; that is agreement only where the stamp it kept names this same commit. */
+const answerKept = async (answer, documentId, ref, commit) => {
+  if (answer?.action !== "already_merged") return;
+  if (sameCommit((await rowOf(documentId))?.mergedCommitSha, commit)) return;
+  refuse(`the tracker answered \`already_merged\` for ${ref}: it kept the stamp it held, while the mark `
+    + `just posted names ${commit}, so the note and the row disagree. Take the mark down and write it `
+    + `again:\n  ${undoForm(ref)}`);
+};
+
+/** The mark, and the audit comment it causes credited in the same breath: the next write to the issue is refused for a comment nothing has read, and every route that causes one clears it. The lease is checked here rather than only at the call site because the landing task marks a merge too, holding a lease this must not renew — a renewal would rewrite the landing state saved a step before it — so a check no caller can reach the write without is a read and not a renewal. `leased` is the caller that renewed a moment ago, whose renewal was that read. A git mark carries its `commit` as the tracker's own field, and answers with what the row's field then holds. */
+export const markMerged = async (documentId, ref, note, { leased = false, landing, commit } = {}) => {
   if (!leased) await notAnothers(documentId, ref);
-  const answer = await write("forge_issues",
-    { action: "mark_merged", data: { issueId: documentId, target: TARGET, note, ...(landing ? { landing } : {}) } });
+  if (commit) stampStands(await rowOf(documentId), ref, commit);
+  const answer = await write("forge_issues", { action: "mark_merged", data: { issueId: documentId,
+    target: TARGET, note, ...(commit ? { commit } : {}), ...(landing ? { landing } : {}) } });
   await creditAfter("the merged mark", [{ ref, documentId }]);
-  return answer;
+  if (!commit) return { answer, held: null };
+  await answerKept(answer, documentId, ref, commit);
+  return { answer, held: await stampHolds(documentId, ref, commit) };
 };
 
 /* `soft` is the caller that has something to say about a refusal the transport would otherwise print
@@ -302,8 +343,6 @@ const landingForm = (ref) => `forge record merged ${ref} --landing '<${LANDING_S
 export const mergedForm = (ref, issue = null) => (landsOutsideGit(issue)
   ? landingForm(ref)
   : `forge record merged ${ref} ${TYPED.map(flagSaid).join(" ")}`);
-
-export const undoForm = (ref) => `forge record merged ${ref} --undo`;
 
 const valueOf = (one, given) => {
   if (one.commit) {
@@ -468,11 +507,17 @@ const undone = async (documentId, ref, said, { next, patch }) => {
   console.log(said);
 };
 
+/* What the row's commit field holds, said beside the note: empty is the tracker writing only a commit it observed, and its own sentence says which kind of mark this call left. */
+const heldSaid = ({ answer, held }) => (held
+  ? `The row's commit field holds ${held}.`
+  : `The row's commit field is empty. The tracker's word on this mark: ${answer?.detail ?? "none given"}`);
+
 const marked = async (documentId, ref, note, clauses, { next, patch }) => {
   await renew(documentId, ref, next, patch);
-  await markMerged(documentId, ref, note, { leased: true });
+  const stamp = await markMerged(documentId, ref, note, { leased: true, commit: clauses.at });
   console.log(`${ref}  marked merged at ${clauses.at}, and \`${clause("moved").said}\` is git's reading `
     + `between ${movedFrom(clauses).sha} and ${clauses.at}: ${pathsSaid(clauses.moved)}. Its note:\n  ${note}`);
+  console.log(heldSaid(stamp));
 };
 
 /* Every flag of the git mark, the three it reads from git or the config included: none of them means
