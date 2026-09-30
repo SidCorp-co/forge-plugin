@@ -149,7 +149,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     /* Only a reservation this attempt took is its to retire: one an abort ended before it took any
        would retire another call's, and the next window would lend that call's room twice. */
     let took = false;
-    let unpredicted = unpredictedIn(key);
+    let unpredicted = null;
     let inFlight = null;
     try {
       bound = within(deadline);
