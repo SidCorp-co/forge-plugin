@@ -95,6 +95,11 @@ test("a ref or commit the shell builds is refused until spelt out, and a redirec
   const escaped = decide(`git update-ref -m land\\ it refs/heads/master ${to}`, repo.side);
   assert.equal(escaped.allowed, false, "an escaped space keeps the reason one word");
   assert.ok(escaped.reason.includes(`checked out at ${repo.main}`), escaped.reason);
+  for (const attached of [`refs/heads/master>/tmp/trace ${to}`, `refs/heads/master ${to}>/tmp/trace`, `refs/heads/master ${to} >`]) {
+    const said = decide(`git update-ref ${attached} /tmp/trace`, repo.side);
+    assert.equal(said.allowed, false, attached);
+    assert.ok(said.reason.includes(`checked out at ${repo.main}`), said.reason);
+  }
   for (const redirect of ["2>/tmp/trace", "2> /tmp/trace", "2>&1", "</dev/null"]) {
     const traced = decide(`git update-ref ${redirect} refs/heads/master ${to}`, repo.side);
     assert.equal(traced.allowed, false, redirect);

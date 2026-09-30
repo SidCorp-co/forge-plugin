@@ -6,23 +6,37 @@ import { canonical } from "../resolve/canonical.mjs";
 import { gitProbe, probeMs } from "../hooks/git-probe.mjs";
 import { NOWHERE, QUOTED, spelled, wordsOf } from "../hooks/shell-spans.mjs";
 
-/* An operator whose target is the next word; any other word carrying an unquoted `<` or `>` is a whole
-   redirect, `>out` and `2>` before `&1` alike, and neither is an operand. */
+/* A redirect's operator, which takes the next word as its target when nothing is attached to it. */
 const OPERATOR = /^\d*(?:<<<|<>|>>|>\||[<>])$/u;
-const redirects = (word) => /[<>]/u.test(word.replace(QUOTED, ""));
 const VALUED = new Set(["-m"]);
+
+/* The command's words with every redirect and its target taken out: a word the shell splits at an unquoted
+   `<` or `>` keeps what stands before it, `master>out` being `master`, unless that is an fd's digits. */
+const operandWords = (rest) => {
+  const raw = wordsOf(String(rest)).map(([word]) => word);
+  const kept = [];
+  for (let at = 0; at < raw.length; at += 1) {
+    const cut = raw[at].replace(QUOTED, (span) => "_".repeat(span.length)).search(/[<>]/u);
+    if (cut === -1) {
+      kept.push(raw[at]);
+      continue;
+    }
+    const before = raw[at].slice(0, cut);
+    if (before && !/^\d+$/u.test(before)) kept.push(before);
+    if (OPERATOR.test(raw[at].slice(/^\d+$/u.test(before) ? 0 : cut))) at += 1;
+  }
+  return kept;
+};
 
 /** The operands and the two forms that change what they mean, off what follows `update-ref`. */
 const updateRefOf = (rest) => {
-  const words = wordsOf(String(rest)).map(([word]) => word);
+  const words = operandWords(rest);
   const operands = [];
   const flags = new Set();
   let past = false;
   for (let at = 0; at < words.length; at += 1) {
     const word = spelled(words[at]);
-    if (OPERATOR.test(words[at])) at += 1;
-    else if (redirects(words[at])) continue;
-    else if (!past && word === "--") past = true;
+    if (!past && word === "--") past = true;
     else if (!past && word.startsWith("-")) {
       flags.add(word);
       if (VALUED.has(word)) at += 1;
