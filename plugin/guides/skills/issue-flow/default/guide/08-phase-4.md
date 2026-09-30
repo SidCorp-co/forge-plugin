@@ -9,6 +9,9 @@ Otherwise one branch cut from the project's actual default branch, named for the
 more than one session works the same checkout, each takes its own worktree. Capture it — `forge
 claim <ref> --pushed` — before the status moves and again at each push, so the branch is on the
 record and not only in this shell. What `in_progress` reads: `forge guide contract in_progress`.
+A default branch checked out in a tree this run does not own is landed by the checkpoint, `forge
+claim ISS-nn --pushed --ready`, and never by moving its ref, a move `bash-guard` refuses with the
+paths it would leave stale.
 
 **A file the plan does not name is a correction**, posted before you write it: the mark's note says
 what the landing wrote, and `developed` refuses a path in it that neither the plan nor a correction

@@ -9,6 +9,7 @@ import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { treeNamed } from "../../src/git/tree-named.mjs";
 import { GIT_GLOBALS, LITERALS, NOWHERE, RUNS, bodiless, clearNote, deny, gitTreeOf, handedIn, literal, note, noted, remaining, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
+import { refMoveIn } from "../../src/git/ref-move.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
 const GIT = String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS;
@@ -41,6 +42,8 @@ const movesTheStash = (one) => {
   const next = /^\s*["']?([\w-]*)/u.exec(rest)[1];
   return !LEAVES_BOTH.has(next);
 };
+
+const UPDATE_REF = new RegExp(`${GIT}["']?update-ref["']?(?![\\w-])(.*)$`, "u");
 
 /* Each rule's `instead` is a sentence of its own, and the refusal leads with it after a dash. */
 const lead = (text) => text.charAt(0).toLowerCase() + text.slice(1);
@@ -266,6 +269,17 @@ export const run = (ev) => {
     const full = { lead: `Refused — ${lead(instead)}${unsure}`, body: cause };
     const shape = `\`${spanOf(hit.said)}\`: ${lead(instead)}${unsure}`;
     deny(sayOnce(readerKey(ev), "bash-guard", full, { route: topic || "bash-guard", shape, cause: `bash-guard/${name}` }));
+  }
+
+  /* A ref moved under a checked-out tree: judged per tree the call could run in, since each is its own repository. */
+  for (const one of run) {
+    const rest = UPDATE_REF.exec(one.said)?.[1];
+    if (rest === undefined) continue;
+    const said = treesOf(one, ev.cwd).map((tree) => refMoveIn(rest, tree, remaining)).find(Boolean);
+    if (!said) continue;
+    const full = { lead: `Refused — ${lead(said.instead)}`, body: said.cause };
+    const shape = `\`${spanOf(one.said)}\`: ${lead(said.instead)}`;
+    deny(sayOnce(readerKey(ev), "bash-guard", full, { route: "bash-guard", shape, cause: "bash-guard/ref-move" }));
   }
 
   const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");
