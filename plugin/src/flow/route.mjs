@@ -10,6 +10,7 @@ import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { headNow } from "./worklog.mjs";
 import { freshForm } from "./earned/baseline.mjs";
+import { unreadId } from "./earned/asks.mjs";
 import { citeForm, declaredGate, everPublished, publishedPath } from "./earned/published.mjs";
 import {
   BASELINE_AT,
@@ -205,7 +206,7 @@ const OUTCOME_OWED = {
     return [need(
       "the triage rules the criterion not met, and no failing verdict since it"
         + `${named ? ` on criterion ${named}, which the finding names,` : ""} supersedes the passing one`,
-      `forge record verdict ${ref} --criterion ${named || "<n>"} --verdict fail --commit <sha> --evidence <attachment|url|sha>`,
+      `forge record verdict ${ref} --criterion ${named || "<n>"} --verdict fail ${unreadId(view)} --evidence <attachment|url|sha>`,
     )];
   },
 };
@@ -265,7 +266,7 @@ export const credentialAhead = (view, ref) => {
 `
     + `arrives, or, where none is ever coming, a correction of the criterion in the open instead:
 `
-    + `  forge record verdict ${ref} --commit <sha> --criterion <n> --verdict skipped --why "<which credential>"
+    + `  forge record verdict ${ref} ${unreadId(view)} --criterion <n> --verdict skipped --why "<which credential>"
 `
     + `  ${correctedForm(ref, "<n>")}
 `
