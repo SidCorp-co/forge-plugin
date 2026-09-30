@@ -123,7 +123,7 @@ export const feedback = async (argv) => {
   const after = onThisRepository()
     ? proposeAtFiling({ title, body: read.description, kind }, absentIn({}))
     : proposedElsewhere(PROJECT);
-  return fileAndSay({ ...asked, fresh, relations, page, soft: true, module },
+  return fileAndSay({ ...asked, read, fresh, relations, page, soft: true, module },
     { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost, after });
 };
 

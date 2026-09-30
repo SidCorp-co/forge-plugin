@@ -10,7 +10,7 @@ import { sentences } from "../checks/duplication.mjs";
 import { COMPLEXITY_NAMES, FIX, MARK_LINE, complexityFor, belowTop, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean, suggest } from "../suggest.mjs";
-import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
+import { MAX_LIMIT, distinctKeysIn, everyIssue, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
 import { partsIn, prefixesOf } from "./filing/parts.mjs";
 import { NO_LONGER_OWES } from "../flow/earned/park-status.mjs";
@@ -428,9 +428,6 @@ export const asksOf = ({ title, body, kind = null }) => {
   return { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
 };
 
-/** The keys a body names. Apart from `asksOf`: ranking a head reads the place and the seed, never these. */
-const keysOf = (body) => [...new Set(keysIn(body))];
-
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
  *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.
  *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md;
@@ -439,7 +436,8 @@ export const shapeOf = ({ title, body, kind = null, complexity = null },
   { everySection = false, prefixes = [] } = {}) => {
   const text = String(body ?? "");
   const written = text.replace(MARK_LINE, "").trim();
-  const asks = { ...asksOf({ title, body: text, kind }), keys: keysOf(text) };
+  /* The keys apart from `asksOf`: ranking a head reads the place and the seed, never these. */
+  const asks = { ...asksOf({ title, body: text, kind }), keys: distinctKeysIn(text) };
   if (!written) {
     return { ...asks, gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "
       + "what is true after the change, the rule that says so, and what is out of scope",
