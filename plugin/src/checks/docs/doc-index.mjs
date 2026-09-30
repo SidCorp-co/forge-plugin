@@ -18,12 +18,20 @@ export const LEAD_MAX = 800;
 const REQUIREMENTS = /^docs\/requirements\//u;
 const uncapped = (rel) => rel === INDEX || REQUIREMENTS.test(rel);
 
+/* The document kept whole, and where the reason it has no room for goes: a hooks topic already has a
+   row in the CLI index, as the refusal log does, so halving the file is not the split it owes. */
+const KEPT_WHOLE = { "docs/HOOKS.md": `a topic of its own under docs/cli/ with its row in ${INDEX}` };
+const keptWhole = (rel) => Object.hasOwn(KEPT_WHOLE, rel);
+
 export const overCap = (docs, max = TOPIC_MAX) =>
   docs
     .filter(({ rel, chars }) => !uncapped(rel) && chars > max)
     .map(({ rel, chars }) => `${rel} is ${chars} characters, over the ${max} a topic is read in one`
-      + " pass — split it and give each half its own index row. The cap is the round number above"
-      + " docs/HOOKS.md, the one document this repository keeps whole");
+      + (keptWhole(rel)
+        ? ` pass — it is the one document this repository keeps whole and the cap is the round number`
+          + ` above it, so the split it owes is the reason just added, moved out to ${KEPT_WHOLE[rel]}`
+        : " pass — split it and give each half its own index row. The cap is the round number above"
+          + " docs/HOOKS.md, the one document this repository keeps whole"));
 
 /* Nothing about the seam or about cutting: where the halves divide is the document's owner's
    judgement, and a checker cannot tell a trimmed restatement from a trimmed reason. */
@@ -31,8 +39,10 @@ export const nearCap = (docs, { max = TOPIC_MAX, margin = TOPIC_MARGIN } = {}) =
   docs
     .filter(({ rel, chars }) => !uncapped(rel) && chars > max - margin && chars <= max)
     .map(({ rel, chars }) => `${rel} is ${chars} characters, ${max - chars} short of the ${max}`
-      + ` cap and inside its ${margin}-character margin — the next decision written here is owed the`
-      + " split, each half with its own index row");
+      + ` cap and inside its ${margin}-character margin — `
+      + (keptWhole(rel)
+        ? `it is kept whole, so the split the next decision written here owes is that decision as ${KEPT_WHOLE[rel]}`
+        : "the next decision written here is owed the split, each half with its own index row"));
 
 const ROW = /^\|/u;
 const LINK = new RegExp(LINK_TARGET_PATTERN, "u");

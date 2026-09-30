@@ -1,15 +1,17 @@
 # The hooks — what they share, and how to write one's message
 
-What is true of every gate here. One gate's own document is `forge hooks --how <hook>`, the wiring is
-`plugin/hooks/hooks.json`, and the global/project division has its own reference in the issue-flow
-skill.
+What is true of every gate here. One gate's own document is `forge hooks --how <hook>`, the wiring
+`plugin/hooks/hooks.json`, the global/project division `docs/two-levels.md`. This file is kept whole,
+the topic cap fitted to it: a new reason about the hooks is a topic of its own under `docs/cli/`,
+with its row in `docs/FORGE-CLI.md`.
 
 ## Which files a call wrote
 
-The file hooks watched `Write`, `Edit` and `MultiEdit` and nothing else, so every edit made through the
-shell passed all of them unseen — under a permission mode that encourages Bash, the main road rather
-than an edge case. What counts as a write is one document — `forge hooks --how writes` — because seven
-gates decide by it, and a second account here would diverge the first time one of them was corrected.
+The file hooks watched `Write`, `Edit` and `MultiEdit` and nothing else, so every edit made through
+the shell passed all of them unseen — under a permission mode that encourages Bash, the main road
+rather than an edge case. What counts as a write is one document — `forge hooks --how writes` —
+because several gates decide by it, and a second account here would diverge the first time one was
+corrected.
 
 ## Which tree a command runs in
 
@@ -21,7 +23,7 @@ direction: a clean checkout stands the rules down and nothing is refused.
 ## Writing a refusal, and the document behind it
 
 Both are literals in their hook, never loaded from a file: the wording belongs beside the decision
-that produces it, and a message assembled somewhere else drifts from what the code actually refused.
+that produces it, and a message assembled somewhere else drifts from what the code refused.
 
 **A refusal:** one action first, then what was refused and the rule in one clause, `How: forge hooks
 --how <hook> (cause: …)`, and the line the runner appends. Nothing else: it lands in a context window every call.
@@ -65,7 +67,7 @@ The shape, four rules of it enforced by the suite:
 - How to clear it, and how to work through it: what to re-send, what counts as an answer, how often it
   asks, and what to do with a refusal you believe is wrong.
 - `Not judged: …` on its own line, so nobody over-complies with a gate that was never asking.
-- Under 1,300 characters all in; they average 1,128.
+- Under 1,300 characters all in.
 - No absolute path, nothing under `docs/`, and nothing that restates or explains code — only `plugin/`
   travels into an installed copy, and mechanics belong to `-h` and to the source.
 
@@ -76,8 +78,8 @@ the pointer and reached by the same `--how`. The switch stays the gate's: turnin
 refusals with it, and the page says so.
 
 Cut arguments freely and check every instruction against the code: one pass of that cutting shipped
-five wrong or missing claims — a lost `/dev/` exclusion, a stand-down described as something else, two
-harms collapsed into one sentence — and a diff review caught all five.
+five wrong or missing claims, a lost `/dev/` exclusion among them, and a diff review caught all
+five.
 
 ## One process per event
 
@@ -97,10 +99,10 @@ session does not show. Why it lets the call through while the CLI's verbs refuse
 clock bounds every tracker call a gate makes, retries included.
 
 Those solo lines sit in `entries/` rather than beside the runner because one directory holding the
-harness, the runner and a line per gate is a list and not a shape — the width check says so at eleven
-files. `link-cli.mjs` stays beside the runner: it is no gate, it has no text under `gates/`, and a
-person is told to run it by that path after a fresh install. The switchable names are therefore read
-off both directories, which is why nothing keeps a list of them.
+harness, the runner and a line per gate is a list and not a shape. `link-cli.mjs` stays beside the
+runner: it is no gate, it has no text under `gates/`, and a person is told to run it by that path
+after a fresh install. The switchable names are therefore read off both directories, which is why
+nothing keeps a list of them.
 
 ## Every hook can be switched off, one at a time
 
@@ -133,7 +135,7 @@ shapes are masked first, and why: `docs/cli/the-refusal-log.md`.
 
 ## A claim in a project's own CLAUDE.md is checked where it is written
 
-`forge doctor` has checked those claims for a while, and doctor is run when someone already suspects
+`forge doctor` has checked those claims, and doctor is run when someone already suspects
 something. `claude-md` moves the same check to the write, beside `code-quality`, both answering for
 bytes a call has just put on disk. The baseline is the committed file, so a repository inherited wrong
 still gets the edit that fixes it — a gate that fires over someone else's sentence gets switched off.
