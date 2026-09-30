@@ -62,10 +62,8 @@ const unlanded = (ref, landing, head, read) => {
     + `${settle(read)}  forge claim ${ref} --landed`;
 };
 
-/* What each state this write does not end names instead, since a refusal ending at the resume sends
-   a run to read what the refusal already knew (ISS-2526). No checkpoint at all is a landing nobody
-   captured, whose record is the late write where the branch carries it (ISS-2608); a finished one
-   gives way to a second landing by one of two routes; every other state is a landing under way. */
+/* Out of each state this write does not end (ISS-2526): none at all is a landing nobody captured,
+   recorded by the late write (ISS-2608); `done` gives way to a second landing; the rest are under way. */
 const outOf = (ref, landing) => {
   if (!landing) {
     return `. There is no checkpoint to end: where the change is already on the branch it lands on, the `

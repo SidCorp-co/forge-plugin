@@ -310,8 +310,7 @@ const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 /** A verdict field's key, spelt once for its writer and its reader: `record/judged/carried.mjs`. */
 export const CARRIES = "carries";
 
-/** The same for the deployment the landing checkpoint names: the commit a verdict cites carries it,
- *  as the write read it (ISS-2587). */
+/** The deployment stamp's key: `record/judged/carried.mjs` writes it and `qa/verdicts.mjs` reads it. */
 export const CARRIES_DEPLOYMENT = "carries-deployment";
 
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or

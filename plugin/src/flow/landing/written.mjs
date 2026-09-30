@@ -59,8 +59,7 @@ export const rebuiltCheckpoint = (ref, holder, head,
       + `identity it judged: name the deployment, or say the change reached none and the head is `
       + `what its verdicts answer to:\n  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
-  /* The identity is compared with the commits a verdict cites, so a deployment's own id could match
-     none of them and every verdict on the issue would be refused for good (ISS-2918). */
+  /* Refused for the reason `blockOf` in checkpoint.mjs gives (ISS-2918). */
   if (notACommit(deployment)) {
     fail(`claim --rebuilt --deployment takes the commit the deployment reports serving, of 7 to 40 hex `
       + `digits, and \`${deployment}\` is not one: a verdict cites a commit, so an identity no commit `
