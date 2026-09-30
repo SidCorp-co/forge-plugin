@@ -130,10 +130,30 @@ test("an attempt that ran out on a single try carries the account after its own 
     value.refused);
 });
 
+test("a transport error under the process's clock reads as its own words, with no account after them", async () => {
+  const value = await isolated(async () => {
+    throw new Error("ECONNRESET");
+  }, async () => {
+    boundedBy(() => 5_000, CLOCK);
+    return read({ once: true });
+  });
+  assert.match(value.refused, /^Forge did not answer GET \S+: ECONNRESET$/u, value.refused);
+  assert.doesNotMatch(value.refused, / held /u, value.refused);
+});
+
 test("a process that names no clock writes its refusals without the account", async () => {
   const value = await isolated((url, init) => stalled(init), async () => read({ once: true, waits: 0.05 }));
   assert.match(value.refused, /ran out after 0\.05s \(the caller's own deadline\)$/u, value.refused);
   assert.doesNotMatch(value.refused, / held /u);
+});
+
+test("an attempt that ran out on its caller's own deadline under a clock with room left carries no account", async () => {
+  const value = await isolated((url, init) => stalled(init), async () => {
+    boundedBy(() => 5_000, CLOCK);
+    return read({ once: true, waits: 0.05 });
+  });
+  assert.match(value.refused, /ran out after 0\.05s \(the caller's own deadline\)$/u, value.refused);
+  assert.doesNotMatch(value.refused, / held /u, value.refused);
 });
 
 test("time spent by overlapping spans of one kind is counted once", async () => {
