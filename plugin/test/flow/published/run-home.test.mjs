@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempHome } from "../../fixtures.mjs";
+import { typedBack } from "../../../src/refusal.mjs";
 
 const machine = tempHome("published-machine").path;
 const run = tempHome("published-run").path;
@@ -59,7 +60,7 @@ test("a borrowing home publishes nothing into either store, and names the shell 
   assert.equal(readFileSync(MACHINE_STORE, "utf8"), machineHeld, "the machine's store was written");
   assert.equal(existsSync(RUN_STORE), false, "a publication nobody reads back went into the run's home");
   const said = publishedSaid(BORROWED, OTHER);
-  assert.ok(said.includes(`FORGE_BORROW_FROM= XDG_CONFIG_HOME=${machine} and the same command`), said);
+  assert.ok(said.includes(`FORGE_BORROW_FROM= XDG_CONFIG_HOME=${typedBack(machine)} and the same command`), said);
   assert.equal(publish(HEAD), HELD, "a head the machine's store holds is held rather than refused");
   assert.ok(publishedSaid(HELD, HEAD).includes(MACHINE_STORE), "the held line does not name the store it read");
   assert.equal(readFileSync(MACHINE_STORE, "utf8"), machineHeld);
