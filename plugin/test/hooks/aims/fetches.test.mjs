@@ -57,3 +57,31 @@ test("a file a download verb writes through any of its options counts as a write
     "wget --output-filed h.md https://x",
   ]) assert.equal(WRITES.test(command), false, `${command} names an option that writes no file of its own`);
 });
+
+/* A download verb reads its short options as a cluster, and the first letter taking a value takes the
+   rest of the word or, where nothing is left, the next one. Read as a letter standing straight after
+   the hyphen, the spellings a download is most often written in were no write at all, so a guarded
+   file fetched with `curl -fsSLo` went past every gate (ISS-2958). */
+test("a download verb's output option counts wherever it stands in a cluster of short options", () => {
+  const cases = [
+    ["curl -sSo f.md http://x", "f.md"],
+    ["curl -fsSLo SKILL.md http://x", "SKILL.md"],
+    ["curl -sSof.md http://x", "f.md"],
+    ["wget -qO f.md http://x", "f.md"],
+    ["wget -qOf.md http://x", "f.md"],
+  ];
+  /* One table and one comparison, so a red reading shows every spelling that failed and not only the first. */
+  const tokens = (command, unplaceable) => writtenPaths(command, room, undefined, { unplaceable }).map((one) => one.token);
+  assert.deepEqual(
+    cases.map(([command]) => [command, WRITES.test(command), tokens(command), tokens(command, "strike")]),
+    cases.map(([command, name]) => [command, true, [name], [name]]),
+    "each counts as a write naming its file, under the strict reading as under the default",
+  );
+});
+
+/* Run here, curl 8.18 wrote a file called `oh.md` for `-sDoh.md` and nothing for `-sHoq`: the letters
+   behind `D` and `H` are the value each takes, so neither `o` is the output option. */
+test("a letter behind a short option that takes a value is that value, not an option of its own", () => {
+  assert.deepEqual(writtenPaths("curl -sDoh.md http://x", room).map((one) => one.token), ["oh.md"]);
+  assert.equal(WRITES.test("curl -sHoq http://x"), false, "a header's value is no output");
+});
