@@ -122,13 +122,13 @@ const COMMENT_CLOSER = [/(["'\x60])\*\/\1/u];
    a copy. What it cannot see: the cut spelled as `substring`, or more than 120 characters from the hash. */
 const SHORT_SHA1 = [/createHash\(["'\x60]sha1["'\x60]\)[\s\S]{0,120}?\.digest\(["'\x60]hex["'\x60]\)\s*\.slice\(0,\s*16\)/u];
 /* A directory aged out by hand: an entry's age judged and the removal taken in one statement, in the
-   two spellings the tree held — the mtime read inline, and a bound named for a duration closing the
-   condition, however the age was reached. ISS-1842 gave the sweep no row because this shape also caught
+   two spellings the tree held — the mtime read inline, and an age read through a helper or the clock
+   held to a bound named for a duration. ISS-1842 gave the sweep no row because this shape also caught
    the two copies still standing; ISS-2931 folded them. What it cannot see: a removal on a statement of
-   its own, or an age held to a bound whose name is not `*_MS` and read through a helper. */
+   its own, or an age read through a helper named for something else, or held to a bound not named `*_MS`. */
 const SWEEP_FORMS = [
   /mtimeMs[^;\n]{0,60}\)\s*(?:rmSync|unlinkSync)\(/u,
-  /[<>]=?\s*[A-Z][A-Z_]*_MS\)\s*(?:rmSync|unlinkSync)\(/u,
+  /(?:\bage\w*|\w+Age\w*|Date\.now\(\))[^;\n]{0,60}[<>]=?\s*[A-Z][A-Z_]*_MS\)\s*(?:rmSync|unlinkSync)\(/u,
 ];
 /* `vendor/` is a copy of `packages/code-quality/`, which a plugin directory cannot import from. */
 const VENDORED = ["plugin/hooks/vendor/lint-edited-file.mjs"];
@@ -267,6 +267,8 @@ test("a removal taken on anything but an entry's age is not re-declaring the swe
     { rel: "g1.mjs", text: "if (kept.length > MAX_KEPT) rmSync(oldest, { force: true });" },
     { rel: "g2.mjs", text: "if (attempts >= 3) rmSync(lock, { force: true });" },
     { rel: "g3.mjs", text: "if (statSync(at).size > LIMIT) unlinkSync(at);" },
+    { rel: "g4.mjs", text: "if (attempts >= RETRY_MS) rmSync(lock, { force: true });" },
+    { rel: "g5.mjs", text: "if (pageCount(one) > WAIT_MS) rmSync(one);" },
   ];
   assert.deepEqual(redeclared(cases), []);
 });
