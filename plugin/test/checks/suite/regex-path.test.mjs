@@ -58,6 +58,9 @@ const BORROWED = "import { tempRoom } from \"../fixtures.mjs\";\nconst work = te
 const REPO = "const repo = () => {\n  const room = join(tmpdir(), \"r\");\n"
   + "  const as = (...args) => spawnSync(\"git\", [\"-C\", room, ...args]);\n"
   + "  return { room, as, at: as(\"rev-parse\").stdout };\n};\n";
+/* Shaped like the consult ISS-2861 met: the answer's `paths` holds the path, its `status` a number. */
+const ANSWER = "const consulted = async () => {\n  const paths = [join(tmpdir(), \"plan.md\")];\n"
+  + "  return { paths, status: 0 };\n};\nconst run = await consulted();\n";
 const UNREAD = "import { tempRoom } from \"../fixtures.mjs\";\nconst { work, as } = made(tempRoom(\"x\"));\n";
 
 /* One per route a path takes to an interpolation, because a rule reaching one of them reads exactly
@@ -82,6 +85,9 @@ const REFUSED = {
   "a path an object literal joined by an operator answers": `const { room } = { room: "unused" } && { room: tmpdir() };\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
   "a path bound off a quoted key of its own property": `${REPO}const { "room": dir } = repo();\nassert.match(said, new RegExp(\`in \${dir}\`, "u"));\n`,
   "a path an accessor answers, which the check does not read": `const make = () => ({ get room() { return tmpdir(); } });\nconst { room } = make();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
+  "a path read off its own property of an answer, as one name": `${ANSWER}const plan = run.paths;\nassert.match(said, new RegExp(\`in \${plan}\`, "u"));\n`,
+  "a path read off its own property of an answer, taken by position": `${ANSWER}const [plan, criteria] = run.paths;\nassert.match(said, new RegExp(\`in \${criteria}\`, "u"));\n`,
+  "a property read off a path whose source nothing here can read": `${UNREAD}const plan = work.paths;\nassert.match(said, new RegExp(\`in \${plan}\`, "u"));\n`,
   "a name taken by position off a path-making source": `const [work, n] = [tmpdir(), 1];\nassert.match(said, new RegExp(\`over \${n}\`, "u"));\n`,
 };
 
@@ -110,6 +116,7 @@ const ACCEPTED = {
   "a whole concatenation put through the escape": `${MADE}const at = tmpdir();\nassert.match(said, new RegExp(\`in \${escaped(at + work)}\`, "u"));\n`,
   "a whole pattern put through the escape, interpolation and all": `${MADE}assert.match(said, new RegExp(escaped(\`^\${work}$\`), "u"));\n`,
   "a sha destructured off a function whose nested helper returns a string of its own": `const repo = () => {\n  const sha = () => { return "abc"; };\n  function name() { return "x"; }\n  if (ok) { return { room: tmpdir(), at: sha() }; }\n  return { room: tmpdir(), at: "return" };\n};\nconst { at } = repo();\nassert.match(said, new RegExp(\`at \${at}\`, "u"));\n`,
+  "a sibling property read off an answer whose path is another property": `${ANSWER}const status = run.status;\nassert.match(said, new RegExp(\`exit \${status}\`, "u"));\n`,
   "the same name, a path in one block and a count in the next": `test("one", () => {\n${MADE}assert.match(said, new RegExp(\`in \${escaped(work)}\`, "u"));\n});\ntest("two", () => {\n  const work = rows.length;\n  assert.match(said, new RegExp(\`over \${work} rows\`, "u"));\n});\n`,
 };
 

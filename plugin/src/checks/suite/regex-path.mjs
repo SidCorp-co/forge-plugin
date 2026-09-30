@@ -27,6 +27,9 @@ const JOINED = /`[^`]*\$\{|["']\s*\+|\+\s*["']/u;
 
 const DECLARED = /\b(?:const|let|var)\s+(?:([A-Za-z_$][\w$]*)|[{[]([^}\]]*)[}\]])\s*=\s*/gu;
 
+/** A right-hand side that is one property read off one name, and nothing after it. */
+const MEMBER = /^\s*([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\s*$/u;
+
 /** Comments out, every literal left standing: where a name got its value is read through them. */
 const uncommented = (text) => maskOf(text, { blank: COMMENTS });
 
@@ -63,7 +66,8 @@ const siteAt = (code, one) => {
 /* A binding answers for a name between its declaration and the brace closing the block it stands
    in, so one test's `work` from join() and another's `work` from a count are two bindings. A name
    destructured is a path when its own property is one (ISS-2539); where what it came from cannot be
-   read, it is a path as a value and not a maker of one, a sibling saying nothing of what it returns. */
+   read, it is a path as a value and not a maker of one, a sibling saying nothing of what it returns.
+   A name bound to `run.paths` is read the same way, by `paths` in what `run` was given (ISS-2861). */
 const declarations = (text, borrowed) => {
   const code = uncommented(text);
   const braces = blanked(text);
@@ -78,8 +82,7 @@ const declarations = (text, borrowed) => {
     const here = (name) => reads(name, one.at);
     return /^[A-Za-z_$][\w$]*$/u.test(value) ? here(value) : makesAPath(value, here, (name) => calls(name, one.at));
   }).map((one) => one.key));
-  const shapeFor = (site) => {
-    if (!site.object) return null;
+  const answerKeys = (site) => {
     if (code.slice(site.at, site.to).trim().startsWith("{")) {
       const entries = shapeOf(code, site.at, site.to);
       return entries && pathKeys(entries);
@@ -89,6 +92,14 @@ const declarations = (text, borrowed) => {
     if (local) return local.shape && pathKeys(local.shape);
     return callee && borrowed.has(callee) ? borrowed.get(callee) ?? null : null;
   };
+  const shapeFor = (site) => (site.object ? answerKeys(site) : null);
+  const memberPath = (rhs, at) => {
+    const member = MEMBER.exec(rhs);
+    if (!member || !reads(member[1], at)) return false;
+    const owner = sites.findLast((one) => one.one && one.pairs[0].name === member[1] && one.at < at && at < one.until);
+    const keys = owner ? answerKeys(owner) : null;
+    return keys ? keys.has(member[2]) : true;
+  };
   let moved = true;
   while (moved) {
     moved = false;
@@ -97,7 +108,7 @@ const declarations = (text, borrowed) => {
       const rhs = code.slice(site.at, site.to);
       const keys = shapeFor(site);
       for (const { key, name } of site.pairs) {
-        if (keys ? (key === null ? keys.size > 0 : keys.has(key)) : makesAPath(rhs, (word) => reads(word, site.at), (word) => calls(word, site.at))) {
+        if (keys ? (key === null ? keys.size > 0 : keys.has(key)) : makesAPath(rhs, (word) => reads(word, site.at), (word) => calls(word, site.at)) || memberPath(rhs, site.at)) {
           site.values.add(name);
           if (keys || site.one) site.calls.add(name);
         }

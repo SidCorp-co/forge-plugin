@@ -105,7 +105,7 @@ test("a plan and criteria pair outside the checkout is sent as a proposal, and t
   assert.ok(section, run.opening);
   assert.ok(section.includes(plan), "the plan is named in the section");
   assert.ok(section.includes(criteria), "the criteria file is named in the section");
-  assert.match(run.said, new RegExp(`2 of them read as a proposal for work not yet done \\(${plan}, ${criteria}\\)`, "u"));
+  assert.ok(run.said.includes(`2 of them read as a proposal for work not yet done (${plan}, ${criteria})`), run.said);
   assert.deepEqual(run.row.proposal, [plan, criteria]);
 });
 
