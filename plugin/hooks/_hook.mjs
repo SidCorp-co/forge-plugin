@@ -449,13 +449,15 @@ const past = (text) => {
 };
 
 /** Each point a program runs one, from there on, its own quotes off: a quoted span holds no start.
- *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`. */
+ *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`.
+ *  The span is masked with a character that is neither a blank nor a word's, so a start's own blanks
+ *  stop at it rather than running across a quoted program: `'rm' -rf /` is still `rm` (ISS-2933). */
 export const startsAt = (text) =>
   spans(text, { pipes: true }).flatMap(({ start, end }) => {
     const raw = text.slice(start, end);
     const one = raw.trim();
     const lead = start + (raw.length - raw.trimStart().length);
-    const bare = one.replace(QUOTED, (q) => " ".repeat(q.length));
+    const bare = one.replace(QUOTED, (q) => ".".repeat(q.length));
     return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => {
       const at = m.index + m[0].length;
       return past(one.slice(at)).map((said) => ({ said, at: lead + at }));
@@ -567,12 +569,12 @@ export const expanded = (command) => {
   return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
 };
 
-/* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. */
+/* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. What stands in for a span taken out is an empty quote pair and not a blank, since a start's blanks would run across a blank and read the quoted program's argument as the verb (ISS-2933). */
 const NOT_A_NAME = /["'\s[\]]/u;
 const spoken = (said) =>
   said
     .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
-    .replace(QUOTED, (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? " " : span));
+    .replace(QUOTED, (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? "''" : span));
 
 /* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
 const AIMED_AT = { options: false };
