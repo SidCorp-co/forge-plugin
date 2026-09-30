@@ -31,7 +31,6 @@ const state = {
   answer: {
     "forge_projects.list": () => ({ projects: [{ id: OWN_ID, slug: OWN.slug }, { id: FAR_ID, slug: FAR }] }),
     forge_issues: (args) => {
-      if (state.refusing === args.action) return { refused: `the tracker will not ${args.action} this`, code: "FORBIDDEN" };
       if (args.action === "list") {
         /* The search route addresses its project in the path and hands the handler no id, so the
            project is read off the call the fixture has just recorded. */
@@ -48,7 +47,6 @@ const state = {
         const rows = state.comments[args.filters.issue] ?? [];
         return { comments: rows, returned: rows.length, limit: rows.length, hasMore: false };
       }
-      if (/already said/u.test(args.data.body)) return { refused: "this comment is already on the issue", code: "NO_OP" };
       const row = { documentId: `c-${Object.keys(state.comments).length + 1}`, ...args.data };
       state.comments[args.data.issue] = [...(state.comments[args.data.issue] ?? []), row];
       return row;
@@ -141,28 +139,6 @@ test("a key the aimed project does not hold is refused naming that project", asy
   assert.match(own.stderr, new RegExp(`ISS-9 is not on the tracker of project ${OWN.slug} \\(from [^)]*config\\.json\\)`, "u"),
     "the checkout's own project is named with the record it came from");
   assert.match(own.stderr, /forge issue ISS-9 --project <slug>/u, "beside the route to another project");
-});
-
-test("a tracker refusal names the project the call was asked of and where that aim came from", async () => {
-  const aimed = await ran(["comment", "ISS-7", bodyFile("already said"), "--project", FAR]);
-  assert.equal(aimed.status, 1);
-  assert.match(aimed.stderr, /NO_OP: this comment is already on the issue/u);
-  assert.match(aimed.stderr, /Asked while aimed at project far-away \(from --project on this call\)/u);
-  /* The line is added where every route's refusal is read, so a project route and an issue route
-     are each proved alone, beside the comment route above. */
-  state.refusing = "get";
-  const read = await ran(["issue", "ISS-7", "--project", FAR]);
-  state.refusing = "list";
-  const listed = await ran(["issue", "--project", FAR]);
-  delete state.refusing;
-  for (const [what, run] of [["an issue route", read], ["a project route", listed]]) {
-    assert.equal(run.status, 1, what);
-    assert.match(run.stderr, /FORBIDDEN: the tracker will not/u, what);
-    assert.match(run.stderr, /Asked while aimed at project far-away \(from --project on this call\)/u, what);
-  }
-  const own = await ran(["comment", "ISS-7", bodyFile("already said")]);
-  assert.equal(own.status, 1);
-  assert.match(own.stderr, new RegExp(`Asked while aimed at project ${OWN.slug} \\(from [^)]*config\\.json\\)`, "u"));
 });
 
 test("a slug the credential cannot see is refused naming --project, and nothing is posted", async () => {

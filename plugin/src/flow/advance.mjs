@@ -2,7 +2,7 @@
    record and nothing else. Two callers — this verb, and a record write through `movedByRecord`.
    The rule a status is earned by, stage by stage: `forge guide contract <status>`. */
 import { exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { aimSaid, fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
@@ -105,12 +105,14 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     if (soft) return answer.refused;
     /* A dropped write is not a rejected one, and only the transport knows which it was: told the issue is still where it was, a run would act on a move that may have landed. */
     if (afterRefused(answer.refused).unknown) {
-      refuse(`${ref} read ${view.issue.status} and was asked for ${status}, and the move neither `
+      refuse(`${ref} on ${aimSaid()} read ${view.issue.status} and was asked for ${status}, and the move neither `
         + `landed nor failed cleanly. What came back:\n${answer.refused}\nRead the status before `
         + `writing anything else:\n  forge issue ${ref} --fields status`);
     }
-    refuse(`${ref} is ${view.issue.status} and the move to ${status} was refused, so nothing was `
-      + `written. What refused it:\n${answer.refused}`);
+    /* The project too: a move refused on another project's row read as a success when the refusal
+       named none (ISS-2910), and the tracker's words below stay whole and last. */
+    refuse(`${ref} on ${aimSaid()} is ${view.issue.status} and the move to ${status} was refused, so `
+      + `nothing was written. What refused it:\n${answer.refused}`);
   }
   /* The write landed, so what comes back is the tracker's answer and not a failure to detect: the
      branch above is what catches one that did not take. Outside the landing it still refuses. */
@@ -160,12 +162,12 @@ const movedAfterRecord = async (view, ref, status, move) => {
   if (!refused) return;
   /* A dropped write is not a rejected one: the transport says so itself, and a message naming the old status either way would send a run to correct a move that may have landed. */
   if (afterRefused(refused).unknown) {
-    refuse(`the record for ${status} went up and the move neither landed nor failed cleanly. ${refused}\n`
+    refuse(`the record for ${status} went up on ${ref}, ${aimSaid()}, and the move neither landed nor failed cleanly. ${refused}\n`
       + `Read ${ref}'s status before writing anything else — the record above claims ${status}, and `
       + `whether the issue holds it is what decides which of these two is owed:\n`
       + `  forge issue ${ref} --fields status\n  ${setForm(ref, status)}`);
   }
-  refuse(`${ref} is still ${view.issue.status}: the record for ${status} went up and the move was `
+  refuse(`${ref} on ${aimSaid()} is still ${view.issue.status}: the record for ${status} went up and the move was `
     + `refused. ${refused}\nThe page above now reads as a status this issue does not hold. `
     + `Move it with the command that was refused, or say on the record that it did not move:\n`
     + `  ${setForm(ref, status)}\n  forge record correction ${ref} --corrects ${STATUS_CORRECTED} `

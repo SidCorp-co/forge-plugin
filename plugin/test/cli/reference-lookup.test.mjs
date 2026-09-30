@@ -86,7 +86,7 @@ test("a key the tracker does not hold is refused as a fact about the tracker", a
   cutTo(BACKLOG, 2);
   const run = await ran(["issue", "ISS-99"]);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /ISS-99 is not on this project's tracker/u);
+  assert.match(run.stderr, /ISS-99 is not on the tracker of project forge-plugin \(from [^)]*config\.json\)/u);
   assert.match(run.stderr, /6 issue\(s\) were counted, which is the whole backlog/u);
 });
 
@@ -118,7 +118,7 @@ test("a key inside the gaps, which no offset holds, is refused as an absence", a
   cutTo(GAPPED, 2);
   const run = await ran(["issue", "ISS-3"]);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /ISS-3 is not on this project's tracker/u);
+  assert.match(run.stderr, /ISS-3 is not on the tracker of project forge-plugin/u);
   assert.match(run.stderr, /4 issue\(s\) were counted/u);
 });
 

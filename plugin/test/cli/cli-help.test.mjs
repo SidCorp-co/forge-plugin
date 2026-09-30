@@ -245,7 +245,7 @@ test("a retired name is in no row, and the row that took its write over says wha
     const offering = VERB_NAMES.filter((verb) => rowOf(verb)?.includes(`--${name}`));
     assert.deepEqual(offering, [], `--${name} is retired and still offered by: ${offering.join(", ")}`);
   }
-  assert.match(rowOf("comment"), /\[--title T\] the thread whole with no body, or post one/u);
+  assert.match(rowOf("comment"), /\[--title T\] \[--project <slug>\] the thread whole with no body, or post one/u);
   assert.match(rowOf("feedback"), /`forge new` with the kind, the project and the Where filled in/u,
     "and the verb kept as a name says what it expands to");
 });
@@ -264,12 +264,14 @@ test("each verb's -h names the fields the tracker takes for the routes that verb
   }
 });
 
-/* One scope, one verb: two places to answer *which project* is a precedence rule nobody wrote. */
+/* Two places answering *which project* is a precedence rule, so it is written once: the checkout
+   answers, and a read or a comment may name another for itself alone, the flag outranking the record
+   for that call and nothing after it (docs/cli/one-call-elsewhere.md). No other verb takes one. */
 const NAMES_A_PROJECT = /--project\b|--slug\b|<slug>|projectRef|project[- ]id/iu;
 
-test("no row of the table but project names a project, its slug or its identifier", () => {
-  const found = VERBS.filter((row) => NAMES_A_PROJECT.test(spanOf(row) ?? "")).map((row) => row[0]);
-  assert.deepEqual(found, ["project"],
+test("no row of the table but project, issue and comment names a project, its slug or its identifier", () => {
+  const found = VERBS.filter((row) => NAMES_A_PROJECT.test(spanOf(row) ?? "")).map((row) => row[0]).sort();
+  assert.deepEqual(found, ["comment", "issue", "project"],
     "a verb naming a project takes one from the caller, which the checkout already answered");
   assert.ok(NAMES_A_PROJECT.test(usageOf("project")), "and the one that does still says so");
 });

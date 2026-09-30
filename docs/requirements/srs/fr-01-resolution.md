@@ -68,8 +68,11 @@ read by every run and pane standing in the checkout and one call rewriting it mo
   call alone, SHALL refuse it where the credential cannot see that project, and SHALL write nothing
   to this machine's record of any project.
 - **AC-01-2-4** · Rev: 1 · Proof: plugin/test/cli/aim/project-override.test.mjs "a key the aimed project does not hold is refused naming that project"
-  IF a key does not resolve in the project a call was aimed at, or the tracker refuses a call made on
-  that project, THEN the refusal SHALL name that project and where the aim came from.
+  IF a key does not resolve in the project a call was aimed at THEN the refusal SHALL name that
+  project and where the aim came from.
+- **AC-01-2-5** · Rev: 1 · Proof: plugin/test/flow/advance/refused-move.test.mjs "a refused move names the status the issue holds and the status it was asked for, above what refused it"
+  IF the tracker refuses a status move on an issue a key resolved to THEN the refusal SHALL name the
+  project the key was resolved in and where that aim came from.
 
 ### UC-01-3 — Report what resolved, and from where
 

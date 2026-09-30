@@ -61,8 +61,9 @@ test("a refused move names the status the issue holds and the status it was aske
   PARKED.status = "awaiting_release";
   const run = await advance();
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /ISS-99 is awaiting_release and the move to closed was refused, so nothing was written\./u,
-    run.stderr);
+  assert.match(run.stderr,
+    /ISS-99 on project \S+ \(from [^)]*config\.json\) is awaiting_release and the move to closed was refused, so nothing was written\./u,
+    "with the project the key was resolved in and where that came from (ISS-2910)");
   /* The envelope is the transport's: the framing adds nothing inside the words and leaves them last. */
   const under = run.stderr.split("What refused it:\n")[1] ?? "";
   assert.ok(under.trimEnd().endsWith(NO_OP), `the refusal goes under that line whole: ${run.stderr}`);

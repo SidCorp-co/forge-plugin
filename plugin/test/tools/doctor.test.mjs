@@ -248,7 +248,7 @@ test("a slug the tracker holds no project for is named as that, not as an endpoi
     { slug: "absent-fixture" });
   const run = await ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
   tracker.close();
-  assert.match(run.stdout, /\[ miss \] tracker\s+.*No Forge project has slug absent-fixture/u);
+  assert.match(run.stdout, /\[ miss \] tracker\s+.*No Forge project this credential can see has slug absent-fixture/u);
   assert.match(run.stdout, /Seen: some-other/u, "with what the tracker did hold, which is the route out");
   assert.equal(run.status, 1);
 });

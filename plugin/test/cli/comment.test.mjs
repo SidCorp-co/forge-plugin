@@ -163,5 +163,5 @@ test("a flag that belongs to a filing is this verb's own unknown flag", async ()
   heldBy(null);
   const run = await ranAsync(FORGE, ["comment", "ISS-348", bodyAt(), "--kind", "bug"], env());
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --kind\. The set is --title\./u);
+  assert.match(run.stderr, /No comment flag named --kind\. The set is --title, --project\./u);
 });

@@ -1063,7 +1063,11 @@
     },
     "AC-01-2-4": {
       "rev": 1,
-      "digest": "358cbbbc258d17c73a8df2d12a70b41badca0a7f0585feae206ab989cc9fa269"
+      "digest": "92c0607742bb834dc2226cabc81702b7b142392104d340bfe732b1888dc9e0ab"
+    },
+    "AC-01-2-5": {
+      "rev": 1,
+      "digest": "bd1f7e8f6cc8d9e81bbab55527f189cbece2156f43e008922ace2ef9a7187100"
     },
     "UC-01-3": {
       "rev": 1,

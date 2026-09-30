@@ -266,7 +266,7 @@ test("a rank is a filing flag, and the comment verb takes none of it", async () 
   const run = await ranAsync(FORGE,
     ["comment", "ISS-45", bodyAt(WHOLE), "--priority", "high"], ENV);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --priority\. The set is --title\./u);
+  assert.match(run.stderr, /No comment flag named --priority\. The set is --title, --project\./u);
   assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
 });
 

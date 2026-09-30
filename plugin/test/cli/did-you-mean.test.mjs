@@ -102,7 +102,7 @@ test("a flag of another call of the verb is refused as that call's, never as one
 /* On no call of this verb: the suggestion is right where the name really is not there. */
 test("a name no call of the verb takes is still answered by this call's own set", () => {
   assert.match(unknownFlag("issue", ["--nosuchflag"], { usage: LIST_USAGE, modes: [READ_USAGE] }),
-    /No issue flag named --nosuchflag\. The set is --status, --search, --limit, --offset, --fields\./u);
+    /No issue flag named --nosuchflag\. The set is --status, --search, --limit, --offset, --fields, --project\./u);
 });
 
 /* Read off the other call's own text at the refusal, so nothing beside either usage names a flag. */
@@ -319,8 +319,8 @@ test("a verb taking no flag at all says what it does take", async () => {
 test("a verb taking one flag names the set and the row it read the set off", async () => {
   const run = await ran("comment", "ISS-1", "--body", "a finding");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --body\. The set is --title\./u);
-  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> \[<file\.md\|@file\|->\] \[--title T\]$/mu,
+  assert.match(run.stderr, /No comment flag named --body\. The set is --title, --project\./u);
+  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> \[<file\.md\|@file\|->\] \[--title T\] \[--project <slug>\]$/mu,
     "the row, which is where the body slot the caller wanted is spelled");
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });
@@ -331,7 +331,7 @@ test("a flag of the verb's other call is refused as that call's, with the comman
   assert.equal(run.status, 1);
   assert.doesNotMatch(run.stderr, /No issue flag named --full/u);
   assert.match(run.stderr, /^ {2}forge issue <uuid\|ISS-45> --full$/mu);
-  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\] \[--offset n\] \[--fields a,b\]$/mu);
+  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\] \[--offset n\] \[--fields a,b\] \[--project <slug>\]$/mu);
   assert.equal(run.stdout, "", "and nothing was read to say it");
 });
 

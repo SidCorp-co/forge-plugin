@@ -19,11 +19,13 @@ record and status verbs do not take it: a lease and a worklog are this tree's, a
 from a checkout of another project is the incident above. A post takes no lease on the far issue,
 the finder's route already taking none.
 
-**Every refusal says which project it was asked of.** A key missing from the aimed project, and any
-refusal the tracker gives a route under a project or on an issue or comment a key resolved to, ends
-by naming the project and where the aim came from — the flag, a directory, or the saved record's
-path. The issue read carries the project beside its two identifiers on every shape of it, and the
-thread's heading names it. A wrong record then reads as a wrong project rather than as a success.
+**What a key resolved to says which project it was.** A key missing from the aimed project, and a
+status move the tracker refuses, name the project and where the aim came from — the flag, a
+directory, or the saved record's path. The issue read carries the project beside its two
+identifiers on every shape of it, and the thread's heading names it. A wrong record then reads as a
+wrong project rather than as a success. The transport's own refusal is left as the tracker's words
+with nothing on either side, as every caller that frames one reads it, so the naming is the framing
+verb's.
 
 **Rebinding still works, and says what it does.** `forge doctor --set slug=` is not refused: the
 orientation file the tracker writes into a checkout is prose that nothing here reads, so refusing
