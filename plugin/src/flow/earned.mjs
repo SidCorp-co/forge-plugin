@@ -10,7 +10,7 @@ import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
-import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, landingOwed, verificationForm } from "./earned/asks.mjs";
+import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, landingOwed, unreadId, verificationForm } from "./earned/asks.mjs";
 
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
@@ -376,7 +376,7 @@ const judgedSince = (view, ref, stale = staleCriteria(view)) => {
   return foldVerdicts(
     ref,
     [...stale],
-    landsOutsideGit(view.issue) ? idAsk(view) : "--commit <sha>",
+    unreadId(view),
     (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
     (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
   );
@@ -547,7 +547,7 @@ const releaseOwed = (view, ref) => {
 
 /* Every folded finding answered, at the rung the criteria are written and at each from the one they
    are judged at to the close: a finding can land on an issue at any of them (ISS-167). */
-const foldedOwed = (view, ref, judged = false) => findingsOwed(view, ref, { whole: (kind, record) => !shapeGaps(kind, record, view.names).length, judged });
+const foldedOwed = (view, ref, judged = false) => findingsOwed(view, ref, { whole: (kind, record) => !shapeGaps(kind, record, view.names).length, judged, id: unreadId(view) });
 
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */

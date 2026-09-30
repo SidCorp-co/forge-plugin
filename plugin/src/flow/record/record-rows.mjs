@@ -41,8 +41,8 @@ const kindRows = (caps) => [
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " (--commit C | --landing L) --evidence E... [--why W] [--filed R]",
-  "  review       --reviewer R (--commit C | --landing L) --outcome approved|changes-requested [--finding F]...",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L --evidence E... [--why W] [--filed R]",
+  "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
@@ -268,13 +268,11 @@ const readsOff = (kind) => {
   const evidence = filled(kind, "evidence");
   const reads = evidence && ((evidence.least ?? 1) >= 1 || Boolean(evidence.owed));
   const said = [
-    ...(commit
-      ? [`--${commit.flag} is read off the merged mark's note where the flag is absent.`]
+    ...(commit && filled(kind, "landing")
+      ? [`--${commit.flag}, or --landing outside git, is read off the mark where absent.`]
       : []),
-    ...(filled(kind, "landing")
-      ? ["Where the tracker says the issue lands outside git, --landing takes the place of --commit and",
-        "is read off the merged mark's landing where the flag is absent; --commit is refused there, as",
-        "--landing is on an issue landing in git."]
+    ...(commit && !filled(kind, "landing")
+      ? [`--${commit.flag} is read off the merged mark's note where the flag is absent.`]
       : []),
     ...(reads
       ? [`--${evidence.flag} is read off what the latest record of this kind cited where the flag is`,

@@ -293,7 +293,7 @@ test("a comment carrying the tag and little else is no payload", () => {
   const landed = mark("merged to master at c8c3550");
   const bare = comment("## Code review\n\n- **Outcome:** approved\n\n`forge-record: review · contract 1`");
   assert.deepEqual(missing("developed", view(stamped, [landed, bare])),
-    ["the review on the record is not a whole payload: it lacks --reviewer, --commit"]);
+    ["the review on the record is not a whole payload: it lacks --reviewer, --commit, or --landing where the issue lands outside git"]);
   const odd = comment("## Code review\n\n- **Reviewer:** me\n- **Head judged:** c8c3550\n"
     + "- **Outcome:** looks fine\n\n`forge-record: review · contract 1`");
   assert.deepEqual(missing("developed", view(stamped, [landed, odd])),

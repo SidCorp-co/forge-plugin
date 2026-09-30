@@ -150,7 +150,7 @@ const rowWork = (view) => {
     .find(([, name]) => typeof name === "string" && name.trim());
   return {
     merged: at ? { at: String(at), commit: view.issue.mergedCommitSha ? String(view.issue.mergedCommitSha) : null,
-      landing: markedLanding(view.issue) } : null,
+      ...(markedLanding(view.issue) ? { landing: markedLanding(view.issue) } : {}) } : null,
     branch: found ? { name: found[1].trim(), from: found[0] } : null,
   };
 };

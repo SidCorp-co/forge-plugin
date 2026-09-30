@@ -1,12 +1,16 @@
 /* The writes an entry check names beside each shortfall. Apart from earned.mjs, which reads the
    record; these only spell what supplies it. */
 import { need, valuesOf } from "../machine.mjs";
-import { identityAsk, markedIdentity } from "../record/merged.mjs";
-import { markedLanding, samePlace } from "../record/judged/landing.mjs";
+import { markedIdentity } from "../record/merged.mjs";
+import { identityAsk, landsOutsideGit, markedLanding, samePlace } from "../record/judged/landing.mjs";
 
 /* The identity every ask spends: a commit in git, the mark's landing outside it (ISS-2402). */
 export const identityOf = (view) => markedIdentity(view.issue, view.comments);
 export const idAsk = (view, placeholder) => identityAsk(identityOf(view), placeholder);
+
+/* The identity asked of a verdict whose answer has no commit on the record yet: a placeholder sha in
+   git, and outside git the landing, which stands before anything is judged. */
+export const unreadId = (view) => (landsOutsideGit(view.issue) ? idAsk(view) : "--commit <sha>");
 
 /* One naming any other place, or a commit, judged something the mark does not say landed. */
 export const landingOwed = (view, held, what, ask) => {

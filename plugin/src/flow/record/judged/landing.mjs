@@ -3,6 +3,7 @@
    as `landingShape`, and a landed mark there carries `mergedLanding`, the place a reader goes to check.
    Both are read off the tracker's own fields here and nowhere else, so no reader guesses the shape from
    the project's other keys or parses the place back out of a comment's prose (ISS-2402). */
+import { typedBack } from "../../../refusal.mjs";
 import { isCommit } from "../../../tracker/evidence.mjs";
 import { lengthOf } from "../../../tracker/field-write.mjs";
 
@@ -43,3 +44,9 @@ export const landingProblem = (value) => {
   }
   return null;
 };
+
+/** The identity a record names what it judged by, as the flag a command carries: the mark's value
+ *  where one stands. `markedIdentity` in record/merged.mjs is what reads it off an issue. */
+export const identityAsk = ({ flag, value }, placeholder = "<sha>") => (flag === "landing"
+  ? `--landing ${value ? typedBack(value) : "'<where the change now is>'"}`
+  : `--commit ${value ?? placeholder}`);

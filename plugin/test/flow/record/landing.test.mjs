@@ -142,6 +142,6 @@ test("the four kinds' help describes --landing and the shape it applies under", 
     const run = await forge("record", kind, "-h");
     assert.equal(run.status, 0, run.stderr);
     assert.match(run.stdout, /--landing L/u, `${kind}: on its row`);
-    assert.match(run.stdout, /lands outside git/u, `${kind}: and when it applies`);
+    assert.match(run.stdout, /outside git/u, `${kind}: and when it applies`);
   }
 });

@@ -71,10 +71,7 @@ export const markedIdentity = (issue, comments) => (landsOutsideGit(issue)
   ? { flag: "landing", value: markedLanding(issue) }
   : { flag: "commit", value: markedCommit(comments) });
 
-/** That identity as the flag a command carries, the mark's value where one stands. */
-export const identityAsk = ({ flag, value }, placeholder = "<sha>") => (flag === "landing"
-  ? `--landing ${value ? typedBack(value) : "'<where the change now is>'"}`
-  : `--commit ${value ?? placeholder}`);
+
 export const reviewedHead = (comments) => readClause(comments, "reviewed");
 export const judgedHead = (comments) => readClause(comments, "judged");
 

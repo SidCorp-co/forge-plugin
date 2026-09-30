@@ -3,8 +3,6 @@
    folded finding is typed at all is docs/cli/the-fold.md's. Nothing here fetches or writes. */
 import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";
-import { landsOutsideGit } from "../record/judged/landing.mjs";
-import { identityAsk, markedIdentity } from "../record/merged.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
 import { escaped } from "../../markdown.mjs";
 
@@ -49,7 +47,7 @@ const answerForm = (ref, handle) => `forge record criteria ${ref} <criteria.md>,
    judging and those rungs owe no verdict of their own. A failed one is left to the rungs' own reading
    of failed verdicts, which names it once whether or not it carries a finding (ISS-2511). `whole` is
    the caller's shape test. */
-const verdictOwed = (view, ref, { handle, carrier }, whole) => {
+const verdictOwed = (view, ref, { handle, carrier }, whole, id) => {
   const held = view.verdicts?.get(carrier.number);
   const said = !held ? "has no verdict"
     : !whole("verdict", held.record) ? "has a verdict that is not a whole payload" : null;
@@ -57,20 +55,20 @@ const verdictOwed = (view, ref, { handle, carrier }, whole) => {
   return [need(
     `criterion ${carrier.number} carries finding ${handle} and ${said}, so the finding it carries stands unjudged`,
     `forge record verdict ${ref} --criterion ${carrier.number} --verdict pass `
-      + `${landsOutsideGit(view.issue) ? identityAsk(markedIdentity(view.issue, view.comments)) : "--commit <sha>"} `
+      + `${id} `
       + "--evidence <attachment|url|sha>",
   )];
 };
 
 /** What the folded findings on an issue owe: each one carried by a criterion or declined, and, where `judged` says the rung is past the judging, each carrier judged without failing. */
-export const findingsOwed = (view, ref, { whole, judged = false }) => {
+export const findingsOwed = (view, ref, { whole, judged = false, id = "--commit <sha>" }) => {
   const declined = new Set((view.repeated?.[DECLINED] ?? [])
     .filter((one) => whole(DECLINED, one.record))
     .map((one) => handleOf(one.record.fields.finding)));
   return foldedIn(view.comments ?? []).flatMap(({ handle, title }) => {
     if (declined.has(handle)) return [];
     const carrier = carrierOf(view.criteria ?? [], handle);
-    if (carrier) return judged ? verdictOwed(view, ref, { handle, carrier }, whole) : [];
+    if (carrier) return judged ? verdictOwed(view, ref, { handle, carrier }, whole, id) : [];
     return [need(
       `finding ${handle} ("${title}") is carried by no criterion and declined by no record, so nothing judges it before the close`,
       answerForm(ref, handle),
