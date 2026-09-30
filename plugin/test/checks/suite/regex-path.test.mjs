@@ -87,6 +87,7 @@ const REFUSED = {
   "a path an accessor answers, which the check does not read": `const make = () => ({ get room() { return tmpdir(); } });\nconst { room } = make();\nassert.match(said, new RegExp(\`in \${room}\`, "u"));\n`,
   "a path read off its own property of an answer, as one name": `${ANSWER}const plan = run.paths;\nassert.match(said, new RegExp(\`in \${plan}\`, "u"));\n`,
   "a path read off its own property of an answer, taken by position": `${ANSWER}const [plan, criteria] = run.paths;\nassert.match(said, new RegExp(\`in \${criteria}\`, "u"));\n`,
+  "a path read off its own property of an answer, in parentheses": `${ANSWER}const plan = (run.paths);\nassert.match(said, new RegExp(\`in \${plan}\`, "u"));\n`,
   "a property read off a path whose source nothing here can read": `${UNREAD}const plan = work.paths;\nassert.match(said, new RegExp(\`in \${plan}\`, "u"));\n`,
   "a name taken by position off a path-making source": `const [work, n] = [tmpdir(), 1];\nassert.match(said, new RegExp(\`over \${n}\`, "u"));\n`,
 };

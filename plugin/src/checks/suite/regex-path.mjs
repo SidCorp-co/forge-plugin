@@ -27,8 +27,8 @@ const JOINED = /`[^`]*\$\{|["']\s*\+|\+\s*["']/u;
 
 const DECLARED = /\b(?:const|let|var)\s+(?:([A-Za-z_$][\w$]*)|[{[]([^}\]]*)[}\]])\s*=\s*/gu;
 
-/** A right-hand side that is one property read off one name, and nothing after it. */
-const MEMBER = /^\s*([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\s*$/u;
+/** A right-hand side that is one property read off one name, parenthesised or not, and nothing after it. */
+const MEMBER = /^[\s(]*([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)[\s)]*$/u;
 
 /** Comments out, every literal left standing: where a name got its value is read through them. */
 const uncommented = (text) => maskOf(text, { blank: COMMENTS });
