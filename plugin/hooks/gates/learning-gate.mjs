@@ -50,7 +50,8 @@ function skillRoot(path) {
  *  Run before the write, not after: the point is that the second copy never lands. The file
  *  being edited is excluded, or every unchanged line would match itself. */
 function duplicates(root, path, text) {
-  if (!text.trim()) return [];
+  // The first part of a new skill: its directory is not there yet, so nothing is restated.
+  if (!text.trim() || !existsSync(root)) return [];
   const incoming = sentences(text).map((s) => ["<proposed>", s]);
   if (incoming.length === 0) return [];
   const rel = relative(root, resolve(path));
