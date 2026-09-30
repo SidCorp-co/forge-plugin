@@ -2,9 +2,10 @@
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` and `machine/block.mjs`, the carrying of a record, are what is imported here, and neither imports this, so both sides can still import it. */
 import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
   memberProblem, whereProblem } from "./record/content.mjs";
-import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";
+import { SPAN, blanked, fenceMarked } from "../prose.mjs";
 import { MARKUP_PATTERN } from "../markdown.mjs";
 import { entriesIn, firstKindIn } from "./machine/block.mjs";
+import { heldOut } from "./machine/held.mjs";
 
 export { blockOf, readRecords, tagFor } from "./machine/block.mjs";
 
@@ -191,42 +192,9 @@ const MACHINE = {
     "gimu",
   ),
 };
-/* What a declaration stands as while the prose pass runs. It cannot itself be a code span — the
-   reader refuses those — and an identifier inside one is carried whole by a pass that keeps spans byte for byte. */
-const HELD = "forge-machine";
-const SPAN_PART = new RegExp(`(${CODE_SPAN})`, "gu");
-/* Named away from anything the text already says, so a plan quoting the mark keeps its quotation:
-   the restore cannot tell a span it wrote from one it was given, so it is never given one. */
-const heldIn = (source) => {
-  let key = HELD;
-  while (source.includes(key)) key = `${key}x`;
-  return key;
-};
-
-/** Every bare declaration out of the rewrite's way, its own text kept in `held` for the restore. */
-export const protectMachine = (field, text, held = {}) => {
-  const pattern = MACHINE[field];
-  const source = String(text);
-  if (!pattern) return source;
-  const key = heldIn(source);
-  const texts = [];
-  const out = source
-    .split(SPAN_PART)
-    .map((part, at) => (at % 2 ? part : part.replace(pattern, (whole) => {
-      texts.push(whole);
-      return `\`${key}-${texts.length - 1}\``;
-    })))
-    .join("");
-  Object.assign(held, { key, texts });
-  return out;
-};
-
-/** The other half of the protection: what `protectMachine` held, back where its own marks stand. */
-export const restoreMachine = (text, held = {}) => {
-  const { key, texts } = held;
-  if (!key || !texts?.length) return String(text);
-  return String(text).replace(new RegExp(`\`${key}-(\\d+)\``, "gu"), (mark, at) => texts[Number(at)] ?? mark);
-};
+/** Held by the one pattern this field's declarations match: `machine/held.mjs` says how. */
+export const protectMachine = (field, text, held = {}) => heldOut(MACHINE[field], text, held);
+export { restoreMachine } from "./machine/held.mjs";
 
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage
    list all read: a field named in two places is a shape that disagrees with itself. The block it is
@@ -307,10 +275,8 @@ export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
    `takes` is what a sentence about the field says it holds where the label cannot say it: the label is the read key of `labelledIn` in `machine/block.mjs`, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
-/** A verdict field's key, spelt once for its writer and its reader: `record/judged/carried.mjs`. */
+/** Two verdict fields' keys, each spelt once for its writer, `record/judged/carried.mjs`, and its reader. */
 export const CARRIES = "carries";
-
-/** The deployment stamp's key: `record/judged/carried.mjs` writes it and `qa/verdicts.mjs` reads it. */
 export const CARRIES_DEPLOYMENT = "carries-deployment";
 
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
