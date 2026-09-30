@@ -45,16 +45,16 @@ export const optionsIn = (program, words) => {
     const { said, from } = word;
     let name = null;
     let lead = -1;
+    let joined = false;
     if (said.startsWith("--")) {
-      const equals = said.indexOf("=");
-      const spelt = said.slice(2, equals < 0 ? undefined : equals);
-      if (long.includes(spelt)) [name, lead] = [spelt, equals < 0 ? said.length : equals + 1];
+      const spelt = long.find((one) => said === `--${one}` || said.startsWith(`--${one}=`));
+      if (spelt) [name, lead, joined] = [spelt, spelt.length + 3, said !== `--${spelt}`];
     } else if (said.startsWith("-")) {
       const letter = [...said.slice(1)].findIndex((one) => takes.includes(one)) + 1;
       if (letter > 0) [name, lead] = [said[letter], letter + 1];
     }
     if (name === null) continue;
-    const next = lead >= said.length && !(said.startsWith("--") && said.includes("="));
+    const next = !joined && lead >= said.length;
     out.push({ name, at, next, value: next ? words[at + 1] : { ...word, said: said.slice(lead), from: from + lead } });
     if (next) at += 1;
   }
