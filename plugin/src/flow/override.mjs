@@ -4,7 +4,7 @@ import { pairOf, pairsFrom } from "../resolve/flags.mjs";
 import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
 import { lengthOf, ownsField, rowOf, writeFields } from "../tracker/field-write.mjs";
-import { valueOutsideSet } from "../tracker/issue-shape.mjs";
+import { valueOutsideSet } from "../tracker/declared/value-sets.mjs";
 import { moduleDefinition, moduleNamed, primaryLabels } from "../tracker/modules/definition.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";

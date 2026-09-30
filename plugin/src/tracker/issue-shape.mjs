@@ -9,9 +9,10 @@ import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vend
 import { sentences } from "../checks/duplication.mjs";
 import { COMPLEXITY_NAMES, FIX, MARK_LINE, complexityFor, belowTop, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
-import { didYouMean, suggest } from "../suggest.mjs";
 import { MAX_LIMIT, distinctKeysIn, everyIssue, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
+import { KIND_ROUTE, priorityFor } from "./declared/value-sets.mjs";
+import { DEFAULT_KIND, KIND_NAMES } from "./declared/kinds.mjs";
 import { partsIn, prefixesOf } from "./filing/parts.mjs";
 import { NO_LONGER_OWES } from "../flow/earned/park-status.mjs";
 
@@ -91,36 +92,49 @@ const WHY = section({
 
 /* Three measured off the bodies this backlog had written, and a fourth this CLI writes itself: a
    batch reading filed as one of the three reads as work somebody still has to do. A row rather than
-   a synonym for the feature shape it copies, the value having to reach the field to be filtered. */
-export const KINDS = [
-  {
-    kind: "bug",
+   a synonym for the feature shape it copies, the value having to reach the field to be filtered.
+   Keyed by the names plugin/src/tracker/declared/kinds.mjs holds, and read against them in both directions
+   below, so a kind named there and shaped nowhere refuses at import rather than reading as no shape. */
+const SHAPES = {
+  bug: {
     is: "something that worked, or was meant to, and does not",
     needs: [HAPPENED, CAUSE, OUTCOME, RULES, SCOPE],
     says: [WHERE],
   },
-  {
-    kind: "enhancement",
+  enhancement: {
     is: "something that works, and should work better",
     needs: [TODAY, OUTCOME, RULES, SCOPE],
     says: [WHY],
   },
-  {
-    kind: "feature",
+  feature: {
     is: "something that is not there at all",
     needs: [OUTCOME, RULES, SCOPE],
     says: [WHY],
   },
-  {
-    kind: "review",
+  review: {
     is: "a reading of work already landed, whose outcome is findings landed or filed and a mark moved",
     needs: [OUTCOME, RULES, SCOPE],
     says: [WHY],
   },
-];
+};
 
-export const DEFAULT_KIND = "feature";
-export const KIND_NAMES = KINDS.map((one) => one.kind);
+/** The table the rest of this module reads, in the order the names are held: a name with no shape, or a shape with no name, is one list disagreeing with itself. */
+export const kindsFrom = (names = KIND_NAMES, shapes = SHAPES) => {
+  const unshaped = names.filter((name) => !Object.hasOwn(shapes, name));
+  const unnamed = Object.keys(shapes).filter((name) => !names.includes(name));
+  if (unshaped.length || unnamed.length) {
+    throw new Error([
+      "The kinds this CLI files and the sections each owes are one list, and they disagree.",
+      unshaped.length ? `Named and shaped by nothing: ${unshaped.join(", ")}.` : "",
+      unnamed.length ? `Shaped and named nowhere: ${unnamed.join(", ")}.` : "",
+      "Set or drop that row in `SHAPES` in plugin/src/tracker/issue-shape.mjs;"
+        + " the names are `KIND_NAMES` in plugin/src/tracker/declared/kinds.mjs.",
+    ].filter(Boolean).join(" "));
+  }
+  return names.map((kind) => ({ kind, ...shapes[kind] }));
+};
+
+export const KINDS = kindsFrom();
 
 export const shapeFor = (kind) => KINDS.find((one) => one.kind === (kind || DEFAULT_KIND)) ?? null;
 
@@ -133,15 +147,7 @@ const titles = (sections) => sections.map((one) => one.title);
 const VOWEL = /^[aeiou]/iu;
 export const article = (word) => (VOWEL.test(word) ? "an" : "a");
 
-/* The route past the set, borrowed by both refusals: a kind this CLI does not define is a section
-   list nobody has decided, not a filing to fix by guessing. */
-const KIND_ROUTE = "a filing needing another category, or another section under one, files an issue"
-  + " against this plugin rather than inventing the value";
 const KIND_WANTS = `one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}`;
-
-export const kindRefusal = (given) =>
-  `${didYouMean("category", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
-  + ` ${KIND_ROUTE}.`;
 
 /** A filing that named none at all: prose decides neither the sections nor the field, the same headings carrying a bug and a feature. */
 export const kindNeeded = () =>
@@ -150,56 +156,15 @@ export const kindNeeded = () =>
   + ` stored against nothing.\nName one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}. \`forge new -h\``
   + ` is the table of what each one's body owes.`;
 
-/** A complexity outside the tracker's five, refused by naming them: the field is the one source of
- *  the rung, so a value nothing maps reads later as an issue holding none. */
-export const complexityRefusal = (given) =>
-  `${didYouMean("complexity", given, COMPLEXITY_NAMES)} They are the tracker's own five, smallest first,`
-  + ` and the rung each claims is \`forge guide contract\`'s: ${COMPLEXITY_NAMES.map((one) => `${one} a ${rungFrom(one)}`).join(", ")}.`;
-
 /** The one writer, and nothing where nothing was named: a default reads later as one somebody chose. */
 export const trackerFields = ({ category = null, complexity = null }) => ({
   ...(category ? { category } : {}),
   ...(complexity ? { complexity } : {}),
 });
 
-/* What a filing is ranked, in one place. The kind's field above is left empty and this one cannot
-   be — left out, the tracker fills the middle of its own set; docs/cli/new.md holds the rest. */
-export const UNRANKED = "none";
-
-export const priorityFor = (given, allowed = []) => {
-  const wanted = given ?? UNRANKED;
-  const said = given === undefined ? `priority ${UNRANKED}, by default` : `priority ${given}, as given`;
-  if (!allowed.length || allowed.includes(wanted)) return { value: wanted, said, given: given !== undefined };
-  if (given === undefined) {
-    return { refusal: `This CLI files an issue nobody ranked as \`${UNRANKED}\`, and the tracker's set is`
-      + ` now ${listed(allowed)}. Name one with --priority, and file this against the plugin: the`
-      + " default is what has to change, not the filing." };
-  }
-  return { refusal: `${didYouMean("priority", given, allowed)} That set is what the route table `
-    + "declares this tracker takes, and a value it has grown since is added there." };
-};
-
 /** The reading with the set read, which is where both filing routes take it from: the declaration is
  *  named once, and neither route decides for itself what an empty set would mean. */
 export const rankOf = async (given) => priorityFor(given, declaredFor("forge_issues", "priority"));
-
-/* What a field of an issue may hold, where a route takes field and value by hand: going round the
-   entry checks is not going round a field's own set, and a field with no row is the tracker's to judge. */
-const SET_VALUES = {
-  category: { values: () => KIND_NAMES, said: kindRefusal },
-  complexity: { values: () => COMPLEXITY_NAMES, said: complexityRefusal },
-  priority: { values: () => declaredFor("forge_issues", "priority"),
-    said: (given) => priorityFor(given, declaredFor("forge_issues", "priority")).refusal },
-};
-
-export const valueOutsideSet = (field, given) => {
-  const row = SET_VALUES[field];
-  if (!row) return null;
-  const values = row.values();
-  if (values.includes(given)) return null;
-  const close = suggest(given, values);
-  return { said: row.said(given), meant: close.length === 1 ? close[0] : null };
-};
 
 /** The rank the filed line names, against what the read-back found: `as given` says the row holds the
  *  rank the filer typed, so it is said only where the row was read holding it. */

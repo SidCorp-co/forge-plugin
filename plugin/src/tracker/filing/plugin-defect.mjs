@@ -2,7 +2,8 @@
    project's key so a closed channel takes its sentence with it: docs/cli/withholding-a-verb.md. */
 import { readdirSync } from "node:fs";
 
-import { KIND_NAMES, article, originIn } from "../issue-shape.mjs";
+import { article, originIn } from "../issue-shape.mjs";
+import { KIND_NAMES } from "../declared/kinds.mjs";
 import { pluginChannel, verbForPluginDefect } from "../../resolve/visibility.mjs";
 import { projectScope } from "../../resolve/settings.mjs";
 import { once } from "../../resolve/config.mjs";

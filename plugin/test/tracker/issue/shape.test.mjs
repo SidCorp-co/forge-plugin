@@ -15,8 +15,9 @@ process.env.XDG_CONFIG_HOME = home.path;
 /* The in-process readers below resolve this checkout's project, whose record is this machine's and
    so has to be written into the home this process runs against. */
 projectRecord(ROOT, home.path, OWN);
-const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor, rankSaid,
-  shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
+const { duplicateOf, filedAs, filingRefusal, partsIn, rankSaid, shapeOf, tokensNamed, twoChangesIn }
+  = await import("../../../src/tracker/issue-shape.mjs");
+const { UNRANKED, priorityFor } = await import("../../../src/tracker/declared/value-sets.mjs");
 /* The refusal's text, as `forge new` prints it. */
 const refusalFrom = async (filing, shape, options) => (await filingRefusal(filing, shape, options))?.text ?? null;
 const { COMPLEXITY_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");

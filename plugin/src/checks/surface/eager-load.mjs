@@ -131,6 +131,12 @@ export const HEAVY = [
         "the clause a plan cites is this gate's whole subject, so the tree is what it was registered to read",
     },
   },
+  {
+    target: "plugin/src/tracker/issue-shape.mjs",
+    what: "the filing shape reader, which brings the text-overlap scorer and the sentence splitter to read a body no gate files",
+    instead: "plugin/src/tracker/declared/kinds.mjs holds the kind names and plugin/src/tracker/declared/value-sets.mjs the sentence a field's value is refused with",
+    allowed: {},
+  },
 ];
 
 /** The chain that reached `target`, root first: the reader is owed the line to remove and not only the arrival. */

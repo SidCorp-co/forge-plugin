@@ -18,7 +18,8 @@ import {
 } from "./tracker/issues.mjs";
 import { commentPage, cutIn, mustBeShown, postComment, readThread } from "./tracker/comments.mjs";
 import { attachmentNames, batchRefusal, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
-import { KINDS_HELP, KIND_NAMES, kindNeeded } from "./tracker/issue-shape.mjs";
+import { KINDS_HELP, kindNeeded } from "./tracker/issue-shape.mjs";
+import { KIND_NAMES } from "./tracker/declared/kinds.mjs";
 import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { moduleForFiling } from "./tracker/modules/definition.mjs";

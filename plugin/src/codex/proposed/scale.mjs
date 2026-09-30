@@ -3,7 +3,7 @@
    project's idea of urgency applied to projects that judge it differently (G-12), so the levels are
    the tracker's and the text is the record's. docs/cli/proposed-fields.md. */
 import { declaredFor } from "../../tracker/routes.mjs";
-import { UNRANKED } from "../../tracker/issue-shape.mjs";
+import { UNRANKED } from "../../tracker/declared/value-sets.mjs";
 
 export const SCALE_KEY = "priorities";
 

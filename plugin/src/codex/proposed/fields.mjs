@@ -8,7 +8,7 @@ import { fail, projectCodex, projectPriorities, refusing } from "../../resolve/s
 import { gateway } from "../../resolve/machine/stores.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
 import { writeFields } from "../../tracker/field-write.mjs";
-import { UNRANKED } from "../../tracker/issue-shape.mjs";
+import { UNRANKED } from "../../tracker/declared/value-sets.mjs";
 import { correctionFor } from "../../flow/override.mjs";
 import { issueOf } from "../../flow/record/thread/posting.mjs";
 import { render } from "../../flow/record/page.mjs";

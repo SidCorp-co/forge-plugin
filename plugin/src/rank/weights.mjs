@@ -2,7 +2,7 @@
    number here was set by the issue that asked for the verb; what each is FOR is
    docs/cli/next-weights.md's, and why the reading stops where it does is docs/cli/next.md's. */
 import { fromProject, rankConvention } from "../resolve/settings.mjs";
-import { KIND_NAMES } from "../tracker/issue-shape.mjs";
+import { KIND_NAMES } from "../tracker/declared/kinds.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
 
@@ -24,7 +24,7 @@ export const kindWeights = (names = KIND_NAMES, points = KIND_POINTS) => {
       unweighed.length ? `Weighed by nothing: ${unweighed.join(", ")}.` : "",
       unscored.length ? `Weighing no kind this CLI files: ${unscored.join(", ")}.` : "",
       "Set or drop that row in `KIND_POINTS` in plugin/src/rank/weights.mjs;"
-        + " the kinds are `KINDS` in plugin/src/tracker/issue-shape.mjs.",
+        + " the kinds are `KIND_NAMES` in plugin/src/tracker/declared/kinds.mjs.",
     ].filter(Boolean).join(" "));
   }
   const ranked = [...names].sort((one, other) => points[other] - points[one]);
