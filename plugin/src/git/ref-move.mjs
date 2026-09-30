@@ -142,6 +142,9 @@ const standingOn = (ask, tree, ref) => {
   return standing.length ? { here, standing } : { unread: `no worktree git listed is ${here}, where the call runs` };
 };
 
+/* Every reading here but these two prints something when it succeeds, so one that printed nothing gave no answer. */
+const MAY_BE_EMPTY = new Set(["diff", "ls-tree"]);
+
 /** Null where the call leaves no checked-out tree behind, else the refusal's `{ instead, cause }`.
  *  `tree` is where the command runs, `NOWHERE` where the text does not say; `left` is the ms remaining. */
 export const refMoveIn = (rest, tree, left) => {
@@ -149,7 +152,10 @@ export const refMoveIn = (rest, tree, left) => {
   if (call.deletes || (!call.stdin && call.ref === null)) return null;
   if (tree === NOWHERE && !call.stdin && !call.deref && !judged(call.ref)) return null;
   if (tree === NOWHERE) return UNPLACED;
-  const ask = (argv) => gitProbe(argv, { cwd: tree, ms: probeMs(left()) });
+  const ask = (argv) => {
+    const said = gitProbe(argv, { cwd: tree, ms: probeMs(left()) });
+    return said?.status === 0 && !said.out.trim() && !MAY_BE_EMPTY.has(argv[0]) ? null : said;
+  };
   const repo = ask(["rev-parse", "--git-dir"]);
   if (!repo) return unread(`git did not say in time whether ${tree} is a repository`);
   if (repo.status !== 0) return null;

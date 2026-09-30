@@ -173,6 +173,9 @@ test("a worktree listing or a stale-path reading that fails refuses, saying whic
   const empty = decide(move, repo.side, failing("worktree", "exit 0"));
   assert.equal(empty.allowed, false, "a listing that names no tree, a bare repository's main one included, is no listing");
   assert.match(empty.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
+  const untargeted = decide(move, repo.side, failing("symbolic-ref", "exit 0"));
+  assert.equal(untargeted.allowed, false, "a symbolic-ref that succeeds and names nothing gave no answer");
+  assert.match(untargeted.reason, /could not be read: git did not say which ref `refs\/heads\/master` names/u);
   const silent = decide(move, repo.side, failing("worktree", "exec sleep 30"));
   assert.equal(silent.allowed, false, "a listing that never answers is no listing");
   assert.match(silent.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
