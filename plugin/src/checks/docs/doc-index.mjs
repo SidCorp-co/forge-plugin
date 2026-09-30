@@ -20,7 +20,7 @@ const uncapped = (rel) => rel === INDEX || REQUIREMENTS.test(rel);
 
 /* The document kept whole, and where the reason it has no room for goes: a hooks topic already has a
    row in the CLI index, as the refusal log does, so halving the file is not the split it owes. */
-export const KEPT_WHOLE = { "docs/HOOKS.md": `a topic of its own under docs/cli/ with its row in ${INDEX}` };
+const KEPT_WHOLE = { "docs/HOOKS.md": `a topic of its own under docs/cli/ with its row in ${INDEX}` };
 const keptWhole = (rel) => Object.hasOwn(KEPT_WHOLE, rel);
 
 export const overCap = (docs, max = TOPIC_MAX) =>
