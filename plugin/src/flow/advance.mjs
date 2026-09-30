@@ -26,6 +26,7 @@ import { lastMark, stampRemoved, undoForm, unmarkMerged } from "./record/merged.
 import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
+import { judgeOwed } from "./lease/judged.mjs";
 
 export const USAGE = [
   usageOf("advance"),
@@ -287,7 +288,7 @@ const owedAfter = async (documentId, issue, ref, page) => {
  *  over the record just made, and only where a kind written is one the rung cites — else the status
  *  is moved by whatever write followed the one that earned it. Linear path only, a park and a triage
  *  being routes `owedIn` drops; stderr throughout, stdout being the record. */
-export const movedByRecord = async (documentId, issue, ref, kinds, held = null, parkedAt = null) => {
+export const movedByRecord = async (documentId, issue, ref, kinds, held = null, parkedAt = null, { holds = null } = {}) => {
   const page = await pageFor(documentId, held);
   /* An answer is judged at the side status the write found, whatever the issue holds now: at
      needs_info the tracker reads the answer's own comment as the reply and puts the issue back to
@@ -298,7 +299,10 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null, 
     await policyFor(issue.plan, standing.status), () => citedClauses(issue));
   const { next, missing } = resumes || ORDER.includes(issue.status) ? owedIn(view, ref) : { next: null, missing: [] };
   const cited = Boolean(next) && (resumes || (CITED[next] ?? []).some((kind) => kinds.includes(kind)));
-  const moves = cited && !missing.length;
+  /* `holds` is a write that may not move a status, a judge's past another run's lease, told the move it earned instead. */
+  const earns = cited && !missing.length;
+  if (earns && holds) holds(next);
+  const moves = earns && !holds;
   if (moves) {
     const now = { ...view, issue: { ...view.issue, status: issue.status } };
     const note = resumes ? "  (resumed where its park left it)" : "";
@@ -493,6 +497,8 @@ const run = async (argv, readAs) => {
   const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
+  const judging = given.owed ? judgeOwed(ref, view.issue?.sessionContext) : null;
+  if (judging) console.log(judging);
   if (!view.whole) console.log(cutSays(view.cut, ref));
   if (view.counted) console.log(countSays(view.counted));
   if (given.set) return setStatus(view, ref, given.set, given.why, given.needs);

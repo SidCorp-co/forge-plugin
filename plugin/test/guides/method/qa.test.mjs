@@ -95,15 +95,25 @@ test("the witnessed section is read as it stands, and answered where it is absen
   }
 });
 
-test("the master does not hold the issue while a judging run works on it", () => {
+/* The master keeps its lease through the judging, because the judge's verdicts are written past it
+   rather than under one of the judge's own: a master giving the lease up is an issue any third run
+   may take while its judgement is out (ISS-1494). */
+test("the master keeps the issue while a judging run works on it, and the judge claims nothing", () => {
   for (const flow of [DEFAULT, SCREEN]) {
     const held = method(flow);
-    assert.match(held, /Take a lease the size of what this session will write/u,
-      `${flow} has the master take an ordinary lease, which refuses the judge the claim it needs`);
-    assert.match(held, /The issue is that run's while it works, and this session lets it go before dispatching/u,
-      `${flow} dispatches a judge into a lease this session is still holding`);
-    assert.match(held, /Claim the issue again first where a judging run has just had it/u,
-      `${flow} writes the rungs under a lease the judge took, or under none`);
+    assert.match(held, /Take a lease for as long as this session writes to the issue, the judging included/u,
+      `criterion 12: ${flow} has the master take a lease that ends before the judging does`);
+    assert.match(held, /The issue stays this session's while that run works, and nothing is handed over/u,
+      `criterion 12: ${flow} has the master give its lease up before dispatching`);
+    assert.doesNotMatch(held, /lets it go before dispatching/u,
+      `criterion 12: ${flow} still tells the master to let the issue go`);
+    assert.match(held, /Claim the issue again first where a judging run has just reported/u,
+      `${flow} writes the rungs under a lease it has not renewed`);
+    const judge = judging(flow);
+    assert.match(judge, /Work under an identity of your own, and claim no lease/u,
+      `criterion 11: ${flow} tells the judge to take a lease`);
+    assert.match(judge, /verdict is the one record written past whoever holds the issue/u,
+      `criterion 11: ${flow} leaves the judge not knowing its verdicts go past the holder's lease`);
   }
 });
 
