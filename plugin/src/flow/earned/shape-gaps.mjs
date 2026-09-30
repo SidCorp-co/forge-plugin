@@ -8,7 +8,7 @@
 import { SHAPES_AT, contractGap, shapesAt } from "../machine/contracts.mjs";
 import { evidenceHeld, isCommit } from "../../tracker/evidence.mjs";
 import { eachProblem } from "../record/content.mjs";
-import { landingProblem } from "../record/landing.mjs";
+import { landingProblem } from "../record/judged/landing.mjs";
 
 export const shapeGaps = (kind, record, names = [], table = SHAPES_AT) => {
   const shapes = shapesAt(record.contract, table);

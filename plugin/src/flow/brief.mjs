@@ -13,7 +13,7 @@ import { edgeExpired } from "../tracker/edges/kinds.mjs";
 import { finishedAtHead, methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { parseAll } from "./record/page.mjs";
-import { markedLanding } from "./record/landing.mjs";
+import { markedLanding } from "./record/judged/landing.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped", short: "≈ short" };

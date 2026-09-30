@@ -1,7 +1,7 @@
 /* What a clause's rung is derived from, and nothing that fetches. AC-14-4-3, docs/cli/spec-the-status.md. */
 import { criteriaOf, lookAnswered } from "../flow/earned.mjs";
 import { verdictHeads } from "../flow/record/merged.mjs";
-import { landsOutsideGit, markedLanding, samePlace } from "../flow/record/landing.mjs";
+import { landsOutsideGit, markedLanding, samePlace } from "../flow/record/judged/landing.mjs";
 import { sameCommit } from "../tracker/evidence.mjs";
 import { opensWith } from "../spec/parse.mjs";
 

@@ -4,7 +4,7 @@ import { JUDGE_FROM, valuesOf } from "../machine.mjs";
 import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 import { REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
-import { landsOutsideGit } from "../record/landing.mjs";
+import { landsOutsideGit } from "../record/judged/landing.mjs";
 import { identityAsk } from "../record/merged.mjs";
 
 export const [INDEPENDENT] = QA_MODES;

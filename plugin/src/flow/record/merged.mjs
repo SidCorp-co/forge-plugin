@@ -16,7 +16,7 @@ import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 import { commitProblem, commitTakes } from "./content.mjs";
-import { landingProblem, landsOutsideGit, markedLanding } from "./landing.mjs";
+import { landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
 

@@ -11,7 +11,7 @@ import { CARRIES, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.m
 import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
-import { landingProblem, landsOutsideGit, markedLanding } from "./landing.mjs";
+import { landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, onePerRoutes, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";

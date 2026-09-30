@@ -9,7 +9,7 @@ import {
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
-import { landsOutsideGit, markedLanding } from "./record/landing.mjs";
+import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
 import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, landingOwed, verificationForm } from "./earned/asks.mjs";
 
 export { correctedForm };

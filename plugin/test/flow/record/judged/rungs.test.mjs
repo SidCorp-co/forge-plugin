@@ -4,13 +4,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome } from "../../fixtures.mjs";
+import { tempHome } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("earned-landing").path;
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { clauseStatus } = await import("../../../src/trace/status.mjs");
-const { judgeProblems } = await import("../../../src/flow/qa/verdicts.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { CHECKS, viewFrom } = await import("../../../../src/flow/earned.mjs");
+const { clauseStatus } = await import("../../../../src/trace/status.mjs");
+const { judgeProblems } = await import("../../../../src/flow/qa/verdicts.mjs");
 
 let clock = 0;
 const at = () => `2026-09-30T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

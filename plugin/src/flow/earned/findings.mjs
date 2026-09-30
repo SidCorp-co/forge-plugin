@@ -3,7 +3,7 @@
    folded finding is typed at all is docs/cli/the-fold.md's. Nothing here fetches or writes. */
 import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";
-import { landsOutsideGit } from "../record/landing.mjs";
+import { landsOutsideGit } from "../record/judged/landing.mjs";
 import { identityAsk, markedIdentity } from "../record/merged.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
 import { escaped } from "../../markdown.mjs";

@@ -2,7 +2,7 @@
    record; these only spell what supplies it. */
 import { need, valuesOf } from "../machine.mjs";
 import { identityAsk, markedIdentity } from "../record/merged.mjs";
-import { markedLanding, samePlace } from "../record/landing.mjs";
+import { markedLanding, samePlace } from "../record/judged/landing.mjs";
 
 /* The identity every ask spends: a commit in git, the mark's landing outside it (ISS-2402). */
 export const identityOf = (view) => markedIdentity(view.issue, view.comments);

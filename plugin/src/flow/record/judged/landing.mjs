@@ -3,8 +3,8 @@
    as `landingShape`, and a landed mark there carries `mergedLanding`, the place a reader goes to check.
    Both are read off the tracker's own fields here and nowhere else, so no reader guesses the shape from
    the project's other keys or parses the place back out of a comment's prose (ISS-2402). */
-import { isCommit } from "../../tracker/evidence.mjs";
-import { lengthOf } from "../../tracker/field-write.mjs";
+import { isCommit } from "../../../tracker/evidence.mjs";
+import { lengthOf } from "../../../tracker/field-write.mjs";
 
 const OUTSIDE_GIT = "outside_git";
 
