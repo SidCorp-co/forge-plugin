@@ -97,13 +97,17 @@ test("the kind that opens a block carries what its one row cannot, and no other 
 test("a kind is shown the evidence vocabulary and the read sentence its own shape earns", () => {
   const VOCABULARY = /^Evidence is an attachment name on the issue/mu;
   const COMMIT = /^--commit is read off the merged mark's note/mu;
+  /* A kind that also takes a landing says both in one line, the verdict's help having no room for two. */
+  const IDENTITY = /^--commit, or --landing outside git, is read off the mark/mu;
   const EVIDENCE = /^--evidence is read off what the latest record of this kind cited/mu;
   for (const kind of KINDS) {
     const shown = kindHelp(kind);
     const fields = SHAPES[kind]?.fields ?? [];
     const evidence = fields.find((one) => one.evidence);
     assert.equal(VOCABULARY.test(shown), Boolean(evidence), `${kind}: the vocabulary is the field's`);
-    assert.equal(COMMIT.test(shown), fields.some((one) => one.commit), `${kind}: --commit is read for the kinds that take one`);
+    const landing = fields.some((one) => one.landing);
+    assert.equal(COMMIT.test(shown), fields.some((one) => one.commit) && !landing, `${kind}: --commit is read for the kinds that take one`);
+    assert.equal(IDENTITY.test(shown), landing, `${kind}: and --landing beside it for the kinds that take both`);
     const fills = Boolean(evidence && ((evidence.least ?? 1) >= 1 || evidence.owed));
     assert.equal(EVIDENCE.test(shown), fills, `${kind}: --evidence is read where the write fills it`);
     if (fills) {
