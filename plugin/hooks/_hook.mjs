@@ -255,7 +255,7 @@ function touching(ev, freshMs) {
   });
   /* The run's own transcript, not the one the event hands over: a delegated run's call names the dispatching session, whose last message is a wave's idle wait away (ISS-1672). */
   const since = names.length ? calledAt(ownTranscript(ev)) : 0;
-  const fileAt = (token, trees) => {
+  const lookedUp = (token, trees) => {
     for (const cand of new Set([...trees.map((tree) => join(tree, token)), token, join(cwd, token)])) {
       try {
         const st = statSync(cand);
@@ -266,6 +266,9 @@ function touching(ev, freshMs) {
     }
     return null;
   };
+  /* Once per name and trees: a claim below and the occurrence it claims ask the same question. */
+  const found = new Map();
+  const fileAt = (token, trees) => memo(found, `${token}\0${trees.join("\0")}`, () => lookedUp(token, trees));
   /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. A claim is the file its own occurrence reached, so the same name only read in another tree is still a mention. */
   const claims = new Set(names.length
     ? writtenPaths(resolved, cwd).map(({ token, trees }) => fileAt(token, moved(trees))).filter(Boolean)
