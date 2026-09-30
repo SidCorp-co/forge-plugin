@@ -3,9 +3,9 @@
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 
-import { quoting, spans } from "./shell/walk.mjs";
+import { quoting, spans, underOf } from "./shell/walk.mjs";
 
-export { quoting, spans };
+export { quoting, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -549,8 +549,7 @@ const aimedIn = (text, stage, kept, bare) => {
 
 /** The spellings a shell-level text writes through that no spelling in it produces: a redirect's target, a write verb's own target, and a stage whose names `xargs`, `-exec` or `{}` hand over. A character counts only where the shell expands it, which is the quoting walk's to say: a `$` under a single quote or a backslash is text, a pattern under either quote is text, and a `>` under one is no redirect. A program body is the caller's to have taken out, being its interpreter's text and not the shell's. how/writes.md. */
 export const unseenNames = (text) => {
-  const under = new Array(text.length).fill("\\");
-  for (const one of quoting(text)) under[one.at] = one.under;
+  const under = underOf(text);
   const bare = text.split("").map((one, at) => (under[at] === " " ? one : "_")).join("");
   const asked = (pattern, at) => {
     pattern.lastIndex = at;
