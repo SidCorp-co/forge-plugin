@@ -35,10 +35,12 @@ export const retryOf = (status, repeatable) => {
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 
-/* Only where the attempt's bound was cut to the process's clock: a caller's own `waits` is a deadline
-   the account does not answer for. */
-const onClock = (said, deadline) => {
-  if (!ceilingFrom() || deadline?.from !== ceilingFrom()) return said;
+/* Only where the attempt ran out and its bound was cut to the process's clock: a caller's own `waits`
+   is a deadline the account does not answer for, and a reset or an abort with time left is no
+   refusal the clock caused. */
+const onClock = (dropped, deadline) => {
+  const said = ranOut(dropped, deadline);
+  if (dropped.name !== "TimeoutError" || !ceilingFrom() || deadline?.from !== ceilingFrom()) return said;
   return `${said}${/[.!?]$/u.test(said) ? "" : "."} ${clockSpentSaid()}`;
 };
 
@@ -242,7 +244,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
     );
     if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
-      + `${onClock(ranOut(dropped, deadline), deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
+      + `${onClock(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
       return [part, refused(said(body, response.status, args),
