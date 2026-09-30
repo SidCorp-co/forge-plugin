@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, STARTS, WRITES, landedIn, namesOf, placeable, redirectsIn, spans, standsIn, struck, underOf, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, STARTS, WRITES, landedIn, namesOf, placeable, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -364,8 +364,8 @@ export const literal = (one) => {
   return one.startsWith('"') ? inner.replace(/\\\n/gu, "").replace(/\\(["\\$`])/gu, "$1") : inner;
 };
 
-/* Literals standing next to each other with nothing but whitespace between are one string to python. */
-const ADJACENT = /^\s*$/u;
+/* Literals standing next to each other with nothing but whitespace, a comment or a continuation between are one string to python. */
+const ADJACENT = /^(?:\s|#[^\n]*|\\\n)*$/u;
 
 /** The strings a program body hands a shell, each as that shell is given it, or null where it hands none: a shell's own body is its commands already, and a body naming no spawn call its language has hands nothing. how/learning-gate.md. */
 export const handedIn = (body, runner) => {
@@ -473,15 +473,16 @@ const runnerOf = (all, body) => all.slice(0, all.length - body.length);
 /* Per command, since one event's gates each ask it of the same call and the answer is a string of it alone. */
 const writesOf = new Map();
 
-/* Placed after the body, one line each, since that is where the program ran them. One whose own quote never closes is a program its shell refuses whole, and left in it would quote away every command after it. */
-const closes = (one) => underOf(`${one}\n;`).at(-1) === " ";
+/* One line each, where the program ran them. Each is its own shell's program, so one that leaves a quote, a test or an arithmetic open — which its shell refuses — is left out rather than let it read the next one's redirect as data: a redirect after it has to still be one. */
+const PROBE = "forge-probe";
+const closes = (one) => redirectsIn(`${one}\n>${PROBE}`).some(({ target }) => target === PROBE);
 const spawned = (body, runner) => {
   const given = (handedIn(body, runner) ?? []).filter(closes);
   return given.length ? `\n${given.join("\n")}\n` : "";
 };
 
-/* A `>` in a heredoc body a shell does not run is its program's comparison or its data, and never a redirect, a space ending a word wherever it did; a string it hands a shell is that shell's command. */
-const programmed = (body, runner) => (SHELL.test(runner) ? body : body.replace(/>/gu, " ") + spawned(body, runner));
+/* A `>` in a heredoc body a shell does not run is its program's comparison or its data, and never a redirect, a space ending a word wherever it did; a string it hands a shell is that shell's command, read ahead of the body so nothing the body leaves open reaches it. */
+const programmed = (body, runner) => (SHELL.test(runner) ? body : spawned(body, runner) + body.replace(/>/gu, " "));
 
 /* An inline body the same, where the null command after its strings takes what followed the body. */
 const inline = (all, runner, body) => {

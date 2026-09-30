@@ -33,9 +33,13 @@ test("a > in a string a program body hands a shell names that shell's write", ()
     [SKILL], "a node heredoc through execSync");
 });
 
-test("a string a spawned shell could not parse quotes away no command after it", () => {
+test("a string a spawned shell could not parse leaves every other command as it was", () => {
   both([`python3 - <<'PY'`, "import subprocess", `print("don't")`, "PY", `echo x > ${SKILL}`].join("\n"), [SKILL], "a heredoc");
   both(`python3 -c "import os; print('don\\'t'); os.system('ls')" && echo x > ${SKILL}`, [SKILL], "an inline body");
+  both(`python3 -c "import os; print('[[ x'); os.system('echo hi > ${SKILL}')"`, [SKILL], "a test left open");
+  both(`python3 -c "import os; print('(( x'); os.system('echo hi > ${SKILL}')"`, [SKILL], "an arithmetic left open");
+  both(["python3 - <<'PY'", "import os", "x = [[1], [2] ]", "os.system('echo hi > ' # the target", `    '${SKILL}')`, "PY"].join("\n"),
+    [SKILL], "a body leaving a test open, and literals a comment separates");
 });
 
 test("a > in a program body that spawns no shell is still the program's own", () => {
@@ -48,7 +52,8 @@ const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..",
 const HOME = homeEnv("redirect-spawned");
 
 test("the learning gate refuses a memory write a python program sends through the shell it spawns", () => {
-  const command = `python3 -c "import os; os.system('echo hi > /home/dev/.claude/projects/-home-dev-app/memory/trap.md')"`;
+  const memory = "/home/dev/.claude/projects/-home-dev-app/memory/trap.md";
+  const command = `python3 -c "import os; print('[[ x'); os.system('echo hi > ${memory}')"`;
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
   assert.equal(answered(run)?.hookSpecificOutput?.permissionDecision, "deny", run.stdout);
