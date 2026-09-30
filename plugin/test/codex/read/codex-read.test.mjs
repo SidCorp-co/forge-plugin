@@ -369,3 +369,15 @@ test("an answer at these bytes stands though a later consult of them failed", ()
   assert.deepEqual(withGateway(true, () => readOrRefuse(path, root)), { refusal: null, text: PLAN },
     "a review that happened is not undone by one that could not: the write takes the file as read, with no note");
 });
+
+test("with no gateway configured, a file some consult already named goes through as unread all the same", () => {
+  for (const planted of [(root, rel) => failed(root, rel, PLAN, { id: "gone01", status: 503 }),
+    (root, rel) => consulted(root, rel, "older bytes\n", { id: "stale1" })]) {
+    const { root, path, rel } = room();
+    reading(root, "advisory");
+    planted(root, rel);
+    const got = withGateway(false, () => readOrRefuse(path, root));
+    assert.equal(got.refusal, null);
+    assert.equal(got.unread, NO_GATEWAY_REASON, "no consult is askable here, whatever the log already holds");
+  }
+});
