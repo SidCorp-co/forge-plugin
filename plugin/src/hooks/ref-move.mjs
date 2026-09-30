@@ -6,13 +6,15 @@ import { canonical } from "../resolve/canonical.mjs";
 import { gitProbe, probeMs } from "./git-probe.mjs";
 import { NOWHERE } from "./shell-spans.mjs";
 
-const WORDS = /"([^"]*)"|'([^']*)'|(\S+)/gu;
+/* A shell word, adjacent quoted and bare fragments joined as the shell joins them: `'refs/heads/'main`. */
+const WORDS = /(?:"[^"]*"|'[^']*'|[^\s"'])+/gu;
+const FRAGMENT = /"([^"]*)"|'([^']*)'/gu;
 const REDIRECTION = /^\d*[<>]{1,2}(?:&\d)?$/u;
 const VALUED = new Set(["-m"]);
 
 /** The operands and the two forms that change what they mean, off what follows `update-ref`. */
 export const updateRefOf = (rest) => {
-  const words = [...String(rest).matchAll(WORDS)].map((m) => m[1] ?? m[2] ?? m[3]);
+  const words = (String(rest).match(WORDS) ?? []).map((word) => word.replace(FRAGMENT, (_, d, s) => d ?? s));
   const operands = [];
   const flags = new Set();
   let past = false;
@@ -97,20 +99,21 @@ const moved = (hits, to, here) => {
   return { instead: own ? OWN : HAND_OVER, cause: `\`git update-ref\` moves a ref and never a work tree. ${trees.join("\n")}` };
 };
 
-/* The branch a dereferenced HEAD moves, which in a bare repository is one a linked tree may stand on;
-   a detached HEAD answers `HEAD`, the tree the call runs in. */
-const branchOf = (ask, tree) => {
-  const said = ask(["symbolic-ref", "-q", "HEAD"]);
+/* The ref a dereferencing update moves: a symbolic ref's target, which for a bare repository's HEAD is a
+   branch a linked tree may stand on, else the name itself. A detached HEAD answers `HEAD`, the tree the call runs in. */
+const targetOf = (ask, ref) => {
+  const said = ask(["symbolic-ref", "-q", ref]);
   if (said?.status === 0) return { ref: said.out.trim() };
-  if (said?.status === 1) return { ref: "HEAD" };
-  return { unread: `git did not say which branch HEAD names in ${tree}` };
+  if (said?.status === 1) return { ref };
+  return { unread: `git did not say which ref \`${ref}\` names` };
 };
 
 /** Null where the call leaves no checked-out tree behind, else the refusal's `{ instead, cause }`.
  *  `tree` is where the command runs, `NOWHERE` where the text does not say; `left` is the ms remaining. */
 export const refMoveIn = (rest, tree, left) => {
   const call = updateRefOf(rest);
-  if (call.deletes || (!call.stdin && !judged(call.ref))) return null;
+  if (call.deletes || (!call.stdin && call.ref === null)) return null;
+  if (tree === NOWHERE && !call.stdin && !judged(call.ref)) return null;
   if (tree === NOWHERE) return unread("which tree the call runs in cannot be read from the command, so spell the directory out: `cd <path> && …`");
   const ask = (argv) => gitProbe(argv, { cwd: tree, ms: probeMs(left()) });
   const repo = ask(["rev-parse", "--git-dir"]);
@@ -118,6 +121,9 @@ export const refMoveIn = (rest, tree, left) => {
   if (repo.status !== 0) return null;
   if (call.stdin) return STDIN;
   if (call.value === null) return null;
+  const target = call.deref ? targetOf(ask, call.ref) : { ref: call.ref };
+  if (target.unread) return unread(target.unread);
+  if (!judged(target.ref)) return null;
   const to = ask(["rev-parse", "--verify", "--quiet", `${call.value}^{commit}`]);
   if (!to) return unread(`git did not say in time which commit \`${call.value}\` names`);
   if (to.status !== 0) return null;
@@ -125,8 +131,6 @@ export const refMoveIn = (rest, tree, left) => {
   const listed = ask(["worktree", "list", "--porcelain"]);
   if (listed?.status !== 0) return unread("`git worktree list --porcelain` gave no listing of the trees that could be standing on it");
   const entries = worktreesOf(listed.out);
-  const target = call.ref === "HEAD" && call.deref ? branchOf(ask, tree) : { ref: call.ref };
-  if (target.unread) return unread(target.unread);
   const top = ask(["rev-parse", "--show-toplevel"]);
   const here = top?.status === 0 ? canonical(top.out.trim()) : null;
   let standing = entries.filter((one) => one.branch === target.ref);

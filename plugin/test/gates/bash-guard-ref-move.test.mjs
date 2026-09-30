@@ -59,6 +59,23 @@ test("a compare-and-swap move with a reason and a tree named by -C is read the s
   assert.ok(said.reason.includes(`checked out at ${repo.main}`), said.reason);
 });
 
+test("a branch spelt in joined quoted fragments, or reached through a symbolic ref, is the branch it names", () => {
+  const repo = shared();
+  const to = repo.head(repo.side);
+  const joined = decide(`git update-ref 'refs/heads/'"mas"ter ${to}`, repo.side);
+  assert.equal(joined.allowed, false, joined.reason);
+  git(repo.main, "symbolic-ref", "refs/heads/alias", "refs/heads/master");
+  git(repo.main, "symbolic-ref", "refs/aliased", "refs/heads/master");
+  for (const ref of ["refs/heads/alias", "refs/aliased"]) {
+    const said = decide(`git update-ref ${ref} ${to}`, repo.side);
+    assert.equal(said.allowed, false, ref);
+    assert.ok(said.reason.includes(`checked out at ${repo.main}`), said.reason);
+    assert.ok(said.reason.includes("\n  landed-00.txt"), said.reason);
+  }
+  assert.equal(decide(`git update-ref --no-deref refs/heads/alias ${to}`, repo.side).allowed, true,
+    "--no-deref rewrites the alias itself, which no tree stands on");
+});
+
 test("moving HEAD moves the tree the call runs in, with or without --no-deref", () => {
   const repo = shared();
   for (const form of ["", "--no-deref "]) {
