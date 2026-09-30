@@ -14,9 +14,7 @@ command, a pipeline being one; a redirect, its own target alone. A library call 
 prefix; `$(…)` is text.
 
 To mention one without writing: out of command position (a `--name` value), in a data heredoc, or
-quoted with a space, quote or bracket; a `-c` body is code, so a verb there counts. An
-interpreter's `>` is its own, unless its program hands that string to a shell (`os.system`,
-`execSync`, …): then it is that shell's redirect.
+quoted with a space, quote or bracket; a `-c` body is code, so a verb there counts.
 
 Not judged: what the write contains, or whether it belongs.
 
