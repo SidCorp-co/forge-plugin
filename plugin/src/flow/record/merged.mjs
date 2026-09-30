@@ -71,7 +71,6 @@ export const markedIdentity = (issue, comments) => (landsOutsideGit(issue)
   ? { flag: "landing", value: markedLanding(issue) }
   : { flag: "commit", value: markedCommit(comments) });
 
-
 export const reviewedHead = (comments) => readClause(comments, "reviewed");
 export const judgedHead = (comments) => readClause(comments, "judged");
 
@@ -518,8 +517,8 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
   const given = flags(argv, "record merged", ["--undo"], { usage });
   const place = given.landing === undefined ? null : landingProblem(given.landing);
   if (place && !given.undo) refuse(`--landing ${place}.`);
+  const { documentId, body } = await issue();
   if (given.undo) {
-    const { documentId, body } = await issue();
     const { comments } = await page();
     const also = Object.keys(given).filter((one) => one !== "undo");
     if (also.length) {
@@ -534,7 +533,6 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
     const said = mark ? markSaid(reference, mark) : stampSaid(reference, body.mergedAt);
     return { write: () => undone(documentId, reference, said, { next, patch }) };
   }
-  const { documentId, body } = await issue();
   if (landsOutsideGit(body)) return outsidePrepared(given, { documentId, reference, next, patch });
   if (given.landing !== undefined) gitRefused(reference);
   const clauses = movedRead(clausesFrom(given), process.cwd(), () => withoutMoved(reference, given));
