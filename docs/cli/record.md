@@ -94,17 +94,3 @@ of a repeating one, refuses it before anything is sent, because the empty substi
 produces lands in a citation as readily as in a sentence, and arrives in batches (ISS-196).
 
 The two kinds that take no lease, and why a dispatcher's records cannot: [the wave](the-wave.md).
-
-**A verdict is the one record written past another run's lease.** The lease guards the writes that
-replace something — a field, a status, the lease itself — so that two runs never write over each
-other, and a verdict replaces nothing: it is a comment and the files it cites. It is also the one
-record that has to come from somebody other than the run holding the issue, so a judge dispatched
-while its dispatcher holds the lease was refused the very write it was sent for, and the routes left
-were a lease shortened and waited out or a `--stopped` that asserted something false (ISS-1494). A
-verdict sent alone, past a lease that is another run's, therefore goes up under the caller's id and
-leaves that lease exactly as it stood: nothing renewed, nothing taken, and no status moved, because
-a status is a write the lease covers, so the move it earns is named for the holder to make. The id
-has to be one the caller set — the variable, or its tree's run id — because a verdict under the
-dispatching session's inherited id or the machine's saved one cannot say which run judged. That
-condition cannot tell a builder under a new id from a judge it dispatched, which share a process;
-whether the judge was the builder is the contract's question at `testing`, and is asked there.

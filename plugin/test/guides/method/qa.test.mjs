@@ -112,7 +112,7 @@ test("the master keeps the issue while a judging run works on it, and the judge 
     const judge = judging(flow);
     assert.match(judge, /Work under an identity of your own, and claim no lease/u,
       `criterion 11: ${flow} tells the judge to take a lease`);
-    assert.match(judge, /verdict is the one record written past whoever holds the issue/u,
+    assert.match(judge, /verdicts go up past whoever holds the issue, under that id and with their hold untouched/u,
       `criterion 11: ${flow} leaves the judge not knowing its verdicts go past the holder's lease`);
   }
 });

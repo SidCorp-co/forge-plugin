@@ -77,9 +77,9 @@ hands of the one run that builds nothing.
 
 Work under an identity of your own, and claim no lease. Set `FORGE_SESSION_ID` to a value of your
 own before your first call rather than inheriting whoever dispatched you, and that is the whole of
-what it costs you: there is no tree to stand in for one, and no second step to go looking for. A
-verdict is the one record written past whoever holds the issue — it goes up under that id and leaves
-their lease as it stood — so the lease is not yours to take, to wait out or to declare stopped. The
+what it costs you: there is no tree to stand in for one, and no second step to go looking for. Your
+verdicts go up past whoever holds the issue, under that id and with their hold untouched, so the
+lease is not yours to take, to wait out or to declare stopped. The
 owed read above says, before you judge anything, whether your verdicts will be written. Any other
 record you would make is the holder's, and reaches it through your report.
 
