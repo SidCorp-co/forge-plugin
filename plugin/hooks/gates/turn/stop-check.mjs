@@ -230,7 +230,7 @@ const linted = (ev, records) => {
   const configured = lintConfigured();
   for (const { file, said, unread: why } of linting(ev, turnWrites(records), left, { at })) {
     if (said) found.push(`${typed(file)} — ${said.split("\n")[0]}`);
-    else if (why && configured(file)) unread.push(`${typed(file)} (${unreadWhy(why, SAID) ?? why})`);
+    else if (why && configured(file)) unread.push(`${typed(file)} (${unreadWhy(why, SAID)})`);
   }
   return { found, unread };
 };
