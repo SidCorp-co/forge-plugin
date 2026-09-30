@@ -6,7 +6,7 @@
 import { isCommit } from "../../tracker/evidence.mjs";
 import { lengthOf } from "../../tracker/field-write.mjs";
 
-export const OUTSIDE_GIT = "outside_git";
+const OUTSIDE_GIT = "outside_git";
 
 /** Absent is git, which is what every issue was before the tracker had the field — unless the row
  *  carries a landing: a listed row omits the shape and keeps `mergedLanding`, and the tracker refuses

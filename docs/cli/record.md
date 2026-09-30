@@ -39,11 +39,8 @@ name already there. Named from before the request, not after: the tracker can ta
 the answer, and a file nobody was told about is the one nobody cites.
 
 Two flags are read off the record when they are absent, and each prints where its value came from: a
-commit from the merged mark's note, and evidence from the latest record of the same kind. On an issue
-the tracker says lands outside git, a verdict, a review and a verification name what they judged by
-the landing instead of a commit — the place the mark's own `landing` names, read off it the same way —
-because there a sha would send every reader to a commit that holds none of the change (ISS-2402). ISS-59's verdict loop typed the same two values twenty times each, and both were already on the
-record. Evidence is read from the latest record of that kind rather than from the attachment set, because
+commit from the merged mark's note — or, outside git, the landing it names —
+and evidence from the latest record of the same kind. ISS-59's loop typed both twenty times, and both were on the record. Evidence is read from the latest record of that kind rather than from the attachment set, because
 what an issue's evidence is belongs to whoever cited it first: the one attachment an issue carries
 may be a design document nobody cited, and a default from it would turn a refused verdict into a
 passing one. It is not read per criterion — one document answers twenty of them, which is where the

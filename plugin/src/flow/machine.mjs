@@ -402,7 +402,7 @@ const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it,
 const JUDGED_COMMIT = { commit: true, judged: true, optional: true, identity: true };
 const JUDGED_LANDING = { optional: true, landing: true, identity: true };
 
-export const identityProblem = (got) => {
+const identityProblem = (got) => {
   if (got.commit !== undefined && got.landing !== undefined) {
     return "one of --commit and --landing, not both: a record names what it judged by the one identity its issue lands under";
   }

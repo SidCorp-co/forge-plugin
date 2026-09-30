@@ -485,7 +485,7 @@ const GIT_FLAGS = [...CLAUSES.map((one) => one.flag), "to"];
 
 /* The note an outside-git mark carries. The place itself is the tracker's own field, which its audit
    comment quotes beside this; the note says only which of the two marks this is. */
-export const LANDED_NOTE = "landed outside git, at the place this mark's landing names";
+const LANDED_NOTE = "landed outside git, at the place this mark's landing names";
 
 const outsideRefused = (reference, beside) => refuse(`${reference} lands outside git — the tracker's `
   + "`landingShape` for it is `outside_git` — so its mark names where the change now is and no commit"

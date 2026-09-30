@@ -21,7 +21,7 @@ export const landingOwed = (view, held, what, ask) => {
 export const askOne = (ref, number, id) =>
   `forge record verdict ${ref} --criterion ${number} --verdict ${valuesOf("verdict", "verdict")} `
   + `${id} --evidence <attachment|url|sha>`;
-export const askAll = (ref, numbers, id) =>
+const askAll = (ref, numbers, id) =>
   `forge record verdict ${ref} ${id} --evidence <attachment|url|sha> `
   + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join("");
 export const foldVerdicts = (ref, numbers, id, one, many) =>
