@@ -3,6 +3,7 @@
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 
+import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { quoting, spans, underOf } from "./shell/walk.mjs";
 
 export { quoting, spans, underOf };
@@ -251,6 +252,19 @@ const worded = (text, alike) => {
 };
 /* Where a name may begin inside its word, besides its start. Before it: the option a value may be attached to, which is one letter after a single hyphen and the whole word after two — `curl -onotes.md` writes what `--output=notes.md` does, and past a bare `--` there are no options left, so a file whose own name opens with a hyphen is read as one — and the first `=` or `:`, a key standing in front of the value it names. After it: the last `}`, since what follows the last substitution is the literal tail the program will build, and `f"{root}/skills/x/SKILL.md"` spells a guarded path while naming no `root` this can read. One of each and no more, so one word is read four ways rather than once per character of a 40 000-character operand. And a word standing against a quote is no option at all but a literal a body carries, an interpreter's own body arriving here with its quotes still in it — all three of them, a template's backtick as much as the other two — and `open("--trap.md", "w")` naming a file. */
 const OPTION = /^--[\w-]+|^-[A-Za-z0-9]/u;
+/* Where a value attached inside a cluster of short options begins, by the offset of the word holding it, for a verb the option table names: `curl -sSof.md` writes `f.md`, which one letter after the hyphen reads as `Sof.md`. A word spelt under a quote keeps the reading above, its offsets being the quoted spelling's. */
+const valueLeads = (text) => {
+  const out = new Map();
+  if (!NAMED.test(text)) return out;
+  for (const stage of spans(text, { pipes: true })) {
+    const { program, rest } = commandOf(text.slice(stage.start, stage.end), stage.start);
+    for (const { at, next, value } of optionsIn(program, rest) ?? []) {
+      const word = rest[at];
+      if (!next && !word.said.startsWith("--") && word.text === word.said) out.set(word.from, value.from - word.from);
+    }
+  }
+  return out;
+};
 const KEYED = /[=:]/u;
 const QUOTES = /["'`]/u;
 /* And where the word itself is no name: behind a key, which is a word-part carrying no separator with a value spelled from somewhere behind it — the root, a home, this directory or the one above. A `dd` naming its output after an `of=` names the value alone; a directory whose own name carries an `=` names the whole word, and only the first has a key in front of it. */
@@ -264,6 +278,7 @@ const endingIn = (tail) => new RegExp(`^${PATTERN}+\\.(?:${tail})(?![\\w~-]|\\.[
 /** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
 export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true } = {}) => {
   const ending = endingIn(tail);
+  const leads = options ? valueLeads(text) : new Map();
   const names = [];
   const seen = new Set();
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
@@ -271,7 +286,7 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
   for (const word of worded(text, whole)) {
     if (word.text === "--") ended = true;
     const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
-    const option = (options && !ended && !literal && OPTION.exec(word.text)?.[0].length) || 0;
+    const option = (options && !ended && !literal && (leads.get(word.at[0]) ?? OPTION.exec(word.text)?.[0].length)) || 0;
     /* A joined word is read from its start and nowhere else. The other three readings each say the name begins partway in, which is the opposite of what this word claims — that the span is one filename — and `'cache=/tmp/(r).md'` is a relative name the key reading would turn into a rooted one somewhere else entirely. */
     const starts = word.joined ? [0] : [
       ...(option || KEY.test(word.text) ? [] : [0]),
@@ -302,18 +317,8 @@ export const STARTS = String.raw`(?:(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s
 /** A word that runs its next quoted argument as shell code: a shell at any path, through `busybox` or not, with its options before the `-c` — a bare word only as the value `-o` or `+o` takes, since `bash -x script -c '…'` runs the script and hands it the rest — or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
 export const RUNNER = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 
-/* The options through which `curl` and `wget` write a file they name, letters and long names, each one seen creating its file (curl 8.18, wget 1.25, a `file://` source) — a log and a header dump are files as much as the document is. One that wrote nothing there, `curl -c` with no cookie to keep or `wget --save-cookies`, joins when a run sees it write, and `wget --warc-file` builds its name rather than spelling it. */
-const FETCHES = {
-  curl: { letters: "oD", names: ["output", "dump-header", "trace", "trace-ascii", "stderr", "libcurl", "etag-save"] },
-  wget: { letters: "Ooa", names: ["output-document", "output-file", "append-output"] },
-};
-/* Both verbs read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow a letter, and only the long spellings keep one, which is what leaves `--outputting` the unknown option curl refuses, and `--output-dir` the directory it names, rather than a write. */
-const fetching = (verb) => {
-  const { letters, names } = FETCHES[verb];
-  return String.raw`${verb}\b[^|;]*\s(?:-[${letters}]|--(?:${names.join("|")})(?![\w-]))`;
-};
-
-/** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option `FETCHES` declares. how/writes.md. */
+const fetching = (verb) => String.raw`${verb}\b[^|;]*\s${writingOption(verb)}`;
+/** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option their row of the option table says writes. how/writes.md. */
 export const WRITES = new RegExp(
   STARTS
     + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
@@ -377,7 +382,7 @@ export const redirectsIn = (text) =>
     return { at: one.index, from, to, target: text.slice(from, to) };
   });
 
-/* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of an option `FETCHES` declares, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
+/* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target being an option's value, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
 const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", rsync: "last", sed: "each", tee: "each", touch: "each", truncate: "each", wget: "none" };
 const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
 const UNLINKS = /\s--remove-source-files(?![\w-])/u;
@@ -392,57 +397,37 @@ const CLOSES = /^\)+$/u;
 const FLAG = /^-/u;
 const RELOCATES = /^(?:cd|pushd|popd)$/u;
 const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
-const TARGETED = /\s(?:-[A-Za-z]*t[^\s-]*|--target-directory(?:=\S*)?)(?![\w-])/u;
 
-/* `cp -a` is a flag alone, and the word after it is the file the copy reads: a verb named here reads a value after the options it lists and after nothing else. GNU's `cp` and `mv` take one after `-S` and `-t`, its `install` after `-g`, `-m`, `-o` and those two, its `touch` after `-d`, `-r` and `-t`, its `truncate` after `-r` and `-s`, and its `tee` after none, so `tee -a` is followed by the file it writes; BSD's take no more than these. A value is the rest of a cluster behind its letter, or the next word where nothing is left, so it is the last letter of a cluster that takes the next word. A verb not named here keeps the reading that a word after any flag may be its value. Only a verb taking `--target-directory` has a directory `-t` hands it. */
-const COPIES = { letters: "St", names: ["suffix", "target-directory"] };
-const VALUES = {
-  cp: COPIES,
-  install: { letters: "gmoSt", names: ["group", "mode", "owner", "suffix", "target-directory"] },
-  mv: COPIES,
-  tee: { letters: "", names: [] },
-  touch: { letters: "drt", names: ["date", "reference"] },
-  truncate: { letters: "rs", names: ["reference", "size"] },
+/* The words of one command that are some option's value, by index. A verb the option table names has its own options read; one it does not keeps the reading that a word after any flag may be that flag's value, since which of its flags take one is not known here. */
+const valuesIn = (program, words) => {
+  const read = optionsIn(program, words);
+  if (!read) return new Set(words.flatMap((one, at) => (at > 0 && FLAG.test(words[at - 1].said) ? [at] : [])));
+  return new Set(read.filter((one) => one.next && one.value).map((one) => one.at + 1));
 };
-const valuedBy = ({ letters, names }) => {
-  const shapes = [letters && `-[A-Za-z]*[${letters}]`, names.length && `--(?:${names.join("|")})`].filter(Boolean);
-  return new RegExp(`^(?:${shapes.join("|") || "(?!)"})$`, "u");
-};
-const VALUED_BY = Object.fromEntries(Object.entries(VALUES).map(([verb, taken]) => [verb, valuedBy(taken)]));
-const takesValue = (program, flag) => FLAG.test(flag) && (VALUED_BY[program]?.test(flag) ?? true);
 
-/* The directory a GNU `-t` hands one of those verbs, with the offset of the word naming it: every operand is then a source, and each lands in it under its own last name. The last one given is the one the verb uses, and past a bare `--` there are no options left. */
-const LONG_TARGET = "--target-directory";
+/* The directory a GNU `-t` hands a verb taking `--target-directory`, with the offset of the word naming it: every operand is then a source, and each lands in it under its own last name. The last one given is the one the verb uses. */
 const targetOf = (program, words) => {
-  const { letters, names } = VALUES[program] ?? {};
-  if (!names?.includes(LONG_TARGET.slice(2))) return null;
-  let found = null;
-  for (let at = 0; at < words.length && words[at].said !== "--"; at += 1) {
-    const { said, from } = words[at];
-    const next = words[at + 1]?.said;
-    if (said === LONG_TARGET) found = next === undefined ? found : { dir: next, at: words[at + 1].from };
-    else if (said.startsWith(`${LONG_TARGET}=`)) found = { dir: said.slice(LONG_TARGET.length + 1), at: from };
-    else if (/^-[A-Za-z]/u.test(said)) {
-      const letter = [...said.slice(1)].findIndex((one) => letters.includes(one));
-      const rest = letter < 0 ? "" : said.slice(letter + 2);
-      if (said[letter + 1] === "t" && (rest || next !== undefined)) found = rest ? { dir: rest, at: from } : { dir: next, at: words[at + 1].from };
-    }
-  }
-  return found;
+  const given = (optionsIn(program, words) ?? []).filter((one) => targets(program, one.name) && one.value).at(-1);
+  return given ? { dir: given.value.said, at: given.value.from } : null;
 };
 
-const notAnOperand = (program, words, at) => {
+const notAnOperand = (words, at, values) => {
   const { said, text } = words[at];
   const before = at > 0 ? words[at - 1].said : "";
-  return FLAG.test(said) || CLOSES.test(text) || takesValue(program, before) || AIMED.test(said) || AIMED.test(before);
+  return FLAG.test(said) || CLOSES.test(text) || values.has(at) || AIMED.test(said) || AIMED.test(before);
 };
 
 /** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. It reads each word's own spelling, quotes off, because a shell takes `'--output'` for the option it is and reading the raw word left the destination beside it unguarded. */
-const operandsOf = (program, words) => words.filter((one, at) => !notAnOperand(program, words, at));
+const operandsOf = (program, words) => {
+  const values = valuesIn(program, words);
+  return words.filter((one, at) => !notAnOperand(words, at, values));
+};
 
-/** A word left out for standing after a flag, which is a value that flag takes or an operand that flag does not — this cannot tell the two apart for a verb `VALUES` does not name. Nothing the write lands on, either way, except for the verbs whose destination arrives exactly there, and those are `none` above; in a stage that writes nothing, such as a `git diff --stat` or a `python3 -c` body piped into `tee`, it is only ever read (ISS-2427). A caller that must not invent a target reads it as a word the write does not land on; the default leaves it where it was, since a caller that must not miss one wants every candidate. */
-const afterFlagIn = (program, words) => words.filter(({ said }, at) =>
-  at > 0 && takesValue(program, words[at - 1].said) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
+/** A word left out for standing after a flag, which is a value that flag takes or an operand that flag does not — this cannot tell the two apart for a verb the option table does not name. Nothing the write lands on, either way, except for the verbs whose destination arrives exactly there, and those are `none` above; in a stage that writes nothing, such as a `git diff --stat` or a `python3 -c` body piped into `tee`, it is only ever read (ISS-2427). A caller that must not invent a target reads it as a word the write does not land on; the default leaves it where it was, since a caller that must not miss one wants every candidate. */
+const afterFlagIn = (program, words) => {
+  const values = valuesIn(program, words);
+  return words.filter(({ said }, at) => values.has(at) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
+};
 
 /** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
 const aimsOf = (program, operands, stage, said, target) => {
@@ -471,7 +456,7 @@ const readsIn = (stage, from, strict) => {
   const operands = operandsOf(program, rest);
   const said = ` ${words.map((one) => one.said).join(" ")}`;
   const aims = aimsOf(program, operands, stage, said, targetOf(program, rest));
-  if (strict && AIMS[program] === "last" && TARGETED.test(said)) return null;
+  if (strict && AIMS[program] === "last" && optionsIn(program, rest)?.some((one) => targets(program, one.name))) return null;
   const spare = strict && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
   return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
 };
@@ -502,13 +487,13 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
 
 /** The files a copy, a move or an install into a `-t` directory lands on, a name the command never spells: the directory joined with each source's last name, with the offset of the word naming the directory and the command span it stands in. Only a name carrying one of the extensions `tail` asks for. A span whose sources another command hands over names none, which is `struck`'s to answer. The verb is read where `commandOf` finds it rather than through `WRITES`, which misses a command a list's operator left a blank in front of (ISS-2933). The text is the command as written, since a struck one has already lost the sources. */
 export const landedIn = (text, tail = "[A-Za-z0-9]+") => {
-  /* A span can only match where the whole text does: every span ends at an operator, a comment or the end, none of which the pattern's look-ahead refuses. */
-  if (!TARGETED.test(text)) return [];
+  /* Every spelling of an option holds a hyphen, so a text without one names no target directory. */
+  if (!text.includes("-")) return [];
   const ending = endingIn(tail);
   const out = [];
   for (const { start, end } of spans(text)) {
     const span = text.slice(start, end);
-    if (!TARGETED.test(span) || HANDED.test(span)) continue;
+    if (!span.includes("-") || HANDED.test(span)) continue;
     for (const stage of spans(span, { pipes: true })) {
       const { program, rest } = commandOf(span.slice(stage.start, stage.end), start + stage.start);
       const target = targetOf(program, rest);
@@ -525,22 +510,12 @@ export const landedIn = (text, tail = "[A-Za-z0-9]+") => {
 const EXPANDS = /\$(?:\{?[A-Za-z_]|[0-9@*$]|\()|`/uy;
 const PATTERNS = /[*?[]|\{[^{}\s]*(?:,|\.\.)[^{}\s]*\}/uy;
 const DEVICE = /^\/dev\//u;
-/* Where `curl` and `wget` take the file they write, which is an option's value and never an operand: the word after the option, or the rest of its own word behind the letter or the `=`. */
-const OUTPUTS = Object.fromEntries(Object.entries(FETCHES).map(([verb, { letters, names }]) => {
-  const long = names.join("|");
-  return [verb, [new RegExp(`^(?:-[${letters}]|--(?:${long}))$`, "u"), new RegExp(`^(?:-[${letters}]|--(?:${long})=)(?=.)`, "u")]];
-}));
 /* A `sed` reads its first operand as the script, unless an option handed it one. */
 const SCRIPTED = /\s(?:-[A-Za-z]*[ef]|--expression|--file)(?![\w-])/u;
 
-const outputsOf = (program, words) => {
-  const [alone, joined] = OUTPUTS[program];
-  return words.flatMap((one, at) => {
-    if (alone.test(one.said)) return words.slice(at + 1, at + 2);
-    const lead = joined.exec(one.said)?.[0].length;
-    return lead ? [{ ...one, from: one.from + lead }] : [];
-  });
-};
+/* Where `curl` and `wget` take the file they write, which is an option's value and never an operand: the word after the option, or the rest of its own word behind the letter or the `=`. */
+const outputsOf = (program, words) =>
+  optionsIn(program, words).filter((one) => writes(program, one.name) && one.value).map((one) => one.value);
 
 /* One stage's words past what runs before its verb, each placed in the whole text, and the verb. */
 const argumentsOf = (text, stage) => {
@@ -555,7 +530,7 @@ const argumentsOf = (text, stage) => {
 const aimedIn = (text, stage, kept, bare) => {
   const { program, rest: left } = argumentsOf(kept, stage);
   const rest = left.filter((one) => !AIMED.test(bare.slice(one.from, one.to)));
-  if (OUTPUTS[program]) return outputsOf(program, rest);
+  if (AIMS[program] === "none" && known(program)) return outputsOf(program, rest);
   const operands = rest.filter((one) => !FLAG.test(one.said));
   if (program !== "sed" || SCRIPTED.test(bare.slice(stage.start, stage.end))) return operands;
   const script = argumentsOf(text, stage).rest.find((one) => !FLAG.test(one.said));

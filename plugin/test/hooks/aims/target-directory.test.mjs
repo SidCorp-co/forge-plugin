@@ -39,3 +39,19 @@ test("no name is composed where no target directory is given, or where the calle
   assert.deepEqual(landed("cp -t /a/x /tmp/new.md", "strike"), [], "and the strict reading takes none");
   assert.ok(!landed("printf '%s' a.md | xargs cp -t /a/x").includes("/a/x/a.md"), "a source handed over is not composed");
 });
+
+/* Only a verb taking `--target-directory` has a directory its `-t` hands it. Read off any verb, `rsync`'s
+   `-t`, which keeps times, blanked the whole command under the strict reading plan-scope takes, so a
+   planned destination read as never written (ISS-2958). */
+test("the strict reading blanks a span only where a target directory is really given", () => {
+  assert.deepEqual(landed("rsync -avt src/ plan/notes.md", "strike"), ["plan/notes.md"]);
+  assert.deepEqual(landed("rsync -avt src/ plan/notes.md"), ["plan/notes.md"], "as the keep reading already did");
+  assert.deepEqual(landed("rsync -t a.md plan/n.md", "strike"), ["plan/n.md"]);
+  assert.deepEqual(landed("cp -St /a/x /tmp/n.md", "strike"), ["/tmp/n.md"], "a `t` that is `-S`'s value names none");
+});
+
+/* The option table names the verbs whose options it knows, and `rsync` is not one of them: a word after
+   any of its flags may still be that flag's value, so no value is ever taken for its destination. */
+test("a verb the option table does not name reads the word after any flag as that flag's value", () => {
+  assert.deepEqual(landed("rsync src/ d.md --exclude x.md", "strike"), ["d.md"]);
+});
