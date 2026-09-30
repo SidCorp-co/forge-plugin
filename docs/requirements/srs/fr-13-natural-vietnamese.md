@@ -84,6 +84,29 @@ a sentence claims: a contrast between two readings, or a negation. Neither the p
   WHEN a translated block's source negates a claim and the candidate carries no Vietnamese negation
   THEN the route SHALL leave the block untranslated and SHALL report it.
 
+### UC-13-5 — A bare name crosses the rewrite whole
+
+Rev: 1 · Actors: agent · Enforces: BR-14
+
+A name the author did not quote carries nothing telling the model it is one, and a run id that lost
+its last letter reads as fluently as the one that was sent. So a bare name is held out of the
+model's reach the way an inline code span is, and accounted for on the way back as a placeholder is
+(UC-13-2). What reads as a name is a shape rather than a list: letters and digits in one token that
+is not an ordinal, an underscore between words, or camelCase.
+
+- **AC-13-5-1** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a bare run id, issue key and sha in a body are stored byte for byte"
+  WHEN a document block holds a bare name THEN the route SHALL keep that name out of what the model
+  is sent and SHALL write it back byte for byte.
+- **AC-13-5-2** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a title's bare names and code spans are stored byte for byte"
+  WHEN a string is translated as a document THEN its bare names and its code spans SHALL be held as
+  a document block's are.
+- **AC-13-5-3** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a rewrite that loses a held name is refused and nothing is posted"
+  IF a translation loses a held name THEN the route SHALL leave the text untranslated and SHALL
+  report why.
+- **AC-13-5-4** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "words, hyphenated words, numbers and ordinals still reach the rewrite as prose"
+  WHERE a token is a word, a hyphenated word, a number or an ordinal the route SHALL send it to the
+  model as prose.
+
 ## The way back
 
 *What undoes a change here?*

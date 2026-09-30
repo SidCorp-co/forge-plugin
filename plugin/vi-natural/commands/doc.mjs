@@ -33,12 +33,16 @@ export async function translate(args, makeClient) {
   if (!text) throw new CliError("nothing to translate");
 
   const { config, client } = makeClient(args);
+  /* A title is a doc string and carries the same names and spans a body does, so it is held the same
+     way rather than sent bare (ISS-1886). */
+  const slots = [];
+  const sent = args.kind === "doc" ? markdown.protectInline(text, slots) : text;
   /* The doc kind's prompt names the ⟦VI…⟧ markers, so a string sent under it can come back holding
      one it was never given, and every tracker title is sent that way (ISS-1016). */
   const asDoc = args.kind === "doc"
     ? { verify: (source, got) => placeholders.diff(source, got) ?? markdown.verify(source, got) ?? drift.diff(source, got) }
     : {};
-  const { results, problems } = await translateItems(client, [["1", text]], {
+  const { results, problems } = await translateItems(client, [["1", sent]], {
     ...asDoc,
     kind: args.kind === "prose" ? null : args.kind,
     glossary: config.glossary(),
@@ -54,7 +58,7 @@ export async function translate(args, makeClient) {
     // field can take answer the same way rather than one of them collapsing into a bare error.
     return args.kind === "doc" ? 2 : 1;
   }
-  const written = results.get("1");
+  const written = markdown.restoreInline(results.get("1"), slots);
   process.stdout.write(`${written}\n`);
   /* Handing the string back is the right answer for one with nothing in it to translate — a command,
      an identifier, a word already Vietnamese — but a caller that shells out reads stdout and cannot
