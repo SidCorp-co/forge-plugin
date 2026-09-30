@@ -142,7 +142,7 @@ test("an argument no verb takes is refused by name before the first step", () =>
    names a version carrying none of the change with nothing red to say so. */
 test("ship takes a version above the remote head, pushes, and stops at the first step it cannot take", () => {
   const { at, work } = scratch("ship");
-  git(at, "init", "--bare", "origin.git");
+  git(at, "init", "--bare", "-b", "master", "origin.git");
   git(work, "init", "-b", "master");
   committed(work, "one");
   git(work, "remote", "add", "origin", join(at, "origin.git"));
@@ -166,7 +166,7 @@ test("ship takes a version above the remote head, pushes, and stops at the first
 /* A release ships what a gate has passed, never what a session remembers running (ISS-117). */
 test("a red gate stops the ship before it bumps, pushes or installs anything", () => {
   const { at, work } = scratch("gated", "node -e \"process.exit(1)\"");
-  git(at, "init", "--bare", "origin.git");
+  git(at, "init", "--bare", "-b", "master", "origin.git");
   git(work, "init", "-b", "master");
   committed(work, "one");
   git(work, "remote", "add", "origin", join(at, "origin.git"));
@@ -193,7 +193,7 @@ test("a red gate stops the ship before it bumps, pushes or installs anything", (
    an earlier one held in memory is a step that cannot be resumed. Both were review findings. */
 test("a resumed ship commits a bump left on disk, and never says nothing moved when it cannot tell", () => {
   const { at, work } = scratch("resume");
-  git(at, "init", "--bare", "origin.git");
+  git(at, "init", "--bare", "-b", "master", "origin.git");
   git(work, "init", "-b", "master");
   committed(work, "one");
   git(work, "remote", "add", "origin", join(at, "origin.git"));

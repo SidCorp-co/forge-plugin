@@ -20,7 +20,7 @@ const MOVES = "if [ ! -f ../moved ]; then rm -rf ../mover"
 
 const shipping = (name, gate = GATE) => {
   const room = scratch(name, gate);
-  git(room.at, "init", "--bare", "origin.git");
+  git(room.at, "init", "--bare", "-b", "master", "origin.git");
   git(room.work, "init", "-b", "master");
   committed(room.work, "one");
   git(room.work, "remote", "add", "origin", join(room.at, "origin.git"));

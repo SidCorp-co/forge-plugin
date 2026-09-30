@@ -48,7 +48,7 @@ const greenAll = async (work) => {
 const shippable = (name, slug, also = []) => {
   const { work } = scratch(name, [], [], { also });
   const bare = tempRoom(`${name}-remote-`);
-  spawnSync("git", ["init", "-q", "--bare", bare], { cwd: dirname(bare), encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "--bare", "-b", "master", bare], { cwd: dirname(bare), encoding: "utf8" });
   git(work, "remote", "add", "origin", bare);
   projectRecord(work, HOME, { slug });
   return work;

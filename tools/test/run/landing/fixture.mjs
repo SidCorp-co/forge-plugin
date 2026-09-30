@@ -351,7 +351,7 @@ export const world = ({
   /* Named after the room, not a constant: this machine's record of a project is keyed on the
      repository's root folder, so every world called `checkout` would share one record. */
   const work = join(at, basename(at));
-  setUp(at, "init", "--bare", "origin.git");
+  setUp(at, "init", "--bare", "-b", "master", "origin.git");
   mkdirSync(work, { recursive: true });
   setUp(work, "init", "-b", BASE);
   /* In the repository's own config, not on each command line: the version commit is `git commit`

@@ -168,7 +168,7 @@ export const seen = (action, name = "forge_issues") =>
 /* Without the push the fetch has nothing to name and the range is undefined. */
 export const pushed = (name) => {
   const { at, work } = scratch(name);
-  setUp(at, "init", "--bare", "origin.git");
+  setUp(at, "init", "--bare", "-b", "master", "origin.git");
   setUp(work, "init", "-b", "master");
   committed(work, "one");
   setUp(work, "remote", "add", "origin", join(at, "origin.git"));

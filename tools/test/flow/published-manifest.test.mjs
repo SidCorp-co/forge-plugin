@@ -23,7 +23,7 @@ const SLUG = "a-tree-whose-manifest-moved";
 test("a release after a scoped gate over a root manifest edit publishes the whole table", () => {
   const { work } = scratch("published-manifest", [], [], { also: [join("tools", "gates", "green.mjs")] });
   const bare = tempRoom("published-manifest-remote-");
-  spawnSync("git", ["init", "-q", "--bare", bare], { cwd: dirname(bare), encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "--bare", "-b", "master", bare], { cwd: dirname(bare), encoding: "utf8" });
   git(work, "remote", "add", "origin", bare);
   projectRecord(work, HOME, { slug: SLUG });
 
