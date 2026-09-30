@@ -14,7 +14,9 @@ const hookScript = path.join(packageRoot, "claude-plugin", "scripts", "lint-edit
 const localEslint = path.join(packageRoot, "node_modules", "eslint");
 
 // Named imports of node:fs are live bindings that syncBuiltinESMExports refreshes, so the hook's
-// own `import { existsSync } from "node:fs"` reaches the counting wrapper.
+// own `import { existsSync } from "node:fs"` reaches the counting wrapper. Node's own loader
+// resolving the entry script through the same wrapper, as 24.21 does after a preload, is no call of
+// the hook's, so the entry's path is not counted.
 const COUNTER = `
 import fs from "node:fs";
 import { syncBuiltinESMExports } from "node:module";
@@ -22,7 +24,7 @@ const calls = [];
 for (const name of ["existsSync", "realpathSync", "lstatSync", "statSync"]) {
   const original = fs[name];
   fs[name] = function counted(...args) {
-    calls.push([name, String(args[0])]);
+    if (String(args[0]) !== process.argv[1]) calls.push([name, String(args[0])]);
     return original.apply(this, args);
   };
 }
