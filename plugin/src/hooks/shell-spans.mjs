@@ -3,106 +3,9 @@
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 
-/* Where a word begins: the only place a `#` is a comment and a `(` a subshell, `$(…)` and `<(…)` opening
-   a shell for their body alone. A flag and not a look-behind — the escape branch eats two characters. And
-   a `)` closes a frame only where the `(` it matches opened one, so a substitution pops nothing. */
-const OPENS = /[\s;&|()]/u;
+import { quoting, spans } from "./shell/walk.mjs";
 
-/* One walk, two answers: the spans below and the quoting each character stands under. Both are this loop's, because the quote state is the primitive the spans reading already spends, and a second walk of the same text elsewhere is a copy that can drift on one side only. */
-const walked = (text, pipes, quoted = false) => {
-  const out = [];
-  /* Built only for `quoting`: no reader of the spans alone reads it, and `spans` runs several times per Bash event. */
-  const under = quoted ? new Array(text.length).fill(" ") : null;
-  const mark = quoted ? (at, as) => { under[at] = as; } : () => {};
-  /* The backslashes a shell takes out of the word, which is one standing outside every quote with a character behind it: under a double quote one stays in the word before most characters, and which is ISS-1533's. */
-  const gone = new Set();
-  let start = 0;
-  let quote = "";
-  let said = -1;
-  let fresh = true;
-  let opens = 0;
-  let closes = 0;
-  const nested = [];
-  const cut = (at) => {
-    out.push({ start, end: said < 0 ? at : said, opens, closes });
-    said = -1;
-    opens = 0;
-    closes = 0;
-  };
-  for (let at = 0; at < text.length; at += 1) {
-    const one = text[at];
-    /* Read before the quote and escape branches: a comment's apostrophe opens nothing. */
-    if (said >= 0) {
-      if (one === "\n") {
-        cut(at);
-        start = at + 1;
-      } else mark(at, "#");
-      continue;
-    }
-    if (one === "\\" && quote !== "'") {
-      if (quoted && !quote && at + 1 < text.length) gone.add(at);
-      mark(at, "\\");
-      if (at + 1 < text.length) mark(at + 1, "\\");
-      at += 1;
-      fresh = false;
-      continue;
-    }
-    if (quote) {
-      mark(at, quote);
-      if (one === quote) quote = "";
-      fresh = false;
-      continue;
-    }
-    if (one === '"' || one === "'") {
-      mark(at, one);
-      quote = one;
-      fresh = false;
-      continue;
-    }
-    if (fresh && one === "#") {
-      said = at;
-      mark(at, "#");
-      continue;
-    }
-    if (one === "(") {
-      nested.push(fresh);
-      if (fresh) opens += 1;
-    } else if (one === ")" && (nested.pop() ?? true)) closes += 1;
-    fresh = OPENS.test(one);
-    const pair = text.slice(at, at + 2);
-    /* `|&` is a pipeline, `>&` a descriptor — but a pipeline is where a program owning a flag stops. */
-    if (pair === "|&") {
-      if (pipes) cut(at);
-      at += 1;
-      if (pipes) start = at + 1;
-      continue;
-    }
-    if (one === "&" && text[at - 1] === ">") continue;
-    if (one === ";" || one === "\n" || one === "&" || pair === "||" || (pipes && one === "|")) {
-      cut(at);
-      if (pair === "&&" || pair === "||") at += 1;
-      start = at + 1;
-    }
-  }
-  cut(text.length);
-  return { out, under, gone };
-};
-
-/** Where each command begins and ends, with the subshells its span opens and closes. A quoted body is never cut, nor a pipeline split: both hand the next command its arguments. An unclosed quote joins, a backslash escapes outside single quotes, and a comment is outside every span — its `|` is no pipeline. */
-export const spans = (text, { pipes = false } = {}) => walked(text, pipes).out;
-
-/** Every character a shell reads, in order: `at` its offset, `one` the character, `under` the quoting it stands inside — a space bare, `'` or `"` that quote and its own delimiters, `#` a comment, `\` a character a backslash made literal, the backslash included, and `removed` the backslash a shell takes out of the word, which is one standing outside every quote. A line continuation is gone, both characters of it, because a shell removes the pair and joins what it separated; nothing else is, so the character a removed backslash escaped is still placed where the text has it and two neighbours here can be two apart in the text.
- *  What a quoting means for a character is the caller's: a shell runs a `$(` under a double quote and reads a `<(` there as text. And one quoting this cannot place, which the caller has to answer for: inside `$'…'` a backslash escapes, so the apostrophe that looks like the closing one may not be. */
-export const quoting = (text) => {
-  const { under, gone } = walked(text, false, true);
-  const continued = (at) =>
-    under[at] === "\\"
-    && (text[at] === "\n" || (text[at + 1] === "\n" && under[at + 1] === "\\"));
-  /* Split rather than spread: one entry per code unit, so `at` indexes this walk and a caller's own match, where a code point outside the BMP would put every offset after it one out. */
-  return text.split("")
-    .map((one, at) => ({ at, one, under: under[at], removed: gone.has(at) }))
-    .filter(({ at }) => !continued(at));
-};
+export { quoting, spans };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -396,12 +299,23 @@ export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\
 /** A word that runs its next quoted argument as shell code: a shell at any path, through `busybox` or not, with its options before the `-c` — a bare word only as the value `-o` or `+o` takes, since `bash -x script -c '…'` runs the script and hands it the rest — or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
 export const RUNNER = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 
-/** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option, and both read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow `-o` or `-O`, and only the long spellings keep one, which is what leaves `--outputting` the unknown option curl refuses rather than a write. how/writes.md. */
+/* The options through which `curl` and `wget` write a file they name, letters and long names, each one seen creating its file (curl 8.18, wget 1.25, a `file://` source) — a log and a header dump are files as much as the document is. One that wrote nothing there, `curl -c` with no cookie to keep or `wget --save-cookies`, joins when a run sees it write, and `wget --warc-file` builds its name rather than spelling it. */
+const FETCHES = {
+  curl: { letters: "oD", names: ["output", "dump-header", "trace", "trace-ascii", "stderr", "libcurl", "etag-save"] },
+  wget: { letters: "Ooa", names: ["output-document", "output-file", "append-output"] },
+};
+/* Both verbs read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow a letter, and only the long spellings keep one, which is what leaves `--outputting` the unknown option curl refuses, and `--output-dir` the directory it names, rather than a write. */
+const fetching = (verb) => {
+  const { letters, names } = FETCHES[verb];
+  return String.raw`${verb}\b[^|;]*\s(?:-[${letters}]|--(?:${names.join("|")})(?![\w-]))`;
+};
+
+/** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option `FETCHES` declares. how/writes.md. */
 export const WRITES = new RegExp(
   STARTS
     + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
     + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
-    + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output\b)|wget\b[^|;]*\s(?:-O|--output-document\b))`
+    + String.raw`|dd\b[^|;]*\bof=|${fetching("curl")}|${fetching("wget")})`
     + String.raw`|open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
     + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
@@ -459,7 +373,7 @@ export const redirectsIn = (text) =>
     return { at: one.index, target: text.slice(end - one[1].length, end) };
   });
 
-/* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of `-o` or `-O`, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
+/* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of an option `FETCHES` declares, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
 const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", rsync: "last", sed: "each", tee: "each", touch: "each", truncate: "each", wget: "none" };
 const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
 const UNLINKS = /\s--remove-source-files(?![\w-])/u;
@@ -547,8 +461,11 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
 const EXPANDS = /\$(?:\{?[A-Za-z_]|[0-9@*$]|\()|`/uy;
 const PATTERNS = /[*?[]|\{[^{}\s]*(?:,|\.\.)[^{}\s]*\}/uy;
 const DEVICE = /^\/dev\//u;
-/* Where `curl` and `wget` take the file they write, which is an option's value and never an operand. */
-const OUTPUTS = { curl: [/^(?:-o|--output)$/u, /^(?:-o|--output=)(?=.)/u], wget: [/^(?:-O|--output-document)$/u, /^(?:-O|--output-document=)(?=.)/u] };
+/* Where `curl` and `wget` take the file they write, which is an option's value and never an operand: the word after the option, or the rest of its own word behind the letter or the `=`. */
+const OUTPUTS = Object.fromEntries(Object.entries(FETCHES).map(([verb, { letters, names }]) => {
+  const long = names.join("|");
+  return [verb, [new RegExp(`^(?:-[${letters}]|--(?:${long}))$`, "u"), new RegExp(`^(?:-[${letters}]|--(?:${long})=)(?=.)`, "u")]];
+}));
 /* A `sed` reads its first operand as the script, unless an option handed it one. */
 const SCRIPTED = /\s(?:-[A-Za-z]*[ef]|--expression|--file)(?![\w-])/u;
 
