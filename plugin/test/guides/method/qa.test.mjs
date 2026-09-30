@@ -155,6 +155,20 @@ test("the judge's own reference carries the whole charter and the whole threshol
     "and the judge with no screen is not given the screen judge's threshold");
 });
 
+/* The verdicts are the one part of a judging run that outlives it: two runs killed by a rate limit
+   lost 55 minutes of judging because the method held the set for one write at the end (ISS-1497). */
+test("the judge writes each verdict as it is judged, and a restart judges only the remainder", () => {
+  for (const flow of [DEFAULT, SCREEN]) {
+    const held = judging(flow);
+    assert.match(held, /Write a criterion's verdict as soon as that criterion is judged, and never hold the set for one write at the end/u,
+      `criterion 1: ${flow} lets a judge hold its verdicts until the set is done`);
+    assert.match(held, /Judge only the criteria carrying no verdict that counts/u,
+      `criterion 2: ${flow} sends a restarted judge back over criteria a stopped run already judged`);
+    assert.match(held, /`forge resume <the issue>` marks every criterion with its verdict/u,
+      `criterion 2: ${flow} names no reading a restarted judge sees the coverage in`);
+  }
+});
+
 test("a wave takes the judging candidates only where the project declared them the dispatcher's", () => {
   for (const flow of [DEFAULT, SCREEN]) {
     const held = served(flow, "guide", "dispatch");

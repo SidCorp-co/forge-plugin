@@ -146,6 +146,15 @@ test("the screen flow's Phase 5 serves both arms of the judging declaration", ()
     "the builder arm: a project that declared no independent judge is told nothing about what to do");
 });
 
+/* A builder that judges its own change holds unwritten state for as long as a judge does, and a run
+   killed before one write at the end leaves the issue as it found it (ISS-1497). */
+test("Phase 5 has the builder write each verdict as it is judged, under either flow", () => {
+  assert.match(served(DEFAULT, "guide", "issue-flow", "5"), /each written as it is judged rather than held for the set/u,
+    "criterion 3: the flow with no screen lets the builder hold its verdicts for one write at the end");
+  assert.match(served(SCREEN, "guide", "issue-flow", "5"), /writes each verdict under its own id as it is judged rather than holding the set/u,
+    "criterion 3: the flow with a screen lets the builder hold its verdicts for one write at the end");
+});
+
 /* And the endpoint each arm reaches is the ship mode's, not the declaration's: a rung named across
    both modes tells a run that lands nothing to reach one only its lander can write. */
 const shipping = (mode, ...argv) => {

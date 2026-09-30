@@ -15,6 +15,7 @@ import { rungOf } from "../ladder.mjs";
 import { parseAll } from "./record/page.mjs";
 import { markedLanding } from "./record/judged/landing.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
+import { judgeProblems } from "./qa/verdicts.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped", short: "≈ short" };
 const NONE = "– none";
@@ -63,8 +64,11 @@ const headlineOf = (held, kind) => {
 /* On the verdict's own row and not only on the checkpoint's line, which `rebuiltSaid` is for: a
    reader who asks for the criteria asks for verdicts and need never have read the checkpoint one
    was judged against (ISS-2045). */
+/* A verdict the entry check to `testing` would refuse is flagged through that check's own predicate,
+   so a builder's pass under an independent judgement stops reading like a judge's (ISS-1497). */
 const markedCriteria = (view) => {
   const rebuilt = rebuiltSaid(view.landing).replace(/^ — /u, "");
+  const refused = new Set(judgeProblems(view).map((one) => one.number));
   return view.criteria.map((one) => {
     const held = view.verdicts.get(one.number);
     return {
@@ -73,8 +77,19 @@ const markedCriteria = (view) => {
       mark: held ? MARK[held.record.fields.verdict] ?? `? ${held.record.fields.verdict ?? "unreadable"}` : NONE,
       ...(held ? { commit: held.record.fields.commit } : {}),
       ...(held && rebuilt ? { judgedAgainst: `a checkpoint ${rebuilt}` } : {}),
+      ...(refused.has(one.number) ? { counts: false } : {}),
     };
   });
+};
+
+/* How much of the set a restarted judge finds done, and where it resumes: a run killed mid-judgement
+   leaves what it wrote, and a set that is partial has to read as partial (ISS-1497). Null where
+   nothing is judged yet or everything counts, since neither leaves a remainder to point at. */
+const coverageOf = (criteria) => {
+  const judged = criteria.filter((one) => one.mark !== NONE);
+  const next = criteria.find((one) => one.mark === NONE || one.counts === false);
+  if (!judged.length || !next) return null;
+  return { counted: judged.filter((one) => one.counts !== false).length, of: criteria.length, next: next.number };
 };
 
 /* Every edge, with the kind the tracker gave it and whether it holds this status back read by the
@@ -166,6 +181,7 @@ export const briefOf = (view, ref) => {
   );
   /* The park the route resumes from, chosen the way the route chooses it: the newest park may
      land in another side status, and a brief showing that one would disagree with its own owed. */
+  const criteria = markedCriteria(view);
   const park = SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => sameLanding(PARK_STATUS[one], status)), "park") : null;
   return {
     ref,
@@ -175,7 +191,8 @@ export const briefOf = (view, ref) => {
     /* The answer and never the fields it came off, so a tool measuring against a rung reads the one the lane prints instead of a climb out of a page: the ship's ceiling took one from a verdict quoting the form (ISS-1012). */
     rung: rungOf(rungFieldsOf(view)),
     plan: unwrap(view.issue.plan) || null,
-    criteria: markedCriteria(view),
+    criteria,
+    coverage: coverageOf(criteria),
     latest,
     repeated: repeatedIn(view),
     records: recordsIn(view, latest, park),

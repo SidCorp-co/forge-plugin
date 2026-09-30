@@ -6,7 +6,8 @@ carried in the head, because the two answers end this phase in different places.
 
 Where the project made the builder its judge, or answered nothing, that is this run. Read the
 criteria back off the issue and judge each one at the head Phase 4's last step left, one
-typed verdict per criterion citing its own evidence, and judge a criterion against the issue before
+typed verdict per criterion citing its own evidence, each written as it is judged rather than held
+for the set, and judge a criterion against the issue before
 judging the code against it. Where the proof is a test, what a criterion is matched against is the
 assertion lines that would go red and never a case's name: a name is prose, one carrying two claims
 is two searches rather than one, and an assertion that cannot fail covers nothing. Nothing advances

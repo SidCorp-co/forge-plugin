@@ -57,6 +57,25 @@ const planLines = (brief, ref) => {
   return [...lines.slice(0, PLAN_LINES), `… ${lines.length - PLAN_LINES} more: forge issue ${ref} --fields plan`];
 };
 
+/* The tag and the line read `brief.criteria` and `brief.coverage` and decide nothing, so `--json` and
+   the screen cannot say different things about how much of the set is judged (ISS-1497). */
+const NOT_COUNTED = "  ← counts for nothing here";
+
+const coverageSaid = (brief) => {
+  const { counted, of, next } = brief.coverage;
+  const why = brief.criteria.some((one) => one.counts === false)
+    ? ` Why each marked one counts for nothing: forge advance ${brief.ref} --owed`
+    : "";
+  return `${counted} of ${of} criteria carry a verdict that counts; a judge resumes at criterion ${next}, `
+    + `the first carrying none that does.${why}`;
+};
+
+export const criteriaLines = (brief) => [
+  ...brief.criteria.map((one) =>
+    `${one.mark.padEnd(10)} ${one.number}. ${one.text}${one.counts === false ? NOT_COUNTED : ""}`),
+  ...(brief.coverage ? [coverageSaid(brief)] : []),
+];
+
 const block = (heading, lines) => {
   if (!lines.length) return;
   console.log(`\n${heading}`);
@@ -178,7 +197,7 @@ const print = (brief, view, ref) => {
   opening(brief.status, rungFieldsOf(view), kinds, work, finishedAtHead(view));
   block("Lease", leased(brief));
   block("Plan", planLines(brief, ref));
-  block("Criteria", brief.criteria.map((one) => `${one.mark.padEnd(10)} ${one.number}. ${one.text}`));
+  block("Criteria", criteriaLines(brief));
   block("Record", records(brief));
   /* The pointer where the opening did not carry it — a status owing no phase has no opening to carry it — so the split is which renderer says a fact and never whether one is said (ISS-1183). */
   block("Worklog", [
