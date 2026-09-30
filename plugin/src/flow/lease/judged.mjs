@@ -38,8 +38,8 @@ const parkReopens = (ref, status, lease) =>
 /** The lease a judge's write goes past, or null where the write is an ordinary one. Only a write
  *  of verdicts alone is a judge's: a verdict beside another kind rides that kind's lease, and meets
  *  its refusal. A verdict under an id the caller did not set is refused here rather than written
- *  under a name that proves nothing, and so are one at a park a comment answers and a run flag,
- *  which writes onto a lease this takes none of. The id is asked first, being the one refusal
+ *  under a name that proves nothing, and so are a run flag, which writes onto a lease this takes
+ *  none of, and one at a park a comment answers. The id is asked first, being the one refusal
  *  whose way out is the caller's own. */
 export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced() } = {}) => {
   if (!kinds.length || kinds.some((kind) => kind !== VERDICT)) return null;
@@ -53,17 +53,17 @@ export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced
         + `an id of its own and send this again:\n  ${again()}`,
     };
   }
-  if (answersByComment(body?.status)) {
-    return {
-      refused: `record verdict: ${parkReopens(ref, body.status, lease)}. Nothing was sent. What the `
-        + `park waits on:\n  forge advance ${ref} --owed`,
-    };
-  }
   if (flags.length) {
     return {
       refused: `record verdict: ${ref}'s lease is another run's, so this verdict is a judge's write `
         + `and takes no lease, and ${flags.join(", ")} writes onto the lease: nothing here would act `
         + `on it. Nothing was sent. Send the verdict without it.`,
+    };
+  }
+  if (answersByComment(body?.status)) {
+    return {
+      refused: `record verdict: ${parkReopens(ref, body.status, lease)}. Nothing was sent. What the `
+        + `park waits on:\n  forge advance ${ref} --owed`,
     };
   }
   return { lease, held };

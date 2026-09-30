@@ -4,6 +4,7 @@
    a write that merely renewed the dispatcher's lease would still read as the dispatcher's (ISS-1494). */
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import test, { after, before } from "node:test";
@@ -77,7 +78,14 @@ await new Promise((ready) => sink.listen(0, "127.0.0.1", ready));
 state.answer.forge_uploads = (args) =>
   ({ uploadUrl: `http://127.0.0.1:${sink.address().port}/put/${args?.data?.name ?? "unnamed"}` });
 
-const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
+/* A checkout of its own, so the flags that read git reach the judge's refusal rather than stopping at
+   a directory that is no checkout. */
+const CHECKOUT = tempRoom("judged-write-checkout-");
+for (const argv of [["init", "-q", "-b", "iss-7"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "a head"]]) {
+  spawnSync("git", argv, { cwd: CHECKOUT });
+}
+
+const { tracker, env: ENV } = await trackerFor(state, [AWAY, CHECKOUT]);
 after(() => {
   tracker.close();
   sink.close();
@@ -85,8 +93,8 @@ after(() => {
 
 /* The judge's id is set in the variable; the one it did not set is the dispatching session's. */
 const BARE = Object.fromEntries(Object.entries(ENV).filter(([name]) => name !== "FORGE_SESSION_ID"));
-const asJudge = (...argv) => ranAsync(FORGE, argv, { ...BARE, FORGE_SESSION_ID: JUDGE });
-const asInherited = (...argv) => ranAsync(FORGE, argv, { ...BARE, CLAUDE_CODE_SESSION_ID: "the-wave-id" });
+const asJudge = (...argv) => ranAsync(FORGE, argv, { ...BARE, FORGE_SESSION_ID: JUDGE }, CHECKOUT);
+const asInherited = (...argv) => ranAsync(FORGE, argv, { ...BARE, CLAUDE_CODE_SESSION_ID: "the-wave-id" }, CHECKOUT);
 
 const posted = () => state.comments[UUID].length;
 const uploads = () => state.calls.filter((one) => one.name === "forge_uploads").length;
@@ -169,11 +177,13 @@ test("a verdict under an id the caller did not set is refused, naming the variab
 
 test("a run flag beside a judge's verdict is refused, the write taking no lease for it to act on", async () => {
   const before = posted();
-  const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
-    "--criterion", "1", "--verdict", "pass", "--next", "the dispatcher takes it back");
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /this verdict is a judge's write and takes no lease, and --next writes onto the lease/u,
-    "criterion 9: the flag named and why nothing would act on it");
+  for (const flag of [["--next", "the dispatcher takes it back"], ["--open", "a line left open"], ["--pushed"], ["--review"]]) {
+    const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+      "--criterion", "1", "--verdict", "pass", ...flag);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, new RegExp(`this verdict is a judge's write and takes no lease, and ${flag[0]} writes onto the lease`, "u"),
+      `criterion 9: ${flag[0]} is named and why nothing would act on it:\n${run.stderr}`);
+  }
   assert.equal(posted(), before, "and nothing was posted");
 });
 
