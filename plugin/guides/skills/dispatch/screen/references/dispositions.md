@@ -11,7 +11,7 @@ on the strength of the body alone — the body is the claim, and the evidence is
 
 | Disposition | Earned by |
 |---|---|
-| already fixed | the change that fixed it, named, and the behaviour the issue describes read at the current head |
+| already fixed | another change that fixed it, named, and the behaviour the issue describes read at the current head |
 | duplicate | the issue it duplicates, named, and the reading that says they are one thing rather than two that rhyme |
 | intended | where the behaviour is decided on purpose — a rule, a refusal, a declared default — cited |
 | obsolete | what the issue was about, gone: the file, the verb, the surface it names |
@@ -25,6 +25,12 @@ reported cause and the deliverable the issue states — a probe, a test, a rule 
 finding is `cause-fixed`: it names what was fixed with the evidence that settles it and what survives
 with what will judge it, and the issue stays on the lane for a run to build. Holding only one of those
 halves is choosing between the rows above and *holds*.
+
+**An issue whose own change shipped is not already fixed either.** Where the change this issue asked
+for landed outside the flow — straight on the default branch, deployed, never marked — the finding is
+`own-landing`, naming the commit it landed as, or the place it now is where the issue lands outside
+git. It keeps the lane, so the issue walks its rungs to `closed` on the record, where a drop would
+erase that the work shipped.
 
 **Superseded is not obsolete.** Obsolete is the subject gone — the file, the verb, the surface.
 Superseded is the subject still standing, inside a flow a later release replaced or an ask a later

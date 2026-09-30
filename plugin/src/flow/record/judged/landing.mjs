@@ -45,6 +45,20 @@ export const landingProblem = (value) => {
   return null;
 };
 
+/** What a landing an issue's own change was carried by may not be, measured against the shape that
+ *  issue lands in: a commit sha in git, a place `landingProblem` accepts outside it. Without the issue
+ *  either shape stands, which is only ever looser than the issue's own. */
+export const landedProblem = (value, issue = null) => {
+  const held = String(value ?? "").trim();
+  if (issue === null) {
+    return isCommit(held) || !landingProblem(held) ? null
+      : `takes a commit sha or where the change now is, and \`${held}\` is neither`;
+  }
+  if (landsOutsideGit(issue)) return landingProblem(held);
+  return isCommit(held) ? null
+    : `takes the commit this issue's own change landed as, as 7 to 40 hex digits, the issue landing in git, not \`${held}\``;
+};
+
 /** The identity a record names what it judged by, as the flag a command carries: the mark's value
  *  where one stands. `markedIdentity` in record/merged.mjs is what reads it off an issue. */
 export const identityAsk = ({ flag, value }, placeholder = "<sha>") => (flag === "landing"

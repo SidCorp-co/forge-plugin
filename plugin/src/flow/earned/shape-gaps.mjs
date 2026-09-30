@@ -8,9 +8,9 @@
 import { SHAPES_AT, contractGap, shapesAt } from "../machine/contracts.mjs";
 import { evidenceHeld, isCommit } from "../../tracker/evidence.mjs";
 import { eachProblem } from "../record/content.mjs";
-import { landingProblem } from "../record/judged/landing.mjs";
+import { landedProblem, landingProblem } from "../record/judged/landing.mjs";
 
-export const shapeGaps = (kind, record, names = [], table = SHAPES_AT) => {
+export const shapeGaps = (kind, record, names = [], table = SHAPES_AT, issue = null) => {
   const shapes = shapesAt(record.contract, table);
   if (!shapes) return [contractGap(record.contract, table)];
   const shape = shapes[kind];
@@ -35,6 +35,7 @@ export const shapeGaps = (kind, record, names = [], table = SHAPES_AT) => {
     if (held === undefined) continue;
     if (field.commit && !isCommit(held)) gaps.push(`--${field.flag} \`${held}\`, which is no commit`);
     if (field.landing && landingProblem(held)) gaps.push(`--${field.flag} \`${held}\`, which ${landingProblem(held)}`);
+    if (field.landed && landedProblem(held, issue)) gaps.push(`--${field.flag} \`${held}\`, which ${landedProblem(held, issue)}`);
     if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);
   }
   if (shape.stamp && record.fields[shape.stamp.flag] === undefined) gaps.push(`its ${shape.stamp.label} stamp`);

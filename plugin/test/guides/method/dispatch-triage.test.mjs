@@ -181,7 +181,7 @@ test("a shared file is not a cause, and the proposal is triage's while the filin
    quietly lost its evidence bar would pass a prefix and is exactly the regression this guards. */
 test("the five standing dispositions keep their evidence bars whole", () => {
   carries("dispositions", [
-    ["already fixed", "| already fixed | the change that fixed it, named, and the behaviour the issue"
+    ["already fixed", "| already fixed | another change that fixed it, named, and the behaviour the issue"
       + " describes read at the current head |"],
     ["duplicate", "| duplicate | the issue it duplicates, named, and the reading that says they are one"
       + " thing rather than two that rhyme |"],
