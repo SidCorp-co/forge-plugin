@@ -449,13 +449,15 @@ const past = (text) => {
 };
 
 /** Each point a program runs one, from there on, its own quotes off: a quoted span holds no start.
- *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`. */
+ *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`.
+ *  The span is masked with a character that is neither a blank nor a word's, so a start's own blanks
+ *  stop at it rather than running across a quoted program: `'rm' -rf /` is still `rm` (ISS-2933). */
 export const startsAt = (text) =>
   spans(text, { pipes: true }).flatMap(({ start, end }) => {
     const raw = text.slice(start, end);
     const one = raw.trim();
     const lead = start + (raw.length - raw.trimStart().length);
-    const bare = one.replace(QUOTED, (q) => " ".repeat(q.length));
+    const bare = one.replace(QUOTED, (q) => ".".repeat(q.length));
     return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => {
       const at = m.index + m[0].length;
       return past(one.slice(at)).map((said) => ({ said, at: lead + at }));

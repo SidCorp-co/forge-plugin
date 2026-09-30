@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { COMMITS, WRITES } from "../../../hooks/_hook.mjs";
+import { COMMITS, WRITES, startsAt } from "../../../hooks/_hook.mjs";
 
 test("an exec starts a command at the head of one and behind any other start", () => {
   for (const lead of ["", "true; ", "(", "A=1 ", "sudo ", "then "]) {
@@ -28,4 +28,15 @@ test("a command opening with a blank starts where the same command without it do
     assert.equal(COMMITS.test(`${lead}git commit -m x`), true, `${JSON.stringify(lead)} then a commit`);
   }
   for (const one of [" echo x", " git status", " printf cp"]) assert.equal(WRITES.test(one), false, one);
+});
+
+/* A quoted program is the program the shell runs, and the blanks a start takes stop at it rather than
+   crossing it, at the head of the text as behind an operator, an assignment or a wrapper. */
+test("a start's blanks do not run across a quoted program", () => {
+  const said = (text) => startsAt(text).map((one) => one.said);
+  assert.deepEqual(startsAt("'echo' rm -rf /"), [{ said: "echo rm -rf /", at: 0 }]);
+  assert.deepEqual(startsAt("  rm -rf /"), [{ said: "rm -rf /", at: 2 }], "and an indented command still starts where its verb does");
+  assert.deepEqual(said("true; 'rm' -rf /"), ["true", "rm -rf /"]);
+  assert.deepEqual(said("A=1 'echo' rm -rf /"), ["echo rm -rf /"]);
+  assert.deepEqual(said("sudo 'rm' -rf /"), ["rm -rf /"]);
 });
