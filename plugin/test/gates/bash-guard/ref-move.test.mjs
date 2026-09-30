@@ -86,17 +86,22 @@ test("a ref or commit the shell builds is refused until spelt out, and a redirec
   const to = repo.head(repo.side);
   const built = decide(`BRANCH=master; SHA=${to}; git update-ref refs/heads/$BRANCH $SHA`, repo.side);
   assert.equal(built.allowed, false);
-  assert.match(built.reason, /^Refused — spell `refs\/heads\/\$BRANCH` out/u);
+  assert.match(built.reason, /^Refused — spell the ref and the commit out/u);
+  assert.ok(built.reason.includes("`refs/heads/$BRANCH`"), built.reason);
   const sha = decide("git update-ref refs/heads/master $(git rev-parse side)", repo.side);
   assert.equal(sha.allowed, false);
-  assert.match(sha.reason, /^Refused — spell `\$\(git rev-parse side\)` out/u);
+  assert.match(sha.reason, /^Refused — spell the ref and the commit out/u);
   assert.equal(decide("git update-ref refs/heads/idle $SHA", repo.side).allowed, true, "no tree stands on idle");
   const escaped = decide(`git update-ref -m land\\ it refs/heads/master ${to}`, repo.side);
   assert.equal(escaped.allowed, false, "an escaped space keeps the reason one word");
   assert.ok(escaped.reason.includes(`checked out at ${repo.main}`), escaped.reason);
-  const traced = decide(`git update-ref 2>/tmp/trace refs/heads/master ${to}`, repo.side);
-  assert.equal(traced.allowed, false);
-  assert.ok(traced.reason.includes(`checked out at ${repo.main}`), traced.reason);
+  for (const redirect of ["2>/tmp/trace", "2> /tmp/trace", "2>&1", "</dev/null"]) {
+    const traced = decide(`git update-ref ${redirect} refs/heads/master ${to}`, repo.side);
+    assert.equal(traced.allowed, false, redirect);
+    assert.ok(traced.reason.includes(`checked out at ${repo.main}`), traced.reason);
+  }
+  assert.equal(decide(`git update-ref -m "a>b" refs/heads/master ${to}`, repo.side).allowed, false,
+    "a quoted > is part of the reason and no redirect");
 });
 
 test("moving HEAD moves the tree the call runs in, with or without --no-deref", () => {
@@ -171,6 +176,9 @@ test("a worktree listing or a stale-path reading that fails refuses, saying whic
   const untopped = decide("git update-ref --no-deref HEAD master", repo.side, failing("--show-toplevel"));
   assert.equal(untopped.allowed, false, "a HEAD move whose tree git will not name");
   assert.match(untopped.reason, /could not be read: git did not say which work tree/u);
+  const unbared = decide("git update-ref --no-deref HEAD master", repo.side, failing("--is-bare-repository"));
+  assert.equal(unbared.allowed, false, "a bare reading that fails is no proof the repository is bare");
+  assert.ok(unbared.reason.includes(`checked out at ${repo.side}`), unbared.reason);
   for (const does of [undefined, "exec sleep 30"]) {
     const undiffed = decide(move, repo.side, failing("diff", does));
     assert.equal(undiffed.allowed, false, does ?? "a diff git refused");

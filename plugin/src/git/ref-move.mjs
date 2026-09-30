@@ -4,26 +4,24 @@
    Doubt refuses: a failed reading allows only where the failure is git's own refusal of the update. */
 import { canonical } from "../resolve/canonical.mjs";
 import { gitProbe, probeMs } from "../hooks/git-probe.mjs";
-import { NOWHERE } from "../hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, spelled, wordsOf } from "../hooks/shell-spans.mjs";
 
-/* A shell word, adjacent quoted, escaped, substituted and bare fragments joined as the shell joins them: `'refs/heads/'main`, `land\ it`. */
-const WORDS = /(?:"(?:[^"\\]|\\.)*"|'[^']*'|\$\([^)]*\)|`[^`]*`|\\.|[^\s"'`\\])+/gu;
-const FRAGMENT = /"((?:[^"\\]|\\.)*)"|'([^']*)'|\\(.)/gu;
-const unquoted = (word) =>
-  word.replace(FRAGMENT, (_, d, s, e) => (e ?? s ?? d.replace(/\\([$`"\\])/gu, "$1")));
-const REDIRECTION = /^\d*[<>]{1,2}(?:&\d)?$/u;
+/* An operator whose target is the next word; any other word carrying an unquoted `<` or `>` is a whole
+   redirect, `>out` and `2>` before `&1` alike, and neither is an operand. */
+const OPERATOR = /^\d*(?:<<<|<>|>>|>\||[<>])$/u;
+const redirects = (word) => /[<>]/u.test(word.replace(QUOTED, ""));
 const VALUED = new Set(["-m"]);
 
 /** The operands and the two forms that change what they mean, off what follows `update-ref`. */
 const updateRefOf = (rest) => {
-  const words = (String(rest).match(WORDS) ?? []).map(unquoted);
+  const words = wordsOf(String(rest)).map(([word]) => word);
   const operands = [];
   const flags = new Set();
   let past = false;
   for (let at = 0; at < words.length; at += 1) {
-    const word = words[at];
-    if (REDIRECTION.test(word)) at += 1;
-    else if (/^\d*[<>]/u.test(word)) continue;
+    const word = spelled(words[at]);
+    if (OPERATOR.test(words[at])) at += 1;
+    else if (redirects(words[at])) continue;
     else if (!past && word === "--") past = true;
     else if (!past && word.startsWith("-")) {
       flags.add(word);
@@ -84,11 +82,11 @@ const UNPLACED = {
 /* A word the shell builds before git sees it, which this reading cannot resolve without running it. */
 const EXPANDS = /[$`]/u;
 const unspelt = (word) => ({
-  instead: `Spell \`${word}\` out as the value it holds, so what the call moves can be read.`,
+  instead: "Spell the ref and the commit out as the values they hold, so what the call moves can be read.",
   cause:
     "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree has "
-    + `checked out leaves that tree's files at the old commit. \`${word}\` is built by the shell, so `
-    + "which ref or commit it names cannot be read from the command.",
+    + `checked out leaves that tree's files at the old commit. The shell builds a word of this one, \`${word}\`, `
+    + "so which ref or commit it names cannot be read from the command.",
 });
 
 const STDIN = {
