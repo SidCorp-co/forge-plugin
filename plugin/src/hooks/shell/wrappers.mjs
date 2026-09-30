@@ -25,8 +25,8 @@ export const optionsAfter = (name, word) => {
   const one = [
     String.raw`-${bare}+(?=\s)`,
     ...(takes ? [String.raw`-${bare}*[${takes}]\s*${word}`] : []),
-    ...(names ? [String.raw`--(?:${names})(?:=\S*|\s+${word})`] : []),
-    names ? String.raw`--(?!(?:${names})(?![\w-]))[\w-]+(?:=\S*)?` : String.raw`--[\w-]+(?:=\S*)?`,
+    ...(names ? [String.raw`--(?:${names})(?:=(?:${word})?|\s+${word})`] : []),
+    names ? String.raw`--(?!(?:${names})(?![\w-]))[\w-]+(?:=(?:${word})?)?` : String.raw`--[\w-]+(?:=(?:${word})?)?`,
   ];
   return String.raw`(?:\s+(?:${one.join("|")}))*(?:\s+--(?=\s))?`;
 };

@@ -9,8 +9,11 @@ const strict = (text) => writtenPaths(text, "/w", "md", { unplaceable: "strike" 
 
 test("a wrapper's option leaves the verb behind it a write, however the option is spelled", () => {
   for (const lead of ["sudo -uroot", "sudo --user root", "sudo --user=root", "sudo -Eu root", "sudo -u root --",
-    "sudo -E", "env -C /tmp -i", "exec -a alias -c", "time -o t.log", "nohup", "command -p"]) {
+    "sudo -E", "env -C /tmp -i", "exec -a alias -c", "time -o t.log", "nohup", "command -p",
+    `sudo --user="domain user"`, `sudo -u"domain user"`, `time --format="elapsed %E"`, "sudo --preserve-env=PATH"]) {
     assert.equal(WRITES.test(`${lead} touch notes.md`), true, lead);
+    assert.deepEqual(strict(`${lead} touch plugin/x.md`), ["plugin/x.md"], `${lead}, the strict reading`);
+    assert.deepEqual(startsAt(`${lead} rm -rf /`).map((one) => one.said), ["rm -rf /"], `${lead}, where it starts`);
   }
 });
 
