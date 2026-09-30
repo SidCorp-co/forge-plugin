@@ -76,6 +76,17 @@ export const ENUM_KEYS = {
     reads: "the tracker's own pipeline setting",
     unset: "unset, so the tracker's own pipeline setting says whether a change waits for a person's look",
   },
+  /* Whether a consult the gateway could not give holds a door or a plan or criteria write. Unset
+     reads `required`, what every door and write did before the key; a consult nobody asked for is
+     held under both, so the record tells a reviewer that was down from one that was skipped
+     (ISS-2932). docs/cli/codex-the-unavailable.md. */
+  "codex.consult": {
+    values: {
+      required: "a consult the gateway could not give holds the doors and the plan and criteria writes, as one never asked does",
+      advisory: "a consult the gateway could not give holds nothing, and what went through unread says so",
+    },
+    fallback: "required",
+  },
   /* Whether this project's session starts write the harness report: docs/cli/stats.md. */
   report: {
     values: {

@@ -288,6 +288,11 @@ const ruledSaid = (plan, offset, reply, id, entries, { root, sent }) => {
   return auto.said;
 };
 
+/* A failed consult's row: the error's text, and the gateway's HTTP status as a field of its own where
+   it answered one, so a reader asking what the gateway said parses no prose (ISS-2932). */
+const failedWith = (error) => ({ ok: false, error: error.message,
+  ...(Number.isInteger(error.status) ? { status: error.status } : {}) });
+
 const consult = async (given) => {
   const { named, issues, risks, only, allowEcho, base, namedBase, readFromParting, effort: askedEffort, cap, send, recheck, of, angles, scope, checks } = consultArgs(given);
   const { problem, values, path } = gateway();
@@ -460,7 +465,7 @@ const consult = async (given) => {
     const place = placeLine(entries, { ...finished, run: runOf() }, { keys: issues, run: runOf(), here: hereOf(root) });
     toldAfter(held, reach, { left, since, crossing, place });
   } catch (error) {
-    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message, ...checkRow(reach) });
+    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ...failedWith(error), ...checkRow(reach) });
     if (checkSaid(reach)) console.error(checkSaid(reach));
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
       + "not recorded as a consult." : "";

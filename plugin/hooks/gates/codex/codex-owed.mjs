@@ -3,11 +3,12 @@
 import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { listed, unverdicted } from "../../../src/codex/log/replies.mjs";
-import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unruled } from "../../../src/codex/log/owed-refusal.mjs";
+import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
+import { unreadSaid } from "../../../src/codex/log/unavailable.mjs";
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
-import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
+import { OWED_DOORS, codexConsultOf, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
-import { NOWHERE, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
+import { NOWHERE, context, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
 
 const GATE = "codex-owed";
 const ESCAPE = escapeFor(GATE);
@@ -22,7 +23,7 @@ const heldIn = (tree) => {
   const owed = codexOwedOf(parsed?.codex);
   const classes = declaredClasses(parsed?.stats?.commands ?? null)
     .filter(([label]) => (owed.unknown ? OWED_DOORS : owed.value).includes(label));
-  return { classes, unknown: owed.unknown };
+  return { classes, unknown: owed.unknown, consult: codexConsultOf(parsed).value };
 };
 
 /* Every command of the line against the tree the shell stands in AT that command, and every tree it
@@ -39,7 +40,7 @@ const heldBy = (text, cwd) => {
        which settles the asking and never the answer: a tree that never chose this is refused nothing. */
     const asks = tree ?? cwd;
     if (!seen.has(asks)) seen.set(asks, heldIn(asks));
-    const { classes, unknown } = seen.get(asks);
+    const { classes, unknown, consult } = seen.get(asks);
     const here = text.slice(start);
     if (!classes.some(([, match]) => match.exec(here)?.index === 0)) continue;
     /* This gate's answer to a door behind that destination: the tree is unreadable, and the call is refused below. */
@@ -48,18 +49,21 @@ const heldBy = (text, cwd) => {
       continue;
     }
     const root = repoRoot(tree);
-    if (root && !found.some((one) => one.root === root)) found.push({ root, unknown });
+    if (root && !found.some((one) => one.root === root)) found.push({ root, unknown, consult });
   }
   return { found, unreadable };
 };
 
-/* What one tree's record owes, read under whichever home the caller has set, off the call's one log reader. */
-const judged = (root, cwd, log) => {
+/* What one tree's record owes, read under whichever home the caller has set, off the call's one log
+   reader; it answers with what an advisory reading let through unread, which the caller says once
+   every tree has been judged, a note refusing nothing and ending the gate where it is thrown. */
+const judged = (root, cwd, log, consult) => {
   const cd = root === cwd ? "" : `cd ${typed(root)} && `;
   const waiting = pendingState(root);
   /* The working copy, which is what a consult reads and what this call would judge, where the
      commit asks its index: one record, one reader, two subjects. */
-  const owed = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
+  const pending = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
+  const { owed, unread } = unreadApart(root, pending, log, consult);
   if (owed.length) {
     deny(
       `Run ${consultFor(cd, owed)}, then re-send. ${readIn()} ${DROP} ${ESCAPE}\n\n`
@@ -73,6 +77,7 @@ const judged = (root, cwd, log) => {
     deny(unruled(open, GATE, `, and this call would judge it in ${root}. Ruling on them clears every door `
       + "this project names.") + how());
   }
+  return unread;
 };
 
 export const run = (ev) => {
@@ -89,10 +94,12 @@ export const run = (ev) => {
     );
   }
   const log = logReader();
-  for (const { root, unknown } of found) {
+  const unread = [];
+  for (const { root, unknown, consult } of found) {
     if (unknown) deny(`${malformed(unknown, GATE)}${how()}`);
     /* Each tree's record where its own run keeps it, which is not this hook's environment. */
-    inRunHome(root, () => judged(root, cwd, log));
+    unread.push(...inRunHome(root, () => judged(root, cwd, log, consult)));
   }
+  if (unread.length) context(unreadSaid("call", unread));
   done();
 };

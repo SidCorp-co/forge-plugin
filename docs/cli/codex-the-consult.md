@@ -36,6 +36,8 @@ argument resolves to, whichever checkout the consult was taken in (ISS-904). A d
 the same bytes stays unread, because keying on the bytes would let a consult of a common text clear a
 file it never named.
 
+**A reviewer that could not answer is a fifth state**, held by default: [the unavailable gateway](codex-the-unavailable.md).
+
 **A refusal reports the log and stops there.** It names the consult that found nothing, whether that
 consult read the whole set or only part of it, and which files it clipped or never held — and then
 the command, over every path and quoted, since a pass that covers six of thirty earns nothing while

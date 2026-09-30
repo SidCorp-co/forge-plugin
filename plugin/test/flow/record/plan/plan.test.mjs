@@ -6,8 +6,9 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, ranAsync, tempHome, tempRoom, typedPlan } from "../../../fixtures.mjs";
-import { trackerFor } from "../../../fixtures/own-project.mjs";
+import { escaped, neutralRoom, projectRecord, ranAsync, tempHome, tempRoom, typedPlan } from "../../../fixtures.mjs";
+import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
+import { digest } from "../../../../src/codex/codex-api.mjs";
 import { PLAN_SECTIONS } from "../../../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;
@@ -20,6 +21,7 @@ const state = {
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [{ documentId: "uuid-348", issueId: "ISS-348", status: "confirmed", title: "one verb per write", description: "x" }],
   comments: { "uuid-348": [] },
+  posted: [],
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
@@ -27,9 +29,11 @@ const state = {
       if (args.action === "update") state.issues[0] = { ...state.issues[0], ...args.data };
       return state.issues[0];
     },
-    forge_comments: (args) => (args.action === "list"
-      ? { comments: [], returned: 0, limit: 0, hasMore: false }
-      : { documentId: "c-1", ...args.data }),
+    forge_comments: (args) => {
+      if (args.action === "list") return { comments: [], returned: 0, limit: 0, hasMore: false };
+      state.posted.push(args.data?.body ?? "");
+      return { documentId: "c-1", ...args.data };
+    },
   },
 };
 
@@ -274,3 +278,49 @@ test("a file no answered consult has read whole is refused, as the criteria file
   assert.match(run.stderr, /consult/u);
   assert.match(run.stderr, /forge codex consult --send bodies/u, "and the command that clears it");
 });
+
+/* ISS-2932: a plan the issue takes with no consult having read it says so on the issue, in a comment
+   of its own, with the reason — so nothing a later reader sees claims a review that did not happen. */
+test("a plan taken under the stand-down posts that no consult read it, and why", async () => {
+  heldBy(MINE);
+  state.posted = [];
+  const run = await wrote(MINE, planAt());
+  assert.equal(run.status, 0, run.stderr);
+  const note = state.posted.find((body) => body.startsWith("## No consult read the plan"));
+  assert.ok(note, `a comment says no consult read the plan: ${state.posted.join(" | ")}`);
+  assert.match(note, /the check was stood down by FORGE_CODEX_DISABLE=1/u, "and why");
+});
+
+/* The criteria file is the plan's twin here: one reader decides both, and the write posts the same note. */
+const advisoryWrite = async (kind) => {
+  heldBy(MINE);
+  state.posted = [];
+  delete state.issues[0].acceptanceCriteria;
+  const home = ENV.XDG_CONFIG_HOME;
+  const text = kind === "plan" ? `${PLAN}\n` : "1. The write goes through.\n";
+  const path = join(room, `${kind}.md`);
+  writeFileSync(path, text);
+  const gateway = join(room, "gateway.env");
+  writeFileSync(gateway, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+  projectRecord(neutralRoom(), home, { ...OWN, codex: { consult: "advisory" } });
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), `${JSON.stringify({
+    kind: "consult", id: "gw5031", at: new Date().toISOString(), root: neutralRoom(), ok: false, status: 503,
+    error: "gateway answered 503: All codex accounts are unavailable", files: [path], send: "bodies",
+    sent: [{ rel: path, sha: digest(text), chars: text.length, clipped: false }],
+  })}\n`);
+  try {
+    const run = await ranAsync(FORGE, ["record", kind, "ISS-348", path], env(MINE, { FORGE_CODEX_DISABLE: "0", CLAUDE_PROXY_ENV: gateway }));
+    assert.equal(run.status, 0, run.stderr);
+    const field = kind === "plan" ? state.issues[0].plan : state.issues[0].acceptanceCriteria;
+    assert.equal(field.trim(), text.trim(), `the ${kind} is written`);
+    const note = state.posted.find((body) => body.startsWith(`## No consult read the ${kind}`));
+    assert.match(note ?? "", /gateway unavailable \(503\), consult gw5031/u, `the status and the consult are named: ${state.posted.join(" | ")}`);
+  } finally {
+    projectRecord(neutralRoom(), home, OWN);
+    writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
+  }
+};
+
+test("a plan an advisory project takes after the gateway failed posts the gateway's status and the consult", () => advisoryWrite("plan"));
+
+test("criteria an advisory project takes after the gateway failed post the gateway's status and the consult", () => advisoryWrite("criteria"));

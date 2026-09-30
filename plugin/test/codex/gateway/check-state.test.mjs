@@ -114,3 +114,12 @@ test("a consult that died after its check ran still records that the round ran i
   assert.equal(row.checkCommand, "exit 0");
   assert.match(said, /codex: check ran — `exit 0`\./u, said);
 });
+
+/* ISS-2932: what the gateway answered is read off a field, never out of the error's prose, by the
+   writes and doors that let an unavailable gateway's consult through. */
+test("a consult the gateway answered with an HTTP error logs that status in a field of its own", async () => {
+  const { row, said } = await consulted("status", { calls: ["read_file"], fail: true });
+  assert.equal(row.ok, false, said);
+  assert.equal(row.status, 500, "the HTTP status, as a number beside the text");
+  assert.match(row.error, /^gateway answered 500:/u, "and the error's text as it was");
+});

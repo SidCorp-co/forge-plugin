@@ -9,6 +9,7 @@ import { answered, callHook, projectEntry, projectRecord, tempRoom } from "../..
 import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
 import { typed } from "../../../src/hooks/shell-spans.mjs";
+import { NO_GATEWAY_REASON } from "../../../src/codex/log/unavailable.mjs";
 
 const HOOK = new URL("../../../hooks/entries/codex/codex-owed.mjs", import.meta.url).pathname;
 const COMMIT_HOOK = new URL("../../../hooks/entries/codex/codex-second.mjs", import.meta.url).pathname;
@@ -250,4 +251,41 @@ test("every refusal this gate writes leads with its route", () => {
     "no door": because(gate({ command: "npm run check", project: { ...GATED, codex: { owed: ["refuse"] } } })),
   };
   for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
+});
+
+/* ISS-2932: the same reading at a named call. The gateway is this suite's own profile. */
+const GATEWAY = join(room, "gateway.env");
+writeFileSync(GATEWAY, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+const ADVISORY = { ...GATED, codex: { ...GATED.codex, consult: "advisory" } };
+const failedOn = (rows) => lines({
+  kind: "consult", id: "o503a1", at: at(10_000), root: realpathSync(REPO), ok: false, status: 503,
+  error: "gateway answered 503: All codex accounts are unavailable", files: rows.map((one) => one.rel), send: "diffs",
+  sent: rows.map(({ rel, text }) => ({ rel, sha: digest(text), chars: text.length, clipped: false })),
+});
+
+test("an advisory reading lets a named call through when the gateway could not give its consult, and says what went unread", () => {
+  const held = "// the gateway was down\n";
+  const out = gate({ command: "npm run check", held, project: ADVISORY, log: failedOn([{ rel: "work.mjs", text: held }]),
+    env: { CLAUDE_PROXY_ENV: GATEWAY } });
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, undefined, "nothing refuses the call");
+  const told = out?.hookSpecificOutput?.additionalContext ?? "";
+  assert.match(told, /this call went through with no consult having read one file/u, told);
+  assert.match(told, /work\.mjs — gateway unavailable \(503\), consult o503a1/u, "the file and the gateway's status");
+});
+
+test("an advisory reading still holds a named call for a file no consult was asked about, a failed one beside it included", () => {
+  const held = "// the gateway was down\n";
+  writeFileSync(join(REPO, "never.mjs"), "// asked of nobody\n");
+  const out = gate({ command: "npm run check", held, pending: ["work.mjs", "never.mjs"], project: ADVISORY,
+    log: failedOn([{ rel: "work.mjs", text: held }]), env: { CLAUDE_PROXY_ENV: GATEWAY } });
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny");
+  assert.match(because(out), /forge codex consult --diff --only blocker,major never\.mjs/u, "the unasked file is asked for");
+  assert.doesNotMatch(because(out), /work\.mjs/u, "and the one the gateway could not give is not");
+});
+
+test("an advisory reading on a machine with no gateway lets a named call through, saying none is configured", () => {
+  const out = gate({ command: "npm run check", project: ADVISORY, env: { CLAUDE_PROXY_ENV: join(room, "no-gateway.env") } });
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, undefined);
+  assert.ok((out?.hookSpecificOutput?.additionalContext ?? "").includes(`work.mjs — ${NO_GATEWAY_REASON}`),
+    "the file, and that no gateway is configured");
 });

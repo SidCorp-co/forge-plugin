@@ -246,6 +246,8 @@ const codexRefusal = (given) => {
       ? anglesRefusal(angles, `\`codex.angles\` in ${fromProject()}`) : said("codex.angles", "a list of angle names", angles);
     if (refusal) return refusal;
   }
+  const consult = given.consult === undefined ? null : enumRefusal("codex.consult", given.consult);
+  if (consult) return consult;
   return codexOwedOf(given).unknown === undefined
     ? null : said("codex.owed", `a list of ${OWED_DOORS.join(", ")}`, given.owed);
 };
@@ -311,7 +313,7 @@ export const PROJECT_KEYS = {
   },
   deps: { paths: { "*": "text" }, judge: (given) => eachString("deps", given) },
   codex: {
-    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list", angles: "list",
+    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list", consult: "text", angles: "list",
       complexityModel: "text", priorityModel: "text" },
     judge: codexRefusal,
   },

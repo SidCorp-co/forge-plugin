@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { cleanRepo, escaped, tempRoom, typed } from "../../fixtures.mjs";
+import { cleanRepo, escaped, projectRecord, tempRoom, typed } from "../../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the log's path is bound when its module loads, and a suite
    that imports first writes to the developer's own log. */
@@ -20,6 +20,7 @@ const { logConsult, logPath } = await import("../../../src/codex/codex-log.mjs")
 const { repoRoot } = await import("../../../src/git/repo-root.mjs");
 const { readOrRefuse } = await import("../../../src/codex/codex-read.mjs");
 const { WRITE_READ_OWED } = await import("../../../src/ladder.mjs");
+const { NO_GATEWAY_REASON, STOOD_DOWN_REASON } = await import("../../../src/codex/log/unavailable.mjs");
 
 /* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */
 const refusalOf = (...given) => readOrRefuse(...given).refusal;
@@ -251,8 +252,87 @@ test("the judged bytes come back with no refusal, which is what a caller compose
   writeFileSync(path, "never judged\n");
   process.env.FORGE_CODEX_DISABLE = "1";
   try {
-    assert.deepEqual(readOrRefuse(path, root), { refusal: null, text: null }, "and under the kill switch there is no refusal and no judged text, which is what `?? bodyFrom(path)` fell through on");
+    assert.deepEqual(readOrRefuse(path, root), { refusal: null, text: null, unread: STOOD_DOWN_REASON },
+      "and under the kill switch there is no refusal and no judged text, which is what `?? bodyFrom(path)` fell through on,"
+      + " and the reason the write goes through unread, which it posts on the issue (ISS-2932)");
   } finally {
     delete process.env.FORGE_CODEX_DISABLE;
+  }
+});
+
+/* ISS-2932: a reviewer that could not answer, told apart from a consult nobody asked for. The gateway
+   is this suite's own profile, one holding both halves or none, so no case reads this machine's. */
+const GATEWAY = join(sandbox, "gateway.env");
+writeFileSync(GATEWAY, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+const withGateway = (configured, read) => {
+  const was = process.env.CLAUDE_PROXY_ENV;
+  process.env.CLAUDE_PROXY_ENV = configured ? GATEWAY : join(sandbox, "no-gateway.env");
+  try {
+    return read();
+  } finally {
+    if (was === undefined) delete process.env.CLAUDE_PROXY_ENV;
+    else process.env.CLAUDE_PROXY_ENV = was;
+  }
+};
+const reading = (root, consult) => projectRecord(root, sandbox, { slug: "fixture", ...(consult ? { codex: { consult } } : {}) });
+/* A consult row as `forge codex consult` writes one when the gateway gives nothing back. */
+const failed = (root, rel, text, over = {}) => consulted(root, rel, text, { ok: false, reply: undefined, ...over });
+
+test("an advisory reading takes a file whose newest consult the gateway could not give, and says why", () => {
+  for (const name of ["plan.md", "criteria.md"]) {
+    const { root } = room();
+    const path = join(root, name);
+    writeFileSync(path, PLAN);
+    const { rel } = locate(root, path);
+    reading(root, "advisory");
+    failed(root, rel, PLAN, { id: "fa1l01", status: 503, error: "gateway answered 503: All codex accounts are unavailable" });
+    const got = withGateway(true, () => readOrRefuse(path, root));
+    assert.equal(got.refusal, null, `${name} goes through: the gateway, not the agent, is why nothing read it`);
+    assert.equal(got.text, PLAN, "and the bytes the write takes are the ones the failed consult carried");
+    assert.equal(got.unread, "gateway unavailable (503), consult fa1l01", "the reason the write posts names the status and the consult");
+  }
+});
+
+test("a failure with no HTTP status is named by the error's first line", () => {
+  const { root, path, rel } = room();
+  reading(root, "advisory");
+  failed(root, rel, PLAN, { id: "t1me01", error: "The operation was aborted due to timeout\nat fetch" });
+  assert.equal(withGateway(true, () => readOrRefuse(path, root)).unread,
+    "gateway unavailable (The operation was aborted due to timeout), consult t1me01");
+});
+
+test("an advisory reading still refuses a file no consult was asked about, naming the consult that clears it", () => {
+  const { root, path } = room();
+  reading(root, "advisory");
+  const refusal = withGateway(true, () => refusalOf(path, root));
+  assert.match(refusal, /No consult has read plan\.md/u, "nothing failed here, so nothing tells a reviewer that was down");
+  assert.match(refusal, /forge codex consult --send bodies plan\.md/u);
+  assert.doesNotMatch(refusal, /gateway unavailable|No consult can be asked/u);
+});
+
+test("a failed consult of other bytes speaks for nothing, advisory or not", () => {
+  const { root, path, rel } = room();
+  reading(root, "advisory");
+  failed(root, rel, "an older plan\n", { id: "01d001", status: 503 });
+  assert.match(withGateway(true, () => refusalOf(path, root)), /No consult has read plan\.md/u);
+});
+
+test("an advisory reading with no gateway configured takes a file nobody could have consulted on", () => {
+  const { root, path } = room();
+  reading(root, "advisory");
+  const got = withGateway(false, () => readOrRefuse(path, root));
+  assert.equal(got.refusal, null);
+  assert.equal(got.unread, NO_GATEWAY_REASON);
+});
+
+test("a required reading refuses a file whose consult failed, naming the status and the declaration that lets it through", () => {
+  for (const consult of [null, "required"]) {
+    const { root, path, rel } = room();
+    reading(root, consult);
+    failed(root, rel, PLAN, { id: "req503", status: 503 });
+    const refusal = withGateway(true, () => refusalOf(path, root));
+    assert.match(refusal, /got nothing back: gateway unavailable \(503\), consult req503/u, `${consult ?? "absent"}: the status is named`);
+    assert.match(refusal, /forge doctor --set codex\.consult=advisory/u, "and the declaration that lets the write proceed");
+    assert.match(refusal, /forge codex consult --send bodies plan\.md/u, "and the consult, which may answer now");
   }
 });

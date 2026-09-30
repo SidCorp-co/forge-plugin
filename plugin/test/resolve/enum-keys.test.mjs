@@ -28,6 +28,8 @@ const BEFORE = {
   "asks.mode": { values: ["off", "decide"], fallback: "off" },
   release: { values: ["auto", "manual"], fallback: null },
   report: { values: ["off", "daily"], fallback: "off" },
+  /* Added by ISS-2932 with no "before": `required` is what every door and write did with no key. */
+  "codex.consult": { values: ["required", "advisory"], fallback: "required" },
 };
 
 /* A project record holding `value` at the key's own path, `asks.mode` inside its table. */

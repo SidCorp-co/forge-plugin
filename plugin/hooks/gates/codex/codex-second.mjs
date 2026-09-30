@@ -5,9 +5,10 @@ import { resolve } from "node:path";
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, stagedIn } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { allPathed, listed, unverdicted } from "../../../src/codex/log/replies.mjs";
-import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unruled } from "../../../src/codex/log/owed-refusal.mjs";
+import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
+import { unreadSaid } from "../../../src/codex/log/unavailable.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
-import { codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
+import { codexConsultOf, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
 import { treeNamed } from "../../../src/git/tree-named.mjs";
 import {
@@ -23,7 +24,7 @@ import {
   spans,
   spelled as bare,
   typed,
-  how, done, remaining } from "../../_hook.mjs";
+  context, how, done, remaining } from "../../_hook.mjs";
 
 /* What the commit closes over, from that command alone: a pipeline's flags are not the commit's, and
    neither is a redirect's target or a value a flag ate — `-am x` is all and a message, `-ma` a message
@@ -108,15 +109,17 @@ const unjudged = (ev, root, others) => {
   return ` Judged ${typed(root)}; this call also commits in ${rest.join(", ")}, which went unchecked.`;
 };
 
-/* The staged demand, then the unruled findings: the caller picks the home both are read under. */
-const judged = (ev, root, aim, staged, also) => {
+/* The staged demand, then the unruled findings, then what an advisory reading let through unread,
+   said last because it refuses nothing: the caller picks the home all three are read under. */
+const judged = (ev, root, aim, staged, also, consult) => {
   /* Recorded this turn or a turn ago, staged here, and unread at the bytes this commit carries — the
      index with no `-a`: 7 of 30 landed unread, and an exact revert owed a consult with nothing in it. */
   const waiting = pendingState(root);
   const log = logReader();
   const asked = demandIn(waiting.files, staged);
   const apart = aim.all ? [] : apartFrom(root, asked, probeMs(remaining()));
-  const demand = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;
+  const owed = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;
+  const { owed: demand, unread } = unreadApart(root, owed, log, consult, apart);
   if (demand.length) {
     const cd = root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `;
     /* Every consult reads the working copy, so for a path the index holds apart from it no consult clears the hold and naming one is a refusal nobody can act on: staging what was read is the route (ISS-1011). */
@@ -139,6 +142,7 @@ const judged = (ev, root, aim, staged, also) => {
   if (open) {
     deny(unruled(open, GATE, `.${also}`) + how());
   }
+  if (unread.length) context(unreadSaid(DOOR, unread));
 };
 
 export const run = (ev) => {
@@ -160,7 +164,8 @@ export const run = (ev) => {
     );
   }
   const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
-  const owed = codexOwedOf(projectFileAt(at)?.codex);
+  const record = projectFileAt(at);
+  const owed = codexOwedOf(record?.codex);
   if (owed.unknown) deny(`${malformed(owed.unknown, GATE)}${how()}`);
   if (!owed.value.includes(DOOR)) done();
   const root = repoRoot(at);
@@ -171,6 +176,8 @@ export const run = (ev) => {
   const staged = stagedIn(root, aim, probeMs(remaining()));
 
   /* The tree's record where its own run keeps it, through the reader the call doors take. */
-  inRunHome(root, () => judged(ev, root, aim, staged, also));
+  /* Off the record the door key was read from, before the run home moves the configuration. */
+  const consult = codexConsultOf(record).value;
+  inRunHome(root, () => judged(ev, root, aim, staged, also, consult));
   done();
 };

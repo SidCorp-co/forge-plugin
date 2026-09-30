@@ -4,10 +4,13 @@ import { isAbsolute, join, resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
 import { answered, bodied, logEntries } from "./codex-log.mjs";
+import { FAILED, NO_GATEWAY, STOOD_DOWN_REASON, consultState, gatewayFailed, passesUnread } from "./log/unavailable.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 import { WRITE_READ_OWED } from "../ladder.mjs";
 import { bodyItself, notAPath } from "../resolve/payload.mjs";
+import { gateway } from "../resolve/machine/stores.mjs";
+import { codexConsultAt } from "../resolve/settings.mjs";
 
 const OFF = "`FORGE_CODEX_DISABLE=1` in front of this command stands the check down; it runs in this "
   + "process, so the prefix reaches it.";
@@ -29,7 +32,8 @@ const carriedWhole = (entry, rel) => {
   return bodied(held) ? held : null;
 };
 
-const STOOD_DOWN = { refusal: null, text: null };
+/* A stand-down carries its own name as the reason, so the comment the verb posts says who waived it (ISS-2932). */
+const STOOD_DOWN = { refusal: null, text: null, unread: STOOD_DOWN_REASON };
 /* The bytes ride along with the consult refusal: a caller whose own checks refuse this file spends no consult on it. */
 const refusing = (refusal, text = null) => ({ refusal, text });
 
@@ -41,6 +45,22 @@ const readersOf = (entries, real) => answered(entries).flatMap((one) => {
   const rel = (one.files ?? []).find((file) => landsAt(one, file) === real);
   return rel ? [{ one, rel }] : [];
 });
+
+/* The newest consult that carried this file whole at these bytes and got no answer back. */
+const failedWhole = (entries, real, sha) => entries.findLast((one) => {
+  if (!gatewayFailed(one)) return false;
+  const rel = (one.files ?? []).find((file) => landsAt(one, file) === real);
+  return Boolean(rel) && carriedWhole(one, rel)?.sha === sha;
+}) ?? null;
+
+const ADVISORY = "`forge doctor --set codex.consult=advisory` is the project's way to let an unavailable "
+  + "gateway hold nothing: the write then goes through and the issue is told no consult read the file.";
+
+/* What the refusal says where the reason is the gateway rather than the agent: a run sent back to
+   the consult that just failed learns nothing from the sentence it read before. */
+const gatewaySaid = (rel, state, reason) => (state === FAILED
+  ? `A consult was asked for ${rel} whole at these bytes and got nothing back: ${reason}. ${ADVISORY}`
+  : `No consult can be asked for ${rel}: ${reason}. ${ADVISORY}`);
 
 /* Any consult, not the latest: restored bytes are read bytes, which a hash says and a clock denies. */
 const readWhole = (mine, sha) => mine.some(({ one, rel }) => carriedWhole(one, rel)?.sha === sha);
@@ -75,12 +95,19 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
       + `write the text to a file and name that. ${OFF}`);
   }
   const text = readFileSync(held.real, "utf8");
-  const mine = readersOf(logEntries(), held.real);
-  if (readWhole(mine, digest(text))) return { refusal: null, text };
+  const entries = logEntries();
+  const mine = readersOf(entries, held.real);
+  const sha = digest(text);
+  if (readWhole(mine, sha)) return { refusal: null, text };
+  const configured = !gateway().problem;
+  const failed = configured ? failedWhole(entries, held.real, sha) : null;
+  const { state, reason } = consultState({ read: false, failed, gateway: configured });
+  if (passesUnread(state, codexConsultAt(root ?? cwd).value)) return { refusal: null, text, unread: reason };
+  const lead = state === FAILED || state === NO_GATEWAY ? `${gatewaySaid(held.rel, state, reason)}\n\n` : "";
   if (!root) {
-    return refusing(`${whyNot(mine, held.rel)} ${path} is in no git checkout, and neither is ${cwd}, `
+    return refusing(`${lead}${whyNot(mine, held.rel)} ${path} is in no git checkout, and neither is ${cwd}, `
       + "and a consult runs in one.\n\nDo this: run the consult on this path from the checkout the "
       + `change is for, then re-send from anywhere. ${WRITE_READ_OWED} ${OFF}`, text);
   }
-  return refusing(readIt(here, root, held.rel, whyNot(mine, held.rel)), text);
+  return refusing(`${lead}${readIt(here, root, held.rel, whyNot(mine, held.rel))}`, text);
 };

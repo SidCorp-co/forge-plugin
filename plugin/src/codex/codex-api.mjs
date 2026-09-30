@@ -540,7 +540,8 @@ export const askApi =async (values, model, messages, { onDelta = () => {}, signa
   });
   if (!answer.ok) {
     const body = await answer.text();
-    throw new Error(`gateway answered ${answer.status}: ${body.slice(0, ERROR_CHARS)}`);
+    /* The status rides on the error so the log keeps it as a field, apart from the text (ISS-2932). */
+    throw Object.assign(new Error(`gateway answered ${answer.status}: ${body.slice(0, ERROR_CHARS)}`), { status: answer.status });
   }
   const held = await consume(answer.body, onDelta);
   if (!held.text && !held.calls.length) throw new Error("the gateway streamed no text at all");

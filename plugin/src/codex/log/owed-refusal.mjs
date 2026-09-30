@@ -1,6 +1,12 @@
 /* What the two door gates say, codex-owed before a call and codex-second before a commit: one record and
    one reader, so one wording. Each gate keeps what differs — the subject it judged and the tail naming it. */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { configDir } from "../../resolve/config.mjs";
+import { gateway } from "../../resolve/machine/stores.mjs";
+import { digest } from "../codex-api.mjs";
+import { consultState, failedAt, passesUnread } from "./unavailable.mjs";
 import { OWED_DOORS } from "../../resolve/settings.mjs";
 import { offReach } from "../../hooks/hook-switch.mjs";
 import { typed } from "../../hooks/shell-spans.mjs";
@@ -45,4 +51,30 @@ export const logReader = () => {
     if (!held.has(at)) held.set(at, logBytes());
     return held.get(at);
   };
+};
+
+const bytesOf = (root, rel) => {
+  try {
+    return digest(readFileSync(join(root, rel), "utf8"));
+  } catch {
+    return null;
+  }
+};
+
+/** Of the files a door owes, the ones the project's `consult` reading lets through unread — each with
+ *  its reason — and the ones still owed. `apart` are files whose staged copy is not the disk's: no
+ *  consult reads that copy, so no failed one speaks for it either. Only an advisory reading asks. */
+export const unreadApart = (root, owed, log, consult, apart = []) => {
+  if (consult !== "advisory" || !owed.length) return { owed, unread: [] };
+  const configured = !gateway().problem;
+  const unread = [];
+  const left = [];
+  for (const rel of owed) {
+    const sha = apart.includes(rel) ? null : bytesOf(root, rel);
+    const failed = configured && sha ? failedAt(log(), root, rel, sha) : null;
+    const { state, reason } = consultState({ read: false, failed, gateway: configured });
+    if (!apart.includes(rel) && passesUnread(state, consult)) unread.push({ rel, reason });
+    else left.push(rel);
+  }
+  return { owed: left, unread };
 };

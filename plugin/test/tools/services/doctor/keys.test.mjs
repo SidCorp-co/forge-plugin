@@ -270,3 +270,19 @@ test("the mode is written by --set into the project's record, and a mode the key
   assert.match(`${refused.stdout}${refused.stderr}`, /asks\.mode.*is one of off, decide, not `"sometimes"`/u);
   assert.equal(JSON.parse(readFileSync(held.record, "utf8")).asks.mode, "decide", "and the record is as it was");
 });
+
+/* ISS-2932: the reading an unavailable gateway meets is the project's, set like any enum key. */
+test("codex.consult is written by --set and read back by the next report, and a value it does not take is refused", async () => {
+  const held = await asksRows("consult-set", {});
+  const row = async () => (await ranAsync(FORGE, ["doctor", "project"], held.env, held.room)).stdout
+    .split("\n").find((one) => /\] codex\.consult /u.test(one)) ?? "";
+  assert.match(await row(), /codex\.consult +required — a consult the gateway could not give holds the doors and the plan and criteria writes, as one never asked does {2}← the plugin's default$/u);
+  const set = await ranAsync(FORGE, ["doctor", "--set", "codex.consult=advisory"], held.env, held.room);
+  assert.equal(set.status, 0, set.stderr);
+  assert.equal(JSON.parse(readFileSync(held.record, "utf8")).codex.consult, "advisory");
+  assert.match(await row(), new RegExp(`codex\\.consult +advisory — a consult the gateway could not give holds nothing, and what went through unread says so {2}← ${escaped(held.record)}`, "u"));
+  const refused = await ranAsync(FORGE, ["doctor", "--set", "codex.consult=optional"], held.env, held.room);
+  assert.notEqual(refused.status, 0);
+  assert.match(`${refused.stdout}${refused.stderr}`, /codex\.consult.*is one of required, advisory, not `"optional"`/u);
+  assert.equal(JSON.parse(readFileSync(held.record, "utf8")).codex.consult, "advisory", "and the record is as it was");
+});

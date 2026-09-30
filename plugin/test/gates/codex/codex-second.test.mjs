@@ -408,3 +408,47 @@ test("every refusal this gate writes leads with its route", () => {
   assert.match(reasons["no door"], /^Name only doors out of /u, "the key's own route, and not a guess at a door");
   assert.match(reasons["no door"], /until `forge hooks --on codex-second`/u, "and the switch, as every other refusal names it");
 });
+
+/* ISS-2932: under an advisory reading, a consult the gateway could not give holds no commit, and one
+   nobody asked for still does. The gateway is this suite's own profile, never this machine's. */
+const GATEWAY = join(room, "gateway.env");
+writeFileSync(GATEWAY, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+const advisory = (read) => {
+  projectRecord(REPO, room, { slug: "fixture", codex: { consult: "advisory" } });
+  try {
+    return read();
+  } finally {
+    rmSync(projectEntry(REPO, room), { force: true });
+  }
+};
+const failedOn = (rels) => `${JSON.stringify({
+  kind: "consult", id: "c503a1", at: at(10_000), root: realpathSync(REPO), ok: false, status: 503,
+  error: "gateway answered 503: All codex accounts are unavailable", files: rels, send: "diffs",
+  sent: rels.map((rel) => { const text = readFileSync(join(REPO, rel), "utf8"); return { rel, sha: digest(text), chars: text.length, clipped: false }; }),
+})}\n`;
+
+test("an advisory reading lets a commit through when the gateway could not give its consult, and says what went unread", () => {
+  mkdirSync(join(REPO, "docs"), { recursive: true });
+  writeFileSync(join(REPO, "docs/DOWN.md"), "# read by nobody\n");
+  const out = advisory(() => gate({ command: "git commit -m x", pending: ["docs/DOWN.md"], stage: ["docs/DOWN.md"],
+    log: failedOn(["docs/DOWN.md"]), env: { CLAUDE_PROXY_ENV: GATEWAY } }));
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, undefined, "nothing refuses the commit");
+  const told = out?.hookSpecificOutput?.additionalContext ?? "";
+  assert.match(told, /this commit went through with no consult having read one file/u, told);
+  assert.match(told, /docs\/DOWN\.md — gateway unavailable \(503\), consult c503a1/u, "the file and the gateway's status");
+});
+
+test("an advisory reading still refuses a commit staging a file no consult was asked about, a failed one beside it included", () => {
+  mkdirSync(join(REPO, "docs"), { recursive: true });
+  writeFileSync(join(REPO, "docs/DOWN.md"), "# read by nobody\n");
+  writeFileSync(join(REPO, "docs/NEVER.md"), "# asked of nobody\n");
+  const record = ["docs/DOWN.md", "docs/NEVER.md"];
+  const out = advisory(() => gate({ command: "git commit -m x", pending: record, stage: record,
+    log: failedOn(["docs/DOWN.md"]), env: { CLAUDE_PROXY_ENV: GATEWAY } }));
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny");
+  assert.match(because(out), /forge codex consult --diff --only blocker,major docs\/NEVER\.md/u, "the unasked file is asked for");
+  assert.doesNotMatch(because(out), /DOWN/u, "and the one the gateway could not give is not");
+  assert.equal(gate({ command: "git commit -m x", pending: ["docs/DOWN.md"], stage: ["docs/DOWN.md"],
+    log: failedOn(["docs/DOWN.md"]), env: { CLAUDE_PROXY_ENV: GATEWAY } })?.hookSpecificOutput?.permissionDecision, "deny",
+  "and a project that has not declared the reading advisory is held as before");
+});

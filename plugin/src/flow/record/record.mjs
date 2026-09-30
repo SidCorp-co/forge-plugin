@@ -533,11 +533,11 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   const finder = prepared.every((one) => SHAPES[one.kind]?.finder);
   const noted = finder ? async () => {} : scopeNoted;
   await noted(documentId, reference, issue, comments);
-  for (const one of prepared) {
-    if (one.rendered === undefined) continue;
-    const answer = await post(documentId, one.rendered, { ref: reference, next, patch, finder });
+  /* A payload's record, then its note — a comment of its own, which no record's parse has to read past. */
+  for (const body of prepared.flatMap((one) => [one.rendered, one.noted]).filter((said) => said !== undefined)) {
+    const answer = await post(documentId, body, { ref: reference, next, patch, finder });
     /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
-    posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body: one.rendered,
+    posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body,
       createdAt: stampedLast([...comments, ...posted], answer) });
     await noted(documentId, reference, issue, [...comments, ...posted]);
   }
