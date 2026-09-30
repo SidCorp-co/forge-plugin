@@ -5,7 +5,7 @@
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { digestOf } from "../digest.mjs";
+import { digestOf } from "../keys/digest.mjs";
 import { appendJsonlRows, jsonlAt, strictJsonlAt } from "../hooks/log/hook-log-file.mjs";
 import { durableRootFor } from "../stats/corpus/corpus.mjs";
 import { projectRepository } from "../resolve/settings.mjs";

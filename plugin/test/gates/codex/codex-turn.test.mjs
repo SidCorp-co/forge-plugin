@@ -20,7 +20,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
    same reason: `HOOK_LOG_PATH` and its like are read at import time, and a static import here is
    hoisted above any assignment below it, so it would freeze them on the developer's own config. */
 process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-const { digestOf } = await import("../../../src/digest.mjs");
+const { digestOf } = await import("../../../src/keys/digest.mjs");
 
 const repo = (name) => {
   const root = join(room, name);

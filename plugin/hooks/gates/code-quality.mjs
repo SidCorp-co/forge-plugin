@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
-import { digestOf } from "../../src/digest.mjs";
+import { digestOf } from "../../src/keys/digest.mjs";
 import { UNREAD, lintConfigured, linting, MAX_FILES, unreadWhy } from "../../src/hooks/lint-delegate.mjs";
 import { askedAlready, block, context, remaining, touched, unseenWrites } from "../_hook.mjs";
 

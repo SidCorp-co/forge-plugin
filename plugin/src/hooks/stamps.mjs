@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { digestOf } from "../digest.mjs";
+import { digestOf } from "../keys/digest.mjs";
 
 /** Per call, so `TMPDIR` moves it; per user, since a shared temp root would let only its first owner write. */
 export const stampRoom = () => join(tmpdir(), `forge-hook-stamps-${process.getuid?.() ?? "one"}`);

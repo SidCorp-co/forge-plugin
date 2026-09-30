@@ -1,7 +1,7 @@
 /* What a session has been shown, by surface and by the text itself, so a repeat costs a line and
    never a paragraph. What each surface owes, and why a credit follows the printing rather than
    leading it: docs/cli/the-shown-ledger.md. */
-import { digestOf } from "../digest.mjs";
+import { digestOf } from "../keys/digest.mjs";
 import { sessionSourced } from "../resolve/config.mjs";
 import { credit, creditedTo, lastCredited } from "./journal.mjs";
 import { howPage } from "../refusal.mjs";

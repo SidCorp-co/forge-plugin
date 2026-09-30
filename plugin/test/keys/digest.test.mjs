@@ -7,16 +7,16 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { tempHome } from "./fixtures.mjs";
+import { tempHome } from "../fixtures.mjs";
 
-import { digestOf } from "../src/digest.mjs";
+import { digestOf } from "../../src/keys/digest.mjs";
 
 const ROOT = tempHome("digest").path;
 process.env.TMPDIR = ROOT;
 process.env.XDG_CONFIG_HOME = join(ROOT, "config");
 
-const { askedAlready, stampRoom } = await import("../src/hooks/stamps.mjs");
-const { scopePath } = await import("../src/flow/record/plan-scope.mjs");
+const { askedAlready, stampRoom } = await import("../../src/hooks/stamps.mjs");
+const { scopePath } = await import("../../src/flow/record/plan-scope.mjs");
 
 const was = (input) => createHash("sha1").update(input).digest("hex").slice(0, 16);
 
