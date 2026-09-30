@@ -206,7 +206,8 @@ export const ROUTES = {
   "forge_issues.mark_merged": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "POST",
-      filled({ target: args.data?.target, mergedAt: args.data?.mergedAt, note: args.data?.note })),
+      filled({ target: args.data?.target, mergedAt: args.data?.mergedAt, note: args.data?.note,
+        landing: args.data?.landing })),
     sends: ["data"],
   },
   "forge_issues.unmark": {

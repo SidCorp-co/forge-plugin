@@ -41,17 +41,17 @@ const kindRows = (caps) => [
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C --evidence E... [--why W] [--filed R]",
-  "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding F]...",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " (--commit C | --landing L) --evidence E... [--why W] [--filed R]",
+  "  review       --reviewer R (--commit C | --landing L) --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
-  "  verification --where W --commit C --evidence E... [--contains C]",
+  "  verification --where W --commit C --evidence E... [--contains C] | --where W --landing L --evidence E...",
   "  wave         --member K... --role R --session S [--tree T]     one dispatch, on the wave's headline",
   "  fold         --summary S                                      the wave's end, once its fold is posted",
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
-  "  merged       " + CLAUSES.map((one) => (one.read ? `[--${one.flag} V]` : `--${one.flag} V`)).join(" ") + " [--to B] | --undo",
+  "  merged       " + CLAUSES.map((one) => (one.read ? `[--${one.flag} V]` : `--${one.flag} V`)).join(" ") + " [--to B] | --undo | --landing L",
   "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
     + " [--technical " + withCap("T", caps.releaseNotes?.halves?.technical)
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
@@ -153,6 +153,10 @@ const MERGED_BLOCKS = [
   "none rather than as silence. --to is the branch the change landed on, read from this project's",
   "base branch where it is not given. --undo removes the mark whole, prints the note it removed and",
   "takes no clause beside it: a clause is written by the mark and not by its removal.",
+  "Where the tracker says the issue lands outside git (its `landingShape` is `outside_git`), the mark",
+  "is --landing alone: where the change now is — a URL, a CMS entry, a store resource — sent as the",
+  "tracker's own landing, one line of at most 2000 code points and never a value shaped like a sha.",
+  "Every clause above and --to are refused there, and --landing is refused on an issue landing in git.",
   ...CLAUSES.filter((one) => one.none).flatMap((one) => [
     `--${one.flag} also takes the word \`${NOTHING}\`, where ${one.none}: the note says so in`,
     "words, every reader of the clause takes it for no head, and `landing moved` is read between",
@@ -266,6 +270,11 @@ const readsOff = (kind) => {
   const said = [
     ...(commit
       ? [`--${commit.flag} is read off the merged mark's note where the flag is absent.`]
+      : []),
+    ...(filled(kind, "landing")
+      ? ["Where the tracker says the issue lands outside git, --landing takes the place of --commit and",
+        "is read off the merged mark's landing where the flag is absent; --commit is refused there, as",
+        "--landing is on an issue landing in git."]
       : []),
     ...(reads
       ? [`--${evidence.flag} is read off what the latest record of this kind cited where the flag is`,

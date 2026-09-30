@@ -4,6 +4,8 @@ import { JUDGE_FROM, valuesOf } from "../machine.mjs";
 import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 import { REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
+import { landsOutsideGit } from "../record/landing.mjs";
+import { identityAsk } from "../record/merged.mjs";
 
 export const [INDEPENDENT] = QA_MODES;
 
@@ -56,12 +58,32 @@ export const judgeProblem = (held, landing, holders = []) => {
 
 export const numbered = (verdicts) => [...verdicts].sort((one, two) => one[0] - two[0]);
 
-export const judgeProblems = (view) => (asksIndependent(view.release)
-  ? numbered(view.verdicts).flatMap(([number, { record }]) => {
-    const why = judgeProblem(record.fields, view.landing, view.holders ?? []);
+/* No landing checkpoint is written outside git — no branch is pushed and no deployment reports a head —
+   so every run the claim history names as having held the issue while it was built is a builder, and a
+   judge is apart only from all of them: a build a second run finished has two (ISS-2402). */
+const NO_OUTSIDE_BUILDER = "lands outside git, where no landing checkpoint is written, so the builder is "
+  + "read off the claim history, and it names no run that held the issue while it was being built: "
+  + "nothing on the record shows this judge apart from whoever built it";
+
+const outsideProblem = (held, holders) => {
+  if (!holders.length) return NO_OUTSIDE_BUILDER;
+  if (!held.judge) return "carries no judge, so nothing on it says which session wrote it";
+  if (inheritedJudge(held)) {
+    return `carries the judge id \`${held.judge}\`, which the record says the run inherited: `
+      + `${INHERITED_MEANS}. ${OWN_ID}`;
+  }
+  return holders.includes(held.judge) ? `carries the builder's own id \`${held.judge}\`` : null;
+};
+
+export const judgeProblems = (view) => {
+  if (!asksIndependent(view.release)) return [];
+  const holders = view.holders ?? [];
+  const outside = landsOutsideGit(view.issue);
+  return numbered(view.verdicts).flatMap(([number, { record }]) => {
+    const why = outside ? outsideProblem(record.fields, holders) : judgeProblem(record.fields, view.landing, holders);
     return why ? [{ number, why, held: record.fields }] : [];
-  })
-  : []);
+  });
+};
 
 /* The grant goes in front of the write where the id is what the problem was: a role handed the bare command sends it again under the same inherited id, and reads the refusal as one it cannot act on.
    Where there is no checkpoint the ask is not another verdict but the write that puts one there: a
@@ -69,12 +91,13 @@ export const judgeProblems = (view) => (asksIndependent(view.release)
    Two answers and not three: a checkpoint that stands is answerable by a verdict whatever it holds,
    and the branch that stood between handed back a command reprinting the refusal (ISS-1788).
    Shared flags lead: `blocksIn` gives a block only what precedes the first --criterion (ISS-2371). */
-export const judgeAsk = (ref, at, landing, held = null, merged = null) => {
+export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null) => {
   const numbers = Array.isArray(at) ? at : [at];
-  if (!landing) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
+  const outside = identity?.flag === "landing";
+  if (!landing && !outside) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
-    + `forge record verdict ${ref} --commit ${short(landing.head) || "<sha>"} `
-    + `--evidence ${short(landing.deployment) || "<what you exercised>"} `
+    + `forge record verdict ${ref} ${outside ? identityAsk(identity) : `--commit ${short(landing.head) || "<sha>"}`} `
+    + `--evidence ${(!outside && short(landing.deployment)) || "<what you exercised>"} `
     + `--verdict ${valuesOf("verdict", "verdict")}`
     + numbers.map((number) => ` --criterion ${number}`).join("");
 };

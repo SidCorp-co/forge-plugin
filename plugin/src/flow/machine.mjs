@@ -395,6 +395,23 @@ const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it,
   + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
   + "is an assertion nothing on the record stands behind";
 
+/* What a record judged, by one of two identities, and which one the tracker's `landingShape` for the
+   issue decides at the write (ISS-2402): a commit where the change landed in git, the place the mark's
+   landing names where it landed outside git. Each is optional alone and exactly one is owed, which is
+   the shape's own check, so a record read back naming both or neither is no whole payload. */
+const JUDGED_COMMIT = { commit: true, judged: true, optional: true, identity: true };
+const JUDGED_LANDING = { optional: true, landing: true, identity: true };
+
+export const identityProblem = (got) => {
+  if (got.commit !== undefined && got.landing !== undefined) {
+    return "one of --commit and --landing, not both: a record names what it judged by the one identity its issue lands under";
+  }
+  if (got.commit === undefined && got.landing === undefined) {
+    return "--commit, or --landing where the issue lands outside git";
+  }
+  return null;
+};
+
 export const SHAPES = {
   confirmation: {
     heading: "Confirmation",
@@ -492,7 +509,8 @@ export const SHAPES = {
     fields: [
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
-      FIELD("commit", "Commit", { commit: true, judged: true }),
+      FIELD("commit", "Commit", JUDGED_COMMIT),
+      FIELD("landing", "Landing judged", JUDGED_LANDING),
       /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
       FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
@@ -502,6 +520,8 @@ export const SHAPES = {
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
     ],
     check: (got) => {
+      const identity = identityProblem(got);
+      if (identity) return identity;
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
       /* A failing verdict is the one another run acts on, and one saying only `fail` sends them back to run it again to find out what. */
       if (got.verdict === FAIL && !got.why) return `--why, naming what the criterion did instead: a \`${FAIL}\` is what another run acts on`;
@@ -515,10 +535,12 @@ export const SHAPES = {
     heading: "Code review",
     fields: [
       FIELD("reviewer", "Reviewer"),
-      FIELD("commit", "Head judged", { commit: true, judged: true }),
+      FIELD("commit", "Head judged", JUDGED_COMMIT),
+      FIELD("landing", "Landing judged", JUDGED_LANDING),
       FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
       FIELD("finding", "Findings", { many: true, least: 0, each: findingProblem, form: FINDING_TAKES, prose: true }),
     ],
+    check: identityProblem,
   },
   /* What one look found: a person's voice carried for them, or the agent's own where the flow sent
      it to look. A reopen with no finding is a status that moved and nothing saying why. */
@@ -632,12 +654,16 @@ export const SHAPES = {
     heading: "Release verification",
     fields: [
       FIELD("where", "Where it runs"),
-      FIELD("commit", "Commit", { commit: true }),
+      FIELD("commit", "Commit", { commit: true, optional: true, identity: true }),
+      FIELD("landing", "Landing judged", JUDGED_LANDING),
       FIELD("contains", "Landed commit in it", { optional: true, commit: true, takes: "the landed commit the head on --commit carries" }),
       FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
       FIELD("review", "Review", { optional: true, derived: true }),
       FIELD("promotion", "Promotion", { optional: true, derived: true }),
     ],
+    check: (got) => identityProblem(got) ?? (got.landing !== undefined && got.contains !== undefined
+      ? "--contains only beside --commit: it names the landed commit a deployed head carries, and a landing outside git has none"
+      : null),
   },
 };
 

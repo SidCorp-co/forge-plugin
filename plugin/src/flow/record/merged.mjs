@@ -16,6 +16,7 @@ import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 import { commitProblem, commitTakes } from "./content.mjs";
+import { landingProblem, landsOutsideGit, markedLanding } from "./landing.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
 
@@ -61,6 +62,19 @@ export const lastMark = (comments) => {
 const readClause = (comments, flag) => clause(flag).reads.exec(lastMark(comments) ?? "")?.[1] ?? null;
 
 export const markedCommit = (comments) => readClause(comments, "at");
+
+/** What a record of this issue names what it judged by: the landing its mark names where the tracker
+ *  says the issue lands outside git, and the commit its note names everywhere else. One answer for the
+ *  fill, the entry checks and the commands they print, so none of them asks one shape for the other's
+ *  flag (ISS-2402). */
+export const markedIdentity = (issue, comments) => (landsOutsideGit(issue)
+  ? { flag: "landing", value: markedLanding(issue) }
+  : { flag: "commit", value: markedCommit(comments) });
+
+/** That identity as the flag a command carries, the mark's value where one stands. */
+export const identityAsk = ({ flag, value }, placeholder = "<sha>") => (flag === "landing"
+  ? `--landing ${value ? typedBack(value) : "'<where the change now is>'"}`
+  : `--commit ${value ?? placeholder}`);
 export const reviewedHead = (comments) => readClause(comments, "reviewed");
 export const judgedHead = (comments) => readClause(comments, "judged");
 
@@ -256,10 +270,10 @@ export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [],
 const TARGET = "base";
 
 /** The mark, and the audit comment it causes credited in the same breath: the next write to the issue is refused for a comment nothing has read, and every route that causes one clears it. The lease is checked here rather than only at the call site because the landing task marks a merge too, holding a lease this must not renew — a renewal would rewrite the landing state saved a step before it — so a check no caller can reach the write without is a read and not a renewal. `leased` is the caller that renewed a moment ago, whose renewal was that read. */
-export const markMerged = async (documentId, ref, note, { leased = false } = {}) => {
+export const markMerged = async (documentId, ref, note, { leased = false, landing } = {}) => {
   if (!leased) await notAnothers(documentId, ref);
   const answer = await write("forge_issues",
-    { action: "mark_merged", data: { issueId: documentId, target: TARGET, note } });
+    { action: "mark_merged", data: { issueId: documentId, target: TARGET, note, ...(landing ? { landing } : {}) } });
   await creditAfter("the merged mark", [{ ref, documentId }]);
   return answer;
 };
@@ -284,8 +298,14 @@ const flagSaid = (one) => `--${one.flag} <${one.label}>`;
    carrying the flag would hand a run a value to guess at and a refusal to learn it from (ISS-2485). */
 const TYPED = CLAUSES.filter((one) => !one.read);
 
-export const mergedForm = (ref) =>
-  `forge record merged ${ref} ${TYPED.map(flagSaid).join(" ")}`;
+/* The flag an issue landing outside git is marked by, and the words a reader is told it takes. */
+const LANDING_SAID = "where the change now is: a URL, a CMS entry, a store resource";
+const landingForm = (ref) => `forge record merged ${ref} --landing '<${LANDING_SAID}>'`;
+
+/** The mark an issue is asked for, in the shape the tracker says it lands in: `issue` absent is git. */
+export const mergedForm = (ref, issue = null) => (landsOutsideGit(issue)
+  ? landingForm(ref)
+  : `forge record merged ${ref} ${TYPED.map(flagSaid).join(" ")}`);
 
 export const undoForm = (ref) => `forge record merged ${ref} --undo`;
 
@@ -459,17 +479,51 @@ const marked = async (documentId, ref, note, clauses, { next, patch }) => {
     + `between ${movedFrom(clauses).sha} and ${clauses.at}: ${pathsSaid(clauses.moved)}. Its note:\n  ${note}`);
 };
 
+/* Every flag of the git mark, the three it reads from git or the config included: none of them means
+   anything where the change landed in no repository, and one given there would be dropped unread. */
+const GIT_FLAGS = [...CLAUSES.map((one) => one.flag), "to"];
+
+/* The note an outside-git mark carries. The place itself is the tracker's own field, which its audit
+   comment quotes beside this; the note says only which of the two marks this is. */
+export const LANDED_NOTE = "landed outside git, at the place this mark's landing names";
+
+const outsideRefused = (reference, beside) => refuse(`${reference} lands outside git — the tracker's `
+  + "`landingShape` for it is `outside_git` — so its mark names where the change now is and no commit"
+  + (beside.length
+    ? `: ${beside.map((one) => `--${one}`).join(", ")} ${beside.length === 1 ? "is a clause" : "are clauses"} of the git mark `
+      + "and would be dropped unread, so nothing was written"
+    : ", and this call names none, so nothing was written")
+  + `. Name the landing:\n  ${landingForm(reference)}`);
+
+const gitRefused = (reference) => refuse(`--landing names where a change landed outside git, and the `
+  + `tracker says ${reference} lands in git, so its mark names the commit and the heads instead, and `
+  + `nothing was written:\n  ${mergedForm(reference)}`);
+
+const landed = async (documentId, ref, landing, { next, patch }) => {
+  await renew(documentId, ref, next, patch);
+  await markMerged(documentId, ref, LANDED_NOTE, { leased: true, landing });
+  console.log(`${ref}  marked merged outside git, at ${landing}. Its note:\n  ${LANDED_NOTE}`);
+};
+
+/* The mark of an issue landing outside git: the landing and nothing else. */
+const outsidePrepared = (given, { documentId, reference, next, patch }) => {
+  const beside = GIT_FLAGS.filter((one) => given[one] !== undefined);
+  if (given.landing === undefined || beside.length) outsideRefused(reference, beside);
+  const landing = String(given.landing).trim();
+  return { write: () => landed(documentId, reference, landing, { next, patch }) };
+};
+
 /** `forge record merged`: one flag per clause of the note, and `--undo` the one route back. Every
  *  refusal either form can earn is earned here, before the call this belongs to writes anything, and
  *  what comes back is the write. The usage the parser judges a stranger against is the kind's own
  *  `-h`, handed in: the rows read this module's clauses, and a read back would be a cycle. */
 export const mergedPrepared = async (argv, { reference, issue, page, next, patch, usage } = {}) => {
   const given = flags(argv, "record merged", ["--undo"], { usage });
-  const clauses = given.undo ? null
-    : movedRead(clausesFrom(given), process.cwd(), () => withoutMoved(reference, given));
-  const { documentId, body } = await issue();
-  const { comments } = await page();
+  const place = given.landing === undefined ? null : landingProblem(given.landing);
+  if (place && !given.undo) refuse(`--landing ${place}.`);
   if (given.undo) {
+    const { documentId, body } = await issue();
+    const { comments } = await page();
     const also = Object.keys(given).filter((one) => one !== "undo");
     if (also.length) {
       refuse(`--undo removes the mark whole, so ${also.map((one) => `--${one}`).join(" and ")} `
@@ -478,11 +532,16 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
     const mark = lastMark(comments);
     if (!mark && !body?.mergedAt) {
       refuse(`${reference} carries no merged mark and its row carries no merged stamp, so there is `
-        + `nothing to remove. What a mark is written with:\n  ${mergedForm(reference)}`);
+        + `nothing to remove. What a mark is written with:\n  ${mergedForm(reference, body)}`);
     }
     const said = mark ? markSaid(reference, mark) : stampSaid(reference, body.mergedAt);
     return { write: () => undone(documentId, reference, said, { next, patch }) };
   }
+  const { documentId, body } = await issue();
+  if (landsOutsideGit(body)) return outsidePrepared(given, { documentId, reference, next, patch });
+  if (given.landing !== undefined) gitRefused(reference);
+  const clauses = movedRead(clausesFrom(given), process.cwd(), () => withoutMoved(reference, given));
+  const { comments } = await page();
   const { view, namedIn } = await viewOn(documentId, comments);
   judgedTruly(view, clauses.judged, (head) => withoutMoved(reference, { ...given, judged: head }));
   const branch = await branchFor(given);

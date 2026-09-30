@@ -13,6 +13,7 @@ import { edgeExpired } from "../tracker/edges/kinds.mjs";
 import { finishedAtHead, methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { parseAll } from "./record/page.mjs";
+import { markedLanding } from "./record/landing.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped", short: "≈ short" };
@@ -148,7 +149,8 @@ const rowWork = (view) => {
   const found = BRANCH_FROM.map(([from, read]) => [from, read(view)])
     .find(([, name]) => typeof name === "string" && name.trim());
   return {
-    merged: at ? { at: String(at), commit: view.issue.mergedCommitSha ? String(view.issue.mergedCommitSha) : null } : null,
+    merged: at ? { at: String(at), commit: view.issue.mergedCommitSha ? String(view.issue.mergedCommitSha) : null,
+      landing: markedLanding(view.issue) } : null,
     branch: found ? { name: found[1].trim(), from: found[0] } : null,
   };
 };

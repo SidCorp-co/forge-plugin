@@ -8,7 +8,11 @@ import {
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
-import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
+import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
+import { landsOutsideGit, markedLanding } from "./record/landing.mjs";
+import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, landingOwed, verificationForm } from "./earned/asks.mjs";
+
+export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
 import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
@@ -166,13 +170,14 @@ export const payloadOwed = (view, kind, what, ask) => {
 const reviewOwed = (view, ref) => {
   const merged = markedCommit(view.comments);
   const reviewed = reviewedHead(view.comments);
-  const ask = `forge record review ${ref} --reviewer codex --commit ${merged ?? "<sha>"} `
+  const ask = `forge record review ${ref} --reviewer codex ${idAsk(view)} `
     + `--outcome ${valuesOf("review", "outcome")} --finding "F1 accepted"`;
   const owed = payloadOwed(view, "review", "no code review of the head that landed", ask);
   if (owed.length) return owed;
   const held = view.latest.review.record.fields;
-  const judged = held.commit;
+  const judged = held.commit ?? held.landing;
   if (held.outcome !== "approved") return [need(`the latest review of ${judged} says ${held.outcome}`, ask)];
+  if (landsOutsideGit(view.issue)) return landingOwed(view, held, "the review judged", ask);
   const landed = merged && sameCommit(judged, merged);
   if (merged && !landed && !(reviewed && sameCommit(judged, reviewed))) {
     return [need(
@@ -182,19 +187,6 @@ const reviewOwed = (view, ref) => {
   }
   return [];
 };
-
-/* Both verdict shortfalls fold here, so neither drifts into the other's shape (ISS-297): several
-   criteria are one item and one write, shared flags before the first --criterion `blocksIn` splits on. */
-const askOne = (ref, number, commit) =>
-  `forge record verdict ${ref} --criterion ${number} --verdict ${valuesOf("verdict", "verdict")} `
-  + `--commit ${commit} --evidence <attachment|url|sha>`;
-const askAll = (ref, numbers, commit) =>
-  `forge record verdict ${ref} --commit ${commit} --evidence <attachment|url|sha> `
-  + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join("");
-const foldVerdicts = (ref, numbers, commit, one, many) =>
-  (numbers.length > 1
-    ? [need(many(numbers.join(", ")), askAll(ref, numbers, commit))]
-    : numbers.map((number) => need(one(number), askOne(ref, number, commit))));
 
 /* One item for the set: fourteen copies of one path list is what a run reads past. */
 const equivalenceOwed = (view, ref, judged, moved, numbers) => {
@@ -213,18 +205,6 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
       + `--commit ${markedCommit(view.comments)} --evidence <attachment|url|sha>`,
   );
 };
-
-/* A criterion the judgement proved impossible is corrected in the open rather than left to wait on
-   a verdict that can never come — `forge guide contract testing`'s own sentence, and the route
-   ISS-2362 names. Exported and read by `route.mjs`'s own advisory too, so the one line spelling the
-   two writes cannot drift between the two callers (ISS-2430 review, F1). The correction record alone
-   moves nothing on the field itself — ISS-1741 is open on exactly that gap — so the second write is
-   named beside it rather than assumed, and `--replace` with it since the route this need is for is
-   dropping a number the write otherwise refuses to lose silently. */
-export const correctedForm = (ref, number) =>
-  `forge record correction ${ref} --corrects criteria:${number} --moved "<the criterion as corrected>" `
-  + `--why "<the finding that showed it, or why no route ever reaches it>", then forge record criteria `
-  + `${ref} <criteria.md> --replace`;
 
 /* Whether a number the criteria field no longer holds was corrected away on the record, rather than
    an edit nobody logged: a whole correction naming `--corrects criteria:<number>` is what a reader
@@ -270,7 +250,7 @@ const heldOwed = (view, ref, verdict, exclude = EMPTY_SET) => {
       && (current.has(number) || !correctedAway(view, number)))
     .map(([number, { record }]) => need(
       what(number, record),
-      `${askOne(ref, number, markedCommit(view.comments) ?? "<sha>")}\n  or, ${or}: ${correctedForm(ref, number)}`,
+      `${askOne(ref, number, idAsk(view))}\n  or, ${or}: ${correctedForm(ref, number)}`,
     ));
 };
 
@@ -288,22 +268,37 @@ const pastJudgingOwed = (view, ref) => {
   return [...failedOwed(view, ref, stale), ...heldOwed(view, ref, "skipped", stale), ...judgedSince(view, ref, stale)];
 };
 
-/* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one
-   they did not look at. Their write, from a checkout holding both, records that it carries it (ISS-1302). */
-const carriedAsk = (ref, number, merged) =>
-  `${askOne(ref, number, `<the commit you judged, carrying ${merged}>`)}, from a checkout that holds both`;
-
 /* A landing brings other people's commits and leaves this change's own diff alone, so a verdict
    judged before it judged the code that landed; the review's recheck at the landed head guards the
    tree they sit on. The note carries the predicate because git is asked where it can answer (ISS-156).
    A verdict after it stands where its own write found the commit judged carrying the landing. */
+/* The same reading outside git, where there is no head to carry and no landing to move: a verdict
+   stands where it names the landing the mark does. */
+const landingVerdictsOwed = (view, ref) => {
+  const ask = (number) => askOne(ref, number, idAsk(view));
+  const out = foldVerdicts(ref, view.owed, idAsk(view),
+    (number) => `criterion ${number} has no verdict`,
+    (listed) => `criteria ${listed} have no verdict`);
+  for (const [number, { record }] of numbered(view.verdicts)) {
+    const gaps = shapeGaps("verdict", record, view.names);
+    if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
+    else if (record.fields.verdict !== "fail") out.push(...landingOwed(view, record.fields, `the verdict on criterion ${number} judged`, ask(number)));
+  }
+  out.push(...failedOwed(view, ref));
+  for (const one of view.unreadable ?? []) {
+    out.push(need(`a verdict written ${one.at.slice(0, 16)} names no criterion this build can read`, ask("<n>")));
+  }
+  return out;
+};
+
 const verdictsOwed = (view, ref) => {
+  if (landsOutsideGit(view.issue)) return landingVerdictsOwed(view, ref);
   const merged = markedCommit(view.comments);
   const judged = judgedHead(view.comments);
   const moved = judged ? landingMoved(view.comments) : null;
   const stands = judgedStands(view.comments);
-  const ask = (number) => askOne(ref, number, merged ?? "<sha>");
-  const out = foldVerdicts(ref, view.owed, merged ?? "<sha>",
+  const ask = (number) => askOne(ref, number, `--commit ${merged ?? "<sha>"}`);
+  const out = foldVerdicts(ref, view.owed, `--commit ${merged ?? "<sha>"}`,
     (number) => `criterion ${number} has no verdict`,
     (listed) => `criteria ${listed} have no verdict`);
   const atJudged = [];
@@ -381,7 +376,7 @@ const judgedSince = (view, ref, stale = staleCriteria(view)) => {
   return foldVerdicts(
     ref,
     [...stale],
-    "<sha>",
+    landsOutsideGit(view.issue) ? idAsk(view) : "--commit <sha>",
     (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
     (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
   );
@@ -407,7 +402,7 @@ const shownOwed = (view, ref) => {
     `the plan declares a screen change, and the verdict on ${at} cites no attachment this issue `
       + `carries, so nothing on the record is a thing a person looked at`,
     `forge attach issue ${ref} <the rendered state>, then forge record verdict ${ref} `
-      + `--commit ${markedCommit(view.comments) ?? "<sha>"} --evidence <that attachment> `
+      + `${idAsk(view)} --evidence <that attachment> `
       + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join(""),
   )];
 };
@@ -422,13 +417,9 @@ const judgeOwed = (view, ref) => {
     const numbers = held.map((one) => one.number);
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments)));
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view)));
   });
 };
-
-const verificationForm = (ref, commit, evidence, tail = "") =>
-  `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `
-  + `--evidence ${evidence}${tail}`;
 
 /* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so where the config says production deploys on its own, the verification is asked to prove one happened, out of two values the record already holds. docs/cli/the-judge-and-the-deploy.md.
    The test is `autoProd` alone — `pipelineConfig.autoProdDeploy`, as `releaseFrom` reads it — and deliberately not `waitsForPerson`, which answers a different question off the branch pair. Neither branch is consulted here, so a project with either shape of branches owes the proof when that flag is true (ISS-428).
@@ -437,7 +428,7 @@ const deployOwed = (view, ref) => {
   if (!view.release?.autoProd) return [];
   const held = view.latest.verification.record.fields;
   const merged = markedCommit(view.comments);
-  const asks = (commit, tail = "") => verificationForm(ref, commit, "<the deployment's build log>", tail);
+  const asks = (commit, tail = "") => verificationForm(ref, `--commit ${commit}`, "<the deployment's build log>", tail);
   const out = [];
   if (merged && !sameCommit(held.commit, merged) && !sameCommit(held.contains, merged)) {
     out.push(need(
@@ -509,10 +500,14 @@ const verificationOwed = (view, ref) => {
     view,
     "verification",
     NO_VERIFICATION,
-    verificationForm(ref, "<sha>", "<attachment|url|sha>"),
+    verificationForm(ref, idAsk(view), "<attachment|url|sha>"),
   );
-  /* One or the other: a payload with gaps has no fields to compare against anything. */
-  return verification.length ? verification : deployOwed(view, ref);
+  /* One or the other: a payload with gaps has no fields to compare against anything. Outside git
+     there is no build to name a sha, so what is compared is the place the verification read. */
+  if (verification.length) return verification;
+  if (!landsOutsideGit(view.issue)) return deployOwed(view, ref);
+  return landingOwed(view, view.latest.verification.record.fields, "the verification read",
+    verificationForm(ref, idAsk(view), "<what you read there>"));
 };
 
 /* The whole of what `awaiting_release` is entered on: the deploying actor's half, of a change already running. The two halves answer to different actors, which is why each has a rung — a rung demanding both could not say which one it was waiting for. */
@@ -605,8 +600,13 @@ export const CHECKS = {
   },
   developed: (view, ref) => {
     const out = [];
-    if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", mergedForm(ref)));
-    else if (!markedCommit(view.comments)) {
+    if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", mergedForm(ref, view.issue)));
+    else if (landsOutsideGit(view.issue)) {
+      if (!markedLanding(view.issue)) {
+        out.push(need("the merged mark names no landing: the tracker holds no `mergedLanding` for it, so nothing "
+          + "says where the change landed outside git", `${undoForm(ref)}, then ${mergedForm(ref, view.issue)}`));
+      }
+    } else if (!markedCommit(view.comments)) {
       out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", mergedForm(ref)));
     }
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];

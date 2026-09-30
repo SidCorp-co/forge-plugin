@@ -111,7 +111,8 @@ export const edgeSaid = (one) => {
    as no work even when the row carries a merge or a branch (ISS-607). */
 const rowSaid = ({ merged, branch }) => {
   const held = [
-    ...(merged ? [`a merged mark at ${atMinute(merged.at)}${merged.commit ? ` on ${shortSha(merged.commit)}` : ""}`] : []),
+    ...(merged ? [`a merged mark at ${atMinute(merged.at)}${merged.commit ? ` on ${shortSha(merged.commit)}` : ""}`
+      + `${merged.landing ? `, landed outside git at ${merged.landing}` : ""}`] : []),
     ...(branch ? [`the branch \`${branch.name}\`, from ${branch.from}`] : []),
   ];
   return held.length

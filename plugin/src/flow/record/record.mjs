@@ -11,6 +11,7 @@ import { CARRIES, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.m
 import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
+import { landingProblem, landsOutsideGit, markedLanding } from "./landing.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, onePerRoutes, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
@@ -41,7 +42,7 @@ import { carriedOnto } from "./judged/carried.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
-const DEFERRED = ["commit", "evidence"];
+const DEFERRED = ["commit", "landing", "evidence"];
 
 /* One pass over the shape: every flag read, every rule applied, before anything is written. */
 const gather = (kind, argv, defer = [], reference = undefined) => {
@@ -80,6 +81,11 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
       refuse(`--${field.flag} takes one of ${field.oneOf.join(", ")}, not \`${value}\`.`);
     }
     if (field.commit && !isCommit(value)) refuse(`--${field.flag} ${commitProblem(field, value)}`);
+    if (field.landing) {
+      const place = landingProblem(value);
+      if (place) refuse(`--${field.flag} ${place}.`);
+      got[field.flag] = String(value).trim();
+    }
     if (field.criterion && !/^\d+$/u.test(value)) refuse(`--criterion takes the criterion's number, not \`${value}\`.`);
   }
   return got;
@@ -173,10 +179,43 @@ const BEHIND = (kind, flag, cut) => `record ${kind} reads --${flag} off this iss
 
 /* Where the value came from, said: a default nobody can see is one nobody can catch being wrong.
    Where it cannot answer, the refusal says what the issue does carry rather than naming a flag. */
-export const fromRecord = (kind, got, { comments, names, cut = null }, say = console.error) => {
+/* A flag of the other shape is refused rather than written beside the one this issue takes, since a
+   record naming both reads back as no whole payload and one naming the wrong one judged nothing that
+   landed. Only the kinds whose shape holds both identities are asked (ISS-2402). */
+const OTHER_SHAPE = {
+  outside: ["commit", "contains"],
+  git: ["landing"],
+};
+
+const shapeRefused = (kind, flag, outside) => refuse(outside
+  ? `record ${kind}: --${flag} names a commit, and the tracker says this issue lands outside git, so `
+    + "what it judged is the place its merged mark names. Nothing was sent. Name that place, or leave "
+    + `the flag out and it is read off the mark:\n  --landing '<where the change now is>'`
+  : `record ${kind}: --landing names a place a change landed outside git, and the tracker says this `
+    + "issue lands in git, so what it judged is a commit. Nothing was sent. Name the commit, or leave "
+    + "the flag out and it is read off the merged mark's note:\n  --commit <sha>");
+
+/* The landing half of the fill: the place the tracker's own `mergedLanding` holds, and never a sha. */
+const landingFilled = (kind, got, issue, say) => {
+  const other = OTHER_SHAPE.outside.find((one) => got[one] !== undefined);
+  if (other) shapeRefused(kind, other, true);
+  if (got.landing !== undefined) return;
+  const marked = markedLanding(issue);
+  if (!marked) {
+    refuse(`record ${kind} needs --landing (where the change now is), and no merged mark on this `
+      + "issue names a landing to read it from.");
+  }
+  got.landing = marked;
+  say(`--landing ${marked}, from the merged mark's landing.`);
+};
+
+export const fromRecord = (kind, got, { comments, names, cut = null, issue = null }, say = console.error) => {
   const shape = SHAPES[kind];
   const commit = shape.fields.find((one) => one.commit);
-  if (commit && got.commit === undefined) {
+  const identities = shape.fields.some((one) => one.landing);
+  if (identities && landsOutsideGit(issue)) landingFilled(kind, got, issue, say);
+  else if (identities && got.landing !== undefined) shapeRefused(kind, "landing", false);
+  if (commit && got.commit === undefined && !(identities && landsOutsideGit(issue))) {
     const marked = markedCommit(comments);
     if (!marked && cut) refuse(BEHIND(kind, "commit", cut));
     if (!marked) {
@@ -372,7 +411,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
        own pending upload is not that until the whole call clears — which the refusal is the proof
        it did not (ISS-1935). `evidenceProblem` below is the one reader that legitimately wants the
        fuller set, since it validates this call's own citations against what will exist once it lands. */
-    if (asks) fromRecord(kind, got, { comments, names: held, cut }, say);
+    if (asks) fromRecord(kind, got, { comments, names: held, cut, issue: body }, say);
     checked(kind, got);
     judgedTreeChecked(kind, got);
     citationChecked(kind, reference, got);

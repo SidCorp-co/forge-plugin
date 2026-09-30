@@ -3,6 +3,8 @@
    folded finding is typed at all is docs/cli/the-fold.md's. Nothing here fetches or writes. */
 import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";
+import { landsOutsideGit } from "../record/landing.mjs";
+import { identityAsk, markedIdentity } from "../record/merged.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
 import { escaped } from "../../markdown.mjs";
 
@@ -54,7 +56,9 @@ const verdictOwed = (view, ref, { handle, carrier }, whole) => {
   if (!said) return [];
   return [need(
     `criterion ${carrier.number} carries finding ${handle} and ${said}, so the finding it carries stands unjudged`,
-    `forge record verdict ${ref} --criterion ${carrier.number} --verdict pass --commit <sha> --evidence <attachment|url|sha>`,
+    `forge record verdict ${ref} --criterion ${carrier.number} --verdict pass `
+      + `${landsOutsideGit(view.issue) ? identityAsk(markedIdentity(view.issue, view.comments)) : "--commit <sha>"} `
+      + "--evidence <attachment|url|sha>",
   )];
 };
 
