@@ -355,3 +355,44 @@ test("criteria taken under the stand-down post that no consult read them, and wh
   const note = state.posted.find((body) => body.startsWith("## No consult read the criteria"));
   assert.ok((note ?? "").includes(STOOD_DOWN_REASON), state.posted.join(" | "));
 });
+
+/* The refusal half, through the real verbs: the reader's refusal reaches the caller whole, and the
+   tracker is touched by neither field nor comment. `consult` is the project's reading, or none. */
+const refusedWrite = async (kind, { consult, row, said }) => {
+  heldBy(MINE);
+  state.posted = [];
+  delete state.issues[0].plan;
+  delete state.issues[0].acceptanceCriteria;
+  const home = ENV.XDG_CONFIG_HOME;
+  const text = kind === "plan" ? `${PLAN}\n` : "1. The write goes through.\n";
+  const path = join(room, `${kind}.md`);
+  writeFileSync(path, text);
+  const profile = join(room, "gateway.env");
+  writeFileSync(profile, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+  projectRecord(neutralRoom(), home, { ...OWN, ...(consult ? { codex: { consult } } : {}) });
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), row ? `${JSON.stringify({
+    kind: "consult", id: "rq5031", at: new Date().toISOString(), root: neutralRoom(), ok: false, ...row,
+    files: [path], send: "bodies", sent: [{ rel: path, sha: digest(text), chars: text.length, clipped: false }],
+  })}\n` : "");
+  try {
+    const run = await ranAsync(FORGE, ["record", kind, "ISS-348", path], env(MINE, { FORGE_CODEX_DISABLE: "0", CLAUDE_PROXY_ENV: profile }));
+    assert.equal(run.status, 1, `the ${kind} write is refused`);
+    for (const one of said) assert.ok(run.stderr.includes(one), `the refusal says ${one}: ${run.stderr}`);
+    assert.equal(kind === "plan" ? state.issues[0].plan : state.issues[0].acceptanceCriteria, undefined, "no field is written");
+    assert.deepEqual(state.posted, [], "and no comment is posted");
+  } finally {
+    projectRecord(neutralRoom(), home, OWN);
+    writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
+  }
+};
+
+const FAILED_503 = { status: 503, error: "gateway answered 503: All codex accounts are unavailable" };
+
+test("a required project refuses a plan whose consult failed, through the verb, naming the status and the setting",
+  () => refusedWrite("plan", { row: FAILED_503, said: ["gateway unavailable (503), consult rq5031", "codex.consult=advisory"] }));
+
+test("a required project refuses criteria whose consult failed, through the verb, naming the status and the setting",
+  () => refusedWrite("criteria", { consult: "required", row: FAILED_503, said: ["gateway unavailable (503), consult rq5031", "codex.consult=advisory"] }));
+
+test("an advisory project with a gateway refuses criteria no consult was asked about, naming the consult that clears it",
+  () => refusedWrite("criteria", { consult: "advisory", row: null, said: ["No consult has read", "forge codex consult --send bodies"] }));

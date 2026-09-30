@@ -19,8 +19,10 @@ the file through and says so where it lands — a comment on the issue for a pla
 note beside the call at a door. A machine with no gateway configured is the same case under
 `advisory`, since no consult can be asked for there.
 
-**Which consult speaks for a file is the newest one that carried it at the bytes it holds now.** A
-failure over other bytes says nothing about these, the same rule a read follows. The writes key on
+**A consult that read these bytes stands; short of one, the newest consult that carried them
+speaks.** An answer is a review that happened, and a failure after it asks nothing more of the same
+bytes, which is the read rule unchanged. Where none answered, a newer consult that answered only in
+part outranks an older failure, and a failure over other bytes says nothing about these. The writes key on
 the file's real path and the doors on a root and a rel, as each already does for a consult that
 answered; the judgement of what the row means is one function both call, so the four surfaces cannot
 drift into four readings of one row.

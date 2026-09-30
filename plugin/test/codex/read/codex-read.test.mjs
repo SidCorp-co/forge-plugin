@@ -360,3 +360,12 @@ test("the writes and both doors judge a file's consult through the one classifie
     assert.doesNotMatch(src(rel), /gatewayFailed|isAnswered/u, `${rel} reads no row for itself`);
   }
 });
+
+test("an answer at these bytes stands though a later consult of them failed", () => {
+  const { root, path, rel } = room();
+  reading(root, "advisory");
+  consulted(root, rel, PLAN, { id: "read01" });
+  failed(root, rel, PLAN, { id: "late01", status: 503 });
+  assert.deepEqual(withGateway(true, () => readOrRefuse(path, root)), { refusal: null, text: PLAN },
+    "a review that happened is not undone by one that could not: the write takes the file as read, with no note");
+});
