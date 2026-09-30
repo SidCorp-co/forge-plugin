@@ -16,15 +16,18 @@ const SKIP = /\/(node_modules|dist|\.next|coverage|\.git)\//;
 const FILE_MS = 60_000;
 export const MAX_FILES = 5;
 
-/** Why `linting` leaves a file unread, in the order a note lists them. */
-export const UNREAD = ["cap", "clock", "timeout"];
+/* Why `linting` leaves a file unread, in the order a note lists them, each with its words: `by` is what lints the first `MAX_FILES` of a call, `clock` whose clock it was. */
+const REASONS = {
+  cap: ({ by }) => `past the first ${MAX_FILES} code files in path order, which is as many as ${by} lints`,
+  clock: ({ clock }) => `${clock} ran out`,
+  timeout: () => "the linter did not answer within its time limit",
+};
 
-/** The words for one of them: `by` is what lints the first `MAX_FILES` of a call, `clock` whose clock it was. */
-export const unreadWhy = (why, { by, clock }) => ({
-  cap: `past the first ${MAX_FILES} code files in path order, which is as many as ${by} lints`,
-  clock: `${clock} ran out`,
-  timeout: "the linter did not answer within its time limit",
-})[why];
+/** The reasons, in the order a note lists them. */
+export const UNREAD = Object.keys(REASONS);
+
+/** The words for one of them. */
+export const unreadWhy = (why, said) => REASONS[why]?.(said);
 const CONFIGS = ["js", "mjs", "cjs", "ts", "mts", "cts"].map((one) => `eslint.config.${one}`);
 
 function delegateFor(file) {

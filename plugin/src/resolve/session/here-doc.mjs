@@ -1,6 +1,6 @@
 /* Where a here-document's body is, for the readers that ask which run a command is and where it stands: a body is the stdin of the command it stands on, so its words are no call, no id
    and no move of this shell's (ISS-1717). What each reader does with the text that is left: docs/cli/the-here-document.md. */
-import { quoting } from "../../hooks/shell-spans.mjs";
+import { underOf } from "../../hooks/shell-spans.mjs";
 
 const BACKTICK = "\x60";
 const WORD_ENDS = /[\s;&|()<>]/u;
@@ -26,12 +26,6 @@ const runsInBody = (body) => {
     } else read += body[at];
   }
   return RUNS.test(read);
-};
-
-const underOf = (text) => {
-  const under = new Array(text.length).fill("\\");
-  for (const one of quoting(text)) under[one.at] = one.under;
-  return under;
 };
 
 /* The delimiter word as a shell reads it: up to an unquoted blank or operator, its quotes and backslashes removed, and quoted — the body taken literally — where it carried any. A `#` where
@@ -130,6 +124,8 @@ const lineOf = (text, under, first) => {
  *  quoting the walk guesses at, an unquoted body a substitution runs in — is left where it stands, and everything after it with it, so a reader asking of it answers as it did before. */
 export const withoutBodies = (command) => {
   let text = String(command ?? "");
+  /* No operator, no body, and no walk: `operatorFrom` finds nothing else. */
+  if (!text.includes("<<")) return text;
   for (let from = 0; ;) {
     const under = underOf(text);
     const first = operatorFrom(text, under, from);

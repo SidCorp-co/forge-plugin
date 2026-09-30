@@ -88,9 +88,29 @@ const walked = (text, pipes, quoted = false) => {
 /** Where each command begins and ends, with the subshells its span opens and closes. A quoted body is never cut, nor a pipeline split: both hand the next command its arguments. An unclosed quote joins, a backslash escapes outside single quotes, and a comment is outside every span — its `|` is no pipeline. */
 export const spans = (text, { pipes = false } = {}) => walked(text, pipes).out;
 
+/** The quoting each code unit of the text stands under, offset for offset, as `quoting` below names it, a line continuation's two characters included and each marked `\\`. For a reader that asks of an offset rather than walking the characters. */
+export const underOf = (text) => walked(text, false, true).under;
+
+/* The texts `quoting` walked last, the most recently asked about last: one Bash event hands the same text to several readers, and every one of them reads the marks and none writes them. */
+const KEPT = 8;
+const WALKS = new Map();
+
 /** Every character a shell reads, in order: `at` its offset, `one` the character, `under` the quoting it stands inside — a space bare, `'` or `"` that quote and its own delimiters, `#` a comment, `\` a character a backslash made literal, the backslash included, and `removed` the backslash a shell takes out of the word, which is one standing outside every quote. A line continuation is gone, both characters of it, because a shell removes the pair and joins what it separated; nothing else is, so the character a removed backslash escaped is still placed where the text has it and two neighbours here can be two apart in the text.
  *  What a quoting means for a character is the caller's: a shell runs a `$(` under a double quote and reads a `<(` there as text. And one quoting this cannot place, which the caller has to answer for: inside `$'…'` a backslash escapes, so the apostrophe that looks like the closing one may not be. */
 export const quoting = (text) => {
+  const held = WALKS.get(text);
+  if (held) {
+    WALKS.delete(text);
+    WALKS.set(text, held);
+    return held;
+  }
+  const marks = marksOf(text);
+  if (WALKS.size >= KEPT) WALKS.delete(WALKS.keys().next().value);
+  WALKS.set(text, marks);
+  return marks;
+};
+
+const marksOf = (text) => {
   const { under, gone } = walked(text, false, true);
   const continued = (at) =>
     under[at] === "\\"
