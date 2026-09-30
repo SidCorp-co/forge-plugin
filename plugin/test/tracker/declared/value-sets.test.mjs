@@ -9,9 +9,8 @@ import { join } from "node:path";
 
 import { flags, pullRepeated } from "../../../src/resolve/flags.mjs";
 import { Refusal, refusing } from "../../../src/resolve/settings.mjs";
-import { setsFor, setsOf } from "../../../src/tracker/declared/value-sets.mjs";
+import { complexityRefusal, kindRefusal, setsFor, setsOf, valueOutsideSet } from "../../../src/tracker/declared/value-sets.mjs";
 import { declaredValue } from "../../../src/tracker/rest.mjs";
-import { complexityRefusal, kindRefusal, valueOutsideSet } from "../../../src/tracker/issue-shape.mjs";
 import { LIST_USAGE } from "../../../src/commands.mjs";
 import { usageOf } from "../../../src/resolve/visibility.mjs";
 import { homeEnv, projectRoom, ranAsync, tempRoom } from "../../fixtures.mjs";

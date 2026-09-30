@@ -153,6 +153,24 @@ test("no registered hook loads a verb's handler or a module declared heavy", () 
   assert.deepEqual(found, [], found.join("\n"));
 });
 
+/* The filing reader came onto the stop gate's and the read-first gate's paths for a list of kind names
+   (ISS-2937). The real graph with that one edge put back is what the rule has to refuse, so the case
+   goes red the day the declaration stops matching the module or the edge returns by that road. */
+test("the filing shape reader, put back on the rank's edge, is refused for both gates that took it that way", () => {
+  const SHAPE = "plugin/src/tracker/issue-shape.mjs";
+  const WEIGHTS = "plugin/src/rank/weights.mjs";
+  const { roots } = hookRoots(REGISTRATION(), FILES);
+  assert.deepEqual(heavyLoads(EDGES, roots).filter((one) => one.includes(SHAPE)), [],
+    "no registered hook reaches it as the tree stands");
+  const restored = new Map([...EDGES, [WEIGHTS, [...EDGES.get(WEIGHTS), SHAPE]]]);
+  const found = heavyLoads(restored, roots).filter((one) => one.includes(SHAPE));
+  for (const gate of ["plugin/hooks/gates/turn/stop-check.mjs", "plugin/hooks/gates/issue-read-first.mjs"]) {
+    const said = found.find((one) => one.startsWith(`${gate} loads the filing shape reader`));
+    assert.ok(said, `${gate} is not refused: ${found.join("\n")}`);
+    assert.match(said, /the line to remove is the one in plugin\/src\/rank\/weights\.mjs that imports/u);
+  }
+});
+
 const GATE = "plugin/hooks/gates/one.mjs";
 const HARNESS = "plugin/hooks/_hook.mjs";
 const LOG = "plugin/src/hooks/log/hook-log.mjs";

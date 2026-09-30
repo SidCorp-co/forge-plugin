@@ -5,19 +5,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  DEFAULT_KIND,
   KINDS,
   KINDS_HELP,
-  KIND_NAMES,
-  complexityRefusal,
   keysOffered,
   kindNeeded,
-  kindRefusal,
+  kindsFrom,
   noticeFor,
   shapeFor,
   shapeOf,
   trackerFields,
 } from "../../../src/tracker/issue-shape.mjs";
+import { complexityRefusal, kindRefusal } from "../../../src/tracker/declared/value-sets.mjs";
+import { DEFAULT_KIND, KIND_NAMES } from "../../../src/tracker/kinds.mjs";
 import { bodyOf } from "../../../src/tracker/filing/route.mjs";
 import { usageOf } from "../../../src/resolve/visibility.mjs";
 import { unknownFlag } from "../../../src/resolve/flags.mjs";
@@ -42,6 +41,19 @@ test("the set is what the backlog's body shapes measured, and every name is one 
   assert.ok(KIND_NAMES.includes(DEFAULT_KIND), "the kind a raw create naming none is read as is one of them");
   for (const name of KIND_NAMES) assert.match(name, /^[a-z]+$/u, name);
   assert.equal(KIND_NAMES.includes("chore"), false);
+});
+
+/* The names are held where a gate can read them without the reader of a body, and the sections are
+   keyed by them here: either list growing alone is the same silence, a kind filed against no shape or
+   a shape no filing can name. */
+test("a kind named without a shape, or shaped without a name, refuses and says which file to set", () => {
+  assert.deepEqual(KINDS.map((one) => one.kind), KIND_NAMES, "the table is the names' own order");
+  const unshaped = () => kindsFrom([...KIND_NAMES, "nomination"]);
+  assert.throws(unshaped, /Named and shaped by nothing: nomination/u);
+  assert.throws(unshaped, /plugin\/src\/tracker\/issue-shape\.mjs/u, "and the file the shape is set in");
+  const unnamed = () => kindsFrom(["bug"], { bug: { needs: [], says: [] }, ghost: { needs: [], says: [] } });
+  assert.throws(unnamed, /Shaped and named nowhere: ghost/u);
+  assert.throws(unnamed, /plugin\/src\/tracker\/kinds\.mjs/u, "and the file the name is held in");
 });
 
 /* Criterion 10: two lists of sections would drift, and the one that drifts is the help, because

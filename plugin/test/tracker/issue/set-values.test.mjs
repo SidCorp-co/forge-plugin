@@ -8,7 +8,7 @@ import { homeEnv, ranAsync } from "../../fixtures.mjs";
 
 const env = homeEnv("set-values");
 process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
-const { complexityRefusal, valueOutsideSet } = await import("../../../src/tracker/issue-shape.mjs");
+const { complexityRefusal, valueOutsideSet } = await import("../../../src/tracker/declared/value-sets.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
