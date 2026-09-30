@@ -180,8 +180,9 @@ they do not, and `one-by-one` lands every member alone. `node tools/run.mjs -h` 
 from the owner's own earlier answers instead of stopping the session, and `off` unless set — any
 other value reads as `off` too, and then nothing is read, built or logged. `asks.owner` adds terms to
 the subjects that always go to the owner; it cannot remove the built-in ones, which are read in
-English and Vietnamese, and a question in any other language goes to the owner. `forge hooks --how
-ask-decide` says how a question declares itself and where each decision is logged.
+English and Vietnamese, and a question with no common word of either, or a letter of another
+alphabet, goes to the owner. `forge hooks --how ask-decide` says how a question declares itself and
+where each decision is logged.
 
 `runs` is how many runs this project carries at once, whoever dispatched them, and absent it
 resolves to no number at all — every reader then behaves as it did before the key existed, which is

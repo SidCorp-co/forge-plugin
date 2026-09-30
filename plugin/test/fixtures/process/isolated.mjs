@@ -30,3 +30,8 @@ process.env.XDG_CONFIG_HOME = home;
    `init.defaultBranch`, so cases passed or failed by machine (ISS-2592). */
 process.env.GIT_CONFIG_GLOBAL = "/dev/null";
 process.env.GIT_CONFIG_NOSYSTEM = "1";
+/* So is an identity the shell exports: it outranks the one a fixture writes (ISS-2912). */
+for (const key of ["NAME", "EMAIL", "DATE"]) {
+  delete process.env[`GIT_AUTHOR_${key}`];
+  delete process.env[`GIT_COMMITTER_${key}`];
+}
