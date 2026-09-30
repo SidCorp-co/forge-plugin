@@ -199,7 +199,11 @@ test("a Serves: no source answers for is refused with the brief's list, and noth
   assert.match(run.stderr, /neither source of this project answers for it/u);
   assert.match(run.stderr, new RegExp(`its brief's \\*${SECTION}\\* section: G-01, G-02, G-03`, "u"));
   assert.match(run.stderr, /its requirements tree: no clause `NOPE-99`/u);
-  assert.match(run.stderr, new RegExp(`Serves: ${NONE_STATED}`, "u"));
+  assert.match(run.stderr, /^Nothing was sent\. This decision record says `Serves: NOPE-99`/mu,
+    "the refusal opens on the write it refused, not on what is legal");
+  assert.match(run.stderr, /Send the same command again with `--serves <one of those>`, or with `--serves 'none stated'`/u,
+    "and ends on the flag that clears it, in the form the record was typed in");
+  assert.doesNotMatch(run.stderr, /nothing is refused/iu, "no sentence of a refusal reads as the write passing");
   assert.equal(state.calls.filter((one) => one.args?.action === "create").length, 0);
 });
 
@@ -243,6 +247,10 @@ test("a filing whose Serves: no source answers for is refused with the list, and
   const run = await ask("new", bodyAt(bug("NOPE-99")), "--title", "a filing says which goal it serves", "--category", "bug");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, new RegExp(`its brief's \\*${SECTION}\\* section: G-01, G-02, G-03`, "u"));
+  assert.match(run.stderr, /^Nothing was sent\. This body's `Serves:` line says `Serves: NOPE-99`/mu);
+  assert.match(run.stderr, /Change the body's line to `Serves: <one of those>`, or to `Serves: none stated`/u,
+    "a filing typed its goal in the body, so the body's line is what is sent again");
+  assert.doesNotMatch(run.stderr, /nothing is refused/iu);
   assert.equal(state.calls.filter((one) => one.args?.action === "create").length, 0);
 });
 
@@ -262,9 +270,14 @@ test("a note filed from another checkout is read against this plugin's brief and
     { slug: "somebody-elses-project" });
   const note = join(foreign, "note.md");
   writeFileSync(note, bug("FR-04"));
+  state.calls = [];
   const away = await ranAsync(FORGE, ["feedback", note, "--title", "a note names a clause", "--new"],
     tracker.env, foreign);
   assert.equal(away.status, 1, away.stdout);
+  assert.match(away.stderr, /^Nothing was sent\. This note's `Serves:` line says `Serves: FR-04`/mu);
+  assert.match(away.stderr, /Change the body's line to `Serves: <one of those>`/u);
+  assert.doesNotMatch(away.stderr, /nothing is refused/iu);
+  assert.equal(state.calls.filter((one) => one.args?.action === "create").length, 0, "and the note is not filed");
   assert.match(away.stderr, /its requirements tree: not read from here/u);
   assert.match(away.stderr, new RegExp(`its brief's \\*${SECTION}\\* section: G-01, G-02, G-03`, "u"));
   const home = await ask("feedback", bodyAt(bug("FR-04")), "--title", "a clause of its own tree", "--new");

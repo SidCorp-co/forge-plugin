@@ -5,6 +5,7 @@ import { clauseOf } from "./spec/index.mjs";
 import { parseRef } from "./spec/parse.mjs";
 import { specTreeIfAny } from "./spec/tree.mjs";
 import { escaped, withoutExamples } from "./markdown.mjs";
+import { typedBack } from "./refusal.mjs";
 
 /* The section's words either side of its determiner, and the determiners a heading may carry, the
    first being the one `SECTION` is written with: the one home (BR-09) both `SECTION` and the heading
@@ -90,24 +91,31 @@ const listed = (read) => read.goals.map((one) => one.id);
 const NAMES = "Which goal a decision or a filing names, and when the line is written: "
   + "`forge guide issue-flow`.";
 
-/** A value neither source answers for. Nothing is refused for naming no goal — an absent line and `none stated` both pass — so a caller reaching here typed a value nothing resolves, and one with no value owes the brief no read at all: there is nothing a goal list could refuse, and reading one is a tracker call. */
-export const servesRefusal = (values, read, what, asksTree = true) => {
+/** How a write typed its `Serves:` value, so a refusal names what to send again in that write's own
+ *  form: a filing's body line, or a record's flag. The placeholder stays bare, being no value to paste. */
+const ONE = "<one of those>";
+const SERVES_LINE = `Change the body's line to \`Serves: ${ONE}\`, or to \`Serves: ${NONE_STATED}\` where it `
+  + "serves no goal, and send it again.";
+export const SERVES_FLAG = `Send the same command again with \`--serves ${ONE}\`, or with `
+  + `\`--serves ${typedBack(NONE_STATED)}\` where it serves no goal.`;
+
+/** A value neither source answers for. Nothing is refused for naming no goal — an absent line and `none stated` both pass — so a caller reaching here typed a value nothing resolves, and one with no value owes the brief no read at all: there is nothing a goal list could refuse, and reading one is a tracker call. Every caller refuses before its first write, which is what the opening sentence says; the closing one is the send again, because a refusal ending on what is legal reads as a verdict on the write it refused (ISS-2068). */
+export const servesRefusal = (values, read, what, asksTree = true, again = SERVES_LINE) => {
   if (values.length > 1) {
-    return `${what} carries ${values.length} \`Serves:\` lines: ${values.join(", ")}. One decision `
-      + "or one filing serves one goal, so keep the line it is for and delete the rest.";
+    return `Nothing was sent. ${what} carries ${values.length} \`Serves:\` lines: ${values.join(", ")}. One `
+      + "decision or one filing serves one goal, so keep the line it is for and delete the rest.";
   }
   const [value] = values;
   if (value === undefined || resolvedBy(value, read.goals, asksTree)) return null;
   const ids = listed(read);
   return [
-    `${what} says \`Serves: ${value}\`, and neither source of this project answers for it:`,
+    `Nothing was sent. ${what} says \`Serves: ${value}\`, and neither source of this project answers for it:`,
     `  its brief's *${SECTION}* section: ${ids.length ? ids.join(", ") : `${NOT_STATED}, ${read.why}`}`,
     asksTree
       ? `  its requirements tree: no clause \`${value}\` — \`forge spec\` prints what it does hold`
       : "  its requirements tree: not read from here — this write goes to a project this checkout"
         + " is not, and the tree under it answers for some other backlog",
-    `Name one of those, or \`Serves: ${NONE_STATED}\`, which is legal and visible; nothing is refused`,
-    `for serving no goal. ${NAMES}`,
+    `${again} ${NAMES}`,
   ].join("\n");
 };
 

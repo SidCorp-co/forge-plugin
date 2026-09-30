@@ -25,7 +25,7 @@ import {
 } from "../../tracker/evidence.mjs";
 import { releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
-import { NONE_STATED, servesRefusal } from "../../goals.mjs";
+import { NONE_STATED, SERVES_FLAG, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
 import { capsOf, writeFields } from "../../tracker/field-write.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
@@ -304,7 +304,7 @@ const servesChecked = async (kind, blocks) => {
     for (const got of blocks) got[SERVES] = NONE_STATED;
     return;
   }
-  const bad = servesRefusal(given, await briefGoals(), `This ${kind} record`);
+  const bad = servesRefusal(given, await briefGoals(), `This ${kind} record`, true, SERVES_FLAG);
   if (bad) refuse(bad);
 };
 
