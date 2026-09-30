@@ -161,7 +161,7 @@ export const payloadOwed = (view, kind, what, ask) => {
       ask,
     )];
   }
-  const gaps = shapeGaps(kind, held.record, view.names);
+  const gaps = shapeGaps(kind, held.record, view.names, undefined, view.issue);
   return gaps.length
     ? [need(`the ${kind} on the record is not a whole payload: it lacks ${gaps.join(", ")}`, ask)]
     : [];

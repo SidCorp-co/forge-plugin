@@ -93,6 +93,9 @@ test("each of the three records a drop goes through is read for its reason", () 
   const causeFixed = fence("Confirmation", ["is: the clamp is in", "where: a.mjs", "finding: cause-fixed",
     "fixed: the component clamps", "survives: the regression probe"]);
   assert.equal(reasonOf([comment("01", causeFixed)]), null, "a cause already fixed keeps the lane, so it says no drop");
+  const ownLanding = fence("Confirmation", ["is: the header row is written", "where: a.mjs", "finding: own-landing",
+    "landed: fdf853cbd"]);
+  assert.equal(reasonOf([comment("01", ownLanding)]), null, "this issue's own landing keeps the lane, so it says no drop");
 });
 
 test("a reason past the cap is cut on a word and says it was cut", () => {

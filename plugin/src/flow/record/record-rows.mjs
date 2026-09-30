@@ -34,7 +34,7 @@ const VALUES = 19;
 const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "");
 
 const kindRows = (caps) => [
-  "  confirmation --is I --where W... --finding F [--detail D] [--fixed X --survives S]   F: " + FINDINGS.join("|"),
+  "  confirmation --is I --where W... --finding F [--detail D] [--fixed X --survives S] [--landed L]   F: " + FINDINGS.join("|"),
   `  decision     --decision "${DECISION_PARTS.join(" | ")}"... | --none <why>` + servesOn("decision"),
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",

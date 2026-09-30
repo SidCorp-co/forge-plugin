@@ -11,7 +11,7 @@ import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap 
 import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
-import { landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
+import { landedProblem, landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, onePerRoutes, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
@@ -148,6 +148,15 @@ const finderChecked = (kind, reference, body, read) => {
   }
   const said = foldProblem(kind, reference, read);
   if (said) refuse(said);
+};
+
+/* Where the issue is in hand, so a landing is measured against the shape this issue lands in. */
+const landedChecked = (kind, got, issue) => {
+  for (const field of SHAPES[kind].fields.filter((one) => one.landed && got[one.flag] !== undefined)) {
+    const said = landedProblem(got[field.flag], issue);
+    if (said) refuse(`--${field.flag} ${said}.`);
+    got[field.flag] = String(got[field.flag]).trim();
+  }
 };
 
 /* A park record at a status that owes nothing further would contradict it: `../park/finished.mjs`. */
@@ -423,6 +432,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
        fuller set, since it validates this call's own citations against what will exist once it lands. */
     if (asks) fromRecord(kind, got, { comments, names: held, cut, issue: body }, say);
     checked(kind, got);
+    landedChecked(kind, got, body);
     judgedTreeChecked(kind, got);
     citationChecked(kind, reference, got);
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;

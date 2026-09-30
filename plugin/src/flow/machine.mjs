@@ -200,32 +200,40 @@ export { restoreMachine } from "./machine/held.mjs";
    list all read: a field named in two places is a shape that disagrees with itself. The block it is
    written into is `machine/block.mjs`'s, which imports nothing from here, so either side may reach it. */
 const CAUSE_FIXED = "cause-fixed";
-export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded", CAUSE_FIXED];
+const OWN_LANDING = "own-landing";
+export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded", CAUSE_FIXED, OWN_LANDING];
 /* The findings that end an issue without code, read by every reader that counts a disposition rather
-   than each comparing with `holds`. A cause another change already fixed, with the deliverable the
-   issue states still owed, keeps the lane: the work its record names is still to be built (ISS-406). */
-export const DISPOSITIONS = FINDINGS.filter((one) => one !== FINDINGS[0] && one !== CAUSE_FIXED);
-/* The two halves a `cause-fixed` finding is refused without: what each holds, said by the help and
-   by the refusal alike. */
-const HALVES = {
-  fixed: "what was already fixed, and the evidence that settles it",
-  survives: "the deliverable still owed, and what will judge it",
+   than each comparing with `holds`. Two keep the lane: a cause another change fixed with the stated
+   deliverable still owed (ISS-406), and this issue's own change landed outside the flow with only its
+   record owed, which `dropped` would erase (ISS-1693). `already-fixed` is another change's fix. */
+export const DISPOSITIONS = FINDINGS.filter((one) => one !== FINDINGS[0] && one !== CAUSE_FIXED && one !== OWN_LANDING);
+const FINDING_FORM = `one of ${FINDINGS.join(", ")}; already-fixed is another change's fix and drops the issue, and`
+  + ` ${OWN_LANDING} is this issue's own change landed outside the flow with only its record owed, and keeps the lane`;
+/* Each field one finding owes and no other finding takes: the finding, and what the field holds, said
+   by the help and by the refusal alike. */
+const OWED_BY = {
+  fixed: [CAUSE_FIXED, "what was already fixed, and the evidence that settles it"],
+  survives: [CAUSE_FIXED, "the deliverable still owed, and what will judge it"],
+  landed: [OWN_LANDING, "the commit this issue's own change landed as, or where it now is where the issue lands outside git"],
 };
-const halfForm = (flag) => `${HALVES[flag]}; owed under --finding ${CAUSE_FIXED} and refused beside any other finding`;
-const causeFixedProblem = (got) => {
-  const flags = Object.keys(HALVES);
-  if (got.finding === CAUSE_FIXED) {
-    const lacking = flags.filter((flag) => !String(got[flag] ?? "").trim());
-    return lacking.length
-      ? `${lacking.map((flag) => `--${flag} <${HALVES[flag]}>`).join(" and ")}: a ${CAUSE_FIXED} finding names what was`
-        + " already fixed and what survives, and a run holding only one of the two is choosing between"
-        + " the other findings"
-      : null;
+const WHY_OWED = {
+  [CAUSE_FIXED]: "names what was already fixed and what survives, and a run holding only one of the two is"
+    + " choosing between the other findings",
+  [OWN_LANDING]: "names the landing that carried this issue's own change, without which it reads as another"
+    + " change's fix, which is already-fixed",
+};
+const halfForm = (flag) => `${OWED_BY[flag][1]}; owed under --finding ${OWED_BY[flag][0]} and refused beside any other finding`;
+const owedFieldsProblem = (got) => {
+  const flags = Object.keys(OWED_BY);
+  const lacking = flags.filter((flag) => OWED_BY[flag][0] === got.finding && !String(got[flag] ?? "").trim());
+  if (lacking.length) {
+    return `${lacking.map((flag) => `--${flag} <${OWED_BY[flag][1]}>`).join(" and ")}: a ${got.finding} finding`
+      + ` ${WHY_OWED[got.finding]}`;
   }
-  const given = flags.filter((flag) => got[flag] !== undefined);
+  const given = flags.filter((flag) => OWED_BY[flag][0] !== got.finding && got[flag] !== undefined);
   return given.length
-    ? `no ${given.map((flag) => `--${flag}`).join(" or ")} beside --finding ${got.finding}: those halves`
-      + ` are read only under --finding ${CAUSE_FIXED}`
+    ? `no ${given.map((flag) => `--${flag}`).join(" or ")} beside --finding ${got.finding}: `
+      + given.map((flag) => `--${flag} is read only under --finding ${OWED_BY[flag][0]}`).join(", ")
     : null;
 };
 /* The status `closed` is entered from. */
@@ -386,13 +394,14 @@ export const SHAPES = {
     fields: [
       FIELD("is", "What it is", { prose: true }),
       FIELD("where", "Where looked", { many: true, each: whereProblem, form: WHERE_TAKES }),
-      FIELD("finding", "Finding", { oneOf: FINDINGS }),
+      FIELD("finding", "Finding", { oneOf: FINDINGS, form: FINDING_FORM }),
       FIELD("detail", "Detail", { optional: true, prose: true }),
       FIELD("fixed", "What was already fixed", { optional: true, prose: true, form: halfForm("fixed") }),
       FIELD("survives", "What survives", { optional: true, prose: true, form: halfForm("survives") }),
+      FIELD("landed", "Where it landed", { optional: true, landed: true, form: halfForm("landed") }),
       FIELD("rung", "Rung", { optional: true, derived: true }),
     ],
-    check: causeFixedProblem,
+    check: owedFieldsProblem,
   },
   decision: {
     heading: "Decision record",
