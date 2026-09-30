@@ -24,7 +24,7 @@ const state = {
   },
 };
 const SLUGS = ["declares-staging", "staging-unfetched", "declares-none", "record-too", "config-unread",
-  "merge-landed", "synced-landed", "two-forks", "just-cut", "promotes", "ready-landed"];
+  "merge-landed", "synced-landed", "two-forks", "just-cut", "promotes", "ready-landed", "fast-forwarded"];
 state.answer["forge_projects.list"] = () => ({
   projects: SLUGS.map((slug, at) => ({ slug, id: `1e1c1a1e-0000-4000-8000-00000000000${at + 1}` })),
 });
@@ -226,6 +226,25 @@ test("a branch just cut keeps its head as its base, and the line names both read
     return block;
   }));
   assert.equal(made.base, made.head);
+  assert.equal(made.touched, null);
+  assert.match(said, /a branch just cut and a branch landed by a fast-forward both read/u, said);
+});
+
+test("a branch landed by a fast-forward keeps its head as its base, no merge naming where it stood", async () => {
+  state.declared = "staging";
+  const { work } = diverged("fast-forwarded");
+  const head = at(work);
+  git(work, "checkout", "-q", "staging");
+  git(work, "merge", "-q", "--ff-only", "iss-1217");
+  git(work, "push", "-q", "origin", "staging");
+  git(work, "checkout", "-q", "iss-1217");
+  const { made, said } = await saying(() => standingIn(work, "fast-forwarded", async () => {
+    const block = await patchFrom({ pushed: true });
+    unwrittenSaid();
+    return block;
+  }));
+  assert.equal(git(work, "rev-parse", "refs/remotes/origin/staging").stdout.trim(), head, "the landing branch stands at the head");
+  assert.equal(made.base, head);
   assert.equal(made.touched, null);
   assert.match(said, /a branch just cut and a branch landed by a fast-forward both read/u, said);
 });
