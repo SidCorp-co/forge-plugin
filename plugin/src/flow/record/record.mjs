@@ -473,9 +473,6 @@ const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
     const read = await commentPage((await issue()).documentId);
     return { comments: read.comments, cut: cutIn(read) };
   });
-  /* Asked before anything is prepared, so a judge refused here has uploaded nothing. */
-  const judged = judgedPast(reference, blocks.map((one) => one.kind), (await issue()).body, { flags });
-  if (judged?.refused) refuse(judged.refused);
   const planned = [];
   const prepared = [];
   for (const one of blocks) {
@@ -485,6 +482,9 @@ const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
     prepared.push(ready);
   }
   const { documentId, body } = await issue();
+  /* Asked once every payload is judged and before the uploads, so a flag error still costs no call and a judge refused here has sent nothing. */
+  const judged = judgedPast(reference, blocks.map((one) => one.kind), body, { flags });
+  if (judged?.refused) refuse(judged.refused);
   const read = await page();
   const written = await postRung(prepared, { reference, documentId, body, comments: read.comments, next, patch, judged });
   if (judged) console.error(judgedSaid(reference, judged));
