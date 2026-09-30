@@ -20,7 +20,7 @@ verdicts are then held to is the commit each already names. Cite what you exerci
 log, the reply you read — and say in the verdict what you reached it at. Asking for an identity
 nobody has is a round spent on a value the rung does not read.
 
-## Read what the write at the end will want, before you judge anything
+## Read what the verdicts will be held to, before you judge anything
 
 `forge advance <the issue> --owed` prints it, and it is stricter under a plan declaring a screen
 change: a verdict that captured nothing earns nothing there, whatever its value. Where this project
@@ -35,6 +35,21 @@ Where every criterion you were given would be a skip, say so and stop before jud
 returns nothing but skips has spent a whole judging run to report that nobody looked, and a
 credential, a capture route or a person is what it was owed instead. One criterion you can reach is a
 run worth making: judge that one, and report the skips beside it.
+
+## Each verdict goes up the moment it is judged
+
+**Write a criterion's verdict as soon as that criterion is judged, and never hold the set for one
+write at the end.** The verdicts are the one part of a judging run that outlives it. A run killed at
+its fortieth criterion while holding them leaves the issue exactly as it found it, and whoever comes
+next drives every screen again with nothing to say anybody already had. Criteria one piece of
+evidence settles may share a write, which is as whole as one per criterion; a set held back for the
+report is not.
+
+**Where verdicts are already on the issue, start where they stop.** `forge resume <the issue>` marks
+every criterion with its verdict, marks one whose verdict the rung will not count, and says how many
+count and which criterion is the first carrying none that does. Judge only the criteria carrying no
+verdict that counts. A verdict a stopped run left is a verdict and not a draft: it is judged again
+only where it cites something other than what you were sent to judge.
 
 ## How a criterion is exercised
 

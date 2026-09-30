@@ -45,7 +45,7 @@ what it hands over, and the judging is dispatched off the landing rather than of
 
 **Where the project declared the judgement the builder's own, or declared nothing, no second run
 exists to hand to and this one carries on.** It judges its own change against the criteria, writes
-the verdicts under its own id, and takes the rungs the phases below name. A `screen` project that
+each verdict under its own id as it is judged rather than holding the set, and takes the rungs the phases below name. A `screen` project that
 has declared neither is a clash `forge doctor` reports on every run, met in Phase 0 rather than
 discovered here.
 

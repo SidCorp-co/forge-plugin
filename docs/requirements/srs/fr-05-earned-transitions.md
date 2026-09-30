@@ -108,6 +108,11 @@ agent learns what a status wants.
   now THEN the CLI SHALL take the write whichever directory either command ran from, the file's real
   path being what the consult is found by, because a run consults from its worktree and writes from
   wherever its shell stands.
+- **AC-05-1-20** · Rev: 1 · Proof: plugin/test/flow/resume/coverage.test.mjs "a partial set says how much of it counts and names the first criterion a judge resumes at"
+  WHERE some criterion carries a verdict and some criterion carries none that counts, the CLI SHALL
+  say, when it re-mints the issue's context, how many criteria carry a verdict that counts out of how
+  many, and name the first criterion carrying none that does, because a run killed mid-judgement
+  keeps what it wrote only where the next judge can see how far it got and start from there.
 
 ### UC-05-2 — Advance to the next status
 
@@ -604,6 +609,11 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   writer's checkout reads one as doing so, and SHALL record nothing where it cannot settle the
   reading, saying why, because the judging rung reads no repository and an ancestry it was not shown
   is one nobody established.
+- **AC-05-11-21** · Rev: 1 · Proof: plugin/test/flow/resume/coverage.test.mjs "under an independent judgement a verdict the entry check refuses is marked on its own row"
+  WHERE the project's record asks for an independent judgement, the CLI SHALL mark, when it re-mints
+  the issue's context, every criterion whose standing verdict the entry check to `testing` would
+  refuse, because a builder's verdict read back like a judge's makes a judgement nobody has made
+  read as a finished one.
 
 ### UC-05-12 — A judging run's blocking finding reopens the issue
 

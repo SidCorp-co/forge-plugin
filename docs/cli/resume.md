@@ -48,6 +48,16 @@ needs the result the gate gave and the head that was judged before anything else
 there because three headlines read as the whole record to a reader nothing told otherwise. `--json` is the assembled object the screen was printed
 from, so a tool and a reader cannot be told different things.
 
+**A criterion's mark says whether its verdict counts, not only what it says.** Two judging runs
+killed by a rate limit lost everything they had judged, because nothing was written until the set
+was done; the judging method now writes each verdict as it goes, which is worth something only if
+the next judge can see how far the last one got. Under an independent judgement the builder's own
+passes had read exactly like a judge's, so a set nobody had judged looked finished. So a verdict the
+entry check to `testing` would refuse is tagged on its row, through that check's own predicate
+rather than a second reading of independence, and a set that is partial ends in one line saying how
+many criteria carry a verdict that counts and the first criterion where a judge resumes. A set
+nobody has touched and a set that is whole print no such line: neither has a remainder to point at.
+
 `--report` is the other end of the same reading: every record whole rather than one line of each,
 the latest verdict per criterion with its evidence, the plan, the release note and what is owed. It
 lives here rather than under `record` because it writes nothing, and a verb whose every other name
