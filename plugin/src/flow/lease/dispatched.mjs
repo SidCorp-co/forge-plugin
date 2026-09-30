@@ -1,10 +1,11 @@
 /* The lease a dispatched run may take from the session that dispatched it, and the sentences that say
    which of the four conditions refused a claim that could not. docs/cli/the-short-lease.md. */
-import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from "../../resolve/config.mjs";
+import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced } from "../../resolve/config.mjs";
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames, runsFor } from "../../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../../rank/weights.mjs";
 import { READ_THE_STATE, landingOf, landingTurn } from "../landing/checkpoint.mjs";
+import { JUDGED_AT, ORDER } from "../earned.mjs";
 import { describe, leaseOf } from "../lease.mjs";
 
 /* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
@@ -57,17 +58,38 @@ const whatTheTreeSays = (ref, key, at, asked) => {
     + `to, and a lease its dispatcher is only holding is the dispatched run's to take.${there}${asked}`;
 };
 
-/* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. */
+/* The rung a verdict is written from and the rung it earns: where a claim meeting a live lease is
+   likelier a judge's than a builder's. */
+const judgingAt = (status) => {
+  const at = ORDER.indexOf(String(status));
+  const judged = ORDER.indexOf(JUDGED_AT);
+  return at === judged || at === judged - 1;
+};
+
+const OWN_SOURCES = [ASKED, WORKTREE];
+
+/* A judge takes no lease: its verdict is the one record written past another run's (judged.mjs), so
+   the route that answers it is that write, read first through the owed rehearsal rather than sent
+   blind. Its id has to be one it set, so an inherited or saved one is given the prefix. */
+const judgeRoute = (ref, holder, held) => {
+  const own = held.id === holder && OWN_SOURCES.includes(held.source);
+  return ` Where this call is a judge's, it claims no lease: a verdict goes up past this one under an `
+    + `id the caller set for itself, leaving the lease as it stands, and the owed read says first `
+    + `whether it will be written:\n  ${own ? "" : `${RUN_ID_VAR}=<an id of its own> `}forge advance ${ref} --owed\n`;
+};
+
+/* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. The status is asked before the id: past the dispatch statuses no id takes the lease, so a sentence about the tree an id comes from would send the caller to a route that cannot work, and at the judging rungs it would send a judge to a tree it is told not to hold (ISS-1798). */
 export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd(), held = sessionSourced()) => {
   const named = String(key).trim().toLowerCase();
+  if (!TAKEABLE.includes(String(status))) {
+    return `${ref} is at \`${status}\`, past the statuses a run is dispatched at, so a live lease `
+      + `here is a run at work and not a dispatcher holding one, whatever id this call holds.`
+      + `${judgingAt(status) ? judgeRoute(ref, holder, held) : ""}`;
+  }
   if (!runNames(holder, named)) {
     const asked = held.id === holder && held.source === ASKED
       ? ` ${RUN_ID_VAR} is what this call resolved and it outranks any tree, so unset it too.` : "";
     return whoseId(ref, holder) + whatTheTreeSays(ref, named, at, asked);
-  }
-  if (!TAKEABLE.includes(String(status))) {
-    return `This call's id names ${ref} and the issue is at \`${status}\`, past the statuses a run `
-      + `is dispatched at, so a live lease here is a run at work and not a dispatcher holding one.`;
   }
   const turn = landingTurn(landingOf(context));
   if (turn) {

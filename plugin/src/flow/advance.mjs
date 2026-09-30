@@ -23,7 +23,7 @@ import { readsIn, readsSaid, rowsOf } from "../codex/log/reads.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { lastMark, stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
-import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
+import { REOPEN, baselineAhead, checkpointAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
 import { judgeOwed } from "./lease/judged.mjs";
@@ -255,6 +255,8 @@ const sayAhead = (view, ref, next) => {
   if (cheaper) console.log(`\n${cheaper}`);
   const shortly = credentialAhead(view, ref);
   if (shortly) console.log(`\n${shortly}`);
+  const captured = checkpointAhead(view, ref);
+  if (captured) console.log(`\n${captured}`);
   const said = lookAhead(view, ref);
   if (said) console.log(`\n${said}`);
   console.log(`\n${stageLine(next, partsOf(readContract()))}`);

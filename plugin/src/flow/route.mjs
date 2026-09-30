@@ -42,7 +42,12 @@ import {
   stepAfter,
   viewFrom,
 } from "./earned.mjs";
-import { releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
+import { judgementOf, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
+import { INDEPENDENT } from "./qa/verdicts.mjs";
+import { REBUILT_FORM, builderProblem } from "./landing/reconstruction.mjs";
+import { landsOutsideGit } from "./record/judged/landing.mjs";
+import { markedCommit } from "./record/merged.mjs";
+import { shortSha } from "../tracker/evidence.mjs";
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue, or that person's answer relayed on the record, which is the
@@ -273,6 +278,30 @@ export const credentialAhead = (view, ref) => {
     + "  forge guide issue-flow verification";
 };
 
+/* Said to the builder, because only its capture names it: under an independent judgement every
+   verdict is read against a checkpoint naming the run that built the change (`builderProblem`), the
+   entry check at the judging rung is where that is found missing, and by then the capture's window
+   has closed at the merge (ISS-1798). Refusing nothing: `developed` is not earned by a checkpoint.
+   The ship mode is not read, a `ship ready` capture being this same write and silencing the line. */
+export const checkpointAhead = (view, ref) => {
+  if (judgementOf(view.release) !== INDEPENDENT || landsOutsideGit(view.issue)) return null;
+  const at = ORDER.indexOf(view.issue.status);
+  if (at < ORDER.indexOf(BASELINE_AT) || at >= ORDER.indexOf(JUDGED_AT)) return null;
+  const problem = builderProblem(view.landing, view.holders ?? []);
+  if (!problem) return null;
+  const opens = `Ahead: ${JUDGED_AT} is earned here by an independent judge's verdicts, each read `
+    + `against a landing checkpoint naming the run that built the change, and ${ref} ${problem}.`;
+  const merged = markedCommit(view.comments);
+  if (merged) {
+    return `${opens} The change has landed at ${shortSha(merged)}, which closes the window a capture `
+      + `is taken in, so the late write is what is left, naming the builder the claim history holds:\n`
+      + REBUILT_FORM(ref, shortSha(merged)).split("\n").map((line) => `  ${line}`).join("\n");
+  }
+  return `${opens} The capture is this run's and closes at the merge, so take it before the merge, `
+    + `and once the default branch carries the change say the landing is over, where this run is `
+    + `what lands it:\n  forge claim ${ref} --pushed --ready\n  forge claim ${ref} --landed`;
+};
+
 /* Said while a run can still take the cheap path, and refusing nothing: a store one machine holds is no entry criterion, or two checkouts advancing one issue would answer differently (AC-05-2-3). Said at every status below the one a baseline earns rather than only at the rehearsal of that status, because the phase that decides whether to spend a gate at all reads this before the issue is even confirmed, and a line that arrives two statuses later has been read after the decision it was for. The lookup is on this head alone — a result published for another commit answers for no tree but its own. */
 export const baselineAhead = (view, ref, head = headNow()) => {
   /* Membership of the sequence and not `!atLeast`, which is true of every side status too: a park from the judging rung sits in `waiting` and a reopen in a status of its own, and both are past the baseline rather than before it, so telling either to spend one names a phase already done and buries the park answer or the triage actually owed. */
@@ -378,11 +407,13 @@ const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   policy is fetched only where the status being entered reads it — the three rungs at the end, one
-   asking who judges, one what deploys and one whether the release was anybody's to make. The step is
+   policy is fetched only where the status being entered reads it — `developed`, whose rehearsal asks
+   who judges before the checkpoint line speaks, and the three rungs at the end, one asking who
+   judges, one what deploys and one whether the release was anybody's to make. The step is
    `stepAfter`'s, null for a status the flow does not hold. */
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || [JUDGED_AT, CLOSES_FROM, CLOSES_AT].includes(stepAfter(status))
+  (personLooks(planFlags(unwrap(plan)))
+    || [stepAfter(BASELINE_AT), JUDGED_AT, CLOSES_FROM, CLOSES_AT].includes(stepAfter(status))
     ? releasePolicy()
     : null);
 
