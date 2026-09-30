@@ -13,6 +13,7 @@ import { fail } from "../resolve/settings.mjs";
 import { refuse } from "../refusal.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
+import { isCommit } from "../tracker/evidence.mjs";
 import {
   LANDING, READ_THE_STATE, landingMoved, landingNext, landingOf,
 } from "./landing/checkpoint.mjs";
@@ -554,6 +555,13 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
 
 /* Every landing state is written here and nowhere else, which is what makes the landing's own writes one function's business to hold to (ISS-673): the state it moves from is the one the field holds at the moment of the write, not the one the caller last read, and a move the table refuses is refused before the field is touched. The lease is checked and renewed here rather than by the field writer, whose `sessionContext` row renews nothing — that row is how a claim writes a lease without recursing, and a landing step is a payload write like any other: a gate outlasting the lease must not push under another run's. */
 export const landingSaved = async (documentId, ref, patch, { was = null } = {}) => {
+  /* Every landing write passes here, so the one shape the judging rung compares is held here too: a
+     deployment identity that is no commit can equal no commit a verdict cites (ISS-2918). */
+  if (patch.deployment && !isCommit(patch.deployment)) {
+    fail(`the landing on ${ref} cannot record \`${patch.deployment}\` as its deployment, which is no `
+      + `commit: a verdict cites the commit the deployment serves, and an identity no commit can equal `
+      + `leaves every verdict unearnable. ${READ_THE_STATE(ref)}`);
+  }
   const holder = sessionOf();
   let saved = null;
   let read = null;

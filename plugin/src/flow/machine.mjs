@@ -310,6 +310,10 @@ const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 /** A verdict field's key, spelt once for its writer and its reader: `record/judged/carried.mjs`. */
 export const CARRIES = "carries";
 
+/** The same for the deployment the landing checkpoint names: the commit a verdict cites carries it,
+ *  as the write read it (ISS-2587). */
+export const CARRIES_DEPLOYMENT = "carries-deployment";
+
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
    for the reason there is none, never half of one, so an absent record and an unasked question stop
    reading the same. Here rather than in the field loop, which cannot see one flag excusing three. */
@@ -512,6 +516,7 @@ export const SHAPES = {
       FIELD("landing", "Landing judged", JUDGED_LANDING),
       /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
       FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
+      FIELD(CARRIES_DEPLOYMENT, "Carries the deployment", { optional: true, stamped: CARRIES_DEPLOYMENT }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true, prose: true }),
       FIELD("filed", "Filed as", { optional: true }),

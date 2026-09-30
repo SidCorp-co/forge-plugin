@@ -1,18 +1,19 @@
 /* Whether an issue's verdicts were judged by somebody other than the run that built the change. `earned.mjs` spends the first reading at `testing`, a promotion the second; why each is the shape it is: docs/cli/the-judge-and-the-deploy.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
-import { JUDGE_FROM, valuesOf } from "../machine.mjs";
+import { CARRIES_DEPLOYMENT, JUDGE_FROM, valuesOf } from "../machine.mjs";
 import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
-import { REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
+import { HAND_WRITTEN, REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
 import { identityAsk, landsOutsideGit } from "../record/judged/landing.mjs";
 
 export const [INDEPENDENT] = QA_MODES;
 
 const asksIndependent = (release) => judgementOf(release) === INDEPENDENT;
 
-/* Off the evidence and never off the commit: after a merge the deployment identity is the merged head every verdict already carries, so a commit read passes an ordinary builder verdict by accident. Commit-shaped first, or a forty-digit attachment name prefixes its way past the comparison. */
+/* Off the evidence and never off the commit: after a merge the deployment identity is the merged head every verdict already carries, so a commit read passes an ordinary builder verdict by accident. Commit-shaped first, or a forty-digit attachment name prefixes its way past the comparison. A served commit carrying the deployment is the deployment judged, and whether it carries it is read by the verdict's write and stamped there, this rung reading no repository (ISS-2587). */
 const citesDeployment = (held, deployment) =>
-  (held.evidence ?? []).some((one) => isCommit(one) && sameCommit(one, deployment));
+  (held.evidence ?? []).some((one) => isCommit(one) && sameCommit(one, deployment))
+  || (isCommit(held[CARRIES_DEPLOYMENT] ?? "") && sameCommit(held[CARRIES_DEPLOYMENT], deployment));
 
 /* An id a run inherited is the dispatching session's: it differs from the builder's and proves nothing, which is the reading `takeRefusal` gives an inherited builder take. Absent is not inherited — the field is `newer`, so a verdict written before it is judged as it was written (ISS-705). */
 const inheritedJudge = (held) => held[JUDGE_FROM] === INHERITED;
@@ -50,7 +51,8 @@ export const judgeProblem = (held, landing, holders = []) => {
      something else and the reading is worth having. A checkpoint that names none leaves nothing to
      compare, and a rung refusing a comparison it cannot make is the defect above (ISS-1788). */
   if (landing.deployment && !citesDeployment(held, landing.deployment)) {
-    return `cites nothing at ${short(landing.deployment)}, which is what the deployment reported running`;
+    return `cites nothing at ${short(landing.deployment)}, which is what the deployment reported running, `
+      + "nor a commit its write read as carrying it";
   }
   return null;
 };
@@ -89,10 +91,15 @@ export const judgeProblems = (view) => {
    Two answers and not three: a checkpoint that stands is answerable by a verdict whatever it holds,
    and the branch that stood between handed back a command reprinting the refusal (ISS-1788).
    Shared flags lead: `blocksIn` gives a block only what precedes the first --criterion (ISS-2371). */
-export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null) => {
+export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null, holders = []) => {
   const numbers = Array.isArray(at) ? at : [at];
   const outside = identity?.flag === "landing";
   if (!landing && !outside) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
+  /* A reconstruction whose builder does not stand is answered by writing it again, which names the
+     builder the history does (ISS-2608). */
+  if (landing?.[HAND_WRITTEN] && builderProblem(landing, holders)) {
+    return REBUILT_FORM(ref, short(landing.head) || short(merged) || "<the sha the default branch carries>");
+  }
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
     + `forge record verdict ${ref} ${outside ? identityAsk(identity) : `--commit ${short(landing.head) || "<sha>"}`} `
     + `--evidence ${(!outside && short(landing.deployment)) || "<what you exercised>"} `

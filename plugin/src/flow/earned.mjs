@@ -417,7 +417,7 @@ const judgeOwed = (view, ref) => {
     const numbers = held.map((one) => one.number);
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view)));
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? []));
   });
 };
 

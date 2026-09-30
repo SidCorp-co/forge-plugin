@@ -16,9 +16,24 @@ What the block buys is one key and not the record's honesty. A builder left out 
 wrote down; a builder declared unrecoverable beside the reason reads as one nobody can. Only the
 second stands, and it stands only where the record cannot answer the question itself: a claim
 history naming exactly one holder names the builder, and declaring it unknown there is a guess in
-the other direction. Where several holders appear the builder is any of them, which is also why a
+the other direction. So there the write names that run as the builder and the block says it was
+derived, which is the one route such an issue has, the refusal having been all it used to get. Where
+several holders appear the builder is any of them, which is also why a
 verdict whose judge is one of those holders earns nothing — independence cannot be read off a set
 the judge is inside.
+
+The form is `forge claim <ref> --rebuilt <sha> --deployment <sha>`, or `--undeployed` in place of the
+deployment, and the branch this project lands changes on has to carry `<sha>` before anything is
+written.
+
+A finished checkpoint is no bar to it. A repair landed after the first landing, outside the capture,
+leaves `done` naming the first landing's head and deployment, and the judging rung then asks every
+verdict to cite a build nobody is serving. The write over `done` records the later landing and keeps
+the one it replaces under `superseded`. It moves forward only: a head that does not carry the
+replaced head would have the rung read an earlier deployment than the one serving, and it is refused,
+as is a write naming the head, deployment and builder already there. At the same head it is the
+correction of a deployment named wrong, and a builder the replaced checkpoint captured is carried over.
+A landing still under way is never written over; its remaining steps are the lander's.
 
 The deployment half is a statement too, and for a different reason. Whether a change ever reached a
 deployment is a fact about the world no checkout can read, and a test-only fix reaches none it ever
@@ -28,5 +43,10 @@ true: an identity, or that there is none. The silence is refused rather than rea
 because an omission taken that way switches off the citation `testing` spends on a checkpoint that
 names an identity, and nothing on the record would say it had been. A checkpoint naming none is
 judged at the head its verdicts carry, which the block says in its own account of itself.
+
+The identity itself is a commit, the one the deployment reports serving, because the rung compares it
+with the commits a verdict cites. A deployment's own id can equal none of them, so the write refuses
+one by name, and a checkpoint that stored one before that refusal existed is read with it as a
+deployment id apart from the identity: shown, and compared with nothing.
 
 What a checkpoint holds and whose turn each state names: [`the-checkpoint.md`](the-checkpoint.md).

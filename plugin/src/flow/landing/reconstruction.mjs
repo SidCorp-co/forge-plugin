@@ -54,8 +54,15 @@ export const REBUILT_FORM = (ref, head) =>
   `forge claim ${ref} --rebuilt ${head} --deployment <the sha the deployment reports serving>\n`
   + `forge claim ${ref} --rebuilt ${head} --undeployed`;
 
+/** Where the claim history names the builder, the late write names it too, and says so on the block
+ *  rather than leaving the one question the record answers to a declaration (ISS-2608). */
+export const DERIVED = (holder) => `derived from the claim history, which names exactly one run that `
+  + `held this issue while the change was being built, \`${holder}\``;
+
 export const RECOVER_THE_BUILDER = (holder) =>
-  `Write the checkpoint naming \`${holder}\` as the builder rather than declaring it unrecoverable.`;
+  `Write the checkpoint again with \`forge claim --rebuilt\`, naming \`${holder}\` as the builder rather `
+  + `than declaring it unrecoverable: the write reads that builder off the claim history, and keeps this `
+  + `checkpoint readable under the one it writes.`;
 
 /** The one statement of the clause both refusals carry, and nothing either puts around it. The
  *  write cannot call `builderProblem`: it holds no checkpoint to hand it, being the call that

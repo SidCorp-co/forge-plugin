@@ -7,7 +7,7 @@ import { SIDE, answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
-import { CARRIES, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
+import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
 import { parseAll } from "./page.mjs";
 import { renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
@@ -33,12 +33,13 @@ import { partForRecord } from "../../guides/served.mjs";
 import { scopeFrom, scopePath } from "./plan-scope.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
-import { oweRelease, renew, writtenBy } from "../lease.mjs";
+import { FIELD as SESSION, oweRelease, renew, writtenBy } from "../lease.mjs";
 import { issueOf, post, sayStored } from "./thread/posting.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
-import { carriedOnto } from "./judged/carried.mjs";
+import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
+import { landingOf } from "../landing/checkpoint.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -420,6 +421,10 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   }
   /* After every refusal, so git is asked only of a write that goes up. */
   if (shape.fields.some((one) => one.flag === CARRIES)) for (const got of blocks) carriedOnto(got, comments, say);
+  if (shape.fields.some((one) => one.flag === CARRIES_DEPLOYMENT)) {
+    const landing = landingOf(body?.[SESSION]);
+    for (const got of blocks) deploymentOnto(got, landing, say);
+  }
   await derive(kind, blocks, body, { say, reference });
   await servesChecked(kind, blocks);
   quoteCriteria(kind, blocks, body, reference);

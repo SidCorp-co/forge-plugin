@@ -198,13 +198,54 @@ test("a head the branch it lands on is not proved to carry refuses the write, sa
   assert.equal(checkpoint(), null, "and nothing was written");
 });
 
-test("a builder the claim history answers for on its own refuses the declaration, naming that holder", async () => {
+/* The row ISS-2608 was filed from: merged, one run in the claim history that held it while it was
+   being built, and no checkpoint. The write refused to declare that builder unknown and had no form
+   that named it, so the issue had no route to `testing` at all. */
+test("a builder the claim history answers for on its own is written as the builder, and the checkpoint earns testing", async () => {
   const { room, judged } = landedRoom("derivable");
-  held(["the-only-run"]);
+  held(["the-only-run"], undefined, { acceptanceCriteria: "1. The one outcome.\n2. The other outcome.", plan: PLAN, mergedAt: AT });
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-mark", createdAt: AT, authorId: "agent", body: `mark_merged target=base — merged to master at ${judged}` },
+    { documentId: "c-verdict", createdAt: AT, authorId: "agent",
+      body: render("verdict", [1, 2].map((number) => ({ criterion: `${number} — outcome`, verdict: "pass",
+        commit: judged, evidence: [DEPLOYED], judge: JUDGING }))) },
+  );
+  /* The way clear the rung prints is one the write then takes (ISS-2918). */
+  const ask = await declaringQa("independent", () => ran(["advance", "ISS-1784", "--owed"], room));
+  assert.ok(ask.stdout.includes(`    forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --deployment <the sha the deployment reports serving>\n`),
+    `the route the rung prints:\n${ask.stdout}`);
+  const run = await declaringQa("independent", () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged.slice(0, 7), "--deployment", DEPLOYED], room));
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const read = checkpoint();
+  assert.equal(read.builder, "the-only-run", "the one run the history names is the builder");
+  assert.match(read.handWritten.builder, /^derived from the claim history, which names exactly one run that held this issue while the change was being built, `the-only-run`$/u,
+    read.handWritten.builder);
+  assert.deepEqual(read.handWritten.lost, ["branch", "base", "files", "at"], "and the builder is no key it recovered nothing for");
+  assert.equal(read.handWritten.by, RUN, "while the run that made the write is still its writer and not its builder");
+  const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
+  assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
+  assert.equal(state.issues[0].status, "testing", `${moved.stdout}${moved.stderr}`);
+});
+
+test("a history naming no run that built the change still declares the builder unrecoverable", async () => {
+  const { room, judged } = landedRoom("no-holder");
+  held([]);
   const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().builder, undefined);
+  assert.match(checkpoint().handWritten.builder, /names no run that held it while the change was being built/u);
+});
+
+/* sid-desk ISS-571: a deployment's own id stored where a commit is compared refused every verdict on
+   the issue, and it is refused here at the write instead (ISS-2918). */
+test("a deployment named by an id that is no commit is refused at the write, naming the value", async () => {
+  const { room, judged } = landedRoom("deployment-id");
+  held(["one", "two"]);
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", "hosgkccg88wsgwg840scso88"], room);
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
-  assert.match(run.stderr, /a guessed builder is what this key exists to stop/u, run.stderr);
-  assert.match(run.stderr, /`the-only-run`/u, "naming the holder it derived");
+  assert.ok(run.stderr.includes("--deployment takes the commit the deployment reports serving, of 7 to 40 hex digits, and `hosgkccg88wsgwg840scso88` is not one"),
+    run.stderr);
   assert.equal(checkpoint(), null, "and nothing was written");
 });
 
@@ -369,4 +410,132 @@ test("a local branch named after the declared remote-tracking ref does not licen
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /origin\/staging resolves to no commit here/u, run.stderr);
   assert.equal(checkpoint(), null, "and nothing was written");
+});
+
+/* A repair landed after the first landing, outside the capture: the finished checkpoint names the
+   first landing's head and deployment, and every verdict at the repaired merge was refused for citing
+   the build now serving (anhome ISS-530, ISS-677, ISS-598). The late write over `done` records the
+   later landing and keeps the one it replaces (ISS-2880). */
+const later = (room, name) => {
+  git(room, "checkout", "-q", "master");
+  writeFileSync(join(room, `${name}.mjs`), `${name}\n`);
+  git(room, "add", `${name}.mjs`);
+  git(room, "commit", "-qm", name);
+  const sha = git(room, "rev-parse", "HEAD").stdout.trim();
+  git(room, "update-ref", "refs/remotes/origin/master", sha);
+  return sha;
+};
+const FIRST = (head) => ({ state: "done", head, deployment: DEPLOYED, files: [],
+  handWritten: { by: "the-first-writer", at: AT, why: "written after the first landing", builder: "several ran it", lost: ["builder"] } });
+const judgedAtWith = (commit, evidence) => render("verdict", [1, 2].map((number) => ({
+  criterion: `${number} — outcome`, verdict: "pass", commit, evidence, judge: JUDGING })));
+
+test("a later landing is written over a finished checkpoint, which stays readable, and the rung reads the later one", async () => {
+  const { room, judged } = landedRoom("superseded");
+  const repaired = later(room, "the-repair");
+  held(["one", "two"], FIRST(judged), { acceptanceCriteria: "1. The one outcome.\n2. The other outcome.", plan: PLAN, mergedAt: AT });
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", repaired, "--deployment", repaired], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const read = checkpoint();
+  assert.equal(read.state, "done");
+  assert.equal(read.head, repaired, "the later landing's head");
+  assert.equal(read.deployment, repaired, "and its deployment");
+  assert.equal(read.superseded.length, 1);
+  assert.equal(read.superseded[0].head, judged, "the replaced checkpoint's head is kept");
+  assert.equal(read.superseded[0].deployment, DEPLOYED, "its deployment");
+  assert.equal(read.superseded[0].handWritten.by, "the-first-writer", "and its own block");
+  assert.match(read.handWritten.why, new RegExp(`it supersedes the landing at ${judged.slice(0, 7)} with deployment ${DEPLOYED.slice(0, 7)}, kept under \`superseded\``, "u"),
+    read.handWritten.why);
+  assert.match(run.stdout, new RegExp(`supersedes 1 earlier landing\\(s\\), the last at ${judged.slice(0, 7)}`, "u"), run.stdout);
+
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-mark", createdAt: AT, authorId: "agent", body: `mark_merged target=base — merged to master at ${repaired}` },
+    { documentId: "c-old", createdAt: AT, authorId: "agent", body: judgedAtWith(repaired, [DEPLOYED]) },
+  );
+  const stale = await declaringQa("independent", () => ran(["advance", "ISS-1784", "--owed"], room));
+  assert.ok(stale.stdout.includes(`the verdict on criteria 1, 2 cites nothing at ${repaired.slice(0, 7)}, which is what the deployment reported running`),
+    `a verdict citing only the replaced deployment is refused, and the one asked for is the later landing's:\n${stale.stdout}`);
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-new", createdAt: "2026-09-07T12:05:00.000Z", authorId: "agent", body: judgedAtWith(repaired, [repaired]) });
+  const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
+  assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
+  assert.equal(state.issues[0].status, "testing", "verdicts citing the later landing earn the rung");
+});
+
+test("a later landing said to reach no deployment leaves none to cite, and keeps the replaced one readable", async () => {
+  const { room, judged } = landedRoom("superseded-undeployed");
+  const repaired = later(room, "the-test-only-repair");
+  held(["one", "two"], FIRST(judged), { acceptanceCriteria: "1. The one outcome.\n2. The other outcome.", plan: PLAN, mergedAt: AT });
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", repaired, "--undeployed"], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().deployment, undefined, "no deployment at the top");
+  assert.equal(checkpoint().superseded[0].deployment, DEPLOYED, "the replaced one is kept");
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-mark", createdAt: AT, authorId: "agent", body: `mark_merged target=base — merged to master at ${repaired}` },
+    { documentId: "c-v", createdAt: AT, authorId: "agent", body: judgedAtWith(repaired, [repaired]) });
+  const owed = await declaringQa("independent", () => ran(["advance", "ISS-1784", "--owed"], room));
+  assert.doesNotMatch(owed.stdout, new RegExp(`cites nothing at ${DEPLOYED.slice(0, 7)}`, "u"), owed.stdout);
+});
+
+test("two later landings keep both checkpoints they replaced, oldest first", async () => {
+  const { room, judged } = landedRoom("superseded-twice");
+  const second = later(room, "the-second");
+  held(["one", "two"], FIRST(judged));
+  assert.equal((await ran(["claim", "ISS-1784", "--rebuilt", second, "--deployment", second], room)).status, 0);
+  const third = later(room, "the-third");
+  const wrote = state.issues[0].sessionContext.landing;
+  held(["one", "two"], wrote);
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", third, "--deployment", third], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(checkpoint().superseded.map((one) => one.head), [judged, second]);
+  assert.deepEqual(checkpoint().superseded.map((one) => one.deployment), [DEPLOYED, second]);
+});
+
+test("a late write over a landing still under way is refused naming its state", async () => {
+  const { room, judged } = landedRoom("in-flight");
+  held(["one", "two"], { ...FIRST(judged), state: "qa-owed" });
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room);
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes("ISS-1784 reads `qa-owed`: a landing under way"), run.stderr);
+  assert.equal(checkpoint().state, "qa-owed", "and it stands as it was");
+});
+
+test("a late write over a finished landing saying nothing new, or moving it backwards, is refused", async () => {
+  const { room, judged } = landedRoom("nothing-new");
+  held(["one", "two"], FIRST(judged));
+  const same = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room);
+  assert.equal(same.status, 1, `${same.stdout}${same.stderr}`);
+  assert.match(same.stderr, /names the head, the deployment and the builder it already holds/u, same.stderr);
+  const repaired = later(room, "the-repair");
+  held(["one", "two"], FIRST(repaired));
+  const back = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", judged], room);
+  assert.equal(back.status, 1, `${back.stdout}${back.stderr}`);
+  assert.ok(back.stderr.includes(`${judged.slice(0, 7)} does not carry ${repaired.slice(0, 7)}, the head of the landing it would replace`), back.stderr);
+  assert.equal(checkpoint().head, repaired, "and the later landing stands");
+});
+
+/* anhome ISS-525: the builder named its own merge as the deployment, staging served a later build,
+   and the checkpoint could not be rewritten. At the same head the write is that correction, and the
+   wrong one stays on the record (ISS-2587). */
+test("a deployment named wrong is corrected at the same head, and the wrong one stays readable", async () => {
+  const { room, judged } = landedRoom("corrected");
+  const served = later(room, "the-build-staging-served");
+  held(["one", "two"], { ...FIRST(judged), builder: "the-captured-builder" });
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", served], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().head, judged);
+  assert.equal(checkpoint().builder, "the-captured-builder", "the same change's captured builder is carried over");
+  assert.equal(checkpoint().deployment, served, "the served sha is the deployment now");
+  assert.equal(checkpoint().superseded[0].deployment, DEPLOYED, "and the wrong one is kept");
+});
+
+/* The help is where a run meeting `done` after a second landing looks first, and it named neither
+   route out of it, nor what `--deployment` takes (ISS-2526, ISS-2918, ISS-2608). */
+test("the claim help names what --deployment takes, the builder the late write names, and both routes out of done", async () => {
+  const run = await ran(["claim", "-h"], AWAY);
+  assert.equal(run.status, 0, run.stderr);
+  const said = run.stdout.replace(/\s+/gu, " ");
+  assert.ok(said.includes("--rebuilt sha --deployment sha|--undeployed a late checkpoint, where none stands or over `done`, for a landing the branch already carries; --deployment is the commit the deployment reports serving, and where the claim history names one run that built the change that run is written as the builder"), said);
+  assert.ok(said.includes("A second landing leaves `done` by one of two routes. A repair already on the branch is recorded over it with --rebuilt; one still to land is reopened (`forge advance <ref> --reopen`), then --pushed --ready, then --landed."), said);
+  assert.ok(said.includes("--ready with --pushed: `ready`, from any builder's turn too, and over `done` once the issue is back to be built, the first landing kept under `superseded`"), said);
 });

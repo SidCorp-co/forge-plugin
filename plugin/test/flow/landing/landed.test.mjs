@@ -199,7 +199,7 @@ test("a local branch named after the remote's own does not refuse a landing that
 test("a checkpoint at any state but the one a build leaves is refused, naming the state it read", async () => {
   const { room, judged } = landedRoom("mid-landing");
   releasedOnto(room, "master");
-  for (const state_ of ["candidate", "judged", "marked", "done"]) {
+  for (const state_ of ["candidate", "judged", "marked"]) {
     ready(judged, { state: state_ });
     const run = await ran(["claim", "ISS-1655", "--landed"], room);
     assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
@@ -207,6 +207,44 @@ test("a checkpoint at any state but the one a build leaves is refused, naming th
     assert.ok(run.stderr.includes("forge resume ISS-1655"), `and where to read the landing:\n${run.stderr}`);
     assert.equal(checkpoint().state, state_, "and the checkpoint is as it was");
   }
+});
+
+/* A finished landing at a status that is no rebuild is where a repair's run stood on sid-desk ISS-497,
+   and the refusal it read ended at the resume, which printed the same `done` back (ISS-2526). */
+test("a finished landing at a status that is no rebuild refuses naming the late write and the reopen", async () => {
+  const { room, judged } = landedRoom("done-developed");
+  releasedOnto(room, "master");
+  for (const status of ["developed", "awaiting_release"]) {
+    ready(judged, { state: "done" });
+    state.issues[0] = { ...state.issues[0], status };
+    const run = await ran(["claim", "ISS-1655", "--landed"], room);
+    assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+    assert.ok(run.stderr.includes("reads `done`: it is ended from `ready` and `head-owed` and from no other state. That landing has ended."),
+      `the state it read, at ${status}:\n${run.stderr}`);
+    assert.ok(run.stderr.includes("  forge claim ISS-1655 --rebuilt <the sha the branch carries> --deployment <the sha the deployment reports serving>\n"
+      + "  forge claim ISS-1655 --rebuilt <the sha the branch carries> --undeployed\n"),
+    `the late write for a repair already on the branch, both forms at one depth:\n${run.stderr}`);
+    assert.ok(run.stderr.includes("  forge advance ISS-1655 --reopen --why \"<what the finding is>\"\n"
+      + "  forge claim ISS-1655 --pushed --ready\n  forge claim ISS-1655 --landed"),
+    `and the reopen, the capture and this write for one still to land:\n${run.stderr}`);
+    assert.equal(checkpoint().state, "done", "and the checkpoint is as it was");
+  }
+});
+
+/* The row ISS-2608 was filed from: merged, its builder named in the history, and no checkpoint at
+   all. The refusal named the resume alone, and the resume named nothing. */
+test("an issue with no checkpoint at all refuses naming the late write, and the resume for any other case", async () => {
+  const { room, judged } = landedRoom("none");
+  releasedOnto(room, "master");
+  ready(judged);
+  delete state.issues[0].sessionContext.landing;
+  const run = await ran(["claim", "ISS-1655", "--landed"], room);
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes("reads `nothing at all`"), run.stderr);
+  assert.match(run.stderr, /\n {2}forge claim ISS-1655 --rebuilt <the sha the branch carries> --deployment [^\n]+\n {2}forge claim ISS-1655 --rebuilt <the sha the branch carries> --undeployed\n/u,
+    `the late write for a change already on the branch:\n${run.stderr}`);
+  assert.match(run.stderr, /Otherwise read where the issue is:\n {2}forge resume ISS-1655\n?$/u, run.stderr);
+  assert.equal(checkpoint(), null, "and nothing was written");
 });
 
 /* The reading that decides is the branch this checkout has recorded as the remote's own, and never a

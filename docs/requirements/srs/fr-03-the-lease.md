@@ -390,19 +390,21 @@ a wait no party can end.
   pushes nothing, because the workspace whose release landed that branch is often gone by then and
   every other route to that state is itself a release.
 
-- **AC-03-6-15** · Rev: 2 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a landed head with no checkpoint behind it takes one written after the fact"
-  WHERE no landing checkpoint stands on an issue and the branch this project lands changes on is
-  proved, off refs the checkout already holds, to carry a head the caller names, the CLI SHALL offer
-  a write that puts a checkpoint at the state naming no turn holding that head, the deployment
-  identity the caller names, no builder, and a hand-written block saying off the record itself why no
-  builder could be recovered and which branch licensed the write, because the window the capture is
-  taken in closes at the merge and a run that died inside it leaves the issue with no other way
-  back.
-- **AC-03-6-16** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "the run writing a checkpoint after the landing is recorded as its writer and never as the builder"
+- **AC-03-6-15** · Rev: 3 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a later landing is written over a finished checkpoint, which stays readable, and the rung reads the later one"
+  WHERE no landing checkpoint stands on an issue, or the one standing is in the state naming no turn,
+  and the branch this project lands changes on is proved, off refs the checkout already holds, to
+  carry a head the caller names, the CLI SHALL offer a write that puts a checkpoint at the state
+  naming no turn holding that head, the deployment identity the caller names, and a hand-written
+  block saying off the record itself how the builder was read and which branch licensed the write,
+  because the window the capture is taken in closes at the merge, and a run that died inside it or a
+  repair that landed after it leaves the issue with no other way back.
+- **AC-03-6-16** · Rev: 2 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a builder the claim history answers for on its own is written as the builder, and the checkpoint earns testing"
   WHEN a checkpoint is written on a change that has already landed THEN the CLI SHALL record the run
-  making that write as the writer of the reconstruction and SHALL leave the builder unnamed, because
-  the run that reaches for this write is the one judging the change and naming it the builder is the
-  fabrication this checkpoint exists to prevent.
+  making that write as the writer of the reconstruction, SHALL name as the builder the one run the
+  issue's claim history names as having held it while the change was being built, and SHALL leave the
+  builder unnamed where that history names several or none, because the run reaching for this write
+  is the one judging the change, and a builder the record answers for is derived where one declared
+  either way would be a guess.
 
 - **AC-03-6-17** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a landing block whose state this version cannot place is not an absent one, and is not written over"
   IF a stored landing block is present and its state is one this version cannot place THEN the CLI
@@ -477,6 +479,31 @@ a wait no party can end.
   at in the flow's own order THEN the CLI SHALL refuse the checkpoint, naming the status it read and
   each advance owed up to that status, because the landing moves the status on from there and a
   change it merged from earlier is a release whose status nothing can move.
+
+- **AC-03-6-31** · Rev: 1 · Proof: plugin/test/flow/landing/checkpoint.test.mjs "a capture over a finished landing keeps it readable, and a third landing keeps both before it"
+  WHEN a checkpoint in the state naming no turn is replaced by a later landing's checkpoint THEN the
+  CLI SHALL keep every checkpoint it replaced readable on the new one, oldest first, because the
+  verdicts taken at an earlier landing are read against that landing's identity and a record
+  replaced is a record lost.
+- **AC-03-6-32** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a late write over a finished landing saying nothing new, or moving it backwards, is refused"
+  IF a checkpoint written after the landing over one in the state naming no turn names a head that
+  does not carry the head it would replace, or names the head, the deployment identity and the builder
+  it already holds, THEN the CLI SHALL refuse the write, because a replacement that moves the landing
+  backwards has the judging rung read an earlier deployment than the one serving, and one saying
+  nothing new records nothing.
+- **AC-03-6-33** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a deployment named by an id that is no commit is refused at the write, naming the value"
+  IF the deployment identity a checkpoint is written with is not a commit THEN the CLI SHALL refuse
+  the write naming that value, because the judging rung compares the identity with the commits a
+  verdict cites, and a deployment's own id can equal none of them.
+- **AC-03-6-34** · Rev: 1 · Proof: plugin/test/flow/landing/reconstruction.test.mjs "a stored deployment that is no commit is read as a deployment id, and the line says so"
+  WHERE a stored checkpoint names a deployment identity that is not a commit, the CLI SHALL read that
+  value as a deployment id kept apart from the identity the judging rung compares, because a value no
+  verdict can cite otherwise leaves every verdict on the issue unearnable for good.
+- **AC-03-6-35** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a finished landing at a status that is no rebuild refuses naming the late write and the reopen"
+  IF a write that starts or ends a landing is refused over a checkpoint in the state naming no turn
+  while the issue stands at a status that is no rebuild THEN the CLI SHALL name the write that records
+  a later landing already on the branch and the reopen that starts one still to land, because a
+  refusal naming only where the landing is sends the reader to read what the refusal already knew.
 
 ## Business rules enforced
 

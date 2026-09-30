@@ -135,3 +135,63 @@ test("a shallow history and a directory no checkout holds settle nothing", () =>
   assert.deepEqual(commitCarries(MERGED, LATER, ROOM), { carries: true, why: null });
   assert.deepEqual(commitCarries(MERGED, MERGED, ROOM), { carries: true, why: null }, "a commit carries itself");
 });
+
+/* The deployment half. A staging host serves the branch's tip, a later commit than the merge the
+   checkpoint names whenever another change landed after it, and the judge cites what it exercised
+   (ISS-2587, anhome ISS-525). */
+const deployedAt = async (deployment, take) => {
+  judging.sessionContext = { ...judging.sessionContext, landing: { state: "done", head: MERGED, deployment, files: [] } };
+  try {
+    return await take();
+  } finally {
+    delete judging.sessionContext.landing;
+  }
+};
+const cites = (...evidence) => ask("record", "verdict", "ISS-8", "--criterion", "1", "--verdict", "pass",
+  "--commit", MERGED, ...evidence.flatMap((one) => ["--evidence", one]));
+
+test("a verdict citing a later commit that carries the checkpoint's deployment records it, whichever of its commits does", async () => {
+  for (const evidence of [[LATER], [ASIDE, LATER], [NOWHERE, LATER], [LATER, ASIDE]]) {
+    const run = await deployedAt(MERGED, () => cites(...evidence));
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(run.stderr.includes(`--evidence ${short(LATER)} carries the deployment ${short(MERGED)} the landing checkpoint names`),
+      `${evidence.map(short).join(", ")}:\n${run.stderr}`);
+    assert.ok(lastBody().split("\n").includes(`carries-deployment: ${MERGED}`),
+      `the record names the deployment it carries, for ${evidence.map(short).join(", ")}:\n${lastBody()}`);
+  }
+});
+
+test("a verdict citing no commit that carries the deployment records nothing, and names the citation owed", async () => {
+  const run = await deployedAt(MERGED, () => cites(ASIDE));
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(run.stderr.includes(`No commit this verdict cites carries the deployment ${short(MERGED)} the landing checkpoint names`), run.stderr);
+  assert.ok(run.stderr.includes(`so \`testing\` refuses it unless it cites ${short(MERGED)} itself.`), run.stderr);
+  assert.doesNotMatch(lastBody(), /^carries-deployment:/mu);
+});
+
+test("a checkout that cannot settle the deployment's ancestry records nothing, and names both ways past it", async () => {
+  const run = await deployedAt(MERGED, () => cites(NOWHERE));
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(run.stderr.includes(`This checkout cannot say whether --evidence ${short(NOWHERE)} carries the deployment ${short(MERGED)}`), run.stderr);
+  assert.ok(run.stderr.includes(`add \`--evidence ${short(MERGED)}\`, or write it from a checkout holding both commits.`), run.stderr);
+  assert.doesNotMatch(lastBody(), /^carries-deployment:/mu);
+});
+
+test("a verdict citing the deployment itself, or a checkpoint naming none, asks git nothing about it", async () => {
+  const direct = await deployedAt(MERGED, () => cites(MERGED));
+  assert.equal(direct.status, 0, direct.stderr);
+  assert.doesNotMatch(direct.stderr, /the deployment [0-9a-f]{7} the landing checkpoint names/u);
+  assert.doesNotMatch(lastBody(), /^carries-deployment:/mu);
+  const none = await cites(LATER);
+  assert.equal(none.status, 0, none.stderr);
+  assert.doesNotMatch(none.stderr, /the landing checkpoint names/u);
+  assert.doesNotMatch(lastBody(), /^carries-deployment:/mu);
+});
+
+test("the deployment stamp is no flag, so a caller cannot type that ancestry either", async () => {
+  const before = page().length;
+  const run = await deployedAt(MERGED, () => verdictAt(MERGED, "--carries-deployment", MERGED));
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /No record verdict flag named --carries-deployment\./u);
+  assert.equal(page().length, before, "nothing was sent");
+});

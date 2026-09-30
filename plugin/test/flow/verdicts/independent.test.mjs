@@ -95,7 +95,7 @@ test("a verdict with no judge at all counts for nothing rather than passing unno
 test("a verdict citing the merged head and not what was deployed has cited nothing", () => {
   assert.deepEqual(owed([verdictOf(1, { evidence: [MERGED] }), verdictOf(2)]),
     [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, which is what the deployment `
-      + "reported running"]);
+      + "reported running, nor a commit its write read as carrying it"]);
   assert.deepEqual(owed([verdictOf(1, { evidence: [MERGED, DEPLOYED.slice(0, 7)] }), verdictOf(2)]), [],
     "and a seven-digit citation of the same identity is the same citation");
 });
@@ -105,7 +105,7 @@ test("an attachment named after the deployment is not a citation of it", () => {
   assert.deepEqual(
     owed([verdictOf(1, { evidence: [named] }), verdictOf(2)], { issue: { attachments: [{ name: named }] } }),
     [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, which is what the deployment `
-      + "reported running"],
+      + "reported running, nor a commit its write read as carrying it"],
     "a forty-digit name is held evidence and would otherwise decide the comparison's width, passing on its own prefix",
   );
 });
@@ -136,7 +136,7 @@ test("a pass citing the deployment identity and an attachment this issue carries
 test("a skip citing nothing earns nothing, the judge check reading the identity off the evidence", () => {
   const said = screening([skip(1, { evidence: [] }), skip(2)]);
   assert.deepEqual(said, [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, `
-    + "which is what the deployment reported running"]);
+    + "which is what the deployment reported running, nor a commit its write read as carrying it"]);
 });
 
 test("a pass citing the deployment and no attachment is refused, this changing nothing about that", () => {
@@ -223,7 +223,7 @@ test("an identity the checkpoint does hold is still cited, and a verdict citing 
   assert.deepEqual(landed([verdictOf(1, { evidence: [MOVED] }), verdictOf(2, { evidence: [DEPLOYED] })],
     { deployment: DEPLOYED }),
   [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, which is what the deployment `
-    + "reported running"]);
+    + "reported running, nor a commit its write read as carrying it"]);
 });
 
 /* The rung the demand moved to, read under the configuration that has no automatic deploy: the
@@ -359,6 +359,10 @@ test("a builder the claim history answers for on its own is refused rather than 
   const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("the-only-run") } });
   assert.equal(said.length, 1, "one line, the item being the checkpoint's and not the verdict's");
   assert.match(said[0], /derived and not declared/u, said[0]);
+  /* The checkpoint is what is short, so the write handed back is the one that writes it again, which
+     now names that builder and keeps this checkpoint readable, and never another verdict (ISS-2608). */
+  const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("the-only-run") } });
+  assert.deepEqual(asked.map((one) => one.command), [REBUILT_ROUTES]);
 });
 
 /* The only reading of an unrecoverable builder the record settles certainly. A judge that merely
@@ -417,4 +421,36 @@ test("a verdict refused for a checkpoint that is absent names the write that put
   const standing = items([verdictOf(1, { judge: BUILDER })]);
   assert.match(standing[0].command, /^forge record verdict ISS-8 /u,
     "while a checkpoint that stands is answered by the verdict it is short of, as before");
+});
+
+/* A served commit carrying the identity is that deployment judged, and whether it carries it is read
+   at the verdict's write and stamped there, this rung reading no repository (ISS-2587). */
+test("a verdict whose write read a cited commit as carrying the deployment cites it, and no other stamp does", () => {
+  const stamped = (value) => verdictOf(1, { evidence: [MOVED], "carries-deployment": value });
+  assert.deepEqual(landed([stamped(DEPLOYED), verdictOf(2, { evidence: [DEPLOYED] })], { deployment: DEPLOYED }), [],
+    "the stamp naming the checkpoint's deployment answers the citation");
+  const other = landed([stamped(MERGED), verdictOf(2, { evidence: [DEPLOYED] })], { deployment: DEPLOYED });
+  assert.deepEqual(other, [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, which is what `
+    + "the deployment reported running, nor a commit its write read as carrying it"],
+  "a stamp naming another deployment, one this checkpoint has since replaced, answers nothing");
+  assert.equal(landed([verdictOf(1, { evidence: [MOVED] }), verdictOf(2, { evidence: [DEPLOYED] })],
+    { deployment: DEPLOYED }).length, 1, "and a verdict with no stamp is refused as before");
+});
+
+/* sid-desk ISS-571's value: a deployment's own id, stored where a commit is compared, refused every
+   verdict on the issue for good. Read apart it is compared with nothing, and what the rung still
+   reads is who judged (ISS-2918). */
+test("a stored deployment id that is no commit is read apart and asks no verdict to cite it", () => {
+  const LEGACY = "hosgkccg88wsgwg840scso88";
+  assert.deepEqual(landed([verdictOf(1, { evidence: [MERGED] }), verdictOf(2, { evidence: [MERGED] })],
+    { state: "done", deployment: LEGACY }), [],
+  "an independent judge's verdicts earn the rung at the head they carry");
+  assert.deepEqual(landed([verdictOf(1, { judge: BUILDER }), verdictOf(2, { judge: BUILDER })],
+    { state: "done", deployment: LEGACY }),
+  ["the verdict on criteria 1, 2 carries the builder's own id `the-builder-session`"],
+  "while the builder's own verdicts are refused exactly as on a checkpoint naming no identity");
+  const asked = items([verdictOf(1, { judge: BUILDER })],
+    { issue: { sessionContext: { landing: { ...ORDINARY, state: "done", deployment: LEGACY } } } });
+  assert.doesNotMatch(asked[0].command, new RegExp(LEGACY.slice(0, 7), "u"),
+    `and the id is never handed back as the thing to cite: ${asked[0].command}`);
 });

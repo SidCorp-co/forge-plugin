@@ -3,8 +3,8 @@
    reads it reads no repository, and a later commit carrying the landing is how a criterion another
    change made true is judged honestly (ISS-1302). */
 import { commitCarries } from "../../../git/carries.mjs";
-import { sameCommit, shortSha } from "../../../tracker/evidence.mjs";
-import { CARRIES } from "../../machine.mjs";
+import { isCommit, sameCommit, shortSha } from "../../../tracker/evidence.mjs";
+import { CARRIES, CARRIES_DEPLOYMENT } from "../../machine.mjs";
 import { markedCommit } from "../merged.mjs";
 
 /* Per commit pair and checkout, since one write's verdicts usually name one commit and git's answer
@@ -35,4 +35,33 @@ export const carriedOnto = (got, comments, say, cwd = process.cwd()) => {
       + "nothing of it, and earns `testing` only at the head the mark names as judged."
     : `This checkout cannot say whether ${at} carries the merged commit ${shortSha(merged)}: `
       + `${read.why}. The verdict says nothing of it; written from a checkout holding both, it would.`);
+};
+
+/** Fills `got["carries-deployment"]` where git reads a commit the verdict cites as carrying the deployment
+ *  the landing checkpoint names, which is how a judge citing the commit staging served, a later one
+ *  than the merge the checkpoint names, is read as having judged that deployment (ISS-2587). Every
+ *  commit the evidence cites is asked and any one that carries it is enough; one citing the
+ *  deployment itself, or a checkpoint naming none, asks nothing. What it read is said on `say`,
+ *  including the two routes where the checkout could not settle it. */
+export const deploymentOnto = (got, landing, say, cwd = process.cwd()) => {
+  const deployment = landing?.deployment;
+  const cited = (got.evidence ?? []).filter((one) => isCommit(one));
+  if (!deployment || !cited.length || cited.some((one) => sameCommit(one, deployment))) return;
+  const reads = cited.map((one) => ({ one, read: carriesOnce(deployment, one, cwd) }));
+  const carrier = reads.find((each) => each.read.carries);
+  const at = `the deployment ${shortSha(deployment)} the landing checkpoint names`;
+  if (carrier) {
+    got[CARRIES_DEPLOYMENT] = deployment;
+    say(`--evidence ${shortSha(carrier.one)} carries ${at}, as this checkout's git reads it, and the `
+      + "verdict says so: `testing` reads it as citing that deployment.");
+    return;
+  }
+  const unsettled = reads.find((each) => each.read.carries === null);
+  say(unsettled
+    ? `This checkout cannot say whether --evidence ${shortSha(unsettled.one)} carries ${at}: `
+      + `${unsettled.read.why}. The verdict says nothing of it, so \`testing\` refuses it unless it cites `
+      + `${shortSha(deployment)} itself: add \`--evidence ${shortSha(deployment)}\`, or write it from a `
+      + "checkout holding both commits."
+    : `No commit this verdict cites carries ${at} (${reads.map((each) => each.read.why).join("; ")}), `
+      + `so \`testing\` refuses it unless it cites ${shortSha(deployment)} itself.`);
 };

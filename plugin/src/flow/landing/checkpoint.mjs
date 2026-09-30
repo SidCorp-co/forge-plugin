@@ -1,6 +1,6 @@
 /* The landing checkpoint, read as a table. Nothing here reads a lease or reaches the tracker, which
    is what lets the lease import it and not the other way about. docs/cli/the-turn.md. */
-import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
+import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { HAND_WRITTEN, handWrittenOf, rebuiltSaid } from "./reconstruction.mjs";
 
 export const LANDING = "landing";
@@ -41,19 +41,48 @@ export const LANDING_STATES = {
 };
 
 /* Declared: a key nothing here names is dropped rather than read back as a fact. Every one of them
-   is a string; `handWritten` is the one record the checkpoint holds and is read below on its own. */
+   is a string; `handWritten` is the one record the checkpoint holds and is read below on its own,
+   and `superseded` the list of checkpoints it replaced. */
 const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
-  "candidate", "release", "install", "deployment", "moved", "reconciled", "judge", "owed"];
+  "candidate", "release", "install", "deployment", "deploymentId", "moved", "reconciled", "judge", "owed"];
 
-export const landingOf = (context) => {
-  const held = context?.[LANDING];
+export const SUPERSEDED = "superseded";
+
+/* `deployment` is the identity the judging rung compares with the commits a verdict cites, so a value
+   that is no commit could match none of them and left every verdict unearnable. A write refuses one
+   now; one stored before that is read as what it is, a deployment's own id, which nothing compares
+   (ISS-2918). */
+const blockOf = (held) => {
   if (!held || typeof held !== "object" || typeof held.state !== "string" || !held.state) return null;
   const files = (Array.isArray(held.files) ? held.files : []).map((one) => String(one).trim());
   const out = { files: files.filter(Boolean) };
   for (const name of CHECKPOINT) if (held[name]) out[name] = String(held[name]);
+  if (out.deployment && !isCommit(out.deployment)) {
+    out.deploymentId ??= out.deployment;
+    delete out.deployment;
+  }
   const hand = handWrittenOf(held);
   if (hand) out[HAND_WRITTEN] = hand;
   return out;
+};
+
+/* Read here because every landing write spreads what this returns under its own patch: a key this
+   drops is gone at the next move, which is how a second landing lost the first (ISS-2526). Oldest
+   first; each one is read as a checkpoint of its own and carries no list of its own. */
+export const landingOf = (context) => {
+  const held = context?.[LANDING];
+  const out = blockOf(held);
+  if (!out) return null;
+  const earlier = (Array.isArray(held[SUPERSEDED]) ? held[SUPERSEDED] : []).map(blockOf).filter(Boolean);
+  if (earlier.length) out[SUPERSEDED] = earlier;
+  return out;
+};
+
+/** The list a checkpoint replacing this one carries: every one it already carried, then this one. */
+export const supersededBy = (landing) => {
+  if (!landing) return [];
+  const { [SUPERSEDED]: earlier = [], ...own } = landing;
+  return [...earlier, own];
 };
 
 export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
@@ -89,7 +118,7 @@ const REBUILDS = new Set([LANDING_CANDIDATE, LANDING_RECONCILED, LANDING_QA_OWED
 /** Blank rather than absent: `landingOf` drops what is falsy, so this is how a field is cleared. */
 export const landingVoided = (pinned) => ({
   state: LANDING_CANDIDATE, pinned, candidate: "", intended: "", moved: "", reconciled: "",
-  deployment: "", judge: "", release: "",
+  deployment: "", deploymentId: "", judge: "", release: "",
 });
 
 export const landingNext = (held, to) => {
@@ -106,10 +135,27 @@ export const landingNext = (held, to) => {
 
 export const takeRoute = (ref) => `forge claim ${ref} --take`;
 
+/* The identity a verdict is judged against, and a deployment's own id said to be one, so a reader
+   told which commit to cite is never handed the id instead (ISS-2918). */
+const deploymentSaid = (landing) => [
+  landing.deployment ? `; deployment ${shortSha(landing.deployment)}` : "",
+  landing.deploymentId ? `; deployment id \`${landing.deploymentId}\`, which is no commit a verdict can cite` : "",
+].join("");
+
+/* The landing this one replaced, whose verdicts are read against its own identity (ISS-2526). */
+const supersededSaid = (landing) => {
+  const earlier = landing[SUPERSEDED] ?? [];
+  const last = earlier.at(-1);
+  if (!last) return "";
+  return `; supersedes ${earlier.length} earlier landing(s), the last at ${shortSha(last.head) || "no head"}`
+    + `${last.deployment ? ` with deployment ${shortSha(last.deployment)}` : ""}`;
+};
+
 export const landingLine = (landing) =>
   `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
   + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by `
-  + `${landing.builder || "nobody the record can name"}${rebuiltSaid(landing)}`;
+  + `${landing.builder || "nobody the record can name"}${rebuiltSaid(landing)}`
+  + `${deploymentSaid(landing)}${supersededSaid(landing)}`;
 
 /** The builder's two writes out of `head-owed`, one per line under whatever sentence leads to them. */
 export const RECAPTURE = (ref, indent = "  ") =>

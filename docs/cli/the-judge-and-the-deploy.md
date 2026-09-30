@@ -77,6 +77,14 @@ names or from the holders the claim history does. None of those reads a deployme
 a builder's own verdict got easier; a checkpoint that *does* name an identity is still spent, a
 verdict answering to some other head having judged something else.
 
+**A served commit carrying the identity cites it.** A staging host builds the branch's tip, which is
+a later commit than the merge the checkpoint names whenever another change landed after it, and a
+judge honestly cites the commit it exercised. Whether that commit carries the identity is a question
+for git, and this rung reads no repository, so the verdict's own write asks it and puts the answer on
+the record, as it does for the merged commit. Every commit the evidence cites is asked and one
+carrying the identity is enough; where the writer's checkout cannot settle it the write says so and
+names the two ways past it, citing the identity itself or writing from a checkout holding both.
+
 Inverted, the reading is what a promotion spends: a candidate whose base or batch moved is deployed
 again under a new identity, so verdicts citing the old one judged what is no longer there and are
 void — named rather than counted, a count saying nothing about which. Which of the two moved it

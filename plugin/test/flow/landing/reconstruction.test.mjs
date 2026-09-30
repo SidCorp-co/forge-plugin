@@ -85,3 +85,13 @@ test("a reconstruction is disclosed on the checkpoint line and on every verdict 
   assert.match(brief.criteria[0].judgedAgainst, /^a checkpoint rebuilt by hand by the-rebuilding-session/u,
     "a reader who asked for the verdict is told what it was judged against");
 });
+
+/* A deployment's own id, stored before the write refused one, is shown as what it is and compared
+   with nothing, so a reader is never handed it as the commit to cite (ISS-2918). */
+test("a stored deployment that is no commit is read as a deployment id, and the line says so", () => {
+  const read = landingOf({ landing: { ...REBUILT, deployment: "hosgkccg88wsgwg840scso88" } });
+  assert.equal(read.deployment, undefined, "no identity the rung compares");
+  assert.equal(read.deploymentId, "hosgkccg88wsgwg840scso88", "the value kept apart");
+  assert.match(landingLine(read), /; deployment id `hosgkccg88wsgwg840scso88`, which is no commit a verdict can cite/u);
+  assert.match(landingLine(landingOf({ landing: REBUILT })), /; deployment 9e24c2a$/u, "a commit is shown as the deployment");
+});

@@ -176,6 +176,7 @@ const VERDICT_BLOCKS = [
   "  skipped  no route reached it, so nobody looked and there is nothing to cite",
   "That row's reference goes on --filed, never a sentence, and on no other value.",
   "A later --commit carrying the merged one earns `testing`: the write records what git says of it.",
+  "So does --evidence citing a commit that carries the deployment the landing checkpoint names.",
 ];
 
 /* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.

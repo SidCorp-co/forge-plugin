@@ -578,11 +578,12 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   judgement that disagree make the landing spend a promotion on a verdict the transition will then
   refuse.
 
-- **AC-05-11-16** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "an identity the checkpoint does hold is still cited, and a verdict citing some other head is refused"
+- **AC-05-11-16** · Rev: 2 · Proof: plugin/test/flow/verdicts/independent.test.mjs "an identity the checkpoint does hold is still cited, and a verdict citing some other head is refused"
   WHERE the landing checkpoint names a deployment identity, the CLI SHALL refuse `testing` while any
-  standing verdict's evidence cites nothing at that identity, because a checkpoint naming one was
-  written off a reading of the deployment and a verdict answering to some other head judged
-  something else.
+  standing verdict's evidence neither cites that identity nor cites a commit its write read as
+  carrying it, because a checkpoint naming one was written off a reading of the deployment, a verdict
+  answering to some other head judged something else, and a served commit carrying the identity is
+  that deployment judged.
 - **AC-05-11-17** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the builder's own verdict earns nothing on a checkpoint that names no deployment identity"
   IF a standing verdict carries the builder's identity, was written under an inherited identity or
   carries none WHILE the landing checkpoint names no deployment identity THEN the CLI SHALL refuse
@@ -597,6 +598,12 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   until a record names where the change runs, at which commit and with what evidence, whatever the
   project declares about deploying on its own, because that is the rung the deployment reading
   belongs to and no configuration drops it.
+- **AC-05-11-20** · Rev: 1 · Proof: plugin/test/flow/record/judged/carries.test.mjs "a verdict citing a later commit that carries the checkpoint's deployment records it, whichever of its commits does"
+  WHEN a verdict is written citing a commit other than the deployment identity the landing checkpoint
+  names THEN the CLI SHALL record on that verdict that a cited commit carries the identity where the
+  writer's checkout reads one as doing so, and SHALL record nothing where it cannot settle the
+  reading, saying why, because the judging rung reads no repository and an ancestry it was not shown
+  is one nobody established.
 
 ### UC-05-12 — A judging run's blocking finding reopens the issue
 

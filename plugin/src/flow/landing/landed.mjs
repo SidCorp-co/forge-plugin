@@ -11,7 +11,9 @@ import { viewFrom } from "../earned.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { landingSaved } from "../lease.mjs";
 import { LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY, RECAPTURE, landingLine, landingOf } from "./checkpoint.mjs";
-import { recaptureRefusal } from "./written.mjs";
+import { SECOND_LANDING, recaptureRefusal } from "./written.mjs";
+import { REBUILT_FORM } from "./reconstruction.mjs";
+import { commandAt } from "../machine.mjs";
 import { landsAgain } from "../route.mjs";
 
 /* The same overlay switches the ancestry reading is made under, so the tip it asks about and the
@@ -60,6 +62,23 @@ const unlanded = (ref, landing, head, read) => {
     + `${settle(read)}  forge claim ${ref} --landed`;
 };
 
+/* What each state this write does not end names instead, since a refusal ending at the resume sends
+   a run to read what the refusal already knew (ISS-2526). No checkpoint at all is a landing nobody
+   captured, whose record is the late write where the branch carries it (ISS-2608); a finished one
+   gives way to a second landing by one of two routes; every other state is a landing under way. */
+const outOf = (ref, landing) => {
+  if (!landing) {
+    return `. There is no checkpoint to end: where the change is already on the branch it lands on, the `
+      + `record of that landing is written after it:\n  ${commandAt(REBUILT_FORM(ref, "<the sha the branch carries>"), "  ")}\n`
+      + `Otherwise read where the issue is:\n  forge resume ${ref}`;
+  }
+  if (landing.state === LANDING_DONE) {
+    return `. That landing has ended. ${SECOND_LANDING(ref, `\n  forge claim ${ref} --landed`)}`;
+  }
+  return `, every later one being a landing under way whose remaining steps are its own. Read where `
+    + `the landing is:\n  forge resume ${ref}`;
+};
+
 const LANDED_SAID = (ref, head) => ({
   out: `claim --landed out of \`${LANDING_HEAD_OWED}\` ends the landing at ${shortSha(head)}`,
   why: "what ends a landing with nothing left to merge is a head the records judged, and no other",
@@ -84,11 +103,10 @@ export const finishLanded = async (documentId, ref, issue, context) => {
       + `  forge claim ${ref} --pushed --ready\n  forge claim ${ref} --landed`);
   }
   if (landing?.state !== LANDING_READY && landing?.state !== LANDING_HEAD_OWED) {
-    fail(`claim --landed ends a landing the default branch already carries, and the landing `
+    const said = `claim --landed ends a landing the default branch already carries, and the landing `
       + `checkpoint on ${ref} reads \`${landing?.state ?? "nothing at all"}\`: it is ended from `
-      + `\`${LANDING_READY}\` and \`${LANDING_HEAD_OWED}\` and from no other state, every later one `
-      + `being a landing under way whose remaining steps are its own. Read where the landing is:\n`
-      + `  forge resume ${ref}`);
+      + `\`${LANDING_READY}\` and \`${LANDING_HEAD_OWED}\` and from no other state`;
+    fail(`${said}${outOf(ref, landing)}`);
   }
   const owed = landing.state === LANDING_HEAD_OWED;
   const policy = await releasePolicy();

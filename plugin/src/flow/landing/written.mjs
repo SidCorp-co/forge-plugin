@@ -3,16 +3,16 @@
    from `claim.mjs` because each is the checkpoint's own shape and none of the lease's, and because
    a verb that both composes a record and walks a state table is two files' worth of one name.
    docs/cli/the-checkpoint.md, and docs/cli/the-reconstruction.md for the second. */
-import { DERIVED_BUILDER, HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNRECOVERABLE }
-  from "./reconstruction.mjs";
+import { DERIVED, HAND_WRITTEN, REBUILT_FORM, UNRECOVERABLE } from "./reconstruction.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_DONE, LANDING_HEAD_OWED, LANDING_QA_OWED, LANDING_READY,
-  LANDING_RECORDS_OWED, LANDING_STATES, approvedAt, unjudgedAt,
+  LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, supersededBy, unjudgedAt,
 } from "./checkpoint.mjs";
 import { parseAll } from "../record/page.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
-import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
+import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
+import { commitCarries } from "../../git/carries.mjs";
 import { commandAt, valuesOf } from "../machine.mjs";
 import { BASELINE_AT, ORDER } from "../earned.mjs";
 import { landsAgain, reopenForm } from "../route.mjs";
@@ -20,20 +20,23 @@ import { landsAgain, reopenForm } from "../route.mjs";
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
    this project lands changes on carries the head, is read off refs already in this checkout. Which
    branch that is comes in resolved, the reading being the landing route's own and this file holding
-   no policy of its own (ISS-1802). The builder is left unnamed because the run reaching for this is
-   the one judging the change (ISS-1784). */
+   no policy of its own (ISS-1802). The writer is never the builder, the run reaching for this being
+   the one judging the change (ISS-1784); the builder is the one run the claim history names as
+   having built it, where it names exactly one (ISS-2608). A finished checkpoint gives way to it,
+   and stays on it (ISS-2880). */
 export const rebuiltCheckpoint = (ref, holder, head,
   { deployment, undeployed, held, landing, holders, lands }) => {
-  if (landing) {
-    fail(`claim --rebuilt writes a landing checkpoint where there is none, and ${ref} already reads `
-      + `\`${landing.state}\`: a reconstruction over a record somebody captured would replace what it `
-      + `cannot recover with what it guessed. Read where the landing is:\n  forge resume ${ref}`);
+  if (landing && landing.state !== LANDING_DONE) {
+    fail(`claim --rebuilt writes a landing checkpoint where there is none or over one that reads `
+      + `\`${LANDING_DONE}\`, and ${ref} reads \`${landing.state}\`: a landing under way, whose remaining `
+      + `steps are its own and which a reconstruction would write over. Read where the landing is:\n`
+      + `  forge resume ${ref}`);
   }
   /* The read above is what the rest of this file goes by, and it answers `null` for a stored block
      whose state it cannot place as well as for no block at all. Those are not one thing here: the
      second is the case this write is for and the first holds evidence a reconstruction would write
      over, having read none of it (ISS-1784). */
-  if (held && typeof held === "object") {
+  if (!landing && held && typeof held === "object") {
     fail(`claim --rebuilt writes a landing checkpoint where there is none, and ${ref} holds one whose `
       + `state reads \`${held.state || "nothing at all"}\`, which is no state this version knows. A `
       + `reconstruction over it would replace ${Object.keys(held).sort().join(", ")} with what this `
@@ -56,10 +59,13 @@ export const rebuiltCheckpoint = (ref, holder, head,
       + `identity it judged: name the deployment, or say the change reached none and the head is `
       + `what its verdicts answer to:\n  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
-  if (holders.length === 1) {
-    fail(`claim --rebuilt declares the builder unrecoverable, and `
-      + `${DERIVED_BUILDER(ref, holders[0])}, and a guessed builder is what this key exists to stop. `
-      + `${RECOVER_THE_BUILDER(holders[0])}`);
+  /* The identity is compared with the commits a verdict cites, so a deployment's own id could match
+     none of them and every verdict on the issue would be refused for good (ISS-2918). */
+  if (deployment && !isCommit(deployment)) {
+    fail(`claim --rebuilt --deployment takes the commit the deployment reports serving, of 7 to 40 hex `
+      + `digits, and \`${deployment}\` is not one: a verdict cites a commit, so an identity no commit `
+      + `can equal leaves every verdict on ${ref} unearnable. Read the commit off the deployment, then:\n`
+      + `  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
   const read = carriedByLanding(head, lands);
   if (!read.carries) {
@@ -72,11 +78,17 @@ export const rebuiltCheckpoint = (ref, holder, head,
       + (read.route ? `  ${read.route}\n` : "")
       + `  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`);
   }
+  const built = builderOf(head, landing, holders);
+  if (landing) {
+    const refused = supersedeRefused(ref, head, deployment, built.builder, landing);
+    if (refused) fail(refused);
+  }
   /* Absent and not present-and-empty: the write is compared with what the field reads back, and a
      key carrying `undefined` is one this side holds and the record does not (ISS-1993). */
   return {
     state: LANDING_DONE,
     head,
+    ...(built.builder ? { builder: built.builder } : {}),
     ...(deployment ? { deployment } : {}),
     files: [],
     [HAND_WRITTEN]: {
@@ -86,11 +98,51 @@ export const rebuiltCheckpoint = (ref, holder, head,
         + `carrying ${shortSha(head)}; ${deployment
           ? "the deployment identity is the caller's and not this checkout's reading"
           : "the caller says the change reached no deployment, so the head is the identity its "
-            + "verdicts answer to"}`,
-      builder: UNRECOVERABLE(holders),
-      lost: ["builder", "branch", "base", "files", "at"],
+            + "verdicts answer to"}${landing ? `; it supersedes ${replacedSaid(landing)}, kept under \`${SUPERSEDED}\`` : ""}`,
+      builder: built.said,
+      lost: [...(built.builder ? [] : ["builder"]), "branch", "base", "files", "at"],
     },
+    ...(landing ? { [SUPERSEDED]: supersededBy(landing) } : {}),
   };
+};
+
+const replacedSaid = (landing) => `the landing at ${shortSha(landing.head) || "no head"}`
+  + `${landing.deployment ? ` with deployment ${shortSha(landing.deployment)}` : ""}`;
+
+/* Which builder the late write names, and the sentence that says how it knows. At the head the
+   checkpoint it replaces already names, a captured builder is that same change's; otherwise the
+   history answers where it names one run and declares nothing where it names several or none. */
+const builderOf = (head, landing, holders) => {
+  if (landing?.builder && sameCommit(head, landing.head)) {
+    return { builder: landing.builder, said: `carried from the checkpoint this one supersedes, which `
+      + `names it at this same head` };
+  }
+  if (holders.length === 1) return { builder: holders[0], said: DERIVED(holders[0]) };
+  return { builder: null, said: UNRECOVERABLE(holders) };
+};
+
+/* Only forward: a head not carrying the one it replaces has the judging rung read an earlier
+   deployment than the one serving, and a write saying what is already there records nothing. */
+const supersedeRefused = (ref, head, deployment, builder, landing) => {
+  const form = `  ${commandAt(REBUILT_FORM(ref, shortSha(head)), "  ")}`;
+  if (sameCommit(head, landing.head ?? "")) {
+    const sameDeployment = deployment ? sameCommit(deployment, landing.deployment ?? "") : !landing.deployment;
+    if (!sameDeployment || landing.deploymentId || (builder ?? null) !== (landing.builder ?? null)) return null;
+    return `claim --rebuilt over the \`${LANDING_DONE}\` checkpoint on ${ref} names the head, the `
+      + `deployment and the builder it already holds, so it would record nothing the checkpoint does not `
+      + `say. Where the deployment it names is wrong, name the one serving:\n${form}`;
+  }
+  if (!landing.head) return null;
+  const read = commitCarries(landing.head, head);
+  if (read.carries) return null;
+  const why = read.carries === false
+    ? `${shortSha(head)} does not carry ${shortSha(landing.head)}, the head of the landing it would `
+      + `replace, so the checkpoint would move backwards and the judging rung would read an earlier `
+      + `deployment than the one serving`
+    : `this checkout cannot say whether ${shortSha(head)} carries ${shortSha(landing.head)}, the head of `
+      + `the landing it would replace: ${read.why}`;
+  return `claim --rebuilt over the \`${LANDING_DONE}\` checkpoint on ${ref} records a later landing, and ${why}. `
+    + `Name the head the later landing put on the branch:\n${form}`;
 };
 
 /* The states a capture writes over: its own, and the three builder's turns a new head answers, each
@@ -122,17 +174,26 @@ const readyRefused = (ref, landing) => {
 const landedOf = (landing) => [...new Set([landing.intended, landing.reconciled, landing.candidate,
   landing.head].filter(Boolean))];
 
+/** The two routes a second landing of one issue takes out of a finished checkpoint, spelled once for
+ *  every refusal that meets `done` at a status that is no rebuild (ISS-2526): a repair already on the
+ *  branch is recorded over it, and one still to land starts with the reopen and its own capture. */
+export const SECOND_LANDING = (ref, then = "") =>
+  `Where the fix already reached the branch it lands on, record that landing over this one, which `
+  + `keeps this one readable:\n  ${commandAt(REBUILT_FORM(ref, "<the sha the branch carries>"), "  ")}\n`
+  + `Where a finding sends the change back, reopen it, then capture the fix:\n  ${reopenForm(ref)}\n`
+  + `  forge claim ${ref} --pushed --ready${then}`;
+
 /* A finished landing gives way to a second one of the same issue, and never a landing in flight: the
    license is the issue's status, which says the change is being built again, and the head has to be
    one that landing did not already merge. The capture then starts the second landing whole, the
-   first one's state table being over rather than moved (ISS-2073). */
+   first one's state table being over rather than moved (ISS-2073), and keeps the first under
+   `superseded`, the verdicts taken at it being read against its identity (ISS-2526). */
 const againRefused = (ref, head, landing, status) => {
   const said = `the landing checkpoint on ${ref} reads \`${LANDING_DONE}\`, a landing that has ended`;
   if (!landsAgain(status)) {
     return `${said}, and ${ref} stands at \`${status || "no status"}\`, which is no rebuild: a second `
       + `landing begins only once the issue goes back to be built again, so --ready here would write `
-      + `the finished landing's reading away. Where a finding sends the change back, reopen it, then `
-      + `capture the fix:\n  ${reopenForm(ref)}\n  forge claim ${ref} --pushed --ready`;
+      + `the finished landing's reading away. ${SECOND_LANDING(ref)}`;
   }
   if (!landedOf(landing).some((one) => sameCommit(one, head))) return null;
   return `${said}, and --ready captures ${shortSha(head)} for a second landing, which is a commit the `
@@ -167,6 +228,8 @@ export const readyCheckpoint = (ref, holder, patch, landing, status) => {
     const refused = againRefused(ref, patch.head, landing, status);
     if (refused) fail(refused);
   } else if (landing && !CAPTURED_OVER.has(landing.state)) fail(readyRefused(ref, landing));
+  /* A capture over a builder's turn is the same landing captured again, so it carries the list on. */
+  const kept = landing?.state === LANDING_DONE ? supersededBy(landing) : landing?.[SUPERSEDED] ?? [];
   return {
     state: LANDING_READY,
     builder: holder,
@@ -175,6 +238,7 @@ export const readyCheckpoint = (ref, holder, patch, landing, status) => {
     base: patch.base,
     files: String(patch.touched ?? "").split(", ").filter(Boolean),
     at: patch.at,
+    ...(kept.length ? { [SUPERSEDED]: kept } : {}),
   };
 };
 

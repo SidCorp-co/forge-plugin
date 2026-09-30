@@ -69,11 +69,19 @@ same.
 `done` is final for the landing that wrote it and for no later one. Once a finding sends the change
 back, a second landing of the same issue needs a checkpoint of its own. The record says so: the
 issue stands at the reopen, or at the status a build stands at. So the capture at that push writes `ready` over the finished checkpoint, whole, and carries nothing of the
-first landing into the second. That record is the license, and the caller's word is not. At a status
+first landing into the second landing's own fields. That record is the license, and the caller's word is not. At a status
 past the build the finished checkpoint still refuses the capture, since nothing on the record says
 the landing it describes was superseded. A head the first landing already carries is refused
-too, since landing it again merges nothing. A reopen moves only the status, so the first landing's
-checkpoint stays readable until that capture replaces it.
+too, since landing it again merges nothing.
+
+Replaced is not removed. The verdicts taken at the first landing are read against its identity, so
+the checkpoint that replaces a finished one keeps it under `superseded`, oldest first, every one it
+already kept before it. Every landing write spreads what the reader returns under its own patch, so
+the list is one the reader declares: a key it dropped would be gone at the next move. A repair that
+reached the branch by another route has no push left to capture at, and its record is the one written
+after the landing, over the finished checkpoint the same way ([`the-reconstruction.md`](the-reconstruction.md)).
+Every refusal that meets `done` at a status that is no rebuild names both routes, the late write for
+a repair already on the branch and the reopen for one still to land.
 
 No capture arms a landing below the status a build stands at, first landing or second. The landing
 walks the statuses on from that one, so a change it merges from earlier is a release whose status

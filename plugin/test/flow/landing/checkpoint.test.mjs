@@ -435,6 +435,47 @@ test("a finished landing refuses the capture past the build, naming the reopen, 
   }
 });
 
+/* What a second landing keeps of the first. The verdicts taken at the first landing are read against
+   its identity, so the capture that replaces it keeps it whole under `superseded`, every landing
+   before it included, oldest first; and every landing write spreads what the reader returns, so the
+   list survives a move only because the reader declares it (ISS-2526). */
+const THIRD = "7c3d4e5f0000000000000000000000000000beef";
+test("a capture over a finished landing keeps it readable, and a third landing keeps both before it", () => {
+  const first = { head: "1111111000000000000000000000000000000001", branch: "iss-673-1", base: "2222222000000000000000000000000000000002",
+    files: ["one.mjs"], deployment: "3333333000000000000000000000000000000003", builder: "the-first-builder" };
+  const second = readyCheckpoint("ISS-673", "the-builder", CAPTURE, landingOf(at("done", first)), "reopen");
+  assert.equal(second.head, NEW, "the second landing's own head");
+  assert.equal(second.branch, "iss-673-6");
+  assert.equal(second.base, HANDED);
+  assert.deepEqual(second.files, ["plugin/src/flow/claim.mjs"], "and its own files, not the first's");
+  assert.equal(second.superseded.length, 1);
+  for (const name of ["head", "branch", "base", "deployment", "builder"]) {
+    assert.equal(second.superseded[0][name], first[name], `the first landing's ${name} is kept`);
+  }
+  assert.equal(second.superseded[0].state, "done");
+  assert.deepEqual(second.superseded[0].files, ["one.mjs"], "and its files");
+  /* The move `landingSaved` makes: what the reader returns, under the patch. */
+  const moved = landingOf({ landing: { ...landingOf({ landing: second }), state: "done" } });
+  assert.deepEqual(moved.superseded, second.superseded, "a later move keeps the list whole");
+  const third = readyCheckpoint("ISS-673", "the-builder", { ...CAPTURE, head: THIRD }, moved, "reopen");
+  assert.deepEqual(third.superseded.map((one) => one.head), [first.head, NEW], "both landings before it, oldest first");
+  assert.equal(third.superseded[1].superseded, undefined, "each kept as a checkpoint of its own, carrying no list");
+  assert.match(landingLine(landingOf({ landing: third })),
+    /; supersedes 2 earlier landing\(s\), the last at 5a1b2c3$/u, "the line names the landing it replaced");
+  const recaptured = readyCheckpoint("ISS-673", "the-builder", { ...CAPTURE, head: THIRD }, landingOf({ landing: { ...third, state: "head-owed" } }), "reopen");
+  assert.deepEqual(recaptured.superseded, third.superseded, "a capture over the same landing's builder turn carries the list on");
+  assert.equal(landingOf({ landing: BUILT }).superseded, undefined, "and a checkpoint that replaced nothing reads no list");
+});
+
+/* The repair a finding sent back and another route landed has no push left to capture at, so the
+   refusal at a status past the build names the write that records it beside the reopen (ISS-2526). */
+test("a capture refused over a finished landing past the build names the late write beside the reopen", async () => {
+  const past = await readyAt("done", {}, "developed");
+  assert.ok(past.includes("Where the fix already reached the branch it lands on, record that landing over this one, "
+    + "which keeps this one readable:\n  forge claim ISS-673 --rebuilt <the sha the branch carries> --deployment "
+    + "<the sha the deployment reports serving>\n  forge claim ISS-673 --rebuilt <the sha the branch carries> --undeployed\n"), past);
+});
+
 /* The records turn's review reads the landed change at whichever commit the checkpoint names for it. */
 const LANDED = { intended: "1a2b3c40000000000000000000000000000fade", candidate: "2b3c4d50000000000000000000000000000fade" };
 const reworkAt = (records) => reworkRefusal("ISS-673", NEW, landingOf(at("records-owed", LANDED)), {
@@ -463,4 +504,13 @@ test("the capture out of records-owed takes a new head only where a review of th
     ...viewOf({ review: { commit: LANDED.intended, outcome: "approved" } }), comments: [short],
   }, true);
   assert.match(again, /which is a commit the first landing already carries, so landing it again merges nothing/u, again);
+});
+
+/* The one shape the judging rung compares is held where every landing write passes, so no verb —
+   the landing's own included — can store an identity no verdict could cite (ISS-2918). */
+test("every landing write refuses a deployment that is no commit, before it reads the tracker", async () => {
+  const { landingSaved } = await import("../../../src/flow/lease.mjs");
+  const said = await refusing(() => landingSaved("the-uuid", "ISS-673", { state: "qa-owed", deployment: "hosgkccg88wsgwg840scso88" }))
+    .then(() => null, (error) => error.message);
+  assert.match(said ?? "", /cannot record `hosgkccg88wsgwg840scso88` as its deployment, which is no commit/u, said);
 });
