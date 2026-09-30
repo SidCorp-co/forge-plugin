@@ -5,7 +5,7 @@
    call owed, because only the field as the call leaves it says whether anything still holds it. */
 import { sessionOf } from "../../resolve/config.mjs";
 import { describe, leaseOf, readContext, stateOf } from "../lease.mjs";
-import { keepOnFailure } from "../../refusal.mjs";
+import { embeddedRun, keepOnFailure } from "../../refusal.mjs";
 
 /* Process state for the reason `oweRelease` gives: the move is known where it lands, and whether a
    lease outlives it only once the verb has finished, which is `plugin/src/cli.mjs`. Keyed on the
@@ -42,7 +42,10 @@ const heldLine = async (documentId, ref) => {
    drops it for the read below. */
 export const movedHere = async (documentId, ref, say) => {
   MOVED.get(documentId)?.dropped();
-  const line = await heldLine(documentId, ref);
+  /* Embedded, `fail` throws to the script that embeds the move rather than exiting, so nothing kept
+     is printed there and a line kept anyway would outlive the refusal into whatever that script
+     fails on next. The end-of-call read below still reaches the move. */
+  const line = embeddedRun() ? null : await heldLine(documentId, ref);
   MOVED.set(documentId, { ref, say, dropped: line ? keepOnFailure(line, say) : () => {} });
 };
 

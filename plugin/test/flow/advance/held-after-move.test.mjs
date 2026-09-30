@@ -27,6 +27,7 @@ const HANDED = issue("ISS-24");
 const PARKED = issue("ISS-25");
 const UNREAD = issue("ISS-26");
 const BROKEN = issue("ISS-27");
+const EMBEDDED = issue("ISS-28");
 const OTHER = "a-run-that-took-it-between";
 
 /* What the far end does to the lease field as it moves the status: nothing, or a handoff to another
@@ -39,7 +40,7 @@ const moved = new Set();
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } },
-  issues: [OWN_MOVE, RECORDED, TAIL, HANDED, PARKED, UNREAD, BROKEN],
+  issues: [OWN_MOVE, RECORDED, TAIL, HANDED, PARKED, UNREAD, BROKEN, EMBEDDED],
   comments: {
     [OWN_MOVE.documentId]: [comment(render("confirmation", CONFIRMED), 1)],
     [RECORDED.documentId]: [],
@@ -48,6 +49,7 @@ const state = {
     [PARKED.documentId]: [],
     [UNREAD.documentId]: [comment(render("confirmation", CONFIRMED), 1)],
     [BROKEN.documentId]: [],
+    [EMBEDDED.documentId]: [],
   },
   answer: {
     forge_config: () => ({ config: state.config }),
@@ -167,4 +169,23 @@ test("a call that fails past its move still ends on the line naming the lease it
   assert.ok(last.includes(`expiring ${expiryOf("ISS-27")}`), last);
   assert.match(run.stderr, /the comment store is down/u, "the refusal itself stays on stderr");
   assert.doesNotMatch(run.stderr, /held by this run/u, "and the lease line is not moved there");
+});
+
+/* A script that embeds the move — the landing's walk is one — gets a refusal thrown back rather than
+   an exit, so a line kept for the exit would be printed by whatever that script fails on next, as
+   though that later refusal had moved the issue. */
+const SRC = new URL("../../../src/", import.meta.url).pathname;
+const EMBEDS = `
+import { fail, refusing } from "${SRC}refusal.mjs";
+import { movedHere } from "${SRC}flow/lease/after-move.mjs";
+await refusing(async () => { await movedHere("${EMBEDDED.documentId}", "ISS-28", console.log); });
+fail("a later refusal, outside the embedded run");
+`;
+
+test("a move made inside an embedded run keeps no lease line for a later failure outside it", async () => {
+  await claimed("ISS-28");
+  const run = await ranAsync(process.execPath, ["--input-type=module", "-e", EMBEDS], ENV);
+  assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+  assert.match(run.stderr, /a later refusal, outside the embedded run/u, run.stderr);
+  assert.doesNotMatch(`${run.stdout}${run.stderr}`, /ISS-28 is still held/u, "the embedded move's line is not the later failure's");
 });
