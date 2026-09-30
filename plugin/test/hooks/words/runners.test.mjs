@@ -14,7 +14,8 @@ import { answered, callHook, homeEnv } from "../../fixtures.mjs";
 
 const RUNNERS = [
   "sh -c", "/bin/sh -c", "/usr/bin/bash -lc", "ash -c", "busybox sh -c", "/bin/busybox ash -c",
-  "eval", "bash -o pipefail -c", "bash --norc -c", "bash -ce", "zsh -c", "dash -c", "ksh -c",
+  "eval", "bash -o pipefail -c", "bash -eo pipefail -c", "bash +O extglob -c", "bash --norc -c", "bash -ce",
+  "zsh -c", "dash -c", "ksh -c",
 ];
 const BODY = "true; forge close ISS-1";
 
@@ -26,8 +27,10 @@ test("every runner in the table is one both readings open", () => {
   }
 });
 
+/* A bare word before `-c` that no option took is the script, and the script is what runs: the rest are its arguments. */
 test("a quoted argument to a word that runs nothing is data to both readings", () => {
-  for (const command of ["printf '%s\\n' '; forge close ISS-45'", "git commit -m \"ran sh -c 'cp a b'\"", "shell -c '; forge close ISS-45'"]) {
+  for (const command of ["printf '%s\\n' '; forge close ISS-45'", "git commit -m \"ran sh -c 'cp a b'\"", "shell -c '; forge close ISS-45'",
+    "bash -x script -c '; forge close ISS-45'"]) {
     assert.notEqual(classOf("Bash", shellOf(command)), "forge close", command);
     assert.equal(unwrapped(command), command, command);
   }

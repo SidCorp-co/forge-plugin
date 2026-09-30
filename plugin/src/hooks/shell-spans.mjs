@@ -393,8 +393,8 @@ export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
   + String.raw`|\b(?:${PREFIXES})\s+|^)`;
 
-/** A word that runs its next quoted argument as shell code: a shell at any path, through `busybox` or not, with its options before the `-c` — `-o pipefail` takes a word, so a bare word passes too — or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
-export const RUNNER = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:-\S+|[A-Za-z][\w-]*)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
+/** A word that runs its next quoted argument as shell code: a shell at any path, through `busybox` or not, with its options before the `-c` — a bare word only as the value `-o` or `+o` takes, since `bash -x script -c '…'` runs the script and hands it the rest — or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
+export const RUNNER = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 
 /** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option, and both read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow `-o` or `-O`, and only the long spellings keep one, which is what leaves `--outputting` the unknown option curl refuses rather than a write. how/writes.md. */
 export const WRITES = new RegExp(
