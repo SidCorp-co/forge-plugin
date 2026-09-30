@@ -6,15 +6,14 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
-  readdirSync,
   renameSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
+import { reap } from "../rooms/reap.mjs";
 import { BORROW_VAR, borrowing, isBorrowed, overlaid, refuseBorrowedWrite } from "./machine/borrowed.mjs";
 import { idGrantedBy } from "./session/granted-id.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runHeldWhere } from "./session/run-id.mjs";
@@ -71,18 +70,10 @@ export const borrowRoute = (scratch) => `XDG_CONFIG_HOME=${homeIn(scratch)} ${BO
 /* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. The temporary name carries the writer's pid: two processes sharing one would interleave a file the survivor then renames into place, and a writer killed before its rename leaves a file nothing reuses. The next write sweeps it, there being nothing else here that runs to clean up. */
 const STRANDED_MS = 60_000;
 
+/* The directory is shared with `config.json` and every other file kept here, so only this path's own temp files are judged. */
 const sweepStranded = (path) => {
-  const room = dirname(path);
   const mine = basename(path);
-  try {
-    for (const name of readdirSync(room)) {
-      if (!name.startsWith(`${mine}.`) || !name.endsWith(".tmp")) continue;
-      const full = join(room, name);
-      if (Date.now() - statSync(full).mtimeMs > STRANDED_MS) rmSync(full, { force: true });
-    }
-  } catch {
-    /* a directory that cannot be read holds nothing this can clean */
-  }
+  reap(dirname(path), STRANDED_MS, Date.now(), { only: (name) => name.startsWith(`${mine}.`) && name.endsWith(".tmp") });
 };
 
 export const writeJsonPrivate = (path, value) => {
