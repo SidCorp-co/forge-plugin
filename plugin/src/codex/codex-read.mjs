@@ -103,7 +103,7 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   if (readWhole(mine, sha)) return { refusal: null, text };
   const configured = !gateway().problem;
   const failed = configured ? failedWhole(entries, held.real, sha) : null;
-  const { state, reason } = consultState({ read: false, failed, gateway: configured });
+  const { state, reason } = consultState({ failed, gateway: configured });
   if (passesUnread(state, codexConsultAt(root ?? cwd).value)) return { refusal: null, text, unread: reason };
   const lead = state === FAILED || state === NO_GATEWAY ? `${gatewaySaid(held.rel, state, reason)}\n\n` : "";
   if (!root) {

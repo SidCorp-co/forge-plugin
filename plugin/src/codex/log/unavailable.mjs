@@ -5,7 +5,6 @@
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { isAnswered } from "../codex-log.mjs";
 
-const READ = "read";
 export const FAILED = "failed";
 export const NO_GATEWAY = "no-gateway";
 const UNASKED = "unasked";
@@ -24,12 +23,11 @@ const failedReason = (one) => {
   return `gateway unavailable (${said})${one.id ? `, consult ${one.id}` : ""}`;
 };
 
-/** One file's state. `read` is the caller's own answer to whether a consult read these bytes, the
- *  writes and the doors meaning different things by it; `failed` is the newest row that carried the
- *  file at the bytes it holds now and got nothing back; `gateway` is whether one is configured. With
- *  no gateway no consult can be asked for, so no file there is unasked. */
-export const consultState = ({ read, failed, gateway }) => {
-  if (read) return { state: READ, reason: null };
+/** The state of one file no consult read, each caller having asked that of its own key first: `failed`
+ *  is the newest row that carried the file at the bytes it holds now and got nothing back; `gateway`
+ *  is whether one is configured. With no gateway no consult can be asked for, so no file there is
+ *  unasked. */
+export const consultState = ({ failed, gateway }) => {
   if (!gateway) return { state: NO_GATEWAY, reason: NO_GATEWAY_REASON };
   if (failed) return { state: FAILED, reason: failedReason(failed) };
   return { state: UNASKED, reason: null };
