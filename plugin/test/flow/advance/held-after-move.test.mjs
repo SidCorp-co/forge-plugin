@@ -26,18 +26,20 @@ const TAIL = issue("ISS-23");
 const HANDED = issue("ISS-24");
 const PARKED = issue("ISS-25");
 const UNREAD = issue("ISS-26");
+const BROKEN = issue("ISS-27");
 const OTHER = "a-run-that-took-it-between";
 
 /* What the far end does to the lease field as it moves the status: nothing, or a handoff to another
    run landing in the same breath; and whether the read after the move is answered at all. */
 const handoffOn = new Set([HANDED.documentId]);
 const unreadAfterMove = new Set([UNREAD.documentId]);
+const refusesComments = new Set([BROKEN.documentId]);
 const moved = new Set();
 
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } },
-  issues: [OWN_MOVE, RECORDED, TAIL, HANDED, PARKED, UNREAD],
+  issues: [OWN_MOVE, RECORDED, TAIL, HANDED, PARKED, UNREAD, BROKEN],
   comments: {
     [OWN_MOVE.documentId]: [comment(render("confirmation", CONFIRMED), 1)],
     [RECORDED.documentId]: [],
@@ -45,6 +47,7 @@ const state = {
     [HANDED.documentId]: [comment(render("confirmation", CONFIRMED), 1)],
     [PARKED.documentId]: [],
     [UNREAD.documentId]: [comment(render("confirmation", CONFIRMED), 1)],
+    [BROKEN.documentId]: [],
   },
   answer: {
     forge_config: () => ({ config: state.config }),
@@ -68,6 +71,7 @@ const state = {
     },
     forge_comments: (args) => {
       if (args.action !== "list") {
+        if (refusesComments.has(args.data.issue) && moved.has(args.data.issue)) return { refused: "Error: the comment store is down" };
         const one = { documentId: `made-${state.calls.length}`, createdAt: new Date().toISOString(),
           authorId: "agent", authorDeviceId: "a-device", body: args.data.body };
         (state.comments[args.data.issue] ??= []).push(one);
@@ -150,4 +154,14 @@ test("a lease that does not read back after the move is said to be unread, with 
   const last = lastLine(run.stdout);
   assert.ok(last.startsWith("whether ISS-26 is still held after the move could not be read: "), run.stdout);
   assert.ok(last.endsWith("Read it: forge issue ISS-26 --fields sessionContext"), last);
+});
+
+test("a call that fails past its move still ends on the line naming the lease it left standing", async () => {
+  await claimed("ISS-27");
+  const run = await ranAsync(FORGE, ["advance", "ISS-27", "--park", "dropped", "--why", "the fixture drops it"], ENV);
+  assert.notEqual(run.status, 0, `the park record was refused, so the call fails:\n${run.stdout}\n${run.stderr}`);
+  assert.equal(state.issues.find((one) => one.issueId === "ISS-27").status, "dropped", "past a move that landed");
+  const last = lastLine(run.stderr);
+  assert.match(last, /^ISS-27 is still held by this run after the move: session \S+ /u, run.stderr);
+  assert.ok(last.includes(`expiring ${expiryOf("ISS-27")}`), last);
 });
