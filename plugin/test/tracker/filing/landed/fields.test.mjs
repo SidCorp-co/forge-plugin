@@ -1,13 +1,13 @@
 /* The read-back of a filing, held against the create it read back: what the row stores in place of
    what was sent is said on the last line, beside the id, and nothing of it refuses the filing. The
-   ladder of what the read itself answered is `landed.test.mjs`'s. */
+   ladder of what the read itself answered is `reads.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
-import { OWN } from "../../fixtures/own-project.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../../fixtures.mjs";
+import { OWN } from "../../../fixtures/own-project.mjs";
 
 const state = { issues: [], comments: {}, calls: [], memory: {}, answer: {} };
 const tracker = await fakeTracker(state);
@@ -18,9 +18,9 @@ test.after(() => tracker.close());
 
 /* Set before the module loads: `settings()` resolves the endpoint out of this directory once. */
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
-const { issueLanded } = await import("../../../src/tracker/filing/landed.mjs");
+const { issueLanded } = await import("../../../../src/tracker/filing/landed.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("landed-fields").path;
 
 const before = () => {

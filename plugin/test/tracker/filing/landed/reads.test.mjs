@@ -7,8 +7,8 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
-import { OWN } from "../../fixtures/own-project.mjs";
+import { escaped, fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../../fixtures.mjs";
+import { OWN } from "../../../fixtures/own-project.mjs";
 
 const state = { issues: [], comments: {}, calls: [], memory: {}, answer: {} };
 const tracker = await fakeTracker(state);
@@ -22,9 +22,9 @@ test.after(() => tracker.close());
 
 /* Set before the modules load: `settings()` resolves the endpoint out of this directory once. */
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
-const { commentLanded, issueLanded, sayLanded } = await import("../../../src/tracker/filing/landed.mjs");
+const { commentLanded, issueLanded, sayLanded } = await import("../../../../src/tracker/filing/landed.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("landed").path;
 
 const ISSUE = { issueId: "ISS-800", documentId: "uuid-800", status: "open", title: "the reply of a write names what it wrote" };

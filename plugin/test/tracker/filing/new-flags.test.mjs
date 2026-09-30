@@ -246,7 +246,7 @@ test("a rank the filer typed is what is written, and the reply says it was their
   assert.equal(run.status, 0, run.stderr);
   assert.equal(state.calls.find((one) => one.args.action === "create").args.data.priority, "high");
   /* This tracker answers a create without storing it, so nothing read the rank back and the line
-     claims no more than that it was asked; the read-back that held it is landed-fields.test.mjs's. */
+     claims no more than that it was asked; the read-back that held it is landed/fields.test.mjs's. */
   assert.match(run.stdout, /is filed, priority high, asked and not read back\.$/mu);
 });
 
