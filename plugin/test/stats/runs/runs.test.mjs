@@ -242,6 +242,9 @@ test("one class per shape of work, whatever way it was typed", () => {
     ["bash -c 'echo '$(printf x)'; npm run check'", "gate"],
     ["bash -o pipefail -c 'echo ready; npm run check'", "gate"],
     ["bash -c 'echo '$( (printf x) )'; npm run check'", "gate"],
+    /* A runner the gates knew and this reading did not, and the one it reached by its boundary (ISS-1836). */
+    ["eval 'true; forge close ISS-1'", "forge close"],
+    ["busybox sh -c 'true; forge close ISS-1'", "forge close"],
   ]) {
     assert.equal(classOf("Bash", shellOf(command)), expected, command);
   }
