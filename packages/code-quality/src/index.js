@@ -93,7 +93,7 @@ export const DEFAULT_TEST_GLOBS = [
 ];
 
 const plugin = {
-  meta: { name: "eslint-plugin-code-quality", version: "0.16.3" },
+  meta: { name: "eslint-plugin-code-quality", version: "0.16.4" },
   rules: {
     "no-historical-narration": noHistoricalNarration,
     "comment-density": commentDensity,
