@@ -193,7 +193,7 @@ test("a redirect continued onto the next line is the one word the shell joins", 
   const tokens = (text) => writtenPaths(text, room).map((one) => one.token);
   assert.deepEqual(tokens(continued), ["/home/dev/p/memory/trap.md"]);
   assert.deepEqual(tokens(continued.replace(">", ">>")), ["/home/dev/p/memory/trap.md"], "appended as well");
-  assert.deepEqual(redirectsIn(continued), [{ at: 6, target: "/home/dev/p\\\n/memory/trap.md" }],
+  assert.deepEqual(redirectsIn(continued), [{ at: 6, from: 9, to: 37, target: "/home/dev/p\\\n/memory/trap.md" }],
     "the redirect's target spans both lines");
   assert.ok(!tokens("echo x > '/home/dev/p\\\n/memory/trap.md'").includes("/home/dev/p/memory/trap.md"),
     "and under a single quote a backslash-newline is two characters of the word, never a continuation");

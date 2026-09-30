@@ -369,11 +369,12 @@ const operative = (text) => {
   return out.join("");
 };
 
-/** Each redirect a shell would make, with where it stands and its target as the command wrote it: a `>` that is data opens none, and the target is sliced from the given text so a quoted one keeps its quotes. how/writes.md. */
+/** Each redirect a shell would make, with where it stands, where its target starts and ends, and that target as the command wrote it: a `>` that is data opens none, and the target is sliced from the given text so a quoted one keeps its quotes. how/writes.md. */
 export const redirectsIn = (text) =>
   [...operative(text).matchAll(REDIRECT)].map((one) => {
-    const end = one.index + one[0].length;
-    return { at: one.index, target: text.slice(end - one[1].length, end) };
+    const to = one.index + one[0].length;
+    const from = to - one[1].length;
+    return { at: one.index, from, to, target: text.slice(from, to) };
   });
 
 /* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of an option `FETCHES` declares, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
@@ -561,7 +562,7 @@ const aimedIn = (text, stage, kept, bare) => {
   return operands.filter((one) => one.from !== script?.from);
 };
 
-/** The spellings a shell-level text writes through that no spelling in it produces: a redirect's target, a write verb's own target, and a stage whose names `xargs`, `-exec` or `{}` hand over. A character counts only where the shell expands it, which is the quoting walk's to say: a `$` under a single quote or a backslash is text, a pattern under either quote is text, and a `>` under one is no redirect. A program body is the caller's to have taken out, being its interpreter's text and not the shell's. how/writes.md. */
+/** The spellings a shell-level text writes through that no spelling in it produces: a redirect's target, a write verb's own target, and a stage whose names `xargs`, `-exec` or `{}` hand over. A character counts only where the shell expands it, which is the quoting walk's to say: a `$` under a single quote or a backslash is text, a pattern under either quote is text, and a redirect is one only where `redirectsIn` finds it. A program body is the caller's to have taken out, being its interpreter's text and not the shell's. how/writes.md. */
 export const unseenNames = (text) => {
   const under = underOf(text);
   const bare = text.split("").map((one, at) => (under[at] === " " ? one : "_")).join("");
@@ -580,7 +581,7 @@ export const unseenNames = (text) => {
   const say = (from, to) => {
     if (!DEVICE.test(text.slice(from, to)) && built(from, to)) found.push(text.slice(from, to));
   };
-  for (const one of bare.matchAll(REDIRECT)) say(one.index + one[0].length - one[1].length, one.index + one[0].length);
+  for (const { from, to } of redirectsIn(text)) say(from, to);
   const kept = struck(text, { unplaceable: "strike" });
   for (const stage of spans(text, { pipes: true })) {
     const plain = bare.slice(stage.start, stage.end);
