@@ -396,6 +396,10 @@ are always the owner's.
 - **AC-06-8-7** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "a question this gate decided never joins the layer when the transcript holding it is read"
   IF a question was answered in the owner's place THEN the CLI SHALL never take that answer as the
   owner's precedent.
+- **AC-06-8-8** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "a declared question in a language the screen cannot read reaches the owner before any precedent is read"
+  IF a declared question is written in a language the screen for the owner's subjects cannot read
+  THEN the CLI SHALL leave it to the owner, because a subject the screen never read is not one it
+  has cleared.
 
 ### UC-06-9 — A run knows how many whole-set reads it has taken, and at which heads
 

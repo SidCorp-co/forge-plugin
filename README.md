@@ -179,7 +179,8 @@ they do not, and `one-by-one` lands every member alone. `node tools/run.mjs -h` 
 `asks.mode` is `decide` where a question this project's sessions declare reversible may be answered
 from the owner's own earlier answers instead of stopping the session, and `off` unless set — any
 other value reads as `off` too, and then nothing is read, built or logged. `asks.owner` adds terms to
-the subjects that always go to the owner; it cannot remove the built-in ones. `forge hooks --how
+the subjects that always go to the owner; it cannot remove the built-in ones, which are read in
+English and Vietnamese, and a question in any other language goes to the owner. `forge hooks --how
 ask-decide` says how a question declares itself and where each decision is logged.
 
 `runs` is how many runs this project carries at once, whoever dispatched them, and absent it
