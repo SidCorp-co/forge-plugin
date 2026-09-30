@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import { cleanRepo, escaped, fakeTracker, neutralRoom, projectEntry, projectRecord, projectRoom,
   ranAsync, tempHome } from "../../fixtures.mjs";
@@ -228,4 +229,17 @@ test("a project write beside a machine key is refused, and neither half is writt
     assert.match(run.stderr, /two stores and two calls/u);
   }
   assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
+});
+
+/* The surfaces that told a reader the facts were a resource of this report: none of them may still
+   offer the route, or a reader follows it into the refusal above. */
+test("the doctor's help, the full help and the doctor page name no route into the retired facts", async () => {
+  const page = readFileSync(fileURLToPath(new URL("../../../../docs/cli/doctor.md", import.meta.url)), "utf8");
+  const project = await ask("project", "-h");
+  const full = await ranAsync(FORGE, ["-h", "--full"], tracker.env, ROOT);
+  for (const [said, text] of [["forge doctor project -h", project.stdout], ["forge -h --full", full.stdout],
+    ["docs/cli/doctor.md", page]]) {
+    assert.ok(text.length > 200, `${said} printed nothing to judge`);
+    assert.doesNotMatch(text, /`fact\.<k>`|project-facts|projectFacts/u, `${said} still offers the facts`);
+  }
 });

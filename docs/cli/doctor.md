@@ -93,7 +93,7 @@ got yet is created.
 
 Project prose is not a key of this report. The tracker retired its project facts into the knowledge
 store, whose entry carries a kind, a title and an injection a `key=value` has no slot for, so that
-store's own verb is its one writer and `fact.<k>` is refused naming it.
+store's own verb is its one writer and the prefix that once reached the facts is refused naming it.
 
 Why three states of a declared package are silence: [the package row](the-package-row.md).
 
