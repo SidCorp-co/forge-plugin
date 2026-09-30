@@ -95,20 +95,10 @@ their own words, all of them end with *do not send this call again*, and the exi
 of them. The refusals a filing route still makes are the tracker's own: a create it rejects and a
 fold whose comment write it rejects, neither of which this reader is reached from.
 
-**The row read back is held against the create that was sent, field by field.** A tracker may store
-something other than what it was asked: a project's intake gate files a would-be `open` issue at
-`draft`, and a reply that confirmed the id alone read exactly like one that landed as asked, so the
-filer believed queued work was dispatchable (ISS-2917). Every field of the payload is compared, and
-each one stored otherwise is named beside the id with both values; a field the read does not carry is
-named as not compared rather than passed. Three choices sit under that. The description is said to
-have been rewritten and never printed, because the tracker's own sanitiser is the usual cause and a
-body twice over buries the id. An edge or a label the tracker added beyond what was sent is no
-difference, since what is judged is whether the filer's own asks landed. And the intake gate is named
-as the cause only on the evidence the row itself carries — `open` asked, `draft` stored and the
-`intake` label the gate attaches before the create answers — so a project that never declared a gate
-is never told it has one. The read is taken before a proposal writes the rank and size onto the new
-row, since read after it the proposal would be reported as the tracker storing something else, and
-the filed-as line says `as given` only where that read held the rank typed.
+**The row read back is held against the create sent, field by field** (ISS-2917): a project's
+intake gate filing `open` at `draft` read exactly like a filing that landed as asked. Each field
+stored otherwise is named with both values, one the read does not carry as not compared, and a
+description as rewritten and never printed. The gate is named only on the row's own evidence.
 
 A comment page is the weaker read of the two on purpose: `forge_comments` has no get, and its list
 serves a window at a time with a count nobody here holds it to, so `hasMore` false is the only

@@ -42,8 +42,10 @@ const noId = (what, answer) => {
 /* What the tracker stores in place of what a create asked for, one field of the payload at a time.
    The labels are the module's half and judged by `carriesPrimary`; an edge is looked for under every
    kind the row groups its edges in, since a bucket name is the tracker's and the edge's own kind is
-   what was sent. Why a field is compared at all, and why the description's words never come back:
-   docs/cli/filing.md. */
+   what was sent. An edge or label the tracker added beyond those is no difference: what is judged is
+   whether the filer's own asks landed. The description is never printed back, its usual rewriter
+   being the tracker's sanitiser and a body twice over burying the id. Why a field is compared at
+   all: docs/cli/filing.md. */
 const INTAKE = "intake";
 const SCALAR = new Set(["string", "number", "boolean"]);
 
@@ -76,6 +78,8 @@ const storedOtherwise = (sent = {}, back = {}) => {
 /* A one-word value bare, as a status or a rank reads in a sentence, and anything else quoted so its edges show. */
 const shown = (value) => (typeof value === "string" && /^\S+$/u.test(value) ? value : JSON.stringify(value));
 
+/* Only on `open` asked, `draft` stored and the label the gate attaches before the create answers,
+   so a project that declared no gate is never told it has one. */
 const gated = (move, back) => move.asked === "open" && move.stored === "draft"
   && (back.labels ?? []).some((one) => one?.name === INTAKE);
 
