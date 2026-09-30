@@ -3,9 +3,9 @@
    that did not already distrust the verb had nothing to notice (ISS-1750). Said by the call that
    moved it rather than written as a comment: the tracker announces every transition on the page
    itself, and the reader who needed the sentence is the caller holding the reply. */
-import { CITED } from "../guides/phases.mjs";
-import { releaseAnswer } from "../tracker/project-config.mjs";
-import { CLOSES_AT } from "./earned.mjs";
+import { CITED } from "../../guides/phases.mjs";
+import { releaseAnswer } from "../../tracker/project-config.mjs";
+import { CLOSES_AT } from "../earned.mjs";
 
 const listed = (kinds) =>
   (kinds.length < 2 ? kinds.join("") : `${kinds.slice(0, -1).join(", ")} and ${kinds.at(-1)}`);
