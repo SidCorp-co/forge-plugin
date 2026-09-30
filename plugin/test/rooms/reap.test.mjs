@@ -95,20 +95,22 @@ test("keeping a brief removes a session's directory past ten minutes, with what 
   assert.equal(readdirSync(join(briefs, "this-session")).length, 1, "and the brief being kept is written");
 });
 
-test("a config write sweeps its own path's stranded temp files and no other file of the directory", () => {
+/* The write reads the clock itself, so the clock is held still: the bound is then a millisecond, not a race. */
+test("a config write sweeps its own path's stranded temp files and no other file of the directory", (t) => {
   const room = join(process.env.XDG_CONFIG_HOME, "forge");
-  const now = Date.now();
+  const now = NOW;
+  t.mock.method(Date, "now", () => now);
   const target = join(room, "swept.json");
-  const stranded = planted(room, "swept.json.999999.tmp", 61_000, now);
-  const busy = planted(room, "swept.json.999998.tmp", 30_000, now);
+  const stranded = planted(room, "swept.json.999999.tmp", 60_000, now);
+  const busy = planted(room, "swept.json.999998.tmp", 59_999, now);
   const others = [
     planted(room, "config.json", DAY * 30, now),
     planted(room, "other.json.999997.tmp", DAY * 30, now),
     planted(room, "swept.json.999996.bak", DAY * 30, now),
   ];
   writeJsonPrivate(target, { a: 1 });
-  assert.equal(existsSync(stranded), false, "a temp file a minute old is a killed writer's");
-  assert.equal(existsSync(busy), true, "one younger than that may be a write in progress");
+  assert.equal(existsSync(stranded), false, "a temp file exactly a minute old is a killed writer's");
+  assert.equal(existsSync(busy), true, "one a millisecond younger may be a write in progress");
   for (const one of others) assert.equal(existsSync(one), true, `${one} is not this path's temp file`);
   assert.deepEqual(JSON.parse(readFileSync(target, "utf8")), { a: 1 });
 });
