@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.4 - 2026-09-30
+
+### Changed
+
+- The edit hook tests the extension before it reads anything, so an edit to a file it does not lint,
+  a `.md` or a `.json`, makes no filesystem call at all where it made four. A file it does lint has
+  its path made absolute once and the session's directory resolved to its real path once, where each
+  was done twice. Which files are linted, by which configuration, and what the hook reports are
+  unchanged.
+
 ## 0.16.3 - 2026-09-29
 
 ### Fixed
