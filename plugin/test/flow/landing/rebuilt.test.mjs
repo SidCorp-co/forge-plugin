@@ -530,12 +530,14 @@ test("a deployment named wrong is corrected at the same head, and the wrong one 
 });
 
 /* The help is where a run meeting `done` after a second landing looks first, and it named neither
-   route out of it, nor what `--deployment` takes (ISS-2526, ISS-2918, ISS-2608). */
-test("the claim help names what --deployment takes, the builder the late write names, and both routes out of done", async () => {
+   route out of it, nor that `--deployment` takes a commit (ISS-2526, ISS-2918, ISS-2608). The help
+   is at its size cap, so it names only the two flags that reach `done`; the routes in full are the
+   refusal's, pinned in `landed.test.mjs`. */
+test("the claim help names what --deployment takes, and that --rebuilt and --ready both reach done", async () => {
   const run = await ran(["claim", "-h"], AWAY);
   assert.equal(run.status, 0, run.stderr);
   const said = run.stdout.replace(/\s+/gu, " ");
-  assert.ok(said.includes("--rebuilt sha --deployment sha|--undeployed a late checkpoint, where none stands or over `done`, for a landing the branch already carries; --deployment is the commit the deployment reports serving, and where the claim history names one run that built the change that run is written as the builder"), said);
-  assert.ok(said.includes("A second landing leaves `done` by one of two routes. A repair already on the branch is recorded over it with --rebuilt; one still to land is reopened (`forge advance <ref> --reopen`), then --pushed --ready, then --landed."), said);
-  assert.ok(said.includes("--ready with --pushed: `ready`, from any builder's turn too, and over `done` once the issue is back to be built, the first landing kept under `superseded`"), said);
+  assert.ok(said.includes("[--rebuilt sha --deployment sha|--undeployed]"), said);
+  assert.ok(said.includes("--rebuilt sha --deployment sha|--undeployed a late checkpoint, or over `done`"), said);
+  assert.ok(said.includes("--ready with --pushed: `ready`, from a builder's turn or `done`"), said);
 });
