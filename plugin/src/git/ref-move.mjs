@@ -6,8 +6,8 @@ import { canonical } from "../resolve/canonical.mjs";
 import { gitProbe, probeMs } from "../hooks/git-probe.mjs";
 import { NOWHERE } from "../hooks/shell-spans.mjs";
 
-/* A shell word, adjacent quoted and bare fragments joined as the shell joins them: `'refs/heads/'main`. */
-const WORDS = /(?:"[^"]*"|'[^']*'|[^\s"'])+/gu;
+/* A shell word, adjacent quoted, substituted and bare fragments joined as the shell joins them: `'refs/heads/'main`. */
+const WORDS = /(?:"[^"]*"|'[^']*'|\$\([^)]*\)|`[^`]*`|[^\s"'`])+/gu;
 const FRAGMENT = /"([^"]*)"|'([^']*)'/gu;
 const REDIRECTION = /^\d*[<>]{1,2}(?:&\d)?$/u;
 const VALUED = new Set(["-m"]);
@@ -79,6 +79,16 @@ const UNPLACED = {
     + "cannot be read from the command, so whether it does cannot be read either.",
 };
 
+/* A word the shell builds before git sees it, which this reading cannot resolve without running it. */
+const EXPANDS = /[$`]/u;
+const unspelt = (word) => ({
+  instead: `Spell \`${word}\` out as the value it holds, so what the call moves can be read.`,
+  cause:
+    "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree has "
+    + `checked out leaves that tree's files at the old commit. \`${word}\` is built by the shell, so `
+    + "which ref or commit it names cannot be read from the command.",
+});
+
 const STDIN = {
   instead:
     "Move each ref with its own `git update-ref <ref> <new> [<old>]` call, which this guard can read.",
@@ -117,6 +127,20 @@ const targetOf = (ask, ref) => {
   return { unread: `git did not say which ref \`${ref}\` names` };
 };
 
+/* The trees standing on `ref`, a dereferenced name: the branch's, or for `HEAD` the tree the call runs in. */
+const standingOn = (ask, tree, ref) => {
+  const listed = ask(["worktree", "list", "--porcelain"]);
+  if (listed?.status !== 0) return { unread: "`git worktree list --porcelain` gave no listing of the trees that could be standing on it" };
+  const entries = worktreesOf(listed.out);
+  const top = ask(["rev-parse", "--show-toplevel"]);
+  const here = top?.status === 0 ? canonical(top.out.trim()) : null;
+  if (ref !== "HEAD") return { here, standing: entries.filter((one) => one.branch === ref) };
+  if (ask(["rev-parse", "--is-bare-repository"])?.out.trim() === "true") return { here, standing: [] };
+  if (!here) return { unread: `git did not say which work tree ${tree} is` };
+  const standing = entries.filter((one) => canonical(one.worktree) === here);
+  return standing.length ? { here, standing } : { unread: `no worktree git listed is ${here}, where the call runs` };
+};
+
 /** Null where the call leaves no checked-out tree behind, else the refusal's `{ instead, cause }`.
  *  `tree` is where the command runs, `NOWHERE` where the text does not say; `left` is the ms remaining. */
 export const refMoveIn = (rest, tree, left) => {
@@ -130,30 +154,23 @@ export const refMoveIn = (rest, tree, left) => {
   if (repo.status !== 0) return null;
   if (call.stdin) return STDIN;
   if (call.value === null) return null;
+  if (EXPANDS.test(call.ref)) return unspelt(call.ref);
   const target = call.deref ? targetOf(ask, call.ref) : { ref: call.ref };
   if (target.unread) return unread(target.unread);
   if (!judged(target.ref)) return null;
+  const on = standingOn(ask, tree, target.ref);
+  if (on.unread) return unread(on.unread);
+  if (!on.standing.length) return null;
+  if (EXPANDS.test(call.value)) return unspelt(call.value);
   const to = ask(["rev-parse", "--verify", "--quiet", `${call.value}^{commit}`]);
   if (!to) return unread(`git did not say in time which commit \`${call.value}\` names`);
   if (to.status !== 0) return null;
   const sha = to.out.trim();
-  const listed = ask(["worktree", "list", "--porcelain"]);
-  if (listed?.status !== 0) return unread("`git worktree list --porcelain` gave no listing of the trees that could be standing on it");
-  const entries = worktreesOf(listed.out);
-  const top = ask(["rev-parse", "--show-toplevel"]);
-  const here = top?.status === 0 ? canonical(top.out.trim()) : null;
-  let standing = entries.filter((one) => one.branch === target.ref);
-  if (target.ref === "HEAD") {
-    if (ask(["rev-parse", "--is-bare-repository"])?.out.trim() === "true") return null;
-    if (!here) return unread(`git did not say which work tree ${tree} is`);
-    standing = entries.filter((one) => canonical(one.worktree) === here);
-    if (!standing.length) return unread(`no worktree git listed is ${here}, where the call runs`);
-  }
   const hits = [];
-  for (const entry of standing.filter((one) => one.HEAD !== sha)) {
+  for (const entry of on.standing.filter((one) => one.HEAD !== sha)) {
     const paths = staleIn(entry, sha, ask);
     if (!paths) return unread(`the paths that differ between ${short(entry.HEAD)} and ${short(sha)} in ${entry.worktree} could not be listed`);
     hits.push({ entry, paths });
   }
-  return hits.length ? moved(hits, sha, here) : null;
+  return hits.length ? moved(hits, sha, on.here) : null;
 };

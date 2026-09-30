@@ -81,6 +81,21 @@ test("a branch spelt in joined quoted fragments, or reached through a symbolic r
     "and a literal ref outside refs/heads moves no tree wherever it runs");
 });
 
+test("a ref or commit the shell builds is refused until spelt out, and a redirect is no operand", () => {
+  const repo = shared();
+  const to = repo.head(repo.side);
+  const built = decide(`BRANCH=master; SHA=${to}; git update-ref refs/heads/$BRANCH $SHA`, repo.side);
+  assert.equal(built.allowed, false);
+  assert.match(built.reason, /^Refused — spell `refs\/heads\/\$BRANCH` out/u);
+  const sha = decide("git update-ref refs/heads/master $(git rev-parse side)", repo.side);
+  assert.equal(sha.allowed, false);
+  assert.match(sha.reason, /^Refused — spell `\$\(git rev-parse side\)` out/u);
+  assert.equal(decide("git update-ref refs/heads/idle $SHA", repo.side).allowed, true, "no tree stands on idle");
+  const traced = decide(`git update-ref 2>/tmp/trace refs/heads/master ${to}`, repo.side);
+  assert.equal(traced.allowed, false);
+  assert.ok(traced.reason.includes(`checked out at ${repo.main}`), traced.reason);
+});
+
 test("moving HEAD moves the tree the call runs in, with or without --no-deref", () => {
   const repo = shared();
   for (const form of ["", "--no-deref "]) {
@@ -130,12 +145,12 @@ test("a transaction on stdin is refused, routed to one call per ref", () => {
   assert.equal(decide("git update-ref --stdin < moves.txt", tempRoom("not-a-repo-")).allowed, true, "outside a repository");
 });
 
-/* A `git` on PATH that fails the one reading named, as git would answer it, and runs every other. */
-const failing = (subcommand) => {
+/* A `git` on PATH that fails the one reading named, answering as git would or never answering, and runs every other. */
+const failing = (subcommand, does = 'echo "fatal: failed" >&2; exit 128') => {
   const bin = tempRoom("failing-git-");
   const real = process.env.PATH;
   const script = join(bin, "git");
-  writeFileSync(script, `#!/bin/sh\nfor a in "$@"; do [ "$a" = "${subcommand}" ] && { echo "fatal: failed" >&2; exit 128; }; done\n`
+  writeFileSync(script, `#!/bin/sh\nfor a in "$@"; do [ "$a" = "${subcommand}" ] && { ${does}; }; done\n`
     + `PATH="${real}" exec git "$@"\n`);
   chmodSync(script, 0o755);
   return { ...HOME, PATH: `${bin}:${real}` };
@@ -147,6 +162,9 @@ test("a worktree listing or a stale-path reading that fails refuses, saying whic
   const unlisted = decide(move, repo.side, failing("worktree"));
   assert.equal(unlisted.allowed, false);
   assert.match(unlisted.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
+  const silent = decide(move, repo.side, failing("worktree", "exec sleep 30"));
+  assert.equal(silent.allowed, false, "a listing that never answers is no listing");
+  assert.match(silent.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
   const undiffed = decide(move, repo.side, failing("diff"));
   assert.equal(undiffed.allowed, false);
   assert.match(undiffed.reason, /could not be read: the paths that differ between [0-9a-f]{7} and [0-9a-f]{7}/u);
