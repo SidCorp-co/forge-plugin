@@ -187,3 +187,22 @@ test("the owed read says, before any judging, whether this caller's verdict woul
   assert.match(inherited.stdout, /FORGE_SESSION_ID=<an id of its own> forge advance ISS-7 --owed/u,
     "criterion 10: with the command that sets one");
 });
+
+/* At a park answered by a comment the tracker itself reopens the issue on any comment, so a judge's
+   verdict there would move a status no lease-less write may move. */
+test("a judge's verdict at a park a comment answers is refused before anything is sent", async () => {
+  const [before, sent] = [posted(), uploads()];
+  for (const status of ["waiting", "needs_info"]) {
+    ISSUE.status = status;
+    const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+      "--criterion", "1", "--verdict", "pass");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, new RegExp(`ISS-7 is ${status} under another run's lease, and at that status the tracker reads a comment as the reply`, "u"),
+      `${status}: the refusal says why:\n${run.stderr}`);
+    assert.equal(ISSUE.status, status, `${status}: the status did not move`);
+  }
+  ISSUE.status = "developed";
+  assert.equal(posted(), before, "nothing was posted");
+  assert.equal(uploads(), sent, "and nothing was sent");
+  assert.deepEqual(ISSUE.sessionContext.lease, LEASE, "and the lease is as it stood");
+});

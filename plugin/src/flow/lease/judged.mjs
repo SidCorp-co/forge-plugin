@@ -2,6 +2,7 @@
    itself. The lease guards the writes that replace something — a field, a status, the lease itself —
    and a verdict replaces nothing, so a judge dispatched while its dispatcher holds the issue writes
    it without taking, renewing or waiting out that lease (ISS-1494). docs/cli/record.md. */
+import { answersByComment } from "../earned/park-status.mjs";
 import { ASKED, WORKTREE, sessionSourced } from "../../resolve/config.mjs";
 import { thisCall } from "../../resolve/flags.mjs";
 import { RUN_ID_VAR } from "../../resolve/session/run-id.mjs";
@@ -35,6 +36,16 @@ export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced
   if (!kinds.length || kinds.some((kind) => kind !== VERDICT)) return null;
   const lease = standing(body?.sessionContext, held);
   if (!lease) return null;
+  /* There the tracker reads any comment as the reply to the park and reopens the issue, which is a
+     status moved by a write that may move none. */
+  if (answersByComment(body?.status)) {
+    return {
+      refused: `record verdict: ${ref} is ${body.status} under another run's lease, and at that status the `
+        + `tracker reads a comment as the reply to its park and reopens the issue, so a judge's verdict `
+        + `would move a status a judge's write may not. Nothing was sent. The park is the holder's to `
+        + `answer, ${lease.holder}'s; what it waits on:\n  forge advance ${ref} --owed`,
+    };
+  }
   if (!OWN.includes(held.source)) {
     return {
       refused: `${ref} is held by another run: ${describe(lease)}. A verdict is the one record `
