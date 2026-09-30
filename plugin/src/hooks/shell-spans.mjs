@@ -257,10 +257,12 @@ const KEY = /^[^/=:]*[=:](?:~|\.{0,2})\//u;
 /* And a word a shell or an interpreter would rewrite spells a file this text does not hold: what the write lands on is the pattern's match or the substitution's value, which is elsewhere. how/writes.md. */
 const PATTERN = String.raw`[^*?[\]{}]`;
 
+/* The extension ends the name: `SKILL.md.bak` and `notes.md~` carry none of the ones asked for, and the backup a copy makes beside a guarded file is not that file. */
+const endingIn = (tail) => new RegExp(`^${PATTERN}+\\.(?:${tail})(?![\\w~-]|\\.[\\w~-])`, "u");
+
 /** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
 export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true } = {}) => {
-  /* The extension ends the name: `SKILL.md.bak` and `notes.md~` carry none of the ones asked for, and the backup a copy makes beside a guarded file is not that file. */
-  const ending = new RegExp(`^${PATTERN}+\\.(?:${tail})(?![\\w~-]|\\.[\\w~-])`, "u");
+  const ending = endingIn(tail);
   const names = [];
   const seen = new Set();
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
@@ -389,10 +391,32 @@ const RELOCATES = /^(?:cd|pushd|popd)$/u;
 const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
 const TARGETED = /\s(?:-[A-Za-z]*t[^\s-]*|--target-directory(?:=\S*)?)(?![\w-])/u;
 
-/* The flags that take their value in the next word, for a verb whose every other flag takes none: `cp -a` is a flag alone, and the word after it is the file the copy reads. GNU's `cp` and `mv` take one after `-S` and `-t`, the last letter of a cluster being the one that takes it, and BSD's after none. A verb not named here keeps the reading that a word after any flag may be its value. */
-const VALUED = /^(?:-[A-Za-z]*[St]|--(?:suffix|target-directory))$/u;
-const VALUED_BY = { cp: VALUED, mv: VALUED };
+/* `cp -a` is a flag alone, and the word after it is the file the copy reads: a verb named here reads a value after the options it lists and after nothing else. GNU's `cp` and `mv` take one after `-S` and `-t`, its `install` after `-g`, `-m`, `-o` and those two, and BSD's none of them. A value is the rest of a cluster behind its letter, or the next word where nothing is left, so it is the last letter of a cluster that takes the next word. A verb not named here keeps the reading that a word after any flag may be its value. */
+const COPIES = { letters: "St", names: ["suffix", "target-directory"] };
+const VALUES = { cp: COPIES, install: { letters: "gmoSt", names: ["group", "mode", "owner", "suffix", "target-directory"] }, mv: COPIES };
+const VALUED_BY = Object.fromEntries(Object.entries(VALUES)
+  .map(([verb, { letters, names }]) => [verb, new RegExp(`^(?:-[A-Za-z]*[${letters}]|--(?:${names.join("|")}))$`, "u")]));
 const takesValue = (program, flag) => FLAG.test(flag) && (VALUED_BY[program]?.test(flag) ?? true);
+
+/* The directory a GNU `-t` hands one of those verbs, with the offset of the word naming it: every operand is then a source, and each lands in it under its own last name. The last one given is the one the verb uses, and past a bare `--` there are no options left. */
+const LONG_TARGET = "--target-directory";
+const targetOf = (program, words) => {
+  const { letters } = VALUES[program] ?? {};
+  if (!letters) return null;
+  let found = null;
+  for (let at = 0; at < words.length && words[at].said !== "--"; at += 1) {
+    const { said, from } = words[at];
+    const next = words[at + 1]?.said;
+    if (said === LONG_TARGET) found = next === undefined ? found : { dir: next, at: words[at + 1].from };
+    else if (said.startsWith(`${LONG_TARGET}=`)) found = { dir: said.slice(LONG_TARGET.length + 1), at: from };
+    else if (/^-[A-Za-z]/u.test(said)) {
+      const letter = [...said.slice(1)].findIndex((one) => letters.includes(one));
+      const rest = letter < 0 ? "" : said.slice(letter + 2);
+      if (said[letter + 1] === "t" && (rest || next !== undefined)) found = rest ? { dir: rest, at: from } : { dir: next, at: words[at + 1].from };
+    }
+  }
+  return found;
+};
 
 const notAnOperand = (program, words, at) => {
   const { said } = words[at];
@@ -408,26 +432,32 @@ const afterFlagIn = (program, words) => words.filter(({ said }, at) =>
   at > 0 && takesValue(program, words[at - 1].said) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
 
 /** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
-const aimsOf = (program, operands, stage, said) => {
+const aimsOf = (program, operands, stage, said, target) => {
   const aim = AIMS[program];
   if (!aim) return WRITES.test(stage) ? null : [];
   if (aim === "none" || (program === "sed" && !IN_PLACE.test(said))) return [];
   if (aim === "of") return operands.filter((one) => one.said.startsWith("of="));
+  /* Into a target directory a copy writes none of its operands, every one being a file it reads; a move still writes each, by taking it away. */
+  if (target && aim === "last") return [];
   return aim === "last" && !UNLINKS.test(said) ? operands.slice(-1) : operands;
 };
 
-/** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Each word is unquoted once here and carried as `said`, since every reading below wants the shell's spelling; `text` stays because the offsets a strike works in are the raw word's. */
-const readsIn = (stage, from, strict) => {
+/* A command as a shell reads its words, quotes off, with the raw word kept for the offsets a strike works in: the verb, and what follows it. */
+const commandOf = (stage, from) => {
   const words = wordsOf(stage)
     .map((m) => ({ text: m[0], said: unquote(m[0]), from: from + m.index, to: from + m.index + m[0].length }));
   let at = 0;
   while (at < words.length && BEFORE.test(words[at].said)) at += 1;
-  const program = basename(words[at]?.said ?? "");
+  return { words, program: basename(words[at]?.said ?? ""), rest: words.slice(at + 1) };
+};
+
+/** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Every reading below wants the shell's spelling, which is each word's `said`. */
+const readsIn = (stage, from, strict) => {
+  const { words, program, rest } = commandOf(stage, from);
   if (RELOCATES.test(program)) return [];
-  const rest = words.slice(at + 1);
   const operands = operandsOf(program, rest);
   const said = ` ${words.map((one) => one.said).join(" ")}`;
-  const aims = aimsOf(program, operands, stage, said);
+  const aims = aimsOf(program, operands, stage, said, targetOf(program, rest));
   if (strict && AIMS[program] === "last" && TARGETED.test(said)) return null;
   const spare = strict && AIMS[program] && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
   return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
@@ -453,6 +483,25 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
       .reduce((all, one) => all && one && [...all, ...one], []);
     if (reads === null && strict) blank(start, end);
     for (const { from, to } of reads ?? []) blank(from, to);
+  }
+  return out;
+};
+
+/** The files a copy, a move or an install into a `-t` directory lands on, a name the command never spells: the directory joined with each source's last name, with the offset of the word naming the directory and the command span it stands in. Only a name carrying one of the extensions `tail` asks for. A span whose sources another command hands over names none, which is `struck`'s to answer. The verb is read where `commandOf` finds it rather than through `WRITES`, which misses a command a list's operator left a blank in front of (ISS-2933). The text is the command as written, since a struck one has already lost the sources. */
+export const landedIn = (text, tail = "[A-Za-z0-9]+") => {
+  const ending = endingIn(tail);
+  const out = [];
+  for (const { start, end } of spans(text)) {
+    const span = text.slice(start, end);
+    if (!TARGETED.test(span) || HANDED.test(span)) continue;
+    for (const stage of spans(span, { pipes: true })) {
+      const { program, rest } = commandOf(span.slice(stage.start, stage.end), start + stage.start);
+      const target = targetOf(program, rest);
+      for (const { said } of target ? operandsOf(program, rest) : []) {
+        const name = basename(said);
+        if (ending.exec(name)?.[0] === name) out.push({ token: `${target.dir.replace(/\/+$/u, "")}/${name}`, at: target.at, start, end });
+      }
+    }
   }
   return out;
 };

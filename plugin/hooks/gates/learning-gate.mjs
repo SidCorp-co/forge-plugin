@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, struck, writtenPaths, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill } from "../../src/checks/learning.mjs";
@@ -121,7 +121,7 @@ export const run = (ev) => {
 
   // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
   if (tool === "Bash") {
-    const written = writtenPaths(struck(shellWrites(ti.command)), ev.cwd || process.cwd(), MD_ONLY);
+    const written = writtenPaths(shellWrites(ti.command), ev.cwd || process.cwd(), MD_ONLY, { unplaceable: "keep" });
     if (written.length === 0) done();
     for (const { trees, paths, spelt } of written) {
       /* A relative name answers for the trees it was placed in, not for its own spelling: `.claude/skills/…` spelt bare is a project's own wherever it stands. And an owner the command built rather than spelt is none a project exemption can rest on: `${BASE}/dev/.claude/…` may be the home's. */
