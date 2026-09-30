@@ -106,10 +106,9 @@ costs the turn a guess — this repository's own rule about what a refusal owes.
 
 **Past the dispatch statuses the status is named before the id**, because there no id takes the
 lease, and a sentence about the tree an id comes from sends the caller to a route that cannot work.
-At the rungs a verdict is written from, that caller is most often a judge, told to hold no tree and
-set an id of its own: sending it to brief a tree and unset that id was the opposite of its method.
-A judge takes no lease at all, its verdict being the one write that goes past another run's, so what
-it is owed is the rehearsal that says whether that verdict will be written (ISS-1798).
+At the rungs a verdict is written from, the caller is most often a judge, and the tree it was sent to
+brief is one its own method says it does not hold. So the refusal there names the judge's write
+instead, which takes no lease (ISS-1798).
 
 **What this does not do is read the holder's prose.** The route first built matched the sentence
 above inside the holder's `--next` line, and the review retired it: the note the incident was filed
