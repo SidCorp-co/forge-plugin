@@ -52,12 +52,15 @@ export const SUPERSEDED = "superseded";
    that is no commit could match none of them and left every verdict unearnable. A write refuses one
    now; one stored before that is read as what it is, a deployment's own id, which nothing compares
    (ISS-2918). */
+/** Whether a deployment identity is one the rung cannot compare, asked by every write that stores one. */
+export const notACommit = (deployment) => Boolean(deployment) && !isCommit(deployment);
+
 const blockOf = (held) => {
   if (!held || typeof held !== "object" || typeof held.state !== "string" || !held.state) return null;
   const files = (Array.isArray(held.files) ? held.files : []).map((one) => String(one).trim());
   const out = { files: files.filter(Boolean) };
   for (const name of CHECKPOINT) if (held[name]) out[name] = String(held[name]);
-  if (out.deployment && !isCommit(out.deployment)) {
+  if (notACommit(out.deployment)) {
     out.deploymentId ??= out.deployment;
     delete out.deployment;
   }

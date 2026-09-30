@@ -6,12 +6,12 @@
 import { DERIVED, HAND_WRITTEN, REBUILT_FORM, UNRECOVERABLE } from "./reconstruction.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_DONE, LANDING_HEAD_OWED, LANDING_QA_OWED, LANDING_READY,
-  LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, supersededBy, unjudgedAt,
+  LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, notACommit, supersededBy, unjudgedAt,
 } from "./checkpoint.mjs";
 import { parseAll } from "../record/page.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
-import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
+import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { commandAt, valuesOf } from "../machine.mjs";
 import { BASELINE_AT, ORDER } from "../earned.mjs";
@@ -61,7 +61,7 @@ export const rebuiltCheckpoint = (ref, holder, head,
   }
   /* The identity is compared with the commits a verdict cites, so a deployment's own id could match
      none of them and every verdict on the issue would be refused for good (ISS-2918). */
-  if (deployment && !isCommit(deployment)) {
+  if (notACommit(deployment)) {
     fail(`claim --rebuilt --deployment takes the commit the deployment reports serving, of 7 to 40 hex `
       + `digits, and \`${deployment}\` is not one: a verdict cites a commit, so an identity no commit `
       + `can equal leaves every verdict on ${ref} unearnable. Read the commit off the deployment, then:\n`

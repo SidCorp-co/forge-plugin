@@ -13,9 +13,8 @@ import { fail } from "../resolve/settings.mjs";
 import { refuse } from "../refusal.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
-import { isCommit } from "../tracker/evidence.mjs";
 import {
-  LANDING, READ_THE_STATE, landingMoved, landingNext, landingOf,
+  LANDING, READ_THE_STATE, landingMoved, landingNext, landingOf, notACommit,
 } from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, saidWritten, worklogFor } from "./worklog.mjs";
 
@@ -557,7 +556,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
 export const landingSaved = async (documentId, ref, patch, { was = null } = {}) => {
   /* Every landing write passes here, so the one shape the judging rung compares is held here too: a
      deployment identity that is no commit can equal no commit a verdict cites (ISS-2918). */
-  if (patch.deployment && !isCommit(patch.deployment)) {
+  if (notACommit(patch.deployment)) {
     fail(`the landing on ${ref} cannot record \`${patch.deployment}\` as its deployment, which is no `
       + `commit: a verdict cites the commit the deployment serves, and an identity no commit can equal `
       + `leaves every verdict unearnable. ${READ_THE_STATE(ref)}`);
