@@ -16,9 +16,17 @@ const ABSENT = /knowledge entry not found/iu;
 /* The one slug `forge knowledge write` refuses; here because this is the store's home. docs/cli/the-brief.md. */
 export const BRIEF_SLUG = "project-brief";
 
+/* An entry whose owner took it down is still served, with `archivedAt` set, and every reader here
+   takes it as not held: printed, carried into a write or read as the brief, it would be a body
+   somebody withdrew speaking as live. */
+const live = (entry) => (entry?.archivedAt ? null : entry);
+
+/** The rows of a list answer that are held, for every reader of one. */
+export const liveRows = (page) => (page?.rows ?? []).filter((row) => !row?.archivedAt);
+
 export const entryAt = async (slug) => {
   const answer = await scoped("forge_knowledge", { action: "get", slug }, true);
-  if (!answer?.refused) return answer;
+  if (!answer?.refused) return live(answer);
   if (ABSENT.test(answer.refused)) return null;
   return fail(`the store could not be read for ${slug}, and a write here would replace what it `
     + `holds without carrying any of it: ${answer.refused}`);
@@ -27,7 +35,7 @@ export const entryAt = async (slug) => {
 /** The same read without the refusal, for a reader that prints rather than writes: an absent entry and a store that would not answer are two different sentences, and only the first is an absence. */
 export const softEntryAt = async (slug, held = {}) => {
   const answer = await scoped("forge_knowledge", { action: "get", slug }, true, held);
-  if (!answer?.refused) return { entry: answer };
+  if (!answer?.refused) return { entry: live(answer) };
   return ABSENT.test(answer.refused) ? { entry: null } : { refused: answer.refused };
 };
 
@@ -89,7 +97,10 @@ export const upsertEntry = async ({ slug, body, meta = {}, ...given }) => {
   await write("forge_knowledge", { action: "upsert", slug, ...sent });
   keepOnFailure(null);
   const back = await entryAt(slug);
-  if (!back) fail(`forge_knowledge answered success but ${slug} is not in the store. Nothing was written.`);
+  if (!back) {
+    fail(`forge_knowledge answered success but ${slug} does not read back as a held entry: the store `
+      + "has no row by that slug, or holds it archived, so nothing this write sent is readable.");
+  }
   const dropped = Object.keys(sent).filter((field) => !same(sent[field], back[field]));
   if (dropped.length) {
     fail(`forge_knowledge answered success and ${slug} came back with ${dropped.join(", ")} not as `

@@ -385,9 +385,9 @@ export const ROUTES = {
     answers: ({ page }) => configOf(page),
     sends: [],
   },
-  /* The two typed resources a project's own settings live in, rather than the whole-`agentConfig`
-     patch on `/projects/:id`: that one replaces the document, so two writers to different keys of it
-     clobber each other. These merge per key. */
+  /* The typed resource a project's own settings live in, rather than the whole-`agentConfig` patch
+     on `/projects/:id`: that one replaces the document, so two writers to different keys of it
+     clobber each other. This one merges per key. Project prose is the knowledge store's, above. */
   "forge_config.pipeline": {
     project: true,
     requests: (args, project) => one(`/projects/${project}/pipeline-config`),
@@ -397,17 +397,6 @@ export const ROUTES = {
     project: true,
     writes: true,
     requests: (args, project) => one(`/projects/${project}/pipeline-config`, "PATCH", args.data),
-    sends: ["data"],
-  },
-  "forge_config.facts": {
-    project: true,
-    requests: (args, project) => one(`/projects/${project}/project-facts`),
-    sends: [],
-  },
-  "forge_config.set_facts": {
-    project: true,
-    writes: true,
-    requests: (args, project) => one(`/projects/${project}/project-facts`, "PATCH", args.data),
     sends: ["data"],
   },
   "forge_guide.list": {

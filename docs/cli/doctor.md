@@ -80,16 +80,20 @@ uses rather than the tracker's columns, and the name `project` went to the thing
 all — the projects themselves, which are the one resource no checkout scopes.
 
 **A key is written through the route of the resource that holds it, and read back off that route
-before it reports set.** The two resources merge per key; the whole-`agentConfig` patch beside them
-replaces the document, so two writers to different keys of it lose each other's. And the pipeline
+before it reports set.** The pipeline configuration merges per key; the whole-`agentConfig` patch
+beside it replaces the document, so two writers to different keys of it lose each other's. And the pipeline
 schema *strips a key it does not declare*, silently, on the way in — so a write that answered 200 and
 kept nothing would print as a setting that took. The read-back is what turns that into a refusal
 naming the key, which is the only place an operator can learn it.
 
 A bare key belongs to whichever resource already answered with it, and a key none holds is refused
-with every key set rather than guessed at: a typo landing in the facts as a new guide is a write
-nobody asked for and there is no delete for it. `pipeline.<k>` and `fact.<k>` name one outright, which
-is how a key the project has not got yet is created.
+with every key set rather than guessed at: a typo landing in the pipeline as a new key is a switch
+nobody asked for. `pipeline.<k>` names that resource outright, which is how a key the project has not
+got yet is created.
+
+Project prose is not a key of this report. The tracker retired its project facts into the knowledge
+store, whose entry carries a kind, a title and an injection a `key=value` has no slot for, so that
+store's own verb is its one writer and `fact.<k>` is refused naming it.
 
 Why three states of a declared package are silence: [the package row](the-package-row.md).
 

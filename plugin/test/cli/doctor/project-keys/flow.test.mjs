@@ -57,7 +57,7 @@ const where = dirname(file);
  *  about what one call left behind and a case reading another's leftovers proves neither. */
 const fresh = () => {
   writeFileSync(file, HELD);
-  state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" }, projectFacts: {} };
+  state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" } };
   state.dead = [];
   state.calls = [];
 };
@@ -215,7 +215,7 @@ test("a project record that is a link is followed, and the link survives the wri
     const entry = projectEntry(linked.path, tracker.env.XDG_CONFIG_HOME);
     rmSync(entry);
     symlinkSync(target, entry);
-    state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" }, projectFacts: {} };
+    state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" } };
     const run = await ranAsync(FORGE, ["doctor", "--flow", "screen"], tracker.env, linked.path);
     assert.equal(run.status, 0, run.stderr);
     assert.ok(lstatSync(entry).isSymbolicLink(), "the link is still a link");

@@ -146,8 +146,6 @@ export const VERBS = [
         "forge_labels.delete": "`forge doctor modules`",
         pipeline: "`forge doctor`",
         set_pipeline: "`forge doctor --set`",
-        facts: "`forge doctor`",
-        set_facts: "`forge doctor --set`",
         "forge_project_pm.graph": "`forge doctor`",
         "forge_project_pm.snapshot": "`forge doctor`",
         "forge_project_pm.runner_load": "`forge doctor`" } }],

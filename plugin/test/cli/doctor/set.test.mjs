@@ -1,6 +1,6 @@
-/* The project's own configuration, written one key at a time. Two resources answer, so which one a
-   key belongs to is the whole question, and a tracker that takes a write and keeps nothing is the
-   case the read back exists for: docs/cli/doctor.md. */
+/* The project's own configuration, written one key at a time. The tracker's pipeline configuration
+   and this checkout's own file answer, so which one a key belongs to is the whole question, and a
+   tracker that takes a write and keeps nothing is the case the read back exists for: docs/cli/doctor.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -16,8 +16,7 @@ const state = {
   answer: {
     forge_guide: () => ({ guides: [] }),
   },
-  config: { pipelineConfig: { autoProdDeploy: false }, projectFacts: { "the-stack": "Node and nothing else" } },
-  factsConfig: { "the-stack": { alwaysInject: true } },
+  config: { pipelineConfig: { autoProdDeploy: false } },
 };
 
 const tracker = await fakeTracker(state);
@@ -27,31 +26,50 @@ test.after(() => tracker.close());
    the way the resolver keys it (ISS-1403). */
 const OURS = projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
 const ask = (...argv) => ranAsync(FORGE, ["doctor", ...argv], tracker.env, ROOT);
+/* The tracker answers this route 410 since project prose moved to the knowledge store (ISS-1650). */
+const factsAsked = () => state.calls.filter((one) => /\/project-facts$/u.test(one.path ?? ""));
 
-test("each key of both resources is reported with the resource it was read from", async () => {
+test("each pipeline key is reported with the resource it was read from, and no retired facts are read", async () => {
+  state.calls = [];
   const run = await ask();
   assert.match(run.stdout, /\[ {2}ok {2}\] pipeline\.autoProdDeploy\s+false {2}← the tracker's pipeline configuration/u,
     run.stdout);
-  assert.match(run.stdout,
-    /\[ {2}ok {2}\] fact\.the-stack\s+21 characters, always-inject {2}← the tracker's project facts/u,
-    "a fact is prose, so its width and whether it is injected are what a report can say about it");
+  assert.doesNotMatch(run.stdout, /^\[[^\]]*\] fact\b/mu, "no row for a resource the tracker retired");
+  assert.deepEqual(factsAsked(), [], "and no request went to its route");
 });
 
-test("a key one resource already holds is routed by that and reported set", async () => {
+test("a key the pipeline already holds is routed by that and reported set, with no facts read to route it", async () => {
+  state.calls = [];
   const run = await ask("--set", "autoProdDeploy=true");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^pipeline\.autoProdDeploy: true {2}← the tracker's pipeline configuration$/mu);
   assert.equal(state.settings.pipelineConfig.autoProdDeploy, true,
     "sent as a boolean and not as the string the shell handed over");
+  assert.deepEqual(factsAsked(), []);
   await ask("--set", "autoProdDeploy=false");
 });
 
-test("a prefixed key names its resource outright, which is how one neither holds is created", async () => {
+test("a prefixed key names its resource outright, which is how one it does not hold is created", async () => {
+  try {
+    const run = await ask("--set", "pipeline.maxRetries=3");
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /^pipeline\.maxRetries: 3 {2}← the tracker's pipeline configuration$/mu,
+      "the value back off the resource's own route, which is what was read and not what was typed");
+    assert.equal(state.settings.pipelineConfig.maxRetries, 3);
+  } finally {
+    delete state.settings.pipelineConfig.maxRetries;
+  }
+});
+
+/* Prose is a knowledge entry, whose kind, title and injection a `key=value` has no slot for, so the
+   store's verb is its one writer and the prefix that once reached the facts is refused naming it. */
+test("a key under the retired facts prefix is refused naming the knowledge store's writer, and nothing is sent", async () => {
+  state.calls = [];
   const run = await ask("--set", "fact.the-gate=npm run check");
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^fact\.the-gate: npm run check {2}← the tracker's project facts$/mu,
-    "the value back off the resource's own route, which is what was read and not what was typed");
-  assert.equal(state.settings.projectFacts["the-gate"], "npm run check");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /`fact\.the-gate` names the tracker's project facts, which it retired/u, run.stderr);
+  assert.match(run.stderr, /forge knowledge write the-gate <file\.md> --kind K --title T --injection always\|on_demand\|none/u);
+  assert.equal(state.calls.length, 0, "refused before any resource is read");
 });
 
 test("a key no resource holds is refused with every key set, and nothing is sent", async () => {
@@ -60,10 +78,11 @@ test("a key no resource holds is refused with every key set, and nothing is sent
   assert.equal(run.status, 1);
   assert.match(run.stderr, /`qa` is no key any of this project's configuration resources holds/u);
   assert.match(run.stderr, /^ {2}pipeline: autoProdDeploy$/mu);
-  assert.match(run.stderr, /^ {2}fact: the-gate, the-stack$/mu);
+  assert.doesNotMatch(run.stderr, /^ {2}fact:/mu, "no key set is listed for a resource the tracker retired");
   assert.match(run.stderr, /^ {2}project: slug, translate, runs, /mu,
     "the third resource lists the keys this plugin READS out of that file, not the ones it holds");
-  assert.match(run.stderr, /--set pipeline\.qa=<value> or --set fact\.qa=<value>/u);
+  assert.match(run.stderr, /Name the resource to write a key the tracker does not hold yet: --set pipeline\.qa=<value>$/mu);
+  assert.doesNotMatch(run.stderr, /fact\./u, "and no route into the retired facts");
   assert.doesNotMatch(run.stderr, /--set project\.qa=<value>/u,
     "and no route is offered into a file where nothing would read the key (ISS-1643)");
   assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
@@ -209,26 +228,4 @@ test("a project write beside a machine key is refused, and neither half is writt
     assert.match(run.stderr, /two stores and two calls/u);
   }
   assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
-});
-
-/* Routing by which resource holds the key answers nothing when both do, and one of the two here is
-   a deploy switch: a bare name is refused so the prefix decides, rather than the order of a list. */
-test("a key two resources hold is refused bare, and each prefix writes only its own resource", async () => {
-  await ask("--set", "fact.autoProdDeploy=what the branch means");
-  try {
-    state.calls = [];
-    const bare = await ask("--set", "autoProdDeploy=true");
-    assert.equal(bare.status, 1);
-    assert.match(bare.stderr, /`autoProdDeploy` is a key pipeline and fact both hold/u, bare.stderr);
-    assert.match(bare.stderr, /--set pipeline\.autoProdDeploy=<value> or --set fact\.autoProdDeploy=<value>/u);
-    assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
-    const pipeline = await ask("--set", "pipeline.autoProdDeploy=true");
-    assert.equal(pipeline.status, 0, pipeline.stderr);
-    assert.equal(state.settings.pipelineConfig.autoProdDeploy, true);
-    assert.equal(state.settings.projectFacts.autoProdDeploy, "what the branch means",
-      "and the resource that was not named kept what it had");
-  } finally {
-    delete state.settings.projectFacts.autoProdDeploy;
-    state.settings.pipelineConfig.autoProdDeploy = false;
-  }
 });

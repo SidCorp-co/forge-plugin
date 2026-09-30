@@ -67,14 +67,14 @@ export const ranAsync = (command, argv, env = process.env, cwd = neutralRoom(), 
 
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 
-/* Every column `GET /projects/:id` answers, and the three documents it answers under `agentConfig`
+/* Every column `GET /projects/:id` answers, and the two documents it answers under `agentConfig`
    rather than beside them. Both sets are the wire's own, not this fixture's idea of it. */
 const PROJECT_COLUMNS = ["id", "slug", "name", "description", "orgId", "createdBy", "role", "orgRole",
   "repoPath", "repoUrl", "workspaceSetup", "baseBranch", "liveBranch", "releaseModel",
   "releaseStrategy", "defaultDeviceId", "environments", "issuePrefix", "labels", "members",
   "devicePool", "createdAt", "archivedAt"];
 
-const NESTED = ["agentConfig", "pipelineConfig", "projectFacts", "plugins"];
+const NESTED = ["agentConfig", "pipelineConfig", "plugins"];
 /* The project travels as an id in a path now, so a case asking which project a call went to reads
    the slug back through the one listing the fixture serves. */
 const SLUGS = new Map();
@@ -208,12 +208,10 @@ const edgesOf = (issue) => ({
   incoming: (issue?.relations?.blockedBy ?? []).map((edge) => sided(edge, "from")),
 });
 
-/* Which resource each configuration action reads or merges: two routes, two keys, one answer. */
+/* Which resource each configuration action reads or merges: one route, one key, one answer. */
 const SETTINGS = {
   pipeline: "pipelineConfig",
   set_pipeline: "pipelineConfig",
-  facts: "projectFacts",
-  set_facts: "projectFacts",
 };
 
 const MERGE_ROUTE = /^\/api\/issues\/[^/]+\/merge$/u;
@@ -300,17 +298,11 @@ export const fakeTracker = async (state) => {
   /* Merged per key, as the tracker's own PATCH is. `state.stripped` models a key its schema does not
      declare: the write is taken and the key is not there after, the only signal a caller gets. */
   const settings = (which, args) => {
-    const held = (state.settings ??= {
-      pipelineConfig: { ...(state.config?.pipelineConfig ?? {}) },
-      projectFacts: { ...(state.config?.projectFacts ?? {}) },
-    });
-    const patch = which === "projectFacts" ? (args.data?.projectFacts ?? {}) : (args.data ?? {});
-    for (const [key, value] of Object.entries(patch)) {
+    const held = (state.settings ??= { pipelineConfig: { ...(state.config?.pipelineConfig ?? {}) } });
+    for (const [key, value] of Object.entries(args.data ?? {})) {
       if (!(state.stripped ?? []).includes(key)) held[which][key] = value;
     }
-    return which === "projectFacts"
-      ? { projectFacts: held.projectFacts, projectFactsConfig: state.factsConfig ?? {} }
-      : { pipelineConfig: held.pipelineConfig };
+    return { pipelineConfig: held.pipelineConfig };
   };
   const builtIn = (name, args) => {
     reach.asked(name);
@@ -441,8 +433,6 @@ export const fakeTracker = async (state) => {
       answered("forge_release_batch", { action: "abort", runId, data: sent })],
     [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
       method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
-    [/^\/api\/projects\/[^/]+\/project-facts$/u, (q, sent, method) => answered("forge_config",
-      method === "PATCH" ? { action: "set_facts", data: sent } : { action: "facts" })],
     [/^\/api\/projects\/([^/]+)\/(archive|unarchive)$/u, (q, sent, method, [id, act]) =>
       answered(`forge_projects.${act}`, { projectRef: id })],
     /* One route, two readers: a case answering a project the caller NAMED registers

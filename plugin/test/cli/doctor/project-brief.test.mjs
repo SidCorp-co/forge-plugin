@@ -94,6 +94,22 @@ test("the brief is absent until one is written, and the absence names the write"
   assert.match(run.stdout, /forge doctor --refresh <brief\.md>/u);
 });
 
+/* The store still serves an entry its owner archived, and a brief somebody took down is not the map
+   Phase 0 reads: the report says none is stored rather than printing the withdrawn body (ISS-1650). */
+test("an archived brief is reported as none stored, and its body is not printed", async () => {
+  store.clear();
+  store.set("project-brief", { id: "k-project-brief", slug: "project-brief", kind: "overview",
+    title: "The map", body: "# A map its owner withdrew\n", injection: "always", confidence: "inferred",
+    metadata: {}, updatedAt: "2026-09-04T21:00:00.000Z", archivedAt: "2026-09-20T10:00:00.000Z" });
+  try {
+    const run = await ask("doctor");
+    assert.match(run.stdout, /^project brief: none stored/mu, run.stdout);
+    assert.doesNotMatch(run.stdout, /A map its owner withdrew/u, "the archived body was printed");
+  } finally {
+    store.clear();
+  }
+});
+
 test("a refresh writes the brief and stamps a digest for each source its own lines name", async () => {
   store.clear();
   const room = tempHome("project-brief");
@@ -374,7 +390,7 @@ test("--was with no --line is refused, and writes neither the brief nor a config
   assert.equal(upserts, before.upserts);
   assert.equal(store.get("project-brief").body, before.body);
   assert.match(run.stderr, /neither --line nor --after was given/u);
-  const set = await ask("doctor", "--set", "fact.done-means=shipped", "--was", "# The map");
+  const set = await ask("doctor", "--set", "autoProdDeploy=true", "--was", "# The map");
   assert.equal(set.status, 1, set.stdout);
   assert.match(set.stderr, /neither --line nor --after was given/u);
 });
