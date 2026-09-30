@@ -10,8 +10,8 @@ import { join } from "node:path";
 
 import {
   BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, PROBE_GATE, RECORD,
-  claudeCalls, comments, context, ctx, forgetInstall, forgetProbe, git, installedAt, issue, marks, probeInInstall,
-  probeOnce, probeSaid, ready, seeded, serverPushes, sha, state, strayWrites, tracker, world,
+  claudeCalls, context, ctx, forgetInstall, forgetProbe, git, installedAt, issue, marks, probeInInstall,
+  probeOnce, probeSaid, ready, seeded, serverPushes, sha, state, strayWrites, tracker, unmarked, world,
 } from "./fixture.mjs";
 
 const { landReady } = await import("../../../run/land-ready.mjs");
@@ -158,7 +158,7 @@ test("a branch past this release with nothing newer installed refuses rather tha
   /* The death is before the install; then somebody else moves the branch and installs nothing —
      a plain `land` does exactly that. */
   issue().sessionContext.landing = { ...landing(), state: "promoted" };
-  comments().length = 0;
+  unmarked();
   forgetInstall();
   const later = serverPushes(at, "1.0.9");
   const said = await ran([KEY], work);

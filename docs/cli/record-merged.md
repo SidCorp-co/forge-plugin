@@ -42,9 +42,9 @@ without the other.
 A head that exists only on the builder's own branch is no landing, however cleanly git reads it in
 that checkout — which is what a delegated run's own `forge record merged` hit on ISS-1480, marking a
 commit that never reached `origin/master` and walking the issue through three rungs on a landing
-that never happened. `markMerged` still writes whatever note it is handed, being the tracker's own
-write and not this verb's to narrow (`plugin/src/checks/one-writer.mjs` above); the check sits in
-`mergedPrepared` alone, so it never reaches the landing task's own call through `markMerged` — the
+that never happened. `markMerged` takes whatever note it is handed and never asks where its commit
+sits, the ancestry being this verb's question and not the tracker's write (`plugin/src/checks/one-writer.mjs`
+above); the check sits in `mergedPrepared` alone, so it never reaches the landing task's own call through `markMerged` — the
 candidate that call marks is one this checkout only just pushed, and asking it to already be
 `origin/<branch>`'s ancestor would refuse a landing for a fetch that has not happened yet.
 
@@ -64,6 +64,11 @@ anywhere. Three answers:
 Where this checkout has never fetched `origin/<branch>` at all there is no ref to read the ancestry
 off, so none of the above fires and the mark stands exactly as it did before this check existed: the
 tracker's own "a claim Forge did not observe" line is what a reader already sees there.
+
+## The commit travels as the tracker's own field too
+
+The mark sends the commit it names as the tracker's typed `commit` field beside the note, and a
+stamp already standing refuses a mark the tracker would not stamp: [the commit field](record-merged-the-commit.md).
 
 ## What each clause answers
 

@@ -185,6 +185,26 @@ test("the merged mark names the judged head, the landed head and that the landin
   assert.match(note, new RegExp(`judged head ${escaped(head)}\\b`, "u"), note);
   assert.match(note, /landing moved nothing;/u, note);
   assert.ok(note.includes(`landing wrote ${OWNED}`), note);
+  const sent = state.calls.find((one) => one.args?.action === "mark_merged")?.args.data;
+  assert.equal(sent?.commit, remote(at), "and the commit it landed at travels as the tracker's own field");
+});
+
+/* The tracker writes the row's commit field only with a commit it observed, and one naming another
+   commit than the landing's is a disagreement the posted note cannot settle: the mark step stops, and
+   a resume finding its own note up stops again rather than counting the note as the mark (ISS-1808). */
+test("a row naming another commit than the landing's stops the mark, and a resume stops again", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base) });
+  const other = "f".repeat(40);
+  issue().mergedCommitSha = other;
+  const said = await ran([KEY], work);
+  assert.match(said, new RegExp(`the row's commit field holds ${other}`, "u"), said);
+  assert.match(said, /forge record merged ISS-673 --undo/u, "with the one command that clears it");
+  assert.notEqual(landing().state, "marked", said);
+  const again = await ran([KEY], work);
+  assert.match(again, new RegExp(`the row's commit field holds ${other}`, "u"), again);
+  assert.notEqual(landing().state, "marked", again);
+  assert.equal(marks().length, 1, `the resume posted no second mark:\n${again}`);
 });
 
 test("the landing writes the checkpoint, the mark and the statuses, and no judgement of its own", async () => {

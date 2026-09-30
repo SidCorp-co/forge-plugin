@@ -296,6 +296,12 @@ export const seeded = ({
 export const issue = (documentId = UUID) => state.issues.find((one) => one.documentId === documentId);
 export const context = (documentId = UUID) => issue(documentId)?.sessionContext ?? null;
 export const comments = (documentId = UUID) => state.comments[documentId];
+/** A checkpoint rewound to before its mark: the page emptied and the row's stamp taken with it, the tracker writing the two in one call. */
+export const unmarked = (documentId = UUID) => {
+  state.comments[documentId].length = 0;
+  const row = issue(documentId);
+  if (row) delete row.mergedAt;
+};
 export const marks = (documentId = UUID) =>
   state.comments[documentId].filter((one) => one.body.startsWith("mark_merged"));
 

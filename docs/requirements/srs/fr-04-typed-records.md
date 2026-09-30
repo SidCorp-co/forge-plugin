@@ -297,6 +297,13 @@ field is named and the write is where it is refused.
   IF the branch the note names has a remote-tracking ref here but git cannot peel it to a commit THEN
   the CLI SHALL refuse the write as AC-04-8-11 does, and SHALL NOT treat it as AC-04-8-10's branch
   never fetched.
+- **AC-04-8-14** · Rev: 1 · Proof: plugin/test/flow/record/merged/commit.test.mjs "the mark sends --at to the tracker as its commit field"
+  WHEN the merged mark of a change landing in git is written THEN the CLI SHALL send the commit the
+  mark names as the tracker's own commit field, beside the note.
+- **AC-04-8-15** · Rev: 1 · Proof: plugin/test/flow/record/merged/commit.test.mjs "a mark over a stamp that names no commit is refused before anything is written"
+  IF the merged mark is asked for while the issue already carries a merged stamp that names no
+  commit or another commit THEN the CLI SHALL refuse the write before anything is sent, naming the
+  command that removes the standing stamp.
 
 ### UC-04-9 — A rewritten field is shown beside what was sent
 

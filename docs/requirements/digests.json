@@ -2445,6 +2445,14 @@
       "rev": 1,
       "digest": "0e01d0166a3619c80cc71a60312dbb5ece84bb4a6eaf379cc94527112ebb627d"
     },
+    "AC-04-8-14": {
+      "rev": 1,
+      "digest": "54169aada07bbdf19247bfcef881eaadbc2d4bbfe82c6c0f56cc70d232a3a282"
+    },
+    "AC-04-8-15": {
+      "rev": 1,
+      "digest": "ab1e2c6816fee3ae45da2af87c8d877b602266f969a76c5dabe9d1a40647da82"
+    },
     "UC-04-9": {
       "rev": 1,
       "digest": "74a1e9481af70662f6940fb06d71064658b92708cfe8da0b84461e286b280681"
