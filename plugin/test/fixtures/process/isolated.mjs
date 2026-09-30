@@ -25,3 +25,8 @@ const prefix = join(tmpdir(), `forge-plugin-test-${process.pid}-config-`);
 const home = madeIn(prefix, () => mkdtempSync(prefix));
 process.on("exit", () => rmSync(home, { recursive: true, force: true }));
 process.env.XDG_CONFIG_HOME = home;
+
+/* Git's configuration is the developer's too: a bare origin took its HEAD from the home's
+   `init.defaultBranch`, so cases passed or failed by machine (ISS-2592). */
+process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+process.env.GIT_CONFIG_NOSYSTEM = "1";
