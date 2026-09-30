@@ -70,7 +70,7 @@ export const borrowRoute = (scratch) => `XDG_CONFIG_HOME=${homeIn(scratch)} ${BO
 /* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. The temporary name carries the writer's pid: two processes sharing one would interleave a file the survivor then renames into place, and a writer killed before its rename leaves a file nothing reuses. The next write sweeps it, there being nothing else here that runs to clean up. */
 const STRANDED_MS = 60_000;
 
-/* The directory is shared with `config.json` and every other file kept here, so only this path's own temp files are judged. */
+/* The directory is shared with the config file and every other file kept here, so only this path's own temp files are judged. */
 const sweepStranded = (path) => {
   const mine = basename(path);
   reap(dirname(path), STRANDED_MS, Date.now(), { only: (name) => name.startsWith(`${mine}.`) && name.endsWith(".tmp") });
