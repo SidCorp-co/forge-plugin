@@ -63,8 +63,7 @@ const bytesOf = (root, rel) => {
 
 /** Of the files a door owes, the ones the project's `consult` reading lets through unread — each with
  *  its reason — the ones still owed, and of those the ones the gateway rather than the agent left
- *  unread, which the refusal names. `apart` are files whose staged copy is not the disk's: no consult
- *  reads that copy, so no failed one speaks for it either. */
+ *  unread, which the refusal names. `apart` are files whose staged copy is not the disk's. */
 export const unreadApart = (root, owed, log, consult, apart = []) => {
   if (!owed.length) return { owed, unread: [], down: [] };
   const configured = !gateway().problem;
@@ -75,9 +74,11 @@ export const unreadApart = (root, owed, log, consult, apart = []) => {
     const sha = apart.includes(rel) ? null : bytesOf(root, rel);
     const failed = configured && sha ? failedAt(log(), root, rel, sha) : null;
     const { state, reason } = consultState({ read: false, failed, gateway: configured });
-    if (!apart.includes(rel) && passesUnread(state, consult)) unread.push({ rel, reason });
+    /* A staged copy apart from the disk has no bytes a consult could have failed on, so it reads as
+       unasked where a gateway answers and as no gateway where none is configured. */
+    if (passesUnread(state, consult)) unread.push({ rel, reason });
     else left.push(rel);
-    if (!apart.includes(rel) && !passesUnread(state, consult) && reason) down.push({ rel, reason });
+    if (!passesUnread(state, consult) && reason) down.push({ rel, reason });
   }
   return { owed: left, unread, down };
 };

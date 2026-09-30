@@ -462,3 +462,22 @@ test("a required reading names the gateway's status in the refusal of a commit w
   assert.match(because(out), /What left docs\/DOWN\.md unread is the gateway, not a skipped consult: gateway unavailable \(503\), consult c503a1/u);
   assert.match(because(out), /codex\.consult=advisory/u, "and the setting, whose wording the write's own case pins");
 });
+
+test("an advisory reading with no gateway lets a commit through whose staged copy is apart from the disk", () => {
+  mkdirSync(join(REPO, "docs"), { recursive: true });
+  writeFileSync(join(REPO, "docs/APART.md"), "# staged\n");
+  spawnSync("git", ["-C", REPO, "add", "docs/APART.md"], { cwd: REPO });
+  const out = advisory(() => {
+    count += 1;
+    writeFileSync(join(room, "forge", "codex-log.jsonl"), "");
+    writeFileSync(join(room, "forge", "codex.json"),
+      JSON.stringify({ turns: { [realpathSync(REPO)]: { files: ["docs/APART.md"], at: Date.now() - 90_000 } } }));
+    spawnSync("git", ["-C", REPO, "read-tree", "--empty"], { cwd: REPO });
+    spawnSync("git", ["-C", REPO, "add", "docs/APART.md"], { cwd: REPO });
+    writeFileSync(join(REPO, "docs/APART.md"), "# changed on disk after staging\n");
+    return answered(callHook(HOOK, { tool_name: "Bash", tool_input: { command: "git commit -m x" }, session_id: `s${count}`, cwd: REPO },
+      { ...process.env, XDG_CONFIG_HOME: room, CLAUDE_PROXY_ENV: join(room, "no-gateway.env") }));
+  });
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, undefined, "no consult is askable here, of either copy");
+  assert.match(out?.hookSpecificOutput?.additionalContext ?? "", /docs\/APART\.md — no codex gateway is configured/u);
+});
