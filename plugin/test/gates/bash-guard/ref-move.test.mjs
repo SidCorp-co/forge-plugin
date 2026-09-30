@@ -170,6 +170,9 @@ test("a worktree listing or a stale-path reading that fails refuses, saying whic
   const unlisted = decide(move, repo.side, failing("worktree"));
   assert.equal(unlisted.allowed, false);
   assert.match(unlisted.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
+  const empty = decide(move, repo.side, failing("worktree", "exit 0"));
+  assert.equal(empty.allowed, false, "a listing that names no tree, a bare repository's main one included, is no listing");
+  assert.match(empty.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);
   const silent = decide(move, repo.side, failing("worktree", "exec sleep 30"));
   assert.equal(silent.allowed, false, "a listing that never answers is no listing");
   assert.match(silent.reason, /could not be read: `git worktree list --porcelain` gave no listing/u);

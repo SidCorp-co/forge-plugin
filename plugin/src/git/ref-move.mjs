@@ -130,7 +130,8 @@ const targetOf = (ask, ref) => {
 /* The trees standing on `ref`, a dereferenced name: the branch's, or for `HEAD` the tree the call runs in. */
 const standingOn = (ask, tree, ref) => {
   const listed = ask(["worktree", "list", "--porcelain"]);
-  if (listed?.status !== 0) return { unread: "`git worktree list --porcelain` gave no listing of the trees that could be standing on it" };
+  /* Every repository lists its main tree, a bare one too, so a listing that names none is no listing. */
+  if (listed?.status !== 0 || !/^worktree /mu.test(listed.out)) return { unread: "`git worktree list --porcelain` gave no listing of the trees that could be standing on it" };
   const entries = worktreesOf(listed.out);
   const top = ask(["rev-parse", "--show-toplevel"]);
   const here = top?.status === 0 ? canonical(top.out.trim()) : null;
