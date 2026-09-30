@@ -15,7 +15,6 @@ export const couldProve = (row, id) =>
   row?.status === "closed" && Boolean(row?.mergedAt) && opensOn(row, id).length > 0;
 
 /* Every criterion it opened on the clause: three claims with one failed is not a proof. */
-/* Outside git a verdict names the landing it read rather than a head, and proves where it is the mark's. */
 const judgedLanded = (row, view) => {
   if (landsOutsideGit(view?.issue ?? row)) {
     const landed = markedLanding(view?.issue ?? row);

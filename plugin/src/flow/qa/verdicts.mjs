@@ -57,9 +57,8 @@ export const judgeProblem = (held, landing, holders = []) => {
 
 export const numbered = (verdicts) => [...verdicts].sort((one, two) => one[0] - two[0]);
 
-/* No landing checkpoint is written outside git — no branch is pushed and no deployment reports a head —
-   so every run the claim history names as having held the issue while it was built is a builder, and a
-   judge is apart only from all of them: a build a second run finished has two (ISS-2402). */
+/* Outside git there is no checkpoint to name a builder, so `holdersOf`'s whole set stands in for one,
+   and a judge is apart only from all of it: a build a second run finished has two (ISS-2402). */
 const NO_OUTSIDE_BUILDER = "lands outside git, where no landing checkpoint is written, so the builder is "
   + "read off the claim history, and it names no run that held the issue while it was being built: "
   + "nothing on the record shows this judge apart from whoever built it";

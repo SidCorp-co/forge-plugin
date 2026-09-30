@@ -16,7 +16,7 @@ export const landsOutsideGit = (issue) => ((issue?.landingShape ?? null) === nul
   ? Boolean(String(issue?.mergedLanding ?? "").trim())
   : issue.landingShape === OUTSIDE_GIT);
 
-/** The place the standing mark names, or null where none stands or the issue lands in git. */
+/** Absent until a mark stands, and always absent on an issue landing in git. */
 export const markedLanding = (issue) => {
   if (!landsOutsideGit(issue) || !issue?.mergedAt) return null;
   const held = String(issue?.mergedLanding ?? "").trim();

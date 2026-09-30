@@ -395,10 +395,9 @@ const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it,
   + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
   + "is an assertion nothing on the record stands behind";
 
-/* What a record judged, by one of two identities, and which one the tracker's `landingShape` for the
-   issue decides at the write (ISS-2402): a commit where the change landed in git, the place the mark's
-   landing names where it landed outside git. Each is optional alone and exactly one is owed, which is
-   the shape's own check, so a record read back naming both or neither is no whole payload. */
+/* Which of the two a record holds is decided at the write, by `markedIdentity` in record/merged.mjs.
+   Each is optional alone and exactly one is owed, which is the shape's own check, so a record read
+   back naming both or neither is no whole payload (ISS-2402). */
 const JUDGED_COMMIT = { commit: true, judged: true, optional: true, identity: true };
 const JUDGED_LANDING = { optional: true, landing: true, identity: true };
 
