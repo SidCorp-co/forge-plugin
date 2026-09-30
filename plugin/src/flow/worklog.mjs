@@ -425,7 +425,7 @@ export const carriedByLanding = (head, lands = null) => {
   return short(`git could not answer whether ${ref} reaches it`, null, ref, tip);
 };
 
-/** The worklog with what this checkout reads of it now, the landing branch read once for the reach. */
+/** The worklog beside what this checkout observes of it: which ref carries its head, and where its branch stands. */
 export const workNow = async (work) => {
   if (!work?.branch) return null;
   const lands = await landingBranch();

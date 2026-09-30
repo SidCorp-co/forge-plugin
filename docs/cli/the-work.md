@@ -57,18 +57,15 @@ none.
 
 ## Which ref is named, and where the branch stands now
 
-Of the refs that carry the head, the one named decides how a successor opens, so the choice is by
-role and not by sort order. The branch the project lands on comes first, because it is the one ref
-whose carrying says the work is in; the branch's own ref next, because it says the work was pushed;
-and any other only as what it is. The first ref of an alphabetical list once named another issue's
-branch as where the work lived, when the work had landed, and a run spent its opening recovering
-that from git. Where the project's configuration did not read, no ref is called the landing branch,
-because the name a guess falls back to is the branch a promoting project releases to.
+Of the refs carrying the head, the one named decides how a successor opens, so it is chosen by role
+and not by sort order: the branch the project lands on first, since only its carrying says the work
+is in; the branch's own ref next; any other only as what it is. An alphabetical first once named
+another issue's branch as where landed work lived. Under a configuration that did not read, no ref
+is called the landing branch, the fallback name being the one a promoting project releases to.
 
-A capture is a reading of its own moment, and the run after it may have moved the branch on before
-dying. So the line also says where the branch stands in this checkout as it is printed — still at
-that head, some commits past it, moved off it, or not here at all — and it reads the branch's own
-ref for it, offline, as it reads everything else on these lines.
+A capture is a reading of its own moment, and the run after it may have moved the branch before
+dying, so the line also says where the branch stands in this checkout as it is printed, off the
+branch's own ref and offline.
 
 ## The status a change is built under owes the branch
 
@@ -95,12 +92,10 @@ checkout, rather than the branch of one and the file list of another. The line t
 says which reason left it with no diff, and a checkpoint offered to a landing is
 refused on the diff rather than on the head, a branch carrying nothing being nothing to land.
 
-A branch the landing branch has already merged is its own merge-base with it, so read plainly it
-holds nothing. The merge that took it in still records where it stood, and the capture measures from
-there; where a fast-forward left no such merge the head stays its own base, and where two merges
-disagree about where it stood the capture records none and says so, a base nobody can trust being
-worse than none. A head the landing branch carries is no landing left to arm, and `--ready` refuses
-it on that fact, the touched set of a merged branch being its own files and not empty.
+A branch the landing branch has merged is its own merge-base with it, so read plainly it holds
+nothing. The merge that took it in records where it stood, and the capture measures from there; a
+fast-forward leaves no such merge and the head stays its own base, and merges that disagree leave
+none, said as such. `--ready` refuses a head the landing branch carries on that fact.
 
 A capture naming a branch other than the one the worklog held says which it replaced, with the time
 that older block was taken. Nothing is refused for it — a run captures again from the default branch
