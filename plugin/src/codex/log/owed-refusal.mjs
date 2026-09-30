@@ -71,14 +71,19 @@ export const unreadApart = (root, owed, log, consult, apart = []) => {
   const left = [];
   const down = [];
   for (const rel of owed) {
-    const sha = apart.includes(rel) ? null : bytesOf(root, rel);
-    const failed = configured && sha ? failedAt(log(), root, rel, sha) : null;
-    const { state, reason } = consultState({ read: false, failed, gateway: configured });
+    /* Hashed only where a failure could be looked up: with no gateway the state is `no-gateway`
+       whatever the bytes are. */
+    const sha = configured && !apart.includes(rel) ? bytesOf(root, rel) : null;
+    const failed = sha ? failedAt(log(), root, rel, sha) : null;
+    const { state, reason } = consultState({ failed, gateway: configured });
     /* A staged copy apart from the disk has no bytes a consult could have failed on, so it reads as
        unasked where a gateway answers and as no gateway where none is configured. */
-    if (passesUnread(state, consult)) unread.push({ rel, reason });
-    else left.push(rel);
-    if (!passesUnread(state, consult) && reason) down.push({ rel, reason });
+    if (passesUnread(state, consult)) {
+      unread.push({ rel, reason });
+      continue;
+    }
+    left.push(rel);
+    if (reason) down.push({ rel, reason });
   }
   return { owed: left, unread, down };
 };

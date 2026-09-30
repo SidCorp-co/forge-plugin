@@ -39,16 +39,25 @@ export const carriedOnto = (got, comments, say, cwd = process.cwd()) => {
 
 /** Fills `got["carries-deployment"]` where git reads a commit the verdict cites as carrying the deployment
  *  the landing checkpoint names, which is how a judge citing the commit staging served, a later one
- *  than the merge the checkpoint names, is read as having judged that deployment (ISS-2587). Every
- *  commit the evidence cites is asked and any one that carries it is enough; one citing the
+ *  than the merge the checkpoint names, is read as having judged that deployment (ISS-2587). The
+ *  commits the evidence cites are asked in turn and the first that carries it is enough; one citing the
  *  deployment itself, or a checkpoint naming none, asks nothing. What it read is said on `say`,
  *  including the two routes where the checkout could not settle it. */
 export const deploymentOnto = (got, landing, say, cwd = process.cwd()) => {
   const deployment = landing?.deployment;
   const cited = (got.evidence ?? []).filter((one) => isCommit(one));
   if (!deployment || !cited.length || cited.some((one) => sameCommit(one, deployment))) return;
-  const reads = cited.map((one) => ({ one, read: carriesOnce(deployment, one, cwd) }));
-  const carrier = reads.find((each) => each.read.carries);
+  /* Only the failure's sentences read every answer, and they are reached only where none carries it. */
+  const reads = [];
+  let carrier = null;
+  for (const one of cited) {
+    const read = carriesOnce(deployment, one, cwd);
+    reads.push({ one, read });
+    if (read.carries) {
+      carrier = { one, read };
+      break;
+    }
+  }
   const at = `the deployment ${shortSha(deployment)} the landing checkpoint names`;
   if (carrier) {
     got[CARRIES_DEPLOYMENT] = deployment;

@@ -60,8 +60,8 @@ const verdictOwed = (view, ref, { handle, carrier }, whole, id) => {
   )];
 };
 
-/** What the folded findings on an issue owe: each one carried by a criterion or declined, and, where `judged` says the rung is past the judging, each carrier judged without failing. */
-export const findingsOwed = (view, ref, { whole, judged = false, id = "--commit <sha>" }) => {
+/** What the folded findings on an issue owe: each one carried by a criterion or declined, and, where `judged` says the rung is past the judging, each carrier judged without failing. `id` is the identity flag each verdict it asks for names, which the caller reads off the issue. */
+export const findingsOwed = (view, ref, { whole, judged = false, id }) => {
   const declined = new Set((view.repeated?.[DECLINED] ?? [])
     .filter((one) => whole(DECLINED, one.record))
     .map((one) => handleOf(one.record.fields.finding)));

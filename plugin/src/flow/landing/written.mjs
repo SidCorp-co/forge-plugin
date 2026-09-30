@@ -6,7 +6,7 @@
 import { DERIVED, HAND_WRITTEN, REBUILT_FORM, UNRECOVERABLE } from "./reconstruction.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_DONE, LANDING_HEAD_OWED, LANDING_QA_OWED, LANDING_READY,
-  LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, notACommit, supersededBy, unjudgedAt,
+  LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, landingAt, notACommit, supersededBy, unjudgedAt,
 } from "./checkpoint.mjs";
 import { parseAll } from "../record/page.mjs";
 import { carriedByLanding } from "../worklog.mjs";
@@ -105,8 +105,7 @@ export const rebuiltCheckpoint = (ref, holder, head,
   };
 };
 
-const replacedSaid = (landing) => `the landing at ${shortSha(landing.head) || "no head"}`
-  + `${landing.deployment ? ` with deployment ${shortSha(landing.deployment)}` : ""}`;
+const replacedSaid = (landing) => `the landing ${landingAt(landing)}`;
 
 /* Which builder the late write names, and the sentence that says how it knows. At the head the
    checkpoint it replaces already names, a captured builder is that same change's; otherwise the

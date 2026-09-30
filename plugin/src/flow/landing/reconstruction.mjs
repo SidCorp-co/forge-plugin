@@ -70,7 +70,8 @@ const DERIVED_BUILDER = (subject, holder) =>
 
 /** Why a checkpoint's builder does not stand, or null where it does — whether it was captured or
  *  declared unrecoverable. The one reading of the rule over a checkpoint that exists, made by the
- *  gate and by every reader of one; the clause above is what it shares with the write.
+ *  gate and by every reader of one. A rebuilt block names its builder through `DERIVED`, a
+ *  sentence of its own.
  *  The holders are the ones a build could have been done under, which `holdersOf` is what decides. */
 export const builderProblem = (landing, holders = []) => {
   if (landing?.builder) return null;

@@ -14,19 +14,21 @@ export const opensOn = (row, id) => criteriaOf(row)
 export const couldProve = (row, id) =>
   row?.status === "closed" && Boolean(row?.mergedAt) && opensOn(row, id).length > 0;
 
-/* Every criterion it opened on the clause: three claims with one failed is not a proof. */
+/* The test a passing verdict's identity is held to, one per shape the issue lands in. */
 const judgedLanded = (row, view) => {
-  if (landsOutsideGit(view?.issue ?? row)) {
-    const landed = markedLanding(view?.issue ?? row);
+  if (landsOutsideGit(view.issue ?? row)) {
+    const landed = markedLanding(view.issue ?? row);
     return landed ? (held) => samePlace(held.landing, landed) : null;
   }
-  const heads = view ? verdictHeads(view.comments) : [];
+  const heads = verdictHeads(view.comments);
   return heads.length ? (held) => heads.some((one) => sameCommit(held.commit, one)) : null;
 };
 
+/* Every criterion it opened on the clause: three claims with one failed is not a proof. Asked only
+   with a view, which `clauseStatus` requires before it asks. */
 const proved = (row, id, view) => {
   const numbers = opensOn(row, id);
-  const landed = view ? judgedLanded(row, view) : null;
+  const landed = judgedLanded(row, view);
   if (!numbers.length || !landed) return false;
   return numbers.every((number) => {
     const held = view.verdicts.get(number)?.record.fields;

@@ -22,6 +22,8 @@ const uncapped = (rel) => rel === INDEX || REQUIREMENTS.test(rel);
    row in the CLI index, as the refusal log does, so halving the file is not the split it owes. */
 const KEPT_WHOLE = { "docs/HOOKS.md": `a topic of its own under docs/cli/ with its row in ${INDEX}` };
 const keptWhole = (rel) => Object.hasOwn(KEPT_WHOLE, rel);
+/* The one it is, named by the table rather than spelled again in a message beside it. */
+const [WHOLE] = Object.keys(KEPT_WHOLE);
 
 export const overCap = (docs, max = TOPIC_MAX) =>
   docs
@@ -31,7 +33,7 @@ export const overCap = (docs, max = TOPIC_MAX) =>
         ? ` pass — it is the one document this repository keeps whole and the cap is the round number`
           + ` above it, so the split it owes is the reason just added, moved out to ${KEPT_WHOLE[rel]}`
         : " pass — split it and give each half its own index row. The cap is the round number above"
-          + " docs/HOOKS.md, the one document this repository keeps whole"));
+          + ` ${WHOLE}, the one document this repository keeps whole`));
 
 /* Nothing about the seam or about cutting: where the halves divide is the document's owner's
    judgement, and a checker cannot tell a trimmed restatement from a trimmed reason. */

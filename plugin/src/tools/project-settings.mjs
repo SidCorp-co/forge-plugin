@@ -40,7 +40,6 @@ const RESOURCES = {
     written: "set_pipeline",
     keysIn: (answer) => answer?.pipelineConfig ?? {},
     bodyFor: (key, value) => ({ [key]: value }),
-    typed: true,
     shown,
   },
   project: {
@@ -55,10 +54,10 @@ const LOCAL = "project";
 /* The one the tracker answers for: `forge doctor` already reports the project's own file key by key. */
 const TRACKED = NAMES.filter((name) => !RESOURCES[name].local);
 
-/* A pipeline key is typed, so the coercion is the resource's: `enabled=false` arriving as the string
-   "false" is a value the tracker's schema drops in silence. */
-const valueFor = (resource, given) => {
-  if (!resource.typed) return given;
+/* A pipeline key is typed, and the pipeline is the one resource the tracker answers for, so every
+   value written there is coerced: `enabled=false` arriving as the string "false" is a value the
+   tracker's schema drops in silence. */
+const valueFor = (given) => {
   if (given === "true" || given === "false") return given === "true";
   return /^-?\d+$/u.test(given) ? Number(given) : given;
 };
@@ -86,7 +85,7 @@ const settingRows = (read) => {
     }
     for (const key of held) {
       out.push({ level: "ok", label: `${name}.${key}`,
-        detail: `${resource.shown(keys[key], key, answer)}  ← ${resource.said}` });
+        detail: `${resource.shown(keys[key])}  ← ${resource.said}` });
     }
   }
   return out;
@@ -294,7 +293,7 @@ export const writeSetting = async (given) => {
   }
   /* After the routing: the file above is the one resource that answers without a slug. */
   projectSlug();
-  const value = valueFor(resource, raw);
+  const value = valueFor(raw);
   const file = clearsDrain(route, value) ? drainFile() : null;
   await sent(resource, route, value, file);
   const now = await scoped("forge_config", { action: resource.read }, true);
