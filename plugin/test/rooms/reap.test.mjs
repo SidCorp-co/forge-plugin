@@ -115,14 +115,16 @@ test("a config write sweeps its own path's stranded temp files and no other file
   assert.deepEqual(JSON.parse(readFileSync(target, "utf8")), { a: 1 });
 });
 
-test("the home imports nothing outside node:, and every room spends it rather than walking alone", () => {
-  const specifiers = [...readFileSync(HOME, "utf8").matchAll(/^import [^"]*"([^"]+)";$/gmu)].map((one) => one[1]);
-  assert.ok(specifiers.length > 0, "the scan read the home's imports");
-  assert.deepEqual(specifiers.filter((one) => !one.startsWith("node:")), [], "a module outside node: would load on every spender's path");
+/* The module graph and not the text: what each module loads is the claim, and the one-home guard's
+   row in `plugin/test/markdown.test.mjs` is what holds each of them to no loop of its own. */
+const importsOf = (path) => [...readFileSync(path, "utf8").matchAll(/from\s+"([^"]+)"/gu)].map(([, one]) => one);
+
+test("the home imports nothing outside node:, and every room loads it", () => {
+  assert.ok(importsOf(HOME).length > 0, "the scan read the home's imports");
+  assert.deepEqual(importsOf(HOME).filter((one) => !one.startsWith("node:")), [], "a module outside node: would load on every spender's path");
   for (const rel of SPENDERS) {
-    const text = readFileSync(join(SRC, rel), "utf8");
-    assert.match(text, /^import \{[^}]*\breap\b[^}]*\} from "(?:\.\.\/)+rooms\/reap\.mjs";$/mu, `${rel} spends the home`);
-    assert.doesNotMatch(text, /\breaddirSync\b/u, `${rel} walks no directory of its own`);
+    const home = importsOf(join(SRC, rel)).filter((one) => one.endsWith("/rooms/reap.mjs"));
+    assert.equal(home.length, 1, `${rel} loads the home`);
   }
 });
 
