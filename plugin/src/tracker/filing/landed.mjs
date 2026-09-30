@@ -111,16 +111,14 @@ const rankOf = (found) => {
   return { rank: found.unread.includes("priority") ? "unread" : "held" };
 };
 
-const UNREAD_RANK = { rank: "unread" };
-
 /** A row carrying no id is the tracker denying it, and still no evidence the write was dropped.
  *  `sent` is the create's payload whole, compared field by field with the row read back. */
 export const issueLanded = async (answer, { module = null, sent = {} } = {}) => {
   const documentId = idOf(answer);
-  if (!documentId) return { ...noId("filing", answer), ...UNREAD_RANK };
+  if (!documentId) return noId("filing", answer);
   const back = await asked(() => tried("forge_issues", { action: "get", documentId }));
   const said = `The create was answered with ${documentId}`;
-  const unread = (line) => ({ ...unverified(READ_ISSUE(documentId))(line), ...UNREAD_RANK });
+  const unread = unverified(READ_ISSUE(documentId));
   if (back?.refused) return unread(`${said} and the read-back could not run: ${oneLine(back.refused)}.`);
   if (!plain(back)) return unread(`${said} and the read-back answered with no record to read.`);
   if (back.documentId === documentId) {
@@ -129,7 +127,7 @@ export const issueLanded = async (answer, { module = null, sent = {} } = {}) => 
     const otherwise = otherwiseSaid(key, found, back);
     const stored = otherwise ? `, and ${otherwise}.` : ".";
     if (module && !carriesPrimary(back.labels, module)) {
-      return { ...unverified(READ_ISSUE(documentId))(`${key} is filed at ${documentId}, and the read-back does `
+      return { ...unread(`${key} is filed at ${documentId}, and the read-back does `
         + `not carry ${module.name} as its primary module, so that half of the filing is unverified${stored}`),
       ...rankOf(found) };
     }
