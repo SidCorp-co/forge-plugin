@@ -174,7 +174,7 @@ test("a field its own rule refuses is told in its kind's help what it takes, and
         `${kind}: --${field.flag} is refused for no form and its help states one anyway`);
     }
   }
-  assert.equal(told, 8, "and the fields carrying a form are the ones the shapes declare, `wave`'s --member the fourth (ISS-818), `declined`'s --finding the fifth (ISS-167), `correction`'s --corrects the sixth (ISS-74) and `confirmation`'s --fixed and --survives the seventh and eighth (ISS-406)");
+  assert.equal(told, 10, "and the fields carrying a form are the ones the shapes declare, `wave`'s --member the fourth (ISS-818), `declined`'s --finding the fifth (ISS-167), `correction`'s --corrects the sixth (ISS-74), `confirmation`'s --fixed and --survives the seventh and eighth (ISS-406) and its --finding and --landed the ninth and tenth (ISS-1693)");
 });
 
 /* The form and the refusal are one string or they are two copies, and the second is the one nobody
