@@ -74,6 +74,11 @@ test("a branch spelt in joined quoted fragments, or reached through a symbolic r
   }
   assert.equal(decide(`git update-ref --no-deref refs/heads/alias ${to}`, repo.side).allowed, true,
     "--no-deref rewrites the alias itself, which no tree stands on");
+  const unplaced = decide(`cd "$SOMEWHERE" && git update-ref refs/aliased ${to}`, repo.side);
+  assert.equal(unplaced.allowed, false, "a tree nobody can name may hold an alias of a checked-out branch");
+  assert.match(unplaced.reason, /^Refused — spell the directory out/u);
+  assert.equal(decide(`cd "$SOMEWHERE" && git update-ref --no-deref refs/aliased ${to}`, repo.side).allowed, true,
+    "and a literal ref outside refs/heads moves no tree wherever it runs");
 });
 
 test("moving HEAD moves the tree the call runs in, with or without --no-deref", () => {

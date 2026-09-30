@@ -70,6 +70,15 @@ const unread = (what) => ({
     + `checked out leaves that tree's files at the old commit. Whether this one does could not be read: ${what}.`,
 });
 
+/* Any ref may be a symbolic one naming a branch, so a tree nobody can name leaves every dereferencing move in doubt. */
+const UNPLACED = {
+  instead: "Spell the directory out, `cd <path> && git update-ref …`, so the tree it moves can be read.",
+  cause:
+    "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree has "
+    + "checked out leaves that tree's files at the old commit. Which repository this call runs in "
+    + "cannot be read from the command, so whether it does cannot be read either.",
+};
+
 const STDIN = {
   instead:
     "Move each ref with its own `git update-ref <ref> <new> [<old>]` call, which this guard can read.",
@@ -113,8 +122,8 @@ const targetOf = (ask, ref) => {
 export const refMoveIn = (rest, tree, left) => {
   const call = updateRefOf(rest);
   if (call.deletes || (!call.stdin && call.ref === null)) return null;
-  if (tree === NOWHERE && !call.stdin && !judged(call.ref)) return null;
-  if (tree === NOWHERE) return unread("which tree the call runs in cannot be read from the command, so spell the directory out: `cd <path> && …`");
+  if (tree === NOWHERE && !call.stdin && !call.deref && !judged(call.ref)) return null;
+  if (tree === NOWHERE) return UNPLACED;
   const ask = (argv) => gitProbe(argv, { cwd: tree, ms: probeMs(left()) });
   const repo = ask(["rev-parse", "--git-dir"]);
   if (!repo) return unread(`git did not say in time whether ${tree} is a repository`);
