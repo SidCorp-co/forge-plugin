@@ -87,7 +87,7 @@ const treeLines = (tree) => {
    restart, and a run in any project is handed a line about a copy it cannot act on (ISS-2963). So it
    goes to standard error, which the brief's digest never holds, only where a restart is owed, and in
    versions rather than the plugin's own paths, which a project that never saw its source cannot place.
-   A reading not taken says nothing, as an install record that cannot be read does (AC-07-6-2). */
+   Copies it could not place are silence, by AC-07-6-2. */
 const restartLine = (copies) => (copies.frozen?.length
   ? `forge brief: a restart is owed before this dispatch. This session loaded forge ${copies.loaded} and `
     + `${copies.installed} is installed, and the hooks, skills or roles a session keeps from its start differ `
