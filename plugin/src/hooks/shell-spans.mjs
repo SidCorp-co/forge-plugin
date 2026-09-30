@@ -9,8 +9,9 @@ export { quoting, spans };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
-/* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from this one list, so a word gained here is gained by all of them. */
-const PREFIXES = `sudo|command|nohup|time|env|exec|${KEYWORDS}`;
+/* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from these two lists, so a word gained here is gained by all of them. `exec` stands apart because it runs the command after it only where the shell runs `exec` itself: `docker exec`, `podman exec` and `kubectl exec` take it as a subcommand that runs inside a container (ISS-2877). */
+const WRAPPERS = `sudo|command|nohup|time|env|${KEYWORDS}`;
+const PREFIXES = `${WRAPPERS}|exec`;
 /* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader. One reading, so a case a shell word gains is gained by every reader that splits one. */
 const shellWord = (stops) => String.raw`(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s${stops}])+`;
 const AHEAD = String.raw`(?:[({]\s*|\b(?:${KEYWORDS})\s+)*`;
@@ -294,9 +295,9 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
 
 export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
-/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. */
-export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
-  + String.raw`|\b(?:${PREFIXES})\s+|^)`;
+/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. An `exec` counts only behind one of these, so the one another program takes as its argument starts nothing. */
+export const STARTS = String.raw`(?:(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
+  + String.raw`|\b(?:${WRAPPERS})\s+|^)(?:exec\s+)?)`;
 
 /** A word that runs its next quoted argument as shell code: a shell at any path, through `busybox` or not, with its options before the `-c` — a bare word only as the value `-o` or `+o` takes, since `bash -x script -c '…'` runs the script and hands it the rest — or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
 export const RUNNER = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
