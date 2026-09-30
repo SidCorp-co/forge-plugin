@@ -90,7 +90,7 @@ next write and the next claim take it where an empty one is refused.
 
 ### UC-03-2 — Refuse a second run
 
-Rev: 6 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 7 · Actors: agent · Enforces: BR-01, BR-05
 
 A lease inside its duration held by another run refuses the claim and every payload write, and the
 refusal names the holder and the renew time — the two facts a person needs to decide whether to
@@ -99,6 +99,15 @@ the record settles it, the reclaim is UC-03-3's. The one second run it does not 
 the issue was dispatched to, which the record identifies without anybody being asked to remember a
 flag; a dispatcher holding a lease over a write it has already finished is not work, and waiting it
 out is the cost this exception exists to drop.
+
+Two writes are not refused either, because neither is work a lease keeps a second writer from. At
+a status nothing is worked at, closed or dropped, the lease guards no work in progress, so a
+payload write there takes it, lands and gives it back, while a claim there still waits it out. A
+judge's verdict replaces nothing a lease covers: sent alone, under an id the caller chose for
+itself, with no flag that writes onto the lease, at a status where a comment does not answer a
+park, it goes up under that id, leaves the lease exactly as it stood, and names the status move it
+earned as the holder's to make. Both hold past a lapse the record does not prove dead as they hold
+inside the duration, so UC-03-3's refusal of a young lapse makes the same two exceptions.
 
 A holder that matches is not always this caller. The id a worktree mints belongs to that tree, so
 every call made from there resolves it and the field naming it says a run standing there holds the
@@ -125,9 +134,10 @@ assertion typed at nothing. The declaration therefore names what would cost some
 never the gate, and work the claiming call descends from is its own however well it matches, a gate
 a release started standing under that release.
 
-- **AC-03-2-1** · Rev: 3 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
+- **AC-03-2-1** · Rev: 4 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a lease inside its duration is held by another run, and the record does not show that run gone,
-  and that run is not handing the issue to this caller, THEN the CLI SHALL refuse and SHALL name that
+  and that run is not handing the issue to this caller, and the call is neither a payload write to
+  an issue at a settled status nor a verdict the CLI posts as a judge's write, THEN the CLI SHALL refuse and SHALL name that
   run and its renew time, and where the refusal is of a claim it SHALL also name the line the holder
   left on the lease and a way out that answers the reason this caller was refused.
 - **AC-03-2-2** · Rev: 1 · Proof: plugin/test/tracker/precondition.test.mjs "the payload write carries the sessionContext its own renewal sent, and a moved one does not land"
@@ -183,6 +193,17 @@ a release started standing under that release.
   WHEN a claim writes a lease THEN the CLI SHALL record the checkout the claiming call stood in, and
   SHALL read a recorded checkout only where it lies in the domain that lease records and still mints
   that lease's holder.
+- **AC-03-2-16** · Rev: 1 · Proof: plugin/test/flow/lease/settled-write.test.mjs "a note written to a closed issue under another run's live lease lands, and the lease is reclaimed by name and given back"
+  IF a payload is written to an issue at a settled status, closed or dropped, whose lease is another
+  run's and is inside its duration or lapsed by less than it, THEN the CLI SHALL let the write land,
+  SHALL take that lease under the word a reclaim keeps naming the run it displaced, SHALL tell the
+  caller the status is why, and SHALL give the lease back once the write has landed.
+- **AC-03-2-17** · Rev: 1 · Proof: plugin/test/flow/lease/judged-write.test.mjs "a judge's verdict posts past a lease inside its duration and past one lapsed inside it, and each reads back as it stood"
+  IF a verdict is sent alone, under an id the caller set for itself, with no flag that writes onto
+  the lease, to an issue at a status where a comment does not answer a park, and that issue's lease
+  is another run's which the record does not prove gone, THEN the CLI SHALL post the verdict as a
+  judge's write under the caller's id, SHALL leave that lease exactly as it stood, SHALL move no
+  status, and SHALL name the move the verdict earned as the holder's.
 
 ### UC-03-3 — Reclaim what a dead run left
 
@@ -242,9 +263,10 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   take that lease as part of the write, SHALL keep the take in the claim history under the word a
   reclaim keeps, SHALL hold on that record the run it displaced and the moment that run's lease ran
   out, and SHALL tell the caller what it took.
-- **AC-03-3-6** · Rev: 2 · Proof: plugin/test/flow/claim/lapsed-write.test.mjs "a lease lapsed inside the threshold refuses the write, and the claim it names asks for --stopped"
+- **AC-03-3-6** · Rev: 3 · Proof: plugin/test/flow/claim/lapsed-write.test.mjs "a lease lapsed inside the threshold refuses the write, and the claim it names asks for --stopped"
   IF a payload is written to an issue whose lease is another run's, and the record does not put the
-  lapse past that lease's own duration, and the record does not prove the holder gone, THEN the CLI
+  lapse past that lease's own duration, and the record does not prove the holder gone, and the issue
+  is not at a settled status, and the write is not a verdict the CLI posts as a judge's write, THEN the CLI
   SHALL refuse the write and SHALL name the reclaim that takes it.
 - **AC-03-3-7** · Rev: 2 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a claim on a lease whose holder the record proves gone is granted, and prints the id that proved it"
   WHERE a lease names a process that is not running in the domain that lease records, the caller
