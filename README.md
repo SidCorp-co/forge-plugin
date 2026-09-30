@@ -154,8 +154,9 @@ recorded that same command stopped at or above it. Set the clock below the one a
 under — `forge codex show` prints that too — because a check reaching a clock past it takes the
 consult with it instead of coming back as a call that was stopped. `codex.consult` says what a consult the gateway could
 not give costs: `required`, unset, holds the plan and criteria writes and the doors as a consult never
-taken does, and `advisory` lets the file through and records that nothing read it — a file no consult
-was asked about is held under both. `codex.complexityModel` and
+taken does, and `advisory` lets the file through and records that nothing read it. On a machine with a
+gateway configured, a file no consult was asked about is held under both; on one with none, `advisory`
+lets every file through, no consult being askable there. `codex.complexityModel` and
 `codex.priorityModel` name the model that proposes a complexity or a priority a filing left absent,
 and `priorities` says in the project's own words what earns each level the priority model may
 answer with; absent, the field is left unset and the filing's reply says so. `forge doctor --set`

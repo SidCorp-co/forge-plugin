@@ -452,3 +452,13 @@ test("an advisory reading still refuses a commit staging a file no consult was a
     log: failedOn(["docs/DOWN.md"]), env: { CLAUDE_PROXY_ENV: GATEWAY } })?.hookSpecificOutput?.permissionDecision, "deny",
   "and a project that has not declared the reading advisory is held as before");
 });
+
+test("a required reading names the gateway's status in the refusal of a commit whose consult failed, and the declaration that lets it through", () => {
+  mkdirSync(join(REPO, "docs"), { recursive: true });
+  writeFileSync(join(REPO, "docs/DOWN.md"), "# read by nobody\n");
+  const out = gate({ command: "git commit -m x", pending: ["docs/DOWN.md"], stage: ["docs/DOWN.md"],
+    log: failedOn(["docs/DOWN.md"]), env: { CLAUDE_PROXY_ENV: GATEWAY } });
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny", "the default holds it");
+  assert.match(because(out), /What left docs\/DOWN\.md unread is the gateway, not a skipped consult: gateway unavailable \(503\), consult c503a1/u);
+  assert.match(because(out), /codex\.consult=advisory/u, "and the setting, whose wording the write's own case pins");
+});

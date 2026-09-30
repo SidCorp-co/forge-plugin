@@ -4,7 +4,7 @@ import { isAbsolute, join, resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
 import { answered, bodied, logEntries } from "./codex-log.mjs";
-import { FAILED, NO_GATEWAY, STOOD_DOWN_REASON, consultState, gatewayFailed, passesUnread } from "./log/unavailable.mjs";
+import { ADVISORY_ROUTE, FAILED, NO_GATEWAY, STOOD_DOWN_REASON, consultState, gatewayFailed, passesUnread } from "./log/unavailable.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 import { WRITE_READ_OWED } from "../ladder.mjs";
@@ -46,21 +46,23 @@ const readersOf = (entries, real) => answered(entries).flatMap((one) => {
   return rel ? [{ one, rel }] : [];
 });
 
-/* The newest consult that carried this file whole at these bytes and got no answer back. */
-const failedWhole = (entries, real, sha) => entries.findLast((one) => {
-  if (!gatewayFailed(one)) return false;
-  const rel = (one.files ?? []).find((file) => landsAt(one, file) === real);
-  return Boolean(rel) && carriedWhole(one, rel)?.sha === sha;
-}) ?? null;
-
-const ADVISORY = "`forge doctor --set codex.consult=advisory` is the project's way to let an unavailable "
-  + "gateway hold nothing: the write then goes through and the issue is told no consult read the file.";
+/* `failedAt`'s question asked of the writes' own key, the real path, and held to the whole body a
+   write's read asks for. */
+const failedWhole = (entries, real, sha) => {
+  let rel = null;
+  const one = entries.findLast((row) => {
+    if (row.kind !== "consult") return false;
+    rel = (row.files ?? []).find((file) => landsAt(row, file) === real) ?? null;
+    return Boolean(rel) && (row.sent ?? []).some((sent) => sent.rel === rel && sent.sha === sha);
+  });
+  return one && gatewayFailed(one) && carriedWhole(one, rel)?.sha === sha ? one : null;
+};
 
 /* What the refusal says where the reason is the gateway rather than the agent: a run sent back to
    the consult that just failed learns nothing from the sentence it read before. */
 const gatewaySaid = (rel, state, reason) => (state === FAILED
-  ? `A consult was asked for ${rel} whole at these bytes and got nothing back: ${reason}. ${ADVISORY}`
-  : `No consult can be asked for ${rel}: ${reason}. ${ADVISORY}`);
+  ? `A consult was asked for ${rel} whole at these bytes and got nothing back: ${reason}. ${ADVISORY_ROUTE}`
+  : `No consult can be asked for ${rel}: ${reason}. ${ADVISORY_ROUTE}`);
 
 /* Any consult, not the latest: restored bytes are read bytes, which a hash says and a clock denies. */
 const readWhole = (mine, sha) => mine.some(({ one, rel }) => carriedWhole(one, rel)?.sha === sha);

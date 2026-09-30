@@ -5,10 +5,10 @@ import { resolve } from "node:path";
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, stagedIn } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { allPathed, listed, unverdicted } from "../../../src/codex/log/replies.mjs";
-import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
+import { DROP, consultFor, downSaid, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
 import { unreadSaid } from "../../../src/codex/log/unavailable.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
-import { codexConsultOf, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
+import { codexOwedOf, enumOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
 import { treeNamed } from "../../../src/git/tree-named.mjs";
 import {
@@ -119,7 +119,7 @@ const judged = (ev, root, aim, staged, also, consult) => {
   const asked = demandIn(waiting.files, staged);
   const apart = aim.all ? [] : apartFrom(root, asked, probeMs(remaining()));
   const owed = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;
-  const { owed: demand, unread } = unreadApart(root, owed, log, consult, apart);
+  const { owed: demand, unread, down } = unreadApart(root, owed, log, consult, apart);
   if (demand.length) {
     const cd = root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `;
     /* Every consult reads the working copy, so for a path the index holds apart from it no consult clears the hold and naming one is a refusal nobody can act on: staging what was read is the route (ISS-1011). */
@@ -133,7 +133,7 @@ const judged = (ev, root, aim, staged, also, consult) => {
         + `${readIn()} ${DROP} ${ESCAPE}\n\n`
         + `Codex has not read what this commit stages in ${root} (${listed(demand)}, recorded ${ageOf(waiting.at)}).${also}`
         + `${stale.length ? ` The staged copy of ${listed(stale)} is not the copy on disk a consult would `
-          + `read, so no consult clears ${stale.length > 1 ? "them" : "it"}.` : ""}`
+          + `read, so no consult clears ${stale.length > 1 ? "them" : "it"}.` : ""}${downSaid(down)}`
         + how(),
     );
   }
@@ -164,8 +164,8 @@ export const run = (ev) => {
     );
   }
   const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
-  const record = projectFileAt(at);
-  const owed = codexOwedOf(record?.codex);
+  const projectFile = projectFileAt(at);
+  const owed = codexOwedOf(projectFile?.codex);
   if (owed.unknown) deny(`${malformed(owed.unknown, GATE)}${how()}`);
   if (!owed.value.includes(DOOR)) done();
   const root = repoRoot(at);
@@ -177,7 +177,7 @@ export const run = (ev) => {
 
   /* The tree's record where its own run keeps it, through the reader the call doors take. */
   /* Off the record the door key was read from, before the run home moves the configuration. */
-  const consult = codexConsultOf(record).value;
+  const consult = enumOf("codex.consult", projectFile).value;
   inRunHome(root, () => judged(ev, root, aim, staged, also, consult));
   done();
 };

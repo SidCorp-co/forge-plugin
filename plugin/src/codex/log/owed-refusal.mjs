@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { configDir } from "../../resolve/config.mjs";
 import { gateway } from "../../resolve/machine/stores.mjs";
 import { digest } from "../codex-api.mjs";
-import { consultState, failedAt, passesUnread } from "./unavailable.mjs";
+import { ADVISORY_ROUTE, consultState, failedAt, passesUnread } from "./unavailable.mjs";
 import { OWED_DOORS } from "../../resolve/settings.mjs";
 import { offReach } from "../../hooks/hook-switch.mjs";
 import { typed } from "../../hooks/shell-spans.mjs";
@@ -62,19 +62,27 @@ const bytesOf = (root, rel) => {
 };
 
 /** Of the files a door owes, the ones the project's `consult` reading lets through unread — each with
- *  its reason — and the ones still owed. `apart` are files whose staged copy is not the disk's: no
- *  consult reads that copy, so no failed one speaks for it either. Only an advisory reading asks. */
+ *  its reason — the ones still owed, and of those the ones the gateway rather than the agent left
+ *  unread, which the refusal names. `apart` are files whose staged copy is not the disk's: no consult
+ *  reads that copy, so no failed one speaks for it either. */
 export const unreadApart = (root, owed, log, consult, apart = []) => {
-  if (consult !== "advisory" || !owed.length) return { owed, unread: [] };
+  if (!owed.length) return { owed, unread: [], down: [] };
   const configured = !gateway().problem;
   const unread = [];
   const left = [];
+  const down = [];
   for (const rel of owed) {
     const sha = apart.includes(rel) ? null : bytesOf(root, rel);
     const failed = configured && sha ? failedAt(log(), root, rel, sha) : null;
     const { state, reason } = consultState({ read: false, failed, gateway: configured });
     if (!apart.includes(rel) && passesUnread(state, consult)) unread.push({ rel, reason });
     else left.push(rel);
+    if (!apart.includes(rel) && !passesUnread(state, consult) && reason) down.push({ rel, reason });
   }
-  return { owed: left, unread };
+  return { owed: left, unread, down };
 };
+
+/** The sentence a door's refusal adds for the files the gateway could not give, or nothing. */
+export const downSaid = (down) => (down.length
+  ? ` What left ${down.map((one) => `${one.rel} unread is the gateway, not a skipped consult: ${one.reason}`).join("; ")}. ${ADVISORY_ROUTE}`
+  : "");

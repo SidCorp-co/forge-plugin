@@ -3,7 +3,7 @@
    row is the shape `forge codex consult` writes. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync, symlinkSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -334,5 +334,29 @@ test("a required reading refuses a file whose consult failed, naming the status 
     assert.match(refusal, /got nothing back: gateway unavailable \(503\), consult req503/u, `${consult ?? "absent"}: the status is named`);
     assert.match(refusal, /forge doctor --set codex\.consult=advisory/u, "and the declaration that lets the write proceed");
     assert.match(refusal, /forge codex consult --send bodies plan\.md/u, "and the consult, which may answer now");
+  }
+});
+
+test("a newer consult that answered speaks for the bytes, so an older failure lets nothing through", () => {
+  const { root, path, rel } = room();
+  reading(root, "advisory");
+  failed(root, rel, PLAN, { id: "01dfa1", status: 503, at: new Date(Date.now() - 60_000).toISOString() });
+  consulted(root, rel, PLAN, { id: "d1ffok", send: "diffs" });
+  const refusal = withGateway(true, () => refusalOf(path, root));
+  assert.match(refusal, /Consult d1ffok named plan\.md but sent its diff/u, "the answered diff is the newest word on these bytes");
+  assert.doesNotMatch(refusal, /gateway unavailable/u);
+});
+
+/* Criterion 20: one reading of a row, not four. Asked of the sources, since every behavioural case
+   here would stay green over a caller that kept a copy of its own. */
+test("the writes and both doors judge a file's consult through the one classifier", () => {
+  const src = (rel) => readFileSync(new URL(`../../../${rel}`, import.meta.url), "utf8");
+  for (const rel of ["src/codex/codex-read.mjs", "src/codex/log/owed-refusal.mjs"]) {
+    assert.match(src(rel), /import \{[^}]*\bconsultState\b[^}]*\} from "\.\/(log\/)?unavailable\.mjs"/u, `${rel} imports the classifier`);
+    assert.match(src(rel), /consultState\(\{/u, `${rel} calls it`);
+  }
+  for (const rel of ["hooks/gates/codex/codex-second.mjs", "hooks/gates/codex/codex-owed.mjs"]) {
+    assert.match(src(rel), /unreadApart\(/u, `${rel} judges through the shared split`);
+    assert.doesNotMatch(src(rel), /gatewayFailed|isAnswered/u, `${rel} reads no row for itself`);
   }
 });

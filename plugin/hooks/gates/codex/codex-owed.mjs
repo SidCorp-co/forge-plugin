@@ -3,10 +3,10 @@
 import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { listed, unverdicted } from "../../../src/codex/log/replies.mjs";
-import { DROP, consultFor, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
+import { DROP, consultFor, downSaid, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
 import { unreadSaid } from "../../../src/codex/log/unavailable.mjs";
 import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
-import { OWED_DOORS, codexConsultOf, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
+import { OWED_DOORS, codexOwedOf, enumOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { NOWHERE, context, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
 
@@ -23,7 +23,7 @@ const heldIn = (tree) => {
   const owed = codexOwedOf(parsed?.codex);
   const classes = declaredClasses(parsed?.stats?.commands ?? null)
     .filter(([label]) => (owed.unknown ? OWED_DOORS : owed.value).includes(label));
-  return { classes, unknown: owed.unknown, consult: codexConsultOf(parsed).value };
+  return { classes, unknown: owed.unknown, consult: enumOf("codex.consult", parsed).value };
 };
 
 /* Every command of the line against the tree the shell stands in AT that command, and every tree it
@@ -63,13 +63,13 @@ const judged = (root, cwd, log, consult) => {
   /* The working copy, which is what a consult reads and what this call would judge, where the
      commit asks its index: one record, one reader, two subjects. */
   const pending = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
-  const { owed, unread } = unreadApart(root, pending, log, consult);
+  const { owed, unread, down } = unreadApart(root, pending, log, consult);
   if (owed.length) {
     deny(
       `Run ${consultFor(cd, owed)}, then re-send. ${readIn()} ${DROP} ${ESCAPE}\n\n`
         + `Codex has not read what this call would judge in ${root} (${listed(owed)}, recorded ${ageOf(waiting.at)}). `
         + "Every door this project names asks for that same reading, so clearing it here clears them all."
-        + how(),
+        + downSaid(down) + how(),
     );
   }
   const open = unverdicted(log(), root);

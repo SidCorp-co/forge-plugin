@@ -289,3 +289,11 @@ test("an advisory reading on a machine with no gateway lets a named call through
   assert.ok((out?.hookSpecificOutput?.additionalContext ?? "").includes(`work.mjs — ${NO_GATEWAY_REASON}`),
     "the file, and that no gateway is configured");
 });
+
+test("a required reading names the gateway's status in the refusal of a call whose consult failed", () => {
+  const held = "// the gateway was down\n";
+  const out = gate({ command: "npm run check", held, log: failedOn([{ rel: "work.mjs", text: held }]), env: { CLAUDE_PROXY_ENV: GATEWAY } });
+  assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny", "the default holds it");
+  assert.match(because(out), /What left work\.mjs unread is the gateway, not a skipped consult: gateway unavailable \(503\), consult o503a1/u);
+  assert.match(because(out), /codex\.consult=advisory/u);
+});

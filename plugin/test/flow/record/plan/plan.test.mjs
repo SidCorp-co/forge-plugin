@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { escaped, neutralRoom, projectRecord, ranAsync, tempHome, tempRoom, typedPlan } from "../../../fixtures.mjs";
 import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
 import { digest } from "../../../../src/codex/codex-api.mjs";
+import { NO_GATEWAY_REASON, STOOD_DOWN_REASON } from "../../../../src/codex/log/unavailable.mjs";
 import { PLAN_SECTIONS } from "../../../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;
@@ -288,11 +289,13 @@ test("a plan taken under the stand-down posts that no consult read it, and why",
   assert.equal(run.status, 0, run.stderr);
   const note = state.posted.find((body) => body.startsWith("## No consult read the plan"));
   assert.ok(note, `a comment says no consult read the plan: ${state.posted.join(" | ")}`);
-  assert.match(note, /the check was stood down by FORGE_CODEX_DISABLE=1/u, "and why");
+  assert.ok(note.includes(STOOD_DOWN_REASON), "and why");
 });
 
-/* The criteria file is the plan's twin here: one reader decides both, and the write posts the same note. */
-const advisoryWrite = async (kind) => {
+/* The criteria file is the plan's twin here: one reader decides both, and the write posts the same
+   note. `row` is the consult the log holds for the file, where it holds one; `gateway` is whether the
+   machine has one configured. */
+const advisoryWrite = async (kind, { row = { status: 503, error: "gateway answered 503: All codex accounts are unavailable" }, gateway = true, said }) => {
   heldBy(MINE);
   state.posted = [];
   delete state.issues[0].acceptanceCriteria;
@@ -300,27 +303,55 @@ const advisoryWrite = async (kind) => {
   const text = kind === "plan" ? `${PLAN}\n` : "1. The write goes through.\n";
   const path = join(room, `${kind}.md`);
   writeFileSync(path, text);
-  const gateway = join(room, "gateway.env");
-  writeFileSync(gateway, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+  const profile = join(room, gateway ? "gateway.env" : "no-gateway.env");
+  if (gateway) writeFileSync(profile, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
   projectRecord(neutralRoom(), home, { ...OWN, codex: { consult: "advisory" } });
-  writeFileSync(join(home, "forge", "codex-log.jsonl"), `${JSON.stringify({
-    kind: "consult", id: "gw5031", at: new Date().toISOString(), root: neutralRoom(), ok: false, status: 503,
-    error: "gateway answered 503: All codex accounts are unavailable", files: [path], send: "bodies",
-    sent: [{ rel: path, sha: digest(text), chars: text.length, clipped: false }],
-  })}\n`);
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), row ? `${JSON.stringify({
+    kind: "consult", id: "gw5031", at: new Date().toISOString(), root: neutralRoom(), ok: false, ...row,
+    files: [path], send: "bodies", sent: [{ rel: path, sha: digest(text), chars: text.length, clipped: false }],
+  })}\n` : "");
   try {
-    const run = await ranAsync(FORGE, ["record", kind, "ISS-348", path], env(MINE, { FORGE_CODEX_DISABLE: "0", CLAUDE_PROXY_ENV: gateway }));
+    const run = await ranAsync(FORGE, ["record", kind, "ISS-348", path], env(MINE, { FORGE_CODEX_DISABLE: "0", CLAUDE_PROXY_ENV: profile }));
     assert.equal(run.status, 0, run.stderr);
     const field = kind === "plan" ? state.issues[0].plan : state.issues[0].acceptanceCriteria;
     assert.equal(field.trim(), text.trim(), `the ${kind} is written`);
     const note = state.posted.find((body) => body.startsWith(`## No consult read the ${kind}`));
-    assert.match(note ?? "", /gateway unavailable \(503\), consult gw5031/u, `the status and the consult are named: ${state.posted.join(" | ")}`);
+    assert.ok((note ?? "").includes(said), `the comment says ${said}: ${state.posted.join(" | ")}`);
   } finally {
     projectRecord(neutralRoom(), home, OWN);
     writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
   }
 };
 
-test("a plan an advisory project takes after the gateway failed posts the gateway's status and the consult", () => advisoryWrite("plan"));
+const TIMEOUT = { error: "The operation was aborted due to timeout\n    at fetch" };
 
-test("criteria an advisory project takes after the gateway failed post the gateway's status and the consult", () => advisoryWrite("criteria"));
+test("a plan an advisory project takes after the gateway failed posts the gateway's status and the consult",
+  () => advisoryWrite("plan", { said: "gateway unavailable (503), consult gw5031" }));
+
+test("criteria an advisory project takes after the gateway failed post the gateway's status and the consult",
+  () => advisoryWrite("criteria", { said: "gateway unavailable (503), consult gw5031" }));
+
+test("a plan an advisory project takes after a timeout posts the error's first line and the consult",
+  () => advisoryWrite("plan", { row: TIMEOUT, said: "gateway unavailable (The operation was aborted due to timeout), consult gw5031" }));
+
+test("criteria an advisory project takes after a timeout post the error's first line and the consult",
+  () => advisoryWrite("criteria", { row: TIMEOUT, said: "gateway unavailable (The operation was aborted due to timeout), consult gw5031" }));
+
+test("a plan an advisory project takes with no gateway configured posts that none is",
+  () => advisoryWrite("plan", { row: null, gateway: false, said: NO_GATEWAY_REASON }));
+
+test("criteria an advisory project takes with no gateway configured post that none is",
+  () => advisoryWrite("criteria", { row: null, gateway: false, said: NO_GATEWAY_REASON }));
+
+test("criteria taken under the stand-down post that no consult read them, and why", async () => {
+  heldBy(MINE);
+  state.posted = [];
+  delete state.issues[0].acceptanceCriteria;
+  const path = join(room, "criteria.md");
+  writeFileSync(path, "1. The write goes through.\n");
+  const run = await ranAsync(FORGE, ["record", "criteria", "ISS-348", path], env(MINE));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(state.issues[0].acceptanceCriteria, /^1\. The write goes through\.$/u);
+  const note = state.posted.find((body) => body.startsWith("## No consult read the criteria"));
+  assert.ok((note ?? "").includes(STOOD_DOWN_REASON), state.posted.join(" | "));
+});

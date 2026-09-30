@@ -606,11 +606,8 @@ export const shipMode = () => enumScope("ship");
 
 export const asksScope = () => enumScope("asks.mode");
 
-/** Whether an unavailable gateway holds anything, off one project record: a door hands it the record
- *  it already read for its door key, the tree a command names and never the shell's. */
-export const codexConsultOf = (record, source) => enumOf("codex.consult", record, source);
-
-export const codexConsultAt = (at) => codexConsultOf(projectFileAt(at), `the project file under ${at}`);
+/** Whether an unavailable gateway holds anything in the project the directory `at` belongs to. */
+export const codexConsultAt = (at) => enumOf("codex.consult", projectFileAt(at), `the project file under ${at}`);
 
 /** The terms this project adds to the owner categories; anything but a list of strings adds none. */
 export const asksOwnerTerms = once(() => {

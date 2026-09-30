@@ -39,14 +39,19 @@ export const consultState = ({ read, failed, gateway }) => {
 export const passesUnread = (state, consult) => consult === "advisory" && (state === FAILED || state === NO_GATEWAY);
 
 /** The doors' finder, off the log's bytes as `sentShaOf` reads them: the newest consult under `root`
- *  that carried `rel` at `sha` and got no answer. */
+ *  that carried `rel` at `sha`, where that consult got no answer. A newer one that answered speaks for
+ *  those bytes instead, so an older failure is never read past it. */
 export const failedAt = (bytes, root, rel, sha) => {
   for (const one of jsonlBack(bytes, [jsonlMark("rel", rel)], [jsonlMark("root", root)])) {
-    if (one.root !== root || !gatewayFailed(one)) continue;
-    if ((one.sent ?? []).some((sent) => sent.rel === rel && sent.sha === sha)) return one;
+    if (one.root !== root || one.kind !== "consult") continue;
+    if ((one.sent ?? []).some((sent) => sent.rel === rel && sent.sha === sha)) return gatewayFailed(one) ? one : null;
   }
   return null;
 };
+
+/** The route a refusal names where the gateway, not the agent, is why nothing read a file. */
+export const ADVISORY_ROUTE = "`forge doctor --set codex.consult=advisory` is the project's way to let an "
+  + "unavailable gateway hold nothing: what goes through then says no consult read it.";
 
 /** What a door tells the agent it let through unread, one line per file with its reason. */
 export const unreadSaid = (door, unread) => [
