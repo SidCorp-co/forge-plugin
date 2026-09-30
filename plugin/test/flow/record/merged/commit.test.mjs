@@ -115,8 +115,8 @@ test("a mark over a stamp naming another commit is refused, naming the commit it
   Object.assign(ISSUE, { mergedAt: "2026-09-24T08:00:00.000Z", mergedCommitSha: FIRST });
   const run = await mark(SECOND);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, new RegExp(`from 2026-09-24T08:00:00\\.000Z, at ${FIRST}`, "u"), run.stderr);
-  assert.match(run.stderr, new RegExp(`a mark at ${SECOND} would post a note the row contradicts`, "u"));
+  assert.ok(run.stderr.includes(`from 2026-09-24T08:00:00.000Z, at ${FIRST}`), run.stderr);
+  assert.ok(run.stderr.includes(`a mark at ${SECOND} would post a note the row contradicts`), run.stderr);
   assert.deepEqual(sent(), []);
 });
 
@@ -140,7 +140,7 @@ test("a tracker answering already_merged is refused after the write, naming the 
   const run = await mark(FIRST);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /the tracker answered `already_merged` for ISS-99: it kept the stamp it held/u, run.stderr);
-  assert.match(run.stderr, new RegExp(`the mark just posted names ${FIRST}`, "u"));
+  assert.ok(run.stderr.includes(`the mark just posted names ${FIRST}`), run.stderr);
   assert.match(run.stderr, /^ {2}forge record merged ISS-99 --undo$/mu);
 });
 
@@ -148,7 +148,7 @@ test("a row whose commit field names another commit after the write is refused, 
   tracker$.observed = SECOND;
   const run = await mark(FIRST);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, new RegExp(`ISS-99's mark names ${FIRST} and the row's commit field holds ${SECOND}`, "u"), run.stderr);
+  assert.ok(run.stderr.includes(`ISS-99's mark names ${FIRST} and the row's commit field holds ${SECOND}`), run.stderr);
   assert.match(run.stderr, /^ {2}forge record merged ISS-99 --undo$/mu);
 });
 
@@ -156,7 +156,7 @@ test("a row whose commit field holds --at says so", async () => {
   tracker$.observed = FIRST;
   const run = await mark(FIRST);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, new RegExp(`^The row's commit field holds ${FIRST}\\.$`, "mu"), run.stdout);
+  assert.ok(run.stdout.split("\n").includes(`The row's commit field holds ${FIRST}.`), run.stdout);
 });
 
 test("a row whose commit field is empty says so, in the tracker's own words", async () => {
