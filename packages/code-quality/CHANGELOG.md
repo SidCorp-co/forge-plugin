@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.5 - 2026-09-30
+
+### Fixed
+
+- Under a session whose directory is named through a symbolic link, the edit hook lints a file in a
+  nested package by that package's own configuration, where it applied the repository root's. The
+  package's `code-quality.json` opt-out now holds there too, and a package that configures ESLint
+  with none installed is told so rather than passed in silence. A refusal names the file by its path
+  from the directory the session named, where under a link it climbed out through `..` segments.
+  Sessions not named through a link are judged and reported as before.
+
 ## 0.16.4 - 2026-09-30
 
 ### Changed

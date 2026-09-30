@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.4, commit ca49642,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.5, commit f9136c1,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -111,8 +111,9 @@ function outside(root, file) {
 
 // The session's directory owns every file under it; a file outside it — a worktree cut beside the
 // checkout puts every write there — belongs to its own tree, and only a file under no tree at all
-// falls back to the session's directory, which then declines it. The root handed on for a file
-// inside is the session's directory as given, its real path serving containment alone.
+// falls back to the session's directory, which then declines it. The root handed on is real, like
+// the file: the workspace walk is a prefix test, and a path relative to the real root is the one
+// relative to the directory the session named.
 function resolveEditedFile(absolute, sessionRoot) {
   // The extension test costs no I/O, so it settles the .md and .json edits before anything is read.
   if (!supportedExtensions.has(path.extname(absolute).toLowerCase())) return null;
@@ -131,7 +132,7 @@ function resolveEditedFile(absolute, sessionRoot) {
   // A tree is an ancestor of a real path, so it is real already.
   const realProjectRoot = tree ?? realRoot;
   if (file === realProjectRoot || outside(realProjectRoot, file)) return null;
-  return { file, projectRoot: tree ?? sessionRoot };
+  return { file, projectRoot: realProjectRoot };
 }
 
 const CONFIG_NAMES = [
