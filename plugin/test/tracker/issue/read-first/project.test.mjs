@@ -61,6 +61,44 @@ test("a write in a second checkout is held on that checkout's own thread for the
   oneProject();
 });
 
+/* ISS-2563. A `--project` on the command outranks the directory it stands in, the verb taking the
+   flag wherever it is typed; read off the directory, the key would be refused as absent. */
+test("a comment naming --project is held on that project's thread, from whichever checkout it runs in", async () => {
+  twoProjects();
+  owed({
+    [UUID]: [comment("own", "the thread of the project this session stands in")],
+    [OTHER_DOC]: [comment("second", "the thread of the project the flag names")],
+  });
+  state.calls = [];
+  const run = await gate(`forge comment --project ${OTHER_SLUG} ISS-29 body.md`);
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(because(run).includes("the thread of the project the flag names"),
+    "the hold quotes the thread of the project the command names");
+  assert.ok(!because(run).includes("the thread of the project this session stands in"));
+  assert.deepEqual([...new Set(issueCalls(0).map((one) => one.slug))], [OTHER_SLUG],
+    "every issue lookup the gate made carried the named project");
+  oneProject();
+});
+
+/* The issue verb refuses `--project` beside a write before it sends anything, so the gate has no
+   write there to hold and looks nothing up; held, it would answer before the verb's own refusal. */
+test("a write the verb refuses for its --project draws no lookup and refuses nothing", async () => {
+  twoProjects();
+  owed({ [OTHER_DOC]: [comment("second", "unread and unquoted")] });
+  state.calls = [];
+  const run = await gate(`forge issue ISS-29 --project ${OTHER_SLUG} --relates ISS-31`);
+  assert.equal(run.out, null, "the verb's own refusal is the answer");
+  assert.equal(run.status, 0);
+  assert.deepEqual(issueCalls(0), [], "and no issue was looked up");
+  for (const refused of [`--project ${OTHER_SLUG} --project ${OWN_SLUG}`, "--project"]) {
+    state.calls = [];
+    const shaped = await gate(`forge comment ISS-29 body.md ${refused}`);
+    assert.equal(shaped.out, null, `a comment the verb refuses for \`${refused}\` is no write to hold`);
+    assert.deepEqual(issueCalls(0), [], `and \`${refused}\` drew no lookup`);
+  }
+  oneProject();
+});
+
 test("a command whose directory names no project draws no lookup and refuses nothing", async () => {
   twoProjects();
   whole({ [UUID]: [comment("own", "unread and unquoted")] });
@@ -173,7 +211,7 @@ test("two keys that both fail are refused for the first of them, not the first t
   const run = await raw({ action: "archive", documentId: "ISS-29", data: { issueId: "ISS-30" } },
     { session: "probe-both-fail", skipped: ["issue-read-first"] });
   delete state.answer;
-  assert.match(run.stderr, /ISS-29 is not on this project's tracker/u,
+  assert.match(run.stderr, /ISS-29 is not on the tracker of project/u,
     "the first ref named is the one the command is refused for");
   assert.doesNotMatch(run.stderr, /the tracker will not answer this one/u,
     "and the second ref's failure, which the tracker answered first, does not take its place");

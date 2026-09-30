@@ -30,7 +30,7 @@ export const UNRANKED = "none";
 export const priorityFor = (given, allowed = []) => {
   const wanted = given ?? UNRANKED;
   const said = given === undefined ? `priority ${UNRANKED}, by default` : `priority ${given}, as given`;
-  if (!allowed.length || allowed.includes(wanted)) return { value: wanted, said };
+  if (!allowed.length || allowed.includes(wanted)) return { value: wanted, said, given: given !== undefined };
   if (given === undefined) {
     return { refusal: `This CLI files an issue nobody ranked as \`${UNRANKED}\`, and the tracker's set is`
       + ` now ${allowed.join(", ")}. Name one with --priority, and file this against the plugin: the`

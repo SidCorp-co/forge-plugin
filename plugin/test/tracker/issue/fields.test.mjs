@@ -76,9 +76,9 @@ test("an issue's uuid is reachable from its key by naming a field", async () => 
   assert.equal(run.body.documentId, "u-1");
 });
 
-test("a projection prints nothing the ask did not name", async () => {
+test("a projection prints nothing the ask did not name beside the identifiers and the project", async () => {
   const run = await asked("--fields", "status");
-  assert.deepEqual(Object.keys(run.body), ["documentId", "issueId", "status"]);
+  assert.deepEqual(Object.keys(run.body), ["documentId", "issueId", "project", "status"]);
 });
 
 test("one ask naming two fields answers both", async () => {

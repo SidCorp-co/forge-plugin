@@ -27,7 +27,7 @@ const STORE_FLAGS = STORES.flatMap((store) =>
   store.keys.map((one) => `[--${one.flag} ${one.key[0]}]`)).join(" ");
 
 export const VERBS = [
-  ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--full] [--set f=v... --why W] [--propose] [--redact] [--blocks|--relates|--unlink ISS-46 --kind k|--edge id]",
+  ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--full] [--project <slug>] [--set f=v... --why W] [--propose] [--redact] [--blocks|--relates|--unlink ISS-46 --kind k|--edge id]",
     "every matching issue with no key, or one body and the edges on it with one",
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
       at: "`forge issue ISS-45`",
@@ -35,7 +35,7 @@ export const VERBS = [
   ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--module M] [--new]",
     "file one, read against the shape its category needs",
     "forge_issues", { group: BACKLOG, wraps: { create: "`forge new`" } }],
-  ["comment", "<uuid|ISS-45> [<file.md|@file|->] [--title T]",
+  ["comment", "<uuid|ISS-45> [<file.md|@file|->] [--title T] [--project <slug>]",
     "the thread whole with no body, or post one; the lease on the record decides whether it renews",
     "forge_comments", { group: BACKLOG,
       wraps: { create: "`forge comment`", list: "`forge comment ISS-45`" } }],

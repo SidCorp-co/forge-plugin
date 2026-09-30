@@ -223,11 +223,22 @@ export const projectAt = (directory) => projectFileAt(directory)?.slug ?? null;
 /* Where a project-scoped call GOES and in whose prose — the target's, not the caller's: docs/cli/feedback.md. */
 let aimed = null;
 
+/** Where an aim a verb took off its own argv says it came from: docs/cli/one-call-elsewhere.md. */
+export const AIMED_FROM = "--project on this call";
+
 export const useProject = ({ slug, from }) => {
   aimed = { value: slug, from };
 };
 
 export const projectTarget = () => aimed ?? projectScope();
+
+/** The project a call is aimed at and where that aim came from, in the words every refusal naming
+ *  it uses: a key missing from the wrong project reads as a key missing, unless the line says which
+ *  project was asked and which file or flag chose it (ISS-2910). */
+export const aimSaid = () => {
+  const { value, from } = projectTarget();
+  return `project ${value ?? "(none)"} (from ${from ?? "nowhere"})`;
+};
 
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
 export const projectRecordPattern = () => sourced(fromProject(), forgeJson().parsed?.codex?.pathRe);

@@ -126,6 +126,11 @@ than encoded into the call, because bytes through a context window are paid for 
   than that the row was stored, because the tracker attaches such an account to a call it declined
   a part of as well, and a reader told the whole call succeeded stops before the part that says
   otherwise.
+- **AC-02-3-11** · Rev: 1 · Proof: plugin/test/tracker/filing/landed/fields.test.mjs "each scalar field stored otherwise is named with the value stored and the value asked"
+  WHEN a filing is read back THEN the CLI SHALL compare every field the create sent with the row the
+  tracker stored and SHALL name in its reply each one stored otherwise, with the value asked and the
+  value stored, because a filing the tracker rewrote on the way in and one that landed as asked
+  otherwise read alike.
 
 ### UC-02-4 — Everything the tracker returns is untrusted input
 

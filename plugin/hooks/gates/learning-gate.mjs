@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, struck, writtenPaths, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill } from "../../src/checks/learning.mjs";
@@ -50,7 +50,8 @@ function skillRoot(path) {
  *  Run before the write, not after: the point is that the second copy never lands. The file
  *  being edited is excluded, or every unchanged line would match itself. */
 function duplicates(root, path, text) {
-  if (!text.trim()) return [];
+  // The first part of a new skill: its directory is not there yet, so nothing is restated.
+  if (!text.trim() || !existsSync(root)) return [];
   const incoming = sentences(text).map((s) => ["<proposed>", s]);
   if (incoming.length === 0) return [];
   const rel = relative(root, resolve(path));
@@ -121,7 +122,7 @@ export const run = (ev) => {
 
   // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
   if (tool === "Bash") {
-    const written = writtenPaths(struck(shellWrites(ti.command)), ev.cwd || process.cwd(), MD_ONLY);
+    const written = writtenPaths(shellWrites(ti.command), ev.cwd || process.cwd(), MD_ONLY, { unplaceable: "keep" });
     if (written.length === 0) done();
     for (const { trees, paths, spelt } of written) {
       /* A relative name answers for the trees it was placed in, not for its own spelling: `.claude/skills/…` spelt bare is a project's own wherever it stands. And an owner the command built rather than spelt is none a project exemption can rest on: `${BASE}/dev/.claude/…` may be the home's. */

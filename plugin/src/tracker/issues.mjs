@@ -1,6 +1,6 @@
 /* Paging and the reference-to-id lookup: docs/cli/reading-a-whole-set.md. The browse projection:
    docs/cli/the-projections.md. */
-import { fail, slugIfAny } from "../resolve/settings.mjs";
+import { AIMED_FROM, aimSaid, fail, projectTarget, slugIfAny } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { readsAsDate, scoped } from "./rest.mjs";
 
@@ -173,9 +173,15 @@ export const shortOf = (read, what) => (read.whole ? null
 
 /* The count the route measured, never the limit asked for, and a lookup that could not read the set
    reports its own ceiling rather than the issue's absence. */
-const missing = (reference, total) =>
-  `${reference} is not on this project's tracker; ${total} issue(s) were counted, which is the whole`
-  + " backlog.\nThe keys it does hold are on `forge issue`, one per line.";
+const missing = (reference, total) => {
+  const { value, from } = projectTarget();
+  const flagged = from === AIMED_FROM;
+  return `${reference} is not on the tracker of ${aimSaid()}; ${total} issue(s) were counted, which is`
+    + ` the whole backlog.\nThe keys it does hold are on \`forge issue${flagged ? ` --project ${value}` : ""}\`,`
+    + " one per line."
+    + (flagged ? ""
+      : `\nA key on another project is read with \`forge issue ${reference} --project <slug>\`, which saves nothing.`);
+};
 
 /* Refused before the first call: rejecting a citation cost the whole backlog, and routed nowhere. */
 const notAKey = (reference) =>

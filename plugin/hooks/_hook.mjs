@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, STARTS, WRITES, namesOf, placeable, redirectsIn, spans, standsIn, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, STARTS, WRITES, landedIn, namesOf, placeable, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -21,7 +21,7 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
-export { directoryAt, spelled, struck, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, REDIRECT, WRITES, namesOf, spans, standsIn };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
@@ -565,20 +565,27 @@ const standingIn = (text, cwd) => {
 /* A name a shell would still expand is placed against the trees it could stand in; one it would not — a leading `~`, a `$` in front of it, a rooted path — answers for what it spells. */
 const placedAt = (text, token, at) => token[0] !== "~" && token[0] !== "/" && text[at - 1] !== "$";
 
-/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `unplaced` is true where one way the shell reached the name is a move whose destination the text does not carry, which `trees` cannot hold. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
-export const writtenPaths = (text, cwd, tail) => {
-  const standing = standingIn(text, cwd);
+/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `unplaced` is true where one way the shell reached the name is a move whose destination the text does not carry, which `trees` cannot hold. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `unplaceable` is the `struck` reading a caller wants of the operands, none by default; the names a `-t` directory composes are read off the text as given, since the strike takes away the sources they are built from, and a caller that must not invent a target gets none of them. `forge hooks --how writes`. */
+export const writtenPaths = (text, cwd, tail, { unplaceable } = {}) => {
+  const read = unplaceable ? struck(text, { unplaceable }) : text;
+  const standing = standingIn(read, cwd);
   /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
-  const placed = placeable(text);
-  const named = spans(text).flatMap(({ start, end }) => {
-    const said = spoken(text.slice(start, end).replace(BLANK, ""));
+  const placed = placeable(read);
+  const named = spans(read).flatMap(({ start, end }) => {
+    const said = spoken(read.slice(start, end).replace(BLANK, ""));
     return WRITES.test(said) ? namesIn(said, tail, { whole: placed(start) }).map((one) => ({ ...one, at: start })) : [];
   });
   /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */
-  const aimed = redirectsIn(text)
+  const aimed = redirectsIn(read)
     .flatMap(({ at, target }) => namesIn(target, tail, { ...AIMED_AT, whole: placed(at) })
       .map((each) => ({ ...each, at })));
-  return [...aimed, ...named].map(({ token, placed, spelt, at }) => {
+  const landed = unplaceable === "strike" ? [] : landedIn(text, tail).map(({ token, at, start, end }) => ({
+    token,
+    placed: token[0] !== "~" && token[0] !== "$",
+    spelt: !BUILDS.test(text.slice(start, end)),
+    at,
+  }));
+  return [...aimed, ...named, ...landed].map(({ token, placed, spelt, at }) => {
     const { trees, nowhere } = placed && !token.startsWith("/") ? standing(at) : { trees: [], nowhere: false };
     return { token, trees, unplaced: nowhere, spelt, paths: [token, ...trees.map((tree) => join(tree, token))] };
   });

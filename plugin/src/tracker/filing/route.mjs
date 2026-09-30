@@ -145,5 +145,6 @@ export const fileIssue = async ({
     ...(module ? { labels: [{ labelId: module.id, isPrimary: true }] } : {}),
   };
   const answer = await write("forge_issues", { action: "create", data }, undefined, soft);
-  return { refusal: null, description, shape, joined: null, answer, ranked, related };
+  /* `sent` is the payload as it went, which is what a read-back compares the stored row against. */
+  return { refusal: null, description, shape, joined: null, answer, ranked, related, sent: data };
 };

@@ -170,6 +170,18 @@ test("the owner's seven documented overrides reach the owner even when each decl
   assert.equal(held.gateway.asked.length, 0, "no judge was asked about any of them");
 });
 
+test("a declared question in a language the screen cannot read reaches the owner before any precedent is read", async () => {
+  const french = { question: "Où faut-il ranger le rapport hebdomadaire ?", header: "Rapport",
+    options: [{ label: "Un fichier ici (Recommandé)" }, { label: "Une page du suivi" }] };
+  const held = await project({ asks: { mode: "decide" } }, { precedents: [[french, french.options[0].label]] });
+  const said = await ask(held, [{ ...french, question: `${french.question} [reversible: déplacer le fichier]` }]);
+  held.gateway.close();
+  assert.equal(said?.permissionDecision, undefined, JSON.stringify(said));
+  assert.equal(held.gateway.asked.length, 0, "no judge was asked");
+  assert.equal(existsSync(join(held.room, "precedents.jsonl")), false, "and no precedent layer was built for it");
+  assert.match(log(held)[0].reason, /it is in a language the screen cannot read \(it reads English and Vietnamese\)/u);
+});
+
 test("a question with no close precedent reaches the owner without the judge being asked", async () => {
   const held = await project({ asks: { mode: "decide" } }, { precedents: [] });
   const said = await ask(held, [reportQuestion()]);

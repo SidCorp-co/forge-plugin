@@ -166,6 +166,14 @@ export const trackerFields = ({ category = null, complexity = null }) => ({
  *  named once, and neither route decides for itself what an empty set would mean. */
 export const rankOf = async (given) => priorityFor(given, declaredFor("forge_issues", "priority"));
 
+/** The rank the filed line names, against what the read-back found: `as given` says the row holds the
+ *  rank the filer typed, so it is said only where the row was read holding it. */
+export const rankSaid = (ranked, { rank = "unread", stored } = {}) => {
+  if (rank === "held") return ranked.said;
+  if (rank === "moved") return `priority ${stored}, where ${ranked.value} was asked`;
+  return ranked.given ? `priority ${ranked.value}, asked and not read back` : ranked.said;
+};
+
 export const filedAs = (answer, said) => {
   const key = answer?.issueId ?? answer?.documentId ?? null;
   return key ? `${key} is filed, ${said}.` : `Filed, ${said}; the reply named no key to say it of.`;

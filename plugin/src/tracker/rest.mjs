@@ -401,7 +401,9 @@ const idOfProject = async (soft, given = {}) => {
   const slug = aimed ?? projectSlug();
   const held = await projectIdOf(slug, { soft, ...given });
   if (held.id || held.refused) return held;
-  return refusing(soft)(`No Forge project has slug ${slug}. Seen: ${held.seen}`);
+  const from = projectTarget().from ?? "nowhere";
+  return refusing(soft)(`No Forge project this credential can see has slug ${slug}, which ${from} names. `
+    + `Seen: ${held.seen}`);
 };
 
 export const projectId = async () => (await idOfProject(false)).id;

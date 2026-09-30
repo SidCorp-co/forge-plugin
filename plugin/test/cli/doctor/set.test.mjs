@@ -130,6 +130,21 @@ test("a checkout this machine holds no record of has that record created by the 
   assert.equal(state.calls.length, 0, "a key this plugin reads for itself asks the tracker nothing");
 });
 
+/* The record is every run's and pane's in the checkout, so a slug that moves says so and names the
+   route that moves nothing; one written over itself rebinds nobody and says nothing (ISS-2910). */
+test("a slug that moves says every run in the checkout now resolves it, and one that does not says nothing", async () => {
+  const room = cleanRepo();
+  const set = (slug) => ranAsync(FORGE, ["doctor", "--set", `slug=${slug}`], tracker.env, room);
+  assert.equal((await set("first-project")).status, 0);
+  const moved = await set("second-project");
+  assert.equal(moved.status, 0, moved.stderr);
+  assert.match(moved.stdout, /every run and pane standing in this checkout, the ones already running included, now resolves project second-project/u);
+  assert.match(moved.stdout, /`--project <slug>` on `forge issue` and `forge comment`, which saves nothing/u);
+  const same = await set("second-project");
+  assert.equal(same.status, 0, same.stderr);
+  assert.doesNotMatch(same.stdout, /every run and pane/u, "a slug written over itself rebinds nobody");
+});
+
 /* The one directory left with nothing to write: a project's record is found by its repository's
    root folder, so a directory belonging to no repository is not a project that has set nothing —
    it is no project at all, and the refusal says which of the two it met. */

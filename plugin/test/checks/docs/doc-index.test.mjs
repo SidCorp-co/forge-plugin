@@ -62,8 +62,25 @@ test("a document inside the margin of the cap is named with the room it has left
 
 /* The measurement the cap was chosen against: the one document this repository keeps whole. */
 test("docs/HOOKS.md is one file and the cap is the reason it may stay one", () => {
-  const size = chars(join("docs", "HOOKS.md"));
-  assert.ok(size <= TOPIC_MAX, `docs/HOOKS.md is ${size} characters, over ${TOPIC_MAX}: split it`);
+  const said = overCap([{ rel: "docs/HOOKS.md", chars: chars(join("docs", "HOOKS.md")) }]);
+  assert.deepEqual(said, [], said.join("\n"));
+});
+
+/* Three readings stood open while both messages said `split` over a file kept whole and no index
+   had a row for a half (ISS-1677): its remedy is where the next reason goes, at both edges. */
+test("the document kept whole is sent the next reason's own home rather than a split in two", () => {
+  const home = "a topic of its own under docs/cli/ with its row in docs/FORGE-CLI.md";
+  assert.deepEqual(overCap([{ rel: "docs/HOOKS.md", chars: 9001 }]), [
+    "docs/HOOKS.md is 9001 characters, over the 9000 a topic is read in one pass — it is the one"
+      + " document this repository keeps whole and the cap is the round number above it, so the split"
+      + ` it owes is the reason just added, moved out to ${home}`,
+  ]);
+  assert.deepEqual(nearCap([{ rel: "docs/HOOKS.md", chars: 8994 }]), [
+    "docs/HOOKS.md is 8994 characters, 6 short of the 9000 cap and inside its 1000-character margin"
+      + ` — it is kept whole, so the split the next decision written here owes is that decision as ${home}`,
+  ]);
+  assert.doesNotMatch([...overCap([{ rel: "docs/HOOKS.md", chars: 9001 }]),
+    ...nearCap([{ rel: "docs/HOOKS.md", chars: 8994 }])].join("\n"), /each half/u);
 });
 
 /* Both boundaries are spelled out here rather than read off the module: a case taking its

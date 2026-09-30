@@ -145,6 +145,28 @@ test("a note filed against this plugin is ranked by nobody, so it lands at the b
   assert.match(run.stdout, /^filed-uuid is filed, priority none, by default\.$/mu);
 });
 
+/* The note goes through the same reply `forge new` does, so the payload it sent is what the row read
+   back is held against: a tracker storing it at draft is said on the last line (ISS-2917). */
+test("a note the tracker stored at another status says so on its last line", async () => {
+  state.issues = [];
+  state.calls = [];
+  state.answer = { forge_issues: (args) => {
+    if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
+    if (args.action !== "create") return state.issues.find((one) => one.documentId === args.documentId) ?? {};
+    const row = { ...args.data, status: "draft", documentId: "uuid-2917", issueId: "ISS-2917" };
+    state.issues = [row];
+    return row;
+  } };
+  try {
+    const run = await noted("the filing reply compares what it sent with what was stored");
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout.trimEnd().split("\n").at(-1),
+      /^ISS-2917 is filed at uuid-2917, read back from the tracker, and it stores status draft where this filing asked for open\.$/u);
+  } finally {
+    delete state.answer;
+  }
+});
+
 test("a title already open on that project no longer takes the note as a comment", async () => {
   const title = "the browse verb answers in an order a run can work from";
   state.issues = [{ issueId: "ISS-9", documentId: "u-9", status: "open", title }];

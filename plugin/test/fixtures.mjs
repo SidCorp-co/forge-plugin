@@ -202,8 +202,9 @@ const sided = (edge, side) => ({
   ...(edge.gatesDispatch === undefined ? {} : { gatesDispatch: edge.gatesDispatch }),
 });
 
+/* A `relates` edge is served as the route serves it, among the outgoing, and the projection reads its kind. */
 const edgesOf = (issue) => ({
-  outgoing: (issue?.relations?.blocks ?? []).map((edge) => sided(edge, "to")),
+  outgoing: [...(issue?.relations?.blocks ?? []), ...(issue?.relations?.relates ?? [])].map((edge) => sided(edge, "to")),
   incoming: (issue?.relations?.blockedBy ?? []).map((edge) => sided(edge, "from")),
 });
 

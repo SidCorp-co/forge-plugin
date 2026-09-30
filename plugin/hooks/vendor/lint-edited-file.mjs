@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.3, commit 4ac0390,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.4, commit ca49642,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -104,20 +104,18 @@ function treeOf(file) {
   }
 }
 
-// The session's directory owns every file under it; a file outside it — a worktree cut beside the
-// checkout puts every write there — belongs to its own tree, and only a file under no tree at all
-// falls back to the session's directory, which `resolveEditedFile` then declines.
-function resolveProjectRoot(sessionRoot, file) {
-  if (!existsSync(file)) return sessionRoot;
-  const realRoot = existsSync(sessionRoot) ? realpathSync(sessionRoot) : sessionRoot;
-  const relative = path.relative(realRoot, realpathSync(file));
-  const outside = relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
-  return outside ? (treeOf(realpathSync(file)) ?? sessionRoot) : sessionRoot;
+function outside(root, file) {
+  const relative = path.relative(root, file);
+  return relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
 }
 
-function resolveEditedFile(absolute, projectRoot) {
+// The session's directory owns every file under it; a file outside it — a worktree cut beside the
+// checkout puts every write there — belongs to its own tree, and only a file under no tree at all
+// falls back to the session's directory, which then declines it. The root handed on for a file
+// inside is the session's directory as given, its real path serving containment alone.
+function resolveEditedFile(absolute, sessionRoot) {
+  // The extension test costs no I/O, so it settles the .md and .json edits before anything is read.
   if (!supportedExtensions.has(path.extname(absolute).toLowerCase())) return null;
-  if (!existsSync(absolute)) return null;
 
   let stat;
   try {
@@ -127,13 +125,13 @@ function resolveEditedFile(absolute, projectRoot) {
   }
   if (!stat.isFile()) return null;
 
-  const realProjectRoot = existsSync(projectRoot) ? realpathSync(projectRoot) : projectRoot;
-  const realFile = realpathSync(absolute);
-  const relative = path.relative(realProjectRoot, realFile);
-  if (relative === "" || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    return null;
-  }
-  return realFile;
+  const file = realpathSync(absolute);
+  const realRoot = existsSync(sessionRoot) ? realpathSync(sessionRoot) : sessionRoot;
+  const tree = outside(realRoot, file) ? treeOf(file) : null;
+  // A tree is an ancestor of a real path, so it is real already.
+  const realProjectRoot = tree ?? realRoot;
+  if (file === realProjectRoot || outside(realProjectRoot, file)) return null;
+  return { file, projectRoot: tree ?? sessionRoot };
 }
 
 const CONFIG_NAMES = [
@@ -330,10 +328,9 @@ const rawPath = getEditedPath(event);
 if (!rawPath) process.exit(0);
 
 const sessionRoot = resolveSessionRoot(event);
-const projectRoot = resolveProjectRoot(sessionRoot, absolutePath(rawPath, sessionRoot));
-// The extension test costs no I/O, so it settles the .md and .json edits before anything is read.
-const editedFile = resolveEditedFile(absolutePath(rawPath, sessionRoot), projectRoot);
-if (!editedFile) process.exit(0);
+const edited = resolveEditedFile(absolutePath(rawPath, sessionRoot), sessionRoot);
+if (!edited) process.exit(0);
+const { file: editedFile, projectRoot } = edited;
 
 const { directory: workspace, config } = resolveWorkspace(editedFile, projectRoot);
 if (hookDisabled([workspace, projectRoot])) process.exit(0);

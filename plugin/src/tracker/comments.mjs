@@ -2,7 +2,7 @@
    the verb making it must agree. One surface of the ledger, docs/cli/the-shown-ledger.md. */
 import { KEPT, credit, creditedTo, shownToAny, tell } from "../shown/journal.mjs";
 import { sessionKey } from "../shown/ledger.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { fail, slugIfAny } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rest.mjs";
 
@@ -114,7 +114,8 @@ const heading = ({ ref, comments, hasMore, unshown, ...page }) =>
 export const readThread = async (ref, documentId, print, ev = null) => {
   const page = await commentPage(documentId);
   const cut = cutIn(page);
-  const said = [`${ref}: ${page.comments.length} comment(s)${cut ? `. ${cut}` : ""}`,
+  /* The heading names the project for the reason `resolvedIn` in ../commands.mjs gives. */
+  const said = [`${ref}: ${page.comments.length} comment(s), on project ${slugIfAny() ?? "(none)"}${cut ? `. ${cut}` : ""}`,
     ...bodies(ref, page.comments, true)];
   print(said.join("\n\n"));
   noteShown(sessionKey(ev), documentId, page.comments);

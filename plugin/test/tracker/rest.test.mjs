@@ -130,7 +130,7 @@ test("a soft call whose project cannot be resolved is refused, not exited from",
   try {
     const answer = await answering([ok({ items: [], returned: 0, total: 0, hasMore: false })],
       () => callTool("forge_issues", { action: "list", limit: 1 }, true));
-    assert.match(answer.refused, /No Forge project has slug no-project-answers-to-this/u);
+    assert.match(answer.refused, /No Forge project this credential can see has slug no-project-answers-to-this, which a case names/u);
   } finally {
     useProject({ slug: null, from: null });
   }

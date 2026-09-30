@@ -506,7 +506,7 @@ test("a copy's backup beside a guarded file is not that file", () => {
   assert.equal(decide(`echo x > ${SKILL}.md`).allowed, false, "while a name that ends in the extension still is");
 });
 
-/* `cp` and `mv` name the flags that take a value, so every other one is read as taking none; `-S` still takes the next word, and a guarded path there is kept as the candidate it may be. */
+/* `cp`, `mv` and `install` name the flags that take a value, so every other one is read as taking none; `-S` still takes the next word, and a guarded path there is kept as the candidate it may be. */
 test("a value a copy's flag takes is still that flag's", () => {
   assert.equal(decide(`cp -S /p/skills/x/SKILL.md a b`).allowed, false);
   assert.equal(decide(`cp -S .bak a.md ${SKILL}`).allowed, false, "and the destination after it is a write");

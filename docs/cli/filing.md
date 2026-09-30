@@ -95,6 +95,11 @@ their own words, all of them end with *do not send this call again*, and the exi
 of them. The refusals a filing route still makes are the tracker's own: a create it rejects and a
 fold whose comment write it rejects, neither of which this reader is reached from.
 
+**The row read back is held against the create sent, field by field** (ISS-2917): a project's
+intake gate filing `open` at `draft` read exactly like a filing that landed as asked. Each field
+stored otherwise is named with both values, one the read does not carry as not compared, and a
+description as rewritten and never printed. The gate is named only on the row's own evidence.
+
 A comment page is the weaker read of the two on purpose: `forge_comments` has no get, and its list
 serves a window at a time with a count nobody here holds it to, so `hasMore` false is the only
 assertion of completeness there is — and it is read as that boolean rather than as falsy, because a page that

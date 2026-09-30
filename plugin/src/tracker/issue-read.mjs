@@ -4,6 +4,7 @@
 import { isReference } from "./issues.mjs";
 import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
 import { WRITER_WORD } from "../resolve/session/writer-word.mjs";
+import { aimIn } from "../resolve/project/aimed.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -72,7 +73,7 @@ const positionalsIn = (args) =>
 
 /* Which argument is the issue, read off the words themselves, and whether the verb makes the write's own comment check before it sends — one row for both, so a shape added without the second is one no gate stands down for (ISS-1715). */
 const VERBS = {
-  comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1, own: true },
+  comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1, own: true, aims: true },
   claim: { at: () => [0], own: true },
   attach: { at: () => [1], when: (args) => args[0] === "issue", own: true },
   /* An edge write is taken against one end, so that end is the read owed, and the verb delivers it before the write (ISS-1724). Which word names that end comes off the kind's own row: a kind written on the other end puts it after its flag, and every other call of this verb — `--relates`, `--unlink` — writes on the subject at 0. */
@@ -95,11 +96,26 @@ const MCP = /^mcp__forge__(forge_\w+)$/u;
 
 export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
 
+/* The words a verb reads its subject off, read with the verb's own aim parser. A `--project` the
+   verb refuses before sending anything — beside a verb that takes none, twice, or with no value —
+   makes no write here either, and `aims` on the row is what says which verb takes one. */
+const aimedWords = (one) => {
+  const { rest, named, bare } = aimIn((one.match(WORDS) ?? []).slice(2)
+    .map((word) => (CUT.test(word) ? "" : unquoted(word))));
+  const refused = bare !== null || named.length > 1;
+  return { words: rest, project: named.length === 1 && !refused ? named[0] : null, aimed: named.length > 0 || bare !== null, refused };
+};
+
+/** The project a spoken write names for itself, or null where it names none and so acts on the
+ *  project its directory resolves. */
+export const projectNamedIn = (one) => (VERBS[VERB.exec(one)?.[1]]?.aims ? aimedWords(one).project : null);
+
 const spokenWrite = (one) => {
   const said = VERB.exec(one);
   const verb = VERBS[said?.[1]];
   if (!verb) return null;
-  const words = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
+  const { words, aimed, refused } = aimedWords(one);
+  if (aimed && (refused || !verb.aims)) return null;
   const args = verb.words ? verb.words(words) : words;
   if (verb.when && !verb.when(args)) return null;
   const targets = verb.at(args).map((index) => args[index]).filter(isReference);

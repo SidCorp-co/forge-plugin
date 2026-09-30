@@ -5,10 +5,10 @@ import { NOWHERE, deny, directoryAt, done, how, shellText, startsAt } from "../_
 import { owedFor, refusalOf } from "../../src/tracker/comments.mjs";
 import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
-import { joined, ownChecked, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { joined, ownChecked, projectNamedIn, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
 import { documentIdIfAny } from "../../src/tracker/issues.mjs";
-import { accountCredentials, fail, projectAt, useProject } from "../../src/resolve/settings.mjs";
+import { AIMED_FROM, accountCredentials, fail, projectAt, useProject } from "../../src/resolve/settings.mjs";
 
 /* One `git rev-parse` per distinct directory: the walk is a process and a gate has a deadline. */
 const slugs = new Map();
@@ -20,7 +20,12 @@ const slugOf = (directory) => {
 /** A key is unique inside a project, so it resolves in the one the command will act on. The project
  *  it aimed at, null where that directory names none and a caller reading it says nothing at all
  *  (ISS-1190); the name is what a resolution is remembered under, since the setter is global. */
-const aimedAt = (directory) => {
+const aimedAt = (directory, named = null) => {
+  /* A command naming its own project acts there whichever directory it stands in (ISS-2563). */
+  if (named) {
+    useProject({ slug: named, from: AIMED_FROM });
+    return named;
+  }
   const slug = directory === null ? null : slugOf(directory);
   if (slug) useProject({ slug, from: `the directory the command runs in, ${directory}` });
   return slug;
@@ -68,12 +73,13 @@ export const run = async (ev) => {
   const here = ev.cwd || process.cwd();
   /* One group per command start: a compound may cross checkouts, and a tool call moves nowhere. */
   const groups = call.name === "Bash"
-    ? spoken.map((one) => ({ at: directoryOf(text, one.at, here), refs: writeTargets(call, [one.said]) }))
+    ? spoken.map((one) => ({ at: directoryOf(text, one.at, here), refs: writeTargets(call, [one.said]),
+      named: projectNamedIn(one.said) }))
     : [{ at: here, refs }];
   const targets = new Map();
   const walked = new Map();
   for (const group of groups) {
-    const slug = group.refs.length ? aimedAt(group.at) : null;
+    const slug = group.refs.length ? aimedAt(group.at, group.named) : null;
     if (!slug) continue;
     for (const one of await resolved(group.refs, slug, walked)) targets.set(one.documentId, one);
   }

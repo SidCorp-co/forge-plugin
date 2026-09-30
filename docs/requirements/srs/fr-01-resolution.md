@@ -53,7 +53,8 @@ Rev: 1 · Actors: agent · Enforces: BR-08, BR-14
 The project's slug lives in the project's own settings file at its root, and it is demanded only by
 a call that needs a project identifier. The identifier itself is never configured: it is looked up
 from the slug at runtime, so a copied settings file cannot point one project's calls at another's
-records.
+records. A read or a comment may name another project for itself alone, because the saved record is
+read by every run and pane standing in the checkout and one call rewriting it moves all of them.
 
 - **AC-01-2-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a slug header alone is reported, with where to put it instead"
   WHEN a call needs a project identifier THEN the CLI SHALL look it up from the slug and SHALL
@@ -62,6 +63,16 @@ records.
   IF a competing configuration is present — a client configuration naming a server of this product,
   or a project header set elsewhere — THEN the report SHALL name it, SHALL not read it, and SHALL
   print the command that saves the same value properly.
+- **AC-01-2-3** · Rev: 1 · Proof: plugin/test/cli/aim/project-override.test.mjs "a read and a comment naming another project reach it and leave every saved record as it was"
+  WHERE a read or a comment names a project of its own the CLI SHALL resolve that project for that
+  call alone, SHALL refuse it where the credential cannot see that project, and SHALL write nothing
+  to this machine's record of any project.
+- **AC-01-2-4** · Rev: 1 · Proof: plugin/test/cli/aim/project-override.test.mjs "a key the aimed project does not hold is refused naming that project"
+  IF a key does not resolve in the project a call was aimed at THEN the refusal SHALL name that
+  project and where the aim came from.
+- **AC-01-2-5** · Rev: 1 · Proof: plugin/test/flow/advance/refused-move.test.mjs "a refused move names the status the issue holds and the status it was asked for, above what refused it"
+  IF the tracker refuses a status move on an issue a key resolved to THEN the refusal SHALL name the
+  project the key was resolved in and where that aim came from.
 
 ### UC-01-3 — Report what resolved, and from where
 

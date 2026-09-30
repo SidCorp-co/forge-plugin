@@ -245,7 +245,9 @@ test("a rank the filer typed is what is written, and the reply says it was their
   const run = await filed(WHOLE, "--title", TITLE, "--priority", "high");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(state.calls.find((one) => one.args.action === "create").args.data.priority, "high");
-  assert.match(run.stdout, /is filed, priority high, as given\.$/mu);
+  /* This tracker answers a create without storing it, so nothing read the rank back and the line
+     claims no more than that it was asked; the read-back that held it is landed/fields.test.mjs's. */
+  assert.match(run.stdout, /is filed, priority high, asked and not read back\.$/mu);
 });
 
 /* The set is the tracker's, declared in its own schema: read at the call, so a rank outside it is
@@ -264,7 +266,7 @@ test("a rank is a filing flag, and the comment verb takes none of it", async () 
   const run = await ranAsync(FORGE,
     ["comment", "ISS-45", bodyAt(WHOLE), "--priority", "high"], ENV);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --priority\. The set is --title\./u);
+  assert.match(run.stderr, /No comment flag named --priority\. The set is --title, --project\./u);
   assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
 });
 
