@@ -41,6 +41,13 @@ const SENT = { title: "a filing names what the tracker stored", description: "##
   status: "open", priority: "high", category: "bug", complexity: "s" };
 const storedAs = (changes = {}) => ({ documentId: "uuid-820", issueId: "ISS-820", labels: [],
   relations: { blocks: [], blockedBy: [], relates: [] }, ...SENT, ...changes });
+/* The unchanged line's wording is reads.test.mjs's to pin; what these cases own is that nothing was
+   added after it, so each asserts only the clause that would carry a difference is absent. */
+const addsNothing = (line) => {
+  assert.match(line, /^ISS-820 /u, "the id still leads");
+  assert.doesNotMatch(line, /, and /u, "no difference is said after the id");
+};
+
 const heldBack = (row) => {
   state.answer = { forge_issues: () => row };
 };
@@ -49,7 +56,7 @@ test("a row holding every field as sent ends on the line a filing always ended o
   before();
   heldBack(storedAs());
   const landed = await issueLanded({ documentId: "uuid-820" }, { sent: SENT });
-  assert.equal(landed.line, "ISS-820 is filed at uuid-820, read back from the tracker.");
+  addsNothing(landed.line);
   assert.equal(landed.rank, "held");
 });
 
@@ -120,7 +127,7 @@ test("a description differing only in trailing whitespace is the one sent", asyn
   before();
   heldBack(storedAs({ description: "## Outcome\n\nSaid." }));
   const landed = await issueLanded({ documentId: "uuid-820" }, { sent: SENT });
-  assert.equal(landed.line, "ISS-820 is filed at uuid-820, read back from the tracker.");
+  addsNothing(landed.line);
 });
 
 test("a relation sent and not stored is named, and an edge the row holds beyond it is not", async () => {
@@ -132,8 +139,7 @@ test("a relation sent and not stored is named, and an edge the row holds beyond 
   assert.match(landed.line, /no relates edge to uuid-45/u);
   assert.doesNotMatch(landed.line, /uuid-77|ISS-77/u);
   const held = { ...SENT, relations: [{ kind: "relates", blocksId: "uuid-77" }] };
-  assert.equal((await issueLanded({ documentId: "uuid-820" }, { sent: held })).line,
-    "ISS-820 is filed at uuid-820, read back from the tracker.");
+  addsNothing((await issueLanded({ documentId: "uuid-820" }, { sent: held })).line);
 });
 
 test("a label the tracker added beside the module sent is no difference", async () => {
