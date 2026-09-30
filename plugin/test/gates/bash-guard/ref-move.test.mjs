@@ -7,9 +7,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { callHook, git, homeEnv, tempRoom } from "../fixtures.mjs";
+import { callHook, git, homeEnv, tempRoom } from "../../fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "bash-guard.mjs");
 const HOME = homeEnv("bash-guard-ref-move");
 const MANY = 45;
 

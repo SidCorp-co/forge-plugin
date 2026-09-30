@@ -3,8 +3,8 @@
    to push or fetch into a checked-out branch, and why the tree it leaves reads its old files as edits.
    Doubt refuses: a failed reading allows only where the failure is git's own refusal of the update. */
 import { canonical } from "../resolve/canonical.mjs";
-import { gitProbe, probeMs } from "./git-probe.mjs";
-import { NOWHERE } from "./shell-spans.mjs";
+import { gitProbe, probeMs } from "../hooks/git-probe.mjs";
+import { NOWHERE } from "../hooks/shell-spans.mjs";
 
 /* A shell word, adjacent quoted and bare fragments joined as the shell joins them: `'refs/heads/'main`. */
 const WORDS = /(?:"[^"]*"|'[^']*'|[^\s"'])+/gu;
@@ -13,7 +13,7 @@ const REDIRECTION = /^\d*[<>]{1,2}(?:&\d)?$/u;
 const VALUED = new Set(["-m"]);
 
 /** The operands and the two forms that change what they mean, off what follows `update-ref`. */
-export const updateRefOf = (rest) => {
+const updateRefOf = (rest) => {
   const words = (String(rest).match(WORDS) ?? []).map((word) => word.replace(FRAGMENT, (_, d, s) => d ?? s));
   const operands = [];
   const flags = new Set();

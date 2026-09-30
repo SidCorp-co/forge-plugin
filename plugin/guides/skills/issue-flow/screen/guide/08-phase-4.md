@@ -10,8 +10,8 @@ more than one session works the same checkout, each takes its own worktree. Capt
 claim <ref> --pushed` — before the status moves and again at each push, so the branch is on the
 record and not only in this shell. What `in_progress` reads: `forge guide contract in_progress`.
 A default branch checked out in a tree this run does not own is landed by the checkpoint, `forge
-claim ISS-nn --pushed --ready`, and never by moving its ref: a ref moves without the files of the
-tree standing on it, and that tree's next commit reverts the landing.
+claim ISS-nn --pushed --ready`, and never by moving its ref: `forge hooks --how bash-guard` says
+what a moved ref leaves behind.
 
 **A file the plan does not name is a correction**, posted before you write it: the mark's note says
 what the landing wrote, and `developed` refuses a path in it that neither the plan nor a correction
