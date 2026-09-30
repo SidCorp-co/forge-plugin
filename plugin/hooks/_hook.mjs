@@ -473,12 +473,12 @@ const runnerOf = (all, body) => all.slice(0, all.length - body.length);
 /* Per command, since one event's gates each ask it of the same call and the answer is a string of it alone. */
 const writesOf = new Map();
 
-/* One line each, where the program ran them. Each is its own shell's program, so one that leaves a quote, a test or an arithmetic open — which its shell refuses — is left out rather than let it read the next one's redirect as data: a redirect after it has to still be one. */
+/* Each in a subshell of its own, where the program ran them, since each is its own shell's program: a `cd` in one moves neither the next nor the caller, and one that leaves a quote, a test or an arithmetic open — which its shell refuses — is left out rather than let it read the next one's redirect as data. */
 const PROBE = "forge-probe";
 const closes = (one) => redirectsIn(`${one}\n>${PROBE}`).some(({ target }) => target === PROBE);
 const spawned = (body, runner) => {
   const given = (handedIn(body, runner) ?? []).filter(closes);
-  return given.length ? `\n${given.join("\n")}\n` : "";
+  return given.map((one) => `\n(\n${one}\n)\n`).join("");
 };
 
 /* A `>` in a heredoc body a shell does not run is its program's comparison or its data, and never a redirect, a space ending a word wherever it did; a string it hands a shell is that shell's command, read ahead of the body so nothing the body leaves open reaches it. */

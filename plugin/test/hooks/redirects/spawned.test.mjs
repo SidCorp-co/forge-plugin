@@ -42,6 +42,14 @@ test("a string a spawned shell could not parse leaves every other command as it 
     [SKILL], "a body leaving a test open, and literals a comment separates");
 });
 
+test("a cd one spawned shell makes moves neither the next one nor the caller", () => {
+  const placed = (command) => writtenPaths(shellWrites(command), CWD).map(({ token, trees }) => [token, trees]);
+  assert.deepEqual(placed(`python3 -c "import os; os.system('cd /tmp'); os.system('echo hi > a.md')"; echo z > b.md`),
+    [["a.md", [CWD]], ["b.md", [CWD]]], "inline");
+  assert.deepEqual(placed(["python3 - <<'PY'", "import os", "os.system('cd /tmp')", "os.system('echo hi > a.md')", "PY", "echo z > b.md"].join("\n")),
+    [["a.md", [CWD]], ["b.md", [CWD]]], "a heredoc");
+});
+
 test("a > in a program body that spawns no shell is still the program's own", () => {
   both(`python3 -c "print(1 > 0); open('x.md').read()"`, []);
   both(`node -e "const fs = require('fs'); if (a > 'b.md') {}"`, []);
