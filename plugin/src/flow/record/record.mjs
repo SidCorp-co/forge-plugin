@@ -150,7 +150,7 @@ const finderChecked = (kind, reference, body, read) => {
   if (said) refuse(said);
 };
 
-/* Where the issue is in hand, so a landing is measured against the shape this issue lands in. */
+/* Run here and not among the field checks above, which are handed no issue row. */
 const landedChecked = (kind, got, issue) => {
   for (const field of SHAPES[kind].fields.filter((one) => one.landed && got[one.flag] !== undefined)) {
     const said = landedProblem(got[field.flag], issue);
