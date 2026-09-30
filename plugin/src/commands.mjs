@@ -1,4 +1,5 @@
-import { fail, keepOnFailure } from "./resolve/settings.mjs";
+import { fail, keepOnFailure, slugIfAny } from "./resolve/settings.mjs";
+import { AIM_FLAG, aimedBy } from "./resolve/aimed.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
 import { EDGE_KINDS } from "./tracker/edges/kinds.mjs";
@@ -89,6 +90,7 @@ const nextCall = (asked, offset) => [
     .map(([name, value]) => `--${name} ${typedBack(String(value))}`),
   ...(asked.raw === undefined ? [] : [`--limit ${asked.limit}`]),
   ...(asked.fields ? [`--fields ${typedBack(asked.fields.join(","))}`] : []),
+  ...(asked.project ? [`${AIM_FLAG} ${typedBack(asked.project)}`] : []),
   `--offset ${offset}`,
 ].join(" ");
 
@@ -133,9 +135,9 @@ const printIssues = (read, asked, order) => {
 const fieldsIn = (given) =>
   (given ? { fields: given.split(",").map((name) => name.trim()) } : {});
 
-export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n] [--fields a,b]";
+export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--project <slug>]";
 
-export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W] [--propose] [--redact]"
+export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--project <slug>] [--set f=v... --why W] [--propose] [--redact]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46 --kind k|--unlink ISS-46 --edge id]";
 
 /* The one thing a row cannot hold: what this project's own configuration does to a value before it is stored, which a caller otherwise learns by reading the body back. Which language, which file it came from and which setting are `forge doctor`'s to name, so none of the three is here (ISS-1790). */
@@ -160,8 +162,10 @@ const REDACT = "`--redact` masks with `[withheld]` every string of the issue's s
 const WHICH_SURFACE = "The rows a call prints with no `--fields` are for a person to read. Which columns they are,\n"
   + "and in what order, is a judgement that has changed and will change again, so nothing keys on\n"
   + "their positions. `--fields a,b` is the surface a program reads: a listed row is the names asked\n"
-  + "for, in the order asked; one issue is those names and the two identifiers, keyed by name. One\n"
-  + "issue's status on its own is `forge issue ISS-45 --fields status`.";
+  + "for, in the order asked; one issue is those names, the two identifiers and the project the key\n"
+  + "was resolved in, keyed by name. One issue's status on its own is `forge issue ISS-45 --fields status`.\n"
+  + "`--project <slug>` reads another project's issues for this call alone and saves nothing; beside a\n"
+  + "write it is refused, an issue's fields and edges being written from a checkout of its own project.";
 
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
@@ -189,14 +193,24 @@ const selectorBelongsTo = (name, wrote) =>
     ? `removes none — a read takes no ${name}`
     : `asks for --${wrote}, which names its own`}. Nothing was sent.`;
 
+/* A read or a comment is what one call may take elsewhere; a field, an edge or a lease is written from
+   a checkout of the project it belongs to, since the worklog and the lease are this tree's. */
+const aimedWrite = (wrote) => `issue: ${AIM_FLAG} aims a read at another project, and --${wrote} writes. `
+  + "An issue's fields and edges are written from a checkout of its own project. Nothing was sent.";
+
+/* The project the key was resolved in, beside the two identifiers and on every shape of the read,
+   so a row read off the wrong project says which one it was (ISS-2910). */
+const resolvedIn = ({ documentId, issueId, ...rest }) => ({ documentId, issueId, project: slugIfAny(), ...rest });
+
 const TWO_SELECTORS = "issue: --kind and --edge each name the edge --unlink removes, and a call names it "
   + "once — `--edge <id>` alone picks one edge whatever its kind. Nothing was sent.";
 
 /* The five this table answers itself: each is a handler like an imported verb's, and `commands` below hands every one of them over by the same loader an imported verb gets, so the dispatch has one contract to hold and no entry of it is a handler to be called by mistake. */
 const own = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
-  issue: async (argv) => {
-    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${SET_MODULE}\n\n${REDACT}`);
+  issue: async (typed) => {
+    if (wantsHelp(typed)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${SET_MODULE}\n\n${REDACT}`);
+    const { rest: argv, slug: aimed } = aimedBy(typed, "issue");
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
@@ -205,7 +219,7 @@ const own = {
       refuseUnreadableDate("issue", "createdAfter", filters.createdAfter);
       refuseUnreadableDate("issue", "createdBefore", filters.createdBefore);
       refuseUnreadableDate("issue", "updatedAfter", filters.updatedAfter);
-      const asked = { filters, raw, limit: limitFrom(raw), offset: offsetFrom(atRaw), ...fieldsIn(named) };
+      const asked = { filters, raw, limit: limitFrom(raw), offset: offsetFrom(atRaw), ...fieldsIn(named), project: aimed };
       return printIssues(await everyIssue(filters), asked, declaredFor("forge_issues", "priority"));
     }
     const reference = first;
@@ -213,6 +227,7 @@ const own = {
     const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full", "--redact", "--propose"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set", "redact", "propose"], "issue", "writes and a call makes one");
+    if (aimed !== null && wrote !== undefined) fail(aimedWrite(wrote));
     /* Used or refused rather than read and dropped: `--kind` and `--edge` belong to `--unlink` alone,
        one of them at a time, and a kind this CLI does not serve is turned away before anything is sent. */
     for (const name of ["kind", "edge"]) {
@@ -244,7 +259,7 @@ const own = {
     const documentId = await documentIdOf(reference);
     /* The parts among the names ride along so the read skips the routes nothing asked for; the answer is the row whole either way, and the projection off it is this verb's own, which is why the names it cannot choose a route by are dropped here rather than sent to be refused. */
     const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: partsAmong(names) } : {}) });
-    const body = filled(names ? projectedTo(held, names) : held);
+    const body = resolvedIn(filled(names ? projectedTo(held, names) : held));
     show(full ? body : terse(body));
     return null;
   },
@@ -301,8 +316,9 @@ const own = {
   },
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */
-  comment: async (argv) => {
+  comment: async (typed) => {
     const usage = usageOf("comment");
+    const { rest: argv } = aimedBy(typed, "comment");
     const { positionals, flagArgv } = partition(argv, [], { verb: "comment", usage });
     const [reference, path] = positionals;
     if (!reference) fail(usage);

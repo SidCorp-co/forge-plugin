@@ -277,6 +277,14 @@ const sent = async (resource, route, value, file) => {
   return said;
 };
 
+const SLUG_KEY = "slug";
+
+/* The record is every run's and pane's in this checkout at once, so moving it to aim one call is
+   the incident ISS-2910 records; the line says so and names the route that moves nothing. */
+const rebound = (slug) => `slug: every run and pane standing in this checkout, the ones already running `
+  + `included, now resolves project ${slug} on its next call. One call aimed at another project is `
+  + "`--project <slug>` on `forge issue` and `forge comment`, which saves nothing.";
+
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
@@ -288,7 +296,12 @@ export const writeSetting = async (given) => {
   const route = await routeFor(asked);
   if (!route.key) fail(`--set: \`${asked}\` names the resource and no key of it. ${SET_USAGE}`);
   const resource = RESOURCES[route.name];
-  if (resource.local) return projectWrite(route, spelled(route.takes, raw));
+  if (resource.local) {
+    const before = slugIfAny();
+    const value = spelled(route.takes, raw);
+    const lines = projectWrite(route, value);
+    return route.key === SLUG_KEY && String(value) !== String(before) ? [...lines, rebound(value)] : lines;
+  }
   /* After the routing: the file above is the one resource that answers without a slug. */
   projectSlug();
   const value = valueFor(resource, raw);

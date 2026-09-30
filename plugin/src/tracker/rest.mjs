@@ -12,7 +12,7 @@ import {
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
-import { fromProject, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
+import { aimSaid, fromProject, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { DATA_FENCE_PATTERN } from "../markdown.mjs";
 import { nearestOutside } from "../suggest.mjs";
@@ -230,6 +230,18 @@ const aimedAt = async (row, args, soft, held) => {
 
 const refused = (message, answer = {}) => ({ refused: message, ...answer });
 
+/* Which project a refused call was made on, after the tracker's words so a caller matching their
+   head still matches: a `NO_OP` about another project's row read as a success when nothing said
+   which project it was (ISS-2910). A route under a project, or one addressing an issue or a comment
+   a key was resolved to, is the aim's; an id the caller passed is its own. */
+const ON_A_ROW = /^\/(?:issues|comments)\//u;
+
+const askedOf = (row, request, args) => {
+  if (!row.project && !ON_A_ROW.test(request.path ?? "")) return "";
+  if (row.project && args.projectId) return `\nAsked of project ${slugFor(args.projectId) ?? args.projectId}.`;
+  return `\nAsked while aimed at ${aimSaid()}.`;
+};
+
 /* Every part of a row's answer is asked for at once: three routes cost one round trip, not three. */
 const fetchedParts = async (key, row, args, soft, held) => {
   const project = await aimedAt(row, args, soft, held);
@@ -247,7 +259,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
       + `${onClock(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
-      return [part, refused(said(body, response.status, args),
+      return [part, refused(`${said(body, response.status, args)}${askedOf(row, request, args)}`,
         { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
     }
     const body = text ? parsedOr(text) : null;
@@ -401,7 +413,9 @@ const idOfProject = async (soft, given = {}) => {
   const slug = aimed ?? projectSlug();
   const held = await projectIdOf(slug, { soft, ...given });
   if (held.id || held.refused) return held;
-  return refusing(soft)(`No Forge project has slug ${slug}. Seen: ${held.seen}`);
+  const from = projectTarget().from ?? "nowhere";
+  return refusing(soft)(`No Forge project this credential can see has slug ${slug}, which ${from} names. `
+    + `Seen: ${held.seen}`);
 };
 
 export const projectId = async () => (await idOfProject(false)).id;
