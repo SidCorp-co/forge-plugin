@@ -8,9 +8,10 @@ landing and one mark either way. What the mark carries: `forge guide contract de
 
 **Where the judgement is an independent run's, the building run's part of this phase is the landing,
 the checkpoint, that mark and the note Phase 6 drafted, and it ends there.** The judging run's
-verdicts are read against a checkpoint naming the run that built the change, and a capture taken by
-this run before the merge is the only write that names it rather than inferring it: `forge advance
-ISS-nn --owed` says when it is owed and prints the writes that make it. The note is written here
+verdicts are read against a checkpoint naming the run that built the change, and a capture this run
+takes before the landing puts the change on the default branch is the only write that names it
+rather than inferring it, so it comes ahead of that landing: `forge advance ISS-nn --owed` says when
+it is owed and prints the write before the merge and the one after it. The note is written here
 rather than carried off in a report, because the run that built the change is the one that can say
 what a user will now see, and the rung it earns is moved by whoever holds the issue next. Everything
 below is then taken by the judging run, standing at `developed` where this one stopped.
