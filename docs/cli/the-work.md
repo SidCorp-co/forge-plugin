@@ -55,6 +55,21 @@ where the fetch brings nothing, *start over* is the right answer and saying noth
 the branch was ever pushed is reported and never enforced: no CLI can tell a private remote from
 none.
 
+## Which ref is named, and where the branch stands now
+
+Of the refs that carry the head, the one named decides how a successor opens, so the choice is by
+role and not by sort order. The branch the project lands on comes first, because it is the one ref
+whose carrying says the work is in; the branch's own ref next, because it says the work was pushed;
+and any other only as what it is. The first ref of an alphabetical list once named another issue's
+branch as where the work lived, when the work had landed, and a run spent its opening recovering
+that from git. Where the project's configuration did not read, no ref is called the landing branch,
+because the name a guess falls back to is the branch a promoting project releases to.
+
+A capture is a reading of its own moment, and the run after it may have moved the branch on before
+dying. So the line also says where the branch stands in this checkout as it is printed — still at
+that head, some commits past it, moved off it, or not here at all — and it reads the branch's own
+ref for it, offline, as it reads everything else on these lines.
+
 ## The status a change is built under owes the branch
 
 `in_progress` is refused where the worklog names no branch, and the refusal names the capture that
@@ -77,8 +92,15 @@ nothing wrote nothing at the one moment the branch had to be on the record.
 The pointer is now written whenever git answers, and the touched set is cleared from that same
 reading. That is what the old silence was really buying: a block that is one reading of one
 checkout, rather than the branch of one and the file list of another. The line the capture prints
-says which of the four reasons left it with no diff, and a checkpoint offered to a landing is
+says which reason left it with no diff, and a checkpoint offered to a landing is
 refused on the diff rather than on the head, a branch carrying nothing being nothing to land.
+
+A branch the landing branch has already merged is its own merge-base with it, so read plainly it
+holds nothing. The merge that took it in still records where it stood, and the capture measures from
+there; where a fast-forward left no such merge the head stays its own base, and where two merges
+disagree about where it stood the capture records none and says so, a base nobody can trust being
+worse than none. A head the landing branch carries is no landing left to arm, and `--ready` refuses
+it on that fact, the touched set of a merged branch being its own files and not empty.
 
 A capture naming a branch other than the one the worklog held says which it replaced, with the time
 that older block was taken. Nothing is refused for it — a run captures again from the default branch

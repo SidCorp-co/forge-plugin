@@ -102,7 +102,7 @@ const UNREAD = { plan: null, moved: [], whole: false, complexity: null };
 /* `landing` is the checkpoint this call wrote, where it wrote one: the issue was fetched before the write, and the opening narrows the phase owed by the head that checkpoint names (ISS-2439). */
 const advise = async (documentId, fetched, held = null, landing = undefined) => {
   const issue = landing === undefined ? fetched : { ...fetched, [FIELD]: { ...fetched[FIELD], [LANDING]: landing } };
-  const work = workNow(held);
+  const work = await workNow(held);
   const page = await commentPage(documentId, true);
   if (page?.refused) {
     console.log(`This issue's comment page did not read back, so no phase is named as passed and the `
@@ -471,7 +471,7 @@ export const claim = async (argv) => {
   const unheld = state === "free" && !takeableFree(issue.status, context);
   if (unheld && !given.unheld) {
     fail(unheldRefusal(ref, issue.status,
-      { next: nextLeft(context), work: workLines(workNow(worklog)) }));
+      { next: nextLeft(context), work: workLines(await workNow(worklog)) }));
   }
   /* One reading, two sentences: the first owns the lapse the record can tell is fresh and the second only the lapse read as stale that cannot be ruled fresh, which is the direction that takes an issue off a working run (ISS-1212). */
   const unproven = state === "expired" && !given.stopped && !handed ? lapseUnproven(lease, { band }) : "";

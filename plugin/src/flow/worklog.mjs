@@ -64,16 +64,45 @@ const git = (args, env = null) => {
    — which `readyCheckpoint` then copied into the landing (ISS-1217). A declared branch is read and
    nothing else, since a guess standing in for a ref not fetched is that defect again; where nothing
    is declared, the remote's recorded default first and the two common names after it. */
-const baseOf = (lands) => {
+const baseOf = (head, lands) => {
   const named = lands?.branch
     ? [refFor(lands)]
     : [git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]), ...REMOTES];
   for (const ref of named.filter(Boolean)) {
     const found = git(["merge-base", "HEAD", ref]);
-    if (found) return found;
+    if (found) return found === head ? { ...forkOf(head, ref), carried: true } : { base: found, carried: false };
   }
-  return "";
+  return { base: "", why: "base", carried: false };
 };
+
+/* A head the landing branch already holds is its own merge-base, so the plain reading records a
+   merged branch as holding nothing (ISS-1862). The merge that took it in still says where it stood:
+   among the commits descending from the head, one whose first parent does not is such a merge, and
+   that parent's merge-base with the head is the last landing commit the branch held — where it was
+   cut, or what it last merged in, the diff from either being the branch's own. No such merge is a
+   head the landing branch holds on its own line, a branch just cut or a fast-forward, and there the
+   head is the base; merges answering different points are a history naming no one base. */
+const forkOf = (head, ref) => {
+  const rows = git(["rev-list", "--ancestry-path", "--parents", `${head}..${ref}`]);
+  if (rows === null) return { base: "", why: "path" };
+  const listed = rows.split("\n").filter(Boolean).map((one) => one.split(" "));
+  const within = new Set([head, ...listed.map(([sha]) => sha)]);
+  const entries = listed.filter((one) => one.length > 2 && !within.has(one[1]));
+  if (!entries.length) return { base: head };
+  const forks = new Set(entries.map(([, first]) => git(["merge-base", first, head])));
+  if (forks.has(null)) return { base: "", why: "path" };
+  const [fork] = forks;
+  return forks.size === 1 ? { base: fork } : { base: "", why: "forks" };
+};
+
+/* Facts of one reading that the worklog stores none of, so held beside the object they describe
+   rather than written to the tracker: why a capture found no base, and the landed mark below, which
+   is carried from the capture onto the patch `readyCheckpoint` is handed. */
+const NO_BASE = new WeakMap();
+const CARRIED = new WeakMap();
+
+/** Whether the capture behind `patch` found the head already on the branch this project lands on. */
+export const carriedAtCapture = (patch) => Boolean(patch && CARRIED.get(patch));
 
 /* Read here and nowhere else: a brief that consulted the tree would answer differently per machine.
    `lands` is the project's declaration and never a caller's value, and it picks only the ref the
@@ -81,10 +110,10 @@ const baseOf = (lands) => {
 export const gitNow = (lands = null) => {
   const head = git(["rev-parse", "HEAD"]);
   if (!head) return null;
-  const base = baseOf(lands);
+  const { base, why, carried } = baseOf(head, lands);
   const diffed = base ? git(["diff", "--name-only", `${base}..HEAD`]) : "";
   const touched = (diffed ?? "").split("\n").filter(Boolean);
-  return {
+  const now = {
     branch: git(["rev-parse", "--abbrev-ref", "HEAD"]) || "detached",
     head,
     base: base || null,
@@ -93,6 +122,9 @@ export const gitNow = (lands = null) => {
     files: touched.length || null,
     at: new Date().toISOString(),
   };
+  if (why) NO_BASE.set(now, why);
+  if (carried) CARRIED.set(now, true);
+  return now;
 };
 
 /* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). The open findings carry the consult that made them, which after a clean round is not the one this line opens with, and the ids alone sent a run to `--of` the consult the verb refused them on (ISS-1679). */
@@ -152,18 +184,20 @@ const reviewNow = async (root = repoRoot(process.cwd())) => {
   };
 };
 
-/** Why a capture found no diff: after a fast-forward the base is the head and the touched set reads as none. */
+/** Why a capture found no diff: a head the landing branch holds on its own line is its own base, and the touched set reads as none. */
 const EMPTY = {
   none: "git answered nothing about this checkout",
   base: "no base: this checkout holds no remote-tracking ref of the branch a change lands on to measure from, which `git fetch origin` settles",
-  same: "the base is the head, which is what a fast-forward leaves",
+  forks: "no base: the branch a change lands on took this head in through merges that name different points it stood at, so no one of them is the base",
+  path: "no base: git would not read how the branch a change lands on took this head in",
+  same: "the base is the head: the branch a change lands on already holds everything on it, which is what a branch just cut and a branch landed by a fast-forward both read",
   diff: "git would not read the diff between the base and the head",
   files: "the base and the head differ and no file does",
 };
 
 const emptyWhy = (git) => {
   if (!git) return EMPTY.none;
-  if (!git.base) return EMPTY.base;
+  if (!git.base) return EMPTY[NO_BASE.get(git) ?? "base"];
   if (git.base === git.head) return EMPTY.same;
   if (git.files === null) return EMPTY.diff;
   return EMPTY.files;
@@ -236,6 +270,7 @@ export const patchFrom = async ({ pushed = false, review = false, open = [] }) =
   if (pushed) {
     if (!now) fail(`--pushed reads the branch and head from git, and ${process.cwd()} is no checkout.`);
     Object.assign(patch, now, { copy: copyNow() });
+    for (const held of [NO_BASE, CARRIED]) if (held.has(now)) held.set(patch, held.get(now));
   }
   const held = review ? await reviewNow() : null;
   if (review && !held) console.error("--review: no answered consult for this checkout yet, so the review block is unchanged.");
@@ -282,13 +317,46 @@ export const worklogLines = (worklog, next = null) => {
 /* Offline is enforced and not assumed: a partial clone fetches a missing object to answer, which is the wait this reading exists to avoid. In the environment and not as a flag, a git too old to know the variable ignoring it where one too old for `--no-lazy-fetch` refuses the call (consult 34d2ee F1). */
 const OFFLINE = { GIT_NO_LAZY_FETCH: "1" };
 
-export const reachOf = (work) => {
+/* The ref a reach names first, where it carries the head: the landing branch, the one ref that says
+   the work is in. None under a reading that did not settle which branch that is, since a report line
+   that guessed there would name the branch a release promotes to (ISS-1802). */
+const landingRef = (lands) => {
+  if (lands?.unsettled) return null;
+  if (lands?.branch) return `origin/${lands.branch}`;
+  return git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], OFFLINE);
+};
+
+/* Out of every ref carrying the head, the one that decides how a run opens: the landing branch, then
+   the branch's own, and any other only as what it is, since the first of an alphabetical list read as
+   where the work lives and named another issue's branch (ISS-1862). */
+export const reachOf = (work, lands = null) => {
   if (!work?.head || git(["rev-parse", "--git-dir"], OFFLINE) === null) return null;
   if (git(["cat-file", "-e", `${work.head}^{commit}`], OFFLINE) === null) return { here: false, remote: null };
   const carried = git(["branch", "--remotes", "--contains", work.head], OFFLINE) ?? "";
   /* `origin/HEAD -> origin/master` is that second ref again, and naming it counts one remote as two. */
   const refs = carried.split("\n").map((one) => one.trim()).filter((one) => one && !one.includes(" -> "));
-  return { here: true, remote: refs[0] ?? null };
+  if (!refs.length) return { here: true, remote: null };
+  const landing = landingRef(lands);
+  const own = work.branch ? `origin/${work.branch}` : null;
+  const settled = !lands?.unsettled;
+  if (landing && refs.includes(landing)) return { here: true, remote: landing, as: "landing", declared: Boolean(lands?.branch) };
+  if (own && refs.includes(own)) return { here: true, remote: own, as: "own", landing, settled };
+  return { here: true, remote: refs[0], as: "other", landing, settled };
+};
+
+/* Where the branch stands in this checkout as the line is printed, since a capture is a reading of
+   its moment and the run after it may have moved the branch four commits on (ISS-1862). Read off the
+   one ref and never a revision, for the reason `tipOf` gives; a repository's worktrees share it. */
+export const branchNow = (work) => {
+  if (!work?.branch || !work.head || git(["rev-parse", "--git-dir"], OFFLINE) === null) return null;
+  const hash = git(["show-ref", "--verify", "--hash", `refs/heads/${work.branch}`], OFFLINE);
+  if (!hash) return { tip: null, carries: null };
+  if (hash === work.head) return { tip: hash, carries: true, past: 0 };
+  const asked = spawnSync("git", ["merge-base", "--is-ancestor", work.head, hash],
+    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...OFFLINE } });
+  if (asked.status === 1) return { tip: hash, carries: false };
+  const count = asked.status === 0 ? git(["rev-list", "--count", `${work.head}..${hash}`], OFFLINE) : null;
+  return count === null ? { tip: hash, carries: null } : { tip: hash, carries: true, past: Number(count) };
 };
 
 /* Whether a branch dropped a commit it carried, off this checkout's refs and offline as `reachOf` is.
@@ -357,4 +425,9 @@ export const carriedByLanding = (head, lands = null) => {
   return short(`git could not answer whether ${ref} reaches it`, null, ref, tip);
 };
 
-export const workNow = (work) => (work?.branch ? { ...work, reach: reachOf(work) } : null);
+/** The worklog with what this checkout reads of it now, the landing branch read once for the reach. */
+export const workNow = async (work) => {
+  if (!work?.branch) return null;
+  const lands = await landingBranch();
+  return { ...work, reach: reachOf(work, lands), now: branchNow(work) };
+};
