@@ -4,7 +4,7 @@
    sent the value and composed its reply from whatever came back (ISS-936, ISS-1135). */
 import { COMPLEXITY_NAMES, rungFrom } from "../../ladder.mjs";
 import { didYouMean, nearestOutside, suggest } from "../../suggest.mjs";
-import { KIND_NAMES } from "../kinds.mjs";
+import { KIND_NAMES } from "./kinds.mjs";
 import { DECLARES, declaredFor } from "../routes.mjs";
 import { rowFor } from "../../resolve/visibility.mjs";
 
@@ -60,7 +60,7 @@ export const valueOutsideSet = (field, given) => {
 
 /* Keyed by the tool: `--kind` is a knowledge entry's kind on one verb and no set at all on another. */
 const OWN_SETS = {
-  "forge_issues.category": { held: "plugin/src/tracker/kinds.mjs KIND_NAMES", values: KIND_NAMES },
+  "forge_issues.category": { held: "plugin/src/tracker/declared/kinds.mjs KIND_NAMES", values: KIND_NAMES },
   "forge_issues.complexity": { held: "plugin/src/ladder.mjs COMPLEXITY_NAMES", values: COMPLEXITY_NAMES },
 };
 

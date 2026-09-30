@@ -3,7 +3,7 @@
 import { readdirSync } from "node:fs";
 
 import { article, originIn } from "../issue-shape.mjs";
-import { KIND_NAMES } from "../kinds.mjs";
+import { KIND_NAMES } from "../declared/kinds.mjs";
 import { pluginChannel, verbForPluginDefect } from "../../resolve/visibility.mjs";
 import { projectScope } from "../../resolve/settings.mjs";
 import { once } from "../../resolve/config.mjs";

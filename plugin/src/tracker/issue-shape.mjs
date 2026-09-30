@@ -12,7 +12,7 @@ import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { MAX_LIMIT, distinctKeysIn, everyIssue, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
 import { KIND_ROUTE, priorityFor } from "./declared/value-sets.mjs";
-import { DEFAULT_KIND, KIND_NAMES } from "./kinds.mjs";
+import { DEFAULT_KIND, KIND_NAMES } from "./declared/kinds.mjs";
 import { partsIn, prefixesOf } from "./filing/parts.mjs";
 import { NO_LONGER_OWES } from "../flow/earned/park-status.mjs";
 
@@ -93,7 +93,7 @@ const WHY = section({
 /* Three measured off the bodies this backlog had written, and a fourth this CLI writes itself: a
    batch reading filed as one of the three reads as work somebody still has to do. A row rather than
    a synonym for the feature shape it copies, the value having to reach the field to be filtered.
-   Keyed by the names plugin/src/tracker/kinds.mjs holds, and read against them in both directions
+   Keyed by the names plugin/src/tracker/declared/kinds.mjs holds, and read against them in both directions
    below, so a kind named there and shaped nowhere refuses at import rather than reading as no shape. */
 const SHAPES = {
   bug: {
@@ -128,7 +128,7 @@ export const kindsFrom = (names = KIND_NAMES, shapes = SHAPES) => {
       unshaped.length ? `Named and shaped by nothing: ${unshaped.join(", ")}.` : "",
       unnamed.length ? `Shaped and named nowhere: ${unnamed.join(", ")}.` : "",
       "Set or drop that row in `SHAPES` in plugin/src/tracker/issue-shape.mjs;"
-        + " the names are `KIND_NAMES` in plugin/src/tracker/kinds.mjs.",
+        + " the names are `KIND_NAMES` in plugin/src/tracker/declared/kinds.mjs.",
     ].filter(Boolean).join(" "));
   }
   return names.map((kind) => ({ kind, ...shapes[kind] }));

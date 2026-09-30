@@ -134,7 +134,7 @@ export const HEAVY = [
   {
     target: "plugin/src/tracker/issue-shape.mjs",
     what: "the filing shape reader, which brings the text-overlap scorer and the sentence splitter to read a body no gate files",
-    instead: "plugin/src/tracker/kinds.mjs holds the kind names and plugin/src/tracker/declared/value-sets.mjs the sentence a field's value is refused with",
+    instead: "plugin/src/tracker/declared/kinds.mjs holds the kind names and plugin/src/tracker/declared/value-sets.mjs the sentence a field's value is refused with",
     allowed: {},
   },
 ];

@@ -16,7 +16,7 @@ import {
   trackerFields,
 } from "../../../src/tracker/issue-shape.mjs";
 import { complexityRefusal, kindRefusal } from "../../../src/tracker/declared/value-sets.mjs";
-import { DEFAULT_KIND, KIND_NAMES } from "../../../src/tracker/kinds.mjs";
+import { DEFAULT_KIND, KIND_NAMES } from "../../../src/tracker/declared/kinds.mjs";
 import { bodyOf } from "../../../src/tracker/filing/route.mjs";
 import { usageOf } from "../../../src/resolve/visibility.mjs";
 import { unknownFlag } from "../../../src/resolve/flags.mjs";
@@ -53,7 +53,7 @@ test("a kind named without a shape, or shaped without a name, refuses and says w
   assert.throws(unshaped, /plugin\/src\/tracker\/issue-shape\.mjs/u, "and the file the shape is set in");
   const unnamed = () => kindsFrom(["bug"], { bug: { needs: [], says: [] }, ghost: { needs: [], says: [] } });
   assert.throws(unnamed, /Shaped and named nowhere: ghost/u);
-  assert.throws(unnamed, /plugin\/src\/tracker\/kinds\.mjs/u, "and the file the name is held in");
+  assert.throws(unnamed, /plugin\/src\/tracker\/declared\/kinds\.mjs/u, "and the file the name is held in");
 });
 
 /* Criterion 10: two lists of sections would drift, and the one that drifts is the help, because

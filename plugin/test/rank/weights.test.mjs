@@ -6,7 +6,7 @@ import test from "node:test";
 import { basename, join } from "node:path";
 
 import { DEFAULTS, canonicalKeys, complexitySpread, foldWeights, kindWeights, weightLines } from "../../src/rank/weights.mjs";
-import { KIND_NAMES } from "../../src/tracker/kinds.mjs";
+import { KIND_NAMES } from "../../src/tracker/declared/kinds.mjs";
 import { checkoutAt } from "../../src/git/checkout-at.mjs";
 import { configDir } from "../../src/resolve/config.mjs";
 
@@ -128,7 +128,7 @@ test("every kind the CLI can file has a row, and it is the vocabulary that says 
 test("a name on one of the two lists alone is refused, and named", () => {
   const unweighed = () => kindWeights([...KIND_NAMES, "nomination"]);
   assert.throws(unweighed, /Weighed by nothing: nomination/u);
-  assert.throws(unweighed, /plugin\/src\/tracker\/kinds\.mjs/u, "and the file the kind came from");
+  assert.throws(unweighed, /plugin\/src\/tracker\/declared\/kinds\.mjs/u, "and the file the kind came from");
   const unscored = () => kindWeights(["bug"], { bug: 8, ghost: 1 });
   assert.throws(unscored, /Weighing no kind this CLI files: ghost/u);
   assert.throws(unscored, /plugin\/src\/rank\/weights\.mjs/u, "and the file the weight is set in");

@@ -9,7 +9,7 @@ import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
 import { CAUSE_HELP, liveTitles } from "../tracker/issue-shape.mjs";
 import { kindRefusal } from "../tracker/declared/value-sets.mjs";
-import { KIND_NAMES } from "../tracker/kinds.mjs";
+import { KIND_NAMES } from "../tracker/declared/kinds.mjs";
 import { briefGoals, servesOwed } from "../tracker/knowledge/brief.mjs";
 import { goalBlock } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
