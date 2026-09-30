@@ -6,17 +6,17 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { flat, tempRoom } from "../fixtures.mjs";
+import { flat, tempRoom } from "../../fixtures.mjs";
 
-const { DEFAULT, SCREEN, servedFor } = await import("../../src/guides/flow.mjs");
-const { skillGuideAnswer, skillGuideSlugs } = await import("../../src/guides/skill-guides.mjs");
-const { roundLines } = await import("../../src/guides/rounds.mjs");
-const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
-const { localRows, localSlugs } = await import("../../src/guides/guides.mjs");
-const { SAYS } = await import("../../src/stats/stats.mjs");
-const { SUBJECT_SLUGS } = await import("../../src/tools/services/doctor/subjects.mjs");
+const { DEFAULT, SCREEN, servedFor } = await import("../../../src/guides/flow.mjs");
+const { skillGuideAnswer, skillGuideSlugs } = await import("../../../src/guides/skill-guides.mjs");
+const { roundLines } = await import("../../../src/guides/rounds.mjs");
+const { VERB_NAMES } = await import("../../../src/resolve/visibility.mjs");
+const { localRows, localSlugs } = await import("../../../src/guides/guides.mjs");
+const { SAYS } = await import("../../../src/stats/stats.mjs");
+const { SUBJECT_SLUGS } = await import("../../../src/tools/services/doctor/subjects.mjs");
 
-const PLUGIN = new URL("../../", import.meta.url).pathname;
+const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 const HELP = "`forge <verb> -h`";
 
