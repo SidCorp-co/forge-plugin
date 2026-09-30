@@ -156,12 +156,15 @@ test("a lease that does not read back after the move is said to be unread, with 
   assert.ok(last.endsWith("Read it: forge issue ISS-26 --fields sessionContext"), last);
 });
 
-test("a call that fails past its move still ends on the line naming the lease it left standing", async () => {
+test("a call that fails past its move still ends on the line naming the lease it left standing, on the move line's stream", async () => {
   await claimed("ISS-27");
   const run = await ranAsync(FORGE, ["advance", "ISS-27", "--park", "dropped", "--why", "the fixture drops it"], ENV);
   assert.notEqual(run.status, 0, `the park record was refused, so the call fails:\n${run.stdout}\n${run.stderr}`);
   assert.equal(state.issues.find((one) => one.issueId === "ISS-27").status, "dropped", "past a move that landed");
-  const last = lastLine(run.stderr);
-  assert.match(last, /^ISS-27 is still held by this run after the move: session \S+ /u, run.stderr);
+  const last = lastLine(run.stdout);
+  assert.ok(run.stdout.includes("ISS-27  open -> dropped"), `the move line, on stdout:\n${run.stdout}`);
+  assert.match(last, /^ISS-27 is still held by this run after the move: session \S+ /u, run.stdout);
   assert.ok(last.includes(`expiring ${expiryOf("ISS-27")}`), last);
+  assert.match(run.stderr, /the comment store is down/u, "the refusal itself stays on stderr");
+  assert.doesNotMatch(run.stderr, /held by this run/u, "and the lease line is not moved there");
 });

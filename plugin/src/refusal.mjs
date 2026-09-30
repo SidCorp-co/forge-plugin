@@ -33,11 +33,13 @@ export const appendedLine = (line) => {
    imports refuses through the same boundary rather than a copy of it: inside `refusing()` it throws,
    and outside it prints what a caller asked to keep before the exit (ISS-2612). What is kept is
    registered by a caller holding something no exit may lose — a body that arrived on stdin, or a
-   line owed only once a write lands — several, each dropped by the caller that registered it. */
+   line owed only once a write lands — several, each dropped by the caller that registered it. A
+   line that answers for something already printed goes out on that line's stream, `say`, so the
+   exit does not move it off the stream a reader of the first one is watching. */
 const kept = [];
 
-export const keepOnFailure = (text) => {
-  const held = { text };
+export const keepOnFailure = (text, say = null) => {
+  const held = { text, say };
   kept.push(held);
   return () => {
     const at = kept.indexOf(held);
@@ -65,6 +67,6 @@ export const refusing = async (run) => {
 export const fail = (message) => {
   if (embedded) throw new Refusal(message);
   console.error(message);
-  for (const one of kept) console.error(one.text);
+  for (const one of kept) (one.say ?? console.error)(one.text);
   process.exit(1);
 };

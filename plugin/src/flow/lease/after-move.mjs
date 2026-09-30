@@ -38,11 +38,12 @@ const heldLine = async (documentId, ref) => {
 
 /* Read once as the move lands as well, and kept for a failure: a call that fails past its move exits
    through `fail`, which reaches no end-of-call read and gives no lease back, so the line as it stood
-   at the move is the one that exit prints last. A call that completes drops it for the read below. */
+   at the move is the one that exit prints last, on the move line's stream. A call that completes
+   drops it for the read below. */
 export const movedHere = async (documentId, ref, say) => {
   MOVED.get(documentId)?.dropped();
   const line = await heldLine(documentId, ref);
-  MOVED.set(documentId, { ref, say, dropped: line ? keepOnFailure(line) : () => {} });
+  MOVED.set(documentId, { ref, say, dropped: line ? keepOnFailure(line, say) : () => {} });
 };
 
 export const heldAfterMoves = async () => {
