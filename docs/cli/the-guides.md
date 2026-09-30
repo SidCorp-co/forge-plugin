@@ -85,6 +85,13 @@ invocation needs is inline in `SKILL.md`; what a run of a long method needs once
 references live under `plugin/guides/skills/<skill>/<flow>/` as rows of the same local registry the
 contract is, and a skill with references and no body is listed for its references alone.
 
+**A page may be served with no skill of this plugin's behind it**, and `master` is the one that is.
+A resident master is dispatched by the runner's own skill, which ships inside the runner binary on
+its own clock and so names no flag of this CLI, while the dispatch method it follows is about a wave
+and carries no map of the verbs. The map belongs to neither, and a page served by the copy that
+answers the verbs is the only place it cannot go stale against them. It is a row of the same tree
+rather than a reference of dispatch's so that the runner's skill can name it by a slug of its own.
+
 **One shape for both served trees, so the flow is a segment of the path.** A skill's method is a
 directory of parts under the flow that serves it — `<flow>/guide/`, one file per heading beside
 `<flow>/references/` — read by the same reader the contract's parts are read by and held to the same
