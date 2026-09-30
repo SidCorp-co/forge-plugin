@@ -4,7 +4,6 @@ import { CODE_SPAN_NONEMPTY_PATTERN, DATA_FENCE_PATTERN, LINK_TARGET_OPEN_PATTER
 
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 const SPLIT = /(\n[ \t]*\n)/;
-const INLINE_CODE = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "g");
 const LINK_TARGET = new RegExp(LINK_TARGET_OPEN_PATTERN, "g");
 const SENTINEL = /⟦VI\d+⟧/g;
 /* Anything the bracket pair makes, a lone bracket included: what comes back is judged on its own text,
@@ -121,9 +120,30 @@ export function headingTrails(pieces, root) {
   return trails;
 }
 
-/** Swap inline code spans for sentinels so the model cannot reword an identifier. */
+/* A bare name carries nothing marking it as one, so the model read the trailing letter of a run id as
+   prose and dropped it (ISS-1886). A token is a name when it mixes letters and digits, joins words with
+   an underscore or turns camelCase; an ordinal, a hyphenated word and a plain number stay prose. */
+const BARE_TOKEN = String.raw`(?<![\p{L}\p{N}_])(?<bare>[A-Za-z0-9_]+(?:[-.:/#@+]+[A-Za-z0-9_]+)*)(?![\p{L}\p{N}_])`;
+const ORDINAL = /^\d+(?:st|nd|rd|th)$/iu;
+/* A marker the block already carries and a link target are kept whole and never held: the one is
+   judged by `verify` as it stands, and the other is compared target for target. */
+const HELD_OR_KEPT = new RegExp(
+  `(${CODE_SPAN_NONEMPTY_PATTERN})|${MARKER_SHAPED.source}|${LINK_TARGET_OPEN_PATTERN}|${BARE_TOKEN}`,
+  "gu",
+);
+
+/** Whether a bare token is a name the rewrite must carry whole rather than prose it may reword. */
+export function isName(token) {
+  if (/_/u.test(token) || /[a-z][A-Z]/u.test(token)) return true;
+  if (!/[A-Za-z]/u.test(token) || !/\d/u.test(token)) return false;
+  return !token.split(/[-.:/#@+]+/u).filter((part) => /\d/u.test(part)).every((part) => ORDINAL.test(part));
+}
+
+/** Swap inline code spans and bare names for sentinels so the model cannot reword an identifier. */
 export function protectInline(block, slots) {
-  return block.replace(INLINE_CODE, (match) => {
+  return block.replace(HELD_OR_KEPT, (match, span, ...rest) => {
+    const { bare } = rest.at(-1);
+    if (span === undefined && !(bare && isName(bare))) return match;
     const token = `⟦VI${slots.length}⟧`;
     slots.push(match);
     return token;
