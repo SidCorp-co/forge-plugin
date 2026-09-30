@@ -44,6 +44,7 @@ test("a write behind a list operator is struck as one at the start is", () => {
   assert.ok(!listed.includes("draft/a.test.ts"));
   assert.deepEqual(read("cd x && ( cp a.md b.md )"), ["b.md"], "a subshell's parentheses are no operands");
   assert.deepEqual(read("( cp a.md b.md )", "keep"), ["b.md"]);
+  assert.deepEqual(read("cp a.md ')'"), [], "a quoted parenthesis is a file the copy writes");
 });
 
 test("the keep reading leaves a span whose destination is handed over whole", () => {

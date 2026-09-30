@@ -431,9 +431,9 @@ const targetOf = (program, words) => {
 };
 
 const notAnOperand = (program, words, at) => {
-  const { said } = words[at];
+  const { said, text } = words[at];
   const before = at > 0 ? words[at - 1].said : "";
-  return FLAG.test(said) || CLOSES.test(said) || takesValue(program, before) || AIMED.test(said) || AIMED.test(before);
+  return FLAG.test(said) || CLOSES.test(text) || takesValue(program, before) || AIMED.test(said) || AIMED.test(before);
 };
 
 /** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. It reads each word's own spelling, quotes off, because a shell takes `'--output'` for the option it is and reading the raw word left the destination beside it unguarded. */
