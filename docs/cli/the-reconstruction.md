@@ -44,8 +44,7 @@ because an omission taken that way switches off the citation `testing` spends on
 names an identity, and nothing on the record would say it had been. A checkpoint naming none is
 judged at the head its verdicts carry, which the block says in its own account of itself.
 
-The identity itself is a commit, the one the deployment reports serving, because the rung compares it
-with the commits a verdict cites. A deployment's own id can equal none of them, so the write refuses
+The identity is a commit because the rung compares it with the commits a verdict cites. A deployment's own id can equal none of them, so the write refuses
 one by name, and a checkpoint that stored one before that refusal existed is read with it as a
 deployment id apart from the identity: shown, and compared with nothing.
 

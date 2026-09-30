@@ -59,16 +59,14 @@ export const REBUILT_FORM = (ref, head) =>
 export const DERIVED = (holder) => `derived from the claim history, which names exactly one run that `
   + `held this issue while the change was being built, \`${holder}\``;
 
-export const RECOVER_THE_BUILDER = (holder) =>
+const RECOVER_THE_BUILDER = (holder) =>
   `Write the checkpoint again with \`forge claim --rebuilt\`, naming \`${holder}\` as the builder rather `
   + `than declaring it unrecoverable: the write reads that builder off the claim history, and keeps this `
   + `checkpoint readable under the one it writes.`;
 
-/** The one statement of the clause both refusals carry, and nothing either puts around it. The
- *  write cannot call `builderProblem`: it holds no checkpoint to hand it, being the call that
- *  decides whether to write one, so what they share is the sentence and not the reader. `subject`
- *  is what the history is read off — the issue, or the ref a write is being asked for. */
-export const DERIVED_BUILDER = (subject, holder) =>
+/* The clause the refusal below carries: the builder the history names, which the late write now
+   names too rather than refusing (ISS-2608). */
+const DERIVED_BUILDER = (subject, holder) =>
   `the claim history on ${subject} names exactly one run that held it while the change was being `
   + `built, \`${holder}\`: a builder the record answers for is derived and not declared`;
 
