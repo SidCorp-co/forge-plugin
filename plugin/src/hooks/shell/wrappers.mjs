@@ -1,6 +1,6 @@
-// The options each wrapper word takes before the command it runs, and the one pattern of them every reader of what stands before a verb is built from.
+// What stands between sudo, env, exec, time, command or nohup and the program it runs, spelled as the pattern `STARTS` and the stage verb finder in shell-spans.mjs both splice in.
 
-/* Per wrapper: the short letters and the long names that take a value. A value is the rest of a cluster behind its letter, or the next word where nothing is left, so a value-taking letter ends its cluster — the getopt rule the write verbs' own table reads. Every other short letter and long name takes none, and a long one may still carry an `=value` of its own, which is how `sudo --preserve-env=PATH` and `env --ignore-signal=INT` spell theirs.
+/* Each wrapper's row lists what of its own takes an argument, and the cluster rule is getopt's, as options.mjs states it for the write verbs. Whatever a row leaves out is read as bare, and a long one may still carry an `=value` of its own, which is how `sudo --preserve-env=PATH` and `env --ignore-signal=INT` spell theirs.
    sudo's are those its manual lists as taking an argument; `-h` is left off, since its host is attached only and a bare `-h` is the help. env's are GNU's and uutils'; `-S` is left off, its value being the command line itself, so reading it as taking none keeps the verb it carries in view. exec's `-a` names the program's zeroth argument; GNU time's `-f` and `-o` take a format and a file. `command` and `nohup` take none. */
 const OPTIONS = {
   sudo: {
