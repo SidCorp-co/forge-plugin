@@ -8,8 +8,9 @@ How to clear it: run `forge brief ISS-nn --tree <the run's worktree>`, or with n
 that is given none, and send what it prints as the prompt, whole and unchanged.
 
 What it judges: a dispatch to a role this plugin ships, by whether the whole prompt is one the verb
-printed in the last ten minutes. Past that window the readings (what each tree holds, which copy is
-loaded) may have moved, so it is generated again rather than trusted.
+printed in the last ten minutes. Past that window the readings (what each tree holds) may have
+moved, so it is generated again rather than trusted. A line the verb writes to standard error, such
+as a restart owed, is the dispatcher's and not part of the brief, so a prompt carrying it is refused.
 
 Not judged: a role another plugin ships, and a general agent. The words of a message are never read:
 a digest of the whole is compared, and a reading of words was refused (ISS-2147).

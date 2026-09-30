@@ -31,9 +31,15 @@ dispatcher sends, so the fix removes it there.
 - **What the other trees hold**: both readings for each tree, the uncommitted files and what is
   committed against the remote's default branch. Commits alone answer empty for a tree with twenty
   files open in it, and that empty looks exactly like an idle tree.
-- **The copy**: the session's own copy is the installed copy whose cache directory existed when the
-  session's process started, which is how `forge stats` places a transcript. A restart is owed when a
-  file in the restart set differs between that copy and the installed one.
+- **The copy, which is the dispatcher's and not the brief's**: the session's own copy is the
+  installed copy whose cache directory existed when the session's process started, which is how
+  `forge stats` places a transcript. A restart is owed when a file in the restart set differs between
+  that copy and the installed one. ISS-2148 put this reading in the run's message, and every run in
+  every project was then handed two lines about a copy only the dispatching session can restart,
+  naming files inside the plugin that the run's tree does not hold (ISS-2963). So it goes to standard
+  error, which the digest never holds, only when a restart is owed, and in versions: the version to
+  restart onto is what a project that never saw the plugin's source can act on. A reading that could
+  not be taken says nothing, as an install record that cannot be read does.
 
 ## Why a digest and a window
 

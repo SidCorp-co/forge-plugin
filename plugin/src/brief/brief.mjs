@@ -83,27 +83,26 @@ const treeLines = (tree) => {
   ].filter(Boolean);
 };
 
-const copyLines = (copies) => {
-  if (copies.unread) return [`Plugin copy: not read, since ${copies.unread}.`];
-  if (!copies.between.length) return [`Plugin copy: this session loaded ${copies.loaded}, the one installed; nothing moved since.`];
-  return [
-    `Plugin copy: this session loaded ${copies.loaded}; ${listed(copies.between)} landed since, `
-      + `${copies.moved.length} file(s) moved.`,
-    copies.frozen.length
-      ? `Restart owed: yes, the restart set moved: ${listed(copies.frozen)}.`
-      : "Restart owed: no, nothing in the restart set moved.",
-  ];
-};
+/* The copy reading is the dispatcher's and never the run's: only the session that dispatches can
+   restart, and a run in any project is handed a line about a copy it cannot act on (ISS-2963). So it
+   goes to standard error, which the brief's digest never holds, only where a restart is owed, and in
+   versions rather than the plugin's own paths, which a project that never saw its source cannot place.
+   A reading not taken says nothing, as an install record that cannot be read does (AC-07-6-2). */
+const restartLine = (copies) => (copies.frozen?.length
+  ? `forge brief: a restart is owed before this dispatch. This session loaded forge ${copies.loaded} and `
+    + `${copies.installed} is installed, and the hooks, skills or roles a session keeps from its start differ `
+    + `between them: a dispatched run takes them from this session. Restart it, which loads ${copies.installed}, `
+    + "and brief again. This line is not part of the brief: send only what standard output printed."
+  : null);
 
 /** The brief itself, off readings already taken, so a case can hand it any it likes. */
-const briefText = ({ members, target, others, base, copies }) => [
+const briefText = ({ members, target, others, base }) => [
   ...(members.length ? [listed(members)] : []),
   ...(target ? treeLines(target) : []),
   ...(others
     ? [`Held by the other trees, read now: uncommitted, and committed against ${base ?? "no default branch"}:`,
       ...others.map(({ tree, held }) => heldLine(tree, held))]
     : ["Trees: none read, since this directory is in no git checkout."]),
-  ...copyLines(copies),
 ].join("\n");
 
 export const brief = async (argv) => {
@@ -124,12 +123,14 @@ export const brief = async (argv) => {
   const members = key && target ? bindTree(target.path, [key, ...batch]) : key ? [key] : [];
   const base = trees ? defaultRef(here) : null;
   const others = trees?.filter((one) => one !== target).map((tree) => ({ tree, held: heldBy(tree.path, base) })) ?? null;
-  const text = briefText({ members, target, others, base, copies: copiesFor() });
+  const text = briefText({ members, target, others, base });
+  const restart = restartLine(copiesFor());
   try {
     keepBrief(process.env.CLAUDE_CODE_SESSION_ID, text);
   } catch (error) {
     fail(`brief: the record the hook checks a dispatch against could not be written (${error.message}), `
       + "so no brief is printed: one sent now would be refused. Make that directory writable and run this again.");
   }
+  if (restart) console.error(restart);
   console.log(text);
 };

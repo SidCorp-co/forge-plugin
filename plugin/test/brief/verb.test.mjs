@@ -11,7 +11,7 @@ import { besideGit, runIdAt, runsFor } from "../../src/resolve/session/run-id.mj
 const repo = repository();
 
 const READINGS = [/^ISS-\d+(?:, ISS-\d+)*$/u, /^Tree: /u, /^FORGE_SESSION_ID=/u, /^TMPDIR=/u, /^XDG_CONFIG_HOME=/u, /^Held by the other trees/u,
-  /^ {2}\S/u, /^Plugin copy: /u, /^Restart owed: /u, /^Trees: /u];
+  /^ {2}\S/u, /^Trees: /u];
 
 test("with --tree, the brief names that tree's branch, head, run id, scratch directory and borrowing route", () => {
   const home = homeFor();
@@ -125,6 +125,15 @@ test("every line of the brief is a reading", () => {
   const run = brief(["ISS-7", "--tree", repo.mine], repo.main, homeFor().env);
   const lines = run.stdout.trim().split("\n");
   for (const line of lines) assert.ok(READINGS.some((one) => one.test(line)), `not a reading: ${line}`);
+});
+
+/* The copy the dispatcher loaded is the dispatcher's to act on (ISS-2963); a copy it cannot read is
+   silence on both streams, as an unreadable install record is. */
+test("no stream carries a copy reading the verb could not take", () => {
+  const run = brief(["ISS-7", "--tree", repo.mine], repo.main, homeFor().env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stderr, "");
+  assert.doesNotMatch(run.stdout, /plugin copy|restart/iu);
 });
 
 test("a flag the verb does not take is refused, and nothing is printed", () => {

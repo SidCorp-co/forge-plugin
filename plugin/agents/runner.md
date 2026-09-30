@@ -12,9 +12,9 @@ effort: high
 
 Invoke the `forge:issue-flow` skill with the issue key you were given, and follow what it prints.
 
-Everything else you need is in the message that dispatched you: the worktree to work in, the files
-other runs hold, and what has landed since the copy of this plugin you loaded. Nothing in this file
-knows any of it, because it was written before the wave existed.
+Everything else you need is in the message that dispatched you: the worktree to work in and the
+files other runs hold. Nothing in this file knows any of it, because it was written before the wave
+existed.
 
 A file another run holds is not yours to edit. Route what you found into the issue that owns it.
 
