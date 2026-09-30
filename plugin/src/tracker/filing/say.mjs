@@ -1,6 +1,6 @@
 /* One filing's reply, for both verbs that file: a route contributes its opening line and what it does with a soft refusal, and every other line is the same on both. Why `route.mjs` under this neither prints nor exits, and why the id goes last: docs/cli/filing.md. */
 import { fail, keepOnFailure } from "../../resolve/settings.mjs";
-import { filedAs, keysOffered } from "../issue-shape.mjs";
+import { filedAs, keysOffered, rankSaid } from "../issue-shape.mjs";
 import { commentLanded, issueLanded, sayLanded } from "./landed.mjs";
 import { foldedInto, suggestionLines } from "./neighbours.mjs";
 import { fileIssue } from "./route.mjs";
@@ -36,9 +36,12 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
   keepOnFailure(null);
   if (intro) console.log(intro);
   echo(filed.answer);
-  console.log(filedAs(filed.answer, filed.ranked.said));
+  /* Read before `after`, whose proposal writes the rank and size onto the row: read after it, a
+     proposal would be compared with the create as if the tracker had stored something else. */
+  const landed = await issueLanded(filed.answer, { module: asked.module ?? null, sent: filed.sent });
+  console.log(filedAs(filed.answer, rankSaid(filed.ranked, landed)));
   for (const line of after ? await after(filed.answer) : []) console.log(line);
   const offered = keysOffered(filed.shape.keys, withKeys);
   if (offered) console.log(offered);
-  return sayLanded(await issueLanded(filed.answer, { module: asked.module ?? null }));
+  return sayLanded(landed);
 };

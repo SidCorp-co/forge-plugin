@@ -39,23 +39,98 @@ const noId = (what, answer) => {
     + "so nothing was read back and nothing here can say what it wrote.");
 };
 
-/** A row carrying no id is the tracker denying it, and still no evidence the write was dropped. */
-export const issueLanded = async (answer, { module = null } = {}) => {
+/* What the tracker stores in place of what a create asked for, one field of the payload at a time.
+   The labels are the module's half and judged by `carriesPrimary`; an edge is looked for under every
+   kind the row groups its edges in, since a bucket name is the tracker's and the edge's own kind is
+   what was sent. Why a field is compared at all, and why the description's words never come back:
+   docs/cli/filing.md. */
+const INTAKE = "intake";
+const SCALAR = new Set(["string", "number", "boolean"]);
+
+const heldEdge = (relations, edge) => Object.values(relations ?? {})
+  .some((list) => Array.isArray(list)
+    && list.some((one) => one?.kind === edge.kind && one?.otherIssueId === edge.blocksId));
+
+const sameValue = (asked, stored) => (asked === null || SCALAR.has(typeof asked)
+  ? asked === stored
+  : JSON.stringify(asked) === JSON.stringify(stored));
+
+const trimmed = (text) => String(text ?? "").replace(/\s+$/u, "");
+
+const storedOtherwise = (sent = {}, back = {}) => {
+  const moved = [];
+  const unread = [];
+  let rewritten = false;
+  for (const [field, asked] of Object.entries(sent ?? {})) {
+    if (field === "labels" || asked === undefined) continue;
+    if (!Object.hasOwn(back, field)) unread.push(field);
+    else if (field === "description") rewritten = trimmed(back.description) !== trimmed(asked);
+    else if (field !== "relations" && !sameValue(asked, back[field])) moved.push({ field, asked, stored: back[field] });
+  }
+  const lost = Object.hasOwn(back, "relations")
+    ? (sent?.relations ?? []).filter((edge) => !heldEdge(back.relations, edge))
+    : [];
+  return { moved, unread, rewritten, lost };
+};
+
+/* A one-word value bare, as a status or a rank reads in a sentence, and anything else quoted so its edges show. */
+const shown = (value) => (typeof value === "string" && /^\S+$/u.test(value) ? value : JSON.stringify(value));
+
+const gated = (move, back) => move.asked === "open" && move.stored === "draft"
+  && (back.labels ?? []).some((one) => one?.name === INTAKE);
+
+const movedSaid = (key, back) => (move) => {
+  const said = `${move.field} ${shown(move.stored)} where this filing asked for ${shown(move.asked)}`;
+  if (move.field !== "status" || !gated(move, back)) return said;
+  return `${said}, which is the project's intake gate: it stores a would-be open filing at draft and marks `
+    + `it with the \`${INTAKE}\` label this row carries, so nothing dispatches it until it leaves draft, `
+    + `with \`forge advance ${key} --set open --why <w>\` or by whoever triages that project's intake`;
+};
+
+/* One clause, or none: what the row stores otherwise, then what it could not be compared on. */
+const otherwiseSaid = (key, found, back) => {
+  const stored = [
+    ...found.moved.map(movedSaid(key, back)),
+    found.rewritten ? "the description as the tracker rewrote it on the way in, not as it was sent" : null,
+    ...found.lost.map((edge) => `no ${edge.kind} edge to ${edge.blocksId}`),
+  ].filter(Boolean);
+  const unread = found.unread.length
+    ? `the read-back carries no ${found.unread.join(", ")} to compare with what was sent`
+    : null;
+  return [stored.length ? `it stores ${stored.join("; ")}` : null, unread].filter(Boolean).join(", and ");
+};
+
+/* Whether the rank the filed line names is the one stored, so that line claims no more than the row does. */
+const rankOf = (found) => {
+  const moved = found.moved.find((one) => one.field === "priority");
+  if (moved) return { rank: "moved", stored: moved.stored };
+  return { rank: found.unread.includes("priority") ? "unread" : "held" };
+};
+
+const UNREAD_RANK = { rank: "unread" };
+
+/** A row carrying no id is the tracker denying it, and still no evidence the write was dropped.
+ *  `sent` is the create's payload whole, compared field by field with the row read back. */
+export const issueLanded = async (answer, { module = null, sent = {} } = {}) => {
   const documentId = idOf(answer);
-  if (!documentId) return noId("filing", answer);
+  if (!documentId) return { ...noId("filing", answer), ...UNREAD_RANK };
   const back = await asked(() => tried("forge_issues", { action: "get", documentId }));
   const said = `The create was answered with ${documentId}`;
-  const unread = unverified(READ_ISSUE(documentId));
+  const unread = (line) => ({ ...unverified(READ_ISSUE(documentId))(line), ...UNREAD_RANK });
   if (back?.refused) return unread(`${said} and the read-back could not run: ${oneLine(back.refused)}.`);
   if (!plain(back)) return unread(`${said} and the read-back answered with no record to read.`);
   if (back.documentId === documentId) {
     const key = back.issueId ?? documentId;
+    const found = storedOtherwise(sent, back);
+    const otherwise = otherwiseSaid(key, found, back);
+    const stored = otherwise ? `, and ${otherwise}.` : ".";
     if (module && !carriesPrimary(back.labels, module)) {
-      return unread(`${key} is filed at ${documentId}, and the read-back does not carry ${module.name} as `
-        + "its primary module, so that half of the filing is unverified.");
+      return { ...unverified(READ_ISSUE(documentId))(`${key} is filed at ${documentId}, and the read-back does `
+        + `not carry ${module.name} as its primary module, so that half of the filing is unverified${stored}`),
+      ...rankOf(found) };
     }
-    return verified(`${key} is filed at ${documentId}${module ? ` under ${module.name}, its primary module,` : ","}`
-      + " read back from the tracker.");
+    return { ...verified(`${key} is filed at ${documentId}${module ? ` under ${module.name}, its primary module,` : ","}`
+      + ` read back from the tracker${stored}`), ...rankOf(found) };
   }
   if (back.documentId) {
     return unread(`${said} and the read-back answered about something else, so the filing is unverified.`);

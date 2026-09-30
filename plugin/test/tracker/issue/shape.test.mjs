@@ -15,7 +15,7 @@ process.env.XDG_CONFIG_HOME = home.path;
 /* The in-process readers below resolve this checkout's project, whose record is this machine's and
    so has to be written into the home this process runs against. */
 projectRecord(ROOT, home.path, OWN);
-const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor,
+const { UNRANKED, duplicateOf, filedAs, filingRefusal, partsIn, priorityFor, rankSaid,
   shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
 /* The refusal's text, as `forge new` prints it. */
 const refusalFrom = async (filing, shape, options) => (await filingRefusal(filing, shape, options))?.text ?? null;
@@ -181,7 +181,7 @@ test("a filing nobody ranked is the bottom of the set, and the line says by defa
 });
 
 test("a rank the filer typed is kept, and the line says it was theirs", () => {
-  assert.deepEqual(priorityFor("high", RANKS), { value: "high", said: "priority high, as given" });
+  assert.deepEqual(priorityFor("high", RANKS), { value: "high", said: "priority high, as given", given: true });
 });
 
 test("a rank outside the tracker's set is refused with the set and the nearest name", () => {
@@ -194,7 +194,7 @@ test("a rank outside the tracker's set is refused with the set and the nearest n
 /* The declaration is the only authority on the set, so a declaration answering with nothing leaves
    the value alone rather than refusing on a set this reading would have had to invent. */
 test("a set the declaration did not carry refuses nothing", () => {
-  assert.deepEqual(priorityFor("urgent", []), { value: "urgent", said: "priority urgent, as given" });
+  assert.deepEqual(priorityFor("urgent", []), { value: "urgent", said: "priority urgent, as given", given: true });
   assert.equal(priorityFor(undefined, []).value, UNRANKED);
 });
 
@@ -207,6 +207,18 @@ test("a set that no longer holds the default refuses the filing and names the pl
   assert.match(refusal, /the tracker's set is now critical, high, medium, low/u);
   assert.match(refusal, /Name one with --priority/u);
   assert.match(refusal, /the default is what has to change/u);
+});
+
+/* `as given` is a claim about the row, so it is made only on a read-back that held the rank typed. */
+test("the rank the filed line names says as given only where the row was read holding it", () => {
+  const typed = priorityFor("high", RANKS);
+  assert.equal(rankSaid(typed, { rank: "held" }), "priority high, as given");
+  assert.equal(rankSaid(typed, { rank: "moved", stored: "medium" }), "priority medium, where high was asked");
+  assert.equal(rankSaid(typed, { rank: "unread" }), "priority high, asked and not read back");
+  assert.equal(rankSaid(typed), "priority high, asked and not read back", "no reading is no reading held");
+  const unranked = priorityFor(undefined, RANKS);
+  assert.equal(rankSaid(unranked, { rank: "unread" }), "priority none, by default");
+  assert.equal(rankSaid(unranked, { rank: "moved", stored: "medium" }), "priority medium, where none was asked");
 });
 
 test("the filed line names the key, and degrades to what the reply did carry", () => {

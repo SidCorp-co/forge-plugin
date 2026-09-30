@@ -169,7 +169,7 @@ export const UNRANKED = "none";
 export const priorityFor = (given, allowed = []) => {
   const wanted = given ?? UNRANKED;
   const said = given === undefined ? `priority ${UNRANKED}, by default` : `priority ${given}, as given`;
-  if (!allowed.length || allowed.includes(wanted)) return { value: wanted, said };
+  if (!allowed.length || allowed.includes(wanted)) return { value: wanted, said, given: given !== undefined };
   if (given === undefined) {
     return { refusal: `This CLI files an issue nobody ranked as \`${UNRANKED}\`, and the tracker's set is`
       + ` now ${listed(allowed)}. Name one with --priority, and file this against the plugin: the`
@@ -199,6 +199,14 @@ export const valueOutsideSet = (field, given) => {
   if (values.includes(given)) return null;
   const close = suggest(given, values);
   return { said: row.said(given), meant: close.length === 1 ? close[0] : null };
+};
+
+/** The rank the filed line names, against what the read-back found: `as given` says the row holds the
+ *  rank the filer typed, so it is said only where the row was read holding it. */
+export const rankSaid = (ranked, { rank = "unread", stored } = {}) => {
+  if (rank === "held") return ranked.said;
+  if (rank === "moved") return `priority ${stored}, where ${ranked.value} was asked`;
+  return ranked.given ? `priority ${ranked.value}, asked and not read back` : ranked.said;
 };
 
 export const filedAs = (answer, said) => {
