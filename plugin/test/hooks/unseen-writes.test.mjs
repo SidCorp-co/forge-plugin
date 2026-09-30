@@ -18,6 +18,8 @@ test("a write through a binding, a substitution, a pattern or a handed name is n
     ["cp x.md{,.bak}", ["x.md{,.bak}"]],
     ['cp a.md "$dest"', ['"$dest"']],
     ['curl -s -o "$out" https://example.test/a', ['"$out"']],
+    ['wget -q -o "$log" https://example.test/a', ['"$log"']],
+    ['curl -s -D "$headers" https://example.test/a', ['"$headers"']],
     ["grep -rl x . | xargs sed -i s/a/b/", ["xargs"]],
     ["find . -name '*.mjs' -exec sed -i s/a/b/ {} +", ["-exec"]],
   ];

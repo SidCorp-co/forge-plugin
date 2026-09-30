@@ -4,7 +4,7 @@
 import { statSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 
-import { deny, done, how, named, shellWrites, struck, writtenPaths } from "../_hook.mjs";
+import { deny, done, how, named, shellWrites, writtenPaths } from "../_hook.mjs";
 import { repoRoot } from "../../src/git/repo-root.mjs";
 import { scopeHeld } from "../../src/flow/record/plan-scope.mjs";
 import { correctionForm, namesPath } from "../../src/flow/record/merged.mjs";
@@ -13,7 +13,7 @@ import { correctionForm, namesPath } from "../../src/flow/record/merged.mjs";
 const aimedBy = (ev) => {
   if (ev.tool_name !== "Bash") return named(ev);
   const here = ev.cwd || process.cwd();
-  return writtenPaths(struck(shellWrites(ev.tool_input?.command), { unplaceable: "strike" }), here)
+  return writtenPaths(shellWrites(ev.tool_input?.command), here, undefined, { unplaceable: "strike" })
     .flatMap((one) => {
       if (isAbsolute(one.token)) return [one.token];
       return one.unplaced ? [] : one.trees.map((tree) => join(tree, one.token));
