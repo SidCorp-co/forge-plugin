@@ -63,11 +63,11 @@ read by every run and pane standing in the checkout and one call rewriting it mo
   IF a competing configuration is present — a client configuration naming a server of this product,
   or a project header set elsewhere — THEN the report SHALL name it, SHALL not read it, and SHALL
   print the command that saves the same value properly.
-- **AC-01-2-3** · Rev: 1 · Proof: plugin/test/cli/project-override.test.mjs "a read and a comment naming another project reach it and leave every saved record as it was"
+- **AC-01-2-3** · Rev: 1 · Proof: plugin/test/cli/aim/project-override.test.mjs "a read and a comment naming another project reach it and leave every saved record as it was"
   WHERE a read or a comment names a project of its own the CLI SHALL resolve that project for that
   call alone, SHALL refuse it where the credential cannot see that project, and SHALL write nothing
   to this machine's record of any project.
-- **AC-01-2-4** · Rev: 1 · Proof: plugin/test/cli/project-override.test.mjs "a key the aimed project does not hold is refused naming that project"
+- **AC-01-2-4** · Rev: 1 · Proof: plugin/test/cli/aim/project-override.test.mjs "a key the aimed project does not hold is refused naming that project"
   IF a key does not resolve in the project a call was aimed at, or the tracker refuses a call made on
   that project, THEN the refusal SHALL name that project and where the aim came from.
 

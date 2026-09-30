@@ -1,5 +1,5 @@
 import { fail, keepOnFailure, slugIfAny } from "./resolve/settings.mjs";
-import { AIM_FLAG, aimedBy } from "./resolve/aimed.mjs";
+import { AIM_FLAG, aimedBy } from "./resolve/project/aimed.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
 import { EDGE_KINDS } from "./tracker/edges/kinds.mjs";

@@ -7,10 +7,10 @@ import test from "node:test";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ranAsync, tempRoom } from "../fixtures.mjs";
-import { OWN, trackerFor } from "../fixtures/own-project.mjs";
+import { ranAsync, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const OWN_ID = "0a0a0a0a-0000-4000-8000-000000000001";
 const FAR_ID = "0b0b0b0b-0000-4000-8000-000000000002";
 const FAR = "far-away";

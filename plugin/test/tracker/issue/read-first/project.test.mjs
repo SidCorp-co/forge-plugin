@@ -82,7 +82,7 @@ test("a comment naming --project is held on that project's thread, from whicheve
 
 /* The issue verb refuses `--project` beside a write before it sends anything, so the gate has no
    write there to hold and looks nothing up; held, it would answer before the verb's own refusal. */
-test("an issue write naming --project draws no lookup and refuses nothing", async () => {
+test("a write the verb refuses for its --project draws no lookup and refuses nothing", async () => {
   twoProjects();
   owed({ [OTHER_DOC]: [comment("second", "unread and unquoted")] });
   state.calls = [];
@@ -90,6 +90,12 @@ test("an issue write naming --project draws no lookup and refuses nothing", asyn
   assert.equal(run.out, null, "the verb's own refusal is the answer");
   assert.equal(run.status, 0);
   assert.deepEqual(issueCalls(0), [], "and no issue was looked up");
+  for (const refused of [`--project ${OTHER_SLUG} --project ${OWN_SLUG}`, "--project"]) {
+    state.calls = [];
+    const shaped = await gate(`forge comment ISS-29 body.md ${refused}`);
+    assert.equal(shaped.out, null, `a comment the verb refuses for \`${refused}\` is no write to hold`);
+    assert.deepEqual(issueCalls(0), [], `and \`${refused}\` drew no lookup`);
+  }
   oneProject();
 });
 

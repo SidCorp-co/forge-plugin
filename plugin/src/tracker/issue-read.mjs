@@ -4,6 +4,7 @@
 import { isReference } from "./issues.mjs";
 import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
 import { WRITER_WORD } from "../resolve/session/writer-word.mjs";
+import { aimIn } from "../resolve/project/aimed.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -95,17 +96,14 @@ const MCP = /^mcp__forge__(forge_\w+)$/u;
 
 export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
 
-/* The words a verb reads its subject off, and the project a `--project <slug>` among them aims the
-   call at: the verb takes the pair out wherever it stands, so this reads the rest the same way. A
-   write whose verb takes no aim is refused by that verb before it sends anything, so it is no write
-   here either — `aims` on the row is what says which verb takes one. */
-const AIM = "--project";
-
+/* The words a verb reads its subject off, read with the verb's own aim parser. A `--project` the
+   verb refuses before sending anything — beside a verb that takes none, twice, or with no value —
+   makes no write here either, and `aims` on the row is what says which verb takes one. */
 const aimedWords = (one) => {
-  const words = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
-  const at = words.indexOf(AIM);
-  if (at < 0) return { words, project: null };
-  return { words: [...words.slice(0, at), ...words.slice(at + 2)], project: words[at + 1] ?? null };
+  const { rest, named, bare } = aimIn((one.match(WORDS) ?? []).slice(2)
+    .map((word) => (CUT.test(word) ? "" : unquoted(word))));
+  const refused = bare !== null || named.length > 1;
+  return { words: rest, project: named.length === 1 && !refused ? named[0] : null, aimed: named.length > 0 || bare !== null, refused };
 };
 
 /** The project a spoken write names for itself, or null where it names none and so acts on the
@@ -116,8 +114,8 @@ const spokenWrite = (one) => {
   const said = VERB.exec(one);
   const verb = VERBS[said?.[1]];
   if (!verb) return null;
-  const { words, project } = aimedWords(one);
-  if (project !== null && !verb.aims) return null;
+  const { words, aimed, refused } = aimedWords(one);
+  if (aimed && (refused || !verb.aims)) return null;
   const args = verb.words ? verb.words(words) : words;
   if (verb.when && !verb.when(args)) return null;
   const targets = verb.at(args).map((index) => args[index]).filter(isReference);
