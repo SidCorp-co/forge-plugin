@@ -172,10 +172,11 @@ test("the arguments are read, not searched, and the tracker's own sources pass",
   assert.equal(called({ source: "issue", text: "x" }).allowed, true, "the tracker authors this one");
 });
 
-/* A wrapper's own flags let `sudo -u touch <path>` inside an echo read as a write; only `xargs` needs them. */
-test("a wrapper's flags are not a licence for every quoted mention", () => {
+/* A wrapper's own options stand between it and the verb it runs, and hide nothing: `sudo -u root touch`
+   went through while `sudo touch` was refused (ISS-2870). Spelled inside a quoted argument it starts nothing. */
+test("a wrapper's options do not hide its verb, and a quoted mention of one is still no write", () => {
   assert.equal(decide(`echo "sudo -u me touch ${SKILL}"`).allowed, true);
-  for (const runner of ["sudo", "exec"]) assert.equal(decide(`${runner} touch ${MEMORY}/trap.md`).allowed, false, `${runner} runs what follows`);
+  for (const runner of ["sudo", "exec", "sudo -u root", "exec -a alias", "env -u X"]) assert.equal(decide(`${runner} touch ${MEMORY}/trap.md`).allowed, false, runner);
 });
 
 /* A wrapper counts where a verb counts: promoting a `-c` body promoted one quoted in a message too. */

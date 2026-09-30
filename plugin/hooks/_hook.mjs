@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -22,7 +22,7 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, REDIRECT, WRITES, namesOf, spans, standsIn };
+export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
@@ -511,12 +511,6 @@ export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespa
 
 /** Where a draft stops being one, in command position only: a message quoting the word is not one. */
 export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-])`, "u");
-
-/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and a gate that must not miss a commit keeps such a span whole rather than guess where the substitution ends — the reading that says where is ISS-1533's. */
-const SUBSTITUTES = /\$\(|`/u;
-export const quotedOut = (text) =>
-  text.replace(QUOTED, (span) =>
-    (span[0] === '"' && SUBSTITUTES.test(span) ? span : `${span[0]}${"_".repeat(span.length - 2)}${span[0]}`));
 
 export const committing = (ev) =>
   ev.tool_name === "Bash" && COMMITS.test(quotedOut(shellText((ev.tool_input ?? {}).command)));

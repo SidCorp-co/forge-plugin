@@ -231,6 +231,7 @@ test("a rule named in an argument is not a run", () => {
   for (const runner of ["sudo", "exec", "true && exec", "(exec", "A=1 exec", "if true; then exec", "sudo exec", "ls | xargs exec"]) assert.equal(decide(`${runner} git reset --hard HEAD`).allowed, false, `${runner} still runs what follows`);
   for (const one of ["docker exec -it ctr", "podman exec ctr", "kubectl exec pod --", "echo exec"]) assert.ok(decide(`${one} git reset --hard`).allowed, `${one}: an exec another program takes as its argument starts nothing`);
   assert.equal(decide("sudo -u root git reset --hard").allowed, false, "past the runner's own options");
+  assert.equal(decide("exec -a alias git reset --hard").allowed, false, "past an exec's own options");
   const two = String.fromCharCode(34);
   assert.equal(
     decide(`sudo -u ${two}domain user${two} git reset --hard`).allowed,

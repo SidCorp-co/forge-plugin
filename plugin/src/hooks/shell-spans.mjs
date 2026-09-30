@@ -5,16 +5,20 @@ import { basename, isAbsolute, resolve } from "node:path";
 
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { quoting, spans, underOf } from "./shell/walk.mjs";
+import { optionsAfter, wraps } from "./shell/wrappers.mjs";
 
 export { quoting, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
 /* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from these two lists, so a word gained here is gained by all of them. `exec` is kept off the wrappers: as the argument of `docker`, `podman` or `kubectl` it names a subcommand whose command runs inside a container, so it counts only where a start stands before it (ISS-2877). */
-const WRAPPERS = `sudo|command|nohup|time|env|${KEYWORDS}`;
-const PREFIXES = `${WRAPPERS}|exec`;
+const WRAPPING = ["sudo", "command", "nohup", "time", "env"];
+const PREFIXES = `${WRAPPING.join("|")}|${KEYWORDS}|exec`;
 /* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader. One reading, so a case a shell word gains is gained by every reader that splits one. */
 const shellWord = (stops) => String.raw`(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s${stops}])+`;
+/* A wrapper's word with the options it may carry before its command, by its row of the wrappers' table; the value one of them takes is a shell word. */
+const OPTION_VALUE = shellWord(";&|()<>");
+const wrapped = (name) => `${name}${optionsAfter(name, OPTION_VALUE)}`;
 const AHEAD = String.raw`(?:[({]\s*|\b(?:${KEYWORDS})\s+)*`;
 const MOVES = new RegExp(
   `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-(?!-(?![\\w-]))[\\w-]+)*)(?:\\s+--)?(?:\\s+(${shellWord(";&|()<>")}))?`,
@@ -316,9 +320,9 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
 
 export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
-/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last, so a prefix standing at the head wins its position, and it takes the blanks after it: a span cut behind a `;`, a `&&` or a `|` opens with the one the operator left, and it is the same command it would be at the head of the text (ISS-2933). An `exec` counts only behind one of these, so the one another program takes as its argument starts nothing. */
+/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), and every other wrapper the options its row of the wrappers' table reads, a value-taking one with its value: `sudo -u root touch` runs `touch`, and `sudo -u touch notes.md` runs `notes.md`. A wrapper spelled inside a quoted argument is kept from reading as a start by the reader in front of this, which takes a quoted span out before testing it. `^` is last, so a prefix standing at the head wins its position, and it takes the blanks after it: a span cut behind a `;`, a `&&` or a `|` opens with the one the operator left, and it is the same command it would be at the head of the text (ISS-2933). An `exec` counts only behind one of these, so the one another program takes as its argument starts nothing. */
 export const STARTS = String.raw`(?:(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
-  + String.raw`|\b(?:${WRAPPERS})\s+|^\s*)(?:exec\s+)?)`;
+  + String.raw`|\b(?:${[...WRAPPING.map(wrapped), KEYWORDS].join("|")})\s+|^\s*)(?:${wrapped("exec")}\s+)?)`;
 
 /** A word that names a shell: at any path, through `busybox` or not. The one answer to which word is a shell — for a `-c` body, for a heredoc a shell reads on stdin, and for whether a body is the caller's own language — so a shell one reading knows, the others know. Non-capturing, being spliced into a reader's pattern. */
 export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh`;
@@ -327,16 +331,27 @@ export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da
 export const RUNNER = String.raw`${SHELL_WORD}\s+(?:(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 
 const fetching = (verb) => String.raw`${verb}\b[^|;]*\s${writingOption(verb)}`;
-/** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option their row of the option table says writes. how/writes.md. */
-export const WRITES = new RegExp(
-  STARTS
-    + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
-    + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
-    + String.raw`|dd\b[^|;]*\bof=|${fetching("curl")}|${fetching("wget")})`
-    + String.raw`|open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
-    + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
-    + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
-);
+/* The two halves of a write: a verb, which counts where a command starts, and a library call, which counts anywhere — each only with a target it names. `curl` and `wget` name theirs in an option their row of the option table says writes. how/writes.md. */
+const WRITE_VERBS = STARTS
+  + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
+  + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
+  + String.raw`|dd\b[^|;]*\bof=|${fetching("curl")}|${fetching("wget")})`;
+const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
+  + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
+  + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`;
+/** Either half, over a text whose quoted arguments the caller has already judged. */
+export const WRITES = new RegExp(`${WRITE_VERBS}|${WRITE_CALLS}`);
+
+/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and a gate that must not miss a commit keeps such a span whole rather than guess where the substitution ends — the reading that says where is ISS-1533's. */
+const SUBSTITUTES = /\$\(|`/u;
+export const quotedOut = (text) =>
+  text.replace(QUOTED, (span) =>
+    (span[0] === '"' && SUBSTITUTES.test(span) ? span : `${span[0]}${"_".repeat(span.length - 2)}${span[0]}`));
+
+/* `WRITES` for a reader holding a command's own text, quotes and all: a verb only where it starts a command outside a quoted argument, so `echo "sudo touch a.md" > b.md` is the redirect it makes and not a command no reading can place; and a library call anywhere, its quotes being the call's own. */
+const VERB_WRITES = new RegExp(WRITE_VERBS, "u");
+const CALL_WRITES = new RegExp(WRITE_CALLS, "u");
+const writing = (text) => CALL_WRITES.test(text) || VERB_WRITES.test(quotedOut(text));
 
 /** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces, as one holding a backslash holds the character behind it: the newline a continuation joins the next line on with (ISS-2686), or a space the escape made part of the name (ISS-1592). The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer above, spelt the same here (ISS-1555). */
 export const REDIRECT = new RegExp(
@@ -441,7 +456,7 @@ const afterFlagIn = (program, words) => {
 /** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
 const aimsOf = (program, operands, stage, said, target) => {
   const aim = AIMS[program];
-  if (!aim) return WRITES.test(stage) ? null : [];
+  if (!aim) return writing(stage) ? null : [];
   if (aim === "none" || (program === "sed" && !IN_PLACE.test(said))) return [];
   if (aim === "of") return operands.filter((one) => one.said.startsWith("of="));
   /* Into a target directory a copy writes none of its operands, every one being a file it reads; a move still writes each, by taking it away. */
@@ -449,12 +464,27 @@ const aimsOf = (program, operands, stage, said, target) => {
   return aim === "last" && !UNLINKS.test(said) ? operands.slice(-1) : operands;
 };
 
+/* Behind each prefix word the wrappers' table names, the options that wrapper carries, read by the pattern `STARTS` is built from. */
+const OPTIONED = new Map(PREFIXES.split("|").filter(wraps)
+  .map((name) => [name, new RegExp(`^${optionsAfter(name, OPTION_VALUE)}`, "u")]));
+
+/* The index of a stage's verb among its words as written: past what runs before it, and past the whole words a wrapper's options cover. */
+const verbAt = (raw) => {
+  let at = 0;
+  while (at < raw.length && BEFORE.test(unquote(raw[at]))) {
+    const options = OPTIONED.get(unquote(raw[at]));
+    at += 1;
+    const spent = options ? options.exec(` ${raw.slice(at).join(" ")}`)[0].length : 0;
+    for (let length = 0; at < raw.length && length + raw[at].length + 1 <= spent; at += 1) length += raw[at].length + 1;
+  }
+  return at;
+};
+
 /* A command as a shell reads its words, quotes off, with the raw word kept for the offsets a strike works in: the verb, and what follows it. */
 const commandOf = (stage, from) => {
   const words = wordsOf(stage)
     .map((m) => ({ text: m[0], said: unquote(m[0]), from: from + m.index, to: from + m.index + m[0].length }));
-  let at = 0;
-  while (at < words.length && BEFORE.test(words[at].said)) at += 1;
+  const at = verbAt(words.map((one) => one.text));
   return { words, program: basename(words[at]?.said ?? ""), rest: words.slice(at + 1) };
 };
 
@@ -480,7 +510,7 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
   };
   for (const { start, end } of spans(text)) {
     const span = text.slice(start, end);
-    if (!WRITES.test(span)) continue;
+    if (!writing(span)) continue;
     if (HANDED.test(span)) {
       if (strict) blank(start, end);
       continue;
@@ -530,8 +560,7 @@ const outputsOf = (program, words) =>
 const argumentsOf = (text, stage) => {
   const words = wordsOf(text.slice(stage.start, stage.end))
     .map((m) => ({ said: m[0], from: stage.start + m.index, to: stage.start + m.index + m[0].length }));
-  let at = 0;
-  while (at < words.length && BEFORE.test(words[at].said)) at += 1;
+  const at = verbAt(words.map((one) => one.said));
   return { program: basename(unquote(words[at]?.said ?? "")), rest: words.slice(at + 1) };
 };
 
