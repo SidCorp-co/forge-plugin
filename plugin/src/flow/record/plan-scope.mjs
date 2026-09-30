@@ -1,8 +1,9 @@
 /* What the issues a tree holds say their change may write, so a gate on the write can ask it without a call to the tracker. The key is the tree and never a session id, for the reason `runHeldWhere` in `resolve/session/run-id.mjs` gives: the tree is the one thing a hook event and the run's own CLI agree on. */
-import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { digestOf } from "../../keys/digest.mjs";
+import { aged, reap } from "../../hooks/stamps.mjs";
 import { configDir, readJson, writeJsonPrivate } from "../../resolve/config.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
 import { NO_LONGER_OWES } from "../earned/park-status.mjs";
@@ -12,24 +13,11 @@ export const SCOPE_KEPT_MS = 86_400_000;
 
 export const scopeDir = () => join(configDir("forge"), "plan-scope");
 
-const named = (tree) => createHash("sha1").update(String(tree)).digest("hex").slice(0, 16);
-
 /** One file per issue per tree, so no writer ever reads a set it then writes back: a whole-file rewrite is how a later save puts back a scope an earlier one had already corrected, and a writer that touches only its own issue's file has no such window to lose. */
-export const scopePath = (tree, ref) => join(scopeDir(), `${named(tree)}-${String(ref).toUpperCase()}.json`);
+export const scopePath = (tree, ref) => join(scopeDir(), `${digestOf(tree)}-${String(ref).toUpperCase()}.json`);
 
-const stale = (at, now) => now - (statSync(at, { throwIfNoEntry: false })?.mtimeMs ?? now) >= SCOPE_KEPT_MS;
-
-const filesFor = (tree, now) => {
-  const out = [];
-  try {
-    for (const one of readdirSync(scopeDir())) {
-      const at = join(scopeDir(), one);
-      if (stale(at, now)) rmSync(at, { force: true });
-      else if (one.startsWith(`${named(tree)}-`)) out.push(at);
-    }
-  } catch {}
-  return out;
-};
+const filesFor = (tree, now) =>
+  reap(scopeDir(), SCOPE_KEPT_MS, now).filter((one) => one.startsWith(`${digestOf(tree)}-`)).map((one) => join(scopeDir(), one));
 
 /* A file nothing wrote inside the window holds a plan past it, which reads as no plan at all, so the listing above takes it. A save that can neither write its file nor remove it is the one case where a correction lands and the write it clears stays refused, so the caller is told: the old text names fewer paths than the record now does, and no entry at all is what stands a gate down. Where even the removal fails nothing further is this module's, and `developed` still reads the rule. That case is the whole of what `false` means here, and every writer below answers the same question so the caller never has to guess which one it got: does the directory now say what this call meant it to say. A call naming no tree, a reference with no entry, and an entry the sweep already owns all leave nothing disagreeing with the record, so all of them are `true` — the caller has nothing it could act on, and the only advice this module's failure carries stands a working gate down. */
 const saved = (tree, ref, row) => {
@@ -58,7 +46,7 @@ export const noteScope = (ref, text, { tree = repoRoot(process.cwd()), now = Dat
 export const dropScope = (ref, { tree = repoRoot(process.cwd()), now = Date.now() } = {}) => {
   if (!tree || !ref) return true;
   const at = scopePath(tree, ref);
-  if (!statSync(at, { throwIfNoEntry: false }) || stale(at, now)) return true;
+  if (!statSync(at, { throwIfNoEntry: false }) || aged(at, SCOPE_KEPT_MS, now)) return true;
   return saved(tree, ref, null);
 };
 

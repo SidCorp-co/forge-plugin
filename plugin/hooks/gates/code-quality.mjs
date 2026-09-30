@@ -1,9 +1,9 @@
 // Hands every code file a call wrote to the linter the project configured, and says when a call wrote where no gate could see. Owns the routes, never the rules; how/code-quality.md says why the split falls there.
 
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
+import { digestOf } from "../../src/keys/digest.mjs";
 import { UNREAD, lintConfigured, linting, MAX_FILES, unreadWhy } from "../../src/hooks/lint-delegate.mjs";
 import { askedAlready, block, context, remaining, touched, unseenWrites } from "../_hook.mjs";
 
@@ -14,7 +14,7 @@ const FIX = "Fix each finding the project's linter reported below, in the file i
 /* Once per content: two of seventeen blocks landed on a grep naming a file written a moment before. */
 const shaOf = (file) => {
   try {
-    return createHash("sha1").update(readFileSync(file)).digest("hex").slice(0, 16);
+    return digestOf(readFileSync(file));
   } catch {
     return "";
   }

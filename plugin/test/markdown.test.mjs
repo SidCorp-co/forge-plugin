@@ -40,6 +40,7 @@ const CANONICAL = "plugin/src/resolve/canonical.mjs";
 const MEDIAN = "plugin/src/stats/median.mjs";
 const JSONL = "plugin/src/hooks/log/hook-log-file.mjs";
 const LEXICAL = "plugin/src/checks/source/lexical.mjs";
+const DIGEST = "plugin/src/keys/digest.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -114,6 +115,13 @@ const ESCAPE_CLASS = new RegExp(String.raw`[/"'\x60]\[`
    replaced held it, in three different calls, and no module that is not a lexer has a reason to. What
    it cannot see: a closer built from its two characters, which no walk here has written (ISS-1085). */
 const COMMENT_CLOSER = [/(["'\x60])\*\/\1/u];
+/* The sha1 cut to sixteen, whatever it is fed: five modules spelled it with five different inputs, a
+   string, a template, a buffer, and a plan-scope copy written a range after its home (ISS-1842). The
+   hash and the cut are what make it this key, so a sha256 cut the same way is a different key and not
+   a copy. What it cannot see: the cut spelled as `substring`, or more than 120 characters from the hash. */
+const SHORT_SHA1 = [/createHash\(["'\x60]sha1["'\x60]\)[\s\S]{0,120}?\.digest\(["'\x60]hex["'\x60]\)\s*\.slice\(0,\s*16\)/u];
+/* `vendor/` is a copy of `packages/code-quality/`, which a plugin directory cannot import from. */
+const VENDORED = ["plugin/hooks/vendor/lint-edited-file.mjs"];
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
@@ -135,6 +143,7 @@ const NEEDLES = [
   ["an append-only JSONL store", JSONL, JSONL_APPEND],
   ["a regex escape", MARKDOWN, [ESCAPE_CLASS]],
   ["a reading of what is code and what is a literal", LEXICAL, COMMENT_CLOSER],
+  ["a short sha1 key", DIGEST, SHORT_SHA1, VENDORED],
 ];
 
 /* A needle is a primitive's bytes, or a shape where the primitive is one — a fallback body is the same reading whatever its parameter is called, and no substring tells those copies apart. */
@@ -161,7 +170,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [MARKDOWN, SHELL, SSE, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL]) {
+  for (const home of [MARKDOWN, SHELL, SSE, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL, DIGEST]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -202,6 +211,9 @@ test("the guard fires on a module that re-declares one", () => {
     /* The four walks' own call, and a comparison in single quotes, which none of them wrote. */
     { rel: "z1.mjs", text: 'const shut = text.indexOf("*/", at + 2);' },
     { rel: "z2.mjs", text: "if (inside === 'block' && pair === '*/') inside = '';" },
+    /* The plan-scope copy as it stood, and the buffer form the code-quality gate held. */
+    { rel: "k1.mjs", text: 'const named = (tree) => createHash("sha1").update(String(tree)).digest("hex").slice(0, 16);' },
+    { rel: "k2.mjs", text: "return createHash('sha1')\n  .update(readFileSync(file))\n  .digest('hex')\n  .slice(0, 16);" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -229,6 +241,7 @@ test("the guard fires on a module that re-declares one", () => {
     `w.mjs declares an append-only JSONL store of its own; ${JSONL} holds it`,
     ...["x1", "x2", "x3", "x4", "x5"].map((one) => `${one}.mjs declares a regex escape of its own; ${MARKDOWN} holds it`),
     ...["z1", "z2"].map((one) => `${one}.mjs declares a reading of what is code and what is a literal of its own; ${LEXICAL} holds it`),
+    ...["k1", "k2"].map((one) => `${one}.mjs declares a short sha1 key of its own; ${DIGEST} holds it`),
   ]);
 });
 
