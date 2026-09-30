@@ -24,5 +24,5 @@ A refusal you believe is wrong: put it to the user. Rewording until the pattern 
 the guard is noise.
 
 Not judged: every shape not listed, `git add -A` under a pathspec, and the git rules on a clean
-tree, bar a stash where a second worktree shares the stack — named with `-C`, against a `cd` before
+tree, bar a ref move above and a stash where a second worktree shares the stack — named with `-C`, against a `cd` before
 it, else the shell's. `git commit`, `git push` and `rm -rf` are not here.

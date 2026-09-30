@@ -69,6 +69,26 @@ test("moving HEAD moves the tree the call runs in, with or without --no-deref", 
   }
 });
 
+/* A bare repository has no tree, so its HEAD is a branch name a linked tree may be standing on. */
+test("moving a bare repository's HEAD moves the branch a linked tree has checked out", () => {
+  const room = tempRoom("ref-move-bare-");
+  const seed = join(room, "seed");
+  mkdirSync(seed);
+  git(seed, "init", "-q", "-b", "main");
+  git(seed, "commit", "-q", "--allow-empty", "-m", "base");
+  git(seed, "checkout", "-q", "-b", "next");
+  writeFileSync(join(seed, "later.txt"), "later\n");
+  git(seed, "add", "later.txt");
+  git(seed, "commit", "-qm", "later");
+  git(seed, "checkout", "-q", "main");
+  git(room, "clone", "-q", "--bare", seed, join(room, "bare.git"));
+  git(join(room, "bare.git"), "worktree", "add", "-q", join(room, "linked"), "main");
+  const said = decide("git update-ref HEAD next", join(room, "bare.git"));
+  assert.equal(said.allowed, false);
+  assert.ok(said.reason.includes(`checked out at ${join(room, "linked")}`), said.reason);
+  assert.ok(said.reason.includes("\n  later.txt"), said.reason);
+});
+
 test("a ref no worktree stands on, and a move to the commit already named, are allowed", () => {
   const repo = shared();
   const to = repo.head(repo.side);

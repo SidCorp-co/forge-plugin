@@ -29,6 +29,7 @@ export const updateRefOf = (rest) => {
   return {
     stdin: flags.has("--stdin"),
     deletes: flags.has("-d"),
+    deref: !flags.has("--no-deref"),
     ref: operands[0] ?? null,
     value: operands[1] ?? null,
   };
@@ -96,6 +97,15 @@ const moved = (hits, to, here) => {
   return { instead: own ? OWN : HAND_OVER, cause: `\`git update-ref\` moves a ref and never a work tree. ${trees.join("\n")}` };
 };
 
+/* The branch a dereferenced HEAD moves, which in a bare repository is one a linked tree may stand on;
+   a detached HEAD answers `HEAD`, the tree the call runs in. */
+const branchOf = (ask, tree) => {
+  const said = ask(["symbolic-ref", "-q", "HEAD"]);
+  if (said?.status === 0) return { ref: said.out.trim() };
+  if (said?.status === 1) return { ref: "HEAD" };
+  return { unread: `git did not say which branch HEAD names in ${tree}` };
+};
+
 /** Null where the call leaves no checked-out tree behind, else the refusal's `{ instead, cause }`.
  *  `tree` is where the command runs, `NOWHERE` where the text does not say; `left` is the ms remaining. */
 export const refMoveIn = (rest, tree, left) => {
@@ -115,12 +125,14 @@ export const refMoveIn = (rest, tree, left) => {
   const listed = ask(["worktree", "list", "--porcelain"]);
   if (listed?.status !== 0) return unread("`git worktree list --porcelain` gave no listing of the trees that could be standing on it");
   const entries = worktreesOf(listed.out);
+  const target = call.ref === "HEAD" && call.deref ? branchOf(ask, tree) : { ref: call.ref };
+  if (target.unread) return unread(target.unread);
   const top = ask(["rev-parse", "--show-toplevel"]);
   const here = top?.status === 0 ? canonical(top.out.trim()) : null;
-  let standing = entries.filter((one) => one.branch === call.ref);
-  if (call.ref === "HEAD") {
-    if (!top) return unread(`git did not say in time which work tree ${tree} is`);
-    if (top.status !== 0) return null;
+  let standing = entries.filter((one) => one.branch === target.ref);
+  if (target.ref === "HEAD") {
+    if (ask(["rev-parse", "--is-bare-repository"])?.out.trim() === "true") return null;
+    if (!here) return unread(`git did not say which work tree ${tree} is`);
     standing = entries.filter((one) => canonical(one.worktree) === here);
     if (!standing.length) return unread(`no worktree git listed is ${here}, where the call runs`);
   }
