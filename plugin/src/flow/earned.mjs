@@ -32,7 +32,7 @@ import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/fields.mjs";
 import { assemble } from "./record/page.mjs";
-import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } from "./earned/parks.mjs";
+import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } from "./park/read.mjs";
 
 export { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince };
 import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";

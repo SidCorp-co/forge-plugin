@@ -3,8 +3,8 @@
    reads the flow's order, which is what lets that file's readers of the claim history ask it too. */
 import { unwrap } from "../machine.mjs";
 import { parse } from "../record/page.mjs";
-import { PARK_STATUS, sameLanding } from "./park-status.mjs";
-import { shapeGaps } from "./shape-gaps.mjs";
+import { PARK_STATUS, sameLanding } from "../earned/park-status.mjs";
+import { shapeGaps } from "../earned/shape-gaps.mjs";
 
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments
