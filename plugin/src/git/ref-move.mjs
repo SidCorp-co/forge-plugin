@@ -77,30 +77,28 @@ const OWN =
   "Move this tree's branch with its files: `git reset --keep <new>` moves both, and refuses where an "
   + "uncommitted edit would be lost.";
 
+/* What every refusal below opens its cause with. */
+const NEVER_A_TREE = "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree "
+  + "has checked out leaves that tree's files at the old commit.";
+
 const unread = (what) => ({
   instead: HAND_OVER,
-  cause:
-    "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree has "
-    + `checked out leaves that tree's files at the old commit. Whether this one does could not be read: ${what}.`,
+  cause: `${NEVER_A_TREE} Whether this one does could not be read: ${what}.`,
 });
 
 /* Any ref may be a symbolic one naming a branch, so a tree nobody can name leaves every dereferencing move in doubt. */
 const UNPLACED = {
   instead: "Spell the directory out, `cd <path> && git update-ref …`, so the tree it moves can be read.",
-  cause:
-    "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree has "
-    + "checked out leaves that tree's files at the old commit. Which repository this call runs in "
-    + "cannot be read from the command, so whether it does cannot be read either.",
+  cause: `${NEVER_A_TREE} Which repository this call runs in cannot be read from the command, so `
+    + "whether it does cannot be read either.",
 };
 
 /* A word the shell builds before git sees it, which this reading cannot resolve without running it. */
 const EXPANDS = /[$`]/u;
 const unspelt = (word) => ({
   instead: "Spell the ref and the commit out as the values they hold, so what the call moves can be read.",
-  cause:
-    "`git update-ref` moves a ref and never a work tree, so a move of a branch some worktree has "
-    + `checked out leaves that tree's files at the old commit. The shell builds a word of this one, \`${word}\`, `
-    + "so which ref or commit it names cannot be read from the command.",
+  cause: `${NEVER_A_TREE} The shell builds a word of this one, \`${word}\`, so which ref or commit it `
+    + "names cannot be read from the command.",
 });
 
 const STDIN = {
