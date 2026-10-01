@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
@@ -570,9 +570,8 @@ export const expanded = (command) => {
 /* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. What stands in for a span taken out is an empty quote pair and not a blank, since a start's blanks would run across a blank and read the quoted program's argument as the verb (ISS-2933). */
 const NOT_A_NAME = /["'\s[\]]/u;
 const spoken = (said) =>
-  said
-    .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
-    .replace(QUOTED, (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? "''" : span));
+  respelled(said.replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `),
+    (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? "''" : span));
 
 /* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
 const AIMED_AT = { options: false };

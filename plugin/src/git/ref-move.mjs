@@ -4,7 +4,7 @@
    Doubt refuses: a failed reading allows only where the failure is git's own refusal of the update. */
 import { canonical } from "../resolve/canonical.mjs";
 import { gitProbe, probeMs } from "../hooks/git-probe.mjs";
-import { NOWHERE, QUOTED, spelled, wordsOf } from "../hooks/shell-spans.mjs";
+import { NOWHERE, respelled, spelled, wordsOf } from "../hooks/shell-spans.mjs";
 
 /* A redirect's operator, which takes the next word as its target when nothing is attached to it. */
 const OPERATOR = /^\d*(?:<<<|<>|>>|>\||[<>])$/u;
@@ -16,7 +16,7 @@ const operandWords = (rest) => {
   const raw = wordsOf(String(rest)).map(([word]) => word);
   const kept = [];
   for (let at = 0; at < raw.length; at += 1) {
-    const cut = raw[at].replace(QUOTED, (span) => "_".repeat(span.length)).search(/[<>]/u);
+    const cut = respelled(raw[at], (span) => "_".repeat(span.length)).search(/[<>]/u);
     if (cut === -1) {
       kept.push(raw[at]);
       continue;

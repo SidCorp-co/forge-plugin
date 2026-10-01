@@ -88,6 +88,8 @@ test("a reference in quotes is a reference, however the quotes fall in it", () =
     + "the verb past the separator is still the verb");
   assert.deepEqual(targets(`echo "it's" \\` + "\nforge comment ISS-29 @n.md"), [],
     "while a join with no separator makes the write an argument of echo, which is what a shell does");
+  assert.deepEqual(targets("# it's done\nforge comment ISS-2\\\n9 @n.md"), ["ISS-29"],
+    "and an apostrophe in a comment opens no quote either, so the continuation on the next line still joins (ISS-999)");
   assert.deepEqual(targets(`forge attach "issue" ISS-29 a.png`), ["ISS-29"], "and so is the target word");
   assert.deepEqual(targets(`forge advance "ISS-29" --owed`), [], "while a read stays a read");
 });

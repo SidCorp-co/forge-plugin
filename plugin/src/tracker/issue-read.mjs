@@ -5,6 +5,7 @@ import { isReference } from "./issues.mjs";
 import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
 import { WRITER_WORD } from "../resolve/session/writer-word.mjs";
 import { aimIn } from "../resolve/project/aimed.mjs";
+import { quoting } from "../hooks/shell-spans.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -39,27 +40,12 @@ export const targetsOfTool = (tool, input) => {
   return under(input, keys);
 };
 
-/* Quote removal as the shell does it, so the verb and this read one argument alike, and the hook cannot defer to whichever CLI is on PATH: a quote inside a word joins it. */
-const ESCAPED = /["$`\\]/u;
-const unquoted = (word) => {
-  let out = "";
-  let quote = "";
-  for (let at = 0; at < word.length; at += 1) {
-    const one = word[at];
-    if (one === "\\" && quote !== "'" && (quote !== '"' || ESCAPED.test(word[at + 1] ?? ""))) {
-      out += word[at + 1] ?? "";
-      at += 1;
-    } else if (quote) {
-      out += one === quote ? "" : one;
-      quote = one === quote ? "" : quote;
-    } else if (one === '"' || one === "'") {
-      quote = one;
-    } else {
-      out += one;
-    }
-  }
-  return out;
-};
+/* Quote removal as the shell does it, so the verb and this read one argument alike, and the hook cannot defer to whichever CLI is on PATH: a quote inside a word joins it. The walk's characters, less the quotes that delimit and the backslashes it says a shell takes out. */
+const DELIMITS = new Set(["'", '"']);
+const unquoted = (word) => quoting(word)
+  .filter(({ one, under, removed }) => !removed && !(DELIMITS.has(one) && under === one))
+  .map(({ one }) => one)
+  .join("");
 
 /* One word is one argument, quoted whitespace included, or a value holding a flag reads as it. */
 const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|\S)+/gu;
@@ -124,24 +110,8 @@ const spokenWrite = (one) => {
 
 const spokenTargets = (one) => spokenWrite(one)?.targets ?? [];
 
-/** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline, right for where a command starts and wrong for the word this reads. A backslash escaping a backslash leaves the newline a separator, and single quotes join nothing. */
-export const joined = (command) => {
-  const text = String(command ?? "");
-  let out = "";
-  let quote = "";
-  for (let at = 0; at < text.length; at += 1) {
-    const one = text[at];
-    if (quote !== "'" && one === "\\") {
-      const next = text[at + 1] ?? "";
-      at += 1;
-      out += next === "\n" ? "" : one + next;
-    } else {
-      quote = one === "'" || one === '"' ? (quote === one ? "" : quote || one) : quote;
-      out += one;
-    }
-  }
-  return out;
-};
+/** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline, right for where a command starts and wrong for the word this reads. The walk's characters, which have every line continuation gone and nothing else: a backslash escaping a backslash leaves the newline a separator, and single quotes and a comment join nothing. */
+export const joined = (command) => quoting(String(command ?? "")).map(({ one }) => one).join("");
 
 /** Every issue one call writes to, so a compound is answered once — parsed for the tracker's own
  *  tool, and read where a command starts for a shell one. */

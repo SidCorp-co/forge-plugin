@@ -127,8 +127,6 @@ const WAITS = /^(?:while|until)$/u;
 const BODY = /^do(?=[\s;&|()<>]|$)/u;
 /* The other body, which only an arithmetic `for` may take — `for x in a { :; }` is a syntax error — so only an arithmetic name is spendable and elsewhere a bare `{` is ordinary data in a word list. Read past the keyword and where the body opens rather than where it closes: the head's own brace must spend the head's own name, and a name left standing over the body would be taken by the `do` of a wait written inside it. Quoted runs are blanked first, a brace inside a word being a character of that word; a `${…}` carries no word boundary before its brace and a `{a,b}` none after. */
 const BRACE = /(?:^|[\s;&|()])\{(?=\s|$)/u;
-/** A quoted run as the shell reads one: a single-quoted run has no escape, a double-quoted one does. */
-export const QUOTED = /'[^']*'|"(?:\\[\s\S]|[^"\\])*"/gu;
 const ENDS = /^done(?=[\s;&|)<>]|$)/u;
 /* What a `for` or `select` takes next: the variable it walks, or the arithmetic head, which `spans` cuts at its own `;` — so a word opening neither is a continuation of that head, `for ((i=0; for < 3; i++))` puts one there, and naming a loop for it spends a `do` the wait around it was owed. */
 const OVER = /^(?:\(\(|[A-Za-z_]\w*)/u;
@@ -160,7 +158,7 @@ export const waitsIn = (text) => {
         if (OVER.test(head)) named.push({ start, waits: false, arith: head.startsWith("((") });
       }
     }
-    if (named.at(-1)?.arith && BRACE.test(past.replace(QUOTED, " "))) named.pop();
+    if (named.at(-1)?.arith && BRACE.test(respelled(past, () => " "))) named.pop();
   }
   return out;
 };
