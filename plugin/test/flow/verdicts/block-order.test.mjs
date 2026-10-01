@@ -154,8 +154,9 @@ test("the verdict help states the refused position and the placement taken inste
   const help = await ask("record", "verdict", "-h");
   assert.equal(help.status, 0, help.stderr);
   const text = help.stdout.replace(/\s+/gu, " ");
-  assert.match(text, /Where another --criterion follows, that value stands directly after the block's own --criterion; after the block's other flags it reads as the next block's, and is refused:/u,
+  assert.match(text, /A flag that part names is restated only in the last block, which no block follows to be read as; in any other block it is refused\. Restated last, it is taken: record verdict ISS-45 --commit <sha> --evidence run\.txt --verdict pass \\ --criterion 1 --criterion 2 --criterion 3 --verdict fail --why "<what failed>"/u,
     help.stdout);
+  assert.doesNotMatch(text, /directly after/u, "the position ISS-2151 stopped taking is not offered as taken");
 });
 
 test("a kind whose shape opens no blocks is never judged by position", () => {

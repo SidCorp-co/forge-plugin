@@ -204,8 +204,8 @@ const capBlocks = (cap = bodyCap()) => (cap === null ? [] : [
 const CRITERION_BLOCKS = [
   "--criterion repeats: each one opens a block, and one write judges every criterion it names.",
   "What stands before the first --criterion is every block's: a block's own value replaces it, and a",
-  "repeatable flag adds to it. Where another --criterion follows, that value stands directly after the",
-  "block's own --criterion; after the block's other flags it reads as the next block's, and is refused:",
+  "repeatable flag adds to it. A flag that part names is restated only in the last block, which no",
+  "block follows to be read as; in any other block it is refused. Restated last, it is taken:",
   "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
   "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
   "A file two criteria cite goes up once. Each block reads back as the record a single write makes.",
