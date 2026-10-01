@@ -14,7 +14,7 @@ export const SPOKEN_IN = {
   node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
 };
 
-/* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads. */
+/* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads, and only as the builtin or a module's that opens a file by name: an archive's `open` writes a member, and a path's takes its mode first. */
 const CALLS = [
   { name: /\bopen\s*\($/u, writes: [[0, "file"]], mode: [1, "mode"] },
   { name: /(?:FileSync|writeFile|\.write(?:TextFile|File)|\.write)\s*\($/u, writes: [[0, "path"]] },
@@ -22,7 +22,7 @@ const CALLS = [
   { name: /(?:\bshutil\.move|\bos\.(?:replace|rename))\s*\($/u, writes: [[0, "src"], [1, "dst"]] },
   { name: /\bos\.symlink\s*\($/u, writes: [[1, "dst"]] },
 ];
-const OPENS = /(?:\bopen|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
+const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
 /* A string literal, with the prefix python may give one. */
 const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"[^"\n]*"|'[^'\n]*')`;
 /* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name; any other receiver is computed, and its line is the call. */
