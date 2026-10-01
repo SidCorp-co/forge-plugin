@@ -108,9 +108,35 @@ is not an ordinal, an underscore between words, or camelCase.
 - **AC-13-5-3** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a rewrite that loses a held name is refused and nothing is posted"
   IF a translation loses a held name THEN the route SHALL leave the text untranslated and SHALL
   report why.
-- **AC-13-5-4** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "words, hyphenated words, numbers and ordinals still reach the rewrite as prose"
-  WHERE a token is a word, a hyphenated word, a number or an ordinal the route SHALL send it to the
-  model as prose.
+- **AC-13-5-4** · Rev: 2 · Proof: plugin/test/vi/bare-names.test.mjs "words, hyphenated words, ordinals and a list's own numbers still reach the rewrite as prose"
+  WHERE a token is a word, a hyphenated word, an ordinal or the number opening a list item the route
+  SHALL send it to the model as prose.
+
+### UC-13-6 — A figure crosses the rewrite as it was written
+
+Rev: 1 · Actors: agent · Enforces: BR-14
+
+A rewrite decides the wording, never what a number says. A model localising a figure swaps its
+separators, so a total the source wrote as twelve point three came back reading twelve thousand, and
+it can turn a pronoun into a numeral the source never stated. Both read fluently. So a figure in a
+document is held out of the model's reach as a bare name is (UC-13-5), and a rewrite carrying a
+figure its source does not is refused. A user interface string is localisation and keeps its own
+conventions.
+
+- **AC-13-6-1** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a figure in a body is stored spelled as it was sent, and never reaches the model"
+  WHEN a document block holds a figure THEN the route SHALL keep that figure out of what the model
+  is sent and SHALL write it back byte for byte.
+- **AC-13-6-2** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a figure in a title is stored spelled as it was sent, and never reaches the model"
+  WHEN a string is translated as a document THEN its figures SHALL be held as a document block's
+  are.
+- **AC-13-6-3** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a tracker write whose rewrite adds a figure posts nothing and names the figure"
+  IF a document's translation carries a figure its source does not THEN the route SHALL leave the
+  text untranslated and SHALL name the figure.
+- **AC-13-6-4** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "translate --kind prose refuses a translation that respells or adds a figure, naming it"
+  IF a prose string's translation carries a figure its source does not THEN the route SHALL refuse
+  it and SHALL name the figure.
+- **AC-13-6-5** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a ui string and a locale file are judged as they were before"
+  WHERE a string is user interface text the route SHALL leave its figures to the model.
 
 ## The way back
 
@@ -130,5 +156,5 @@ it.
 | Rule | How this requirement carries it |
 |---|---|
 | BR-11 | the product's language lives in one module, and everything a developer reads is English |
-| BR-14 | a lost or invented placeholder is refused rather than shipped |
+| BR-14 | a lost or invented placeholder is refused rather than shipped, and so is an invented figure |
 | BR-16 | the goldens make a prompt change visible, and a person judges it |

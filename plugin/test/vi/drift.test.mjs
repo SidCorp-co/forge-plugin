@@ -166,6 +166,9 @@ test("translate --kind doc rejects a dropped-contrast candidate the same way vi-
 const TYPED = "Thẻ Giá trị vật tư ở kỳ chưa công việc nào tra tới bước định mức nay nói rõ chưa kể được mã hiệu nào cần bổ sung, thay vì vừa bảo đi bổ sung vừa ghi con số 0.";
 const STORED = "Thẻ Giá trị vật tư ở kỳ chưa có công việc nào tra đến bước định mức giờ nêu rõ mã hiệu cần bổ sung, thay vì vừa yêu cầu bổ sung vừa hiển thị số 0.";
 const LOST = /the source carries 3 Vietnamese negation or contrast marker\(s\) .* and the rewrite carries 2/u;
+/* The source's 0 reaches the gateway held (ISS-2104), so the stand-in hands back the sentinel it was
+   sent where STORED wrote the figure, as a model that keeps placeholders does. */
+const storedFor = (sent) => STORED.replace("số 0", `số ${sent.match(/⟦VI\d+⟧/u)?.[0] ?? "0"}`);
 
 test("drift.diff: a Vietnamese rewrite that keeps fewer negations than its source is named with both counts", () => {
   const found = diff(TYPED, STORED);
@@ -173,7 +176,7 @@ test("drift.diff: a Vietnamese rewrite that keeps fewer negations than its sourc
 });
 
 test("the write boundary refuses a Vietnamese release note whose rewrite drops one of its negations, before anything posts", async (t) => {
-  const run = await translatedIn(t, () => STORED, { releaseNotes: { section: "Fixed", userFacing: TYPED } }, "vi-drift-note-");
+  const run = await translatedIn(t, storedFor, { releaseNotes: { section: "Fixed", userFacing: TYPED } }, "vi-drift-note-");
   assert.equal(run.status, 1, `the note's own drift refuses the whole write:\n${run.stderr}`);
   assert.equal(run.stdout, "", "no payload reaches the tracker call");
   assert.match(run.stderr, /nothing was posted/u, run.stderr);
@@ -181,14 +184,14 @@ test("the write boundary refuses a Vietnamese release note whose rewrite drops o
 });
 
 test("vi-natural doc keeps a Vietnamese block whose rewrite drops a negation as it was sent and exits 2", async (t) => {
-  const run = await docWith(t, `${TYPED}\n`, () => `${STORED}\n`, "vi-drift-doc-vi-");
+  const run = await docWith(t, `${TYPED}\n`, (sent) => `${storedFor(sent)}\n`, "vi-drift-doc-vi-");
   assert.equal(run.status, 2, run.stderr);
   assert.equal(readFileSync(run.path, "utf8"), `${TYPED}\n`, "the file kept the text as it was sent");
   assert.match(run.stderr, LOST, run.stderr);
 });
 
 test("translate --kind doc refuses a Vietnamese title whose rewrite drops a negation", async (t) => {
-  const room = await gatewayOn(t, () => STORED, "vi-drift-translate-vi-");
+  const room = await gatewayOn(t, storedFor, "vi-drift-translate-vi-");
   const run = await ranAsync(BIN, ["translate", "--kind", "doc", "--no-glossary", TYPED],
     { ...process.env, XDG_CONFIG_HOME: room }, room);
   assert.equal(run.status, 2, run.stderr);

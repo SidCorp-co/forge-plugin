@@ -1,6 +1,7 @@
 // Markdown segmentation: translate the prose, leave the machinery alone.
 
 import { CODE_SPAN_NONEMPTY_PATTERN, DATA_FENCE_PATTERN, LINK_TARGET_OPEN_PATTERN } from "../../src/markdown.mjs";
+import { FIGURE_SPELLING } from "../text/figures.mjs";
 
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 const SPLIT = /(\n[ \t]*\n)/;
@@ -125,10 +126,14 @@ export function headingTrails(pieces, root) {
    an underscore or turns camelCase; an ordinal, a hyphenated word and a plain number stay prose. */
 const BARE_TOKEN = String.raw`(?<![\p{L}\p{N}_])(?<bare>[A-Za-z0-9_]+(?:[-.:/#@+]+[A-Za-z0-9_]+)*)(?![\p{L}\p{N}_])`;
 const ORDINAL = /^\d+(?:st|nd|rd|th)$/iu;
+/* A figure is held as a name is, since the model otherwise localises its separators (ISS-2104). One
+   glued to a letter is a name's or an ordinal's, and a number opening a list item is Markdown. */
+const LIST_NUMBER = String.raw`(?<=(?:^|\n)[ \t]*)\d+[.)](?:[ \t]|$)`;
+const FIGURE = String.raw`(?<![\p{L}\p{N}_])(?!${LIST_NUMBER})(?<figure>${FIGURE_SPELLING})(?![\p{L}\p{N}_]|[-.,:/]\d)`;
 /* A marker the block already carries and a link target are kept whole and never held: the one is
    judged by `verify` as it stands, and the other is compared target for target. */
 const HELD_OR_KEPT = new RegExp(
-  `(${CODE_SPAN_NONEMPTY_PATTERN})|${MARKER_SHAPED.source}|${LINK_TARGET_OPEN_PATTERN}|${BARE_TOKEN}`,
+  `(${CODE_SPAN_NONEMPTY_PATTERN})|${MARKER_SHAPED.source}|${LINK_TARGET_OPEN_PATTERN}|${FIGURE}|${BARE_TOKEN}`,
   "gu",
 );
 
@@ -139,11 +144,11 @@ export function isName(token) {
   return !token.split(/[-.:/#@+]+/u).filter((part) => /\d/u.test(part)).every((part) => ORDINAL.test(part));
 }
 
-/** Swap inline code spans and bare names for sentinels so the model cannot reword an identifier. */
+/** Swap inline code spans, bare names and figures for sentinels so the model cannot reword them. */
 export function protectInline(block, slots) {
   return block.replace(HELD_OR_KEPT, (match, span, ...rest) => {
-    const { bare } = rest.at(-1);
-    if (span === undefined && !(bare && isName(bare))) return match;
+    const { bare, figure } = rest.at(-1);
+    if (span === undefined && figure === undefined && !(bare && isName(bare))) return match;
     const token = `⟦VI${slots.length}⟧`;
     slots.push(match);
     return token;
