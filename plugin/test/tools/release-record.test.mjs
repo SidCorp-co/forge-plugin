@@ -198,6 +198,77 @@ test("15. finish without --commit sends a body carrying no commit", async () => 
   assert.ok(!("commit" in (run.released[0].args.data ?? {})), JSON.stringify(run.released[0].args.data));
 });
 
+const STATE_ROUTE = `GET /api/projects/:id/release-batches/${RUN_ID}/state`;
+const finishBlock = (stdout) => stdout.split("\n").filter((line) => /^(finish|closed|failed|refused) /u.test(line));
+const RED = { state: "failed", commit: SHA, closed: null, failed: null,
+  refusal: { code: "RELEASE_NOT_VERIFIED", reason: "the probe reads 1111111, not the commit named", live: "1111111" } };
+const PART = { state: "finished", commit: SHA, closed: [ONE], failed: [{ id: TWO, reason: "the issue had moved off releasing" }],
+  refusal: null };
+
+test("ISS-2114 5. a finish still in flight exits 0 and names status <runId> as the read of its verdict", async () => {
+  for (const inFlight of ["accepted", "verifying", "closing"]) {
+    state.release.finish = { runId: RUN_ID, finish: { state: inFlight, commit: SHA } };
+    const run = await ran("finish", RUN_ID, "--commit", SHA);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, new RegExp(`nothing more needs to be sent\\. Read its verdict: forge release-batch status ${RUN_ID}$`, "mu"),
+      inFlight);
+  }
+});
+
+test("ISS-2114 6. a finish whose attempt ended failed exits non-zero with the refusal's code and reason", async () => {
+  state.release.finish = { runId: RUN_ID, finish: RED };
+  const run = await ran("finish", RUN_ID, "--commit", SHA);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^ {2}RELEASE_NOT_VERIFIED: the probe reads 1111111, not the commit named$/mu);
+  assert.match(run.stdout, /^refused\s+RELEASE_NOT_VERIFIED: the probe reads 1111111, not the commit named$/mu);
+});
+
+test("ISS-2114 7, 8. a finished batch exits non-zero naming each issue it could not close, and 0 where it closed all", async () => {
+  state.release.finish = { runId: RUN_ID, finish: PART };
+  const partly = await ran("finish", RUN_ID, "--commit", SHA);
+  assert.equal(partly.status, 1);
+  assert.match(partly.stderr, new RegExp(`^ {2}${TWO}: the issue had moved off releasing$`, "mu"));
+  state.release.finish = { runId: RUN_ID, finish: { ...PART, closed: [ONE, TWO], failed: [] } };
+  const whole = await ran("finish", RUN_ID, "--commit", SHA);
+  assert.equal(whole.status, 0, whole.stderr);
+  assert.match(whole.stdout, new RegExp(`^closed\\s+${ONE}, ${TWO}$`, "mu"));
+});
+
+test("ISS-2114 1, 2. status <runId> asks that run's state alone, prints its finish record whole, and exits 0 on a red one", async () => {
+  for (const finish of [RED, PART]) {
+    state.release.state = { runId: RUN_ID, runStatus: "running", finish };
+    const run = await ran("status", RUN_ID);
+    assert.equal(run.status, 0, run.stderr);
+    assert.deepEqual(run.routes, [STATE_ROUTE]);
+    assert.match(run.stdout, /^status\s+running$/mu);
+    assert.match(run.stdout, new RegExp(`^finish\\s+${finish.state}$`, "mu"));
+  }
+  assert.match((await ran("status", RUN_ID)).stdout, new RegExp(`^failed\\s+${TWO}: the issue had moved off releasing$`, "mu"));
+  state.release.state = { runId: RUN_ID, runStatus: "running", finish: RED };
+  assert.match((await ran("status", RUN_ID)).stdout,
+    /^refused\s+RELEASE_NOT_VERIFIED: the probe reads 1111111, not the commit named$/mu);
+  state.release.state = { runId: RUN_ID, runStatus: "completed", finish: { ...PART, failed: [] } };
+  assert.match((await ran("status", RUN_ID)).stdout, new RegExp(`^closed\\s+${ONE}$`, "mu"));
+});
+
+test("ISS-2114 3. status <runId> on a run no finish was sent for prints its status and says none was asked for", async () => {
+  state.release.state = { runId: RUN_ID, runStatus: "running", finish: null };
+  const run = await ran("status", RUN_ID);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^status\s+running$/mu);
+  assert.match(run.stdout, /^finish\s+none asked for: no finish has been sent for this run$/mu);
+});
+
+test("ISS-2114 4. bare status prints the active run's finish record in the lines status <runId> prints", async () => {
+  state.release.state = { runId: RUN_ID, runStatus: "running", finish: PART };
+  state.release.active = { runId: RUN_ID, issueIds: [ONE, TWO], startedAt: "2026-10-01T00:00:00.000Z" };
+  const bare = await ran();
+  const byId = await ran("status", RUN_ID);
+  assert.equal(bare.status, 0, bare.stderr);
+  assert.ok(finishBlock(bare.stdout).length >= 3, bare.stdout);
+  assert.deepEqual(finishBlock(bare.stdout), finishBlock(byId.stdout));
+});
+
 test("16. a refused write prints the first reason and every alsoBlocking one, and names readiness", async () => {
   state.release.record = { refused: "No runner carries the release label.", code: "RELEASE_POOL_EMPTY",
     details: { alsoBlocking: [blocker("RELEASE_RECORD_MISSING", "ISS-2 has no release note.")] } };

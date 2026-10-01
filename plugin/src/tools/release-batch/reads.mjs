@@ -1,5 +1,5 @@
 /* The three reads a release is decided and checked by: what would refuse one now, what is waiting
-   for one, and what a recorded one wrote. Each prints the tracker's own fields and never judges them,
+   for one, and what a recorded one wrote; and the lines a batch's finish record is printed in. Each prints the tracker's own fields and never judges them,
    for the reason `verb.mjs` gives for `status`. */
 import { flags } from "../../resolve/flags.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -40,6 +40,24 @@ export const roster = async (argv) => {
   console.log(`version    ${read.currentVersion ?? "none shipped yet"}`);
   console.log(`waiting    ${waiting.length} issue(s), in the tracker's order (oldest merge first)`);
   for (const one of waiting) console.log(rosterLine(one));
+};
+
+/* The states the tracker's finish job is still working in: the door answers one of these at once and
+   the verdict lands on the run afterwards, so a caller reads it back rather than waits on the answer. */
+export const IN_FLIGHT = new Set(["accepted", "verifying", "closing"]);
+
+/** The finish record a run carries, in the lines every read of it prints: `finish` answering it and
+ *  both `status` forms print these and no other, so one record never reads two ways. An absent field
+ *  is a tracker that sent none, which is said rather than read as no finish asked for. */
+export const finishLines = (record) => {
+  if (record === undefined) return ["finish     unread: the tracker's answer carries no finish record"];
+  if (record === null) return ["finish     none asked for: no finish has been sent for this run"];
+  const lines = [`finish     ${record.state ?? "unread"}`];
+  if (record.closed?.length) lines.push(`closed     ${record.closed.join(", ")}`);
+  for (const one of record.failed ?? []) lines.push(`failed     ${one.id}: ${one.reason}`);
+  const refusal = record.refusal;
+  if (refusal) lines.push(`refused    ${refusal.code ?? "UNNAMED"}: ${refusal.reason ?? "(the tracker gave no sentence)"}`);
+  return lines;
 };
 
 export const verifiedLine = (verification, identity) => (verification === "unverified"

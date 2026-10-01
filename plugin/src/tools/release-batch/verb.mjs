@@ -15,10 +15,10 @@ import { didYouMean } from "../../suggest.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 import { sharedNow } from "../../wire/shared-clock.mjs";
-import { READINESS_USAGE, RECORDED_USAGE, ROSTER_USAGE, readiness, recorded, roster } from "./reads.mjs";
+import { READINESS_USAGE, RECORDED_USAGE, ROSTER_USAGE, finishLines, readiness, recorded, roster } from "./reads.mjs";
 import { FINISH_USAGE, RECORD_USAGE, START_USAGE, finish, record, start } from "./writes.mjs";
 
-const STATUS_USAGE = "Usage: forge release-batch [status]";
+const STATUS_USAGE = "Usage: forge release-batch [status [<runId>]]";
 const CLEAR_USAGE = 'Usage: forge release-batch clear <runId> --reason "<text>" [--force]';
 
 const USAGE = [
@@ -26,8 +26,10 @@ const USAGE = [
   "This project's release, read and written without this CLI's MCP client: whether a batch is",
   "running, what would refuse one, what waits for one, and the record of one that shipped.",
   "",
-  "  status (default)              the active batch's runId, age, roster and the tracker's own",
-  "                                 bounds reading — bare `forge release-batch` is this",
+  "  status (default)              the active batch's runId, age, roster, finish record and the",
+  "                                 tracker's own bounds reading — bare `forge release-batch` is this",
+  "  status <runId>                that run's status and finish record, active or not: where a",
+  "                                 finish's verdict is read once the tracker has taken it",
   "  readiness                     every reason the tracker would refuse a release now, by code",
   "  roster                        the issues waiting at the release gate, oldest merge first",
   "  start <ISS-nn>...             open a batch over exactly those issues; prints its runId",
@@ -76,7 +78,20 @@ const boundsBlock = (bounds) => {
 const rosterLine = (issueIds) =>
   `roster     ${issueIds.length} issue(s): ${issueIds.join(", ") || "none"}`;
 
+/* One run's state by its id, active or not: a finished batch is no longer the active one, so the
+   verdict of a finish the tracker took is read here and never off the active read. A read, so it
+   exits 0 whatever the record says. */
+const statusOf = async (runId, rest) => {
+  flags(rest, "release-batch status", [], { usage: STATUS_USAGE });
+  const state = await scoped("forge_release_batch.state", { runId });
+  console.log(`runId      ${state?.runId ?? runId}`);
+  console.log(`status     ${state?.runStatus ?? "unread"}`);
+  for (const line of finishLines(state?.finish)) console.log(line);
+  console.log(boundsBlock(state?.bounds));
+};
+
 const status = async (argv) => {
+  if (argv[0] && !argv[0].startsWith("--")) return statusOf(argv[0], argv.slice(1));
   flags(argv, "release-batch status", [], { usage: STATUS_USAGE });
   const active = await scoped("forge_release_batch.active", {});
   if (!active) {
@@ -89,6 +104,7 @@ const status = async (argv) => {
   console.log(rosterLine(active.issueIds ?? []));
   const state = await scoped("forge_release_batch.state", { runId: active.runId });
   console.log(`status     ${state?.runStatus ?? "unread"}`);
+  for (const line of finishLines(state?.finish)) console.log(line);
   console.log(boundsBlock(state?.bounds));
 };
 
