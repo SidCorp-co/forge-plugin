@@ -61,6 +61,7 @@ import {
   expiryOf,
   FIELD,
   freeRefusal,
+  HOLDING,
   heldBy,
   landingSaved,
   lapseUnproven,
@@ -81,7 +82,7 @@ import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
 import { workingRefusal } from "./lease/working.mjs";
-import { GIVE_BACK, HOLDING, giveBack, giveBackBeside, stoppedHeldRefusal } from "./lease/give-back.mjs";
+import { GIVE_BACK, TURNS, giveBack, giveBackBeside, stoppedHeldRefusal } from "./lease/give-back.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -183,7 +184,7 @@ const handBackUnlanded = async (documentId, ref, status, context, holder) => {
   const lease = leaseOf(context);
   const state = stateOf(lease, holder);
   if (state === "free") fail(freeRefusal(ref, status, context));
-  if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
+  if (!HOLDING.includes(state)) fail(writeRefusal(state, ref, lease));
   /* The one arm that queues the give-back having written nothing before it, so the settling write skips the check every other write of this process has already spent (ISS-1715). */
   await mustBeShown([{ ref, documentId }]);
   oweRelease(documentId, ref);
@@ -385,8 +386,7 @@ const turnsAlone = (ref, given) => {
       + `--rebuilt writes holds about the deployment, and this call writes no checkpoint: the two `
       + `are typed together:\n  ${commandAt(REBUILT_FORM(ref, "<the sha the branch carries>"), "  ")}`);
   }
-  const turns = ["ready", "take", "judged", "reconciled", "recorded", "landed", "rebuilt"]
-    .filter((one) => given[one]);
+  const turns = TURNS.filter((one) => given[one]);
   if (turns.length > 1) {
     fail(`claim takes one of --ready, --take, --judged, --reconciled, --recorded, --landed and --rebuilt and this one takes `
       + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `

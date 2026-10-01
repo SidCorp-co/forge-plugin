@@ -22,7 +22,7 @@ export const BRIEF_SLUG = "project-brief";
 const live = (entry) => (entry?.archivedAt ? null : entry);
 
 /** The rows of a list answer that are held, for every reader of one. */
-export const liveRows = (page) => (page?.rows ?? []).filter((row) => live(row));
+export const liveRows = (page) => (page?.rows ?? []).filter(live);
 
 export const entryAt = async (slug) => {
   const answer = await scoped("forge_knowledge", { action: "get", slug }, true);

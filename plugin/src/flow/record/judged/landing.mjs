@@ -61,6 +61,6 @@ export const landedProblem = (value, issue = null) => {
 
 /** The identity a record names what it judged by, as the flag a command carries: the mark's value
  *  where one stands. `markedIdentity` in record/merged.mjs is what reads it off an issue. */
-export const identityAsk = ({ flag, value }, placeholder = "<sha>") => (flag === "landing"
+export const identityAsk = ({ flag, value }) => (flag === "landing"
   ? `--landing ${value ? typedBack(value) : "'<where the change now is>'"}`
-  : `--commit ${value ?? placeholder}`);
+  : `--commit ${value ?? "<sha>"}`);

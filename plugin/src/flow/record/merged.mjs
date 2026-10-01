@@ -8,7 +8,7 @@ import { refuse, typedBack } from "../../refusal.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { shipMode } from "../../resolve/settings.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
-import { isCommit, shortSha } from "../../tracker/evidence.mjs";
+import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
 import { escaped } from "../../markdown.mjs";
@@ -280,13 +280,6 @@ export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [],
 const TARGET = "base";
 
 export const undoForm = (ref) => `forge record merged ${ref} --undo`;
-
-/* One commit where either sha is the other's prefix: the row holds the whole sha, and `--at` may be seven characters of it. */
-const sameCommit = (one, two) => {
-  if (!one || !two) return false;
-  const [held, given] = [String(one).toLowerCase(), String(two).toLowerCase()];
-  return held.startsWith(given) || given.startsWith(held);
-};
 
 const rowOf = (documentId) => scoped("forge_issues", { action: "get", documentId, fields: [] });
 

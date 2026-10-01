@@ -16,6 +16,13 @@ import { settleConfigHome } from "./resolve/session/config-home.mjs";
 
 const [command, ...rest] = process.argv.slice(2);
 
+/* What a verb that returned still owes before the call exits, in this order, at both exits below. */
+const callEnded = async () => {
+  unwrittenSaid();
+  await releaseOwed();
+  await heldAfterMoves();
+};
+
 /* Read before anything else touches a config path: the tree this call stands in decides its config
    home, exactly as a hook already does, and a shell's own disagreeing export is refused before it
    can be read from or written to — `forge doctor` alone keeps running on it, being the one call
@@ -124,9 +131,7 @@ if (form) {
     process.exit(0);
   }
   await verb(argv, { readAs: `forge ${form.verb}` });
-  unwrittenSaid();
-  await releaseOwed();
-  await heldAfterMoves();
+  await callEnded();
   process.exit(0);
 }
 
@@ -158,9 +163,7 @@ if (!verb.answersHelp && wantsHelp(rest)) {
 /* An unhandled fetch rejection reads as a bug in this CLI rather than a network that is down. */
 try {
   await verb(rest);
-  unwrittenSaid();
-  await releaseOwed();
-  await heldAfterMoves();
+  await callEnded();
 } catch (error) {
   /* Through `fail`, so a verb holding a payload nothing else holds gets it printed on a throw too. */
   fail(`forge ${command} failed: ${error?.message ?? error}`);

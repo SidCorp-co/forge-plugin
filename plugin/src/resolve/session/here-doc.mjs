@@ -110,7 +110,7 @@ const lineEnd = (text, under, { at, end }) => {
   return -1;
 };
 
-/* Where the body that opens at `from` ends: past the newline of the line that is its delimiter, `-1` where no line is. */
+/* Where the body that opens at `from` ends: `{ to, closed }`, the start of the line that is its delimiter and past that line's newline, or `null` where no line is. */
 const closedAt = (text, from, { delimiter, tabbed }) => {
   for (let at = from; at <= text.length;) {
     const nl = text.indexOf("\n", at);
@@ -151,7 +151,7 @@ const blanked = (text, from, to) => text.slice(0, from) + text.slice(from, to).r
  *  span, the newline ending its line, its body's span and where its delimiter line ends, and what about it no reader can vouch for — inside a `$(…)` or a subshell, read under a quoting the walk
  *  guesses at, with no delimiter line, or unquoted with a substitution in its body. Last, where one is, `{ at, unread: true }`: an operator with no word this reader can place, past which
  *  nothing is said. Operators sharing a line share `line`. */
-export const hereDocs = (command) => {
+const hereDocs = (command) => {
   let text = String(command ?? "");
   const out = [];
   /* No operator, no body, and no walk: `operatorFrom` finds nothing else. */
@@ -164,7 +164,8 @@ export const hereDocs = (command) => {
     out.push(...docs);
     if (docs[0].unread) return out;
     const last = docs.at(-1);
-    if (last.closed >= text.length) return out;
+    /* Blanking leaves the text past `last.closed` as it was, so no `<<` there is no operator after it either. */
+    if (last.closed >= text.length || !text.includes("<<", last.closed)) return out;
     text = blanked(text, docs[0].from, last.closed);
     from = last.closed;
   }

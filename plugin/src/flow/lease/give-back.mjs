@@ -3,26 +3,22 @@
    the refusal that stops `--stopped` from renewing in its place. docs/cli/the-short-lease.md. */
 import { fail } from "../../resolve/settings.mjs";
 import { KEY as WORKLOG, saidWritten, worklogFor } from "../worklog.mjs";
-import { KEY, STOPPED, UNHELD, describe, releasedWrite, setLease, writeRefusal } from "../lease.mjs";
+import { HOLDING, KEY, STOPPED, describe, releasedWrite, setLease, writeRefusal } from "../lease.mjs";
 
 export const GIVE_BACK = "--give-back";
-
-/* The two states in which the field names this caller: inside the duration and past it. */
-export const HOLDING = ["mine", "lapsed"];
 
 /* Every other flag asks for the lease to be held, taken or handed on by a route of its own, so a
    give-back beside one would drop it; the worklog captures and the line are what the next run reads,
    and ride the release. */
-const KEEPING = {
-  minutes: "--minutes", unheld: UNHELD, stopped: STOPPED, ready: "--ready", take: "--take",
-  judged: "--judged", reconciled: "--reconciled", recorded: "--recorded", landed: "--landed",
-  rebuilt: "--rebuilt",
-};
+/** The flags each naming one turn's own move, of which a claim takes one at most. */
+export const TURNS = ["ready", "take", "judged", "reconciled", "recorded", "landed", "rebuilt"];
+
+const KEEPING = ["minutes", "unheld", "stopped", ...TURNS];
 
 export const giveBackBeside = (ref, given) => {
-  const beside = Object.entries(KEEPING)
-    .filter(([key]) => given[key] !== undefined && given[key] !== false)
-    .map(([, flag]) => flag);
+  const beside = KEEPING
+    .filter((key) => given[key] !== undefined && given[key] !== false)
+    .map((key) => `--${key}`);
   if (!beside.length) return null;
   return `claim ${GIVE_BACK} hands this run's lease back, and ${beside.join(" and ")} asks for the `
     + "lease to be kept, taken or handed on by a route of its own, so the two are not typed together. "

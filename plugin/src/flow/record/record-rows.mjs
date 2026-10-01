@@ -123,7 +123,9 @@ const PLAN_BLOCKS = [
 ];
 
 /* This project's own answer to the screen question, printed where the file is written against rather than learned from the refusal after a consult has read it (ISS-1895). */
-const screensBlocks = (pin = flowPinned(), screens = screensHere(pin)) => {
+const screensBlocks = () => {
+  const pin = flowPinned();
+  const screens = screensHere(pin);
   if (screens === null) {
     return ["This project chose no flow, so nothing here says whether its projects have a screen: a",
       "plan declaring screen change is written, and owes Witnessed on screen like any plan declaring it."];
