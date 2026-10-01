@@ -4,11 +4,13 @@
    shell's. how/writes.md. */
 import { STRING, fileCalls, spelling } from "./call-writes.mjs";
 import { KINDS, literalsIn } from "../../checks/source/lexical.mjs";
-import { SPEAKS, spansOf } from "./spoken.mjs";
+import { LANGUAGE_OF, spansOf } from "./spoken.mjs";
 import { ESCAPED_IN_DOUBLE, unquote } from "../shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
 const FOLDS = 3;
+/* The languages whose bindings and `+` read as python's, the only grammar this fold has: a perl or php name carries a sigil and joins with a dot, and a shell's `x/"p.md"` is the directory `x`. */
+const ASSEMBLES = new Set(["python", "node", "ruby"]);
 
 const LITERAL = String.raw`"[^"\n]*"|'[^'\n]*'`;
 /* Every binding, not only the ones holding a literal: a rebinding to something this cannot read has to unset what came before rather than leave a stale value answering for it. A literal counts only as the *whole* right-hand side, or `root = "a/b" if x else "/tmp"` binds the half it opens with, and only an assignment a statement opens with is one at all — `dict(root="/tmp")` rebinds nothing. */
@@ -43,7 +45,7 @@ const under = (left, right, resets) =>
 
 /* Comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
 const bound = (said, lang) => {
-  const spans = spansOf(said, lang ?? "python");
+  const spans = spansOf(said, lang);
   const strings = spans.filter((one) => !one.comment).map((one) => ({ start: one.from, end: one.to }));
   const code = spans.filter((one) => one.comment)
     .reduce((text, one) => `${text.slice(0, one.from)}${" ".repeat(one.to - one.from)}${text.slice(one.to)}`, said);
@@ -59,7 +61,7 @@ const NAME_THEN = new RegExp(String.raw`\b([A-Za-z_]\w*)\s*([+/])\s*(?=${LITERAL
 const THEN_NAME = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*\b([A-Za-z_]\w*)\b`, "gu");
 
 /* A bare name a file call writes through is the literal it was last bound to, so a name bound to a whole literal and then handed to `open` as its file writes that literal. Replaced from the last one back, so every offset still answers against the text it was measured in. */
-const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => one.names)
+const spelt = (said, runner, valueOf) => fileCalls(said, runner).flatMap((one) => one.names)
   .sort((a, b) => b.from - a.from)
   .reduce((text, { from, to }) => {
     const held = valueOf(text.slice(from, to), from);
@@ -77,8 +79,9 @@ const templated = (said, valueOf, made) => literalsIn(said, { holes: "text" })
  *  `+` and pathlib's `/` fold to a fixed point. Each pass reads what the pass before it produced and finds its bindings there, so an offset always answers against the text it was measured in:
  *  order is what a binding is read by, and no pass reorders. Shapes with no model — `.format`, `%`, `"/".join`, a value read at runtime — leave the text alone. how/writes.md. */
 export const glued = (body, runner) => {
-  const lang = SPEAKS[runner];
+  const lang = LANGUAGE_OF[runner];
   let out = String(body);
+  if (!ASSEMBLES.has(lang)) return out;
   const holds = HOLDS[lang];
   /* `bound` answers off `out` and `lang` alone, so it is rebuilt only where a pass moved the text. */
   let read = null;
@@ -118,7 +121,7 @@ export const glued = (body, runner) => {
       if (!parts.length || parts.some((each) => each === null)) return null;
       return `"${parts.reduce((left, right) => under(left, right, RESETS.test(verb)))}"`;
     });
-    out = spelt(out, lang, bound(out, lang));
+    out = spelt(out, runner, bound(out, lang));
     out = out.replace(GLUED, (all, left, sign, right) =>
       `"${sign === "/" ? under(unquote(left), unquote(right), true) : unquote(left) + unquote(right)}"`);
     if (out === before) break;

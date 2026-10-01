@@ -20,5 +20,5 @@ heredoc (options as for `-c`): a verb there counts.
 Not judged: what a write holds, or whether it belongs.
 
 Not seen: a name no spelling produces — a glob, a command's output, a variable set
-elsewhere. Spell it, or use `Edit`. Said once a session if no file of the call reached a gate;
+elsewhere, a path a perl or php program builds. Spell it, or use `Edit`. Said once a session if no file of the call reached a gate;
 not of a program body.

@@ -2,8 +2,11 @@
 
 import { COMMENTS, literalsIn } from "../../checks/source/lexical.mjs";
 
-/** The language each runner speaks, for the readings that tell its code from its strings. A runner none of these name is read as python. */
-export const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
+/** Every interpreter whose program the readings look into, by the language it speaks: the one statement of both, so an interpreter added here is one the inline and heredoc patterns open and
+ *  every reading keyed by language below and beside this file answers for. A shell is none of these, its body being commands, and `SHELL_WORD` states the shells. */
+export const LANGUAGE_OF = { python: "python", python3: "python", node: "node", deno: "node", bun: "node", perl: "perl", ruby: "ruby", php: "php" };
+/** The interpreters `LANGUAGE_OF` names, as a pattern's alternation, a longer name first so none stops on a shorter one it begins with. */
+export const INTERPRETER = Object.keys(LANGUAGE_OF).sort((a, b) => b.length - a.length).join("|");
 
 /* Python, walked: a string ends at its own quote, a backslash in it escaping the next character raw or not, a brace aside, and an f-string's field is code to the brace closing it, which may hold strings of its own, the f-string's own quote among them (3.12). A doubled brace is a literal one. */
 const PREFIX = /(?<![\w])[rRbBuUfF]{1,2}$/u;
@@ -62,8 +65,12 @@ const jsSpans = (text) => literalsIn(text).map((one) => ({
   opens: text[one.start] === "}" ? 0 : 1,
 }));
 
+/* Which walk reads each language's comments and strings. perl's and ruby's are a `#` comment and a quoted string, which python's walk reads; php's are `//`, a block comment and a quoted
+   string, which the JS walk reads. Neither claims more of those three: an interpolation, a `q()` or a heredoc of their own is read as the walk's language would read it. */
+const WALKS = { python: pythonSpans, node: jsSpans, perl: pythonSpans, ruby: pythonSpans, php: jsSpans };
+
 /** Each string and comment in `text`, `{ from, to, comment, holes }`, `holes` being the fields a python f-string runs, each `{ from, to }` in `text`; a JS template comes as the halves around its fields, which are code. */
-export const spansOf = (text, lang) => (lang === "node" ? jsSpans(text) : pythonSpans(text));
+export const spansOf = (text, lang) => WALKS[lang](text);
 
 /* The stretches of `text` a program does not run, `[from, to)`: each string and comment, its opening quote aside so a literal a call stands on is not inside itself (the `}` a template resumes on is no quote, and goes with the `${` it closes), less each field the string runs, whose own strings are read the same way again. */
 const unrun = (text, lang, base = 0) => spansOf(text, lang).flatMap((one) => {
@@ -88,7 +95,7 @@ const commentsIn = (text, lang, base = 0) => spansOf(text, lang).flatMap((one) =
 
 /** A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; `bare`, the same with its strings blanked too, for a walk that splits arguments; and whether an offset stands where the program runs nothing. */
 export const spokenIn = (given, runner) => {
-  const lang = SPEAKS[runner] ?? "python";
+  const lang = LANGUAGE_OF[runner];
   const code = blanked(given, commentsIn(given, lang));
   const pieces = unrun(given, lang);
   return { code, bare: blanked(code, pieces), inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
