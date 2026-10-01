@@ -47,12 +47,19 @@ import { INDEPENDENT } from "./qa/verdicts.mjs";
 import { REBUILT_FORM, builderProblem } from "./landing/reconstruction.mjs";
 import { landsOutsideGit } from "./record/judged/landing.mjs";
 import { markedCommit } from "./record/merged.mjs";
+import { blockedClearedBy } from "./park/blocked.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
+
+/* What a `blocked` park waits on where no edge speaks for its blocker, said beside the answer route
+   every other unanswered park names. */
+const NO_EDGE = ", and no edge that gates dispatch blocks this issue, so nothing on the record stands "
+  + "for the blocker it waits on but the word of whoever saw that blocker clear";
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue, or that person's answer relayed on the record, which is the
    only one a run on the parker's own credential can present. A hold nobody was asked to answer
-   resumes by hand. */
+   resumes by hand. A blocked hold is a person's to answer where no edge speaks for its blocker, and
+   otherwise the edges' to lift, or the builder's where the landing parked it (park/blocked.mjs). */
 const resumeOwed = (view, held, ref) => {
   const kind = held.record.fields.kind;
   const left = held.record.fields.left;
@@ -65,12 +72,13 @@ const resumeOwed = (view, held, ref) => {
       return [need(`the hold is kind ${kind}, which a person lifts, and lifting it writes a status no `
         + "entry check read", setForm(ref, left))];
     }
-    return blockersOwed(view);
+    if (blockedClearedBy(view, held) !== "answer") return blockersOwed(view);
   }
   return replied
     ? []
     : [need(
-      `the park is kind ${kind} and nobody has answered it since ${atMinute(since)}. An answer is `
+      `the park is kind ${kind} and nobody has answered it since ${atMinute(since)}`
+        + `${view.issue.status === "on_hold" ? NO_EDGE : ""}. An answer is `
         + "a comment by an author other than whoever parked it, or the answer of whoever the park "
         + "asks, carried onto the record naming who gave it; a comment on the parker's own credential "
         + `answers nothing, whoever composed it. The advance that reads one resumes the issue to ${left}`,

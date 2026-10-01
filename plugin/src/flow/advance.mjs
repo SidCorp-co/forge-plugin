@@ -504,12 +504,12 @@ const readFlags = (rest, ref) => {
   return { ...given, evidence, needs: needsChecked(given, ref), next: nextLine(given.next) };
 };
 
-const run = async (argv, readAs) => {
+const run = async (argv, readAs, lifts) => {
   if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${firstLine(USAGE)}`);
   const given = readFlags(rest, ref);
-  const view = await viewOf(ref, given);
+  const view = { ...(await viewOf(ref, given)), lifts };
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
   const judging = given.owed ? judgeOwed(ref, view.issue) : null;
@@ -551,9 +551,11 @@ const run = async (argv, readAs) => {
   return transitionTo(view, next, ref, { note, next: given.next ?? null, by: resumed ? null : movedBySaid(view, next) });
 };
 
-export const advance = async (argv, { readAs = null } = {}) => {
+/** `lifts` is the id of a park comment the caller has already proved is the landing's own conflict
+ *  park, answered by the head it just captured; no flag sets it (park/blocked.mjs). */
+export const advance = async (argv, { readAs = null, lifts = null } = {}) => {
   try {
-    await run(argv, readAs);
+    await run(argv, readAs, lifts);
   } catch (error) {
     if (error instanceof Refused) fail(error.message);
     throw error;

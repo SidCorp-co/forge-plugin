@@ -301,10 +301,12 @@ const readsOff = (kind) => {
 /* Why the kind exists is the one thing its row cannot say, and a run reaching for a comment instead
    is the defect it answers (ISS-198). */
 const ANSWER_BLOCKS = [
-  "Written after the park it answers, on an issue that park holds at waiting or needs_info, and refused",
-  "anywhere else. --from names who gave the answer and --quoted is what they said. It is how a",
-  "person's answer reaches the record through a run: a comment on the parker's own credential answers",
-  "nothing, whoever composed it. The write resumes the issue where the park left it, in the same call.",
+  "Written after the park it answers, on an issue that park holds at waiting or needs_info, or at",
+  "on_hold under a blocked park no edge that gates dispatch speaks for — a blocker in another",
+  "project, or an edge never recorded or since removed — and refused anywhere else. --from names who",
+  "gave the answer and --quoted is what they said. It is how a person's answer reaches the record",
+  "through a run: a comment on the parker's own credential answers nothing, whoever composed it. The",
+  "write resumes the issue where the park left it, in the same call.",
 ];
 
 /* The one place a park record would contradict the status it stands beside, which the row cannot
