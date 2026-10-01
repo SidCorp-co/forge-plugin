@@ -20,12 +20,12 @@ import { commitProblem, commitTakes } from "./content.mjs";
 import { landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
-import { CLAUSES, NOTHING, TYPED, gitMarkForm } from "./merged-clauses.mjs";
+import { CLAUSES, NOTHING, TYPED, gitMarkForm } from "./judged/merged-clauses.mjs";
 
 /* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
 const MARK = /^mark_merged\b/u;
 
-export { CLAUSES, NOTHING } from "./merged-clauses.mjs";
+export { CLAUSES, NOTHING } from "./judged/merged-clauses.mjs";
 
 const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
 

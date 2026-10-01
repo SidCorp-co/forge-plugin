@@ -18,7 +18,7 @@ import { DATA_FENCE_PATTERN } from "../markdown.mjs";
 import { nearestOutside } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
-import { gitMarkForm } from "../flow/record/merged-clauses.mjs";
+import { gitMarkForm } from "../flow/record/judged/merged-clauses.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
