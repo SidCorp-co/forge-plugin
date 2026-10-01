@@ -248,9 +248,10 @@ function touching(ev, freshMs) {
   const seen = new Set();
   const names = [command, resolved].flatMap((text) => {
     const standing = standingIn(text, cwd);
-    return [...namesOf(text), ...namesOf(text, undefined, AIMED_AT)].flatMap((name) => {
-      const { token, at } = name;
-      const trees = placedAt(text, name) ? moved(standing(at).trees) : [];
+    /* A name an expansion opens spells no file on the disk: the `$` is the shell's, and a file literally named so is none this call wrote. */
+    return [...namesOf(text), ...namesOf(text, undefined, AIMED_AT)].flatMap(({ token, at, built }) => {
+      if (built) return [];
+      const trees = placedAt(text, token, at) ? moved(standing(at).trees) : [];
       const once = `${token}\0${trees.join("\0")}`;
       if (seen.has(once)) return [];
       seen.add(once);
@@ -290,16 +291,17 @@ function touching(ev, freshMs) {
 /** The paths a call spelled, resolved but not followed: `touched` answers with what a name points at,
  *  and a link is a different question from its target. A relative name is placed in every tree a `cd`
  *  before it could have left the shell in, since nothing here asks the disk which one it was, and in
- *  the event's cwd where the text names none of them — the candidate `touched` falls back on too. */
+ *  the event's cwd where the text names none of them — the candidate `touched` falls back on too. A
+ *  name an expansion opens is answered as spelt, `$` and all, since no directory holds it. */
 export const named = (ev) => {
   const ti = ev.tool_input ?? {};
   const cwd = ev.cwd || process.cwd();
   if (ev.tool_name !== "Bash") return [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean).map((one) => resolve(cwd, one));
   const command = String(ti.command ?? "");
   const standing = standingIn(command, cwd);
-  return [...new Set(namesOf(command).flatMap((name) => {
-    const { token, at } = name;
-    const { trees } = placedAt(command, name) ? standing(at) : { trees: [] };
+  return [...new Set(namesOf(command).flatMap(({ token, at, built }) => {
+    if (built) return [token];
+    const { trees } = placedAt(command, token, at) ? standing(at) : { trees: [] };
     return trees.length ? trees.map((tree) => resolve(tree, token)) : [resolve(cwd, token)];
   }))];
 };
@@ -614,7 +616,7 @@ const standingIn = (text, cwd) => {
 };
 
 /* A name a shell would still expand is placed against the trees it could stand in; one it would not — a leading `~`, a `$` in front of it, a rooted path — answers for what it spells. */
-const placedAt = (text, { token, at, built }) => !built && token[0] !== "~" && token[0] !== "/" && text[at - 1] !== "$";
+const placedAt = (text, token, at) => token[0] !== "~" && token[0] !== "/" && text[at - 1] !== "$";
 
 /** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `unplaced` is true where one way the shell reached the name is a move whose destination the text does not carry, which `trees` cannot hold. `spelt` is false where what stands before the name is built rather than written. `tail` narrows which extensions a caller wants. `unplaceable` is the `struck` reading a caller wants of the operands, none by default; the names a `-t` directory composes are read off the text as given, since the strike takes away the sources they are built from, and a caller that must not invent a target gets none of them. `forge hooks --how writes`. */
 export const writtenPaths = (text, cwd, tail, { unplaceable } = {}) => {

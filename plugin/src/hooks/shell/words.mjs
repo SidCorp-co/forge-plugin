@@ -97,7 +97,7 @@ const ends = (marks, n) => {
   if (under === " ") return /[\s;&|<>()`\\'"]/u.test(one);
   return under === '"' ? /[`'";&|<>\\]/u.test(one) : true;
 };
-/* The expansion itself, from its `$`: through the brace that closes a `${…}`, or the name or the one character a parameter is spelt with. Every character inside the braces is the expansion's and no pattern's, so it is read as literal and a `}` there is no substitution the name begins behind. */
+/* The expansion itself, from its `$`: through the brace that closes a `${…}`, or the name or the one character a parameter is spelt with. A brace counts only where it stands under the quoting the `$` did, so a quoted or an escaped `}` in a default closes nothing. Every character inside the braces is the expansion's and no pattern's, so it is read as literal and a `}` there is no substitution the name begins behind. */
 const parameterEnd = (marks, n, inside) => {
   if (marks[n + 1].one !== "{") {
     let to = n + 2;
@@ -107,6 +107,7 @@ const parameterEnd = (marks, n, inside) => {
   let depth = 0;
   for (let at = n + 1; at < marks.length; at += 1) {
     inside[at] = true;
+    if (marks[at].under !== marks[n].under) continue;
     if (marks[at].one === "{") depth += 1;
     if (marks[at].one === "}" && (depth -= 1) === 0) return at + 1;
   }
