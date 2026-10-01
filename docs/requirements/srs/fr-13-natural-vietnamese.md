@@ -99,16 +99,16 @@ model's reach the way an inline code span is, and accounted for on the way back 
 (UC-13-2). What reads as a name is a shape rather than a list: letters and digits in one token that
 is not an ordinal, an underscore between words, or camelCase.
 
-- **AC-13-5-1** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a bare run id, issue key and sha in a body are stored byte for byte"
+- **AC-13-5-1** · Rev: 1 · Proof: plugin/test/vi/held/bare-names.test.mjs "a bare run id, issue key and sha in a body are stored byte for byte"
   WHEN a document block holds a bare name THEN the route SHALL keep that name out of what the model
   is sent and SHALL write it back byte for byte.
-- **AC-13-5-2** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a title's bare names and code spans are stored byte for byte"
+- **AC-13-5-2** · Rev: 1 · Proof: plugin/test/vi/held/bare-names.test.mjs "a title's bare names and code spans are stored byte for byte"
   WHEN a string is translated as a document THEN its bare names and its code spans SHALL be held as
   a document block's are.
-- **AC-13-5-3** · Rev: 1 · Proof: plugin/test/vi/bare-names.test.mjs "a rewrite that loses a held name is refused and nothing is posted"
+- **AC-13-5-3** · Rev: 1 · Proof: plugin/test/vi/held/bare-names.test.mjs "a rewrite that loses a held name is refused and nothing is posted"
   IF a translation loses a held name THEN the route SHALL leave the text untranslated and SHALL
   report why.
-- **AC-13-5-4** · Rev: 2 · Proof: plugin/test/vi/bare-names.test.mjs "words, hyphenated words, ordinals and a list's own numbers still reach the rewrite as prose"
+- **AC-13-5-4** · Rev: 2 · Proof: plugin/test/vi/held/bare-names.test.mjs "words, hyphenated words, ordinals and a list's own numbers still reach the rewrite as prose"
   WHERE a token is a word, a hyphenated word, an ordinal or the number opening a list item the route
   SHALL send it to the model as prose.
 
@@ -123,19 +123,19 @@ document is held out of the model's reach as a bare name is (UC-13-5), and a rew
 figure its source does not is refused. A user interface string is localisation and keeps its own
 conventions.
 
-- **AC-13-6-1** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a figure in a body is stored spelled as it was sent, and never reaches the model"
+- **AC-13-6-1** · Rev: 1 · Proof: plugin/test/vi/held/figures.test.mjs "a figure in a body is stored spelled as it was sent, and never reaches the model"
   WHEN a document block holds a figure THEN the route SHALL keep that figure out of what the model
   is sent and SHALL write it back byte for byte.
-- **AC-13-6-2** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a figure in a title is stored spelled as it was sent, and never reaches the model"
+- **AC-13-6-2** · Rev: 1 · Proof: plugin/test/vi/held/figures.test.mjs "a figure in a title is stored spelled as it was sent, and never reaches the model"
   WHEN a string is translated as a document THEN its figures SHALL be held as a document block's
   are.
-- **AC-13-6-3** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a tracker write whose rewrite adds a figure posts nothing and names the figure"
+- **AC-13-6-3** · Rev: 1 · Proof: plugin/test/vi/held/figures.test.mjs "a tracker write whose rewrite adds a figure posts nothing and names the figure"
   IF a document's translation carries a figure its source does not THEN the route SHALL leave the
   text untranslated and SHALL name the figure.
-- **AC-13-6-4** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "translate --kind prose refuses a translation that respells or adds a figure, naming it"
+- **AC-13-6-4** · Rev: 1 · Proof: plugin/test/vi/held/figures.test.mjs "translate --kind prose refuses a translation that respells or adds a figure, naming it"
   IF a prose string's translation carries a figure its source does not THEN the route SHALL refuse
   it and SHALL name the figure.
-- **AC-13-6-5** · Rev: 1 · Proof: plugin/test/vi/figures.test.mjs "a ui string and a locale file are judged as they were before"
+- **AC-13-6-5** · Rev: 1 · Proof: plugin/test/vi/held/figures.test.mjs "a ui string and a locale file are judged as they were before"
   WHERE a string is user interface text the route SHALL leave its figures to the model.
 
 ## The way back

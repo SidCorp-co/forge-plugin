@@ -5,8 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { protectInline } from "../../vi-natural/format/doc.mjs";
-import { translatedIn } from "./fake-gateway.mjs";
+import { protectInline } from "../../../vi-natural/format/doc.mjs";
+import { translatedIn } from "../fake-gateway.mjs";
 
 const NAMES = /\b(?:qa-0919c|ISS-1886|1de6fc8e|run_id|translatedBody)\b/gu;
 const sent = [];

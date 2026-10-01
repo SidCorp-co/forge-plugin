@@ -9,10 +9,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ranAsync } from "../fixtures.mjs";
-import { gatewayOn, translatedIn } from "./fake-gateway.mjs";
+import { ranAsync } from "../../fixtures.mjs";
+import { gatewayOn, translatedIn } from "../fake-gateway.mjs";
 
-const BUNDLED = fileURLToPath(new URL("../../bin/vi-natural", import.meta.url));
+const BUNDLED = fileURLToPath(new URL("../../../bin/vi-natural", import.meta.url));
 const NOTE = "The converted quantity and the metre total both read 12.371 at 4.85 kilograms per metre.";
 
 const sent = [];
