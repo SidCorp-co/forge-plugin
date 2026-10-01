@@ -4,7 +4,7 @@
 import { citedClauses } from "../spec/checked.mjs";
 import { sayIfChanged, sessionKey } from "../shown/ledger.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { CLOSES_FROM, TRIAGES, atMinute, criterionNumber, looksIn, missingLines, need, planFlags, unwrap }
+import { CLOSES_FROM, TRIAGES, atMinute, commandAt, criterionNumber, looksIn, missingLines, need, planFlags, unwrap }
   from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
@@ -295,7 +295,7 @@ export const checkpointAhead = (view, ref) => {
   if (merged) {
     return `${opens} The change has landed at ${shortSha(merged)}, which closes the window a capture `
       + `is taken in, so the late write is what is left, naming the builder the claim history holds:\n`
-      + REBUILT_FORM(ref, shortSha(merged)).split("\n").map((line) => `  ${line}`).join("\n");
+      + `  ${commandAt(REBUILT_FORM(ref, shortSha(merged)), "  ")}`;
   }
   return `${opens} The capture is this run's and closes at the merge, so take it before the merge, `
     + `and once the default branch carries the change say the landing is over, where this run is `
