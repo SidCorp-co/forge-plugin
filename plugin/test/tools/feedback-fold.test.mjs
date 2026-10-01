@@ -53,6 +53,14 @@ const state = {
     }),
   },
 };
+/* The row keeps the lease written to it, so the routed write the report reads is the CLI's own. */
+state.answer.forge_issues = (args) => {
+  const row = state.issues.find((one) => one.documentId === args.documentId);
+  if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
+  if (args.action === "get") return row ?? {};
+  if (args.action === "update" && row) return Object.assign(row, args.data);
+  return { documentId: args.documentId, ...(args.data ?? {}) };
+};
 /* The thread keeps what is posted to it, so the landed line reads the fold's comment back. */
 state.answer.forge_comments = (args) => {
   const held = (state.comments[args.filters?.issue ?? args.data?.issue] ??= []);
@@ -79,14 +87,6 @@ const noted = (room) => {
   return ranAsync(FORGE, ["feedback", path, "--title", TITLE], ENV, room);
 };
 
-const routedTo = (to) => ({
-  documentId: "routed-1",
-  createdAt: "2026-10-01T00:00:00.000Z",
-  authorId: "agent",
-  body: "## Routed finding\n\n```forge-record\nwhat: a defect in the verdict parser\n"
-    + `to: ${to}\n` + "```\n\n`forge-record: routed · contract 1`",
-});
-
 test("a fold from another project's checkout names its destination with the project, and the report counts it", async () => {
   state.comments = {};
   nearBoth();
@@ -96,7 +96,11 @@ test("a fold from another project's checkout names its destination with the proj
   assert.ok(folded, run.stdout);
   assert.match(run.stdout, /^Comment \S+ is posted on ISS-45 on forge-plugin, read back from the tracker\.$/mu, run.stdout);
 
-  state.comments[HELD.documentId] = [routedTo(folded[1])];
+  const claimed = await ranAsync(FORGE, ["claim", HELD.issueId, "--unheld"], ENV, elsewhere);
+  assert.equal(claimed.status, 0, `the lease the routed write needs: ${claimed.stderr}`);
+  const routed = await ranAsync(FORGE, ["record", "routed", HELD.issueId, "--what", "a defect in the verdict parser",
+    "--to", folded[1]], ENV, elsewhere);
+  assert.equal(routed.status, 0, routed.stderr);
   const report = await ranAsync(FORGE, ["resume", HELD.issueId, "--report"], ENV, elsewhere);
   assert.equal(report.status, 0, report.stderr);
   assert.match(report.stdout, /^Plugin defect {2}ISS-45 on forge-plugin$/mu, report.stdout);
