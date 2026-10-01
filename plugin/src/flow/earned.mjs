@@ -10,7 +10,7 @@ import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
-import { askOne, carriedAsk, correctedForm, foldVerdicts, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm } from "./earned/asks.mjs";
+import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm } from "./earned/asks.mjs";
 
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
@@ -417,8 +417,8 @@ const shownOwed = (view, ref) => {
     `the plan declares a screen change, and the verdict on ${at} cites no attachment this issue `
       + `carries, so nothing on the record is a thing a person looked at`,
     `forge attach issue ${ref} <the rendered state>, then forge record verdict ${ref} `
-      + `${idAsk(view)} --evidence <that attachment> `
-      + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join(""),
+      + `${idAsk(view)} --evidence <that attachment>`
+      + heldBlocks(numbers.map((number) => [number, view.verdicts.get(number).record.fields])),
   )];
 };
 
@@ -431,8 +431,9 @@ const judgeOwed = (view, ref) => {
   return [...each].map(([why, held]) => {
     const numbers = held.map((one) => one.number);
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
+    const blocks = held[0].recite ? heldBlocks(held.map((one) => [one.number, one.held])) : null;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? []));
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? [], blocks));
   });
 };
 

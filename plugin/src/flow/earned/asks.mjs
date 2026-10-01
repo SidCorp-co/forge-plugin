@@ -1,6 +1,7 @@
 /* The writes an entry check names beside each shortfall. Apart from earned.mjs, which reads the
    record; these only spell what supplies it. */
-import { need, valuesOf } from "../machine.mjs";
+import { VERDICTS, need, valuesOf } from "../machine.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
 import { markedIdentity } from "../record/merged.mjs";
 import { identityAsk, landsOutsideGit, markedLanding, samePlace } from "../record/judged/landing.mjs";
 
@@ -35,6 +36,17 @@ export const askOne = (ref, number, id) =>
 const askAll = (ref, numbers, id) =>
   `forge record verdict ${ref} ${id} --evidence <attachment|url|sha> `
   + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join("");
+/* Each criterion a block of its own carrying what it holds, for an ask whose judgement stands and
+   only its citation is owed: one placeholder shared by every block is filled with one value, and the
+   run filling it turns each reasoned skip into whatever it typed (ISS-2252). A criterion holding no
+   value is given the placeholder, never a value nobody judged. `held` pairs a number with its fields. */
+export const heldBlocks = (held) => held.map(([number, fields]) => {
+  if (!VERDICTS.includes(fields?.verdict)) return ` --criterion ${number} --verdict ${valuesOf("verdict", "verdict")}`;
+  return ` --criterion ${number} --verdict ${fields.verdict}`
+    + (fields.why ? ` --why ${typed(String(fields.why))}` : "")
+    + (fields.filed ? ` --filed ${typed(String(fields.filed))}` : "");
+}).join("");
+
 export const foldVerdicts = (ref, numbers, id, one, many) =>
   (numbers.length > 1
     ? [need(many(numbers.join(", ")), askAll(ref, numbers, id))]

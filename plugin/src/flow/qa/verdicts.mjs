@@ -29,7 +29,11 @@ const judgedApart = (held, landing) =>
  *  `awaiting_release`, and demanded here it closed the ladder above `developed` for every project
  *  asking for a judge, no ordinary landing writing the field (ISS-1788). Independence needs no
  *  reading of one. */
-export const judgeProblem = (held, landing, holders = []) => {
+export const judgeProblem = (held, landing, holders = []) =>
+  whoProblem(held, landing, holders) ?? citedProblem(held, landing);
+
+/* Who wrote the verdict, which a fresh judgement answers and a re-citation cannot. */
+const whoProblem = (held, landing, holders) => {
   const builder = builderProblem(landing, holders);
   if (builder) return builder;
   if (!held.judge) return "carries no judge, so nothing on it says which session wrote it";
@@ -46,10 +50,16 @@ export const judgeProblem = (held, landing, holders = []) => {
       + `a run that held it while the change was being built: the checkpoint's builder is `
       + `unrecoverable, so nothing here shows this judge apart from whoever built the change`;
   }
-  /* Conditioned on the field and never demanding it: a checkpoint that names an identity was written
-     by a route that read it off the deployment, so a verdict answering to some other head judged
-     something else and the reading is worth having. A checkpoint that names none leaves nothing to
-     compare, and a rung refusing a comparison it cannot make is the defect above (ISS-1788). */
+  return null;
+};
+
+/* What the verdict cites, once its judge stands: the judgement is the judge's and only the citation
+   is owed, so the ask re-cites the value held rather than asking for it again (ISS-2252).
+   Conditioned on the field and never demanding it: a checkpoint that names an identity was written
+   by a route that read it off the deployment, so a verdict answering to some other head judged
+   something else and the reading is worth having. A checkpoint that names none leaves nothing to
+   compare, and a rung refusing a comparison it cannot make is the defect above (ISS-1788). */
+const citedProblem = (held, landing) => {
   if (landing.deployment && !citesDeployment(held, landing.deployment)) {
     return `cites nothing at ${short(landing.deployment)}, which is what the deployment reported running, `
       + "nor a commit its write read as carrying it";
@@ -80,8 +90,9 @@ export const judgeProblems = (view) => {
   const holders = view.holders ?? [];
   const outside = landsOutsideGit(view.issue);
   return numbered(view.verdicts).flatMap(([number, { record }]) => {
-    const why = outside ? outsideProblem(record.fields, holders) : judgeProblem(record.fields, view.landing, holders);
-    return why ? [{ number, why, held: record.fields }] : [];
+    const who = outside ? outsideProblem(record.fields, holders) : whoProblem(record.fields, view.landing, holders);
+    const why = who ?? (outside ? null : citedProblem(record.fields, view.landing));
+    return why ? [{ number, why, held: record.fields, recite: !who }] : [];
   });
 };
 
@@ -90,8 +101,9 @@ export const judgeProblems = (view) => {
    route that only reports where the landing is leaves the reader following it nowhere (ISS-1784).
    Two answers and not three: a checkpoint that stands is answerable by a verdict whatever it holds,
    and the branch that stood between handed back a command reprinting the refusal (ISS-1788).
-   Shared flags lead: `blocksIn` gives a block only what precedes the first --criterion (ISS-2371). */
-export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null, holders = []) => {
+   Shared flags lead: `blocksIn` gives a block only what precedes the first --criterion (ISS-2371).
+   `blocks`, where given, is each criterion's own tail in place of the shared placeholder (ISS-2252). */
+export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null, holders = [], blocks = null) => {
   const numbers = Array.isArray(at) ? at : [at];
   const outside = identity?.flag === "landing";
   if (!landing && !outside) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
@@ -102,9 +114,8 @@ export const judgeAsk = (ref, at, landing, held = null, merged = null, identity 
   }
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
     + `forge record verdict ${ref} ${outside ? identityAsk(identity) : `--commit ${short(landing.head) || "<sha>"}`} `
-    + `--evidence ${(!outside && short(landing.deployment)) || "<what you exercised>"} `
-    + `--verdict ${valuesOf("verdict", "verdict")}`
-    + numbers.map((number) => ` --criterion ${number}`).join("");
+    + `--evidence ${(!outside && short(landing.deployment)) || "<what you exercised>"}`
+    + (blocks ?? ` --verdict ${valuesOf("verdict", "verdict")}${numbers.map((number) => ` --criterion ${number}`).join("")}`);
 };
 
 /* What a void gives up, for a landing that has to name it: judged by somebody other than the checkpoint's builder, and citing the identity the landing is about to stop holding. Whether a verdict still standing cites what is running now is the same citation read per verdict, which is `judgeProblem`'s and is spent at `testing`, and a successor builder's verdicts are neither's on a project that asked for no judge. It asks that predicate rather than keeping two of its filters: a landing counting a verdict the transition then refuses spends a promotion on a judgement that earns nothing (ISS-2045). */

@@ -1,7 +1,7 @@
 /* What a finding the fold landed on an issue is owed before the rungs that judge the issue: a
    criterion carrying it, or a record declining it. The rule is the contract's `testing` part; why a
    folded finding is typed at all is docs/cli/the-fold.md's. Nothing here fetches or writes. */
-import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor } from "../machine.mjs";
+import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor, valuesOf } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
 import { escaped } from "../../markdown.mjs";
@@ -54,7 +54,7 @@ const verdictOwed = (view, ref, { handle, carrier }, whole, id) => {
   if (!said) return [];
   return [need(
     `criterion ${carrier.number} carries finding ${handle} and ${said}, so the finding it carries stands unjudged`,
-    `forge record verdict ${ref} --criterion ${carrier.number} --verdict pass `
+    `forge record verdict ${ref} --criterion ${carrier.number} --verdict ${valuesOf("verdict", "verdict")} `
       + `${id} `
       + "--evidence <attachment|url|sha>",
   )];
