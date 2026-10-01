@@ -7,7 +7,7 @@ import test from "node:test";
 import { tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("no-screen-flow").path;
-const { DEFAULT, SCREEN, screensOf } = await import("../../../src/guides/flow.mjs");
+const { DEFAULT, SCREEN, screensHere, screensOf } = await import("../../../src/guides/flow.mjs");
 const { screensRefusal } = await import("../../../src/flow/record/fields.mjs");
 const { WITNESSED, planFlags, planSections, sectionsOwed } = await import("../../../src/flow/machine.mjs");
 const { CHECKS, deployedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
@@ -18,9 +18,13 @@ let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
 const comment = (body, extra = {}) => ({ createdAt: at(), authorId: "agent", body, ...extra });
 
-const refusal = (flow, plan) => {
+/* A pin as `flowPinned` answers one: the project wrote the key that chose this flow, unless told otherwise. */
+const pinned = (flow, declared = true) => ({ value: flow, from: "the project's file", declared });
+
+const refusal = (flow, plan, declared = true) => {
   const held = planSections(plan);
-  return screensRefusal(flow, planFlags(plan), held, screensOf(flow));
+  const pin = pinned(flow, declared);
+  return screensRefusal(pin, planFlags(plan), held, screensHere(pin));
 };
 
 test("the flow that has screens asks every plan about one, and the flow that has none refuses the claim", () => {
@@ -41,7 +45,30 @@ test("the flow that has screens asks every plan about one, and the flow that has
   const said = refusal(DEFAULT, claimed);
   assert.match(said, /serves projects with no screen and this plan declares a screen change/u);
   assert.match(said, /screen change: no/u, "and names the line to write");
-  assert.match(said, /forge doctor/u, "and the other way out, which is to run a flow that has one");
+  assert.match(said, /forge doctor --set flow=screen/u, "and the other way out, which is to run a flow that has one");
+  assert.match(said, /which the project's file sets/u, "naming where the flow that refused it was set");
+});
+
+/* A project that wrote no flow key is served `default`'s text and none of its claims: the fallback is
+   what nobody decided, and reading it as a `no` refused an honest screen change on every project
+   that never chose (ISS-1895). */
+test("a project that chose no flow is held to no claim about its screens", () => {
+  assert.equal(screensHere(pinned(DEFAULT, false)), null, "the fallback answers nothing about screens");
+  assert.equal(screensHere(pinned(DEFAULT)), false, "while a project that wrote `default` answered no");
+  assert.equal(screensHere(pinned(SCREEN)), true, "and one that wrote `screen` answered yes");
+
+  const claimed = typedPlan({ Declarations: "Screen change: yes\nSchema coupling: no" });
+  assert.equal(refusal(DEFAULT, claimed, false), null, "so a declared screen change is not refused");
+  assert.equal(refusal(DEFAULT, typedPlan({ [WITNESSED]: null }), false), null,
+    "and a plan declaring none is not asked what a person witnesses");
+  assert.match(refusal(DEFAULT, claimed), /serves projects with no screen/u,
+    "while the same plan under a `default` the project wrote is refused as before");
+
+  const silent = (flow) => screensRefusal(pinned(flow), planFlags(claimed), planSections(claimed),
+    screensOf(flow, { [flow]: { requires: [] } }));
+  assert.equal(silent("erp-flow"), null, "a flow declaring no `screens` key refuses no screen change either");
+  assert.match(screensRefusal(pinned("erp-flow"), planFlags(claimed), planSections(claimed), false),
+    /serves projects with no screen/u, "and one handed `false` does, which is the only answer that refuses");
 });
 
 /* The rung's half of the same boundary. `sectionsOwed` takes no flow and is given none: the section

@@ -6,7 +6,7 @@ export const SCREEN = "screen";
 
 /* Slugs, declared and never read off the tree, and nothing about what a flow holds: its directory is that, so a vanished one refuses rather than serving a shorter list. What a flow asks the project for sits beside the slug — `requires`, the plan declarations it wants answered `yes`, and `judge`, the judgement it wants — and `screens`, whether its projects have a screen at all, the axis docs/two-levels.md names these two slugs for — as plain values checked against the tables that own them where those are already in scope, this module being one every guide call loads. `screens` is read where a plan is written and at no rung (ISS-902). */
 export const FLOWS = {
-  [DEFAULT]: { requires: [] },
+  [DEFAULT]: { requires: [], screens: false },
   [SCREEN]: { requires: [], judge: "independent", screens: true },
 };
 
@@ -17,7 +17,11 @@ export const requiresOf = (flow, flows = FLOWS) => flows[flow]?.requires ?? [];
 /** The judgement this flow asks the project for, or null where it asks for none. It asks and never decides: who judges is the project's key, and a flow reading it a second time is a precedence rule with nothing to settle it. */
 export const judgeOf = (flow, flows = FLOWS) => flows[flow]?.judge ?? null;
 
-export const screensOf = (flow, flows = FLOWS) => Boolean(flows[flow]?.screens);
+/** Three answers and not two: `true` and `false` are a flow saying so, and `null` a flow that declares no `screens` key, which says nothing about its projects and is refused nothing on that account (ISS-1895). */
+export const screensOf = (flow, flows = FLOWS) => {
+  const held = flows[flow]?.screens;
+  return typeof held === "boolean" ? held : null;
+};
 
 /** What a flow asks the project itself for, each as the configuration key it is written through and the value it is written to. Derived from the table rather than restated beside it, so a flow declaring a judge asks for one by that alone and a flow declaring nothing asks for nothing: the empty list is what makes setting such a flow one write rather than a case in the verb that sets it. */
 export const projectAsksOf = (flow, flows = FLOWS) => {
@@ -35,16 +39,22 @@ const ROUTE = "Set `flow` to one of those, or take the key out — `forge doctor
 const reads = (given) =>
   (typeof given === "number" || typeof given === "string" ? Number(given) : NaN);
 
-/** `flow` present wins declared or not, else `method` reading as the one method ever shipped is `default`, else a present `method` resolves to nothing, else `default`. */
+/** `flow` present wins declared or not, else `method` reading as the one method ever shipped is `default`, else a present `method` resolves to nothing, else `default`. `declared` is whether the project wrote either key, the last case being the one it did not. */
 export const flowPinned = () => {
   const flow = flowScope();
-  if (flow.value !== undefined) return { value: String(flow.value), from: flow.from };
+  if (flow.value !== undefined) return { value: String(flow.value), from: flow.from, declared: true };
   const method = methodScope();
-  if (method.value === undefined) return { value: DEFAULT, from: method.from };
+  if (method.value === undefined) return { value: DEFAULT, from: method.from, declared: false };
   const held = String(method.value);
-  if (reads(method.value) === RETIRED) return { value: DEFAULT, from: method.from, retired: held };
-  return { value: null, from: method.from, method: held };
+  if (reads(method.value) === RETIRED) {
+    return { value: DEFAULT, from: method.from, retired: held, declared: true };
+  }
+  return { value: null, from: method.from, method: held, declared: true };
 };
+
+/** What this project has said about its screens: its flow's answer where it wrote the key that chose that flow, and `null` where it wrote none. The fallback serves `default`'s text and makes none of `default`'s claims, since a project that never answered has not answered `no`. docs/cli/what-a-flow-asks-for.md. */
+export const screensHere = (pin = flowPinned(), flows = FLOWS) =>
+  (pin.declared ? screensOf(pin.value, flows) : null);
 
 /** One line, or none: the keys name no flow this copy serves, refused where the keys are read. */
 export const flowRefusal = () => {

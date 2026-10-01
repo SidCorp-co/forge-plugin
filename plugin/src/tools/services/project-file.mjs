@@ -18,6 +18,7 @@ import { answersProblem } from "../../stats/corpus/answers.mjs";
 import { TRIGGERS_KEY, triggersRefusal } from "../../stats/report/settings.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import { PIN_FIELDS } from "./coolify/config.mjs";
+import { FLOW_SLUGS } from "../../guides/flow.mjs";
 import { ENUM_KEYS, valuesOf } from "../../resolve/project/enum-keys.mjs";
 import {
   CHECK_MS_AT_MOST,
@@ -338,7 +339,9 @@ export const PROJECT_KEYS = {
     judge: (given) => outside("feedback.plugin", given?.plugin, FEEDBACK_CHANNELS)
       || outside("feedback.project", given?.project, FEEDBACK_CHANNELS),
   },
-  flow: { routed: ROUTED.flow },
+  /* Written alone by `--set`, the flow's asks being the caller's to make or not (ISS-1895), and still
+     offered by the verb that writes them with it, which is the call a project deciding afresh wants. */
+  flow: { paths: { "": "text" }, judge: (given) => outside("flow", given, FLOW_SLUGS), route: () => ROUTED.flow },
   /* Routed for `--set` and judged all the same: the pin's own write goes through `projectWrite`,
      which holds it to this row's judge like any other key. */
   coolifyPin: { routed: ROUTED.coolifyPin, judge: coolifyRefusal },

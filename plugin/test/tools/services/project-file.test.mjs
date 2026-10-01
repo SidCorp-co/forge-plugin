@@ -314,13 +314,29 @@ test("a path with an empty segment names no key and is refused", async () => {
   assert.equal(now(), HELD);
 });
 
-/* The flow is two keys and a restore, not one value: a `--set` of it would write the flow and none of
-   what that flow asks the project for. */
-test("the flow key is refused with the verb that writes it", async () => {
+/* The flow alone, which `--flow` cannot write: what the flow asks the project for is named with the
+   call that makes it rather than made, and this home holds no credential, so a send would have failed
+   the call (ISS-1895). */
+test("the flow is written alone, and what it asks the project for is named and left", async () => {
   fresh();
-  const run = await ask("--set", "flow=default");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /`flow` is written by forge doctor --flow <slug>/u);
+  const run = await ask("--set", "flow=screen");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(now()).flow, "screen");
+  assert.equal(moved(HELD, now()), 1, now());
+  assert.match(run.stdout, /^flow screen also asks for the judgement between developed and testing, which this left as it was: `forge doctor --set pipeline\.qa=independent` writes it, and `forge doctor --flow screen` writes both$/mu,
+    run.stdout);
+
+  fresh();
+  const plain = await ask("--set", "flow=default");
+  assert.equal(plain.status, 0, plain.stderr);
+  assert.match(plain.stdout, /^flow default asks this project for nothing further$/mu, plain.stdout);
+});
+
+test("a flow this copy does not serve is refused by --set, naming the ones it does", async () => {
+  fresh();
+  const run = await ask("--set", "flow=erp-flow");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /one of default, screen/u, run.stderr);
   assert.equal(now(), HELD);
 });
 

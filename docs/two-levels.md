@@ -52,7 +52,8 @@ put it in a file every clone carries:
   causes reached this plugin's backlog through that channel over one review window, and a project set
   to `off` meets those defects and records them only in a run's report.
 - **`flow`** — which flow's text this project is served, `default` for a project with no screen and
-  `screen` for one whose change a person looks at. Projects are independent: two on one machine may
+  `screen` for one whose change a person looks at. A project that sets none is served `default`'s
+  text and held to neither answer. Projects are independent: two on one machine may
   run two flows, a run reads the flow of the checkout it stands in, and a project moves between them
   when it chooses rather than when the plugin releases. The retired `method` and what still answers
   for it: [the flow axis](cli/the-flow-axis.md).

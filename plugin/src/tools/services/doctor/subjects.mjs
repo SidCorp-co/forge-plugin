@@ -51,7 +51,7 @@ const PROJECT = [
   "                                    entry, written by `forge knowledge write`.",
   "  forge doctor --flow <slug>        the flow, into the project's own file, with every key that",
   "                                    flow asks the project for; either both land or the refusal",
-  "                                    names the half that did not.",
+  "                                    names the half that did not. `--set flow=` writes it alone.",
   "  forge doctor --ship ready|self    how far a run in this checkout goes: `self` lands its own",
   "                                    change, `ready` stops at a pushed branch and a checkpoint.",
   "                                    It writes this project's record, so two projects on one",

@@ -45,7 +45,7 @@ const asked = (keys, ...argv) => at(room(keys), ...argv);
 
 test("this copy ships two flows, and the declaration says nothing about what a flow holds", () => {
   assert.deepEqual(FLOW_SLUGS, [DEFAULT, SCREEN], "the slugs this copy serves, in the order it declares them");
-  assert.deepEqual(FLOWS[DEFAULT], { requires: [] },
+  assert.deepEqual(FLOWS[DEFAULT], { requires: [], screens: false },
     "an `overrides` key would be a flow declaring a part, and a flow's directory declares that");
   assert.deepEqual(FLOWS[SCREEN], { requires: [], judge: "independent", screens: true },
     "screen asks the project for a judge and requires no declaration of a plan, which is ISS-1088's decision");
@@ -54,9 +54,13 @@ test("this copy ships two flows, and the declaration says nothing about what a f
       `${flow} requires a declaration the plan vocabulary does not hold, so no plan can ever answer it`);
     assert.ok(held.judge === undefined || QA_MODES.includes(held.judge),
       `${flow} asks for a judgement \`${held.judge}\`, which is no value of the project's own key`);
-    assert.equal(screensOf(flow), held.screens === true,
+    assert.equal(screensOf(flow), held.screens,
       `${flow} says one thing about having a screen in the table and another through its reader`);
   }
+  assert.equal(screensOf(DEFAULT), false, "default says its projects have no screen");
+  assert.equal(screensOf(SCREEN), true, "and screen says they have one");
+  assert.equal(screensOf(FIXTURE, { [FIXTURE]: { requires: [] } }), null,
+    "a flow declaring no `screens` key says nothing, which is not the same answer as `false` (ISS-1895)");
   assert.equal(Object.hasOwn(flowModule, "overridesOf"), false,
     "the override lookup is gone, or a caller can still resolve a part against a base");
   assert.deepEqual(flowProblems(), [], flowProblems().join("\n"));

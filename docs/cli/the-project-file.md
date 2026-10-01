@@ -46,8 +46,9 @@ A key nothing here reads is refused with the list of what the file holds, and is
 `project.<k>` route at all: a value written under it would be a line in somebody's configuration that
 nothing ever looks at, and a refusal naming a route that cannot work is a refusal recommending a
 second one. The suite holds that list to the keys the code reads, in both directions, so a key added
-to one side and not the other fails rather than drifting. `flow` is refused with `forge doctor --flow
-<slug>`, which writes it together with everything that flow asks the project for.
+to one side and not the other fails rather than drifting. `flow` is written alone by `--set`, judged
+against the flows this copy serves, and the call names what that flow asks the project for and left
+unwritten; `forge doctor --flow <slug>` writes it together with all of that.
 
 ## One key's span, and the diff that proves it
 

@@ -240,6 +240,9 @@ it.
   IF the section naming what only a person at the running product can witness answers with neither a
   criterion number nor `none`, or answers with both, THEN the CLI SHALL refuse the write and SHALL name
   both ways of answering it.
+- **AC-04-7-9** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan-screens.test.mjs "a project that chose no flow writes a plan declaring a screen change"
+  WHERE a project has chosen no flow, the CLI SHALL write a plan declaring a screen change, and SHALL
+  refuse that declaration only where the flow a project chose says its projects have no screen.
 
 ### UC-04-8 — The merged mark is a record, and a field is shaped as well as present
 

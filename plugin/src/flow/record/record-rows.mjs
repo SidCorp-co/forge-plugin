@@ -12,6 +12,7 @@ import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 import { proseHelp } from "./prose-route.mjs";
 import { bodyCap } from "../../tracker/comment-cap.mjs";
+import { flowPinned, screensHere } from "../../guides/flow.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
@@ -120,6 +121,19 @@ const PLAN_BLOCKS = [
   "step naming none is refused here. At `approved`, where the criteria field is read, so is a step",
   "whose numbers name no criterion the issue holds, and a criterion no step names.",
 ];
+
+/* This project's own answer to the screen question, printed where the file is written against rather than learned from the refusal after a consult has read it (ISS-1895). */
+const screensBlocks = (pin = flowPinned(), screens = screensHere(pin)) => {
+  if (screens === null) {
+    return ["This project chose no flow, so nothing here says whether its projects have a screen: a",
+      "plan declaring screen change is written, and owes Witnessed on screen like any plan declaring it."];
+  }
+  return screens
+    ? [`This project's flow, ${pin.value}, set in ${pin.from}, serves projects with a screen, so every`,
+      "plan here owes Witnessed on screen."]
+    : [`This project's flow, ${pin.value}, set in ${pin.from}, serves projects with no screen, so a plan`,
+      "declaring screen change is refused here."];
+};
 
 /* The success line echoes what was sent, which reads the same for an append and a replace, so each
    of the two says which one it is before a caller has to learn it from a read-back (ISS-1444). */
@@ -361,7 +375,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(onePerBlocks(kind).length ? ["", ...onePerBlocks(kind)] : []),
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(WHOLE_BLOCKS[kind] ? ["", ...WHOLE_BLOCKS[kind]] : []),
-    ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
+    ...(kind === "plan" ? ["", ...PLAN_BLOCKS, ...screensBlocks()] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
