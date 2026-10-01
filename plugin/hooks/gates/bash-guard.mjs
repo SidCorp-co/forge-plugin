@@ -276,12 +276,7 @@ export const run = (ev) => {
   for (const one of run) {
     const rest = UPDATE_REF.exec(one.said)?.[1];
     if (rest === undefined) continue;
-    /* The first tree that refuses is the refusal, so no tree after it is probed. */
-    let said = null;
-    for (const tree of treesOf(one, ev.cwd)) {
-      said = refMoveIn(rest, tree, remaining);
-      if (said) break;
-    }
+    const said = treesOf(one, ev.cwd).map((tree) => refMoveIn(rest, tree, remaining)).find(Boolean);
     if (!said) continue;
     const full = { lead: `Refused — ${lead(said.instead)}`, body: said.cause };
     const shape = `\`${spanOf(one.said)}\`: ${lead(said.instead)}`;
