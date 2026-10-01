@@ -473,15 +473,17 @@ const spawned = (body, runner) => {
   return given.map((one) => `\n(\n${one}\n)\n`).join("");
 };
 
-/* A heredoc body a shell does not run is another language, so none of it is shell words. What stands in its place: a string it hands a shell, which is that shell's command; a redirect to each literal its file calls write, the one write every reading aims; and a call whose target it computes, flattened and with its keywords' `=` gone, where it leaves nothing open — a reading that keeps every candidate reads what it still spells, and one that strikes what it cannot place strikes it. A bracket, a quote, an assignment or a `cd` in the body then reaches no command after it (ISS-3038). */
-/* A literal holding a `$` is quoted as the shell would still read it, which is how the body's own text was read; one holding a backtick is left out, since no quoting keeps it shut. */
+/* A literal holding a `$` is quoted as the shell would still read it, which is how the body's own text was read; one holding a substitution names a file no reading here can spell, and is left out. */
 const aimedAt = (name) => {
-  if (name.includes("\x60")) return "";
+  if (/\$\(|\x60/u.test(name)) return "";
   return /[$\\]/u.test(name) ? `\n: > "${name}"` : `\n: > '${name}'`;
 };
+/* Every character a shell gives a meaning a program's expression does not: an operator, a redirect, an expansion, an escape, a comment, a test's bracket, and a keyword's `=`. */
+const INERT = /[;&|<>$\x60\\#![\]=]/gu;
+/* A heredoc body a shell does not run is another language, so none of it is shell words. What stands in its place: a string it hands a shell, which is that shell's command; a redirect to each literal its file calls write, the one write every reading aims; and a call whose target it computes, flattened and with every character a shell reads blanked, where it leaves nothing open — a reading that keeps every candidate reads what it still spells, and one that strikes what it cannot place strikes it. A bracket, a quote, an assignment or a `cd` in the body then reaches no command after it (ISS-3038). */
 const called = (body, runner, { computed = true } = {}) => fileCalls(body, runner).map((one) => {
   if (one.targets.length) return one.targets.map(({ from, to }) => aimedAt(spelling(body.slice(from, to)))).join("");
-  const flat = body.slice(one.from, one.to).replace(/\s+/gu, " ").replace(/=/gu, " ");
+  const flat = body.slice(one.from, one.to).replace(/\s+/gu, " ").replace(INERT, " ");
   return computed && closes(flat) ? `\n${flat}` : "";
 }).join("");
 const programmed = (body, runner) => (SHELL.test(runner) ? body : `${spawned(body, runner)}${called(body, runner)}\n`);

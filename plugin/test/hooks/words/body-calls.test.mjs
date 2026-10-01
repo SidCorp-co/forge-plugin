@@ -60,6 +60,12 @@ test("a body's own file call is still a write, at the argument its API writes", 
 test("a read beside a write is not one, and a target the program computes is placed nowhere", () => {
   both(python("open('a.md','w').write(open('r.md').read())"), ["a.md"], "an open with no write mode");
   assert.deepEqual(strict(python("open(os.path.expanduser(base), 'w')")), [], "a computed target is struck");
+  for (const target of ["base > unplanned.md", "a if b else c; d", "'$(' + x", "x | y.md", "`x` + y", "a[[0]]"]) {
+    const command = `${python(`open(${target}, 'w')`)}\necho x > ${SKILL}`;
+    assert.deepEqual(strict(command), [SKILL], `strike: ${target}`);
+    assert.ok(keeps(command).includes(SKILL), `keep, which may still read a name the call spells: ${target}`);
+  }
+  both(python("open('$(a.md', 'w')", "open('a`b`.md', 'w')"), [], "a literal holding a substitution");
 });
 
 test("a call spelt inside a string or a comment is no call", () => {
