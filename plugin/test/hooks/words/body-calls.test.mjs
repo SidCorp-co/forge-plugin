@@ -105,6 +105,8 @@ test("what a string still runs is code, and a call there is one", () => {
   both(python("s = f\"{open('g.md','w').write(str({'a': 1}))}\""), ["g.md"], "a field holding braces of its own");
   both(heredoc("node", "const s = `${writeFileSync('h.md', JSON.stringify({ a: 1 }))}`;"), ["h.md"], "an interpolation holding braces");
   both(python("s = f\"{{open('i.md','w')}}\""), [], "an f-string's doubled brace is a literal one");
+  both(heredoc("node", "const s = `${\"writeFileSync('j.md', 'x')\"}`;"), [], "a string inside an interpolation is still a string");
+  both(python("s = f\"{'open(\\'k.md\\', \\'w\\')'}\""), [], "and inside an f-string's field");
 });
 
 test("a name the body bound to a whole literal is the file its call writes", () => {

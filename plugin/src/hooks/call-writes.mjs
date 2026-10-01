@@ -119,18 +119,27 @@ const holes = (code, one) => {
   return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? fields(one[0], "{") : [];
 };
 
-/* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; and whether an offset stands inside a string or a comment, where a call is none. */
+/* The stretches of `text` a program does not run, `[from, to)` past `base`: each string and comment, its opening quote aside so a literal a call stands on is not inside itself, less each field the string runs, which is read the same way again. */
+const unrun = (text, base, pattern) => [...text.matchAll(pattern)].flatMap((one) => {
+  const runs = holes(text, one);
+  const pieces = [];
+  let from = one.index + 1;
+  for (const hole of runs) {
+    pieces.push({ from: base + from, to: base + one.index + hole.from });
+    from = one.index + hole.to;
+  }
+  pieces.push({ from: base + from, to: base + one.index + one[0].length });
+  const within = runs.flatMap((hole) => unrun(one[0].slice(hole.from, hole.to), base + one.index + hole.from, pattern));
+  return [...pieces, ...within];
+});
+
+/* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; and whether an offset stands where the program runs nothing, inside a string or a comment, where a call is none. */
 const spokenIn = (given, runner) => {
-  const said = [...given.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)];
-  const code = said.filter((one) => one[1] !== undefined)
+  const pattern = SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python;
+  const code = [...given.matchAll(pattern)].filter((one) => one[1] !== undefined)
     .reduce((text, one) => `${text.slice(0, one.index)}${" ".repeat(one[0].length)}${text.slice(one.index + one[0].length)}`, given);
-  const spans = said.map((one) => ({
-    from: one.index,
-    to: one.index + one[0].length,
-    runs: holes(given, one).map((hole) => ({ from: one.index + hole.from, to: one.index + hole.to })),
-  }));
-  const inside = (at) => spans.some((one) => at > one.from && at < one.to && !one.runs.some((hole) => at > hole.from && at < hole.to));
-  return { code, inside };
+  const pieces = unrun(given, 0, pattern);
+  return { code, inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
 };
 
 /** Each file call in `given`, the program a `runner` reads: `{ from, to }` is where it stands, `text` what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
