@@ -24,6 +24,8 @@ const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
 const COMMIT = "c8c3550";
 const HEAD = "5a1b2c3d0000000000000000000000000000f00d";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
+/* The screen ask is not among these: what it asks for is a citation of verdicts already held, so it
+   carries each one's value rather than the set (ISS-2252, test/flow/verdicts/re-cited.test.mjs). */
 const SCREEN = "Screen change: yes.\nSchema coupling: no.\nUser-facing outcome: no.";
 const mark = (note = `merged to master at ${COMMIT}`) => comment(`mark_merged target=base — ${note}`);
 const set = (values) => `<${values.join("|")}>`;
@@ -43,8 +45,6 @@ const asks = () => {
       mark(`merged to master at ${COMMIT}; judged head bc40edc; landing moved docs/a.md`),
       passed(1, "bc40edc"), passed(2, "bc40edc"),
     ]), "ISS-9")[0].command,
-    shown: judgedOwed(view({ ...landed, plan: SCREEN }, [mark(), passed(1, COMMIT), passed(2, COMMIT)]), "ISS-9")
-      .find((one) => one.command.startsWith("forge attach")).command,
     judge: judgeAsk("ISS-9", [1, 2], { head: HEAD, deployment: HEAD }),
     unreviewed: recaptureRefusal("ISS-9", HEAD, { latest: {}, verdicts: new Map(), criteria: [] }, true),
     unjudged: recaptureRefusal("ISS-9", HEAD, {
@@ -68,7 +68,7 @@ test("every review write a refusal prints names both outcomes", () => {
 
 test("every verdict write a refusal prints names each verdict value, and the batched one names them once", () => {
   const got = asks();
-  for (const name of ["one", "moved", "shown", "judge", "unjudged", "several"]) {
+  for (const name of ["one", "moved", "judge", "unjudged", "several"]) {
     assert.ok(got[name].includes(`--verdict ${set(VERDICTS)}`), `${name}: ${got[name]}`);
     assert.doesNotMatch(got[name], /--verdict pass\b/u, `${name} prints no single value: ${got[name]}`);
   }
