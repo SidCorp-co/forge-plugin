@@ -36,6 +36,16 @@ test("a quoted argument to a word that runs nothing is data to both readings", (
   }
 });
 
+/* The corpus asks the whole runner pattern only where the word before a quote could end it (ISS-1843), so the word is read past its spaces and behind its operator, and a word that only ends like a runner is still none. */
+test("the corpus finds a runner past the spaces before its quote, and a word only ending like one runs nothing", () => {
+  for (const runner of ["bash -c  ", "bash -c\t", "true;eval", "true && sh -ec", "(eval"]) {
+    assert.equal(classOf("Bash", shellOf(`${runner} '${BODY}'`)), "forge close", runner);
+  }
+  for (const word of ["medieval", "echo -c", "bash -x", "bash -c-"]) {
+    assert.notEqual(classOf("Bash", shellOf(`${word} '${BODY}'`)), "forge close", word);
+  }
+});
+
 /* Through the gate that refuses on it, so the case proves the whole chain: the runner the gate did
    not know, the body it left quoted, the write it let through. Each runs its body in the real shell,
    so a refusal here is of a write that happens. */

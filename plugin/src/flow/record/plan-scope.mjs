@@ -16,8 +16,12 @@ export const scopeDir = () => join(configDir("forge"), "plan-scope");
 /** One file per issue per tree, so no writer ever reads a set it then writes back: a whole-file rewrite is how a later save puts back a scope an earlier one had already corrected, and a writer that touches only its own issue's file has no such window to lose. */
 export const scopePath = (tree, ref) => join(scopeDir(), `${digestOf(tree)}-${String(ref).toUpperCase()}.json`);
 
-const filesFor = (tree, now) =>
-  reap(scopeDir(), SCOPE_KEPT_MS, now).filter((one) => one.startsWith(`${digestOf(tree)}-`)).map((one) => join(scopeDir(), one));
+/* The room is swept whole and read for one tree: every tree's aged entry goes on any tree's read, since a tree nobody works in again has no read of its own to sweep it. */
+const filesFor = (tree, now) => {
+  const room = scopeDir();
+  const mine = `${digestOf(tree)}-`;
+  return reap(room, SCOPE_KEPT_MS, now).filter((one) => one.startsWith(mine)).map((one) => join(room, one));
+};
 
 /* A file nothing wrote inside the window holds a plan past it, which reads as no plan at all, so the listing above takes it. A save that can neither write its file nor remove it is the one case where a correction lands and the write it clears stays refused, so the caller is told: the old text names fewer paths than the record now does, and no entry at all is what stands a gate down. Where even the removal fails nothing further is this module's, and `developed` still reads the rule. That case is the whole of what `false` means here, and every writer below answers the same question so the caller never has to guess which one it got: does the directory now say what this call meant it to say. A call naming no tree, a reference with no entry, and an entry the sweep already owns all leave nothing disagreeing with the record, so all of them are `true` — the caller has nothing it could act on, and the only advice this module's failure carries stands a working gate down. */
 const saved = (tree, ref, row) => {
