@@ -37,8 +37,8 @@ const pythonSpans = (text) => [...text.matchAll(PYTHON)].map((one) => {
   return { from: one.index, to: one.index + one[0].length, comment: one[1] !== undefined, holes };
 });
 
-/* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does. */
-const VALUE_BEFORE = /(?:^|[(,=:[!&|?{};+\-*%<>~^]|\breturn|\btypeof)\s*$/u;
+/* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does, and closes on its own line; a `}` may end a block or a value, so a slash after one is read as the division that loses nothing. */
+const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;+\-*%<>~^]|\breturn|\btypeof)\s*$/u;
 const quotedTo = (text, at) => {
   let end = at + 1;
   while (end < text.length && text[end] !== text[at] && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
@@ -52,7 +52,8 @@ const regexTo = (text, at) => {
     else if (text[end] === "]") inClass = false;
     end += text[end] === "\\" ? 2 : 1;
   }
-  end = Math.min(end + 1, text.length);
+  if (text[end] !== "/") return null;
+  end += 1;
   while (/[a-z]/u.test(text[end] ?? "")) end += 1;
   return end;
 };
@@ -64,7 +65,8 @@ const spanAt = (text, at) => {
   if (one !== "/") return null;
   if (text[at + 1] === "/") return { to: text.includes("\n", at) ? text.indexOf("\n", at) : text.length, comment: true, holes: [] };
   if (text[at + 1] === "*") return { to: text.includes("*/", at + 2) ? text.indexOf("*/", at + 2) + 2 : text.length, comment: true, holes: [] };
-  return VALUE_BEFORE.test(text.slice(Math.max(0, at - 12), at)) ? { to: regexTo(text, at), comment: false, holes: [] } : null;
+  const to = VALUE_BEFORE.test(text.slice(Math.max(0, at - 12), at)) && regexTo(text, at);
+  return to ? { to, comment: false, holes: [] } : null;
 };
 /* Code from `at` to the `}` closing it, every span inside it stepped over whole. */
 const codeTo = (text, at) => {

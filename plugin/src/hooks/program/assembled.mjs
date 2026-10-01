@@ -25,7 +25,6 @@ const HOLDS = {
     plain: (span) => span,
   },
   node: {
-    spans: /`(?:[^`\\]|\\[\s\S])*`/gu,
     name: /(?<!\\)\$\{([A-Za-z_]\w*)\}/gu,
     plain: (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span),
   },
@@ -67,9 +66,11 @@ const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => on
     return `${text.slice(0, from)}${held.includes('"') ? `'${held}'` : `"${held}"`}${text.slice(to)}`;
   }, said);
 
-/* A template inside another's interpolation, which the pattern that finds a template cannot pair, so a body holding one has its templates left as written. */
-const nested = (said) => spansOf(said, "node")
-  .some((one) => one.holes.some((hole) => said.slice(hole.from, hole.to).includes("\x60")));
+/* Each JS template the walk finds, folded where it stands, from the last back so every offset still answers; one holding a template in its interpolation is left as written, its parts being no one string. */
+const templated = (said, valueOf, made) => spansOf(said, "node")
+  .filter((one) => said[one.from] === "\x60" && !one.holes.some((hole) => said.slice(hole.from, hole.to).includes("\x60")))
+  .reverse()
+  .reduce((text, one) => `${text.slice(0, one.from)}${made(text.slice(one.from, one.to), one.from, valueOf)}${text.slice(one.to)}`, said);
 
 /** A binding reaches the text after it and nothing before, one rebound to anything but a whole string literal answers for nothing, a join whose members all read as literals folds to one, and
  *  `+` and pathlib's `/` fold to a fixed point. Each pass reads what the pass before it produced and finds its bindings there, so an offset always answers against the text it was measured in:
@@ -77,16 +78,20 @@ const nested = (said) => spansOf(said, "node")
 export const glued = (body, runner) => {
   const lang = SPEAKS[runner];
   let out = String(body);
-  const holds = lang === "node" && nested(out) ? null : HOLDS[lang];
+  const holds = HOLDS[lang];
   /* `bound` answers off `out` and `lang` alone, so it is rebuilt only where a pass moved the text. */
   let read = null;
   let bindings = null;
-  const pass = (pattern, made) => {
+  const fresh = () => {
     if (read !== out) {
       bindings = bound(out, lang);
       read = out;
     }
-    out = out.replace(pattern, (...args) => made(args, args[args.length - 2], bindings) ?? args[0]);
+    return bindings;
+  };
+  const pass = (pattern, made) => {
+    const valueOf = fresh();
+    out = out.replace(pattern, (...args) => made(args, args[args.length - 2], valueOf) ?? args[0]);
   };
   const quoted = (valueOf, name, at) => {
     const held = valueOf(name, at);
@@ -95,11 +100,9 @@ export const glued = (body, runner) => {
   /* A constructor cannot fold while its argument is still a concatenation, and a concatenation cannot reach a name no fold has reached yet, so the stages run together until the text stops moving. */
   for (let hop = 0; hop < FOLDS; hop += 1) {
     const before = out;
-    if (holds) {
-      pass(holds.spans, ([span], at, valueOf) => {
-        return holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
-      });
-    }
+    const interpolated = (span, at, valueOf) => holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
+    if (lang === "node") out = templated(out, fresh(), interpolated);
+    else if (holds) pass(holds.spans, ([span], at, valueOf) => interpolated(span, at, valueOf));
     pass(NAME_THEN, ([, name, sign], at, valueOf) => {
       const said = quoted(valueOf, name, at);
       return said === null ? null : `${said} ${sign} `;
