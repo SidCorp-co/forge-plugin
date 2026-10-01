@@ -37,8 +37,8 @@ const pythonSpans = (text) => [...text.matchAll(PYTHON)].map((one) => {
   return { from: one.index, to: one.index + one[0].length, comment: one[1] !== undefined, holes };
 });
 
-/* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does, and closes on its own line; a `}` may end a block or a value, so a slash after one is read as the division that loses nothing. */
-const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;+\-*%<>~^]|\breturn|\btypeof)\s*$/u;
+/* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does, and closes on its own line; a `}` may end a block or a value, and an arithmetic operator may be a postfix `++` ending one, so a slash after either is read as the division that loses nothing. */
+const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;]|\breturn|\btypeof)\s*$/u;
 const quotedTo = (text, at) => {
   let end = at + 1;
   while (end < text.length && text[end] !== text[at] && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
