@@ -37,8 +37,10 @@ const pythonSpans = (text) => [...text.matchAll(PYTHON)].map((one) => {
   return { from: one.index, to: one.index + one[0].length, comment: one[1] !== undefined, holes };
 });
 
-/* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does, and closes on its own line; a `}` may end a block or a value, and an arithmetic operator may be a postfix `++` ending one, so a slash after either is read as the division that loses nothing. */
-const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;]|\breturn|\btypeof)$/u;
+/* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does, and closes on its own line before what may follow one; a `}` may end a block or a value, and an arithmetic operator may be a postfix `++` ending one, so a slash after either is read as the division that loses nothing. */
+const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;]|(?<![.\w$])(?:return|typeof))$/u;
+/* What may follow a regular expression: a method on it, or the punctuation ending the value; a division's right-hand operand never begins with one of these. */
+const AFTER_REGEX = /^\s*(?:[.,;)\]}]|$)/u;
 const quotedTo = (text, at) => {
   let end = at + 1;
   while (end < text.length && text[end] !== text[at] && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
@@ -55,7 +57,8 @@ const regexTo = (text, at) => {
   if (text[end] !== "/") return null;
   end += 1;
   while (/[a-z]/u.test(text[end] ?? "")) end += 1;
-  return end;
+  const line = text.indexOf("\n", end);
+  return AFTER_REGEX.test(text.slice(end, line < 0 ? text.length : line)) ? end : null;
 };
 /* One string, comment or expression starting at `at`, or null where code stands there. */
 const spanAt = (text, at) => {
