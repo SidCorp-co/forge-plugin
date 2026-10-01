@@ -87,7 +87,7 @@ const argument = (code, args, [at, key]) => {
 
 const literalAt = (code, one) => (one && spelling(code.slice(one.from, one.to)) !== null ? one : null);
 
-/* Each field a string runs, `{ from, to }` within it, from its opening brace to the one closing it: a brace nested in it, a string's aside, is counted. An f-string's doubled brace is a literal one, and so is an opener behind an odd run of backslashes. */
+/* Each field a string runs, `{ from, to }` within it, from its opening brace to the one closing it: a brace nested in it, a string's aside, is counted. An f-string's doubled brace is a literal one, and so is a template's opener behind an odd run of backslashes; python escapes no brace that way. */
 const fields = (text, opens) => {
   const out = [];
   for (let at = text.indexOf(opens); at >= 0; at = text.indexOf(opens, at + 1)) {
@@ -95,7 +95,7 @@ const fields = (text, opens) => {
       at += 1;
       continue;
     }
-    if (/(?:^|[^\\])(?:\\\\)*\\$/u.test(text.slice(0, at))) continue;
+    if (opens === "${" && /(?:^|[^\\])(?:\\\\)*\\$/u.test(text.slice(0, at))) continue;
     let depth = 0;
     let quote = null;
     let end = at + opens.length - 1;

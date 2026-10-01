@@ -108,6 +108,7 @@ test("what a string still runs is code, and a call there is one", () => {
   both(heredoc("node", "const s = `${\"writeFileSync('j.md', 'x')\"}`;"), [], "a string inside an interpolation is still a string");
   both(heredoc("node", "const s = `\\${writeFileSync('l.md', 'x')}`;"), [], "an escaped interpolation is data");
   both(heredoc("node", "const s = `\\\\${writeFileSync('m.md', 'x')}`;"), ["m.md"], "one behind an escaped backslash runs");
+  both(python(String.raw`s = rf"\{open('n.md','w')}"`), ["n.md"], "a backslash before an f-string's field escapes nothing");
   both(python("s = f\"{'open(\\'k.md\\', \\'w\\')'}\""), [], "and inside an f-string's field");
 });
 
