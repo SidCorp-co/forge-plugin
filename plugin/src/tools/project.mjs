@@ -1,7 +1,7 @@
 /* `forge project` — the projects themselves, and this CLI's one verb outside any project's scope.
    Every other verb acts inside the project the checkout names; these act on the records that
    naming picks between. Why deletion is not among them: docs/cli/doctor.md. */
-import { deployFrom, deployRows, deployed, stagingOf } from "../tracker/project-config.mjs";
+import { bindingsOf, deployRows, deployed, heldLabels } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { exclusive, flags, pairOf, pairsFrom, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
 import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
@@ -62,7 +62,7 @@ const idFor = async (slug) => {
 /** The record, with the deploy read through the seat that tells a host from a secret: a project row
  *  carries the test credentials whole, and printing the row would print them. */
 const recordLines = (project) => {
-  const deploy = deployFrom(stagingOf(project?.environments));
+  const deploy = bindingsOf(project ?? {});
   const out = [
     `slug: ${project?.slug}`,
     `name: ${project?.name ?? "unset"}`,
@@ -71,11 +71,12 @@ const recordLines = (project) => {
     `created: ${(project?.createdAt ?? "").slice(0, 10) || "not stated"}`,
     `archived: ${project?.archivedAt ? (project.archivedAt ?? "").slice(0, 10) : "no"}`,
   ];
+  if (deploy.refused) return [...out, `staging deploy: not read — ${deploy.refused}`];
   if (!deployed(deploy)) return [...out, "staging deploy: none configured"];
   out.push(`staging deploy: ${deploy.urls.length} host(s)`);
   for (const row of deployRows(deploy)) out.push(`  ${row.label}: ${row.detail}`);
   if (deploy.withheld.length) {
-    out.push(`  held, not printed: ${deploy.withheld.map((one) => one.label).join(", ")}`);
+    out.push(`  held, not printed: ${heldLabels(deploy.withheld)}`);
   }
   return out;
 };

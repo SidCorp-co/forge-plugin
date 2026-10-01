@@ -208,7 +208,7 @@ test("a project that declares no model is noted rather than read as one, and an 
 
 test("the report withholds a credential and names the one command that prints it", () => {
   const out = said({});
-  assert.match(out, /^test credentials: present, forge doctor --credentials {2}← the tracker's project detail$/mu,
+  assert.match(out, /^test credentials: 3 value\(s\) held, forge doctor --credentials {2}← the tracker's project detail$/mu,
     "and it names where the values it withholds are stored");
   assert.match(out, /^held, not printed: staging · urls · label, test credentials · username, test credentials · password$/mu);
   assert.doesNotMatch(out, /correct-horse-battery/u, "the value is the thing the flag is for");

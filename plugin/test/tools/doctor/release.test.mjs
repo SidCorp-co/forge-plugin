@@ -61,7 +61,7 @@ test("a deploy on record is reported by count, and its credential is not printed
     { preview: { url: "https://beta.example.test" }, testCredentials: [{ password: "correct-horse-battery" }] },
   );
   assert.match(out, /\[ {2}ok {2}\] staging deploy\s+1 host\(s\) {2}← the tracker's project detail/u);
-  assert.match(out, /\[ {2}ok {2}\] test credentials\s+present, forge doctor/u,
+  assert.match(out, /\[ {2}ok {2}\] test credentials\s+1 value\(s\) held, forge doctor/u,
     "the report says where the value is read, never the value");
   assert.doesNotMatch(out, /correct-horse-battery/u);
   assert.doesNotMatch(out, /environments/u, "and the tracker's own field name is not what a reader is shown");

@@ -342,12 +342,25 @@ export const stagingOf = (bindings) => (bindings
 
 const NO_RECORD = "the project detail answered with no project record";
 
+const NO_BINDINGS = "the project record carried no deploy bindings at all, where a project that "
+  + "configured none carries them empty";
+
+const unread = (refused) => ({ ...deployFrom(undefined), refused });
+
+/** The deploy one project row holds. The tracker answers `null` for a project that configured no
+ *  bindings, so a row without the key is a reading that did not happen, and it takes the refused
+ *  shape rather than the empty one: read as empty, it printed `none` and disarmed the guard for a
+ *  project holding ten logins (ISS-2050). */
+export const bindingsOf = (project) => (project.environments === undefined
+  ? unread(NO_BINDINGS)
+  : deployFrom(stagingOf(project.environments)));
+
 /** Null is a checkout naming no project, which holds none of a project's credentials to carry; a reading that did not answer is the deploy's own empty shape carrying `refused`, so every walker below still meets arrays and only the credential guard acts on the field (ISS-487). */
 export const stagingDeploy = once(async () => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_projects.get", {}, true);
-  if (answer?.project) return deployFrom(stagingOf(answer.project.environments));
-  return { ...deployFrom(undefined), refused: answer?.refused ?? NO_RECORD };
+  if (answer?.project) return bindingsOf(answer.project);
+  return unread(answer?.refused ?? NO_RECORD);
 });
 
 /* Above the length, refused wherever a payload holds it; below it, only where a field is it,
@@ -502,19 +515,25 @@ const UNREAD_DEPLOY = `${DEPLOY_SOURCE} did not answer, so nothing here says wha
 
 const UNSET = "unset on the project";
 
+/** Each label of what is withheld once, with how many values carry it where more than one does: ten
+ *  logins are three labels rather than thirty, and the count is what a judging run decides on. */
+export const heldLabels = (held) => {
+  const counts = new Map();
+  for (const one of held) counts.set(one.label, (counts.get(one.label) ?? 0) + 1);
+  return [...counts].map(([label, count]) => (count > 1 ? `${label} ×${count}` : label)).join(", ");
+};
+
 /** One reading of `withheld`: the branches cannot disagree, and *none* is said rather than inferred from an absent line (ISS-477). */
 const credentialRows = (held, asked) => {
   const out = [{ level: "ok", label: "test credentials", detail: held.length
-    ? `${asked ? "below, printed once" : "present, forge doctor --credentials"}  ← ${DEPLOY_SOURCE}`
+    ? `${asked ? "below, printed once" : `${held.length} value(s) held, forge doctor --credentials`}  ← ${DEPLOY_SOURCE}`
     : "none" }];
   if (asked) {
     return [...out, ...held.map((one) => ({ level: "ok", label: one.label, detail: one.value })),
       { level: "ok", label: "copied onto an issue", detail: "a copy an issue's stored sessionContext "
         + `carries is taken off with ${REDACT_ROUTE("<ref>")}` }];
   }
-  if (held.length) {
-    out.push({ level: "ok", label: "held, not printed", detail: held.map((one) => one.label).join(", ") });
-  }
+  if (held.length) out.push({ level: "ok", label: "held, not printed", detail: heldLabels(held) });
   return out;
 };
 
@@ -619,7 +638,10 @@ export const deployRows = (deploy) =>
 export const projectRows = ({ policy, deploy, credentials, landing = landingScope() }) => {
   const out = policyRows(policy, landing);
   if (deploy?.refused) {
-    return [...out, { level: "note", label: "staging deploy", detail: UNREAD_DEPLOY }];
+    /* Said on a row of its own rather than left to the deploy note: a judging run reads this row to
+       decide whether a login exists, and silence there read as none (ISS-2050). */
+    return [...out, { level: "note", label: "staging deploy", detail: UNREAD_DEPLOY },
+      { level: "note", label: "test credentials", detail: `not read — ${firstLine(deploy.refused)}` }];
   }
   if (!deploy) return [...out, { level: "ok", label: "staging deploy", detail: NO_DEPLOY }];
   const held = deploy.withheld;
