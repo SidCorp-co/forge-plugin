@@ -107,6 +107,7 @@ const TEXT = new Set(["'", '"', "#", "\\"]);
 const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
+const BACKTICK = "\x60";
 
 /* What every match of `RUNS` ends in, past its spaces: a word of letters behind a hyphen holding a
    `c`, or one ending `eval`. Read backwards over that one word, so a quote no runner can stand before
@@ -134,9 +135,13 @@ export const shellOf = (command) => {
       if (one === "(") {
         outer.push({ back: text[at - 1] === "$" ? word : null, depth });
         word = at + 1;
-      } else if (one === ")" && outer.at(-1)?.depth === depth) {
+      } else if (one === ")" && outer.at(-1)?.depth === depth && !outer.at(-1).tick) {
         const { back } = outer.pop();
         word = typeof back === "number" ? back : at + 1;
+      } else if (one === BACKTICK && outer.at(-1)?.tick && outer.at(-1).depth === depth) word = outer.pop().back;
+      else if (one === BACKTICK) {
+        outer.push({ back: word, depth, tick: true });
+        word = at + 1;
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
     }
     const quoted = under === "'" || under === '"';
