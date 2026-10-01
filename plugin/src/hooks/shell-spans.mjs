@@ -3,7 +3,7 @@
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 
-import { WRITE_CALLS } from "./call-writes.mjs";
+import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { quoting, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";

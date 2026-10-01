@@ -1,4 +1,6 @@
-// Which argument of a program's own file call is the file it writes, read off the call's text: what a program body another language reads, a heredoc's or a `-c` one's, is read for, since a write that reaches no shell is no shell word. how/writes.md.
+// Which argument of a program's own file call is the file it writes, read off the call's text, for the readings that ask what a heredoc or a `-c` body in another language writes. how/writes.md.
+
+import { argumentsAt } from "../../checks/shapes/calls.mjs";
 
 /** Either half of a write made by a library call, anywhere in a text: `open` with a mode that writes, and every call below by name. The cheap test, before `fileCalls` reads which argument the call writes. */
 export const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
@@ -49,36 +51,18 @@ export const spelling = (said) => {
 
 const NAME = /^[A-Za-z_]\w*$/u;
 const KEYWORD = /^([A-Za-z_]\w*)\s*=(?!=)\s*/u;
-const CLOSE = { "(": ")", "[": "]", "{": "}" };
 
-/* The arguments of the call whose `(` ends at `from`, each `{ from, to }` trimmed, and where its `)` stands: a quote and a bracket are walked so a comma or a parenthesis inside either splits nothing. `null` where the text ends before the call closes. */
-const argsFrom = (code, from) => {
-  const args = [];
-  const open = [];
-  let quote = null;
-  let start = from;
-  const push = (end) => {
-    const text = code.slice(start, end);
-    const lead = text.length - text.trimStart().length;
-    if (text.trim()) args.push({ from: start + lead, to: start + text.trimEnd().length });
+/* The arguments of the call whose `(` ends at `from`, read off `bare`, where every string and comment is blanked so nothing in one splits or closes the call, and each trimmed against `code`, which still spells them. `null` where the text ends before the call closes. */
+const argsFrom = (code, bare, from) => {
+  const { args, close } = argumentsAt(bare, from - 1);
+  if (close >= bare.length) return null;
+  return {
+    args: args.map((one) => {
+      const text = code.slice(one.from, one.to);
+      return { from: one.from + text.length - text.trimStart().length, to: one.from + text.trimEnd().length };
+    }).filter((one) => one.to > one.from),
+    end: close + 1,
   };
-  for (let at = from; at < code.length; at += 1) {
-    const one = code[at];
-    if (quote) {
-      if (one === "\\") at += 1;
-      else if (one === quote) quote = null;
-    } else if (one === "'" || one === '"' || one === "`") quote = one;
-    else if (CLOSE[one]) open.push(CLOSE[one]);
-    else if (open.length && one === open.at(-1)) open.pop();
-    else if (!open.length && one === ",") {
-      push(at);
-      start = at + 1;
-    } else if (!open.length && one === ")") {
-      push(at);
-      return { args, end: at + 1 };
-    }
-  }
-  return null;
 };
 
 /* The argument a call takes at a position or under a keyword, its keyword taken off. */
@@ -139,24 +123,25 @@ const unrun = (text, base, pattern) => [...text.matchAll(pattern)].flatMap((one)
   return [...pieces, ...within];
 });
 
-/* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; and whether an offset stands where the program runs nothing, inside a string or a comment, where a call is none. */
+/* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; the same with its strings blanked too, for the walk that splits arguments; and whether an offset stands where the program runs nothing, inside a string or a comment, where a call is none. */
 const spokenIn = (given, runner) => {
   const pattern = SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python;
   const code = [...given.matchAll(pattern)].filter((one) => one[1] !== undefined)
     .reduce((text, one) => `${text.slice(0, one.index)}${" ".repeat(one[0].length)}${text.slice(one.index + one[0].length)}`, given);
   const pieces = unrun(given, 0, pattern);
-  return { code, inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
+  const bare = pieces.reduce((text, one) => `${text.slice(0, one.from)}${" ".repeat(one.to - one.from)}${text.slice(one.to)}`, code);
+  return { code, bare, inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
 };
 
 /* pathlib's writes, on the path they are called on, where a module's call above has not already read the same parenthesis: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells with `w` or `a` — an archive's `open('member', 'w')` names a member there, and writes no file, so an `open` taking its mode second is some object's own, placed nowhere and kept for the reading that keeps every candidate. A receiver `RECEIVED` cannot read is computed, and its line is the call. */
 const METHOD = /\.(write_(?:text|bytes)|open)\s*\(/gu;
-const receivedCalls = (code, inside, taken) => {
+const receivedCalls = ({ code, bare, inside }, taken) => {
   const received = [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index));
   return [...code.matchAll(METHOD)].filter((one) => !inside(one.index)).flatMap((hit) => {
     const to = hit.index + hit[0].length;
     if (taken.has(to)) return [];
     if (hit[1] === "open") {
-      const read = argsFrom(code, to);
+      const read = argsFrom(code, bare, to);
       const writes = (at) => {
         const mode = read && literalAt(code, argument(code, read.args, [at, "mode"]));
         return mode && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to)));
@@ -182,12 +167,12 @@ const receivedCalls = (code, inside, taken) => {
 
 /** Each file call in `given`, the program a `runner` reads: `{ from, to }` is where it stands, `text` what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
 export const fileCalls = (given, runner) => {
-  const { code, inside } = spokenIn(given, runner);
+  const { code, bare, inside } = spokenIn(given, runner);
   const out = [];
   for (const hit of [...code.matchAll(OPENS)].filter((one) => !inside(one.index))) {
     const opened = hit.index + hit[0].length;
     const call = CALLS.find((one) => one.name.test(hit[0]));
-    const read = argsFrom(code, opened);
+    const read = argsFrom(code, bare, opened);
     if (!call || !read) continue;
     const mode = call.mode && literalAt(code, argument(code, read.args, call.mode));
     if (call.mode && !(mode && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to))))) continue;
@@ -197,5 +182,5 @@ export const fileCalls = (given, runner) => {
     const computed = targets.length < written.filter(Boolean).length;
     out.push({ from: hit.index, to: read.end, opened, text: code.slice(hit.index, read.end), targets, names, computed });
   }
-  return [...out, ...receivedCalls(code, inside, new Set(out.map((one) => one.opened)))];
+  return [...out, ...receivedCalls({ code, bare, inside }, new Set(out.map((one) => one.opened)))];
 };

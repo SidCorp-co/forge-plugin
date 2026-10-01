@@ -13,7 +13,7 @@ import { mkdirSync, realpathSync, statSync, utimesSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 
 import { FRESH_MS, callAt, namesOf, promptIndex, shellWrites, touched, turnRecords, writtenPaths } from "../../hooks/_hook.mjs";
-import { glued } from "../../src/hooks/assembled.mjs";
+import { glued } from "../../src/hooks/program/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { redirectsIn } from "../../src/hooks/shell-spans.mjs";
 import { tempRoom } from "../fixtures.mjs";

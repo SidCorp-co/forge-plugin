@@ -1,8 +1,9 @@
 /* What an interpreter's own body would have built before it wrote, for the one caller that asks what a
    command writes. Kept out of the hook harness because it is a reading and not an entry point, and
-   beside shell-spans because it answers the same question about a different language. how/writes.md. */
+   beside the call reader because both read a program another language runs, as shell-spans reads the
+   shell's. how/writes.md. */
 import { SPEAKS, SPOKEN_IN, fileCalls } from "./call-writes.mjs";
-import { unquote } from "./shell-spans.mjs";
+import { unquote } from "../shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
 const FOLDS = 3;
@@ -59,7 +60,7 @@ const bound = (said, lang) => {
 const NAME_THEN = new RegExp(String.raw`\b([A-Za-z_]\w*)\s*([+/])\s*(?=${LITERAL})`, "gu");
 const THEN_NAME = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*\b([A-Za-z_]\w*)\b`, "gu");
 
-/* A bare name a file call writes through is the literal it was last bound to, so `p = 'a.md'` then `open(p, 'w')` writes `a.md`. Replaced from the last one back, so every offset still answers against the text it was measured in. */
+/* A bare name a file call writes through is the literal it was last bound to, so a name bound to a whole literal and then handed to `open` as its file writes that literal. Replaced from the last one back, so every offset still answers against the text it was measured in. */
 const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => one.names)
   .sort((a, b) => b.from - a.from)
   .reduce((text, { from, to }) => {
