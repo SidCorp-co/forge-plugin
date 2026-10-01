@@ -228,6 +228,35 @@ test("a builder the claim history answers for on its own is written as the build
   assert.equal(state.issues[0].status, "testing", `${moved.stdout}${moved.stderr}`);
 });
 
+/* sid-desk ISS-391: a judge dispatched onto an issue parked at `on_hold` from `developed` claims it
+   there, and the history stamps that claim with a status the sequence does not hold. Read as itself
+   it made the judge a second build holder, so the write declared the builder unknown and every
+   verdict that judge wrote was refused for being inside that set (ISS-2044). */
+test("a judge that claimed an issue parked from developed is no build holder, so the write names the one that built it", async () => {
+  const { room, judged } = landedRoom("parked-judge");
+  held([], undefined, { acceptanceCriteria: "1. The one outcome.", plan: PLAN, mergedAt: AT });
+  state.issues[0].sessionContext.lease.history = [
+    { holder: "the-only-run", status: "in_progress", at: "2026-09-07T10:00:00.000Z" },
+    { holder: RUN, status: "on_hold", at: "2026-09-07T11:30:00.000Z" },
+    { holder: RUN, status: "developed", at: "2026-09-07T11:31:00.000Z" },
+  ];
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-park", createdAt: "2026-09-07T11:00:00.000Z", authorId: "agent",
+      body: render("park", { kind: "paused", why: "the deploy is not made yet" }, "developed") },
+    { documentId: "c-mark", createdAt: AT, authorId: "agent", body: `mark_merged target=base — merged to master at ${judged}` },
+    { documentId: "c-verdict", createdAt: AT, authorId: "agent",
+      body: render("verdict", { criterion: "1 — outcome", verdict: "pass", commit: judged, evidence: [DEPLOYED], judge: RUN }) },
+  );
+  const run = await declaringQa("independent", () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged.slice(0, 7), "--deployment", DEPLOYED], room));
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().builder, "the-only-run",
+    "the claim taken at on_hold reads at the status its park left, which no build is done at");
+  const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
+  assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
+  assert.equal(state.issues[0].status, "testing", `the judge's own verdict earns it:\n${moved.stdout}${moved.stderr}`);
+});
+
 test("a history naming no run that built the change still declares the builder unrecoverable", async () => {
   const { room, judged } = landedRoom("no-holder");
   held([]);

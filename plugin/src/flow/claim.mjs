@@ -22,7 +22,6 @@ import { scopeFrom } from "./record/plan-scope.mjs";
 import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld } from "./record/page.mjs";
-import { buildsAt } from "./earned.mjs";
 import { OPEN_KEPT, droppedHead, merged, patchFrom, saidWritten, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import { batchPatch, batchSaid } from "./lease/batch.mjs";
 import {
@@ -39,7 +38,7 @@ import {
   landingOf,
 } from "./landing/checkpoint.mjs";
 import { commandAt } from "./machine.mjs";
-import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
+import { REBUILT_FORM, handWrittenOf } from "./landing/reconstruction.mjs";
 import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
 import { recordsWalked } from "./landing/statuses.mjs";
@@ -522,7 +521,9 @@ export const claim = async (argv) => {
         undeployed: given.undeployed,
         held: context?.[LANDING] ?? null,
         landing: landingOf(context),
-        holders: holdersOf(context, buildsAt),
+        /* Off the page as well as the lease, so this write and the rung reading it count one set:
+           a claim taken at a side status is placed by the park that set it (ISS-2044). */
+        holders: viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []).holders,
         lands: landsOn(await releasePolicy()),
       })
       : null);

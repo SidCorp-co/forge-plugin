@@ -394,6 +394,32 @@ test("a verdict is told about the builder, and a checkpoint short of a deploymen
   assert.doesNotMatch(noBuilder[0], /deployment identity/u, "and the deployment stands on this one");
 });
 
+/* The judge's claim on an issue parked at `on_hold` carries that status, which the sequence does not
+   hold. Read at the status the park left, it is a judging claim where the park left the judging rung
+   and a build where it left one, and a claim no park preceded is unplaced and reads as a build, as
+   every status the sequence cannot place does (ISS-2044). */
+const PARKED_AT = "2026-09-07T12:30:00.000Z";
+const parkedFrom = (left, createdAt = PARKED_AT) => ({ createdAt, authorId: "agent",
+  body: render("park", { kind: "paused", why: "the deploy is not made yet" }, left) });
+const judgedFromHold = (parks) => viewFrom("the-uuid", issueOf({ sessionContext: {
+  landing: REBUILT,
+  lease: { holder: QA, history: [{ holder: "one", status: "in_progress", at: AT },
+    { holder: "two", status: "in_progress", at: AT }, { holder: QA, status: "on_hold", at: "2026-09-07T12:40:00.000Z" }] },
+} }), [...parks, mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))], null, INDEPENDENT);
+
+test("a judge that claimed an issue parked from developed is no build holder, and its verdicts stand", () => {
+  const view = judgedFromHold([parkedFrom("developed")]);
+  assert.deepEqual(view.holders, ["one", "two"], "the judging claim is not among the runs that built it");
+  assert.deepEqual(judgedOwed(view, "ISS-8").map((one) => one.what), [], "so nothing refuses its verdicts");
+});
+
+test("a claim at a side status whose park left a build, or that no park preceded, is still a build", () => {
+  assert.deepEqual(judgedFromHold([parkedFrom("in_progress")]).holders, ["one", "two", QA]);
+  assert.deepEqual(judgedFromHold([]).holders, ["one", "two", QA], "no park on the page places the claim nowhere");
+  assert.deepEqual(judgedFromHold([parkedFrom("developed", "2026-09-07T12:50:00.000Z")]).holders, ["one", "two", QA],
+    "and a park posted after the claim says nothing about where the claim was taken");
+});
+
 test("the landing's reading of which criteria were judged refuses what the entry check refuses", () => {
   const view = viewFrom("the-uuid", issueOf({ sessionContext: heldBy("one", "two") }),
     [mark(), comment(render("verdict", [verdictOf(1, { judge: "one" }), verdictOf(2)]))], null, INDEPENDENT);

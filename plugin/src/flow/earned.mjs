@@ -31,7 +31,10 @@ import { holdersOf } from "./landing/reconstruction.mjs";
 import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/fields.mjs";
-import { assemble, parse } from "./record/page.mjs";
+import { assemble } from "./record/page.mjs";
+import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } from "./earned/parks.mjs";
+
+export { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince };
 import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
@@ -68,6 +71,17 @@ export const atLeast = (status, floor) =>
  *  status a build hands over at judged the change or landed it, and nothing on the record proposes
  *  it as the builder (ISS-2045). A status the sequence does not hold reads as a build. */
 export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELINE_AT) + 1]);
+
+/** `buildsAt` for a claim-history row, read against the page: a claim taken at a side status was
+ *  taken where the park that set it left, which is the newest park landing there posted before the
+ *  claim. A judge dispatched onto an issue parked from `developed` claims it at `on_hold`, and read as
+ *  itself that claim made the judge a build holder and voided every verdict it wrote (ISS-2044). A
+ *  row no such park precedes stays unplaced, which reads as a build. */
+export const buildsOn = (view) => (status, row) => {
+  if (!SIDE.includes(status) || !row?.at) return buildsAt(status);
+  const left = parkRecord(view, (kind) => sameLanding(PARK_STATUS[kind], status), null, row.at)?.record.fields.left;
+  return buildsAt(left ?? status);
+};
 
 export const criteriaOf = (issue) => {
   try {
@@ -624,54 +638,5 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
   const flags = planFlags(unwrap(issue.plan));
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), holders: holdersOf(issue?.[SESSION], buildsAt), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
-};
-export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
-  const found = view.comments
-    .filter((one) => (!since || (one.createdAt ?? "") > since) && (!until || (one.createdAt ?? "") < until))
-    .map((one) => ({ comment: one, record: parse(one.body ?? "") }))
-    .filter((one) => one.record?.kind === "park" && wanted(one.record.fields.kind))
-    .filter((one) => !shapeGaps("park", one.record, view.names).length);
-  return found.length ? found.at(-1) : null;
-};
-
-export const SILENT = "on_hold";
-const ANNOUNCED = /—\s*moved from `[a-z_]+`$/u;
-const announces = (one) => ANNOUNCED.test(unwrap(one.body).split("\n")[0]?.trim() ?? "");
-const announcements = (view) => view.comments.filter(announces);
-export const announcedAt = (view) => announcements(view).at(-1)?.createdAt ?? null;
-
-/* The park that set a side status, not the newest of a kind, and the two orders one may be written
-   in — docs/cli/advance-what-it-sends.md. `on_hold` announces nothing, as it did (ISS-420). */
-export const parkThatSet = (view, status) => {
-  const wanted = (one) => sameLanding(PARK_STATUS[one], status);
-  if (status === SILENT) return parkRecord(view, wanted);
-  const said = announcements(view);
-  if (!said.length) return null;
-  const last = said.at(-1);
-  const under = parkRecord(view, wanted, last.createdAt ?? null);
-  if (under) return under;
-  const prior = said.at(-2) ?? null;
-  const over = parkRecord(view, wanted, prior?.createdAt ?? null, last.createdAt);
-  const spent = over && prior && view.comments[view.comments.indexOf(prior) + 1] === over.comment;
-  return spent ? null : over;
-};
-
-/** Whether an `answer` record newer than `at` stands on the page, judged by the write's own shape
- *  rules. Both readers of a park ask it, so the resume and the look cannot disagree about one. */
-export const relayedSince = (view, at) => view.comments.some((one) => {
-  if ((one.createdAt ?? "") <= at) return false;
-  const record = parse(one.body ?? "");
-  return record?.kind === "answer" && !shapeGaps("answer", record, view.names).length;
-});
-
-/* A screen is the change a deploy does not undo for whoever already read it, so a person answers: a
-   comment later than the park, from a token that is neither a device's nor the tracker's own, or
-   their answer relayed on the record. */
-export const answered = (view, kind) => {
-  const asked = parkRecord(view, (one) => one === kind);
-  const at = asked?.comment?.createdAt ?? "";
-  return Boolean(asked) && (relayedSince(view, at) || view.comments.some(
-    (one) => !one.authorDeviceId && !announces(one) && (one.createdAt ?? "") > at,
-  ));
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), holders: holdersOf(issue?.[SESSION], buildsOn({ comments, names })), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
 };
