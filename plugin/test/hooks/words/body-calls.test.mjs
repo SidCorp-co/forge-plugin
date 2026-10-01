@@ -45,6 +45,7 @@ test("a body whose lines only assign names no file", () => {
 
 test("a body's own file call is still a write, at the argument its API writes", () => {
   both(python("open('x.md','w').write(s)"), ["x.md"], "open with a write mode");
+  both(python("open('r.md', r'w')", "open(f'a.md', mode=b'ab')"), ["r.md", "a.md"], "a mode with a prefix");
   both(heredoc("node", "require('fs').writeFileSync('w.md', 'x')"), ["w.md"], "node's writeFileSync");
   both(python("from pathlib import Path", "Path('docs/p.md').write_text('x')"), ["docs/p.md"], "pathlib's receiver");
   both(python("shutil.copy('a.md', 'b.md')"), ["b.md"], "a copy's destination and not its source");

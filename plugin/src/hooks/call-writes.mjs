@@ -118,7 +118,7 @@ export const fileCalls = (given, runner) => {
     const read = argsFrom(code, opened);
     if (!call || !read) continue;
     const mode = call.mode && literalAt(code, argument(code, read.args, call.mode));
-    if (call.mode && !(mode && /^['"][wa]/u.test(code.slice(mode.from, mode.to)))) continue;
+    if (call.mode && !(mode && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to))))) continue;
     const written = call.writes.map((one) => argument(code, read.args, one));
     const targets = written.filter((one) => literalAt(code, one));
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
