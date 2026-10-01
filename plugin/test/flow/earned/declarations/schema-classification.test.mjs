@@ -6,7 +6,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome } from "../../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("schema-classification").path;
 const { render } = await import("../../../../src/flow/record/page.mjs");
@@ -29,6 +30,7 @@ const JUDGED = [comment("mark_merged target=base — merged to master at c8c3550
 const owed = (issue, comments = []) => judgedOwed(viewFrom("the-uuid", { ...COUPLED, ...issue }, [...JUDGED, ...comments]), "ISS-3");
 const said = (issue, comments) => owed(issue, comments).map((one) => one.what);
 
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const UNCLASSIFIED = "the plan declares schema coupling, and no migration risk classification is on the record";
 
 test("a schema-coupled change owes the classification record, whatever else the issue carries", () => {
@@ -59,4 +61,46 @@ test("a whole classification record discharges the demand, and one that does not
 
 test("a plan declaring no schema coupling owes no classification", () => {
   assert.deepEqual(said({ plan: "Screen change: no. Schema coupling: no." }), []);
+});
+
+/* Through the verb a run types and the tracker it writes to, rather than off `render`: a write whose
+   dispatch or parse lost the kind would leave every case above green (consult 75e16f F1). */
+const coupledIssue = {
+  documentId: "coupled-uuid", issueId: "ISS-3", status: "developed", title: "a schema-coupled change",
+  description: "no mark here", ...COUPLED,
+};
+const project = {
+  calls: [],
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
+  issues: [coupledIssue],
+  comments: { "coupled-uuid": [] },
+  answer: {
+    forge_issues: (args) => {
+      if (args.action === "list") return { issues: project.issues, returned: project.issues.length, hasMore: false };
+      if (args.action === "get") return coupledIssue;
+      if (args.action === "update") return Object.assign(coupledIssue, args.data);
+      return { documentId: args.documentId, ...(args.data ?? {}) };
+    },
+  },
+};
+
+test("forge record migration writes the record the demand reads, and refuses a statement with no class", async () => {
+  const { tracker, env } = await trackerFor(project);
+  try {
+    for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3", "--unheld"], env));
+    const refused = await ranAsync(FORGE, ["record", "migration", "ISS-3", "--reaches", "at boot",
+      "--statement", "ALTER TABLE runs DROP COLUMN note"], env);
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stderr, /--statement takes `<statement> \| additive\|tightening\|destructive`/u);
+    const wrote = await ranAsync(FORGE, ["record", "migration", "ISS-3",
+      "--reaches", "the entrypoint migrates at boot, so the merge is the schema change",
+      "--statement", "ALTER TABLE runs ADD COLUMN note text | additive"], env);
+    assert.equal(wrote.status, 0, wrote.stderr);
+    const posted = project.calls.filter((one) => one.name.startsWith("forge_comments") && one.args?.data?.body)
+      .map((one) => one.args.data.body).filter((body) => body.includes("forge-record: migration"));
+    assert.equal(posted.length, 1, "one migration record went up");
+    assert.deepEqual(said({}, [comment(posted[0])]), [], "and the record the verb wrote discharges the demand");
+  } finally {
+    tracker.close();
+  }
 });
