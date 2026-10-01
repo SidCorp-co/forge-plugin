@@ -25,6 +25,12 @@ range would have become a comment on the previous range's issue with nothing lef
 shown with the decision behind it and never folded onto, because a finding landed on a row nobody
 works is lost; [`beside`](beside.md) says what the filer is shown instead.
 
+**A destination on another project is named with that project.** A key names an issue only in the
+project it is read in, and a fold made from a checkout of another project lands on a backlog where the
+same key is somebody else's issue to everyone standing in that checkout — the filer, the report its
+run writes, whoever reads either afterwards. So the reply names it `ISS-n on <slug>` there, as a
+filing's own line does, and gives the bare key only where the two projects are one.
+
 **The fold asks for both signals on one issue, and that is a price paid deliberately.** The issue a
 filing lands on has to be the one it is about *and* the one it is in — the nearest of the neighbours
 naming its place, which is not the nearest of all, and no reply here says otherwise. The place query

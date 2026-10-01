@@ -1,5 +1,5 @@
 /* One filing's reply, for both verbs that file: a route contributes its opening line and what it does with a soft refusal, and every other line is the same on both. Why `route.mjs` under this neither prints nor exits, and why the id goes last: docs/cli/filing.md. */
-import { fail } from "../../resolve/settings.mjs";
+import { fail, projectScope, projectTarget } from "../../resolve/settings.mjs";
 import { filedAs, keysOffered, rankSaid } from "../issue-shape.mjs";
 import { commentLanded, issueLanded, sayLanded } from "./landed.mjs";
 import { foldedInto, suggestionLines } from "./neighbours.mjs";
@@ -11,6 +11,13 @@ const sayBeside = (beside, said) => {
 
 const echo = (answer) => console.log(JSON.stringify(answer, null, 2));
 
+/* A bare key is resolved in whichever project its reader stands in, so a fold onto another project's
+   issue names that project beside it, in the form a filing's own line prints (ISS-2151). */
+const destination = ({ issueId }) => {
+  const aimed = projectTarget().value;
+  return aimed && aimed !== projectScope().value ? `${issueId} on ${aimed}` : issueId;
+};
+
 /* A route that names no `lost` is one whose filing the tracker does not soft-refuse, and a route
    wrong about that would read a refusal as a filing. So the default says it rather than crashing. */
 const refused = (what, said) => fail(`the tracker refused ${what}: ${said}`);
@@ -21,17 +28,17 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
   if (filed.refusal) fail(filed.refusal.text);
   if (filed.shape.said) console.error(filed.shape.said);
   /* One drop for both routes, past the one refusal that means nothing landed: a later failure of a write that landed printing the body back reads as one to send again. */
-  if (filed.answer?.refused) lost(filed.joined ? `a comment on ${filed.joined.issueId}` : "this filing", filed.answer.refused);
+  const where = filed.joined ? destination(filed.joined) : null;
+  if (filed.answer?.refused) lost(where ? `a comment on ${where}` : "this filing", filed.answer.refused);
   dropKept();
   if (filed.joined) {
     echo(filed.answer);
-    console.log(foldedInto(filed.joined, filed.answer));
+    console.log(foldedInto(filed.joined, filed.answer, where));
     if (asked.module) {
-      console.log(`No module was written: the filing folded onto ${filed.joined.issueId} as a comment, and a `
+      console.log(`No module was written: the filing folded onto ${where} as a comment, and a `
         + `comment carries none. The same call with \`--new\` files it as its own issue under ${asked.module.name}.`);
     }
-    const { documentId, issueId } = filed.joined;
-    return sayLanded(await commentLanded(documentId, filed.answer, issueId));
+    return sayLanded(await commentLanded(filed.joined.documentId, filed.answer, where));
   }
   if (intro) console.log(intro);
   echo(filed.answer);

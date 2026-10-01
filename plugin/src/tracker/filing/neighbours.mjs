@@ -161,9 +161,10 @@ const namedAs = (answer) => {
   return handle ? ` There it is finding ${handle}, which that issue's run carries in a criterion or declines.` : "";
 };
 
-/** The fold's reply: no filing happened, so a reader after its key is told where the body went. */
-export const foldedInto = (joined, answer = null) =>
-  `${joined.issueId} is open, names the same place and is the nearest of the neighbours that do, at`
+/** The fold's reply: no filing happened, so a reader after its key is told where the body went,
+ *  `ref` being that key as the caller names it to a reader standing in another project. */
+export const foldedInto = (joined, answer = null, ref = joined.issueId) =>
+  `${ref} is open, names the same place and is the nearest of the neighbours that do, at`
   + ` ${joined.score.toFixed(2)}; this filing says where its subject comes from, so it lands there as a finding`
   + " under its own title rather than as a second issue. No issue was filed and no lease was taken;"
   + " `--new` files it separately, and the block above is everything it was measured against."
