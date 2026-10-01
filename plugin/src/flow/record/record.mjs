@@ -36,6 +36,7 @@ import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, oweRelease, renew, writtenBy } from "../lease.mjs";
 import { judgedPast, judgedSaid, moveHeld } from "../lease/judged.mjs";
 import { issueOf, post, sayStored } from "./thread/posting.mjs";
+import { tallied } from "./thread/tally.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { answerChecked } from "../park/answer.mjs";
@@ -443,7 +444,8 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
-  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: renderedWithin(kind, blocks, stamp, { reference, uploads: plan?.upload }) };
+  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: renderedWithin(kind, blocks, stamp, { reference, uploads: plan?.upload }),
+    tallied: tallied(kind, reference, blocks) };
 };
 
 const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
@@ -497,6 +499,7 @@ const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
   if (judged?.refused) refuse(judged.refused);
   const read = await page();
   const written = await postRung(prepared, { reference, documentId, body, comments: read.comments, next, patch, judged });
+  for (const one of prepared) one.tallied?.();
   if (judged) console.error(judgedSaid(reference, judged));
   const after = await afterWrites(documentId, reference, {
     issue: written.issue,
