@@ -395,9 +395,12 @@ test("approved is refused where the project keeps a tree and the issue names no 
 /* A resume restores the status the park left rather than earning it again, so the entry check does
    not run and the clause was owed at the first entry into `approved` (AC-14-4-2). Pinned here so a
    later reader sees the boundary rather than a route the citation condition was forgotten on. */
+/* The edge has cleared, so the park owes nothing of its own and what is left to read is the clause;
+   an edgeless one would owe its answer (ISS-2675), which is no part of this boundary. */
+const CLEARED = { otherDisplayId: "ISS-33", otherStatus: "closed", kind: "blocks", gatesDispatch: true };
 test("a park resumed to approved owes what the park owes, and no clause", () => {
   const resumed = targetOf(
-    viewFrom("the-uuid", { status: "on_hold" },
+    viewFrom("the-uuid", { status: "on_hold", relations: { blockedBy: [CLEARED] } },
       [recorded("park", { kind: "blocked", why: "ISS-33 first", evidence: [] }, "approved")], null, null, UNREAD),
     "ISS-3",
   );

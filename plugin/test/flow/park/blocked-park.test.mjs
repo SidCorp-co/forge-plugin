@@ -50,8 +50,9 @@ test("an edgeless blocked park is not resumed, and owes the answer as the one co
     assert.equal(next, "confirmed", name);
     assert.equal(resumed, true, name);
     assert.equal(missing.length, 1, `${name}: nothing earned the resume`);
-    assert.match(missing[0].command, /^forge record answer ISS-420 --from "<who answered>" --quoted "<their words>"$/u, name);
-    assert.match(missing[0].what, /no edge that gates dispatch blocks this issue/u, name);
+    /* The answer's whole form is park.test.mjs's to pin; that it is the answer is this case's. */
+    assert.match(missing[0].command, /^forge record answer ISS-420 --from /u, name);
+    assert.match(missing[0].what, /nothing on the record stands for the blocker/u, name);
   }
 });
 
