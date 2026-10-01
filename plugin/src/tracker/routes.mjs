@@ -357,11 +357,50 @@ export const ROUTES = {
     requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
     sends: ["query", "topK", "scope", "strategy", "sourceFilter"],
   },
-  /* The tracker's own release-batch state, raw: `active` and `state` answer with the shape its own
-     REST surface already declares (ISS-764 in that repository) rather than one this CLI reprojects,
-     which is the same reading `forge_coolify.*` takes of the platform's own words. Three rows and no
-     fourth: `finish`, `method` and `attempts` are the release agent's own protocol and are nobody's
-     read or clear, which is the whole of what ISS-1484 asks the CLI for. */
+  /* The tracker's own release routes, raw: each answers with the shape its own REST surface already
+     declares (ISS-764 in that repository) rather than one this CLI reprojects, which is the same
+     reading `forge_coolify.*` takes of the platform's own words. `method` and `attempts` stay out,
+     being the release agent's own ledger protocol; `finish` is in, because an agent that performed a
+     release has to be able to say so (ISS-1992). `record` is the route for a release performed
+     outside a batch, and the only one here that closes issues: the tracker closes them on its own
+     sanctioned path, so this CLI sends no status move of its own. */
+  "forge_release_batch.readiness": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/release-readiness`),
+    sends: [],
+  },
+  "forge_release_batch.roster": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches/roster`),
+    sends: [],
+  },
+  "forge_release_batch.create": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches`, "POST",
+      filled({ issueIds: args.data?.issueIds, recutOf: args.data?.recutOf })),
+    sends: ["data"],
+  },
+  "forge_release_batch.finish": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches/${args.runId}/finish`, "POST",
+      filled({ commit: args.data?.commit })),
+    sends: ["runId", "data"],
+  },
+  "forge_release_batch.record": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/release-records`, "POST",
+      filled({ issueIds: args.data?.issueIds, commit: args.data?.commit, account: args.data?.account,
+        providerRef: args.data?.providerRef })),
+    sends: ["data"],
+  },
+  "forge_release_batch.recorded": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/release-records/${args.runId}`),
+    sends: ["runId"],
+  },
   "forge_release_batch.active": {
     project: true,
     requests: (args, project) => one(`/projects/${project}/release-batches/active`),

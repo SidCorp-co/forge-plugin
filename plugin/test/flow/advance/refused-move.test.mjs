@@ -69,6 +69,19 @@ test("a refused move names the status the issue holds and the status it was aske
   assert.ok(under.trimEnd().endsWith(NO_OP), `the refusal goes under that line whole: ${run.stderr}`);
 });
 
+/* The tracker that keeps a release step closes from awaiting_release on its own release path, and its
+   answer to a run's own move there is about the status alone (ISS-1992). */
+test("a refused close from awaiting_release names the release record as the route, above the tracker's own words", async () => {
+  state.refuses = NO_OP;
+  PARKED.status = "awaiting_release";
+  const run = await advance();
+  assert.equal(run.status, 1, run.stdout);
+  const [above, under = ""] = run.stderr.split("What refused it:\n");
+  assert.match(above, /forge release-batch record ISS-99 --commit <sha> --account "<how it was released>"/u, run.stderr);
+  assert.match(above, /`forge release-batch readiness`/u, run.stderr);
+  assert.ok(under.trimEnd().endsWith(NO_OP), `the tracker's words stay last: ${run.stderr}`);
+});
+
 test("a move the tracker takes prints the pair it moved between and nothing about a refusal", async () => {
   state.refuses = null;
   PARKED.status = "awaiting_release";

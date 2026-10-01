@@ -1,43 +1,55 @@
-/* `forge release-batch` — this project's own release batch, read and cleared without its MCP
-   client. `active` says which run, if any, is in flight; `state` carries its roster and the
-   tracker's own bounds reading, the same three-bound liveness measurement the release path already
-   keeps and never a second one invented here. `clear` re-reads both before it writes and refuses a
-   run the tracker's own bounds do not yet call holding unless told `--force`.
+/* `forge release-batch` — this project's own release, read and written without its MCP client.
+   `active` says which run, if any, is in flight; `state` carries its roster and the tracker's own
+   bounds reading, the same three-bound liveness measurement the release path already keeps and
+   never a second one invented here. `clear` re-reads both before it writes and refuses a run the
+   tracker's own bounds do not yet call holding unless told `--force`. The other reads and the
+   writes that put a release on the record are `reads.mjs` and `writes.mjs`.
 
    Named `release-batch` rather than the bare word: `release` is already a form meaning the move to
    `awaiting_release` (`plugin/src/resolve/handler.mjs`), and a second meaning under one word is the
-   ambiguity a form exists to avoid rather than add. docs/cli/release-batch.md.
-
-   Its own directory rather than a sibling file in `tools/`, alone though it is: that split alone
-   pushed `tools/` past its own file-count cap. */
+   ambiguity a form exists to avoid rather than add. docs/cli/release-batch.md. */
 import { fail } from "../../resolve/settings.mjs";
 import { flags, helpAskedOf, wantsHelp } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 import { sharedNow } from "../../wire/shared-clock.mjs";
+import { READINESS_USAGE, RECORDED_USAGE, ROSTER_USAGE, readiness, recorded, roster } from "./reads.mjs";
+import { FINISH_USAGE, RECORD_USAGE, START_USAGE, finish, record, start } from "./writes.mjs";
 
 const STATUS_USAGE = "Usage: forge release-batch [status]";
 const CLEAR_USAGE = 'Usage: forge release-batch clear <runId> --reason "<text>" [--force]';
 
 const USAGE = [
   usageOf("release-batch"),
-  "Whether a release batch is running for this project, and clearing a dead one, without this",
-  "CLI's MCP client.",
+  "This project's release, read and written without this CLI's MCP client: whether a batch is",
+  "running, what would refuse one, what waits for one, and the record of one that shipped.",
   "",
   "  status (default)              the active batch's runId, age, roster and the tracker's own",
   "                                 bounds reading — bare `forge release-batch` is this",
+  "  readiness                     every reason the tracker would refuse a release now, by code",
+  "  roster                        the issues waiting at the release gate, oldest merge first",
+  "  start <ISS-nn>...             open a batch over exactly those issues; prints its runId",
+  "  [--recut-of <version>]        and the version it cut. --recut-of re-cuts a FAILED release",
+  "  finish <runId> [--commit S]   ask the tracker to verify the deploy and close the batch's",
+  "                                 issues; no --commit asks only that the deploy arrived",
+  "  record <ISS-nn>... --commit <sha> --account \"<text>\" [--provider-ref <ref>]",
+  "                                 a release already performed outside a batch, by hand or",
+  "                                 otherwise: the tracker checks the commit against the",
+  "                                 deployment's probes and closes the issues itself",
+  "  recorded <runId>              read a recorded release back",
   '  clear <runId> --reason "<t>"  cancel that run: release its claims, close no issue. Refused',
   "  [--force]                     unless a fresh read agrees runId is the active batch and its",
   "                                 bounds reading holds (past a bound the tracker itself measures);",
   "                                 --force is the one way past that second refusal alone",
   "",
-  "Every read and the clear both go through the tracker's own release-batch routes — the same ones",
-  "the release agent itself uses — and never through /mcp. There is no verb that judges a batch dead",
-  "on this CLI's own say-so: what prints is the tracker's own record, and a person reads it to decide.",
+  "Every call goes through the tracker's own release routes and never through /mcp, and no",
+  "subcommand moves a status itself: the closes are the tracker's, on its own release path. A",
+  "refusal prints every reason the tracker listed, not only the first.",
 ].join("\n");
 
-const SAYS = { clear: CLEAR_USAGE };
+const SAYS = { clear: CLEAR_USAGE, readiness: READINESS_USAGE, roster: ROSTER_USAGE, recorded: RECORDED_USAGE,
+  start: START_USAGE, finish: FINISH_USAGE, record: RECORD_USAGE };
 
 /* `now` takes a fixed instant so a case can prove this arithmetic exactly, on a constant it chose,
    rather than against the real clock a subprocess spawn's own share of the machine would move
@@ -131,7 +143,7 @@ const clear = async ([runId, ...rest]) => {
   console.log(`released   ${released.length} issue(s): ${released.join(", ") || "none"}`);
 };
 
-const SUBS = { clear };
+const SUBS = { clear, readiness, roster, start, finish, record, recorded };
 
 export const releaseBatch = async (argv) => {
   const [sub, ...rest] = argv;
