@@ -15,6 +15,7 @@ import { DOC_TASK } from "../text/prompts.mjs";
 import { translateItems } from "../gateway/engine.mjs";
 import * as placeholders from "../text/placeholders.mjs";
 import * as drift from "../text/drift.mjs";
+import * as figures from "../text/figures.mjs";
 
 const SHOWN = 10;
 
@@ -38,12 +39,16 @@ export async function translate(args, makeClient) {
   const slots = [];
   const sent = args.kind === "doc" ? markdown.protectInline(text, slots) : text;
   /* The doc kind's prompt names the ⟦VI…⟧ markers, so a string sent under it can come back holding
-     one it was never given, and every tracker title is sent that way (ISS-1016). */
-  const asDoc = args.kind === "doc"
-    ? { verify: (source, got) => placeholders.diff(source, got) ?? markdown.verify(source, got) ?? drift.diff(source, got) }
-    : {};
+     one it was never given, and every tracker title is sent that way (ISS-1016). A prose string is
+     a sentence a script writes somewhere a reader trusts, a commit subject among them, so it is held
+     to its figures as well (ISS-2104); a ui string is localised, and keeps the placeholder check. */
+  const checks = {
+    doc: (source, got) =>
+      placeholders.diff(source, got) ?? markdown.verify(source, got) ?? drift.diff(source, got) ?? figures.diff(source, got),
+    prose: (source, got) => placeholders.diff(source, got) ?? figures.diff(source, got),
+  };
   const { results, problems } = await translateItems(client, [["1", sent]], {
-    ...asDoc,
+    ...(checks[args.kind] ? { verify: checks[args.kind] } : {}),
     kind: args.kind === "prose" ? null : args.kind,
     glossary: config.glossary(),
     temperature: args.temperature,
@@ -109,7 +114,7 @@ export async function doc(args, makeClient) {
     glossary,
     temperature: args.temperature,
     verbose: args.verbose,
-    verify: (source, got) => markdown.verify(source, got) ?? drift.diff(source, got),
+    verify: (source, got) => markdown.verify(source, got) ?? drift.diff(source, got) ?? figures.diff(source, got),
     register: config.register(),
     region: config.region(),
     contexts,

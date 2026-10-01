@@ -5,8 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { protectInline } from "../../vi-natural/format/doc.mjs";
-import { translatedIn } from "./fake-gateway.mjs";
+import { protectInline } from "../../../vi-natural/format/doc.mjs";
+import { translatedIn } from "../fake-gateway.mjs";
 
 const NAMES = /\b(?:qa-0919c|ISS-1886|1de6fc8e|run_id|translatedBody)\b/gu;
 const sent = [];
@@ -50,8 +50,9 @@ test("a rewrite that loses a held name is refused and nothing is posted", async 
   }
 });
 
-test("words, hyphenated words, numbers and ordinals still reach the rewrite as prose", async (t) => {
-  const prose = "The 3rd end-to-end run of 3rd-party code took 1886 ms at 3.36.141 on the 21st.";
+/* A figure is held since ISS-2104, as a name is; a list's own number is Markdown and stays prose. */
+test("words, hyphenated words, ordinals and a list's own numbers still reach the rewrite as prose", async (t) => {
+  const prose = "1. The 3rd end-to-end run of 3rd-party code on the 21st\n2) the second item";
   const slots = [];
   assert.equal(protectInline(prose, slots), prose);
   assert.deepEqual(slots, []);

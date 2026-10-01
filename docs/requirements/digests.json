@@ -4222,8 +4222,32 @@
       "digest": "a76627353ff761bddcfc671b2d2e8465a46503bb47857290cd1a34265364c120"
     },
     "AC-13-5-4": {
+      "rev": 2,
+      "digest": "3dd13ce2aaf507adb3cda0453b8beb337e09e903a8d7476b4d4ad64cfe094c6b"
+    },
+    "UC-13-6": {
       "rev": 1,
-      "digest": "6de6ff69d3400bddce3e2a0a194a152c23377461b256fe952f08b63d2d3f176b"
+      "digest": "acc2362489ff732bb94d5bbb9c51e10f9af449ee4dbbfbb34c24f01394607771"
+    },
+    "AC-13-6-1": {
+      "rev": 1,
+      "digest": "bf6e10c44e1d3e59bd6d54756fcc573d92cdebc23925f3d0524ee6e4d261fa41"
+    },
+    "AC-13-6-2": {
+      "rev": 1,
+      "digest": "6d64dad37ea25cef29cab4ae4341253e9e1f633bcb04f726536fb79fcad1c93b"
+    },
+    "AC-13-6-3": {
+      "rev": 1,
+      "digest": "8520b988c89488da0431cc06a19e880db68cdad0a629f4f346a0e85fbb84a2af"
+    },
+    "AC-13-6-4": {
+      "rev": 1,
+      "digest": "01c07b93cf84f22271d13d5e01c2ca35cf8a0feef399cf76a60eca43a2730261"
+    },
+    "AC-13-6-5": {
+      "rev": 1,
+      "digest": "31fd1f48e82c3ccc9747c9525d7c2d30bcb77a64244417a01e9a679d85fdb875"
     },
     "FR-14": {
       "rev": 1,
