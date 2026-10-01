@@ -33,11 +33,12 @@ const RECEIVED = new RegExp(
 const STRING_IN = new RegExp(STRING, "u");
 
 /* A whole string literal and nothing else: the one shape a call's argument names a file by that a reading can place without running the program. An f-string still holding a `{` is built at runtime, so it is none. */
-const LITERAL = /^([rRbBuUfF]{0,2})(['"])([^'"\n]*)\2$/u;
+const LITERAL = /^([rRbBuUfF]{0,2})(?:"([^"\\\n]*)"|'([^'\\\n]*)')$/u;
 /** What a whole string literal spells, its prefix and quotes off, or `null` where the text is no such literal. */
 export const spelling = (said) => {
   const hit = LITERAL.exec(said);
-  return hit && !(/f/iu.test(hit[1]) && hit[3].includes("{")) ? hit[3] : null;
+  const inner = hit && (hit[2] ?? hit[3]);
+  return hit && !(/f/iu.test(hit[1]) && inner.includes("{")) ? inner : null;
 };
 
 const NAME = /^[A-Za-z_]\w*$/u;
@@ -92,7 +93,7 @@ const holes = (code, one) => {
   return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? [...one[0].matchAll(/\{[^{}]*\}/gu)] : [];
 };
 
-/** Each file call in `code`, the program a `runner` reads, `{ from, to }` its whole text; one spelt inside a string or a comment is none: `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A call whose written argument is anything else has no target: what a program computes is not placed here. */
+/** Each file call in `code`, the program a `runner` reads, `{ from, to }` its whole text; one spelt inside a string or a comment is none: `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
 export const fileCalls = (code, runner) => {
   const said = [...code.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)].map((one) => ({
     from: one.index,
@@ -111,14 +112,15 @@ export const fileCalls = (code, runner) => {
     const written = call.writes.map((one) => argument(code, read.args, one));
     const targets = written.filter((one) => literalAt(code, one));
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
-    out.push({ from: hit.index, to: read.end, targets, names });
+    out.push({ from: hit.index, to: read.end, targets, names, computed: targets.length < written.filter(Boolean).length });
   }
   for (const hit of [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index))) {
     const said = STRING_IN.exec(hit[0]);
     const name = said ? null : /^[A-Za-z_]\w*/u.exec(hit[0]);
     const from = hit.index + (said ?? name).index;
     const one = { from, to: from + (said ?? name)[0].length };
-    out.push({ from: hit.index, to: hit.index + hit[0].length, targets: said && spelling(said[0]) !== null ? [one] : [], names: name ? [one] : [] });
+    const targets = said && spelling(said[0]) !== null ? [one] : [];
+    out.push({ from: hit.index, to: hit.index + hit[0].length, targets, names: name ? [one] : [], computed: !targets.length });
   }
   return out;
 };

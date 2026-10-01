@@ -55,6 +55,16 @@ test("a body's own file call is still a write, at the argument its API writes", 
   both(heredoc("node", "fs.appendFileSync('log.md', 'x')"), ["log.md"], "an append");
   both(heredoc("deno", "await Deno.writeTextFile('d.md', 'x')"), ["d.md"], "deno's write");
   both(heredoc("bun", "await Bun.write('b.md', 'x')"), ["b.md"], "bun's write");
+  /* A name holding a quote is read as the same redirect spelt in the shell is, whatever that reader makes of it. */
+  both(python(`open("author's.md", "w")`), strict(`echo x > "author's.md"`), "a name holding the other quote");
+  both(heredoc("node", `writeFileSync('say "hi".md', 'x')`), strict(`echo x > 'say "hi".md'`), "and the other way round");
+  assert.deepEqual(strict(String.raw`python3 -c "open(\"author's.md\", \"w\")"`), strict(`echo x > "author's.md"`), "an inline body's");
+});
+
+test("a call writing a literal and a computed operand keeps both readings of it", () => {
+  const command = python("shutil.move(base + '/src.md', 'planned.md')");
+  assert.deepEqual(strict(command), ["planned.md"], "strike aims the literal and places nothing for the other");
+  assert.ok(keeps(command).includes("/src.md"), "keep still reads what the computed source spells");
 });
 
 test("a read beside a write is not one, and a target the program computes is placed nowhere", () => {
