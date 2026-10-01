@@ -151,7 +151,9 @@ export const briefGoals = async (held = {}) => {
  *  not proof it was corrected. docs/cli/the-brief.md states that edge. */
 export const refreshBrief = async (path, { pairs, ...meta }) => {
   const body = await bodyFrom(path);
-  if (path === "-") keepOnFailure(`Your brief, so that nothing here loses it:\n\n${body}`);
+  const dropKept = path === "-"
+    ? keepOnFailure(`Your brief, so that nothing here loses it:\n\n${body}`, { ahead: true })
+    : undefined;
   const digests = digestsFor(body);
   const wrote = await upsertEntry({
     slug: BRIEF_SLUG,
@@ -161,6 +163,7 @@ export const refreshBrief = async (path, { pairs, ...meta }) => {
     injection: BRIEF_INJECTION,
     confidence: meta.confidence,
     meta: { ...metaFrom(pairs), [DIGESTS]: digests },
+    dropKept,
   });
   const unread = unhashable(body);
   const named = Object.keys(digests);

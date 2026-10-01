@@ -1,5 +1,5 @@
 /* The project's knowledge store as a client. `forge knowledge` is one caller and the project brief another, so it lives beside the tracker's other clients rather than inside either verb. docs/cli/knowledge.md. */
-import { fail, keepOnFailure } from "../../resolve/settings.mjs";
+import { fail } from "../../resolve/settings.mjs";
 import { pairOf, pairsFrom } from "../../resolve/flags.mjs";
 import { refuseCredential, scoped, write } from "../rest.mjs";
 
@@ -85,7 +85,7 @@ const carried = (given, stored) => {
 };
 
 /** One home for the write, spent by the `knowledge` verb and by the project verb's brief: the not-found reading, the carry, the credential seat and the read-back are the store's rules, not a caller's. */
-export const upsertEntry = async ({ slug, body, meta = {}, ...given }) => {
+export const upsertEntry = async ({ slug, body, meta = {}, dropKept = () => {}, ...given }) => {
   const stored = await entryAt(slug);
   if (!stored && !given.kind) fail(NO_KIND);
   if (!stored && !given.title) fail("a new entry needs --title; the tracker refuses an untitled one.");
@@ -95,7 +95,7 @@ export const upsertEntry = async ({ slug, body, meta = {}, ...given }) => {
   await refuseCredential({ slug, ...payload, body }, "The knowledge entry this write was about to send");
   const sent = { body, ...payload };
   await write("forge_knowledge", { action: "upsert", slug, ...sent });
-  keepOnFailure(null);
+  dropKept();
   const back = await entryAt(slug);
   if (!back) {
     fail(`forge_knowledge answered success but ${slug} does not read back as a held entry: the store `

@@ -47,7 +47,7 @@ export const movedHere = async (documentId, ref, say) => {
      is printed there and a line kept anyway would outlive the refusal into whatever that script
      fails on next. The end-of-call read below still reaches the move. */
   const line = embeddedRun() ? null : await heldLine(documentId, ref);
-  MOVED.set(documentId, { ref, say, dropped: line ? keepOnFailure(line, say) : () => {} });
+  MOVED.set(documentId, { ref, say, dropped: line ? keepOnFailure(line, { say }) : () => {} });
 };
 
 export const heldAfterMoves = async () => {
