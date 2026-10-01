@@ -68,16 +68,9 @@ it, while a lease released under a run still working is that run's very next wri
 So the release follows the action and never the status — in ship mode `self` one run carries past
 `developed` and lands, and a release keyed to that rung would take the issue out from under it.
 
-**And a run that means to let the issue go says that too: `forge claim <ref> --give-back`.** A lease
-claimed by hand covers a run rather than a write, so nothing but its holder knows when that run is
-over, and a run whose only way out was the clock or a one-minute lease left the issue unexplained for
-hours — three sessions on forge-dev in one afternoon read a success line and moved on (ISS-1998). It
-is a flag of its own rather than `--stopped`, because `--stopped` from the holder is already the
-answer to the working refusal — *that work standing in the tree is this run's* — and one flag meaning
-both "I am working" and "I have stopped" would release a working run's lease on the very assertion
-that it is working. So the holder's `--stopped` with no declared work under the lease, which settles
-nothing and could only renew, is refused and names the give-back. A status move still keeps the
-lease: what it clears is the step line, for the reason above.
+**A run letting the issue go says so too: `--give-back`.** Not `--stopped`, which from the holder
+answers the working refusal — *that work in the tree is mine* — and as the release it would free a
+working run's lease. The holder's `--stopped` with no work under it is refused and names the give-back.
 
 **Carrying a session id from one run to the next is not this and was refused.** It would let the
 field name which run holds an issue and would change nothing about a run that has ended still
