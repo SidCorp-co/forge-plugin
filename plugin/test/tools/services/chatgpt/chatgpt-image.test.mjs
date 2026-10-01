@@ -10,24 +10,44 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { patience } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const FRAMING = "Flat vector illustration, muted palette, no text anywhere.";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 
-const state = { sent: [], origin: null, mode: "image" };
+const state = { sent: [], uploads: [], origin: null, mode: "image" };
+
+/* The two ways ChatGPT web says it could not draw at all, which once printed a second route. */
+const COULD_NOT_DRAW = {
+  no_browser: (response) => response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({
+    jsonrpc: "2.0", id: 1,
+    result: { isError: true, content: [{ type: "text", text: "turn failed: no_browser — no browser free" }] },
+  })),
+  rate: (response) => response.writeHead(429, { "content-type": "application/json" })
+    .end(JSON.stringify({ error: "upstream_rate_limited" })),
+};
 
 const stub = createServer((request, response) => {
-  if (new URL(request.url, state.origin).pathname === "/image.png") {
+  const path = new URL(request.url, state.origin).pathname;
+  if (path === "/image.png") {
     return response.writeHead(200, { "content-type": "image/png" }).end(PNG);
   }
   let body = "";
+  /* In latin1, so the reference's bytes survive as characters and can be found in the form. */
   request.on("data", (chunk) => {
-    body += chunk;
+    body += chunk.toString("latin1");
   });
   request.on("end", () => {
+    if (path === "/api/upload") {
+      state.uploads.push(body);
+      const name = /filename="([^"]*)"/u.exec(body)?.[1];
+      return response.writeHead(200, { "content-type": "application/json" })
+        .end(JSON.stringify({ url: `${state.origin}/held/${name}` }));
+    }
     state.sent.push(JSON.parse(body));
+    if (COULD_NOT_DRAW[state.mode]) return COULD_NOT_DRAW[state.mode](response);
     if (state.mode === "hang") return undefined;
     const out = { answers: "", conversationId: "conv-7", imageUrl: `${state.origin}/image.png` };
     return response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({
@@ -58,6 +78,7 @@ const env = (prefix) => {
 
 const ran = (prefix, ...argv) => {
   state.sent.length = 0;
+  state.uploads.length = 0;
   return ranAsync(FORGE, ["chatgpt", ...argv], env(prefix));
 };
 
@@ -170,4 +191,86 @@ test("the flag that saves the framing is named on this screen and refused as a f
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No chatgpt image flag named --chatgpt-prefix/u);
   assert.equal(state.sent.length, 0);
+});
+
+const reference = (name) => {
+  const path = join(home.path, name);
+  writeFileSync(path, PNG);
+  return path;
+};
+
+test("a local reference file is uploaded to the chat backend and its URL is sent with the image turn", async () => {
+  const run = await ran(FRAMING, "image", "a fox in this style", "--ratio", "1:1", "--file", reference("style.png"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(state.uploads.length, 1, "the reference went to the upload route once");
+  assert.match(state.uploads[0], /name="file"; filename="style\.png"/u);
+  assert.ok(state.uploads[0].includes(PNG.toString("latin1")), "the reference's bytes are in the upload");
+  assert.equal(state.sent.length, 1, "one picture is one turn");
+  assert.deepEqual(state.sent[0].params.arguments.files, [`${state.origin}/held/style.png`],
+    "the turn carries the address the upload answered, and nothing else of the file");
+});
+
+test("a reference that is already a URL is sent with the image turn as it is, and nothing is uploaded", async () => {
+  const run = await ran(FRAMING, "image", "a fox", "--ratio", "1:1", "--file", "https://example.test/ref.png");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(state.uploads.length, 0);
+  assert.deepEqual(state.sent[0].params.arguments.files, ["https://example.test/ref.png"]);
+});
+
+test("a missing second reference is refused before the first one is uploaded or a turn is sent", async () => {
+  const run = await ran(FRAMING, "image", "a fox", "--ratio", "1:1",
+    "--file", reference("here.png"), "--file", join(home.path, "not-here.png"));
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /no file at \S+not-here\.png, so nothing was sent/u);
+  assert.equal(state.uploads.length, 0, "the first reference's upload is not spent");
+  assert.equal(state.sent.length, 0);
+});
+
+test("more references than the tool takes are refused before the first upload", async () => {
+  const one = reference("many.png");
+  const run = await ran(FRAMING, "image", "a fox", "--ratio", "1:1", ...Array(11).fill(["--file", one]).flat());
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /11 files, and the tool takes 10/u);
+  assert.equal(state.uploads.length, 0);
+  assert.equal(state.sent.length, 0);
+});
+
+/* A picture is the turn that usually detaches, so the reference has to survive into a process
+   nobody is watching: the child reads its files off its own argv and uploads them itself. */
+test("a detached picture uploads its reference and sends the address with the turn", async () => {
+  const run = await ran(FRAMING, "image", "a fox", "--ratio", "1:1", "--file", reference("detached.png"),
+    "--wait", "601");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^turn {6}\S+$/mu, "the call detached");
+  const stop = Date.now() + patience(10_000);
+  while (!state.sent.length && Date.now() < stop) await new Promise((wake) => setTimeout(wake, 50));
+  assert.equal(state.uploads.length, 1, "the child uploaded the reference");
+  assert.deepEqual(state.sent[0]?.params.arguments.files, [`${state.origin}/held/detached.png`]);
+});
+
+/* No line anywhere knows the old flag, so what a caller meets is the answer any stranger gets: the
+   live set, --file in it, and the usage row that declares it. */
+test("--via is refused as a flag this action does not take, naming --file, and nothing is sent", async () => {
+  const run = await ran(FRAMING, "image", "a fox", "--ratio", "1:1", "--via", "codex");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No chatgpt image flag named --via\. The set is [^\n]*--file/u);
+  assert.equal(state.uploads.length, 0);
+  assert.equal(state.sent.length, 0);
+});
+
+test("image -h says --file is a reference image to draw from, and names no other route", async () => {
+  const said = (await ran(FRAMING, "image", "-h")).stdout;
+  assert.match(said, /^ {2}--file p\|url {3}a reference image to draw from/mu);
+  assert.doesNotMatch(said, /--via|Codex/u);
+});
+
+test("a picture ChatGPT web could not draw at all prints no command for another route", async () => {
+  for (const mode of Object.keys(COULD_NOT_DRAW)) {
+    state.mode = mode;
+    const run = await ran(FRAMING, "image", "a fox", "--ratio", "16:9");
+    state.mode = "image";
+    assert.equal(run.status, 1, `${mode} did not fail`);
+    assert.equal(state.sent.length, 1, `${mode} sent a second turn`);
+    assert.doesNotMatch(run.stderr, /forge chatgpt image|--via/u, `${mode} printed a second route`);
+  }
 });

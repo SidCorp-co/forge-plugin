@@ -139,7 +139,7 @@ test("a flag of a sibling action is refused as that action's, with the call that
   assert.equal(ratio.status, 1);
   assert.doesNotMatch(ratio.stderr, /No chatgpt ask flag named --ratio/u);
   assert.match(ratio.stderr, /^ {2}forge chatgpt image "<prompt>" --ratio w:h$/mu);
-  const file = await ran("image", "x", "--file", "a.png");
+  const file = await ran("collect", "abc", "--file", "a.png");
   assert.equal(file.status, 1);
   assert.match(file.stderr, /^ {2}forge chatgpt ask "<prompt>" --file path$/mu);
   const drop = await ran("collect", "abc", "--drop", "abc");

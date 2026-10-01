@@ -14,7 +14,6 @@ import { CHATGPT_PREFIX, chatgptSettings } from "../../resolve/machine/stores.mj
 import { firstLine, flags, helpAskedOf, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { CALL_CEILING_SECONDS, pastCeiling } from "../../host/call-ceiling.mjs";
-import { codexImage, codexLine, routeOf } from "./chatgpt-codex.mjs";
 import {
   acknowledged,
   agedFor,
@@ -84,8 +83,8 @@ const askUsage = () => [
    this action exists to state, and `ask -h` is at the cap ISS-1268 set. The flag that saves the
    framing is in backticks, or the parser reads it off this text as a flag of this action. */
 const imageUsage = () => [
-  `Usage: forge chatgpt image "<prompt>" --ratio w:h [--resume id] [--model slug]`,
-  "                                      [--via codex [--file path|url]...] [--save path] [--wait s]",
+  `Usage: forge chatgpt image "<prompt>" --ratio w:h [--file path|url]... [--resume id]`,
+  "                                      [--model slug] [--save path] [--wait s]",
   "One picture, one turn: look-and-feel to build toward, never a render of what you built.",
   "",
   "Write the prompt short — the subject and the feeling, then stop. The model elaborates a short",
@@ -100,8 +99,7 @@ const imageUsage = () => [
   "  --ratio w:h    required; it travels as an instruction of its own, not a clause of the prompt",
   "  --resume id    draw into that conversation, so this picture and the last are one set",
   "  --model slug   pass a model through; no default is sent",
-  "  --via codex    the Codex gateway draws instead; never a fallback, either way",
-  "  --file p|url   with --via codex, a reference image to draw from, up to 5",
+  "  --file p|url   a reference image to draw from, up to 10; a local path is uploaded first",
   "  --save path    write the bytes of the image the reply names",
   "  --wait s       seconds to hold this one call open, in place of the configured wait",
   "",
@@ -201,9 +199,9 @@ const redactorsFor = (key) => {
 };
 
 /* The prompt leads the printed command, or the recovery line is one this verb's own parser turns away (review 829fc7, F1). */
-const ambiguous = (said, continues = null, after = "") => {
+const ambiguous = (said, continues = null) => {
   const back = continues ? `\n  The turn may already exist: ${continues}` : "";
-  fail(`chatgpt: ${said}\n  ${SPENT}${back}${after}`);
+  fail(`chatgpt: ${said}\n  ${SPENT}${back}`);
 };
 
 /* Answers a problem rather than refusing: the uploads of one turn go together, so the first one to come back badly is not the one a caller wants named, and `fail` would end the process before the rest could be read. The whole request is inside the catch — the signal, the send and the read of the body, since a 200 whose body stalls throws at the read. */
@@ -275,9 +273,8 @@ const reportOf = (out, struck, resumeAs) => {
   return lines;
 };
 
-const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal, resumeAs, elsewhere = null }) => {
+const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal, resumeAs }) => {
   const { struck, shown } = redactorsFor(held.key);
-  const aside = (text) => (elsewhere ? elsewhere(text) : "");
   const continues = (id) => (id ? resumeAs(struck(id)) : null);
   const clock = () => clockFor(deadline, signal);
   const files = await attached(parts, held, deadline, signal);
@@ -320,7 +317,7 @@ const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal
   } catch (error) {
     ambiguous(shown(ranOut(error, deadline)), continues(resume));
   }
-  if (!answer.ok) fail(`chatgpt: the backend answered ${answer.status} — ${shown(text)}${aside(text)}`);
+  if (!answer.ok) fail(`chatgpt: the backend answered ${answer.status} — ${shown(text)}`);
 
   const message = answerIn(text, answer.headers.get("content-type") ?? "", id);
   if (!message) ambiguous(`the reply could not be read as this request's answer — ${shown(text)}`, continues(resume));
@@ -328,7 +325,7 @@ const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal
   const part = result.content?.find((one) => one.type === "text");
   if (result.isError || message.error) {
     const why = message.error?.message ?? part?.text ?? "no reason given";
-    ambiguous(`the tool refused — ${shown(why)}`, continues(resume ?? result._meta?.conversationId), aside(why));
+    ambiguous(`the tool refused — ${shown(why)}`, continues(resume ?? result._meta?.conversationId));
   }
   /* Nothing to read is refused rather than printed as an empty answer, and names --resume like any
      other spent turn; text that will not parse is shown as it came (consult 4f91a2, F1). */
@@ -474,22 +471,14 @@ const image = async (argv) => {
   const prompt = promptIn(argv, said, () =>
     flags(pullRepeated(argv, "--file", "chatgpt image", row).rest, "chatgpt image", [], row));
   const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt image", row);
-  const { ratio, resume, model, save, wait, via } = flags(rest, "chatgpt image", [], row);
+  const { ratio, resume, model, save, wait } = flags(rest, "chatgpt image", [], row);
   const asked = waitFrom(wait, "chatgpt image", "this one turn may hold the connection open for");
-  const composed = () => {
+  return await turned("image", argv, () => {
     const { prefix } = chatgptSettings();
     stating(prefix, ratio);
     const shape = ratioFrom(ratio);
-    return { shape, prompt: imageAsk(prefix, prompt, shape) };
-  };
-  if (routeOf(via, { resume, model, given }) === "codex") {
-    const { shape, prompt: drawn } = composed();
-    return await codexImage({ prompt: drawn, ratio: shape, save, given, asked });
-  }
-  return await turned("image", argv, () => {
-    const { shape, prompt: drawn } = composed();
-    return { prompt: drawn, shown: prompt, model, resume, given: [], save,
-      asked, resumeAs: resumesImage(shape), elsewhere: codexLine(prompt, shape, save) };
+    return { prompt: imageAsk(prefix, prompt, shape), shown: prompt, model, resume, given, save,
+      asked, resumeAs: resumesImage(shape) };
   });
 };
 

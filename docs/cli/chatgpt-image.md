@@ -35,24 +35,11 @@ id that continues it, and the line an image turn prints continues it as an image
 call asked for. A detached picture carries the same, because the child is spawned under the action
 that asked for it rather than under a fixed one.
 
-## The Codex route
+## A reference image
 
-ChatGPT web draws through a pool of browsers, and on a day the pool has none free every picture fails
-with `no_browser` or `upstream_rate_limited`. The review gateway draws too, from its own pooled
-accounts, so `--via codex` sends the same composed prompt there instead. It is a route the caller
-names and never a fallback, in either direction: switching on its own would spend a picture from a
-second quota the caller did not choose, and a failure that might already have drawn one would draw
-it twice. So a web failure carrying either code prints the one command that asks the other route for
-the same picture, and the agent decides whether to spend it.
-
-One request and never a second holds here as on the web route, for a sharper reason: the gateway
-says outright that its 502 and 504 mean the picture may have been made and counted. Only a 4xx or a
-503 is its word that nothing went upstream, so every other ending — another 5xx, a torn answer, a
-connection that dropped, a clock that ran out — is reported as a picture that may exist.
-
-The model id is a label: the backend returned the same picture for every id it was sent, a made-up
-one among them, so the gateway's listed id is sent and no flag offers a choice that changes nothing.
-The size is a hint the backend reads loosely, so the ratio still travels as the prompt's last line
-and the size only leans the canvas the same way. The wait has a floor above the gateway's own cut,
-because a client that gives up first has lost a picture the account already paid for; a wait the
-caller types is still the one in force.
+A reference image goes over the same upload route an attachment to a question goes over, so both
+obey one set of file rules: the cap, every local file read before the first upload leaves, a URL sent
+as it is. The owner's rule, 2026-10-01 (ISS-3040): a tool that lacks a feature is fixed in that tool,
+not routed through another one. A second provider drawing in its place doubled the flags, the help,
+the tests and the credentials a picture could reach, added nothing ChatGPT web could not already
+take, and taught a caller to switch tools rather than report the gap.
