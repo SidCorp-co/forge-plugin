@@ -50,7 +50,7 @@ export const placeable = (text) => {
   return (at) => at < opens && !said.has(at);
 };
 
-/* Which quoted spans are a whole operand and so could be one filename, as mark indices, and whether its spaces are a name's. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution a double quote opened — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside `"$(…)"` is an argument of the command that substitution runs. A space is allowed only where `spacedName` reads the span as a path, and a double-quoted span is one only there: a `$`, a backtick and a backslash each cut a word, so what it holds is what a shell writes (ISS-3081). */
+/* Which quoted spans are a whole operand and so could be one filename, as mark indices, and whether its spaces are a name's. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution a double quote opened — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside `"$(…)"` is an argument of the command that substitution runs. A double-quoted span is one only where it holds a bracket or `spacedName` reads it as a path, the one place a space is allowed: a `$`, a backtick and a backslash cut a word, so it holds what a shell writes (ISS-3081). */
 const wholeSpans = (marks, alike) => {
   const opens = openedAt(marks);
   /* As a shell reads it, a continuation gone, so a body after one is a runner's. */
@@ -67,7 +67,7 @@ const wholeSpans = (marks, alike) => {
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[from].one === quote && marks[to - 1].one === quote;
     const spaced = spacedName(body.map(({ one }) => one).join("")) && !RUN_BODY.test(read.slice(0, from));
-    if (alike && shut && (quote === "'" || spaced) && from < opens && !marks[from].depth && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
+    if (alike && shut && (quote === "'" || spaced || body.some(({ one }) => BRACKET.test(one))) && from < opens && !marks[from].depth && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
       && !body.some(({ one }) => (ALWAYS.test(one) && !(spaced && one === " ")) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       out.push({ from, to, spaced });
     }
@@ -97,7 +97,7 @@ export const worded = (text, alike) => {
   for (let n = 0; n < marks.length; n += 1) {
     const { at, one, removed } = marks[n];
     const escaped = removed && marks[n + 1]?.at === at + 1;
-    if (!escaped && !(spaced[n] && (one === " " || BRACKET.test(one))) && cuts(marks[n])) {
+    if (!escaped && !((spaced[n] && one === " ") || (alone[n] && BRACKET.test(one))) && cuts(marks[n])) {
       word = null;
       continue;
     }

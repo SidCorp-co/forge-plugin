@@ -68,3 +68,19 @@ test("a double-quoted span the shell still expands, or that is not one path, kee
     assert.deepEqual(names(command), ["a.md", "b.md"], `${command}: a line continued onto the body is still a body`);
   }
 });
+
+/* A double quote holding a bracket and no space got neither reading — the bracket cut it, and only a
+   span with a space was read whole — so the name was the tail behind the bracket (ISS-3084). */
+test("a double-quoted path holding a bracket is named whole beside the bracket reading, never only as its tail", () => {
+  assert.deepEqual(written('printf x > "/r/p(1)/w.md"'), ["/r/p(1)/w.md", "/w.md"], "through the gates' reader");
+  assert.deepEqual(names('printf x > "/r/p(1)/w.md"'), names("printf x > '/r/p(1)/w.md'"), "read as the single-quoted spelling is");
+  assert.deepEqual(names('printf x > "/r/p(1)/w.md"'), ["/r/p(1)/w.md", "/w.md"]);
+  assert.ok(written('touch "/r/p(1)/w.md"').includes("/r/p(1)/w.md"), "a verb's operand as well");
+});
+
+test("a double-quoted bracketed span the shell rewrites, or that is not the whole operand, is not named whole", () => {
+  for (const command of ['printf x > "/r/p(1)/$d.md"', 'printf x > "/r/p(1)/\x60d\x60.md"', 'printf x > "/r/p(1)/a\\b.md"', 'printf x > "/r/p(1)/w.md".txt']) {
+    assert.deepEqual(written(command).filter((one) => one.startsWith("/r/p(1)/")), [], command);
+  }
+  assert.ok(names('perl -e "system(q(touch),q(b.md))"').includes("b.md"), "a body's call keeps its bracket reading");
+});
