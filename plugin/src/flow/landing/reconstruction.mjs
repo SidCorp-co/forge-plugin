@@ -25,14 +25,14 @@ export const handWrittenOf = (held) => {
 
 /** Every distinct holder the issue's claim history names as having held it while the change was
  *  still being built. One of them is the builder; several is a choice no record here can make.
- *  `builds` reads a claim's own recorded status and comes from the caller, the order of the statuses
- *  being the flow's and not this file's — every run that reaches this claimed the issue to do so, so
+ *  `builds` reads a claim's own recorded status, and the row it was recorded on, and comes from the
+ *  caller, the order of the statuses being the flow's and not this file's — every run that reaches this claimed the issue to do so, so
  *  a set counting the judging claims alongside the building ones names a holder that nothing on the
  *  record proposes as the builder. A status this predicate cannot place counts as a build, which
  *  leaves the declaration standing rather than deriving a builder off a reading nobody made. */
 export const holdersOf = (context, builds = () => true) => [...new Set(
   (Array.isArray(context?.lease?.history) ? context.lease.history : [])
-    .filter((one) => builds(one?.status))
+    .filter((one) => builds(one?.status, one))
     .map((one) => String(one?.holder ?? "").trim())
     .filter(Boolean),
 )];
