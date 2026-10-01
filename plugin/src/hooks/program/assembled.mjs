@@ -2,7 +2,7 @@
    command writes. Kept out of the hook harness because it is a reading and not an entry point, and
    beside the call reader because both read a program another language runs, as shell-spans reads the
    shell's. how/writes.md. */
-import { fileCalls, spelling } from "./call-writes.mjs";
+import { STRING, fileCalls, spelling } from "./call-writes.mjs";
 import { KINDS, literalsIn } from "../../checks/source/lexical.mjs";
 import { SPEAKS, spansOf } from "./spoken.mjs";
 import { unquote } from "../shell-spans.mjs";
@@ -15,7 +15,7 @@ const LITERAL = String.raw`"[^"\n]*"|'[^'\n]*'`;
 const ENDS = String.raw`(?=\s*(?:#|//|[);,\]}]|$))`;
 const OPENS = String.raw`(?<=^|[;{}\n]\s*|\b(?:const|let|var)\s+)`;
 const BINDS = new RegExp(
-  OPENS + String.raw`([A-Za-z_]\w*)\s*=(?!=)\s*(?:("""[^"\\\n]*"""|'''[^'\\\n]*'''|${LITERAL})${ENDS}|[^\n;]+)`,
+  OPENS + String.raw`([A-Za-z_]\w*)\s*=(?!=)\s*(?:(${STRING})${ENDS}|[^\n;]+)`,
   "gmu",
 );
 /* Only a string form that interpolates: python's f-string and a JS template literal. An ordinary `"{root}/x"` or `"${root}/x"` is a literal in both languages and stays one. */
@@ -50,7 +50,7 @@ const bound = (said, lang) => {
   const set = [];
   for (const one of code.matchAll(BINDS)) {
     if (strings.some(({ start, end }) => one.index > start && one.index < end)) continue;
-    set.push({ at: one.index + one[0].length, name: one[1], value: one[2] === undefined ? null : spelling(one[2]) ?? unquote(one[2]) });
+    set.push({ at: one.index + one[0].length, name: one[1], value: one[2] === undefined ? null : spelling(one[2]) });
   }
   return (name, at) => set.filter((one) => one.name === name && one.at < at).pop()?.value ?? null;
 };

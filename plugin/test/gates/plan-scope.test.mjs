@@ -181,6 +181,7 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
     [py('s = f"{open("unplanned.mjs", "w")}"'), "open in a field reusing the f-string's quote"],
     [py('s = f"""{open("unplanned.mjs", # the mode', "'w')}\"\"\""), "open in a field holding a comment"],
     [py('open("""unplanned.mjs""", "w")'), "open of a triple-quoted literal"],
+    [py('Path("""unplanned.mjs""").write_text("x")'), "write_text on a triple-quoted receiver"],
     [py("from pathlib import Path", "Path('unplanned.mjs').write_text(s)"), "write_text"],
     [py("from pathlib import Path", "with Path('unplanned.mjs').open('w') as f: f.write(s)"), "a path's open"],
     [py("p = 'unplanned.mjs'", "open(p, 'w')"), "a bound name"],

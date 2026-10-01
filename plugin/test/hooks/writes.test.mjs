@@ -421,6 +421,12 @@ test("a join keeps the rule of the API that was called", () => {
   assert.match(py('p = path.join(__dirname, "SKILL.md")'), /__dirname/u, "a member this cannot read leaves the call alone");
 });
 
+test("a binding holds every literal a file call places, by the one grammar both read", () => {
+  assert.match(py('p = r"rb.md"\nopen(p, "w")'), /open\("rb\.md", "w"\)/u, "a prefixed literal");
+  assert.match(py(`p = """a"b.md"""\nopen(p, "w")`), /open\('a"b\.md', "w"\)/u, "a triple-quoted one holding a quote");
+  assert.match(py('p = "a\\\\b.md"\nopen(p, "w")'), /open\(p, "w"\)/u, "and one escaping a character is placed by neither");
+});
+
 test("a binding answers for the text after it, and only while it holds a literal", () => {
   assert.match(py('p = root + "/SKILL.md"\nroot = "a/b"'), /p = root \+ "\/SKILL\.md"/u, "a binding after the use");
   assert.match(py('root = "a/b"\nroot = sys.argv[1]\np = root + "/SKILL.md"'), /p = root \+ "\/SKILL\.md"/u, "rebound to a value this cannot read");

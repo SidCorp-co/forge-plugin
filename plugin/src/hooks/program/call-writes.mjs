@@ -17,8 +17,8 @@ const CALLS = [
   { name: /\bos\.symlink\s*\($/u, writes: [[1, "dst"]] },
 ];
 const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(?:fs|fsp|promises)\.open(?:Sync)?|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
-/* A string literal, with the prefix python may give one. */
-const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"[^"\n]*"|'[^'\n]*')`;
+/** A string literal's whole extent, with the prefix python may give one and its triple-quoted forms, as a pattern's source: the one grammar every reading of a program's literal shares, `spelling` saying which of them a reading may place. */
+export const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"""(?:(?!""")[^\n])*"""|'''(?:(?!''')[^\n])*'''|"[^"\n]*"|'[^'\n]*')`;
 /* The path pathlib writes stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name. A method named and not called writes nothing. */
 const RECEIVED = new RegExp(
   String.raw`(?:(?<![.\w])(?:pathlib\.)?Path\(\s*${STRING}\s*\)|(?<![\w.)\]]\s*)\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)`
@@ -27,13 +27,15 @@ const RECEIVED = new RegExp(
 );
 const STRING_IN = new RegExp(STRING, "u");
 
-/* A whole string literal and nothing else, python's triple-quoted form among them: the one shape a call's argument names a file by that a reading can place without running the program. An f-string still holding a `{` is built at runtime, so it is none. */
-const LITERAL = /^([rRbBuUfF]{0,2})(?:"""((?:(?!""")[^\\\n])*)"""|'''((?:(?!''')[^\\\n])*)'''|"([^"\\\n]*)"|'([^'\\\n]*)')$/u;
+/* A whole string literal and nothing else: the one shape a call's argument names a file by that a reading can place without running the program. A backslash is an escape a reading does not take, and an f-string still holding a `{` is built at runtime, so neither is one. */
+const WHOLE = new RegExp(String.raw`^${STRING}$`, "u");
 /** What a whole string literal spells, its prefix and quotes off, or `null` where the text is no such literal. */
 export const spelling = (said) => {
-  const hit = LITERAL.exec(said);
-  const inner = hit && (hit[2] ?? hit[3] ?? hit[4] ?? hit[5]);
-  return hit && !(/f/iu.test(hit[1]) && inner.includes("{")) ? inner : null;
+  if (!WHOLE.test(said)) return null;
+  const prefix = /^[rRbBuUfF]*/u.exec(said)[0];
+  const quote = said.startsWith(said[prefix.length].repeat(3), prefix.length) && said.length - prefix.length >= 6 ? 3 : 1;
+  const inner = said.slice(prefix.length + quote, said.length - quote);
+  return inner.includes("\\") || (/f/iu.test(prefix) && inner.includes("{")) ? null : inner;
 };
 
 const NAME = /^[A-Za-z_]\w*$/u;
