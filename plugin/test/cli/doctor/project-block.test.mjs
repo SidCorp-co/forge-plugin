@@ -157,7 +157,7 @@ test("a config read the tracker refused is a miss naming it, not a page of not-s
 
 test("the credential is named and not printed until the flag asks for it", async () => {
   const held = await ask("doctor");
-  assert.match(held.stdout, ROW("test credentials", "present, forge"));
+  assert.match(held.stdout, ROW("test credentials", "3 value\\(s\\) held, forge"));
   assert.doesNotMatch(held.stdout, new RegExp(PASSWORD, "u"));
   const asked = await ask("doctor", "--credentials");
   assert.match(asked.stdout, ROW("test credentials · password", PASSWORD), asked.stderr);
@@ -279,6 +279,29 @@ test("a write is refused where the deploy could not be read at all, and the refu
   assert.match(rows.stdout,
     NOTE_ROW("staging deploy", "the tracker's project detail did not answer, so nothing here says"),
     "the report says the reading did not answer, rather than that the project configured nothing");
+  assert.match(rows.stdout, NOTE_ROW("test credentials", "not read — .*this credential may not read the project"),
+    "and the credential row a judging run decides on says so itself, with the reading's reason");
+});
+
+/* The tracker answers null for a project with no bindings, so a row without the key is the read
+   failing one layer up — the shape that printed `none` for a project holding ten (ISS-2050). */
+test("a project row carrying no bindings key reads as unread everywhere, and the write is held", async () => {
+  const room = tempHome("project-no-key");
+  const body = join(room.path, "secret.md");
+  writeFileSync(body, `Signed in with ${PASSWORD}.\n`);
+  const posted = () => state.calls.filter((one) => one.args?.action === "create").length;
+  state.answer["forge_projects.read"] = () => ({ id: "1e1c1a1e-0000-4000-8000-0000000000ff", slug: "forge-plugin" });
+  const before = posted();
+  const rows = await ask("doctor");
+  const run = await ask("comment", "ISS-1", body);
+  delete state.answer["forge_projects.read"];
+  assert.match(rows.stdout, NOTE_ROW("test credentials", "not read — the project record carried no deploy bindings"),
+    rows.stdout);
+  assert.doesNotMatch(rows.stdout, /test credentials\s+none/u, "an unread field is not an empty one");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /could not be read, so nothing here can say whether the payload carries one/u,
+    "the guard holds a payload it could not judge rather than waving it through");
+  assert.equal(posted(), before, "and nothing was posted");
 });
 
 /* Each read where it prints: the `ok` row under `forge doctor tracker`, the `note` on a bare call. */

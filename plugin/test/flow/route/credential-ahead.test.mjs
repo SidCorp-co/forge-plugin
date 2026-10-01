@@ -177,3 +177,20 @@ test("a record that earns its move still earns it, and the line is said over the
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
   assert.match(moved.stdout, /approved -> in_progress/u, "a project with no login is refused nothing");
 });
+
+/* An absent bindings key is the read failing, and the tracker's null is a project that configured
+   none: only the second is told it holds no login, so no run skips a criterion whose credential the
+   tracker is holding (ISS-2050). */
+test("--owed names no missing login where the row carried no bindings, and still does where they are null", async () => {
+  state.deploy = null;
+  const none = await owed("ISS-97");
+  assert.equal(none.status, 0, none.stderr);
+  assert.match(none.stdout, /holds no test credential/u, "null is the tracker's own none");
+  /* The fixture's own row fills every column, so a row the tracker sent without the key is served whole. */
+  state.answer["forge_projects.read"] = () => ({ baseBranch: "master", releaseModel: "publish" });
+  const unread = await owed("ISS-97");
+  delete state.answer["forge_projects.read"];
+  assert.equal(unread.status, 0, unread.stderr);
+  assert.doesNotMatch(unread.stdout, /holds no test credential/u, unread.stdout);
+  assert.doesNotMatch(unread.stdout, /--verdict skipped/u, "and no skip is offered on a reading that did not happen");
+});

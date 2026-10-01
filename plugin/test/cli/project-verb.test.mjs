@@ -69,6 +69,21 @@ test("a project's record is printed with its test credentials withheld", async (
     "a project row carries the credentials whole, so printing the row would print them");
 });
 
+/* The tracker answers null for a project with no bindings, so a row without the key is a reading
+   that did not happen and is said as one rather than as a project that configured nothing (ISS-2050). */
+test("a record carrying no bindings key says its deploy was not read, never that none is configured", async () => {
+  const whole = state.answer["forge_projects.read"];
+  state.answer["forge_projects.read"] = (args) => {
+    const { environments, ...rest } = whole(args);
+    return environments && rest;
+  };
+  const run = await ask("forge-plugin");
+  state.answer["forge_projects.read"] = whole;
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^staging deploy: not read — the project record carried no deploy bindings at all/mu, run.stdout);
+  assert.doesNotMatch(run.stdout, /none configured/u);
+});
+
 test("the record is read off the route for the project named, not the one the checkout scopes", async () => {
   state.calls = [];
   await ask("sid-erp");
