@@ -269,6 +269,13 @@ test("ISS-2114 4. bare status prints the active run's finish record in the lines
   assert.deepEqual(finishBlock(bare.stdout), finishBlock(byId.stdout));
 });
 
+test("ISS-2114 1. status -h is a help request, never a runId: it prints status's usage and sends nothing", async () => {
+  const run = await ran("status", "-h");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^Usage: forge release-batch \[status \[<runId>\]\]$/mu);
+  assert.deepEqual(run.calls, []);
+});
+
 test("16. a refused write prints the first reason and every alsoBlocking one, and names readiness", async () => {
   state.release.record = { refused: "No runner carries the release label.", code: "RELEASE_POOL_EMPTY",
     details: { alsoBlocking: [blocker("RELEASE_RECORD_MISSING", "ISS-2 has no release note.")] } };

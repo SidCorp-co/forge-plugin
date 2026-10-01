@@ -51,7 +51,7 @@ const USAGE = [
   "refusal prints every reason the tracker listed, not only the first.",
 ].join("\n");
 
-const SAYS = { clear: CLEAR_USAGE, readiness: READINESS_USAGE, roster: ROSTER_USAGE, recorded: RECORDED_USAGE,
+const SAYS = { status: STATUS_USAGE, clear: CLEAR_USAGE, readiness: READINESS_USAGE, roster: ROSTER_USAGE, recorded: RECORDED_USAGE,
   start: START_USAGE, finish: FINISH_USAGE, record: RECORD_USAGE };
 
 /* `now` takes a fixed instant so a case can prove this arithmetic exactly, on a constant it chose,
@@ -91,7 +91,7 @@ const statusOf = async (runId, rest) => {
 };
 
 const status = async (argv) => {
-  if (argv[0] && !argv[0].startsWith("--")) return statusOf(argv[0], argv.slice(1));
+  if (argv[0] && !argv[0].startsWith("-")) return statusOf(argv[0], argv.slice(1));
   flags(argv, "release-batch status", [], { usage: STATUS_USAGE });
   const active = await scoped("forge_release_batch.active", {});
   if (!active) {
@@ -157,7 +157,7 @@ const SUBS = { clear, readiness, roster, start, finish, record, recorded };
 export const releaseBatch = async (argv) => {
   const [sub, ...rest] = argv;
   if (wantsHelp(argv)) return console.log(USAGE);
-  const help = helpAskedOf(argv, Object.keys(SUBS));
+  const help = helpAskedOf(argv, ["status", ...Object.keys(SUBS)]);
   if (help) return console.log(help.subject ? SAYS[help.subject] : USAGE);
   if (!sub || sub === "status") return status(sub === "status" ? rest : argv);
   if (!Object.hasOwn(SUBS, sub)) {
