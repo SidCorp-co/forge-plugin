@@ -78,6 +78,13 @@ const boundsBlock = (bounds) => {
 const rosterLine = (issueIds) =>
   `roster     ${issueIds.length} issue(s): ${issueIds.join(", ") || "none"}`;
 
+/* What both `status` forms print of a run's state, in this order. */
+const stateSaid = (state) => {
+  console.log(`status     ${state?.runStatus ?? "unread"}`);
+  for (const line of finishLines(state?.finish)) console.log(line);
+  console.log(boundsBlock(state?.bounds));
+};
+
 /* One run's state by its id, active or not: a finished batch is no longer the active one, so the
    verdict of a finish the tracker took is read here and never off the active read. A read, so it
    exits 0 whatever the record says. */
@@ -85,9 +92,7 @@ const statusOf = async (runId, rest) => {
   flags(rest, "release-batch status", [], { usage: STATUS_USAGE });
   const state = await scoped("forge_release_batch.state", { runId });
   console.log(`runId      ${state?.runId ?? runId}`);
-  console.log(`status     ${state?.runStatus ?? "unread"}`);
-  for (const line of finishLines(state?.finish)) console.log(line);
-  console.log(boundsBlock(state?.bounds));
+  stateSaid(state);
 };
 
 const status = async (argv) => {
@@ -102,10 +107,7 @@ const status = async (argv) => {
   console.log(`runId      ${active.runId}`);
   console.log(`started    ${active.startedAt}${age === null ? "" : ` (${age} minute(s) ago)`}`);
   console.log(rosterLine(active.issueIds ?? []));
-  const state = await scoped("forge_release_batch.state", { runId: active.runId });
-  console.log(`status     ${state?.runStatus ?? "unread"}`);
-  for (const line of finishLines(state?.finish)) console.log(line);
-  console.log(boundsBlock(state?.bounds));
+  stateSaid(await scoped("forge_release_batch.state", { runId: active.runId }));
 };
 
 /* Trusts no argument over a fresh read. The active read and the mismatch or absent-batch refusal it
