@@ -162,3 +162,77 @@ test("a field emptied by something other than a release is refused exactly as it
   assert.match(refused.stderr, /lease field holds no lease/u, "in the words it always used");
   assert.match(refused.stderr, /forge claim ISS-1617 --unheld/u, "naming the same command");
 });
+
+/* A lease the run claimed by hand, and the one route that hands it back by name. `--stopped` from the holder is not that route: with no work under the lease it settles nothing, so it is refused rather than answered with a renewal (ISS-1998). */
+const heldBy = (holder, { minutesAgo = 5, next = null } = {}) => stands({
+  lease: { holder, agent: "a-test-agent", pid: "1", renewedAt: ago(minutesAgo), minutes: 60, next, history: [] },
+}, "in_progress");
+
+test("a holder's own --give-back leaves nothing holding the issue, and the next run claims it with no wait", async () => {
+  heldBy(BUILDER);
+  const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
+  assert.equal(gave.status, 0, `the give-back should have gone through:\n${gave.stdout}${gave.stderr}`);
+  assert.equal(ISSUE.sessionContext.lease.holder, "", "the field names no holder");
+  assert.ok(ISSUE.sessionContext.lease.released, "and carries the mark a release writes");
+  assert.match(gave.stdout, /ISS-1617 is free again: this run gave back the lease it held/u, "said as a release");
+  assert.doesNotMatch(gave.stdout, /renewed/u, "and never as a renewal");
+
+  const judge = await ran(["claim", "ISS-1617"], JUDGE);
+  assert.equal(judge.status, 0, `the next run should have claimed it:\n${judge.stdout}${judge.stderr}`);
+  assert.match(judge.stdout, new RegExp(`ISS-1617  claim: session ${JUDGE}`, "u"), "as an ordinary first claim");
+  assert.doesNotMatch(judge.stdout + judge.stderr, /Wait for it/u, "with no clock to wait out");
+});
+
+test("a holder's --give-back on its own lapsed lease gives it back too", async () => {
+  heldBy(BUILDER, { minutesAgo: 90 });
+  const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
+  assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
+  assert.equal(ISSUE.sessionContext.lease.holder, "", "the field names no holder");
+  assert.ok(ISSUE.sessionContext.lease.released, "and carries the release mark");
+});
+
+test("a give-back carries the line it is given onto the released field", async () => {
+  heldBy(BUILDER, { next: "an older line" });
+  const gave = await ran(["claim", "ISS-1617", "--give-back", "--next", LEFT], BUILDER);
+  assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
+  assert.equal(ISSUE.sessionContext.lease.next, LEFT, "the line the next run starts on");
+  assert.equal(ISSUE.sessionContext.lease.holder, "", "on a field nobody holds");
+});
+
+for (const beside of [["--minutes", "30"], ["--unheld"], ["--stopped"], ["--take"], ["--judged"]]) {
+  test(`a give-back beside ${beside[0]} is refused naming it, and the lease is left as it stood`, async () => {
+    heldBy(BUILDER);
+    const was = structuredClone(ISSUE.sessionContext);
+    const refused = await ran(["claim", "ISS-1617", "--give-back", ...beside], BUILDER);
+    assert.equal(refused.status, 1, `${beside[0]}: should have been refused:\n${refused.stdout}`);
+    assert.match(refused.stderr, new RegExp(`--give-back hands this run's lease back, and ${beside[0]}`, "u"));
+    assert.deepEqual(ISSUE.sessionContext, was, `${beside[0]}: nothing was written`);
+  });
+}
+
+test("a give-back from a run that does not hold the lease is refused naming the run that does", async () => {
+  heldBy(BUILDER);
+  const was = structuredClone(ISSUE.sessionContext);
+  const refused = await ran(["claim", "ISS-1617", "--give-back"], JUDGE);
+  assert.equal(refused.status, 1, `${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, /hands back only the caller's own lease/u, "said as the reason");
+  assert.match(refused.stderr, new RegExp(`session ${BUILDER}`, "u"), "naming the holder");
+  assert.deepEqual(ISSUE.sessionContext, was, "and the other run's lease is untouched");
+});
+
+test("a holder's --stopped with no work standing under its lease is refused naming --give-back, not renewed", async () => {
+  heldBy(BUILDER);
+  const was = structuredClone(ISSUE.sessionContext);
+  const refused = await ran(["claim", "ISS-1617", "--stopped"], BUILDER);
+  assert.equal(refused.status, 1, `the flag settles nothing here:\n${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, /forge claim ISS-1617 --give-back/u, "naming the route that hands it back");
+  assert.doesNotMatch(refused.stdout, /renewed/u, "and no renewal reported");
+  assert.deepEqual(ISSUE.sessionContext, was, "with the lease as it stood");
+});
+
+test("forge claim -h names the give-back and says a status move clears the line and keeps the lease", async () => {
+  const help = await ran(["claim", "-h"], BUILDER);
+  assert.match(help.stdout, /--give-back {5}this run's own lease, handed back/u);
+  assert.match(help.stdout, /--next <line> {3}.*a status move clears the line, not the lease/u);
+  assert.doesNotMatch(help.stdout, /a transition clears it/u, "the clause read as the lease");
+});

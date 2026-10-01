@@ -81,6 +81,7 @@ import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
 import { workingRefusal } from "./lease/working.mjs";
+import { GIVE_BACK, HOLDING, giveBack, giveBackBeside, stoppedHeldRefusal } from "./lease/give-back.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -120,13 +121,13 @@ const advise = async (documentId, fetched, held = null, landing = undefined) => 
 
 export const USAGE = [
   usageOf("claim"),
-  "The lease on an issue, in the session field it already has: a holder, a renew time, a",
-  "duration and the claims before it. Nothing else of a run is remembered.",
+  "The lease on an issue: a holder, a renew time, a duration and the claims before it.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   `  ${STOPPED}       a lapse, or work in this tree: the run the lease named stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
-  "  --next <line>   one line, the next run's first step; a transition clears it",
+  `  ${GIVE_BACK}     this run's own lease, handed back`,
+  "  --next <line>   the next run's first step; a status move clears the line, not the lease",
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or dead end, appended; past ${OPEN_KEPT} the oldest goes`,
@@ -372,15 +373,9 @@ const reclaimLines = (ref, lease, status) => {
       + `--why "${count} reclaims of ${status}: <what you read that says the runs died here>"`];
 };
 
-export const claim = async (argv) => {
-  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
-  const [ref, ...rest] = argv;
-  if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
-  const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
-  const given = flags(pulled.rest, "claim",
-    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", "--landed", "--undeployed",
-      STOPPED, UNHELD],
-    { usage: USAGE });
+/* The flags that cannot be typed together, refused before anything is read or written; returns the
+   turn flags given, which the capture line at the end reads. */
+const turnsAlone = (ref, given) => {
   /* Read where it is written or refused where it is not: both say what the checkpoint `--rebuilt`
      writes holds about the deployment, and a call writing no checkpoint has nowhere to put either
      (ISS-1993). */
@@ -397,10 +392,25 @@ export const claim = async (argv) => {
       + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `
       + `this build:\n  forge claim ${ref} --pushed --ready`);
   }
+  const keeping = given["give-back"] ? giveBackBeside(ref, given) : null;
+  if (keeping) fail(keeping);
   if (given.ready && !given.pushed) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, so the two are typed `
       + `together:\n  forge claim ${ref} --pushed --ready`);
   }
+  return turns;
+};
+
+export const claim = async (argv) => {
+  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
+  const [ref, ...rest] = argv;
+  if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
+  const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
+  const given = flags(pulled.rest, "claim",
+    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", "--landed", "--undeployed",
+      STOPPED, UNHELD, GIVE_BACK],
+    { usage: USAGE });
+  const turns = turnsAlone(ref, given);
   const asked = minutesFrom(given.minutes);
   const line = nextLine(given.next);
   const captured = await patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
@@ -427,7 +437,11 @@ export const claim = async (argv) => {
       ?? (straddles(expiry, band) ? straddleSaid(`the expiry of the lease on ${ref}`, expiry, band) : null);
     if (untold) console.error(untold);
   }
+  if (given["give-back"]) {
+    return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })));
+  }
   if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
+  if (given.stopped && HOLDING.includes(state) && !working.length) fail(stoppedHeldRefusal(ref, lease));
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, source, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);

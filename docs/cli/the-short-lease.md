@@ -68,6 +68,10 @@ it, while a lease released under a run still working is that run's very next wri
 So the release follows the action and never the status — in ship mode `self` one run carries past
 `developed` and lands, and a release keyed to that rung would take the issue out from under it.
 
+**A run letting the issue go says so too: `--give-back`.** Not `--stopped`, which from the holder
+answers the working refusal — *that work in the tree is mine* — and as the release it would free a
+working run's lease. The holder's `--stopped` with no work under it is refused and names the give-back.
+
 **Carrying a session id from one run to the next is not this and was refused.** It would let the
 field name which run holds an issue and would change nothing about a run that has ended still
 holding it. The lease's lifetime is the defect, not its labelling.

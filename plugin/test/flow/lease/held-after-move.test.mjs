@@ -128,7 +128,7 @@ test("the output cut to its last line with both streams joined still names the l
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^ISS-23 is still held by this run after the move: /u, run.stdout);
   assert.ok(run.stdout.includes(`expiring ${expiryOf("ISS-23")}`), run.stdout);
-  assert.ok(run.stdout.trimEnd().endsWith("shorten it: forge claim ISS-23 --minutes 1"), run.stdout);
+  assert.ok(run.stdout.trimEnd().endsWith("give it back: forge claim ISS-23 --give-back"), run.stdout);
 });
 
 test("a lease another run took by the time the call ends is named as that run's, with no route to shorten it", async () => {
@@ -138,7 +138,7 @@ test("a lease another run took by the time the call ends is named as that run's,
   const last = lastLine(run.stdout);
   assert.ok(last.startsWith(`ISS-24 is held by another run after the move: session ${OTHER} `), run.stdout);
   assert.ok(last.includes(`expiring ${expiryOf("ISS-24")}`), last);
-  assert.doesNotMatch(last, /--minutes/u, "shortening is the holder's, and this run is not it");
+  assert.doesNotMatch(last, /--give-back|--minutes/u, "giving it back is the holder's, and this run is not it");
 });
 
 test("a park gives the lease back before the call ends, so no line names a lease", async () => {
