@@ -3,6 +3,7 @@
    beside the call reader because both read a program another language runs, as shell-spans reads the
    shell's. how/writes.md. */
 import { fileCalls } from "./call-writes.mjs";
+import { KINDS, literalsIn } from "../../checks/source/lexical.mjs";
 import { SPEAKS, spansOf } from "./spoken.mjs";
 import { unquote } from "../shell-spans.mjs";
 
@@ -66,11 +67,11 @@ const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => on
     return `${text.slice(0, from)}${held.includes('"') ? `'${held}'` : `"${held}"`}${text.slice(to)}`;
   }, said);
 
-/* Each JS template the walk finds, folded where it stands, from the last back so every offset still answers; one holding a template in its interpolation is left as written, its parts being no one string. */
-const templated = (said, valueOf, made) => spansOf(said, "node")
-  .filter((one) => said[one.from] === "\x60" && !one.holes.some((hole) => said.slice(hole.from, hole.to).includes("\x60")))
+/* Each JS template the plugin's one JS walk finds, folded where it stands, from the last back so every offset still answers; one holding a template in its interpolation is left as written, its parts being no one string. */
+const templated = (said, valueOf, made) => literalsIn(said, { holes: "text" })
+  .filter((one) => one.kind === KINDS.TEMPLATE && !said.slice(one.start + 1, one.end - 1).includes("\x60"))
   .reverse()
-  .reduce((text, one) => `${text.slice(0, one.from)}${made(text.slice(one.from, one.to), one.from, valueOf)}${text.slice(one.to)}`, said);
+  .reduce((text, one) => `${text.slice(0, one.start)}${made(text.slice(one.start, one.end), one.start, valueOf)}${text.slice(one.end)}`, said);
 
 /** A binding reaches the text after it and nothing before, one rebound to anything but a whole string literal answers for nothing, a join whose members all read as literals folds to one, and
  *  `+` and pathlib's `/` fold to a fixed point. Each pass reads what the pass before it produced and finds its bindings there, so an offset always answers against the text it was measured in:
