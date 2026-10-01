@@ -661,6 +661,10 @@ person instead of asking again is `docs/cli/chatgpt.md`'s.
 - **AC-19-9-9** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-detach.test.mjs "a detached picture is spawned under the action that asked for it, and collects as one"
   WHERE a turn is sent from a process that outlives the invocation the CLI SHALL invoke that process
   under the action the caller asked for.
+- **AC-19-9-10** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-image.test.mjs "a local reference file is uploaded to the chat backend and its URL is sent with the image turn"
+  WHEN a turn asking for a picture is given a local reference image THEN the CLI SHALL upload it to
+  the backend that turn is addressed to, and SHALL send the picture's turn the address that upload
+  answered with.
 
 ### EI-11 — The token-count endpoint
 
@@ -716,27 +720,24 @@ rather than inferred. What the surface is derived from and why each write owes c
 
 ### EI-13 — The image endpoint of the review gateway
 
-Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt-codex.mjs`
+Rev: 1 · Enforces: BR-08, BR-14 · Status: retired (ISS-3040)
 
-The gateway the review provider is reached over also draws pictures, from pooled accounts, in the
-shape of a widely used images API. It is reached only when the caller names it, never as a fallback
-from the chat backend or to it, on the same endpoint and key the review is sent with. One request
-crosses per invocation, and an answer that never arrived may still have made the picture and spent
-the account's quota, so nothing is sent again and the caller is told which of the two it was. Why
-the model is a label and the size a hint is `docs/cli/chatgpt-image.md`'s.
+Retired because a picture is drawn by the chat backend alone: a reference image travels with the
+turn through that backend's own upload route, and a second provider answering the same ask was a
+second surface carrying no capability the first lacked.
 
-- **AC-19-13-1** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "1. one POST to the gateway's generations route, under the codex key, with the image model and n 1"
+- **AC-19-13-1** · Rev: 1 · Status: retired (ISS-3040)
   WHEN a picture is asked for over this route THEN the CLI SHALL send one request to the endpoint
   the review gateway is configured with, under its key, and SHALL send nothing to the chat backend.
-- **AC-19-13-2** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "10. no codex endpoint or key is refused before anything is sent, naming both doctor flags"
+- **AC-19-13-2** · Rev: 1 · Status: retired (ISS-3040)
   IF the review gateway's endpoint or key is unconfigured THEN the CLI SHALL refuse before anything
   is sent and SHALL name what sets each.
-- **AC-19-13-3** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "11. a 502, 504, other 5xx, torn answer, dropped connection or timeout says the image may have been made"
+- **AC-19-13-3** · Rev: 1 · Status: retired (ISS-3040)
   IF the request ends without the gateway's word that nothing was drawn THEN the CLI SHALL say the
   picture may already have been made and counted, and SHALL send no second request.
-- **AC-19-13-4** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "5. no base64 of the image reaches the terminal, on success or on any failure"
+- **AC-19-13-4** · Rev: 1 · Status: retired (ISS-3040)
   WHERE the answer carries the picture's bytes the CLI SHALL write them only to the file the caller
   named, and SHALL print none of them.
-- **AC-19-13-5** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-codex.test.mjs "14. a web failure on no_browser or upstream_rate_limited prints the --via codex command, and it runs"
+- **AC-19-13-5** · Rev: 1 · Status: retired (ISS-3040)
   WHEN a picture asked of the chat backend fails because it could not draw at all THEN the CLI SHALL
   print the command that asks this route for the same picture, and SHALL send it nothing itself.
