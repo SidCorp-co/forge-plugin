@@ -90,9 +90,8 @@ instead, at the call.
 **No refusal past the body's own reading loses the note.** The run has already spent the turn
 writing it, and a body that arrived on stdin exists nowhere else once the process is gone — so the
 verb registers it as soon as it has one, and every refusal after that prints it back: the shape
-read, a tool that says no, a transport that answers 401. It prints once and ahead of the refusal,
-never after it: a note is long, and printed after the reason it is the whole tail of the call, which
-a run reading the tail takes for a call that went through. The reading itself is the exception, and
+read, a tool that says no, a transport that answers 401. It prints ahead of the refusal, so the
+call ends on why. The reading itself is the exception, and
 deliberately: a stdin that goes silent halfway is refused by the payload reader on the rule that a
 payload read in half is worse than none, and half a note echoed back is not the note either. What
 the trailer does not say is that nothing was written — a dropped socket on a create may have
