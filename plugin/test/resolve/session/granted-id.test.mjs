@@ -208,7 +208,6 @@ test("a take-back an apostrophe used to hide is read, by both readers", () => {
 test("a body opener an apostrophe used to hide, or the second table missed, ends the export's reach", () => {
   const refuses = {
     [`export FORGE_SESSION_ID=a-run; echo it\\'s $(true) 'x'; ${WRITE}`]: "a substitution behind an escaped apostrophe",
-    [`export FORGE_SESSION_ID=a-run; echo "$(date)"; ${WRITE}`]: "a substitution a double quote still runs",
     [`export FORGE_SESSION_ID=a-run; echo \${ date; }; ${WRITE}`]: "bash 5.3's brace substitution, which spans cuts inside",
     [`export FORGE_SESSION_ID=a-run; echo "\${HOME}" "(x)"; ${WRITE}`]:
       "a parenthesis beside an expansion whose quotes this reading cannot place",
@@ -216,6 +215,19 @@ test("a body opener an apostrophe used to hide, or the second table missed, ends
   for (const [command, what] of Object.entries(refuses)) {
     assert.equal(idGrantedBy(command), null, what);
   }
+});
+
+/* A substitution a double quote opened is one the walk places, so nothing after it is read from inside it and the export reaches past it; one holding a here-document is read flat, as the quote around it, and still ends the reach (ISS-1533). */
+test("an export reaches past a substitution the walk placed inside a double quote, and not past one it read flat", () => {
+  const placed = `export FORGE_SESSION_ID=a-run; echo "$(date)"; ${WRITE}`;
+  assert.equal(idGrantedBy(placed), "a-run", "a double-quoted substitution the walk placed");
+  assert.equal(lastIdGranted([placed]), "a-run", "and the turn's reading agrees");
+  assert.equal(idGrantedBy(`export FORGE_SESSION_ID=a-run; echo "x $(printf '%s' "y")"; ${WRITE}`), "a-run",
+    "with a quote of its own inside it");
+  assert.equal(idGrantedBy(`export FORGE_SESSION_ID=a-run; echo "$(cat <<EOF\nhi\nEOF\n)"; ${WRITE}`), null,
+    "a here-document inside sends the walk back to the flat reading, which still ends the reach");
+  assert.equal(idGrantedBy(`export FORGE_SESSION_ID=a-run; echo $(date); ${WRITE}`), null,
+    "and a bare substitution, whose body spans still cuts, ends it as before");
 });
 
 test("what a quote, a backslash or a comment made data no longer costs the grant", () => {

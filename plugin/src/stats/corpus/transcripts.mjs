@@ -103,7 +103,7 @@ export const rungRun = (calls) => {
    Where a body is, the here-document reader says, the same one the write gates take. Which spans
    go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
 const OPERATOR = /[\n;|&(){}]/u;
-const TEXT = new Set(["'", "#", "\\"]);
+const TEXT = new Set(["'", '"', "#", "\\"]);
 const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
@@ -129,13 +129,13 @@ export const shellOf = (command) => {
   let word = 0;
   let handed = false;
   let last = " ";
-  for (const { at, one, under } of quoting(text)) {
+  for (const { at, one, under, depth } of quoting(text)) {
     if (under === " ") {
       if (one === "(") {
-        outer.push(text[at - 1] === "$" ? word : null);
+        outer.push({ back: text[at - 1] === "$" ? word : null, depth });
         word = at + 1;
-      } else if (one === ")") {
-        const back = outer.pop();
+      } else if (one === ")" && outer.at(-1)?.depth === depth) {
+        const { back } = outer.pop();
         word = typeof back === "number" ? back : at + 1;
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
     }

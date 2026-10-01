@@ -41,6 +41,17 @@ test("a start's blanks do not run across a quoted program", () => {
   assert.deepEqual(said("sudo 'rm' -rf /"), ["rm -rf /"]);
 });
 
+/* A substitution a double quote opened is a shell's body, so a command starts in it; the data around it holds none (ISS-1533). */
+test("a command starts inside a substitution a double quote opened, and nowhere else in the quote", () => {
+  const said = (text) => startsAt(text).map((one) => one.said);
+  const starts = (text) => said(text).some((one) => one.startsWith("git stash"));
+  assert.ok(starts('echo "$(git stash)"'), "a $(…) under a double quote");
+  assert.ok(starts('echo "`true; git stash`"'), "a backtick pair under one");
+  assert.deepEqual(said('echo "a; git stash"'), ['echo "a; git stash"'], "and a separator the quote holds starts nothing");
+  assert.deepEqual(said("echo it\\'s; git stash; echo 'x'"), ["echo it\\'s", "git stash", "echo 'x'"],
+    "nor does an apostrophe a backslash made literal open a quote that hides the next command");
+});
+
 /* The write reading takes a quoted span that cannot be one filename out of the text, and what stands in
    for it has to stop a start as the quoted program did, or the head's blanks read its argument as the verb. */
 test("the word after a quoted program is that program's argument in the write reading", () => {

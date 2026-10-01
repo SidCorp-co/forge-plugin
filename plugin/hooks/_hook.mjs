@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
@@ -439,16 +439,17 @@ const past = (text) => {
   return out;
 };
 
-/** Each point a program runs one, from there on, its own quotes off: a quoted span holds no start.
+/** Each point a program runs one, from there on, its own quotes off: what a quote holds as data holds no start,
+ *  and a `$(…)` or a backtick pair a double quote opened is a command's body, so `echo "$(git stash)"` starts one.
  *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`.
- *  The span is masked with a character that is neither a blank nor a word's, so a start's own blanks
+ *  The data is masked with a character that is neither a blank nor a word's, so a start's own blanks
  *  stop at it rather than running across a quoted program: `'rm' -rf /` is still `rm` (ISS-2933). */
 export const startsAt = (text) =>
   spans(text, { pipes: true }).flatMap(({ start, end }) => {
     const raw = text.slice(start, end);
     const one = raw.trim();
     const lead = start + (raw.length - raw.trimStart().length);
-    const bare = one.replace(QUOTED, (q) => ".".repeat(q.length));
+    const bare = quotedOver(one, ".");
     return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => {
       const at = m.index + m[0].length;
       return past(one.slice(at)).map((said) => ({ said, at: lead + at }));

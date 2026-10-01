@@ -65,8 +65,9 @@ test("a commit is a commit where a command starts, git's globals in between", ()
   const ask = (command) => committing({ tool_name: "Bash", tool_input: { command } });
   for (const one of ["git commit -m x", "git -C /r commit", "git -c k=v commit", "git --no-pager commit",
     "git --git-dir /r/.git commit", "git --work-tree /r commit", "git --git-dir=/r/.git commit",
-    'sh -c "git commit -m x"', "exec git commit -m x"]) assert.ok(ask(one), one);
-  for (const one of ["git commit-tree x", "git log --grep commit", 'echo "run git commit" > notes.md']) {
+    'sh -c "git commit -m x"', "exec git commit -m x", 'echo "$(git commit -m x)"']) assert.ok(ask(one), one);
+  for (const one of ["git commit-tree x", "git log --grep commit", 'echo "run git commit" > notes.md',
+    'git log --grep "x; git commit"', 'echo "$(printf "%s" "x; git commit")"']) {
     assert.ok(!ask(one), one);
   }
 });

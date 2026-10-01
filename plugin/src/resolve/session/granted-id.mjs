@@ -27,10 +27,14 @@ const EVERY_BODY = new RegExp(BODY, "gu");
 /* What a double quote still runs: a command substitution, in either spelling. A process substitution and a here-doc operator are text there, and commands anywhere a shell reads one. */
 const IN_DOUBLE = new RegExp(String.raw`^(?:\$[({]|${BACKTICK})`, "u");
 
-/* The one reading of a command every question below asks, out of one `quoting` walk: the text a shell reads, its continuations joined as the walk joins them, and beside it the quoting each of its characters stands under, offset for offset. */
+/* The one reading of a command every question below asks, out of one `quoting` walk: the text a shell reads, its continuations joined as the walk joins them, and beside it the quoting each of its characters stands under and how many substitutions a double quote opened it stands inside, offset for offset. */
 const readOf = (text) => {
   const marks = quoting(text);
-  return { code: marks.map(({ one }) => one).join(""), under: marks.map(({ under }) => under).join("") };
+  return {
+    code: marks.map(({ one }) => one).join(""),
+    under: marks.map(({ under }) => under).join(""),
+    depth: marks.map(({ depth }) => depth),
+  };
 };
 
 /* The quoting `quoting` cannot place, and the whole of what this reader does about it: after a live `$'…'` every apostrophe could be the one a backslash kept, and an expansion carries a word of its own whose quotes nest — `"${x:-"it's $(…)"}"` runs a substitution the flat reading calls data, where one inside single quotes nests nothing because nothing nests there; `$[`, whose deprecated body no shell this runs on is read for, is the same. Where either stands the reading is a guess, and every reader here answers a guess the way ISS-858 did: as if the quotes were not there. */
@@ -43,13 +47,17 @@ const unplaced = ({ code, under }) =>
 const acts = (opener, under) =>
   !under.includes("\\") && under[0] !== "'" && (under[0] !== '"' || IN_DOUBLE.test(opener));
 
-const opens = (read, every, any) => (unplaced(read)
+const opens = (read, every, any, counts = () => true) => (unplaced(read)
   ? any.test(read.code)
   : [...read.code.matchAll(every)].some(({ 0: opener, index: at }) =>
-    acts(opener, read.under.slice(at, at + opener.length))));
+    counts(at + opener.length - 1) && acts(opener, read.under.slice(at, at + opener.length))));
 
 export const runsACommand = (said) => opens(readOf(said), EVERY_OPENER, RUNS_A_COMMAND);
-const opensABody = (said) => opens(readOf(said), EVERY_BODY, OPENS_A_BODY);
+/* A substitution the walk placed inside a double quote — its bracket and its body above depth zero — is a shell nothing of this one's is read inside: no span is cut there, so no export or call a reader finds after it stood in it. One the walk read flat, a here-document inside it, still ends the reach. */
+const opensABody = (said) => {
+  const read = readOf(said);
+  return opens(read, EVERY_BODY, OPENS_A_BODY, (at) => read.depth[at] === 0);
+};
 
 /* What a take-back is looked for in: the same text with what a quote, a comment or a backslash made data blanked, space for space, so an escaped or quoted separator starts nothing and a comment runs nothing. What still spells a word once the shell removes its quotes stays — `"unset"` and `\unset` run `unset` as surely as `""unset` does. A heredoc's body is data this walk reads as shell, where one unpaired apostrophe misplaces every quote after it, so a live `<<` makes the reading a guess here too, answered the same way. */
 const SPELLS = /[\w.-]/u;

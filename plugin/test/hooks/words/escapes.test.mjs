@@ -37,6 +37,8 @@ test("a target spelled with backslash escapes is the word the shell assembles, b
   const removed = (text) => quoting(text).filter((one) => one.removed).map((one) => one.at);
   assert.deepEqual(removed("a\\(b '\\x' \"\\y\" c\\"), [1],
     "and the backslash the shell removes is the one outside every quote with a character behind it");
+  assert.deepEqual(removed(String.raw`"\$ \\` + "\\\x60" + String.raw` \" \q \("`), [1, 4, 6, 9],
+    "or one under a double quote before a dollar, a backslash, a backtick or a double quote, and before nothing else (ISS-1533)");
 });
 
 /* A glob character a backslash made literal is one the shell never expands, so the file written carries

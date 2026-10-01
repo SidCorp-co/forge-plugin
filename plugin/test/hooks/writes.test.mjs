@@ -273,6 +273,10 @@ test("a name is read from the word the command spelled it in, and never from the
     "and the span a span reader hands on keeps what a shell would keep, since what it trims off is part of the name");
   assert.deepEqual(held("printf x > '/tmp/memory/(report)/note.md'"), ["/tmp/memory/(report)/note.md", "/note.md"],
     "while the one it reaches the end of is exactly that file, guard and all");
+  assert.deepEqual(held(`printf x > "$(printf '%s' '/tmp/memory/(report).md' )"`), [],
+    "a span inside a substitution a double quote opened is an argument of what that substitution runs (ISS-1533)");
+  assert.deepEqual(held("echo \"`date`\"; printf x > '/tmp/memory/(report).md'"), ["/tmp/memory/(report).md"],
+    "and one standing after that substitution closed keeps the whole reading, the walk having closed it");
   assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,
     "printf x > '".length,
     "and the offset handed back still indexes the text, which is what places a name against a tree");

@@ -22,14 +22,16 @@ got wrong:
 - **A mention of a ship is not a ship.** A run waiting on one polls for the process by name; read
   as the invocation, that line moved every such run into its closing phase.
 - **And an operator the shell spent as text opens no command either.** A separator inside a
-  single-quoted argument, inside a comment or behind a backslash is a character of a word: 29 calls
-  of this project's own corpus were filed under a class their text only quoted, a `pgrep` pattern
-  among them counted as the gate it was watching for. Two spans go back to a shell and are left
-  standing — a double quote, where a `$(…)` is live and this reading cannot tell it from the words
-  beside it, and the body handed to a shell runner, taken off the word the quote opens so a body an
-  interpolation cuts in two resumes. The character struck in is one no pattern reads rather than a
-  space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed, and a reading
-  that may only ever take a call away had invented one.
+  quoted argument, inside a comment or behind a backslash is a character of a word: 29 calls of
+  this project's own corpus were filed under a class their text only quoted, a `pgrep` pattern
+  among them counted as the gate it was watching for, and the same pattern in double quotes was the
+  remainder after them. Two spans go back to a shell and are left standing — the body of a `$(…)`
+  or a backtick pair a double quote opened, which the quoting walk places, and the body handed to a
+  shell runner, taken off the word the quote opens so a body an interpolation cuts in two resumes. A
+  double-quoted substitution holding a here-document is one the walk reads as the quote around it,
+  so its operators are struck with the quote's. The character struck in is one no pattern reads
+  rather than a space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed,
+  and a reading that may only ever take a call away had invented one.
 
 **A wait on work already running is a wait, and the word the command opens with says nothing about
 which.** This plugin prescribes one command for that wait — `forge hooks --how polling` has it — and
