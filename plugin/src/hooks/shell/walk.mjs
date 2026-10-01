@@ -5,8 +5,8 @@
    a `)` closes a frame only where the `(` it matches opened one, so a substitution pops nothing. */
 const OPENS = /[\s;&|()]/u;
 
-/* What a backslash under a double quote escapes, which is where a shell takes it out of the word; before anything else it stays. A newline is the fifth, and a continuation is gone whole already. */
-const ESCAPED_IN_DOUBLE = /[$`"\\]/u;
+/** What a backslash under a double quote escapes, which is where a shell takes it out of the word; before anything else it stays. A newline is the fifth, and a continuation is gone whole already. */
+export const ESCAPED_IN_DOUBLE = /[$`"\\]/u;
 const BACKTICK = "\x60";
 
 /* One walk, every answer: the spans below, the quoting each character stands under, and the quoted spans a reader rewrites. All of them are this loop's, because the quote state is the primitive the spans reading already spends, and a second walk of the same text elsewhere is a copy that can drift on one side only.

@@ -5,10 +5,10 @@ import { basename, isAbsolute, resolve } from "node:path";
 
 import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
-import { quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
+import { ESCAPED_IN_DOUBLE, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
 
-export { quotedOver, quoting, respelled, spans, underOf };
+export { ESCAPED_IN_DOUBLE, quotedOver, quoting, respelled, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";

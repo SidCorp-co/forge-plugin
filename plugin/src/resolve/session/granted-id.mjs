@@ -53,7 +53,7 @@ const opens = (read, every, any, counts = () => true) => (unplaced(read)
     counts(at + opener.length - 1) && acts(opener, read.under.slice(at, at + opener.length))));
 
 export const runsACommand = (said) => opens(readOf(said), EVERY_OPENER, RUNS_A_COMMAND);
-/* A substitution the walk placed inside a double quote — its bracket and its body above depth zero — is a shell nothing of this one's is read inside: no span is cut there, so no export or call a reader finds after it stood in it. One the walk read flat, a here-document inside it, still ends the reach. */
+/* An opener above depth zero ends no reach: `spans` cuts nothing inside what the walk framed, so every command found after it is one this shell runs. Depth zero is also where the walk leaves a substitution it read flat, and that one still ends it. */
 const opensABody = (said) => {
   const read = readOf(said);
   return opens(read, EVERY_BODY, OPENS_A_BODY, (at) => read.depth[at] === 0);

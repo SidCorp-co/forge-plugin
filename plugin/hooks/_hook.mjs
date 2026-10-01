@@ -440,7 +440,7 @@ const past = (text) => {
 };
 
 /** Each point a program runs one, from there on, its own quotes off: what a quote holds as data holds no start,
- *  and a `$(…)` or a backtick pair a double quote opened is a command's body, so `echo "$(git stash)"` starts one.
+ *  while `echo "$(git stash)"` starts `git stash`, the walk leaving that body standing.
  *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`.
  *  The data is masked with a character that is neither a blank nor a word's, so a start's own blanks
  *  stop at it rather than running across a quoted program: `'rm' -rf /` is still `rm` (ISS-2933). */
