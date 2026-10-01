@@ -1,5 +1,5 @@
 /* A flag between two `--criterion` flags reads two ways, and where the two readings record different
-   verdicts the write is refused rather than resolved (ISS-435). Every case goes through the binary,
+   verdicts the write is refused rather than resolved (ISS-435, ISS-2151). Every case goes through the binary,
    because the refusal is worth something only if it stands before the comment is posted. */
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
@@ -75,8 +75,10 @@ test("a shared flag restated after a block's own flag, with another block after 
   assert.equal(posted(), held, "refused before the comment went up");
   assert.match(run.stderr, /--verdict fail stands in criterion 5's block after --why, with --criterion 6 next/u, run.stderr);
   assert.match(run.stderr, /It would be written onto criterion 5, and it reads as opening criterion 6\. Nothing was sent\./u);
-  assert.match(run.stderr, /^ {2}--criterion 5 --verdict fail --why … {3}for criterion 5$/mu, "the placement that means 5");
-  assert.match(run.stderr, /^ {2}--criterion 6 --verdict fail … {3}for criterion 6$/mu, "and the one that means 6");
+  assert.match(run.stderr, /^ {2}… --criterion 6 … --criterion 5 --verdict fail … {3}for criterion 5, its block moved last$/mu,
+    "the placement that means 5");
+  assert.match(run.stderr, /^ {2}record verdict <issue> --verdict fail … --criterion 6 … {3}for criterion 6 and those after it, a write of its own$/mu,
+    "and the one that means 6");
 });
 
 test("a repeatable flag the shared part names is refused in the same position", async () => {
@@ -90,13 +92,46 @@ test("a repeatable flag the shared part names is refused in the same position", 
     run.stderr);
 });
 
-test("a changed flag directly after its own --criterion is taken where another block follows", async () => {
+/* The regrouping write: a heading writer puts the next group's value directly after the last
+   criterion of the group before, and the parser hands it to that criterion (ISS-2151). */
+test("a shared flag restated directly after its own --criterion, with another block after it, is refused too", async () => {
+  const held = posted();
   const run = await verdict("--verdict", "pass",
-    "--criterion", "5", "--verdict", "fail", "--evidence", OWN, "--why", "the one that failed",
-    "--criterion", "6", "--why", "ran it");
+    "--criterion", "1", "--criterion", "2", "--verdict", "skipped", "--criterion", "3", "--criterion", "4");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(posted(), held, "refused before the comment went up");
+  assert.match(run.stderr, /^record verdict: --verdict skipped stands in criterion 2's block, with --criterion 3 next\. It would be written onto criterion 2, and it reads as opening criterion 3\. Nothing was sent\./mu,
+    run.stderr);
+  assert.doesNotMatch(run.stderr, /block after/u, "no flag stood ahead of it, and none is named");
+  assert.match(run.stderr, /^ {2}… --criterion 3 … --criterion 2 --verdict skipped … {3}for criterion 2, its block moved last$/mu);
+  assert.match(run.stderr, /^ {2}record verdict <issue> --verdict skipped … --criterion 3 … {3}for criterion 3 and those after it, a write of its own$/mu);
+});
+
+test("a regrouping that restates every shared flag at once is refused at the first of them", async () => {
+  const held = posted();
+  const run = await verdict("--verdict", "skipped", "--why", "not reachable from here",
+    "--criterion", "1", "--criterion", "2", "--criterion", "4", "--verdict", "pass", "--why", "ran it",
+    "--criterion", "3", "--criterion", "5");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(posted(), held, "no pass landed on criterion 4");
+  assert.match(run.stderr, /--verdict pass stands in criterion 4's block, with --criterion 3 next/u, run.stderr);
+});
+
+test("a changed flag in the last block, after blocks carrying none, is taken", async () => {
+  const run = await verdict("--verdict", "pass",
+    "--criterion", "6", "--why", "ran it",
+    "--criterion", "5", "--verdict", "fail", "--evidence", OWN, "--why", "the one that failed");
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(verdicts(run), { 5: "fail", 6: "pass" });
-  assert.deepEqual(parseAll(run.stdout).map((one) => one.fields.evidence), [[COMMIT, OWN], [COMMIT]]);
+  assert.deepEqual(verdicts(run), { 6: "pass", 5: "fail" });
+  assert.deepEqual(parseAll(run.stdout).map((one) => one.fields.evidence), [[COMMIT], [COMMIT, OWN]]);
+});
+
+test("every block carrying its own --verdict, none shared, records each criterion's own", async () => {
+  const run = await verdict("--criterion", "1", "--verdict", "pass", "--why", "ran it",
+    "--criterion", "2", "--verdict", "skipped", "--why", "no route reaches it",
+    "--criterion", "4", "--verdict", "fail", "--why", "it fell over");
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(verdicts(run), { 1: "pass", 2: "skipped", 4: "fail" });
 });
 
 test("the last block takes a changed flag in any position, no block following it to be read as", async () => {
