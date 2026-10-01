@@ -19,6 +19,7 @@
 // literals (tools/check-vi-text.mjs), so the two readings cannot disagree about what a marker is.
 
 import {
+  ABSENCE_VI_WORDS,
   CONTRAST_VI_WORDS,
   COORDINATOR_VI_WORDS,
   NEGATION_VI_WORDS,
@@ -55,17 +56,20 @@ const NOT_NEGATING = new RegExp([
    and is still credited to one that keeps it: an opener the style contract tells the rewrite to remove
    where the word pairing it follows in the same sentence ("không phải A mà là B" is "là B"), and a
    negation repeated after a coordinator, which Vietnamese folds into the first ("không A và không B"
-   is "không A hay B"). */
+   is "không A hay B") — the same word only, since "không A và chưa B" cannot share one. */
 const SENTENCE = String.raw`[^.!?;\n]*?`;
 const pairedOpener = (pair) => {
   const [opener, follower] = pair.split(" … ");
   return `${whole(opener)}(?=${SENTENCE}${whole(follower)})`;
 };
-const NEGATION = `(?:${anyOf(NEGATION_VI)})`;
 const UNDEMANDED = new RegExp([
   ...listed(NOT_NEGATING_VI_PAIRS).map(pairedOpener),
-  `(?<=${NEGATION}${SENTENCE})(?:,\\s*|(?:${anyOf(listed(COORDINATOR_VI_WORDS))})\\s+)${NEGATION}`,
+  `(?<=(?<first>${anyOf(NEGATION_VI)})${SENTENCE})(?:,\\s*|(?:${anyOf(listed(COORDINATOR_VI_WORDS))})\\s+)\\k<first>(?!${LETTER})`,
 ].join("|"), "giu");
+
+/* A word that states an absence carries a negation's claim in a rewrite ("không có" is "thiếu"), so a
+   rewrite is credited for one; a source is never held to it, being no marker of its own. */
+const ABSENT = new RegExp(anyOf(listed(ABSENCE_VI_WORDS)), "giu");
 
 const carries = (text, words) => new RegExp(anyOf(words), "iu").test(text.normalize("NFC"));
 const COUNTED = new RegExp(anyOf(COUNTED_VI), "giu");
@@ -88,7 +92,8 @@ const PRESENCE = [
 
 const lostMarkers = (source, candidate) => {
   const had = counted(demanded(source));
-  const left = counted(kept(candidate));
+  const rewrite = kept(candidate);
+  const left = counted(rewrite) + (rewrite.match(ABSENT)?.length ?? 0);
   return left < had
     ? `the source carries ${had} Vietnamese negation or contrast marker(s) (${COUNTED_VI.join(", ")}) and the rewrite carries ${left}, so a clause lost the negation or contrast it was written with`
     : null;

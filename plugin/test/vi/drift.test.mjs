@@ -214,8 +214,14 @@ test("drift.diff: a compound that opens with a negation word and negates nothing
     ["Bạn đã lưu thay đổi chưa?", "Bạn đã lưu thay đổi?"],
     ["Có lưu bản nháp không?", "Lưu bản nháp?"],
     ["Bản cập nhật không xóa dữ liệu và không đổi cấu hình.", "Bản cập nhật không xóa dữ liệu hay đổi cấu hình."],
+    ["Không có cấu hình nên không kết nối được máy chủ.", "Thiếu cấu hình nên không kết nối được máy chủ."],
   ];
   for (const [source, rewrite] of pairs) assert.equal(diff(source, rewrite), null, `${source} → ${rewrite}`);
+});
+
+test("drift.diff: a second, different negation after a coordinator is still demanded", () => {
+  const found = diff("Bản cập nhật không xóa dữ liệu và chưa gửi thông báo.", "Bản cập nhật không xóa dữ liệu và gửi thông báo.");
+  assert.match(found, /the source carries 2 Vietnamese negation or contrast marker\(s\) .* and the rewrite carries 1/u, found);
 });
 
 test("drift.diff: a Vietnamese contrast dropped with no negation in its place is named", () => {

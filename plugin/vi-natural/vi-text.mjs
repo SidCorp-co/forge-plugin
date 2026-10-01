@@ -27,3 +27,4 @@ export const NOT_NEGATING_VI_WORDS = "chẳng hạn, không gian, không khí, h
 export const NOT_NEGATING_VI_PAIRS = "không chỉ … mà, không những … mà, không phải … mà";
 export const QUESTION_VI_WORDS = "không, chưa";
 export const COORDINATOR_VI_WORDS = "và, hay, hoặc, cũng, lẫn";
+export const ABSENCE_VI_WORDS = "thiếu, vắng";
