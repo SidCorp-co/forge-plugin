@@ -1,9 +1,11 @@
 /* A wrapper's own options stand between it and the verb it runs: which of them take a value is one
    table, and every reader of what stands before a verb reads it (ISS-2870). */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import { WRITES, startsAt, writtenPaths } from "../../../hooks/_hook.mjs";
+import { patience } from "../../patience.mjs";
 
 const strict = (text) => writtenPaths(text, "/w", "md", { unplaceable: "strike" }).map((one) => one.token);
 
@@ -44,11 +46,13 @@ test("a quoted mention of a wrapped write leaves the redirect beside it read", (
 
 /* An option's value is spliced in front of a verb that may be no write, so each way of cutting it is
    tried before the answer is no: a value of quoted parts read as runs or as characters doubled that
-   with each part, and eighteen of them held a hook for over a second. */
-test("a wrapper's value of many quoted parts is read in one way, in bounded time", () => {
+   with each part, and forty of them would hold a hook past any deadline. Read in a process of its own,
+   which a hang guard can stop. */
+test("a wrapper's value of many quoted parts is read in one way, so the answer comes back", () => {
+  const reader = new URL("../../../src/hooks/shell-spans.mjs", import.meta.url).href;
   for (const part of ["'a'", '"a"', "'a'\\ "]) {
-    const began = performance.now();
-    assert.equal(WRITES.test(`sudo -p ${part.repeat(18)} true`), false, part);
-    assert.ok(performance.now() - began < 500, `${part}: ${Math.round(performance.now() - began)}ms`);
+    const asked = `import(${JSON.stringify(reader)}).then(({ WRITES }) => process.stdout.write(String(WRITES.test(process.argv[1]))))`;
+    const run = spawnSync(process.execPath, ["-e", asked, `sudo -p ${part.repeat(40)} true`], { encoding: "utf8", timeout: patience(5000) });
+    assert.equal(run.stdout, "false", `${part}: ${run.signal ?? run.stderr}`);
   }
 });
