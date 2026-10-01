@@ -192,7 +192,9 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
   assert.equal(runs(py("shutil.copy('unplanned.mjs', 'planned.mjs')")).allowed, true, "a copy's source is only read");
   assert.equal(runs(py("open('planned.mjs','w').write(open('unplanned.mjs').read())")).allowed, true, "an open that reads");
   assert.equal(runs(py("open(os.path.join(base, 'unplanned.mjs'), 'w')")).allowed, true, "a target the program computes");
-  assert.equal(runs(py("pick('unplanned.mjs').write_text('x')")).allowed, true, "a receiver another call returns");
+  for (const call of ["pick('unplanned.mjs')", "pick ('unplanned.mjs')"]) {
+    assert.equal(runs(py(`${call}.write_text('x')`)).allowed, true, `a receiver another call returns: ${call}`);
+  }
   assert.equal(runs(py("n=re.search('a', b)", "s=s.replace('x', 'y')")).allowed, true, "assignments name nothing");
 });
 

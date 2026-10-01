@@ -27,7 +27,7 @@ const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(
 const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"[^"\n]*"|'[^'\n]*')`;
 /* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name; any other receiver is computed, and its line is the call. */
 const RECEIVED = new RegExp(
-  String.raw`(?:(?<![.\w])(?:pathlib\.)?Path\(\s*${STRING}\s*\)|(?<![\w.)\]])\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)`
+  String.raw`(?:(?<![.\w])(?:pathlib\.)?Path\(\s*${STRING}\s*\)|(?<![\w.)\]]\s*)\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)`
     + String.raw`\s*\.write_(?:text|bytes)\b`,
   "gu",
 );
