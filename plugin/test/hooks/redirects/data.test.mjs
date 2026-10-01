@@ -68,6 +68,8 @@ test("under a double quote a substitution is still run, and only its own > redir
   both("echo \"at `git rev-parse HEAD` the ring is >=3.97:1\"", []);
   both(`echo "$(cat a > inner.md)"`, ["inner.md"]);
   both("echo \"`cat a > ticked.md`\"", ["ticked.md"]);
+  both(`echo "$(echo "a > b.md")"`, [], "a quote inside the substitution holds its own > as data (ISS-1533)");
+  both(`echo "$(cat > out.md)"`, ["out.md"], "and a bare one there is the substitution's redirect");
 });
 
 test("a quoted target is read as it was", () => {

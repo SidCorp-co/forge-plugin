@@ -58,7 +58,7 @@ const wordAt = (text, from) => {
 
 /* What an operator at `at` stands inside: `shift` within `((…))` or `$((…))`, where a `<<` is arithmetic and no operator; `nested` within `(…)` or `$(…)`; `bare` within neither; and
    `data` under a quote, a comment or a backslash. Under a double quote a `$(…)` still opens a shell, so a `<<` there is that shell's operator: `git commit -m "$(cat <<'EOF'` is the
-   commonest here-document an agent sends. The walk does not reset its quoting inside that shell, so a quote of its own there is read as the outer one, which is the guess left standing. */
+   commonest here-document an agent sends. The walk reads a substitution holding a `<<` as the double quote around it, so a quote of that shell's own is read as the outer one, which is the guess left standing. */
 const contextAt = (text, under, at) => {
   const open = [];
   const push = (one, quoted) => {

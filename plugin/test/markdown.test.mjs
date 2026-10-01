@@ -32,6 +32,7 @@ import { protectInline, verify } from "../vi-natural/format/doc.mjs";
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
+const WALK = "plugin/src/hooks/shell/walk.mjs";
 const SSE = "plugin/src/wire/sse.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";
@@ -130,6 +131,17 @@ const SWEEP_FORMS = [
   /mtimeMs[^;\n]{0,60}\)\s*(?:rmSync|unlinkSync)\(/u,
   /(?:\bage\w*|\w+Age\w*|Date\.now\(\))[^;\n]{0,60}[<>]=?\s*[A-Z][A-Z_]*_MS\)\s*(?:rmSync|unlinkSync)\(/u,
 ];
+/* A walk of a shell text has to say that a backslash escapes everywhere but inside a single quote, so
+   the rule written as a condition is the needle: a comparison with a backslash literal beside a negated
+   one with an apostrophe, on one line, in either order and either spelling of the comparison. The walks
+   of a JavaScript source escape inside every quote and write no such condition. What it cannot see: a
+   walk that keeps whether a backslash escapes in a flag of its own, as `wordsTyped` in
+   `plugin/src/flow/lease/holder.mjs` does, and one that writes the two halves on two lines (ISS-999). */
+const BACKSLASH = String.raw`(?:"\\\\"|'\\\\'|\x60\\\\\x60)`;
+const APOSTROPHE = String.raw`(?:"'"|'\\''|\x60'\x60)`;
+const ESCAPES = String.raw`(?:(?<![!=])={2,3}\s*${BACKSLASH}|${BACKSLASH}\s*={2,3})`;
+const UNQUOTED = String.raw`(?:!==?\s*${APOSTROPHE}|${APOSTROPHE}\s*!==?)`;
+const QUOTE_STATE = [new RegExp(String.raw`${ESCAPES}[^\n]*${UNQUOTED}|${UNQUOTED}[^\n]*${ESCAPES}`, "u")];
 /* `vendor/` is a copy of `packages/code-quality/`, which a plugin directory cannot import from. */
 const VENDORED = ["plugin/hooks/vendor/lint-edited-file.mjs"];
 const NEEDLES = [
@@ -142,6 +154,7 @@ const NEEDLES = [
   ["a table separator", MARKDOWN, [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
+  ["shell quote state", WALK, QUOTE_STATE],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", MARKDOWN, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS],
@@ -181,7 +194,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [MARKDOWN, SHELL, SSE, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL, DIGEST, REAP]) {
+  for (const home of [MARKDOWN, SHELL, WALK, SSE, HELP_WORD, LOG_READS, MEDIAN, JSONL, LEXICAL, DIGEST, REAP]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -229,6 +242,11 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "r1.mjs", text: "if (Date.now() - statSync(full).mtimeMs > STRANDED_MS) rmSync(full, { force: true });" },
     { rel: "r2.mjs", text: "if ((ageOf(join(dir, one), now) ?? 0) > FRESH_MS) rmSync(join(dir, one), { recursive: true });" },
     { rel: "r3.mjs", text: "if (statSync(stamp).mtimeMs < expired) unlinkSync(stamp);" },
+    /* The two readers ISS-999 sent home, in their own words, and the rule written three other ways: other names, the loose comparisons, either order. */
+    { rel: "s1.mjs", text: 'if (one === "\\\\" && quote !== "\'") {' },
+    { rel: "s2.mjs", text: "if (quote !== \"'\" && one === \"\\\\\") {" },
+    { rel: "s3.mjs", text: "while (i < n) { if (state != '\\'' && ch == '\\\\') i += 2; }" },
+    { rel: "s4.mjs", text: 'const escapes = (c, q) => "\\\\" === c && "\'" !== q;' },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -258,6 +276,7 @@ test("the guard fires on a module that re-declares one", () => {
     ...["z1", "z2"].map((one) => `${one}.mjs declares a reading of what is code and what is a literal of its own; ${LEXICAL} holds it`),
     ...["k1", "k2"].map((one) => `${one}.mjs declares a short sha1 key of its own; ${DIGEST} holds it`),
     ...["r1", "r2", "r3"].map((one) => `${one}.mjs declares a sweep of a directory by age of its own; ${REAP} holds it`),
+    ...["s1", "s2", "s3", "s4"].map((one) => `${one}.mjs declares shell quote state of its own; ${WALK} holds it`),
   ]);
 });
 

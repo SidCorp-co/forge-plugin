@@ -103,10 +103,11 @@ export const rungRun = (calls) => {
    Where a body is, the here-document reader says, the same one the write gates take. Which spans
    go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
 const OPERATOR = /[\n;|&(){}]/u;
-const TEXT = new Set(["'", "#", "\\"]);
+const TEXT = new Set(["'", '"', "#", "\\"]);
 const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
+const BACKTICK = "\x60";
 
 /* What every match of `RUNS` ends in, past its spaces: a word of letters behind a hyphen holding a
    `c`, or one ending `eval`. Read backwards over that one word, so a quote no runner can stand before
@@ -129,19 +130,24 @@ export const shellOf = (command) => {
   let word = 0;
   let handed = false;
   let last = " ";
-  for (const { at, one, under } of quoting(text)) {
+  for (const { at, one, under, depth } of quoting(text)) {
     if (under === " ") {
       if (one === "(") {
-        outer.push(text[at - 1] === "$" ? word : null);
+        outer.push({ back: text[at - 1] === "$" ? word : null, depth });
         word = at + 1;
-      } else if (one === ")") {
-        const back = outer.pop();
+      } else if (one === ")" && outer.at(-1)?.depth === depth && !outer.at(-1).tick) {
+        const { back } = outer.pop();
         word = typeof back === "number" ? back : at + 1;
+      } else if (one === BACKTICK && outer.at(-1)?.tick && outer.at(-1).depth === depth) word = outer.pop().back;
+      else if (one === BACKTICK) {
+        outer.push({ back: word, depth, tick: true });
+        word = at + 1;
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
     }
-    if (under === "'" && last !== "'") handed = mayRun(text, word) && RUNS.test(text.slice(0, word));
+    const quoted = under === "'" || under === '"';
+    if (quoted && last !== under) handed = mayRun(text, word) && RUNS.test(text.slice(0, word));
     last = under;
-    const ran = under === "'" ? handed : !TEXT.has(under);
+    const ran = quoted ? handed : !TEXT.has(under);
     said.push(ran || !OPERATOR.test(one) ? one : SPENT);
   }
   return said.join("");

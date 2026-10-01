@@ -5,10 +5,10 @@ import { basename, isAbsolute, resolve } from "node:path";
 
 import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
-import { quoting, spans, underOf } from "./shell/walk.mjs";
+import { ESCAPED_IN_DOUBLE, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
 
-export { quoting, spans, underOf };
+export { ESCAPED_IN_DOUBLE, quotedOver, quoting, respelled, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -127,8 +127,6 @@ const WAITS = /^(?:while|until)$/u;
 const BODY = /^do(?=[\s;&|()<>]|$)/u;
 /* The other body, which only an arithmetic `for` may take — `for x in a { :; }` is a syntax error — so only an arithmetic name is spendable and elsewhere a bare `{` is ordinary data in a word list. Read past the keyword and where the body opens rather than where it closes: the head's own brace must spend the head's own name, and a name left standing over the body would be taken by the `do` of a wait written inside it. Quoted runs are blanked first, a brace inside a word being a character of that word; a `${…}` carries no word boundary before its brace and a `{a,b}` none after. */
 const BRACE = /(?:^|[\s;&|()])\{(?=\s|$)/u;
-/** A quoted run as the shell reads one: a single-quoted run has no escape, a double-quoted one does. */
-export const QUOTED = /'[^']*'|"(?:\\[\s\S]|[^"\\])*"/gu;
 const ENDS = /^done(?=[\s;&|)<>]|$)/u;
 /* What a `for` or `select` takes next: the variable it walks, or the arithmetic head, which `spans` cuts at its own `;` — so a word opening neither is a continuation of that head, `for ((i=0; for < 3; i++))` puts one there, and naming a loop for it spends a `do` the wait around it was owed. */
 const OVER = /^(?:\(\(|[A-Za-z_]\w*)/u;
@@ -160,7 +158,7 @@ export const waitsIn = (text) => {
         if (OVER.test(head)) named.push({ start, waits: false, arith: head.startsWith("((") });
       }
     }
-    if (named.at(-1)?.arith && BRACE.test(past.replace(QUOTED, " "))) named.pop();
+    if (named.at(-1)?.arith && BRACE.test(respelled(past, () => " "))) named.pop();
   }
   return out;
 };
@@ -177,15 +175,15 @@ const BRACKET = /[()]/u;
 const cuts = (mark) => !mark
   || ALWAYS.test(mark.one)
   || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
-/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` on either side of a span is the one this leaves out: in front it closes a substitution the shell joins to that span as often as a subshell around it, and behind it closes a substitution the span was computed *inside* — `> $(printf '%s.txt' 'a(1).md')` writes the `.txt` and the span is an argument of the printf. Which of the two a `)` is, is what this walk cannot yet say (ISS-1533), and until it can, the span beside one keeps the reading it had. */
+/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` on either side of a span is the one this leaves out: in front it closes a substitution the shell joins to that span as often as a subshell around it, and behind it closes a substitution the span was computed *inside* — `> $(printf '%s.txt' 'a(1).md')` writes the `.txt` and the span is an argument of the printf. Which of the two a `)` is, this reader does not ask the walk — the walk places a substitution only where a double quote opened it — so the span beside one keeps the reading it had. */
 const OPENED = /[ \t\n;&|<>(]/u;
 const CLOSED = /[ \t\n;&|<>]/u;
 const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
-/* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a substitution is the `)` this walk cannot place and a separator inside one ends nothing (ISS-1533) — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
-/* What may put a value into the command that this text does not spell: a `$` opening an expansion of any kind, a backtick pair, and a `(` some other character put in front of — a process substitution's, and the pattern openers a shell with `extglob` on reads `x@('a(1).md'|y)` with. Any of them and this stops claiming a span is a whole operand — `${OUT:+ 'a(1).md' }` is a filename or nothing at all depending on a variable, and `$(printf …)` is an argument of the printf. Written as the openers rather than as their shapes, because what closes each of them is a bracket this walk cannot place (ISS-1533) and a shape it cannot close is one it cannot leave. */
+/* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a bare substitution is a `)` the walk does not place and a separator inside one ends nothing — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
+/* What may put a value into the command that this text does not spell: a `$` opening an expansion of any kind, a backtick pair, and a `(` some other character put in front of — a process substitution's, and the pattern openers a shell with `extglob` on reads `x@('a(1).md'|y)` with. Any of them and this stops claiming a span is a whole operand — `${OUT:+ 'a(1).md' }` is a filename or nothing at all depending on a variable, and `$(printf …)` is an argument of the printf. Written as the openers rather than as their shapes, because what closes most of them is a bracket the walk does not place — a `${…}` and a pattern's never, a `$(…)` only under a double quote — and a shape this cannot close is one it cannot leave. An opener inside a substitution the walk did place is not counted: what it puts in stays inside that substitution, whose spans `worded` already declines. */
 const openedAt = (marks) => {
-  const at = marks.findIndex(({ one, under }, n) => under === " "
+  const at = marks.findIndex(({ one, under, depth }, n) => under === " " && !depth
     && (one === "$" || one === "\x60"
       || (one === "(" && marks[n - 1]?.under === " " && /[<>?*+@!]/u.test(marks[n - 1]?.one ?? ""))));
   return at < 0 ? marks.length : at;
@@ -202,7 +200,7 @@ export const placeable = (text) => {
 const worded = (text, alike) => {
   const marks = quoting(text);
   const opens = openedAt(marks);
-  /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with an operand's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
+  /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution a double quote opened — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside `"$(…)"` is an argument of the command that substitution runs. */
   const alone = new Array(marks.length).fill(false);
   for (let from = 0; from < marks.length;) {
     if (marks[from].under !== "'") {
@@ -213,7 +211,7 @@ const worded = (text, alike) => {
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[to - 1].one === "'";
-    if (alike && shut && from < opens && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
+    if (alike && shut && from < opens && !marks[from].depth && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
       && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }
@@ -345,11 +343,9 @@ const WRITE_VERBS = STARTS
 /** Either half, over a text whose quoted arguments the caller has already judged. */
 export const WRITES = new RegExp(`${WRITE_VERBS}|${WRITE_CALLS}`);
 
-/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and a gate that must not miss a commit keeps such a span whole rather than guess where the substitution ends — the reading that says where is ISS-1533's. */
-const SUBSTITUTES = /\$\(|`/u;
+/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and the walk says where one ends, so its body stays standing and a commit in it is still a commit. One the walk read flat, a here-document inside it, is kept whole rather than guessed at, which is what a gate that must not miss a commit needs. */
 export const quotedOut = (text) =>
-  text.replace(QUOTED, (span) =>
-    (span[0] === '"' && SUBSTITUTES.test(span) ? span : `${span[0]}${"_".repeat(span.length - 2)}${span[0]}`));
+  respelled(text, (span, { flat }) => (flat ? span : quotedOver(span, "_", { delimiters: true })));
 
 /* `WRITES` for a reader holding a command's own text, quotes and all: a verb only where it starts a command outside a quoted argument, so `echo "sudo touch a.md" > b.md` is the redirect it makes and not a command no reading can place; and a library call anywhere, its quotes being the call's own. */
 const VERB_WRITES = new RegExp(WRITE_VERBS, "u");
@@ -365,7 +361,7 @@ export const REDIRECT = new RegExp(
 /* Where a test opens: a `[[` standing where a word begins, since inside one a `>` compares two strings. */
 const TEST_OPENS = /[\s;&|(!]/u;
 
-/* The text with every `>` a shell reads as data spaced out, offset for offset: one under a quote, a comment or a backslash, and one a `[[ … ]]` test or a `(( … ))` arithmetic compares with. Under a double quote a `$(…)` or a backtick pair is still run, so its own `>` keeps its reading. */
+/* The text with every `>` a shell reads as data spaced out, offset for offset: one under a quote, a comment or a backslash, and one a `[[ … ]]` test or a `(( … ))` arithmetic compares with. Under a double quote a `$(…)` or a backtick pair is still run, so its own `>` keeps its reading: the walk marks the body of one it placed bare, and the counting below is for one it read flat, a here-document standing inside. */
 const operative = (text) => {
   const out = text.split("");
   let sub = 0;

@@ -5,7 +5,7 @@
 import { STRING, fileCalls, spelling } from "./call-writes.mjs";
 import { KINDS, literalsIn } from "../../checks/source/lexical.mjs";
 import { SPEAKS, spansOf } from "./spoken.mjs";
-import { unquote } from "../shell-spans.mjs";
+import { ESCAPED_IN_DOUBLE, unquote } from "../shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
 const FOLDS = 3;
@@ -126,9 +126,9 @@ export const glued = (body, runner) => {
   return out;
 };
 
-/* Inside double quotes a shell takes the backslash off only before these four and a newline, and keeps it before anything else. An escaped `$` or backtick is a literal and a bare one still
-   expands, so each escaped one is held as a character the body does not already hold, which no fold reads, and only those go back escaped. */
-const ESCAPED = /\\([\\"$`\n])/gu;
+/* The escapes a double quote lets a backslash make, read off the walk's own set. An escaped `$` or backtick is a literal and a bare one still expands, so each escaped one is held as a
+   character the body does not already hold, which no fold reads, and only those go back escaped. */
+const ESCAPED = new RegExp(String.raw`\\(\n|${ESCAPED_IN_DOUBLE.source})`, "gu");
 const unheld = (text, from = 0xe000) => {
   let at = from;
   while (text.includes(String.fromCodePoint(at))) at += 1;
