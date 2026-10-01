@@ -121,14 +121,13 @@ const advise = async (documentId, fetched, held = null, landing = undefined) => 
 
 export const USAGE = [
   usageOf("claim"),
-  "The lease on an issue, in the session field it already has: a holder, a renew time, a",
-  "duration and the claims before it. Nothing else of a run is remembered.",
+  "The lease on an issue: a holder, a renew time, a duration and the claims before it.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   `  ${STOPPED}       a lapse, or work in this tree: the run the lease named stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
-  `  ${GIVE_BACK}     this run's own lease handed back: the next run claims with no wait`,
-  "  --next <line>   one line, the next run's first step; a status move clears the line, not the lease",
+  `  ${GIVE_BACK}     this run's own lease, handed back`,
+  "  --next <line>   the next run's first step; a status move clears the line, not the lease",
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or dead end, appended; past ${OPEN_KEPT} the oldest goes`,

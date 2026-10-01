@@ -232,7 +232,7 @@ test("a holder's --stopped with no work standing under its lease is refused nami
 
 test("forge claim -h names the give-back and says a status move clears the line and keeps the lease", async () => {
   const help = await ran(["claim", "-h"], BUILDER);
-  assert.match(help.stdout, /--give-back {5}this run's own lease handed back/u);
+  assert.match(help.stdout, /--give-back {5}this run's own lease, handed back/u);
   assert.match(help.stdout, /--next <line> {3}.*a status move clears the line, not the lease/u);
   assert.doesNotMatch(help.stdout, /a transition clears it/u, "the clause read as the lease");
 });
