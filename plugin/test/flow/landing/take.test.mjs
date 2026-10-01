@@ -92,8 +92,9 @@ test("--ready without the capture it writes from is refused, and so is a capture
   assert.equal(checkpoint(), null, "and nothing was written");
   const empty = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, NOTHING);
   assert.equal(empty.status, 1, empty.stdout);
-  assert.match(empty.stderr, /captured no change/u, empty.stderr);
-  assert.match(empty.stderr, /Capture at the push, before the merge/u);
+  assert.match(empty.stderr, /with nothing of this branch's own behind it/u, empty.stderr);
+  assert.match(empty.stderr, /Where the branch was just cut, commit/u, empty.stderr);
+  assert.doesNotMatch(empty.stderr, /before the merge/u, "a head the landing branch holds is sent to no capture a merge has closed");
   assert.equal(checkpoint(), null, "a checkpoint with no head is one nobody can land");
 });
 

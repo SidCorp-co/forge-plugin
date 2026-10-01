@@ -213,6 +213,12 @@ const captured = (git) => Boolean(git?.touched) && Boolean(git.base) && git.base
 const readOf = (held) => `${held.branch} at ${shortSha(held.head)}, `
   + (captured(held) ? `base ${shortSha(held.base)}, ${held.files} file(s) touched` : `and no diff behind it — ${emptyWhy(held)}`);
 
+/* The two routes `readyCheckpoint` refuses this reading with, said by a capture that refuses nothing (ISS-2451). */
+const againOf = (held) => (held.base && held.base === held.head
+  ? "Where the branch was just cut, capture again at the push; where it landed by a fast-forward, no "
+    + "push is left to capture, and `claim --rebuilt` writes that landing after the fact."
+  : "Capture again at the push.");
+
 /* ISS-65's silence is kept for the diff and dropped for the pointer, which a branch just cut is all there is of. What that costs and buys: docs/cli/the-work.md. */
 export const capturedLine = (held) => {
   if (!held) {
@@ -221,7 +227,7 @@ export const capturedLine = (held) => {
   }
   if (!captured(held)) {
     return `--pushed: ${readOf(held)}. The branch and the head `
-      + "are written and the touched set is cleared with them. Capture again at the push.";
+      + `are written and the touched set is cleared with them. ${againOf(held)}`;
   }
   return `--pushed: ${readOf(held)}.`;
 };
