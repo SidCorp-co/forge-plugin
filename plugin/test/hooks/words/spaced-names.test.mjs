@@ -41,3 +41,30 @@ test("a quoted span that is not one path keeps the reading it had", () => {
     assert.deepEqual([...spacedSpans(command)], [], `${command} is not judged one path`);
   }
 });
+
+/* A double quote was left out of that judgement, so the same directory spelled under one was still
+   read as the tail behind its space, and a guarded memory path let a write through (ISS-3081). */
+test("a double-quoted path whose directory carries a space is named whole, and never as the tail behind it", () => {
+  assert.deepEqual(written('echo x > "/m/sp ace/trap.md"'), ["/m/sp ace/trap.md"], "through the gates' reader");
+  assert.deepEqual(names('echo x > "/m/sp ace/trap.md"'), ["/m/sp ace/trap.md"]);
+  assert.deepEqual(aimed('echo x > "/m/sp ace/trap.md"'), ["/m/sp ace/trap.md"], "read as a redirect's target");
+  assert.deepEqual(names('echo x > "/m/memory/my trap.md"'), ["/m/memory/my trap.md"], "a filename carrying one");
+  assert.deepEqual(written('echo x > "/m/memory/my trap.md"'), ["/m/memory/my trap.md"]);
+  assert.deepEqual([...spacedSpans('echo x > "/m/sp ace/trap.md"')], [9], "judged where its quote opens");
+  assert.deepEqual([...spacedSpans('printf x > "/r/paren (one)/written.md"')], [11]);
+  assert.deepEqual(written('touch "/m/sp ace/w.md"'), ["/m/sp ace/w.md"], "a verb's operand, which was blanked as a sentence");
+  assert.deepEqual(written('printf x > "/r/paren (one)/written.md"'), ["/r/paren (one)/written.md"],
+    "a bracket is a path's under a double quote as it is under a single one");
+});
+
+test("a double-quoted span the shell still expands, or that is not one path, keeps the reading it had", () => {
+  assert.deepEqual(names('touch "a.md b.md"'), ["a.md", "b.md"], "a list of names is still two candidates");
+  for (const command of ['echo x > "/m/$d ace/t.md"', 'echo x > "/m/\x60d\x60 ace/t.md"', 'echo x > "/m/a\\" b/t.md"']) {
+    assert.deepEqual([...spacedSpans(command)], [], `${command} spells a name the shell rewrites, so it is not judged one path`);
+  }
+  assert.deepEqual(written('git commit -m "cp notes into /x/memory/a.md"'), [], "a sentence is still blanked");
+  assert.deepEqual(names('sh -c "/bin/cp a.md b.md"'), ["a.md", "b.md"], "a body a shell runs keeps its words");
+  for (const command of ['sh -c \\\n"/bin/cp a.md b.md"', "sh -c \\\n'/bin/cp a.md b.md'"]) {
+    assert.deepEqual(names(command), ["a.md", "b.md"], `${command}: a line continued onto the body is still a body`);
+  }
+});

@@ -50,21 +50,24 @@ export const placeable = (text) => {
   return (at) => at < opens && !said.has(at);
 };
 
-/* Which single-quoted spans are a whole operand and so could be one filename, as mark indices, and whether its spaces are a name's. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution a double quote opened — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside `"$(…)"` is an argument of the command that substitution runs. A space is allowed only where `spacedName` reads the span as a path. */
-const wholeSpans = (text, marks, alike) => {
+/* Which quoted spans are a whole operand and so could be one filename, as mark indices, and whether its spaces are a name's. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution a double quote opened — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside `"$(…)"` is an argument of the command that substitution runs. A space is allowed only where `spacedName` reads the span as a path, and a double-quoted span is one only there: a `$`, a backtick and a backslash each cut a word, so what it holds is what a shell writes (ISS-3081). */
+const wholeSpans = (marks, alike) => {
   const opens = openedAt(marks);
+  /* As a shell reads it, a continuation gone, so a body after one is a runner's. */
+  const read = marks.map(({ one }) => one).join("");
   const out = [];
   for (let from = 0; from < marks.length;) {
-    if (marks[from].under !== "'") {
+    const quote = marks[from].under;
+    if (quote !== "'" && quote !== '"') {
       from += 1;
       continue;
     }
     let to = from + 1;
-    while (to < marks.length && marks[to].under === "'") to += 1;
+    while (to < marks.length && marks[to].under === quote) to += 1;
     const body = marks.slice(from + 1, to - 1);
-    const shut = to - from >= 2 && marks[to - 1].one === "'";
-    const spaced = spacedName(body.map(({ one }) => one).join("")) && !RUN_BODY.test(text.slice(0, marks[from].at));
-    if (alike && shut && from < opens && !marks[from].depth && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
+    const shut = to - from >= 2 && marks[from].one === quote && marks[to - 1].one === quote;
+    const spaced = spacedName(body.map(({ one }) => one).join("")) && !RUN_BODY.test(read.slice(0, from));
+    if (alike && shut && (quote === "'" || spaced) && from < opens && !marks[from].depth && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
       && !body.some(({ one }) => (ALWAYS.test(one) && !(spaced && one === " ")) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       out.push({ from, to, spaced });
     }
@@ -76,14 +79,14 @@ const wholeSpans = (text, marks, alike) => {
 /** Where each quoted span whose space is a filename's opens: the judgement `worded` and `spoken` read. */
 export const spacedSpans = (text, alike = true) => {
   const marks = quoting(text);
-  return new Set(wholeSpans(text, marks, alike).filter(({ spaced }) => spaced).map(({ from }) => marks[from].at));
+  return new Set(wholeSpans(marks, alike).filter(({ spaced }) => spaced).map(({ from }) => marks[from].at));
 };
 
 export const worded = (text, alike) => {
   const marks = quoting(text);
   const alone = new Array(marks.length).fill(false);
   const spaced = new Array(marks.length).fill(false);
-  for (const span of wholeSpans(text, marks, alike)) {
+  for (const span of wholeSpans(marks, alike)) {
     for (let at = span.from; at < span.to; at += 1) {
       alone[at] = true;
       spaced[at] = span.spaced;
@@ -94,7 +97,7 @@ export const worded = (text, alike) => {
   for (let n = 0; n < marks.length; n += 1) {
     const { at, one, removed } = marks[n];
     const escaped = removed && marks[n + 1]?.at === at + 1;
-    if (!escaped && !(spaced[n] && one === " ") && cuts(marks[n])) {
+    if (!escaped && !(spaced[n] && (one === " " || BRACKET.test(one))) && cuts(marks[n])) {
       word = null;
       continue;
     }
