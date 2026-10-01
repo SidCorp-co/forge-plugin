@@ -94,6 +94,11 @@ const NAMED_HEADING = /^#{1,6}[ \t]+(.*?)[ \t]*$/u;
 /* A step's criterion, over the raw plan and over a step whose wrapped lines are joined: a break the reader turned into a space is one the protector must hold. */
 const CITED = "criteri(?:on|a)[ \\t]*:?[ \\t\\r\\n]*\\d+(?:[ \\t]*,[ \\t\\r\\n]*\\d+)*";
 const CITES = new RegExp(CITED, "giu");
+/* The witnessed section's citation is the same list with its colon owed: a step is a sentence about
+   the criterion it serves, while this section's prose often names one to say it is not witnessed, and
+   that sentence must not join the set a person is asked to look at (ISS-2029). */
+const WITNESS_CITED = CITED.replace(":?", ":");
+const WITNESS_CITES = new RegExp(WITNESS_CITED, "giu");
 const NUMBERED_STEP = /^\s*(\d+)\.\s+(.*)$/u;
 
 const sectionAt = (line) => {
@@ -136,14 +141,15 @@ export const planSteps = (plan) => {
 
 const SAYS_NONE = new RegExp(WITNESSED_NONE, "iu");
 
-/** What a plan says only a person at the running product can witness, and which way it answered — `cites` and `none` being the two, read off one reading by the write that refuses a file and by the status that reads the plan the issue stored, or a plan edited anywhere but here enters at a shape the write turns back. It is read where an answer stands — the section's opening word — so `display: none` in a criterion it names is prose, as it would be anywhere else. Both answers come back rather than one winning: a section giving neither and one giving both each leave a reader guessing, and only the caller that refuses them can say which happened. */
+/** What a plan says only a person at the running product can witness, and which way it answered — `cites` and `none` being the two, read off one reading by the write that refuses a file and by the status that reads the plan the issue stored, or a plan edited anywhere but here enters at a shape the write turns back. A number is cited only in the `criteria:` form, and `none` only where it opens the first paragraph that answers at all — so a restated question above the answer is not the answer, and `display: none` in a criterion it names, or a later paragraph opening `None of the others`, is prose. Both answers come back rather than one winning: a section giving neither and one giving both each leave a reader guessing, and only the caller that refuses them can say which happened. */
 export const witnessedOn = (plan) => {
   const body = planSections(plan).get(WITNESSED);
   if (body === undefined) return null;
   const said = fenceMarked(body).filter((one) => !one.fenced).map((one) => one.line).join("\n");
-  const cites = [...said.matchAll(CITES)].flatMap((one) => (one[0].match(/\d+/gu) ?? []).map(Number));
-  const opens = said.split("\n").find((one) => one.trim()) ?? "";
-  return { cites: [...new Set(cites)].sort((one, two) => one - two), none: SAYS_NONE.test(opens) };
+  const cites = [...said.matchAll(WITNESS_CITES)].flatMap((one) => (one[0].match(/\d+/gu) ?? []).map(Number));
+  const answers = said.split(/\n[^\S\n]*(?:\n|$)/u).map((one) => one.replace(/^(?:[^\S\n]*\n)+/u, ""))
+    .find((one) => SAYS_NONE.test(one) || new RegExp(WITNESS_CITED, "iu").test(one)) ?? "";
+  return { cites: [...new Set(cites)].sort((one, two) => one - two), none: SAYS_NONE.test(answers) };
 };
 export const witnessedAnswers = (witnessed) => [witnessed?.cites.length ? "cites" : null, witnessed?.none ? "none" : null].filter(Boolean);
 

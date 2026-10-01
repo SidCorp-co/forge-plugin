@@ -472,6 +472,16 @@ test("approved refuses a witnessed set citing a criterion the issue does not hol
     ["`## Witnessed on screen` cites criterion 2 and says `none` as well, so nothing there says whether a person at the running product is owed a look"]);
 });
 
+/* A sentence under the witnessed heading may name a criterion to say it is not witnessed, and the
+   view a judging run is assembled from reads the same section the entry check does, so a number that
+   joined the set there would reach that run as one a person is asked to look at (ISS-2029). */
+test("a criterion the witnessed section names in a sentence joins no witnessed set", () => {
+  const said = "criteria: 2\n\nWhat a person reads is the panel; criteria 999 and 998 are what the endpoint returns.";
+  const one = planned(typedPlan({ "Witnessed on screen": said }));
+  assert.deepEqual(missing("approved", one), [], "the excluded number is owed nothing");
+  assert.deepEqual(one.witnessed, { cites: [2], none: false }, "and the judging view holds the citation alone");
+});
+
 /* Which declarations are required is the table's, so a plan leaving any of them unanswered earns
    nothing — and each is answered by a line, never by prose saying the same thing (AC-05-7-3). */
 test("approved needs the plan with every required declaration, and numbered criteria", () => {
