@@ -7,9 +7,9 @@ import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { ESCAPED_IN_DOUBLE, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
-import { placeable, spacedSpans, worded } from "./shell/words.mjs";
+import { RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
-export { ESCAPED_IN_DOUBLE, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
+export { ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -233,15 +233,6 @@ export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 /** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), and every other wrapper the options its row of the wrappers' table reads, a value-taking one with its value: `sudo -u root touch` runs `touch`, and `sudo -u touch cp a b` runs `cp`. A wrapper spelled inside a quoted argument is kept from reading as a start by the reader in front of this, which takes a quoted span out before testing it. `^` is last, so a prefix standing at the head wins its position, and it takes the blanks after it: a span cut behind a `;`, a `&&` or a `|` opens with the one the operator left, and it is the same command it would be at the head of the text (ISS-2933). An `exec` counts only behind one of these, so the one another program takes as its argument starts nothing. */
 export const STARTS = String.raw`(?:(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
   + String.raw`|\b(?:${[...WRAPPING.map(wrapped), KEYWORDS].join("|")})\s+|^\s*)(?:${wrapped("exec")}\s+)?)`;
-
-/** A word that names a shell: at any path, through `busybox` or not. The one answer to which word is a shell — for a `-c` body, for a heredoc a shell reads on stdin, and for whether a body is the caller's own language — so a shell one reading knows, the others know. Non-capturing, being spliced into a reader's pattern. */
-export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh`;
-
-/** One option a shell takes before its program, whether that program is a `-c` body or a heredoc on its stdin: a bare word only as the value `-o`, `+o`, `-O` or `+O` takes, since `bash -x script -c '…'` runs the script and hands it the rest. The one answer to which words are a shell's options, so the two places a shell's program can come from read them alike. Non-capturing, being spliced into a reader's pattern. */
-export const SHELL_OPTION = String.raw`(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)`;
-
-/** A word that runs its next quoted argument as shell code: a shell by `SHELL_WORD`, with its `SHELL_OPTION`s before the `-c`, or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
-export const RUNNER = String.raw`${SHELL_WORD}\s+(?:${SHELL_OPTION}\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 
 const fetching = (verb) => String.raw`${verb}\b[^|;]*\s${writingOption(verb)}`;
 /* The two halves of a write: a verb, which counts where a command starts, and a library call, which counts anywhere — each only with a target it names. `curl` and `wget` name theirs in an option their row of the option table says writes. how/writes.md. */

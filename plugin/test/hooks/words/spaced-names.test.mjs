@@ -25,6 +25,8 @@ test("a verb's quoted operand is named by the same judgement the redirect reader
   assert.deepEqual(written("touch '/r/sp ace/w.md'"), ["/r/sp ace/w.md"],
     "kept by the reader that blanks a quoted sentence, since it is no sentence");
   assert.deepEqual([...spacedSpans("touch '/r/sp ace/w.md'")], [6], "the span is judged where its quote opens");
+  assert.deepEqual(written("touch -c '/r/sp ace/w.md'"), ["/r/sp ace/w.md"],
+    "and a `-c` is a body's only after a shell, so the one a verb takes leaves its operand a path");
 });
 
 test("a quoted span that is not one path keeps the reading it had", () => {
@@ -32,7 +34,7 @@ test("a quoted span that is not one path keeps the reading it had", () => {
   assert.deepEqual(names("printf x > '/r/a.md /r/b.md'"), ["/r/a.md", "/r/b.md"], "and a list of rooted ones");
   assert.deepEqual(written("git commit -m 'cp notes into /x/memory/a.md'"), [],
     "a sentence opens with a word, so the gates' reader still blanks it");
-  for (const one of ["sh -c '/bin/cp a.md b.md'", "bash -lc '/bin/cp a.md b.md'", "eval '/bin/cp a.md b.md'"]) {
+  for (const one of ["sh -c '/bin/cp a.md b.md'", "bash -lc '/bin/cp a.md b.md'", "bash -o pipefail -lc '/bin/cp a.md b.md'", "eval '/bin/cp a.md b.md'"]) {
     assert.deepEqual(names(one), ["a.md", "b.md"], `${one} is a body a shell runs, so its words stay words`);
   }
   for (const command of ["touch 'a.md b.md'", "touch '/r/a /b.md'", "touch '/r/a b/w.md'.bak", "touch '/r/a b/w'", "sh -c '/bin/cp a.md b.md'"]) {
