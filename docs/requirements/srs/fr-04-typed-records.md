@@ -243,6 +243,13 @@ it.
 - **AC-04-7-9** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan-screens.test.mjs "a project that chose no flow writes a plan declaring a screen change"
   WHERE a project has chosen no flow, the CLI SHALL write a plan declaring a screen change, and SHALL
   refuse that declaration only where the flow a project chose says its projects have no screen.
+- **AC-04-7-10** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a criterion the witnessed section names in a sentence joins no witnessed set"
+  WHERE the section naming what only a person at the running product can witness names a criterion
+  number anywhere but after `criteria:` or `criterion:` with its colon, the CLI SHALL read no citation
+  of that criterion from it.
+- **AC-04-7-11** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "the witnessed section cites only in the criteria form, and none answers from the paragraph it opens"
+  WHERE that section answers `none` at the opening of a paragraph after one that answers neither way,
+  the CLI SHALL read the section as answering `none`.
 
 ### UC-04-8 — The merged mark is a record, and a field is shaped as well as present
 

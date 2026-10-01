@@ -166,6 +166,32 @@ test("the witnessed section is refused where it answers neither way, and where i
   assert.equal(inside.status, 0, "the word inside a criterion's own prose is not the section's answer");
 });
 
+/* Where in the section its answer stands: a number in the `criteria:` form and nowhere else, so a
+   sentence naming a criterion to exclude it cites nothing, and `none` where it opens the paragraph
+   that answers, so a restated question above it is not read as the answer (ISS-2029). */
+test("the witnessed section cites only in the criteria form, and none answers from the paragraph it opens", async () => {
+  heldBy(MINE);
+  const quoted = [
+    "22, 23, 24. Each is a claim about what a component draws. None can be read off the source:",
+    "criteria 14 and 15 say what the comment endpoint returns.",
+  ].join("\n");
+  const prose = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": quoted })));
+  assert.equal(prose.status, 1, "numbers only in prose are no citation");
+  assert.match(prose.stderr, /as `criteria: 3`, or write `none`/u, "and the refusal names the form the write wants");
+  assert.doesNotMatch(prose.stderr, /\b(?:14|15|22|23|24)\b/u, "naming no number the prose mentions");
+  assert.match(prose.stderr, /a number written any other way under the heading is prose and cites nothing/u);
+  const restated = [
+    "Which criteria only a person at the running product can witness, by number, or none and the reading",
+    "that makes it none.",
+    "",
+    "None. This project's product is a command-line tool with no screen.",
+  ].join("\n");
+  const asked = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": restated })));
+  assert.equal(asked.status, 0, asked.stderr);
+  const later = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "criteria: 2\n\nNone of the others reaches a screen." })));
+  assert.equal(later.status, 0, "a later paragraph opening with the word is prose beside the citation");
+});
+
 /* The file's own bytes reach the check, and a plan written on Windows carries a `\r` the reader kept
    until it split on both: unsplit, every heading of a complete plan was one nothing matched. */
 test("a plan whose lines end in CRLF is judged by the same reading as one that does not", async () => {

@@ -127,6 +127,7 @@ const witnessedChecked = (witnessed) => {
     "an unanswered section reads exactly like a considered `none` to whoever is deciding whether this",
     "change owes a person at the running product a look.",
     "Name what only a person there can witness as `criteria: 3`, or write `none` and the reading that makes it none.",
+    "A criterion is cited in that form, colon and all: a number written any other way under the heading is prose and cites nothing, and `none` counts where it opens a paragraph.",
   ].join("\n"));
 };
 
