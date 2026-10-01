@@ -93,14 +93,23 @@ const holes = (code, one) => {
   return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? [...one[0].matchAll(/\{[^{}]*\}/gu)] : [];
 };
 
-/** Each file call in `code`, the program a `runner` reads, `{ from, to }` its whole text; one spelt inside a string or a comment is none: `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
-export const fileCalls = (code, runner) => {
-  const said = [...code.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)].map((one) => ({
+/* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; and whether an offset stands inside a string or a comment, where a call is none. */
+const spokenIn = (given, runner) => {
+  const said = [...given.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)];
+  const code = said.filter((one) => one[1] !== undefined)
+    .reduce((text, one) => `${text.slice(0, one.index)}${" ".repeat(one[0].length)}${text.slice(one.index + one[0].length)}`, given);
+  const spans = said.map((one) => ({
     from: one.index,
     to: one.index + one[0].length,
-    runs: holes(code, one).map((hole) => ({ from: one.index + hole.index, to: one.index + hole.index + hole[0].length })),
+    runs: holes(given, one).map((hole) => ({ from: one.index + hole.index, to: one.index + hole.index + hole[0].length })),
   }));
-  const inside = (at) => said.some((one) => at > one.from && at < one.to && !one.runs.some((hole) => at > hole.from && at < hole.to));
+  const inside = (at) => spans.some((one) => at > one.from && at < one.to && !one.runs.some((hole) => at > hole.from && at < hole.to));
+  return { code, inside };
+};
+
+/** Each file call in `given`, the program a `runner` reads: `{ from, to }` is where it stands, `text` what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
+export const fileCalls = (given, runner) => {
+  const { code, inside } = spokenIn(given, runner);
   const out = [];
   for (const hit of [...code.matchAll(OPENS)].filter((one) => !inside(one.index))) {
     const opened = hit.index + hit[0].length;
@@ -112,7 +121,8 @@ export const fileCalls = (code, runner) => {
     const written = call.writes.map((one) => argument(code, read.args, one));
     const targets = written.filter((one) => literalAt(code, one));
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
-    out.push({ from: hit.index, to: read.end, targets, names, computed: targets.length < written.filter(Boolean).length });
+    const computed = targets.length < written.filter(Boolean).length;
+    out.push({ from: hit.index, to: read.end, text: code.slice(hit.index, read.end), targets, names, computed });
   }
   for (const hit of [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index))) {
     const said = STRING_IN.exec(hit[0]);
@@ -120,7 +130,7 @@ export const fileCalls = (code, runner) => {
     const from = hit.index + (said ?? name).index;
     const one = { from, to: from + (said ?? name)[0].length };
     const targets = said && spelling(said[0]) !== null ? [one] : [];
-    out.push({ from: hit.index, to: hit.index + hit[0].length, targets, names: name ? [one] : [], computed: !targets.length });
+    out.push({ from: hit.index, to: hit.index + hit[0].length, text: hit[0], targets, names: name ? [one] : [], computed: !targets.length });
   }
   return out;
 };

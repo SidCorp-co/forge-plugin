@@ -85,6 +85,11 @@ test("a call spelt inside a string or a comment is no call", () => {
   both(python(String.raw`message = "say \"; open('u.md','w')"`), [], "a python string holding an escaped quote");
 });
 
+test("a comment between a call's arguments splits and closes nothing", () => {
+  both(python("open('unplanned.md', # the mode, then (a note)", "     'w')"), ["unplanned.md"], "python's comment");
+  both(heredoc("node", "writeFileSync(/* a, b) */ 'n.md', 'x')"), ["n.md"], "node's block comment");
+});
+
 test("what a string still runs is code, and a call there is one", () => {
   both(heredoc("node", "const s = `${writeFileSync('t.md', 'x')}`;"), ["t.md"], "a template's interpolation");
   both(python("s = f\"{open('f.md','w').write('x')}\""), ["f.md"], "an f-string's field");
