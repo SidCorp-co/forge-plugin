@@ -176,6 +176,7 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
   for (const [command, why] of [
     [py("open('unplanned.mjs','w').write(s)"), "open"],
     [py("open('unplanned.mjs', r'w')"), "open with a prefixed mode"],
+    [py("s = f\"{open('unplanned.mjs','w').write(str({'a': 1}))}\""), "open in an f-string's field"],
     [py("from pathlib import Path", "Path('unplanned.mjs').write_text(s)"), "write_text"],
     [py("p = 'unplanned.mjs'", "open(p, 'w')"), "a bound name"],
     [py("shutil.copy('planned.mjs', 'unplanned.mjs')"), "a copy's destination"],

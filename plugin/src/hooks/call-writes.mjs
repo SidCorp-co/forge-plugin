@@ -87,11 +87,36 @@ const argument = (code, args, [at, key]) => {
 
 const literalAt = (code, one) => (one && spelling(code.slice(one.from, one.to)) !== null ? one : null);
 
+/* Each field a string runs, `{ from, to }` within it, from its opening brace to the one closing it: a brace nested in it, a string's aside, is counted. An f-string's doubled brace is a literal one. */
+const fields = (text, opens) => {
+  const out = [];
+  for (let at = text.indexOf(opens); at >= 0; at = text.indexOf(opens, at + 1)) {
+    if (opens === "{" && text[at + 1] === "{") {
+      at += 1;
+      continue;
+    }
+    let depth = 0;
+    let quote = null;
+    let end = at + opens.length - 1;
+    for (; end < text.length; end += 1) {
+      const one = text[end];
+      if (quote) quote = one === quote ? null : quote;
+      else if (one === "'" || one === '"') quote = one;
+      else if (one === "{") depth += 1;
+      else if (one === "}") depth -= 1;
+      if (depth === 0 && !quote) break;
+    }
+    out.push({ from: at, to: end + 1 });
+    at = end;
+  }
+  return out;
+};
+
 /* What a string still runs, whose calls are code: a template's `${…}`, and an f-string's `{…}`. */
 const F_PREFIX = /(?:^|[^\w])(?:[fF][rR]?|[rR][fF])$/u;
 const holes = (code, one) => {
-  if (one[0][0] === "`") return [...one[0].matchAll(/\$\{[^}]*\}/gu)];
-  return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? [...one[0].matchAll(/\{[^{}]*\}/gu)] : [];
+  if (one[0][0] === "`") return fields(one[0], "${");
+  return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? fields(one[0], "{") : [];
 };
 
 /* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; and whether an offset stands inside a string or a comment, where a call is none. */
@@ -102,7 +127,7 @@ const spokenIn = (given, runner) => {
   const spans = said.map((one) => ({
     from: one.index,
     to: one.index + one[0].length,
-    runs: holes(given, one).map((hole) => ({ from: one.index + hole.index, to: one.index + hole.index + hole[0].length })),
+    runs: holes(given, one).map((hole) => ({ from: one.index + hole.from, to: one.index + hole.to })),
   }));
   const inside = (at) => spans.some((one) => at > one.from && at < one.to && !one.runs.some((hole) => at > hole.from && at < hole.to));
   return { code, inside };
