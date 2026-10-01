@@ -152,7 +152,7 @@ export const briefGoals = async (held = {}) => {
 export const refreshBrief = async (path, { pairs, ...meta }) => {
   const body = await bodyFrom(path);
   const dropKept = path === "-"
-    ? keepOnFailure(`Your brief, so that nothing here loses it:\n\n${body}`)
+    ? keepOnFailure(`Your brief, so that nothing here loses it:\n\n${body}`, { ahead: true })
     : undefined;
   const digests = digestsFor(body);
   const wrote = await upsertEntry({

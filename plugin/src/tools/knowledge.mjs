@@ -107,7 +107,7 @@ const written = async (argv) => {
   const { kind, injection, confidence } = given;
   const body = await bodyFrom(path);
   const dropKept = path === "-"
-    ? keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`)
+    ? keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`, { ahead: true })
     : undefined;
   const wrote = await upsertEntry({
     slug, body, kind, title: given.title, injection, confidence, meta: metaFrom(pairs), dropKept,

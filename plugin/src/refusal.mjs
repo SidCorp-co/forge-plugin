@@ -38,14 +38,17 @@ export const appendedLine = (line) => {
    exit does not move it off the stream a reader of the first one is watching. */
 const kept = [];
 
-export const keepOnFailure = (text, say = null) => {
+/* A body kept only so nothing loses it is registered `ahead` and prints before the refusal: after
+   it, a long body is the whole tail of the call, echoed with nothing under it to say the call was
+   refused (ISS-2092). A line answering for the refusal, or for what printed before it, stays after. */
+export const keepOnFailure = (text, { say = null, ahead = false } = {}) => {
   /* A null empties nothing: kept, it leaves the body standing and prints a `null` under it
      (ISS-3032). What a caller done with its entry calls is the drop returned below. */
   if (typeof text !== "string") {
     throw new TypeError(`keepOnFailure keeps a line of text, and was handed ${text === null ? "null" : typeof text}: `
       + "a caller done with what it kept calls the function its own registration returned.");
   }
-  const held = { text, say };
+  const held = { text, say, ahead };
   kept.push(held);
   return () => {
     const at = kept.indexOf(held);
@@ -72,7 +75,9 @@ export const refusing = async (run) => {
 
 export const fail = (message) => {
   if (embedded) throw new Refusal(message);
+  const say = (one) => (one.say ?? console.error)(one.text);
+  for (const one of kept) if (one.ahead) say(one);
   console.error(message);
-  for (const one of kept) (one.say ?? console.error)(one.text);
+  for (const one of kept) if (!one.ahead) say(one);
   process.exit(1);
 };

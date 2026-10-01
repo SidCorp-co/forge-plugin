@@ -157,6 +157,40 @@ test("a credential the project refuses is told so, with the note echoed back", a
   assert.match(run.stderr, /forge record confirmation -h/u, "the body was not echoed back");
 });
 
+/* The reason is the call's last line and the note is printed once, ahead of it: a reader of the
+   tail met the note echoed twice with the reason above both, out of sight, and read a call that
+   filed nothing as one that had (ISS-2092). */
+test("a refused note ends on the reason, with the note printed once ahead of it", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE], {
+    answer: {
+      forge_issues: (args) =>
+        (args.action === "create" ? { refused: "this credential may not write to forge-plugin" } : { issues: [], returned: 0 }),
+    },
+  });
+  assert.equal(run.status, 1);
+  const lines = run.stderr.split("\n").filter((one) => one.trim() !== "");
+  assert.match(lines.at(-1), /^forge-plugin refused this filing: .*this credential may not write to forge-plugin$/u,
+    `the call does not end on what stopped it:\n${run.stderr}`);
+  assert.equal(lines.filter((one) => one.startsWith("Your note, so that nothing here loses it:")).length, 1,
+    `the note is not printed exactly once:\n${run.stderr}`);
+  assert.equal(run.stderr.split("forge record confirmation -h").length - 1, 1, "the note's own text is not there once");
+  assert.ok(run.stderr.indexOf("forge record confirmation -h") < run.stderr.indexOf("refused this filing"),
+    "the note is printed after the refusal, and is what a reader of the tail meets");
+});
+
+test("a note that files ends on the key and the uuid it filed, read back from the tracker", async () => {
+  const held = { documentId: "filed-uuid", issueId: "ISS-2091", status: "open", title: TITLE, category: "bug" };
+  state.key = "ISS-2091";
+  try {
+    const run = await send(["feedback", note(), "--title", TITLE], { issues: [held] });
+    assert.equal(run.status, 0, run.stderr);
+    const last = run.stdout.split("\n").filter((one) => one.trim() !== "").at(-1);
+    assert.match(last, /^ISS-2091 is filed at filed-uuid, read back from the tracker/u, run.stdout);
+  } finally {
+    delete state.key;
+  }
+});
+
 /* A tool that says no is not the only refusal: an endpoint answering 401 exits before any tool
    result exists, and a note piped in has no file to read back from. */
 test("a note piped in survives a refusal that never reached a tool", async () => {

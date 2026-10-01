@@ -94,7 +94,7 @@ export const feedback = async (argv) => {
   if (badKeys) fail(badKeys);
   /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What it claims, and the one refusal above this line it cannot reach: docs/cli/feedback.md. */
   const written = await bodyFrom(path);
-  const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`);
+  const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`, { ahead: true });
   const dropRead = keep(written);
   /* Read before the project is aimed, so a note the shape will not carry costs no call; `routed` where the note names its issue, a fold otherwise putting its body on some third one. */
   const asked = { title, body: written, kind, sections: [whereSection()], everySection: true,

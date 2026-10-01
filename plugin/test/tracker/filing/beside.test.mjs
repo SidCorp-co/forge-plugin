@@ -483,6 +483,20 @@ test("a body piped in is printed back by a refusal that comes after the read", a
   assert.equal(created(), undefined);
 });
 
+/* Ahead of the reason and not after it, so the call ends on what stopped it (ISS-2092). */
+test("a body piped in and refused ends on the refusal, with the body printed ahead of it", async () => {
+  before();
+  const body = "## Outcome\n\nthe piped body is printed above what refused it\n";
+  const argv = ["new", "-", "--title", "the piped body sits above its refusal", "--category", "feature"];
+  const run = await ranAsync(FORGE, argv, ENV, neutralRoom(), body);
+  assert.equal(run.status, 1, run.stdout);
+  const lines = run.stderr.split("\n").filter((one) => one.trim() !== "");
+  const at = lines.indexOf("the piped body is printed above what refused it");
+  assert.ok(at >= 0, `the piped body was lost:\n${run.stderr}`);
+  assert.ok(at < lines.length - 1, `the call ends on the body and not on what refused it:\n${run.stderr}`);
+  assert.ok(lines.indexOf("Your body, so that nothing here loses it:") < at);
+});
+
 /* The other half of the same rule: a refusal BEFORE the read may not consume the one payload
    nothing can send twice, so the kind is asked for ahead of the body rather than beside it. */
 test("a filing with no kind is refused without reading the stdin it was piped", async () => {

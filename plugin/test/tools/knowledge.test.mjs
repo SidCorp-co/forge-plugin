@@ -294,7 +294,7 @@ test("a field the store did not keep is a failure, not a replace", async () => {
 });
 
 /* A write that landed owes its body to nobody: printed back after a later refusal, it reads as a
-   write to send again (ISS-3032). */
+   write to send again (ISS-3032). One refused before it landed ends on the reason, the entry ahead. */
 test("an entry whose upsert landed is not printed back by the read-back's refusal, nor is a null", async () => {
   await created();
   state.answer.forge_knowledge = (args) =>
@@ -305,6 +305,23 @@ test("an entry whose upsert landed is not printed back by the read-back's refusa
     assert.ok(upserts().length > 0, "the upsert never went out, so nothing here is past a landed write");
     assert.doesNotMatch(run.stderr, /Your entry, so that nothing here loses it:/u, run.stderr);
     assert.doesNotMatch(run.stderr, /^null$/mu, run.stderr);
+  } finally {
+    state.answer.forge_knowledge = knowledge;
+  }
+});
+
+test("an entry refused before it landed ends on the reason, with the entry printed ahead of it", async () => {
+  state.answer.forge_knowledge = (args) =>
+    (args.action === "get" ? { refused: "Error: forbidden for this credential" } : knowledge(args));
+  try {
+    const run = await ran(["knowledge", "write", "module-knowledge", "-", "--kind", "reference",
+      "--title", "T"], BODY);
+    assert.equal(run.status, 1, run.stdout);
+    const lines = run.stderr.split("\n").filter((one) => one.trim() !== "");
+    assert.match(lines.at(-1), /the store could not be read for module-knowledge/u, run.stderr);
+    assert.ok(run.stderr.indexOf(BODY.trim()) >= 0, `the piped entry was lost:\n${run.stderr}`);
+    assert.ok(run.stderr.indexOf(BODY.trim()) < run.stderr.indexOf("the store could not be read"),
+      "the entry is printed after the refusal, and is what a reader of the tail meets");
   } finally {
     state.answer.forge_knowledge = knowledge;
   }

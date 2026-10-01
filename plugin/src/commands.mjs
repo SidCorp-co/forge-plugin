@@ -294,7 +294,7 @@ const own = {
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
     const dropKept = path === "-"
-      ? keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`)
+      ? keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`, { ahead: true })
       : undefined;
     const unnamed = await servesOwed(body, "This body's `Serves:` line");
     if (unnamed) fail(unnamed);
