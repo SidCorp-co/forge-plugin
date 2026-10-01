@@ -140,8 +140,8 @@ test("a criterion whose own block is over the cap is named with the amount to cu
   const why = "w".repeat(CAP);
   const was = snapshot();
   const run = await ask("record", "verdict", "ISS-9", "--commit", COMMIT, "--verdict", "pass",
-    "--evidence", COMMIT, "--criterion", "1", "--criterion", "2", "--verdict", "fail", "--why", why,
-    "--criterion", "3");
+    "--evidence", COMMIT, "--criterion", "1", "--criterion", "3",
+    "--criterion", "2", "--verdict", "fail", "--why", why);
   assert.equal(run.status, 1, run.stdout);
   assert.deepEqual(snapshot(), was, "nothing reached the tracker");
   const alone = /^--criterion 2 is over the cap by itself, so no split carries it: shorten its own values by (\d+) and write it alone\.$/mu
