@@ -10,7 +10,7 @@ export const SPEAKS = { python: "python", python3: "python", node: "node", deno:
 
 /** Where a language's strings and comments stand, a comment captured. A binding is discovered in code and nowhere else, and so is a call: one inside a comment or a string a program prints is neither. A runner none of these name is read as python. */
 export const SPOKEN_IN = {
-  python: /"""[\s\S]*?"""|'''[\s\S]*?'''|"[^"\n]*"|'[^'\n]*'|(#[^\n]*)/gu,
+  python: /"""(?:[^\\]|\\[\s\S])*?"""|'''(?:[^\\]|\\[\s\S])*?'''|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(#[^\n]*)/gu,
   node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
 };
 
@@ -85,10 +85,21 @@ const argument = (code, args, [at, key]) => {
 
 const literalAt = (code, one) => (one && spelling(code.slice(one.from, one.to)) !== null ? one : null);
 
+/* What a string still runs, whose calls are code: a template's `${…}`, and an f-string's `{…}`. */
+const F_PREFIX = /(?:^|[^\w])(?:[fF][rR]?|[rR][fF])$/u;
+const holes = (code, one) => {
+  if (one[0][0] === "`") return [...one[0].matchAll(/\$\{[^}]*\}/gu)];
+  return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? [...one[0].matchAll(/\{[^{}]*\}/gu)] : [];
+};
+
 /** Each file call in `code`, the program a `runner` reads, `{ from, to }` its whole text; one spelt inside a string or a comment is none: `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A call whose written argument is anything else has no target: what a program computes is not placed here. */
 export const fileCalls = (code, runner) => {
-  const said = [...code.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)];
-  const inside = (at) => said.some((one) => at > one.index && at < one.index + one[0].length);
+  const said = [...code.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)].map((one) => ({
+    from: one.index,
+    to: one.index + one[0].length,
+    runs: holes(code, one).map((hole) => ({ from: one.index + hole.index, to: one.index + hole.index + hole[0].length })),
+  }));
+  const inside = (at) => said.some((one) => at > one.from && at < one.to && !one.runs.some((hole) => at > hole.from && at < hole.to));
   const out = [];
   for (const hit of [...code.matchAll(OPENS)].filter((one) => !inside(one.index))) {
     const opened = hit.index + hit[0].length;
