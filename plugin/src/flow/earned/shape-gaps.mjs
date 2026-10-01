@@ -34,8 +34,10 @@ export const shapeGaps = (kind, record, names = [], table = SHAPES_AT, issue = n
     }
     if (held === undefined) continue;
     if (field.commit && !isCommit(held)) gaps.push(`--${field.flag} \`${held}\`, which is no commit`);
-    if (field.landing && landingProblem(held)) gaps.push(`--${field.flag} \`${held}\`, which ${landingProblem(held)}`);
-    if (field.landed && landedProblem(held, issue)) gaps.push(`--${field.flag} \`${held}\`, which ${landedProblem(held, issue)}`);
+    const unplaced = field.landing && landingProblem(held);
+    if (unplaced) gaps.push(`--${field.flag} \`${held}\`, which ${unplaced}`);
+    const unlanded = field.landed && landedProblem(held, issue);
+    if (unlanded) gaps.push(`--${field.flag} \`${held}\`, which ${unlanded}`);
     if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);
   }
   if (shape.stamp && record.fields[shape.stamp.flag] === undefined) gaps.push(`its ${shape.stamp.label} stamp`);
