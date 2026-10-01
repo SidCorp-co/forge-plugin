@@ -18,6 +18,7 @@ import { DATA_FENCE_PATTERN } from "../markdown.mjs";
 import { nearestOutside } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
+import { gitMarkForm } from "../flow/record/judged/merged-clauses.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
@@ -205,18 +206,24 @@ const said = (body, status, args) => {
   ];
   const head = body?.message ? `${body.code ?? status}: ${unfenced(body.message)}` : `Forge answered ${status}`;
   const whole = lines.length ? `${head}\n${lines.join("\n")}` : head;
-  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${capturedBy(args?.documentId ?? args?.data?.issueId)}`;
+  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${evidenceRoutes(args?.documentId ?? args?.data?.issueId)}`;
   return status === 401 ? `${UNAUTHORIZED}\n\n${whole}` : whole;
 };
 
-/* The tracker's work-evidence refusal, met by a status move and by the merged mark alike, names two
-   fields a branch may be recorded in and never a command: one is the field `forge claim --pushed`
-   writes, and the other is one no verb here writes and `forge issue --set` refuses, so a run told
-   only the tracker's words is sent to a field it cannot reach (ISS-2775). */
+/* The tracker's work-evidence refusal, met by a status move and by the merged mark alike, names
+   fields and a tracker action and never a command. One field is the one `forge claim --pushed`
+   writes; the other is one no verb here writes and `forge issue --set` refuses (ISS-2775); the
+   action is the merged mark carrying its commit, which is the only trace a change that landed on
+   the base branch itself leaves, there being no other branch to capture (ISS-1488). */
 const NO_WORK_EVIDENCE = "NO_WORK_EVIDENCE";
-const capturedBy = (id) => `Capture the branch the work is on, which is not the project's base branch, `
-  + `with \`forge claim ${id ?? "<issue>"} --pushed\`: it writes sessionContext.worklog.branch, which `
-  + "that check reads. Then send the refused command again.";
+const evidenceRoutes = (id) => {
+  const ref = id ?? "<issue>";
+  return "Capture the branch the work is on, where it is not the project's base branch, with "
+    + `\`forge claim ${ref} --pushed\`: it writes sessionContext.worklog.branch, which that check reads. `
+    + "Where the change landed on the base branch itself, mark it merged at the commit it landed at, "
+    + `which the tracker checks against the project's repository:\n  ${gitMarkForm(ref)}\n`
+    + "Then send the refused command again.";
+};
 
 /* The tracker's words say the token was refused and never which token or where it came from, which
    left a run unable to tell a wrong one from an expired one without a person (ISS-45). */
