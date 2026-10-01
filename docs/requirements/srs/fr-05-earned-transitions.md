@@ -331,9 +331,9 @@ person is owed at all is the project's to decide in its own configuration, becau
 release lands where a person can still look at it afterwards is not the product the rule was written
 for.
 
-- **AC-05-7-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "what the plan declared decides what the ship steps owe"
-  IF the plan declares schema coupling and no attachment carries the migration risk classification
-  THEN the CLI SHALL refuse `testing` and name the attachment it wants.
+- **AC-05-7-1** · Rev: 2 · Proof: plugin/test/flow/earned/declarations/schema-classification.test.mjs "a schema-coupled change owes the classification record, whatever else the issue carries"
+  IF the plan declares schema coupling and no whole record classifies the migration's risk THEN the
+  CLI SHALL refuse `testing` and name the record it wants, whatever attachments the issue carries.
 - **AC-05-7-2** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "a user-facing outcome owes a person's look, and --owed says so first"
   IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
   for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL

@@ -79,3 +79,26 @@ export const findingProblem = (value) => {
   if (BARE_REJECTED.test(said)) return `needs a reason after a rejected finding: \`${said}: why\``;
   return FINDING.test(said) ? null : `takes ${FINDING_TAKES}, not \`${said}\``;
 };
+
+/* What deploying one schema statement does to rows that already exist and to readers already
+   running, in the three words the verification reference classifies by: a class outside them is a
+   classification nobody can act on, and a statement with none is a migration nobody classified. */
+export const MIGRATION_CLASSES = ["additive", "tightening", "destructive"];
+
+export const STATEMENT_TAKES = `\`<statement> | ${MIGRATION_CLASSES.join("|")}\` — the statement, then what deploying it does`;
+
+const statementGap = (statement, named, cut) => {
+  if (cut < 0) return "carries no class after a bar";
+  if (!statement) return "names no statement before the bar";
+  return `classifies it as \`${named}\`, which is none of the three`;
+};
+
+export const statementProblem = (value) => {
+  const said = String(value ?? "");
+  const cut = said.lastIndexOf("|");
+  const statement = cut < 0 ? said.trim() : said.slice(0, cut).trim();
+  const named = cut < 0 ? "" : said.slice(cut + 1).trim();
+  if (cut >= 0 && statement && MIGRATION_CLASSES.includes(named)) return null;
+  return `takes ${STATEMENT_TAKES}; \`${said}\` ${statementGap(statement, named, cut)}, and a statement `
+    + "not classified is the risk this record exists to name.";
+};

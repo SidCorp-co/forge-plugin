@@ -234,15 +234,7 @@ test("the project's release policy decides whether a user-facing outcome parks",
   assert.equal(ahead(policy("publish", true)), null, "and the warning three statuses earlier reads the same answer");
 });
 
-test("what the plan declared decides what the ship steps owe", () => {
-  const landed = mark("merged to master at c8c3550");
-  const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
-  const verdicts = [1, 2].map((number) =>
-    recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit: "c8c3550", evidence: ["c8c3550"] }));
-  const coupled = { ...stamped, acceptanceCriteria: CRITERIA, plan: "Screen change: no. Schema coupling: yes." };
-  assert.deepEqual(judging(view(coupled, [landed, ...verdicts])),
-    ["the plan declares schema coupling, and no attachment carries the migration risk classification"]);
-  assert.deepEqual(judging(view({ ...coupled, attachments: ATTACHED }, [landed, ...verdicts])), []);
+test("a screen change owes a person's answer before awaiting_release", () => {
   const shipped = { releaseNotes: { section: "Skip" }, plan: "Screen change: yes. Schema coupling: no." };
   const verified = [recorded("verification", { where: "staging", commit: "c8c3550", evidence: ["c8c3550"] })];
   const owed = ["the plan declares a screen change, and no person has answered since it was parked for review"];
