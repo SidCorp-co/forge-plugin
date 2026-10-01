@@ -106,6 +106,8 @@ test("what a string still runs is code, and a call there is one", () => {
   both(heredoc("node", "const s = `${writeFileSync('h.md', JSON.stringify({ a: 1 }))}`;"), ["h.md"], "an interpolation holding braces");
   both(python("s = f\"{{open('i.md','w')}}\""), [], "an f-string's doubled brace is a literal one");
   both(heredoc("node", "const s = `${\"writeFileSync('j.md', 'x')\"}`;"), [], "a string inside an interpolation is still a string");
+  both(heredoc("node", "const s = `\\${writeFileSync('l.md', 'x')}`;"), [], "an escaped interpolation is data");
+  both(heredoc("node", "const s = `\\\\${writeFileSync('m.md', 'x')}`;"), ["m.md"], "one behind an escaped backslash runs");
   both(python("s = f\"{'open(\\'k.md\\', \\'w\\')'}\""), [], "and inside an f-string's field");
 });
 
