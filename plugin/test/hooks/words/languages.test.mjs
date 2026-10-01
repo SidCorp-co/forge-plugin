@@ -62,7 +62,7 @@ test("a shell's heredoc body is that shell's commands", () => {
 
 test("the path fold reads only the languages whose bindings and + are python's", () => {
   const body = 'x = "/etc"\nopen(x + "/p.md", "w")';
-  assert.notEqual(glued(body, "python"), body, "python's is folded");
+  assert.equal(glued(body, "python"), 'x = "/etc"\nopen("/etc/p.md", "w")', "python's is folded to the path it built");
   for (const runner of ["perl", "php"]) assert.equal(glued(body, runner), body, `${runner}'s comes back as written`);
   assert.deepEqual(read(heredoc("ruby", 'root = "/tmp"', 'File.open(root + "/x.md", "w")'), "keep"), ["/tmp/x.md"],
     "and ruby's still yields the path it built");
