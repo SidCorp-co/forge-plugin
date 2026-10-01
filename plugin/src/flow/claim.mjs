@@ -521,8 +521,7 @@ export const claim = async (argv) => {
         undeployed: given.undeployed,
         held: context?.[LANDING] ?? null,
         landing: landingOf(context),
-        /* Off the page as well as the lease, so this write and the rung reading it count one set:
-           a claim taken at a side status is placed by the park that set it (ISS-2044). */
+        /* The view's holders, so this write and the rung reading it count one set (ISS-2044). */
         holders: viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []).holders,
         lands: landsOn(await releasePolicy()),
       })
