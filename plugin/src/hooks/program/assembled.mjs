@@ -2,7 +2,8 @@
    command writes. Kept out of the hook harness because it is a reading and not an entry point, and
    beside the call reader because both read a program another language runs, as shell-spans reads the
    shell's. how/writes.md. */
-import { SPEAKS, SPOKEN_IN, fileCalls } from "./call-writes.mjs";
+import { fileCalls } from "./call-writes.mjs";
+import { SPEAKS, spansOf } from "./spoken.mjs";
 import { unquote } from "../shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
@@ -42,13 +43,10 @@ const under = (left, right, resets) =>
 
 /* Comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
 const bound = (said, lang) => {
-  const scan = SPOKEN_IN[lang] ?? SPOKEN_IN.python;
-  const strings = [];
-  const code = said.replace(scan, (span, comment, at) => {
-    if (comment !== undefined) return " ".repeat(span.length);
-    strings.push({ start: at, end: at + span.length });
-    return span;
-  });
+  const spans = spansOf(said, lang ?? "python");
+  const strings = spans.filter((one) => !one.comment).map((one) => ({ start: one.from, end: one.to }));
+  const code = spans.filter((one) => one.comment)
+    .reduce((text, one) => `${text.slice(0, one.from)}${" ".repeat(one.to - one.from)}${text.slice(one.to)}`, said);
   const set = [];
   for (const one of code.matchAll(BINDS)) {
     if (strings.some(({ start, end }) => one.index > start && one.index < end)) continue;
@@ -69,13 +67,17 @@ const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => on
     return `${text.slice(0, from)}${held.includes('"') ? `'${held}'` : `"${held}"`}${text.slice(to)}`;
   }, said);
 
+/* A template inside another's interpolation, which the pattern that finds a template cannot pair, so a body holding one has its templates left as written. */
+const nested = (said) => spansOf(said, "node")
+  .some((one) => one.holes.some((hole) => said.slice(hole.from, hole.to).includes("\x60")));
+
 /** A binding reaches the text after it and nothing before, one rebound to anything but a whole string literal answers for nothing, a join whose members all read as literals folds to one, and
  *  `+` and pathlib's `/` fold to a fixed point. Each pass reads what the pass before it produced and finds its bindings there, so an offset always answers against the text it was measured in:
  *  order is what a binding is read by, and no pass reorders. Shapes with no model — `.format`, `%`, `"/".join`, a value read at runtime — leave the text alone. how/writes.md. */
 export const glued = (body, runner) => {
   const lang = SPEAKS[runner];
-  const holds = HOLDS[lang];
   let out = String(body);
+  const holds = lang === "node" && nested(out) ? null : HOLDS[lang];
   /* `bound` answers off `out` and `lang` alone, so it is rebuilt only where a pass moved the text. */
   let read = null;
   let bindings = null;

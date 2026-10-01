@@ -1,25 +1,12 @@
 // Which argument of a program's own file call is the file it writes, read off the call's text, for the readings that ask what a heredoc or a `-c` body in another language writes. how/writes.md.
 
 import { argumentsAt } from "../../checks/shapes/calls.mjs";
+import { spokenIn } from "./spoken.mjs";
 
 /** Either half of a write made by a library call, anywhere in a text: `open` with a mode that writes, and every call below by name. The cheap test, before `fileCalls` reads which argument the call writes. */
 export const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
   + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
   + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`;
-
-/** The language each runner speaks, for the readings that tell its code from its strings. */
-export const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
-
-/** Where a language's strings and comments stand, a comment captured, and a JS regular expression read as a string: one opens where a value may, which a division never does. A binding is discovered in code and nowhere else, and so is a call: one inside a comment or a string a program prints is neither. A runner none of these name is read as python. */
-export const SPOKEN_IN = {
-  python: /"""(?:[^\\]|\\[\s\S])*?"""|'''(?:[^\\]|\\[\s\S])*?'''|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(#[^\n]*)/gu,
-  node: new RegExp(
-    String.raw`\x60(?:[^\x60\\]|\\[\s\S])*\x60|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'`
-      + String.raw`|(?<=(?:^|[(,=:[!&|?{};+\-*%<>~^]|\breturn|\btypeof)\s*)\/(?![*/])(?:[^/\\\n[]|\\.|\[(?:[^\]\\\n]|\\.)*\])+\/[a-z]*`
-      + String.raw`|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)`,
-    "gu",
-  ),
-};
 
 /* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads, and only as the builtin, node's `fs`, or a module's that opens a file by name; a path's `open` is a method, read below. */
 const CALLS = [
@@ -75,63 +62,6 @@ const argument = (code, args, [at, key]) => {
 };
 
 const literalAt = (code, one) => (one && spelling(code.slice(one.from, one.to)) !== null ? one : null);
-
-/* Each field a string runs, `{ from, to }` within it, from its opening brace to the one closing it: a brace nested in it, a string's aside, is counted. An f-string's doubled brace is a literal one, and so is a template's opener behind an odd run of backslashes; python escapes no brace that way. */
-const fields = (text, opens) => {
-  const out = [];
-  for (let at = text.indexOf(opens); at >= 0; at = text.indexOf(opens, at + 1)) {
-    if (opens === "{" && text[at + 1] === "{") {
-      at += 1;
-      continue;
-    }
-    if (opens === "${" && /(?:^|[^\\])(?:\\\\)*\\$/u.test(text.slice(0, at))) continue;
-    let depth = 0;
-    let quote = null;
-    let end = at + opens.length - 1;
-    for (; end < text.length; end += 1) {
-      const one = text[end];
-      if (quote) quote = one === quote ? null : quote;
-      else if (one === "'" || one === '"') quote = one;
-      else if (one === "{") depth += 1;
-      else if (one === "}") depth -= 1;
-      if (depth === 0 && !quote) break;
-    }
-    out.push({ from: at, to: end + 1 });
-    at = end;
-  }
-  return out;
-};
-
-/* What a string still runs, whose calls are code: a template's `${…}`, and an f-string's `{…}`. */
-const F_PREFIX = /(?:^|[^\w])(?:[fF][rR]?|[rR][fF])$/u;
-const holes = (code, one) => {
-  if (one[0][0] === "`") return fields(one[0], "${");
-  return F_PREFIX.test(code.slice(Math.max(0, one.index - 3), one.index)) ? fields(one[0], "{") : [];
-};
-
-/* The stretches of `text` a program does not run, `[from, to)` past `base`: each string and comment, its opening quote aside so a literal a call stands on is not inside itself, less each field the string runs, which is read the same way again. */
-const unrun = (text, base, pattern) => [...text.matchAll(pattern)].flatMap((one) => {
-  const runs = holes(text, one);
-  const pieces = [];
-  let from = one.index + 1;
-  for (const hole of runs) {
-    pieces.push({ from: base + from, to: base + one.index + hole.from });
-    from = one.index + hole.to;
-  }
-  pieces.push({ from: base + from, to: base + one.index + one[0].length });
-  const within = runs.flatMap((hole) => unrun(one[0].slice(hole.from, hole.to), base + one.index + hole.from, pattern));
-  return [...pieces, ...within];
-});
-
-/* A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; the same with its strings blanked too, for the walk that splits arguments; and whether an offset stands where the program runs nothing, inside a string or a comment, where a call is none. */
-const spokenIn = (given, runner) => {
-  const pattern = SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python;
-  const code = [...given.matchAll(pattern)].filter((one) => one[1] !== undefined)
-    .reduce((text, one) => `${text.slice(0, one.index)}${" ".repeat(one[0].length)}${text.slice(one.index + one[0].length)}`, given);
-  const pieces = unrun(given, 0, pattern);
-  const bare = pieces.reduce((text, one) => `${text.slice(0, one.from)}${" ".repeat(one.to - one.from)}${text.slice(one.to)}`, code);
-  return { code, bare, inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
-};
 
 /* pathlib's writes, on the path they are called on, where a module's call above has not already read the same parenthesis: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells with `w` or `a` — an archive's `open('member', 'w')` names a member there, and writes no file, so an `open` taking its mode second is some object's own, placed nowhere and kept for the reading that keeps every candidate. A receiver `RECEIVED` cannot read is computed, and its line is the call. */
 const METHOD = /\.(write_(?:text|bytes)|open)\s*\(/gu;
