@@ -337,13 +337,14 @@ test("a path an interpreter body assembled from a binding of its own is one too"
   );
 });
 
-/* An inline body arrives still inside the shell's quotes, so the fold takes them off to read it and puts them back, and a body it resolves nothing in is handed on untouched (ISS-444). */
+/* An inline body arrives still inside the shell's quotes, so the fold takes them off to read it and puts them back, and a body it resolves nothing in is handed on untouched (ISS-444). What follows the command's own line is the writes its file calls make, read beside it (ISS-2010). */
+const command = (text) => text.split("\n")[0];
 test("an inline body is folded inside the quotes it was written in, and left as given where nothing folds", () => {
   const said = `python3 -c "root = \\"plugin/src\\"; open(root + \\"/glued.mjs\\", \\"w\\")"`;
-  assert.equal(shellWrites(said), `python3 -c "root = \\"plugin/src\\"; open(\\"plugin/src/glued.mjs\\", \\"w\\")"`,
+  assert.equal(command(shellWrites(said)), `python3 -c "root = \\"plugin/src\\"; open(\\"plugin/src/glued.mjs\\", \\"w\\")"`,
     "escaped inner quotes are one body, and go back escaped");
   const expands = String.raw`python3 -c "p = \"a\" + \"/b\"; open(\"$PWD/c.md\", \"w\"); print(\"\$HOME \` \\\$x\")"`;
-  assert.equal(shellWrites(expands), expands.replace(String.raw`\"a\" + \"/b\"`, String.raw`\"a/b\"`),
+  assert.equal(command(shellWrites(expands)), expands.replace(String.raw`\"a\" + \"/b\"`, String.raw`\"a/b\"`),
     "a bare `$` still expands and an escaped one, or an escaped backtick, stays a literal, beside a fold elsewhere in the body");
   const owns = `python3 -c "p = \\"a\\" + \\"/b\\"; print(\\"\uE000\uE001 \\$x\\")"`;
   assert.equal(shellWrites(owns), owns.replace(`\\"a\\" + \\"/b\\"`, `\\"a/b\\"`),

@@ -3,6 +3,7 @@
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 
+import { WRITE_CALLS } from "./call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { quoting, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
@@ -341,9 +342,6 @@ const WRITE_VERBS = STARTS
   + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
   + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
   + String.raw`|dd\b[^|;]*\bof=|${fetching("curl")}|${fetching("wget")})`;
-const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
-  + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
-  + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`;
 /** Either half, over a text whose quoted arguments the caller has already judged. */
 export const WRITES = new RegExp(`${WRITE_VERBS}|${WRITE_CALLS}`);
 

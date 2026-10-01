@@ -167,6 +167,42 @@ test("a > in an interpreter's heredoc body is no write, and a redirect on its ow
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
 });
 
+/* ISS-2010: a body writes through its own file calls, each at the argument its API writes, and a
+   body that only assigns names nothing; a read operand beside the write is no refusal either. */
+test("a file call in an interpreter's heredoc is refused outside the plan, at the argument it writes", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const py = (...lines) => `cd plugin/src && python3 - <<'PY'\n${lines.join("\n")}\nPY`;
+  const node = (line) => `cd plugin/src && node - <<'JS'\n${line}\nJS`;
+  for (const [command, why] of [
+    [py("open('unplanned.mjs','w').write(s)"), "open"],
+    [py("from pathlib import Path", "Path('unplanned.mjs').write_text(s)"), "write_text"],
+    [py("p = 'unplanned.mjs'", "open(p, 'w')"), "a bound name"],
+    [py("shutil.copy('planned.mjs', 'unplanned.mjs')"), "a copy's destination"],
+    [py("shutil.move('unplanned.mjs', 'planned.mjs')"), "a move's source"],
+    [py("os.replace('planned.mjs', 'unplanned.mjs')"), "a replace's destination"],
+    [py("os.rename('unplanned.mjs', 'planned.mjs')"), "a rename's source, which it takes away"],
+    [py("os.rename('planned.mjs', 'unplanned.mjs')"), "a rename's destination"],
+    [node("require('fs').writeFileSync('unplanned.mjs', 'x')"), "writeFileSync"],
+    [`cd plugin/src && python3 -c "open('unplanned.mjs','w')"`, "an inline body"],
+  ]) {
+    const held = runs(command);
+    assert.equal(held.allowed, false, why);
+    assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u, why);
+  }
+  assert.equal(runs(py("shutil.copy('unplanned.mjs', 'planned.mjs')")).allowed, true, "a copy's source is only read");
+  assert.equal(runs(py("open('planned.mjs','w').write(open('unplanned.mjs').read())")).allowed, true, "an open that reads");
+  assert.equal(runs(py("open(os.path.join(base, 'unplanned.mjs'), 'w')")).allowed, true, "a target the program computes");
+  assert.equal(runs(py("n=re.search('a', b)", "s=s.replace('x', 'y')")).allowed, true, "assignments name nothing");
+});
+
+/* ISS-3038: nothing a body leaves open in shell terms reaches the redirect after the heredoc. */
+test("a write after an interpreter's heredoc is refused whatever its body left open", async () => {
+  await scope([["ISS-411", PLAN]]);
+  for (const line of ["x = [[1], [2] ]", "s = '''don't'''"]) {
+    assert.equal(runs(`python3 - <<'PY'\n${line}\nPY\necho x > plugin/src/unplanned.mjs`).allowed, false, line);
+  }
+});
+
 /* ISS-2928: a shell reads a heredoc on its stdin as its program, whichever word names it, so a write there is one the plan answers for. */
 test("a write in a heredoc a shell reads is refused outside the plan, whatever word names the shell", async () => {
   await scope([["ISS-411", PLAN]]);

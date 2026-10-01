@@ -17,5 +17,5 @@ and again as each record write lands, with no tracker call. Nothing cached, a ca
 empty plan field: it says nothing, which is what the rung below a feature is owed.
 
 Not judged: whether the file should exist, whether the plan was good, or where a command it
-cannot aim will write — one handing its target to another, and one naming a destination by option,
-are refused for no path.
+cannot aim will write — handed on by another command, named by option, or computed by a program —
+is refused for no path.
