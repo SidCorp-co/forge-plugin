@@ -7,7 +7,7 @@ import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
 import { SECTIONS, WITNESSED, unwrap, declarationLine, declarationsMissing, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 import { compoundCriteria } from "../../prose.mjs";
-import { flowPinned, requiresOf, screensOf } from "../../guides/flow.mjs";
+import { flowPinned, requiresOf, screensHere } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
 import { bodyFrom } from "../../resolve/payload.mjs";
@@ -87,24 +87,24 @@ export const requiresRefusal = (flow, declared, requires = requiresOf(flow)) => 
   ].join("\n");
 };
 
-/** The other half of the same boundary: whether this flow's own projects have a screen, and what that makes of a plan. The pair are the whole of what a flow says about a plan beyond `requires`: a flow whose projects have a screen asks every plan what a person witnesses, whichever way it declared, because a section left out reads to its next reader exactly like a considered `none`; and a flow whose projects have none refuses a declared screen change outright, since a plan claiming one on a project that has no screen promises a look nobody can take. Read here and at no rung, for the reason beside `requiresRefusal`, and taking its flow so a case proves it on a planted one. */
-export const screensRefusal = (flow, declared, held, screens = screensOf(flow)) => {
-  if (screens) {
+/** The other half of the same boundary: whether this project's flow says its projects have a screen, and what that makes of a plan. The pair are the whole of what a flow says about a plan beyond `requires`: a flow whose projects have a screen asks every plan what a person witnesses, whichever way it declared, because a section left out reads to its next reader exactly like a considered `none`; a flow whose projects have none refuses a declared screen change outright, since a plan claiming one on a project that has no screen promises a look nobody can take; and a project that chose no flow has said neither, so its plan is held to what its own declarations owe and nothing more (ISS-1895). Read here and at no rung, for the reason beside `requiresRefusal`, and taking its pin and its answer so a case proves it on a planted one. */
+export const screensRefusal = (pin, declared, held, screens = screensHere(pin)) => {
+  if (screens === true) {
     return held.has(WITNESSED) ? null : [
-      `Flow ${flow} serves projects with a screen, so every plan answers what a person at the running`
+      `Flow ${pin.value} serves projects with a screen, so every plan answers what a person at the running`
         + " product witnesses, and this one carries no such section, so nothing was written:",
       `  ## ${WITNESSED}`,
       "Name what only a person there can witness as `criteria: 3`, or write `none` and the reading"
         + " that makes it none.",
     ].join("\n");
   }
-  if (declared.screen !== "yes") return null;
+  if (screens !== false || declared.screen !== "yes") return null;
   return [
-    `Flow ${flow} serves projects with no screen and this plan declares a screen change, so nothing`
-      + " was written:",
+    `Flow ${pin.value}, which ${pin.from} sets, serves projects with no screen and this plan declares a`
+      + " screen change, so nothing was written:",
     "  screen change: no",
-    "Write that under `## Declarations` where the change has no screen, or run a flow whose projects"
-      + " have one — `forge doctor` names where this one is set.",
+    "Write that under `## Declarations` where the change has no screen. Where this project has one,"
+      + " its flow is the project's to change: `forge doctor --set flow=screen` sets the flow alone.",
   ].join("\n");
 };
 
@@ -160,8 +160,8 @@ const planChecked = (plan) => {
       "Write each under `## Declarations`: what each says decides what the plan and the ship steps owe.",
     ].join("\n"));
   }
-  const flow = flowPinned().value;
-  const said = requiresRefusal(flow, declared) ?? screensRefusal(flow, declared, held);
+  const pin = flowPinned();
+  const said = requiresRefusal(pin.value, declared) ?? screensRefusal(pin, declared, held);
   if (said) refuse(said);
   witnessedChecked(witnessedOn(plan));
   const bare = stepsUncited(planSteps(plan));

@@ -19,6 +19,12 @@ refusal a run can meet under any flow owes served text under every flow. What le
 a screen project can act on: the screenshots, and the environment section whose every example is a
 browser.
 
+**A project that chose neither is held to neither.** `default` says its projects have no screen,
+and a project that wrote `flow: default` has said so; one that wrote no flow key is served
+`default`'s text without being held to that answer, because the fallback is what nobody decided.
+Reading it as a `no` refused an honest screen change on every project that never chose. So a flow's
+`screens` is three answers — yes, no, and a flow declaring none — and a project's answer is its
+flow's only where the project wrote the key.
 
 ## What a flow may not decide
 
@@ -36,7 +42,9 @@ holds the refusal plants its flow.
 `judge: "independent"` on the declaration, against `pipelineConfig.qa`, which is the one thing that
 decides. A flow asking for what the key does not name is `forge doctor`'s conflict line naming both
 sources and exiting on it, beside the release-policy one — never a reconciliation, and never a
-refusal at a rung, which would be an entry check reading the flow.
+refusal at a rung, which would be an entry check reading the flow. Whether a project has a screen and
+who judges it are still two answers, so `forge doctor --set flow=<slug>` writes the flow alone and
+names each ask it left with the call that writes it, while `--flow` writes both.
 
 **The declaration vocabulary itself is global**, and a flow may neither add a name nor remove one.
 The reason is where the flags are read from: they are parsed out of the issue's *persisted plan text*

@@ -277,6 +277,17 @@ const rebound = (slug) => `slug: every run and pane standing in this checkout, t
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
+const FLOW_KEY = "flow";
+
+/* `--set flow=` writes the flow alone, so each thing that flow asks the project for is named with the
+   call that makes it, rather than left for the clash row of the next report to find (ISS-1895). */
+const asksLeft = (slug) => {
+  const asks = projectAsksOf(slug);
+  if (!asks.length) return [`flow ${slug} asks this project for nothing further`];
+  return asks.map((ask) => `flow ${slug} also asks for ${ask.said}, which this left as it was: `
+    + `\`forge doctor --set ${ask.key}=${ask.value}\` writes it, and \`${FLOW_USAGE.replace("<slug>", slug)}\` writes both`);
+};
+
 export const writeSetting = async (given) => {
   /* The split is the shared one, this verb adding only where to look the pair up (ISS-1449). */
   const { key: asked, value: raw } = pairOf(given, "--set", {
@@ -289,6 +300,7 @@ export const writeSetting = async (given) => {
     const before = slugIfAny();
     const value = spelled(route.takes, raw);
     const lines = projectWrite(route, value);
+    if (route.key === FLOW_KEY) return [...lines, ...asksLeft(value)];
     return route.key === SLUG_KEY && String(value) !== String(before) ? [...lines, rebound(value)] : lines;
   }
   /* After the routing: the file above is the one resource that answers without a slug. */
