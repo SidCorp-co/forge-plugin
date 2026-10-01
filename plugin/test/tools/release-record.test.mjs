@@ -208,6 +208,14 @@ test("16. a refused write prints the first reason and every alsoBlocking one, an
   assert.match(run.stderr, /forge release-batch readiness/u);
 });
 
+test("16. a refused read says what the tracker answered and points at no release route", async () => {
+  state.release.recorded = { refused: "no release record under this id on this project", code: "NOT_FOUND" };
+  const run = await ran("recorded", RUN_ID);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /NOT_FOUND: no release record under this id on this project/u);
+  assert.doesNotMatch(run.stderr, /readiness/u, run.stderr);
+});
+
 test("18. a flag a subcommand does not declare is refused before any request", async () => {
   for (const argv of [["record", "ISS-1", "--commit", SHA, "--account", ACCOUNT, "--force", "x"],
     ["finish", RUN_ID, "--reason", "x"], ["roster", "--limit", "3"], ["readiness", "--all", "x"]]) {

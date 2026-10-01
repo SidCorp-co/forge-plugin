@@ -93,7 +93,7 @@ test("a key the tracker does not hold is refused as a fact about the tracker", a
 test("a refusal names no limit, the limit having never been what cut the page", async () => {
   cutTo(BACKLOG, 2);
   const run = await ran(["issue", "ISS-99"]);
-  assert.doesNotMatch(run.stderr, /500|newest/u, "raising a limit is the one thing that cannot help");
+  assert.doesNotMatch(run.stderr, /(?<!\d)500(?!\d)|newest/u, "raising a limit is the one thing that cannot help");
 });
 
 /* A key nothing holds has no issue to recover, so the route is to the keys that do exist — and it
@@ -126,7 +126,7 @@ test("a refusal routes to the verb that prints the keys, and names no limit", as
   cutTo(GAPPED, 2);
   const run = await ran(["issue", "ISS-3"]);
   assert.match(run.stderr, /`forge issue`/u, "the one route a reader holding only a key can run");
-  assert.doesNotMatch(run.stderr, /500/u);
+  assert.doesNotMatch(run.stderr, /(?<!\d)500(?!\d)/u);
 });
 
 /* ISS-36. A wider shape sends a citation through the whole walk — 7 windows and 210 rows, measured
