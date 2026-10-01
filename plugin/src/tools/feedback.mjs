@@ -95,13 +95,15 @@ export const feedback = async (argv) => {
   /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What it claims, and the one refusal above this line it cannot reach: docs/cli/feedback.md. */
   const written = await bodyFrom(path);
   const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`);
-  keep(written);
+  const dropRead = keep(written);
   /* Read before the project is aimed, so a note the shape will not carry costs no call; `routed` where the note names its issue, a fold otherwise putting its body on some third one. */
   const asked = { title, body: written, kind, sections: [whereSection()], everySection: true,
     duplicates: false, routed: withKeys.length > 0 };
   const read = bodyOf(asked);
   if (read.refusal) fail(read.refusal.text);
-  keep(read.description);
+  /* The note as it will be filed replaces the note as it was read: both kept is the note printed twice. */
+  dropRead();
+  const dropKept = keep(read.description);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   aimed();
   const unnamed = await servesOwed(read.description, "This note's `Serves:` line", standsInPlugin());
@@ -130,7 +132,7 @@ export const feedback = async (argv) => {
     ? proposeAtFiling({ title, body: read.description, kind }, absentIn({}))
     : proposedElsewhere(PROJECT);
   return fileAndSay({ ...asked, read, fresh, relations, page, soft: true, module },
-    { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost, after });
+    { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost, after, dropKept });
 };
 
 /* Its own help, like every other verb that answers `-h` itself: the body slot takes a path, and the dispatcher answering first would read `-h` as one. */

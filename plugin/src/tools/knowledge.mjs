@@ -106,9 +106,11 @@ const written = async (argv) => {
   const given = flags(flagArgv, "knowledge write", [], { usage: WRITE_USAGE });
   const { kind, injection, confidence } = given;
   const body = await bodyFrom(path);
-  if (path === "-") keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`);
+  const dropKept = path === "-"
+    ? keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`)
+    : undefined;
   const wrote = await upsertEntry({
-    slug, body, kind, title: given.title, injection, confidence, meta: metaFrom(pairs),
+    slug, body, kind, title: given.title, injection, confidence, meta: metaFrom(pairs), dropKept,
   });
   for (const said of wroteLines(wrote)) console.log(said);
 };

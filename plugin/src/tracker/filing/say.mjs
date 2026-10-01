@@ -1,5 +1,5 @@
 /* One filing's reply, for both verbs that file: a route contributes its opening line and what it does with a soft refusal, and every other line is the same on both. Why `route.mjs` under this neither prints nor exits, and why the id goes last: docs/cli/filing.md. */
-import { fail, keepOnFailure } from "../../resolve/settings.mjs";
+import { fail } from "../../resolve/settings.mjs";
 import { filedAs, keysOffered, rankSaid } from "../issue-shape.mjs";
 import { commentLanded, issueLanded, sayLanded } from "./landed.mjs";
 import { foldedInto, suggestionLines } from "./neighbours.mjs";
@@ -15,14 +15,15 @@ const echo = (answer) => console.log(JSON.stringify(answer, null, 2));
    wrong about that would read a refusal as a filing. So the default says it rather than crashing. */
 const refused = (what, said) => fail(`the tracker refused ${what}: ${said}`);
 
-/** `withKeys` are what `--with` named, offered back rather than written; `intro` is the one line a route speaks for itself; `lost` is what a route soft enough to see the tracker's own refusal does with it; `after` is a step on the issue once it exists — never on a fold, whose comment has no fields — handed the create's answer and answering with its lines, which print before the id line so that line stays last. */
-export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = refused, after = null } = {}) => {
+/** `withKeys` are what `--with` named, offered back rather than written; `intro` is the one line a route speaks for itself; `lost` is what a route soft enough to see the tracker's own refusal does with it; `after` is a step on the issue once it exists — never on a fold, whose comment has no fields — handed the create's answer and answering with its lines, which print before the id line so that line stays last; `dropKept` is the drop the caller's own `keepOnFailure` returned for the body it kept, called once the write has landed. */
+export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = refused, after = null, dropKept = () => {} } = {}) => {
   const filed = await fileIssue({ ...asked, onBeside: sayBeside });
   if (filed.refusal) fail(filed.refusal.text);
   if (filed.shape.said) console.error(filed.shape.said);
+  /* One drop for both routes, past the one refusal that means nothing landed: a later failure of a write that landed printing the body back reads as one to send again. */
+  if (filed.answer?.refused) lost(filed.joined ? `a comment on ${filed.joined.issueId}` : "this filing", filed.answer.refused);
+  dropKept();
   if (filed.joined) {
-    if (filed.answer?.refused) lost(`a comment on ${filed.joined.issueId}`, filed.answer.refused);
-    keepOnFailure(null);
     echo(filed.answer);
     console.log(foldedInto(filed.joined, filed.answer));
     if (asked.module) {
@@ -32,8 +33,6 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
     const { documentId, issueId } = filed.joined;
     return sayLanded(await commentLanded(documentId, filed.answer, issueId));
   }
-  if (filed.answer?.refused) lost("this filing", filed.answer.refused);
-  keepOnFailure(null);
   if (intro) console.log(intro);
   echo(filed.answer);
   /* Read before `after`, whose proposal writes the rank and size onto the row: read after it, a

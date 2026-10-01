@@ -293,7 +293,9 @@ const own = {
     const body = await bodyFrom(path);
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
-    if (path === "-") keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`);
+    const dropKept = path === "-"
+      ? keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`)
+      : undefined;
     const unnamed = await servesOwed(body, "This body's `Serves:` line");
     if (unnamed) fail(unnamed);
     const { title, ...carried } = given;
@@ -316,7 +318,7 @@ const own = {
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,
-    }, { withKeys, after });
+    }, { withKeys, after, dropKept });
   },
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */

@@ -39,6 +39,12 @@ export const appendedLine = (line) => {
 const kept = [];
 
 export const keepOnFailure = (text, say = null) => {
+  /* A null empties nothing: kept, it leaves the body standing and prints a `null` under it
+     (ISS-3032). What a caller done with its entry calls is the drop returned below. */
+  if (typeof text !== "string") {
+    throw new TypeError(`keepOnFailure keeps a line of text, and was handed ${text === null ? "null" : typeof text}: `
+      + "a caller done with what it kept calls the function its own registration returned.");
+  }
   const held = { text, say };
   kept.push(held);
   return () => {

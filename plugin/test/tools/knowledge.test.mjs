@@ -293,6 +293,23 @@ test("a field the store did not keep is a failure, not a replace", async () => {
   }
 });
 
+/* A write that landed owes its body to nobody: printed back after a later refusal, it reads as a
+   write to send again (ISS-3032). */
+test("an entry whose upsert landed is not printed back by the read-back's refusal, nor is a null", async () => {
+  await created();
+  state.answer.forge_knowledge = (args) =>
+    (args.action === "upsert" ? knowledge({ ...args, body: "something else" }) : knowledge(args));
+  try {
+    const run = await ran(["knowledge", "write", "module-knowledge", "-"], "the body as sent\n");
+    assert.equal(run.status, 1, run.stdout);
+    assert.ok(upserts().length > 0, "the upsert never went out, so nothing here is past a landed write");
+    assert.doesNotMatch(run.stderr, /Your entry, so that nothing here loses it:/u, run.stderr);
+    assert.doesNotMatch(run.stderr, /^null$/mu, run.stderr);
+  } finally {
+    state.answer.forge_knowledge = knowledge;
+  }
+});
+
 test("metadata is compared whatever order the store hands it back", async () => {
   await ran(["knowledge", "write", "module-knowledge", "-", "--kind", "reference", "--title", "T",
     "--meta", "zeta=1", "--meta", "alpha=2"], BODY);
