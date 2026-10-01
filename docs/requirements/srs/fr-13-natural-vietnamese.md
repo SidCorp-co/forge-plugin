@@ -85,8 +85,9 @@ a sentence claims: a contrast between two readings, or a negation. Neither the p
   THEN the route SHALL leave the block untranslated and SHALL report it.
 - **AC-13-4-3** · Rev: 1 · Proof: plugin/test/vi/drift.test.mjs "vi-natural doc keeps a Vietnamese block whose rewrite drops a negation as it was sent and exits 2"
   WHEN a block's source is already Vietnamese and the candidate carries fewer Vietnamese negation and
-  contrast markers, taken together, than the source holds outside the constructions a faithful
-  rewrite may fold away THEN the route SHALL leave the block as it was sent and SHALL report it.
+  contrast markers, taken together and with a word stating an absence counted as one, than the source
+  holds outside the constructions a faithful rewrite may fold away THEN the route SHALL leave the
+  block as it was sent and SHALL report it.
 
 ### UC-13-5 — A bare name crosses the rewrite whole
 
