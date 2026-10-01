@@ -196,7 +196,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
 
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is
    stripped before its field name goes in front, the fence being anchored to the start of a line. */
-const said = (body, status, args) => {
+const said = async (body, status, args) => {
   const details = body?.details ?? {};
   const lines = [
     ...(details.formErrors ?? []).map(unfenced),
@@ -205,18 +205,26 @@ const said = (body, status, args) => {
   ];
   const head = body?.message ? `${body.code ?? status}: ${unfenced(body.message)}` : `Forge answered ${status}`;
   const whole = lines.length ? `${head}\n${lines.join("\n")}` : head;
-  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${capturedBy(args?.documentId ?? args?.data?.issueId)}`;
+  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${await evidenceRoutes(args?.documentId ?? args?.data?.issueId)}`;
   return status === 401 ? `${UNAUTHORIZED}\n\n${whole}` : whole;
 };
 
-/* The tracker's work-evidence refusal, met by a status move and by the merged mark alike, names two
-   fields a branch may be recorded in and never a command: one is the field `forge claim --pushed`
-   writes, and the other is one no verb here writes and `forge issue --set` refuses, so a run told
-   only the tracker's words is sent to a field it cannot reach (ISS-2775). */
+/* The tracker's work-evidence refusal, met by a status move and by the merged mark alike, names
+   fields and a tracker action and never a command. One field is the one `forge claim --pushed`
+   writes; the other is one no verb here writes and `forge issue --set` refuses (ISS-2775); the
+   action is the merged mark carrying its commit, which is the only trace a change that landed on
+   the base branch itself leaves, there being no other branch to capture (ISS-1488). The mark's
+   form is imported at the call because that module writes through this one. */
 const NO_WORK_EVIDENCE = "NO_WORK_EVIDENCE";
-const capturedBy = (id) => `Capture the branch the work is on, which is not the project's base branch, `
-  + `with \`forge claim ${id ?? "<issue>"} --pushed\`: it writes sessionContext.worklog.branch, which `
-  + "that check reads. Then send the refused command again.";
+const evidenceRoutes = async (id) => {
+  const ref = id ?? "<issue>";
+  const { mergedForm } = await import("../flow/record/merged.mjs");
+  return "Capture the branch the work is on, where it is not the project's base branch, with "
+    + `\`forge claim ${ref} --pushed\`: it writes sessionContext.worklog.branch, which that check reads. `
+    + "Where the change landed on the base branch itself, mark it merged at the commit it landed at, "
+    + `which the tracker checks against the project's repository:\n  ${mergedForm(ref)}\n`
+    + "Then send the refused command again.";
+};
 
 /* The tracker's words say the token was refused and never which token or where it came from, which
    left a run unable to tell a wrong one from an expired one without a person (ISS-45). */
@@ -247,7 +255,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
       + `${onClock(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
-      return [part, refused(said(body, response.status, args),
+      return [part, refused(await said(body, response.status, args),
         { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
     }
     const body = text ? parsedOr(text) : null;
