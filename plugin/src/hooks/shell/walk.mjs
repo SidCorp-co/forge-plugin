@@ -207,12 +207,12 @@ export const quotedOver = (text, fill, { delimiters = false } = {}) => {
     (held[at] && !(delimiters && QUOTES.has(one) && under[at] === one) ? fill : one)).join("");
 };
 
-/** Each quoted span of the text, from its opening quote past its closing one, handed to `fill` in order as `replace` hands a match, and what `fill` returns put in its place. A span is the walk's: a quote a comment or a backslash holds opens none, a substitution a double quote opened is inside the span around it, a line continuation in it is handed over as the text holds it, and an unclosed one runs to the end. `fill`'s second argument says, as `flat`, whether a substitution in the span was read as the double quote around it — a here-document stood inside — so a caller that must not miss what that substitution runs can keep the span whole. */
+/** Each quoted span of the text, from its opening quote past its closing one, handed to `fill` in order as `replace` hands a match, and what `fill` returns put in its place. A span is the walk's: a quote a comment or a backslash holds opens none, a substitution a double quote opened is inside the span around it, a line continuation in it is handed over as the text holds it, and an unclosed one runs to the end. `fill`'s second argument carries the span's offset as `from`, and says, as `flat`, whether a substitution in the span was read as the double quote around it — a here-document stood inside — so a caller that must not miss what that substitution runs can keep the span whole. */
 export const respelled = (text, fill) => {
   let out = "";
   let last = 0;
   for (const [from, to, flat] of readOf(text).runs) {
-    out += text.slice(last, from) + fill(text.slice(from, to), { flat });
+    out += text.slice(last, from) + fill(text.slice(from, to), { flat, from });
     last = to;
   }
   return out + text.slice(last);
