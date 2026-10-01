@@ -76,6 +76,9 @@ test("a read beside a write is not one, and a target the program computes is pla
     assert.ok(keeps(command).includes(SKILL), `keep, which may still read a name the call spells: ${target}`);
   }
   both(python("open('$(a.md', 'w')", "open('a`b`.md', 'w')"), [], "a literal holding a substitution");
+  const received = `${python("(base / '.claude/skills/z/SKILL.md').write_text('x')")}\necho x > ${SKILL}`;
+  assert.deepEqual(strict(received), [SKILL], "strike: a receiver the program computes");
+  assert.ok(keeps(received).includes(".claude/skills/z/SKILL.md"), "keep still reads what a computed receiver spells");
 });
 
 test("a call spelt inside a string or a comment is no call", () => {

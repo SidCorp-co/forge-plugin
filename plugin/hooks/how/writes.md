@@ -7,14 +7,15 @@ written, bindings resolved. Where the text claims none, the tree must also diffe
 a `git checkout` restamps what it only names. Where git cannot say, the stamp stands
 alone.
 
-Before it, the text does. A write verb in command position — a line's start, after `;` `&` `|` `(`
-or `-exec`, an assignment, or a wrapper (`sudo`, `xargs`, …) — counts every name in its
-command, a pipeline being one; a redirect, or a library call (`open(…, "w")`) anywhere, its own
-target alone. A variable takes an earlier command's assignment, not its own prefix; `$(…)` is text.
+Before it, the text does. A write verb in command position — a line's start or after `;` `&` `|`
+`(` `-exec`, an assignment, a wrapper (`sudo`, `xargs`, …) — counts every name in its command, a
+pipeline being one; a redirect, its own target alone; a library call (`open(…, "w")`) anywhere, at
+least its target. A variable takes an earlier command's assignment, not its own prefix; `$(…)` is
+text.
 
-To name one without writing: out of command position (a `--name` value), in a data heredoc or
-another language's, or quoted with a space, quote or bracket. A `-c` body is code, as is a shell's
-heredoc, options as for `-c`, so a verb there counts.
+To name one without writing: out of command position (a `--name` value), in a data heredoc or a
+program's, or quoted with a space, quote or bracket. A `-c` body is code, as is a shell's
+heredoc (options as for `-c`): a verb there counts.
 
 Not judged: what a write holds, or whether it belongs.
 

@@ -25,7 +25,7 @@ const CALLS = [
 const OPENS = /(?:\bopen|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
 /* A string literal, with the prefix python may give one. */
 const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"[^"\n]*"|'[^'\n]*')`;
-/* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one, or a name. */
+/* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one, or a name; any other receiver is computed, and its line is the call. */
 const RECEIVED = new RegExp(
   String.raw`(?:(?:\b(?:pathlib\.)?Path)?\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)\s*\.write_(?:text|bytes)\b`,
   "gu",
@@ -124,7 +124,14 @@ export const fileCalls = (given, runner) => {
     const computed = targets.length < written.filter(Boolean).length;
     out.push({ from: hit.index, to: read.end, text: code.slice(hit.index, read.end), targets, names, computed });
   }
-  for (const hit of [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index))) {
+  const received = [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index));
+  for (const hit of [...code.matchAll(/\.write_(?:text|bytes)\b/gu)].filter((one) => !inside(one.index))) {
+    const to = hit.index + hit[0].length;
+    if (received.some((one) => one.index + one[0].length === to)) continue;
+    const from = code.lastIndexOf("\n", hit.index) + 1;
+    out.push({ from, to, text: code.slice(from, to), targets: [], names: [], computed: true });
+  }
+  for (const hit of received) {
     const said = STRING_IN.exec(hit[0]);
     const name = said ? null : /^[A-Za-z_]\w*/u.exec(hit[0]);
     const from = hit.index + (said ?? name).index;
