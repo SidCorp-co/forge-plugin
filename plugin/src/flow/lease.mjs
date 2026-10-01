@@ -128,6 +128,9 @@ export const stateOf = (lease, holder, now = sharedNow(), { asserted = false } =
   return live ? "live" : "expired";
 };
 
+/** The two states in which the field names this caller: inside the duration and past it. */
+export const HOLDING = ["mine", "lapsed"];
+
 /* A claim's own line names where its holder id was read, because a transcript reader crediting a run's later calls to that id has to tell a run's own from a wave's or a machine's (ISS-2396). */
 export const describe = (lease, source = null) =>
   `session ${lease.holder} (${source ? `id from ${source}; ` : ""}${lease.agent}, pid ${lease.pid}), renewed `
@@ -493,7 +496,7 @@ export const releaseOwed = async (say = console.error) => {
         continue;
       }
       const state = stateOf(leaseOf(context), sessionOf());
-      if (state !== "mine" && state !== "lapsed") continue;
+      if (!HOLDING.includes(state)) continue;
       await setLease(documentId, releasedWrite(context), ref, () => context, { refuse, settling: true });
       say(releasedSaid(ref, turn));
     } catch (error) {
@@ -515,7 +518,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   if ((state === "gone" || (stale && !(workUnder(lease) ?? []).length)) && !finder) {
     return takenByWriting(documentId, ref, context, next, patch, lease, { gone: state === "gone" });
   }
-  if (state !== "mine" && state !== "lapsed") {
+  if (!HOLDING.includes(state)) {
     if (finder) return false;
     /* The third rung, read only where the write would otherwise be refused, so no write the lease already admits pays the round trip: an issue nothing moves on from has no work in progress for a lease to protect, so the holder's window guards nothing and a correction to a settled record is not made to wait it out (ISS-491). */
     const read = await issueFor(documentId);
@@ -542,7 +545,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     const again = await readContext(documentId);
     const now = leaseOf(again);
     const state = stateOf(now, holder);
-    if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, now));
+    if (!HOLDING.includes(state)) fail(writeRefusal(state, ref, now));
     if (state === "lapsed") renewed = now;
     read = again;
     return value(again, now);
@@ -571,7 +574,7 @@ export const landingSaved = async (documentId, ref, patch, { was = null } = {}) 
     const state = stateOf(lease, holder);
     /* Refused where `renew` takes, this being no first write on untouched work: a landing state exists only where a build already carried the issue past the statuses a run is dispatched at, so an empty field here is the anomaly and not the opening. What it owed and did not have was the right claim to name (ISS-1252). */
     if (state === "free") fail(freeRefusal(ref, String((await issueFor(documentId))?.status ?? ""), context));
-    if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
+    if (!HOLDING.includes(state)) fail(writeRefusal(state, ref, lease));
     const held = landingOf(context);
     /* Before the table, which would allow the same move off a checkpoint somebody replaced. */
     const moved = landingMoved(was, held);
