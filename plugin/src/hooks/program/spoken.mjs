@@ -5,39 +5,53 @@ import { COMMENTS, literalsIn } from "../../checks/source/lexical.mjs";
 /** The language each runner speaks, for the readings that tell its code from its strings. A runner none of these name is read as python. */
 export const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
 
-const PYTHON = /"""(?:[^\\]|\\[\s\S])*?"""|'''(?:[^\\]|\\[\s\S])*?'''|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(#[^\n]*)/gu;
-
-/* An f-string's field, from its brace to the one closing it, braces nested in it counted and a doubled one a literal brace; python escapes no brace with a backslash. */
-const fieldsOf = (text) => {
-  const out = [];
-  for (let at = text.indexOf("{"); at >= 0; at = text.indexOf("{", at + 1)) {
-    if (text[at + 1] === "{") {
-      at += 1;
+/* Python, walked: a string ends at its own quote, a backslash in it escaping the next character raw or not, a brace aside, and an f-string's field is code to the brace closing it, which may hold strings of its own, the f-string's own quote among them (3.12). A doubled brace is a literal one. */
+const PREFIX = /(?<![\w])[rRbBuUfF]{1,2}$/u;
+const pyCodeTo = (text, at) => {
+  let depth = 0;
+  for (let end = at; end < text.length;) {
+    const span = pySpanAt(text, end);
+    if (span) {
+      end = span.to;
       continue;
     }
-    let depth = 0;
-    let quote = null;
-    let end = at;
-    for (; end < text.length; end += 1) {
-      const one = text[end];
-      if (quote) quote = one === quote ? null : quote;
-      else if (one === "'" || one === '"') quote = one;
-      else if (one === "{") depth += 1;
-      else if (one === "}") depth -= 1;
-      if (depth === 0 && !quote) break;
-    }
-    out.push({ from: at, to: Math.min(end + 1, text.length) });
-    at = end;
+    if ("([{".includes(text[end])) depth += 1;
+    else if (text[end] === "}" && depth === 0) return end;
+    else if (")]}".includes(text[end])) depth -= 1;
+    end += 1;
+  }
+  return text.length;
+};
+const pyStringAt = (text, at) => {
+  const fString = /f/iu.test(PREFIX.exec(text.slice(Math.max(0, at - 3), at))?.[0] ?? "");
+  const quote = text.startsWith(text[at].repeat(3), at) ? text[at].repeat(3) : text[at];
+  const holes = [];
+  let end = at + quote.length;
+  while (end < text.length && !text.startsWith(quote, end) && (quote.length === 3 || text[end] !== "\n")) {
+    if (text[end] === "\\" && !(fString && text[end + 1] === "{")) end += 2;
+    else if (text[end] === "\\" || (fString && text.startsWith("{{", end))) end += text[end] === "\\" ? 1 : 2;
+    else if (fString && text[end] === "{") {
+      const close = pyCodeTo(text, end + 1);
+      holes.push({ from: end, to: Math.min(close + 1, text.length) });
+      end = close + 1;
+    } else end += 1;
+  }
+  const closed = text.startsWith(quote, end);
+  return { to: Math.min(closed ? end + quote.length : end, text.length), comment: false, holes };
+};
+function pySpanAt(text, at) {
+  if (text[at] === "#") return { to: text.includes("\n", at) ? text.indexOf("\n", at) : text.length, comment: true, holes: [] };
+  return text[at] === "'" || text[at] === '"' ? pyStringAt(text, at) : null;
+}
+const pythonSpans = (text) => {
+  const out = [];
+  for (let at = 0; at < text.length;) {
+    const span = pySpanAt(text, at);
+    if (span) out.push({ from: at, ...span });
+    at = span ? Math.max(span.to, at + 1) : at + 1;
   }
   return out;
 };
-
-const F_PREFIX = /(?:^|[^\w])(?:[fF][rR]?|[rR][fF])$/u;
-const pythonSpans = (text) => [...text.matchAll(PYTHON)].map((one) => {
-  const fString = F_PREFIX.test(text.slice(Math.max(0, one.index - 3), one.index));
-  const holes = fString ? fieldsOf(one[0]).map((hole) => ({ from: one.index + hole.from, to: one.index + hole.to })) : [];
-  return { from: one.index, to: one.index + one[0].length, comment: one[1] !== undefined, holes };
-});
 
 /* JS is read by the one walk this plugin keeps for it, where a template's `${…}` is code to any depth and a slash is a division or an expression by the rule every checker spends. */
 const jsSpans = (text) => literalsIn(text).map((one) => ({

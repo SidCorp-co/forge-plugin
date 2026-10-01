@@ -120,6 +120,7 @@ test("what a string still runs is code, and a call there is one", () => {
   both(heredoc("node", "const s = `${writeFileSync('t.md', 'x')}`;"), ["t.md"], "a template's interpolation");
   both(python("s = f\"{open('f.md','w').write('x')}\""), ["f.md"], "an f-string's field");
   both(python("s = f\"{open('g.md','w').write(str({'a': 1}))}\""), ["g.md"], "a field holding braces of its own");
+  both(python('s = f"{open("fq.md", "w")}"'), ["fq.md"], "a field reusing its f-string's own quote");
   both(heredoc("node", "const s = `${writeFileSync('h.md', JSON.stringify({ a: 1 }))}`;"), ["h.md"], "an interpolation holding braces");
   both(python("s = f\"{{open('i.md','w')}}\""), [], "an f-string's doubled brace is a literal one");
   both(heredoc("node", "const s = `${\"writeFileSync('j.md', 'x')\"}`;"), [], "a string inside an interpolation is still a string");

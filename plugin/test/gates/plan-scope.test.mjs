@@ -178,6 +178,7 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
     [py("open('unplanned.mjs', r'w')"), "open with a prefixed mode"],
     [py(String.raw`s = rf"\{open('unplanned.mjs','w')}"`), "open in a raw f-string's field behind a backslash"],
     [py("s = f\"{open('unplanned.mjs','w').write(str({'a': 1}))}\""), "open in an f-string's field"],
+    [py('s = f"{open("unplanned.mjs", "w")}"'), "open in a field reusing the f-string's quote"],
     [py("from pathlib import Path", "Path('unplanned.mjs').write_text(s)"), "write_text"],
     [py("from pathlib import Path", "with Path('unplanned.mjs').open('w') as f: f.write(s)"), "a path's open"],
     [py("p = 'unplanned.mjs'", "open(p, 'w')"), "a bound name"],
