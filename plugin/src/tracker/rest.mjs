@@ -18,6 +18,7 @@ import { DATA_FENCE_PATTERN } from "../markdown.mjs";
 import { nearestOutside } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
+import { gitMarkForm } from "../flow/record/merged-clauses.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
@@ -196,7 +197,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
 
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is
    stripped before its field name goes in front, the fence being anchored to the start of a line. */
-const said = async (body, status, args) => {
+const said = (body, status, args) => {
   const details = body?.details ?? {};
   const lines = [
     ...(details.formErrors ?? []).map(unfenced),
@@ -205,7 +206,7 @@ const said = async (body, status, args) => {
   ];
   const head = body?.message ? `${body.code ?? status}: ${unfenced(body.message)}` : `Forge answered ${status}`;
   const whole = lines.length ? `${head}\n${lines.join("\n")}` : head;
-  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${await evidenceRoutes(args?.documentId ?? args?.data?.issueId)}`;
+  if (body?.code === NO_WORK_EVIDENCE) return `${whole}\n${evidenceRoutes(args?.documentId ?? args?.data?.issueId)}`;
   return status === 401 ? `${UNAUTHORIZED}\n\n${whole}` : whole;
 };
 
@@ -213,16 +214,14 @@ const said = async (body, status, args) => {
    fields and a tracker action and never a command. One field is the one `forge claim --pushed`
    writes; the other is one no verb here writes and `forge issue --set` refuses (ISS-2775); the
    action is the merged mark carrying its commit, which is the only trace a change that landed on
-   the base branch itself leaves, there being no other branch to capture (ISS-1488). The mark's
-   form is imported at the call because that module writes through this one. */
+   the base branch itself leaves, there being no other branch to capture (ISS-1488). */
 const NO_WORK_EVIDENCE = "NO_WORK_EVIDENCE";
-const evidenceRoutes = async (id) => {
+const evidenceRoutes = (id) => {
   const ref = id ?? "<issue>";
-  const { mergedForm } = await import("../flow/record/merged.mjs");
   return "Capture the branch the work is on, where it is not the project's base branch, with "
     + `\`forge claim ${ref} --pushed\`: it writes sessionContext.worklog.branch, which that check reads. `
     + "Where the change landed on the base branch itself, mark it merged at the commit it landed at, "
-    + `which the tracker checks against the project's repository:\n  ${mergedForm(ref)}\n`
+    + `which the tracker checks against the project's repository:\n  ${gitMarkForm(ref)}\n`
     + "Then send the refused command again.";
 };
 
@@ -255,7 +254,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
       + `${onClock(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
-      return [part, refused(await said(body, response.status, args),
+      return [part, refused(said(body, response.status, args),
         { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
     }
     const body = text ? parsedOr(text) : null;

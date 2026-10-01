@@ -20,29 +20,14 @@ import { commitProblem, commitTakes } from "./content.mjs";
 import { landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
+import { CLAUSES, NOTHING, TYPED, gitMarkForm } from "./merged-clauses.mjs";
 
 /* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
 const MARK = /^mark_merged\b/u;
 
-/** The word a clause carrying no path takes. Enumerated on the read, because `nothingness` and
- *  `nothing generated` are paths and a clause that parses to no path says nothing rather than none. */
-export const NOTHING = "nothing";
+export { CLAUSES, NOTHING } from "./merged-clauses.mjs";
+
 const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
-
-const shaOf = (said) => new RegExp(String.raw`\b${said} ([0-9a-f]{7,40})\b`, "iu");
-const clauseOf = (said) => new RegExp(String.raw`\b${said} ([^;\n]+)`, "iu");
-
-/* One row per clause: the flag that writes it, the words it is written and read by, and what it
-   holds. The order is the note's order, so the sentence is this table joined. */
-export const CLAUSES = [
-  { flag: "at", said: "at", label: "the sha the change landed at", commit: true },
-  { flag: "reviewed", said: "reviewed head", label: "the head the review judged", commit: true },
-  { flag: "judged", said: "judged head", label: "the head the verdicts judged", commit: true,
-    none: "no verdict has judged any head yet" },
-  { flag: "moved", said: "landing moved", label: "the paths of this change the landing moved, as git reads --wrote between --judged and --at", read: true },
-  { flag: "wrote", said: "landing wrote", label: "the paths this change itself landed" },
-].map((one) => ({ ...one, reads: one.commit ? shaOf(one.said) : clauseOf(one.said),
-  ...(one.none ? { readsNone: new RegExp(String.raw`\b${one.said} ${NOTHING}\b`, "iu") } : {}) }));
 
 const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
 
@@ -337,12 +322,6 @@ export const unmarkMerged = async (documentId, ref, { soft = false } = {}) => {
   return answer;
 };
 
-const flagSaid = (one) => `--${one.flag} <${one.label}>`;
-
-/* The clauses a caller types. `landing moved` is not among them: the verb reads it from git, so a form
-   carrying the flag would hand a run a value to guess at and a refusal to learn it from (ISS-2485). */
-const TYPED = CLAUSES.filter((one) => !one.read);
-
 /* The flag an issue landing outside git is marked by, and the words a reader is told it takes. */
 const LANDING_SAID = "where the change now is: a URL, a CMS entry, a store resource";
 const landingForm = (ref) => `forge record merged ${ref} --landing '<${LANDING_SAID}>'`;
@@ -350,7 +329,7 @@ const landingForm = (ref) => `forge record merged ${ref} --landing '<${LANDING_S
 /** The mark an issue is asked for, in the shape the tracker says it lands in: `issue` absent is git. */
 export const mergedForm = (ref, issue = null) => (landsOutsideGit(issue)
   ? landingForm(ref)
-  : `forge record merged ${ref} ${TYPED.map(flagSaid).join(" ")}`);
+  : gitMarkForm(ref));
 
 const valueOf = (one, given) => {
   if (one.commit) {
