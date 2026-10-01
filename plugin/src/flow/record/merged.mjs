@@ -25,8 +25,6 @@ import { CLAUSES, NOTHING, TYPED, gitMarkForm } from "./judged/merged-clauses.mj
 /* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
 const MARK = /^mark_merged\b/u;
 
-export { CLAUSES, NOTHING } from "./judged/merged-clauses.mjs";
-
 const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
 
 const clause = (flag) => CLAUSES.find((one) => one.flag === flag);

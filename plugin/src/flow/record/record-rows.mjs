@@ -4,7 +4,7 @@
 import { FIELD_KINDS, PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
   sectionOwedBy } from "../machine.mjs";
 import { EARNED } from "./corrections/superseding.mjs";
-import { CLAUSES, NOTHING } from "./merged.mjs";
+import { CLAUSES, NOTHING } from "./judged/merged-clauses.mjs";
 import { citationBlocks } from "../../spec/checked.mjs";
 import { DECISION_PARTS, commitTakes } from "./content.mjs";
 import { goalBlock } from "../../goals.mjs";
