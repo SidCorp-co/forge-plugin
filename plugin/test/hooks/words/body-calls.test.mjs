@@ -91,6 +91,8 @@ test("a call spelt inside a string or a comment is no call", () => {
   both(python(`message = "open('unplanned.md','w')"`), [], "a python string");
   both(python("# open('unplanned.md','w')", "s = '''Path('u.md').write_text(x)'''"), [], "a comment and a docstring");
   both(heredoc("node", "// writeFileSync('u.md', 'x')", "const s = `writeFileSync('v.md', 'x')`;"), [], "node's comment and template");
+  both(heredoc("node", "const re = /writeFileSync('r.md', 'x')/g;", "if (/open\\('q.md'/.test(s)) f();"), [], "node's regular expression");
+  both(heredoc("node", "const n = a / b; writeFileSync('d.md', n / 2);"), ["d.md"], "where a division stands, the call is still one");
   both(python(String.raw`message = "say \"; open('u.md','w')"`), [], "a python string holding an escaped quote");
 });
 

@@ -198,6 +198,7 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
   assert.equal(runs(py("writer = Path('unplanned.mjs').write_text")).allowed, true, "a method named and not called");
   assert.equal(runs(node("const s = `${\"writeFileSync('unplanned.mjs', 'x')\"}`;")).allowed, true, "a string inside an interpolation");
   assert.equal(runs(node("const s = `\\${writeFileSync('unplanned.mjs', 'x')}`;")).allowed, true, "an escaped interpolation");
+  assert.equal(runs(node("const re = /writeFileSync('unplanned.mjs', 'x')/;")).allowed, true, "a regular expression");
   for (const call of ["pick('unplanned.mjs')", "pick ('unplanned.mjs')"]) {
     assert.equal(runs(py(`${call}.write_text('x')`)).allowed, true, `a receiver another call returns: ${call}`);
   }

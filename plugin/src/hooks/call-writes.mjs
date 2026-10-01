@@ -8,10 +8,15 @@ export const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)
 /** The language each runner speaks, for the readings that tell its code from its strings. */
 export const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
 
-/** Where a language's strings and comments stand, a comment captured. A binding is discovered in code and nowhere else, and so is a call: one inside a comment or a string a program prints is neither. A runner none of these name is read as python. */
+/** Where a language's strings and comments stand, a comment captured, and a JS regular expression read as a string: one opens where a value may, which a division never does. A binding is discovered in code and nowhere else, and so is a call: one inside a comment or a string a program prints is neither. A runner none of these name is read as python. */
 export const SPOKEN_IN = {
   python: /"""(?:[^\\]|\\[\s\S])*?"""|'''(?:[^\\]|\\[\s\S])*?'''|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(#[^\n]*)/gu,
-  node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
+  node: new RegExp(
+    String.raw`\x60(?:[^\x60\\]|\\[\s\S])*\x60|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'`
+      + String.raw`|(?<=(?:^|[(,=:[!&|?{};+\-*%<>~^]|\breturn|\btypeof)\s*)\/(?![*/])(?:[^/\\\n[]|\\.|\[(?:[^\]\\\n]|\\.)*\])+\/[a-z]*`
+      + String.raw`|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)`,
+    "gu",
+  ),
 };
 
 /* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads, and only as the builtin or a module's that opens a file by name: an archive's `open` writes a member, and a path's takes its mode first. */
