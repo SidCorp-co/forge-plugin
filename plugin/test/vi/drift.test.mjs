@@ -15,6 +15,7 @@ import { ranAsync } from "../fixtures.mjs";
 import { gatewayOn, translatedIn } from "./fake-gateway.mjs";
 import { diff } from "../../vi-natural/text/drift.mjs";
 import { translateItems } from "../../vi-natural/gateway/engine.mjs";
+import { CONTRAST_VI_WORDS, NEGATION_VI_WORDS, UNCOUNTED_CONTRAST_VI_WORDS } from "../../vi-natural/vi-text.mjs";
 
 const BIN = fileURLToPath(new URL("../../bin/vi-natural", import.meta.url));
 
@@ -157,4 +158,93 @@ test("translate --kind doc rejects a dropped-contrast candidate the same way vi-
   assert.equal(run.status, 2, `the title path rejects the same drift doc() would:\n${run.stderr}`);
   assert.equal(run.stdout, "", "no rewrite reaches stdout");
   assert.match(run.stderr, /contrasts one reading against another/u, run.stderr);
+});
+
+/* ISS-2098: a source already in Vietnamese matches none of the English patterns above, so a rewrite
+   that kept one "chưa" of the two it was given posted at exit 0 with the claim inverted. The pair is
+   the issue's own, typed and stored. */
+const TYPED = "Thẻ Giá trị vật tư ở kỳ chưa công việc nào tra tới bước định mức nay nói rõ chưa kể được mã hiệu nào cần bổ sung, thay vì vừa bảo đi bổ sung vừa ghi con số 0.";
+const STORED = "Thẻ Giá trị vật tư ở kỳ chưa có công việc nào tra đến bước định mức giờ nêu rõ mã hiệu cần bổ sung, thay vì vừa yêu cầu bổ sung vừa hiển thị số 0.";
+const LOST = /the source carries 3 Vietnamese negation or contrast marker\(s\) .* and the rewrite carries 2/u;
+
+test("drift.diff: a Vietnamese rewrite that keeps fewer negations than its source is named with both counts", () => {
+  const found = diff(TYPED, STORED);
+  assert.match(found, LOST, found);
+});
+
+test("the write boundary refuses a Vietnamese release note whose rewrite drops one of its negations, before anything posts", async (t) => {
+  const run = await translatedIn(t, () => STORED, { releaseNotes: { section: "Fixed", userFacing: TYPED } }, "vi-drift-note-");
+  assert.equal(run.status, 1, `the note's own drift refuses the whole write:\n${run.stderr}`);
+  assert.equal(run.stdout, "", "no payload reaches the tracker call");
+  assert.match(run.stderr, /nothing was posted/u, run.stderr);
+  assert.match(run.stderr, LOST, `the refusal names both counts:\n${run.stderr}`);
+});
+
+test("vi-natural doc keeps a Vietnamese block whose rewrite drops a negation as it was sent and exits 2", async (t) => {
+  const run = await docWith(t, `${TYPED}\n`, () => `${STORED}\n`, "vi-drift-doc-vi-");
+  assert.equal(run.status, 2, run.stderr);
+  assert.equal(readFileSync(run.path, "utf8"), `${TYPED}\n`, "the file kept the text as it was sent");
+  assert.match(run.stderr, LOST, run.stderr);
+});
+
+test("translate --kind doc refuses a Vietnamese title whose rewrite drops a negation", async (t) => {
+  const room = await gatewayOn(t, () => STORED, "vi-drift-translate-vi-");
+  const run = await ranAsync(BIN, ["translate", "--kind", "doc", "--no-glossary", TYPED],
+    { ...process.env, XDG_CONFIG_HOME: room }, room);
+  assert.equal(run.status, 2, run.stderr);
+  assert.equal(run.stdout, "", "no rewrite reaches stdout");
+  assert.match(run.stderr, LOST, run.stderr);
+});
+
+test("the write boundary posts a Vietnamese rewrite that keeps each negation in other words", async (t) => {
+  const source = "Kỳ này chưa có công việc nào tra tới bước định mức.";
+  const kept = "Kỳ này không có công việc nào tra đến bước định mức.";
+  assert.equal(diff(source, kept), null);
+  const run = await translatedIn(t, () => kept, { releaseNotes: { section: "Fixed", userFacing: source } }, "vi-drift-note-ok-");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(run.stdout).releaseNotes.userFacing, kept);
+});
+
+test("drift.diff: a compound that opens with a negation word and negates nothing may be dropped", () => {
+  const pairs = [
+    ["Thêm cột mới, chẳng hạn cột đơn giá.", "Thêm cột mới, ví dụ cột đơn giá."],
+    ["Báo lỗi khi không gian lưu trữ đầy.", "Báo lỗi khi bộ nhớ đầy."],
+    ["Forge không chỉ theo dõi issue mà còn ghi kết quả.", "Forge theo dõi issue và ghi kết quả."],
+    ["Đây không phải lỗi cấu hình mà là lỗi mạng.", "Đây là lỗi mạng."],
+    ["Bạn đã lưu thay đổi chưa?", "Bạn đã lưu thay đổi?"],
+    ["Có lưu bản nháp không?", "Lưu bản nháp?"],
+  ];
+  for (const [source, rewrite] of pairs) assert.equal(diff(source, rewrite), null, `${source} → ${rewrite}`);
+});
+
+test("drift.diff: a Vietnamese contrast dropped with no negation in its place is named", () => {
+  const found = diff("Lưu số dư âm thay vì gọi là số có dấu.", "Lưu số dư âm và gọi là số có dấu.");
+  assert.match(found, /the source carries 1 Vietnamese negation or contrast marker\(s\) .* and the rewrite carries 0/u, found);
+});
+
+test("drift.diff: a Vietnamese contrast traded for a negation, or back, is not flagged", () => {
+  assert.equal(diff("Thay vì chọn A, chọn B.", "Không chọn A mà chọn B."), null);
+  assert.equal(diff("Không chọn A mà chọn B.", "Chọn B thay vì A."), null);
+  assert.equal(diff("Chọn B chứ không chọn A.", "Chọn B thay vì A."), null, "chứ không is one marker, not a contrast and a negation");
+});
+
+test("drift.diff: a capitalised Vietnamese marker opening a sentence is recognised as one", () => {
+  assert.equal(diff("Do not enable this without confirmation.", "Không bật tính năng này khi thiếu xác nhận."), null);
+  assert.equal(diff("Store the balance rather than sign it.", "Thay vì ký, hãy lưu số dư."), null);
+  assert.equal(diff("Không bật tính năng này.", "không bật tính năng này."), null);
+});
+
+/* One list per family in vi-text.mjs feeds both readings, so a word added there is held by both. */
+test("every Vietnamese marker vi-text.mjs lists is recognised by both readings", () => {
+  const uncounted = new Set(UNCOUNTED_CONTRAST_VI_WORDS.split(", "));
+  for (const word of NEGATION_VI_WORDS.split(", ")) {
+    assert.equal(diff("Do not enable this.", `Bật ${word} tính năng này.`), null, `presence: ${word}`);
+    assert.ok(diff(`Bật ${word} tính năng này.`, "Bật tính năng này."), `count: ${word}`);
+  }
+  for (const word of CONTRAST_VI_WORDS.split(", ")) {
+    assert.equal(diff("Keep A rather than B.", `Giữ A ${word} B.`), null, `presence: ${word}`);
+    const drop = diff(`Giữ A ${word} B.`, "Giữ A và B.");
+    if (uncounted.has(word)) assert.equal(drop, null, `left out of the count: ${word}`);
+    else assert.ok(drop, `count: ${word}`);
+  }
 });

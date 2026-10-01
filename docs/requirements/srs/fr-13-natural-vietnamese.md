@@ -83,6 +83,10 @@ a sentence claims: a contrast between two readings, or a negation. Neither the p
 - **AC-13-4-2** · Rev: 1 · Proof: plugin/test/vi/drift.test.mjs "vi-natural doc leaves a dropped-negation block in English and exits 2"
   WHEN a translated block's source negates a claim and the candidate carries no Vietnamese negation
   THEN the route SHALL leave the block untranslated and SHALL report it.
+- **AC-13-4-3** · Rev: 1 · Proof: plugin/test/vi/drift.test.mjs "vi-natural doc keeps a Vietnamese block whose rewrite drops a negation as it was sent and exits 2"
+  WHEN a block's source is already Vietnamese and the candidate carries fewer Vietnamese negation and
+  contrast markers, taken together, than the source does THEN the route SHALL leave the block as it
+  was sent and SHALL report it.
 
 ### UC-13-5 — A bare name crosses the rewrite whole
 
