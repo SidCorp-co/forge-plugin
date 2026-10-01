@@ -14,6 +14,7 @@ import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
+import { INTERPRETER, LANGUAGE_OF } from "../src/hooks/program/spoken.mjs";
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -352,8 +353,9 @@ const anyOf = (names) => new RegExp(String.raw`\b(?:${names.join("|")})`, "u");
 const PYTHON = anyOf([String.raw`subprocess`, String.raw`os\.system`, String.raw`os\.popen`, String.raw`shell\s*=\s*True`]);
 const NODE = anyOf([String.raw`child_process`, String.raw`execSync`, String.raw`spawnSync`]);
 const SPAWNS = anyOf([PYTHON.source, NODE.source]);
-const ESCAPES = { python: PYTHON, python3: PYTHON, node: NODE, deno: NODE, bun: NODE };
-export const spawnsIn = (runner) => ESCAPES[runner] ?? SPAWNS;
+/* perl, ruby and php have no names of their own here, so each keeps every name: one refusal on doubt. */
+const ESCAPES = { python: PYTHON, node: NODE };
+export const spawnsIn = (runner) => ESCAPES[LANGUAGE_OF[runner]] ?? SPAWNS;
 
 /* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
    read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
@@ -383,13 +385,13 @@ export const handedIn = (body, runner) => {
   return out;
 };
 
-export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
+export const RUNS = new RegExp(String.raw`\b(${INTERPRETER})\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
 export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
 /* An interpreter's options are any dashed words, a shell's are `SHELL_OPTION`'s, the `-c` reading's own; either may end on the `-` that names stdin. */
 const EXECUTES_STDIN = new RegExp(
-  String.raw`(?:^|[\s;&|(])(?:(python3?|node|deno|bun|perl|ruby|php)(?:\s+-\S+)*|(${SHELL_WORD})(?:\s+${SHELL_OPTION})*)\s*-?\s*$`,
+  String.raw`(?:^|[\s;&|(])(?:(${INTERPRETER})(?:\s+-\S+)*|(${SHELL_WORD})(?:\s+${SHELL_OPTION})*)\s*-?\s*$`,
   "u",
 );
 
