@@ -50,7 +50,8 @@ test("a write inside a body the gates did not open before is refused by learning
   const write = `cp a ${MEMORY}/trap.md`;
   const inline = ["/bin/bash -c", "ash -c", "bash -o pipefail -c", "/bin/busybox ash -c", "bash --norc -c", "bash -ce"]
     .map((runner) => `${runner} '${write}'`);
-  for (const command of [...inline, ...["bash", "/bin/bash", "dash", "ash"].map((shell) => fed(shell, write))]) {
+  const stdin = ["bash", "/bin/bash", "dash", "ash", "bash -o pipefail", "bash +O extglob"].map((shell) => fed(shell, write));
+  for (const command of [...inline, ...stdin]) {
     const said = answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME));
     assert.equal(said?.hookSpecificOutput?.permissionDecision, "deny", command);
   }
@@ -68,4 +69,23 @@ test("a heredoc whose reader is no shell the declaration names keeps its body as
     const written = writtenPaths(shellWrites(fed(reader, "cp a /m/memory/x.md")), "/w").map((one) => one.token);
     assert.ok(!written.includes("/m/memory/x.md"), `${reader}: ${JSON.stringify(written)}`);
   }
+});
+
+/* Which words are a shell's options was spelled once for a `-c` body and again for a heredoc on stdin, and the second stopped at a `+` option and at the value `-o` takes (ISS-3023). */
+test("a shell's options are read alike before a -c body and before a heredoc on its stdin", () => {
+  for (const options of ["-e", "--norc", "-o pipefail", "+o posix", "-O extglob", "+O extglob", "-eo pipefail", "-x"]) {
+    assert.match(unwrapped(`bash ${options} -c '${BODY}'`), /; true; forge close ISS-1 ;$/u, `-c after ${options}`);
+    const written = writtenPaths(shellWrites(fed(`bash ${options}`, "cp a /m/memory/x.md")), "/w").map((one) => one.token);
+    assert.ok(written.includes("/m/memory/x.md"), `stdin after ${options}: ${JSON.stringify(written)}`);
+  }
+});
+
+test("an interpreter's options before a heredoc are read as they were", () => {
+  const write = "open('/m/memory/x.md', 'w')";
+  for (const reader of ["python3 -", "python3 -u -", "node -"]) {
+    const written = writtenPaths(shellWrites(fed(reader, write)), "/w").map((one) => one.token);
+    assert.ok(written.includes("/m/memory/x.md"), `${reader}: ${JSON.stringify(written)}`);
+  }
+  const data = writtenPaths(shellWrites(fed("python3 -X dev -", write)), "/w").map((one) => one.token);
+  assert.ok(!data.includes("/m/memory/x.md"), `python3 -X dev -: ${JSON.stringify(data)}`);
 });

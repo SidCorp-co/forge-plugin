@@ -30,3 +30,9 @@ test("a << that is no here-document, or one it cannot vouch for, leaves the text
     "cat << # no word\nbody\n#\nforge comment ISS-1",
   ]) assert.equal(withoutBodies(text), text, text);
 });
+
+/* A shift is arithmetic and no operator, so the one reader steps past it rather than stopping there (ISS-2865). */
+test("a body after a shift is taken out like any other", () => {
+  assert.equal(withoutBodies("echo $(( 1 << 2 ))\ncat > f <<'X'\nforge comment\nX\nls"), "echo $(( 1 << 2 ))\ncat > f      \nls");
+  assert.equal(withoutBodies("(( x <<= 1 ))\ncat <<X\nbody\nX\nls"), "(( x <<= 1 ))\ncat    \nls");
+});

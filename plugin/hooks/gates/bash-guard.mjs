@@ -175,7 +175,7 @@ const instructions = (given) => {
     RUNS,
     (all, runner, body, at) => held(literal(body), at, runner) && " ".repeat(all.length),
   );
-  return { outer, handed };
+  return { outer, handed, held };
 };
 
 /* The tree it names, placed against each cwd `standsIn` allows. Memoised: one deadline for all rules.
@@ -225,8 +225,9 @@ export const run = (ev) => {
   }
   /* Where each command starts, because a rule quoted in an argument is data: `echo "git stash"` prints.
      A `-c` body is promoted first — the shell it names runs what is inside as commands of its own. */
-  const { outer, handed } = instructions((ev.tool_input ?? {}).command ?? "");
-  const text = unwrapped(outer);
+  const { outer, handed, held } = instructions((ev.tool_input ?? {}).command ?? "");
+  /* A program heredoc inside a `-c` body is handed as one outside it is. Its place is its offset in the body, no later than where it stands, so the `cd`s it is read under all ran before it, if not every one of them. */
+  const text = unwrapped(outer, held);
   const run = [
     ...startsAt(text).map(({ said, at }) => ({ said, source: text, at })),
     ...handed.flatMap((one) => startsAt(unwrapped(one.text)).map(({ said }) => ({ said, source: outer, at: one.at }))),

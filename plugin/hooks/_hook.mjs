@@ -11,8 +11,9 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
+import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
@@ -22,7 +23,7 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn };
+export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn, withoutBodies };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
@@ -385,44 +386,33 @@ export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
 export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
+/* An interpreter's options are any dashed words, a shell's are `SHELL_OPTION`'s, the `-c` reading's own; either may end on the `-` that names stdin. */
 const EXECUTES_STDIN = new RegExp(
-  String.raw`(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|${SHELL_WORD})(?:\s+-\S+)*\s*-?\s*$`,
+  String.raw`(?:^|[\s;&|(])(?:(python3?|node|deno|bun|perl|ruby|php)(?:\s+-\S+)*|(${SHELL_WORD})(?:\s+${SHELL_OPTION})*)\s*-?\s*$`,
   "u",
 );
-
-const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 const BLANK = /^[ \t\n]+|[ \t\n]+$/gu;
 
 /** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text being returned the interpreter sits — for the `cd` it inherited — and which
- *  interpreter it is. how/learning-gate.md. */
-export const bodiless = (text, onProgram = (body) => body) => {
-  let out = "";
-  let rest = text;
-  for (let m = HEREDOC.exec(rest); m; m = HEREDOC.exec(rest)) {
-    const after = m.index + m[0].length;
-    const nl = rest.indexOf("\n", after);
-    if (nl < 0) return `${out}${rest.slice(0, m.index)} ${rest.slice(after)}`;
-    const line = rest.slice(0, m.index);
-    out += `${line} ${rest.slice(after, nl + 1)}`;
-    rest = rest.slice(nl + 1);
-    const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
-    const runs = EXECUTES_STDIN.exec(line);
-    if (runs) out += onProgram(end ? rest.slice(0, end.index) : rest, out.length, runs[1]);
-    rest = end ? rest.slice(end.index + end[0].length) : "";
-  }
-  return out + rest;
-};
+ *  interpreter it is. Where a body is, `bodiesOut`'s reader says. how/learning-gate.md. */
+export const bodiless = (text, onProgram = (body) => body) => bodiesOut(text, {
+  body: (body, at, before) => {
+    const runs = EXECUTES_STDIN.exec(before);
+    return runs ? onProgram(body, at, runs[1] ?? runs[2]) : "";
+  },
+});
 
 /** A shell runs a `-c` body and `eval` its argument, so a verb there is in command position. One holds
- *  another, so it runs to a fixed point, keeping the start it matched: that can carry an assignment. */
+ *  another, so it runs to a fixed point, keeping the start it matched: that can carry an assignment.
+ *  A heredoc inside a body is that shell's, its body read by `bodiless` with the caller's `onProgram`. */
 const WRAPPED = new RegExp(`(?<start>${STARTS})(?:${RUNNER})` + String.raw`\s+(?<body>"[^"]*"|'[^']*')`, "gu");
-export const unwrapped = (text) => {
+export const unwrapped = (text, onProgram) => {
   let out = text;
   for (let hop = 0; hop < HOPS; hop += 1) {
     const next = out.replace(WRAPPED, (...all) => {
       const { start, body } = all.at(-1);
-      return `${start} ; ${body.slice(1, -1)} ;`;
+      return `${start} ; ${bodiless(body.slice(1, -1), onProgram)} ;`;
     });
     if (next === out) break;
     out = next;
@@ -466,7 +456,7 @@ export const startsAt = (text) =>
 
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run — unwrapped before expanded, since the shell that takes a `-c` body is what an `env` prefix reaches. */
 export const shellText = (command, onProgram) =>
-  expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
+  expanded(unwrapped(bodiless(String(command ?? ""), onProgram), onProgram));
 
 /* What an inline-program match said before its body: the runner and its flags, for the body put back in its place. */
 const runnerOf = (all, body) => all.slice(0, all.length - body.length);

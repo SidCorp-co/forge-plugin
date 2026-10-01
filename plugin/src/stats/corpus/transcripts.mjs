@@ -2,6 +2,7 @@
 import { CLAIM_CLASS, CLASSES, POLL, READY_CLASS, WHOLE_SET_CLASS, classOf } from "./classes.mjs";
 import { NOTHING, logRead } from "../../hooks/log-reads.mjs";
 import { RUNNER, quoting } from "../../hooks/shell-spans.mjs";
+import { bodiesOut } from "../../resolve/session/here-doc.mjs";
 import { isHumanPrompt } from "../../hooks/transcripts.mjs";
 import { RUNGS, highest } from "../../ladder.mjs";
 import { stampedIn } from "../../flow/machine.mjs";
@@ -99,8 +100,8 @@ export const rungRun = (calls) => {
 
 /* Text a command carries is not a command it ran: read as one, heredoc bodies named `npm run
    check` 423 times and `printf '%s\n' '; forge close ISS-45'` was a close that never happened.
-   Which spans go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
-const HEREDOC = /<<-?\s*(['"]?)(\w+)\1(?:[\s\S]*?^[ \t]*\2[ \t]*$|[\s\S]*)/gmu;
+   Where a body is, the here-document reader says, the same one the write gates take. Which spans
+   go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
 const OPERATOR = /[\n;|&(){}]/u;
 const TEXT = new Set(["'", "#", "\\"]);
 const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
@@ -108,7 +109,7 @@ const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
 
 export const shellOf = (command) => {
-  const text = command.replaceAll(HEREDOC, "<<");
+  const text = bodiesOut(command, { operator: "<<" });
   const said = [];
   const outer = [];
   let word = 0;
