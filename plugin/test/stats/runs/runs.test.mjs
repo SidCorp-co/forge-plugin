@@ -237,7 +237,8 @@ test("one class per shape of work, whatever way it was typed", () => {
     /* A double quote is text as well, outside the substitution it opens (ISS-1533). */
     ['pgrep -f "gates.mjs|node --test"', "poll"],
     ['echo "x; npm run check"', "shell"],
-    /* And the two spans that go back to a shell: a runner's body, and a substitution. */
+    /* And the two spans that go back to a shell: a runner's body, in either quote, and a substitution. */
+    ['bash -c "true; npm run check"', "gate"],
     ["nohup bash -c 'node tools/gates.mjs --wait slot 90 && npm run check' > /tmp/g.log 2>&1 &", "gate"],
     ["code=$(timeout 90 bash -c 'set -a; curl -s x'\"$m\"'; head -c 200 /tmp/p')", "read"],
     ["echo \"head $(git rev-parse --short HEAD)\"", "git"],

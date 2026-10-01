@@ -139,9 +139,10 @@ export const shellOf = (command) => {
         word = typeof back === "number" ? back : at + 1;
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
     }
-    if (under === "'" && last !== "'") handed = mayRun(text, word) && RUNS.test(text.slice(0, word));
+    const quoted = under === "'" || under === '"';
+    if (quoted && last !== under) handed = mayRun(text, word) && RUNS.test(text.slice(0, word));
     last = under;
-    const ran = under === "'" ? handed : !TEXT.has(under);
+    const ran = quoted ? handed : !TEXT.has(under);
     said.push(ran || !OPERATOR.test(one) ? one : SPENT);
   }
   return said.join("");
