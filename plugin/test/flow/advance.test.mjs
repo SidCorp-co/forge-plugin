@@ -159,7 +159,8 @@ test("an edge the tracker sent no answer for falls back to its kind, and one wit
 });
 
 /* The lift of a blocked park asks the same function the entry check does, so one filter answers
-   both and a mention cannot hold a parked issue either. */
+   both and a mention cannot hold a parked issue either — nor lift it: a park whose only entry is a
+   mention reads no edge at all, and owes the answer an edgeless park does (ISS-2675). */
 test("a blocked park is lifted by the same filter the entry check reads", () => {
   const parked = (edge) => targetOf(
     view({ status: "on_hold", relations: { blockedBy: [edge] } },
@@ -168,7 +169,9 @@ test("a blocked park is lifted by the same filter the entry check reads", () => 
   );
   const mentioned = parked({ otherDisplayId: "ISS-18", otherStatus: "open", kind: "relates", gatesDispatch: false });
   assert.equal(mentioned.next, "approved");
-  assert.deepEqual(mentioned.missing, [], "a mention never parked it, so it does not hold it either");
+  assert.equal(mentioned.missing.length, 1, "a mention lifts nothing, so the park still owes its answer");
+  assert.doesNotMatch(mentioned.missing[0].what, /ISS-18/u, "and a mention never holds it either");
+  assert.match(mentioned.missing[0].command, /^forge record answer ISS-3 /u);
   const ordered = parked({ otherDisplayId: "ISS-33", otherStatus: "open", kind: "blocks", gatesDispatch: true });
   assert.match(ordered.missing[0].what, /^ISS-33 gates this by a blocks edge/u);
 });

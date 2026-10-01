@@ -38,6 +38,7 @@ import { judgedPast, judgedSaid, moveHeld } from "../lease/judged.mjs";
 import { issueOf, post, sayStored } from "./thread/posting.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
+import { answerChecked } from "../park/answer.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
 import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
@@ -103,15 +104,6 @@ const citationChecked = (kind, reference, got) => {
   if (kind !== "baseline") return;
   const said = citationProblem(reference, slugIfAny(), got);
   if (said) refuse(`record ${kind} needs ${said}`);
-};
-
-/* An answer is read only by the resume from a status a comment answers, so one written anywhere else
-   is an input nothing reads; `on_hold` is lifted by a person's set or by its blockers, never by one. */
-const answerChecked = (kind, reference, body) => {
-  if (kind !== "answer" || answersByComment(body.status)) return;
-  refuse(`record answer: ${reference} is ${body.status}, and an answer is read only where a park waits `
-    + "on a person — waiting or needs_info — so nothing would read this one. Nothing was sent. What "
-    + `it does wait on:\n  forge advance ${reference} --owed`);
 };
 
 /* A verdict or a review names the head it judged, and a run judges the tree it has open: where that tree holds work its head lacks, the record says the head was judged when the tree was (ISS-381). Only the head is asked about, so an older commit cited on purpose and a checkout other than the one holding the commit are never refused here. */
@@ -408,7 +400,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   const blocks = blocksOf(kind, argv, reference);
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const { documentId, body } = await issue();
-  answerChecked(kind, reference, body);
+  await answerChecked(kind, reference, { documentId, body }, page);
   const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
   finderChecked(kind, reference, body, { comments, cut });
   await finishedChecked(kind, reference, blocks, { documentId, body, comments });

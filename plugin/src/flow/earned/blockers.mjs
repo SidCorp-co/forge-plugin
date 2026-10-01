@@ -8,7 +8,7 @@ import { statusKind } from "../../tracker/rest.mjs";
 /* The tracker answers this on the edge itself, so the check reads the edge rather than the list it
    arrived in: `relations.blockedBy` carries mentions beside orderings. The kind's row is the
    fallback where no such field came, and an edge carrying neither came from somewhere else. */
-const gatesDispatch = (edge) =>
+export const gatesDispatch = (edge) =>
   edge.gatesDispatch === undefined ? ordersEdge(edge) : edge.gatesDispatch === true;
 
 /** Whether a blocker at this status no longer holds anything: it reached `developed`, which is the

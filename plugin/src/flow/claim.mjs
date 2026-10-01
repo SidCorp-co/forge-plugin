@@ -346,7 +346,7 @@ const liftedIfOwn = async (ref, issue, view, checkpointHead) => {
   }
   const { advance } = await import("./advance.mjs");
   try {
-    await refusing(() => advance([ref]));
+    await refusing(() => advance([ref], { lifts: held.comment.documentId ?? held.comment.id }));
     return { ...issue, status: held.record.fields.left };
   } catch (error) {
     if (!(error instanceof Refusal) && !(error instanceof Refused)) throw error;
