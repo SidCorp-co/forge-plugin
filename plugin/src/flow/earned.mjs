@@ -77,7 +77,7 @@ export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELIN
  *  claim. A judge dispatched onto an issue parked from `developed` claims it at `on_hold`, and read as
  *  itself that claim made the judge a build holder and voided every verdict it wrote (ISS-2044). A
  *  row no such park precedes stays unplaced, which reads as a build. */
-export const buildsOn = (view) => (status, row) => {
+const buildsOn = (view) => (status, row) => {
   if (!SIDE.includes(status) || !row?.at) return buildsAt(status);
   const left = parkRecord(view, (kind) => sameLanding(PARK_STATUS[kind], status), null, row.at)?.record.fields.left;
   return buildsAt(left ?? status);
