@@ -205,9 +205,9 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
     if (word.text === "--") ended = true;
     const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
     const option = (options && !ended && !literal && (leads.get(word.at[0]) ?? OPTION.exec(word.text)?.[0].length)) || 0;
-    /* A joined word is read from its start and nowhere else. The other three readings each say the name begins partway in, which is the opposite of what this word claims — that the span is one filename — and `'cache=/tmp/(r).md'` is a relative name the key reading would turn into a rooted one somewhere else entirely. */
+    /* A joined word is read from its start and nowhere else, as is a word an expansion opens, whose name is the whole of it too — `${OUT:+ 'a.md' }` writes that file or nothing — and which is `built` on what it hands on so no reader places it against a tree. The other three readings each say the name begins partway in, which is the opposite of what this word claims — that the span is one filename — and `'cache=/tmp/(r).md'` is a relative name the key reading would turn into a rooted one somewhere else entirely. */
     const read = spelt(word);
-    const starts = word.joined ? [0] : [
+    const starts = word.joined || word.built ? [0] : [
       ...(option || KEY.test(word.text) ? [] : [0]),
       ...(option && word.text[option] !== "=" ? [option] : []),
       ...past(KEYED.exec(word.text)?.index ?? -1),
@@ -218,9 +218,9 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = t
       const name = length && word.text.slice(at, at + length);
       /* One reading of a word and the other can spell the same name at the same place — `'a.md)'` whole and `'a.md'` past the operator — and one name read twice from one offset is one name. */
       const once = name && `${word.at[at]} ${name}`;
-      if (once && !seen.has(once) && !(word.joined && name.length < word.text.length - at)) {
+      if (once && !seen.has(once) && !((word.joined || word.built) && name.length < word.text.length - at)) {
         seen.add(once);
-        names.push({ token: name, at: word.at[at] });
+        names.push({ token: name, at: word.at[at], ...(word.built ? { built: true } : {}) });
       }
     }
   }

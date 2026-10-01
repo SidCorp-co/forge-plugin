@@ -228,8 +228,8 @@ test("a name is read from the word the command spelled it in, and never from the
     "a template's own quote counting as one of the three");
   assert.deepEqual(names("dd if=/dev/zero of=~/notes.md count=1"), ["~/notes.md"],
     "a key stands in front of a home the same way it stands in front of a root");
-  assert.deepEqual(names(`tee "$OUT.md" OUT.md`), ["OUT.md", "OUT.md"],
-    "and one name spelled twice is two readings, the second standing where no `$` precedes it");
+  assert.deepEqual(names(`tee "$OUT.md" OUT.md`), ["$OUT.md", "OUT.md"],
+    "and the name behind a `$` keeps the expansion it was spelt with, while the same letters standing where no `$` precedes them are a name of their own");
   assert.deepEqual(names("sed -i s/x/y/ *.md"), [], "a pattern names a file this text does not spell");
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
   assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["/notes.md", "plus(one)/notes.md"],
