@@ -58,6 +58,10 @@ const git = (args, env = null) => {
   return run.status === 0 ? (run.stdout ?? "").trim() : null;
 };
 
+/* The one reading here whose answer is the exit status: 0 an ancestor, 1 not, anything else no answer. */
+const ancestry = (ancestor, of, env) => spawnSync("git", ["merge-base", "--is-ancestor", ancestor, of],
+  { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...env } }).status;
+
 /* Measured against the branch a change lands on, which is `landsOn`'s answer and the one
    `carriedByLanding` reads: two readings of that branch in one file disagreed, and a capture on a
    project landing on `staging` recorded every file between the remote's default and it as touched
@@ -72,7 +76,7 @@ const baseOf = (head, lands) => {
     const found = git(["merge-base", "HEAD", ref]);
     if (found) return found === head ? { ...forkOf(head, ref), carried: true } : { base: found, carried: false };
   }
-  return { base: "", why: "base", carried: false };
+  return { base: "", carried: false };
 };
 
 /* A head the landing branch already holds is its own merge-base, so the plain reading records a
@@ -352,10 +356,9 @@ export const branchNow = (work) => {
   const hash = git(["show-ref", "--verify", "--hash", `refs/heads/${work.branch}`], OFFLINE);
   if (!hash) return { tip: null, carries: null };
   if (hash === work.head) return { tip: hash, carries: true, past: 0 };
-  const asked = spawnSync("git", ["merge-base", "--is-ancestor", work.head, hash],
-    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...OFFLINE } });
-  if (asked.status === 1) return { tip: hash, carries: false };
-  const count = asked.status === 0 ? git(["rev-list", "--count", `${work.head}..${hash}`], OFFLINE) : null;
+  const asked = ancestry(work.head, hash, OFFLINE);
+  if (asked === 1) return { tip: hash, carries: false };
+  const count = asked === 0 ? git(["rev-list", "--count", `${work.head}..${hash}`], OFFLINE) : null;
   return count === null ? { tip: hash, carries: null } : { tip: hash, carries: true, past: Number(count) };
 };
 
@@ -366,9 +369,7 @@ export const droppedHead = (branch, head) => {
   const tip = git(["rev-parse", "--verify", `refs/remotes/origin/${branch}^{commit}`], OFFLINE);
   if (!tip) return null;
   if (git(["rev-parse", "--is-shallow-repository"], OFFLINE) !== "false") return { tip, dropped: false };
-  const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
-    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...OFFLINE } });
-  return { tip, dropped: asked.status === 1 };
+  return { tip, dropped: ancestry(head, tip, OFFLINE) === 1 };
 };
 
 /* Whether the branch a change lands on carries a head, and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it: what rests on this ends a landing, where the refusal above only costs a builder its write, and under no overlay: one proved over a replacement or a graft proves only it (8faf61 F1). */
@@ -416,10 +417,9 @@ export const carriedByLanding = (head, lands = null) => {
     return short("this checkout holds no commit of that name, whether the branch was never fetched "
       + "here or the object is gone from a store that has the rest", "git fetch origin", ref, tip);
   }
-  const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
-    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...PROVEN } });
-  if (asked.status === 0) return { ref, tip, from, carries: true, why: null, route: null };
-  if (asked.status === 1) {
+  const asked = ancestry(head, tip, PROVEN);
+  if (asked === 0) return { ref, tip, from, carries: true, why: null, route: null };
+  if (asked === 1) {
     return short(`${ref} stands at ${shortSha(tip)} and does not reach it`, "git fetch origin", ref, tip);
   }
   return short(`git could not answer whether ${ref} reaches it`, null, ref, tip);
