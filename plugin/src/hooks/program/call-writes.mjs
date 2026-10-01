@@ -65,6 +65,12 @@ const argument = (code, args, [at, key]) => {
 
 const literalAt = (code, one) => (one && spelling(code.slice(one.from, one.to)) !== null ? one : null);
 
+/* Whether the mode an `open` takes at a position or under a keyword is a literal that writes: `w` or `a`, the two `WRITE_CALLS` reads. */
+const writesMode = (code, args, at) => {
+  const mode = literalAt(code, argument(code, args, at));
+  return Boolean(mode) && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to)));
+};
+
 /* pathlib's writes, on the path they are called on, where a module's call above has not already read the same parenthesis: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells with `w` or `a` — an archive's `open('member', 'w')` names a member there, and writes no file, so an `open` taking its mode second is some object's own, placed nowhere and kept for the reading that keeps every candidate. A receiver `RECEIVED` cannot read is computed, and its line is the call. */
 const METHOD = /\.(write_(?:text|bytes)|open)\s*\(/gu;
 const receivedCalls = ({ code, bare, inside }, taken) => {
@@ -74,10 +80,7 @@ const receivedCalls = ({ code, bare, inside }, taken) => {
     if (taken.has(to)) return [];
     if (hit[1] === "open") {
       const read = argsFrom(code, bare, to);
-      const writes = (at) => {
-        const mode = read && literalAt(code, argument(code, read.args, [at, "mode"]));
-        return mode && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to)));
-      };
+      const writes = (at) => read && writesMode(code, read.args, [at, "mode"]);
       if (!writes(0)) {
         const text = read && code.slice(hit.index, read.end);
         return read && writes(1) ? [{ text, targets: [], names: [], computed: true }] : [];
@@ -106,8 +109,7 @@ export const fileCalls = (given, runner) => {
     const call = CALLS.find((one) => one.name.test(hit[0]));
     const read = argsFrom(code, bare, opened);
     if (!call || !read) continue;
-    const mode = call.mode && literalAt(code, argument(code, read.args, call.mode));
-    if (call.mode && !(mode && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to))))) continue;
+    if (call.mode && !writesMode(code, read.args, call.mode)) continue;
     const written = call.writes.map((one) => argument(code, read.args, one));
     const targets = written.filter((one) => literalAt(code, one));
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
