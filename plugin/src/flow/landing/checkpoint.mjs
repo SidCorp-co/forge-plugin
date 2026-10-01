@@ -145,11 +145,11 @@ const deploymentSaid = (landing) => [
   landing.deploymentId ? `; deployment id \`${landing.deploymentId}\`, which is no commit a verdict can cite` : "",
 ].join("");
 
-/* The landing this one replaced, whose verdicts are read against its own identity (ISS-2526). */
 /** Where a landing stood: `at <head>`, and the deployment it named where it named one. */
 export const landingAt = (landing) => `at ${shortSha(landing.head) || "no head"}`
   + `${landing.deployment ? ` with deployment ${shortSha(landing.deployment)}` : ""}`;
 
+/* The landing this one replaced, whose verdicts are read against its own identity (ISS-2526). */
 const supersededSaid = (landing) => {
   const earlier = landing[SUPERSEDED] ?? [];
   const last = earlier.at(-1);

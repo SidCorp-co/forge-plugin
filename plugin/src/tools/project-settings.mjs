@@ -274,9 +274,6 @@ const rebound = (slug) => `slug: every run and pane standing in this checkout, t
   + `included, now resolves project ${slug} on its next call. One call aimed at another project is `
   + "`--project <slug>` on `forge issue` and `forge comment`, which saves nothing.";
 
-/** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
- *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
- *  setting that took. */
 const FLOW_KEY = "flow";
 
 /* `--set flow=` writes the flow alone, so each thing that flow asks the project for is named with the
@@ -288,6 +285,9 @@ const asksLeft = (slug) => {
     + `\`forge doctor --set ${ask.key}=${ask.value}\` writes it, and \`${FLOW_USAGE.replace("<slug>", slug)}\` writes both`);
 };
 
+/** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
+ *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
+ *  setting that took. */
 export const writeSetting = async (given) => {
   /* The split is the shared one, this verb adding only where to look the pair up (ISS-1449). */
   const { key: asked, value: raw } = pairOf(given, "--set", {
