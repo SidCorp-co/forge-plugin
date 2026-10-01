@@ -13,7 +13,7 @@ import { mkdirSync, realpathSync, statSync, utimesSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 
 import { FRESH_MS, callAt, namesOf, promptIndex, shellWrites, touched, turnRecords, writtenPaths } from "../../hooks/_hook.mjs";
-import { glued } from "../../src/hooks/assembled.mjs";
+import { glued } from "../../src/hooks/program/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { redirectsIn } from "../../src/hooks/shell-spans.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -337,13 +337,14 @@ test("a path an interpreter body assembled from a binding of its own is one too"
   );
 });
 
-/* An inline body arrives still inside the shell's quotes, so the fold takes them off to read it and puts them back, and a body it resolves nothing in is handed on untouched (ISS-444). */
+/* An inline body arrives still inside the shell's quotes, so the fold takes them off to read it and puts them back, and a body it resolves nothing in is handed on untouched (ISS-444). What follows the command's own line is the writes its file calls make, read beside it (ISS-2010). */
+const command = (text) => text.split("\n")[0];
 test("an inline body is folded inside the quotes it was written in, and left as given where nothing folds", () => {
   const said = `python3 -c "root = \\"plugin/src\\"; open(root + \\"/glued.mjs\\", \\"w\\")"`;
-  assert.equal(shellWrites(said), `python3 -c "root = \\"plugin/src\\"; open(\\"plugin/src/glued.mjs\\", \\"w\\")"`,
+  assert.equal(command(shellWrites(said)), `python3 -c "root = \\"plugin/src\\"; open(\\"plugin/src/glued.mjs\\", \\"w\\")"`,
     "escaped inner quotes are one body, and go back escaped");
   const expands = String.raw`python3 -c "p = \"a\" + \"/b\"; open(\"$PWD/c.md\", \"w\"); print(\"\$HOME \` \\\$x\")"`;
-  assert.equal(shellWrites(expands), expands.replace(String.raw`\"a\" + \"/b\"`, String.raw`\"a/b\"`),
+  assert.equal(command(shellWrites(expands)), expands.replace(String.raw`\"a\" + \"/b\"`, String.raw`\"a/b\"`),
     "a bare `$` still expands and an escaped one, or an escaped backtick, stays a literal, beside a fold elsewhere in the body");
   const owns = `python3 -c "p = \\"a\\" + \\"/b\\"; print(\\"\uE000\uE001 \\$x\\")"`;
   assert.equal(shellWrites(owns), owns.replace(`\\"a\\" + \\"/b\\"`, `\\"a/b\\"`),
@@ -418,6 +419,12 @@ test("a join keeps the rule of the API that was called", () => {
   assert.match(js('const root = "a/b";\nconst p = path.join(root, "/SKILL.md");'), /"a\/b\/SKILL\.md"/u, "node's does not");
   assert.match(py('p = pathlib.Path("a/b") / "SKILL.md"'), /"a\/b\/SKILL\.md"/u, "and an assembly needs no binding");
   assert.match(py('p = path.join(__dirname, "SKILL.md")'), /__dirname/u, "a member this cannot read leaves the call alone");
+});
+
+test("a binding holds every literal a file call places, by the one grammar both read", () => {
+  assert.match(py('p = r"rb.md"\nopen(p, "w")'), /open\("rb\.md", "w"\)/u, "a prefixed literal");
+  assert.match(py(`p = """a"b.md"""\nopen(p, "w")`), /open\('a"b\.md', "w"\)/u, "a triple-quoted one holding a quote");
+  assert.match(py('p = "a\\\\b.md"\nopen(p, "w")'), /open\(p, "w"\)/u, "and one escaping a character is placed by neither");
 });
 
 test("a binding answers for the text after it, and only while it holds a literal", () => {

@@ -1,7 +1,11 @@
 /* What an interpreter's own body would have built before it wrote, for the one caller that asks what a
    command writes. Kept out of the hook harness because it is a reading and not an entry point, and
-   beside shell-spans because it answers the same question about a different language. how/writes.md. */
-import { unquote } from "./shell-spans.mjs";
+   beside the call reader because both read a program another language runs, as shell-spans reads the
+   shell's. how/writes.md. */
+import { STRING, fileCalls, spelling } from "./call-writes.mjs";
+import { KINDS, literalsIn } from "../../checks/source/lexical.mjs";
+import { SPEAKS, spansOf } from "./spoken.mjs";
+import { unquote } from "../shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
 const FOLDS = 3;
@@ -11,7 +15,7 @@ const LITERAL = String.raw`"[^"\n]*"|'[^'\n]*'`;
 const ENDS = String.raw`(?=\s*(?:#|//|[);,\]}]|$))`;
 const OPENS = String.raw`(?<=^|[;{}\n]\s*|\b(?:const|let|var)\s+)`;
 const BINDS = new RegExp(
-  OPENS + String.raw`([A-Za-z_]\w*)\s*=(?!=)\s*(?:(${LITERAL})${ENDS}|[^\n;]+)`,
+  OPENS + String.raw`([A-Za-z_]\w*)\s*=(?!=)\s*(?:(${STRING})${ENDS}|[^\n;]+)`,
   "gmu",
 );
 /* Only a string form that interpolates: python's f-string and a JS template literal. An ordinary `"{root}/x"` or `"${root}/x"` is a literal in both languages and stays one. */
@@ -22,12 +26,10 @@ const HOLDS = {
     plain: (span) => span,
   },
   node: {
-    spans: /`(?:[^`\\]|\\[\s\S])*`/gu,
     name: /(?<!\\)\$\{([A-Za-z_]\w*)\}/gu,
     plain: (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span),
   },
 };
-const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
 const JOINS = new RegExp(
   String.raw`\b(os\.path\.join|posixpath\.join|path\.join|pathlib\.Path|Path)\s*\(([^()]*)\)`,
   "gu",
@@ -39,24 +41,16 @@ const GLUED = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*(${LITERAL})`, "gu")
 const under = (left, right, resets) =>
   (resets && right.startsWith("/") ? right : `${left}/${right}`).replace(/\/{2,}/gu, "/");
 
-/* A binding is discovered in code and nowhere else: an assignment inside a comment is not a rebinding, and one inside a string a command is writing is neither. Comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
-const SPOKEN_IN = {
-  python: /"""[\s\S]*?"""|'''[\s\S]*?'''|"[^"\n]*"|'[^'\n]*'|(#[^\n]*)/gu,
-  node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
-};
-
+/* Comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
 const bound = (said, lang) => {
-  const scan = SPOKEN_IN[lang] ?? SPOKEN_IN.python;
-  const strings = [];
-  const code = said.replace(scan, (span, comment, at) => {
-    if (comment !== undefined) return " ".repeat(span.length);
-    strings.push({ start: at, end: at + span.length });
-    return span;
-  });
+  const spans = spansOf(said, lang ?? "python");
+  const strings = spans.filter((one) => !one.comment).map((one) => ({ start: one.from, end: one.to }));
+  const code = spans.filter((one) => one.comment)
+    .reduce((text, one) => `${text.slice(0, one.from)}${" ".repeat(one.to - one.from)}${text.slice(one.to)}`, said);
   const set = [];
   for (const one of code.matchAll(BINDS)) {
     if (strings.some(({ start, end }) => one.index > start && one.index < end)) continue;
-    set.push({ at: one.index + one[0].length, name: one[1], value: one[2] === undefined ? null : unquote(one[2]) });
+    set.push({ at: one.index + one[0].length, name: one[1], value: one[2] === undefined ? null : spelling(one[2]) });
   }
   return (name, at) => set.filter((one) => one.name === name && one.at < at).pop()?.value ?? null;
 };
@@ -64,22 +58,41 @@ const bound = (said, lang) => {
 const NAME_THEN = new RegExp(String.raw`\b([A-Za-z_]\w*)\s*([+/])\s*(?=${LITERAL})`, "gu");
 const THEN_NAME = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*\b([A-Za-z_]\w*)\b`, "gu");
 
+/* A bare name a file call writes through is the literal it was last bound to, so a name bound to a whole literal and then handed to `open` as its file writes that literal. Replaced from the last one back, so every offset still answers against the text it was measured in. */
+const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => one.names)
+  .sort((a, b) => b.from - a.from)
+  .reduce((text, { from, to }) => {
+    const held = valueOf(text.slice(from, to), from);
+    if (held === null) return text;
+    return `${text.slice(0, from)}${held.includes('"') ? `'${held}'` : `"${held}"`}${text.slice(to)}`;
+  }, said);
+
+/* Each JS template the plugin's one JS walk finds, folded where it stands, from the last back so every offset still answers; one holding a template in its interpolation is left as written, its parts being no one string. */
+const templated = (said, valueOf, made) => literalsIn(said, { holes: "text" })
+  .filter((one) => one.kind === KINDS.TEMPLATE && !said.slice(one.start + 1, one.end - 1).includes("\x60"))
+  .reverse()
+  .reduce((text, one) => `${text.slice(0, one.start)}${made(text.slice(one.start, one.end), one.start, valueOf)}${text.slice(one.end)}`, said);
+
 /** A binding reaches the text after it and nothing before, one rebound to anything but a whole string literal answers for nothing, a join whose members all read as literals folds to one, and
  *  `+` and pathlib's `/` fold to a fixed point. Each pass reads what the pass before it produced and finds its bindings there, so an offset always answers against the text it was measured in:
  *  order is what a binding is read by, and no pass reorders. Shapes with no model — `.format`, `%`, `"/".join`, a value read at runtime — leave the text alone. how/writes.md. */
 export const glued = (body, runner) => {
   const lang = SPEAKS[runner];
-  const holds = HOLDS[lang];
   let out = String(body);
+  const holds = HOLDS[lang];
   /* `bound` answers off `out` and `lang` alone, so it is rebuilt only where a pass moved the text. */
   let read = null;
   let bindings = null;
-  const pass = (pattern, made) => {
+  const fresh = () => {
     if (read !== out) {
       bindings = bound(out, lang);
       read = out;
     }
-    out = out.replace(pattern, (...args) => made(args, args[args.length - 2], bindings) ?? args[0]);
+    return bindings;
+  };
+  const pass = (pattern, made) => {
+    const valueOf = fresh();
+    out = out.replace(pattern, (...args) => made(args, args[args.length - 2], valueOf) ?? args[0]);
   };
   const quoted = (valueOf, name, at) => {
     const held = valueOf(name, at);
@@ -88,11 +101,9 @@ export const glued = (body, runner) => {
   /* A constructor cannot fold while its argument is still a concatenation, and a concatenation cannot reach a name no fold has reached yet, so the stages run together until the text stops moving. */
   for (let hop = 0; hop < FOLDS; hop += 1) {
     const before = out;
-    if (holds) {
-      pass(holds.spans, ([span], at, valueOf) => {
-        return holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
-      });
-    }
+    const interpolated = (span, at, valueOf) => holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
+    if (lang === "node") out = templated(out, fresh(), interpolated);
+    else if (holds) pass(holds.spans, ([span], at, valueOf) => interpolated(span, at, valueOf));
     pass(NAME_THEN, ([, name, sign], at, valueOf) => {
       const said = quoted(valueOf, name, at);
       return said === null ? null : `${said} ${sign} `;
@@ -107,6 +118,7 @@ export const glued = (body, runner) => {
       if (!parts.length || parts.some((each) => each === null)) return null;
       return `"${parts.reduce((left, right) => under(left, right, RESETS.test(verb)))}"`;
     });
+    out = spelt(out, lang, bound(out, lang));
     out = out.replace(GLUED, (all, left, sign, right) =>
       `"${sign === "/" ? under(unquote(left), unquote(right), true) : unquote(left) + unquote(right)}"`);
     if (out === before) break;

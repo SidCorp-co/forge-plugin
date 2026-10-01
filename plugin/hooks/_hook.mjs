@@ -12,7 +12,8 @@ import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
-import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
+import { glued, gluedQuoted } from "../src/hooks/program/assembled.mjs";
+import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -472,14 +473,26 @@ const spawned = (body, runner) => {
   return given.map((one) => `\n(\n${one}\n)\n`).join("");
 };
 
-/* A `>` in a heredoc body a shell does not run is its program's comparison or its data, and never a redirect, a space ending a word wherever it did; a string it hands a shell is that shell's command, read ahead of the body so nothing the body leaves open reaches it. */
-const programmed = (body, runner) => (SHELL.test(runner) ? body : spawned(body, runner) + body.replace(/>/gu, " "));
+/* A literal holding a `$` is quoted as the shell would still read it, which is how the body's own text was read, and one holding a quote in the other quote. One holding a substitution, or both quotes, names a file no reading here can spell, and is left out. */
+const aimedAt = (name) => {
+  if (/\$\(|\x60/u.test(name) || (name.includes("'") && name.includes('"'))) return "";
+  return !name.includes('"') && /[$\\']/u.test(name) ? `\n: > "${name}"` : `\n: > '${name}'`;
+};
+/* Every character a shell gives a meaning a program's expression does not: an operator, a redirect, an expansion, an escape, a comment, a test's bracket, and a keyword's `=`. */
+const INERT = /[;&|<>$\x60\\#![\]=]/gu;
+/* A heredoc body a shell does not run is another language, so none of it is shell words. What stands in its place: a string it hands a shell, which is that shell's command; a redirect to each literal its file calls write, the one write every reading aims; and a call with a target it computes, flattened and with every character a shell reads blanked, where it leaves nothing open — a reading that keeps every candidate reads what it still spells, and one that strikes what it cannot place strikes it. A bracket, a quote, an assignment or a `cd` in the body then reaches no command after it (ISS-3038). */
+const called = (body, runner, { computed = true } = {}) => fileCalls(body, runner).map((one) => {
+  const aimed = one.targets.map(({ from, to }) => aimedAt(spelling(body.slice(from, to)))).join("");
+  const flat = one.text.replace(/\s+/gu, " ").replace(INERT, " ");
+  return computed && one.computed && closes(flat) ? `${aimed}\n${flat}` : aimed;
+}).join("");
+const programmed = (body, runner) => (SHELL.test(runner) ? body : `${spawned(body, runner)}${called(body, runner)}\n`);
 
-/* An inline body the same, where the null command after its strings takes what followed the body. */
+/* An inline body the same, where the null command after its strings and its writes takes what followed the body. The body itself stays, its shell quotes holding it shut, so it is already the computed calls a keeping reading reads, and only the literals they write are added. */
 const inline = (all, runner, body) => {
   const kept = gluedQuoted(body, runner);
-  const given = spawned(literal(kept), runner);
-  return `${runnerOf(all, body)}${kept}${given && `${given}:`}`;
+  const given = `${spawned(literal(kept), runner)}${called(literal(kept), runner, { computed: false })}`;
+  return `${runnerOf(all, body)}${kept}${given && `${given}\n:`}`;
 };
 
 /** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. A heredoc body and an inline one are folded alike, or a run held on one spelling learns the other. `forge hooks --how writes`. */
