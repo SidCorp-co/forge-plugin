@@ -24,7 +24,8 @@ const state = {
   },
 };
 const SLUGS = ["declares-staging", "staging-unfetched", "declares-none", "record-too", "config-unread",
-  "merge-landed", "synced-landed", "two-forks", "just-cut", "promotes", "ready-landed", "fast-forwarded"];
+  "merge-landed", "synced-landed", "two-forks", "just-cut", "promotes", "ready-landed", "fast-forwarded",
+  "ready-ff", "ready-cut", "ready-unfetched", "line-ff"];
 state.answer["forge_projects.list"] = () => ({
   projects: SLUGS.map((slug, at) => ({ slug, id: `1e1c1a1e-0000-4000-8000-00000000000${at + 1}` })),
 });
@@ -32,7 +33,7 @@ const tracker = await fakeTracker(state);
 for (const [name, value] of Object.entries(tracker.env)) process.env[name] = value;
 test.after(() => tracker.close());
 
-const { patchFrom, unwrittenSaid } = await import("../../../src/flow/worklog.mjs");
+const { patchFrom, saidWritten, unwrittenSaid } = await import("../../../src/flow/worklog.mjs");
 const { pullRun } = await import("../../../src/flow/record/rung.mjs");
 const { refusing, useProject } = await import("../../../src/resolve/settings.mjs");
 const { readyCheckpoint } = await import("../../../src/flow/landing/written.mjs");
@@ -265,4 +266,60 @@ test("--ready on a head the landing branch already carries stays refused, and sa
   assert.ok(patch.touched, "the capture now holds the branch's files, so the empty set is not what refuses");
   await assert.rejects(refusing(() => readyCheckpoint("ISS-1862", "the-builder", patch, null, "in_progress")),
     (error) => error.message.includes(`already carries ${head.slice(0, 7)}`) && /--rebuilt/u.test(error.message));
+});
+
+/* git reads a branch just cut and one landed by a fast-forward alike — its head is its own base — so
+   the --ready refusal of either names the route out of each, and the capture before a merge is not
+   the route a merged change is sent to (ISS-2451). */
+const fastForwarded = (slug) => {
+  const { work } = diverged(slug);
+  git(work, "checkout", "-q", "staging");
+  git(work, "merge", "-q", "--ff-only", "iss-1217");
+  git(work, "push", "-q", "origin", "staging");
+  git(work, "checkout", "-q", "iss-1217");
+  return work;
+};
+const justCut = (slug) => {
+  const { work } = diverged(slug);
+  git(work, "checkout", "-q", "-b", "iss-cut", "origin/staging");
+  return work;
+};
+
+test("--ready on a head that is its own base on the landing branch names the late write and the capture after a commit", async () => {
+  state.declared = "staging";
+  for (const [slug, standUp] of [["ready-ff", fastForwarded], ["ready-cut", justCut]]) {
+    const work = standUp(slug);
+    const patch = await capturing(work, slug);
+    const short = patch.head.slice(0, 7);
+    await assert.rejects(refusing(() => readyCheckpoint("ISS-2451", "the-builder", patch, null, "in_progress")),
+      (error) => {
+        assert.match(error.message, new RegExp(`already carries ${short}`, "u"), `${slug}: ${error.message}`);
+        assert.ok(error.message.includes(`forge claim ISS-2451 --rebuilt ${short} --deployment`), `${slug}: ${error.message}`);
+        assert.ok(error.message.includes(`forge claim ISS-2451 --rebuilt ${short} --undeployed`), `${slug}: ${error.message}`);
+        assert.match(error.message, /Where the branch was just cut, commit the change, push it, then capture again:\n {2}forge claim ISS-2451 --pushed --ready/u,
+          `${slug}: ${error.message}`);
+        assert.doesNotMatch(error.message, /before the merge/u, `${slug}: ${error.message}`);
+        return true;
+      });
+  }
+});
+
+test("--ready on a capture that found no base is refused as before, sent to the --pushed line", async () => {
+  state.declared = "staging";
+  const { work } = diverged("ready-unfetched", { fetched: false });
+  const { made: patch } = await saying(() => capturing(work, "ready-unfetched"));
+  assert.equal(patch.base, null);
+  await assert.rejects(refusing(() => readyCheckpoint("ISS-2451", "the-builder", patch, null, "in_progress")),
+    (error) => /captured no change — the `--pushed` line below says why/u.test(error.message)
+      && !/--rebuilt/u.test(error.message));
+});
+
+test("the line a capture of a fast-forwarded head writes names the late write beside the capture again", async () => {
+  state.declared = "staging";
+  const work = fastForwarded("line-ff");
+  const { said } = await saying(async () => {
+    const patch = await capturing(work, "line-ff");
+    saidWritten(patch);
+  });
+  assert.match(said, /Where the branch was just cut, capture again at the push; where it landed by a fast-forward, no push is left to capture, and `claim --rebuilt` writes that landing after the fact\./u, said);
 });

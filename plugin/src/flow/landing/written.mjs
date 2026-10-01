@@ -214,9 +214,24 @@ const unbuiltRefusal = (ref, status) => {
     + `  forge claim ${ref} --pushed --ready`;
 };
 
+/* The opening both refusals of a head the landing branch already holds share. */
+const ALREADY = (head) => `claim --ready arms the landing of a change the branch it lands on does `
+  + `not carry yet, and that branch already carries ${shortSha(head)}`;
+
 export const readyCheckpoint = (ref, holder, patch, landing, status) => {
   const unbuilt = unbuiltRefusal(ref, status);
   if (unbuilt) fail(unbuilt);
+  /* A head that is its own base on the landing branch's line reads alike just cut and landed by a
+     fast-forward, so the route out of each is named and the caller, who knows which, takes one: the
+     capture the empty-set refusal below asks for is one the second has no push left to take (ISS-2451). */
+  if (patch?.head && patch.base === patch.head && carriedAtCapture(patch)) {
+    fail(`${ALREADY(patch.head)}, with nothing of this branch's own behind it — what a branch just cut `
+      + `and a branch landed by a fast-forward both read. Where this branch's commits are already on `
+      + `that branch, the landing happened outside the checkpoint and is written after the fact:\n`
+      + `  ${commandAt(REBUILT_FORM(ref, shortSha(patch.head)), "  ")}\n`
+      + `Where the branch was just cut, commit the change, push it, then capture again:\n`
+      + `  forge claim ${ref} --pushed --ready`);
+  }
   if (!patch?.head || !patch.base || !patch.touched) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
       + `no change — the \`--pushed\` line below says why. Capture at the push, before the merge:\n`
@@ -224,8 +239,7 @@ export const readyCheckpoint = (ref, holder, patch, landing, status) => {
   }
   /* A head merged into the landing branch captures its own files, so the empty set above lets it through and this is what refuses it (ISS-1862). */
   if (carriedAtCapture(patch)) {
-    fail(`claim --ready arms the landing of a change the branch it lands on does not carry yet, and `
-      + `that branch already carries ${shortSha(patch.head)}, so no landing is left to arm. A change `
+    fail(`${ALREADY(patch.head)}, so no landing is left to arm. A change `
       + `that landed outside the checkpoint is written after the fact:\n`
       + `  ${commandAt(REBUILT_FORM(ref, shortSha(patch.head)), "  ")}`);
   }
