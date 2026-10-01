@@ -13,6 +13,7 @@ import {
   renderObject,
   renderTable,
   rendered,
+  secretsIn,
   summarize,
 } from "../../../../src/tools/services/coolify/shape.mjs";
 
@@ -60,6 +61,14 @@ test("a field named like a secret is masked, and an identifier ending in _id or 
 test("a connection string keeps its scheme, user, host and path and loses its password", () => {
   const masked = redact({ key: "DATABASE_URL", value: "postgres://app:hunter2@db.internal:5432/main" });
   assert.equal(masked.value, `postgres://app:${MASK}@db.internal:5432/main`);
+});
+
+/* The preview drops a connection string's fragment, so the collector owes it: what the preview
+   hides and what an echo is struck of are one set, and the preview itself does not move. */
+test("a connection string's fragment is left out of the preview and reported as struck", () => {
+  const body = { key: "DATABASE_URL", value: "postgres://app:pw@db:5432/main#tail" };
+  assert.equal(redact(body).value, `postgres://app:${MASK}@db:5432/main`);
+  assert.deepEqual(secretsIn(body), [body.value, "pw", "tail"]);
 });
 
 test("a credential in a query parameter is replaced and the rest of the URL survives", () => {

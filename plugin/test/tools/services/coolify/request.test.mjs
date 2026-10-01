@@ -54,6 +54,7 @@ const QUOTED = {
   _ESCAPED: [422, (one) => ({ message: "invalid", errors: { value: [one.value] } })],
   _ECHOED: [200, (one) => ({ uuid: "v9", message: `set ${one.key} to ${one.value}` })],
   _PARTED: [422, (one) => ({ message: `Rejected password: ${new URL(one.value).password}` })],
+  _FRAGMENT: [422, (one) => ({ message: `Rejected fragment: ${new URL(one.value).hash.slice(1)}` })],
 };
 
 let server = null;
@@ -555,4 +556,19 @@ test("a connection string carrying a password and no user is struck of that pass
   assert.match(answer.stderr, /Rejected password: <redacted>/u);
   assert.ok(!answer.stderr.includes("hunter2"), "the password reached stderr");
   assert.deepEqual(JSON.parse(wroteTo(answer, "POST").body), { key: "REDIS_URL_PARTED", value: only });
+});
+
+/* The masking drops a connection string's fragment from the preview, so it is a part the preview
+   hides, and a platform quoting that part back alone has to be struck of it the same way. */
+test("a refusal naming only the fragment of a connection string is struck of that fragment", async () => {
+  const tailed = "postgres://app:hunter2@db.internal:5432/main#frag-s3cret";
+  const answer = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL_FRAGMENT", "--value", tailed, "--yes");
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /Rejected fragment: <redacted>/u);
+  assert.ok(!answer.stderr.includes("frag-s3cret"), "the fragment reached stderr");
+  assert.ok(!answer.stdout.includes("frag-s3cret"), "the fragment reached stdout");
+
+  const shown = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL_FRAGMENT", "--value", tailed, "--yes", "--reveal");
+  assert.equal(shown.status, 1);
+  assert.match(shown.stderr, /Rejected fragment: frag-s3cret/u);
 });
