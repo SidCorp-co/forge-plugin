@@ -76,9 +76,10 @@ export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELIN
  *  taken where the park that set it left, which is the newest park landing there posted before the
  *  claim. A judge dispatched onto an issue parked from `developed` claims it at `on_hold`, and read as
  *  itself that claim made the judge a build holder and voided every verdict it wrote (ISS-2044). A
- *  row no such park precedes stays unplaced, which reads as a build. */
+ *  row no such park precedes stays unplaced, which reads as a build, and so does every side-status
+ *  row on a page cut short: the park that placed it may be among the comments the walk never reached. */
 const buildsOn = (view) => (status, row) => {
-  if (!SIDE.includes(status) || !row?.at) return buildsAt(status);
+  if (!SIDE.includes(status) || !row?.at || view.cut) return buildsAt(status);
   const left = parkRecord(view, (kind) => sameLanding(PARK_STATUS[kind], status), null, row.at)?.record.fields.left;
   return buildsAt(left ?? status);
 };
@@ -638,5 +639,5 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
   const flags = planFlags(unwrap(issue.plan));
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), holders: holdersOf(issue?.[SESSION], buildsOn({ comments, names })), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), holders: holdersOf(issue?.[SESSION], buildsOn({ comments, names, cut })), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
 };

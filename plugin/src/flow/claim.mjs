@@ -522,7 +522,7 @@ export const claim = async (argv) => {
         held: context?.[LANDING] ?? null,
         landing: landingOf(context),
         /* The view's holders, so this write and the rung reading it count one set (ISS-2044). */
-        holders: viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []).holders,
+        holders: await commentPage(documentId).then((page) => viewFrom(documentId, issue, page.comments ?? [], cutIn(page)).holders),
         lands: landsOn(await releasePolicy()),
       })
       : null);
