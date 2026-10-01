@@ -12,7 +12,7 @@ import { MACHINE_RETIRED } from "./machine/retired.mjs";
 import { ENUM_KEYS, pathOf, valuesOf } from "./project/enum-keys.mjs";
 import { fail } from "../refusal.mjs";
 
-export { Refusal, embeddedRun, fail, keepOnFailure, refusing } from "../refusal.mjs";
+export { Refusal, embeddedRun, fail, keepBody, keepOnFailure, refusing } from "../refusal.mjs";
 
 const ancestors = (start) => {
   const seen = [];

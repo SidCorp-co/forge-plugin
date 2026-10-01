@@ -52,6 +52,10 @@ export const keepOnFailure = (text, { say = null, ahead = false } = {}) => {
   };
 };
 
+/** A caller's body kept only so nothing loses it, `what` naming it to the caller: ahead of the refusal, and dropped by the function returned once the write it was for has landed. */
+export const keepBody = (what, body) =>
+  keepOnFailure(`Your ${what}, so that nothing here loses it:\n\n${body}`, { ahead: true });
+
 /** What `fail` throws inside `refusing`, where there is no process of this CLI's own to end — the release script files an issue mid-release, and an exit there leaves one half done. */
 export class Refusal extends Error {}
 

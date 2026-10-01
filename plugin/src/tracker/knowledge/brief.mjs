@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { accountCredentials, checkoutRoot, fail, keepOnFailure, slugIfAny }
+import { accountCredentials, checkoutRoot, fail, keepBody, slugIfAny }
   from "../../resolve/settings.mjs";
 
 import { didYouMean } from "../../suggest.mjs";
@@ -151,9 +151,7 @@ export const briefGoals = async (held = {}) => {
  *  not proof it was corrected. docs/cli/the-brief.md states that edge. */
 export const refreshBrief = async (path, { pairs, ...meta }) => {
   const body = await bodyFrom(path);
-  const dropKept = path === "-"
-    ? keepOnFailure(`Your brief, so that nothing here loses it:\n\n${body}`, { ahead: true })
-    : undefined;
+  const dropKept = path === "-" ? keepBody("brief", body) : undefined;
   const digests = digestsFor(body);
   const wrote = await upsertEntry({
     slug: BRIEF_SLUG,
