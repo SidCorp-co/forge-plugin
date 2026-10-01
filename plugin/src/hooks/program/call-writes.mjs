@@ -27,12 +27,12 @@ const RECEIVED = new RegExp(
 );
 const STRING_IN = new RegExp(STRING, "u");
 
-/* A whole string literal and nothing else: the one shape a call's argument names a file by that a reading can place without running the program. An f-string still holding a `{` is built at runtime, so it is none. */
-const LITERAL = /^([rRbBuUfF]{0,2})(?:"([^"\\\n]*)"|'([^'\\\n]*)')$/u;
+/* A whole string literal and nothing else, python's triple-quoted form among them: the one shape a call's argument names a file by that a reading can place without running the program. An f-string still holding a `{` is built at runtime, so it is none. */
+const LITERAL = /^([rRbBuUfF]{0,2})(?:"""((?:(?!""")[^\\\n])*)"""|'''((?:(?!''')[^\\\n])*)'''|"([^"\\\n]*)"|'([^'\\\n]*)')$/u;
 /** What a whole string literal spells, its prefix and quotes off, or `null` where the text is no such literal. */
 export const spelling = (said) => {
   const hit = LITERAL.exec(said);
-  const inner = hit && (hit[2] ?? hit[3]);
+  const inner = hit && (hit[2] ?? hit[3] ?? hit[4] ?? hit[5]);
   return hit && !(/f/iu.test(hit[1]) && inner.includes("{")) ? inner : null;
 };
 

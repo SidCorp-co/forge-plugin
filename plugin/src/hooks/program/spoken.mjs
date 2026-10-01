@@ -81,10 +81,15 @@ const unrun = (text, lang, base = 0) => spansOf(text, lang).flatMap((one) => {
 const blanked = (text, stretches) =>
   stretches.reduce((out, one) => `${out.slice(0, one.from)}${" ".repeat(one.to - one.from)}${out.slice(one.to)}`, text);
 
+/* Each comment in `text`, those in a field a string runs among them, which a python 3.12 f-string spread over lines may hold. */
+const commentsIn = (text, lang, base = 0) => spansOf(text, lang).flatMap((one) => (one.comment
+  ? [{ from: base + one.from, to: base + one.to }]
+  : one.holes.flatMap((hole) => commentsIn(text.slice(hole.from, hole.to), lang, base + hole.from))));
+
 /** A program's text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; `bare`, the same with its strings blanked too, for a walk that splits arguments; and whether an offset stands where the program runs nothing. */
 export const spokenIn = (given, runner) => {
   const lang = SPEAKS[runner] ?? "python";
-  const code = blanked(given, spansOf(given, lang).filter((one) => one.comment));
+  const code = blanked(given, commentsIn(given, lang));
   const pieces = unrun(given, lang);
   return { code, bare: blanked(code, pieces), inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
 };
