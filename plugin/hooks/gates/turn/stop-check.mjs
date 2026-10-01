@@ -14,14 +14,13 @@ import { gitProbe, probeMs } from "../../../src/hooks/git-probe.mjs";
 import { lintConfigured, linting, unreadWhy } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { lastIdGranted } from "../../../src/resolve/session/granted-id.mjs";
-import { withoutBodies } from "../../../src/resolve/session/here-doc.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { parsedOr } from "../../../src/wire/request.mjs";
 import { distinctKeysIn, keysIn } from "../../../src/tracker/issues.mjs";
 import { NOWHERE, askedAlready, block, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
-  turnAt, turnRecords, turnWrites, typed } from "../../_hook.mjs";
+  turnAt, turnRecords, turnWrites, typed, withoutBodies } from "../../_hook.mjs";
 
 const MAX_ISSUES = 2;
 const SPARE_MS = 3_000;

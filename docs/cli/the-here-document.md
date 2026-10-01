@@ -23,8 +23,17 @@ body this reader cannot vouch for:
   author meant it to stop.
 - **A quoting the walk guesses at** before the operator's line ends — the `$'…'` and nested-quote
   cases [the granted id](the-granted-id.md) names.
-- **An operator inside an open parenthesis.** In `$((…))` and `((…))` a `<<` is a shift, and in
-  `$(…)` or a subshell the body is one the reach already stops at.
+- **An operator inside an open parenthesis.** In `$(…)` or a subshell the body is one the reach
+  already stops at.
+
+A `<<` inside `$((…))` or `((…))` is a shift, and no operator at all: the reader steps past it, and
+a body after it is taken out like any other.
+
+The same reader places the bodies for two other consumers, each with its own policy over the four
+shapes above. The write gates cut every body it places, a nested one included, so a commit message
+fed through `"$(cat <<'EOF' … )"` is prose to them, and they read a body a program runs as that
+program; what is left is `forge hooks --how writes`. The stats corpus cuts every body it places
+before it classifies a call, so a document a run writes names no command it ran.
 
 What that costs: a body a program runs — `bash <<'EOF'`, `node - <<'EOF'` — that calls `forge`
 itself is read as data too. Under an export that call inherits the id, so nothing is lost. Under a

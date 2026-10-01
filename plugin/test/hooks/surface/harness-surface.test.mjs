@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import * as harness from "../../../hooks/_hook.mjs";
 import * as shellSpans from "../../../src/hooks/shell-spans.mjs";
+import * as hereDoc from "../../../src/resolve/session/here-doc.mjs";
 
 const ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 const GATES = join(ROOT, "plugin/hooks/gates");
@@ -24,7 +25,8 @@ const filesUnder = (at) => readdirSync(at, { withFileTypes: true, recursive: tru
 const SPECIFIER = (path) => String.raw`"[^"]*${path}"`;
 const STATIC = (path) => String.raw`from\s*${SPECIFIER(path)}`;
 const DYNAMIC = (path) => String.raw`await\s+import\(\s*${SPECIFIER(path)}`;
-const SHELL_SPANS = String.raw`hooks\/shell-spans\.mjs`;
+/* The shell reading is two modules: the words and spans, and where a here-document's body is. */
+const SHELL_SPANS = String.raw`(?:hooks\/shell-spans|resolve\/session\/here-doc)\.mjs`;
 const HARNESS = String.raw`\/_hook\.mjs`;
 const reachesShellSpans = (text) => new RegExp(`${STATIC(SHELL_SPANS)}|${DYNAMIC(SHELL_SPANS)}`, "u").test(text);
 
@@ -49,6 +51,8 @@ test("an import is read off what an import names, in every form this repository 
   assert.equal(reachesShellSpans('import { struck } from "../../src/hooks/shell-spans.mjs";'), true);
   assert.equal(reachesShellSpans('const { struck } = await import("../../src/hooks/shell-spans.mjs");'), true);
   assert.equal(reachesShellSpans("// a gate never imports hooks/shell-spans.mjs itself"), false, "a mention is no import");
+  assert.equal(reachesShellSpans('import { withoutBodies } from "../../../src/resolve/session/here-doc.mjs";'), true,
+    "the here-document reader is the shell reading too");
   assert.deepEqual(takenFromHarness('import {\n  NOWHERE,\n  spelled as bare,\n} from "../_hook.mjs";'), ["NOWHERE", "spelled"]);
   assert.deepEqual(takenFromHarness('const { DEADLINES, remaining: left } = await import("../../hooks/_hook.mjs");'),
     ["DEADLINES", "remaining"]);
@@ -62,7 +66,7 @@ test("a gate takes the shell reading through the harness and never the module it
 });
 
 test("every name the harness passes on from the shell reading is one something takes from it", () => {
-  const passed = Object.keys(harness).filter((name) => name in shellSpans && harness[name] === shellSpans[name]);
+  const passed = Object.keys(harness).filter((name) => [shellSpans, hereDoc].some((one) => name in one && harness[name] === one[name]));
   const taken = new Set(IMPORTERS.flatMap(filesUnder).flatMap((one) => takenFromHarness(readFileSync(one, "utf8"))));
   assert.deepEqual(passed.filter((name) => !taken.has(name)), [],
     "a re-export nothing imports through the harness advertises a reading no hook uses: drop it from the export line");

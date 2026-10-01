@@ -206,6 +206,11 @@ test("a literal inside a program is data, and the line that ran it is not", () =
     false,
     "a body that can reach a shell keeps every literal",
   );
+  assert.equal(
+    decide(`bash -c 'python3 - <<PY\n${SPAWNING}("${STAGE_ALL}", shell=True)\nPY'`).allowed,
+    false,
+    "and so does one a -c body feeds its interpreter",
+  );
   assert.equal(decide(`eval "${STAGE_ALL}"`).allowed, false, "eval runs its argument");
   assert.equal(
     decide(`python3 -c 'import os; os.system("${STAGE_ALL}")'`).allowed,
