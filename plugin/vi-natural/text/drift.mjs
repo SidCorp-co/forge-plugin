@@ -28,6 +28,7 @@ import {
   QUESTION_VI_WORDS,
   UNCOUNTED_CONTRAST_VI_WORDS,
 } from "../vi-text.mjs";
+import { escaped } from "../../src/markdown.mjs";
 
 const CONTRAST_EN = /\brather than\b|\binstead of\b|\bas opposed to\b|\bwhereas\b/iu;
 const NEGATION_EN = /\bnot\b|n't\b|\bnever\b|\bno longer\b|\bwithout\b|\bnothing\b|\bnobody\b|\bneither\b|\bcannot\b/iu;
@@ -35,7 +36,7 @@ const NEGATION_EN = /\bnot\b|n't\b|\bnever\b|\bno longer\b|\bwithout\b|\bnothing
 /* `\b` is ASCII-only even under `u`, so a syllable ending in "à" or "ư" has no boundary after it. */
 const LETTER = String.raw`[\p{L}\p{M}\p{N}]`;
 const listed = (words) => words.split(", ");
-const spelled = (word) => word.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replace(/ /gu, String.raw`\s+`);
+const spelled = (word) => escaped(word).replace(/ /gu, String.raw`\s+`);
 const whole = (word) => `(?<!${LETTER})${spelled(word)}(?!${LETTER})`;
 /* Longest first, so "chứ không" is one marker rather than a contrast and then a negation. */
 const anyOf = (words) => [...words].sort((a, b) => b.length - a.length).map(whole).join("|");
