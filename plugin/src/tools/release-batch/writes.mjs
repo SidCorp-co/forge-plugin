@@ -6,7 +6,7 @@ import { flags } from "../../resolve/flags.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { write } from "../../tracker/rest.mjs";
-import { verifiedLine } from "./reads.mjs";
+import { IN_FLIGHT, finishLines, verifiedLine } from "./reads.mjs";
 import { answeredOr } from "./refused.mjs";
 
 export const START_USAGE = "Usage: forge release-batch start <ISS-nn>... [--recut-of <version>]";
@@ -70,12 +70,34 @@ export const finish = async ([runId, ...rest]) => {
     "commit");
   const answer = answeredOr("finish", await write("forge_release_batch.finish",
     { runId, data: commit === undefined ? {} : { commit } }, undefined, true));
-  const done = answer.finish ?? {};
-  console.log(`runId      ${answer.runId ?? runId}`);
-  console.log(`finish     ${done.state ?? "unread"}`);
-  if (done.closed?.length) console.log(`closed     ${done.closed.join(", ")}`);
-  for (const one of done.failed ?? []) console.log(`failed     ${one.id}: ${one.reason}`);
-  if (done.refusal) console.log(`refused    ${done.refusal.code ?? ""}: ${done.refusal.message ?? JSON.stringify(done.refusal)}`);
+  const id = answer.runId ?? runId;
+  console.log(`runId      ${id}`);
+  for (const line of finishLines(answer.finish)) console.log(line);
+  finishOutcome(id, answer.finish ?? {}, commit);
+};
+
+/* The door answers before the job has done anything, so an attempt in flight is a success that names
+   the read carrying the verdict; an attempt the tracker ended red, or a finish that left issues it
+   could not close, is a failure the exit says rather than a line the caller has to notice. */
+const finishOutcome = (id, done, commit) => {
+  if (IN_FLIGHT.has(done.state)) {
+    console.log("The tracker took this finish and a job is verifying the deploy and closing the roster; "
+      + `nothing more needs to be sent. Read its verdict: forge release-batch status ${id}`);
+    return;
+  }
+  if (done.state === "failed") {
+    const refusal = done.refusal ?? {};
+    fail(`release-batch finish: the tracker's attempt ended failed, so the batch did not finish.\n`
+      + `  ${refusal.code ?? "UNNAMED"}: ${refusal.reason ?? "(the tracker gave no sentence)"}\n`
+      + "Sending finish again starts a new attempt, once that is cleared: "
+      + `forge release-batch finish ${id}${commit === undefined ? "" : ` --commit ${commit}`}`);
+  }
+  const failed = done.state === "finished" ? done.failed ?? [] : [];
+  if (failed.length) {
+    fail(`release-batch finish: the tracker finished the batch and could not close ${failed.length} of its `
+      + `issue(s):\n${failed.map((one) => `  ${one.id}: ${one.reason}`).join("\n")}\n`
+      + "Each stands where the tracker left it; read one with forge issue <id>.");
+  }
 };
 
 export const record = async (argv) => {

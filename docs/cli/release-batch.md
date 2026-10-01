@@ -2,8 +2,8 @@
 
 Why a release batch is readable and clearable from this CLI at all, what "holder" means where the
 tracker keeps no such field, why a clear is gated on the tracker's own bounds reading rather than
-on a threshold this CLI would have to invent, and why a release that already shipped is recorded
-rather than moved.
+on a threshold this CLI would have to invent, why a release that already shipped is recorded
+rather than moved, and why a finish's verdict is read rather than waited for.
 
 ## The gap this closes
 
@@ -60,6 +60,23 @@ issue, so an account standing alone is never read as a reading of production.
 can only open a batch through a client it does not have cannot finish the release it was handed.
 `method` and `attempts` stay out. They are the release agent's ledger protocol and not something an
 operator calls.
+
+## A finish is taken, and its verdict is read afterwards
+
+The tracker takes a finish at the door and does the work in a job (ISS-1190 in the tracker's
+repository): a door that verified and closed the whole roster before answering ran past the edge's
+timeout on a six-issue batch, and the caller was cut off with nothing written. So the answer to
+`finish` is the attempt as it stands when it was taken, and the verdict lands on the run later. A
+finished batch is no longer the active one, which is why `status <runId>` reads a run by its id:
+without it the one read that carries the verdict was the one a successful release made unreachable
+(ISS-2114).
+
+The CLI does not wait for the job. A wait needs a bound, and the job's length is roster-shaped, so
+any number written here guesses at the next batch; the caller that wants the verdict asks for it,
+and sending `finish` again while an attempt is in flight is answered by that same attempt. What the
+exit says is the part no line can be left to say: a finish whose attempt ended `failed`, or one that
+finished and could not close an issue, exits non-zero, because a release run that reads only the
+status of its call would otherwise hand over a batch that did not close.
 
 ## A refusal carries every reason, not the first
 
