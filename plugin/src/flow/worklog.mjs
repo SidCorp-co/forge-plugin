@@ -213,7 +213,7 @@ const captured = (git) => Boolean(git?.touched) && Boolean(git.base) && git.base
 const readOf = (held) => `${held.branch} at ${shortSha(held.head)}, `
   + (captured(held) ? `base ${shortSha(held.base)}, ${held.files} file(s) touched` : `and no diff behind it — ${emptyWhy(held)}`);
 
-/* A head that is its own base reads alike just cut and landed by a fast-forward, so the line names the route out of each rather than a push the second has none of left (ISS-2451). */
+/* The two routes `readyCheckpoint` refuses this reading with, said by a capture that refuses nothing (ISS-2451). */
 const againOf = (held) => (held.base && held.base === held.head
   ? "Where the branch was just cut, capture again at the push; where it landed by a fast-forward, no "
     + "push is left to capture, and `claim --rebuilt` writes that landing after the fact."
