@@ -140,6 +140,17 @@ test("10. record missing --commit, --account or every key is refused before any 
   }
 });
 
+test("10. a key named twice, and a flag given empty, are refused before any write rather than folded or dropped", async () => {
+  for (const argv of [["record", "ISS-1", "ISS-1", "--commit", SHA, "--account", ACCOUNT],
+    ["record", "ISS-1", "--commit", SHA, "--account", ACCOUNT, "--provider-ref", ""],
+    ["start", "ISS-1", "--recut-of", " "], ["finish", RUN_ID, "--commit", ""]]) {
+    const run = await ran(...argv);
+    assert.equal(run.status, 1, argv.join(" "));
+    assert.match(run.stderr, /name the same issue|a value for --/u, run.stderr);
+    assert.deepEqual(run.released, [], `${argv.join(" ")} wrote nothing`);
+  }
+});
+
 test("11. start with no key is refused before any request", async () => {
   const run = await ran("start");
   assert.equal(run.status, 1);
