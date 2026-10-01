@@ -8,7 +8,7 @@ import { refuse, typedBack } from "../../refusal.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { shipMode } from "../../resolve/settings.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
-import { isCommit, shortSha } from "../../tracker/evidence.mjs";
+import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
 import { escaped } from "../../markdown.mjs";
@@ -281,13 +281,6 @@ const TARGET = "base";
 
 export const undoForm = (ref) => `forge record merged ${ref} --undo`;
 
-/* One commit where either sha is the other's prefix: the row holds the whole sha, and `--at` may be seven characters of it. */
-const sameCommit = (one, two) => {
-  if (!one || !two) return false;
-  const [held, given] = [String(one).toLowerCase(), String(two).toLowerCase()];
-  return held.startsWith(given) || given.startsWith(held);
-};
-
 const rowOf = (documentId) => scoped("forge_issues", { action: "get", documentId, fields: [] });
 
 /* The tracker keeps the first stamp a row carries and answers a second mark `already_merged`, while the audit comment it writes still carries the new note — which every reader here takes as the mark that stands. So a mark over a stamp naming no commit or another one would leave the note naming one commit and the row another (ISS-1808), and is refused before it is sent. */
@@ -300,18 +293,20 @@ const stampStands = (row, ref, commit) => {
 };
 
 /** What the row's commit field holds once a mark at `commit` stands, refused where it names another commit. The column is the tracker's and takes only a commit it observed, so empty is an answer and not a disagreement. Spent after a write and by the landing task before it counts a mark already up as done. */
-export const stampHolds = async (documentId, ref, commit) => {
-  const held = (await rowOf(documentId))?.mergedCommitSha ?? null;
+const heldOn = (row, ref, commit) => {
+  const held = row?.mergedCommitSha ?? null;
   if (!held || sameCommit(held, commit)) return held;
   return refuse(`${ref}'s mark names ${commit} and the row's commit field holds ${held}, the commit the `
     + `tracker observed landing, so the note and the row name different commits. Take the mark down, `
     + `and mark again at the commit that landed:\n  ${undoForm(ref)}`);
 };
 
+export const stampHolds = async (documentId, ref, commit) => heldOn(await rowOf(documentId), ref, commit);
+
 /* `already_merged` is the tracker keeping the stamp it held; that is agreement only where the stamp it kept names this same commit. */
-const answerKept = async (answer, documentId, ref, commit) => {
+const answerKept = (answer, row, ref, commit) => {
   if (answer?.action !== "already_merged") return;
-  if (sameCommit((await rowOf(documentId))?.mergedCommitSha, commit)) return;
+  if (sameCommit(row?.mergedCommitSha, commit)) return;
   refuse(`the tracker answered \`already_merged\` for ${ref}: it kept the stamp it held, while the mark `
     + `just posted names ${commit}, so the note and the row disagree. Take the mark down and write it `
     + `again:\n  ${undoForm(ref)}`);
@@ -325,8 +320,10 @@ export const markMerged = async (documentId, ref, note, { leased = false, landin
     target: TARGET, note, ...(commit ? { commit } : {}), ...(landing ? { landing } : {}) } });
   await creditAfter("the merged mark", [{ ref, documentId }]);
   if (!commit) return { answer, held: null };
-  await answerKept(answer, documentId, ref, commit);
-  return { answer, held: await stampHolds(documentId, ref, commit) };
+  /* One read answers both checks: nothing writes the row between them. */
+  const row = await rowOf(documentId);
+  answerKept(answer, row, ref, commit);
+  return { answer, held: heldOn(row, ref, commit) };
 };
 
 /* `soft` is the caller that has something to say about a refusal the transport would otherwise print
