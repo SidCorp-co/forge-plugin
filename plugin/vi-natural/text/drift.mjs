@@ -20,6 +20,7 @@
 
 import {
   CONTRAST_VI_WORDS,
+  COORDINATOR_VI_WORDS,
   NEGATION_VI_WORDS,
   NOT_NEGATING_VI_PAIRS,
   NOT_NEGATING_VI_WORDS,
@@ -43,21 +44,34 @@ const NEGATION_VI = listed(NEGATION_VI_WORDS);
 const UNCOUNTED = new Set(listed(UNCOUNTED_CONTRAST_VI_WORDS));
 const COUNTED_VI = [...NEGATION_VI, ...CONTRAST_VI.filter((word) => !UNCOUNTED.has(word))];
 
-/* What opens with a negation word and negates nothing: a compound, an opener the style contract tells
-   the rewrite to remove when the word pairing it follows in the same sentence, a closing question. */
-const pairedOpener = (pair) => {
-  const [opener, follower] = pair.split(" … ");
-  return `${whole(opener)}(?=[^.!?;\\n]*?${whole(follower)})`;
-};
+/* What opens with a negation word and negates nothing — a compound, a question's closing particle —
+   is never a marker on either side. */
 const NOT_NEGATING = new RegExp([
   anyOf(listed(NOT_NEGATING_VI_WORDS)),
-  ...listed(NOT_NEGATING_VI_PAIRS).map(pairedOpener),
   `(?:${anyOf(listed(QUESTION_VI_WORDS))})(?=\\s*\\?)`,
+].join("|"), "giu");
+
+/* What a source carries that a faithful rewrite may still drop, so it is not demanded of the rewrite
+   and is still credited to one that keeps it: an opener the style contract tells the rewrite to remove
+   where the word pairing it follows in the same sentence ("không phải A mà là B" is "là B"), and a
+   negation repeated after a coordinator, which Vietnamese folds into the first ("không A và không B"
+   is "không A hay B"). */
+const SENTENCE = String.raw`[^.!?;\n]*?`;
+const pairedOpener = (pair) => {
+  const [opener, follower] = pair.split(" … ");
+  return `${whole(opener)}(?=${SENTENCE}${whole(follower)})`;
+};
+const NEGATION = `(?:${anyOf(NEGATION_VI)})`;
+const UNDEMANDED = new RegExp([
+  ...listed(NOT_NEGATING_VI_PAIRS).map(pairedOpener),
+  `(?<=${NEGATION}${SENTENCE})(?:,\\s*|(?:${anyOf(listed(COORDINATOR_VI_WORDS))})\\s+)${NEGATION}`,
 ].join("|"), "giu");
 
 const carries = (text, words) => new RegExp(anyOf(words), "iu").test(text.normalize("NFC"));
 const COUNTED = new RegExp(anyOf(COUNTED_VI), "giu");
-const counted = (text) => text.normalize("NFC").replace(NOT_NEGATING, " ").match(COUNTED)?.length ?? 0;
+const counted = (text) => text.match(COUNTED)?.length ?? 0;
+const kept = (text) => text.normalize("NFC").replace(NOT_NEGATING, " ");
+const demanded = (text) => kept(text).replace(UNDEMANDED, " ");
 
 const PRESENCE = [
   {
@@ -73,10 +87,10 @@ const PRESENCE = [
 ];
 
 const lostMarkers = (source, candidate) => {
-  const had = counted(source);
-  const kept = counted(candidate);
-  return kept < had
-    ? `the source carries ${had} Vietnamese negation or contrast marker(s) (${COUNTED_VI.join(", ")}) and the rewrite carries ${kept}, so a clause lost the negation or contrast it was written with`
+  const had = counted(demanded(source));
+  const left = counted(kept(candidate));
+  return left < had
+    ? `the source carries ${had} Vietnamese negation or contrast marker(s) (${COUNTED_VI.join(", ")}) and the rewrite carries ${left}, so a clause lost the negation or contrast it was written with`
     : null;
 };
 

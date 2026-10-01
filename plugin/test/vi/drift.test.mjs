@@ -213,6 +213,7 @@ test("drift.diff: a compound that opens with a negation word and negates nothing
     ["Đây không phải lỗi cấu hình mà là lỗi mạng.", "Đây là lỗi mạng."],
     ["Bạn đã lưu thay đổi chưa?", "Bạn đã lưu thay đổi?"],
     ["Có lưu bản nháp không?", "Lưu bản nháp?"],
+    ["Bản cập nhật không xóa dữ liệu và không đổi cấu hình.", "Bản cập nhật không xóa dữ liệu hay đổi cấu hình."],
   ];
   for (const [source, rewrite] of pairs) assert.equal(diff(source, rewrite), null, `${source} → ${rewrite}`);
 });
@@ -226,6 +227,7 @@ test("drift.diff: a Vietnamese contrast traded for a negation, or back, is not f
   assert.equal(diff("Thay vì chọn A, chọn B.", "Không chọn A mà chọn B."), null);
   assert.equal(diff("Không chọn A mà chọn B.", "Chọn B thay vì A."), null);
   assert.equal(diff("Chọn B chứ không chọn A.", "Chọn B thay vì A."), null, "chứ không is one marker, not a contrast and a negation");
+  assert.equal(diff("Chọn B thay vì A.", "Không phải chọn A mà là chọn B."), null, "a paired opener the rewrite introduces is credited");
 });
 
 test("drift.diff: a capitalised Vietnamese marker opening a sentence is recognised as one", () => {

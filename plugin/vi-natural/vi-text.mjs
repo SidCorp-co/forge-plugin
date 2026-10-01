@@ -26,3 +26,4 @@ export const UNCOUNTED_CONTRAST_VI_WORDS = "trong khi";
 export const NOT_NEGATING_VI_WORDS = "chẳng hạn, không gian, không khí, hàng không, không quân, không ngừng, không ít";
 export const NOT_NEGATING_VI_PAIRS = "không chỉ … mà, không những … mà, không phải … mà";
 export const QUESTION_VI_WORDS = "không, chưa";
+export const COORDINATOR_VI_WORDS = "và, hay, hoặc, cũng, lẫn";
