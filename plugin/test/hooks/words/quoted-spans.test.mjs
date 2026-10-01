@@ -26,8 +26,8 @@ test("each quoted span is handed over once, in order, and replaced where it stoo
 });
 
 test("a quote the walk reads as no quote opens no span", () => {
-  assert.deepEqual(handed("echo it\\'s 'x'").seen, ["'x'"], "an apostrophe a backslash made literal");
-  assert.deepEqual(handed("ls # it's\necho 'x'").seen, ["'x'"], "nor one in a comment");
+  assert.deepEqual(handed("echo it\\'s 'x'"), { seen: ["'x'"], out: "echo it\\'s [3]" }, "an apostrophe a backslash made literal");
+  assert.deepEqual(handed("ls # it's\necho 'x'"), { seen: ["'x'"], out: "ls # it's\necho [3]" }, "nor one in a comment");
   assert.deepEqual(handed(`echo "$(cat <<'E'\nit's\nE\n)"`).seen.map((one) => one.endsWith("(flat)")), [true],
     "and a substitution read flat for its here-document is said to be");
 });
