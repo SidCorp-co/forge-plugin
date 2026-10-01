@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, QUOTED, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, redirectsIn, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/assembled.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -385,8 +385,9 @@ export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
 export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
+/* An interpreter's options are any dashed words, a shell's are `SHELL_OPTION`'s, the `-c` reading's own; either may end on the `-` that names stdin. */
 const EXECUTES_STDIN = new RegExp(
-  String.raw`(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|${SHELL_WORD})(?:\s+-\S+)*\s*-?\s*$`,
+  String.raw`(?:^|[\s;&|(])(?:(python3?|node|deno|bun|perl|ruby|php)(?:\s+-\S+)*|(${SHELL_WORD})(?:\s+${SHELL_OPTION})*)\s*-?\s*$`,
   "u",
 );
 
@@ -408,7 +409,7 @@ export const bodiless = (text, onProgram = (body) => body) => {
     rest = rest.slice(nl + 1);
     const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
     const runs = EXECUTES_STDIN.exec(line);
-    if (runs) out += onProgram(end ? rest.slice(0, end.index) : rest, out.length, runs[1]);
+    if (runs) out += onProgram(end ? rest.slice(0, end.index) : rest, out.length, runs[1] ?? runs[2]);
     rest = end ? rest.slice(end.index + end[0].length) : "";
   }
   return out + rest;

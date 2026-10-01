@@ -329,8 +329,11 @@ export const STARTS = String.raw`(?:(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s
 /** A word that names a shell: at any path, through `busybox` or not. The one answer to which word is a shell — for a `-c` body, for a heredoc a shell reads on stdin, and for whether a body is the caller's own language — so a shell one reading knows, the others know. Non-capturing, being spliced into a reader's pattern. */
 export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh`;
 
-/** A word that runs its next quoted argument as shell code: a shell by `SHELL_WORD`, with its options before the `-c` — a bare word only as the value `-o` or `+o` takes, since `bash -x script -c '…'` runs the script and hands it the rest — or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
-export const RUNNER = String.raw`${SHELL_WORD}\s+(?:(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
+/** One option a shell takes before its program, whether that program is a `-c` body or a heredoc on its stdin: a bare word only as the value `-o`, `+o`, `-O` or `+O` takes, since `bash -x script -c '…'` runs the script and hands it the rest. The one answer to which words are a shell's options, so the two places a shell's program can come from read them alike. Non-capturing, being spliced into a reader's pattern. */
+export const SHELL_OPTION = String.raw`(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)`;
+
+/** A word that runs its next quoted argument as shell code: a shell by `SHELL_WORD`, with its `SHELL_OPTION`s before the `-c`, or `eval`. The answer the write gates open a body on and the stats corpus counts one as run by, so a runner either knows is known to both; where a command starts before it is each reader's own. Every group is non-capturing, being spliced into a reader's pattern. */
+export const RUNNER = String.raw`${SHELL_WORD}\s+(?:${SHELL_OPTION}\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 
 const fetching = (verb) => String.raw`${verb}\b[^|;]*\s${writingOption(verb)}`;
 /* The two halves of a write: a verb, which counts where a command starts, and a library call, which counts anywhere — each only with a target it names. `curl` and `wget` name theirs in an option their row of the option table says writes. how/writes.md. */
