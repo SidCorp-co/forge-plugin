@@ -4,13 +4,13 @@
    (ISS-1127 in the tracker's repository, ISS-1992 here). */
 import { fail } from "../../resolve/settings.mjs";
 
-export const READINESS = "forge release-batch readiness";
+const READINESS = "forge release-batch readiness";
 
 const reasonLine = (one) => `  ${one?.code ?? "UNNAMED"}: ${one?.message ?? "(the tracker gave no sentence)"}`;
 
 /** The refusal whole: the tracker's first reason as it said it, every other one it listed, and the
  *  read that lists them all. A call nobody answered is not a refusal and is said as it came. */
-export const refusedRelease = (verb, answer) => {
+const refusedRelease = (verb, answer) => {
   if (answer?.status === undefined) fail(`release-batch ${verb}: ${answer.refused}`);
   const also = answer.details?.alsoBlocking ?? [];
   const beside = also.length
