@@ -79,6 +79,9 @@ test("a read beside a write is not one, and a target the program computes is pla
   const received = `${python("(base / '.claude/skills/z/SKILL.md').write_text('x')")}\necho x > ${SKILL}`;
   assert.deepEqual(strict(received), [SKILL], "strike: a receiver the program computes");
   assert.ok(keeps(received).includes(".claude/skills/z/SKILL.md"), "keep still reads what a computed receiver spells");
+  const returned = python("pick('unplanned.md').write_text('x')", "Path(x).parent.write_text('y')");
+  assert.deepEqual(strict(returned), [], "strike: a receiver another call returns");
+  assert.ok(keeps(returned).includes("unplanned.md"), "keep still reads what it spells");
 });
 
 test("a call spelt inside a string or a comment is no call", () => {
