@@ -103,7 +103,8 @@ export const rungRun = (calls) => {
    Where a body is, the here-document reader says, the same one the write gates take. Which spans
    go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
 const OPERATOR = /[\n;|&(){}]/u;
-const TEXT = new Set(["'", '"', "#", "\\"]);
+/* What a comment or a backslash makes text; a quote's is decided by whether a runner was handed it. */
+const TEXT = new Set(["#", "\\"]);
 const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
