@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, spacedSpans, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER, LANGUAGE_OF } from "../src/hooks/program/spoken.mjs";
@@ -569,11 +569,13 @@ export const expanded = (command) => {
   return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
 };
 
-/* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. What stands in for a span taken out is an empty quote pair and not a blank, since a start's blanks would run across a blank and read the quoted program's argument as the verb (ISS-2933). */
+/* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. What stands in for a span taken out is an empty quote pair and not a blank, since a start's blanks would run across a blank and read the quoted program's argument as the verb (ISS-2933). A space alone blanks nothing `spacedSpans` reads as one path, which is the judgement `namesOf` reads that span by (ISS-1594). */
 const NOT_A_NAME = /["'\s[\]]/u;
-const spoken = (said) =>
-  respelled(said.replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `),
-    (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? "''" : span));
+const spoken = (said, whole) => {
+  const text = said.replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `);
+  const path = spacedSpans(text, whole);
+  return respelled(text, (span, { from }) => (NOT_A_NAME.test(span.slice(1, -1)) && !path.has(from) ? "''" : span));
+};
 
 /* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
 const AIMED_AT = { options: false };
@@ -619,7 +621,7 @@ export const writtenPaths = (text, cwd, tail, { unplaceable } = {}) => {
   /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
   const placed = placeable(read);
   const named = spans(read).flatMap(({ start, end }) => {
-    const said = spoken(read.slice(start, end).replace(BLANK, ""));
+    const said = spoken(read.slice(start, end).replace(BLANK, ""), placed(start));
     return WRITES.test(said) ? namesIn(said, tail, { whole: placed(start) }).map((one) => ({ ...one, at: start })) : [];
   });
   /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */
