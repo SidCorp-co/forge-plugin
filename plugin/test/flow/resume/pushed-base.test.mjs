@@ -178,6 +178,13 @@ const saying = async (take) => {
   }
 };
 
+/* The capture with the line it leaves unwritten said, for a case that reads both. */
+const capturedSaying = (work, slug) => saying(() => standingIn(work, slug, async () => {
+  const block = await patchFrom({ pushed: true });
+  unwrittenSaid();
+  return block;
+}));
+
 test("a branch the landing branch merged is measured from where it was cut, not from its own head", async () => {
   state.declared = "staging";
   const { work, fork, head } = landed("merge-landed");
@@ -206,11 +213,7 @@ test("merges naming different points the head stood at leave no base, and the li
   git(work, "merge", "-q", "--no-ff", "-m", "side lands", "side");
   git(work, "push", "-q", "origin", "staging");
   git(work, "checkout", "-q", "iss-1217");
-  const { made, said } = await saying(() => standingIn(work, "two-forks", async () => {
-    const block = await patchFrom({ pushed: true });
-    unwrittenSaid();
-    return block;
-  }));
+  const { made, said } = await capturedSaying(work, "two-forks");
   assert.equal(made.base, null, "no base out of two that disagree");
   assert.equal(made.touched, null);
   assert.match(said, /different points it stood at/u, said);
@@ -220,11 +223,7 @@ test("a branch just cut keeps its head as its base, and the line names both read
   state.declared = "staging";
   const { work } = diverged("just-cut");
   git(work, "checkout", "-q", "-b", "iss-cut", "origin/staging");
-  const { made, said } = await saying(() => standingIn(work, "just-cut", async () => {
-    const block = await patchFrom({ pushed: true });
-    unwrittenSaid();
-    return block;
-  }));
+  const { made, said } = await capturedSaying(work, "just-cut");
   assert.equal(made.base, made.head);
   assert.equal(made.touched, null);
   assert.match(said, /a branch just cut and a branch landed by a fast-forward both read/u, said);
@@ -238,11 +237,7 @@ test("a branch landed by a fast-forward keeps its head as its base, no merge nam
   git(work, "merge", "-q", "--ff-only", "iss-1217");
   git(work, "push", "-q", "origin", "staging");
   git(work, "checkout", "-q", "iss-1217");
-  const { made, said } = await saying(() => standingIn(work, "fast-forwarded", async () => {
-    const block = await patchFrom({ pushed: true });
-    unwrittenSaid();
-    return block;
-  }));
+  const { made, said } = await capturedSaying(work, "fast-forwarded");
   assert.equal(git(work, "rev-parse", "refs/remotes/origin/staging").stdout.trim(), head, "the landing branch stands at the head");
   assert.equal(made.base, head);
   assert.equal(made.touched, null);
