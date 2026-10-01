@@ -51,11 +51,25 @@ const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
    every reader of the head reads it as none. */
 const headSaid = (one, value) => (value === NOTHING ? `${NOTHING} — ${one.none}` : value);
 
+const markOf = (comments) => {
+  const marks = (comments ?? []).map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
+  return marks.length ? marks.at(-1) : null;
+};
+
+/* One walk per page, whichever clause asks: `verdictHeads` alone asks four times for each issue
+   `forge spec --status` reads. A page is a fresh array per read and nothing writes into one after,
+   but a page that has grown since is walked again rather than trusted. */
+const walked = new WeakMap();
+
 /** The note of the mark that stands: the latest, a re-mark after a second landing being the one
  *  that landed. */
 export const lastMark = (comments) => {
-  const marks = (comments ?? []).map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
-  return marks.length ? marks.at(-1) : null;
+  if (!Array.isArray(comments)) return markOf(comments);
+  const held = walked.get(comments);
+  if (held && held.length === comments.length && held.last === comments.at(-1)) return held.mark;
+  const mark = markOf(comments);
+  walked.set(comments, { length: comments.length, last: comments.at(-1), mark });
+  return mark;
 };
 
 /* What the standing mark says in one clause, or null where it says nothing there. */

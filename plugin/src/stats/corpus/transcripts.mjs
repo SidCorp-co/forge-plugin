@@ -108,6 +108,20 @@ const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
 
+/* What every match of `RUNS` ends in, past its spaces: a word of letters behind a hyphen holding a
+   `c`, or one ending `eval`. Read backwards over that one word, so a quote no runner can stand before
+   spends no scan of the whole text in front of it, and a command of many quotes stays linear. */
+const SPACE = /\s/u;
+const LETTER = /[A-Za-z]/u;
+const mayRun = (text, end) => {
+  let to = end;
+  while (to > 0 && SPACE.test(text[to - 1])) to -= 1;
+  let from = to;
+  while (from > 0 && LETTER.test(text[from - 1])) from -= 1;
+  const word = text.slice(from, to);
+  return (text[from - 1] === "-" && word.includes("c")) || word.endsWith("eval");
+};
+
 export const shellOf = (command) => {
   const text = bodiesOut(command, { operator: "<<" });
   const said = [];
@@ -125,7 +139,7 @@ export const shellOf = (command) => {
         word = typeof back === "number" ? back : at + 1;
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
     }
-    if (under === "'" && last !== "'") handed = RUNS.test(text.slice(0, word));
+    if (under === "'" && last !== "'") handed = mayRun(text, word) && RUNS.test(text.slice(0, word));
     last = under;
     const ran = under === "'" ? handed : !TEXT.has(under);
     said.push(ran || !OPERATOR.test(one) ? one : SPENT);
