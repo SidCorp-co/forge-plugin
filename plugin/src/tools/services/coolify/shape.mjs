@@ -57,6 +57,9 @@ const maskedSecretUrl = (value, cut) => {
     cut?.add(`${url.pathname}${url.search}${url.hash}`.replace(/^\//u, ""));
     return `${origin}/${MASK}`;
   }
+  /* The fragment is left out of the line, so it is reported struck as the branch above reports its
+     own tail: what the preview hides and what an echo is struck of are one set. */
+  cut?.add(url.hash.slice(1));
   return `${origin}${url.pathname}${maskUrl(url.search, cut)}`;
 };
 
