@@ -38,7 +38,7 @@ const pythonSpans = (text) => [...text.matchAll(PYTHON)].map((one) => {
 });
 
 /* JS, walked rather than matched, since a template's `${…}` is code that may hold a template of its own. A regular expression opens where a value may, which a division never does, and closes on its own line; a `}` may end a block or a value, and an arithmetic operator may be a postfix `++` ending one, so a slash after either is read as the division that loses nothing. */
-const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;]|\breturn|\btypeof)\s*$/u;
+const VALUE_BEFORE = /(?:^|[(,=:[!&|?{;]|\breturn|\btypeof)$/u;
 const quotedTo = (text, at) => {
   let end = at + 1;
   while (end < text.length && text[end] !== text[at] && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
@@ -65,7 +65,9 @@ const spanAt = (text, at) => {
   if (one !== "/") return null;
   if (text[at + 1] === "/") return { to: text.includes("\n", at) ? text.indexOf("\n", at) : text.length, comment: true, holes: [] };
   if (text[at + 1] === "*") return { to: text.includes("*/", at + 2) ? text.indexOf("*/", at + 2) + 2 : text.length, comment: true, holes: [] };
-  const to = VALUE_BEFORE.test(text.slice(Math.max(0, at - 12), at)) && regexTo(text, at);
+  let last = at - 1;
+  while (last >= 0 && /\s/u.test(text[last])) last -= 1;
+  const to = VALUE_BEFORE.test(last < 0 ? "" : text.slice(Math.max(0, last - 6), last + 1)) && regexTo(text, at);
   return to ? { to, comment: false, holes: [] } : null;
 };
 /* Code from `at` to the `}` closing it, every span inside it stepped over whole. */

@@ -100,6 +100,7 @@ test("a call spelt inside a string or a comment is no call", () => {
   both(heredoc("node", "const n = a / b; writeFileSync('d.md', n / 2);"), ["d.md"], "where a division stands, the call is still one");
   both(heredoc("node", "const n = {} / 2; fs.writeFileSync('w.md', 'x');"), ["w.md"], "a slash after a brace, which may be a division");
   both(heredoc("node", "let n = 4; const x = n++ / 2; fs.writeFileSync('w3.md', 'x'); const y = n / 2;"), ["w3.md"], "a slash after a postfix increment");
+  both(heredoc("node", `let n = 4; const x = n${" ".repeat(13)}/ 2; fs.writeFileSync('w4.md', 'x'); const y = n / 2;`), ["w4.md"], "a slash after a run of blanks");
   both(heredoc("node", "const n = a\n/ 2; fs.writeFileSync('w2.md', 'x');"), ["w2.md"], "a slash that closes nothing on its line");
   assert.deepEqual(strict(heredoc("node", "const s = `${`inner`}`; fs.writeFileSync(`tu.md`, 'x');")), ["tu.md"],
     "a nested template beside a plain one leaves the plain one folded");
