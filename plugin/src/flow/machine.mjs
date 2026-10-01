@@ -218,9 +218,10 @@ const FINDING_FORM = `one of ${FINDINGS.join(", ")}; already-fixed is another ch
 /* Each field one finding owes and no other finding takes: the finding, and what the field holds, said
    by the help and by the refusal alike. */
 const OWED_BY = {
-  fixed: [CAUSE_FIXED, "what was already fixed, and the evidence that settles it"],
-  survives: [CAUSE_FIXED, "the deliverable still owed, and what will judge it"],
-  landed: [OWN_LANDING, "the commit this issue's own change landed as, or where it now is where the issue lands outside git"],
+  fixed: { finding: CAUSE_FIXED, holds: "what was already fixed, and the evidence that settles it" },
+  survives: { finding: CAUSE_FIXED, holds: "the deliverable still owed, and what will judge it" },
+  landed: { finding: OWN_LANDING,
+    holds: "the commit this issue's own change landed as, or where it now is where the issue lands outside git" },
 };
 const WHY_OWED = {
   [CAUSE_FIXED]: "names what was already fixed and what survives, and a run holding only one of the two is"
@@ -228,18 +229,18 @@ const WHY_OWED = {
   [OWN_LANDING]: "names the landing that carried this issue's own change, without which it reads as another"
     + " change's fix, which is already-fixed",
 };
-const halfForm = (flag) => `${OWED_BY[flag][1]}; owed under --finding ${OWED_BY[flag][0]} and refused beside any other finding`;
+const halfForm = (flag) => `${OWED_BY[flag].holds}; owed under --finding ${OWED_BY[flag].finding} and refused beside any other finding`;
 const owedFieldsProblem = (got) => {
   const flags = Object.keys(OWED_BY);
-  const lacking = flags.filter((flag) => OWED_BY[flag][0] === got.finding && !String(got[flag] ?? "").trim());
+  const lacking = flags.filter((flag) => OWED_BY[flag].finding === got.finding && !String(got[flag] ?? "").trim());
   if (lacking.length) {
-    return `${lacking.map((flag) => `--${flag} <${OWED_BY[flag][1]}>`).join(" and ")}: a ${got.finding} finding`
+    return `${lacking.map((flag) => `--${flag} <${OWED_BY[flag].holds}>`).join(" and ")}: a ${got.finding} finding`
       + ` ${WHY_OWED[got.finding]}`;
   }
-  const given = flags.filter((flag) => OWED_BY[flag][0] !== got.finding && got[flag] !== undefined);
+  const given = flags.filter((flag) => OWED_BY[flag].finding !== got.finding && got[flag] !== undefined);
   return given.length
     ? `no ${given.map((flag) => `--${flag}`).join(" or ")} beside --finding ${got.finding}: `
-      + given.map((flag) => `--${flag} is read only under --finding ${OWED_BY[flag][0]}`).join(", ")
+      + given.map((flag) => `--${flag} is read only under --finding ${OWED_BY[flag].finding}`).join(", ")
     : null;
 };
 /* The status `closed` is entered from. */
