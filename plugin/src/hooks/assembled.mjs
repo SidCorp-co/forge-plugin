@@ -1,7 +1,7 @@
 /* What an interpreter's own body would have built before it wrote, for the one caller that asks what a
    command writes. Kept out of the hook harness because it is a reading and not an entry point, and
    beside shell-spans because it answers the same question about a different language. how/writes.md. */
-import { fileCalls } from "./call-writes.mjs";
+import { SPEAKS, SPOKEN_IN, fileCalls } from "./call-writes.mjs";
 import { unquote } from "./shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
@@ -28,7 +28,6 @@ const HOLDS = {
     plain: (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span),
   },
 };
-const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
 const JOINS = new RegExp(
   String.raw`\b(os\.path\.join|posixpath\.join|path\.join|pathlib\.Path|Path)\s*\(([^()]*)\)`,
   "gu",
@@ -40,12 +39,7 @@ const GLUED = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*(${LITERAL})`, "gu")
 const under = (left, right, resets) =>
   (resets && right.startsWith("/") ? right : `${left}/${right}`).replace(/\/{2,}/gu, "/");
 
-/* A binding is discovered in code and nowhere else: an assignment inside a comment is not a rebinding, and one inside a string a command is writing is neither. Comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
-const SPOKEN_IN = {
-  python: /"""[\s\S]*?"""|'''[\s\S]*?'''|"[^"\n]*"|'[^'\n]*'|(#[^\n]*)/gu,
-  node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
-};
-
+/* Comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
 const bound = (said, lang) => {
   const scan = SPOKEN_IN[lang] ?? SPOKEN_IN.python;
   const strings = [];
@@ -66,7 +60,7 @@ const NAME_THEN = new RegExp(String.raw`\b([A-Za-z_]\w*)\s*([+/])\s*(?=${LITERAL
 const THEN_NAME = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*\b([A-Za-z_]\w*)\b`, "gu");
 
 /* A bare name a file call writes through is the literal it was last bound to, so `p = 'a.md'` then `open(p, 'w')` writes `a.md`. Replaced from the last one back, so every offset still answers against the text it was measured in. */
-const spelt = (said, valueOf) => fileCalls(said).flatMap((one) => one.names)
+const spelt = (said, lang, valueOf) => fileCalls(said, lang).flatMap((one) => one.names)
   .sort((a, b) => b.from - a.from)
   .reduce((text, { from, to }) => {
     const held = valueOf(text.slice(from, to), from);
@@ -117,7 +111,7 @@ export const glued = (body, runner) => {
       if (!parts.length || parts.some((each) => each === null)) return null;
       return `"${parts.reduce((left, right) => under(left, right, RESETS.test(verb)))}"`;
     });
-    out = spelt(out, bound(out, lang));
+    out = spelt(out, lang, bound(out, lang));
     out = out.replace(GLUED, (all, left, sign, right) =>
       `"${sign === "/" ? under(unquote(left), unquote(right), true) : unquote(left) + unquote(right)}"`);
     if (out === before) break;

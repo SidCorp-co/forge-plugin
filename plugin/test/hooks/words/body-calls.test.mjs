@@ -62,6 +62,12 @@ test("a read beside a write is not one, and a target the program computes is pla
   assert.deepEqual(strict(python("open(os.path.expanduser(base), 'w')")), [], "a computed target is struck");
 });
 
+test("a call spelt inside a string or a comment is no call", () => {
+  both(python(`message = "open('unplanned.md','w')"`), [], "a python string");
+  both(python("# open('unplanned.md','w')", "s = '''Path('u.md').write_text(x)'''"), [], "a comment and a docstring");
+  both(heredoc("node", "// writeFileSync('u.md', 'x')", "const s = `writeFileSync('v.md', 'x')`;"), [], "node's comment and template");
+});
+
 test("a name the body bound to a whole literal is the file its call writes", () => {
   both(python("p='a/b.go'", "s=open(p).read()", "open(p,'w').write(s)"), ["a/b.go"], "the folded report's shape");
   both(python("p = 'a.md'", "p = sys.argv[1]", "open(p, 'w')"), [], "a rebinding to anything else unsets it");

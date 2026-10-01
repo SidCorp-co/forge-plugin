@@ -479,17 +479,17 @@ const aimedAt = (name) => {
   if (name.includes("\x60")) return "";
   return /[$\\]/u.test(name) ? `\n: > "${name}"` : `\n: > '${name}'`;
 };
-const called = (body, { computed = true } = {}) => fileCalls(body).map((one) => {
+const called = (body, runner, { computed = true } = {}) => fileCalls(body, runner).map((one) => {
   if (one.targets.length) return one.targets.map(({ from, to }) => aimedAt(spelling(body.slice(from, to)))).join("");
   const flat = body.slice(one.from, one.to).replace(/\s+/gu, " ").replace(/=/gu, " ");
   return computed && closes(flat) ? `\n${flat}` : "";
 }).join("");
-const programmed = (body, runner) => (SHELL.test(runner) ? body : `${spawned(body, runner)}${called(body)}\n`);
+const programmed = (body, runner) => (SHELL.test(runner) ? body : `${spawned(body, runner)}${called(body, runner)}\n`);
 
 /* An inline body the same, where the null command after its strings and its writes takes what followed the body. The body itself stays, its shell quotes holding it shut, so it is already the computed calls a keeping reading reads, and only the literals they write are added. */
 const inline = (all, runner, body) => {
   const kept = gluedQuoted(body, runner);
-  const given = `${spawned(literal(kept), runner)}${called(literal(kept), { computed: false })}`;
+  const given = `${spawned(literal(kept), runner)}${called(literal(kept), runner, { computed: false })}`;
   return `${runnerOf(all, body)}${kept}${given && `${given}\n:`}`;
 };
 

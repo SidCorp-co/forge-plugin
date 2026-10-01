@@ -5,6 +5,15 @@ export const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)
   + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
   + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`;
 
+/** The language each runner speaks, for the readings that tell its code from its strings. */
+export const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
+
+/** Where a language's strings and comments stand, a comment captured. A binding is discovered in code and nowhere else, and so is a call: one inside a comment or a string a program prints is neither. A runner none of these name is read as python. */
+export const SPOKEN_IN = {
+  python: /"""[\s\S]*?"""|'''[\s\S]*?'''|"[^"\n]*"|'[^'\n]*'|(#[^\n]*)/gu,
+  node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
+};
+
 /* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads. */
 const CALLS = [
   { name: /\bopen\s*\($/u, writes: [[0, "file"]], mode: [1, "mode"] },
@@ -76,10 +85,12 @@ const argument = (code, args, [at, key]) => {
 
 const literalAt = (code, one) => (one && spelling(code.slice(one.from, one.to)) !== null ? one : null);
 
-/** Each file call in `code`, `{ from, to }` its whole text: `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A call whose written argument is anything else has no target: what a program computes is not placed here. */
-export const fileCalls = (code) => {
+/** Each file call in `code`, the program a `runner` reads, `{ from, to }` its whole text; one spelt inside a string or a comment is none: `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A call whose written argument is anything else has no target: what a program computes is not placed here. */
+export const fileCalls = (code, runner) => {
+  const said = [...code.matchAll(SPOKEN_IN[SPEAKS[runner]] ?? SPOKEN_IN.python)];
+  const inside = (at) => said.some((one) => at > one.index && at < one.index + one[0].length);
   const out = [];
-  for (const hit of code.matchAll(OPENS)) {
+  for (const hit of [...code.matchAll(OPENS)].filter((one) => !inside(one.index))) {
     const opened = hit.index + hit[0].length;
     const call = CALLS.find((one) => one.name.test(hit[0]));
     const read = argsFrom(code, opened);
@@ -91,7 +102,7 @@ export const fileCalls = (code) => {
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
     out.push({ from: hit.index, to: read.end, targets, names });
   }
-  for (const hit of code.matchAll(RECEIVED)) {
+  for (const hit of [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index))) {
     const said = STRING_IN.exec(hit[0]);
     const name = said ? null : /^[A-Za-z_]\w*/u.exec(hit[0]);
     const from = hit.index + (said ?? name).index;
