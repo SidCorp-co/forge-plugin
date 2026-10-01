@@ -10,6 +10,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { patience } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
@@ -232,6 +233,19 @@ test("more references than the tool takes are refused before the first upload", 
   assert.match(run.stderr, /11 files, and the tool takes 10/u);
   assert.equal(state.uploads.length, 0);
   assert.equal(state.sent.length, 0);
+});
+
+/* A picture is the turn that usually detaches, so the reference has to survive into a process
+   nobody is watching: the child reads its files off its own argv and uploads them itself. */
+test("a detached picture uploads its reference and sends the address with the turn", async () => {
+  const run = await ran(FRAMING, "image", "a fox", "--ratio", "1:1", "--file", reference("detached.png"),
+    "--wait", "601");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^turn {6}\S+$/mu, "the call detached");
+  const stop = Date.now() + patience(10_000);
+  while (!state.sent.length && Date.now() < stop) await new Promise((wake) => setTimeout(wake, 50));
+  assert.equal(state.uploads.length, 1, "the child uploaded the reference");
+  assert.deepEqual(state.sent[0]?.params.arguments.files, [`${state.origin}/held/detached.png`]);
 });
 
 /* No line anywhere knows the old flag, so what a caller meets is the answer any stranger gets: the
