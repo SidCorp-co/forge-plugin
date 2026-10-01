@@ -76,6 +76,6 @@ test("the --set row of the verb's help names the tracker's check that still appl
   assert.equal(run.status, 0, run.stderr);
   const row = run.stdout.slice(run.stdout.indexOf("  --set "), run.stdout.indexOf("\n\n", run.stdout.indexOf("  --set ")));
   assert.match(row.replace(/\s+/gu, " "),
-    /work-evidence check still holds developed and testing to a captured branch, which `forge claim <ref> --pushed` writes, or to a merged mark carrying the commit a change landed at on the base branch itself, which `forge record merged` sends/u,
+    /work-evidence check still holds developed and testing to a branch `forge claim <ref> --pushed` captured, or to the commit on the base branch a merged mark carries/u,
     row);
 });
