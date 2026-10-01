@@ -476,7 +476,7 @@ const releasedSaid = (ref, turn = false) =>
     : `the lease this write took covered the write, and the write has landed`}. `
   + `Nothing holds the issue, so the run after it claims with no wait.`;
 
-const releasedWrite = (context, at = sharedStamp()) => ({
+export const releasedWrite = (context, at = sharedStamp()) => ({
   ...(context && typeof context === "object" ? context : {}),
   [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
 });

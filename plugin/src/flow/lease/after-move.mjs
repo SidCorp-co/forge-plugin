@@ -5,6 +5,7 @@
    call owed, because only the field as the call leaves it says whether anything still holds it. */
 import { sessionOf } from "../../resolve/config.mjs";
 import { describe, leaseOf, readContext, stateOf } from "../lease.mjs";
+import { GIVE_BACK } from "./give-back.mjs";
 import { embeddedRun, keepOnFailure } from "../../refusal.mjs";
 
 /* Process state for the reason `oweRelease` gives: the move is known where it lands, and whether a
@@ -16,7 +17,7 @@ const MOVED = new Map();
    or one past its clock, is no hold another run waits on, so only a live one is named. */
 const heldSaid = (ref, lease, mine) => (mine
   ? `${ref} is still held by this run after the move: ${describe(lease)}. Until then no other run `
-    + `may claim it. Where this run's turn on it is over, shorten it: forge claim ${ref} --minutes 1`
+    + `may claim it. Where this run's turn on it is over, give it back: forge claim ${ref} ${GIVE_BACK}`
   : `${ref} is held by another run after the move: ${describe(lease)}. Until then no other run may `
     + `claim it.`);
 
