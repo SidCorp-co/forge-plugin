@@ -83,4 +83,7 @@ test("a double-quoted bracketed span the shell rewrites, or that is not the whol
     assert.deepEqual(written(command).filter((one) => one.startsWith("/r/p(1)/")), [], command);
   }
   assert.ok(names('perl -e "system(q(touch),q(b.md))"').includes("b.md"), "a body's call keeps its bracket reading");
+  for (const body of ["echo (x)", "f(x).md"]) {
+    assert.deepEqual(names(`sh -c "${body}"`), names(`sh -c '${body}'`), `a runner's body ${body} reads as its single-quoted spelling does`);
+  }
 });
