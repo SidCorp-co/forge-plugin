@@ -25,8 +25,8 @@ export const CLAUSES = [
  *  form carrying the flag would hand a run a value to guess at and a refusal to learn it from (ISS-2485). */
 export const TYPED = CLAUSES.filter((one) => !one.read);
 
-/** The flag of one clause with what it holds, as a form prints it. */
-export const flagSaid = (one) => `--${one.flag} <${one.label}>`;
+/* The flag of one clause with what it holds, as a form prints it. */
+const flagSaid = (one) => `--${one.flag} <${one.label}>`;
 
 /** The mark of a change that landed in git, every typed clause in the note's order. */
 export const gitMarkForm = (ref) => `forge record merged ${ref} ${TYPED.map(flagSaid).join(" ")}`;
