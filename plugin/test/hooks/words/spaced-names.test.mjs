@@ -64,4 +64,7 @@ test("a double-quoted span the shell still expands, or that is not one path, kee
   }
   assert.deepEqual(written('git commit -m "cp notes into /x/memory/a.md"'), [], "a sentence is still blanked");
   assert.deepEqual(names('sh -c "/bin/cp a.md b.md"'), ["a.md", "b.md"], "a body a shell runs keeps its words");
+  for (const command of ['sh -c \\\n"/bin/cp a.md b.md"', "sh -c \\\n'/bin/cp a.md b.md'"]) {
+    assert.deepEqual(names(command), ["a.md", "b.md"], `${command}: a line continued onto the body is still a body`);
+  }
 });
