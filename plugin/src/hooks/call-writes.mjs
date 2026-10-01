@@ -19,21 +19,21 @@ export const SPOKEN_IN = {
   ),
 };
 
-/* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads, and only as the builtin or a module's that opens a file by name: an archive's `open` writes a member, and a path's takes its mode first. */
+/* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads, and only as the builtin, node's `fs`, or a module's that opens a file by name; a path's `open` is a method, read below. */
 const CALLS = [
-  { name: /\bopen\s*\($/u, writes: [[0, "file"]], mode: [1, "mode"] },
+  { name: /\bopen(?:Sync)?\s*\($/u, writes: [[0, "file"]], mode: [1, "mode"] },
   { name: /(?:FileSync|writeFile|\.write(?:TextFile|File)|\.write)\s*\($/u, writes: [[0, "path"]] },
   { name: /\bshutil\.(?:copy|copyfile|copy2)\s*\($/u, writes: [[1, "dst"]] },
   { name: /(?:\bshutil\.move|\bos\.(?:replace|rename))\s*\($/u, writes: [[0, "src"], [1, "dst"]] },
   { name: /\bos\.symlink\s*\($/u, writes: [[1, "dst"]] },
 ];
-const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
+const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(?:fs|fsp|promises)\.open(?:Sync)?|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
 /* A string literal, with the prefix python may give one. */
 const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"[^"\n]*"|'[^'\n]*')`;
-/* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name; any other receiver is computed, and its line is the call. A method named and not called writes nothing. */
+/* The path pathlib writes stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name. A method named and not called writes nothing. */
 const RECEIVED = new RegExp(
   String.raw`(?:(?<![.\w])(?:pathlib\.)?Path\(\s*${STRING}\s*\)|(?<![\w.)\]]\s*)\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)`
-    + String.raw`\s*\.write_(?:text|bytes)\s*\(`,
+    + String.raw`\s*\.(?:write_(?:text|bytes)|open)\s*\(`,
   "gu",
 );
 const STRING_IN = new RegExp(STRING, "u");
@@ -148,6 +148,38 @@ const spokenIn = (given, runner) => {
   return { code, inside: (at) => pieces.some((one) => at >= one.from && at < one.to) };
 };
 
+/* pathlib's writes, on the path they are called on, where a module's call above has not already read the same parenthesis: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells with `w` or `a` — an archive's `open('member', 'w')` names a member there, and writes no file, so an `open` taking its mode second is some object's own, placed nowhere and kept for the reading that keeps every candidate. A receiver `RECEIVED` cannot read is computed, and its line is the call. */
+const METHOD = /\.(write_(?:text|bytes)|open)\s*\(/gu;
+const receivedCalls = (code, inside, taken) => {
+  const received = [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index));
+  return [...code.matchAll(METHOD)].filter((one) => !inside(one.index)).flatMap((hit) => {
+    const to = hit.index + hit[0].length;
+    if (taken.has(to)) return [];
+    if (hit[1] === "open") {
+      const read = argsFrom(code, to);
+      const writes = (at) => {
+        const mode = read && literalAt(code, argument(code, read.args, [at, "mode"]));
+        return mode && /^[wa]/u.test(spelling(code.slice(mode.from, mode.to)));
+      };
+      if (!writes(0)) {
+        const text = read && code.slice(hit.index, read.end);
+        return read && writes(1) ? [{ from: hit.index, to: read.end, text, targets: [], names: [], computed: true }] : [];
+      }
+    }
+    const by = received.find((one) => one.index + one[0].length === to);
+    if (!by) {
+      const from = code.lastIndexOf("\n", hit.index) + 1;
+      return [{ from, to, text: code.slice(from, to), targets: [], names: [], computed: true }];
+    }
+    const said = STRING_IN.exec(by[0]);
+    const name = said ? null : /^[A-Za-z_]\w*/u.exec(by[0]);
+    const from = by.index + (said ?? name).index;
+    const one = { from, to: from + (said ?? name)[0].length };
+    const targets = said && spelling(said[0]) !== null ? [one] : [];
+    return [{ from: by.index, to, text: by[0], targets, names: name ? [one] : [], computed: !targets.length }];
+  });
+};
+
 /** Each file call in `given`, the program a `runner` reads: `{ from, to }` is where it stands, `text` what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
 export const fileCalls = (given, runner) => {
   const { code, inside } = spokenIn(given, runner);
@@ -163,22 +195,7 @@ export const fileCalls = (given, runner) => {
     const targets = written.filter((one) => literalAt(code, one));
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
     const computed = targets.length < written.filter(Boolean).length;
-    out.push({ from: hit.index, to: read.end, text: code.slice(hit.index, read.end), targets, names, computed });
+    out.push({ from: hit.index, to: read.end, opened, text: code.slice(hit.index, read.end), targets, names, computed });
   }
-  const received = [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index));
-  for (const hit of [...code.matchAll(/\.write_(?:text|bytes)\s*\(/gu)].filter((one) => !inside(one.index))) {
-    const to = hit.index + hit[0].length;
-    if (received.some((one) => one.index + one[0].length === to)) continue;
-    const from = code.lastIndexOf("\n", hit.index) + 1;
-    out.push({ from, to, text: code.slice(from, to), targets: [], names: [], computed: true });
-  }
-  for (const hit of received) {
-    const said = STRING_IN.exec(hit[0]);
-    const name = said ? null : /^[A-Za-z_]\w*/u.exec(hit[0]);
-    const from = hit.index + (said ?? name).index;
-    const one = { from, to: from + (said ?? name)[0].length };
-    const targets = said && spelling(said[0]) !== null ? [one] : [];
-    out.push({ from: hit.index, to: hit.index + hit[0].length, text: hit[0], targets, names: name ? [one] : [], computed: !targets.length });
-  }
-  return out;
+  return [...out, ...receivedCalls(code, inside, new Set(out.map((one) => one.opened)))];
 };

@@ -54,6 +54,7 @@ test("a body's own file call is still a write, at the argument its API writes", 
   both(python("os.replace('a.md', 'b.md')"), ["a.md", "b.md"], "so does a replace");
   both(python("os.symlink('a.md', 'b.md')"), ["b.md"], "a link is its own name");
   both(heredoc("node", "fs.appendFileSync('log.md', 'x')"), ["log.md"], "an append");
+  both(heredoc("node", "const fs = require('fs'); fs.open('o.md', 'w', () => {});", "fs.openSync('p.md', 'a');"), ["o.md", "p.md"], "node's open");
   both(heredoc("deno", "await Deno.writeTextFile('d.md', 'x')"), ["d.md"], "deno's write");
   both(heredoc("bun", "await Bun.write('b.md', 'x')"), ["b.md"], "bun's write");
   /* A name holding a quote is read as the same redirect spelt in the shell is, whatever that reader makes of it. */
@@ -70,7 +71,11 @@ test("a call writing a literal and a computed operand keeps both readings of it"
 
 test("a read beside a write is not one, and a target the program computes is placed nowhere", () => {
   both(python("open('a.md','w').write(open('r.md').read())"), ["a.md"], "an open with no write mode");
-  both(python("zf.open('member.md', 'w')", "gzip.open('log.md', 'wt')"), ["log.md"], "an archive's member is no file, a module's open is");
+  const archived = python("zf.open('member.md', 'w')", "gzip.open('log.md', 'wt')");
+  assert.deepEqual(strict(archived), ["log.md"], "strike: an archive's member is no file, a module's open is");
+  assert.deepEqual(keeps(archived), ["log.md", "member.md"], "keep: an object's own open is still a candidate");
+  both(python("with Path('po.md').open('w') as f: f.write(s)", "Path('pr.md').open()", "Path('pk.md').open(mode='a')"), ["po.md", "pk.md"],
+    "a path's open writes under a write mode, its first argument or by keyword");
   both(python("writer = Path('unplanned.md').write_text", "copy = shutil.copy"), [], "a method named and not called");
   assert.deepEqual(strict(python("open(os.path.expanduser(base), 'w')")), [], "a computed target is struck");
   for (const target of ["base > unplanned.md", "a if b else c; d", "'$(' + x", "x | y.md", "`x` + y", "a[[0]]"]) {

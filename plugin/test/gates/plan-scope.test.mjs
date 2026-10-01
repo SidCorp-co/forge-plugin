@@ -179,6 +179,7 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
     [py(String.raw`s = rf"\{open('unplanned.mjs','w')}"`), "open in a raw f-string's field behind a backslash"],
     [py("s = f\"{open('unplanned.mjs','w').write(str({'a': 1}))}\""), "open in an f-string's field"],
     [py("from pathlib import Path", "Path('unplanned.mjs').write_text(s)"), "write_text"],
+    [py("from pathlib import Path", "with Path('unplanned.mjs').open('w') as f: f.write(s)"), "a path's open"],
     [py("p = 'unplanned.mjs'", "open(p, 'w')"), "a bound name"],
     [py("shutil.copy('planned.mjs', 'unplanned.mjs')"), "a copy's destination"],
     [py("shutil.move('unplanned.mjs', 'planned.mjs')"), "a move's source"],
@@ -186,6 +187,7 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
     [py("os.rename('unplanned.mjs', 'planned.mjs')"), "a rename's source, which it takes away"],
     [py("os.rename('planned.mjs', 'unplanned.mjs')"), "a rename's destination"],
     [node("require('fs').writeFileSync('unplanned.mjs', 'x')"), "writeFileSync"],
+    [node("fs.open('unplanned.mjs', 'w', () => {})"), "node's fs.open"],
     [`cd plugin/src && python3 -c "open('unplanned.mjs','w')"`, "an inline body"],
   ]) {
     const held = runs(command);
