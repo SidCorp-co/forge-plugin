@@ -6,7 +6,7 @@ import { ASKED, WORKTREE, configDir, configPath, sessionSourced } from "../../re
 import { BORROW_VAR, borrowing } from "../../resolve/machine/borrowed.mjs";
 import { RUN_ID_VAR } from "../../resolve/session/run-id.mjs";
 import { declaredCommands, declaredIn } from "../../stats/corpus/declared.mjs";
-import { typedBack } from "../../refusal.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
 import { citedHead, freshForm } from "./baseline.mjs";
 
 const WHOLE = "whole";
@@ -76,7 +76,7 @@ export const publishedSaid = (outcome, commit) => ({
   [BORROWED]: `nothing is published for ${commit}: this home borrows ${borrowedConfig()}, and `
     + `${publishedPath()} beside it is that machine's store, which a borrowing home reads and never `
     + `writes. Publish from a shell that does not borrow: ${BORROW_VAR}= `
-    + `XDG_CONFIG_HOME=${typedBack(dirname(machineDir() ?? ""))} and the same command`,
+    + `XDG_CONFIG_HOME=${typed(dirname(machineDir() ?? ""))} and the same command`,
 }[outcome]);
 
 /* The two sources of a run's id the route below loses on its way into a fresh tree: that tree's git directory holds no id of its own, and a variable the refused call was prefixed with is gone from the shell the route is pasted into. The rest are read there alike, and carrying them would only rename where they came from (ISS-2556). */
@@ -84,10 +84,10 @@ const LOST_IN_A_NEW_TREE = [ASKED, WORKTREE];
 
 /* The same write, run from a checkout that stands at the cited commit and holds nothing else: the one tree the cited result answers for, and the one route that clears either head refusal below without measuring a tree somebody already measured. Every value goes back as typed, the run's id among them, so the line runs as printed and the lease takes it for the run that was refused. */
 const atCitedForm = (ref, got, held) => {
-  const carried = held?.id && LOST_IN_A_NEW_TREE.includes(held.source) ? [`${RUN_ID_VAR}=${typedBack(held.id)}`] : [];
+  const carried = held?.id && LOST_IN_A_NEW_TREE.includes(held.source) ? [`${RUN_ID_VAR}=${typed(held.id)}`] : [];
   const write = [...carried, ...["forge", "record", "baseline", ref, "--gate", got.gate, "--result", got.result,
-    "--commit", got.commit, "--scope", got.scope, "--cited", got.cited].map(typedBack)].join(" ");
-  return `dir=$(mktemp -d) && git worktree add --detach "$dir" ${typedBack(got.commit)} `
+    "--commit", got.commit, "--scope", got.scope, "--cited", got.cited].map(typed)].join(" ");
+  return `dir=$(mktemp -d) && git worktree add --detach "$dir" ${typed(got.commit)} `
     + `&& (cd "$dir" && ${write}); git worktree remove "$dir"`;
 };
 

@@ -33,7 +33,7 @@ import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } fro
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides, withholds } from "./guides/guides.mjs";
 import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
-import { typedBack } from "./refusal.mjs";
+import { typed } from "./hooks/shell-spans.mjs";
 import { finderSaid, renew } from "./flow/lease.mjs";
 import { retiredFlagIn } from "./resolve/retiring.mjs";
 
@@ -89,10 +89,10 @@ const nextCall = (asked, offset) => [
   "forge issue",
   ...Object.entries(asked.filters)
     .filter(([, value]) => value !== undefined)
-    .map(([name, value]) => `--${name} ${typedBack(String(value))}`),
+    .map(([name, value]) => `--${name} ${typed(String(value))}`),
   ...(asked.raw === undefined ? [] : [`--limit ${asked.limit}`]),
-  ...(asked.fields ? [`--fields ${typedBack(asked.fields.join(","))}`] : []),
-  ...(asked.project ? [`${AIM_FLAG} ${typedBack(asked.project)}`] : []),
+  ...(asked.fields ? [`--fields ${typed(asked.fields.join(","))}`] : []),
+  ...(asked.project ? [`${AIM_FLAG} ${typed(asked.project)}`] : []),
   `--offset ${offset}`,
 ].join(" ");
 

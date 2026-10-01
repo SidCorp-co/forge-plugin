@@ -5,7 +5,8 @@
    one reading, and the last block has no block after it to be read as. Checked on the argv `blocksIn`
    in record.mjs splits, before anything is read or sent. */
 import { FLAG_WORD } from "../../resolve/flags.mjs";
-import { refuse, typedBack } from "../../refusal.mjs";
+import { refuse } from "../../refusal.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
 import { SHAPES } from "../machine.mjs";
 
 const isFlag = (token) => token !== undefined && FLAG_WORD.test(token);
@@ -21,7 +22,7 @@ const splitAt = (tokens, opener) => {
 
 const misplaced = (kind, { per, flag, value, own, next, ahead }) => {
   const opener = `--${per}`;
-  const valued = isFlag(value) || value === undefined ? flag : `${flag} ${typedBack(value)}`;
+  const valued = isFlag(value) || value === undefined ? flag : `${flag} ${typed(value)}`;
   return `record ${kind}: ${valued} stands in ${per} ${own}'s block after ${[...new Set(ahead)].join(" and ")}, with `
     + `${opener} ${next} next. It would be written onto ${per} ${own}, and it reads as opening ${per} `
     + `${next}. Nothing was sent. Inside a block another ${opener} follows, a flag the part before the `

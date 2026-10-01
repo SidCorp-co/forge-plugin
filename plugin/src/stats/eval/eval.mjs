@@ -28,7 +28,7 @@ import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { printWavesEval } from "../waves/eval.mjs";
-import { typedBack } from "../../refusal.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
 import { UNITS, durationOf } from "../window/duration.mjs";
 
 export const WINDOW = 50;
@@ -558,7 +558,7 @@ const recentOf = (corpus, size, asked, nameOf, flagOf) => {
 };
 
 export const flagsAsked = (checkout, size) =>
-  (checkout === undefined ? "" : ` --checkout ${typedBack(checkout)}`) + (size === undefined ? "" : ` --size ${size}`);
+  (checkout === undefined ? "" : ` --checkout ${typed(checkout)}`) + (size === undefined ? "" : ` --size ${size}`);
 
 export const printEval = async (argv) => {
   if (argv.includes("--waves")) return printWavesEval(argv.filter((one) => one !== "--waves"));

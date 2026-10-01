@@ -4,7 +4,8 @@
    status reads for another one. docs/cli/record-merged.md. */
 import { spawnSync } from "node:child_process";
 
-import { refuse, typedBack } from "../../refusal.mjs";
+import { refuse } from "../../refusal.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { shipMode } from "../../resolve/settings.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
@@ -429,9 +430,9 @@ const movedRead = (clauses, tree, again) => {
 };
 
 /* The call a refused `--moved` is re-sent as: every flag the caller typed, as typed, and that one left out. */
-const withoutMoved = (reference, given) => [`forge record merged ${typedBack(reference)}`,
+const withoutMoved = (reference, given) => [`forge record merged ${typed(reference)}`,
   ...[...TYPED.map((one) => one.flag), "to"].filter((flag) => given[flag] !== undefined)
-    .map((flag) => `--${flag} ${typedBack(given[flag])}`)].join(" ");
+    .map((flag) => `--${flag} ${typed(given[flag])}`)].join(" ");
 
 const branchFor = async (given) => {
   if (given.to !== undefined) return given.to;

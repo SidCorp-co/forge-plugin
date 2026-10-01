@@ -59,9 +59,16 @@ const OLD = {
   dupMarkup: /[*`_>[\]()]/g,
 };
 
-/* The escape is the whole call and not the four bytes `'\''`, which is how anything quotes for a shell:
-   written short it refuses a module with its own reason to write them, and names no route out. */
-const SHELL_ESCAPE = ".replace(/'/gu, String.raw`'\\''`)";
+/* The escape is a call and not the four bytes `'\''`, which is how anything quotes for a shell: written
+   short it refuses a module with its own reason to write them, and names no route out. So the needle is
+   the shape of the call — an apostrophe, as a regex or a string, replaced or split and joined into a
+   string opening with an apostrophe and a backslash — and not one spelling of it, which saw the copy it
+   was cut to and none of the five written with `replaceAll` (ISS-303). What it cannot see: an escape
+   held in a constant of its own and passed by name, and a quoter that backslash-escapes outside quotes. */
+const APOSTROPHE_ARG = String.raw`(?:\/'\/[a-z]*|"'"|'\\''|\x60'\x60)`;
+const QUOTED_ESCAPE = String.raw`(?:String\.raw)?["'\x60]\\?'\\`;
+const SHELL_ESCAPE = new RegExp(
+  String.raw`\.(?:replace(?:All)?\(\s*${APOSTROPHE_ARG}\s*,|split\(\s*${APOSTROPHE_ARG}\s*\)\s*\.join\()\s*${QUOTED_ESCAPE}`, "u");
 
 /* The typed width alone: `startsWith("data:")` also fires on a module testing a `data:` URI, and the
    refusal would send it to a frame reader. What that leaves uncaught spells the field and derives
@@ -153,7 +160,7 @@ const NEEDLES = [
   ["a table row", MARKDOWN, [String.raw`\|.*\|`, String.raw`\|(.*)\|`]],
   ["a table separator", MARKDOWN, [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
-  ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
+  ["a shell word", SHELL, [String.raw`[\w@%+:,./-][\w@%+=:,./-]*`, SHELL_ESCAPE]],
   ["shell quote state", WALK, QUOTE_STATE],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", MARKDOWN, [FENCE_WORD]],
@@ -209,8 +216,13 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "b.mjs", text: String.raw`const ROW = /^\s*\|(.*)\|\s*$/u;` },
     { rel: "c.mjs", text: String.raw`const SEP = /^\|[\s|:-]+\|$/u;` },
     { rel: "d.mjs", text: "const MARKUP = /[*`_>[\\]()]/g;" },
-    { rel: "e.mjs", text: String.raw`const bare = /^[\w./@+][\w./@+-]*$/u;` },
+    { rel: "e.mjs", text: String.raw`const bare = /^[\w@%+:,./-][\w@%+=:,./-]*$/u;` },
     { rel: "f.mjs", text: "const q = (one) => `'${one.replace(/'/gu, String.raw`'\\''`)}'`;" },
+    /* The copies ISS-303 sent home, each in its own words and none with the home's class: `replaceAll` over a double-quoted and a template escape, `replace` over a double-quoted one, and the split-join nobody has written. */
+    { rel: "f1.mjs", text: "const quoted = (word) => (/^[\\w.,:/=@-]+$/u.test(word) ? word : `'${word.replaceAll(\"'\", \"'\\\\''\")}'`);" },
+    { rel: "f2.mjs", text: "const shellArg = (value) => `'${String(value).replaceAll(\"'\", `'\\\\''`)}'`;" },
+    { rel: "f3.mjs", text: "const shellWord = (word) => (/^[\\w@%+=:,./-]+$/u.test(word) ? word : `'${word.replace(/'/gu, \"'\\\\''\")}'`);" },
+    { rel: "f4.mjs", text: "const q = (one) => `'${one.split(\"'\").join(\"'\\\\''\")}'`;" },
     { rel: "h.mjs", text: "for (const line of lines) held += line.slice(5);" },
     { rel: "i.mjs", text: "const payload = (one) => one.slice(5).trim();" },
     { rel: "j.mjs", text: String.raw`const FENCE = /⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧/u;` },
@@ -258,6 +270,7 @@ test("the guard fires on a module that re-declares one", () => {
     `d.mjs declares a markup class of its own; ${MARKDOWN} holds it`,
     `e.mjs declares a shell word of its own; ${SHELL} holds it`,
     `f.mjs declares a shell word of its own; ${SHELL} holds it`,
+    ...["f1", "f2", "f3", "f4"].map((one) => `${one}.mjs declares a shell word of its own; ${SHELL} holds it`),
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `j.mjs declares the untrusted-data fence of its own; ${MARKDOWN} holds it`,
@@ -362,9 +375,11 @@ test("spawning a program with --help, and a pattern reading -h out of prose, are
   assert.deepEqual(redeclared(cases), []);
 });
 
-test("escaping an apostrophe for a shell is not re-declaring the quoter", () => {
-  const own = String.raw`const wrap = (one) => "'" + one.split("'").join("'\''") + "'";`;
-  assert.ok(own.includes(String.raw`'\''`), "the idiom is there, so only the whole call tells a copy apart");
+/* An apostrophe escaped for a shell is the quoter however it is wrapped, so the case that is not one is
+   another grammar's: a Drive query escapes with a backslash, which no shell reads inside single quotes. */
+test("escaping an apostrophe for a grammar that is not a shell is not re-declaring the quoter", () => {
+  const own = String.raw`const quoted = (text) => "'" + text.replace(/\\/gu, "\\\\").replace(/'/gu, "\\'") + "'";`;
+  assert.ok(own.includes(String.raw`.replace(/'/gu, "\\'")`), "the apostrophe is replaced, so only what replaces it tells a copy apart");
   assert.deepEqual(redeclared([{ rel: "g.mjs", text: own }]), []);
 });
 
@@ -486,28 +501,24 @@ test("no pattern called output-neutral disagrees with the form it replaced", () 
   assert.deepEqual(moved, []);
 });
 
-/* The two forms replaced, as they stood at b8cd67d in codex-log.mjs and codex-second.mjs — byte-identical
-   to each other, which is the drift this guard exists to keep from starting. */
-const SHELL_WAS = {
-  log: (one) => (/^[\w./@+][\w./@+-]*$/u.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`),
-  gate: (one) =>
-    /^[\w./@+][\w./@+-]*$/u.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`,
+/* The class ISS-303 decided, case by case: Python's `shlex.quote` set is bare, a leading `=` is not since
+   zsh expands it, and a leading `-` is since a quote reaches the program as the same flag. */
+const SHELL_DECIDED = {
+  "-o": "-o", "a,b": "a,b", "x=1": "x=1", "50%": "50%", "a:b": "a:b", "a+b@c/d.e_f": "a+b@c/d.e_f",
+  "=x": "'=x'", "~/x": "'~/x'", "it's": String.raw`'it'\''s'`, "a b": "'a b'", "": "''",
 };
 
 /* A refusal names this repository's own paths; the rest are shapes no tracked path has. */
 const SHELL_CASES = ["", " ", "a b.md", "it's.md", "-flag", "'", "''", "a'b'c", "a\nb", "a\tb",
-  "$HOME", "`x`", "~/x", "a;b", "a|b", "*.md", "a\\b", "ü.md", "a b 'c' -d"];
+  "$HOME", "`x`", "~/x", "a;b", "a|b", "*.md", "a\\b", "ü.md", "a b 'c' -d", "=x", "x=$(id)", "a,{b,c}"];
 
-test("the shared shell word agrees with both forms it replaced, over every path this repository tracks", () => {
-  const paths = listed();
-  assert.ok(paths.length >= 300, `${paths.length} path(s) read; the corpus is too small to judge on`);
-  const moved = [];
-  for (const one of [...paths, ...SHELL_CASES]) {
-    for (const [where, was] of Object.entries(SHELL_WAS)) {
-      if (typed(one) !== was(one)) moved.push(`${where}: ${JSON.stringify(one)} -> ${JSON.stringify(typed(one))}`);
-    }
-  }
-  assert.deepEqual(moved, []);
+test("every shell word reads back through sh as the word it was given", () => {
+  const words = [...listed(), ...SHELL_CASES];
+  assert.ok(words.length >= 300, `${words.length} word(s) read; the corpus is too small to judge on`);
+  const read = execFileSync("sh", ["-c", `printf '%s\\000' ${words.map(typed).join(" ")}`], { encoding: "utf8", maxBuffer: 8e6 });
+  const back = read.split("\0").slice(0, -1);
+  assert.deepEqual(words.filter((one, at) => back[at] !== one), []);
+  assert.equal(back.length, words.length);
 });
 
 /* Each transport's frame reader at 1d40447, kept here so the shared one can be judged against them. */
@@ -575,5 +586,5 @@ test("a shell word is quoted where a shell would split it and bare where it woul
   assert.equal(typed("a b.md"), "'a b.md'");
   assert.equal(typed("it's.md"), String.raw`'it'\''s.md'`);
   assert.equal(typed(""), "''", "an empty word has to survive as an argument");
-  assert.equal(typed("-flag"), "'-flag'", "a leading dash is quoted here; the ./ layer is codex-log's own");
+  assert.deepEqual(Object.fromEntries(Object.keys(SHELL_DECIDED).map((one) => [one, typed(one)])), SHELL_DECIDED);
 });

@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 import { attachPlan, batchRefusal, evidenceProblem, localFile, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
+import { typed } from "../../src/hooks/shell-spans.mjs";
 import { escaped, tempRoom } from "../fixtures.mjs";
 
 const DIR = tempRoom("evidence-");
@@ -33,18 +34,18 @@ test("an empty value is a problem like any value that is none of the three, wher
 
 /* A mistyped path was sent to `forge attach`, which then failed on the same missing file (ISS-2506). */
 test("a path naming no file is refused as a missing file, with the directory to read the name off", () => {
-  const typed = join(DIR, "iss65-evidenc.md");
-  const said = evidenceProblem([typed], ["a.md"]) ?? "";
-  assert.match(said, new RegExp(`^Evidence \`${escaped(typed)}\` names no readable file`, "u"));
+  const asked = join(DIR, "iss65-evidenc.md");
+  const said = evidenceProblem([asked], ["a.md"]) ?? "";
+  assert.match(said, new RegExp(`^Evidence \`${escaped(asked)}\` names no readable file`, "u"));
   assert.doesNotMatch(said, /no attachment|forge attach|Attached:/u);
-  assert.match(said, new RegExp(`\n  ls -- '${escaped(DIR)}'$`, "u"));
+  assert.match(said, new RegExp(`\n  ls -- ${escaped(typed(DIR))}$`, "u"));
 });
 
 test("a path under a directory that does not exist says so, and lists the nearest one that does", () => {
-  const typed = join(DIR, "gone", "deeper", "x.txt");
-  const said = evidenceProblem([typed], []) ?? "";
+  const asked = join(DIR, "gone", "deeper", "x.txt");
+  const said = evidenceProblem([asked], []) ?? "";
   assert.match(said, new RegExp(`${escaped(join(DIR, "gone", "deeper"))} is no directory here`, "u"));
-  assert.match(said, new RegExp(`\n  ls -- '${escaped(DIR)}'$`, "u"));
+  assert.match(said, new RegExp(`\n  ls -- ${escaped(typed(DIR))}$`, "u"));
 });
 
 test("a relative path is named as typed and as resolved", () => {
@@ -196,7 +197,7 @@ test("bytes that decode as text are answered with the command that strips their 
   assert.match(said, /so it is their control bytes the tracker read as binary/u);
   const capture = join(DIR, "capture.txt");
   const plain = join(DIR, "capture-plain.txt");
-  assert.match(said, new RegExp(`^ {2}\\(set -C; LC_ALL=C tr -d '[^']+' < '${escaped(capture)}' > '${escaped(plain)}'\\)$`, "mu"));
+  assert.match(said, new RegExp(`^ {2}\\(set -C; LC_ALL=C tr -d '[^']+' < ${escaped(typed(capture))} > ${escaped(typed(plain))}\\)$`, "mu"));
   assert.match(said, /^ {4}then send capture-plain\.txt in place of capture\.txt\.$/mu);
   assert.doesNotMatch(said, /\bln --/u, "and no rename");
 });
@@ -204,7 +205,7 @@ test("bytes that decode as text are answered with the command that strips their 
 test("bytes that do not decode as text are answered with the read of what they are, and no rename", () => {
   const said = batchRefusal("ISS-1", { sent: [], refused: [refusedOne("probe-gz.txt", { utf8: false })], unsent: [] });
   assert.match(said, /The bytes do not decode as text/u);
-  assert.match(said, new RegExp(`^ {2}file --mime-type -- '${escaped(join(DIR, "probe-gz.txt"))}'$`, "mu"));
+  assert.match(said, new RegExp(`^ {2}file --mime-type -- ${escaped(typed(join(DIR, "probe-gz.txt")))}$`, "mu"));
   assert.doesNotMatch(said, /\bln --|\.txt\.txt|tr -d/u, "no rename and no strip of bytes that are not text");
 });
 

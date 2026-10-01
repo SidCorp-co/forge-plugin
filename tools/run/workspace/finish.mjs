@@ -9,7 +9,7 @@ import { existsSync, readdirSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
-import { typedBack } from "../../../plugin/src/refusal.mjs";
+import { typed } from "../../../plugin/src/hooks/shell-spans.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef, stop,
   uncommittedIn } from "../../checkout.mjs";
@@ -165,7 +165,7 @@ const lockRefusal = (root, path, held) => (held
   : null);
 
 /* Each path quoted for the shell it is pasted into: a scratch file name is whatever the run chose. */
-const typedPaths = (paths) => paths.map(typedBack).join(" ");
+const typedPaths = (paths) => paths.map(typed).join(" ");
 
 const copyRefusal = ({ copies, unread }) => [
   copies.length && { why: `${copies.length} file(s) in the scratch hold a copy of one of this machine's `

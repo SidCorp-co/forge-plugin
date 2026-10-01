@@ -3,10 +3,6 @@ export const refuse = (message) => {
   throw new Refused(message);
 };
 
-/** A value typed back into a command a reader pastes — a refusal's way out, a next page's call — kept
- *  bare where no shell would split or expand it and single-quoted everywhere else. */
-export const typedBack = (value) => (/^[\w.:@/-]+$/u.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
-
 /* The lines the hook harness adds to a refusal a gate wrote, in one home: the harness prints them and
    the corpus reading has to see past them to the line that names the rule. */
 

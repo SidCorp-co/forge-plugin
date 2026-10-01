@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, resolve, sep } from "node:path";
 
+import { typed } from "../hooks/shell-spans.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { decodesAsUtf8 } from "../wire/upload-mimes.mjs";
 import { declaredFor, refuseCredential, write } from "./rest.mjs";
@@ -12,9 +13,6 @@ export const urlBearing = (item) => Boolean(item) && typeof item === "object" &&
 
 /** The URL of what went up, or the answer whole where it carries none — the row `routes.mjs` builds every upload's answer as, never a string it once was (ISS-614). */
 export const uploaded = (answer) => (urlBearing(answer) ? answer.url : answer);
-
-/* A shell parses what a caller types, and `ln` refuses a destination `cp` would overwrite. */
-const shellArg = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 
 /** A target with no route this credential reaches, named rather than left to the tracker's 401. */
 const targetRefusal = (target) =>
@@ -57,9 +55,9 @@ const bytesSaid = (one) => (one.utf8
 /* `set -C` in a subshell of its own: a destination already there is refused rather than overwritten,
    and the caller's shell keeps the options it had. */
 const wayOut = (one) => (one.utf8
-  ? `  (set -C; LC_ALL=C tr -d '${CONTROL}' < ${shellArg(one.path)} > ${shellArg(plainBeside(one.path))})`
+  ? `  (set -C; LC_ALL=C tr -d '${CONTROL}' < ${typed(one.path)} > ${typed(plainBeside(one.path))})`
     + `\n    then send ${basename(plainBeside(one.path))} in place of ${one.name}.`
-  : `  file --mime-type -- ${shellArg(one.path)}`
+  : `  file --mime-type -- ${typed(one.path)}`
     + `\n    then send ${one.name}'s bytes converted to one of the types above: under a new name alone `
     + `they are refused the same way.`);
 
@@ -194,7 +192,7 @@ const missingFile = (ref) => {
   const gap = listed === dirname(path) ? "" : ` ${dirname(path)} is no directory here, so nothing under it exists.`;
   return `Evidence \`${ref}\`${where} names no readable file, so there is nothing to put up.${gap} `
     + `Read the name off what is there, and send the command again with the path it gives:`
-    + `\n  ls -- ${shellArg(listed)}`;
+    + `\n  ls -- ${typed(listed)}`;
 };
 
 /** The first value that is none of the three, or null; the caller is the one that refuses. */
