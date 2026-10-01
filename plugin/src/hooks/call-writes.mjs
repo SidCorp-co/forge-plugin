@@ -25,10 +25,10 @@ const CALLS = [
 const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
 /* A string literal, with the prefix python may give one. */
 const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"[^"\n]*"|'[^'\n]*')`;
-/* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name; any other receiver is computed, and its line is the call. */
+/* pathlib writes the path it is called on, which stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name; any other receiver is computed, and its line is the call. A method named and not called writes nothing. */
 const RECEIVED = new RegExp(
   String.raw`(?:(?<![.\w])(?:pathlib\.)?Path\(\s*${STRING}\s*\)|(?<![\w.)\]]\s*)\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)`
-    + String.raw`\s*\.write_(?:text|bytes)\b`,
+    + String.raw`\s*\.write_(?:text|bytes)\s*\(`,
   "gu",
 );
 const STRING_IN = new RegExp(STRING, "u");
@@ -126,7 +126,7 @@ export const fileCalls = (given, runner) => {
     out.push({ from: hit.index, to: read.end, text: code.slice(hit.index, read.end), targets, names, computed });
   }
   const received = [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index));
-  for (const hit of [...code.matchAll(/\.write_(?:text|bytes)\b/gu)].filter((one) => !inside(one.index))) {
+  for (const hit of [...code.matchAll(/\.write_(?:text|bytes)\s*\(/gu)].filter((one) => !inside(one.index))) {
     const to = hit.index + hit[0].length;
     if (received.some((one) => one.index + one[0].length === to)) continue;
     const from = code.lastIndexOf("\n", hit.index) + 1;

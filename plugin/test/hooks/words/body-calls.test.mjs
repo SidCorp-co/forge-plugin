@@ -70,6 +70,7 @@ test("a call writing a literal and a computed operand keeps both readings of it"
 test("a read beside a write is not one, and a target the program computes is placed nowhere", () => {
   both(python("open('a.md','w').write(open('r.md').read())"), ["a.md"], "an open with no write mode");
   both(python("zf.open('member.md', 'w')", "gzip.open('log.md', 'wt')"), ["log.md"], "an archive's member is no file, a module's open is");
+  both(python("writer = Path('unplanned.md').write_text", "copy = shutil.copy"), [], "a method named and not called");
   assert.deepEqual(strict(python("open(os.path.expanduser(base), 'w')")), [], "a computed target is struck");
   for (const target of ["base > unplanned.md", "a if b else c; d", "'$(' + x", "x | y.md", "`x` + y", "a[[0]]"]) {
     const command = `${python(`open(${target}, 'w')`)}\necho x > ${SKILL}`;
