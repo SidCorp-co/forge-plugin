@@ -1,8 +1,9 @@
 # Release batch
 
 Why a release batch is readable and clearable from this CLI at all, what "holder" means where the
-tracker keeps no such field, and why a clear is gated on the tracker's own bounds reading rather than
-on a threshold this CLI would have to invent.
+tracker keeps no such field, why a clear is gated on the tracker's own bounds reading rather than
+on a threshold this CLI would have to invent, and why a release that already shipped is recorded
+rather than moved.
 
 ## The gap this closes
 
@@ -37,3 +38,32 @@ to force there, only a mistake to correct — and it never buys past a state nam
 at all, a project with no probe channel configured included: a "not holding" `--force` overrides is
 a measurement the tracker took and named; an absent one is nothing the tracker measured, so there is
 nothing there for a person's own judgement to stand in for either.
+
+## A release that shipped is recorded, never moved
+
+On a tracker that keeps a release step, the close from `awaiting_release` belongs to the release:
+the tracker turns a run's own move to `closed` into a no-op there, and only its release path closes
+anything. A run that deployed by hand, because the batch machinery was refused, was left with no
+command that could say it had (ISS-1992). Twenty issues read as waiting for a release that was
+already serving, and the only writes a run could make were a status it was not entitled to or
+nothing.
+
+The tracker's answer to that is a record of a release performed outside a batch — the commit, an
+account of how it was done, and the provider's own handle where there is one — which it checks
+against the deployment's declared probes and then closes through the same sanctioned path a batch
+uses. `forge release-batch record` sends that record and nothing else. A status this CLI set itself
+would be a second route around the gate, and the tracker would have no evidence behind the close.
+Where no probe is declared, the tracker records the release as unverified and says so on every
+issue, so an account standing alone is never read as a reading of production.
+
+`start` and `finish` are the batch's own two doors, reachable here for the same reason: a run that
+can only open a batch through a client it does not have cannot finish the release it was handed.
+`method` and `attempts` stay out. They are the release agent's ledger protocol and not something an
+operator calls.
+
+## A refusal carries every reason, not the first
+
+The tracker refuses a release with the first reason it found and lists every other reason standing
+beside it. A run told only the first clears it and meets the second on its next call, one round trip
+per reason, which is what ISS-1127 in the tracker's repository recorded. So a refused write prints the
+whole list, and `readiness` prints the same list before anything is sent.

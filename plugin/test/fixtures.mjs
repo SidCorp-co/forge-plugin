@@ -427,6 +427,18 @@ export const fakeTracker = async (state) => {
        above is not either (ISS-1484). */
     [/^\/api\/projects\/[^/]+\/release-batches\/active$/u, () =>
       answered("forge_release_batch", { action: "active" })],
+    [/^\/api\/projects\/[^/]+\/release-batches\/roster$/u, () =>
+      answered("forge_release_batch", { action: "roster" })],
+    [/^\/api\/projects\/[^/]+\/release-readiness$/u, () =>
+      answered("forge_release_batch", { action: "readiness" })],
+    [/^\/api\/projects\/[^/]+\/release-batches$/u, (q, sent) =>
+      answered("forge_release_batch", { action: "create", data: sent })],
+    [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/finish$/u, (q, sent, method, [runId]) =>
+      answered("forge_release_batch", { action: "finish", runId, data: sent })],
+    [/^\/api\/projects\/[^/]+\/release-records$/u, (q, sent) =>
+      answered("forge_release_batch", { action: "record", data: sent })],
+    [/^\/api\/projects\/[^/]+\/release-records\/([^/]+)$/u, (q, sent, method, [runId]) =>
+      answered("forge_release_batch", { action: "recorded", runId })],
     [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/state$/u, (q, sent, method, [runId]) =>
       answered("forge_release_batch", { action: "state", runId })],
     [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/abort$/u, (q, sent, method, [runId]) =>

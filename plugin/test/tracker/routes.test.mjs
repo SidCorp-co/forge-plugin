@@ -72,7 +72,9 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
   "forge_coolify.rollback_images", "forge_coolify.deploy", "forge_coolify.cancel",
   /* The tracker's own release-batch record, the same reason: `forge release-batch` reads named
      fields off the row it gets rather than pinning a transport-level shape (ISS-1484). */
-  "forge_release_batch.active", "forge_release_batch.state", "forge_release_batch.abort"];
+  "forge_release_batch.active", "forge_release_batch.state", "forge_release_batch.abort",
+  "forge_release_batch.readiness", "forge_release_batch.roster", "forge_release_batch.create",
+  "forge_release_batch.finish", "forge_release_batch.record", "forge_release_batch.recorded"];
 
 const PAIRS = {
   "issues-get": {

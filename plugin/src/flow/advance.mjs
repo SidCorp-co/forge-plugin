@@ -96,6 +96,13 @@ const viewOf = async (reference, given) => {
   };
 };
 
+/* A tracker that keeps a release step makes the close from awaiting_release itself, on its release
+   path, and answers a run's own move there with words about the status alone (ISS-1992). */
+const closeIsARelease = (view, status, ref) => (status !== "closed" || view.issue.status !== CLOSES_FROM ? ""
+  : ` Where the tracker keeps a release step, the close from ${CLOSES_FROM} is made by recording the `
+    + `release that shipped the change:\n  forge release-batch record ${ref} --commit <sha> --account "<how it `
+    + `was released>"\nand \`forge release-batch readiness\` names whatever would refuse that.`);
+
 /* The renew before it is where the line is cleared: the transition is refused before this runs unless the record earns it, and a second lease write would cost three more calls. `said` is what a park adds to the payload; a plain advance sends the status alone and nothing else.
    `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
 export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log, heard = null, by = null } = {}) => {
@@ -115,7 +122,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     /* The project too: a move refused on another project's row read as a success when the refusal
        named none (ISS-2910), and the tracker's words below stay whole and last. */
     refuse(`${ref} on ${aimSaid()} is ${view.issue.status} and the move to ${status} was refused, so `
-      + `nothing was written. What refused it:\n${answer.refused}`);
+      + `nothing was written.${closeIsARelease(view, status, ref)} What refused it:\n${answer.refused}`);
   }
   /* The write landed, so what comes back is the tracker's answer and not a failure to detect: the
      branch above is what catches one that did not take. Outside the landing it still refuses. */

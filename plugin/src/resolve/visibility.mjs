@@ -110,11 +110,14 @@ export const VERBS = [
     wraps: () => Object.fromEntries(Object.entries(TRACKER_SERVED)
       .map(([name, key]) => [key, onTracker() ? `\`forge coolify ${name}\``
         : { line: `\`forge coolify ${name}\``, first: `\`${TO_TRACKER}\`` }])) }],
-  ["release-batch", "[status | clear <runId> --reason R [--force]]",
-    "whether a release batch is running for this project, its age and roster, and clearing a dead one",
+  ["release-batch", "[status | readiness | roster | start | finish | record | recorded | clear]",
+    "this project's release: what would refuse one, what waits, a batch run, and the record of one that shipped",
     "forge_release_batch", { group: HARNESS,
       wraps: { active: "`forge release-batch`", state: "`forge release-batch`",
-        abort: "`forge release-batch clear`" } }],
+        abort: "`forge release-batch clear`", readiness: "`forge release-batch readiness`",
+        roster: "`forge release-batch roster`", create: "`forge release-batch start`",
+        finish: "`forge release-batch finish`", record: "`forge release-batch record`",
+        recorded: "`forge release-batch recorded`" } }],
   ["google", "<service> <resource...> <method> | schema | auth | discovery | +<helper>",
     "Drive, Sheets, Docs, Gmail, Calendar and Meet, on a saved service account or Google-account login",
     null, { group: HARNESS }],
