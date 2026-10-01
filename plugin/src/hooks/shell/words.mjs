@@ -12,7 +12,7 @@ export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da
 /** One option a shell takes before its program: a bare word only as the value of `-o`, `+o`, `-O` or `+O`, since `bash -x script -c '…'` runs the script and hands it the rest. */
 export const SHELL_OPTION = String.raw`(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)`;
 
-/** A word that runs its next quoted argument as shell code: a shell with its options before the `-c`, or `eval`. The write gates open a body on it and the stats corpus counts one as run by it; where a command starts before it is each reader's own. */
+/** A word that runs its next quoted argument as shell code: a shell with its options before the `-c`, or `eval`. Where a command starts before it is each reader's own. */
 export const RUNNER = String.raw`${SHELL_WORD}\s+(?:${SHELL_OPTION}\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
 /* The quoted span whose spaces are a name's: rooted, ending in an extension, every space inside one path component, and not the body a `RUNNER` runs. A sentence opens with a word, a list puts its space against the next root, `sh -c '/bin/cp a.md b.md'` is code, and what is left is a directory named `sp ace`, whose write was cut to a tail naming another file (ISS-1594). */
 const ROOTED = /^~?\//u;
