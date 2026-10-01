@@ -82,8 +82,58 @@ export const spacedSpans = (text, alike = true) => {
   return new Set(wholeSpans(marks, alike).filter(({ spaced }) => spaced).map(({ from }) => marks[from].at));
 };
 
+/* A parameter expansion: a `$` the shell spends, bare or under a double quote, opening a name, a positional or special parameter, or a `${…}`. A `$(` is a substitution, which `placeable` answers, and a `$'…'` or `$"…"` spells text. */
+const PARAMETER = /[A-Za-z0-9_{@*#?!$-]/u;
+const IDENTIFIER = /[A-Za-z0-9_]/u;
+const expands = (marks, n) => marks[n].one === "$" && (marks[n].under === " " || marks[n].under === '"')
+  && marks[n + 1]?.under === marks[n].under && PARAMETER.test(marks[n + 1].one);
+/* Where the word an expansion opens ends: a separator the shell spends, or under a quote what says program text rather than a path — a quote of the other kind, a backtick, an operator other than a bracket — so `perl -e "open(F, '>$d/a.md'); …"` ends it at the `'` and the body's next target is still a word. A quote that opens or closes, an escaped pair and a further expansion carry it on: `"${BASE}"/x.md` is one operand. */
+const ends = (marks, n) => {
+  const { one, under } = marks[n];
+  if ((one === "'" || one === '"') && under === one) return false;
+  if (under === "\\") return false;
+  if (under === "'") return /[`";&|<>\\]/u.test(one);
+  if (one === "$") return !expands(marks, n);
+  if (under === " ") return /[\s;&|<>()`\\'"]/u.test(one);
+  return under === '"' ? /[`'";&|<>\\]/u.test(one) : true;
+};
+/* The expansion itself, from its `$`: through the brace that closes a `${…}`, or the name or the one character a parameter is spelt with. A brace counts only where it stands under the quoting the `$` did, so a quoted or an escaped `}` in a default closes nothing. Every character inside the braces is the expansion's and no pattern's, so it is read as literal and a `}` there is no substitution the name begins behind. */
+const parameterEnd = (marks, n, inside) => {
+  if (marks[n + 1].one !== "{") {
+    let to = n + 2;
+    if (IDENTIFIER.test(marks[n + 1].one) && !/[0-9]/u.test(marks[n + 1].one)) while (to < marks.length && IDENTIFIER.test(marks[to].one)) to += 1;
+    return to;
+  }
+  let depth = 0;
+  for (let at = n + 1; at < marks.length; at += 1) {
+    inside[at] = true;
+    if (marks[at].under !== marks[n].under) continue;
+    if (marks[at].one === "{") depth += 1;
+    if (marks[at].one === "}" && (depth -= 1) === 0) return at + 1;
+  }
+  return marks.length;
+};
+/* Which marks stand in a word an expansion opens, as the index of its `$`, and which stand inside its braces. The text behind a `$` does not spell what the shell writes there, so it is never cut off as a name of its own: a target under `/m/` whose directory was a variable and a word behind a space handed on that word alone, which the working directory resolved, while the file the command wrote was somewhere under `/m/` (ISS-3085). */
+const expansions = (marks) => {
+  const from = new Array(marks.length).fill(-1);
+  const inside = new Array(marks.length).fill(false);
+  for (let n = 0; n < marks.length;) {
+    if (!expands(marks, n)) {
+      n += 1;
+      continue;
+    }
+    const start = n;
+    while (n < marks.length && (n === start || !ends(marks, n))) {
+      const to = expands(marks, n) ? parameterEnd(marks, n, inside) : n + 1;
+      for (; n < to; n += 1) from[n] = start;
+    }
+  }
+  return { from, inside };
+};
+
 export const worded = (text, alike) => {
   const marks = quoting(text);
+  const { from, inside } = expansions(marks);
   const alone = new Array(marks.length).fill(false);
   const spaced = new Array(marks.length).fill(false);
   for (const span of wholeSpans(marks, alike)) {
@@ -95,8 +145,18 @@ export const worded = (text, alike) => {
   const whole = [];
   let word = null;
   for (let n = 0; n < marks.length; n += 1) {
-    const { at, one, removed } = marks[n];
+    const { at, one, removed, under } = marks[n];
     const escaped = removed && marks[n + 1]?.at === at + 1;
+    if (from[n] === n) whole.push((word = { text: "", at: [], literal: [], built: true }));
+    else if (from[n] < 0 && word?.built) word = null;
+    if (from[n] >= 0) {
+      if ((one === "'" || one === '"') && under === one) continue;
+      if (escaped) n += 1;
+      word.text += escaped ? marks[n].one : one;
+      word.at.push(at);
+      word.literal.push(escaped || inside[n]);
+      continue;
+    }
     if (!escaped && !((spaced[n] && one === " ") || (alone[n] && BRACKET.test(one))) && cuts(marks[n])) {
       word = null;
       continue;
@@ -115,6 +175,11 @@ export const worded = (text, alike) => {
     /* A span read as one path is read whole and only whole: its brackets are a path's as its spaces are, and either cut would hand on a tail that resolves to another file. */
     if (one.spaced) {
       out.push({ ...one, joined: true });
+      continue;
+    }
+    /* And a word an expansion opens is read whole, from its `$`: a bracket it holds stood under a quote, and a cut there hands on a tail as the `$` did. */
+    if (one.built) {
+      out.push(one);
       continue;
     }
     if (!one.text.split("").some((_, at) => bare(one, at))) {

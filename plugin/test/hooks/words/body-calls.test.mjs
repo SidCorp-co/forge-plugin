@@ -34,7 +34,7 @@ test("nothing a python body leaves open reaches the redirect after the heredoc",
 
 test("an assignment or a cd in a python body moves no command after the heredoc", () => {
   const placed = (command) => writtenPaths(shellWrites(command), CWD).map(({ token, trees }) => [token, trees]);
-  assert.deepEqual(placed(`${python("d=foo")}\necho x > $d/a.md`), [["d/a.md", []]], "an assignment resolves nothing");
+  assert.deepEqual(placed(`${python("d=foo")}\necho x > $d/a.md`), [["$d/a.md", []]], "an assignment resolves nothing");
   assert.deepEqual(placed(`${python("cd = 1")}\necho x > a.md`), [["a.md", [CWD]]], "a cd moves nothing");
 });
 

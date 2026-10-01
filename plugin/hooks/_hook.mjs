@@ -248,7 +248,9 @@ function touching(ev, freshMs) {
   const seen = new Set();
   const names = [command, resolved].flatMap((text) => {
     const standing = standingIn(text, cwd);
-    return [...namesOf(text), ...namesOf(text, undefined, AIMED_AT)].flatMap(({ token, at }) => {
+    /* A name an expansion opens spells no file on the disk: the `$` is the shell's, and a file literally named so is none this call wrote. */
+    return [...namesOf(text), ...namesOf(text, undefined, AIMED_AT)].flatMap(({ token, at, built }) => {
+      if (built) return [];
       const trees = placedAt(text, token, at) ? moved(standing(at).trees) : [];
       const once = `${token}\0${trees.join("\0")}`;
       if (seen.has(once)) return [];
@@ -289,14 +291,16 @@ function touching(ev, freshMs) {
 /** The paths a call spelled, resolved but not followed: `touched` answers with what a name points at,
  *  and a link is a different question from its target. A relative name is placed in every tree a `cd`
  *  before it could have left the shell in, since nothing here asks the disk which one it was, and in
- *  the event's cwd where the text names none of them — the candidate `touched` falls back on too. */
+ *  the event's cwd where the text names none of them — the candidate `touched` falls back on too. A
+ *  name an expansion opens is answered as spelt, `$` and all, since no directory holds it. */
 export const named = (ev) => {
   const ti = ev.tool_input ?? {};
   const cwd = ev.cwd || process.cwd();
   if (ev.tool_name !== "Bash") return [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean).map((one) => resolve(cwd, one));
   const command = String(ti.command ?? "");
   const standing = standingIn(command, cwd);
-  return [...new Set(namesOf(command).flatMap(({ token, at }) => {
+  return [...new Set(namesOf(command).flatMap(({ token, at, built }) => {
+    if (built) return [token];
     const { trees } = placedAt(command, token, at) ? standing(at) : { trees: [] };
     return trees.length ? trees.map((tree) => resolve(tree, token)) : [resolve(cwd, token)];
   }))];
@@ -590,9 +594,9 @@ const spelled = (said, at) => {
 };
 
 const namesIn = (said, tail, read) =>
-  namesOf(said, tail, read).map(({ token, at }) => ({
+  namesOf(said, tail, read).map(({ token, at, built }) => ({
     token,
-    placed: token[0] !== "~" && said[at - 1] !== "$",
+    placed: !built && token[0] !== "~" && said[at - 1] !== "$",
     spelt: spelled(said, at),
   }));
 
