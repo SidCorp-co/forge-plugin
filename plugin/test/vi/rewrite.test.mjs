@@ -72,6 +72,7 @@ const FIELDS = {
   routed: { what: "the gate reads a stale mtime", to: "ISS-80, filed", evidence: [], none: undefined },
   gap: { where: "references/plan.md", lacked: "the three declaration lines it owes", did: "read them off the contract", none: undefined },
   verification: { where: "the installed copy", commit: "117978d", evidence: ["run.txt"] },
+  migration: { reaches: "the entrypoint migrates at boot", statement: ["ALTER TABLE runs ADD COLUMN note text | additive"], evidence: [] },
   wave: { member: ["ISS-2", "ISS-3"], role: "forge:runner", tree: "/trees/two", session: "iss-2-abc" },
   fold: { summary: "two runs landed and one parked" },
   folded: { title: "the attach verb refuses a name already on the issue" },

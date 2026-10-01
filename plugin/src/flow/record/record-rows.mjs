@@ -48,6 +48,7 @@ const kindRows = (caps) => [
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C] | --where W --landing L --evidence E...",
+  "  migration    --reaches R --statement \"S | additive|tightening|destructive\"... [--evidence E]...",
   "  wave         --member K... --role R --session S [--tree T]     one dispatch, on the wave's headline",
   "  fold         --summary S                                      the wave's end, once its fold is posted",
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
@@ -67,20 +68,21 @@ const kindRows = (caps) => [
 const KIND_PHRASE = {
   confirmation: "what the issue is, where you looked, and the finding",
   decision: "the reading taken, its assumption and the line that undoes it",
-  question: "the readings a person is to choose between, as outcomes",
+  question: "the readings a person chooses between, as outcomes",
   answer: "a person's answer to a park, and who gave it",
-  park: "the issue set down, with the kind saying who it waits on",
+  park: "the issue set down, its kind saying who it waits on",
   correction: "what moved in which record, and why",
-  baseline: "the gate, what it reports, the commit it ran at, and a citation's source",
+  baseline: "the gate, what it reports, its commit, and a citation's source",
   verdict: "one criterion judged, at a commit, citing its own evidence",
   review: "who read which head, each finding answered, and the outcome",
   routed: "a finding this run sent to the issue that owns it",
   declined: "a folded finding not fixed here, and why",
   gap: "where the method did not answer, and what the run did instead",
   verification: "the change read where it now runs, with the evidence",
-  finding: "what was expected, what was seen, and the evidence or the quote",
+  migration: "each schema statement and its risk class",
+  finding: "expected, seen, and the evidence or the quote",
   triage: "a reopen judged: which of three, and what would have caught it",
-  merged: "the tracker's own mark, its note built from five clauses",
+  merged: "the tracker's own mark, its note in five clauses",
   note: "the release note, in the words of whoever filed the issue",
   wave: "one dispatch of a wave, on its headline issue",
   fold: "the end of that wave, once its fold is posted",
@@ -95,8 +97,8 @@ const KIND_PHRASE = {
    A kind absent from here would be a kind `forge record -h` no longer lists, so the row order is
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
-  "note", "declined", "finding", "triage", "confirmation", "merged", "park", "answer", "baseline", "decision",
-  "question", "wave", "fold", "plan", "criteria"];
+  "migration", "note", "declined", "finding", "triage", "confirmation", "merged", "park", "answer", "baseline",
+  "decision", "question", "wave", "fold", "plan", "criteria"];
 
 const phraseRows = () =>
   DISPLAY_ORDER.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);

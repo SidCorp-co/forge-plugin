@@ -1,7 +1,7 @@
 /* A project whose configuration names a prose language has every body and prose field rewritten on
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` and `machine/block.mjs`, the carrying of a record, are what is imported here, and neither imports this, so both sides can still import it. */
-import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
-  memberProblem, whereProblem } from "./record/content.mjs";
+import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, STATEMENT_TAKES, WHERE_TAKES, decisionProblem,
+  findingProblem, memberProblem, statementProblem, whereProblem } from "./record/content.mjs";
 import { SPAN, blanked, fenceMarked } from "../prose.mjs";
 import { MARKUP_PATTERN } from "../markdown.mjs";
 import { entriesIn, firstKindIn } from "./machine/block.mjs";
@@ -485,6 +485,17 @@ export const SHAPES = {
       (got.cited !== undefined && !String(got.cited).trim()
         ? "--cited to name the recorded gate result its result was read off: a citation naming no source is a result from nowhere"
         : null),
+  },
+  /* What a schema-coupled change's migration does once deployed, owed at `testing` where the plan
+     declares schema coupling: a record the gate reads, because the attachment it once counted could
+     be any file at all (ISS-2196). */
+  migration: {
+    heading: "Migration risk classification",
+    fields: [
+      FIELD("reaches", "How it reaches the deployment", { prose: true }),
+      FIELD("statement", "Statement", { many: true, each: statementProblem, form: STATEMENT_TAKES, prose: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
+    ],
   },
   /* `per` opens a block: one write, a verdict per criterion. A stamp renders last, so a shape with `per` takes none. */
   verdict: {

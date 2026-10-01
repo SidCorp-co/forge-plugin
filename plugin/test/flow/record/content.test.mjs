@@ -9,7 +9,8 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("content").path;
-const { DECISION_PARTS, decisionProblem, eachProblem, whereProblem } = await import("../../../src/flow/record/content.mjs");
+const { DECISION_PARTS, MIGRATION_CLASSES, decisionProblem, eachProblem, statementProblem, whereProblem } =
+  await import("../../../src/flow/record/content.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { shapeGaps } = await import("../../../src/flow/earned.mjs");
@@ -151,4 +152,22 @@ test("the same three rules are owed off a record the verb never wrote", () => {
   const verdict = { criterion: "1 the outcome", verdict: "fail", commit: "c8c3550", evidence: ["c8c3550"] };
   assert.deepEqual(gapsIn("verdict", verdict), ["--why, naming what the criterion did instead: a `fail` is what another run acts on"]);
   assert.deepEqual(gapsIn("verdict", { ...verdict, why: "the screen never rendered" }), []);
+});
+
+/* The class is what the migration record exists to carry, so a statement written without one, or
+   with a word outside the three the verification reference classifies by, is no classification. */
+test("a migration statement takes one of three classes after its bar, and anything else is refused by its form", () => {
+  assert.deepEqual(MIGRATION_CLASSES, ["additive", "tightening", "destructive"]);
+  for (const said of ["ALTER TABLE runs ADD COLUMN note text | additive", "UPDATE a SET b = 'x|y' | tightening",
+    "DROP TABLE old_runs | destructive"]) {
+    assert.equal(statementProblem(said), null, `\`${said}\` is a classified statement`);
+  }
+  for (const [said, why] of [["ALTER TABLE runs DROP COLUMN note", /carries no class after a bar/u],
+    ["ALTER TABLE runs DROP COLUMN note | risky", /classifies it as `risky`, which is none of the three/u],
+    [" | additive", /names no statement before the bar/u]]) {
+    const problem = statementProblem(said);
+    assert.ok(problem, `\`${said}\` was accepted`);
+    assert.match(problem, /^takes `<statement> \| additive\|tightening\|destructive`/u);
+    assert.match(problem, why);
+  }
 });

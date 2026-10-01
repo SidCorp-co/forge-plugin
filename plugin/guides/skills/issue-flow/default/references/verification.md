@@ -88,8 +88,10 @@ it is measuring.
    where both come through untouched and the old code still works, **tightening** where an
    existing row or an older writer can violate what the statement now demands, **destructive**
    where it discards a value that running the migration backwards does not put back. Only the
-   last of those stops the pipeline. Test reversibility only where the project's migration
-   system supports it and only against a disposable database.
+   last of those stops the pipeline. Both halves, the route and each statement's class, go on
+   the issue as `forge record migration`: that record is what a plan declaring schema coupling
+   is judged by, and no attachment stands in for it. Test reversibility only where the
+   project's migration system supports it and only against a disposable database.
 3. **Blast radius.** Grep for what you changed — the renamed symbol, the removed field, the
    altered response shape. Nothing asserts what nothing covers. **That grep is blind to a
    change of provenance**: where every identifier stays and only who assigns the value moved,
