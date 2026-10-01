@@ -67,7 +67,7 @@ const resumeOwed = (view, held, ref) => {
   const replied = relayedSince(view, since) || view.comments.some(
     (one) => (one.createdAt ?? "") > since && one.authorId && one.authorId !== held.comment.authorId,
   );
-  if (view.issue.status === "on_hold") {
+  if (view.issue.status === SILENT) {
     if (kind !== "blocked") {
       return [need(`the hold is kind ${kind}, which a person lifts, and lifting it writes a status no `
         + "entry check read", setForm(ref, left))];
@@ -78,7 +78,7 @@ const resumeOwed = (view, held, ref) => {
     ? []
     : [need(
       `the park is kind ${kind} and nobody has answered it since ${atMinute(since)}`
-        + `${view.issue.status === "on_hold" ? NO_EDGE : ""}. An answer is `
+        + `${view.issue.status === SILENT ? NO_EDGE : ""}. An answer is `
         + "a comment by an author other than whoever parked it, or the answer of whoever the park "
         + "asks, carried onto the record naming who gave it; a comment on the parker's own credential "
         + `answers nothing, whoever composed it. The advance that reads one resumes the issue to ${left}`,
