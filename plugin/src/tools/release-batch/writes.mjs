@@ -7,7 +7,7 @@ import { fail } from "../../resolve/settings.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { write } from "../../tracker/rest.mjs";
 import { IN_FLIGHT, finishLines, verifiedLine } from "./reads.mjs";
-import { answeredOr } from "./refused.mjs";
+import { answeredOr, reasonSaid } from "./refused.mjs";
 
 export const START_USAGE = "Usage: forge release-batch start <ISS-nn>... [--recut-of <version>]";
 export const FINISH_USAGE = "Usage: forge release-batch finish <runId> [--commit <sha>]";
@@ -88,7 +88,7 @@ const finishOutcome = (id, done, commit) => {
   if (done.state === "failed") {
     const refusal = done.refusal ?? {};
     fail(`release-batch finish: the tracker's attempt ended failed, so the batch did not finish.\n`
-      + `  ${refusal.code ?? "UNNAMED"}: ${refusal.reason ?? "(the tracker gave no sentence)"}\n`
+      + `  ${reasonSaid(refusal.code, refusal.reason)}\n`
       + "Sending finish again starts a new attempt, once that is cleared: "
       + `forge release-batch finish ${id}${commit === undefined ? "" : ` --commit ${commit}`}`);
   }
