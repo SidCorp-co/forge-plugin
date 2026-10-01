@@ -10,11 +10,10 @@ import { READS_THE_EVENT, consentOwed } from "./consent.mjs";
 import { clearedBy } from "./refused.mjs";
 import { expanded } from "./request.mjs";
 import { methodById } from "./surface.mjs";
+import { typed } from "../../../hooks/shell-spans.mjs";
 import { endpointed, jsonOf, mimeOf, multipart, reach, withQuery } from "./wire.mjs";
 
-const shellWord = (word) => (/^[\w@%+=:,./-]+$/u.test(word) ? word : `'${word.replace(/'/gu, "'\\''")}'`);
-
-const retyped = (argv, extra) => `forge google ${[...argv.filter((one) => one !== "--dry-run"), extra].map(shellWord).join(" ")}`;
+const retyped = (argv, extra) => `forge google ${[...argv.filter((one) => one !== "--dry-run"), extra].map(typed).join(" ")}`;
 
 const refuseWithoutConsent = (method, reason, argv) => refuse(VALIDATION, `google: ${method.id} ${reason}, which --yes has to be given for.\n`
   + `  carry it out: ${retyped(argv, "--yes")}\n`

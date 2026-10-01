@@ -5,21 +5,19 @@
    for the caller to count: docs/cli/stats-the-reading.md. */
 import { ACTIONS, CATEGORIES, ISSUE_KEY, MOVED, PRIORITIES, TEXT_CHARS, VERDICTS } from "./roles.mjs";
 import { NO_LONGER_OWES } from "../../../flow/earned/park-status.mjs";
+import { typed } from "../../../hooks/shell-spans.mjs";
 
 const SETTLED = new Set(NO_LONGER_OWES);
 const ONE_KEY = /^ISS-\d+$/u;
 
 export const trimmed = (value) => String(value ?? "").trim();
 
-/** A value a POSIX shell passes as exactly one argument, whatever quotes it holds. */
-const quoted = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
-
 const raiseCommand = (key, priority, figure) =>
-  `forge issue ${key} --set priority=${priority} --why ${quoted(`${figure.said}: ${figure.value}`)}`;
+  `forge issue ${key} --set priority=${priority} --why ${typed(`${figure.said}: ${figure.value}`)}`;
 
-const fileCommand = (title, category) => `forge new - --title ${quoted(title)} --category ${category}`;
+const fileCommand = (title, category) => `forge new - --title ${typed(title)} --category ${category}`;
 
-const commentCommand = (key, title, cause) => `printf '%s\\n' ${quoted(`${title}: ${cause}`)} | forge comment ${key} -`;
+const commentCommand = (key, title, cause) => `printf '%s\\n' ${typed(`${title}: ${cause}`)} | forge comment ${key} -`;
 
 const keysIn = (value) => String(value ?? "").match(ISSUE_KEY) ?? [];
 

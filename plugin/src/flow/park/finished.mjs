@@ -3,7 +3,8 @@
    status reads as finished (ISS-1750). The park through advance writes the same record and moves the
    status, and it is judged here by its own checks, so the route printed is never one the next call
    turns back. */
-import { Refused, refuse, typedBack } from "../../refusal.mjs";
+import { Refused, refuse } from "../../refusal.mjs";
+import { typed } from "../../hooks/shell-spans.mjs";
 import { viewFrom } from "../earned.mjs";
 import { parkChecked } from "./compose.mjs";
 
@@ -21,7 +22,7 @@ export const finishedRefusal = (reference, blocks, { documentId, body, comments 
     if (!(error instanceof Refused)) throw error;
     refuse(`${held} The park through advance, which moves the status, refuses it too:\n${error.message}`);
   }
-  const evidence = (got.evidence ?? []).map((one) => ` --evidence ${typedBack(one)}`).join("");
+  const evidence = (got.evidence ?? []).map((one) => ` --evidence ${typed(one)}`).join("");
   refuse(`${held} The park that writes this record and moves the status into the one its kind names:\n`
-    + `  forge advance ${reference} --park ${got.kind} --why ${typedBack(got.why)}${evidence}`);
+    + `  forge advance ${reference} --park ${got.kind} --why ${typed(got.why)}${evidence}`);
 };

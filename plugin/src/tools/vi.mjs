@@ -9,6 +9,7 @@ import { fail, translateTo } from "../resolve/settings.mjs";
 import { TRANSLATE_UNCHANGED } from "./vi-exit.mjs";
 import { protectMachine, restoreMachine } from "../flow/machine.mjs";
 import { PLUGIN_ROOT } from "./plugin-copy.mjs";
+import { typed } from "../hooks/shell-spans.mjs";
 
 export const BUNDLED = join(PLUGIN_ROOT, "bin", "vi-natural");
 /* Every prose field an agent can write, and a release note is an object whose other two halves are
@@ -16,12 +17,10 @@ export const BUNDLED = join(PLUGIN_ROOT, "bin", "vi-natural");
 const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria", "releaseNotes.userFacing"];
 const REGISTER = ["--register", "san-pham", "--no-glossary"];
 
-const quoted = (word) => (/^[\w.,:/=@-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
-
 /* Every refusal here ends with the command that writes the text: a run needs the verb producing the
    Vietnamese, not the login line `vi-natural` prints. `shown` carries the caller's own file names,
    the pair handed to `doc` being gone by the time the line is read. docs/cli/vietnamese.md. */
-export const commandLine = (shown) => [BUNDLED, ...shown, ...REGISTER].map(quoted).join(" ");
+export const commandLine = (shown) => [BUNDLED, ...shown, ...REGISTER].map(typed).join(" ");
 
 const refuseWith = (shown, said) =>
   fail(`${said}\n\nThis is the command that writes it. Run it, then post what it leaves:\n  ${commandLine(shown)}`);

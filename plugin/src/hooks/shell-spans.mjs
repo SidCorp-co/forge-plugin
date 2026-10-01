@@ -41,8 +41,9 @@ const STAGE = /(?:^|[^|])\|&?\s*$/u;
 const COMMENT = /^#[^\n]*/u;
 export const spelled = (one) =>
   one.replace(/['"]/gu, "").replace(/\\(.)/gu, "$1").replace(/^~(?=\/|$)/u, homedir());
-/** `spelled` run the other way — the word written back into a command a refusal tells a developer to run: bare where a shell hands it on unchanged, quoted where it would split, and since a quoted run has no escape, an apostrophe closes the quote, escapes, reopens. */
-const PLAIN = /^[\w./@+][\w./@+-]*$/u;
+/** `spelled` run the other way — the word written back into a command a reader pastes, a refusal's way out or a next page's call: bare where a shell hands it on unchanged, quoted where it would split, and since a quoted run has no escape, an apostrophe closes the quote, escapes, reopens.
+ *  Bare is Python's `shlex.quote` set, which no POSIX shell splits or expands, less a leading `=`, which zsh expands to a command's path. A leading `-` stays bare: a quote reaches the program as the same flag, and `pathed` is the answer for a path (ISS-303). */
+const PLAIN = /^[\w@%+:,./-][\w@%+=:,./-]*$/u;
 export const typed = (one) =>
   PLAIN.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`;
 
