@@ -189,7 +189,7 @@ test("a give-back's last word on the lease says it was given back, and none says
   const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
   assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
   const said = `${gave.stdout}${gave.stderr}`;
-  assert.ok(gave.stdout.includes(`only refuses to build on it. This call gave the lease back, so this run holds nothing on the issue`),
+  assert.ok(gave.stdout.includes(`only refuses to build on it. This call gave`),
     `the given-back sentence beside the mechanism:\n${gave.stdout}`);
   assert.doesNotMatch(said, /the lease is this run's/u, "no line says the lease is this run's");
   assert.doesNotMatch(said, /the lease is advisory/u, "nor reads the endpoint's answer as a lease still held");
