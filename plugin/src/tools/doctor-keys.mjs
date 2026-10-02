@@ -6,7 +6,7 @@ import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
 import { fromProject, JOB_ALL, declaredJobs, fail } from "../resolve/settings.mjs";
 import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER } from "./services/coolify/chosen-route.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
+import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, statesIn,
   withheldForJob } from "../resolve/visibility.mjs";
 
 const SAVED = ["token", "url"];
@@ -49,14 +49,17 @@ const setStore = (store) => (asked) => {
 };
 
 /* One verb at a time is the person's own tidying and stays reachable by hand, so this writes the
-   state a job does not. Either way the whole map is written back, which is what turns a list an
-   older release left behind into the shape every reader now takes. */
+   state a job does not. Either way the whole map is written back, rebuilt from the file as it stands
+   under the write's lock so a verb hidden in between is kept, which is also what turns a list an older
+   release left behind into the shape every reader now takes. */
 const setVisibility = (verb, hide) => {
   if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
-  const withheld = verbStates();
-  if (hide) withheld[verb] = HIDDEN;
-  else delete withheld[verb];
-  saveConfig({ withheld });
+  saveConfig((held) => {
+    const withheld = statesIn(held);
+    if (hide) withheld[verb] = HIDDEN;
+    else delete withheld[verb];
+    return { withheld };
+  });
   console.log(hide
     ? `${verb} is now hidden from the usage list, and still runs when it is typed.\n`
     : `${verb} is now offered in the usage list.\n`);
