@@ -31,7 +31,7 @@ const writerProblem = (held, landing, holders, outside) => {
   return held.judge && built ? `carries the builder's own id \`${held.judge}\`` : null;
 };
 
-/** The write's question, asked before anything is sent and only where `asksIndependent` holds. */
+/** The writer half on its own, for `writerChecked`, whose caller has read `asksIndependent` first. */
 export const writerRefusal = (view, held) =>
   writerProblem(held, view.landing, view.holders ?? [], landsOutsideGit(view.issue));
 
