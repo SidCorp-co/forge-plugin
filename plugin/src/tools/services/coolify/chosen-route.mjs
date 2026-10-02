@@ -232,6 +232,15 @@ export const INSTANCE_NAMES = INSTANCE_ROWS.map((row) => row.name);
 export const TRACKER_SCOPE = "this project's own binding on the tracker";
 export const INSTANCE_SCOPE = "the saved instance, inside the project this checkout pins";
 
+/** What every refusal on the tracker route ends with: that route as the one answering, where that
+ *  choice was read, and the command that changes it. A refusal that names neither reads as a fact
+ *  about the deployment rather than about the route, which sends a run looking for an application
+ *  that was never gone (ISS-2207). */
+export const trackerRouteLines = () => [
+  `  route answering: ${TRACKER}, ${TRACKER_SCOPE}  ← ${coolifyRoute().from}`,
+  `  the saved instance and its own commands: ${TO_INSTANCE}`,
+];
+
 export const consentRefusal = (name, scope) =>
   `coolify ${name}: a write is refused without --yes, and it would go to ${scope}.\n`
   + `  see it first: forge coolify ${name} --dry-run`;

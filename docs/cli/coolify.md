@@ -24,6 +24,14 @@ and they are refused where every other capability with no route is: the transpor
 names the route it wanted so the gap is reportable to the tracker as a route rather than as a verb
 that stopped working.
 
+**Every refusal on the tracker route of a name either route serves names that route, where the
+choice was read, and the command that changes it**, and so does an empty listing there, beside the
+`[]` it still prints. A word neither route has is refused as unknown and offered no switch, which
+would answer nothing. A project
+bound to nothing answers every call with a true sentence about its bindings, and read without the
+route each one reads as a fact about the deployment: an empty listing as an application that is
+gone, which sends a run looking for it rather than at the route.
+
 **One is held back by a judgement rather than by a missing route.** A rollback names an image tag,
 and the listing that tag has to be chosen from does not answer for a healthy binding. Serving the
 write without the read would mean asking a caller for a value nothing here can list, against a route
