@@ -143,6 +143,8 @@ test("a value the key does not take names no master and is a miss", async () => 
   assert.match(run.stdout, /^\[ miss \] drained by\s+`drainedBy` is `qa-mastre`, which is no master that drains developed/mu,
     run.stdout);
   assert.match(run.stdout, /it takes dispatcher or qa-master/u, "the refusal names the values it takes");
+  assert.match(run.stdout, new RegExp(`^\\[ miss \\] drained by[^\\n]*put right[^\\n]* {2}← ${escaped(file)}$`, "mu"),
+    "and the file it is put right in, which a value the key does not take was read from");
   assert.doesNotMatch(run.stdout, /^\[ {2}ok {2}\] drained by/mu,
     "a typo that fell back to the dispatcher is the invisible failure the key exists to prevent");
 });
