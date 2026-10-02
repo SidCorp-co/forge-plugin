@@ -10,7 +10,7 @@ const OPENING = ORDER[0];
 /* Every rung between the opening one and the rung a build is entered at, that rung included: the
    records each is entered on are what the route past them owes, the statuses being the only thing
    it skips. */
-export const PASSED = ORDER.slice(1, ORDER.indexOf(BASELINE_AT) + 1);
+const PASSED = ORDER.slice(1, ORDER.indexOf(BASELINE_AT) + 1);
 
 /** The sentence under the owed line, read off the view rather than carried beside the target, so
  *  every printer of that line says it whatever it was handed. */
