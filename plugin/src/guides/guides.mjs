@@ -1,6 +1,6 @@
 /* This plugin's disposition of the tracker's own guides. The tracker serves the lifecycle rules of
    its pipeline runner, and no session under this plugin is that runner: five of the fifteen state a
-   rule the contract has replaced, four more are the runner's in part, and two it stands behind, so a
+   rule the contract has replaced, five more state one in part, and one it stands behind, so a
    passthrough hands every agent two contracts on its first read. The disposition is code and not configuration because it is this plugin's reading of the
    tracker, and a project cannot rightly turn a contradiction back on. docs/cli/the-guides.md
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
@@ -240,12 +240,21 @@ export const GUIDE_TABLE = [
   },
   {
     slug: "module-taxonomy-migration",
-    disposition: "stands",
-    why: "it is a label migration over the tracker's own API and states no rule the contract owns; the"
-      + " module attribution it switches on is injected into a pipeline agent's prompt rather than read"
-      + " by anything here, which leaves the procedure sound and its stated payoff absent",
-    replaced: [],
-    by: [],
+    disposition: "partly",
+    why: "the dry run, the two idempotency keys, creating the modules with a plain label promoted"
+      + " rather than duplicated, and leaving a conflict to a person are the tracker's and stand; its"
+      + " Pass 2 attributes each issue by a write that takes no lease, across every tagged issue of a"
+      + " project, so a run holding one of them loses its label change with nothing refused",
+    replaced: [
+      {
+        says: "Pass 2 attributes an issue by sending `forge_issues.update` its whole `labels` set over"
+          + " MCP or REST, a write that takes no lease",
+        instead: "`forge issue <ref> --set module=<name> --why <w>` sends that set under this run's own"
+          + " lease, so it is refused while another run's live lease holds the issue, and it keeps every"
+          + " other label the issue carries",
+      },
+    ],
+    by: ["forge issue"],
   },
 ];
 

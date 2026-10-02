@@ -119,9 +119,11 @@ test("nothing resolves by default", () => {
    follow whole either, and ISS-85 hides it on the same reasoning. */
 test("a list still carrying a slug the table holds is a finding", () => {
   assert.deepEqual(review().leaked, [], "the projection is what the verb prints");
-  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 9, "and the raw list is what it must not");
-  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 9);
+  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 10, "and the raw list is what it must not");
+  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 10);
   assert.equal(visibleGuides(REVIEWED).includes("memory-and-knowledge"), false, "the partly rows too");
+  assert.equal(visibleGuides(REVIEWED).includes("module-taxonomy-migration"), false,
+    "and the page whose Pass 2 writes with no lease");
 });
 
 /* The transport withholds that warning on every write, so the page that replaced its rules is the
@@ -213,7 +215,7 @@ test("the listing carries the five the plugin stands behind, under the contract 
 
 /* Exactly as an unknown slug, which is the rule: an answer that says the slug exists elsewhere is
    what makes an agent go and read it. Both dispositions, since both hide the same way now. */
-for (const slug of ["what-is-an-issue", "memory-and-knowledge"]) {
+for (const slug of ["what-is-an-issue", "memory-and-knowledge", "module-taxonomy-migration"]) {
   test(`a held slug is refused as the tracker's unknown, without asking for it: ${slug}`, async () => {
     const run = await asked(slug);
     const unknown = await asked("no-such-guide-here");
@@ -224,6 +226,20 @@ for (const slug of ["what-is-an-issue", "memory-and-knowledge"]) {
     assert.deepEqual(run.guideCalls.filter((one) => one.args.action === "get"), [], "no get for a body it hides");
   });
 }
+
+/* The page's procedure stands and one write of it does not: the header names that write, and the
+   route this CLI sends the same label set on under a lease, and no other rule of the page. Pass 1
+   is not among them, because nothing here promotes a plain label to a module. */
+test("--tracker on the module migration names Pass 2's lease-less write and the route that takes a lease", () => {
+  const header = trackerHeader(dispositionOf("module-taxonomy-migration"));
+  assert.match(header[0], /The contract replaces 1 of its rules, and instead run `forge issue`:$/u, header[0]);
+  assert.equal(header.length, 2, "the opening and the one replaced rule");
+  assert.match(header[1], /it says Pass 2 attributes an issue by sending `forge_issues\.update` its whole `labels` set over MCP or REST, a write that takes no lease/u);
+  assert.match(header[1], /instead `forge issue <ref> --set module=<name> --why <w>`/u);
+  assert.match(header[1], /refused while another run's live lease holds the issue/u);
+  assert.match(header[1], /keeps every\s+other label the issue carries/u);
+  assert.doesNotMatch(header.slice(1).join("\n"), /Pass [01]|promot|idempoten|conflict/iu, "no other rule of the page");
+});
 
 test("--tracker prints the body, under the header that says what it replaces", async () => {
   const run = await asked("what-is-an-issue", "--tracker");

@@ -130,6 +130,19 @@ test("a module the project does not define is refused before any update, listing
     "not even the lease was renewed");
 });
 
+/* The route the guide table names in place of the tracker's lease-less Pass 2 write, so the claim
+   that row makes is held here: the label set goes up only under the caller's own lease. */
+test("--set module is refused while another run's live lease holds the issue, and no label set goes up", async () => {
+  before([{ id: "l-regression", isPrimary: false }]);
+  ISSUE.sessionContext = { lease: { holder: "another-run", agent: "a-test-agent", pid: "4242",
+    renewedAt: new Date(Date.now() - 60_000).toISOString(), minutes: 60, next: "its own step", history: [] } };
+  const run = await setField("--set", "module=flow", "--why", WHY);
+  assert.notEqual(run.status, 0, `a live lease is another run's:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /another-run/u, "the refusal names whose lease it is");
+  assert.deepEqual(fieldUpdates(), [], "no label set was sent");
+  assert.deepEqual(ISSUE.labels, [{ id: "l-regression", isPrimary: false }], "and the issue keeps the set it had");
+});
+
 test("--set module beside --set complexity goes up in one field update and one correction", async () => {
   before([]);
   const run = await setField("--set", "complexity=m", "--set", "module=flow", "--why", WHY);
