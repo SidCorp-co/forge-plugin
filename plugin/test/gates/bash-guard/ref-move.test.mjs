@@ -81,6 +81,16 @@ test("a branch spelt in joined quoted fragments, or reached through a symbolic r
     "and a literal ref outside refs/heads moves no tree wherever it runs");
 });
 
+/* Git allows an apostrophe in a branch name, and a double quote keeps it: read with every quote character stripped, the ref was `refs/heads/its`, which no tree stands on, and the move was allowed (ISS-2871). */
+test("a quote another quote keeps is a character of the ref, so the branch it names is the one judged", () => {
+  const repo = shared();
+  const quoted = join(repo.room, "quoted");
+  git(repo.main, "worktree", "add", "-q", quoted, "-b", "it's");
+  const said = decide(`git update-ref "refs/heads/it's" ${repo.head(repo.side)}`, repo.side);
+  assert.equal(said.allowed, false, said.reason);
+  assert.ok(said.reason.includes(`checked out at ${quoted}`), said.reason);
+});
+
 test("a ref or commit the shell builds is refused until spelt out, and a redirect is no operand", () => {
   const repo = shared();
   const to = repo.head(repo.side);
