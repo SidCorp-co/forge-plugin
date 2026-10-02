@@ -73,7 +73,7 @@ const readTurn = (records) => {
    So the calls are read from the last one back, and one naming none of the three words that move a
    shell is passed without a walk. */
 const MOVING = /\b(?:cd|pushd|popd)\b/u;
-const movedTo = (commands, from) => {
+const endedIn = (commands, from) => {
   for (const command of [...commands].reverse()) {
     if (!MOVING.test(command)) continue;
     const text = withoutBodies(command);
@@ -92,7 +92,7 @@ const treeOf = (ev, records, shell) => {
   const newest = turnWrites(records).at(-1);
   const owned = newest ? repoRoot(newest) : null;
   if (owned) return owned;
-  const at = movedTo(shell, fallback);
+  const at = endedIn(shell, fallback);
   return at && existsSync(at) ? (repoRoot(at) ?? at) : fallback;
 };
 
