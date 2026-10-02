@@ -124,12 +124,17 @@ test("--adopt in a checkout carrying a .forge.json is refused naming the machine
 
 test("coolify pin is refused naming the machine's record", async () => {
   const at = standing();
-  /* The route that serves `pin` is this machine's choice and not a borrowed key, so the home says it. */
-  mkdirSync(join(at.home, "forge"));
-  writeFileSync(join(at.home, "forge", "config.json"), `${JSON.stringify({ coolifyRoute: "instance" })}\n`);
-  const run = await forge(at, "coolify", "pin", "--app", "some-app");
-  assert.notEqual(run.code, 0, run.stdout);
-  assert.ok(run.stderr.includes(`coolify pin: \`coolifyPin\` would be written to ${at.file}`), run.stderr);
+  /* The route that serves `pin` is this machine's choice, which the home borrows, so the machine says
+     it for this case alone. */
+  const before = readFileSync(borrowed, "utf8");
+  writeFileSync(borrowed, `${JSON.stringify({ ...JSON.parse(before), coolifyRoute: "instance" })}\n`);
+  try {
+    const run = await forge(at, "coolify", "pin", "--app", "some-app");
+    assert.notEqual(run.code, 0, run.stdout);
+    assert.ok(run.stderr.includes(`coolify pin: \`coolifyPin\` would be written to ${at.file}`), run.stderr);
+  } finally {
+    writeFileSync(borrowed, before);
+  }
 });
 
 test("a pipeline judgement that would clear the machine's drainedBy is refused before the tracker is written", async () => {

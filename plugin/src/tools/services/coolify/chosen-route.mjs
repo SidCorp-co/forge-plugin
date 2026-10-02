@@ -3,7 +3,7 @@
    decide is a precedence rule with no undo, and a name in two tables is a fall-through to a
    credential the caller did not choose. A hook loads this file, so it imports nothing that loads
    more than a table. docs/cli/coolify.md. */
-import { configPath, userConfig } from "../../../resolve/config.mjs";
+import { configSource, userConfig } from "../../../resolve/config.mjs";
 import { chosen } from "../../../resolve/settings.mjs";
 import { NO_ROUTE_KEYS } from "../../../tracker/declared/no-route.mjs";
 
@@ -186,7 +186,7 @@ const DEFAULTED = "the plugin's default, this machine having chosen neither";
  *  nothing did, that being the one this machine needs no credential of its own for; a value outside
  *  the two answers the same and is carried as `unknown`, which is what `forge doctor` names. */
 export const coolifyRoute = () =>
-  chosen(userConfig()[ROUTE_KEY], ROUTE_MODES, TRACKER, { source: configPath(), absent: DEFAULTED });
+  chosen(userConfig()[ROUTE_KEY], ROUTE_MODES, TRACKER, { source: configSource(ROUTE_KEY), absent: DEFAULTED });
 
 export const onTracker = () => coolifyRoute().value === TRACKER;
 

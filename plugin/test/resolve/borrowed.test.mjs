@@ -114,6 +114,27 @@ test("a write to an unborrowed key is saved in the run home, which then holds no
   assert.deepEqual(held, [], "the run home's config carries no borrowed key");
 });
 
+/* The route chooses which borrowed credential a call spends, so a run home reading its own answered
+   over the tracker on a machine that chose the instance, and its own write of the choice went into a
+   home thrown away at the run's end (ISS-2207). */
+test("a run home reads the machine's coolify route from the machine's file, and a write of it there is refused", () => {
+  const borrowed = machineHome({ coolifyRoute: "instance", coolify: { url: "http://127.0.0.1:1", apiToken: "machine-coolify-token-0123456789" } });
+  const home = runHome({ coolifyRoute: "tracker" });
+  const report = cli(home, borrowed, ["doctor"]);
+  const row = report.stdout.split("\n").find((line) => /\] coolify {2,}/u.test(line)) ?? "";
+  assert.match(row, new RegExp(`the saved instance {2}← ${escaped(borrowed)}`, "u"),
+    `the coolify row is the machine's choice, read from the machine's file:\n${report.stdout}${report.stderr}`);
+  const write = cli(home, borrowed, ["doctor", "--coolify-route", "tracker"]);
+  assert.equal(write.status, 1, write.stdout);
+  assert.match(write.stderr, /`coolifyRoute` is borrowed from/u, write.stderr);
+  assert.ok(write.stderr.includes(borrowed), `the refusal names the machine's file:\n${write.stderr}`);
+  assert.match(write.stderr, /from a shell that does not borrow: FORGE_BORROW_FROM= XDG_CONFIG_HOME=\S+ and the same command/u,
+    `and the command that writes it there:\n${write.stderr}`);
+  assert.equal(JSON.parse(readFileSync(join(home, "forge", "config.json"), "utf8")).coolifyRoute, "tracker",
+    "the run home's file gained nothing from the refused write");
+  assert.equal(JSON.parse(readFileSync(borrowed, "utf8")).coolifyRoute, "instance", "and the machine's choice stands");
+});
+
 test("a borrow naming no other readable config file is refused with the path and the route out", () => {
   const home = runHome({});
   const missing = join(tempRoom("borrowed-missing-"), "config.json");
