@@ -273,6 +273,12 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
   SHALL be stored against the identifier the review gave together with what the mechanism got wrong,
   and every check of whether a finding survived SHALL read it as accepted, because the change the
   finding asked for was still owed and only its account of why was not.
+- **AC-06-5-14** · Rev: 1 · Proof: plugin/test/codex/gateway/recheck-of.test.mjs "a recheck given only the issue key answers the plan's consult, sending the plan's body as it reads now"
+  WHEN a re-verification names issues and neither a file, a review to answer nor a base THEN the CLI
+  SHALL answer the newest review in the checkout that named any of those issues, over the files that
+  review recorded, and WHERE no such review recorded a file it SHALL refuse naming the issues and a
+  command that carries a file, because a plan reviewed under its issue lies outside the checkout and
+  no other ground selects it.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 

@@ -3,6 +3,7 @@ import { fail } from "../resolve/settings.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { bundle, changedAgainst, ignoredIn, locate, wouldSit } from "./codex-api.mjs";
 import { absentFrom, goneFrom, goneSaid } from "./codex-state.mjs";
+import { answered } from "./codex-log.mjs";
 
 /* Absence alone cannot tell a typo from a tracked deletion, so HEAD is asked, once for the set; what is then shown of the deletion stays `shownOf`'s question, two answers to it being why the named route refused a whole consult the tree-derived route ran, and a git that would not answer refuses nothing, as `goneFrom` does not (ISS-1880). */
 const deletedRel = (root, one, changed) => {
@@ -138,15 +139,32 @@ export const reviewSet = ({ root, named, keys = [], base, readFromParting, held,
 /** `--of` with no path beside it: the files that consult recorded are on the record, so a commit
  *  that emptied the turn record costs no retyped list. Kept as recorded rather than read as named
  *  paths, so a deletion committed since stays for the anchor's diff to show (ISS-378). */
-export const pinnedSet = (pinned) => {
-  const files = pinned.files ?? [];
-  if (!files.length) fail(`codex: consult ${pinned.id} recorded no file, so a recheck of it has no set of its own. Name the files it is about.`);
+const recordedSet = (one, why, empty) => {
+  const files = one.files ?? [];
+  if (!files.length) fail(`codex: consult ${one.id} recorded no file, so a recheck of it has no set of its own. ${empty}`);
   return {
     rels: [...files],
-    offered: (many) => `${many} ${pinned.id} recorded`,
-    said: [`a recheck of ${pinned.id}, so the ${files.length} file(s) it recorded travel.`],
+    offered: (many) => `${many} ${one.id} recorded`,
+    said: [`${why}, so the ${files.length} file(s) it recorded travel.`],
     gone: [],
   };
+};
+
+const pinnedSet = (pinned) => recordedSet(pinned, `a recheck of ${pinned.id}`, "Name the files it is about.");
+
+/** A recheck naming issues and no file: the set of the newest consult here that named any of them,
+ *  since a plan's consult names its issue and records a path outside the checkout no turn record
+ *  holds. `keyed` is that consult, which the recheck answers whatever newer consult shares its files (ISS-2358). */
+const keyedSet = (entries, root, keys) => {
+  const one = answered(entries).findLast((row) => row.root === root && (row.issues ?? []).some((key) => keys.includes(key)));
+  const named = keys.join(" ");
+  if (!one) {
+    fail(`codex: no answered consult in this checkout named ${keys.join(", ")}, so a recheck has no findings of theirs to answer.\n`
+      + `Do this: \`echo "<what you were doing>" | forge codex consult --recheck ${named} <file>...\` — the files those findings are on.`);
+  }
+  const set = recordedSet(one, `a recheck of ${one.id}, the last consult here to name ${keys.join(", ")}`,
+    `Do this: \`echo "<what you were doing>" | forge codex consult ${named} <file>...\` — a fresh read of the files you mean.`);
+  return { ...set, keyed: one };
 };
 
 /** Each file a consult was sent, digested as it reads at the recheck answering it: the recheck's own
@@ -156,4 +174,13 @@ export const digestsAt = (root, judged, sent = []) => {
   const rest = (judged?.sent ?? []).map((row) => row.rel).filter((rel) => !now.has(rel));
   for (const part of bundle(root, rest)) if (part.sha) now.set(part.rel, part.sha);
   return now;
+};
+
+/** The set one consult is about: the pinned consult's, else, for a recheck naming issues and no file
+ *  or base, the keyed one's, else `reviewSet`'s. `later` is read only on that last route, so a pinned
+ *  recheck reads neither the turn record nor the pattern. */
+export const consultSet = (entries, pinned, given, later) => {
+  if (pinned && !given.named.length) return pinnedSet(pinned);
+  if (given.recheck && !pinned && !given.named.length && !given.base && given.keys.length) return keyedSet(entries, given.root, given.keys);
+  return reviewSet({ ...given, ...later() });
 };

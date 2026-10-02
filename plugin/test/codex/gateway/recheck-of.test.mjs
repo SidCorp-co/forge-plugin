@@ -1,7 +1,8 @@
 /* A recheck pinned by `--of`: the consult it answers is named by id, and with no file named the set
    that consult recorded is what travels, so a recheck taken after a commit emptied the turn record
-   needs no copy of that set typed back (ISS-378). End to end, because the set, the consult and the
-   verdict are settled across the verb and no unit reaches all three. */
+   needs no copy of that set typed back (ISS-378). Named by an issue key instead, it answers the last
+   consult naming that key (ISS-2358). End to end, because the set, the consult and the verdict are
+   settled across the verb and no unit reaches all three. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
@@ -200,8 +201,87 @@ test("a recheck given --of keeps a recorded file whose deletion was committed si
   assert.deepEqual(recheckRow(home).files, ["judged.txt", "other.txt"], "the deletion travelled as the anchor's diff shows it");
 });
 
-test("consult -h lists --of", async () => {
+test("consult -h lists --of, and what a recheck given only keys sends", async () => {
   const room = checkout();
   const { said } = await forge(room, seeded([]), ["consult", "-h"]);
   assert.match(said, /^ {2}--of <id> {6}the answered consult a recheck pins by id, in any worktree of this repository;/mu);
+  assert.match(said, /^ {17}with only ISS-nn named, the files the last consult naming them recorded travel$/mu);
+});
+
+/* The issue's own five steps: Phase 3 keeps the plan outside the checkout and consults it by the issue's
+   key, and the recheck that proves a fix landed named the key alone and found nothing to answer. */
+test("a recheck given only the issue key answers the plan's consult, sending the plan's body as it reads now", async () => {
+  const room = checkout();
+  const plan = join(tempRoom("codex-recheck-key-scratch-"), "plan.md");
+  writeFileSync(plan, "# Plan\n\n1. Step one serves nothing.\n");
+  const home = seeded([]);
+  const raised = await forge(room, home, ["consult", "ISS-1", "--send", "bodies", plan, "--rounds", "1"],
+    "CODEX: 1 findings\n- **F1 — New — major:** `plan.md:3` — step one names no criterion.");
+  assert.equal(raised.status, 0, raised.said);
+  const consulted = rowsOf(home).find((one) => one.kind === "consult");
+  writeFileSync(plan, "# Plan\n\n1. Step one serves criterion 1.\n");
+  const { status, said, shown } = await forge(room, home, ["consult", "ISS-1", "--recheck", "--rounds", "1"]);
+  assert.equal(status, 0, said);
+  assert.ok(said.includes(`a recheck of ${consulted.id}, the last consult here to name ISS-1, so the 1 file(s) it recorded travel.`), said);
+  assert.ok(shown.includes("Step one serves criterion 1."), "the plan's body as it reads now reached the reviewer");
+  assert.match(shown, /Your earlier finding F1 still stands/u, "and the finding anchored on its bare name went with it");
+  const verdict = rowsOf(home).find((one) => one.kind === "verdict");
+  assert.deepEqual([verdict?.of, verdict?.kept], [consulted.id, ["F1"]], "the ruling is recorded against the plan's consult");
+});
+
+test("a recheck given several keys answers the newest consult naming any of them", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const on = (file) => `CODEX: 1 findings\n- **F1 — New — major:** \`${file}:1\` — the line is wrong.`;
+  const home = seeded([
+    consultRow(root, { id: "c1", issues: ["ISS-1"], files: ["other.txt"], reply: on("other.txt") }),
+    consultRow(root, { id: "c2", at: "2026-09-26T11:00:00.000Z", issues: ["ISS-2"], files: ["judged.txt"], reply: FINDING }),
+    consultRow(root, { id: "c3", at: "2026-09-26T12:00:00.000Z", issues: ["ISS-9"], files: ["other.txt"], reply: on("other.txt") }),
+  ]);
+  const { status, said } = await forge(room, home, ["consult", "ISS-1", "ISS-2", "--recheck", "--rounds", "1"]);
+  assert.equal(status, 0, said);
+  assert.match(said, /a recheck of c2, the last consult here to name ISS-1, ISS-2/u, "c3 is newer and names neither key");
+  assert.deepEqual(recheckRow(home).files, ["judged.txt"]);
+  assert.equal(rowsOf(home).find((one) => one.kind === "verdict")?.of, "c2");
+});
+
+test("a recheck given only a key answers the consult naming it where a newer one shares its file", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const home = seeded([consultRow(root, { id: "c1", issues: ["ISS-1"], files: ["judged.txt"], reply: FINDING }),
+    consultRow(root, { id: "c2", at: "2026-09-26T11:00:00.000Z", files: ["judged.txt"], reply: "CODEX: 0 findings" })]);
+  const { status, said, shown } = await forge(room, home, ["consult", "ISS-1", "--recheck", "--rounds", "1"]);
+  assert.equal(status, 0, said);
+  assert.match(shown, /Your earlier finding F1 still stands/u, "c1's finding went to the reviewer, where c2 has none to send");
+  assert.equal(rowsOf(home).find((one) => one.kind === "verdict")?.of, "c1", "the ruling is c1's, the consult the key named");
+});
+
+test("a recheck given only keys is refused, with a route carrying a file, where no consult here answers for them", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const home = seeded([consultRow(root, { id: "c1", files: ["judged.txt"], reply: FINDING }),
+    consultRow(root, { id: "c2", issues: ["ISS-8"], files: [], reply: FINDING })]);
+  const none = await forge(room, home, ["consult", "ISS-7", "--recheck", "--rounds", "1"]);
+  assert.notEqual(none.status, 0);
+  assert.match(none.said, /no answered consult in this checkout named ISS-7, so a recheck has no findings of theirs to answer/u);
+  assert.match(none.said, /forge codex consult --recheck ISS-7 <file>\.\.\.`/u);
+  const fileless = await forge(room, home, ["consult", "ISS-8", "--recheck", "--rounds", "1"]);
+  assert.notEqual(fileless.status, 0);
+  assert.match(fileless.said, /consult c2 recorded no file, so a recheck of it has no set of its own/u);
+  assert.match(fileless.said, /forge codex consult ISS-8 <file>\.\.\.`/u);
+  assert.equal(rowsOf(home).length, 2, "neither refusal logged a consult");
+});
+
+test("a recheck naming a file, --of or --diff beside a key selects as it did without the key", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const rows = [consultRow(root, { id: "c0", files: ["judged.txt"], reply: FINDING }),
+    consultRow(root, { id: "c1", at: "2026-09-26T11:00:00.000Z", issues: ["ISS-1"], files: ["other.txt"],
+      reply: "CODEX: 1 findings\n- **F1 — New — major:** `other.txt:1` — the line is wrong." })];
+  for (const argv of [["judged.txt"], ["--of", "c0"], ["--diff"]]) {
+    const home = seeded(rows, { root, files: ["judged.txt"] });
+    const { status, said } = await forge(room, home, ["consult", "ISS-1", "--recheck", "--rounds", "1", ...argv]);
+    assert.equal(status, 0, `${argv.join(" ")}: ${said}`);
+    assert.deepEqual(recheckRow(home).files, ["judged.txt"], `${argv.join(" ")} kept its own ground, not c1's set`);
+  }
 });
