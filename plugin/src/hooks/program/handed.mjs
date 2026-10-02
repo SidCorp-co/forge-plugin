@@ -11,7 +11,7 @@ const NODE = anyOf([String.raw`child_process`, String.raw`execSync`, String.raw`
 const SPAWNS = anyOf([PYTHON.source, NODE.source]);
 /* perl, ruby and php have no names of their own here, so each keeps every name: one refusal on doubt. */
 const ESCAPES = { python: PYTHON, node: NODE };
-export const spawnsIn = (runner) => ESCAPES[LANGUAGE_OF[runner]] ?? SPAWNS;
+const spawnsIn = (runner) => ESCAPES[LANGUAGE_OF[runner]] ?? SPAWNS;
 
 /* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
    read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
