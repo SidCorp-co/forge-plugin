@@ -70,6 +70,9 @@ So `open` is next only where the project declares that state's mode quiet; every
 including a mode this CLI does not know and a configuration that did not read — the route is
 `in_progress`, owing every record of each rung it passes, because the run asking already holds the
 issue that pipeline would be started on, and the route that costs statuses starts nothing.
-`plugin/src/flow/route/aboard.mjs` is where the reading is made, and the owed line names it.
+`plugin/src/flow/route/aboard.mjs` is where the reading is made, and the owed line names it. The
+record write that completes that route makes the move, as at any rung, on the kinds of every rung it
+passes. A route ending at `open` or `dropped` passes none, so `forge advance` stays the move there,
+as it is for a disposition at `confirmed`.
 
 The order the owed line and a served guide part are printed in, which is ISS-968's.
