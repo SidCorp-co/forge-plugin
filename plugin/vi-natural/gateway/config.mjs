@@ -20,6 +20,9 @@ export const DEFAULT_EFFORT = "low";
 // one string; at `low`, 3 of 3 kept it.
 export const EFFORT_BY_VERB = { review: "high" };
 
+/* The one shape a key is printed in: enough to tell two keys apart, too little to use one. */
+export const fingerprint = (key) => `${key.slice(0, 6)}\u2026${key.slice(-4)}`;
+
 export function findUp(filename, start) {
   let current = resolve(start ?? process.cwd());
   for (;;) {

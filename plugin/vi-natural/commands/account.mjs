@@ -4,7 +4,7 @@ import { createInterface } from "node:readline/promises";
 import { existsSync } from "node:fs";
 
 import { CliError, err } from "../util.mjs";
-import { CONFIG_PATH, IN_STORE, save } from "../gateway/config.mjs";
+import { CONFIG_PATH, IN_STORE, fingerprint, save } from "../gateway/config.mjs";
 import { machineValue } from "../../src/resolve/machine/stores.mjs";
 import { translateItems } from "../gateway/engine.mjs";
 
@@ -65,7 +65,7 @@ export async function doctor(args, makeClient) {
     process.stdout.write("api key     : MISSING\n");
     throw error;
   }
-  process.stdout.write(`api key     : ${key.slice(0, 6)}…${key.slice(-4)}  \u2190 ${config.from("apiKey")}\n`);
+  process.stdout.write(`api key     : ${fingerprint(key)}  \u2190 ${config.from("apiKey")}\n`);
 
   const glossary = config.glossary();
   process.stdout.write(`glossary    : ${config.glossaryPath ?? "none found"} (${glossary.size} term(s))\n`);

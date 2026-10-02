@@ -9,7 +9,7 @@ import { DATA_FIELD } from "../../src/wire/sse.mjs";
 import { Client } from "../../vi-natural/gateway/client.mjs";
 import { translateItems } from "../../vi-natural/gateway/engine.mjs";
 
-const CONFIG = { baseUrl: "https://gateway.example/v1", apiKey: "k", model: "m", effort: null };
+const CONFIG = { baseUrl: "https://gateway.example/v1", apiKey: "k", model: "m", effort: null, from: () => "the test's own config" };
 /* One key whose translation drops a placeholder, one that invents one, one that is clean. */
 const SOURCES = { a: "Save {count} items", b: "Open {name}", c: "Delete" };
 
@@ -27,9 +27,9 @@ const answering = (t, status, body) => {
 };
 
 test("a status in no retry table costs one request", async (t) => {
-  const calls = answering(t, 401, "invalid api key");
-  await assert.rejects(new Client(CONFIG).chat("system", "user"), /gateway returned 401/u);
-  assert.deepEqual(calls, [401], "asked once, not three times over three seconds");
+  const calls = answering(t, 403, "forbidden");
+  await assert.rejects(new Client(CONFIG).chat("system", "user"), /gateway returned 403/u);
+  assert.deepEqual(calls, [403], "asked once, not three times over three seconds");
 });
 
 /* Cloudflare's own, in no OpenAI error table: a 524 once aborted a run instead of retrying. */
