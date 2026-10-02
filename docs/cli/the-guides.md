@@ -1,4 +1,4 @@
-# The guides are the tracker's, and nine of them are not this flow's
+# The guides are the tracker's, and ten of them are not this flow's
 
 Read guide by guide — twelve on 2026-09-04 and the fifteen served on 2026-09-21 — five
 state a rule this plugin's contract has replaced whole, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
@@ -19,7 +19,8 @@ contradiction is not a thing a project can rightly turn back on.
 `issue-dependencies` are the tracker's in one part and the runner's in the other, and for two
 releases the verb served them whole under a first line withdrawing the part that does not apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
 follow whole, so neither is listed, and `answering-as-the-assistant` and `records-and-comments` are
-the same shape read later. `stands` is the third word, and it withholds nothing: a read that found no
+the same shape read later, as is `module-taxonomy-migration`, whose Pass 2 alone writes with no
+lease. `stands` is the third word, and it withholds nothing: a read that found no
 rule for the contract to replace has to land somewhere, or a page nobody has judged and a page judged
 sound sit in the table identically, and the clause behind that verdict has no other home. Absence of a
 row is not the unread state — what `forge doctor` notes is a slug the list beside the table does not
