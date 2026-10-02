@@ -29,14 +29,12 @@ import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lea
 import { judgeOwed } from "./lease/judged.mjs";
 import { movedHere } from "./lease/after-move.mjs";
 import { movedBySaid } from "./earned/moved-by.mjs";
+import { VOID_FLAG, typedAgain, voidRoute, voidsChecked, voidsInto } from "./park/void-questions.mjs";
 
 export const USAGE = [
   usageOf("advance"),
   "The next status, its entry criteria checked against the issue's record alone, and either the",
-  "transition or every missing item beside the one command that supplies it. What git knew is never",
-  "asked again: it was written onto the issue at the step that knew it. What the project is, is read",
-  "where it is needed — the release policy, and whether it keeps a requirements tree the issue owes",
-  "a clause of.",
+  "transition or every missing item beside the one command that supplies it.",
   "",
   "  --owed                  what the next status is owed, moving nothing, and the line last left;",
   "                          beside --park or --drop, what that park sends and posts, or what",
@@ -55,6 +53,8 @@ export const USAGE = [
   "                          tracker's work-evidence check still holds developed and testing to a",
   "                          branch `forge claim <ref> --pushed` captured, or to the commit on the",
   "                          base branch a merged mark carries",
+  `  ${VOID_FLAG} <why>  beside a move to closed or dropped, voids each open question with`,
+  "                          this sentence in the same write",
   "",
   `Only a move to ${ANSWERED_BY_COMMENT} takes --needs, which is what would settle the question and what`,
   "the tracker mints the answer box from; --why is why the work stopped. Neither is ever written from",
@@ -108,11 +108,13 @@ const closeIsARelease = (view, status, ref) => (status !== "closed" || view.issu
 export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log, heard = null, by = null } = {}) => {
   if (!soft) await renew(view.documentId, ref, next);
   /* Asked softly whoever the caller is, so the refusal is worded here rather than printed bare by the transport: a refusal that makes a claim about this issue's status is read as true by a run that has nothing beside it to compare, and both statuses it could be compared against are values this call is already holding (ISS-1422). */
+  const voided = view.voids ? { voidQuestions: view.voids } : {};
   const answer = await write("forge_issues",
-    { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, true);
+    { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}), ...voided } }, undefined, true);
   /* Soft is for the caller that has already written something: it words its own refusal around the record it left behind, so nothing is framed for it here. */
   if (answer?.refused) {
-    if (soft) return answer.refused;
+    const route = voidRoute(answer.refused, ref, view.again);
+    if (soft) return `${answer.refused}${route && `\n${route.trim()}`}`;
     /* A dropped write is not a rejected one, and only the transport knows which it was: told the issue is still where it was, a run would act on a move that may have landed. */
     if (afterRefused(answer.refused).unknown) {
       refuse(`${ref} on ${aimSaid()} read ${view.issue.status} and was asked for ${status}, and the move neither `
@@ -122,7 +124,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     /* The project too: a move refused on another project's row read as a success when the refusal
        named none (ISS-2910), and the tracker's words below stay whole and last. */
     refuse(`${ref} on ${aimSaid()} is ${view.issue.status} and the move to ${status} was refused, so `
-      + `nothing was written.${closeIsARelease(view, status, ref)} What refused it:\n${answer.refused}`);
+      + `nothing was written.${closeIsARelease(view, status, ref)}${route} What refused it:\n${answer.refused}`);
   }
   /* The write landed, so what comes back is the tracker's answer and not a failure to detect: the
      branch above is what catches one that did not take. Outside the landing it still refuses. */
@@ -501,7 +503,7 @@ const readFlags = (rest, ref) => {
   const asked = given.next !== undefined;
   if (asked && given.owed) refuse("--owed moves nothing and --next is a write. Ask for one.");
   if (asked && writes) refuse("a park says what it waits for in --why; the claim that resumes it sets --next.");
-  return { ...given, evidence, needs: needsChecked(given, ref), next: nextLine(given.next) };
+  return { ...given, evidence, needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
 };
 
 const run = async (argv, readAs, lifts) => {
@@ -509,7 +511,7 @@ const run = async (argv, readAs, lifts) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${firstLine(USAGE)}`);
   const given = readFlags(rest, ref);
-  const view = { ...(await viewOf(ref, given)), lifts };
+  const view = { ...(await viewOf(ref, given)), lifts, voids: given.voids, again: typedAgain(argv) };
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
   const judging = given.owed ? judgeOwed(ref, view.issue) : null;
@@ -526,6 +528,7 @@ const run = async (argv, readAs, lifts) => {
   }
   const { next, missing, resumed, park: routed, undecided = false } = targetOf(view, ref);
   checkTarget(given.to, next, view, ref);
+  voidsInto(view, next, routed);
   if (missing.length) {
     shortfall(ref, view, { next, missing, undecided });
     /* Asked what is owed, the answer is the answer; asked to move, the same list is a refusal. */
