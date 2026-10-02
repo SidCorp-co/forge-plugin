@@ -8,37 +8,17 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { answered, callHook, cleanRepo, escaped, pathed, projectRecord, projectRoom, tempRoom, typed }
-  from "../../fixtures.mjs";
+import { cleanRepo, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
-import { OWN } from "../../fixtures/own-project.mjs";
 import { assertRouteFirst } from "../../fixtures/route-first.mjs";
-import { AT, REPO, decided, freshWorktree, git, heldAndSilent, judgedStop, prompt, settled, silentSince, spawnIn,
-  stopStanding, transcript, used, written } from "./fixture.mjs";
-
-const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
+import { AT, HOOK, REPO, decided, freshWorktree, git, handed, heldAndSilent, judgedStop, prompt, room, settled,
+  silentSince, spawnIn, stopStanding, stopped, subagentStop, transcript, used, written } from "./fixture.mjs";
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
 
 /* A probe that means to be refused says 1300 characters of comment, because that is what a
    comment costs now. On one line, which is how the same file passed the ceiling before it. */
 const DENSE = `// ${"the unit is what the comment says and never the column its author wrapped it at. ".repeat(20)}\nexport const x = 1;\n`;
-
-/* Both roots are the child's too, for the same two reasons. A case that does not stand the child
-   somewhere else stands it in this checkout, so the home carries this checkout's record as well. */
-const room = (log) => {
-  const home = tempRoom("stop-check-");
-  mkdirSync(join(home, "forge"), { recursive: true });
-  writeFileSync(join(home, "forge", "codex-log.jsonl"), log ?? "");
-  projectRecord(REPO, home, OWN);
-  return { ...process.env, HOME: home, XDG_CONFIG_HOME: home, TMPDIR: tempRoom("stop-check-tmp-") };
-};
-
-const stopped = (env, event) => {
-  const held = callHook(HOOK, { hook_event_name: "Stop", session_id: randomUUID(), ...event }, env);
-  assert.equal(held.status, 0, held.stderr);
-  return answered(held);
-};
 
 const consult = (root) => JSON.stringify({
   kind: "consult",
@@ -391,16 +371,6 @@ test("FORGE_STOP_DISABLE stands the whole gate down", () => {
   assert.equal(stopped(env, { transcript_path: transcript(), cwd }), null);
 });
 
-/* A subagent's stop names the parent's transcript and cwd in the common fields and its own transcript
-   beside them; the first record of its own is the prompt it was handed, which nobody typed. For weeks
-   the gate read the parent's and passed every delegated run (ISS-530). */
-const handed = (...records) => written([
-  { type: "user", timestamp: AT, message: { content: "Work ISS-1." } }, ...records,
-]);
-const subagentStop = (event) => ({
-  hook_event_name: "SubagentStop", agent_type: "forge:runner", transcript_path: transcript(), ...event,
-});
-
 test("a subagent's stop is judged on the subagent's own transcript, not the parent's", () => {
   const file = join(REPO, "plugin", "test", `stop-agent-${randomUUID().slice(0, 8)}.mjs`);
   writeFileSync(file, DENSE);
@@ -416,37 +386,6 @@ test("a subagent's stop is judged on the subagent's own transcript, not the pare
   } finally {
     rmSync(file, { force: true });
   }
-});
-
-test("the tree a subagent stood in is the one its commands moved to, whatever the event's cwd says", () => {
-  const checkout = cleanRepo();
-  writeFileSync(join(checkout, "one.txt"), "committed\n");
-  git(checkout, "add", "one.txt");
-  git(checkout, "commit", "-qm", "base");
-  const wt = join(tempRoom("stop-check-agent-wt-"), "wt");
-  assert.equal(git(checkout, "worktree", "add", "-q", "-b", "side", wt).status, 0);
-  writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
-  /* One command per line, as a run types them; the `cd` not first, and a second `cd` relative to it. */
-  mkdirSync(join(wt, "sub"));
-  const own = handed(used("Bash", { command: `export FORGE_SESSION_ID=iss-1-abc\ncd ${pathed(wt)}\ncd sub && git status --short` }));
-  const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: checkout }));
-  assert.match(said?.reason ?? "", /is a worktree this turn left with tracked changes/u, said?.reason);
-  assert.match(said.reason, new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"),
-    "the worktree, not the checkout the event names");
-  /* ISS-1717: a body is the stdin of the command it stands on, and a `cd` it spells moves nothing. */
-  const bodied = handed(used("Bash", { command: `cd ${pathed(wt)}
-cat > /tmp/b.md <<'X'
-cd /no-such-tree
-X` }));
-  assert.match(stopped(room(), subagentStop({ agent_transcript_path: bodied, cwd: checkout }))?.reason ?? "",
-    new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"), "a cd inside a here-document body");
-  /* A space escaped rather than quoted is one word to the shell, and to the reading every gate shares. */
-  const spaced = join(tempRoom("stop-check-agent-sp-"), "w t");
-  assert.equal(git(checkout, "worktree", "add", "-q", "-b", "spaced", spaced).status, 0);
-  writeFileSync(join(spaced, "one.txt"), "changed here too\n");
-  const escapedCd = handed(used("Bash", { command: `cd ${spaced.replaceAll(" ", "\\ ")} && git status --short` }));
-  assert.match(stopped(room(), subagentStop({ agent_transcript_path: escapedCd, cwd: checkout }))?.reason ?? "",
-    new RegExp(`git -C ${escaped(typed(spaced))} add -u`, "u"), "a cd to a path with an escaped space");
 });
 
 test("the lease a subagent is judged on is the id its own commands exported", () => {

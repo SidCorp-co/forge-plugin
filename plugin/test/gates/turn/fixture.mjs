@@ -3,10 +3,10 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanRepo, git, jsonlOf, projectRecord, tempRoom } from "../../fixtures.mjs";
+import { answered, callHook, cleanRepo, git, jsonlOf, projectRecord, tempRoom } from "../../fixtures.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
 export const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, "");
@@ -38,6 +38,34 @@ export const written = (records) => {
 };
 
 export { git };
+
+export const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
+
+/* Both roots are the child's too, for the same two reasons. A case that does not stand the child
+   somewhere else stands it in this checkout, so the home carries this checkout's record as well. */
+export const room = (log) => {
+  const home = tempRoom("stop-check-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), log ?? "");
+  projectRecord(REPO, home, OWN);
+  return { ...process.env, HOME: home, XDG_CONFIG_HOME: home, TMPDIR: tempRoom("stop-check-tmp-") };
+};
+
+export const stopped = (env, event) => {
+  const held = callHook(HOOK, { hook_event_name: "Stop", session_id: randomUUID(), ...event }, env);
+  assert.equal(held.status, 0, held.stderr);
+  return answered(held);
+};
+
+/* A subagent's stop names the parent's transcript and cwd in the common fields and its own transcript
+   beside them; the first record of its own is the prompt it was handed, which nobody typed. For weeks
+   the gate read the parent's and passed every delegated run (ISS-530). */
+export const handed = (...records) => written([
+  { type: "user", timestamp: AT, message: { content: "Work ISS-1." } }, ...records,
+]);
+export const subagentStop = (event) => ({
+  hook_event_name: "SubagentStop", agent_type: "forge:runner", transcript_path: transcript(), ...event,
+});
 
 /* A worktree cut fresh for each case, so one case's leftover process is never read by another's. */
 export const freshWorktree = () => {

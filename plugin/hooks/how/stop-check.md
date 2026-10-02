@@ -18,5 +18,7 @@ in the environment it started in.
 
 Not judged: the handback's prose, whether tests pass, an issue another session holds, a file
 written through the shell, a lease taken in a turn that never names the issue again, a tree dirty
-before the turn began, a subagent this plugin did not dispatch, another run's process, unless
-in one of those windows it ran a command of this turn's whole, or the words of one.
+before the turn began, a subagent this plugin did not dispatch, a tree a subagent's shell moved to
+that the command's text does not name — `cd -`, a bare `cd`, a `$` in the path — whose stop is
+judged where the event stood instead, another run's process, unless in one of those windows it ran
+a command of this turn's whole, or the words of one.
