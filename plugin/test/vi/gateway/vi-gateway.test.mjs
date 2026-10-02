@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { DATA_FIELD } from "../../src/wire/sse.mjs";
+import { DATA_FIELD } from "../../../src/wire/sse.mjs";
 
-import { Client } from "../../vi-natural/gateway/client.mjs";
-import { translateItems } from "../../vi-natural/gateway/engine.mjs";
+import { Client } from "../../../vi-natural/gateway/client.mjs";
+import { translateItems } from "../../../vi-natural/gateway/engine.mjs";
 
 const CONFIG = { baseUrl: "https://gateway.example/v1", apiKey: "k", model: "m", effort: null, from: () => "the test's own config" };
 /* One key whose translation drops a placeholder, one that invents one, one that is clean. */
@@ -122,7 +122,7 @@ test("the field name is the shared one and the width is not counted here", async
   assert.equal(await new Client(CONFIG).chat("system", "user"), "ok");
   assert.equal(DATA_FIELD, "data:", "the constant this client slices by, declared in plugin/src/wire/sse.mjs");
   assert.equal(
-    readFileSync(new URL("../../vi-natural/gateway/client.mjs", import.meta.url), "utf8").includes("slice(5)"),
+    readFileSync(new URL("../../../vi-natural/gateway/client.mjs", import.meta.url), "utf8").includes("slice(5)"),
     false,
     "the width is derived from DATA_FIELD, not typed",
   );

@@ -8,11 +8,11 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { ranAsync, tempRoom } from "../fixtures.mjs";
-import { Client } from "../../vi-natural/gateway/client.mjs";
-import { translateItems } from "../../vi-natural/gateway/engine.mjs";
+import { ranAsync, tempRoom } from "../../fixtures.mjs";
+import { Client } from "../../../vi-natural/gateway/client.mjs";
+import { translateItems } from "../../../vi-natural/gateway/engine.mjs";
 
-const BUNDLED = fileURLToPath(new URL("../../bin/vi-natural", import.meta.url));
+const BUNDLED = fileURLToPath(new URL("../../../bin/vi-natural", import.meta.url));
 const KEY = "sm_95aSECRETVALUE10cd";
 const PRINTED = "sm_95a…10cd";
 const REFUSED = JSON.stringify({ error: { message: `Invalid API key: ${KEY}`, type: "authentication_error" } });
