@@ -404,6 +404,16 @@ for.
   WHERE a plan answers every required declaration and leaves the user-facing outcome unanswered, the
   CLI SHALL not refuse `approved` for it, because only a change with such a result has a reason to
   answer it.
+- **AC-05-7-15** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "a promotion the project deploys on its own waits for the release batch, and names the record that closes it"
+  IF the project promotes to a live branch whose production deploys on its own THEN the CLI SHALL
+  refuse `closed`, SHALL name the release batch rather than a person as what the rung waits for, and
+  SHALL name the record of a promotion made outside a batch as the write that closes it, because the
+  deploy moves no code onto the live branch and the batch that does is cut only for an issue still
+  resting at the rung.
+- **AC-05-7-16** · Rev: 1 · Proof: plugin/test/flow/record/report-policy.test.mjs "on a promotion the project deploys on its own, the report hands the close to the release batch"
+  WHERE the project promotes to a live branch whose production deploys on its own, the CLI SHALL
+  report the release batch as what the deploying rung owes and SHALL not report the close as the
+  run's, because a run told to close takes the issue out of the release that would ship it.
 
 ### UC-05-8 — A record too large to read whole
 

@@ -3,14 +3,14 @@
    writes nothing, and a verb reading it out of the record verb's module would load that verb's tree.
    docs/cli/record.md. */
 import { commentPage, cutIn, cutLine } from "../../../tracker/comments.mjs";
-import { personOwedForRelease, releaseAnswer, releasePolicy } from "../../../tracker/project-config.mjs";
+import { BY_BATCH, releaseAnswer, releaseOwedOf, releasePolicy } from "../../../tracker/project-config.mjs";
 import { pluginFilingLine } from "../../../tracker/filing/plugin-defect.mjs";
 import { workLines } from "../../../guides/phases.mjs";
 import { CLOSES_FROM, SHAPES, heldSaid, planTyped, unwrap } from "../../machine.mjs";
 import { FIELD as SESSION } from "../../lease.mjs";
 import { worklogLines, worklogOf, workNow } from "../../worklog.mjs";
 import { batchLine, batchLive } from "../../lease/batch.mjs";
-import { CLOSES_AT, setForm } from "../../earned.mjs";
+import { closeForm } from "../../earned.mjs";
 import { assemble, printRecord } from "../page.mjs";
 import { criteriaLines } from "../fields.mjs";
 import { issueOf } from "./posting.mjs";
@@ -93,11 +93,20 @@ export const recordReport = async (reference) => {
   const policy = await releasePolicy();
   console.log(`\nRelease policy  ${releaseAnswer(policy)}`);
   /* Where a run stops, and the route it leaves for whoever picks the issue up from here: a set, which is the only move out of this rung the entry check `earned.mjs` holds for `closed` admits (ISS-105, ISS-1147, ISS-1918). The act itself is named once, on the line above, and this one says only whose the next move is. */
-  if (body.status === CLOSES_FROM) {
-    console.log(personOwedForRelease(policy)
-      ? `Owed: the release, which is a person's. The line above says whose act it is and what would `
-        + `end the rung, so this run ends at ${CLOSES_FROM} and the close is theirs, made once it is `
-        + `out and with the release named:\n  ${setForm(reference, CLOSES_AT)}`
-      : `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
+  if (body.status === CLOSES_FROM) console.log(closingSaid(releaseOwedOf(policy), reference));
+};
+
+/* The release batch closes what it promotes, so the line for it names no close of this run's: only
+   the record of a promotion somebody made outside a batch, which closes the issue the same way. */
+const closingSaid = (held, reference) => {
+  if (!held) return `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`;
+  if (held.by === BY_BATCH) {
+    return `Owed: the release, which is the release batch's and not a person's. The line above says `
+      + `what it waits for, so this run ends at ${CLOSES_FROM} and the close is the batch's, made by `
+      + `the release that promotes the change and naming it. A promotion made outside a batch is `
+      + `recorded instead, and the record closes the issue:\n  ${closeForm(reference, held)}`;
   }
+  return `Owed: the release, which is a person's. The line above says whose act it is and what would `
+    + `end the rung, so this run ends at ${CLOSES_FROM} and the close is theirs, made once it is `
+    + `out and with the release named:\n  ${closeForm(reference, held)}`;
 };

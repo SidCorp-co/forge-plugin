@@ -1,6 +1,7 @@
-/* The landing under a project whose release owes a person nothing: it walks the last rung too and
-   the issue reaches `closed` untouched. Its own file because the policy is read once per process
-   and every other case here runs a branch deploying nothing, so they prove the other ceiling. */
+/* The landing under a project that promotes to its live branch and deploys production on its own:
+   nobody owes the release an act, and the release is still owed, by the batch the tracker cuts only
+   for an issue resting at `awaiting_release`. So the walk stops there and names the batch, and the
+   close is the batch's (ISS-2409). Its own file because the policy is read once per process. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -10,12 +11,12 @@ import {
 } from "./fixture.mjs";
 import { ranAsync } from "../../../../plugin/test/fixtures.mjs";
 
-/* Before the first landing, the policy being memoised: the publication is the project's own. Not a
-   promotion, whose automatic deploy still leaves the move onto the live branch to the release batch:
-   that landing rests at the rung, `promote-release.test.mjs` (ISS-2409). */
+/* Before the first landing, the policy being memoised: production deploys on its own, and the move
+   onto it is the release batch's. */
 state.config = {
   baseBranch: BASE,
-  releaseModel: "publish",
+  releaseModel: "promote",
+  liveBranch: "production",
   pipelineConfig: { autoProdDeploy: true },
 };
 
@@ -74,28 +75,26 @@ const verified = (at) => {
   noteShown(LANDER, UUID, comments(UUID));
 };
 
-test("a release the project makes without a person is closed by the landing that made it", async () => {
+test("a promotion the project deploys on its own rests at the rung for the release batch", async () => {
   const { work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base), earned: earning(head) });
-  /* It stops at the judging rung first: the fixture's verification cites the head, not what shipped. */
   const first = await ran([KEY], work);
   assert.equal(landing().state, "records-owed", `the mark is up and the deploying rung is not earned:\n${first}`);
   const landed = markedCommit(comments(UUID));
   assert.ok(landed, `the mark names the sha this landing pushed:\n${first}`);
   verified(landed);
-  /* The turn the landing handed over, ended by the run it named, which walks the rungs its records
-     earn itself: the lander's turn it hands back to held nothing else (ISS-2690). */
   const took = await asBuilder(["claim", KEY, "--take"]);
   assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
   const back = await asBuilder(["claim", KEY, "--recorded"]);
   const said = `${back.stdout}${back.stderr}`;
   assert.equal(back.status, 0, said);
-  assert.equal(issue().status, "closed", `the hand-back took the last rung itself:\n${said}`);
+  assert.equal(issue().status, "awaiting_release", `the walk took the close the release batch is owed:\n${said}`);
+  assert.deepEqual(moves(), ["developed", "testing", "awaiting_release"],
+    `the walk stops at the rung and no further:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
-  assert.deepEqual(moves(), ["developed", "testing", "awaiting_release", "closed"],
-    `one move per rung of the tail, in the table's order, and no jump:\n${said}`);
-  assert.match(said, /no landing call is owed/u, `so the hand-back says none is:\n${said}`);
-  assert.doesNotMatch(said, new RegExp(`forge claim ${KEY} --take`, "u"), `and names no take of a landing that is over:\n${said}`);
-  assert.doesNotMatch(said, /rests at `awaiting_release`/u,
-    `nothing is left for a person, so nothing says a person is owed:\n${said}`);
+  assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the promotion from ${BASE} to production is the release batch's`, "u"),
+    `the rest names the batch it waits for:\n${said}`);
+  assert.match(said, new RegExp(`forge release-batch record ${KEY} --commit `, "u"),
+    `and the record that closes it after a promotion outside a batch:\n${said}`);
+  assert.doesNotMatch(said, /--set closed/u, `a person's set is offered where nobody owes one:\n${said}`);
 });

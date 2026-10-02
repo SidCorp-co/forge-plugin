@@ -17,7 +17,7 @@ import { LANDING_DONE, LANDING_MARKED, LANDING_QA_OWED, LANDING_RECONCILED,
 import { OWED_TO_QA, restsSaid, walkEarned } from "../../../plugin/src/flow/landing/statuses.mjs";
 import { judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
 import { TRACKER } from "../../../plugin/src/stats/marks/attempts.mjs";
-import { personOwedForRelease, releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
+import { releaseOwedOf, releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
 export { DEVELOPED, JUDGED, OWED_TO_QA } from "../../../plugin/src/flow/landing/statuses.mjs";
 
@@ -203,7 +203,7 @@ const handRecordsBack = async (member, rung) => {
 
 export const statusStep = async (one) => {
   const { at, ctx: { route, judgement, policy } } = one;
-  const owed = personOwedForRelease(policy);
+  const owed = releaseOwedOf(policy);
   await perMemberOwed(at, async (member) => {
     const { key, documentId, landing } = member;
     const out = await walkEarned({ key, documentId, landing, route, judgement, owed, intended: intendedOf(at), ask: asked });

@@ -36,7 +36,7 @@ import { assemble } from "./record/page.mjs";
 import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } from "./park/read.mjs";
 
 export { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince };
-import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
+import { BY_BATCH, judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
@@ -164,6 +164,18 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
+
+/** The one write that closes an issue the release policy holds at the closing rung, by whose act it
+ *  waits for: a person sets the status once they have released it, while a promotion that is the
+ *  release batch's is recorded when it was made outside a batch, and that record is what closes the
+ *  issue and names the release it followed. */
+export const closeForm = (ref, held) => (held.by === BY_BATCH
+  ? `forge release-batch record ${ref} --commit <the sha the live branch serves> `
+    + `--account "<how it was promoted, and why not by a batch>"`
+  : setForm(ref, CLOSES_AT));
+
+/** Whose act a held closing rung waits for, in the words every reader of it prints. */
+export const whoseRelease = (held) => (held.by === BY_BATCH ? "the release batch's" : "a person's");
 
 /* One shape, four answers: absent, rewritten, present but not a whole payload, or there to be read.
    A rewritten record is named as itself rather than as the fields it appears to lack: the write
@@ -577,8 +589,9 @@ const branchOwed = (view, ref) => (view.work?.branch ? [] : [need(
 const releaseOwed = (view, ref) => {
   const held = releaseOwedOf(view.release);
   return held ? [need(
-    `the release is a person's and nothing here says they have made it: ${held.owed} — ${held.clears}`,
-    setForm(ref, CLOSES_AT),
+    `the release is ${whoseRelease(held)} and nothing here says ${held.by === BY_BATCH ? "it has been made"
+      : "they have made it"}: ${held.owed} — ${held.clears}`,
+    closeForm(ref, held),
   )] : [];
 };
 

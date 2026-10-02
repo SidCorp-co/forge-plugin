@@ -13,7 +13,9 @@ import {
   judgementOf,
   landingRoute,
   leakRefusal,
-  personOwedForRelease,
+  BY_BATCH,
+  BY_PERSON,
+  releaseOwedOf,
   projectRows,
   releaseConflict,
   releaseFrom,
@@ -432,6 +434,9 @@ test("the report prints both lines, the route with the source it was read from",
     new RegExp(`^where the merge sits: before-merge {2}\u2190 ${escaped(RECORD)}$`, "mu"));
 });
 
+/* The sentence half of the answer, which is what both callers print. */
+const personOwedForRelease = (policy) => releaseOwedOf(policy)?.owed ?? null;
+
 /* What a person still owes before an issue at the deploying rung may close, over every shape a
    policy has. Read as the reason and not as a flag, because both callers print it: the landing says
    why it stopped at the rung and the report says why the close is not the run's (ISS-1147). */
@@ -444,8 +449,9 @@ test("what a person owes before the close is the policy's own answer, and silenc
   assert.equal(model("none", true), null, "and the automatic-deploy flag decides nothing there either");
   assert.equal(model("publish", true), null,
     "a publication the project makes without being asked was the release, and nobody owes an act");
-  assert.equal(model("promote", true, { liveBranch: "master" }), null,
-    "and so does a promotion the project makes without being asked");
+  assert.match(model("promote", true, { liveBranch: "master" }),
+    /^the promotion from staging to master is the release batch's: production deploys master on its own and moves nothing onto it/u,
+    "a promotion whose deploy is automatic still owes the release that moves the change onto the live branch (ISS-2409)");
   assert.match(model("publish", false),
     /^the release is an act on this project's live deploy binding, and nothing here says it has been made$/u,
     "a publication nothing automates is somebody's act, and the live branch decides none of it");
@@ -486,7 +492,8 @@ test("every reader of a read policy answers one way per model and flag", () => {
     ["none", false, { route: "after-merge", waits: false, line: REVIEWED, owed: null }],
     ["publish", true, { route: "before-merge", waits: false, line: REVIEWED, owed: null }],
     ["publish", false, { route: "after-merge", waits: true, line: null, owed: /live deploy binding/u }],
-    ["promote", true, { route: "after-merge", waits: false, line: ["promotion", "to live, automatic"], owed: null }],
+    ["promote", true, { route: "after-merge", waits: false, line: ["promotion", "to live, automatic"],
+      owed: /^the promotion from master to live is the release batch's/u }],
     ["promote", false, { route: "after-merge", waits: false,
       line: ["promotion", "to live, a person's, owed"], owed: /^the promotion from master to live is a person's$/u }],
   ];
@@ -558,4 +565,20 @@ test("the derived line on a verification is the model's own, and the rung's conf
   assert.equal(releaseConflict(releaseFrom({ baseBranch: "master", releaseModel: "none",
     pipelineConfig: { autoProdDeploy: true } })), null,
   "and a project whose model is read carries no conflict to report");
+});
+
+/* Whose act the rung waits for is the answer's own field, read by every caller that words the rest or
+   the refusal, so a promote project whose deploy is automatic is told apart from one owing a person
+   without reading the sentence (ISS-2409). */
+test("the answer says whether the closing rung waits for a person or for the release batch", () => {
+  const by = (releaseModel, autoProdDeploy) => releaseOwedOf(releaseFrom({ baseBranch: "staging",
+    releaseModel, liveBranch: "master", pipelineConfig: { autoProdDeploy } }))?.by ?? null;
+  assert.equal(by("promote", true), BY_BATCH, "an automatic deploy under promotion waits for the batch");
+  assert.equal(by("promote", false), BY_PERSON, "a promotion nothing automates waits for a person");
+  assert.equal(by("publish", false), BY_PERSON, "a publication nothing automates waits for a person");
+  assert.equal(by("publish", true), null, "an automatic publication waits for nobody");
+  assert.equal(by("none", true), null, "and no release step waits for nobody");
+  assert.equal(releaseOwedOf(null).by, BY_PERSON, "a checkout naming no project waits for a person");
+  assert.equal(releaseOwedOf(unreadFrom("Forge answered 503")).by, BY_PERSON,
+    "and so does a configuration that did not read");
 });

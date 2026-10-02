@@ -28,10 +28,11 @@ green with a valid identity says nothing about the authentication, the assets, t
 configuration a user meets on the other side. What that observation found, and the route back if it
 found the change broken, go in the report with the identity they were taken at.
 
-**Then close it, in this phase**, where the project's release owes a person nothing. A run that
-stops on `awaiting_release` under a release that has already happened has handed a person the one
-keystroke this workflow exists to take over. Where a person still owes that release an act, the
-issue rests at the rung and the close is theirs. Which of the two this project is, is the release
+**Then close it, in this phase**, where the project's release owes nothing more. A run that stops on
+`awaiting_release` under a release that has already happened has handed a person the one keystroke
+this workflow exists to take over. Where a person still owes that release an act, the issue rests at
+the rung and the close is theirs; where the release is the batch that promotes the change, the issue
+rests there for that batch, which makes the close. Which of the three this project is, is the release
 policy's answer and never the ship mode's, and `forge resume ISS-nn --report` prints it there. Where
 the contract hands the issue to somebody instead, a park or a reopen, it stays where it is and the
 report says which.
@@ -67,8 +68,9 @@ says which happened.
 
 **The judging is this run's and the statuses past it are the landing's**, because the release they
 answer for does not exist while this phase runs. The landing walks as far as the record earns and
-the project's release allows: to `closed` where that release owes a person nothing, and to
-`awaiting_release` where a person still owes it an act, which is a stop by decision and not a gap.
+the project's release allows: to `closed` where that release owes nothing more, and to
+`awaiting_release` where a person still owes it an act or the batch that promotes the change has yet
+to make it, which is a stop by decision and not a gap.
 So leave the Phase 6 note on the issue, which is what those last rungs are earned by, and let the
 report say the statuses are the landing's rather than reporting them moved — and say which state
 the issue is left in, because a reader of the rung alone cannot tell a change that is live from one
