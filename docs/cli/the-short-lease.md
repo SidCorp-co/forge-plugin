@@ -100,19 +100,30 @@ stopped at a status, and a dispatcher that never held the work is not one of the
 **Three conditions keep it to the dispatch**, each a case where a live lease is work rather than a
 hold. The landing checkpoint governs wherever its state names a turn, so an issue-bound id cannot
 walk a builder past the state that handed its turn to somebody else — those turns are `--take`'s.
-The take reaches only the statuses a run is dispatched at, so a lease at `in_progress` or past it
-reads as a run at work and refuses as it always did. And a holder whose own id names the same issue
-is the run the dispatch already reached, which is the wave of several runners the lease exists for.
+Past the statuses a run is first dispatched at, the holder has to be provably the session that
+sent this run, because a lease there is otherwise a run at work. And a holder whose own id names the
+same issue is the run the dispatch already reached, which is the wave of several runners the lease
+exists for.
+
+**A resume is dispatched past those statuses, so the proof there is the process and not the
+status.** A run sent to take up an issue at `in_progress`, or to finish one at `developed`, met its
+dispatcher's lease exactly as the triage runner did, and the status alone sent it to wait out the
+lapse — two hours, once (ISS-2205). Every agent a session dispatches runs inside that session's host
+process, and the lease records the process and the host it was written from. So a lease written from
+the claiming call's own process on its own host, by a holder whose id names no run, is the session
+that dispatched this call: inside one process the only holder that is no run is the one that sent the
+others, and an id naming this issue is minted only by a dispatch to it. A dispatcher in another
+process proves nothing this way and is still refused; the refusal names the give-back it can make.
 
 **A refusal that stands names which of the four stopped this caller**, and prints the line the holder
 left. One route for all four would send three of them back to the refusal they have just read, which
 costs the turn a guess — this repository's own rule about what a refusal owes.
 
-**Past the dispatch statuses the status is named before the id**, because there no id takes the
-lease, and a sentence about the tree an id comes from sends the caller to a route that cannot work.
-At the rungs a verdict is written from, the caller is most often a judge, and the tree it was sent to
-brief is one its own method says it does not hold. So the refusal there names the judge's write
-instead, which takes no lease (ISS-1798).
+**Past the dispatch statuses the holder is named before the id**, because where the holder is not
+this call's dispatcher no id takes the lease, and a sentence about the tree an id comes from sends
+the caller to a route that cannot work. At the rungs a verdict is written from, the caller is most
+often a judge, and the tree it was sent to brief is one its own method says it does not hold. So the
+refusal there names the judge's write instead, which takes no lease (ISS-1798).
 
 **What this does not do is read the holder's prose.** The route first built matched the sentence
 above inside the holder's `--next` line, and the review retired it: the note the incident was filed
