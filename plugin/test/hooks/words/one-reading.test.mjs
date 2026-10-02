@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { shellText } from "../../../hooks/_hook.mjs";
+import { shellText, writtenPaths } from "../../../hooks/_hook.mjs";
 import { redirectsIn, unseenNames, wordsOf } from "../../../src/hooks/shell-spans.mjs";
 
 const NBSP = " ";
@@ -16,6 +16,15 @@ test("an escaped quote inside a double-quoted redirect target is part of the tar
 test("a redirect's target and a command's operand end at the same characters, the shell's blanks", () => {
   assert.deepEqual(wordsOf(`cp a b${NBSP}c.md`).map(([word]) => word), ["cp", "a", `b${NBSP}c.md`]);
   assert.deepEqual(redirectsIn(`echo > b${NBSP}c.md`).map((one) => one.target), [`b${NBSP}c.md`]);
+});
+
+/* The name walk ends a bare word where the operand reading does, or the operand struck as a source
+   comes back as a fragment of the destination, and a write is claimed on a file nobody named. */
+test("a destination holding a no-break space is named whole, and no fragment of it is a target", () => {
+  for (const unplaceable of ["strike", "keep"]) {
+    assert.deepEqual(writtenPaths(`cp src.md protected.md${NBSP}actual.md`, "/w", "md", { unplaceable }).map((one) => one.token),
+      [`protected.md${NBSP}actual.md`], unplaceable);
+  }
 });
 
 test("a quoted word a shell reads as a flag is no write target, as the struck reading already takes it", () => {

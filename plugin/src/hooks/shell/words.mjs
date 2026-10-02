@@ -4,10 +4,11 @@ import { quoting } from "./walk.mjs";
 
 /* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash — one the shell keeps, since one it removes makes the character behind it a character of the word, which is `worded`'s to read. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
 const OPERATOR = /[;&|()<>$\\]/u;
-/* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one, but in a span `spacedName` reads as a path. The space because a quoted span carrying one is a sentence or a list far more often, and `touch 'a.md b.md'` names two; the quotes because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
-const ALWAYS = /[\s'"`]/u;
 /** The shell's three blanks, the characters between two of its words: a pattern splicing a word reading between separators takes these and never `\s`, whose `\r` and no-break space the word holds, or each run of them could be cut two ways and the cuts multiply. */
 export const BLANKS = String.raw`[ \t\n]`;
+/* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one, but in a span `spacedName` reads as a path. Outside a quote the whitespace is the shell's three blanks, since that is where the shell itself ends a word and a no-break space there is a character of the name the write lands on; under one it is any, the space because a quoted span carrying one is a sentence or a list far more often, and `touch 'a.md b.md'` names two; the quotes because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
+const ALWAYS = /[\s'"`]/u;
+const BARE = new RegExp(String.raw`${BLANKS}|['"\x60]`, "u");
 /** A word that names a shell, at any path, through `busybox` or not: the one answer for a `-c` body, a heredoc on stdin and the caller's own language. Non-capturing, as are the two below, being spliced into readers' patterns. */
 export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh`;
 
@@ -29,7 +30,7 @@ const BRACKET = /[()]/u;
 /** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. Under a single quote it is spending no bracket, so `'a/p(1)/b.md'` is one word and one name rather than a tail that resolves somewhere else entirely.
  *  Both readings of such a span and not one, since nothing in the text says which it is: `'a/p(1)/b.md'` is a path and `'system(q(touch),q(b.md))'` is code, and a caller that must not miss a target is handed the whole word for the first and the brackets still ending words for the second. So nothing a name was read from before this is read from less. `joined` is which words the first reading made, and `namesOf` takes a name from one only where the name is the whole of it: the claim such a word makes is that the span is one filename, and a `'…/(report.md).txt'` whose extension stops short of its end is refuting that claim rather than spelling a file. */
 const cuts = (mark) => !mark
-  || ALWAYS.test(mark.one)
+  || (mark.under === " " ? BARE : ALWAYS).test(mark.one)
   || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
 /* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` on either side of a span is the one this leaves out: in front it closes a substitution the shell joins to that span as often as a subshell around it, and behind it closes a substitution the span was computed *inside* — `> $(printf '%s.txt' 'a(1).md')` writes the `.txt` and the span is an argument of the printf. Which of the two a `)` is, this reader does not ask the walk — the walk places a substitution only where a double quote opened it — so the span beside one keeps the reading it had. */
 const OPENED = /[ \t\n;&|<>(]/u;
@@ -96,7 +97,7 @@ const ends = (marks, n) => {
   if (under === "\\") return false;
   if (under === "'") return /[`";&|<>\\]/u.test(one);
   if (one === "$") return !expands(marks, n);
-  if (under === " ") return /[\s;&|<>()`\\'"]/u.test(one);
+  if (under === " ") return BARE.test(one) || /[;&|<>()\\]/u.test(one);
   return under === '"' ? /[`'";&|<>\\]/u.test(one) : true;
 };
 /* The expansion itself, from its `$`: through the brace that closes a `${…}`, or the name or the one character a parameter is spelt with. A brace counts only where it stands under the quoting the `$` did, so a quoted or an escaped `}` in a default closes nothing. Every character inside the braces is the expansion's and no pattern's, so it is read as literal and a `}` there is no substitution the name begins behind. */
