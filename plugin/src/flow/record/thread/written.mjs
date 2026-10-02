@@ -1,6 +1,5 @@
-/* A rung's writes, sent in the one order in which a refusal costs nothing already written: the
-   uploads, the fields in one update, the questions, then the comments. Apart from `record.mjs`, which
-   prepares and judges every payload before anything here is sent. docs/cli/record.md. */
+/* What goes up once `record.mjs` has prepared and judged every payload of a rung, sent in the order
+   its `writeRung` states: apart because the verb's own file is the judging. docs/cli/record.md. */
 import { fail } from "../../../resolve/settings.mjs";
 import { refuse } from "../../../refusal.mjs";
 import { SHAPES } from "../../machine.mjs";
