@@ -142,31 +142,28 @@ conventions.
 
 Rev: 1 · Actors: agent · Enforces: BR-14
 
-A block reaches the model as a string, and a model answering in kind can write each line break or
-tab inside it as its escape, so a table comes back as one line. An escape is the model's encoding
-only where the block it answers held none of that kind as text; where the source does hold one, its
-count is accounted for as a placeholder's is (UC-13-2). This covers the document route; a user
-interface string keeps UC-13-2 alone.
+A document's line breaks and tabs are its layout, and a model may answer either as its escape.
+Why it does, and why the source block decides which reading an escape takes, is argued where the
+route decodes them, in `plugin/vi-natural/format/doc.mjs`. An escape the source holds as text is
+accounted for as a placeholder is (UC-13-2). This covers the document route; a user interface string
+keeps UC-13-2 alone.
 
 - **AC-13-7-1** · Rev: 1 · Proof: plugin/test/vi/line-breaks.test.mjs "a table and a list whose line breaks the model escaped are written one row and one item a line" · Source: plugin/vi-natural/format/doc.mjs
   WHEN a document block whose source holds no escaped line break as text is answered with one THEN
-  the route SHALL write it as a line break, because there the escape is the model's encoding and
-  never its wording.
+  the route SHALL write it as a line break.
 - **AC-13-7-2** · Rev: 1 · Proof: plugin/test/vi/line-breaks.test.mjs "a tab the model escaped is written back as a tab" · Source: plugin/vi-natural/format/doc.mjs
   WHEN a document block whose source holds no escaped tab as text is answered with one THEN the
-  route SHALL write it as a tab, because there the escape is the model's encoding and never its
-  wording.
+  route SHALL write it as a tab.
 - **AC-13-7-3** · Rev: 1 · Proof: plugin/test/vi/line-breaks.test.mjs "a block holding either escape as text whose answer adds, drops or swaps one is left in English and named" · Source: plugin/vi-natural/format/doc.mjs
   IF a document block's source holds an escaped line break or tab as text and the answer's count of
   that escape differs from the source's THEN the route SHALL leave the block untranslated, SHALL
-  name the block with both counts of each escape that moved, and SHALL exit 2, because which of the
-  answer's escapes is the text cannot be told.
+  name the block with both counts of each escape that moved, and SHALL exit 2.
 - **AC-13-7-4** · Rev: 1 · Proof: plugin/test/vi/line-breaks.test.mjs "a block holding one escape kind or both as text whose answer keeps exactly those is written with them" · Source: plugin/vi-natural/format/doc.mjs
   WHEN a document block's answer keeps the count of each escape its source holds as text THEN the
-  route SHALL write those escapes as text, because there they are the author's wording.
+  route SHALL write those escapes as text.
 - **AC-13-7-5** · Rev: 1 · Proof: plugin/test/vi/line-breaks.test.mjs "every prose field but the title, holding a table and a list, posts through the write boundary with the lines it was sent" · Source: plugin/vi-natural/format/doc.mjs
   WHEN a tracker write translates a prose field as a document THEN the field SHALL be posted with
-  the lines it was sent, because each such field is a document block's text.
+  the lines it was sent.
 
 ## The way back
 
