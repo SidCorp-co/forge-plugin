@@ -16,6 +16,7 @@ const RUNNERS = [
   "sh -c", "/bin/sh -c", "/usr/bin/bash -lc", "ash -c", "busybox sh -c", "/bin/busybox ash -c",
   "eval", "bash -o pipefail -c", "bash -eo pipefail -c", "bash +O extglob -c", "bash --norc -c", "bash -ce",
   "zsh -c", "dash -c", "ksh -c",
+  "env -S", "env -iS", "env -u X -S", "env -C /tmp -S", "env --split-string", "env --split", "env --s", "/usr/bin/env -S",
 ];
 const BODY = "true; forge close ISS-1";
 
@@ -98,4 +99,46 @@ test("an interpreter's options before a heredoc are read as they were", () => {
   }
   const data = writtenPaths(shellWrites(fed("python3 -X dev -", write)), "/w").map((one) => one.token);
   assert.ok(!data.includes("/m/memory/x.md"), `python3 -X dev -: ${JSON.stringify(data)}`);
+});
+
+/* env hands its `-S` string to the command it splits, and attached to the option there is no blank
+   before it, so the separator is the runner's own and `env -S'…'` is a runner too (ISS-3035). */
+const ATTACHED = [`env -S'${BODY}'`, `env -S"${BODY}"`, `env -iS'${BODY}'`, `env --split-string='${BODY}'`, `env --split="${BODY}"`];
+
+test("env's split string attached to its option is opened by both readings", () => {
+  for (const command of ATTACHED) {
+    assert.equal(classOf("Bash", shellOf(command)), "forge close", `the corpus reads ${command}'s string as run`);
+    assert.match(unwrapped(command), /; true; forge close ISS-1 ;$/u, `the gates put ${command}'s string in command position`);
+  }
+});
+
+/* A `-S` some other option took as its value, one past the `--` that ends env's options, and one whose
+   string is the next word are no split string of the quote behind them, which is an argument. */
+test("a -S that env does not read as the quote's split string opens neither reading", () => {
+  for (const command of [`env -u -S '${BODY}'`, `env -- -S '${BODY}'`, `env -S -i '${BODY}'`, `env -Su '${BODY}'`, `env --unset '${BODY}'`]) {
+    assert.notEqual(classOf("Bash", shellOf(command)), "forge close", command);
+    assert.equal(unwrapped(command), command, command);
+  }
+});
+
+test("env's \\_ is the blank between two arguments of its split string, and a doubled backslash is not one", () => {
+  assert.match(unwrapped(String.raw`env -S 'touch\_notes.md'`), /; touch notes\.md ;$/u);
+  assert.match(unwrapped(String.raw`env -S 'touch\\_notes.md'`), /; touch\\\\_notes\.md ;$/u);
+  assert.match(unwrapped(String.raw`sh -c 'touch\_notes.md'`), /; touch\\_notes\.md ;$/u, "a shell's -c body has no such escape");
+  assert.match(unwrapped(String.raw`env -S "touch\\_notes.md"`), /; touch notes\.md ;$/u, "a double quote hands env one backslash of two");
+  assert.match(unwrapped(String.raw`env -S "touch\\\\_notes.md"`), /; touch\\\\_notes\.md ;$/u, "and two of four");
+});
+
+const refused = (command) => answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME))
+  ?.hookSpecificOutput?.permissionDecision === "deny";
+
+test("a write env runs from its split string is refused by learning-gate, and one only quoted is not", () => {
+  const write = `touch ${MEMORY}/trap.md`;
+  for (const runner of ["env -S ", "env -S", "env -iS ", "env -u X -S ", "env --split-string=", "env --split-string ", "env --split=", "/usr/bin/env -S "]) {
+    for (const quote of ["'", '"']) assert.equal(refused(`${runner}${quote}${write}${quote}`), true, `${runner}${quote}`);
+  }
+  assert.equal(refused(`env -S ${write}`), true, "unquoted, the -S string is the verb itself");
+  assert.equal(refused(String.raw`env -S 'touch\_` + `${MEMORY}/trap.md'`), true, "split at env's own blank");
+  assert.equal(refused(`echo "env -S '${write}'"`), false, "a mention in an argument");
+  assert.equal(refused(`git commit -m "ran env -S '${write}'" -- ${MEMORY}/a.md`), false, "a mention in a commit message");
 });

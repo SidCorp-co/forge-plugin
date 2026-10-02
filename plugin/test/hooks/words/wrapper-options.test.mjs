@@ -73,3 +73,23 @@ test("an option run whose words hold a carriage return or a no-break space is re
     assert.equal(run.stdout, "false", `${JSON.stringify(text.slice(0, 20))}: ${run.signal ?? run.stderr}`);
   }
 });
+
+/* env's options stand in front of its split string inside the runner pattern, which every quote of a
+   command is asked against: a run of them before a quote that is no split string is read in one way,
+   and a `-S` of `ls` is asked from its own command's env, not from the start of the text. */
+test("a run of env's options before a quoted argument is answered by both runner readings", () => {
+  const hook = new URL("../../../hooks/_hook.mjs", import.meta.url).href;
+  const corpus = new URL("../../../src/stats/corpus/transcripts.mjs", import.meta.url).href;
+  for (const [reader, name, text] of [
+    [hook, "unwrapped", `env ${"--unset=x ".repeat(40)}'x'`],
+    [hook, "unwrapped", `env ${"-u 'a' ".repeat(40)}-i 'x'`],
+    [corpus, "shellOf", `env ${"--unset=x ".repeat(40)}'x'`],
+    [corpus, "shellOf", `env ${"-u 'a' ".repeat(40)}-i 'x'`],
+    [corpus, "shellOf", `env true; ${"ls -S 'x'; ".repeat(10000)}`],
+    [corpus, "shellOf", `env ${"ls -S 'x' ".repeat(10000)}`],
+  ]) {
+    const asked = `import(${JSON.stringify(reader)}).then((m) => process.stdout.write(String(m[${JSON.stringify(name)}](process.argv[1]) === process.argv[1])))`;
+    const run = spawnSync(process.execPath, ["-e", asked, text], { encoding: "utf8", timeout: patience(5000) });
+    assert.equal(run.stdout, "true", `${name} ${JSON.stringify(text.slice(0, 20))}: ${run.signal ?? run.stderr}`);
+  }
+});

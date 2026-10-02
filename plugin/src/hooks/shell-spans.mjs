@@ -6,24 +6,19 @@ import { basename, isAbsolute, resolve } from "node:path";
 import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
-import { optionsAfter, wraps } from "./shell/wrappers.mjs";
-import { BLANKS, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
+import { SPLITS, optionsAfter, wraps } from "./shell/wrappers.mjs";
+import { BLANKS, shellWord } from "./shell/word.mjs";
+import { RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
-export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
+export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, placeable, shellWord, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
 /* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from these two lists, so a word gained here is gained by all of them. `exec` is kept off the wrappers: as the argument of `docker`, `podman` or `kubectl` it names a subcommand whose command runs inside a container, so it counts only where a start stands before it (ISS-2877). */
 const WRAPPING = ["sudo", "command", "nohup", "time", "env"];
 const PREFIXES = `${WRAPPING.join("|")}|${KEYWORDS}|exec`;
-/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader — a quote or a backslash among those only where nothing closes or follows it. A blank is the shell's own three, so a no-break space is a character of the word as it is to a shell. `substituted` adds a closed `$(…)` and a closed backtick pair as one arm each, blanks and all, for a reader whose word may be computed. One reading, so a case a shell word gains is gained by every reader that splits one. A lone quote's test stands in front of the quote rather than behind it, so a reader that splices this into a lookbehind, which matches right to left, tests the character before it scans the rest of the text from every position. Each character opens exactly one of the arms, since a pattern spliced in front of something that can fail — a wrapper option's value before a verb that is no write — tries every way of cutting the word it could, and `'a'` read as a run or as three characters doubled the ways with each quoted part. */
-const DOUBLED = String.raw`(?:[^"\\]|\\[\s\S])*`;
-const SUBSTITUTED = String.raw`\$\([^)]*\)|(?!\$\([^)]*\))\$|\x60[^\x60]*\x60|(?!\x60[^\x60]*\x60)\x60|`;
-export const shellWord = (stops, { substituted = false } = {}) =>
-  String.raw`(?:${substituted ? SUBSTITUTED : ""}'[^']*'|(?!'[^']*')'|"${DOUBLED}"|(?!"${DOUBLED}")"|\\[\s\S]|\\$|[^${BLANKS.slice(1, -1)}'"\\${substituted ? "$\\x60" : ""}${stops}])+`;
-/* A wrapper's word with the options it may carry before its command, by its row of the wrappers' table; the value one of them takes is a shell word. */
-const OPTION_VALUE = shellWord(";&|()<>");
-const wrapped = (name) => `${name}${optionsAfter(name, OPTION_VALUE)}`;
+/* A wrapper's word with the options it may carry before its command, by its row of the wrappers' table. */
+const wrapped = (name) => `${name}${optionsAfter(name)}`;
 const AHEAD = String.raw`(?:[({]\s*|\b(?:${KEYWORDS})\s+)*`;
 /* The words that move a shell, one list every reading of a move is built from. */
 const MOVERS = "cd|pushd|popd";
@@ -379,7 +374,7 @@ const aimsOf = (program, operands, stage, said, target) => {
 
 /* Behind each prefix word the wrappers' table names, the options that wrapper carries, read by the pattern `STARTS` is built from. */
 const OPTIONED = new Map(PREFIXES.split("|").filter(wraps)
-  .map((name) => [name, new RegExp(`^${optionsAfter(name, OPTION_VALUE)}`, "u")]));
+  .map((name) => [name, new RegExp(`^${optionsAfter(name)}`, "u")]));
 
 /* The index of a stage's verb among its words as written: past what runs before it, and past the whole words a wrapper's options cover. */
 const verbAt = (raw) => {
