@@ -151,6 +151,11 @@ const UNQUOTED = String.raw`(?:!==?\s*${APOSTROPHE}|${APOSTROPHE}\s*!==?)`;
 const QUOTE_STATE = [new RegExp(String.raw`${ESCAPES}[^\n]*${UNQUOTED}|${UNQUOTED}[^\n]*${ESCAPES}`, "u")];
 /* `vendor/` is a copy of `packages/code-quality/`, which a plugin directory cannot import from. */
 const VENDORED = ["plugin/hooks/vendor/lint-edited-file.mjs"];
+/* A row is a body's bytes, so two bodies sharing only a name are out of its reach: they share no
+   bytes, which is how a second `movedTo` stood in the stop gate unseen (ISS-1840). A row on names
+   would fire on every module-private name another module also exports, some six hundred under
+   `plugin/`, nearly all answering a question of their own; which question a name asks is the
+   reviewer's to read. */
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
