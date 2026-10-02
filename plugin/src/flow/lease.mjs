@@ -1,7 +1,7 @@
 /* The issue's session field read as a lease. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
 import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
-import { TAKEABLE } from "../rank/weights.mjs";
+import { DRAFT, TAKEABLE } from "../rank/weights.mjs";
 import {
   UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere, workUnder,
 } from "./lease/holder.mjs";
@@ -231,16 +231,28 @@ const workBlock = (work) => {
     : "  the worklog names no branch, so the record says nothing about where the work went.\n";
 };
 
-/* Refused for the reason the fresh lapse is, on the other shape the same loss takes: nobody is named here, so the caller cannot ask the holder and the flag says instead that no run is on the issue. The work lines are handed in rather than read, because the opening that prints them runs past this refusal and the branch is the whole of what a second arrival needs to take the work up rather than cut it again (ISS-1183, ISS-1184); `null` is the caller that read no worklog at all, which is the payload write that meets this state, and a block it could not fill is left out rather than filled with a silence it cannot vouch for (ISS-1260). */
-export const unheldRefusal = (ref, status, { next = null, work = null } = {}) =>
+const pastHolds = (ref, status) =>
   `${ref} is at \`${status}\`, past the statuses a run is dispatched at, and its lease field holds `
   + `no lease. Every write that carries an issue this far renews one, so the field is a run that `
   + `died, a write that erased it, or a filing sent straight to this status — and not an issue `
-  + `waiting to be started, which is the one reading that would have the work built twice.`
+  + `waiting to be started, which is the one reading that would have the work built twice.`;
+
+/* The reporter's status is before the dispatch statuses rather than past them, so the empty field
+   there is first of all a filing nothing has started; a write that erased a lease reads the same,
+   which is why the claim still asks rather than takes (ISS-3093). */
+const draftHolds = (ref) =>
+  `${ref} is at \`${DRAFT}\`, the reporter's status before the ones a run is dispatched at, and its `
+  + `lease field holds no lease. That is how a filing stands before anything has started it, and `
+  + `also how a field a write erased reads, so the claim asks which this is rather than taking it.`;
+
+/* Refused for the reason the fresh lapse is, on the other shape the same loss takes: nobody is named here, so the caller cannot ask the holder and the flag says instead that no run is on the issue. The work lines are handed in rather than read, because the opening that prints them runs past this refusal and the branch is the whole of what a second arrival needs to take the work up rather than cut it again (ISS-1183, ISS-1184); `null` is the caller that read no worklog at all, which is the payload write that meets this state, and a block it could not fill is left out rather than filled with a silence it cannot vouch for (ISS-1260). */
+export const unheldRefusal = (ref, status, { next = null, work = null } = {}) =>
+  `${status === DRAFT ? draftHolds(ref) : pastHolds(ref, status)}`
   + `${next ? ` The step the last write named: ${next}.` : ""}\n`
   + workBlock(work)
   + `Where you have established no run is on it, say so and the claim history keeps that it was `
-  + `taken this way:\n  forge claim ${ref} ${UNHELD}`;
+  + `taken this way${status === DRAFT ? ", and that claim names the status that puts it on the ladder" : ""}:`
+  + `\n  forge claim ${ref} ${UNHELD}`;
 
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */

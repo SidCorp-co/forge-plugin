@@ -187,6 +187,12 @@ deciding a status.
   landing wrote paths THEN the CLI SHALL refuse `developed`, SHALL name those paths, and SHALL name
   the plan write that answers the declaration no, because the record would otherwise say two things
   about one change.
+- **AC-05-2-17** · Rev: 1 · Proof: plugin/test/flow/route/draft-aboard.test.mjs "a draft is routed onto the ladder past an open that starts the project's pipeline"
+  WHERE the issue stands at the reporter's status before the ladder, the CLI SHALL name as its next
+  status the opening rung only when the project's configuration says entering that rung starts no
+  pipeline, and otherwise the rung a build is entered at, owing every record of each rung it passes,
+  because a run dispatched there may never have to start the project's pipeline on an issue it
+  already holds.
 
 ### UC-05-3 — Refuse a jump
 

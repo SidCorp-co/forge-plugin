@@ -6,6 +6,10 @@ import { KIND_NAMES } from "../tracker/declared/kinds.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
 
+/** The reporter's status before those: no run is dispatched at it and nothing ranks it, which is why it
+ *  stands beside the list rather than in it. */
+export const DRAFT = "draft";
+
 export const UNSET = "unset";
 
 /** The tracker's own complexity value, never the rung it maps to, so `l` and `xl` score apart. Here beside UNSET because this module walks nothing at import, and every codex hook loads a reader of it. */

@@ -49,6 +49,8 @@ import { REBUILT_FORM, builderProblem } from "./landing/reconstruction.mjs";
 import { landsOutsideGit } from "./record/judged/landing.mjs";
 import { markedCommit } from "./record/merged.mjs";
 import { blockedClearedBy } from "./park/blocked.mjs";
+import { draftSaid, draftTarget } from "./route/aboard.mjs";
+import { DRAFT } from "../rank/weights.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 
 /* What a `blocked` park waits on where no edge speaks for its blocker, said beside the answer route
@@ -379,6 +381,7 @@ export const targetOf = (view, ref) => {
     return { next: left, missing: resumeOwed(view, held, ref), resumed: true };
   }
   if (status === REOPEN) return reopenTarget(view, ref);
+  if (status === DRAFT) return draftTarget(view, ref);
   const next = nextOf(status, view);
   if (!next) {
     refuse(`${ref} is ${status}; nothing advances from it. What sends work back from here is a `
@@ -419,9 +422,9 @@ const owedLine = (view, ref, held) => {
    policy is fetched only where the status being entered reads it — `developed`, whose rehearsal asks
    who judges before the checkpoint line speaks, and the three rungs at the end, one asking who
    judges, one what deploys and one whether the release was anybody's to make. The step is
-   `stepAfter`'s, null for a status the flow does not hold. */
+   `stepAfter`'s, null for a status the flow does not hold. `draft` reads it too, for route/aboard.mjs. */
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan)))
+  (personLooks(planFlags(unwrap(plan))) || status === DRAFT
     || [stepAfter(BASELINE_AT), JUDGED_AT, CLOSES_FROM, CLOSES_AT].includes(stepAfter(status))
     ? releasePolicy()
     : null);
@@ -443,7 +446,8 @@ export const unaskedLines = (view, ref) => {
 
 /** Where the issue stands and what stands in its way, as one set of lines for all three printers. */
 export const owedBlock = (view, ref, held) =>
-  [owedLine(view, ref, held), ...missingLines(held.missing), ...unaskedLines(view, ref)];
+  [owedLine(view, ref, held), ...(view.issue.status === DRAFT && !held.refused ? [draftSaid(view)] : []),
+    ...missingLines(held.missing), ...unaskedLines(view, ref)];
 
 /** That block printed, for `advance` and `resume` alike. */
 export const shortfall = (ref, view, held) => {
