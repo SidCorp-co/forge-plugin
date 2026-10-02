@@ -589,7 +589,8 @@ describe("the requests a question makes", () => {
     const listed = ROUTES["forge_questions.list"].requests({ issueId: "u-1" }).page;
     assert.equal(listed.method ?? "GET", "GET");
     assert.equal(listed.path, "/questions?issueId=u-1");
-    const data = { issueId: "u-1", prompt: "which?", options: [], recommendedOptionId: "reading-1" };
+    const data = { issueId: "u-1", prompt: "which?", recommendedOptionId: "reading-1", options: [
+      { id: "reading-1", label: "keep it -> nothing moves", authority: "writer", bindsTo: "session", executedBy: "agent" }] };
     const sent = ROUTES["forge_questions.ask"].requests({ data }).page;
     assert.equal(sent.method, "POST");
     assert.equal(sent.path, "/questions");
