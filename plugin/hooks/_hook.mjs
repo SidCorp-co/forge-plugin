@@ -12,9 +12,10 @@ import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, spacedSpans, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
-import { glued, gluedQuoted } from "../src/hooks/program/assembled.mjs";
+import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
-import { INTERPRETER, LANGUAGE_OF } from "../src/hooks/program/spoken.mjs";
+import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
+import { LITERALS, RUNS, SHELL, handedIn, literal } from "../src/hooks/program/handed.mjs";
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
@@ -26,6 +27,7 @@ export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { MOVE_WORD, directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn, withoutBodies };
+export { LITERALS, RUNS, SHELL, handedIn, literal };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
@@ -351,48 +353,6 @@ export const settled = (path) => {
   }
 };
 
-/** A program that can hand a string to a shell, and an interpreter's inline program: literals there are
- *  code — by the name that body's own language has, `spawnSync` running nothing from python. An unnamed runner keeps all. */
-const anyOf = (names) => new RegExp(String.raw`\b(?:${names.join("|")})`, "u");
-const PYTHON = anyOf([String.raw`subprocess`, String.raw`os\.system`, String.raw`os\.popen`, String.raw`shell\s*=\s*True`]);
-const NODE = anyOf([String.raw`child_process`, String.raw`execSync`, String.raw`spawnSync`]);
-const SPAWNS = anyOf([PYTHON.source, NODE.source]);
-/* perl, ruby and php have no names of their own here, so each keeps every name: one refusal on doubt. */
-const ESCAPES = { python: PYTHON, node: NODE };
-export const spawnsIn = (runner) => ESCAPES[LANGUAGE_OF[runner]] ?? SPAWNS;
-
-/* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
-   read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
-export const LITERALS = /'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/gu;
-
-/** One literal's text as it is handed over, and an inline body's with the shell's quoting taken off: the quoting rule is `WORD`'s below, and this undoes it. */
-export const literal = (one) => {
-  if (/^('''|""")/u.test(one)) return one.slice(3, -3);
-  const inner = one.slice(1, -1);
-  return one.startsWith('"') ? inner.replace(/\\\n/gu, "").replace(/\\(["\\$`])/gu, "$1") : inner;
-};
-
-/* Literals standing next to each other with nothing but whitespace, a comment or a continuation between are one string to python. */
-const ADJACENT = /^(?:\s|#[^\n]*|\\\n)*$/u;
-
-/** The strings a program body hands a shell, each as that shell is given it, or null where it hands none: a shell's own body is its commands already, and a body naming no spawn call its language has hands nothing. how/learning-gate.md. */
-export const handedIn = (body, runner) => {
-  if (SHELL.test(runner) || !spawnsIn(runner).test(body)) return null;
-  const out = [];
-  let last = null;
-  for (const one of body.matchAll(LITERALS)) {
-    const text = literal(one[0]);
-    if (last !== null && ADJACENT.test(body.slice(last, one.index))) out[out.length - 1] += text;
-    else out.push(text);
-    last = one.index + one[0].length;
-  }
-  return out;
-};
-
-export const RUNS = new RegExp(String.raw`\b(${INTERPRETER})\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
-
-/** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
-export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
 /* An interpreter's options are any dashed words, a shell's are `SHELL_OPTION`'s, the `-c` reading's own; either may end on the `-` that names stdin. */
 const EXECUTES_STDIN = new RegExp(
   String.raw`(?:^|[\s;&|(])(?:(${INTERPRETER})(?:\s+-\S+)*|(${SHELL_WORD})(?:\s+${SHELL_OPTION})*)\s*-?\s*$`,
@@ -509,10 +469,21 @@ export const shellWrites = (command) => {
     .replace(RUNS, inline));
 };
 
-/** What a call wrote through a name the gates cannot resolve, read off the text its own shell runs: a program body is blanked, since its names are its interpreter's, and reading them as the shell's claimed writes out of a regex literal and a docstring (ISS-450). how/writes.md. */
-export const unseenWrites = (command) => unseenNames(
-  shellText(command, () => " ").replace(RUNS, (all, runner, body) => `${runnerOf(all, body)}''`),
-);
+/** What a call wrote through a name the gates cannot resolve. The shell's own text is read with every program body blanked, since reading a body's names as the shell's claimed writes out of a regex literal and a docstring (ISS-450); a body an interpreter runs is read by its own file calls instead (ISS-2783). how/writes.md. */
+export const unseenWrites = (command) => {
+  const read = [];
+  const program = (body, runner) => {
+    if (!SHELL.test(runner)) read.push(...unplacedIn(body, runner));
+  };
+  const shell = shellText(command, (body, at, runner) => {
+    program(body, runner);
+    return " ";
+  }).replace(RUNS, (all, runner, body) => {
+    program(literal(body), runner);
+    return `${runnerOf(all, body)}''`;
+  });
+  return [...new Set([...unseenNames(shell), ...read])];
+};
 
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;

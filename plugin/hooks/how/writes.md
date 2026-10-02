@@ -19,6 +19,6 @@ heredoc (options as for `-c`): a verb there counts.
 
 Not judged: what a write holds, or whether it belongs.
 
-Not seen: a name no spelling produces — a glob, a command's output, a variable set
-elsewhere. Spell it, or use `Edit`. Said once a session if no file of the call reached a gate;
-not of a program body.
+Not seen: a name no spelling produces — a glob, command output, a variable set elsewhere, a
+path a program computes. Spell it, or use `Edit`. Said once a session if no file of the call
+reached a gate.

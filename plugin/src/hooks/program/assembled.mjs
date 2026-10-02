@@ -128,6 +128,16 @@ export const glued = (body, runner) => {
   return out;
 };
 
+/* The program's own argument, whole: the command's word handed in, which the gates read off the command. Built from one with anything else, it is computed. */
+const ARGUMENT = /^(?:sys|process)\.argv\s*\[\s*\d+\s*\]$/u;
+/** What a body's file calls write through that none of its literals or bindings produces once `glued` has folded them, each as the body spells it: an argument, or the path a method is called on. how/writes.md. */
+export const unplacedIn = (body, runner) => {
+  const folded = glued(body, runner);
+  return fileCalls(folded, runner).flatMap((one) => one.through)
+    .map(({ from, to }) => folded.slice(from, to).replace(/\s+/gu, " "))
+    .filter((said) => !ARGUMENT.test(said));
+};
+
 /* The escapes a double quote lets a backslash make, read off the walk's own set. An escaped `$` or backtick is a literal and a bare one still expands, so each escaped one is held as a
    character the body does not already hold, which no fold reads, and only those go back escaped. */
 const ESCAPED = new RegExp(String.raw`\\(\n|${ESCAPED_IN_DOUBLE.source})`, "gu");

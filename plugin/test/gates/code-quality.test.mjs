@@ -250,7 +250,7 @@ test("a regex literal ending in `$` inside a program body claims no write", () =
   const room = unseenRoom();
   const session = randomUUID();
   const body = ["node - <<'JS'", "const { readFileSync, writeFileSync } = require('fs');", "const f = 'notes.mjs';",
-    "if (/\\.mjs$/.test(f)) writeFileSync(f.replace(/\\.mjs$/u, '.md'), readFileSync(f));", "JS"].join("\n");
+    "if (/\\.mjs$/.test(f)) writeFileSync('notes.md', String(readFileSync(f)).replace(/\\.mjs$/u, '.md'));", "JS"].join("\n");
   assert.equal(bashIn(room, session, body).stdout.trim(), "", "a regex is the program's, and no name its shell built");
   assert.match(told(bashIn(room, session, GLOB_LOOP)), /`"\$f\.bak"`/u);
 });
@@ -261,6 +261,14 @@ test("a triple-quoted string inside a program body claims no write", () => {
   const body = ["python3 - <<'PY'", "open('notes.txt', 'w').write('''the list is at $M/t.md''')", "PY"].join("\n");
   assert.equal(bashIn(room, session, body).stdout.trim(), "", "a docstring is the program's payload, and no name its shell built");
   assert.match(told(bashIn(room, session, GLOB_LOOP)), /`"\$f\.bak"`/u);
+});
+
+/* A body's own names were blanked with the body, so a loop its code ran over a glob wrote files no gate saw and said nothing (ISS-2783). */
+test("a write a program body makes through a name its code computes is said as a shell one is", () => {
+  const room = unseenRoom();
+  const body = ["python3 - <<'PY'", "import glob", "for p in glob.glob('docs/*.md'): open(p, 'w').write('x')", "PY"].join("\n");
+  assert.match(told(bashIn(room, randomUUID(), body)), /no gate read what this call's write through `p` landed on, if it ran/u,
+    "the name the body wrote through, which no spelling in the command produces");
 });
 
 /* The gates did see these: the names are spelled in the loop's own list, and the disk answered for them. */

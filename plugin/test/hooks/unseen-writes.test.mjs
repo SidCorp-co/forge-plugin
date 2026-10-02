@@ -57,3 +57,27 @@ test("a write in any stage of a list or a pipe is named as the same write standi
   }
   assert.deepEqual(unseenWrites("true && cp a $D/b.md"), ["$D/b.md"], "and a copy's source is no name it wrote through");
 });
+
+/* A program body's own names were blanked with the body, so a write its code computed reached no gate and
+   said nothing either (ISS-2783). What is named is the argument, or the path a method is called on, that
+   no literal or binding in the body produces; one the body binds to a literal, or the program's own
+   argument handed in by the command, is a name the gates read. */
+test("a program body writing through a name its code computes is named by that spelling", () => {
+  const cases = [
+    ["python3 - <<'PY'\nimport glob\nfor p in glob.glob('docs/*.md'): open(p, 'w').write('x')\nPY", ["p"]],
+    [`node -e "require('fs').writeFileSync(require('path').join(dir, name), s)"`, ["require('path').join(dir, name)"]],
+    ["python3 - <<'PY'\nimport pathlib\nfor f in names: pathlib.Path(f).write_text('x')\nPY", ["pathlib.Path(f)"]],
+    [`python3 -c 'import sys; open(sys.argv[1] + name, "w")' out.txt`, ["sys.argv[1] + name"]],
+  ];
+  for (const [command, named] of cases) assert.deepEqual(unseenWrites(command), named, command);
+});
+
+test("a program body writing through a literal it binds, or through the program's own argument, names nothing", () => {
+  const cases = [
+    "python3 - <<'PY'\np = 'x.md'\nopen(p, 'w').write('x')\nPY",
+    `python3 -c "p = 'x.md'; open(p, 'w').write('x')"`,
+    `node -e 'require("fs").writeFileSync(process.argv[1], "x")' out.txt`,
+    "python3 - <<'PY'\nimport zipfile\nz = zipfile.ZipFile('a.zip', 'w')\nz.open('member', 'w')\nPY",
+  ];
+  for (const command of cases) assert.deepEqual(unseenWrites(command), [], command);
+});
