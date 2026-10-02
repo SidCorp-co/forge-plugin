@@ -644,6 +644,22 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   the issue's context, every criterion whose standing verdict the entry check to `testing` would
   refuse, because a builder's verdict read back like a judge's makes a judgement nobody has made
   read as a finished one.
+- **AC-05-11-22** · Rev: 1 · Proof: plugin/test/flow/verdicts/writer.test.mjs "an inherited verdict is refused before anything is sent, and the route is the same call under an id of its own" · Source: docs/cli/record-the-judge.md
+  WHERE the project's record asks for an independent judgement, IF a verdict is written under an
+  identity the run inherited from the session that dispatched it THEN the CLI SHALL refuse the write
+  before anything is sent, because the judging rung never counts that verdict and the latest one on
+  a criterion is the one read, so storing it would displace a judgement that counts.
+- **AC-05-11-23** · Rev: 1 · Proof: plugin/test/flow/verdicts/writer.test.mjs "the builder's own verdict is refused before anything is sent, and the route is the judging rung's read" · Source: docs/cli/record-the-judge.md
+  WHERE the project's record asks for an independent judgement, IF a verdict is written under the
+  identity the landing checkpoint names as the change's builder THEN the CLI SHALL refuse the write
+  before anything is sent, because no later write makes a builder's own judgement count and a
+  stored one would displace a judge's.
+- **AC-05-11-24** · Rev: 1 · Proof: plugin/test/flow/verdicts/writer.test.mjs "outside git, a run that held the issue while it was built is refused as the builder" · Source: docs/cli/record-the-judge.md
+  WHERE the project's record asks for an independent judgement and the change landed outside git,
+  IF a verdict is written by a run the issue's claim history names as having held it at a status
+  the change was still being built at THEN the CLI SHALL refuse the write before anything is sent,
+  because with no checkpoint naming one builder, every run that held the build answers as the
+  builder.
 
 ### UC-05-12 — A judging run's blocking finding reopens the issue
 
