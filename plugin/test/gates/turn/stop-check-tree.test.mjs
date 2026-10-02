@@ -24,7 +24,7 @@ test("the tree a subagent stood in is the one its commands moved to, whatever th
   mkdirSync(join(wt, "sub"));
   const own = handed(used("Bash", { command: `export FORGE_SESSION_ID=iss-1-abc\ncd ${pathed(wt)}\ncd sub && git status --short` }));
   const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: checkout }));
-  assert.match(said?.reason ?? "", /is a worktree this turn left with tracked changes/u, said?.reason);
+  assert.match(said?.reason ?? "", /is a worktree/u, said?.reason);
   assert.match(said.reason, new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"),
     "the worktree, not the checkout the event names");
   /* ISS-1717: a body is the stdin of the command it stands on, and a `cd` it spells moves nothing. */

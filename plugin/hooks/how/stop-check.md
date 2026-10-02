@@ -7,18 +7,17 @@ How to clear it: each line names its command — an edit, a verdict, a park, a c
 
 How often: once per item per turn. Five checks: the linter over what this turn wrote; findings
 with no verdict; an issue taken and not written against since; tracked changes left in the turn's
-worktree; a process it began and left standing — anything in that worktree, and anywhere else
-whatever runs a command one of its calls made, in that call's window.
+worktree; a process it began and left standing — anything in that worktree, or anywhere running a
+command one of its calls made, in that call's window.
 
-Whose stop: the main agent's always. A subagent's on its own transcript, and only where a project
-names its agent type in `stop.agents` — absent, no subagent's.
+Whose stop: the main agent's always. A subagent's on its own transcript, only where a project names
+its agent type in `stop.agents`.
 
 How to stand it down: `forge hooks --off stop-check`, account-wide until `--on`, or `FORGE_STOP_DISABLE=1`
-in the environment it started in.
+where it started.
 
 Not judged: the handback's prose, whether tests pass, an issue another session holds, a file
 written through the shell, a lease taken in a turn that never names the issue again, a tree dirty
-before the turn began, a subagent this plugin did not dispatch, a tree a subagent's shell moved to
-that the command's text does not name — `cd -`, a bare `cd`, a `$` in the path — whose stop is
-judged where the event stood instead, another run's process, unless in one of those windows it ran
-a command of this turn's whole, or the words of one.
+before the turn began, a subagent this plugin did not dispatch, a `cd -` or `$` destination, judged
+at the event's cwd, another run's process, unless in one of those windows it ran a command of this
+turn's whole, or the words of one.
