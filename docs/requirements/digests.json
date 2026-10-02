@@ -4321,6 +4321,30 @@
       "rev": 1,
       "digest": "31fd1f48e82c3ccc9747c9525d7c2d30bcb77a64244417a01e9a679d85fdb875"
     },
+    "UC-13-7": {
+      "rev": 1,
+      "digest": "9c5d915622620106fcee921e5f4a31425c917873832ccbf80ce927f5ec6c1d3f"
+    },
+    "AC-13-7-1": {
+      "rev": 1,
+      "digest": "709759fbc440b67a4cfc74f073ac40a5d55d8475978bfb4638d396d0d1864870"
+    },
+    "AC-13-7-2": {
+      "rev": 1,
+      "digest": "a8e11dc7e853c9e81ccab8a3ed77ead6c5256194972868c139c59122e89a8f14"
+    },
+    "AC-13-7-3": {
+      "rev": 1,
+      "digest": "ed24aa2b4b77b9423e4a996d6d7b190ff6b9755c14610cbbcffddcbeff12dac3"
+    },
+    "AC-13-7-4": {
+      "rev": 1,
+      "digest": "be20457a2dec60fc286be51864adc78436c1951fff34a22616d384328b82d71f"
+    },
+    "AC-13-7-5": {
+      "rev": 1,
+      "digest": "d73bd3bf3eb1c651be8789caeffa23c184b5a645d4ccd428a083cf62c7bae038"
+    },
     "FR-14": {
       "rev": 1,
       "digest": "715ebd27ddbb153dc79e14c95d0aee30214f12a232acd219848f01c5ce8aaad1"
