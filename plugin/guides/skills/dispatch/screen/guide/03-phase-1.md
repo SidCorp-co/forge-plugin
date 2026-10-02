@@ -19,13 +19,14 @@ kind of candidate, listed apart from the ones it scores**: the issues a judging 
 They are taken by status and not by rank, they do not compete for the wave's count, and each is a
 dispatch to a judging role rather than to a building one.
 
-**Whose those candidates are is printed beside them, and only a wave they were declared for takes
-them.** Where the project named the dispatcher, take them ahead of the ranked work — every one is a
-change already landed and already paid for, waiting on nothing but somebody to exercise it, and
-where the verb says it did not reach every one, what it did not reach is the wave's to go back for.
-Where the project named a master of its own, leave them standing: they are that master's queue, and
-a wave that dispatches a judge into it puts two sessions on one issue. A key holding a value that is
-neither leaves this wave nothing to act on: those rows stay where they are until somebody fixes it.
+**Whose those candidates are is printed beside them with whether the rows bear the declaration out,
+and a wave stands back only from a master of the project's own shown draining.** Where the line
+names the dispatcher, no master, a value that is neither master, or a declaration that does not hold,
+take them ahead of the ranked work — every one is a change already landed and already paid for,
+waiting on nothing but somebody to exercise it, and where the verb says it did not reach every one,
+what it did not reach is the wave's to go back for. Where it says a master of the project's own is
+declared and draining, leave them standing: they are that master's queue, and a wave that dispatches
+a judge into it puts two sessions on one issue.
 
 **Unsized open issues are a candidate class of their own, and every wave draws from them wherever
 any stand.** They are taken by the absence of a band rather than by a place in the order, they do

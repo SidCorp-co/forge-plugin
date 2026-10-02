@@ -4,12 +4,14 @@ Take the ranking verb's own output. The issues it lists apart from the ranked ro
 queue: they are offered by status rather than scored, they do not compete with anything the ranking
 counts, and each is one a building run has already finished with.
 
-**The same output names which master the project declared drains them, and a name that is not this
-session's ends the run here.** A project that declared the dispatcher wants this taken inside its
-wave, and a second session claiming the same issues is the contention one master per status exists to
-remove. Say what the declaration was and stop. A key holding a value that is neither master leaves
-this queue with no declared owner, which is not a fallback to claim on: the report the CLI prints
-for this project's own keys is where it is put right.
+**The same output names which master the project declared drains them and whether the rows bear it
+out, and only another master shown draining ends the run here.** A project whose dispatcher is
+draining wants this taken inside its wave, and a second session claiming the same issues is the
+contention one master per status exists to remove: say what the declaration was and the evidence the
+line gave, and stop. Where the line says no master is declared, that the key names neither master,
+or that the declaration does not hold, the rows are this session's to take. A declaration nobody made,
+or one nothing has acted on inside its window, subtracts no worker, and a lease keeps two masters off
+any one row. Say which of those the line said, so the report carries why the queue was taken.
 
 **A bounded read is not an empty queue.** Where the verb says it did not reach every issue at the
 status, what it did not reach is still owed a pass, and reading a shortfall as the end of the drain

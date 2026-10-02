@@ -49,7 +49,14 @@ export const DEFAULTS = {
   batchCap: 3,
   windowCap: 12,
   readCap: 60,
+  /* One lease's span, past which a live judging run has either taken a row or let its lease lapse on
+     it: docs/cli/the-drain-key.md. */
+  drainIdle: 60,
 };
+
+/* The weights that count something rather than score it, where nothing but a whole number above
+   zero means anything: a window of no minutes declares every master absent the moment a row lands. */
+const WHOLE = ["drainIdle"];
 
 const TABLES = ["priority", "kind", "complexity", "module"];
 
@@ -106,6 +113,10 @@ const wrongIn = (given) => {
       }
       continue;
     }
+    if (WHOLE.includes(key)) {
+      if (Number.isInteger(value) && value > 0) continue;
+      return `\`rank.${key}\` is a whole number of minutes above zero, not \`${JSON.stringify(value)}\`.`;
+    }
     if (numeric(value) || (key === UNCAPPED && value === null)) continue;
     return key === UNCAPPED
       ? `\`rank.${UNCAPPED}\` is a number of points or \`null\` for no ceiling, not \`${JSON.stringify(value)}\`.`
@@ -155,20 +166,21 @@ export const weightLines = (weights) => [
   "",
   row("priority", table(weights.priority)),
   row("kind", `${table(weights.kind)} — a defect in the tool the flow runs on is paid by every later run`),
-  row("complexity", `${table(weights.complexity)} — smaller first, a light path paying back sooner`),
+  row("complexity", `${table(weights.complexity)} — smaller first, paying back sooner`),
   row("module", `${table(weights.module)} — keyed by the modules this project's tracker defines; one`),
   row("", "with no row takes its parent's, then `unset`. No table, or no module defined, weighs none"),
-  row("agePerDay", `${weights.agePerDay} per day since it was filed, so nothing starves`),
+  row("agePerDay", `${weights.agePerDay} per day since filing, so nothing starves`),
   row("ageCap", weights.ageCap === null
     ? "none — age never stops, so what sits rises until it is worked or dropped"
     : `${weights.ageCap} — the most age alone can be worth, past which two filing dates score alike`),
   row("reopened", `${weights.reopened}`),
-  row("blocks", `${weights.blocks} per open issue this one blocks, counted through the chain`),
-  row("reading", `${weights.reading} per multiple of \`review.lines\` owed, on that batch's reading`),
-  row("similarity", `${weights.similarity} — the floor a search hit is read back as related at`),
-  row("batchCap", `${weights.batchCap} members, and every one of them at the fix rung or below`),
-  row("windowCap", `${weights.windowCap} — candidates whose body is read in one pass`),
+  row("blocks", `${weights.blocks} per open issue it blocks, through the chain`),
+  row("reading", `${weights.reading} per multiple of \`review.lines\` a batch reading owes`),
+  row("similarity", `${weights.similarity} — the floor a search hit counts as related`),
+  row("batchCap", `${weights.batchCap} members, each at the fix rung or below`),
+  row("windowCap", `${weights.windowCap} — bodies read in one pass`),
   row("readCap", `${weights.readCap} — the most bodies read in all`),
+  row("drainIdle", `${weights.drainIdle} minutes a judging row sits untouched before its drainer reads idle`),
   "",
   "Ties break on the filing date, oldest first.",
 ];

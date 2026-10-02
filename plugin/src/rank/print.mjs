@@ -3,7 +3,7 @@
 import { servesIn, servesSaid } from "../goals.mjs";
 import { COMPLEXITY_NAMES } from "../ladder.mjs";
 import { UNSET } from "./weights.mjs";
-import { DRAINS, drainScope } from "../resolve/settings.mjs";
+import { evidenceSaid, idleSaid, oldestSaid } from "./drain.mjs";
 import { JUDGING } from "./eligible.mjs";
 import { ageOf } from "../codex/codex-state.mjs";
 
@@ -110,22 +110,32 @@ export const droppedLine = (one) =>
 
 const judgingRow = (one) => `  ${one.issueId.padEnd(KEY)} ${cut(one.row.title, TITLE)}`;
 
-/* Which master the project said claims these, said at the queue rather than only in the report: a
-   master reads here whether the set in front of it is its own. A key the pair does not take names
-   nobody, so neither master takes the rows on a fallback (ISS-1590). */
-const drainSaid = () => {
-  const held = drainScope();
-  if (held.unknown !== undefined) {
-    return `drained by — \`drainedBy\` is \`${held.unknown}\`, which is no master that drains `
-      + `${JUDGING.join(" or ")}: nothing here says whose these are. \`forge doctor\` names the key.`;
+/* Which master the project said claims these, and whether the rows bear it out, said at the queue
+   rather than only in the report: a master reads here whether the set in front of it is its own. A
+   declaration nobody made, one the pair does not take, and one the rows do not bear out all stand
+   nobody down, since each failing the other way leaves the rows with nobody (ISS-2354). */
+const drainSaid = (drain) => {
+  const anyone = "any master that reads this takes them";
+  if (drain.unknown !== null) {
+    return `drained by — \`drainedBy\` is \`${drain.unknown}\`, which is no master that drains `
+      + `${JUDGING.join(" or ")}, so no master is declared and ${anyone}; ${oldestSaid(drain)}. `
+      + "`forge doctor` names the key.";
   }
-  return `drained by — ${held.value}, ${held.declared ? "declared" : `absent the key, ${DRAINS[0]}`
-    + " being what a project that has not decided gets"}. Another master leaves these standing.`;
+  if (!drain.declared) {
+    return `drained by — no master: this project has not set \`drainedBy\`, so ${anyone}; `
+      + `${oldestSaid(drain)}.`;
+  }
+  if (drain.holds) {
+    return `drained by — ${drain.drainedBy}, declared and draining: ${evidenceSaid(drain)}. `
+      + "Another master leaves these standing.";
+  }
+  return `drained by — ${drain.drainedBy}, declared, and the declaration does not hold: `
+    + `${evidenceSaid(drain)}, judged against ${idleSaid(drain)}. So ${anyone}.`;
 };
 
 /* Its own section and not a row in the ranking, one scored there taking a place in `--count` from
    the building work that count was asked for: docs/cli/next.md. */
-export const judgingLines = (judging) => {
+export const judgingLines = (judging, drain) => {
   if (!judging) return [];
   if (judging.unread) {
     return ["", "judging — this project's declaration about who judges went unread, so no issue is "
@@ -136,7 +146,7 @@ export const judgingLines = (judging) => {
     `judging — ${judging.offered.length} issue(s) at ${at} with no live lease, this project having`,
     `declared the judgement above ${at} an independent run's. Each is a judging run's to claim, and`,
     "the run that built it holds nothing.",
-    `  ${drainSaid()}`,
+    `  ${drainSaid(drain)}`,
     ...judging.offered.map(judgingRow),
     ...(judging.left.length ? [`  left out — ${judging.left.length}:`] : []),
     ...judging.left.map(droppedLine),

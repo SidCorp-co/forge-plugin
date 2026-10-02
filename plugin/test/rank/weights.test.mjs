@@ -93,6 +93,22 @@ test("the age ceiling ships as none, and a project says either shape or is refus
   assert.deepEqual(refused.value, DEFAULTS, "with nothing of the given object folded in");
 });
 
+/* The drain window counts minutes, so the only values that mean anything are whole and above zero:
+   none of them declares every master absent the moment a row lands. docs/cli/the-drain-key.md. */
+test("the drain window ships at 60 minutes, and a project sets a whole number above zero or is refused", () => {
+  assert.equal(DEFAULTS.drainIdle, 60);
+  assert.equal(foldWeights({ drainIdle: 240 }).value.drainIdle, 240, "a project that judges slower says so");
+  assert.equal(foldWeights({ drainIdle: 240 }).refusal, null);
+  for (const given of [0, -1, 1.5, "60"]) {
+    const refused = foldWeights({ drainIdle: given });
+    assert.match(refused.refusal ?? "", /`rank\.drainIdle` is a whole number of minutes above zero/u,
+      `${JSON.stringify(given)} is refused by name`);
+    assert.deepEqual(refused.value, DEFAULTS, "with nothing of the given object folded in");
+  }
+  const row = weightLines(DEFAULTS).join("\n");
+  assert.match(row, /drainIdle\s+60 minutes a judging row sits untouched/u, "and the help prints it");
+});
+
 /* The row a project reads to find out what age is worth, which cannot print `null` and leave a
    reader to guess whether that is a ceiling of nothing or no ceiling at all. */
 test("the ageCap row says which of the two shapes is in force", () => {

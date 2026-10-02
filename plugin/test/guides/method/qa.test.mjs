@@ -169,14 +169,26 @@ test("the judge writes each verdict as it is judged, and a restart judges only t
   }
 });
 
-test("a wave takes the judging candidates only where the project declared them the dispatcher's", () => {
+/* A declaration stands a master down only where the queue shows the declared master at work, since one
+   nobody acts on otherwise leaves the rows with nobody: docs/cli/the-drain-key.md. */
+test("a wave stands back from the judging candidates only where another master is shown draining them", () => {
   for (const flow of [DEFAULT, SCREEN]) {
     const held = served(flow, "guide", "dispatch");
-    assert.match(held, /Where the project named the dispatcher, take them ahead of the ranked work/u,
-      `criterion 26: ${flow} tells a wave nothing about the queue it is offered`);
-    assert.match(held, /named a master of its own, leave them standing/u,
+    assert.match(held, /names the dispatcher, no master, a value that is neither master, or a declaration that does not hold,\s+take them ahead of the ranked work/u,
+      `criterion 26: ${flow} leaves a wave standing back from a queue nobody is draining`);
+    assert.match(held, /a master of the project's own is\s+declared and draining, leave them standing/u,
       `criterion 27: ${flow} lets a wave dispatch a judge into another master's queue`);
-    assert.match(held, /A key holding a value that is neither leaves this wave nothing to act on/u,
-      `criterion 27: ${flow} lets a wave act on a key nobody can read`);
+    assert.doesNotMatch(held, /leaves this wave nothing to act on/u,
+      `${flow} still leaves the rows of a key nobody can read to nobody`);
+  }
+});
+
+test("a drain stops on another master's declaration only where the queue shows that master draining", () => {
+  for (const flow of [DEFAULT, SCREEN]) {
+    const held = served(flow, "guide", "qa");
+    assert.match(held, /only another master shown draining ends the run here/u,
+      `${flow} stands a drain down on a name alone`);
+    assert.match(held, /no master is declared, that the key names neither master,\s+or that the declaration does not hold, the rows are this session's to take/u,
+      `${flow} leaves an undeclared or unheld queue to nobody`);
   }
 });

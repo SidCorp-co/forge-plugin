@@ -20,7 +20,7 @@ const configured = (prefix, keys) => {
 
 export const standing = (rank) => configured("rank-project-", rank ? { rank } : {});
 
-export const declaring = (drain) => configured("rank-drain-", { drainedBy: drain });
+export const declaring = (drain, keys = {}) => configured("rank-drain-", { drainedBy: drain, ...keys });
 
 /** A room declaring the volume that earns a batch reading; the case makes it a checkout. */
 export const reviewing = (review) => configured("rank-review-", { review });
