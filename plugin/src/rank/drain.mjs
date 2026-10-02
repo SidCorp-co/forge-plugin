@@ -49,8 +49,9 @@ const oldestOf = (offered, own) => offered
 
 /** The declaration and its evidence. It holds on positive evidence alone — another session's live
  *  lease, a claim another session recorded inside the window, or an oldest offered row written inside
- *  it — and an empty offer is none: no row, rows that are all the asking session's, and a read the
- *  window cut short all leave the declaration unchecked. */
+ *  it — and an empty offer is none: no row, and rows that are all the asking session's, leave the
+ *  declaration unchecked. A read the window cut short holds nothing whatever its prefix showed, the
+ *  rows behind it being the ones a live master would have been seen leaving. */
 export const drainOf = (judging, { idle, now = Date.now(), own = sessionOf() } = {}) => {
   const declared = drainScope();
   const judged = [...judging.offered, ...judging.left];
@@ -68,7 +69,7 @@ export const drainOf = (judging, { idle, now = Date.now(), own = sessionOf() } =
     declared: declared.declared,
     unknown: declared.unknown ?? null,
     from: declared.from,
-    holds: declared.value !== null && evidence.length > 0,
+    holds: declared.value !== null && !judging.unreached && evidence.length > 0,
     evidence,
     standing: judged.length,
     leased,

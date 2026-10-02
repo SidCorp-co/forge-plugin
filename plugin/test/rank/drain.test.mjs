@@ -110,6 +110,19 @@ test("a window the read did not finish concludes nothing from it and says how mu
   assert.doesNotMatch(run.stdout, STANDS_DOWN, "the fresh row behind the window is not evidence nobody read");
 });
 
+test("evidence in a window the read did not finish stands nobody down either", async (t) => {
+  load([issue("ISS-1"), stale("ISS-5", { createdAt: "2026-09-01T00:00:00.000Z", sessionContext: leasedBy("a-judging-run") }),
+    stale("ISS-6", { createdAt: "2026-09-02T00:00:00.000Z" })]);
+  judged(t);
+  const room = declaring("qa-master", { rank: { windowCap: 1 } });
+  const run = await ran(["next"], room);
+  assert.doesNotMatch(run.stdout, STANDS_DOWN, `a lease in the front window says nothing of the row behind it: ${run.stdout}`);
+  assert.match(run.stdout, /1 of the 1 row\(s\) read at developed carry another session's live lease.*1 further row\(s\) at developed went unread/u);
+  const held = JSON.parse((await ran(["next", "--json"], room)).stdout).judging.drain;
+  assert.deepEqual(held.evidence, ["leased"], "the evidence is still reported");
+  assert.equal(held.holds, false, "and still holds nothing");
+});
+
 test("the machine-readable form carries the declared master and the evidence it was judged on", async (t) => {
   load([issue("ISS-1"), stale("ISS-5")]);
   judged(t);

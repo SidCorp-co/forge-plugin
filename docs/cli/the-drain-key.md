@@ -30,8 +30,9 @@ declaration is checked where it subtracts, against the rows standing at that sta
 on positive evidence — another session's live lease on one of them, a claim another session recorded
 at that status inside the window, or an oldest offered row written inside it. The asking session's
 own lease and claims are its own work and say nothing about another master. An empty offer is no
-evidence either way: no row, rows that are all the asking session's, and a read the window cut short
-leave the declaration unchecked, and unchecked fails toward the work being done.
+evidence either way: no row, and rows that are all the asking session's, leave the declaration
+unchecked, and unchecked fails toward the work being done. A read the window cut short holds nothing
+whatever its front showed, the rows behind it being exactly the ones nobody saw anybody take.
 
 **The evidence is the queue's because nothing else names a master.** The tracker's runner rows carry
 no role, and a lease carries a session id and an agent string; neither says `dispatcher` or
