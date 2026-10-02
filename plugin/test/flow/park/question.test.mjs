@@ -173,3 +173,35 @@ test("the kind's help names the recommendation and says where the person is aske
   assert.match(run.stdout, /--recommend N/u);
   assert.match(run.stdout, /asks a person on the issue's own screen/u);
 });
+
+/* The ask is a write of the call like the comment is, so the lease that refuses the comment refuses
+   it first: asked after, a run with no right to the issue would leave a question there (ISS-3101). */
+const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
+const THEIRS = "iss-99-another-run";
+
+test("a question record on an issue another run holds is refused before the ask, and sends nothing", async () => {
+  fresh();
+  const ours = ASKING.sessionContext;
+  ASKING.sessionContext = { lease: { holder: THEIRS, agent: "a-test-agent", pid: "4242", renewedAt: ago(2), minutes: 60,
+    next: "Phase 4: implementing", history: [{ holder: THEIRS, at: ago(2), how: "claim", status: "confirmed", next: null }] } };
+  const run = await record("--recommend", "1");
+  ASKING.sessionContext = ours;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`held by another run: session ${THEIRS}`, "u"), run.stderr);
+  assert.equal(asks().length, 0, "no question is asked by a run the record is refused for");
+  assert.equal(posted().length, 0, "and no comment goes up");
+});
+
+test("a question record on an issue this run holds writes the lease before it asks", async () => {
+  fresh();
+  const run = await record("--recommend", "1");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const leased = state.calls.findIndex((one) => one.name === "forge_issues" && one.args.action === "update"
+    && one.args.data?.sessionContext);
+  const asked = state.calls.findIndex((one) => one.name === "forge_questions" && one.args.action === "ask");
+  assert.ok(leased >= 0 && asked > leased, `the lease write goes before the ask: leased ${leased}, asked ${asked}`);
+  const wrote = state.calls.findIndex((one) => one.name === "forge_comments" && one.args.action === "create");
+  const leases = state.calls.slice(0, wrote).filter((one) => one.name === "forge_issues" && one.args.action === "update"
+    && one.args.data?.sessionContext);
+  assert.equal(leases.length, 1, "and that write stands for the comment's own renewal");
+});
