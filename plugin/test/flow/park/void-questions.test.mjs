@@ -104,6 +104,24 @@ test("that refusal names the person answering as the other route", async () => {
   assert.match(above, /The person it asked answers it on the tracker, and this move then goes through as it stands; or,/u, above);
 });
 
+test("a move that sent the voiding and was held all the same is handed no command repeating the flag", async () => {
+  state.asked = true;
+  const held = state.answer.forge_issues;
+  state.answer.forge_issues = (args) => (args.action === "transition" ? (state.sent.push(args.data), { refused: OPEN, code: "OPEN_QUESTIONS" }) : held(args));
+  try {
+    const run = await advance("awaiting_release", "--to", "closed", "--void-questions", "it died with the work");
+    assert.equal(run.status, 1, run.stdout);
+    assert.deepEqual(voided(), ["it died with the work"], JSON.stringify(state.sent));
+    const [above] = run.stderr.split("What refused it:\n");
+    assert.doesNotMatch(above, /^\s*forge advance .*--void-questions/mu, above);
+    assert.match(above, /This move sent --void-questions "it died with the work" and the tracker held it all the same/u, above);
+    assert.match(above, /The person it asked answers it on the tracker, and this move then goes through as it stands\./u, above);
+    assert.equal(ISSUE.status, "awaiting_release");
+  } finally {
+    state.answer.forge_issues = held;
+  }
+});
+
 test("a refusal for anything else names no voiding route", async () => {
   state.asked = false;
   const held = state.answer.forge_issues;

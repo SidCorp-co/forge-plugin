@@ -115,7 +115,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}), ...voided } }, undefined, true);
   /* Soft is for the caller that has already written something: it words its own refusal around the record it left behind, so nothing is framed for it here. */
   if (answer?.refused) {
-    const route = voidRoute(answer.refused, ref, view.again);
+    const route = voidRoute(answer.refused, ref, view.again, view.voids);
     if (soft) return `${answer.refused}${route && `\n${route.trim()}`}`;
     /* A dropped write is not a rejected one, and only the transport knows which it was: told the issue is still where it was, a run would act on a move that may have landed. */
     if (afterRefused(answer.refused).unknown) {

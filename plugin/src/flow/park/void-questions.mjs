@@ -41,15 +41,22 @@ export const voidsInto = (view, next, routed) => {
   if (!voids(to)) refuse(`${CARRIED}, and this advance goes to ${to}. Nothing was sent.`);
 };
 
-/** The command as the caller typed it, which the refusal below repeats with the flag added. */
+/** The command as the caller typed it, which the refusal below repeats with the flag added where
+ *  the call did not carry it. */
 export const typedAgain = (argv) => `forge advance ${argv.map(typed).join(" ")}`;
 
 /** The route a refused move is owed where the tracker refused it for open questions, and nothing
- *  where it refused it for anything else. */
-export const voidRoute = (refused, ref, again) => {
+ *  where it refused it for anything else. `sent` is the sentence this call voided with: a move that
+ *  already carried it is owed no command adding the flag, which would stand there twice. */
+export const voidRoute = (refused, ref, again, sent = null) => {
   if (!OPEN_QUESTIONS.test(refused)) return "";
-  return ` A question a person was asked on ${ref} is still open, which holds this move. The person `
-    + "it asked answers it on the tracker, and this move then goes through as it stands; or, where "
-    + "the question died with the work, the same move voids each open one with that sentence in the "
-    + `same write:\n  ${again ?? `forge advance ${ref}`} ${VOID_FLAG} "${WHY}"\n`;
+  const held = ` A question a person was asked on ${ref} is still open, which holds this move.`;
+  if (sent) {
+    return `${held} This move sent ${VOID_FLAG} "${sent}" and the tracker held it all the same, so `
+      + "sending the voiding again changes nothing. The person it asked answers it on the tracker, and "
+      + "this move then goes through as it stands.";
+  }
+  return `${held} The person it asked answers it on the tracker, and this move then goes through as `
+    + "it stands; or, where the question died with the work, the same move voids each open one with "
+    + `that sentence in the same write:\n  ${again ?? `forge advance ${ref}`} ${VOID_FLAG} "${WHY}"\n`;
 };
