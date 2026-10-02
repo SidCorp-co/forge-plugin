@@ -6,6 +6,8 @@ import { quoting } from "./walk.mjs";
 const OPERATOR = /[;&|()<>$\\]/u;
 /* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one, but in a span `spacedName` reads as a path. The space because a quoted span carrying one is a sentence or a list far more often, and `touch 'a.md b.md'` names two; the quotes because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
 const ALWAYS = /[\s'"`]/u;
+/** The shell's three blanks, the characters between two of its words: a pattern splicing a word reading between separators takes these and never `\s`, whose `\r` and no-break space the word holds, or each run of them could be cut two ways and the cuts multiply. */
+export const BLANKS = String.raw`[ \t\n]`;
 /** A word that names a shell, at any path, through `busybox` or not: the one answer for a `-c` body, a heredoc on stdin and the caller's own language. Non-capturing, as are the two below, being spliced into readers' patterns. */
 export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da|k|z|a)?sh`;
 

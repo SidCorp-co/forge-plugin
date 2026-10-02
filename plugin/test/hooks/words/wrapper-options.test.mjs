@@ -56,3 +56,20 @@ test("a wrapper's value of many quoted parts is read in one way, so the answer c
     assert.equal(run.stdout, "false", `${part}: ${run.signal ?? run.stderr}`);
   }
 });
+
+/* A word holds a carriage return and a no-break space, which `\s` also matches, so a separator spelt
+   `\s` between words read a run of them as either and the ways multiplied with each option: a wrapper's
+   and git's globals are each separated by the shell's blanks alone (ISS-2959). */
+test("an option run whose words hold a carriage return or a no-break space is read in one way", () => {
+  const spans = new URL("../../../src/hooks/shell-spans.mjs", import.meta.url).href;
+  const hook = new URL("../../../hooks/_hook.mjs", import.meta.url).href;
+  for (const [reader, name, text] of [
+    [spans, "WRITES", `sudo ${"-ux\r".repeat(40)}echo`],
+    [spans, "WRITES", `env ${"--unset=x ".repeat(40)}echo`],
+    [hook, "COMMITS", `git ${"--git-dir=x\r".repeat(40)}status`],
+  ]) {
+    const asked = `import(${JSON.stringify(reader)}).then((m) => process.stdout.write(String(m[${JSON.stringify(name)}].test(process.argv[1]))))`;
+    const run = spawnSync(process.execPath, ["-e", asked, text], { encoding: "utf8", timeout: patience(5000) });
+    assert.equal(run.stdout, "false", `${JSON.stringify(text.slice(0, 20))}: ${run.signal ?? run.stderr}`);
+  }
+});

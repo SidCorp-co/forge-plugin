@@ -7,9 +7,9 @@ import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
-import { RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
+import { BLANKS, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
-export { ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
+export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -20,7 +20,7 @@ const PREFIXES = `${WRAPPING.join("|")}|${KEYWORDS}|exec`;
 const DOUBLED = String.raw`(?:[^"\\]|\\[\s\S])*`;
 const SUBSTITUTED = String.raw`\$\([^)]*\)|\$(?!\([^)]*\))|\x60[^\x60]*\x60|\x60(?![^\x60]*\x60)|`;
 export const shellWord = (stops, { substituted = false } = {}) =>
-  String.raw`(?:${substituted ? SUBSTITUTED : ""}'[^']*'|'(?![^']*')|"${DOUBLED}"|"(?!${DOUBLED}")|\\[\s\S]|\\$|[^ \t\n'"\\${substituted ? "$\\x60" : ""}${stops}])+`;
+  String.raw`(?:${substituted ? SUBSTITUTED : ""}'[^']*'|'(?![^']*')|"${DOUBLED}"|"(?!${DOUBLED}")|\\[\s\S]|\\$|[^${BLANKS.slice(1, -1)}'"\\${substituted ? "$\\x60" : ""}${stops}])+`;
 /* A wrapper's word with the options it may carry before its command, by its row of the wrappers' table; the value one of them takes is a shell word. */
 const OPTION_VALUE = shellWord(";&|()<>");
 const wrapped = (name) => `${name}${optionsAfter(name, OPTION_VALUE)}`;

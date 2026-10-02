@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -486,8 +486,8 @@ export const unseenWrites = (command) => {
 
 /* git's globals before the verb: a value is one shell word, which may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = shellWord(";&|()<>");
-export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))\s+`
-  + GIT_VALUE + String.raw`\s+|-[A-Za-z-]+(?:=` + GIT_VALUE + String.raw`)?\s+)*`;
+export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))${BLANKS}+`
+  + GIT_VALUE + String.raw`${BLANKS}+|-[A-Za-z-]+(?:=` + GIT_VALUE + String.raw`)?${BLANKS}+)*`;
 
 /** Where a draft stops being one, in command position only: a message quoting the word is not one. */
 export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-])`, "u");
@@ -497,12 +497,14 @@ export const committing = (ev) =>
 
 /** The work tree a git command names: `--work-tree` outranks `-C` outranks what `--git-dir` implies.
  *  A repeated `-C` is a chain git composes and `--work-tree` is read from where it left; what a `--git-dir` implies answers only where neither named a tree, because git takes the current directory as the top of the working tree and `-C` is what sets that. A relative answer stays relative for the caller to place against its own event's cwd. */
-const AIMS = new RegExp(String.raw`(?:^|\s)(-C|--work-tree|--git-dir)(?:\s+|=)(${shellWord(";&|()<>")})`, "gu");
+const AIMS = new RegExp(String.raw`(?:^|${BLANKS})(-C|--work-tree|--git-dir)(${BLANKS}+|=)(${shellWord(";&|()<>")})`, "gu");
 export const gitTreeOf = (text) => {
   const said = {};
   let at = null;
-  for (const [, option, value] of String(text ?? "").matchAll(AIMS)) {
-    const one = shellSpelled(value).replace(/(?!^)\/+$/u, "");
+  for (const [, option, joint, value] of String(text ?? "").matchAll(AIMS)) {
+    /* A tilde names the home only at the head of a word, and behind `--work-tree=` it is not. */
+    const glued = joint === "=" && value.startsWith("~");
+    const one = (glued ? `~${shellSpelled(value.slice(1))}` : shellSpelled(value)).replace(/(?!^)\/+$/u, "");
     if (option !== "-C") said[option] = one;
     else at = at && !isAbsolute(one) ? join(at, one) : one;
   }

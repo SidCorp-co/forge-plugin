@@ -1,6 +1,8 @@
 /* What a commit closes over, read from the command alone — the answers the gate then decides on. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 import { NOWHERE, committing } from "../../../hooks/_hook.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
@@ -69,6 +71,12 @@ test("a git global whose quoted value holds an escaped quote is that whole value
   const command = String.raw`git -C "/tmp/a\" b" commit -m x`;
   assert.equal(committing(ev(command)), true);
   assert.equal(commitAim(ev(command)).tree, '/tmp/a" b');
+});
+
+/* A tilde is the home only at the head of a word: behind `--work-tree=` git is handed the literal. */
+test("a git global's tilde is the home where it opens the word, and literal behind an equals sign", () => {
+  assert.equal(commitAim(ev("git --work-tree=~/repo commit -m x")).tree, "~/repo");
+  assert.equal(commitAim(ev("git --work-tree ~/repo commit -m x")).tree, join(homedir(), "repo"));
 });
 
 test("a pathspec continued onto the next line by a backslash is the one word the shell joins", () => {
