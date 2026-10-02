@@ -76,7 +76,7 @@ export const DECLARES = {
   },
   /* The ask route's own bounds, as its schema states them: a choice question holds at most ten
      options, each label at most 500 characters and the prompt at most 8000, all counted as the
-     route counts a string. Read by `flow/record/asked.mjs`, so a question over one is refused while
+     route counts a string. Read by `flow/park/asked.mjs`, so a question over one is refused while
      nothing of the call is up. */
   forge_questions: {
     caps: {

@@ -40,7 +40,7 @@ import { tallied } from "./thread/tally.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { answerChecked } from "../park/answer.mjs";
-import { askPrepared } from "./asked.mjs";
+import { askPrepared } from "../park/asked.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
 import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
 import { writerChecked } from "./judged/writer.mjs";
