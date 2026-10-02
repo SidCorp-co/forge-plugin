@@ -72,9 +72,9 @@ test("under a double quote a substitution is still run, and only its own > redir
   both(`echo "$(cat > out.md)"`, ["out.md"], "and a bare one there is the substitution's redirect");
 });
 
-test("a quoted target is read as it was", () => {
-  both(`echo x > "a b.md"`, ["b.md"]);
-  both("echo x > 'a(1).md'.txt", []);
+test("a quoted target is read as the name the shell writes", () => {
+  both(`echo x > "a b.md"`, ["a b.md"], "a space under the quote is the name's (ISS-3052)");
+  both("echo x > 'a(1).md'.txt", ["a(1).md.txt"], "and a quoted part joined to a bare one is the one name they spell");
   both("printf x >'q.md'", ["q.md"]);
 });
 

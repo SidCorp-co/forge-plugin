@@ -260,3 +260,11 @@ test("a read-only stage piped into tee is refused only for the tee's own target"
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
   assert.doesNotMatch(held.reason, /origin\/main/u);
 });
+
+/* A backtick under a single quote is a character of the redirect's one filename, which was read as no name at all and so let the write through (ISS-3052). */
+test("a redirect to an unplanned file whose name holds a backtick is refused, naming that file", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const held = runs("echo x > 'plugin/src/un`x`planned.mjs'");
+  assert.equal(held.allowed, false);
+  assert.match(held.reason, /`plugin\/src\/un`x`planned\.mjs` is outside ISS-411's plan/u);
+});
