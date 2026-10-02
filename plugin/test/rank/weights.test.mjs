@@ -106,7 +106,7 @@ test("the drain window ships at 60 minutes, and a project sets a whole number ab
     assert.deepEqual(refused.value, DEFAULTS, "with nothing of the given object folded in");
   }
   const row = weightLines(DEFAULTS).join("\n");
-  assert.match(row, /drainIdle\s+60 minutes a judging row may stand untouched/u, "and the help prints it");
+  assert.match(row, /drainIdle\s+60 minutes a judging row sits untouched/u, "and the help prints it");
 });
 
 /* The row a project reads to find out what age is worth, which cannot print `null` and leave a
