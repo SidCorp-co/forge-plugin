@@ -4,6 +4,7 @@ import * as cta from "../text/cta.mjs";
 import * as placeholders from "../text/placeholders.mjs";
 import * as script from "../text/script.mjs";
 import { BATCH_TASK, systemPrompt } from "../text/prompts.mjs";
+import { KeyRejected } from "./client.mjs";
 import { BARE_HINT, PLACEHOLDER_HINT, VERIFY_HINT } from "../vi-text.mjs";
 import { chunkItems, err, parseJsonObject } from "../util.mjs";
 
@@ -65,6 +66,7 @@ async function translateOne(client, system, task, entry, gates) {
   try {
     answer = await ask(client, system, task + hint, shape([[key, source]], contexts), temperature);
   } catch (error) {
+    if (error instanceof KeyRejected) throw error;
     return { reason: `gateway error: ${error.message}` };
   }
   const candidate = answer[String(key)];
@@ -113,7 +115,8 @@ export async function translateItems(client, items, options = {}) {
     try {
       answer = await ask(client, system, task, shape(batch, contexts), temperature);
     } catch (error) {
-      // One bad batch must not lose the rest of the file.
+      // One bad batch must not lose the rest of the file; a refused key loses all of it anyway.
+      if (error instanceof KeyRejected) throw error;
       err(`  batch ${index + 1} failed (${error.message}) — retrying strings one by one`);
       retries.push(...batch);
       continue;

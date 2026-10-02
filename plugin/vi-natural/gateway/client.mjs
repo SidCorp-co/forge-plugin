@@ -7,6 +7,7 @@
 /* The framing is the wire format's and not this gateway's, so the field name and the width it implies are taken from the plugin's one home for them; only the constant crosses, since the reader below trims a line before testing it and reads one line at a time off an incremental buffer. Which way an import may run between this tree and `src/`: README's Layout section. */
 import { DATA_FIELD } from "../../src/wire/sse.mjs";
 import { CliError, err } from "../util.mjs";
+import { fingerprint } from "./config.mjs";
 
 // 520/522/524 are Cloudflare's own: the origin misbehaved or went quiet. They are worth retrying
 // and are in no OpenAI error table, which is why a 524 once aborted a run instead of retrying.
@@ -16,6 +17,10 @@ const USER_AGENT = "vi-natural/2.0";
 const NOTE_EVERY_MS = 30_000;
 
 class StreamBroken extends Error {}
+
+/* A key the gateway refuses is refused for every string after it, so a caller degrading a failed
+   batch to one call per string rethrows this rather than asking again (ISS-2428). */
+export class KeyRejected extends CliError {}
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -44,9 +49,30 @@ export class Client {
     this.reasoningTokens = 0;
   }
 
+  /* Read once, so the source a refusal names is the one the key that was sent came from. */
+  key() {
+    this.held ??= { value: this.config.apiKey, from: this.config.from("apiKey") };
+    return this.held;
+  }
+
+  /* A gateway can echo the key in its error body, so every body this client prints passes here first. */
+  redacted(text) {
+    const { value } = this.key();
+    return text.split(value).join(fingerprint(value));
+  }
+
+  rejected(doing, detail) {
+    const { value, from } = this.key();
+    const said = detail.replace(/\s+/gu, " ").trim();
+    return new KeyRejected(
+      `the gateway at ${this.config.baseUrl} rejected the API key ${fingerprint(value)} with 401 ${doing}` +
+        `${said ? ` (${said})` : ""}; the key was read from ${from}, and a new one replaces it: forge doctor --vi-key <key>`,
+    );
+  }
+
   headers() {
     return {
-      Authorization: `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.key().value}`,
       "Content-Type": "application/json",
       "User-Agent": USER_AGENT,
       Accept: "text/event-stream",
@@ -85,7 +111,8 @@ export class Client {
           body: JSON.stringify(payload),
         });
         if (!response.ok) {
-          const detail = (await response.text()).slice(0, 400);
+          const detail = this.redacted(await response.text()).slice(0, 400);
+          if (response.status === 401) throw this.rejected("on a completion", detail);
           last = new CliError(`gateway returned ${response.status}: ${detail}`);
           if (!RETRY_STATUS.has(response.status)) throw last;
         } else {
@@ -141,7 +168,7 @@ export class Client {
         } catch {
           continue; // a keep-alive or a comment, not a chunk
         }
-        if (event.error) throw new CliError(`gateway error: ${JSON.stringify(event.error).slice(0, 300)}`);
+        if (event.error) throw new CliError(`gateway error: ${this.redacted(JSON.stringify(event.error)).slice(0, 300)}`);
         if (event.usage) usage = event.usage;
         for (const choice of event.choices ?? []) {
           const text = (choice.delta ?? choice.message ?? {}).content;
@@ -174,13 +201,17 @@ export class Client {
     let response;
     try {
       response = await fetch(url, {
-        headers: { Authorization: `Bearer ${this.config.apiKey}`, "User-Agent": USER_AGENT },
+        headers: { Authorization: `Bearer ${this.key().value}`, "User-Agent": USER_AGENT },
         signal: AbortSignal.timeout(30_000),
       });
     } catch (error) {
       throw new CliError(`cannot reach ${url}: ${error.message}`);
     }
-    if (!response.ok) throw new CliError(`gateway returned ${response.status} listing models`);
+    if (!response.ok) {
+      const detail = this.redacted(await response.text()).slice(0, 400);
+      if (response.status === 401) throw this.rejected("listing models", detail);
+      throw new CliError(`gateway returned ${response.status} listing models: ${detail}`);
+    }
     return (await response.json()).data ?? [];
   }
 

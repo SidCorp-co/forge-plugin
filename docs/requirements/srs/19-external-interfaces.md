@@ -94,12 +94,28 @@ set, so a box set up before that configuration held one keeps working, and the r
 the two answered. Placeholder accounting and segmentation are this product's; the prose is the
 model's and is judged by a person (NFR-10).
 
-- **AC-19-5-1** · Rev: 1 · Proof: plugin/test/vi/vi-gateway.test.mjs "a key reaches the results only where its translation carries the source's placeholders and no others"
+- **AC-19-5-1** · Rev: 1 · Proof: plugin/test/vi/gateway/vi-gateway.test.mjs "a key reaches the results only where its translation carries the source's placeholders and no others"
   WHEN a batch is sent THEN the result SHALL be accepted only if every placeholder is accounted
   for.
 - **AC-19-5-2** · Rev: 1 · Proof: plugin/test/resolve/machine/stores.test.mjs "the plugin's own configuration answers before the file a tool owns, key by key"
   WHERE a key of this gateway is held in both the machine's own configuration and the file this
   gateway owns, the product SHALL take the machine's own and SHALL name the file it took it from.
+- **AC-19-5-3** · Rev: 1 · Proof: plugin/test/vi/gateway/key-rejected.test.mjs "a 401 on the first request of doc, translate, i18n or review, or on a doc's per-string retry, is the last request that run sends"
+  IF the gateway refuses the key THEN the product SHALL send no further request in that run.
+- **AC-19-5-4** · Rev: 1 · Proof: plugin/test/vi/gateway/key-rejected.test.mjs "a 401 is reported once, naming the key's fingerprint, where it was read from and the command that replaces it"
+  IF the gateway refuses the key THEN the product SHALL report it once, as a credential fault
+  naming the key's fingerprint, where the key was read from and the command that replaces it.
+- **AC-19-5-5** · Rev: 1 · Proof: plugin/test/vi/gateway/key-rejected.test.mjs "a doc run stopped by a rejected key leaves its output path as it found it"
+  IF a document run is stopped by a refused key THEN the product SHALL write no output file.
+- **AC-19-5-6** · Rev: 1 · Proof: plugin/test/vi/gateway/key-rejected.test.mjs "doctor fails on a 401 listing models and sends no translation request"
+  WHEN the gateway's own check meets a refused key THEN it SHALL fail on the credential before any
+  translation is attempted.
+- **AC-19-5-7** · Rev: 1 · Proof: plugin/test/vi/gateway/key-rejected.test.mjs "a key a gateway echoes back is printed as its fingerprint wherever the error came from"
+  WHERE a gateway answer carries the key THEN the product SHALL print the key's fingerprint in its
+  place and never its value.
+- **AC-19-5-8** · Rev: 1 · Proof: plugin/test/vi/gateway/key-rejected.test.mjs "a batch failing on any status but 401 is still asked for again one string at a time"
+  IF a batch fails on anything but a refused key THEN the product SHALL ask for its strings one at a
+  time and SHALL keep the translations that come back.
 
 ### EI-06 — The zone and record service
 
