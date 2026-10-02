@@ -154,6 +154,11 @@ test("a record write that completes the draft route moves the issue onto the lad
   assert.match(run.stderr, /moved by its record, and by no person: confirmation, decision, plan, criteria and baseline are what in_progress is entered on/u,
     "and the line under it names every passed rung's records");
   assert.deepEqual(moves(), ["in_progress"], "one transition, and never to open");
+
+  at("auto", { comments: [decided()], over: { plan: NO_FILE, acceptanceCriteria: CRITERIA } });
+  const first = await record("confirmation", "--is", "the route is missing", "--where", "plugin/src/flow/route.mjs", "--finding", "holds");
+  assert.equal(first.status, 0, `${first.stdout}${first.stderr}`);
+  assert.deepEqual(moves(), ["in_progress"], "a kind of the first rung passed completes the route as well as one of the last");
 });
 
 test("a draft record write moves nothing where no rung on its route cites the kind, or the route passes no rung", async () => {
