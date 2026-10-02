@@ -48,9 +48,10 @@ differed there are one.
 A body cites `ISS-45` as often to say why something is as it is as to name work this filing relates
 to, and nothing lexical tells the two apart: the batch reading's own generated body cites two issues
 in its Rules and its Why as the reasons those rules exist. So the keys a body names are printed under
-the reply beside the flag that would relate them, and the filer decides. What that costs is one more
-command where the answer was yes; what writing them would cost is an edge nobody asked for on an
-issue nobody was looking at, and no verb here retracts one.
+the reply, each as the `forge issue --relates` call that would relate it, and the filer decides. The
+offer is printed once the create has landed, when `--with` belongs to a call already made, so it
+names the edge write that still exists then. What that costs is one more command where the answer
+was yes; what writing them would cost is an edge nobody asked for on an issue nobody was looking at.
 
 The one filing that relates without being asked is the ship step's batch reading, and its keys are
 not its body's: they are read off the commit subjects of the range it covers, which is the set the

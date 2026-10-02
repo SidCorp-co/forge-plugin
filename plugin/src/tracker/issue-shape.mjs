@@ -221,13 +221,19 @@ export const noticeFor = ({ kind, named, left }) => {
   return `${head}${rest}`;
 };
 
-export const keysOffered = (keys, held = []) => {
+/** The keys a body names that `--with` did not relate, each offered as the edge write that still
+ *  exists once the create has landed, since `--with` belongs to the create (ISS-571). `filed` is the
+ *  new issue's key; `elsewhere` the project it landed on where that is not the caller's, whose
+ *  edges are written only from a checkout of their own project. */
+export const keysOffered = (keys, held = [], { filed = null, elsewhere = null } = {}) => {
   const taken = new Set(held.map((one) => String(one).toUpperCase()));
   const left = (keys ?? []).filter((one) => !taken.has(one));
   if (!left.length) return null;
-  return `This body names ${listed(left)}. \`--with ${left.join(",")}\` relates what it names in the`
-    + " same create; nothing is written from a body on its own, a key being as often a sentence's"
-    + " reason as it is work this filing relates to.";
+  const where = elsewhere ? ` from a checkout of ${elsewhere}, the project it landed on` : "";
+  return [`This body names ${listed(left)}, and nothing related them: nothing is written from a body`
+    + " on its own, a key being as often a sentence's reason as it is work this filing relates to."
+    + ` Each it does relate to is one call${where}:`,
+  ...left.map((one) => `  forge issue ${filed ?? "<the filed key>"} --relates ${one}`)].join("\n");
 };
 
 export const openTitles = (rows) =>

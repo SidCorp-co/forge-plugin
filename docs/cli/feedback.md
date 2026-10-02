@@ -73,8 +73,8 @@ folder. Title equality is now a
 neighbour like any other, scored with the rest (ISS-334).
 
 **A note names the issue it belongs to with `--with`.** The keys a note's own body mentions are
-listed under the reply beside that flag rather than written as edges, the same way `forge new` does
-it, and for the same reason: a body cites a key as a reason as often as it names related work. A key
+printed under the reply, each as the call that relates it from a checkout of this plugin, rather
+than written as edges, the same way `forge new` does it, and for the same reason: a body cites a key as a reason as often as it names related work. A key
 given on the flag is resolved after the destination is aimed at this plugin, so it names an issue of
 this backlog and never one of the caller's; and a note that names one declines the fold, because a
 note related to an issue is carried by that issue's flow and a fold would put it on some third one.

@@ -145,15 +145,24 @@ test("a reading is filed under its own kind, against the sections a feature owes
 });
 
 /* A key in a body is as often a sentence's reason as it is related work, so the reply offers them
-   and writes nothing; `--with` is what writes, and it takes the whole list at once. */
-test("the keys a body names are offered under the reply and reach the tracker as no edge", async () => {
+   and writes nothing. The offer prints after the create, so it names the edge write that exists
+   then, keyed on the issue just filed, rather than `--with`, which belongs to the create (ISS-571). */
+test("the keys a body names are offered under the reply as edge writes and reach the tracker as no edge", async () => {
   state.calls = [];
-  const cited = `${WHOLE}\n\nIt is why ISS-45 was filed, and ISS-52 says the same.`;
-  const run = await filed(cited, "--title", TITLE);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^This body names ISS-45, ISS-52\. `--with ISS-45,ISS-52` relates what it names/mu);
-  const create = state.calls.find((one) => one.args.action === "create");
-  assert.equal("relations" in create.args.data, false, "a key found in a body wrote an edge");
+  state.key = "ISS-100";
+  try {
+    const cited = `${WHOLE}\n\nIt is why ISS-45 was filed, and ISS-52 says the same.`;
+    const run = await filed(cited, "--title", TITLE, "--with", "ISS-70");
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /^This body names ISS-45, ISS-52, and nothing related them/mu);
+    assert.match(run.stdout, /^ {2}forge issue ISS-100 --relates ISS-45\n {2}forge issue ISS-100 --relates ISS-52$/mu);
+    assert.doesNotMatch(run.stdout, /--with ISS-45|--relates ISS-70/u, "nor the flag that has passed, nor a key --with related");
+    const create = state.calls.find((one) => one.args.action === "create");
+    assert.deepEqual(create.args.data.relations, [{ kind: "relates", blocksId: "uuid-70" }],
+      "a key found in a body wrote an edge");
+  } finally {
+    delete state.key;
+  }
 });
 
 test("--with takes several keys and relates each of them in the one create", async () => {

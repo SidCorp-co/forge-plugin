@@ -191,6 +191,20 @@ test("a note that files ends on the key and the uuid it filed, read back from th
   }
 });
 
+/* A note lands on this plugin's project, whose edges are written from a checkout of it and never
+   from the caller's, so the offer says where its commands run (ISS-571). */
+test("the keys a note's body names are offered as edge writes run from a checkout of this plugin", async () => {
+  state.key = "ISS-2091";
+  try {
+    const run = await send(["feedback", note(`${BODY}\n\nIt is why ISS-9 was filed.`), "--title", TITLE]);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /one call from a checkout of forge-plugin, the project it landed on:\n {2}forge issue ISS-2091 --relates ISS-9$/mu);
+    assert.equal("relations" in run.filed.args.data, false, "a key found in a body wrote an edge");
+  } finally {
+    delete state.key;
+  }
+});
+
 /* A tool that says no is not the only refusal: an endpoint answering 401 exits before any tool
    result exists, and a note piped in has no file to read back from. */
 test("a note piped in survives a refusal that never reached a tool", async () => {

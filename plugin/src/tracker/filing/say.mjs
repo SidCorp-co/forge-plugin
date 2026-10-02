@@ -13,10 +13,12 @@ const echo = (answer) => console.log(JSON.stringify(answer, null, 2));
 
 /* A bare key is resolved in whichever project its reader stands in, so a fold onto another project's
    issue names that project beside it, in the form a filing's own line prints (ISS-2151). */
-const destination = ({ issueId }) => {
+const elsewhere = () => {
   const aimed = projectTarget().value;
-  return aimed && aimed !== projectScope().value ? `${issueId} on ${aimed}` : issueId;
+  return aimed && aimed !== projectScope().value ? aimed : null;
 };
+
+const destination = ({ issueId }) => (elsewhere() ? `${issueId} on ${elsewhere()}` : issueId);
 
 /* A route that names no `lost` is one whose filing the tracker does not soft-refuse, and a route
    wrong about that would read a refusal as a filing. So the default says it rather than crashing. */
@@ -47,7 +49,8 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
   const landed = await issueLanded(filed.answer, { module: asked.module ?? null, sent: filed.sent });
   console.log(filedAs(filed.answer, rankSaid(filed.ranked, landed)));
   for (const line of after ? await after(filed.answer) : []) console.log(line);
-  const offered = keysOffered(filed.shape.keys, withKeys);
+  const offered = keysOffered(filed.shape.keys, withKeys,
+    { filed: filed.answer?.issueId ?? filed.answer?.documentId ?? null, elsewhere: elsewhere() });
   if (offered) console.log(offered);
   return sayLanded(landed);
 };
