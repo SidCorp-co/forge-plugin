@@ -103,4 +103,7 @@ its files over the turn's record — empty once the fix is committed — and the
 could select a newer consult sharing one of them. `--of` pins the consult by id, as `verdict --of`
 finds it; with no file named its recorded set travels, being on the record already (ISS-378). That id
 is the route every refusal names to a finding its set left out, withheld only where the consult's own
-set cannot reach it either, which is when the refusal names the disposition form instead.
+set cannot reach it either, which is when the refusal names the disposition form instead. A recheck
+naming issue keys and no file takes the set the newest consult naming any of them recorded: a plan
+consulted by its issue sits outside the checkout, where no turn record holds it, and keys alone
+otherwise review no file (ISS-2358).
