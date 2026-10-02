@@ -2542,12 +2542,12 @@
       "digest": "6cb5a9f7a9787eddd90dc8114cbca63fee67440feb890cbeea527cebf8281eff"
     },
     "AC-05-1-9": {
-      "rev": 1,
-      "digest": "12e4da9a4b70e20a85b7bc3d8404ca3f1ba5ca04da9a2f6d30f85643ea85d6a7"
+      "rev": 2,
+      "digest": "a35f3f4cd0b718d727ab22c9579b4ed17fddf5f5bacd0991fa81b258cb4bc020"
     },
     "AC-05-1-10": {
-      "rev": 1,
-      "digest": "6425af1984efff04ef9b2746b8a457eb017fbf3750c6cc12b80c343b0f876e49"
+      "rev": 2,
+      "digest": "a2c778618d37204a5f68e63a1d7e1eacad5e35dfff7cc5295a23e9734485e915"
     },
     "AC-05-1-11": {
       "rev": 1,
@@ -2614,16 +2614,16 @@
       "digest": "8baa49c50de84b09df141f0f31cbaa4829fa3c3075afe77d5e5ffdb59e4466a3"
     },
     "AC-05-2-6": {
-      "rev": 1,
-      "digest": "7d56cfb69d7434971ae3f1b20578aaf9fa78878921061a6730e99e8cc2a7609b"
+      "rev": 2,
+      "digest": "1a999cf6dbaf70432e2286ce476356cdbbf2ef3058d23b43579eb845536f20f7"
     },
     "AC-05-2-7": {
       "rev": 1,
       "digest": "fb77bade5303a3c3659eacf289d1d6926c57c6b858d2ecaf1968cdd5903769d6"
     },
     "AC-05-2-8": {
-      "rev": 1,
-      "digest": "d9a3595052af85c8de62bad00e29d080213404620f689168843892aa9117b8b8"
+      "rev": 2,
+      "digest": "ecb29e31d88ca9493408e372a285fa5ee66764e77173dfdc9d61a64af88ffa73"
     },
     "AC-05-2-9": {
       "rev": 1,
@@ -2634,8 +2634,8 @@
       "digest": "415992b98c8ca7d22d1c1395c9cbb6a885a9cf2ea1508e134eab0499d9ea138f"
     },
     "AC-05-2-11": {
-      "rev": 1,
-      "digest": "5db1daea585e2fd789da92b1278e4a25d0a195e4ee11c8d6e5f7d41d6e7b35b7"
+      "rev": 2,
+      "digest": "60ec283ba5da22088191ce3b4e65feba567c44e3b69d60dc384973699826b3af"
     },
     "AC-05-2-12": {
       "rev": 1,
@@ -2648,6 +2648,14 @@
     "AC-05-2-14": {
       "rev": 1,
       "digest": "d414dab8cf6ee12df5d4142450b548492cd6854fbd26205c3f508a53ab49673c"
+    },
+    "AC-05-2-15": {
+      "rev": 1,
+      "digest": "3857043509a955f384030b2dbfcbd2b1e412b1ba5070ce983bc454feb0cc470b"
+    },
+    "AC-05-2-16": {
+      "rev": 1,
+      "digest": "8ce3abd439d6c3a88cd70397b5fcedcc116de96a8d778c821169702308113c4c"
     },
     "UC-05-3": {
       "rev": 1,

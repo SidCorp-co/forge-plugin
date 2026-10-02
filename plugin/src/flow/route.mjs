@@ -25,6 +25,7 @@ import {
   answersByComment,
   atLeast,
   atThisReopen,
+  baselineWaived,
   buildsAt,
   blockersOwed,
   correctedForm,
@@ -314,7 +315,7 @@ export const checkpointAhead = (view, ref) => {
 export const baselineAhead = (view, ref, head = headNow()) => {
   /* Membership of the sequence and not `!atLeast`, which is true of every side status too: a park from the judging rung sits in `waiting` and a reopen in a status of its own, and both are past the baseline rather than before it, so telling either to spend one names a phase already done and buries the park answer or the triage actually owed. */
   const at = ORDER.indexOf(view.issue.status);
-  if (at < 0 || at >= ORDER.indexOf(BASELINE_AT)) return null;
+  if (at < 0 || at >= ORDER.indexOf(BASELINE_AT) || baselineWaived(view)) return null;
   const project = slugIfAny();
   const form = citeForm(ref, project, head);
   if (!form) {

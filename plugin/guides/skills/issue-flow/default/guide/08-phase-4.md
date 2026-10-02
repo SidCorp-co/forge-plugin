@@ -13,6 +13,12 @@ A default branch checked out in a tree this run does not own is landed by the ch
 claim ISS-nn --pushed --ready`, and never by moving its ref, a move `bash-guard` refuses with the
 paths it would leave stale.
 
+**A plan declaring `Lands no file: yes` cuts no branch and spends no baseline**: the change is
+configuration this repository does not hold, so there is no tree to write in or to measure, and no
+landing to carry it either. The mark is this run's own, written once the configuration is in place,
+at the commit the deployment serves, with nothing moved and nothing written — `forge record merged
+-h` takes the rest — and the review reads the change at that commit.
+
 **A file the plan does not name is a correction**, posted before you write it: the mark's note says
 what the landing wrote, and `developed` refuses a path in it that neither the plan nor a correction
 names.

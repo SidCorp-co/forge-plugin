@@ -101,7 +101,7 @@ test("every kind's payload survives the rewrite byte for byte, and reads back un
 test("a status is earned from records that came back through the rewrite, with nothing owed", () => {
   const plan = throughVi(typedPlan());
   const criteria = rewritten("1. The first outcome.\n2. The second outcome.");
-  assert.deepEqual(planFlags(plan), { screen: "no", schema: "no", deploy: "no", look: null }, "the declarations are read through it");
+  assert.deepEqual(planFlags(plan), { screen: "no", schema: "no", deploy: "no", look: null, nofile: null }, "the declarations are read through it");
   assert.deepEqual(witnessedOn(plan), { cites: [], none: true }, "and a considered `none` is still the answer it was");
   /* Every shape the reader takes as the answer, through the boundary: what it accepts and what the
      protector holds are one pattern, so a form one of them took alone would come back unanswered. */
@@ -217,15 +217,15 @@ test("the protector holds every declaration the reader accepts, once, wherever i
   assert.deepEqual(marks.texts, ["Screen change: no", "Schema coupling: no"], "two on one line, with periods");
   assert.equal(protectMachine("plan", held), held, "a marked declaration is not marked twice");
   assert.equal(restoreMachine(held, marks), inline, "and the restore hands back what the author wrote");
-  assert.deepEqual(planFlags(throughVi(inline)), { screen: "no", schema: "no", deploy: null, look: null });
-  const spread = "- Screen change: yes\nDecision: schema coupling: yes\nUser-facing outcome: no";
-  assert.deepEqual(planFlags(throughVi(spread)), { screen: "yes", schema: "yes", deploy: null, look: "no" });
-  assert.deepEqual(planFlags(rewritten(spread)), { screen: null, schema: null, deploy: null, look: null }, "and unprotected it declares nothing");
+  assert.deepEqual(planFlags(throughVi(inline)), { screen: "no", schema: "no", deploy: null, look: null, nofile: null });
+  const spread = "- Screen change: yes\nDecision: schema coupling: yes\nUser-facing outcome: no\nLands no file: yes";
+  assert.deepEqual(planFlags(throughVi(spread)), { screen: "yes", schema: "yes", deploy: null, look: "no", nofile: "yes" });
+  assert.deepEqual(planFlags(rewritten(spread)), { screen: null, schema: null, deploy: null, look: null, nofile: null }, "and unprotected it declares nothing");
   const split = "Screen change:\n  yes\n\nSchema coupling: no.";
   const held2 = {};
   assert.equal(restoreMachine(protectMachine("plan", split, held2), held2), split,
     "a value on the next line is held too, and comes back spaced as it was written");
-  assert.deepEqual(planFlags(throughVi(split)), { screen: "yes", schema: "no", deploy: null, look: null });
+  assert.deepEqual(planFlags(throughVi(split)), { screen: "yes", schema: "no", deploy: null, look: null, nofile: null });
   const inside = "`Decision: screen change: yes because the migration lands first`";
   assert.equal(protectMachine("plan", inside), inside, "one already inside a span is left whole");
   assert.equal(planFlags(throughVi(inside)).screen, null, "and quoted is named, not declared (ISS-488)");
@@ -244,8 +244,8 @@ test("a bold declaration the reader accepts crosses the boundary byte for byte",
   assert.equal(restoreMachine(protectMachine("plan", bold, marks), marks), bold);
   assert.equal(marks.texts.length, 3, "each of the three is held");
   assert.equal(throughVi(bold), bold, "and the rewrite hands every line back as it was written");
-  assert.deepEqual(planFlags(throughVi(bold)), { screen: "yes", schema: "no", deploy: null, look: "no" });
-  assert.deepEqual(planFlags(rewritten(bold)), { screen: null, schema: null, deploy: null, look: null },
+  assert.deepEqual(planFlags(throughVi(bold)), { screen: "yes", schema: "no", deploy: null, look: "no", nofile: null });
+  assert.deepEqual(planFlags(rewritten(bold)), { screen: null, schema: null, deploy: null, look: null, nofile: null },
     "unprotected, the rewrite renames every label");
 });
 

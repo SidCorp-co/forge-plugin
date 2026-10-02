@@ -76,7 +76,8 @@ and no check here opens a tree. What it does not judge is whether that branch wa
 the head it names still exists.
 
 It is owed at every rung. A rung below the top buys away the repetition of a judgement, and a tree
-the record cannot name is not a judgement repeated.
+the record cannot name is not a judgement repeated. The one exception is no rung's: [a plan declaring
+the change lands no file](the-entry-checks.md).
 
 ## Which is why an empty capture no longer writes nothing
 

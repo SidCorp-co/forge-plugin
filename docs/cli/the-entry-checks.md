@@ -22,6 +22,23 @@ answer is true — the same line every other field of a record is read on.
 The rule behind it is this project's own and is argued in `CLAUDE.md`, where the scoped gate is
 described: the run that distrusts the ledger is what a later scoped green stands on.
 
+## A change that lands no file owes no tree
+
+A plan may declare `Lands no file: yes` — configuration on a deployment, a setting on the tracker —
+and `in_progress` then owes no baseline and no branch, and reads neither the scope nor the citation
+of a baseline that is there anyway. A gate measures a tree, and a change that lands nothing leaves
+the tree it lands on as it found it: the whole-tree run the section above asks for would measure
+only what the change did not touch, and a branch would name a tree nobody wrote in. Only the line
+grants it. An empty diff is no declaration, since a change not yet written reads exactly like one
+that never will be.
+
+`developed` is not waived, because the tracker's own work-evidence rule is not this plugin's to
+waive: on an issue landing in git it takes a captured branch or a mark carrying a commit, and only
+the mark is left to a change with no branch. A mark saying the landing wrote paths contradicts the
+line and is refused with the paths named: the record would say two things about one change, and
+nothing on it says which is wrong. Everything the judging and the deploying rungs read is owed
+unchanged.
+
 ## A screen's verdict cites an attachment
 
 Where the plan declares `Screen change: yes`, `testing` refuses a verdict whose evidence set holds no

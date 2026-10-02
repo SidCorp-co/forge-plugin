@@ -502,9 +502,9 @@ test("approved needs the plan with every required declaration, and numbered crit
   const partial = missing("approved", planned("Screen change: no\nSchema coupling: no"));
   assert.equal(partial[0], "the plan does not declare `Deploy coupling: yes|no`, which decides what the plan and the ship steps owe",
     "a plan answering some is told the one it lacks, and nothing it answered is quoted back");
-  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: "no", look: null });
-  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null });
-  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null },
+  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: "no", look: null, nofile: null });
+  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null, nofile: null });
+  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null, nofile: null },
     "prose about a declaration is not the declaration");
   assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
   assert.deepEqual(missing("approved", planned("User-facing outcome: yes.")).length, 2,
@@ -572,10 +572,10 @@ test("a plan with CRLF line endings reads as the same plan with LF", () => {
 
 test("a declaration a plan quotes inside a code span is not one it makes", () => {
   const both = "Screen change: no. Schema coupling: no.\n\nWhere a plan declares `Screen change: yes`, a person looks.";
-  assert.deepEqual(planFlags(both), { screen: "no", schema: "no", deploy: null, look: null },
+  assert.deepEqual(planFlags(both), { screen: "no", schema: "no", deploy: null, look: null, nofile: null },
     "the line the plan writes decides and the line it quotes does not");
   const quoted = "This reads `Screen change: yes` and `Schema coupling: yes` off whatever plan it is given.";
-  assert.deepEqual(planFlags(quoted), { screen: null, schema: null, deploy: null, look: null });
+  assert.deepEqual(planFlags(quoted), { screen: null, schema: null, deploy: null, look: null, nofile: null });
   const said = missing("approved", planned(quoted));
   assert.equal(said[0], "the plan does not declare `Screen change: yes|no`, `Schema coupling: yes|no` or `Deploy coupling: yes|no`, "
     + "each deciding what the plan and the ship steps owe",

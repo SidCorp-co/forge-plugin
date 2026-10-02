@@ -23,9 +23,9 @@ const said = (plan) => owed(plan).map((item) => item.what);
 const NONE = "the plan does not declare `Screen change: yes|no`, `Schema coupling: yes|no` or `Deploy coupling: yes|no`, "
   + "each deciding what the plan and the ship steps owe";
 
-test("a bold label closing after its colon declares what it says, for each of the four", () => {
-  const bold = "- **Screen change:** no\n- **Schema coupling:** yes\n- **Deploy coupling:** no\n- **User-facing outcome:** yes";
-  assert.deepEqual(planFlags(bold), { screen: "no", schema: "yes", deploy: "no", look: "yes" });
+test("a bold label closing after its colon declares what it says, for each of the five", () => {
+  const bold = "- **Screen change:** no\n- **Schema coupling:** yes\n- **Deploy coupling:** no\n- **User-facing outcome:** yes\n- **Lands no file:** yes";
+  assert.deepEqual(planFlags(bold), { screen: "no", schema: "yes", deploy: "no", look: "yes", nofile: "yes" });
   assert.deepEqual(said(typedPlan({ Declarations: "- **Screen change:** no\n- **Schema coupling:** no\n- **Deploy coupling:** no" })), [],
     "so the plan the filing met earns approved");
 });
@@ -35,12 +35,12 @@ test("emphasis closing before the colon, or around the value, is read the same w
   assert.equal(planFlags("_Screen change_: no").screen, "no");
   assert.equal(planFlags("Schema coupling: **yes**").schema, "yes");
   assert.deepEqual(planFlags("the schema coupling is untouched: no row moves"),
-    { screen: null, schema: null, deploy: null, look: null }, "and prose naming the two is still not the two declared");
+    { screen: null, schema: null, deploy: null, look: null, nofile: null }, "and prose naming the two is still not the two declared");
 });
 
 test("a bold declaration quoted inside a code span declares nothing", () => {
   assert.deepEqual(planFlags("This reads `**Screen change:** yes` and `**Schema coupling**: yes` off a plan."),
-    { screen: null, schema: null, deploy: null, look: null });
+    { screen: null, schema: null, deploy: null, look: null, nofile: null });
   assert.equal(planFlags("- **Screen change:** `yes`").screen, null, "nor does a value quoted beside a bold label");
 });
 

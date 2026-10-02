@@ -33,6 +33,8 @@ test("every missing line is named in one item, not the first", () => {
   assert.match(owed("Screen change: no")[0], /^the plan does not declare `Schema coupling: yes\|no` or `Deploy coupling: yes\|no`,/u);
 });
 
-test("the user-facing outcome is the one declaration a plan may leave out", () => {
+test("the user-facing outcome and lands no file are the declarations a plan may leave out", () => {
   assert.deepEqual(owed("Screen change: no\nSchema coupling: no\nDeploy coupling: no"), []);
+  assert.deepEqual(owed("Screen change: no\nSchema coupling: no\nDeploy coupling: no\nLands no file: yes"), [],
+    "and a plan answering the second is taken as one leaving it out is");
 });
