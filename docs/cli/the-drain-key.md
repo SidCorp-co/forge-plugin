@@ -22,7 +22,7 @@ settles it, which is the same call sent again. A write that moves no judgement l
 standing, since selecting a flow that asks for nothing is not an undo of a declaration it never
 touched.
 
-**A declaration stands another master down only while the rows bear it out.** The key subtracts a
+**A name is checked against the queue it takes a worker from.** The key subtracts a
 worker from a queue on the strength of a name, and nothing about a name says whether the master it
 names is running: a declared QA master with no pane and no process held four rows at `developed` for a
 whole session while the master that could have judged them read that they were not its own. So the
