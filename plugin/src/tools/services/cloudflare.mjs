@@ -261,8 +261,6 @@ export const searchDns = async (zones, query, type) => {
   return dedupe(perZone.flat());
 };
 
-/* The list is rebuilt from the file as it stands under the write's lock, never from this process's read
-   of it: a login built off that read put back a list missing an account saved in between. */
 const savedAccounts = (held) => (Array.isArray(held.accounts) ? held.accounts : []);
 
 const saveAccount = (rest) => {

@@ -112,8 +112,6 @@ export const hookOff = (name) => offIn(userConfig()).has(name);
 export const offReach = (name) =>
   `off for every project and every session on this account until \`forge hooks --on ${name}\``;
 
-/* The list is rebuilt from the file as it stands under the write's lock: built off this process's
-   read, it put back a list missing a gate switched off in between. */
 export const setHook = (name, off) => {
   let list = [];
   saveConfig((config) => {

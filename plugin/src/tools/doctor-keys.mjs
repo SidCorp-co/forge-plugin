@@ -49,9 +49,8 @@ const setStore = (store) => (asked) => {
 };
 
 /* One verb at a time is the person's own tidying and stays reachable by hand, so this writes the
-   state a job does not. Either way the whole map is written back, rebuilt from the file as it stands
-   under the write's lock so a verb hidden in between is kept, which is also what turns a list an older
-   release left behind into the shape every reader now takes. */
+   state a job does not. Either way the whole map is written back, which is what turns a list an
+   older release left behind into the shape every reader now takes. */
 const setVisibility = (verb, hide) => {
   if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
   saveConfig((held) => {

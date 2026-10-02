@@ -56,9 +56,6 @@ export const checkedName = (name) => {
   return name;
 };
 
-/* Each record below is rebuilt from the `google` key as the file holds it under the write's lock,
-   never from this process's read of it: built off that read, a write put back a map missing an
-   account saved in between. */
 const heldAccounts = (held) => held.accounts ?? {};
 
 /** Writes the account's file at 0600 and its record; the first account saved is the default. */
