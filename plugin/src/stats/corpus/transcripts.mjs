@@ -105,24 +105,32 @@ export const rungRun = (calls) => {
 const OPERATOR = /[\n;|&(){}]/u;
 /* What a comment or a backslash makes text; a quote's is decided by whether a runner was handed it. */
 const TEXT = new Set(["#", "\\"]);
-const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})\s*$`, "u");
+const RUNS = new RegExp(String.raw`(?:^|[\s;&|(){}])(?:${RUNNER})$`, "u");
 const SPENT = "\u0000";
 const ENDS_A_WORD = /[\s;|&(){}<>]/u;
 const BACKTICK = "\x60";
 
-/* What every match of `RUNS` ends in, past its spaces: a word of letters behind a hyphen holding a
-   `c`, or one ending `eval`. Read backwards over that one word, so a quote no runner can stand before
-   spends no scan of the whole text in front of it, and a command of many quotes stays linear. */
+/* What every match of `RUNS` ends in, past its spaces and an `=`: a word of letters behind a hyphen
+   holding a `c`, one ending `eval`, or, in a text spelling `env` at all, a word behind a hyphen holding an
+   `S` or a long option that begins `--s`. Read backwards over that one word, so a quote no runner can
+   stand before spends no scan of the whole text in front of it, and a command of many quotes stays
+   linear: `-S` is a flag of `ls`, `sort` and `ssh` far more often than it is env's. */
 const SPACE = /\s/u;
 const LETTER = /[A-Za-z]/u;
-const mayRun = (text, end) => {
+const SPLITTING = /--s[\w-]*$/u;
+const mayRun = (text, end, envs) => {
   let to = end;
   while (to > 0 && SPACE.test(text[to - 1])) to -= 1;
+  if (text[to - 1] === "=") to -= 1;
   let from = to;
   while (from > 0 && LETTER.test(text[from - 1])) from -= 1;
   const word = text.slice(from, to);
-  return (text[from - 1] === "-" && word.includes("c")) || word.endsWith("eval");
+  return (text[from - 1] === "-" && word.includes("c")) || word.endsWith("eval")
+    || (envs && ((text[from - 1] === "-" && word.includes("S")) || SPLITTING.test(text.slice(Math.max(0, from - 16), to))));
 };
+/* Whether a runner hands on the quote opening at `at`: asked before the word the quote stands in, as a
+   `-c` body's is, and before the quote itself, where env's `-S'…'` and `--split-string='…'` attach theirs. */
+const handedAt = (text, word, at, envs) => [word, at].some((end) => mayRun(text, end, envs) && RUNS.test(text.slice(0, end)));
 
 export const shellOf = (command) => {
   const text = bodiesOut(command, { operator: "<<" });
@@ -130,6 +138,8 @@ export const shellOf = (command) => {
   const outer = [];
   let word = 0;
   let handed = false;
+  let asked = -1;
+  const envs = text.includes("env");
   let last = " ";
   for (const { at, one, under, depth } of quoting(text)) {
     if (under === " ") {
@@ -146,7 +156,11 @@ export const shellOf = (command) => {
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
     }
     const quoted = under === "'" || under === '"';
-    if (quoted && last !== under) handed = mayRun(text, word) && RUNS.test(text.slice(0, word));
+    /* Once a word, at its first quote: a second quote in the same word is the same argument. */
+    if (quoted && last !== under && asked !== word) {
+      asked = word;
+      handed = handedAt(text, word, at, envs);
+    }
     last = under;
     const ran = quoted ? handed : !TEXT.has(under);
     said.push(ran || !OPERATOR.test(one) ? one : SPENT);

@@ -1,0 +1,9 @@
+// One shell word as a pattern, and the blanks between two.
+
+/** The shell's three blanks, the characters between two of its words: a pattern splicing a word reading between separators takes these and never `\s`, whose `\r` and no-break space the word holds, or each run of them could be cut two ways and the cuts multiply. */
+export const BLANKS = String.raw`[ \t\n]`;
+/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader — a quote or a backslash among those only where nothing closes or follows it. A blank is the shell's own three, so a no-break space is a character of the word as it is to a shell. `substituted` adds a closed `$(…)` and a closed backtick pair as one arm each, blanks and all, for a reader whose word may be computed. One reading, so a case a shell word gains is gained by every reader that splits one. A lone quote's test stands in front of the quote rather than behind it, so a reader that splices this into a lookbehind, which matches right to left, tests the character before it scans the rest of the text from every position. Each character opens exactly one of the arms, since a pattern spliced in front of something that can fail — a wrapper option's value before a verb that is no write — tries every way of cutting the word it could, and `'a'` read as a run or as three characters doubled the ways with each quoted part. */
+const DOUBLED = String.raw`(?:[^"\\]|\\[\s\S])*`;
+const SUBSTITUTED = String.raw`\$\([^)]*\)|(?!\$\([^)]*\))\$|\x60[^\x60]*\x60|(?!\x60[^\x60]*\x60)\x60|`;
+export const shellWord = (stops, { substituted = false } = {}) =>
+  String.raw`(?:${substituted ? SUBSTITUTED : ""}'[^']*'|(?!'[^']*')'|"${DOUBLED}"|(?!"${DOUBLED}")"|\\[\s\S]|\\$|[^${BLANKS.slice(1, -1)}'"\\${substituted ? "$\\x60" : ""}${stops}])+`;

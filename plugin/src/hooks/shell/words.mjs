@@ -1,11 +1,11 @@
 // The words of a shell command as the walk reads them, and which quoted spans are one filename.
 
 import { quoting } from "./walk.mjs";
+import { BLANKS } from "./word.mjs";
+import { SPLITS } from "./wrappers.mjs";
 
 /* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash — one the shell keeps, since one it removes makes the character behind it a character of the word, which is `worded`'s to read. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
 const OPERATOR = /[;&|()<>$\\]/u;
-/** The shell's three blanks, the characters between two of its words: a pattern splicing a word reading between separators takes these and never `\s`, whose `\r` and no-break space the word holds, or each run of them could be cut two ways and the cuts multiply. */
-export const BLANKS = String.raw`[ \t\n]`;
 /* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one, but in a span `spacedName` reads as a path. Outside a quote the whitespace is the shell's three blanks, since that is where the shell itself ends a word and a no-break space there is a character of the name the write lands on; under one it is any, the space because a quoted span carrying one is a sentence or a list far more often, and `touch 'a.md b.md'` names two; the quotes because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
 const ALWAYS = /[\s'"`]/u;
 const BARE = new RegExp(String.raw`${BLANKS}|['"\x60]`, "u");
@@ -15,15 +15,15 @@ export const SHELL_WORD = String.raw`(?:(?:\S*\/)?busybox\s+)?(?:\S*\/)?(?:ba|da
 /** One option a shell takes before its program: a bare word only as the value of `-o`, `+o`, `-O` or `+O`, since `bash -x script -c '…'` runs the script and hands it the rest. */
 export const SHELL_OPTION = String.raw`(?:[-+][A-Za-z]*[oO]\s+[\w-]+|[-+]\S+)`;
 
-/** A word that runs its next quoted argument as shell code: a shell with its options before the `-c`, or `eval`. Where a command starts before it is each reader's own. */
-export const RUNNER = String.raw`${SHELL_WORD}\s+(?:${SHELL_OPTION}\s+)*-[A-Za-z]*c[A-Za-z]*|eval`;
+/** A word that runs its next quoted argument as a command, through to where that argument opens: a shell with its options before the `-c`, or `eval`, each behind blanks, or env handed its command as one string to split, which `SPLITS` spells. The separator is the runner's, since env's attached `-S'…'` and `--split-string='…'` have none a reader could append. Where a command starts before it is each reader's own. */
+export const RUNNER = String.raw`(?:${SHELL_WORD}\s+(?:${SHELL_OPTION}\s+)*-[A-Za-z]*c[A-Za-z]*|eval)\s+|${SPLITS}`;
 /* The quoted span whose spaces are a name's: rooted, ending in an extension, every space inside one path component, and not the body a `RUNNER` runs. A sentence opens with a word, a list puts its space against the next root, `sh -c '/bin/cp a.md b.md'` is code, and what is left is a directory named `sp ace`, whose write was cut to a tail naming another file (ISS-1594). */
 const ROOTED = /^~?\//u;
 const EXTENDED = /\.[A-Za-z0-9]+$/u;
 const INNER = /(?<=[^\s/]) +(?=[^\s/])/gu;
 const spacedName = (body) => body.includes(" ") && ROOTED.test(body) && EXTENDED.test(body)
   && !/[\s[\]]/u.test(body.replace(INNER, ""));
-const RUN_BODY = new RegExp(String.raw`(?:^|[\s;&|(])(?:${RUNNER})\s+$`, "u");
+const RUN_BODY = new RegExp(String.raw`(?:^|[\s;&|(])(?:${RUNNER})$`, "u");
 /* And the two of the operators a single quote takes back, which is where a shell opens no subshell and a path plausibly carries one: the `;`, the `|`, the `<`, the `>`, the `$` and the backslash inside a quoted span say interpreter's body far more often than they say filename, and a reading that must not invent a target leaves them ending words as they always did. */
 const BRACKET = /[()]/u;
 

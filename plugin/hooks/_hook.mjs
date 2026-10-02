@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -370,16 +370,21 @@ export const bodiless = (text, onProgram = (body) => body) => bodiesOut(text, {
   },
 });
 
-/** A shell runs a `-c` body and `eval` its argument, so a verb there is in command position. One holds
- *  another, so it runs to a fixed point, keeping the start it matched: that can carry an assignment.
- *  A heredoc inside a body is that shell's, its body read by `bodiless` with the caller's `onProgram`. */
-const WRAPPED = new RegExp(`(?<start>${STARTS})(?:${RUNNER})` + String.raw`\s+(?<body>"[^"]*"|'[^']*')`, "gu");
+/** A shell runs a `-c` body, `eval` its argument and env its split string, so a verb there is in command
+ *  position. One holds another, so it runs to a fixed point, keeping the start it matched: that can carry
+ *  an assignment. A heredoc inside a body is that shell's, its body read by `bodiless` with the caller's
+ *  `onProgram`. An env split string's `\_` is the blank env splits it at; `\\_` is a backslash and no blank. */
+const WRAPPED = new RegExp(`(?<start>${STARTS})(?<runner>${RUNNER})` + String.raw`(?<body>"[^"]*"|'[^']*')`, "gu");
+const SPLIT = new RegExp(`^(?:${SPLITS})$`, "u");
+const ENV_ESCAPE = /\\([\s\S])/gu;
+const opened = (runner, body) =>
+  (SPLIT.test(runner) ? body.replace(ENV_ESCAPE, (escape, one) => (one === "_" ? " " : escape)) : body);
 export const unwrapped = (text, onProgram) => {
   let out = text;
   for (let hop = 0; hop < HOPS; hop += 1) {
     const next = out.replace(WRAPPED, (...all) => {
-      const { start, body } = all.at(-1);
-      return `${start} ; ${bodiless(body.slice(1, -1), onProgram)} ;`;
+      const { start, runner, body } = all.at(-1);
+      return `${start} ; ${bodiless(opened(runner, body.slice(1, -1)), onProgram)} ;`;
     });
     if (next === out) break;
     out = next;
