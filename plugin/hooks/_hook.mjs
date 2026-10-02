@@ -449,7 +449,7 @@ const spawned = (body, runner) => {
   return given.map((one) => `\n(\n${one}\n)\n`).join("");
 };
 
-/* A literal holding a parameter's `$` is quoted as the shell would still read it, which is how the body's own text was read; one a double quote cannot carry that way, holding a `"`, a backtick or a `$(` beside that `$`, names a file no reading here can spell, and is left out. Every other literal is spelt as `typed` writes a word back, which a redirect's operand the shell expands nothing in is read back whole from (ISS-3052). */
+/* A literal holding a parameter's `$` is quoted as the shell would still read it, which is how the body's own text was read; one a double quote cannot carry that way, holding a `"`, a backtick or a `$(` beside that `$`, names a file no reading here can spell, and is left out. Every other literal goes through `typed`, and `literalWord` reads it back (ISS-3052). */
 const PARAMETER_SIGN = /\$(?!\()/u;
 const aimedAt = (name) => {
   if (PARAMETER_SIGN.test(name)) return /["\x60]|\$\(/u.test(name) ? "" : `\n: > "${name}"`;
