@@ -502,7 +502,6 @@ export const gitTreeOf = (text) => {
   const said = {};
   let at = null;
   for (const [, option, joint, value] of String(text ?? "").matchAll(AIMS)) {
-    /* A value glued behind `--work-tree=` is the tail of a word, where no tilde names the home. */
     const one = shellSpelled(value, { home: joint !== "=" }).replace(/(?!^)\/+$/u, "");
     if (option !== "-C") said[option] = one;
     else at = at && !isAbsolute(one) ? join(at, one) : one;
