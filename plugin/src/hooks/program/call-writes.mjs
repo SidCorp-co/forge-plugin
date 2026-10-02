@@ -73,6 +73,18 @@ const writesMode = (code, args, at) => {
 
 /* pathlib's writes, on the path they are called on, where a module's call above has not already read the same parenthesis: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells with `w` or `a` — an archive's `open('member', 'w')` names a member there, and writes no file, so an `open` taking its mode second is some object's own, placed nowhere and kept for the reading that keeps every candidate. A receiver `RECEIVED` cannot read is computed, and its line is the call. */
 const METHOD = /\.(write_(?:text|bytes)|open)\s*\(/gu;
+/* The path a method is called on, walked back from its `.` over names, dots and whole brackets in `bare`, where no string or comment holds a bracket. */
+const receiverAt = (bare, at) => {
+  let from = at;
+  for (let depth = 0; from > 0; from -= 1) {
+    const one = bare[from - 1];
+    if (")]".includes(one)) depth += 1;
+    else if ("([".includes(one)) depth -= 1;
+    else if (!depth && !/[\w.]/u.test(one)) break;
+    if (depth < 0) break;
+  }
+  return from < at ? [{ from, to: at }] : [];
+};
 const receivedCalls = ({ code, bare, inside }, taken) => {
   const received = [...code.matchAll(RECEIVED)].filter((one) => !inside(one.index));
   return [...code.matchAll(METHOD)].filter((one) => !inside(one.index)).flatMap((hit) => {
@@ -83,24 +95,24 @@ const receivedCalls = ({ code, bare, inside }, taken) => {
       const writes = (at) => read && writesMode(code, read.args, [at, "mode"]);
       if (!writes(0)) {
         const text = read && code.slice(hit.index, read.end);
-        return read && writes(1) ? [{ text, targets: [], names: [], computed: true }] : [];
+        return read && writes(1) ? [{ text, targets: [], names: [], computed: true, through: [] }] : [];
       }
     }
     const by = received.find((one) => one.index + one[0].length === to);
     if (!by) {
       const from = code.lastIndexOf("\n", hit.index) + 1;
-      return [{ text: code.slice(from, to), targets: [], names: [], computed: true }];
+      return [{ text: code.slice(from, to), targets: [], names: [], computed: true, through: receiverAt(bare, hit.index) }];
     }
     const said = STRING_IN.exec(by[0]);
     const name = said ? null : /^[A-Za-z_]\w*/u.exec(by[0]);
     const from = by.index + (said ?? name).index;
     const one = { from, to: from + (said ?? name)[0].length };
     const targets = said && spelling(said[0]) !== null ? [one] : [];
-    return [{ text: by[0], targets, names: name ? [one] : [], computed: !targets.length }];
+    return [{ text: by[0], targets, names: name ? [one] : [], computed: !targets.length, through: targets.length ? [] : [one] }];
   });
 };
 
-/** Each file call in `given`, the program a `runner` reads: `text` is what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. */
+/** Each file call in `given`, the program a `runner` reads: `text` is what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. `through` is each such argument, or the path a method is called on, by where it stands; an archive member's `open` writes no file by name and has none. */
 export const fileCalls = (given, runner) => {
   const { code, bare, inside } = spokenIn(given, runner);
   const out = [];
@@ -113,8 +125,8 @@ export const fileCalls = (given, runner) => {
     const written = call.writes.map((one) => argument(code, read.args, one));
     const targets = written.filter((one) => literalAt(code, one));
     const names = written.filter((one) => one && NAME.test(code.slice(one.from, one.to)));
-    const computed = targets.length < written.filter(Boolean).length;
-    out.push({ opened, text: code.slice(hit.index, read.end), targets, names, computed });
+    const through = written.filter((one) => one && !literalAt(code, one));
+    out.push({ opened, text: code.slice(hit.index, read.end), targets, names, computed: through.length > 0, through });
   }
   return [...out, ...receivedCalls({ code, bare, inside }, new Set(out.map((one) => one.opened)))];
 };
