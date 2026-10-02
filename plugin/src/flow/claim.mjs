@@ -90,11 +90,11 @@ const MAX_MINUTES = 24 * 60;
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
-export const advisory = (status, fields, held, work = null, finished = []) => {
+export const advisory = (status, fields, held, work = null, finished = [], leaseSaid = heldBy()) => {
   for (const line of openingLines(status, held, work, finished)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
-  console.log(`\n${MECHANISM} ${heldBy()}`);
+  console.log(`\n${MECHANISM} ${leaseSaid}`);
   partForStatus(status, (part) => console.log(`\n${part}`), rungOf(fields));
 };
 
@@ -102,19 +102,20 @@ export const advisory = (status, fields, held, work = null, finished = []) => {
 const UNREAD = { plan: null, moved: [], whole: false, complexity: null };
 
 /* The worklog is handed in and not read off the issue, which was fetched before this claim's own write: each route passes what it wrote, the two hand-backs writing none, and a page that did not read back still names the branch. */
-/* `landing` is the checkpoint this call wrote, where it wrote one: the issue was fetched before the write, and the opening narrows the phase owed by the head that checkpoint names (ISS-2439). */
-const advise = async (documentId, fetched, held = null, landing = undefined) => {
+/* `landing` is the checkpoint this call wrote, where it wrote one: the issue was fetched before the write, and the opening narrows the phase owed by the head that checkpoint names (ISS-2439). `given` is the give-back's own, the one arm that ends the lease inside the call rather than queueing it. */
+const advise = async (documentId, fetched, held = null, landing = undefined, { given = false } = {}) => {
   const issue = landing === undefined ? fetched : { ...fetched, [FIELD]: { ...fetched[FIELD], [LANDING]: landing } };
   const work = await workNow(held);
+  const leaseSaid = heldBy(documentId, { given });
   const page = await commentPage(documentId, true);
   if (page?.refused) {
     console.log(`This issue's comment page did not read back, so no phase is named as passed and the `
       + `lane below is printed at the rung an unread page owes: ${page.refused}`);
-    return advisory(issue.status, UNREAD, [], work);
+    return advisory(issue.status, UNREAD, [], work, [], leaseSaid);
   }
   const view = viewFrom(documentId, issue, page.comments, cutIn(page));
   scopeFrom(issue.status, issue.issueId, namedIn(view));
-  advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view));
+  advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view), leaseSaid);
   /* At a side status the lane above is empty, so where the way back is refused the refusal is what
      the claimant acts on: it names the record that finishes a park whose record did not go up. */
   const owed = SIDE.includes(issue.status) ? owedIn(view, issue.issueId ?? documentId) : null;
@@ -447,7 +448,8 @@ export const claim = async (argv) => {
     if (untold) console.error(untold);
   }
   if (given["give-back"]) {
-    return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })));
+    return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })),
+      undefined, { given: true });
   }
   if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
   if (given.stopped && HOLDING.includes(state) && !working.length) fail(stoppedHeldRefusal(ref, lease));

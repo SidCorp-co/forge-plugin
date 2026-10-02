@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { GAVE_BACK, GOES_BACK, MECHANISM } from "../../../src/flow/lease.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("released").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -181,6 +182,22 @@ test("a holder's own --give-back leaves nothing holding the issue, and the next 
   assert.equal(judge.status, 0, `the next run should have claimed it:\n${judge.stdout}${judge.stderr}`);
   assert.match(judge.stdout, new RegExp(`ISS-1617  claim: session ${JUDGE}`, "u"), "as an ordinary first claim");
   assert.doesNotMatch(judge.stdout + judge.stderr, /Wait for it/u, "with no clock to wait out");
+});
+
+/* The sentence the claim ends on beside the mechanism describes what this call did to the lease: the give-back's own run is told it gave the lease back, and never that the lease is its own (ISS-3099). */
+test("a give-back's last word on the lease says it was given back, and none says this run holds it", async () => {
+  heldBy(BUILDER);
+  const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
+  assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
+  const said = `${gave.stdout}${gave.stderr}`;
+  assert.ok(gave.stdout.includes(`${MECHANISM} ${GAVE_BACK}`), `the given-back sentence beside the mechanism:\n${gave.stdout}`);
+  assert.doesNotMatch(said, /the lease is this run's/u, "no line says the lease is this run's");
+  assert.doesNotMatch(said, /the lease is advisory/u, "nor reads the endpoint's answer as a lease still held");
+
+  const kept = await ran(["claim", "ISS-1617"], BUILDER);
+  assert.equal(kept.status, 0, `${kept.stdout}${kept.stderr}`);
+  assert.ok(kept.stdout.includes(`${MECHANISM} This tracker`), `a claim that takes the lease still says the endpoint's answer:\n${kept.stdout}`);
+  assert.ok(!kept.stdout.includes(GAVE_BACK) && !kept.stdout.includes(GOES_BACK), "and not that the lease went back");
 });
 
 test("a holder's --give-back on its own lapsed lease gives it back too", async () => {

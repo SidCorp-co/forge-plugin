@@ -32,11 +32,21 @@ export const MECHANISM =
   + "enforce it, the write is compared after the fact instead, which cannot stop another run's write "
   + "and only refuses to build on it.";
 
+export const GAVE_BACK = "This call gave the lease back, so this run holds nothing on the issue and the next "
+  + "claim takes it with no wait.";
+export const GOES_BACK = "This run's lease is given back as this call ends, and the line printed then says "
+  + "whether it was.";
+
 /** And what this endpoint answered, which only a write can have learned, so this is the claim's own line and never the usage's. */
-export const heldBy = () => (enforcementOf() === true
-  ? "This tracker refuses a stale write to the field, so the lease is this run's until it lapses."
-  : "This tracker did not refuse a stale write to the field, so the lease is advisory: two runs that "
-    + "both find no lease both claim, and the later write erases the earlier.");
+/* What the call did to the lease decides the sentence before the endpoint does: a call that ended the lease, or queued its release for the call's end, told it is this run's until it lapses reads as the write it reports not having happened (ISS-3099). The queue is read rather than each arm saying so, so an arm that queues a release is covered by queueing it. */
+export const heldBy = (documentId = null, { given = false } = {}) => {
+  if (given) return GAVE_BACK;
+  if (documentId !== null && OWED.has(documentId)) return GOES_BACK;
+  return enforcementOf() === true
+    ? "This tracker refuses a stale write to the field, so the lease is this run's until it lapses."
+    : "This tracker did not refuse a stale write to the field, so the lease is advisory: two runs that "
+      + "both find no lease both claim, and the later write erases the earlier.";
+};
 
 export const NOTHING_WORKED = "nothing was worked under this lease";
 
