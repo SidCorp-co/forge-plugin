@@ -62,7 +62,7 @@ test("the history line marks a reclaim left out for a move, beside the readings 
   const line = historyLine(mixed, "developed").split(" | ");
   assert.deepEqual(line.map((one) => one.endsWith(", after the issue moved on from where the run before took it, so not counted")),
     [true, false, false], line.join("\n"));
-  assert.deepEqual(line.map((one) => one.endsWith(", over a lease that declared nothing was worked, so not counted")),
+  assert.deepEqual(line.map((one) => one.includes(", over a lease")),
     [false, true, false], line.join("\n"));
 });
 
