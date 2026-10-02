@@ -77,9 +77,10 @@ const offersJudging = (policy) => judgementOf(policy) === INDEPENDENT;
 
 const judgingVerdict = (lease) => {
   const taken = leaseOf(lease);
-  return ["live", "mine"].includes(stateOf(taken, sessionOf()))
-    ? { offerable: false, reason: `lease held by ${describe(taken)}` }
-    : { offerable: true, reason: null };
+  const held = stateOf(taken, sessionOf());
+  return ["live", "mine"].includes(held)
+    ? { offerable: false, held, reason: `lease held by ${describe(taken)}` }
+    : { offerable: true, held, reason: null };
 };
 
 /** Offered, left out, and what the bound did not reach, oldest first so the bound covers the same
@@ -92,8 +93,12 @@ export const judgingFrom = async (rows, { policy, leaseFor, cap }) => {
     .filter((one) => JUDGING.includes(String(one?.status ?? "")))
     .sort((one, other) => filedAt(one) - filedAt(other));
   const window = at.slice(0, cap);
-  const judged = await Promise.all(window.map(async (row) =>
-    ({ row, issueId: row.issueId, ...judgingVerdict(await leaseFor(row)) })));
+  /* The raw field rides beside the verdict: a released lease reads as none to `leaseOf`, and its
+     history and release stamp are what says when a judging run last stood on the row. */
+  const judged = await Promise.all(window.map(async (row) => {
+    const context = await leaseFor(row);
+    return { row, issueId: row.issueId, lease: context?.lease ?? null, ...judgingVerdict(context) };
+  }));
   return {
     offered: judged.filter((one) => one.offerable),
     left: judged.filter((one) => !one.offerable),

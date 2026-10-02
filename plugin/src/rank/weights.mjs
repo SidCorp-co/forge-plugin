@@ -49,7 +49,15 @@ export const DEFAULTS = {
   batchCap: 3,
   windowCap: 12,
   readCap: 60,
+  /* Minutes a row at the judging status may stand with no lease, claim or write before the master a
+     project declared drains it is read as not draining: one lease's span, past which a live judging
+     run has either taken the row or let a lease lapse on it. docs/cli/the-drain-key.md. */
+  drainIdle: 60,
 };
+
+/* The weights that count something rather than score it, where nothing but a whole number above
+   zero means anything: a window of no minutes declares every master absent the moment a row lands. */
+const WHOLE = ["drainIdle"];
 
 const TABLES = ["priority", "kind", "complexity", "module"];
 
@@ -105,6 +113,10 @@ const wrongIn = (given) => {
         if (!numeric(held)) return `\`rank.${key}.${name}\` is a number of points, not \`${JSON.stringify(held)}\`.`;
       }
       continue;
+    }
+    if (WHOLE.includes(key)) {
+      if (Number.isInteger(value) && value > 0) continue;
+      return `\`rank.${key}\` is a whole number of minutes above zero, not \`${JSON.stringify(value)}\`.`;
     }
     if (numeric(value) || (key === UNCAPPED && value === null)) continue;
     return key === UNCAPPED
@@ -169,6 +181,8 @@ export const weightLines = (weights) => [
   row("batchCap", `${weights.batchCap} members, and every one of them at the fix rung or below`),
   row("windowCap", `${weights.windowCap} — candidates whose body is read in one pass`),
   row("readCap", `${weights.readCap} — the most bodies read in all`),
+  row("drainIdle", `${weights.drainIdle} minutes a judging row may stand untouched before the master`),
+  row("", "declared to drain it is read as not draining, and any master takes the rows"),
   "",
   "Ties break on the filing date, oldest first.",
 ];

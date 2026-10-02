@@ -17,7 +17,10 @@ import {
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
-import { projectRows, QA_MODES, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
+import { judgementOf, policyUnread, projectRows, QA_MODES, releasePolicy, stagingDeploy }
+  from "../tracker/project-config.mjs";
+import { drainHere } from "../rank/drain.mjs";
+import { weightsFrom } from "../rank/weights.mjs";
 import { addBriefLine, briefLines, confirmSource, readBrief, refreshBrief, replaceBriefLine }
   from "../tracker/knowledge/brief.mjs";
 
@@ -494,6 +497,11 @@ const pmRows = (snapshot, load, graph) => {
   ];
 };
 
+/* The rows at developed are read only where the judgement offers them, so a project that judges its
+   own work pays no call for a row it does not print. */
+const drainRead = (policy) => (judgementOf(policy) === INDEPENDENT && !policyUnread(policy)
+  ? drainHere(policy, weightsFrom().value) : null);
+
 /** Every level of the project's own record in one reading: the branches and the deploy, then each
  *  key of the two configuration resources, the work the tracker counts, then the brief as prose and
  *  the read behind it, which the reading of what nobody decided asks its own question of. The
@@ -503,13 +511,14 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
     releasePolicy(), stagingDeploy(), readSettings(), readBrief(),
     scoped("forge_project_pm.snapshot", {}, true), scoped("forge_project_pm.runner_load", {}, true),
   ]);
+  const drain = await drainRead(policy);
   const flow = flowPinned().value;
   const clashes = flow === null ? [] : [
     flowPolicyConflict(flow, requiresOf(flow), policy),
     flowJudgeConflict(flow, judgeOf(flow), policy),
   ].filter(Boolean);
   return {
-    rows: [...projectRows({ policy, deploy, credentials }),
+    rows: [...projectRows({ policy, deploy, credentials, drain }),
       ...clashes.map((detail) => ({ level: "miss", label: "flow", detail })),
       ...settingRows(settings), ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),

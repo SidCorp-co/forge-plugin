@@ -571,12 +571,11 @@ export const methodScope = once(() => written("method"));
 
 export const DRAINS = ["dispatcher", "qa-master"];
 
-/** Which master claims this project's issues at `developed`. A value outside the pair resolves to no master rather than to the default, nothing looking more like a project that chose the dispatcher than one whose key was misspelled; the tracker's own schema declares no key for this, which is why it is the project file's — docs/cli/doctor.md. */
+/** Which master this project declared claims its issues at `developed`, and no master at all where it declared none or named one outside the pair: a declaration subtracts a worker from a queue, so one nobody made subtracts nobody. The tracker's own schema declares no key for this, which is why it is the project file's — docs/cli/the-drain-key.md. */
 export const drainScope = once(() => {
   const given = forgeJson().parsed?.drainedBy;
-  const held = chosen(given, DRAINS, DRAINS[0]);
   const declared = given !== undefined && given !== null;
-  return held.unknown === undefined ? { ...held, declared } : { ...held, value: null, declared };
+  return { ...chosen(given, DRAINS, null, { absent: null }), declared };
 });
 
 /** What an enum-valued key resolves to in one project record: the row in resolve/project/enum-keys.mjs

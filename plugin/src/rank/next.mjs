@@ -15,7 +15,8 @@ import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines
   from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, judgingFrom, pathsNamed } from "./eligible.mjs";
-import { drainScope, fail } from "../resolve/settings.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { drainOf, leaseOn } from "./drain.mjs";
 import { directedEdge, ordersEdge, otherOf } from "../tracker/edges/kinds.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
@@ -154,13 +155,24 @@ const bodiesFor = async (window) =>
     await scoped("forge_issues", { action: "get", documentId: one.row.documentId, fields: ["relations"] }),
   ])));
 
-/* The one fact the browse projection does not carry, asked a row at a time: a judging candidate is
-   offerable on its lease alone, and no listing answers for one. */
-const leaseOn = async (row) =>
-  (await scoped("forge_issues", { action: "get", documentId: row.documentId, fields: [] }))?.sessionContext;
+/* The judging rows and what they say about the master declared to drain them, read once for both
+   output forms: a machine standing down on the json reads the same evidence a terminal prints. */
+const judgingIn = async (rows, weights) => {
+  const judging = await judgingFrom(rows, { policy: await releasePolicy(), leaseFor: leaseOn,
+    cap: weights.windowCap });
+  return judging && !judging.unread ? { ...judging, drain: drainOf(judging, { idle: weights.drainIdle }) } : judging;
+};
 
-const judgingIn = async (rows, weights) =>
-  judgingFrom(rows, { policy: await releasePolicy(), leaseFor: leaseOn, cap: weights.windowCap });
+const drainJson = (drain) => ({
+  declared: drain.declared,
+  holds: drain.holds,
+  evidence: drain.evidence,
+  standing: drain.standing,
+  leased: drain.leased,
+  lastClaimAt: drain.lastClaimAt,
+  oldest: drain.oldest,
+  idleMinutes: drain.idle,
+});
 
 /** How many eligible candidates the printing can need: a batch absorbs members, so `count` batches
  *  can consume `count` times the cap before the last head is settled. */
@@ -242,7 +254,8 @@ const jsonOf = (batches, dropped, weights, from, read, judging) => ({
   weightsFrom: from,
   read,
   judging: judging && (judging.unread ? { unread: judging.unread } : {
-    drainedBy: drainScope().value,
+    drainedBy: judging.drain.drainedBy,
+    drain: drainJson(judging.drain),
     offered: judging.offered.map((one) => ({ issueId: one.issueId, title: one.row.title })),
     left: judging.left.map((one) => ({ issueId: one.issueId, reason: one.reason })),
     unreached: judging.unreached,
@@ -440,7 +453,7 @@ export const next = async (argv) => {
   if (asked.json) {
     return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid, judging), null, 2));
   }
-  for (const line of judgingLines(judging)) console.log(line);
+  for (const line of judgingLines(judging, judging?.drain)) console.log(line);
   if (!batches.length) {
     console.log(`Nothing is eligible: ${takeable.length} issue(s) could be taken and every one was dropped.`);
   } else {

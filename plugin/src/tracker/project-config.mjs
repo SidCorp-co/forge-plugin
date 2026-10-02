@@ -553,21 +553,43 @@ const NO_LIVE = "a release has no branch to land on, and the park before awaitin
   + "until it is set";
 
 /* The other half of who judges, and the half no tracker schema declares: `qa` says whether the
-   judgement is an independent run's and this says which master claims what that offers. */
-const drainRows = (policy) => {
+   judgement is an independent run's and this says which master claims what that offers. A row
+   naming a master is `ok` only where the rows at developed show it draining, the declaration being
+   what stands another master down (ISS-2354). */
+const drainRows = (policy, drain) => {
   const held = drainScope();
   const takes = `it takes ${DRAINS.join(" or ")}`;
+  const anyone = "so any master that reads the queue takes the rows at developed";
   if (held.unknown !== undefined) {
     return [{ level: "miss", label: "drained by", detail: `\`drainedBy\` is \`${held.unknown}\`, `
-      + `which is no master that drains developed: ${takes}. Nothing here says who claims this `
-      + `project's issues at that status until it does  ← ${held.from}` }];
+      + `which is no master that drains developed: ${takes}. No master is declared, ${anyone}, until `
+      + `it is put right  ← ${held.from}` }];
   }
-  const row = { level: "ok", label: "drained by",
-    detail: `${held.value} claims this project's issues at developed  ← ${held.from}` };
-  if (!held.declared || judgementOf(policy) === QA_MODES[0]) return [row];
-  return [row, { level: "miss", label: "drained by", detail: `\`drainedBy\` names ${held.value} and `
-    + `the judgement between developed and testing is ${judgementOf(policy)}, so nothing is offered `
-    + "at that status for it to drain: set the judgement to independent, or take the key out" }];
+  if (judgementOf(policy) !== QA_MODES[0]) {
+    return held.declared ? [{ level: "miss", label: "drained by", detail: `\`drainedBy\` names `
+      + `${held.value} and the judgement between developed and testing is ${judgementOf(policy)}, so `
+      + "nothing is offered at that status for it to drain: set the judgement to independent, or take "
+      + "the key out" }] : [];
+  }
+  return [drainRow(held, drain, anyone)];
+};
+
+const drainRow = (held, drain, anyone) => {
+  const row = (level, detail) => ({ level, label: "drained by", detail });
+  if (!held.declared) return row("note", `no master — \`drainedBy\` is unset, ${anyone}${drain?.facts ? `: ${drain.facts}` : ""}`);
+  const source = `  ← ${held.from}`;
+  if (!drain || drain.unread) {
+    return row("note", `${held.value}, declared; whether it is draining went unread: `
+      + `${drain?.unread ?? "nothing read the rows at developed"}${source}`);
+  }
+  if (drain.holds) return row("ok", `${held.value}, draining: ${drain.facts}${source}`);
+  if (!drain.standing && !drain.unreached) {
+    return row("note", `${held.value}, declared; no row stands at developed, so nothing here says `
+      + `whether it is draining${source}`);
+  }
+  return row("miss", `${held.value} is declared and not draining: ${drain.facts}, judged against `
+    + `${drain.window}. ${anyone[0].toUpperCase()}${anyone.slice(1)}: start ${held.value}, or take `
+    + `\`drainedBy\` out of the file${source}`);
 };
 
 /* What each model means, in this CLI's words rather than the tracker's, so a report says what the
@@ -598,7 +620,7 @@ const strategyRow = (policy) => (policy.strategy
   : { level: "note", label: "release strategy", detail: `${UNSET} — nothing says how the promotion `
     + `moves the code, and the actor making it decides  ← ${policy.from}` });
 
-const policyRows = (policy, landing) => {
+const policyRows = (policy, landing, drain) => {
   const why = policyUnread(policy);
   if (why) {
     return [{ level: "miss", label: "release policy",
@@ -622,7 +644,7 @@ const policyRows = (policy, landing) => {
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
     { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
       + ` and testing  ← ${policy.from}` },
-    ...drainRows(policy),
+    ...drainRows(policy, drain),
   ];
   if (policy.autoProd) out.push({ level: "ok", label: "", detail: NOTHING_DEPLOYS });
   const said = releaseConflict(policy);
@@ -635,8 +657,8 @@ export const deployRows = (deploy) =>
 
 /** The project's answer in this CLI's words, one row each with where it was read, in the shape the
  *  one verb reporting every level of configuration prints its own keys in. */
-export const projectRows = ({ policy, deploy, credentials, landing = landingScope() }) => {
-  const out = policyRows(policy, landing);
+export const projectRows = ({ policy, deploy, credentials, drain = null, landing = landingScope() }) => {
+  const out = policyRows(policy, landing, drain);
   if (deploy?.refused) {
     /* Said on a row of its own rather than left to the deploy note: a judging run reads this row to
        decide whether a login exists, and silence there read as none (ISS-2050). */

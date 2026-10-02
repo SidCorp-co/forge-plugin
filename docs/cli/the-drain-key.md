@@ -22,12 +22,37 @@ settles it, which is the same call sent again. A write that moves no judgement l
 standing, since selecting a flow that asks for nothing is not an undo of a declaration it never
 touched.
 
-**A value the pair does not take resolves to no master rather than to the default.** Nothing looks
-more like a project that chose the dispatcher than one whose key was misspelled, so the fallback is
-withheld from a typo and both readers say the key is wrong: neither master claims on it. The
-resolution report prints a `miss` for that, and another for the combination the configuration can
-express and the flow cannot mean — a master named while the judgement is not `independent`, which
-offers nothing at that status for anything to drain.
+**A declaration stands another master down only while the rows bear it out.** The key subtracts a
+worker from a queue on the strength of a name, and nothing about a name says whether the master it
+names is running: a declared QA master with no pane and no process held four rows at `developed` for a
+whole session while the master that could have judged them read that they were not its own. So the
+declaration is checked where it subtracts, against the rows standing at that status, and holds only
+on positive evidence — another session's live lease on one of them, a claim another session recorded
+at that status inside the window, or an oldest offered row written inside it. The asking session's
+own lease and claims are its own work and say nothing about another master. An empty offer is no
+evidence either way: no row, rows that are all the asking session's, and a read the window cut short
+leave the declaration unchecked, and unchecked fails toward the work being done.
+
+**The evidence is the queue's because nothing else names a master.** The tracker's runner rows carry
+no role, and a lease carries a session id and an agent string; neither says `dispatcher` or
+`qa-master`. A live lease or a recent claim on the queue is therefore the most any reader can know,
+and it is the standard the key is held to rather than a proxy for a better one.
+
+**The window is the project's, one lease's span by default.** `rank.drainIdle` is the minutes a row
+may stand with nothing on it before the declared master is read as not draining. Sixty is the span a
+lease runs between writes, past which a live judging run has either taken the row or let a lease lapse
+on it. A project that judges slower sets its own number; a value of no minutes, or of part of one, is
+refused, since it declares every master absent the moment a row lands.
+
+**An absent key, and a value the pair does not take, name no master.** A project that declared
+nothing has declared nothing, and resolving it to the dispatcher told every QA master to stand down on
+an arrangement nobody made. A misspelled value is the same absence with a typo on it, so the queue says
+no master is declared and any master that reads it takes the rows, and the resolution report prints a
+`miss` until the key is put right. The lease is what keeps two masters off one row, which makes the
+cost of a missing declaration contention and never double work, where the cost of a false one is a
+queue nobody works. The report prints another `miss` for the combination the configuration can express
+and the flow cannot mean — a master named while the judgement is not `independent`, which offers
+nothing at that status for anything to drain.
 
 **The key decides who is dispatched and never whether an issue is offered.** The judging section of
 the ranked order turns on the judgement alone and keeps doing so; the declared master is printed
