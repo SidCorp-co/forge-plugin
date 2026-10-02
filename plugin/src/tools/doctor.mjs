@@ -7,7 +7,7 @@ import { join } from "node:path";
 import {
   INHERITED,
   configPath,
-  saveConfig,
+  saveNested,
   sessionPath,
   sessionSourced,
   userConfig,
@@ -145,12 +145,9 @@ const CAPABILITIES = [
 const groups = (declared) =>
   new Set(declared.map((tool) => /forge_([a-z]+)/u.exec(tool.name)?.[1] ?? tool.name)).size;
 
-/* Recorded per project with its date: a refusal was true once, not forever. */
-const remember = (slug, findings) => {
-  const capabilities = { ...(userConfig().capabilities ?? {}) };
-  capabilities[slug] = { checkedAt: new Date().toISOString(), ...findings };
-  saveConfig({ capabilities });
-};
+/* Recorded per project with its date: a refusal was true once, not forever. One project's entry,
+   merged onto the table as the file holds it, so a doctor run on another project meanwhile keeps its own. */
+const remember = (slug, findings) => saveNested("capabilities", { [slug]: { checkedAt: new Date().toISOString(), ...findings } });
 
 /* `conflicted` is a home other than this tree's run: the findings are printed and not recorded. */
 const probe = async (scoped, slug, conflicted) => {
