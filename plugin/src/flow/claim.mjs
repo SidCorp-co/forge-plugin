@@ -17,7 +17,8 @@ import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
 import { SIDE, namedIn, parkThatSet, rungFieldsOf, viewFrom } from "./earned.mjs";
 import { isConflictPark } from "./landing/conflict-park.mjs";
-import { owedIn } from "./route.mjs";
+import { owedBlock, owedIn, policyFor } from "./route.mjs";
+import { DRAFT } from "../rank/weights.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
@@ -113,13 +114,18 @@ const advise = async (documentId, fetched, held = null, landing = undefined, { g
       + `lane below is printed at the rung an unread page owes: ${page.refused}`);
     return advisory(issue.status, UNREAD, [], work, [], leaseSaid);
   }
-  const view = viewFrom(documentId, issue, page.comments, cutIn(page));
+  const drafted = issue.status === DRAFT;
+  const view = viewFrom(documentId, issue, page.comments, cutIn(page), drafted ? await policyFor(issue.plan, issue.status) : null);
   scopeFrom(issue.status, issue.issueId, namedIn(view));
   advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view), leaseSaid);
   /* At a side status the lane above is empty, so where the way back is refused the refusal is what
-     the claimant acts on: it names the record that finishes a park whose record did not go up. */
-  const owed = SIDE.includes(issue.status) ? owedIn(view, issue.issueId ?? documentId) : null;
-  if (owed?.refused) console.log(`\n${owed.refused}`);
+     the claimant acts on: it names the record that finishes a park whose record did not go up. At
+     `draft` it is empty too, and the owed block is the one place the move onto the ladder is named,
+     so a dispatched run learns it from the claim rather than from a second call (ISS-3093). */
+  const ref = issue.issueId ?? documentId;
+  const owed = SIDE.includes(issue.status) || drafted ? owedIn(view, ref) : null;
+  if (drafted) console.log(`\n${owedBlock(view, ref, owed).join("\n")}`);
+  else if (owed?.refused) console.log(`\n${owed.refused}`);
 };
 
 export const USAGE = [
