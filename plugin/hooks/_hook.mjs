@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
+import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -449,11 +449,11 @@ const spawned = (body, runner) => {
   return given.map((one) => `\n(\n${one}\n)\n`).join("");
 };
 
-/* A literal holding a parameter's `$` is quoted as the shell would still read it, which is how the body's own text was read; one a double quote cannot carry that way, holding a `"`, a backtick or a `$(` beside that `$`, names a file no reading here can spell, and is left out. Every other literal is single-quoted, an apostrophe closing the quote, escaped, and reopening, which a redirect's operand the shell expands nothing in is read back whole from (ISS-3052). */
+/* A literal holding a parameter's `$` is quoted as the shell would still read it, which is how the body's own text was read; one a double quote cannot carry that way, holding a `"`, a backtick or a `$(` beside that `$`, names a file no reading here can spell, and is left out. Every other literal is spelt as `typed` writes a word back, which a redirect's operand the shell expands nothing in is read back whole from (ISS-3052). */
 const PARAMETER_SIGN = /\$(?!\()/u;
 const aimedAt = (name) => {
   if (PARAMETER_SIGN.test(name)) return /["\x60]|\$\(/u.test(name) ? "" : `\n: > "${name}"`;
-  return `\n: > '${name.replace(/'/gu, String.raw`'\''`)}'`;
+  return `\n: > ${typed(name)}`;
 };
 /* Every character a shell gives a meaning a program's expression does not: an operator, a redirect, an expansion, an escape, a comment, a test's bracket, and a keyword's `=`. */
 const INERT = /[;&|<>$\x60\\#![\]=]/gu;
