@@ -57,6 +57,13 @@ const asked = async (data, reference) => {
   const standing = (listed?.questions ?? [])
     .find((one) => one.status === "open" && sameReadings(one.options, data.options));
   if (standing) {
+    const held = standing.options.findIndex((one) => one.id === standing.recommendedOptionId) + 1;
+    const wanted = data.options.findIndex((one) => one.id === data.recommendedOptionId) + 1;
+    if (held !== wanted) {
+      refuse(`record question: question ${standing.id} is open on ${reference} offering these readings and `
+        + `recommending reading ${held}, and this call recommends reading ${wanted}. Nothing was sent: the record `
+        + `would contradict what the person is shown. Record what they are asked:\n  --recommend ${held}`);
+    }
     console.log(`${reference}  question ${standing.id} already asks these readings and is open: not asked again`);
     return standing;
   }

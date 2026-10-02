@@ -41,6 +41,7 @@ const state = {
     },
     forge_comments: (args) => {
       if (args.action !== "list") {
+        if (state.refuseComment) return { refused: state.refuseComment };
         const one = comment(args.data.body.replace(/^⟦[^⟧]*⟧\n|\n⟦[^⟧]*⟧$/gu, ""));
         (state.comments[args.data.issue] ??= []).push(one);
         return { documentId: one.documentId, authorDeviceId: "a-fake-device" };
@@ -115,13 +116,30 @@ test("a reading longer than an option label takes is refused by the cap, before 
 
 test("a call repeated after its question was asked and its comment was not asks nothing twice", async () => {
   fresh();
-  state.questions.push({ id: "question-standing", issueId: "asking-uuid", status: "open",
-    options: READINGS.map((label, at) => ({ id: `reading-${at + 1}`, label })) });
-  const run = await record("--recommend", "1");
-  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.equal(asks().length, 0, "the open question already offering these readings is the one");
-  assert.match(run.stdout, /question question-standing already asks these readings/u);
-  assert.equal(posted().length, 1, "and the record it lacked goes up");
+  state.refuseComment = "INTERNAL_ERROR: the comment was not stored";
+  const first = await record("--recommend", "2");
+  delete state.refuseComment;
+  assert.equal(first.status, 1, first.stdout);
+  assert.equal(state.questions.length, 1, "the first call's question was asked");
+  assert.equal(state.comments["asking-uuid"].length, 0, "and its record did not go up");
+  const again = await record("--recommend", "2");
+  assert.equal(again.status, 0, `${again.stdout}${again.stderr}`);
+  assert.equal(asks().length, 1, "both calls together ask once");
+  assert.match(again.stdout, /question question-1 already asks these readings/u, "and the retry names that question");
+  assert.equal(state.comments["asking-uuid"].length, 1, "and the record it lacked goes up");
+});
+
+test("a retry recommending another reading than the open question does is refused, and writes nothing", async () => {
+  fresh();
+  state.refuseComment = "INTERNAL_ERROR: the comment was not stored";
+  await record("--recommend", "1");
+  delete state.refuseComment;
+  state.calls.length = 0;
+  const run = await record("--recommend", "2");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /recommending reading 1, and this call recommends reading 2/u, run.stderr);
+  assert.match(run.stderr, /--recommend 1/u, "and the flag that matches it is named");
+  assert.equal(asks().length + posted().length, 0);
 });
 
 test("a question park over a record written before the recommendation existed parks the issue", async () => {
