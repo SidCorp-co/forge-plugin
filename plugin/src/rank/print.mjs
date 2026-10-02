@@ -135,7 +135,7 @@ const drainSaid = (drain) => {
 
 /* Its own section and not a row in the ranking, one scored there taking a place in `--count` from
    the building work that count was asked for: docs/cli/next.md. */
-export const judgingLines = (judging, drain) => {
+export const judgingLines = (judging) => {
   if (!judging) return [];
   if (judging.unread) {
     return ["", "judging — this project's declaration about who judges went unread, so no issue is "
@@ -146,7 +146,7 @@ export const judgingLines = (judging, drain) => {
     `judging — ${judging.offered.length} issue(s) at ${at} with no live lease, this project having`,
     `declared the judgement above ${at} an independent run's. Each is a judging run's to claim, and`,
     "the run that built it holds nothing.",
-    `  ${drainSaid(drain)}`,
+    `  ${drainSaid(judging.drain)}`,
     ...judging.offered.map(judgingRow),
     ...(judging.left.length ? [`  left out — ${judging.left.length}:`] : []),
     ...judging.left.map(droppedLine),

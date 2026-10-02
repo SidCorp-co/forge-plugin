@@ -454,7 +454,7 @@ export const next = async (argv) => {
   if (asked.json) {
     return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid, judging), null, 2));
   }
-  for (const line of judgingLines(judging, judging?.drain)) console.log(line);
+  for (const line of judgingLines(judging)) console.log(line);
   if (!batches.length) {
     console.log(`Nothing is eligible: ${takeable.length} issue(s) could be taken and every one was dropped.`);
   } else {
