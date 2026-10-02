@@ -13,7 +13,7 @@ entering the transcript as plaintext. That is the number behind what the skill s
 its reply into the consult.
 
 **The plan and the criteria are the second thing owed a whole body, and the first that no commit gate
-could ever have asked for.** They are written into fields of an issue from a file that matches no path
+could have asked for.** They are written into fields of an issue from a file that matches no path
 pattern and is never staged, so neither the turn's record nor what a commit closes over names them —
 and a wrong plan is the expensive error, because everything after it is built against it and the
 review that would catch it comes after the code. So `forge record plan` and `forge record criteria` do the
@@ -22,11 +22,11 @@ the consult that clears it. Whole means the same here as it does to a recheck �
 pass — because what the log records per file is what was *read off disk* and not what travelled, so a
 diff round logs a size and a hash for a body the reviewer was told to fetch for itself and may never
 have asked for. What decides freshness is that per-file hash against the file's bytes now, not a
-clock: a file consulted, edited and then restored to what was read has been read, and two writes
+clock: a file consulted, edited and then restored to what was read was read, and two writes
 inside one millisecond are still two. Four states are named apart rather than sharing a sentence —
 never consulted, sent as a diff, no whole body carried, read and since changed — because a caller who
-did consult and was refused anyway learns nothing from being sent back to the command that just
-failed them. Both verbs ask before they touch the tracker at all, so a
+consulted and was refused anyway learns nothing from being sent back to the command that just
+failed them. Both verbs ask before they touch the tracker, so a
 refusal is never one the caller has to undo. A body piped in is refused with the file route named,
 since a consult is asked for a path and there is none. And it stands down outside a checkout for nobody: these verbs write by issue
 reference from any directory, so one `cd` would otherwise be the whole way past the rule. For the
@@ -99,11 +99,9 @@ below the base whatever the diff's size, so what moved with the range was the ca
 rises with every clipped file.
 
 **A recheck can name the consult it answers.** Unpinned, it answers the last consult sharing any of
-its files over the turn's record — empty once the fix is committed — and the judged consult's own set
-could select a newer consult sharing one of them. `--of` pins the consult by id, as `verdict --of`
-finds it; with no file named its recorded set travels, being on the record already (ISS-378). That id
-is the route every refusal names to a finding its set left out, withheld only where the consult's own
-set cannot reach it either, which is when the refusal names the disposition form instead. A recheck
-naming issue keys and no file takes the set the newest consult naming any of them recorded: a plan
-consulted by its issue sits outside the checkout, where no turn record holds it, and keys alone
-otherwise review no file (ISS-2358).
+its files in the turn's record — empty once the fix is committed — and the judged consult's set could
+select a newer one sharing a file. `--of` pins the consult by id, as `verdict --of` finds it; with no
+file named its recorded set travels (ISS-378). That id is the route every refusal names to a finding
+its set left out, unless that consult's set cannot reach it either, when the refusal names the
+disposition form. Issue keys alone answer the newest answered consult here naming one, a plan
+outside the checkout being in no turn record (ISS-2358).
