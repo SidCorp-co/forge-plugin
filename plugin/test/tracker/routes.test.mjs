@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, ISSUE_PARTS, ROUTES, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
+import { DECLARES, ISSUE_PARTS, ROUTES, declaredFor, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
   from "../../src/tracker/routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
 import { CHOSEN, staleDeclarations } from "../../src/tracker/declared/name-join.mjs";
@@ -579,5 +579,25 @@ describe("the request a transition makes", () => {
   it("leaves out a field the caller did not set, so an absent needs is an absent key", () => {
     const sent = row.requests({ documentId: "u-1", data: { status: "waiting", reason: "why it stopped" } }).page;
     assert.deepEqual(Object.keys(sent.body).sort(), ["reason", "toStatus"]);
+  });
+});
+
+/* The two question routes answer their rows whole, so the projection check above says nothing of
+   them; what `forge record question` depends on is the request, held here (ISS-2317). */
+describe("the requests a question makes", () => {
+  it("lists an issue's questions by the issue's id, and asks one with the payload as built", () => {
+    const listed = ROUTES["forge_questions.list"].requests({ issueId: "u-1" }).page;
+    assert.equal(listed.method ?? "GET", "GET");
+    assert.equal(listed.path, "/questions?issueId=u-1");
+    const data = { issueId: "u-1", prompt: "which?", options: [], recommendedOptionId: "reading-1" };
+    const sent = ROUTES["forge_questions.ask"].requests({ data }).page;
+    assert.equal(sent.method, "POST");
+    assert.equal(sent.path, "/questions");
+    assert.deepEqual(sent.body, data);
+  });
+
+  it("declares the ask route's caps as its schema states them", () => {
+    assert.deepEqual(Object.fromEntries(Object.entries(declaredFor("forge_questions", "caps"))
+      .map(([name, cap]) => [name, cap.self])), { prompt: 8000, label: 500, options: 10 });
   });
 });
