@@ -20,22 +20,19 @@ import { fieldChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
 import { commentPage, cutIn } from "../../tracker/comments.mjs";
 import {
-  attachPlan, attachmentNames, batchRefusal, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine,
-  unreadNames, uploadAll,
+  attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, shortSha, unreadNames,
 } from "../../tracker/evidence.mjs";
 import { releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
 import { NONE_STATED, SERVES_FLAG, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
-import { capsOf, writeFields } from "../../tracker/field-write.mjs";
+import { capsOf } from "../../tracker/field-write.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { partForRecord } from "../../guides/served.mjs";
-import { scopeFrom, scopePath } from "./plan-scope.mjs";
-import { repoRoot } from "../../git/repo-root.mjs";
-import { askedInSource } from "../../resolve/flags.mjs";
-import { FIELD as SESSION, oweRelease, renew, writtenBy } from "../lease.mjs";
+import { FIELD as SESSION, oweRelease, writtenBy } from "../lease.mjs";
 import { judgedPast, judgedSaid, moveHeld } from "../lease/judged.mjs";
-import { issueOf, post, sayStored } from "./thread/posting.mjs";
+import { issueOf } from "./thread/posting.mjs";
+import { postRung } from "./thread/written.mjs";
 import { tallied } from "./thread/tally.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
@@ -172,10 +169,6 @@ const declinedChecked = (kind, reference, blocks, read) => {
     got.finding = handleOf(got.finding);
   }
 };
-
-/* Stamped by the tracker or no earlier than the newest row it sorts under, so the ladder read at the end of a call counts the record that call made (ISS-285). */
-const stampedLast = (comments, written) => String(written?.createdAt
-  ?? [new Date().toISOString(), ...comments.map((one) => String(one.createdAt ?? ""))].sort().at(-1));
 
 /* On stderr, beside what the write owes and not on the stream carrying the record: a caller reading a payload back is not reading the method. A record ends its phase's work, so the part is that phase's. */
 const sayPart = (kind, rung) => partForRecord(kind, (part) => console.error(`\n${part}`), rung);
@@ -452,10 +445,6 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
 
 const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
 
-/* `writeFields` refuses where fewer fields reached it than were asked for, and a rung asks for two. */
-const askedFor = (reference, fields) =>
-  askedInSource(`record for ${reference}`, ...fields.map((one) => one.field));
-
 /* Read at the first prepare that asks and never before it: a flag error must cost no call (ISS-65). */
 const once = (make) => {
   let held = null;
@@ -517,80 +506,6 @@ const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
   /* A park ends the turn here as it does through advance, whose `park` says why. */
   if (blocks.some((one) => one.kind === "park")) oweRelease(documentId, reference);
   for (const one of blocks) sayPart(one.kind, rung);
-};
-
-/* Taken as each write lands rather than once this call returns: a correction the tracker holds whose call failed after it would otherwise leave a cache that still refuses the retry (ISS-411). A scope this cannot read is a gate that says nothing, never a record write that failed, so the catch is empty. A write outside a repository has no scope to keep and says nothing, and a false from `plan-scope.mjs` is a write or a removal the filesystem refused, the one state that module cannot leave on its own: the run is told rather than left to meet it. */
-const scopeNoted = async (documentId, reference, issue, comments) => {
-  const tree = repoRoot(process.cwd());
-  if (!tree) return;
-  try {
-    const { namedIn, viewFrom } = await import("../earned.mjs");
-    const named = namedIn(viewFrom(documentId, issue, comments));
-    if (scopeFrom(issue.status, issue.issueId ?? reference, named, { tree })) return;
-    console.error(`this record landed and ${scopePath(tree, issue.issueId ?? reference)} could not be written or removed, so a `
-      + `write it clears may still be refused: \`forge hooks --off plan-scope\``);
-  } catch {}
-};
-
-const postRung = async (prepared, { reference, documentId, body, comments, next, patch, judged = null }) => {
-  const uploads = prepared.flatMap((one) => one.uploads ?? []);
-  const sent = [];
-  /* Named from the line before the PUT: a file the tracker took with the answer lost is up all the same. */
-  const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
-  process.once("exit", stranded);
-  const batch = await uploadAll("issue", documentId, uploads.map((one) => one.path), {
-    renewing: judged ? undefined : () => renew(documentId, reference),
-    sending: sent.push.bind(sent),
-    said: [...new Set(prepared.map((one) => one.said).filter(Boolean))].join("\n") || null,
-  });
-  /* The batch's account names each file, the one whose answer was lost among them, so the stranded
-     line would say the same thing a second time. */
-  if (batch.refused.length) {
-    process.off("exit", stranded);
-    fail(`${batchRefusal(reference, batch)}\n\nNo record was written: nothing of it reached ${reference}.`);
-  }
-  const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
-  const posted = [];
-  /* A finder's kind is written alone and touches nothing of the run holding the issue, its plan scope included, and a judge's verdict touches as little. */
-  const finder = prepared.every((one) => SHAPES[one.kind]?.finder);
-  const noted = finder || judged ? async () => {} : scopeNoted;
-  await noted(documentId, reference, issue, comments);
-  /* A question is asked before its record goes up, so an ask the tracker refuses leaves no comment claiming it. */
-  for (const one of prepared) await one.ask?.();
-  /* A payload's record, then its note — a comment of its own, which no record's parse has to read past. */
-  for (const body of prepared.flatMap((one) => [one.rendered, one.noted]).filter((said) => said !== undefined)) {
-    const answer = await post(documentId, body, { ref: reference, next, patch, finder, judged: Boolean(judged) });
-    /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
-    posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body,
-      createdAt: stampedLast([...comments, ...posted], answer) });
-    await noted(documentId, reference, issue, [...comments, ...posted]);
-  }
-  for (const one of prepared) await one.write?.();
-  /* Loaded here alone: a transcript read belongs to the one write that owes it, not to every record. */
-  if (prepared.some((one) => one.kind === "fold")) {
-    const due = (await import("../../stats/waves/trigger.mjs")).foldDue(process.cwd());
-    if (due) console.error(`\n${due}`);
-  }
-  /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
-     exit, and the notice would be gone for every route but `fail()`'s. */
-  process.off("exit", stranded);
-  return { issue, posted, again: uploads.length > 0 || prepared.some((one) => one.write)
-    || posted.some((one) => !one.authorDeviceId) };
-};
-
-const fieldsWritten = async (prepared, { reference, documentId, next, patch }) => {
-  const fields = prepared.filter((one) => one.field);
-  if (!fields.length) return {};
-  for (const one of fields) sayStored(one.kind);
-  const back = await writeFields(documentId, fields.map((one) => ({ field: one.field, value: one.value })),
-    { ref: reference, next, patch, refuse, ask: askedFor(reference, fields) });
-  const out = {};
-  for (const one of fields) {
-    console.log(one.shown);
-    if (one.changed) console.error(one.changed);
-    out[one.field] = back?.[one.field] ?? one.value;
-  }
-  return out;
 };
 
 const criteriaCount = (body) => {

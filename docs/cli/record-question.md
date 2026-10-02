@@ -15,7 +15,9 @@ end. The other order fails differently: an ask that lands and a comment that doe
 question with no record beside it, and a run sending the call again would ask twice. That half is
 answered by reading the issue's questions first: an open one offering the same readings in the same
 order is the one the earlier call asked, so it is reused and its id printed, and the record it lacked
-goes up.
+goes up. The lease goes before both: the comment's own renewal is where another run's lease refuses
+the call, and an ask sent ahead of it leaves a question on an issue the caller had no right to write
+to (ISS-3101).
 
 **The recommendation is the run's to state, and is owed.** The route refuses a question with no
 recommended option, on the ground that a person facing a queue owes a click rather than a decision.
