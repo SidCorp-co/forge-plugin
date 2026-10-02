@@ -60,7 +60,8 @@ typed.
 
 **Keys become edges on one route and an offer on the others.** A key in a body is as often the
 reason for a sentence as it is work the filing relates to, so `forge new` and `forge feedback` print
-the keys they found beside `--with` and write none. The batch reading writes them, because its keys
+the keys they found, each as the `forge issue --relates` call that relates it once the filing exists,
+and write none. The batch reading writes them, because its keys
 are not its body's: they come off the commit subjects of the range it reads. Those issues are closed
 by then, so the interface resolves a key against every row of the reading it already made rather than
 against the open-issue projection the duplicate check uses, and it caps the set at the twenty

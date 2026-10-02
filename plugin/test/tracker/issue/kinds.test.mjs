@@ -246,12 +246,20 @@ test("the CLI's old words for the two fields are answered as unknown flags namin
     "and the flag that replaced it is a flag of the row");
 });
 
-/* Offered, never written: no verb here retracts an edge, and nothing lexical tells a key cited as
-   a reason from one naming related work. */
-test("the keys a body names come back with the read, and the line offers them with the flag", () => {
+/* Offered, never written: nothing lexical tells a key cited as a reason from one naming related
+   work. The offer prints after the create, so it names the edge write that exists then and not the
+   create's own flag (ISS-571). */
+test("the keys a body names come back with the read, and the line offers each as an edge write", () => {
   const cited = `${body("outcome", "rules", "scope")}\n\nIt is why ISS-45 was filed, and iss-46 says so.`;
   assert.deepEqual(gapsOf(cited, "feature").keys, ["ISS-45", "ISS-46"], "one entry per key, upper-cased");
-  assert.match(keysOffered(["ISS-45", "ISS-46"]), /^This body names ISS-45, ISS-46\. `--with ISS-45,ISS-46`/u);
+  const offered = keysOffered(["ISS-45", "ISS-46"], [], { filed: "ISS-100" });
+  assert.match(offered, /^This body names ISS-45, ISS-46, and nothing related them/u);
+  assert.match(offered, /^ {2}forge issue ISS-100 --relates ISS-45$/mu);
+  assert.match(offered, /^ {2}forge issue ISS-100 --relates ISS-46$/mu);
+  assert.doesNotMatch(offered, /--with/u, "the create that flag belongs to has already happened");
+  assert.doesNotMatch(offered, /from a checkout of/u, "a filing on the caller's own project runs anywhere in it");
+  assert.match(keysOffered(["ISS-45"], [], { filed: "ISS-100", elsewhere: "forge-plugin" }),
+    /one call from a checkout of forge-plugin, the project it landed on:\n {2}forge issue ISS-100 --relates ISS-45$/u);
   assert.match(keysOffered(["ISS-45"]), /a key being as often a sentence's reason/u);
   assert.equal(keysOffered(["ISS-45"], ["iss-45"]), null, "a key already related is not offered again");
   assert.equal(keysOffered([]), null);
