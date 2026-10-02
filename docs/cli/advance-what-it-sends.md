@@ -67,3 +67,14 @@ move into that status, wherever a park or a park record is written at a side sta
 again at the status it lands in, with no park of that landing written since that move, is the record
 alone. A history that names no step of the flow is refused rather than guessed at, since a record
 naming anything else is one no advance can resume.
+
+The last field this verb learned to send is the one the tracker named in a refusal before any verb
+could. A move to `closed` or `dropped` is held while a question a person was asked on the issue is
+open, and the tracker voids each such question with a sentence when the move carries one — a field
+that was in the tracker's refusal and in no flag, so a close the landing walked stopped there until
+a person answered (ISS-3104). `--void-questions` is that field, and it rides only a move into one of
+those two statuses: the tracker would void on any move that carries the sentence, and a park or a
+step up the lane that silently ended a person's question is the one outcome a caller could not tell
+from the move it asked for. Whether a question should be voided is the caller's to decide, which is
+why the field goes only where the flag was typed; the refusal names both ways past it, the person
+answering and the same command again with the flag, and leaves the choice there.
