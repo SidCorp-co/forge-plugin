@@ -68,7 +68,7 @@ test("a declared master the rows at developed show draining is ok, with the evid
   state.issues = [atDeveloped("ISS-5"), atDeveloped("ISS-6", leased)];
   const run = await ask();
   assert.match(run.stdout,
-    new RegExp(`\\[ {2}ok {2}\\] drained by\\s+qa-master, draining: 1 of the 2 row\\(s\\) read at developed carry another session's live lease, another session last claimed one at developed 20 minute\\(s\\) ago, and the oldest offered, ISS-5, was last written 3 day\\(s\\) ago {2}← ${escaped(file)}`, "u"),
+    new RegExp(`\\[ {2}ok {2}\\] drained by\\s+qa-master, declared and draining: 1 of the 2 row\\(s\\) read at developed carry another session's live lease, another session last claimed one at developed 20 minute\\(s\\) ago, and the oldest offered, ISS-5, was last written 3 day\\(s\\) ago\\. Another master leaves these standing {2}← ${escaped(file)}`, "u"),
     run.stdout);
   assert.doesNotMatch(run.stdout, /^\[ miss \] drained by/mu,
     "a declared master under an independent judgement is the pair meaning what it says");
@@ -79,9 +79,9 @@ test("a declared master the rows show nobody draining is a miss naming the row t
   state.issues = [atDeveloped("ISS-5")];
   const run = await ask();
   assert.match(run.stdout,
-    /^\[ miss \] drained by\s+qa-master is declared and not draining: 0 of the 1 row\(s\) read at developed carry another session's live lease, no claim at developed by another session is recorded on them, and the oldest offered, ISS-5, was last written 3 day\(s\) ago, judged against `rank\.drainIdle` 60 minute\(s\)\./mu,
+    /^\[ miss \] drained by\s+qa-master, declared and not draining: 0 of the 1 row\(s\) read at developed carry another session's live lease, no claim at developed by another session is recorded on them, and the oldest offered, ISS-5, was last written 3 day\(s\) ago, judged against `rank\.drainIdle` 60 minute\(s\)\. So/mu,
     run.stdout);
-  assert.match(run.stdout, /So any master that reads the queue takes the rows at developed: start qa-master, or take `drainedBy` out of the file/u);
+  assert.match(run.stdout, /So any master that reads the queue takes the rows at developed: start qa-master, or take `drainedBy` out of the file {2}← /u);
 });
 
 test("a declared master over no row at all is a note, nothing here saying whether it is alive", async () => {
@@ -98,7 +98,7 @@ test("a project that declared nothing is told no master is declared, and of no d
   state.issues = [atDeveloped("ISS-5")];
   const run = await ask();
   assert.match(run.stdout,
-    /^\[ note \] drained by\s+no master — `drainedBy` is unset, so any master that reads the queue takes the rows at developed: 0 of the 1 row\(s\)/mu,
+    /^\[ note \] drained by\s+no master — `drainedBy` is unset, so any master that reads the queue takes the rows at developed\. 0 of the 1 row\(s\)/mu,
     run.stdout);
   assert.doesNotMatch(run.stdout, /drained by\s+dispatcher/u, "nobody declared the dispatcher");
   assert.doesNotMatch(run.stdout, /drained by[^\n]*the plugin's default/u, "and no default stands in for a decision");
@@ -111,7 +111,7 @@ test("a window the read did not finish leaves the declaration unchecked and says
     atDeveloped("ISS-6", { createdAt: "2026-09-02T00:00:00.000Z", updatedAt: ago(5) })];
   const run = await ask();
   assert.match(run.stdout,
-    /^\[ miss \] drained by\s+qa-master is declared and not draining: 0 of the 1 row\(s\) read at developed .*and 1 further row\(s\) at developed went unread/mu,
+    /^\[ miss \] drained by\s+qa-master, declared and not draining: 0 of the 1 row\(s\) read at developed .*and 1 further row\(s\) at developed went unread/mu,
     run.stdout);
 });
 

@@ -3,7 +3,7 @@
 import { servesIn, servesSaid } from "../goals.mjs";
 import { COMPLEXITY_NAMES } from "../ladder.mjs";
 import { UNSET } from "./weights.mjs";
-import { evidenceSaid, idleSaid, oldestSaid } from "./drain.mjs";
+import { drainVerdict } from "./drain.mjs";
 import { JUDGING } from "./eligible.mjs";
 import { ageOf } from "../codex/codex-state.mjs";
 
@@ -111,27 +111,9 @@ export const droppedLine = (one) =>
 const judgingRow = (one) => `  ${one.issueId.padEnd(KEY)} ${cut(one.row.title, TITLE)}`;
 
 /* Which master the project said claims these, and whether the rows bear it out, said at the queue
-   rather than only in the report: a master reads here whether the set in front of it is its own. A
-   declaration nobody made, one the pair does not take, and one the rows do not bear out all stand
-   nobody down, since each failing the other way leaves the rows with nobody (ISS-2354). */
-const drainSaid = (drain) => {
-  const anyone = "any master that reads this takes them";
-  if (drain.unknown !== null) {
-    return `drained by — \`drainedBy\` is \`${drain.unknown}\`, which is no master that drains `
-      + `${JUDGING.join(" or ")}, so no master is declared and ${anyone}; ${oldestSaid(drain)}. `
-      + "`forge doctor` names the key.";
-  }
-  if (!drain.declared) {
-    return `drained by — no master: this project has not set \`drainedBy\`, so ${anyone}; `
-      + `${oldestSaid(drain)}.`;
-  }
-  if (drain.holds) {
-    return `drained by — ${drain.drainedBy}, declared and draining: ${evidenceSaid(drain)}. `
-      + "Another master leaves these standing.";
-  }
-  return `drained by — ${drain.drainedBy}, declared, and the declaration does not hold: `
-    + `${evidenceSaid(drain)}, judged against ${idleSaid(drain)}. So ${anyone}.`;
-};
+   rather than only in the report: a master reads here whether the set in front of it is its own. The
+   sentence is the one `forge doctor` prints for the same rows (ISS-3124). */
+const drainSaid = (drain) => `drained by — ${drainVerdict(drain).said}.`;
 
 /* Its own section and not a row in the ranking, one scored there taking a place in `--count` from
    the building work that count was asked for: docs/cli/next.md. */

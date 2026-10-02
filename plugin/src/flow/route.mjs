@@ -43,8 +43,7 @@ import {
   stepAfter,
   viewFrom,
 } from "./earned.mjs";
-import { judgementOf, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
-import { INDEPENDENT } from "./qa/verdicts.mjs";
+import { asksIndependent, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 import { REBUILT_FORM, builderProblem } from "./landing/reconstruction.mjs";
 import { landsOutsideGit } from "./record/judged/landing.mjs";
 import { markedCommit } from "./record/merged.mjs";
@@ -295,7 +294,7 @@ export const credentialAhead = (view, ref) => {
    has closed at the merge (ISS-1798). Refusing nothing: `developed` is not earned by a checkpoint.
    The ship mode is not read, a `ship ready` capture being this same write and silencing the line. */
 export const checkpointAhead = (view, ref) => {
-  if (judgementOf(view.release) !== INDEPENDENT || landsOutsideGit(view.issue)) return null;
+  if (!asksIndependent(view.release) || landsOutsideGit(view.issue)) return null;
   const at = ORDER.indexOf(view.issue.status);
   if (at < ORDER.indexOf(BASELINE_AT) || at >= ORDER.indexOf(JUDGED_AT)) return null;
   const problem = builderProblem(view.landing, view.holders ?? []);

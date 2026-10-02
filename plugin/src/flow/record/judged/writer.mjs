@@ -7,7 +7,8 @@ import { refuse } from "../../../refusal.mjs";
 import { releasePolicy } from "../../../tracker/project-config.mjs";
 import { writtenBy } from "../../lease.mjs";
 import { JUDGE_FROM, SHAPES } from "../../machine.mjs";
-import { asksIndependent, writerRefusal } from "../../qa/verdicts.mjs";
+import { writerRefusal } from "../../qa/verdicts.mjs";
+import { asksIndependent } from "../../../tracker/project-config.mjs";
 
 const VERDICT = "verdict";
 

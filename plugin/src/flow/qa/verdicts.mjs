@@ -1,14 +1,12 @@
 /* Whether an issue's verdicts were judged by somebody other than the run that built the change. `earned.mjs` spends the first reading at `testing`, a promotion the second; why each is the shape it is: docs/cli/the-judge-and-the-deploy.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
 import { CARRIES_DEPLOYMENT, JUDGE_FROM, valuesOf } from "../machine.mjs";
-import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
+import { QA_MODES, asksIndependent } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 import { HAND_WRITTEN, REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
 import { identityAsk, landsOutsideGit } from "../record/judged/landing.mjs";
 
 export const [INDEPENDENT] = QA_MODES;
-
-export const asksIndependent = (release) => judgementOf(release) === INDEPENDENT;
 
 /* Off the evidence and never off the commit: after a merge the deployment identity is the merged head every verdict already carries, so a commit read passes an ordinary builder verdict by accident. Commit-shaped first, or a forty-digit attachment name prefixes its way past the comparison. A served commit carrying the deployment is the deployment judged, and whether it carries it is read by the verdict's write and stamped there, this rung reading no repository (ISS-2587). */
 const citesDeployment = (held, deployment) =>
