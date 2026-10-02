@@ -20,7 +20,8 @@ import { aheadRoute } from "./ahead-route.mjs";
 import { carried } from "./corpus-carried.mjs";
 import { copiesIn, machineSecrets } from "./credential-copies.mjs";
 import { endedOf, endedWritten } from "./ended.mjs";
-import { KEY, slugless, whoseTree, worktreePath } from "./occupant.mjs";
+import { elsewhereLine, KEY, onItsBranch, slugless, standsOn, standsSaid, startBranch, whoseTree,
+  worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";
 
 const REFUSED = 1;
@@ -47,6 +48,12 @@ export const FINISH_HELP = [
   "all about a commit that exists in one place. `-d` and never `-D` is the same rule for the branch,",
   "with git's own advice for the forced delete turned off, that being the one way out a refusal here",
   "may not carry.",
+  "",
+  "The branch is the one start recorded in the tree's git directory, never the one the tree's HEAD",
+  "names when finish runs: a tree detached to read a landed commit, or switched to a second branch,",
+  "still has the branch start cut removed, and the second branch left. A tree whose git directory",
+  "holds no such record has no branch removed, and the line saying so lists the branches named for",
+  "the key. The second reading counts the commits of the tree's HEAD and of that branch alike.",
   "",
   "The credential reading is the one refusal whose way out is not to keep the thing it names: a run",
   "home borrows this machine's credentials by reference, which `start` prints, so a copy in the",
@@ -98,13 +105,17 @@ const runnerIn = (tree, script) => `node ${join(tree, "tools", script)}`;
    name fewer commits than the remote holds, so a stale one refuses and never lets a commit die. This
    is the reading nothing else here makes — `git worktree remove` refuses a dirty tree by itself, and
    says nothing about a commit that exists in one place. */
-const ahead = (path, base) => {
+const ahead = (path, base, branch) => {
   // Spelled out by `remoteRef`, a false empty range here being a commit that dies with its tree.
   const ref = remoteRef(base);
   const said = `${REMOTE}/${base}`;
   if (!gitOut(["rev-parse", "--verify", "--quiet", ref], path)) return { unknown: `${said} resolves to nothing in that tree` };
-  const held = gitOut(["log", "--oneline", `${ref}..HEAD`], path);
-  return held === null ? { unknown: `git would not list ${said}..HEAD there` } : { commits: lines(held) };
+  const tips = branch?.live ? ["HEAD", `refs/heads/${branch.name}`] : ["HEAD"];
+  const held = gitOut(["log", "--oneline", `^${ref}`, ...tips], path);
+  const own = gitOut(["log", "--oneline", `${ref}..HEAD`], path);
+  return held === null || own === null
+    ? { unknown: `git would not list what ${tips.join(" and ")} hold beyond ${said} there` }
+    : { commits: lines(held), headOwn: lines(own).length };
 };
 
 /* Git's own record of somebody having said not to remove this tree. Read into the preflight rather
@@ -113,14 +124,15 @@ const lockedOn = (root, path) => (gitOut(["worktree", "list", "--porcelain"], ro
   .split("\n\n").find((block) => block.startsWith(`worktree ${path}\n`))
   ?.split("\n").find((one) => one === "locked" || one.startsWith("locked ")) ?? null;
 
-const readTree = (root, path, base, gates) => ({
-  branch: gitOut(["rev-parse", "--abbrev-ref", "HEAD"], path),
+const readTree = (root, path, base, gates, branch = startBranch(root, path)) => ({
+  branch,
+  stands: standsOn(path),
   scratch: scratchAt(path),
   copies: scratchAt(path) ? copiesIn(scratchAt(path), machineSecrets()) : { copies: [], unread: [] },
   /* `status --porcelain` and not a diff against HEAD: an untracked file a run never staged is work
      too, and null from here is a status git would not report rather than a clean tree. */
   dirty: uncommittedIn(path),
-  ahead: ahead(path, base),
+  ahead: ahead(path, base, branch),
   gates: gates(path, runnersOf(root)),
   locked: lockedOn(root, path),
   verdict: verdictPath(path),
@@ -137,17 +149,28 @@ const dirtyRefusal = (path, dirty) => {
     : null;
 };
 
+/* Off its branch with every commit HEAD holds carried, switching back loses nothing and puts the
+   tree where the ship mode's own route reads it; any other case keeps the route it always had. */
+const aheadHow = (path, tree) => (!onItsBranch(tree.branch, tree.stands) && tree.branch?.live && !tree.ahead.headOwn
+  ? `git -C ${path} switch ${tree.branch.name}`
+  : `${runnerIn(path, "run.mjs")} ship`);
+
+const holder = (tree) => (onItsBranch(tree.branch, tree.stands)
+  ? tree.branch.name
+  : [`the tree's ${standsSaid(tree.stands)}`, tree.branch?.live && `branch ${tree.branch.name}`].filter(Boolean).join(" and "));
+
 /* `route` is the ship mode's and the checkpoint's answer where they give one, read before this
    because it is the one reading here the tracker makes: ahead-route.mjs. */
-const aheadRefusal = (path, base, branch, read, route) => {
+const aheadRefusal = (path, base, tree, route) => {
   if (route) return route;
+  const read = tree.ahead;
   if (read.unknown) {
     return { why: `${read.unknown}, so nothing here can prove ${REMOTE}/${base} carries the commits `
-      + `of ${branch}`, how: `git -C ${path} fetch ${REMOTE} ${base}` };
+      + `of ${holder(tree)}`, how: `git -C ${path} fetch ${REMOTE} ${base}` };
   }
   return read.commits.length
-    ? { why: `${branch} holds ${read.commits.length} commit(s) ${REMOTE}/${base} does not carry, which `
-      + `die with the tree: ${read.commits.join("; ")}`, how: `${runnerIn(path, "run.mjs")} ship` }
+    ? { why: `${holder(tree)} holds ${read.commits.length} commit(s) ${REMOTE}/${base} does not carry, which `
+      + `die with the tree: ${read.commits.join("; ")}`, how: aheadHow(path, tree) }
     : null;
 };
 
@@ -178,7 +201,7 @@ const copyRefusal = ({ copies, unread }) => [
 
 const refusals = (root, path, base, read, route) => [
   dirtyRefusal(path, read.dirty),
-  aheadRefusal(path, base, read.branch ?? "that branch", read.ahead, route),
+  aheadRefusal(path, base, read, route),
   gateRefusal(path, read.gates),
   lockRefusal(root, path, read.locked),
   ...copyRefusal(read.copies),
@@ -227,18 +250,37 @@ const removedScratch = (at, retry) => {
 
 /* `-d` and never `-D`, with git's own advice off: that advice offers the forced delete, which is the
    one route out of this a refusal here may not carry — the way out is the line below it. */
-const removedBranch = (root, base, branch, ended) => {
-  const run = git(["-C", root, "-c", "advice.forceDeleteBranch=false", "branch", "-d", branch], root);
+const deleted = (root, base, name, ended) => {
+  const run = git(["-C", root, "-c", "advice.forceDeleteBranch=false", "branch", "-d", name], root);
   if (run.status === 0) {
-    ended.removed.push(`branch ${branch}`);
-    return console.log(`  removed  branch ${branch}`);
+    ended.removed.push(`branch ${name}`);
+    return console.log(`  removed  branch ${name}`);
   }
-  const later = `git -C ${root} branch -d ${branch}`;
-  ended.left.push(`branch ${branch}, which git refused to delete and which loses nothing: ${later}`);
-  console.error(`  left     branch ${branch}, which git refuses to delete: `
+  const later = `git -C ${root} branch -d ${name}`;
+  ended.left.push(`branch ${name}, which git refused to delete and which loses nothing: ${later}`);
+  console.error(`  left     branch ${name}, which git refuses to delete: `
     + `${(run.stderr ?? "").trim() || `it exited ${run.status}`}`);
   return console.error(`           nothing of it is lost — ${REMOTE}/${base} carries every commit of `
     + `it, proved before anything was removed. Delete it once this checkout has caught up: ${later}`);
+};
+
+/* No record names no branch, and a name built from the key would be the prefix the verb's help
+   refuses as ownership: the slug `start` took is in no other record. So the route lists what the key
+   could have cut and deletes nothing. */
+const unnamed = (root, key, ended) => {
+  const n = key.slice(4).toLowerCase();
+  const list = `git -C ${root} branch --list ${typed(`iss-${n}`)} ${typed(`iss-${n}-*`)}`;
+  ended.left.push(`no branch, because no record names the one start cut: ${list}`);
+  console.log(`  left     no branch: the tree's git directory held no record of the branch start cut, `
+    + `so nothing here names one to remove. The branches named for ${key}, each to delete by hand once `
+    + `merged: ${list}`);
+};
+
+/** Removes the branch `start` recorded, or says why none was. */
+export const removedBranch = (root, base, key, branch, ended) => {
+  if (!branch) return unnamed(root, key, ended);
+  if (!branch.live) return console.log(`  gone     branch ${branch.name}, which start cut, is no longer a branch of this checkout`);
+  return deleted(root, base, branch.name, ended);
 };
 
 /* Reported last rather than stopped on: the tree and the branch are already gone, so what is owed
@@ -359,7 +401,7 @@ const removedWhole = (root, path, base, read, ended, retry) => {
     + failedLine(`the worktree ${path}`, "git refused it, above", retry));
   console.log(`  removed  ${path}`);
   ended.removed.push(`the worktree ${path}`);
-  if (read.branch) removedBranch(root, base, read.branch, ended);
+  removedBranch(root, base, ended.key, read.branch, ended);
   const failed = removedVerdict(read.verdict, ended);
   recorded(root, ended.key, ended);
   return failed;
@@ -399,8 +441,10 @@ export const finish = async ({ words: [given] }, { here, cwd = process.cwd(), ga
   }
   const base = defaultBranch(root);
   const read = readTree(root, path, base, gates);
-  const route = read.branch && read.ahead.commits?.length
-    ? await aheadRoute({ key, root, path, base, branch: read.branch, held: read.ahead.commits, runner: runnerIn })
+  const elsewhere = elsewhereLine(read.branch, read.stands);
+  if (elsewhere) console.log(elsewhere);
+  const route = onItsBranch(read.branch, read.stands) && read.ahead.commits?.length
+    ? await aheadRoute({ key, root, path, base, branch: read.branch.name, held: read.ahead.commits, runner: runnerIn })
     : null;
   const held = refusals(root, path, base, read, route);
   if (held.length) {

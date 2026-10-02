@@ -8,7 +8,7 @@ import { borrowRoute } from "../../../plugin/src/resolve/config.mjs";
 import { checkoutRoot, defaultBranch, git, loud, stop } from "../../checkout.mjs";
 import { endedDropped } from "./ended.mjs";
 import { borrowedInto, BROKEN } from "./links.mjs";
-import { KEY, occupied, slugless, worktreePath } from "./occupant.mjs";
+import { branchRecorded, KEY, occupied, slugless, worktreePath } from "./occupant.mjs";
 import { mintRunId, RUN_ID_VAR, scratchMinted } from "./run-id.mjs";
 
 /* Made here rather than left to the run, so a run's logs and scratch files have a place whose name says whose they are and `finish` removes that one path. One that cannot be made is said and stops nothing: a run without one writes elsewhere and `finish` then finds nothing to remove, which is the safe answer either way. */
@@ -65,6 +65,7 @@ export const start = ({ words }, { here, self, write }) => {
   const base = defaultBranch(root);
   loud("git", ["-C", root, "worktree", "add", path, "-b", branch, base], root,
     `Pick another branch name than ${branch} if it is taken.`);
+  branchRecorded(path, branch);
   // A record of this key's earlier ending would otherwise answer for this tree once it is gone.
   endedDropped(root, key);
   /* All of it or none of it: a half-linked tree refuses the next `start` for the path it left and
