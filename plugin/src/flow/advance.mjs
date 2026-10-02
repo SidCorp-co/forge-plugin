@@ -21,7 +21,7 @@ import { rungOf } from "../ladder.mjs";
 import { hereOf, logEntries, runOf } from "../codex/codex-log.mjs";
 import { readsIn, readsSaid, rowsOf } from "../codex/log/reads.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
-import { CITED, laneLines } from "../guides/phases.mjs";
+import { laneLines } from "../guides/phases.mjs";
 import { lastMark, stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { REOPEN, baselineAhead, checkpointAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
@@ -29,6 +29,8 @@ import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lea
 import { judgeOwed } from "./lease/judged.mjs";
 import { movedHere } from "./lease/after-move.mjs";
 import { movedBySaid } from "./earned/moved-by.mjs";
+import { citedOn } from "./route/aboard.mjs";
+import { DRAFT } from "../rank/weights.mjs";
 import { VOID_FLAG, typedAgain, voidRoute, voidsChecked, voidsInto } from "./park/void-questions.mjs";
 
 export const USAGE = [
@@ -313,8 +315,9 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null, 
   const standing = resumes ? { ...issue, status: parkedAt } : issue;
   const view = viewFrom(documentId, standing, page.comments, page.cut,
     await policyFor(issue.plan, standing.status), () => citedClauses(issue));
-  const { next, missing } = resumes || ORDER.includes(issue.status) ? owedIn(view, ref) : { next: null, missing: [] };
-  const cited = Boolean(next) && (resumes || (CITED[next] ?? []).some((kind) => kinds.includes(kind)));
+  const routed = resumes || ORDER.includes(issue.status) || issue.status === DRAFT;
+  const { next, missing } = routed ? owedIn(view, ref) : { next: null, missing: [] };
+  const cited = Boolean(next) && (resumes || citedOn(issue.status, next).some((kind) => kinds.includes(kind)));
   /* `holds` is a write that may not move a status, a judge's past another run's lease, told the move it earned instead. */
   const earns = cited && !missing.length;
   if (earns && holds) holds(next);

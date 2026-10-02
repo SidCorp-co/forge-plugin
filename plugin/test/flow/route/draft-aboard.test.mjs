@@ -4,11 +4,14 @@
    for its `open` state, and every reading short of the quiet one takes the route that starts nothing. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { ranAsync, tempHome, typedPlan } from "../../fixtures.mjs";
+import { ranAsync, tempHome, tempRoom, typedPlan } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("draft-aboard").path;
+const room = tempRoom("draft-aboard-");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { viewFrom } = await import("../../../src/flow/earned.mjs");
 const { draftSaid, draftTarget } = await import("../../../src/flow/route/aboard.mjs");
@@ -47,9 +50,13 @@ const state = {
       if (args.action === "update") return Object.assign(ISSUE, args.data ?? {});
       return ISSUE;
     },
-    forge_comments: (args) => (args.action === "list"
-      ? { comments: state.comments, returned: state.comments.length, hasMore: false }
-      : { documentId: "comment-uuid" }),
+    /* A record a write posts is on the page the move after it reads, as the tracker's would be. */
+    forge_comments: (args) => {
+      if (args.action === "list") return { comments: state.comments, returned: state.comments.length, hasMore: false };
+      const row = { documentId: `c-${clock += 1}`, createdAt: new Date().toISOString(), authorId: "agent", ...args.data };
+      state.comments.push(row);
+      return row;
+    },
   },
 };
 const { tracker, env: ENV } = await trackerFor(state);
@@ -68,6 +75,13 @@ const at = (open, { comments = [], over = {}, unread = false } = {}) => {
   state.calls.length = 0;
 };
 const advance = (...argv) => ranAsync(FORGE, ["advance", "ISS-3", ...argv], { ...ENV, FORGE_SESSION_ID: "this-run" });
+const record = (kind, ...argv) => ranAsync(FORGE, ["record", kind, "ISS-3", ...argv],
+  { ...ENV, FORGE_SESSION_ID: "this-run", FORGE_CODEX_DISABLE: "1" });
+const fileAt = (name, text) => {
+  const path = join(room, name);
+  writeFileSync(path, `${text}\n`);
+  return path;
+};
 const moves = () => state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "transition")
   .map((one) => one.args.data.status);
 
@@ -128,4 +142,39 @@ test("a disposition at draft drops the issue rather than climbing it, where open
   const owed = await advance("--owed");
   assert.equal(owed.status, 0, owed.stderr);
   assert.match(owed.stdout, /^ISS-3 is draft; dropped is next and the record earns it\./mu, owed.stdout);
+});
+
+/* The record write that completes the route is the move, as it is at every rung of the ladder (ISS-3129):
+   the route is earned on the kinds of every rung it passes, so the last of them to land moves it. */
+test("a record write that completes the draft route moves the issue onto the ladder in the same call", async () => {
+  at("auto", { comments: [confirmed(), decided()], over: { plan: NO_FILE } });
+  const run = await record("criteria", fileAt("criteria.md", CRITERIA));
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /^ISS-3 {2}draft -> in_progress$/mu, run.stderr);
+  assert.match(run.stderr, /moved by its record, and by no person: confirmation, decision, plan, criteria and baseline are what in_progress is entered on/u,
+    "and the line under it names every passed rung's records");
+  assert.deepEqual(moves(), ["in_progress"], "one transition, and never to open");
+
+  at("auto", { comments: [decided()], over: { plan: NO_FILE, acceptanceCriteria: CRITERIA } });
+  const first = await record("confirmation", "--is", "the route is missing", "--where", "plugin/src/flow/route.mjs", "--finding", "holds");
+  assert.equal(first.status, 0, `${first.stdout}${first.stderr}`);
+  assert.deepEqual(moves(), ["in_progress"], "a kind of the first rung passed completes the route as well as one of the last");
+});
+
+test("a draft record write moves nothing where no rung on its route cites the kind, or the route passes no rung", async () => {
+  at("auto", { comments: [confirmed(), decided()], over: { plan: NO_FILE, acceptanceCriteria: CRITERIA } });
+  const uncited = await record("routed", "--none", "nothing beside this issue's own subject was met");
+  assert.equal(uncited.status, 0, `${uncited.stdout}${uncited.stderr}`);
+  assert.deepEqual(moves(), [], "a complete route is not moved by a kind none of its rungs cites");
+  assert.equal(ISSUE.status, "draft");
+
+  at("manual");
+  const opening = await record("confirmation", "--is", "the route is missing", "--where", "plugin/src/flow/route.mjs", "--finding", "holds");
+  assert.equal(opening.status, 0, `${opening.stdout}${opening.stderr}`);
+  assert.deepEqual(moves(), [], "a route ending at open passes no rung, so no record moves it there");
+
+  at("auto");
+  const dropping = await record("confirmation", "--is", "the route is intended", "--where", "plugin/src/flow/route.mjs", "--finding", "intended");
+  assert.equal(dropping.status, 0, `${dropping.stdout}${dropping.stderr}`);
+  assert.deepEqual(moves(), [], "nor does a route ending at dropped");
 });
