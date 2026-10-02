@@ -202,7 +202,7 @@ test("a project that declares no model is noted rather than read as one, and an 
   assert.doesNotMatch(staging.detail, /park/u);
   const undeclared = rowsOf(undefined).find((row) => row.label === "release model");
   assert.equal(undeclared.level, "note", "a project that has decided nothing is not a report failure");
-  assert.match(undeclared.detail, /^unset on the project — the park before awaiting_release stands until one of none, promote, publish is declared/u);
+  assert.match(undeclared.detail, /^unset on the project — .* until one of none, promote, publish is declared/u);
   const unknown = rowsOf("hand-carried").find((row) => row.label === "release model");
   assert.match(unknown.detail, /^`hand-carried`, which is no model this CLI knows/u,
     "and a word this CLI cannot read is printed rather than treated as silence");

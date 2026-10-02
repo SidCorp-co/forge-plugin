@@ -29,7 +29,7 @@ test("an automatic production deploy with no release model declared is a finding
   assert.match(out, /\[ note \] staging branch\s+unset on the project/u,
     "the blank itself belongs to the tracker's project config and is a note");
   assert.match(out, /\[ miss \] release policy\s+production deploys are automatic and .*no release model/u);
-  assert.match(out, /a person's look is owed until that is declared/u);
+  assert.match(out, /a person's look before awaiting_release, and every change's close is a person's until that is declared/u);
   assert.match(out, /production deploy\s+automatic — a user-facing change waits for a person's look/u,
     "the strict reading is what the report says too");
 });
