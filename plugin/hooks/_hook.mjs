@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
+import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -449,10 +449,11 @@ const spawned = (body, runner) => {
   return given.map((one) => `\n(\n${one}\n)\n`).join("");
 };
 
-/* A literal holding a `$` is quoted as the shell would still read it, which is how the body's own text was read, and one holding a quote in the other quote. One holding a substitution, or both quotes, names a file no reading here can spell, and is left out. */
+/* A literal holding a parameter's `$` is quoted as the shell would still read it, which is how the body's own text was read; one a double quote cannot carry that way, holding a `"`, a backtick or a `$(` beside that `$`, names a file no reading here can spell, and is left out. Every other literal goes through `typed`, and `literalWord` reads it back (ISS-3052). */
+const PARAMETER_SIGN = /\$(?!\()/u;
 const aimedAt = (name) => {
-  if (/\$\(|\x60/u.test(name) || (name.includes("'") && name.includes('"'))) return "";
-  return !name.includes('"') && /[$\\']/u.test(name) ? `\n: > "${name}"` : `\n: > '${name}'`;
+  if (PARAMETER_SIGN.test(name)) return /["\x60]|\$\(/u.test(name) ? "" : `\n: > "${name}"`;
+  return `\n: > ${typed(name)}`;
 };
 /* Every character a shell gives a meaning a program's expression does not: an operator, a redirect, an expansion, an escape, a comment, a test's bracket, and a keyword's `=`. */
 const INERT = /[;&|<>$\x60\\#![\]=]/gu;
@@ -573,11 +574,12 @@ const spelled = (said, at) => {
   return from === 0 || OPENS.test(said[from - 1]);
 };
 
+/* A name `namesOf` read as a whole literal word is placed and spelt by that reading: every character of it is written, a leading `~` and a `$` included. */
 const namesIn = (said, tail, read) =>
-  namesOf(said, tail, read).map(({ token, at, built }) => ({
+  namesOf(said, tail, read).map(({ token, at, built, literal }) => ({
     token,
-    placed: !built && token[0] !== "~" && said[at - 1] !== "$",
-    spelt: spelled(said, at),
+    placed: literal || (!built && token[0] !== "~" && said[at - 1] !== "$"),
+    spelt: literal || spelled(said, at),
   }));
 
 /** `standsIn` placed against `cwd`, asked once per offset of one text, `NOWHERE` kept apart as a flag. */
@@ -610,7 +612,7 @@ export const writtenPaths = (text, cwd, tail, { unplaceable } = {}) => {
   });
   /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */
   const aimed = redirectsIn(read)
-    .flatMap(({ at, target }) => namesIn(target, tail, { ...AIMED_AT, whole: placed(at) })
+    .flatMap(({ at, target }) => namesIn(target, tail, { ...AIMED_AT, operand: true, whole: placed(at) })
       .map((each) => ({ ...each, at })));
   const landed = unplaceable === "strike" ? [] : landedIn(text, tail).map(({ token, at, start, end }) => ({
     token,

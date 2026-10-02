@@ -8,7 +8,7 @@ import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell
 import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { SPLITS, optionsAfter, wraps } from "./shell/wrappers.mjs";
 import { BLANKS, shellWord } from "./shell/word.mjs";
-import { RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
+import { RUNNER, SHELL_OPTION, SHELL_WORD, literalWord, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
 export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, placeable, shellWord, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
 
@@ -199,8 +199,10 @@ const spelt = (word) => word.text.split("").map((one, at) => (word.literal[at] &
 /* The extension ends the name: `SKILL.md.bak` and `notes.md~` carry none of the ones asked for, and the backup a copy makes beside a guarded file is not that file. */
 const endingIn = (tail) => new RegExp(`^${PATTERN}+\\.(?:${tail})(?![\\w~-]|\\.[\\w~-])`, "u");
 
-/** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
-export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true } = {}) => {
+/** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. `operand` marks the text as a redirect's operand, answered by `literalWord` where it can and flagged `literal`, whatever the command around it put in doubt (ISS-3052). Spelt here and nowhere else. */
+export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true, operand = false } = {}) => {
+  const literal = operand ? literalWord(text) : null;
+  if (literal) return new RegExp(`^[\\s\\S]+\\.(?:${tail})$`, "u").test(literal.text) ? [{ token: literal.text, at: literal.at[0], literal: true }] : [];
   const ending = endingIn(tail);
   const leads = options ? valueLeads(text) : new Map();
   const names = [];

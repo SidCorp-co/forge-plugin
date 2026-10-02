@@ -57,10 +57,11 @@ test("a body's own file call is still a write, at the argument its API writes", 
   both(heredoc("node", "const fs = require('fs'); fs.open('o.md', 'w', () => {});", "fs.openSync('p.md', 'a');"), ["o.md", "p.md"], "node's open");
   both(heredoc("deno", "await Deno.writeTextFile('d.md', 'x')"), ["d.md"], "deno's write");
   both(heredoc("bun", "await Bun.write('b.md', 'x')"), ["b.md"], "bun's write");
-  /* A name holding a quote is read as the same redirect spelt in the shell is, whatever that reader makes of it. */
-  both(python(`open("author's.md", "w")`), strict(`echo x > "author's.md"`), "a name holding the other quote");
-  both(heredoc("node", `writeFileSync('say "hi".md', 'x')`), strict(`echo x > 'say "hi".md'`), "and the other way round");
-  assert.deepEqual(strict(String.raw`python3 -c "open(\"author's.md\", \"w\")"`), strict(`echo x > "author's.md"`), "an inline body's");
+  /* A name holding a quote is read whole, as the redirect spelt in the shell is (ISS-3052). */
+  both(python(`open("author's.md", "w")`), ["author's.md"], "a name holding the other quote");
+  both(heredoc("node", `writeFileSync('say "hi".md', 'x')`), ['say "hi".md'], "and the other way round");
+  both(python(`open("""say "hi" it's.md""", "w")`), [`say "hi" it's.md`], "and one holding both");
+  assert.deepEqual(strict(String.raw`python3 -c "open(\"author's.md\", \"w\")"`), ["author's.md"], "an inline body's");
 });
 
 test("a call writing a literal and a computed operand keeps both readings of it", () => {
@@ -83,7 +84,7 @@ test("a read beside a write is not one, and a target the program computes is pla
     assert.deepEqual(strict(command), [SKILL], `strike: ${target}`);
     assert.ok(keeps(command).includes(SKILL), `keep, which may still read a name the call spells: ${target}`);
   }
-  both(python("open('$(a.md', 'w')", "open('a`b`.md', 'w')"), [], "a literal holding a substitution");
+  both(python("open('$(a.md', 'w')", "open('a`b`.md', 'w')"), ["$(a.md", "a`b`.md"], "a literal holding a substitution is that name (ISS-3052)");
   const received = `${python("(base / '.claude/skills/z/SKILL.md').write_text('x')")}\necho x > ${SKILL}`;
   assert.deepEqual(strict(received), [SKILL], "strike: a receiver the program computes");
   assert.ok(keeps(received).includes(".claude/skills/z/SKILL.md"), "keep still reads what a computed receiver spells");

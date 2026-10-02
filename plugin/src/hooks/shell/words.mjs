@@ -85,6 +85,26 @@ export const spacedSpans = (text, alike = true) => {
   return new Set(wholeSpans(marks, alike).filter(({ spaced }) => spaced).map(({ from }) => marks[from].at));
 };
 
+/* One shell word with every quote it opens closed: a single-quoted run, a double-quoted one, an escaped character, or a bare character that is no blank and no quote. */
+const CLOSED_WORD = /^(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s'"\\])+$/u;
+/* What a shell still does something with outside every quote: expands, globs, joins, opens a frame, ends the word, or starts a comment. */
+const ACTED_ON = /[$`*?[\]{}~()!#;&|<>\s\\'"]/u;
+/** The name a shell writes for one word that is known to be a filename — a redirect's operand — where it expands nothing in it: the word with its quotes and the backslashes it removes taken off, each character placed where it was written, and ended at a bare `)`, which closes the frame the redirect stands in. A quote of the other kind, a space, a `$(` or a backtick under a single quote is a character of that name, since a redirect's operand is never an interpreter's body. `null` where the shell would still expand, glob or tilde-expand any of it, where a quote is left open, or where the word stands inside a frame or a comment, so the caller keeps the reading it has for those. */
+export const literalWord = (given) => {
+  const shut = quoting(given).find(({ one, under }) => under === " " && one === ")");
+  const text = shut ? given.slice(0, shut.at) : given;
+  if (!CLOSED_WORD.test(text)) return null;
+  const word = { text: "", at: [] };
+  for (const { at, one, under, removed, depth } of quoting(text)) {
+    if (depth || under === "#") return null;
+    if (removed || ((under === "'" || under === '"') && one === under)) continue;
+    if ((under === '"' && (one === "$" || one === "\x60")) || (under === " " && ACTED_ON.test(one))) return null;
+    word.text += one;
+    word.at.push(at);
+  }
+  return word.text ? word : null;
+};
+
 /* A parameter expansion: a `$` the shell spends, bare or under a double quote, opening a name, a positional or special parameter, or a `${…}`. A `$(` is a substitution, which `placeable` answers, and a `$'…'` or `$"…"` spells text. */
 const PARAMETER = /[A-Za-z0-9_{@*#?!$-]/u;
 const IDENTIFIER = /[A-Za-z0-9_]/u;
