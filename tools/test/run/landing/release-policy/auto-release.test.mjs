@@ -7,8 +7,8 @@ import test from "node:test";
 import {
   BASE, BUILDER, KEY, UUID,
   comments, context, ctx, earning, issue, ready, seeded, state, tracker, world,
-} from "./fixture.mjs";
-import { ranAsync } from "../../../../plugin/test/fixtures.mjs";
+} from "../fixture.mjs";
+import { ranAsync } from "../../../../../plugin/test/fixtures.mjs";
 
 /* Before the first landing, the policy being memoised: the publication is the project's own. Not a
    promotion, whose automatic deploy still leaves the move onto the live branch to the release batch:
@@ -19,17 +19,17 @@ state.config = {
   pipelineConfig: { autoProdDeploy: true },
 };
 
-const { landReady } = await import("../../../run/land-ready.mjs");
-const { Stop } = await import("../../../checkout.mjs");
-const { landingOf } = await import("../../../../plugin/src/flow/landing/checkpoint.mjs");
-const { render } = await import("../../../../plugin/src/flow/record/page.mjs");
-const { noteShown } = await import("../../../../plugin/src/tracker/comments.mjs");
-const { markedCommit } = await import("../../../../plugin/src/flow/record/merged.mjs");
+const { landReady } = await import("../../../../run/land-ready.mjs");
+const { Stop } = await import("../../../../checkout.mjs");
+const { landingOf } = await import("../../../../../plugin/src/flow/landing/checkpoint.mjs");
+const { render } = await import("../../../../../plugin/src/flow/record/page.mjs");
+const { noteShown } = await import("../../../../../plugin/src/tracker/comments.mjs");
+const { markedCommit } = await import("../../../../../plugin/src/flow/record/merged.mjs");
 
 test.after(() => tracker.close());
 
 const LANDER = process.env.FORGE_SESSION_ID;
-const FORGE = new URL("../../../../plugin/bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../../plugin/bin/forge", import.meta.url).pathname;
 
 /** The builder's own command, through the shipped verb, twice: the gate every write passes delivers
  *  a comment this session has not read and refuses once. */
