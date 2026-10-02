@@ -7,19 +7,20 @@ import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
 import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
-import { RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
+import { BLANKS, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
-export { ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
+export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, placeable, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
 /* The words that run the command after them rather than being it: the keywords, and the wrappers that hand the rest of the line to the program it names. Every reading of what stands before a verb is built from these two lists, so a word gained here is gained by all of them. `exec` is kept off the wrappers: as the argument of `docker`, `podman` or `kubectl` it names a subcommand whose command runs inside a container, so it counts only where a start stands before it (ISS-2877). */
 const WRAPPING = ["sudo", "command", "nohup", "time", "env"];
 const PREFIXES = `${WRAPPING.join("|")}|${KEYWORDS}|exec`;
-/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader — a quote or a backslash among those only where nothing closes or follows it. One reading, so a case a shell word gains is gained by every reader that splits one. Each character opens exactly one of the arms, since a pattern spliced in front of something that can fail — a wrapper option's value before a verb that is no write — tries every way of cutting the word it could, and `'a'` read as a run or as three characters doubled the ways with each quoted part. */
+/* A shell word, kept whole through its quotes: a single-quoted run, a double-quoted one inside which a backslash still escapes, an escaped character, or any character but a blank and the `stops` that end a word for this reader — a quote or a backslash among those only where nothing closes or follows it. A blank is the shell's own three, so a no-break space is a character of the word as it is to a shell. `substituted` adds a closed `$(…)` and a closed backtick pair as one arm each, blanks and all, for a reader whose word may be computed. One reading, so a case a shell word gains is gained by every reader that splits one. A lone quote's test stands in front of the quote rather than behind it, so a reader that splices this into a lookbehind, which matches right to left, tests the character before it scans the rest of the text from every position. Each character opens exactly one of the arms, since a pattern spliced in front of something that can fail — a wrapper option's value before a verb that is no write — tries every way of cutting the word it could, and `'a'` read as a run or as three characters doubled the ways with each quoted part. */
 const DOUBLED = String.raw`(?:[^"\\]|\\[\s\S])*`;
-const shellWord = (stops) =>
-  String.raw`(?:'[^']*'|'(?![^']*')|"${DOUBLED}"|"(?!${DOUBLED}")|\\[\s\S]|\\$|[^\s'"\\${stops}])+`;
+const SUBSTITUTED = String.raw`\$\([^)]*\)|(?!\$\([^)]*\))\$|\x60[^\x60]*\x60|(?!\x60[^\x60]*\x60)\x60|`;
+export const shellWord = (stops, { substituted = false } = {}) =>
+  String.raw`(?:${substituted ? SUBSTITUTED : ""}'[^']*'|(?!'[^']*')'|"${DOUBLED}"|(?!"${DOUBLED}")"|\\[\s\S]|\\$|[^${BLANKS.slice(1, -1)}'"\\${substituted ? "$\\x60" : ""}${stops}])+`;
 /* A wrapper's word with the options it may carry before its command, by its row of the wrappers' table; the value one of them takes is a shell word. */
 const OPTION_VALUE = shellWord(";&|()<>");
 const wrapped = (name) => `${name}${optionsAfter(name, OPTION_VALUE)}`;
@@ -44,12 +45,12 @@ const PROVEN = /^[;&|\s]*(?:then|do)\b/u;
 const INVERTED = /^until\b/u;
 const STAGE = /(?:^|[^|])\|&?\s*$/u;
 const COMMENT = /^#[^\n]*/u;
-/* A tilde names the home only standing bare at the head of the word, and only where the word ends there or goes on with a bare slash: `"~"/x`, `\~/x` and `~"/x"` each hand a shell the literal `~/x`. */
+/* A tilde names the home only standing bare at the head of the word, and only where the word ends there or goes on with a bare slash: `"~"/x`, `\~/x` and `~"/x"` each hand a shell the literal `~/x`. `home: false` is for a text that is the tail of a word, an option's value glued behind its `=`, where no tilde opens the word. */
 const bare = (mark) => mark?.under === " ";
-export const spelled = (one) => {
+export const spelled = (one, { home: heads = true } = {}) => {
   const kept = handedOn(one);
   const text = kept.map((mark) => mark.one).join("");
-  const home = kept[0]?.one === "~" && bare(kept[0]) && (kept.length === 1 || (kept[1].one === "/" && bare(kept[1])));
+  const home = heads && kept[0]?.one === "~" && bare(kept[0]) && (kept.length === 1 || (kept[1].one === "/" && bare(kept[1])));
   return home ? homedir() + text.slice(1) : text;
 };
 /** `spelled` run the other way — the word written back into a command a reader pastes, a refusal's way out or a next page's call: bare where a shell hands it on unchanged, quoted where it would split, and since a quoted run has no escape, an apostrophe closes the quote, escapes, reopens.
@@ -264,7 +265,7 @@ const writing = (text) => CALL_WRITES.test(text) || VERB_WRITES.test(quotedOut(t
 
 /** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces, as one holding a backslash holds the character behind it: the newline a continuation joins the next line on with (ISS-2686), or a space the escape made part of the name (ISS-1592). The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer above, spelt the same here (ISS-1555). */
 export const REDIRECT = new RegExp(
-  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|\\[\s\S]|[^ \t\n;&|<>])+)`,
+  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)(${shellWord(";&|<>", { substituted: true })})`,
   "gu",
 );
 
@@ -324,6 +325,9 @@ const UNLINKS = /\s--remove-source-files(?![\w-])/u;
 const WORDS = new RegExp(shellWord(";&|"), "gu");
 /** The shell words of one command, each a match carrying its `index`, with a redirect still inside the word it touches. */
 export const wordsOf = (text) => [...text.matchAll(WORDS)];
+/** The words of a text cut at blanks alone, as strings: what a reader holding one command's arguments, its operators already read, splits them with. */
+const BLANKED = new RegExp(shellWord(""), "gu");
+export const wordsIn = (text) => text.match(BLANKED) ?? [];
 const BEFORE = new RegExp(String.raw`^(?:[A-Za-z_]\w*=|\(+$|(?:${PREFIXES})$)`, "u");
 const AIMED = /[<>]/u;
 const CLOSES = /^\)+$/u;
@@ -465,22 +469,14 @@ const SCRIPTED = /\s(?:-[A-Za-z]*[ef]|--expression|--file)(?![\w-])/u;
 const outputsOf = (program, words) =>
   optionsIn(program, words).filter((one) => writes(program, one.name) && one.value).map((one) => one.value);
 
-/* One stage's words past what runs before its verb, each placed in the whole text, and the verb. */
-const argumentsOf = (text, stage) => {
-  const words = wordsOf(text.slice(stage.start, stage.end))
-    .map((m) => ({ said: m[0], from: stage.start + m.index, to: stage.start + m.index + m[0].length }));
-  const at = verbAt(words.map((one) => one.said));
-  return { program: basename(unquote(words[at]?.said ?? "")), rest: words.slice(at + 1) };
-};
-
 /* The targets one write stage aims at: a verb's own, with the files it reads, its flags' values and a `sed` script struck, or the value of a fetch's output option. */
 const aimedIn = (text, stage, kept, bare) => {
-  const { program, rest: left } = argumentsOf(kept, stage);
+  const { program, rest: left } = commandOf(kept.slice(stage.start, stage.end), stage.start);
   const rest = left.filter((one) => !AIMED.test(bare.slice(one.from, one.to)));
   if (AIMS[program] === "none" && known(program)) return outputsOf(program, rest);
   const operands = rest.filter((one) => !FLAG.test(one.said));
   if (program !== "sed" || SCRIPTED.test(bare.slice(stage.start, stage.end))) return operands;
-  const script = argumentsOf(text, stage).rest.find((one) => !FLAG.test(one.said));
+  const script = commandOf(text.slice(stage.start, stage.end), stage.start).rest.find((one) => !FLAG.test(one.said));
   return operands.filter((one) => one.from !== script?.from);
 };
 

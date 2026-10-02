@@ -1,22 +1,20 @@
 // The read a call did nothing but make of a log, for the gate that refuses the same one twice and the
 // profiler that counts it. `sed` is no reader here: `sed -i` writes and the verb does not say which.
 
-import { spans, unquote } from "./shell-spans.mjs";
+import { spans, unquote, wordsIn } from "./shell-spans.mjs";
 
 export const LOG_NAME = /\.(?:log|out|output|err)$/u;
 const READS = /^(?:\S*\/)?(?:cat|tail|head|tac|nl|wc|ls|stat|grep|egrep|fgrep|rg)$/u;
 const INERT = /^(?:cd|echo|pwd|true|:)$/u;
 
-const WORD = /(?:'[^']*'|"(?:[^"\\]|\\.)*"|\S)+/gu;
 const LEADS = /^[\s;&|()]+/u;
 const AIMS = /^\d*[<>]/u;
 const EXPANDS = /\$\(|`/u;
-const SETTLE = /'[^']*'|"(?:[^"\\]|\\.)*"|\s+/gu;
 
 export const NOTHING = "";
 
 const wordsOf = (whole, { start, end }) =>
-  (whole.slice(start, end).replace(LEADS, "").trim().match(WORD) ?? []).map(unquote);
+  wordsIn(whole.slice(start, end).replace(LEADS, "")).map(unquote);
 
 const reading = (whole) => {
   if (EXPANDS.test(whole)) return null;
@@ -43,7 +41,7 @@ export const logRead = (text) => {
   const whole = String(text ?? "");
   const logs = reading(whole);
   if (logs === null) return null;
-  return logs.length ? whole.replace(SETTLE, (one) => (one.trim() ? one : " ")).trim() : NOTHING;
+  return logs.length ? wordsIn(whole).join(" ") : NOTHING;
 };
 
 export const logsIn = (text) => reading(String(text ?? "")) ?? [];

@@ -5,7 +5,7 @@ import { isReference } from "./issues.mjs";
 import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
 import { WRITER_WORD } from "../resolve/session/writer-word.mjs";
 import { aimIn } from "../resolve/project/aimed.mjs";
-import { quoting } from "../hooks/shell-spans.mjs";
+import { quoting, wordsIn } from "../hooks/shell-spans.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -48,7 +48,6 @@ const unquoted = (word) => quoting(word)
   .join("");
 
 /* One word is one argument, quoted whitespace included, or a value holding a flag reads as it. */
-const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|\S)+/gu;
 const CUT = /(?<!\\)\\$/u;
 
 const EDGE_FLAGS = [...EDGE_KINDS, "unlink"].map((one) => `--${one}`);
@@ -86,7 +85,7 @@ export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
    verb refuses before sending anything — beside a verb that takes none, twice, or with no value —
    makes no write here either, and `aims` on the row is what says which verb takes one. */
 const aimedWords = (one) => {
-  const { rest, named, bare } = aimIn((one.match(WORDS) ?? []).slice(2)
+  const { rest, named, bare } = aimIn(wordsIn(one).slice(2)
     .map((word) => (CUT.test(word) ? "" : unquoted(word))));
   const refused = bare !== null || named.length > 1;
   return { words: rest, project: named.length === 1 && !refused ? named[0] : null, aimed: named.length > 0 || bare !== null, refused };

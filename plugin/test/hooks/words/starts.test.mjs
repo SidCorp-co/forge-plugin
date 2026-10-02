@@ -60,3 +60,11 @@ test("the word after a quoted program is that program's argument in the write re
   assert.deepEqual(named("true; 'a b' cp x.md y.md"), [], "behind an operator as at the head");
   assert.deepEqual(named("cp x.md 'a b' y.md"), ["x.md", "y.md"], "and a copy carrying one still writes");
 });
+
+/* A runner's option value is one shell word, an escaped space inside it: cut at the escape, the half
+   behind it read as the verb, and `xargs -d a\ b rm x` started a `b` nobody runs (ISS-2959). */
+test("a runner's option value holding an escaped space is one word, and the verb is the word after it", () => {
+  const said = startsAt(String.raw`xargs -I {} -d a\ b rm x`).map((one) => one.said);
+  assert.ok(said.includes("rm x"), JSON.stringify(said));
+  assert.ok(!said.includes("b rm x"), JSON.stringify(said));
+});

@@ -53,3 +53,9 @@ test("a key is the question, so quoting, a substitution and a wrapper are all re
   assert.equal(logRead("tail $(ls -t /tmp/*.log | head -1)"), null, "and one naming the log is no different");
   assert.equal(logRead("bash -c 'tail /tmp/ship.log'"), null, "a body this reading does not open is not a read it can see");
 });
+
+/* A word is the shell's, so a backslash keeps the space behind it inside the name: a reading that cut
+   there keyed `cat a\ b.log` on a `b.log` the call never read (ISS-2959). */
+test("a log named through an escaped space is read as that whole name", () => {
+  assert.deepEqual(logsIn(String.raw`cat a\ b.log`), [String.raw`a\ b.log`]);
+});

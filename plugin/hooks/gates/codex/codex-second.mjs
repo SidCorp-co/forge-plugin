@@ -24,12 +24,12 @@ import {
   spans,
   spelled as bare,
   typed,
+  wordsIn,
   context, how, done, remaining } from "../../_hook.mjs";
 
 /* What the commit closes over, from that command alone: a pipeline's flags are not the commit's, and
    neither is a redirect's target or a value a flag ate — `-am x` is all and a message, `-ma` a message
    alone, `-uall` neither. A pathspec needs no `--`, and an escaped space is inside one word. */
-const WORD = /(?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^\s])+/gu;
 const NEEDS_VALUE =
   /^--(?:message|file|reuse-message|reedit-message|author|date|template|cleanup|fixup|squash|trailer|pathspec-from-file)$/u;
 const EATS_NEXT = "mFCct";
@@ -53,7 +53,7 @@ export const commitAim = (ev) => {
   const from = found.index + found[0].length;
   const { end } = spans(text, { pipes: true }).find((one) => one.start <= from && from <= one.end)
     ?? { end: text.length };
-  const tokens = text.slice(from, end).replace(REDIRECT, " ").match(WORD) ?? [];
+  const tokens = wordsIn(text.slice(from, end).replace(REDIRECT, " "));
   const paths = [];
   let all = false;
   let only = false;

@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, spacedSpans, spans, standsIn, struck, unquote, unseenNames } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -26,7 +26,7 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { MOVE_WORD, directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn, withoutBodies };
+export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn, withoutBodies, wordsIn };
 export { LITERALS, RUNS, SHELL, handedIn, literal };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
@@ -391,11 +391,10 @@ export const commands = (text) =>
   spans(text).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
 
 /* A runner's options precede the verb; whether one took an argument is unknowable, so both readings go. */
-const WORD = /(?:'[^']*'|"(?:[^"\\]|\\.)*"|\S)+/gu;
 const SAID = /['"]/gu;
 const past = (text) => {
   const out = [];
-  const tokens = text.match(WORD) ?? [];
+  const tokens = wordsIn(text);
   for (let at = 0; at < tokens.length; at += 1) {
     out.push([tokens[at].replace(SAID, ""), ...tokens.slice(at + 1)].join(" "));
     const one = tokens[at];
@@ -485,10 +484,10 @@ export const unseenWrites = (command) => {
   return [...new Set([...unseenNames(shell), ...read])];
 };
 
-/* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
-const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;
-export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))\s+`
-  + GIT_VALUE + String.raw`\s+|-[A-Za-z-]+(?:=` + GIT_VALUE + String.raw`)?\s+)*`;
+/* git's globals before the verb: a value is one shell word, which may be quoted and hold a space; a bare flag eats no token. */
+const GIT_VALUE = shellWord(";&|()<>");
+export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))${BLANKS}+`
+  + GIT_VALUE + String.raw`${BLANKS}+|-[A-Za-z-]+(?:=` + GIT_VALUE + String.raw`)?${BLANKS}+)*`;
 
 /** Where a draft stops being one, in command position only: a message quoting the word is not one. */
 export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-])`, "u");
@@ -498,12 +497,12 @@ export const committing = (ev) =>
 
 /** The work tree a git command names: `--work-tree` outranks `-C` outranks what `--git-dir` implies.
  *  A repeated `-C` is a chain git composes and `--work-tree` is read from where it left; what a `--git-dir` implies answers only where neither named a tree, because git takes the current directory as the top of the working tree and `-C` is what sets that. A relative answer stays relative for the caller to place against its own event's cwd. */
-const AIMS = /(?:^|\s)(-C|--work-tree|--git-dir)(?:\s+|=)("[^"]*"|'[^']*'|\S+)/gu;
+const AIMS = new RegExp(String.raw`(?:^|${BLANKS})(-C|--work-tree|--git-dir)(${BLANKS}+|=)(${shellWord(";&|()<>")})`, "gu");
 export const gitTreeOf = (text) => {
   const said = {};
   let at = null;
-  for (const [, option, value] of String(text ?? "").matchAll(AIMS)) {
-    const one = value.replace(/['"]/gu, "").replace(/(?!^)\/+$/u, "");
+  for (const [, option, joint, value] of String(text ?? "").matchAll(AIMS)) {
+    const one = shellSpelled(value, { home: joint !== "=" }).replace(/(?!^)\/+$/u, "");
     if (option !== "-C") said[option] = one;
     else at = at && !isAbsolute(one) ? join(at, one) : one;
   }
@@ -515,7 +514,7 @@ export const gitTreeOf = (text) => {
   return basename(dir) === ".git" ? dirname(dir) : dir;
 };
 
-const VALUE = String.raw`"[^"]*"|'[^']*'|\$\([^)]*\)|` + "`[^`]*`" + String.raw`|[^\s;&|]*`;
+const VALUE = `(?:${shellWord(";&|", { substituted: true })})?`;
 const ASSIGN = new RegExp(
   String.raw`(?<=^|[;&|(){\n]\s*|\b(?:export|env|sudo|command|nohup|time)\s+|=(?:${VALUE})\s+)`
     + String.raw`([A-Za-z_]\w*)=(${VALUE})`,

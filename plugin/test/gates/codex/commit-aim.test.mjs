@@ -1,6 +1,8 @@
 /* What a commit closes over, read from the command alone — the answers the gate then decides on. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 import { NOWHERE, committing } from "../../../hooks/_hook.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
@@ -59,6 +61,27 @@ test("what a commit closes over is read from its own flags", () => {
   assert.deepEqual(aim("git commit --author 'a b' -m x").paths, [], "and its detached one");
   assert.deepEqual(aim(String.raw`git commit -m x docs/a\ b.md`).paths, ["docs/a b.md"], "an escaped space is inside a word");
   assert.equal(commitAim(ev(String.raw`cd /tmp/a\ b && git commit -m x`)).tree, "/tmp/a b", "and inside a moved-to path");
+});
+
+/* A continuation joins the two lines into one word before the shell reads it, so the pathspec is the
+   joined name and not a stray backslash beside a second path (ISS-2959). */
+/* A git global's value is one shell word, so an escaped quote inside a double-quoted one neither ends
+   the value nor hides the commit behind it (ISS-2959). */
+test("a git global whose quoted value holds an escaped quote is that whole value, and the commit behind it is one", () => {
+  const command = String.raw`git -C "/tmp/a\" b" commit -m x`;
+  assert.equal(committing(ev(command)), true);
+  assert.equal(commitAim(ev(command)).tree, '/tmp/a" b');
+});
+
+/* A tilde is the home only at the head of a word: behind `--work-tree=` git is handed the literal. */
+test("a git global's tilde is the home where it opens the word, and literal behind an equals sign", () => {
+  assert.equal(commitAim(ev("git --work-tree=~/repo commit -m x")).tree, "~/repo");
+  assert.equal(commitAim(ev("git --work-tree=~~/repo commit -m x")).tree, "~~/repo");
+  assert.equal(commitAim(ev("git --work-tree ~/repo commit -m x")).tree, join(homedir(), "repo"));
+});
+
+test("a pathspec continued onto the next line by a backslash is the one word the shell joins", () => {
+  assert.deepEqual(commitAim(ev("git commit a\\\nb.md -m x")).paths, ["ab.md"]);
 });
 
 test("a commit is a commit where a command starts, git's globals in between", () => {
