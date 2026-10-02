@@ -300,8 +300,6 @@ const readsOff = (kind) => {
   return said.length ? ["", ...said, "Every value read that way is printed."] : [];
 };
 
-/* Why the kind exists is the one thing its row cannot say, and a run reaching for a comment instead
-   is the defect it answers (ISS-198). */
 const QUESTION_BLOCKS = [
   "The write asks a person on the issue's own screen before the record goes up: one question whose",
   "options are the readings in order, the one --recommend names marked as recommended. An open",
@@ -310,6 +308,8 @@ const QUESTION_BLOCKS = [
   "one is owed, is still `forge advance --park question`.",
 ];
 
+/* Why the kind exists is the one thing its row cannot say, and a run reaching for a comment instead
+   is the defect it answers (ISS-198). */
 const ANSWER_BLOCKS = [
   "Written after the park it answers, on an issue that park holds at waiting or needs_info, or at",
   "on_hold under a blocked park no edge that gates dispatch speaks for — a blocker in another",
