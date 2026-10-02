@@ -63,16 +63,18 @@ agent learns what a status wants.
 - **AC-05-1-8** · Rev: 1 · Proof: plugin/test/flow/route/credential-ahead.test.mjs "--owed says a screen change has no login to prove it with, and refuses nothing for it"
   WHERE the plan declares a screen change and the project holds no test credential, the CLI SHALL
   say so in the rehearsal of every status below `testing`, and SHALL refuse none of them for it.
-- **AC-05-1-9** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the claim and the resume print the lane, and neither composes a line of it"
+- **AC-05-1-9** · Rev: 2 · Proof: plugin/test/flow/resume/resume.test.mjs "the claim and the resume print the lane, and neither composes a line of it"
   WHEN the agent asks what is owed, takes an issue's lease, or has its context re-minted THEN the
   CLI SHALL name every status from the issue's own onwards with the payloads that earn each at the
-  issue's own rung, and SHALL say of a status the rung leaves no payload to write that nothing is
-  owed at it.
-- **AC-05-1-10** · Rev: 1 · Proof: plugin/test/flow/route/baseline-ahead.test.mjs "--owed names the published baseline and the write that cites it, and says so where none is published"
+  issue's own rung and under its plan's declarations, and SHALL say of a status the rung or a
+  declaration leaves no payload to write that nothing is owed at it and which of the two left it so.
+- **AC-05-1-10** · Rev: 2 · Proof: plugin/test/flow/route/baseline-ahead.test.mjs "--owed names the published baseline and the write that cites it, and says so where none is published"
   WHERE a whole-tree gate result is published for the commit the checkout stands at, the rehearsal
   of every status below the one a baseline earns SHALL name that commit and SHALL print the write
   that cites it; where none is published for that commit the rehearsal SHALL say so and SHALL name
-  the fresh run, a result published for another commit answering for no tree but its own.
+  the fresh run, a result published for another commit answering for no tree but its own; and where
+  the plan declares that the change lands no file in the repository the rehearsal SHALL say neither,
+  no baseline being owed.
 - **AC-05-1-11** · Rev: 1 · Proof: plugin/test/guides/phases.test.mjs "the opening names the work the last run left, and says what can be reached of it"
   WHERE the worklog holds a branch and the issue's status owes a phase, the CLI SHALL name that
   branch, the head it stands at and the commit it was cut from when the agent takes the issue's lease
@@ -139,16 +141,18 @@ deciding a status.
 - **AC-05-2-5** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "advance earns tested from a batched write exactly as from one write per criterion"
   WHEN the verdicts on several criteria are written in one record THEN the CLI SHALL judge the status
   exactly as it judges one record per criterion.
-- **AC-05-2-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
-  IF the latest baseline records that its gate run measured part of the tree THEN the CLI SHALL
-  refuse `in_progress` and SHALL name the gate command that baseline itself recorded.
+- **AC-05-2-6** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
+  IF the latest baseline records that its gate run measured part of the tree, and the plan does not
+  declare that the change lands no file in the repository, THEN the CLI SHALL refuse `in_progress`
+  and SHALL name the gate command that baseline itself recorded.
 - **AC-05-2-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
   WHERE a record was written before a field was added to its shape, the CLI SHALL read it back as a
   whole payload rather than refusing it for lacking that field.
-- **AC-05-2-8** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a cited baseline is taken at every rung, and refused on a record that carries no head"
-  WHERE the latest baseline cites a recorded gate result, the CLI SHALL judge `in_progress` on the
-  scope, the head and the commit that record itself carries and on no other reading, the state of a
-  tree being no property of the issue looking at it.
+- **AC-05-2-8** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a cited baseline is taken at every rung, and refused on a record that carries no head"
+  WHERE the latest baseline cites a recorded gate result and the plan does not declare that the
+  change lands no file in the repository, the CLI SHALL judge `in_progress` on the scope, the head
+  and the commit that record itself carries and on no other reading, the state of a tree being no
+  property of the issue looking at it.
 
 - **AC-05-2-9** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "the three records approved cites go in one call, and that call moves the status"
   WHEN a write of a typed payload leaves the next status earned and that payload is one the next
@@ -158,9 +162,9 @@ deciding a status.
 - **AC-05-2-10** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "a write of a kind the rung does not cite moves nothing, however complete the rung is"
   IF the payload written is not one the next status is earned by THEN the CLI SHALL leave the status
   where it stands, however little that status is owed.
-- **AC-05-2-11** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "in_progress owes the branch the change is built on, and the refusal names the capture"
-  IF the worklog holds no branch THEN the CLI SHALL refuse `in_progress` and SHALL name the capture
-  that writes one.
+- **AC-05-2-11** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "in_progress owes the branch the change is built on, and the refusal names the capture"
+  IF the worklog holds no branch and the plan does not declare that the change lands no file in the
+  repository THEN the CLI SHALL refuse `in_progress` and SHALL name the capture that writes one.
 - **AC-05-2-12** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "only an edge that gates dispatch holds a status back, and the refusal names the kind"
   IF an edge on the issue's blocking relations is one the tracker says does not gate dispatch THEN
   the CLI SHALL hold no status back for it, whatever the status of the issue at its other end,
@@ -173,6 +177,16 @@ deciding a status.
   WHERE the tracker sent no answer about whether an edge gates dispatch, the CLI SHALL judge that edge
   by its kind's own row in the one table of edge kinds, and a kind with no row there SHALL order
   nothing.
+- **AC-05-2-15** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "a plan declaring the change lands no file reaches in_progress with no branch and no baseline"
+  WHERE the plan declares that the change lands no file in the repository, the CLI SHALL owe
+  `in_progress` neither a branch nor a baseline and SHALL hold it to every other entry criterion of
+  that status, granting this on that declaration alone and never on a change that happens to be
+  empty, because a gate measures a tree and a change landing no file leaves that tree as it found it.
+- **AC-05-2-16** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "under the declaration a mark that wrote paths is refused, naming them and the plan write"
+  IF the plan declares that the change lands no file in the repository and the merged mark says the
+  landing wrote paths THEN the CLI SHALL refuse `developed`, SHALL name those paths, and SHALL name
+  the plan write that answers the declaration no, because the record would otherwise say two things
+  about one change.
 
 ### UC-05-3 — Refuse a jump
 
@@ -380,7 +394,7 @@ for.
   declares, whatever status the issue stands at and whether or not that policy leaves anybody an
   act, because a run told only that the close is owed cannot tell a policy this CLI read from one
   it never consulted (G-13).
-- **AC-05-7-14** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/deploy-declaration.test.mjs "the user-facing outcome is the one declaration a plan may leave out"
+- **AC-05-7-14** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/deploy-declaration.test.mjs "the user-facing outcome and lands no file are the declarations a plan may leave out"
   WHERE a plan answers every required declaration and leaves the user-facing outcome unanswered, the
   CLI SHALL not refuse `approved` for it, because only a change with such a result has a reason to
   answer it.
