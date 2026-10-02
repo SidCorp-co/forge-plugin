@@ -111,26 +111,40 @@ const ENDS_A_WORD = /[\s;|&(){}<>]/u;
 const BACKTICK = "\x60";
 
 /* What every match of `RUNS` ends in, past its spaces and an `=`: a word of letters behind a hyphen
-   holding a `c`, one ending `eval`, or, in a text spelling `env` at all, a word behind a hyphen holding an
-   `S` or a long option that begins `--s`. Read backwards over that one word, so a quote no runner can
-   stand before spends no scan of the whole text in front of it, and a command of many quotes stays
-   linear: `-S` is a flag of `ls`, `sort` and `ssh` far more often than it is env's. */
+   holding a `c`, one ending `eval`, or env's: a word behind a hyphen holding an `S`, or a long option
+   that begins `--s`. Read backwards over that one word, so a quote no runner can stand before spends no
+   scan of the whole text in front of it, and a command of many quotes stays linear. env's are asked from
+   the last word naming env in the quote's own command, and of none where it has no such word, since `-S`
+   is a flag of `ls`, `sort` and `ssh` far more often. */
 const SPACE = /\s/u;
 const LETTER = /[A-Za-z]/u;
 const SPLITTING = /--s[\w-]*$/u;
-const mayRun = (text, end, envs) => {
+const mayRun = (text, end) => {
   let to = end;
   while (to > 0 && SPACE.test(text[to - 1])) to -= 1;
   if (text[to - 1] === "=") to -= 1;
   let from = to;
   while (from > 0 && LETTER.test(text[from - 1])) from -= 1;
   const word = text.slice(from, to);
-  return (text[from - 1] === "-" && word.includes("c")) || word.endsWith("eval")
-    || (envs && ((text[from - 1] === "-" && word.includes("S")) || SPLITTING.test(text.slice(Math.max(0, from - 16), to))));
+  if ((text[from - 1] === "-" && word.includes("c")) || word.endsWith("eval")) return "shell";
+  return (text[from - 1] === "-" && word.includes("S")) || SPLITTING.test(text.slice(Math.max(0, from - 16), to)) ? "env" : "";
 };
 /* Whether a runner hands on the quote opening at `at`: asked before the word the quote stands in, as a
-   `-c` body's is, and before the quote itself, where env's `-S'…'` and `--split-string='…'` attach theirs. */
-const handedAt = (text, word, at, envs) => [word, at].some((end) => mayRun(text, end, envs) && RUNS.test(text.slice(0, end)));
+   `-c` body's is, and before the quote itself, where env's `-S'…'` and `--split-string='…'` attach theirs.
+   `null` where env was asked and is not the runner: a quoted word stands past its options then, so no later
+   quote of the command is its split string, and asking again from the same env would be quadratic. */
+const handedAt = (text, ends, envAt) => {
+  let asked = false;
+  for (const end of ends) {
+    const runner = mayRun(text, end);
+    if (runner === "shell" && RUNS.test(text.slice(0, end))) return true;
+    if (runner === "env" && envAt >= 0) {
+      if (RUNS.test(text.slice(envAt, end))) return true;
+      asked = true;
+    }
+  }
+  return asked ? null : false;
+};
 
 export const shellOf = (command) => {
   const text = bodiesOut(command, { operator: "<<" });
@@ -139,7 +153,7 @@ export const shellOf = (command) => {
   let word = 0;
   let handed = false;
   let asked = -1;
-  const envs = text.includes("env");
+  let envAt = -1;
   let last = " ";
   for (const { at, one, under, depth } of quoting(text)) {
     if (under === " ") {
@@ -154,12 +168,16 @@ export const shellOf = (command) => {
         outer.push({ back: word, depth, tick: true });
         word = at + 1;
       } else if (ENDS_A_WORD.test(one)) word = at + 1;
+      if (OPERATOR.test(one)) envAt = -1;
+      else if (one === "e" && text.startsWith("env", at)) envAt = word;
     }
     const quoted = under === "'" || under === '"';
     /* Once a word, at its first quote: a second quote in the same word is the same argument. */
     if (quoted && last !== under && asked !== word) {
       asked = word;
-      handed = handedAt(text, word, at, envs);
+      const said = handedAt(text, [word, at], envAt);
+      handed = said === true;
+      if (said === null) envAt = -1;
     }
     last = under;
     const ran = quoted ? handed : !TEXT.has(under);

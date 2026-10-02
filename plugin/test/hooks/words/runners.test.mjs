@@ -125,6 +125,8 @@ test("env's \\_ is the blank between two arguments of its split string, and a do
   assert.match(unwrapped(String.raw`env -S 'touch\_notes.md'`), /; touch notes\.md ;$/u);
   assert.match(unwrapped(String.raw`env -S 'touch\\_notes.md'`), /; touch\\\\_notes\.md ;$/u);
   assert.match(unwrapped(String.raw`sh -c 'touch\_notes.md'`), /; touch\\_notes\.md ;$/u, "a shell's -c body has no such escape");
+  assert.match(unwrapped(String.raw`env -S "touch\\_notes.md"`), /; touch notes\.md ;$/u, "a double quote hands env one backslash of two");
+  assert.match(unwrapped(String.raw`env -S "touch\\\\_notes.md"`), /; touch\\\\_notes\.md ;$/u, "and two of four");
 });
 
 const refused = (command) => answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME))
