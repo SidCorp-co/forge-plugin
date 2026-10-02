@@ -152,6 +152,26 @@ test("the lease's own write carries the value the run read, once the far end is 
   assert.equal(preconditions().length, 3, "one more write, one more precondition, and no second asking");
 });
 
+/* The sentence a claim ends on, read here because this is where a far end that enforces is stubbed:
+   the endpoint's answer is said only of a lease the call left standing, and a lease whose release is
+   queued says so whichever arm queued it (ISS-3099). */
+test("the lease sentence says the endpoint's answer of a lease left standing, and the release of one queued or given back", async () => {
+  const { heldBy, oweRelease } = await import("../../src/flow/lease.mjs");
+  fresh("enforces");
+  await claiming();
+  assert.equal(enforcementOf(), true, "a far end that enforces");
+  assert.equal(heldBy(ISSUE), "This tracker refuses a stale write to the field, so the lease is this run's until it lapses.",
+    "a lease nothing queued is this run's until it lapses");
+  assert.equal(heldBy(), heldBy(ISSUE), "and the sentence asked with no issue is that one too");
+  assert.match(heldBy(ISSUE, { given: true }), /^This call gave the lease back, so this run holds nothing on the issue/u,
+    "a lease the call gave back is said as given back");
+  oweRelease("a-queued-issue", "ISS-10");
+  assert.match(heldBy("a-queued-issue"), /^This run's lease is given back as this call ends/u,
+    "a lease whose release is queued is said as going back");
+  assert.doesNotMatch(heldBy("a-queued-issue"), /this run's until it lapses/u, "and never as this run's");
+  assert.match(heldBy(ISSUE), /this run's until it lapses/u, "while another issue's lease is still said as held");
+});
+
 test("only the tracker's own mismatch establishes enforcement, and a write that succeeded never does", async () => {
   fresh("ignores");
   await claiming();

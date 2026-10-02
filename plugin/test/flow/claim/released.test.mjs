@@ -183,6 +183,23 @@ test("a holder's own --give-back leaves nothing holding the issue, and the next 
   assert.doesNotMatch(judge.stdout + judge.stderr, /Wait for it/u, "with no clock to wait out");
 });
 
+/* The sentence the claim ends on beside the mechanism describes what this call did to the lease: the give-back's own run is told it gave the lease back, and never that the lease is its own (ISS-3099). */
+test("a give-back's last word on the lease says it was given back, and none says this run holds it", async () => {
+  heldBy(BUILDER);
+  const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
+  assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
+  const said = `${gave.stdout}${gave.stderr}`;
+  assert.ok(gave.stdout.includes(`only refuses to build on it. This call gave`),
+    `the given-back sentence beside the mechanism:\n${gave.stdout}`);
+  assert.doesNotMatch(said, /the lease is this run's/u, "no line says the lease is this run's");
+  assert.doesNotMatch(said, /the lease is advisory/u, "nor reads the endpoint's answer as a lease still held");
+
+  const kept = await ran(["claim", "ISS-1617"], BUILDER);
+  assert.equal(kept.status, 0, `${kept.stdout}${kept.stderr}`);
+  assert.ok(kept.stdout.includes(`only refuses to build on it. This tracker`), `a claim that takes the lease still says the endpoint's answer:\n${kept.stdout}`);
+  assert.doesNotMatch(kept.stdout, /gave the lease back|given back as this call ends/u, "and not that the lease went back");
+});
+
 test("a holder's --give-back on its own lapsed lease gives it back too", async () => {
   heldBy(BUILDER, { minutesAgo: 90 });
   const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);

@@ -79,6 +79,9 @@ test("a judge standing at no checkpoint hands back, and the run after it claims 
   assert.match(done.stdout, /no landing checkpoint, so no turn was moved and none was written/u,
     "saying what it did rather than refusing for the state it did not find");
   assert.match(done.stderr, /ISS-1429 is free again/u, "and the lease went back with the turn");
+  assert.ok(done.stdout.includes(`only refuses to build on it. This run's lease`),
+    `said beside the mechanism as going back:\n${done.stdout}`);
+  assert.doesNotMatch(done.stdout, /the lease is this run's|the lease is advisory/u, "and never as this run's (ISS-3099)");
   assert.equal(ISSUE.sessionContext.landing, undefined, "an absent checkpoint stays absent");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "so nothing holds the issue");
   assert.deepEqual(ISSUE.sessionContext.lease.history.map((one) => one.how), ["claim"],
@@ -98,6 +101,9 @@ test("a hand-back at qa-owed moves the checkpoint to judged and gives the lease 
   assert.equal(ISSUE.sessionContext.landing.state, "judged", "the turn moved to the state the table names");
   assert.equal(ISSUE.sessionContext.landing.judge, JUDGE, "under the judge that answered for it");
   assert.match(done.stderr, /ISS-1429 is free again/u, "and the lease went back");
+  assert.ok(done.stdout.includes(`only refuses to build on it. This run's lease`),
+    `said beside the mechanism as going back:\n${done.stdout}`);
+  assert.doesNotMatch(done.stdout, /the lease is this run's|the lease is advisory/u, "and never as this run's (ISS-3099)");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "so nothing holds the issue");
 });
 
