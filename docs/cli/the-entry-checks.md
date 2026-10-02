@@ -32,11 +32,12 @@ only what the change did not touch, and a branch would name a tree nobody wrote 
 grants it. An empty diff is no declaration, since a change not yet written reads exactly like one
 that never will be.
 
-`developed` is not waived. The tracker holds that status, on an issue landing in git, to a captured
-branch or a mark carrying a commit, so the mark at the commit the deployment serves, with nothing
-moved and nothing written, is the route. A mark saying the landing wrote paths contradicts the line
-and is refused with the paths named: the record would say two things about one change, and nothing
-on it says which is wrong. Everything the judging and the deploying rungs read is owed unchanged.
+`developed` is not waived, because the tracker's own work-evidence rule is not this plugin's to
+waive: on an issue landing in git it takes a captured branch or a mark carrying a commit, and only
+the mark is left to a change with no branch. A mark saying the landing wrote paths contradicts the
+line and is refused with the paths named: the record would say two things about one change, and
+nothing on it says which is wrong. Everything the judging and the deploying rungs read is owed
+unchanged.
 
 ## A screen's verdict cites an attachment
 

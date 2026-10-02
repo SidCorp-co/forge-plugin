@@ -12,7 +12,6 @@ const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
 const rowLine = (one, said) =>
   `  ${`at ${one.status}`.padEnd(WIDTH)}${said}: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`;
 const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) => rowLine(one, "not owed"));
-/* Said as the plan's and not the rung's: the rung is a size, and this waiver is the plan's word about where the change lands. */
 const declaredLines = (fields) => declaredRows(fields).map((one) => rowLine(one, "not owed, by this plan's declaration"));
 
 const spareLines = (rung) => (SPARES[rung].length ? [

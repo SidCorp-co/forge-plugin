@@ -270,7 +270,6 @@ export const laneOf = ({ status, fields }) => {
         here: one === status,
         earns,
         dropped,
-        /* Whose waiver it is, said apart: a plan's declaration drops a payload at any rung (ISS-2384). */
         by: rows.some((row) => row.declared) ? "under this plan's declarations" : "at this rung",
         owed: earns.filter((kind) => !dropped.includes(kind)),
       };

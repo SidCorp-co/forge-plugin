@@ -131,7 +131,7 @@ export const rungOf = ({ plan, moved, whole, complexity = null }) => {
 };
 
 /* A payload a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the declaration's key, and only its `yes` grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
-export const DECLARED_AWAY = [
+const DECLARED_AWAY = [
   {
     status: "in_progress",
     declared: "nofile",
