@@ -165,16 +165,14 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
-/** The one write that closes an issue the release policy holds at the closing rung, by whose act it
- *  waits for: a person sets the status once they have released it, while a promotion that is the
- *  release batch's is recorded when it was made outside a batch, and that record is what closes the
- *  issue and names the release it followed. */
+/** The one write that closes an issue the release policy holds at the closing rung. The record is
+ *  the tracker's own close, and names the release it followed (ISS-2409). */
 export const closeForm = (ref, held) => (held.by === BY_BATCH
   ? `forge release-batch record ${ref} --commit <the sha the live branch serves> `
     + `--account "<how it was promoted, and why not by a batch>"`
   : setForm(ref, CLOSES_AT));
 
-/** Whose act a held closing rung waits for, in the words every reader of it prints. */
+/** The possessive a refusal, a report and a landing's rest each print for `held.by`. */
 export const whoseRelease = (held) => (held.by === BY_BATCH ? "the release batch's" : "a person's");
 
 /* One shape, four answers: absent, rewritten, present but not a whole payload, or there to be read.

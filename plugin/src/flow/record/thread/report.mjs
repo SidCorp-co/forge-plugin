@@ -96,8 +96,7 @@ export const recordReport = async (reference) => {
   if (body.status === CLOSES_FROM) console.log(closingSaid(releaseOwedOf(policy), reference));
 };
 
-/* The release batch closes what it promotes, so the line for it names no close of this run's: only
-   the record of a promotion somebody made outside a batch, which closes the issue the same way. */
+/* The closing rung's line: the close itself where nothing is owed, and otherwise whose the rung is. */
 const closingSaid = (held, reference) => {
   if (!held) return `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`;
   if (held.by === BY_BATCH) {
