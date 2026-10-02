@@ -571,7 +571,7 @@ export const methodScope = once(() => written("method"));
 
 export const DRAINS = ["dispatcher", "qa-master"];
 
-/** Which master this project declared claims its issues at `developed`, and no master at all where it declared none or named one outside the pair: a declaration subtracts a worker from a queue, so one nobody made subtracts nobody. The tracker's own schema declares no key for this, which is why it is the project file's — docs/cli/the-drain-key.md. */
+/** Which master this project declared claims its issues at `developed`, and null where the file sets none or names one outside the pair; why neither falls back to a master, and why the key is the project file's rather than the tracker's: docs/cli/the-drain-key.md. */
 export const drainScope = once(() => {
   const given = forgeJson().parsed?.drainedBy;
   const declared = given !== undefined && given !== null;

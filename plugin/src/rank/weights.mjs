@@ -49,9 +49,8 @@ export const DEFAULTS = {
   batchCap: 3,
   windowCap: 12,
   readCap: 60,
-  /* Minutes a row at the judging status may stand with no lease, claim or write before the master a
-     project declared drains it is read as not draining: one lease's span, past which a live judging
-     run has either taken the row or let a lease lapse on it. docs/cli/the-drain-key.md. */
+  /* One lease's span, past which a live judging run has either taken a row or let its lease lapse on
+     it: docs/cli/the-drain-key.md. */
   drainIdle: 60,
 };
 
