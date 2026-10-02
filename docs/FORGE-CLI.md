@@ -37,6 +37,7 @@ how many topics there may be.
 | [`the dead holder`](cli/the-dead-holder.md) | What the lease records beside the holder, what a recorded process id proves and in which direction, why a holder a worktree minted is read off that tree, which of its processes the project counts, and what is left to the clock. |
 | [`the precondition`](cli/the-precondition.md) | What every write the lease covers carries, the one call that establishes the far end honours it, and which read-back stops being spent once it does. |
 | [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
+| [the dispatched take](cli/the-dispatched-take.md) | Why a run takes the live lease of the session that dispatched it, at which statuses, and what proves the holder is that session. |
 | [the proven lapse](cli/the-proven-lapse.md) | Why a lease the record puts past its own duration is as free as none, which seam decides that and why it is the reclaim's own, and what the row a write writes over it holds. |
 | [the granted id](cli/the-granted-id.md) | Why an export reaches a substitution and a prefix does not, which openers lose a call its name unread, and which quoting leaves one as the prose it looks like. |
 | [the here-document](cli/the-here-document.md) | Why a body the id readers can delimit is data to them, which four they leave unread, and what a body a program runs costs. |

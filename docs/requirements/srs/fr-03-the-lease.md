@@ -152,12 +152,12 @@ a release started standing under that release.
   at a status a run is dispatched at, and no landing checkpoint on it names a turn, THEN the CLI
   SHALL let the dispatched run take the lease and SHALL record the handoff as neither a first claim
   nor a dead run's reclaim.
-- **AC-03-2-4** · Rev: 1 · Proof: plugin/test/flow/claim/dispatched-claim.test.mjs "a live lease is refused where its holder is another run dispatched to the same issue"
+- **AC-03-2-4** · Rev: 2 · Proof: plugin/test/flow/claim/dispatched-claim.test.mjs "a live lease is refused where its holder is another run dispatched to the same issue"
   IF a run other than the holder claims a live lease without asking for the turn a landing
   checkpoint names, and either that run is not the one the issue was dispatched to, or the issue is
-  past the statuses a run is dispatched at, or a landing checkpoint on it names a turn, or the
-  holder is itself a run the issue was dispatched to, THEN the CLI SHALL refuse the claim as it
-  refuses any second run's.
+  past the statuses a run is dispatched at and the holder is not the session that dispatched that
+  run, or a landing checkpoint on it names a turn, or the holder is itself a run the issue was
+  dispatched to, THEN the CLI SHALL refuse the claim as it refuses any second run's.
 - **AC-03-2-5** · Rev: 3 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a reclaim from outside that tree is refused while the release the exited host started still stands"
   IF a claim is made on a lease a tree can be read for, and a process running what that project
   declares a run's own work is standing in that tree which is neither this call, nor above it, nor
@@ -208,6 +208,12 @@ a release started standing under that release.
   is another run's which the record does not prove gone, THEN the CLI SHALL post the verdict as a
   judge's write under the caller's id, SHALL leave that lease exactly as it stood, SHALL move no
   status, and SHALL name the move the verdict earned as the holder's.
+- **AC-03-2-18** · Rev: 1 · Proof: plugin/test/flow/lease/resumed-claim.test.mjs "a run resumed at in_progress takes the lease its dispatcher holds from the same host process"
+  IF the issue is past the statuses a run is dispatched at, and its live lease was written from the
+  claiming call's own host process on the claiming call's own host under an id that names no run, and
+  the claiming run is the one the issue was dispatched to, and no landing checkpoint on it names a
+  turn, THEN the CLI SHALL let that run take the lease and SHALL record the handoff as it records one
+  at a status a run is dispatched at.
 
 ### UC-03-3 — Reclaim what a dead run left
 
