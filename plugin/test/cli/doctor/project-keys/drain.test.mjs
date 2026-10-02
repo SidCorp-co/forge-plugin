@@ -115,6 +115,17 @@ test("a window the read did not finish leaves the declaration unchecked and says
     run.stdout);
 });
 
+test("a rank the project file holds and the fold refuses leaves the drain unread, not judged on the defaults", async () => {
+  fresh("qa-master");
+  writeFileSync(file, `{\n  "slug": "forge-plugin",\n  "drainedBy": "qa-master",\n  "rank": { "drainIdle": 0 },\n  "runs": 2\n}\n`);
+  state.issues = [atDeveloped("ISS-5", { updatedAt: ago(5) })];
+  const run = await ask();
+  assert.match(run.stdout,
+    /^\[ note \] drained by\s+qa-master, declared; whether it is draining went unread: `rank\.drainIdle` is a whole number of minutes above zero/mu,
+    run.stdout);
+  assert.doesNotMatch(run.stdout, /drained by\s+qa-master, draining/u, "a row inside the default window proves nothing here");
+});
+
 test("the drain window is set in the project's own file, and a value that counts no minutes is refused", async () => {
   fresh("qa-master");
   const refused = await ask("--set", "rank.drainIdle=0");

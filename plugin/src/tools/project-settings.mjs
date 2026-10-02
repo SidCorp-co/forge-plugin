@@ -498,9 +498,13 @@ const pmRows = (snapshot, load, graph) => {
 };
 
 /* The rows at developed are read only where the judgement offers them, so a project that judges its
-   own work pays no call for a row it does not print. */
-const drainRead = (policy) => (judgementOf(policy) === INDEPENDENT && !policyUnread(policy)
-  ? drainHere(policy, weightsFrom().value) : null);
+   own work pays no call for a row it does not print; and judged in no window but the project's own, a
+   `rank` the fold refused leaving the drain unread rather than judged on the built-in table. */
+const drainRead = (policy) => {
+  if (judgementOf(policy) !== INDEPENDENT || policyUnread(policy)) return null;
+  const { value, refusal } = weightsFrom();
+  return refusal ? { unread: refusal } : drainHere(policy, value);
+};
 
 /** Every level of the project's own record in one reading: the branches and the deploy, then each
  *  key of the two configuration resources, the work the tracker counts, then the brief as prose and
