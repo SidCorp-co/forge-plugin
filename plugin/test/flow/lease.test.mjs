@@ -223,8 +223,10 @@ test("reclaims are counted per status, and a first claim counts for none", () =>
   assert.equal(reclaimsOf(history(), "open"), 0);
   assert.equal(reclaimsOf(null, "open"), 0, "an issue nobody claimed holds no reclaim");
   assert.equal(reclaimsOf(history(["a", "open"], ["b", "open"], ["c", "open"]), "open"), 3);
-  assert.equal(reclaimsOf(history(["a", "open"], ["b", "open"], ["c", "developed"]), "developed"), 1, "counted per status");
-  assert.equal(reclaimsOf(history(["a", "open"], ["b", "open"], ["c", "developed"]), "open"), 2, "and the other status is not added in");
+  /* `c` is taken after the status moved from where `b` took it, which ISS-2267 leaves out, so `d` is the one counted at developed. */
+  const spread = history(["a", "open"], ["b", "open"], ["c", "developed"], ["d", "developed"]);
+  assert.equal(reclaimsOf(spread, "developed"), 1, "counted per status");
+  assert.equal(reclaimsOf(spread, "open"), 2, "and the other status is not added in");
   const claims = held("a-run", AT, 30, ["a", "b", "c"].map((one) => ({ holder: one, at: AT, how: "claim", status: "open" })));
   assert.equal(reclaimsOf(claims, "open"), 0, "a first claim is nobody's reclaim");
   const handed = held("a-run", AT, 30, ["a", "b", "c"].map((one) => ({ holder: one, at: AT, how: "handed", status: "open" })));

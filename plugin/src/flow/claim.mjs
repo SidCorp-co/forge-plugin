@@ -76,7 +76,9 @@ import {
   writeRefusal, HANDED,
   unheldRefusal,
 } from "./lease.mjs";
-import { RECLAIMS_BEFORE_PARK, historyLine, readingsOf, reclaimsOf, tookReading } from "./lease/crash-park.mjs";
+import {
+  RECLAIMS_BEFORE_PARK, historyLine, movedOf, overWhom, readingsOf, reclaimsOf, tookMoved, tookReading,
+} from "./lease/crash-park.mjs";
 import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
@@ -359,18 +361,26 @@ const liftedIfOwn = async (ref, issue, view, checkpointHead) => {
 const reclaimLines = (ref, lease, status) => {
   const count = reclaimsOf(lease, status);
   const readings = readingsOf(lease, status);
-  const left = readings ? ` ${readings} reclaim(s) of ${status} went over a lease that declared nothing was `
-    + "worked, and are not counted." : "";
-  const said = tookReading(lease)
-    ? `This reclaim of ${status} went over a lease that declared nothing was worked, so it counts for none: `
-      + `${count} counted at ${status}.${left}`
+  const moved = movedOf(lease, status);
+  const left = (readings ? ` ${readings} reclaim(s) of ${status} went over a lease that declared nothing was `
+    + "worked, and are not counted." : "")
+    + (moved ? ` ${moved} reclaim(s) of ${status} were taken after the issue moved on from where the run before `
+      + "took it, and are not counted." : "");
+  const uncounted = tookReading(lease) ? "went over a lease that declared nothing was worked"
+    : (tookMoved(lease) ? "was taken after the issue moved on from where the run before took it" : null);
+  const said = uncounted
+    ? `This reclaim of ${status} ${uncounted}, so it counts for none: ${count} counted at ${status}.${left}`
     : `Reclaim ${count} of ${status}: the lease before this one lapsed without being handed on.${left}`;
   if (count <= RECLAIMS_BEFORE_PARK) return [said];
+  const over = overWhom(lease, status);
+  /* Into the command only where the id cannot break the quoting a caller pastes it in; the line beside it names the run either way. */
+  const whom = over && /^[\w.:@+-]+$/u.test(over.holder) ? `, the last over ${over.holder}` : "";
   return [said,
     `Claims at ${status}: ${historyLine(lease, status)}`,
+    over ? `The last counted reclaim went over ${over.holder}, whose line was: ${over.next ?? "none, it left no line"}` : null,
     `This claim moved no status. Where ${status} is where runs die rather than where retried dispatches `
       + `and readings stopped, set it down for a person:\n  forge record park ${ref} --kind crashed `
-      + `--why "${count} reclaims of ${status}: <what you read that says the runs died here>"`];
+      + `--why "${count} reclaims of ${status}${whom}: <what you read that says the runs died here>"`].filter(Boolean);
 };
 
 /* The flags that cannot be typed together, refused before anything is read or written; returns the

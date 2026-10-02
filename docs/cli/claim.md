@@ -33,7 +33,13 @@ appends nothing to the history and counts as no reclaim.
 
 **A claim writes the lease and never parks its own status**: the reclaim count is said to the caller,
 who alone knows it is alive (ISS-693). One exception: `--ready` lifts a landing-authored conflict
-park, answering the landing's own status write (ISS-2832).
+park, answering the landing's own status write (ISS-2832). The count leaves out a reclaim taken after the
+issue moved on — its status or landing state changed since the run that reclaim went over took it —
+because a route that hands an issue between a builder and a judge reclaims at `developed` on every
+repair, and three such pickups are an issue doing its work, not a status where runs die. That reads
+progress, not survival: a run that moved the issue and then died lost the issue, not the work
+(ISS-2267). The park it names says which run the last counted reclaim went over, so the caller
+judges a claim rather than a number.
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
 process tree. Outside a harness it is a file under the config directory, which names a machine

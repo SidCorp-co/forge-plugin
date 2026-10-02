@@ -31,7 +31,7 @@ test("a reclaim over a lease that declared nothing was worked is named and not c
   const line = historyLine(lease, "open").split(" | ");
   assert.deepEqual(line.map((one) => one.endsWith(", over a lease that declared nothing was worked, so not counted")),
     [true, true, true, false, false, false], line.join("\n"));
-  assert.equal(reclaimsOf(held("a-run", AT, 30, [row(NOTHING_WORKED, "developed"), row(null)]), "open"), 1,
+  assert.equal(reclaimsOf(held("a-run", AT, 30, [row(null), row(NOTHING_WORKED, "developed")]), "open"), 1,
     "still counted per status");
   const claimRow = { holder: "a", at: AT, how: "claim", status: "open", next: NOTHING_WORKED };
   assert.equal(historyLine(held("a-run", AT, 30, [claimRow]), "open").includes("not counted"), false,
