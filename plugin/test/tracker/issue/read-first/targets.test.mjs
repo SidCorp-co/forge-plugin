@@ -104,6 +104,12 @@ test("a flag inside a quoted value is not that flag", () => {
   assert.deepEqual(targets("forge advance ISS-29 --owed"), [], "while the flag itself is still the flag");
 });
 
+/* A no-break space is no blank to a shell, so the word holding one is one argument: the gate read it as
+   two, took `--owed` for the flag, and let the park through as a read (ISS-2959). */
+test("a value holding a no-break space is the one argument the shell passes", () => {
+  assert.deepEqual(targets("forge advance ISS-29 --park reason\u00a0--owed"), ["ISS-29"]);
+});
+
 test("the uuid form is a target, so the form is no way around this", () => {
   assert.deepEqual(targets(`forge comment ${UUID} @n.md`), [UUID]);
   assert.deepEqual(targetsOfTool("forge_issues", { action: "update", documentId: UUID, data: { plan: "x" } }), [UUID],

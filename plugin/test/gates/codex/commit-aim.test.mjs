@@ -61,6 +61,20 @@ test("what a commit closes over is read from its own flags", () => {
   assert.equal(commitAim(ev(String.raw`cd /tmp/a\ b && git commit -m x`)).tree, "/tmp/a b", "and inside a moved-to path");
 });
 
+/* A continuation joins the two lines into one word before the shell reads it, so the pathspec is the
+   joined name and not a stray backslash beside a second path (ISS-2959). */
+/* A git global's value is one shell word, so an escaped quote inside a double-quoted one neither ends
+   the value nor hides the commit behind it (ISS-2959). */
+test("a git global whose quoted value holds an escaped quote is that whole value, and the commit behind it is one", () => {
+  const command = String.raw`git -C "/tmp/a\" b" commit -m x`;
+  assert.equal(committing(ev(command)), true);
+  assert.equal(commitAim(ev(command)).tree, '/tmp/a" b');
+});
+
+test("a pathspec continued onto the next line by a backslash is the one word the shell joins", () => {
+  assert.deepEqual(commitAim(ev("git commit a\\\nb.md -m x")).paths, ["ab.md"]);
+});
+
 test("a commit is a commit where a command starts, git's globals in between", () => {
   const ask = (command) => committing({ tool_name: "Bash", tool_input: { command } });
   for (const one of ["git commit -m x", "git -C /r commit", "git -c k=v commit", "git --no-pager commit",
