@@ -154,7 +154,7 @@ const pinnedSet = (pinned) => recordedSet(pinned, `a recheck of ${pinned.id}`, "
 
 /** A recheck naming issues and no file: the set of the newest consult here that named any of them,
  *  since a plan's consult names its issue and records a path outside the checkout no turn record
- *  holds. The recheck then follows that set as it would files the caller typed (ISS-2358). */
+ *  holds. `keyed` is that consult, which the recheck answers whatever newer consult shares its files (ISS-2358). */
 const keyedSet = (entries, root, keys) => {
   const one = answered(entries).findLast((row) => row.root === root && (row.issues ?? []).some((key) => keys.includes(key)));
   const named = keys.join(" ");
@@ -162,8 +162,9 @@ const keyedSet = (entries, root, keys) => {
     fail(`codex: no answered consult in this checkout named ${keys.join(", ")}, so a recheck has no findings of theirs to answer.\n`
       + `Do this: \`echo "<what you were doing>" | forge codex consult --recheck ${named} <file>...\` — the files those findings are on.`);
   }
-  return recordedSet(one, `a recheck of ${one.id}, the last consult here to name ${keys.join(", ")}`,
+  const set = recordedSet(one, `a recheck of ${one.id}, the last consult here to name ${keys.join(", ")}`,
     `Do this: \`echo "<what you were doing>" | forge codex consult ${named} <file>...\` — a fresh read of the files you mean.`);
+  return { ...set, keyed: one };
 };
 
 /** Each file a consult was sent, digested as it reads at the recheck answering it: the recheck's own

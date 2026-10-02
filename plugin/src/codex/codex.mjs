@@ -311,7 +311,7 @@ const consult = async (given) => {
      on, so leaving it would offer the next consult the same phantom (ISS-703). */
   if (gone.length) clearConsulted(root, gone);
   if (!rels.length && !issues.length) fail(`codex: nothing to consult on. Name a file, an issue key, or write a file first.${base ? ` Nothing differs from ${base} either.` : ""}`);
-  const plan = recheck ? recheckPlan(entries, root, rels, pinned) : null;
+  const plan = recheck ? recheckPlan(entries, root, rels, pinned, set.keyed) : null;
   const offset = risks.length;
   if (recheck) {
     /* Asked before the narrowing and against the set the caller stood on: a route out has to name

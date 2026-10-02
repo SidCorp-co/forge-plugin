@@ -245,6 +245,17 @@ test("a recheck given several keys answers the newest consult naming any of them
   assert.equal(rowsOf(home).find((one) => one.kind === "verdict")?.of, "c2");
 });
 
+test("a recheck given only a key answers the consult naming it where a newer one shares its file", async () => {
+  const room = checkout();
+  const root = repoRoot(room);
+  const home = seeded([consultRow(root, { id: "c1", issues: ["ISS-1"], files: ["judged.txt"], reply: FINDING }),
+    consultRow(root, { id: "c2", at: "2026-09-26T11:00:00.000Z", files: ["judged.txt"], reply: "CODEX: 0 findings" })]);
+  const { status, said, shown } = await forge(room, home, ["consult", "ISS-1", "--recheck", "--rounds", "1"]);
+  assert.equal(status, 0, said);
+  assert.match(shown, /Your earlier finding F1 still stands/u, "c1's finding went to the reviewer, where c2 has none to send");
+  assert.equal(rowsOf(home).find((one) => one.kind === "verdict")?.of, "c1", "the ruling is c1's, the consult the key named");
+});
+
 test("a recheck given only keys is refused, with a route carrying a file, where no consult here answers for them", async () => {
   const room = checkout();
   const root = repoRoot(room);

@@ -357,10 +357,11 @@ const followed = (entries, one) => {
 };
 
 /* A follow-up round rules on the findings of the consult `--of` pins, else of the last consult on these
-   files as `followed` reads it — another file's would clear this one unread. Six open rounds each
-   found a narrower nit; asked to confirm, one converges. */
-export const recheckPlan = (entries, root, rels, pinned = null) => {
-  const last = pinned ? null : judgedBy(entries, root, rels).at(-1);
+   files — or `keyed`, the last naming the issues a recheck named alone — as `followed` reads it: another
+   file's would clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one
+   converges. */
+export const recheckPlan = (entries, root, rels, pinned = null, keyed = null) => {
+  const last = pinned ? null : keyed ?? judgedBy(entries, root, rels).at(-1);
   const judged = pinned ?? followed(entries, last);
   if (!judged) return null;
   /* The other half of what a request carries out of stored entries; `historyFor` above has the seat's reason, and `judged` stays as stored because its coverage fields are read here and never sent. */
