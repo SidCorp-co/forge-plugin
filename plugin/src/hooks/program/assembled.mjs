@@ -4,7 +4,7 @@
    shell's. how/writes.md. */
 import { STRING, fileCalls, spelling } from "./call-writes.mjs";
 import { KINDS, literalsIn } from "../../checks/source/lexical.mjs";
-import { LANGUAGE_OF, spansOf } from "./spoken.mjs";
+import { LANGUAGE_OF, blanked, spansOf } from "./spoken.mjs";
 import { ESCAPED_IN_DOUBLE, unquote } from "../shell-spans.mjs";
 
 /* Three global hops reach eight members of one assembly. */
@@ -47,8 +47,7 @@ const under = (left, right, resets) =>
 const bound = (said, lang) => {
   const spans = spansOf(said, lang);
   const strings = spans.filter((one) => !one.comment).map((one) => ({ start: one.from, end: one.to }));
-  const code = spans.filter((one) => one.comment)
-    .reduce((text, one) => `${text.slice(0, one.from)}${" ".repeat(one.to - one.from)}${text.slice(one.to)}`, said);
+  const code = blanked(said, spans.filter((one) => one.comment));
   const set = [];
   for (const one of code.matchAll(BINDS)) {
     if (strings.some(({ start, end }) => one.index > start && one.index < end)) continue;
@@ -101,10 +100,10 @@ export const glued = (body, runner) => {
     const held = valueOf(name, at);
     return held === null ? null : `"${held}"`;
   };
+  const interpolated = (span, at, valueOf) => holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
   /* A constructor cannot fold while its argument is still a concatenation, and a concatenation cannot reach a name no fold has reached yet, so the stages run together until the text stops moving. */
   for (let hop = 0; hop < FOLDS; hop += 1) {
     const before = out;
-    const interpolated = (span, at, valueOf) => holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
     if (lang === "node") out = templated(out, fresh(), interpolated);
     else if (holds) pass(holds.spans, ([span], at, valueOf) => interpolated(span, at, valueOf));
     pass(NAME_THEN, ([, name, sign], at, valueOf) => {
@@ -121,7 +120,7 @@ export const glued = (body, runner) => {
       if (!parts.length || parts.some((each) => each === null)) return null;
       return `"${parts.reduce((left, right) => under(left, right, RESETS.test(verb)))}"`;
     });
-    out = spelt(out, runner, bound(out, lang));
+    out = spelt(out, runner, fresh());
     out = out.replace(GLUED, (all, left, sign, right) =>
       `"${sign === "/" ? under(unquote(left), unquote(right), true) : unquote(left) + unquote(right)}"`);
     if (out === before) break;

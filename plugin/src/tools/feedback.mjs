@@ -2,7 +2,7 @@
    caller's project allows the channel. What that replaced and why: docs/cli/feedback.md. */
 import { bodyFrom } from "../resolve/payload.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
-import { fail, keepOnFailure, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
+import { fail, keepBody, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
 import { pluginChannel, usageOf } from "../resolve/visibility.mjs";
 import { kindsOn } from "../tracker/filing/channel.mjs";
 import { agentOf } from "../flow/lease/holder.mjs";
@@ -94,7 +94,7 @@ export const feedback = async (argv) => {
   if (badKeys) fail(badKeys);
   /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What it claims, and the one refusal above this line it cannot reach: docs/cli/feedback.md. */
   const written = await bodyFrom(path);
-  const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`, { ahead: true });
+  const keep = (text) => keepBody("note", text);
   const dropRead = keep(written);
   /* Read before the project is aimed, so a note the shape will not carry costs no call; `routed` where the note names its issue, a fold otherwise putting its body on some third one. */
   const asked = { title, body: written, kind, sections: [whereSection()], everySection: true,

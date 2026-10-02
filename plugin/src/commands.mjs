@@ -1,4 +1,4 @@
-import { fail, keepOnFailure, slugIfAny } from "./resolve/settings.mjs";
+import { fail, keepBody, slugIfAny } from "./resolve/settings.mjs";
 import { AIM_FLAG, aimedBy } from "./resolve/project/aimed.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
@@ -293,9 +293,7 @@ const own = {
     const body = await bodyFrom(path);
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
-    const dropKept = path === "-"
-      ? keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`, { ahead: true })
-      : undefined;
+    const dropKept = path === "-" ? keepBody("body", body) : undefined;
     const unnamed = await servesOwed(body, "This body's `Serves:` line");
     if (unnamed) fail(unnamed);
     const { title, ...carried } = given;

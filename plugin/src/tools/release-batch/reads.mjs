@@ -4,7 +4,7 @@
 import { flags } from "../../resolve/flags.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { tried } from "../../tracker/rest.mjs";
-import { answeredOr, reasonLines } from "./refused.mjs";
+import { answeredOr, reasonLines, reasonSaid } from "./refused.mjs";
 
 export const READINESS_USAGE = "Usage: forge release-batch readiness";
 export const ROSTER_USAGE = "Usage: forge release-batch roster";
@@ -56,7 +56,7 @@ export const finishLines = (record) => {
   if (record.closed?.length) lines.push(`closed     ${record.closed.join(", ")}`);
   for (const one of record.failed ?? []) lines.push(`failed     ${one.id}: ${one.reason}`);
   const refusal = record.refusal;
-  if (refusal) lines.push(`refused    ${refusal.code ?? "UNNAMED"}: ${refusal.reason ?? "(the tracker gave no sentence)"}`);
+  if (refusal) lines.push(`refused    ${reasonSaid(refusal.code, refusal.reason)}`);
   return lines;
 };
 

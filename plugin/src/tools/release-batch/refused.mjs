@@ -10,7 +10,10 @@ const READINESS = "forge release-batch readiness";
    refused read is about the read, and is pointed nowhere else. */
 const RELEASING = new Set(["start", "finish", "record"]);
 
-const reasonLine = (one) => `  ${one?.code ?? "UNNAMED"}: ${one?.message ?? "(the tracker gave no sentence)"}`;
+/** One reason the tracker gave, as `<code>: <sentence>`, whichever field its sentence came in. */
+export const reasonSaid = (code, said) => `${code ?? "UNNAMED"}: ${said ?? "(the tracker gave no sentence)"}`;
+
+const reasonLine = (one) => `  ${reasonSaid(one?.code, one?.message)}`;
 
 /** The refusal whole: the tracker's first reason as it said it, every other one it listed, and, for
  *  a write, the read that lists them all. A call nobody answered is not a refusal and is said as it

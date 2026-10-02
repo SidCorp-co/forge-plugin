@@ -387,7 +387,7 @@ const turnsAlone = (ref, given) => {
   }
   const turns = TURNS.filter((one) => given[one]);
   if (turns.length > 1) {
-    fail(`claim takes one of --ready, --take, --judged, --reconciled, --recorded, --landed and --rebuilt and this one takes `
+    fail(`claim takes one of ${TURNS.slice(0, -1).map((one) => `--${one}`).join(", ")} and --${TURNS.at(-1)} and this one takes `
       + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `
       + `this build:\n  forge claim ${ref} --pushed --ready`);
   }

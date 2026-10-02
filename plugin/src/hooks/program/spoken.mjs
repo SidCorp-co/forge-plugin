@@ -85,8 +85,12 @@ const unrun = (text, lang, base = 0) => spansOf(text, lang).flatMap((one) => {
   return [...pieces, ...within].filter((piece) => piece.to > piece.from);
 });
 
-const blanked = (text, stretches) =>
-  stretches.reduce((out, one) => `${out.slice(0, one.from)}${" ".repeat(one.to - one.from)}${out.slice(one.to)}`, text);
+/** `text` with each `{ from, to }` stretch turned to spaces, offset for offset. */
+export const blanked = (text, stretches) => {
+  const out = text.split("");
+  for (const { from, to } of stretches) out.fill(" ", from, to);
+  return out.join("");
+};
 
 /* Each comment in `text`, those in a field a string runs among them, which a python 3.12 f-string spread over lines may hold. */
 const commentsIn = (text, lang, base = 0) => spansOf(text, lang).flatMap((one) => (one.comment

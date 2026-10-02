@@ -2,7 +2,7 @@
    codebase, read by the next one before the code is. Entries are the tracker's and nothing here
    writes a file. The store's own client is src/tracker/knowledge/store.mjs, which the project
    brief writes through as well. docs/cli/knowledge.md. */
-import { fail, keepOnFailure } from "../resolve/settings.mjs";
+import { fail, keepBody } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { declaredFor, refuseCredential, scoped, write } from "../tracker/rest.mjs";
 import { BRIEF_SLUG, KIND_WIDTH, SLUG_WIDTH, entryAt, entryLine, liveRows, metaFrom, upsertEntry,
@@ -106,9 +106,7 @@ const written = async (argv) => {
   const given = flags(flagArgv, "knowledge write", [], { usage: WRITE_USAGE });
   const { kind, injection, confidence } = given;
   const body = await bodyFrom(path);
-  const dropKept = path === "-"
-    ? keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`, { ahead: true })
-    : undefined;
+  const dropKept = path === "-" ? keepBody("entry", body) : undefined;
   const wrote = await upsertEntry({
     slug, body, kind, title: given.title, injection, confidence, meta: metaFrom(pairs), dropKept,
   });

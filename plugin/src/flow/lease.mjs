@@ -431,7 +431,7 @@ export const anothersHold = async (documentId, ref) => {
   if (context?.refused) return { unknown: true, said: context.refused };
   const lease = leaseOf(context);
   const state = stateOf(lease, sessionOf());
-  if (state === "mine" || state === "lapsed") return null;
+  if (HOLDING.includes(state)) return null;
   return { unknown: false, said: writeRefusal(state, ref, lease) };
 };
 
