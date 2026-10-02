@@ -218,8 +218,8 @@ test("the protector holds every declaration the reader accepts, once, wherever i
   assert.equal(protectMachine("plan", held), held, "a marked declaration is not marked twice");
   assert.equal(restoreMachine(held, marks), inline, "and the restore hands back what the author wrote");
   assert.deepEqual(planFlags(throughVi(inline)), { screen: "no", schema: "no", deploy: null, look: null, nofile: null });
-  const spread = "- Screen change: yes\nDecision: schema coupling: yes\nUser-facing outcome: no";
-  assert.deepEqual(planFlags(throughVi(spread)), { screen: "yes", schema: "yes", deploy: null, look: "no", nofile: null });
+  const spread = "- Screen change: yes\nDecision: schema coupling: yes\nUser-facing outcome: no\nLands no file: yes";
+  assert.deepEqual(planFlags(throughVi(spread)), { screen: "yes", schema: "yes", deploy: null, look: "no", nofile: "yes" });
   assert.deepEqual(planFlags(rewritten(spread)), { screen: null, schema: null, deploy: null, look: null, nofile: null }, "and unprotected it declares nothing");
   const split = "Screen change:\n  yes\n\nSchema coupling: no.";
   const held2 = {};
