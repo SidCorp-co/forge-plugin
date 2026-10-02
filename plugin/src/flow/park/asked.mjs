@@ -5,8 +5,7 @@
 import { capsOf } from "../../tracker/field-write.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { refuse } from "../../refusal.mjs";
-
-const ASKS = "Which of these readings is the one to take?";
+import { ASKS } from "./compose.mjs";
 
 /* The run asked it and the run acts on the answer, which is the binding `forge-runner question ask`
    sends; `this_call` is refused by the route without a fingerprint of a call, which a reading is not. */

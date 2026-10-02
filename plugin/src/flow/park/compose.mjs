@@ -20,7 +20,8 @@ export const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_
 
 /* The one field of this payload the tracker mints an answer box from, where `reason` is why the work stopped: neither is ever written from the other, and a text over the endpoint's cap is refused here rather than sent to take the status write down with it — docs/cli/advance-what-it-sends.md. */
 const NEEDS_CAP = 2000;
-const ASKS = "Which of these readings is the one to take?";
+/** The stem every question built from a question record opens with, here and on the issue's own screen. */
+export const ASKS = "Which of these readings is the one to take?";
 
 export const needsProblem = (text) => {
   if (!text) return "is blank after trim, and a question with no text is an answer box asking nothing";

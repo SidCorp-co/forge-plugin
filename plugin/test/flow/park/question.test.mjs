@@ -114,6 +114,21 @@ test("a reading longer than an option label takes is refused by the cap, before 
   assert.equal(asks().length + posted().length, 0);
 });
 
+test("more readings than a question takes options, or a prompt over the route's cap, is refused before any write", async () => {
+  fresh();
+  const many = await ranAsync(FORGE, ["record", "question", "ISS-99",
+    ...Array.from({ length: 11 }, (_, at) => ["--reading", `reading ${at} -> outcome ${at}`]).flat(), "--recommend", "1"], ENV);
+  assert.equal(many.status, 1, many.stdout);
+  assert.match(many.stderr, /would offer 11 readings and the question route takes 10 options/u, many.stderr);
+  const title = ASKING.title;
+  ASKING.title = "a title ".repeat(1000);
+  const long = await record("--recommend", "1");
+  ASKING.title = title;
+  assert.equal(long.status, 1, long.stdout);
+  assert.match(long.stderr, /characters and the route takes 8000/u, long.stderr);
+  assert.equal(asks().length + posted().length, 0);
+});
+
 test("a call repeated after its question was asked and its comment was not asks nothing twice", async () => {
   fresh();
   state.refuseComment = "INTERNAL_ERROR: the comment was not stored";
