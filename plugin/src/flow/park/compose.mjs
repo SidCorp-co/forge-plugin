@@ -90,7 +90,7 @@ export const parkChecked = (view, ref, kind, evidence) => {
       view,
       "question",
       "a needs_info park is a question: two or more readings, each with the outcome it produces",
-      `forge record question ${ref} --reading "<reading -> outcome>" --reading "<reading -> outcome>"`,
+      `forge record question ${ref} --reading "<reading -> outcome>" --reading "<reading -> outcome>" --recommend <n>`,
     );
     if (owed.length) refuse(`${owed[0].what}. Write it first:\n  ${commandAt(owed[0].command, "  ")}`);
   }

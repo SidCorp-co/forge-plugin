@@ -37,7 +37,7 @@ const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "")
 const kindRows = (caps) => [
   "  confirmation --is I --where W... --finding F [--detail D] [--fixed X --survives S] [--landed L]   F: " + FINDINGS.join("|"),
   `  decision     --decision "${DECISION_PARTS.join(" | ")}"... | --none <why>` + servesOn("decision"),
-  "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
+  "  question     --reading \"reading -> outcome\" (two or more) --recommend N [--to who]",
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
@@ -302,6 +302,14 @@ const readsOff = (kind) => {
 
 /* Why the kind exists is the one thing its row cannot say, and a run reaching for a comment instead
    is the defect it answers (ISS-198). */
+const QUESTION_BLOCKS = [
+  "The write asks a person on the issue's own screen before the record goes up: one question whose",
+  "options are the readings in order, the one --recommend names marked as recommended. An open",
+  "question there offering the same readings is the one an earlier call asked, and is not asked",
+  "again. A question the tracker refuses leaves no record. Asking moves no status: a park, where",
+  "one is owed, is still `forge advance --park question`.",
+];
+
 const ANSWER_BLOCKS = [
   "Written after the park it answers, on an issue that park holds at waiting or needs_info, or at",
   "on_hold under a blocked park no edge that gates dispatch speaks for — a blocker in another",
@@ -386,6 +394,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
+    ...(kind === "question" ? ["", ...QUESTION_BLOCKS] : []),
     ...(kind === "answer" ? ["", ...ANSWER_BLOCKS] : []),
     ...(kind === "park" ? ["", ...PARK_BLOCKS] : []),
     ...(SHAPES[kind]?.finder ? ["", ...WAVE_BLOCKS] : []),

@@ -257,6 +257,15 @@ export const fakeTracker = async (state) => {
     /* `state.cut` names the issues whose thread reports more behind it and no cursor to it: a walk that cannot finish, which is the read a gate still holds a verb's write for. */
     return { comments: held, returned: held.length, hasMore: (state.cut ?? []).includes(args.filters?.issue) };
   };
+  /* Core's question rows as its route answers them: an ask is kept open under an id of its own, and a
+     list is the issue's rows whatever their status, which is the reading the route gives. */
+  const questions = (args) => {
+    const held = (state.questions ??= []);
+    if (args.action === "list") return { questions: held.filter((one) => one.issueId === args.issueId) };
+    const row = { id: `question-${held.length + 1}`, status: "open", ...args.data };
+    held.push(row);
+    return row;
+  };
   /* `state.memory` is `[issue, score]` per strategy; the uuid a hit carries is resolved here. */
   const memory = ({ strategy }) =>
     ((state.memory ?? {})[strategy] ?? []).map(([key, score]) => ({
@@ -314,6 +323,7 @@ export const fakeTracker = async (state) => {
     if (name === "forge_issues") return issues(args);
     if (name === "forge_labels") return labels(args);
     if (name === "forge_comments") return comments(args);
+    if (name === "forge_questions") return questions(args);
     if (name === "forge_projects.list") return { projects: [{ ...OWN, slug: ownSlug() }] };
     return {};
   };
@@ -411,6 +421,9 @@ export const fakeTracker = async (state) => {
       answered("forge_knowledge", { action: method === "PUT" ? "upsert" : method === "DELETE" ? "delete" : "get", slug, ...sent })],
     [/^\/api\/projects\/[^/]+\/knowledge$/u, (q) =>
       answered("forge_knowledge", { action: "list", kindFilter: q.get("kind") ?? undefined, injectionFilter: q.get("injection") ?? undefined })],
+    [/^\/api\/questions$/u, (q, sent, method) => (method === "POST"
+      ? answered("forge_questions", { action: "ask", data: sent })
+      : answered("forge_questions", { action: "list", issueId: q.get("issueId") }))],
     [/^\/api\/memory\/search$/u, (q, sent) => answered("forge_memory.search", sent)],
     [/^\/api\/guides\/([^/]+)$/u, (q, sent, method, [slug]) => answered("forge_guide", { action: "get", slug })],
     [/^\/api\/guides$/u, () => answered("forge_guide", { action: "list" })],

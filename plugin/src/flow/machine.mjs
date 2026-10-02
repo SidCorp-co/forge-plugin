@@ -1,7 +1,7 @@
 /* A project whose configuration names a prose language has every body and prose field rewritten on
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` and `machine/block.mjs`, the carrying of a record, are what is imported here, and neither imports this, so both sides can still import it. */
-import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, STATEMENT_TAKES, WHERE_TAKES, decisionProblem,
-  findingProblem, memberProblem, statementProblem, whereProblem } from "./record/content.mjs";
+import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, RECOMMEND_TAKES, STATEMENT_TAKES, WHERE_TAKES, decisionProblem,
+  findingProblem, memberProblem, recommendProblem, statementProblem, whereProblem } from "./record/content.mjs";
 import { SPAN, blanked, fenceMarked } from "../prose.mjs";
 import { MARKUP_PATTERN } from "../markdown.mjs";
 import { entriesIn, firstKindIn } from "./machine/block.mjs";
@@ -270,14 +270,7 @@ export const somebodyLooked = (verdict) => verdict !== "skipped";
 export const JUDGE_FROM = "judge-from";
 const SCOPES = ["whole", "part"];
 
-/** One owed item — what the record lacks and the one command that supplies it — and the way every reader prints a set of them. Here rather than in the checks, so a check split out of them takes the shape with it and imports nothing back, and so a refusal's shortfall and a write's own tail cannot spell one differently. */
-export const need = (what, command) => ({ what, command });
-/** A command laid out at the printer's own depth. An item whose one command is two routes is two
- *  lines, and a continuation carrying no prefix starts at column zero under an indented first,
- *  which reads as prose rather than as the second thing to type (ISS-1993). */
-export const commandAt = (command, gap) => String(command).replaceAll("\n", `\n${gap}`);
-export const missingLines = (missing) =>
-  missing.map((one) => `\n  ${one.what}\n    ${commandAt(one.command, "    ")}`);
+export { commandAt, missingLines, need } from "./machine/owed.mjs";
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
    criterion was not met, or nothing in the specification ever promised what the person expected. */
 export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
@@ -423,10 +416,14 @@ export const SHAPES = {
       return null;
     },
   },
+  /* The recommendation is the run's own, owed because the question it asks on the issue cannot be
+     asked without one (docs/cli/record-question.md); `newer`, so a record from before it still reads. */
   question: {
     heading: "Question",
-    fields: [FIELD("reading", "Reading", { many: true, least: 2, prose: true }), FIELD("to", "To", { optional: true })],
+    fields: [FIELD("reading", "Reading", { many: true, least: 2, prose: true }), FIELD("to", "To", { optional: true }),
+      FIELD("recommend", "Recommended", { newer: true, form: RECOMMEND_TAKES })],
     repeats: true,
+    check: (got) => recommendProblem(got.recommend, got.reading.length),
   },
   /* A person's answer to a park, carried onto the record by a run. The CLI writes on one credential
      whoever composes the prose, so no identity on the comment row tells the parker from whoever

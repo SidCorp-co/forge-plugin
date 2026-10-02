@@ -102,3 +102,14 @@ export const statementProblem = (value) => {
   return `takes ${STATEMENT_TAKES}; \`${said}\` ${statementGap(statement, named, cut)}, and a statement `
     + "not classified is the risk this record exists to name.";
 };
+
+export const RECOMMEND_TAKES = "the number of the reading this run would take, counting the first `--reading` as 1";
+
+/** A question's recommended reading, by its number among the readings. Absent is a record written
+ *  before the field existed, which the write refuses on its own as a missing flag. */
+export const recommendProblem = (given, count) => {
+  if (given === undefined) return null;
+  const at = /^\d+$/u.test(String(given)) ? Number(given) : 0;
+  return at >= 1 && at <= count ? null
+    : `--recommend naming one of the ${count} readings, not \`${given}\`: it takes ${RECOMMEND_TAKES}`;
+};
