@@ -5,7 +5,7 @@ import { basename, isAbsolute, resolve } from "node:path";
 
 import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
-import { ESCAPED_IN_DOUBLE, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
+import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
 import { optionsAfter, wraps } from "./shell/wrappers.mjs";
 import { RUNNER, SHELL_OPTION, SHELL_WORD, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
@@ -44,8 +44,14 @@ const PROVEN = /^[;&|\s]*(?:then|do)\b/u;
 const INVERTED = /^until\b/u;
 const STAGE = /(?:^|[^|])\|&?\s*$/u;
 const COMMENT = /^#[^\n]*/u;
-export const spelled = (one) =>
-  one.replace(/['"]/gu, "").replace(/\\(.)/gu, "$1").replace(/^~(?=\/|$)/u, homedir());
+/* A tilde names the home only standing bare at the head of the word, and only where the word ends there or goes on with a bare slash: `"~"/x`, `\~/x` and `~"/x"` each hand a shell the literal `~/x`. */
+const bare = (mark) => mark?.under === " ";
+export const spelled = (one) => {
+  const kept = handedOn(one);
+  const text = kept.map((mark) => mark.one).join("");
+  const home = kept[0]?.one === "~" && bare(kept[0]) && (kept.length === 1 || (kept[1].one === "/" && bare(kept[1])));
+  return home ? homedir() + text.slice(1) : text;
+};
 /** `spelled` run the other way — the word written back into a command a reader pastes, a refusal's way out or a next page's call: bare where a shell hands it on unchanged, quoted where it would split, and since a quoted run has no escape, an apostrophe closes the quote, escapes, reopens.
  *  Bare is Python's `shlex.quote` set, which no POSIX shell splits or expands, less a leading `=`, which zsh expands to a command's path. A leading `-` stays bare: a quote reaches the program as the same flag, and `pathed` is the answer for a path (ISS-303). */
 const PLAIN = /^[\w@%+:,./-][\w@%+=:,./-]*$/u;

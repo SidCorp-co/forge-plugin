@@ -200,6 +200,10 @@ const marksOf = (text, { under, depth, gone }) => {
 
 const QUOTES = new Set(["'", '"']);
 
+/** What a shell hands on of one word, as `quoting`'s entries: every quote that opens or closes a run gone, every backslash the shell takes out gone, and each character a quote or a backslash made literal kept — a quote inside the other quote's run, a backslash in a single-quoted run, one a double quote does not let escape what follows. Walked apart from the texts kept above, since one word is no text the readers of an event share. */
+export const handedOn = (word) =>
+  marksOf(word, walked(word, false, true)).filter(({ one, under, removed }) => !removed && !(QUOTES.has(one) && under === one));
+
 /** The text with `fill` over every code unit a quote holds as data, offset for offset: the body of a substitution a double quote opened is left standing, since a shell runs it, and a quote inside that body is data again. With `delimiters` the quote characters themselves stay, so the text still says where each span was. */
 export const quotedOver = (text, fill, { delimiters = false } = {}) => {
   const { under, held } = readOf(text);
