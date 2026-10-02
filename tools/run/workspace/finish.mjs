@@ -11,17 +11,17 @@ import { join, resolve, sep } from "node:path";
 
 import { typed } from "../../../plugin/src/hooks/shell-spans.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
-import { checkoutRoot, defaultBranch, gitOut, lines, loud, REMOTE, remoteRef, stop,
+import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef, stop,
   uncommittedIn } from "../../checkout.mjs";
 import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { treeKey } from "../../gates/timing.mjs";
 import { aheadRoute } from "./ahead-route.mjs";
-import { elsewhereLine, onItsBranch, removedBranch, standsOn, standsSaid, startBranch } from "./branch.mjs";
 import { carried } from "./corpus-carried.mjs";
 import { copiesIn, machineSecrets } from "./credential-copies.mjs";
 import { endedOf, endedWritten } from "./ended.mjs";
-import { KEY, slugless, whoseTree, worktreePath } from "./occupant.mjs";
+import { elsewhereLine, KEY, onItsBranch, slugless, standsOn, standsSaid, startBranch, whoseTree,
+  worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";
 
 const REFUSED = 1;
@@ -246,6 +246,41 @@ const removedScratch = (at, retry) => {
   }
   console.log(`  removed  ${at}, holding ${held} entry(s)`);
   return `the scratch directory ${at}`;
+};
+
+/* `-d` and never `-D`, with git's own advice off: that advice offers the forced delete, which is the
+   one route out of this a refusal here may not carry — the way out is the line below it. */
+const deleted = (root, base, name, ended) => {
+  const run = git(["-C", root, "-c", "advice.forceDeleteBranch=false", "branch", "-d", name], root);
+  if (run.status === 0) {
+    ended.removed.push(`branch ${name}`);
+    return console.log(`  removed  branch ${name}`);
+  }
+  const later = `git -C ${root} branch -d ${name}`;
+  ended.left.push(`branch ${name}, which git refused to delete and which loses nothing: ${later}`);
+  console.error(`  left     branch ${name}, which git refuses to delete: `
+    + `${(run.stderr ?? "").trim() || `it exited ${run.status}`}`);
+  return console.error(`           nothing of it is lost — ${REMOTE}/${base} carries every commit of `
+    + `it, proved before anything was removed. Delete it once this checkout has caught up: ${later}`);
+};
+
+/* No record names no branch, and a name built from the key would be the prefix the verb's help
+   refuses as ownership: the slug `start` took is in no other record. So the route lists what the key
+   could have cut and deletes nothing. */
+const unnamed = (root, key, ended) => {
+  const n = key.slice(4).toLowerCase();
+  const list = `git -C ${root} branch --list ${typed(`iss-${n}`)} ${typed(`iss-${n}-*`)}`;
+  ended.left.push(`no branch, because no record names the one start cut: ${list}`);
+  console.log(`  left     no branch: the tree's git directory held no record of the branch start cut, `
+    + `so nothing here names one to remove. The branches named for ${key}, each to delete by hand once `
+    + `merged: ${list}`);
+};
+
+/** Removes the branch `start` recorded, or says why none was. */
+export const removedBranch = (root, base, key, branch, ended) => {
+  if (!branch) return unnamed(root, key, ended);
+  if (!branch.live) return console.log(`  gone     branch ${branch.name}, which start cut, is no longer a branch of this checkout`);
+  return deleted(root, base, branch.name, ended);
 };
 
 /* Reported last rather than stopped on: the tree and the branch are already gone, so what is owed

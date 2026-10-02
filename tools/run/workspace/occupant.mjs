@@ -1,10 +1,11 @@
 /* The tree path is the issue key beside the checkout with the project's slug in it, since two projects
    sharing a parent directory and the ISS-nn scheme derived one path (ISS-401); whose tree is there
    decides who can clear it, and the verb that makes one and the verb that ends one read both off here. */
-import { realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 import { projectAt, projectRecords } from "../../../plugin/src/resolve/settings.mjs";
+import { besideGit } from "../../../plugin/src/resolve/session/run-id.mjs";
 import { gitCommonDir, gitOut } from "../../checkout.mjs";
 import { runIdAt, RUN_ID_VAR } from "./run-id.mjs";
 
@@ -70,4 +71,46 @@ export const occupied = (root, path) => {
   return `${path} is already there, and start never touches a worktree it did not make. Work in it, `
     + `or remove it: git -C ${root} worktree remove ${path}`
     + (whose.held ? `\nThe id that run takes the lease under: ${RUN_ID_VAR}=${whose.held}` : "");
+};
+
+/* The branch `start` cut, kept beside the run id in the tree's own git directory because the tree's
+   HEAD says where the tree stands now and not what `start` made: a run that detaches it to read a
+   landed commit, or cuts a second branch in it, would hand `finish` the literal `HEAD` or a branch it
+   never cut (ISS-3097, ISS-2343, ISS-1156). The record is the one source; a tree cut before `start`
+   wrote it has its branch named by nobody, and `finish` says so rather than guessing a name. */
+export const BRANCH_AT = "forge-run-branch";
+
+export const branchRecorded = (path, branch) => {
+  const at = besideGit(path, BRANCH_AT);
+  if (at) writeFileSync(at, `${branch}\n`);
+};
+
+const recordedAt = (path) => {
+  const at = besideGit(path, BRANCH_AT);
+  return at && existsSync(at) ? readFileSync(at, "utf8").trim() || null : null;
+};
+
+/** The branch `start` recorded for the tree at `path` and whether this checkout still has it, or null where no record names one. */
+export const startBranch = (root, path) => {
+  const name = recordedAt(path);
+  if (!name) return null;
+  return { name, live: Boolean(gitOut(["rev-parse", "--verify", "--quiet", `refs/heads/${name}`], root)) };
+};
+
+/** Where the tree's HEAD stands: a branch by its name, or a detached commit by its short hash. */
+export const standsOn = (path) => {
+  const branch = gitOut(["symbolic-ref", "--quiet", "--short", "HEAD"], path);
+  return branch ? { branch } : { detached: gitOut(["rev-parse", "--short", "HEAD"], path) ?? "an unreadable commit" };
+};
+
+export const standsSaid = (stands) => (stands.branch ? `branch ${stands.branch}` : `a detached HEAD at ${stands.detached}`);
+
+export const onItsBranch = (branch, stands) => Boolean(branch) && stands.branch === branch.name;
+
+export const elsewhereLine = (branch, stands) => {
+  if (onItsBranch(branch, stands)) return null;
+  const kept = stands.branch ? `, and ${stands.branch} is left as it is` : "";
+  return branch
+    ? `  note     the tree stands on ${standsSaid(stands)}, not on the branch start cut, ${branch.name}${kept}`
+    : `  note     the tree stands on ${standsSaid(stands)}, and no record names the branch start cut${kept}`;
 };
