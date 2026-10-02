@@ -158,6 +158,8 @@ export const rungFieldsOf = (view) => (view.rungFields ??= {
 });
 
 const lightPath = (view, status, kind) => lightens(status, kind, rungFieldsOf(view));
+/** Whether the baseline and the tree readings beside it are dropped, which only a plan's declaration does: read by the entry check and by the rehearsal that would otherwise offer a baseline. */
+export const baselineWaived = (view) => lightPath(view, BASELINE_AT, "baseline");
 export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
@@ -493,6 +495,19 @@ const scopeOwed = (view, ref) => {
   )];
 };
 
+/* The declaration and the mark are two words about one change, so where they disagree neither is
+   taken: a plan declaring the change lands no file is held to a mark that wrote none, and the paths it
+   names are this item's rather than the plan-scope item's, one disagreement being one refusal. Which of
+   the two is wrong the record cannot say; the plan is the one a run rewrites in the open (ISS-2384). */
+const noFileOwed = (view, ref) => {
+  const wrote = landingWrote(view.comments) ?? [];
+  return wrote.length ? [need(
+    `the plan declares the change lands no file, and the merged mark says the landing wrote ${wrote.join(", ")}, `
+      + "so the record says two things about one change",
+    `forge record plan ${ref} <plan.md>, its \`Lands no file\` line answering no and its files naming ${wrote.join(", ")}`,
+  )] : [];
+};
+
 /* Read off the record that carries the classification and never off the issue's attachments, which
    any log or screenshot fills: counting them let a file nobody classified anything in discharge a
    demand naming the classification (ISS-2196). */
@@ -610,7 +625,9 @@ export const CHECKS = {
     }
     return [...out, ...foldedOwed(view, ref)];
   },
+  /* The tree's four demands go together: a plan declaring the change lands no file drops the baseline, and the branch, its scope and its citation are each a reading of the same tree (ISS-2384). */
   in_progress: (view, ref) => {
+    if (baselineWaived(view)) return blockersOwed(view);
     const baseline = payloadOwed(
       view,
       "baseline",
@@ -631,7 +648,7 @@ export const CHECKS = {
     } else if (!markedCommit(view.comments)) {
       out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", mergedForm(ref)));
     }
-    return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
+    return [...out, ...(view.flags.nofile === "yes" ? noFileOwed(view, ref) : scopeOwed(view, ref)), ...reviewOwed(view, ref)];
   },
   testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
   awaiting_release: (view, ref) => [...pastJudgingOwed(view, ref), ...deployedOwed(view, ref),

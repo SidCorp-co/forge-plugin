@@ -2,15 +2,18 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WRITE_READ_OWED, climbForm, heightOf, rungClaimed, rungOf,
-  splits,
+  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WRITE_READ_OWED, climbForm, declaredRows, heightOf, rungClaimed,
+  rungOf, splits,
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
 /* Past the widest label so a hanging line clears it, measured off the labels: a literal is a column only until a status is renamed longer than it (ISS-1022). */
 const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
-const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) =>
-  `  ${`at ${one.status}`.padEnd(WIDTH)}not owed: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`);
+const rowLine = (one, said) =>
+  `  ${`at ${one.status}`.padEnd(WIDTH)}${said}: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`;
+const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) => rowLine(one, "not owed"));
+/* Said as the plan's and not the rung's: the rung is a size, and this waiver is the plan's word about where the change lands. */
+const declaredLines = (fields) => declaredRows(fields).map((one) => rowLine(one, "not owed, by this plan's declaration"));
 
 const spareLines = (rung) => (SPARES[rung].length ? [
   ...SPARES[rung].map((one, at) => `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`),
@@ -57,14 +60,15 @@ export const rungReport = (fields, ref) => {
   const rung = rungOf(fields);
   const climbed = climbSaid(fields.plan, claimed.rung, rung);
   const opened = `${markSaid(claimed)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that rung:`;
-  const dropped = lighterLines(rung);
+  const dropped = [...lighterLines(rung), ...declaredLines(fields)];
+  const baseline = declaredRows(fields).some((one) => one.kind === "baseline") ? "" : "the baseline, ";
   return [
     opened,
     ...(dropped.length ? dropped : [`  ${"nothing dropped".padEnd(WIDTH)}a feature owes the whole set, which is what the rungs below it are measured against`]),
     ...spareLines(rung),
     ...splitAsk(fields.complexity),
     "Every other demand below stands as a feature's does — the confirmation with its where, the",
-    "criteria, the baseline, the merged mark, the review of the head that landed, a verdict on every",
+    `criteria, ${baseline}the merged mark, the review of the head that landed, a verdict on every`,
     "criterion, the verification, and the migration classification where a plan declares schema",
     "coupling, which no rung drops.",
     ...routesOff(rung, ref),

@@ -130,10 +130,27 @@ export const rungOf = ({ plan, moved, whole, complexity = null }) => {
   return RUNGS[Math.max(climbed, ...climbedTo(moved).map(heightOf))];
 };
 
-/** Every row a rung grants at a status, in the table's own order. A status carries a row per payload it may drop, so this answers with a list and the two readers below take what each needs from it: taking the first would say one waiver where two are granted (ISS-1066). The rows are a parameter because the live table waives every kind of a status at the same rungs, and a case driving only that table could not tell keying on the kind from keying on the status. */
+/* A payload a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the declaration's key, and only its `yes` grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
+export const DECLARED_AWAY = [
+  {
+    status: "in_progress",
+    declared: "nofile",
+    kind: "baseline",
+    drops: "a baseline, and the branch the worklog would name",
+    because: "the plan declares the change lands no file, so there is no tree for a gate to measure or a branch to cut",
+  },
+];
+
+/** The declaration rows a plan grants at a status, or at every status where none is named. */
+export const declaredRows = (fields, status = null) => {
+  const flags = planFlags(fields?.plan);
+  return DECLARED_AWAY.filter((one) => (status === null || one.status === status) && flags[one.declared] === "yes");
+};
+
+/** Every row a rung grants at a status, in the table's own order, and after them every row the plan's declarations grant there. A status carries a row per payload it may drop, so this answers with a list and the two readers below take what each needs from it: taking the first would say one waiver where two are granted (ISS-1066). The rows are a parameter because the live table waives every kind of a status at the same rungs, and a case driving only that table could not tell keying on the kind from keying on the status. */
 export const lighterRows = (status, fields, rows = LIGHTER) => {
   const rung = rungOf(fields);
-  return rows.filter((one) => one.status === status && one.rungs.includes(rung));
+  return [...rows.filter((one) => one.status === status && one.rungs.includes(rung)), ...declaredRows(fields, status)];
 };
 
 export const lightens = (status, kind, fields, rows = LIGHTER) =>

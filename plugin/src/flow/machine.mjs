@@ -29,20 +29,22 @@ export const unwrap = (text) => String(text ?? "").trim();
 
 /* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-rung-in-text.md).
    `required` is which a plan must answer: the write and `approved` both read it here, so a declaration
-   added to this table is enforced by being added to it (ISS-752). A user-facing outcome is the one a
-   plan may leave out, its absence reading `no`, because only a change with such a result has a reason
-   to answer it. */
+   added to this table is enforced by being added to it (ISS-752). An optional row is one a plan may
+   leave out, its absence reading `no`, because only a change of the kind `when` names has a reason to
+   answer it; `nofile` is the change that lands nothing in the repository, which only a `yes` grants
+   anything to, so an empty diff is never read as one (ISS-2384). */
 const DECLARED = {
   screen: { name: "screen change", required: true },
   schema: { name: "schema coupling", required: true },
   deploy: { name: "deploy coupling", required: true },
-  look: { name: "user-facing outcome", required: false },
+  look: { name: "user-facing outcome", required: false, when: "where the change has one" },
+  nofile: { name: "lands no file", required: false, when: "where the whole change lives outside this repository" },
 };
 const NAMES = Object.values(DECLARED).map((one) => one.name);
 const namesWhere = (required) => Object.values(DECLARED).filter((one) => one.required === required).map((one) => one.name);
-const optional = namesWhere(false);
+const optional = Object.values(DECLARED).filter((one) => !one.required);
 const DECLARATIONS_ASK = `each of ${namesWhere(true).join(", ")}, written \`yes\` or \`no\``
-  + (optional.length ? `, and ${optional.join(", ")} the same way where the change has one` : "");
+  + optional.map((one) => `, and ${one.name} the same way ${one.when}`).join("");
 /* Markup may stand at the joints — a bold label closing after its colon, or before it, or an emphasised
    value — and nowhere else. One pattern, so the reader and the protector below cannot disagree about
    which lines are declarations (ISS-312); the class is markdown.mjs's, never a second spelling. */

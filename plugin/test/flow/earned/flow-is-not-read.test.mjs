@@ -73,9 +73,9 @@ const owed = (keys) => {
 
 test("one persisted plan earns one entry-check verdict under two different flows", () => {
   const base = owed({ flow: "default" });
-  assert.deepEqual(base.flags, { screen: "yes", schema: "no", deploy: "no", look: "no" },
+  assert.deepEqual(base.flags, { screen: "yes", schema: "no", deploy: "no", look: "no", nofile: null },
     "the flags are parsed out of the plan text, and nothing else decides them");
-  assert.deepEqual(base.names, ["screen", "schema", "deploy", "look"],
+  assert.deepEqual(base.names, ["screen", "schema", "deploy", "look", "nofile"],
     "the declaration vocabulary is one table, and a flow may neither add a name nor take one out");
   const held = base.owed.testing;
   assert.ok(held.length > 0, `testing owes nothing under this plan: ${JSON.stringify(base.owed)}`);

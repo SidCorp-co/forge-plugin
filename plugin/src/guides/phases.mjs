@@ -263,12 +263,15 @@ export const laneOf = ({ status, fields }) => {
     rung: rungOf(fields),
     rows: ORDER.slice(at).map((one) => {
       const earns = CITED[one] ?? [];
-      const dropped = lighterRows(one, fields).map((row) => row.kind);
+      const rows = lighterRows(one, fields);
+      const dropped = rows.map((row) => row.kind);
       return {
         status: one,
         here: one === status,
         earns,
         dropped,
+        /* Whose waiver it is, said apart: a plan's declaration drops a payload at any rung (ISS-2384). */
+        by: rows.some((row) => row.declared) ? "under this plan's declarations" : "at this rung",
         owed: earns.filter((kind) => !dropped.includes(kind)),
       };
     }),
@@ -280,8 +283,8 @@ const laneSaid = (row) => {
   if (row.here) return "← where it stands";
   if (!row.earns.length) return "nothing owed at any rung";
   const dropped = row.dropped.map((kind) => `no ${kind}`).join(", ");
-  if (!row.owed.length) return "nothing owed at this rung";
-  return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} at this rung` : row.owed.join(", ");
+  if (!row.owed.length) return `nothing owed ${row.by}`;
+  return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} ${row.by}` : row.owed.join(", ");
 };
 
 /* The longest rung the order holds and one space past it, so a rename cannot run a status into what earns it. Measured at the print: the order reaches this file through a cycle, and read at load it is a name in its own dead zone (ISS-1022). */

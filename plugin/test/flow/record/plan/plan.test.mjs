@@ -230,8 +230,8 @@ test("`record plan -h` prints every section a typed plan owes, as the question i
      of them sends a run reading it to a refusal it was told nothing about (ISS-1694). */
   assert.match(run.stdout, /Witnessed on screen is owed of every plan where this project's flow serves projects with a screen,\nand at `approved` where the plan declares screen change\./u);
   assert.match(run.stdout, /The way back is owed only where the plan declares schema coupling or deploy coupling\./u);
-  assert.match(run.stdout, /^ {2}## Declarations +each of screen change, schema coupling, deploy coupling, written `yes` or `no`, and user-facing outcome the same way where the change has one$/mu,
-    "the three a plan owes, and the one it answers only where it applies");
+  assert.match(run.stdout, /^ {2}## Declarations +each of screen change, schema coupling, deploy coupling, written `yes` or `no`, and user-facing outcome the same way where the change has one, and lands no file the same way where the whole change lives outside this repository$/mu,
+    "the three a plan owes, and the two it answers only where each applies");
   assert.match(run.stdout, /step naming none is refused here\. At `approved`, where the criteria field is read, so is a step\nwhose numbers name no criterion the issue holds, and a criterion no step names\./u);
 });
 
