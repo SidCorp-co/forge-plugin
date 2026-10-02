@@ -4,6 +4,7 @@
    What counts as evidence, and why nothing else can: docs/cli/the-drain-key.md. */
 import { drainScope } from "../resolve/settings.mjs";
 import { sessionOf } from "../resolve/config.mjs";
+import { firstLine } from "../resolve/flags.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
 import { ageOf } from "../codex/codex-state.mjs";
@@ -68,7 +69,6 @@ export const drainOf = (judging, { idle, whole = true, now = Date.now(), own = s
     drainedBy: declared.value,
     declared: declared.declared,
     unknown: declared.unknown ?? null,
-    from: declared.from,
     holds: declared.value !== null && whole && !judging.unreached && evidence.length > 0,
     evidence,
     standing: judged.length,
@@ -119,7 +119,7 @@ export const idleSaid = (drain) => `\`rank.drainIdle\` ${drain.idle} minute(s)`;
 export const drainHere = async (policy, weights) => {
   const reads = await Promise.all(JUDGING.map((status) => everyIssue({ status })));
   const listed = reads.find((read) => read.refused)?.refused;
-  if (listed) return { unread: String(listed).split("\n")[0] };
+  if (listed) return { unread: firstLine(listed) };
   let refused = null;
   const leaseFor = async (row) => {
     const got = await scoped("forge_issues", leaseAsk(row), true);
@@ -128,8 +128,8 @@ export const drainHere = async (policy, weights) => {
   };
   const judging = await judgingFrom(reads.flatMap((read) => read.rows),
     { policy, leaseFor, cap: weights.windowCap });
-  if (refused) return { unread: String(refused).split("\n")[0] };
-  if (!judging || judging.unread) return judging && { unread: String(judging.unread).split("\n")[0] };
+  if (refused) return { unread: firstLine(refused) };
+  if (!judging || judging.unread) return judging && { unread: firstLine(judging.unread) };
   const drain = drainOf(judging, { idle: weights.drainIdle, whole: reads.every((read) => read.whole) });
   return { ...drain, facts: evidenceSaid(drain), window: idleSaid(drain) };
 };
