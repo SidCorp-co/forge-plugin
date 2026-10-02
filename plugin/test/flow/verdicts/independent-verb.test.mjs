@@ -9,6 +9,7 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent-verb").path;
+const { render } = await import("../../../src/flow/record/page.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const BUILDER = "the-builder-session";
@@ -102,10 +103,12 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
+/* Put on the page rather than written: the verb now refuses the builder's verdict before sending it
+   (writer.test.mjs), and what this case holds is the rung's reading of one written before that. */
 test("advance to the rung is refused while the standing verdicts are the builder's own", async () => {
-  const wrote = await builder("record", "verdict", "ISS-8", "--commit", MERGED, "--evidence", DEPLOYED,
-    "--verdict", "pass", "--criterion", "1", "--criterion", "2");
-  assert.equal(wrote.status, 0, wrote.stderr);
+  state.comments["judging-uuid"].push({ documentId: "the-builder-verdicts", createdAt: at(), body: render("verdict",
+    [1, 2].map((number) => ({ criterion: `${number} — outcome`, verdict: "pass", commit: MERGED, evidence: [DEPLOYED],
+      judge: BUILDER, "judge-from": "asked" }))) });
   const run = await builder("advance", "ISS-8");
   assert.equal(run.status, 1, run.stdout);
   assert.equal(judging.status, "developed", "and nothing moved");

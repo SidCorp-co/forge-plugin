@@ -42,6 +42,7 @@ import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { answerChecked } from "../park/answer.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
 import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
+import { writerChecked } from "./judged/writer.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
@@ -497,6 +498,7 @@ const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
   /* Asked once every payload is judged and before the uploads, so a flag error still costs no call and a judge refused here has sent nothing. */
   const judged = judgedPast(reference, blocks.map((one) => one.kind), body, { flags });
   if (judged?.refused) refuse(judged.refused);
+  await writerChecked(reference, blocks.map((one) => one.kind), { documentId, body }, page);
   const read = await page();
   const written = await postRung(prepared, { reference, documentId, body, comments: read.comments, next, patch, judged });
   for (const one of prepared) one.tallied?.();
