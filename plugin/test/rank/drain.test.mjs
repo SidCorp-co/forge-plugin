@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { declaring, issue, rankRoom } from "./room.mjs";
-import { drainOf } from "../../src/rank/drain.mjs";
+import { drainOf, evidenceSaid } from "../../src/rank/drain.mjs";
 
 const { load, ran, state, close } = await rankRoom();
 test.after(close);
@@ -167,4 +167,16 @@ test("the asking session's own lease and claims are no evidence about another ma
   const theirs = drainOf({ ...mine, left: [row("ISS-6", { held: "live", lease: { holder: "them" } })] },
     { idle: 60, own });
   assert.deepEqual(theirs.evidence, ["leased"], "while the same lease held by another session is");
+});
+
+/* The listing's own shortfall, which the cap's count does not carry: a walk the tracker ended early
+   returns the rows it reached and `whole` false, and the rows it never returned are no evidence. */
+test("evidence from a listing that stopped before its end holds no declaration and says so", () => {
+  const judging = { offered: [], unreached: 0,
+    left: [{ issueId: "ISS-6", held: "live", row: { issueId: "ISS-6" }, lease: { holder: "them" } }] };
+  const short = drainOf(judging, { idle: 60, whole: false, own: "this-run" });
+  assert.deepEqual(short.evidence, ["leased"], "the lease is still reported");
+  assert.equal(short.holds, false, "and holds nothing over rows nobody listed");
+  assert.match(evidenceSaid(short), /the listing stopped before its end, so rows at developed it never returned stand unread/u);
+  assert.equal(drainOf(judging, { idle: 60, own: "this-run" }).whole, true, "a caller saying nothing read the whole listing");
 });

@@ -50,9 +50,9 @@ const oldestOf = (offered, own) => offered
 /** The declaration and its evidence. It holds on positive evidence alone — another session's live
  *  lease, a claim another session recorded inside the window, or an oldest offered row written inside
  *  it — and an empty offer is none: no row, and rows that are all the asking session's, leave the
- *  declaration unchecked. A read the window cut short holds nothing whatever its prefix showed, the
- *  rows behind it being the ones a live master would have been seen leaving. */
-export const drainOf = (judging, { idle, now = Date.now(), own = sessionOf() } = {}) => {
+ *  declaration unchecked. A read the window or the listing cut short holds nothing whatever its prefix
+ *  showed, the rows behind it being the ones a live master would have been seen leaving. */
+export const drainOf = (judging, { idle, whole = true, now = Date.now(), own = sessionOf() } = {}) => {
   const declared = drainScope();
   const judged = [...judging.offered, ...judging.left];
   const leased = judging.left.filter((one) => one.held === "live").length;
@@ -69,11 +69,12 @@ export const drainOf = (judging, { idle, now = Date.now(), own = sessionOf() } =
     declared: declared.declared,
     unknown: declared.unknown ?? null,
     from: declared.from,
-    holds: declared.value !== null && !judging.unreached && evidence.length > 0,
+    holds: declared.value !== null && whole && !judging.unreached && evidence.length > 0,
     evidence,
     standing: judged.length,
     leased,
     unreached: judging.unreached,
+    whole,
     lastClaimAt: claimed === null ? null : new Date(claimed).toISOString(),
     oldest: oldest && { issueId: oldest.issueId,
       idleMinutes: oldest.at === null ? null : Math.floor((now - oldest.at) / MINUTE) },
@@ -96,9 +97,12 @@ const claimSaid = (drain, now) => (drain.lastClaimAt === null
   ? `no claim at ${at} by another session is recorded on them`
   : `another session last claimed one at ${at} ${ageOf(Date.parse(drain.lastClaimAt), now)}`);
 
-const unreadSaid = (drain) => (drain.unreached
-  ? `, and ${drain.unreached} further row(s) at ${at} went unread, so this is the window's evidence alone`
-  : "");
+const unreadSaid = (drain) => [
+  drain.unreached
+    ? `, and ${drain.unreached} further row(s) at ${at} went unread, so this is the window's evidence alone`
+    : "",
+  drain.whole ? "" : `, and the listing stopped before its end, so rows at ${at} it never returned stand unread`,
+].join("");
 
 /** Every fact the rows gave, in one clause both readers print: what a master stands down on, or why
  *  it does not. */
@@ -126,6 +130,6 @@ export const drainHere = async (policy, weights) => {
     { policy, leaseFor, cap: weights.windowCap });
   if (refused) return { unread: String(refused).split("\n")[0] };
   if (!judging || judging.unread) return judging && { unread: String(judging.unread).split("\n")[0] };
-  const drain = drainOf(judging, { idle: weights.drainIdle });
+  const drain = drainOf(judging, { idle: weights.drainIdle, whole: reads.every((read) => read.whole) });
   return { ...drain, facts: evidenceSaid(drain), window: idleSaid(drain) };
 };

@@ -157,10 +157,10 @@ const bodiesFor = async (window) =>
 
 /* The judging rows and what they say about the master declared to drain them, read once for both
    output forms: a machine standing down on the json reads the same evidence a terminal prints. */
-const judgingIn = async (rows, weights) => {
+const judgingIn = async (rows, weights, whole) => {
   const judging = await judgingFrom(rows, { policy: await releasePolicy(), leaseFor: leaseOn,
     cap: weights.windowCap });
-  return judging && !judging.unread ? { ...judging, drain: drainOf(judging, { idle: weights.drainIdle }) } : judging;
+  return judging && !judging.unread ? { ...judging, drain: drainOf(judging, { idle: weights.drainIdle, whole }) } : judging;
 };
 
 const drainJson = (drain) => ({
@@ -169,6 +169,7 @@ const drainJson = (drain) => ({
   evidence: drain.evidence,
   standing: drain.standing,
   leased: drain.leased,
+  whole: drain.whole,
   lastClaimAt: drain.lastClaimAt,
   oldest: drain.oldest,
   idleMinutes: drain.idle,
@@ -352,7 +353,7 @@ export const next = async (argv) => {
     score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive), ...termsOf(row) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
-  const judging = await judgingIn(rows, weights);
+  const judging = await judgingIn(rows, weights, read.whole);
   const runs = measuredRuns(rootFor(asked.checkout ?? process.cwd()));
   const complexities = complexitiesOf(rows);
   const landed = lastLanded(rows);
