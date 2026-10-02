@@ -81,15 +81,16 @@ test("a block holding one escape kind or both as text whose answer keeps exactly
 });
 
 /* Every prose field but the title is sent as a document, the release note's nested half among them. */
-const BODY_FIELDS = [["description"], ["body"], ["plan"], ["acceptanceCriteria"], ["releaseNotes", "userFacing"]];
+const BODY_FIELDS = ["description", "body", "plan", "acceptanceCriteria", "releaseNotes.userFacing"];
 const nested = ([key, ...rest], value) => ({ [key]: rest.length ? nested(rest, value) : value });
 
 test("every prose field but the title, holding a table and a list, posts through the write boundary with the lines it was sent", async (t) => {
   const sent = BODY.trimEnd();
-  for (const path of BODY_FIELDS) {
+  for (const field of BODY_FIELDS) {
+    const path = field.split(".");
     const run = await translatedIn(t, escaping, nested(path, sent), "vi-breaks-write-");
     assert.equal(run.status, 0, run.stderr);
     const posted = path.reduce((held, key) => held[key], JSON.parse(run.stdout));
-    assert.deepEqual(posted.split("\n"), sent.split("\n"), `${path.join(".")} kept its lines`);
+    assert.deepEqual(posted.split("\n"), sent.split("\n"), `${field} kept its lines`);
   }
 });
