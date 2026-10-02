@@ -136,9 +136,7 @@ export const reviewSet = ({ root, named, keys = [], base, readFromParting, held,
   };
 };
 
-/** `--of` with no path beside it: the files that consult recorded are on the record, so a commit
- *  that emptied the turn record costs no retyped list. Kept as recorded rather than read as named
- *  paths, so a deletion committed since stays for the anchor's diff to show (ISS-378). */
+/** The files one answered consult recorded, kept as recorded: what a pinned and a keyed recheck both send. */
 const recordedSet = (one, why, empty) => {
   const files = one.files ?? [];
   if (!files.length) fail(`codex: consult ${one.id} recorded no file, so a recheck of it has no set of its own. ${empty}`);
@@ -150,6 +148,9 @@ const recordedSet = (one, why, empty) => {
   };
 };
 
+/** `--of` with no path beside it: the files that consult recorded are on the record, so a commit
+ *  that emptied the turn record costs no retyped list. Kept as recorded rather than read as named
+ *  paths, so a deletion committed since stays for the anchor's diff to show (ISS-378). */
 const pinnedSet = (pinned) => recordedSet(pinned, `a recheck of ${pinned.id}`, "Name the files it is about.");
 
 /** A recheck naming issues and no file: the set of the newest consult here that named any of them,
@@ -181,6 +182,6 @@ export const digestsAt = (root, judged, sent = []) => {
  *  recheck reads neither the turn record nor the pattern. */
 export const consultSet = (entries, pinned, given, later) => {
   if (pinned && !given.named.length) return pinnedSet(pinned);
-  if (given.recheck && !pinned && !given.named.length && !given.base && given.keys.length) return keyedSet(entries, given.root, given.keys);
+  if (given.recheck && !given.named.length && !given.base && given.keys.length) return keyedSet(entries, given.root, given.keys);
   return reviewSet({ ...given, ...later() });
 };

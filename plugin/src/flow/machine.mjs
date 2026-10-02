@@ -41,9 +41,9 @@ const DECLARED = {
   nofile: { name: "lands no file", required: false, when: "where the whole change lives outside this repository" },
 };
 const NAMES = Object.values(DECLARED).map((one) => one.name);
-const namesWhere = (required) => Object.values(DECLARED).filter((one) => one.required === required).map((one) => one.name);
+const required = Object.values(DECLARED).filter((one) => one.required);
 const optional = Object.values(DECLARED).filter((one) => !one.required);
-const DECLARATIONS_ASK = `each of ${namesWhere(true).join(", ")}, written \`yes\` or \`no\``
+const DECLARATIONS_ASK = `each of ${required.map((one) => one.name).join(", ")}, written \`yes\` or \`no\``
   + optional.map((one) => `, and ${one.name} the same way ${one.when}`).join("");
 /* Markup may stand at the joints — a bold label closing after its colon, or before it, or an emphasised
    value — and nowhere else. One pattern, so the reader and the protector below cannot disagree about

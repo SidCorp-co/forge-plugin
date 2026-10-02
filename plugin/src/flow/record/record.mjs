@@ -469,7 +469,8 @@ const afterWrites = async (documentId, reference, { issue, page, again, posted }
 
 /* The one order in which a refusal costs nothing already written: every payload judged, then the
    uploads, whose scan is of bytes and cannot be judged earlier, then the fields in one update, which
-   caps them all before either is sent, then the comments and the mark. */
+   caps them all before either is sent, then, where a payload asks a question, the lease renewed and
+   the question asked, then the comments and the mark. */
 const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
   const issue = once(() => issueOf(reference));
   const page = once(async () => {

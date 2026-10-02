@@ -24,10 +24,13 @@ const dispatcherHere = (lease) => hostedHere(lease) && runsFor(lease?.holder).le
 
 const atDispatch = (status) => TAKEABLE.includes(String(status));
 
+/* Past the statuses a run is first dispatched at, with a holder that is not this call's own dispatcher: the one condition both the take and its refusal read. */
+const pastDispatch = (context, status) => !atDispatch(status) && !dispatcherHere(leaseOf(context));
+
 /* The one live lease a claim may take, and the fact that licenses it is the caller's own id rather than any judgement about the holder: a run standing in the tree cut for this issue IS the run the issue was dispatched to, and the id ISS-467 gave that tree already names which issue. Until this, a dispatcher's own lease over a triage write was waited out by the runner it had just dispatched — fifteen minutes of a 25-minute lease when this was filed, forty-five of the hour a default one runs now (ISS-1091). Three conditions keep it to the dispatch, each one a case where a live lease is work rather than a hold: the checkpoint governs wherever its state names a turn, so a landing's turns stay `--take`'s alone; past the statuses a run is first dispatched at, the holder has to be this call's own dispatcher by `dispatcherHere`, since a resume is dispatched there too and any other holder there is a run at work; and a holder cut for this same issue is the run the dispatch already reached. */
 export const handedOn = (key, context, status, holder = sessionOf()) => {
   if (!runNames(holder, key)) return false;
-  if (!atDispatch(status) && !dispatcherHere(leaseOf(context))) return false;
+  if (pastDispatch(context, status)) return false;
   if (landingTurn(landingOf(context))) return false;
   return !runNames(leaseOf(context)?.holder, key);
 };
@@ -108,7 +111,7 @@ const giveBackRoute = (ref) => ` Where that holder did dispatch this run and is 
 export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd(), held = sessionSourced()) => {
   const named = String(key).trim().toLowerCase();
   const judging = JUDGING_AT.includes(String(status)) ? judgeRoute(ref, holder, held) : "";
-  if (!atDispatch(status) && !dispatcherHere(leaseOf(context))) {
+  if (pastDispatch(context, status)) {
     return pastSaid(ref, status, leaseOf(context))
       + (runNames(holder, named) ? giveBackRoute(ref) : "") + judging;
   }

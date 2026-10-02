@@ -22,18 +22,20 @@ const inheritedJudge = (held) => held[JUDGE_FROM] === INHERITED;
    verdict count: the rung asks it of a standing verdict and the write asks it before sending one,
    since the page keeps the latest verdict per criterion and this one would replace a judge's
    (ISS-2206). Outside git the builder is the build-time holders as a set (ISS-2402). */
-const writerProblem = (held, landing, holders, outside) => {
+const writerProblem = (held, isBuilder) => {
   if (inheritedJudge(held)) {
     return `carries the judge id \`${held.judge}\`, which the record says the run inherited: `
       + `${INHERITED_MEANS}. ${OWN_ID}`;
   }
-  const built = outside ? holders.includes(held.judge) : held.judge === landing?.builder;
-  return held.judge && built ? `carries the builder's own id \`${held.judge}\`` : null;
+  return held.judge && isBuilder(held.judge) ? `carries the builder's own id \`${held.judge}\`` : null;
 };
+
+const builtBy = (landing) => (judge) => judge === landing?.builder;
+const heldAmong = (holders) => (judge) => holders.includes(judge);
 
 /** The writer half on its own, for `writerChecked`, whose caller has read `asksIndependent` first. */
 export const writerRefusal = (view, held) =>
-  writerProblem(held, view.landing, view.holders ?? [], landsOutsideGit(view.issue));
+  writerProblem(held, landsOutsideGit(view.issue) ? heldAmong(view.holders ?? []) : builtBy(view.landing));
 
 /** Why this verdict earns nothing where the project asks for a second judge, or null where it stands.
  *  The two halves are two sentences: one refusal naming both buries whichever of them is satisfied,
@@ -51,7 +53,7 @@ const whoProblem = (held, landing, holders) => {
   const builder = builderProblem(landing, holders);
   if (builder) return builder;
   if (!held.judge) return "carries no judge, so nothing on it says which session wrote it";
-  const writer = writerProblem(held, landing, holders, false);
+  const writer = writerProblem(held, builtBy(landing));
   if (writer) return writer;
   /* The comparison above answers nothing where there is nothing to compare with. What the record
      still settles is the one case it settles certainly: a history naming this judge and nobody else
@@ -89,7 +91,7 @@ const NO_OUTSIDE_BUILDER = "lands outside git, where no landing checkpoint is wr
 const outsideProblem = (held, holders) => {
   if (!holders.length) return NO_OUTSIDE_BUILDER;
   if (!held.judge) return "carries no judge, so nothing on it says which session wrote it";
-  return writerProblem(held, null, holders, true);
+  return writerProblem(held, heldAmong(holders));
 };
 
 export const judgeProblems = (view) => {
