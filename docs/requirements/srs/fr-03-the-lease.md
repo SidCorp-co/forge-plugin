@@ -504,7 +504,7 @@ a wait no party can end.
   again, because a check that is shown and not held is one a run can skip, and the landing that runs
   it next finds the failure at the landing's price.
 
-- **AC-03-6-28** · Rev: 1 · Proof: tools/test/run/landing/auto-release.test.mjs "a release the project makes without a person is closed by the landing that made it"
+- **AC-03-6-28** · Rev: 1 · Proof: tools/test/run/landing/release-policy/auto-release.test.mjs "a release the project makes without a person is closed by the landing that made it"
   WHEN a records turn has been handed back and the statuses its record earns carry the issue as far
   as the project's release allows THEN the CLI SHALL move those statuses and leave the checkpoint in
   the state that names no turn, because the landing's turn that hand-back returns to holds nothing

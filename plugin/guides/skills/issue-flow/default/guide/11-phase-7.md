@@ -18,10 +18,11 @@ order: a note published before the change ships announces what has not happened,
 what other people's queries filter on, so it moves last. What the move is owed:
 `forge guide contract awaiting_release`.
 
-**Then close it, in this phase**, where the project's release owes a person nothing. A run that
-stops on `awaiting_release` under a release that has already happened has handed a person the one
-keystroke this workflow exists to take over. Where a person still owes that release an act, the
-issue rests at the rung and the close is theirs. Which of the two this project is, is the release
+**Then close it, in this phase**, where the project's release owes nothing more. A run that stops on
+`awaiting_release` under a release that has already happened has handed a person the one keystroke
+this workflow exists to take over. Where a person still owes that release an act, the issue rests at
+the rung and the close is theirs; where the release is the batch that promotes the change, the issue
+rests there for that batch, which makes the close. Which of the three this project is, is the release
 policy's answer and never the ship mode's, and `forge resume ISS-nn --report` prints it there. Where
 the contract hands the issue to somebody instead, a park or a reopen, it stays where it is and the
 report says which.
@@ -54,8 +55,9 @@ before the promotion or after it is the project's landing route, which Phase 0 r
 
 **The statuses past the judging rung are the landing's, not this run's**, because the release they
 answer for does not exist while this phase runs. The landing walks as far as the record earns and
-the project's release allows: to `closed` where that release owes a person nothing, and to
-`awaiting_release` where a person still owes it an act, which is a stop by decision and not a gap.
+the project's release allows: to `closed` where that release owes nothing more, and to
+`awaiting_release` where a person still owes it an act or the batch that promotes the change has yet
+to make it, which is a stop by decision and not a gap.
 So leave the Phase 6 note on the issue, which is what those last rungs are earned by, and let the
 report say the statuses are the landing's rather than reporting them moved.
 <!-- forge:end -->

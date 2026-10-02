@@ -195,29 +195,54 @@ const promotion = (policy) => (policy.staging
   ? `the promotion from ${policy.staging} to ${policy.live}`
   : `the promotion to ${policy.live}`);
 
-/* What a person still owes before an issue at the closing rung may close and what would take them out of it, in one walk rather than two: a refusal wording the gap differently from the report it was sent to read is the whole of ISS-1918, and two walks are where that starts. Null where nothing is owed. Not `waitsForPerson` above, which asks whether one is shown the change before it goes out and answers no for any pair of distinct branches: reading it here would close an issue whose promotion nobody had made. Silence is a person's, never an automatic release (ISS-1147). */
+/** Whose act a held closing rung waits for: a person's, or the release batch that promotes the change
+ *  and closes the issue on the tracker's own path. Every reader of the answer branches on this and
+ *  never on the sentence. */
+export const BY_PERSON = "person";
+export const BY_BATCH = "batch";
+
+/* What is still owed before an issue at the closing rung may close, whose act it is and what would take the rung out of it, in one walk rather than two: a refusal wording the gap differently from the report it was sent to read is the whole of ISS-1918, and two walks are where that starts. Null where nothing is owed. Not `waitsForPerson` above, which asks whether one is shown the change before it goes out and answers no for any pair of distinct branches: reading it here would close an issue whose promotion nobody had made. Silence is a person's, never an automatic release (ISS-1147). */
 export const releaseOwedOf = (policy) => {
   const why = policyUnread(policy);
   if (why) {
     return {
+      by: BY_PERSON,
       owed: `${UNREAD_CONFIG}, so nothing here says a release happened: ${firstLine(why)}`,
       clears: "the read answering is what settles this, and no change to the project would",
     };
   }
   if (!policy) {
     return {
+      by: BY_PERSON,
       owed: "this checkout names no project, so nothing here says a release happened",
       clears: "a checkout naming its project is what settles this",
     };
   }
   if (!readable(policy)) {
     const held = unreadable(policy);
-    return { owed: held.owed, clears: `${held.clears}${SETTINGS_SCREEN}` };
+    return { by: BY_PERSON, owed: held.owed, clears: `${held.clears}${SETTINGS_SCREEN}` };
   }
   /* The one model that owes nobody anything here: it declares there is no release step, so a change
      that has landed and been verified is out, and the rung it would rest at is over (G-11). */
-  if (policy.model === NO_RELEASE || policy.autoProd) return null;
+  if (policy.model === NO_RELEASE) return null;
+  /* An automatic production deploy under promotion deploys the live branch and moves nothing onto
+     it: the move is the release batch's, and the tracker cuts one only from issues still resting at
+     the rung, so a run closing here takes the issue out of the release that would have shipped it
+     (ISS-2409). Nobody is owed an act; the release itself still is. */
+  if (policy.model === PROMOTE && policy.autoProd) {
+    return {
+      by: BY_BATCH,
+      owed: `${promotion(policy)}${policy.strategy ? `, by ${policy.strategy},` : ""} is the release `
+        + `batch's: production deploys ${policy.live} on its own and moves nothing onto it, and the `
+        + "tracker cuts a batch only for an issue still resting at this rung",
+      clears: "the batch that promotes the change closes the issue itself, naming that release; a "
+        + "promotion made outside a batch closes it once it is recorded",
+    };
+  }
+  /* A publication the project makes without being asked was the release. */
+  if (policy.autoProd) return null;
   return {
+    by: BY_PERSON,
     owed: policy.model === PROMOTE
       ? `${promotion(policy)}${policy.strategy ? `, by ${policy.strategy},` : ""} is a person's`
       : "the release is an act on this project's live deploy binding, and nothing here says it has "
@@ -225,9 +250,6 @@ export const releaseOwedOf = (policy) => {
     clears: "a production that deploys on its own is what would take a person out of this rung",
   };
 };
-
-/** The half of that answer a reader prints on its own: what is owed, in the words every reading of this project uses for it. */
-export const personOwedForRelease = (policy) => releaseOwedOf(policy)?.owed ?? null;
 
 /* The declaration behind a policy that owes nobody, which the walk above has no branch for: it stops
    at null, and a reader handed only that cannot tell a policy this CLI read from one it never

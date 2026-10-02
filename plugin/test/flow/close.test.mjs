@@ -11,8 +11,10 @@ process.env.XDG_CONFIG_HOME = tempHome("close").path;
 const { render } = await import("../../src/flow/record/page.mjs");
 const { CLOSES_FROM } = await import("../../src/flow/machine.mjs");
 const { CHECKS, nextOf, viewFrom } = await import("../../src/flow/earned.mjs");
-const { personOwedForRelease, releaseFrom, unreadFrom } =
+const { releaseFrom, releaseOwedOf, unreadFrom } =
   await import("../../src/tracker/project-config.mjs");
+/* The sentence half of the policy's answer, which the refusal and the report both print. */
+const personOwedForRelease = (policy) => releaseOwedOf(policy)?.owed ?? null;
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const fenced = (text) =>
@@ -27,6 +29,9 @@ const DECLARES_NO_MODEL = { baseBranch: "master", pipelineConfig: { autoProdDepl
 const NO_RELEASE_STEP = { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } };
 const PROMOTES = { baseBranch: "master", releaseModel: "promote", liveBranch: "live",
   pipelineConfig: { autoProdDeploy: false } };
+/* The configuration ISS-2409 was met in: production deploys the live branch on its own, and the move
+   onto it is the release batch's. */
+const PROMOTES_ITSELF = { ...PROMOTES, pipelineConfig: { autoProdDeploy: true } };
 /* A verification naming a deployment, so every case below about the release policy is not also a
    case about the half ISS-1480 added: presence and a deployment named, never a bare commit sha. Read
    by `viewFrom` directly and not through the tracker fetch that strips the untrusted-data fence, so
@@ -57,24 +62,26 @@ test("each state of the release policy names its own gap and its own way out of 
     viewFrom("the-uuid", { status: CLOSES_FROM }, [], null, unreadFrom("the tracker said no")),
     "ISS-3")[0]?.what;
   const promoting = said(PROMOTES);
+  const batch = said(PROMOTES_ITSELF);
   const unnamed = said({ ...PROMOTES, liveBranch: null });
   const unknown = said({ ...DECLARES_NO_MODEL, releaseModel: "hand-carried" });
   assert.match(person, /the release is an act on this project's/u, person);
   assert.match(person, /a production that deploys on its own/u, person);
   assert.match(promoting, /the promotion from master to live is a person's/u, promoting);
+  assert.match(batch, /the promotion from master to live is the release batch's/u, batch);
   assert.match(unnamed, /the live branch is unset under a model/u, unnamed);
   assert.match(unset, /declares no release model/u, unset);
   assert.match(unknown, /declares the release model `hand-carried`, which this CLI does not know/u, unknown);
   assert.match(unset, /declared on the tracker's own project settings screen/u, unset);
   assert.match(none, /this checkout names no project/u, none);
   assert.match(unread, /the tracker said no/u, unread);
-  assert.equal(new Set([person, promoting, unnamed, unset, unknown, none, unread]).size, 7,
+  assert.equal(new Set([person, promoting, batch, unnamed, unset, unknown, none, unread]).size, 8,
     "two states answered alike");
   assert.deepEqual(owedOn(NO_RELEASE_STEP), [],
     "and the model declaring there is no release step owes nothing, whatever the flag says");
   assert.deepEqual(owedOn({ ...NO_RELEASE_STEP, pipelineConfig: { autoProdDeploy: false } }), []);
   for (const [config, what] of [[OWES_A_PERSON, person], [DECLARES_NO_MODEL, unset],
-    [PROMOTES, promoting]]) {
+    [PROMOTES, promoting], [PROMOTES_ITSELF, batch]]) {
     assert.ok(what.includes(personOwedForRelease(releaseFrom(config))),
       `the refusal words the gap differently from the report: ${what}`);
   }
@@ -290,19 +297,27 @@ test("a project declaring no release step closes in the run that landed the chan
   assert.deepEqual(wrote("none-uuid"), [], "and nothing was written to earn it");
 });
 
-/* The promoting model each way on the flag: the promotion is the act, and a project that makes it
-   without being asked leaves nobody one. */
-test("a promotion nothing automates refuses the close, and one the project makes itself does not", async () => {
+/* The promoting model each way on the flag. With nothing automated the promotion is a person's act,
+   and the person who made it sets the close. With production deploying on its own the act is still
+   owed, by the release batch the tracker cuts only from issues resting at the rung, so the close is
+   refused there too: a run closing it takes the issue out of the release that would ship it (ISS-2409). */
+test("a promotion the project deploys on its own waits for the release batch, and names the record that closes it", async () => {
   state.config = PROMOTES;
   await claimed("ISS-104");
   const refused = await ranAsync(FORGE, ["advance", "ISS-104"], ENV);
   assert.equal(refused.status, 1, refused.stdout);
-  assert.match(refused.stdout, /the promotion from master to live is a person's/u, refused.stdout);
+  assert.match(refused.stdout, /the release is a person's and nothing here says they have made it: the promotion from master to live is a person's/u, refused.stdout);
+  assert.match(refused.stdout, /forge advance ISS-104 --set closed --why/u, refused.stdout);
   assert.deepEqual(moved("promote-uuid"), []);
-  state.config = { ...PROMOTES, pipelineConfig: { autoProdDeploy: true } };
+  state.config = PROMOTES_ITSELF;
   const run = await ranAsync(FORGE, ["advance", "ISS-104"], ENV);
-  assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(moved("promote-uuid").map((one) => one.args.data.status), ["closed"]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stdout, /the release is the release batch's and nothing here says it has been made: the promotion from master to live is the release batch's/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /is a person's/u, `the rung waits for no person:\n${run.stdout}`);
+  assert.match(run.stdout, /forge release-batch record ISS-104 --commit <the sha the live branch serves> --account "/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /--set closed/u, `a set is the person's route, and nobody owes one here:\n${run.stdout}`);
+  assert.deepEqual(moved("promote-uuid"), [], "the close the release batch is owed was made by the run");
+  assert.equal(state.issues.find((one) => one.issueId === "ISS-104").status, CLOSES_FROM);
 });
 
 /* The other caller of the same check: a record write ends by saying what the next status is owed, and

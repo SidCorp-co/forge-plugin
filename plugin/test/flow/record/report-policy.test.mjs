@@ -10,8 +10,9 @@ import { ranAsync, tempRoom } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("report-policy-");
-const { personOwedForRelease, projectRows, releaseAnswer, releaseFrom } =
+const { projectRows, releaseAnswer, releaseFrom, releaseOwedOf } =
   await import("../../../src/tracker/project-config.mjs");
+const personOwedForRelease = (policy) => releaseOwedOf(policy)?.owed ?? null;
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const standing = (status, number) => ({
@@ -26,6 +27,8 @@ const ISSUES = [standing("in_progress", 3), standing("awaiting_release", 4), sta
 const NO_RELEASE_STEP = { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } };
 const PUBLISHES_ITSELF = { ...NO_RELEASE_STEP, releaseModel: "publish" };
 const OWES_A_PERSON = { ...PUBLISHES_ITSELF, pipelineConfig: { autoProdDeploy: false } };
+const PROMOTES_ITSELF = { baseBranch: "staging", releaseModel: "promote", liveBranch: "master",
+  pipelineConfig: { autoProdDeploy: true } };
 const project = {
   calls: [],
   config: NO_RELEASE_STEP,
@@ -106,4 +109,20 @@ test("where the policy owes a person, the act is named once and on the policy's 
   assert.match(closing, /^Owed: the release,/mu, closing);
   assert.match(closing, /The line above says whose act it is/u, "the closing line points at the policy's");
   assert.match(closing, /^ {2}forge advance ISS-4 --set closed --why "<[^"]+>"$/mu, closing);
+});
+
+/* ISS-2409: a promotion whose deploy is automatic still waits for the release that moves the change
+   onto the live branch, and that release is the batch's, which closes the issue itself. A run reading
+   `Owed: the close` there closed every issue the batch would have shipped. */
+test("on a promotion the project deploys on its own, the report hands the close to the release batch", async () => {
+  project.config = PROMOTES_ITSELF;
+  const line = await policyLine("ISS-3");
+  assert.match(line, /the promotion from staging to master is the release batch's/u, line);
+  assert.doesNotMatch(line, /nobody owes this release an act/u, line);
+  const closing = await reported("ISS-4");
+  assert.match(closing, /^Owed: the release, which is the release batch's and not a person's\./mu, closing);
+  assert.match(closing, /this run ends at awaiting_release and the close is the batch's/u, closing);
+  assert.doesNotMatch(closing, /^Owed: the close\./mu, `the run is told to close what the batch closes:\n${closing}`);
+  assert.match(closing, /^ {2}forge release-batch record ISS-4 --commit <[^>]+> --account "<[^"]+>"$/mu, closing);
+  assert.doesNotMatch(closing, /--set closed/u, closing);
 });

@@ -7,8 +7,8 @@ import { Refusal, landingScope, refusing } from "../../resolve/settings.mjs";
 import { Refused } from "../../refusal.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
-import { judgementOf, landingRoute, personOwedForRelease, releasePolicy } from "../../tracker/project-config.mjs";
-import { CLOSES_AT, ORDER, atLeast, setForm } from "../earned.mjs";
+import { BY_BATCH, judgementOf, landingRoute, releaseOwedOf, releasePolicy } from "../../tracker/project-config.mjs";
+import { ORDER, atLeast, closeForm, whoseRelease } from "../earned.mjs";
 import { CLOSES_FROM } from "../machine.mjs";
 import { landingSaved, oweRelease } from "../lease.mjs";
 import { INDEPENDENT } from "../qa/verdicts.mjs";
@@ -21,7 +21,8 @@ const RUNGS = ORDER.slice(ORDER.indexOf(DEVELOPED) + 1);
 export const [JUDGED] = RUNGS;
 const BEFORE_MERGE = "before-merge";
 
-/* How far a walk goes: through the close only where the release owes a person no act (ISS-1147). */
+/* How far a walk goes: through the close only where the release owes nothing, neither a person's act
+   (ISS-1147) nor the batch that promotes the change (ISS-2409). */
 const walkedWhere = (owed) => (owed ? RUNGS.slice(0, RUNGS.indexOf(CLOSES_FROM) + 1) : RUNGS);
 
 const direct = (run) => run();
@@ -84,17 +85,21 @@ export const OWED_TO_QA = (key, landing, what) =>
   + `    forge claim ${key} --take\n`
   + `    ... the verdicts, then: forge claim ${key} --judged`;
 
-export const restsSaid = (key, owed) =>
-  `  ${key} rests at \`${CLOSES_FROM}\`: ${owed}, so the close is theirs and not this landing's. `
-  + `Once the release is out, set rather than advanced, that same policy being what \`closed\` is `
-  + `entered on:\n    ${setForm(key, CLOSES_AT)}`;
+/** What a walk that stopped at the rung says, by whose act the policy's answer `held` waits for. */
+export const restsSaid = (key, held) => (held.by === BY_BATCH
+  ? `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is ${whoseRelease(held)} and not `
+    + `this landing's, made by the release that promotes the change. A promotion made outside a batch `
+    + `is recorded instead, and the record closes it:\n    ${closeForm(key, held)}`
+  : `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is theirs and not this landing's. `
+    + `Once the release is out, set rather than advanced, that same policy being what \`closed\` is `
+    + `entered on:\n    ${closeForm(key, held)}`);
 
 /** The walk a records turn ends on, off the checkpoint the hand-back just wrote: the landing's own
  *  status step would run nothing else, so where the record earns every rung left the landing ends
  *  here, and where a judge is owed the turn goes to the judge. Returns the checkpoint it left. */
 export const recordsWalked = async (documentId, ref, landing) => {
   const policy = await releasePolicy();
-  const owed = personOwedForRelease(policy);
+  const owed = releaseOwedOf(policy);
   const out = await walkEarned({
     key: ref, documentId, landing, owed, intended: landing.intended,
     route: landingRoute(policy, landingScope()).value, judgement: judgementOf(policy),

@@ -8,8 +8,9 @@ import test from "node:test";
 import { tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("release-switch").path;
-const { landingRoute, personOwedForRelease, releaseFrom, waitsForPerson } =
+const { landingRoute, releaseFrom, releaseOwedOf, waitsForPerson } =
   await import("../../src/tracker/project-config.mjs");
+const personOwedForRelease = (held) => releaseOwedOf(held)?.owed ?? null;
 const { render } = await import("../../src/flow/record/page.mjs");
 const { deployedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 
