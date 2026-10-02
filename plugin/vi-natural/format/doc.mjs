@@ -168,10 +168,36 @@ const hashes = (text) => text.trimStart().length - text.trimStart().replace(/^#+
 /** The first marker-shaped token in a translation that is neither a sentinel nor the tracker's fence, or null. */
 const strayMarker = (translated) => (translated.match(MARKER_SHAPED) ?? []).find((token) => !OWN_MARKER.test(token)) ?? null;
 
+/* A block reaches the model as a JSON string, and a model answering in kind wrote each line break inside
+   it as the escape, so a table came back one line long with `\n` between its rows (ISS-2331). The
+   placeholder check counts these two escapes as tokens, and a block is held to the same count of each. */
+const ESCAPES = { n: "\n", t: "\t" };
+const escapes = (text, letter) => text.split(`\\${letter}`).length - 1;
+
+/** The candidate with each escape kind written as the character it encodes, where the block it answers
+ *  holds none of that kind as text: there an escape is the model's encoding and never its wording. A
+ *  source holding one is left to `verify`, since which of the candidate's is the text cannot be told. */
+export function decodedBreaks(source, translated) {
+  return Object.entries(ESCAPES).reduce(
+    (text, [letter, character]) => (escapes(source, letter) ? text : text.replaceAll(`\\${letter}`, character)),
+    translated,
+  );
+}
+
+/** Each escape kind whose count the candidate does not keep, named with both counts, or null. */
+const escapeDrift = (source, translated) => {
+  const moved = Object.keys(ESCAPES)
+    .filter((letter) => escapes(source, letter) !== escapes(translated, letter))
+    .map((letter) => `${escapes(translated, letter)} \\${letter} escape(s) where the source holds ${escapes(source, letter)}`);
+  return moved.length ? `holds ${moved.join(" and ")}; write a line break or a tab as itself` : null;
+};
+
 /** What a Markdown block must keep: its sentinels and no marker it was not given, and every target a `](` opens — a titled link is one the closed form reads nothing from. */
 export function verify(source, translated) {
   const stray = strayMarker(translated);
   if (stray) return `marker-shaped token ${stray} is no placeholder this block was given`;
+  const drifted = escapeDrift(source, translated);
+  if (drifted) return drifted;
   if (String(found(source, SENTINEL)) !== String(found(translated, SENTINEL))) {
     return "code span or placeholder token lost";
   }

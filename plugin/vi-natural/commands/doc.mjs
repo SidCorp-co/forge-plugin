@@ -114,7 +114,10 @@ export async function doc(args, makeClient) {
     glossary,
     temperature: args.temperature,
     verbose: args.verbose,
-    verify: (source, got) => markdown.verify(source, got) ?? drift.diff(source, got) ?? figures.diff(source, got),
+    verify: (source, answered) => {
+      const got = markdown.decodedBreaks(source, answered);
+      return markdown.verify(source, got) ?? drift.diff(source, got) ?? figures.diff(source, got);
+    },
     register: config.register(),
     region: config.region(),
     contexts,
@@ -123,8 +126,9 @@ export async function doc(args, makeClient) {
   // Blocks that failed verification keep their English original, which is already sitting in
   // `pieces` — only the successful ones get replaced.
   const out = [...pieces];
+  const sent = new Map(items);
   for (const [key, translated] of results) {
-    out[indexMap.get(key)] = ["text", markdown.restoreInline(translated, slots)];
+    out[indexMap.get(key)] = ["text", markdown.restoreInline(markdown.decodedBreaks(sent.get(key), translated), slots)];
   }
   writeFileSync(outPath, out.map(([, block]) => block).join(""), "utf8");
 
