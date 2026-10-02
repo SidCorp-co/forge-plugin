@@ -32,9 +32,9 @@ export const MECHANISM =
   + "enforce it, the write is compared after the fact instead, which cannot stop another run's write "
   + "and only refuses to build on it.";
 
-export const GAVE_BACK = "This call gave the lease back, so this run holds nothing on the issue and the next "
+const GAVE_BACK = "This call gave the lease back, so this run holds nothing on the issue and the next "
   + "claim takes it with no wait.";
-export const GOES_BACK = "This run's lease is given back as this call ends, and the line printed then says "
+const GOES_BACK = "This run's lease is given back as this call ends, and the line printed then says "
   + "whether it was.";
 
 /** And what this endpoint answered, which only a write can have learned, so this is the claim's own line and never the usage's. */
