@@ -1,5 +1,5 @@
 /* The lease a dispatched run may take from the session that dispatched it, and the sentences that say
-   which of the four conditions refused a claim that could not. docs/cli/the-short-lease.md. */
+   which of the four conditions refused a claim that could not. docs/cli/the-dispatched-take.md. */
 import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced } from "../../resolve/config.mjs";
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames, runsFor } from "../../resolve/session/run-id.mjs";
