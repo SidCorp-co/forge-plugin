@@ -208,7 +208,7 @@ a release started standing under that release.
   is another run's which the record does not prove gone, THEN the CLI SHALL post the verdict as a
   judge's write under the caller's id, SHALL leave that lease exactly as it stood, SHALL move no
   status, and SHALL name the move the verdict earned as the holder's.
-- **AC-03-2-18** · Rev: 1 · Proof: plugin/test/flow/claim/resumed-claim.test.mjs "a run resumed at in_progress takes the lease its dispatcher holds from the same host process"
+- **AC-03-2-18** · Rev: 1 · Proof: plugin/test/flow/lease/resumed-claim.test.mjs "a run resumed at in_progress takes the lease its dispatcher holds from the same host process"
   IF the issue is past the statuses a run is dispatched at, and its live lease was written from the
   claiming call's own host process on the claiming call's own host under an id that names no run, and
   the claiming run is the one the issue was dispatched to, and no landing checkpoint on it names a
