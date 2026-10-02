@@ -2026,12 +2026,20 @@
       "digest": "f2dcd93d42516030e2f44624ce488125f0bc64d3e155fe5e7bf5d7d99aa2eec4"
     },
     "AC-03-4-5": {
-      "rev": 1,
-      "digest": "b50cd9b487546f3f2379613f846adc1bb694aeac49671d6daef116c6249cc193"
+      "rev": 2,
+      "digest": "e5a37461b0c54d1827859f6ee39168db6529543fc2e3257738e2a729adf510bf"
     },
     "AC-03-4-6": {
       "rev": 1,
       "digest": "2dd0bf32450ee88ebbb0654ee00e8cb334619583eac2f75815c9819ba18e4858"
+    },
+    "AC-03-4-7": {
+      "rev": 1,
+      "digest": "7d26a67d02f19ae0ac1034fb25a2bfbd3f43d6ba2978ba055c3b5d8db4def3bf"
+    },
+    "AC-03-4-8": {
+      "rev": 1,
+      "digest": "1becfd7f68d60a81d6c5d12d4b680a09a541d287e74656410e74ad15f72ddd08"
     },
     "UC-03-5": {
       "rev": 1,

@@ -317,16 +317,23 @@ the park that would set the issue down for a person, and the caller decides.
 - **AC-03-4-4** · Rev: 1 · Proof: none yet — ISS-35
   WHEN a crash park is written THEN it SHALL carry the claim history as typed evidence rather than
   as prose in its reason.
-- **AC-03-4-5** · Rev: 1 · Proof: plugin/test/flow/lease/reading-reclaim.test.mjs "a reclaim over a lease that declared nothing was worked is named and not counted"
+- **AC-03-4-5** · Rev: 2 · Proof: plugin/test/flow/lease/reading-reclaim.test.mjs "a reclaim over a lease that declared nothing was worked is named and not counted"
   IF a reclaim went over a lease whose own line declared that nothing was worked under it THEN the
   CLI SHALL leave that reclaim out of the count it names and SHALL say so beside it in the claim
-  history, and SHALL count every other reclaim as before, since a reading that lapsed is not a run
-  that died.
+  history, since a reading that lapsed is not a run that died.
 - **AC-03-4-6** · Rev: 1 · Proof: plugin/test/flow/lease/reading-reclaim.test.mjs "a new holder does not inherit the line that says nothing was worked"
   IF a new holder claims without naming a next step over a lease whose line declared that nothing
   was worked THEN the CLI SHALL leave the new lease with no line, and SHALL carry any other line
   forward unchanged, since that declaration speaks for the lease that made it and not for one that
   may be worked.
+- **AC-03-4-7** · Rev: 1 · Proof: plugin/test/flow/lease/moved-reclaim.test.mjs "three reclaims each taken after the issue moved on are counted for none"
+  IF a reclaim was taken after the issue's status or landing state changed from where the run it
+  went over took it THEN the CLI SHALL leave that reclaim out of the count it names and SHALL say so
+  beside it in the claim history, since a route that hands an issue between a builder and a judge
+  reclaims on every repair, and a run that moved the issue lost the issue and not the work.
+- **AC-03-4-8** · Rev: 1 · Proof: plugin/test/flow/lease/moved-reclaim.test.mjs "the run named is the one the latest counted reclaim went over, never a newer pickup left out"
+  WHEN the claim names the park THEN it SHALL name the run the latest counted reclaim went over and
+  the line that run left, so the caller judges a run rather than a number.
 
 ### UC-03-5 — One view of what needs attention
 
