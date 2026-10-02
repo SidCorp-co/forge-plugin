@@ -222,7 +222,7 @@ test("a recheck given only the issue key answers the plan's consult, sending the
   writeFileSync(plan, "# Plan\n\n1. Step one serves criterion 1.\n");
   const { status, said, shown } = await forge(room, home, ["consult", "ISS-1", "--recheck", "--rounds", "1"]);
   assert.equal(status, 0, said);
-  assert.match(said, new RegExp(`a recheck of ${consulted.id}, the last consult here to name ISS-1, so the 1 file\\(s\\) it recorded travel\\.`, "u"));
+  assert.ok(said.includes(`a recheck of ${consulted.id}, the last consult here to name ISS-1, so the 1 file(s) it recorded travel.`), said);
   assert.ok(shown.includes("Step one serves criterion 1."), "the plan's body as it reads now reached the reviewer");
   assert.match(shown, /Your earlier finding F1 still stands/u, "and the finding anchored on its bare name went with it");
   const verdict = rowsOf(home).find((one) => one.kind === "verdict");
