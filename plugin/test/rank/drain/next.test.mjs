@@ -3,8 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { declaring, issue, rankRoom } from "./room.mjs";
-import { drainOf, evidenceSaid } from "../../src/rank/drain.mjs";
+import { declaring, issue, rankRoom } from "../room.mjs";
+import { drainOf, evidenceSaid } from "../../../src/rank/drain.mjs";
 
 const { load, ran, state, close } = await rankRoom();
 test.after(close);
