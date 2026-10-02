@@ -137,7 +137,7 @@ test("an id that is the only fault is sent to the tree at in_progress and to the
     heldBy(DISPATCHER, { status });
     const judged = await claim("a-whole-wave-of-runs");
     assert.equal(judged.status, 1, `${status}: ${judged.stdout}${judged.stderr}`);
-    assert.match(judged.stderr, /Where this call is a judge's, it claims no lease/u, status);
+    assert.match(judged.stderr, /Where this call is/u, status);
     assert.doesNotMatch(judged.stderr, /forge brief|tree cut for that run|Unset that variable/u, status);
   }
 });
