@@ -40,6 +40,7 @@ import { tallied } from "./thread/tally.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { answerChecked } from "../park/answer.mjs";
+import { askPrepared } from "../park/asked.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
 import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
 import { writerChecked } from "./judged/writer.mjs";
@@ -446,7 +447,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
   return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: renderedWithin(kind, blocks, stamp, { reference, uploads: plan?.upload }),
-    tallied: tallied(kind, reference, blocks) };
+    tallied: tallied(kind, reference, blocks), ask: askPrepared(kind, blocks, { documentId, title: body.title, reference }) };
 };
 
 const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
@@ -554,6 +555,8 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   const finder = prepared.every((one) => SHAPES[one.kind]?.finder);
   const noted = finder || judged ? async () => {} : scopeNoted;
   await noted(documentId, reference, issue, comments);
+  /* A question is asked before its record goes up, so an ask the tracker refuses leaves no comment claiming it. */
+  for (const one of prepared) await one.ask?.();
   /* A payload's record, then its note — a comment of its own, which no record's parse has to read past. */
   for (const body of prepared.flatMap((one) => [one.rendered, one.noted]).filter((said) => said !== undefined)) {
     const answer = await post(documentId, body, { ref: reference, next, patch, finder, judged: Boolean(judged) });

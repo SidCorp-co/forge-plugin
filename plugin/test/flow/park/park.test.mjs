@@ -299,7 +299,7 @@ test("a needs_info park writes its record first, because a record under the move
   Object.assign(MOVING, { status: "confirmed" });
   state.comments["moving-uuid"] = [];
   const asked = await ranAsync(FORGE, ["record", "question", "ISS-98", "--reading",
-    "the park set the status -> resume by its left", "--reading", "an earlier move set it -> refuse"], ENV);
+    "the park set the status -> resume by its left", "--reading", "an earlier move set it -> refuse", "--recommend", "1"], ENV);
   assert.equal(asked.status, 0, `${asked.stdout}${asked.stderr}`);
   state.calls.length = 0;
   const run = await ranAsync(FORGE, ["advance", "ISS-98", "--park", "question", "--why",
@@ -326,7 +326,7 @@ const readied = async (...readings) => {
   const held = readings.length ? readings
     : ["the park set the status -> resume by its left", "an earlier move set it -> refuse"];
   const run = await ranAsync(FORGE, ["record", "question", "ISS-98",
-    ...held.flatMap((one) => ["--reading", one])], ENV);
+    ...held.flatMap((one) => ["--reading", one]), "--recommend", "1"], ENV);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   state.calls.length = 0;
 };
@@ -418,7 +418,8 @@ test("a needs over the cap the transition body takes is refused with nothing sen
 });
 
 test("a derived needs over that cap is refused, and the refusal costs no write", async () => {
-  await readied(`${"alpha ".repeat(200)}-> ${"outcome ".repeat(200)}`, "the short reading -> the short outcome");
+  /* Five readings each inside the option label a question may carry, together over the needs cap. */
+  await readied(...Array.from({ length: 5 }, (_, at) => `reading ${at} ${"alpha ".repeat(70)}-> ${"outcome ".repeat(5)}`));
   const run = await asked("ISS-98");
   assert.equal(run.status, 1, run.stdout);
   const wrote = state.calls.filter((one) =>

@@ -46,7 +46,9 @@ export const VERBS = [
   ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind",
     "forge_issues", { group: FLOW, wraps: {
       mark_merged: "`forge record merged`",
-      unmark: "`forge record merged --undo`" } }],
+      unmark: "`forge record merged --undo`",
+      "forge_questions.ask": "`forge record question`",
+      "forge_questions.list": "`forge record question`" } }],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes",
     "forge_issues", { group: FLOW, wraps: { transition: "`forge advance`" } }],
   /* Another tool's route by its whole key: this verb owns none of its own. */

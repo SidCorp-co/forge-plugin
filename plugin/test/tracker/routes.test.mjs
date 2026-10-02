@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, ISSUE_PARTS, ROUTES, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
+import { DECLARES, ISSUE_PARTS, ROUTES, declaredFor, answersOf, asToolCall, keyOf, partsAmong, rowFor, served }
   from "../../src/tracker/routes.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
 import { CHOSEN, staleDeclarations } from "../../src/tracker/declared/name-join.mjs";
@@ -74,7 +74,10 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
      fields off the row it gets rather than pinning a transport-level shape (ISS-1484). */
   "forge_release_batch.active", "forge_release_batch.state", "forge_release_batch.abort",
   "forge_release_batch.readiness", "forge_release_batch.roster", "forge_release_batch.create",
-  "forge_release_batch.finish", "forge_release_batch.record", "forge_release_batch.recorded"];
+  "forge_release_batch.finish", "forge_release_batch.record", "forge_release_batch.recorded",
+  /* Core's question row, the same reason again: `forge record question` reads its id, its status and
+     its options' labels off the row and nothing else (ISS-2317). */
+  "forge_questions.list", "forge_questions.ask"];
 
 const PAIRS = {
   "issues-get": {
@@ -576,5 +579,26 @@ describe("the request a transition makes", () => {
   it("leaves out a field the caller did not set, so an absent needs is an absent key", () => {
     const sent = row.requests({ documentId: "u-1", data: { status: "waiting", reason: "why it stopped" } }).page;
     assert.deepEqual(Object.keys(sent.body).sort(), ["reason", "toStatus"]);
+  });
+});
+
+/* The two question routes answer their rows whole, so the projection check above says nothing of
+   them; what `forge record question` depends on is the request, held here (ISS-2317). */
+describe("the requests a question makes", () => {
+  it("lists an issue's questions by the issue's id, and asks one with the payload as built", () => {
+    const listed = ROUTES["forge_questions.list"].requests({ issueId: "u-1" }).page;
+    assert.equal(listed.method ?? "GET", "GET");
+    assert.equal(listed.path, "/questions?issueId=u-1");
+    const data = { issueId: "u-1", prompt: "which?", recommendedOptionId: "reading-1", options: [
+      { id: "reading-1", label: "keep it -> nothing moves", authority: "writer", bindsTo: "session", executedBy: "agent" }] };
+    const sent = ROUTES["forge_questions.ask"].requests({ data }).page;
+    assert.equal(sent.method, "POST");
+    assert.equal(sent.path, "/questions");
+    assert.deepEqual(sent.body, data);
+  });
+
+  it("declares the ask route's caps as its schema states them", () => {
+    assert.deepEqual(Object.fromEntries(Object.entries(declaredFor("forge_questions", "caps"))
+      .map(([name, cap]) => [name, cap.self])), { prompt: 8000, label: 500, options: 10 });
   });
 });

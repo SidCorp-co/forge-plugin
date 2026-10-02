@@ -28,6 +28,7 @@ how many topics there may be.
 | [`record merged` — the commit field](cli/record-merged-the-commit.md) | Why the mark sends its commit as the tracker's own field, what an empty field means where the tracker takes only a commit it observed, and why a stamp already standing refuses a second mark before it is sent. |
 | [`record verdict` — the judge's write](cli/record-the-judge.md) | Why a verdict is the one record written past another run's lease, what it leaves of that lease and of the status, and why the id it goes up under has to be the caller's own. |
 | [`record` — a rung in one call](cli/record-the-rung.md) | The pair counts behind `--also`, the order a call writes in, and why the move is a cited kind's alone. |
+| [`record question` — a question asks somebody](cli/record-question.md) | Why the question kind asks on the issue's own screen rather than only in the thread, why the ask goes before the comment and is reused on a retry, and why the recommendation is owed. |
 | [`record` — a correction names what it corrects](cli/record-corrections.md) | Why the three field kinds refuse a replacement once their status is earned, why one route out, what a replaced value leaves behind, and why a criteria write dropping a held number is refused at any status. |
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |

@@ -211,7 +211,7 @@ const FIELDS_OF = {
   comment: "filters",
   claim: null,
   resume: null,
-  record: null,
+  record: "issueId",
   advance: "documentId",
   spec: "filters, limit, offset",
   attach: "bytes",
