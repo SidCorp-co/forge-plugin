@@ -4,10 +4,16 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-writer").path;
+/* A file the write would upload, so a refusal that came after the uploads would show as a call. */
+const CAPTURE = join(tempHome("verdict-writer-capture").path, "judged.txt");
+writeFileSync(CAPTURE, "what the run looked at\n");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const MASTER = "the-dispatching-master";
@@ -86,6 +92,9 @@ const as = (id, inherited = false) => {
 };
 const said = (run) => `${run.stdout}\n${run.stderr}`;
 const posted = (issue) => state.comments[issue.documentId].length;
+/* Every call a refused write made past `from` that was not a read: an upload, a field, a comment. */
+const writesSince = (from) => (state.calls ?? []).slice(from).filter((one) => one.method !== "GET")
+  .map((one) => `${one.method} ${one.path}`);
 /* The verdict record among what one write posted, which can carry more than that record. */
 const verdictSince = (issue, from) =>
   state.comments[issue.documentId].slice(from).map((one) => one.body).find((body) => /^## Verdict$/mu.test(body)) ?? "";
@@ -105,10 +114,10 @@ before(() => {
 test("an inherited verdict is refused before anything is sent, and the route is the same call under an id of its own", async () => {
   state.config.pipelineConfig = INDEPENDENT;
   inGit.sessionContext.lease = liveLease(MASTER);
-  const before = posted(inGit);
+  const from = state.calls?.length ?? 0;
   const run = await as(MASTER, true)(...VERDICT_GIT);
   assert.equal(run.status, 1, said(run));
-  assert.equal(posted(inGit), before, "nothing reached the tracker");
+  assert.deepEqual(writesSince(from), [], "nothing reached the tracker");
   assert.match(said(run), /carries the judge id `the-dispatching-master`, which the record says the run inherited/u, said(run));
   assert.match(said(run), /Nothing was sent\./u, said(run));
   assert.ok(said(run).includes(`  FORGE_SESSION_ID=<an id of its own> forge ${VERDICT_GIT.join(" ")}`),
@@ -118,10 +127,11 @@ test("an inherited verdict is refused before anything is sent, and the route is 
 test("the builder's own verdict is refused before anything is sent, and the route is the judging rung's read", async () => {
   state.config.pipelineConfig = INDEPENDENT;
   inGit.sessionContext.lease = liveLease(MASTER);
-  const before = posted(inGit);
-  const run = await as(BUILDER)(...VERDICT_GIT);
+  const from = state.calls?.length ?? 0;
+  const run = await as(BUILDER)("record", "verdict", "ISS-9", "--commit", MERGED, "--evidence", CAPTURE,
+    "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(run.status, 1, said(run));
-  assert.equal(posted(inGit), before, "nothing reached the tracker");
+  assert.deepEqual(writesSince(from), [], "no upload, field or comment reached the tracker");
   assert.match(said(run), /carries the builder's own id `the-builder-run`/u, said(run));
   assert.match(said(run), /^ {2}forge advance ISS-9 --owed$/mu, said(run));
 });
@@ -129,11 +139,11 @@ test("the builder's own verdict is refused before anything is sent, and the rout
 test("outside git, a run that held the issue while it was built is refused as the builder", async () => {
   state.config.pipelineConfig = INDEPENDENT;
   outsideGit.sessionContext.lease = liveLease(MASTER, [{ at: AT, how: "write", holder: OUTSIDE_BUILDER, status: "in_progress" }]);
-  const before = posted(outsideGit);
+  const from = state.calls?.length ?? 0;
   const run = await as(OUTSIDE_BUILDER)("record", "verdict", "ISS-10", "--landing", PLACE, "--evidence", DEPLOYED,
     "--verdict", "pass", "--criterion", "1");
   assert.equal(run.status, 1, said(run));
-  assert.equal(posted(outsideGit), before, "nothing reached the tracker");
+  assert.deepEqual(writesSince(from), [], "nothing reached the tracker");
   assert.match(said(run), /carries the builder's own id `the-outside-builder`/u, said(run));
 });
 
