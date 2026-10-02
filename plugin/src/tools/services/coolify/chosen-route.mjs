@@ -3,7 +3,7 @@
    decide is a precedence rule with no undo, and a name in two tables is a fall-through to a
    credential the caller did not choose. A hook loads this file, so it imports nothing that loads
    more than a table. docs/cli/coolify.md. */
-import { configPath, userConfig } from "../../../resolve/config.mjs";
+import { configSource, userConfig } from "../../../resolve/config.mjs";
 import { chosen } from "../../../resolve/settings.mjs";
 import { NO_ROUTE_KEYS } from "../../../tracker/declared/no-route.mjs";
 
@@ -186,7 +186,7 @@ const DEFAULTED = "the plugin's default, this machine having chosen neither";
  *  nothing did, that being the one this machine needs no credential of its own for; a value outside
  *  the two answers the same and is carried as `unknown`, which is what `forge doctor` names. */
 export const coolifyRoute = () =>
-  chosen(userConfig()[ROUTE_KEY], ROUTE_MODES, TRACKER, { source: configPath(), absent: DEFAULTED });
+  chosen(userConfig()[ROUTE_KEY], ROUTE_MODES, TRACKER, { source: configSource(ROUTE_KEY), absent: DEFAULTED });
 
 export const onTracker = () => coolifyRoute().value === TRACKER;
 
@@ -231,6 +231,15 @@ export const INSTANCE_NAMES = INSTANCE_ROWS.map((row) => row.name);
    unable to tell which of the two deployment scopes `--yes` reaches. */
 export const TRACKER_SCOPE = "this project's own binding on the tracker";
 export const INSTANCE_SCOPE = "the saved instance, inside the project this checkout pins";
+
+/** What every refusal on the tracker route ends with: that route as the one answering, where that
+ *  choice was read, and the command that changes it. A refusal that names neither reads as a fact
+ *  about the deployment rather than about the route, which sends a run looking for an application
+ *  that was never gone (ISS-2207). */
+export const trackerRouteLines = () => [
+  `  route answering: ${TRACKER}, ${TRACKER_SCOPE}  ← ${coolifyRoute().from}`,
+  `  the saved instance and its own commands: ${TO_INSTANCE}`,
+];
 
 export const consentRefusal = (name, scope) =>
   `coolify ${name}: a write is refused without --yes, and it would go to ${scope}.\n`

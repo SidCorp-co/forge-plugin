@@ -16,7 +16,7 @@ import { hiddenNames, normalize, redact, rendered, secretsIn, striking, summariz
 import { readArgs } from "./args.mjs";
 import {
   BOTH_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_ROWS, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE,
-  TO_INSTANCE, consentRefusal, onTracker, summaryLines, trackerName,
+  consentRefusal, onTracker, summaryLines, trackerName, trackerRouteLines,
 } from "./chosen-route.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
@@ -173,7 +173,7 @@ const BUILTIN = { login: saveTarget, accounts: showTarget, whoami, pin };
 const onInstance = (name) => Object.hasOwn(BUILTIN, name) || resolveCommand([name]).kind !== "group";
 
 /* Both refusals end here, so the one thing a caller can do about either is on both of them. */
-const said = (lines) => fail(`${lines.join("\n")}\n  the saved instance and its own commands: ${TO_INSTANCE}`);
+const said = (lines) => fail([...lines, ...trackerRouteLines()].join("\n"));
 
 /* Refused before anything is sent, with the sentence the kind `chosen-route.mjs` put the name in
    earns. Each returns, though `fail` does not come back: a reader should not have to know that to

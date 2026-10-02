@@ -31,6 +31,9 @@ export const BORROWED = [
   { key: "anthropic.key", secret: true },
   { key: "coolify.url" },
   { key: "coolify.apiToken", secret: true },
+  /* No credential, and borrowed all the same: it chooses which credential a call spends, and a home
+     reading its own answered over the other route on a machine that chose this one (ISS-2207). */
+  { key: "coolifyRoute" },
   { key: "cloudflare.accounts", secret: true, within: "apiToken" },
 ];
 

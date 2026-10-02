@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
 import { reap } from "../rooms/reap.mjs";
+import { underLock } from "./machine/file-lock.mjs";
 import { BORROW_VAR, borrowing, isBorrowed, overlaid, refuseBorrowedWrite } from "./machine/borrowed.mjs";
 import { idGrantedBy } from "./session/granted-id.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runHeldWhere } from "./session/run-id.mjs";
@@ -45,8 +46,8 @@ export const readJson = (path) => {
   }
 };
 
-/* The home's own file, which is what every write merges onto: merged onto what a reader sees, a write
-   would copy each borrowed credential into the home that borrows it. */
+/* The home's own file as this process read it, which a write refreshes. Never what a reader sees under
+   a borrow: merged onto that, a write would copy each borrowed credential into the home that borrows it. */
 const ownConfig = once(() => readJson(configPath()) ?? {});
 
 /** What every reader takes: the home's own file, and under a borrow the borrowed keys laid over it
@@ -89,18 +90,32 @@ export const writeJsonPrivate = (path, value) => {
   renameSync(temporary, path);
 };
 
-export const saveConfig = (values) => {
+/* A write merges onto the file as it stands at the write, under a lock beside it, and never onto this
+   process's first read of it: `forge doctor` reads at its start, awaits its probes over the network
+   and then records what they answered, and merged onto that first read its write erased every key
+   another process saved in between — a machine's coolify route among them, with nothing saying so
+   (ISS-2207). The lock is not strict, because a strict one never takes a dead holder's and one writer
+   killed mid-write would then refuse every config write on the machine; it waits out the window a
+   quiet holder is given instead, and only past it writes unguarded, leaving the trace that says so. */
+const QUIET_HOLDER_MS = 5_000;
+
+export const saveConfig = (values, settle = (held) => ({ ...held, ...values })) => {
   const borrow = borrowing(configPath());
   if (borrow) refuseBorrowedWrite(values, borrow.path, configPath());
   mkdirSync(configDir("forge"), { recursive: true });
-  const merged = { ...ownConfig(), ...values };
-  writeJsonPrivate(configPath(), merged);
-  Object.assign(ownConfig(), merged);
-  return configPath();
+  return underLock(`${configPath()}.lock`, () => {
+    const merged = settle(readJson(configPath()) ?? {});
+    writeJsonPrivate(configPath(), merged);
+    const memo = ownConfig();
+    for (const key of Object.keys(memo)) delete memo[key];
+    Object.assign(memo, merged);
+    return configPath();
+  }, { waits: QUIET_HOLDER_MS });
 };
 
-/* One key of the config holds an object, and `saveConfig` above merges the top level only — so writing one field of it from a bare object drops every sibling under the same key, which is how a login lost what a login before it had saved. The read, the merge and the save are here, where that limitation is. */
-export const saveNested = (key, values) => saveConfig({ [key]: { ...(ownConfig()[key] ?? {}), ...values } });
+/* One key of the config holds an object, and a top-level merge writing one field of it from a bare object drops every sibling under the same key, which is how a login lost what a login before it had saved. */
+export const saveNested = (key, values) =>
+  saveConfig({ [key]: values }, (held) => ({ ...held, [key]: { ...(held[key] ?? {}), ...values } }));
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
 export const sessionPath = () => join(configDir("forge"), "session.json");
