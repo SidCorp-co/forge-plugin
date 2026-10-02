@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NOWHERE, directoryAt } from "../../../src/hooks/shell-spans.mjs";
+import { MOVE_WORD, NOWHERE, directoryAt } from "../../../src/hooks/shell-spans.mjs";
 
 const at = (text, word) => text.indexOf(word);
 
@@ -32,5 +32,15 @@ test("a destination the text does not carry is NOWHERE, whatever base is given",
   for (const text of ["cd - && forge advance ISS-1", "cd && forge advance ISS-1", "cd \"$X\" && forge advance ISS-1"]) {
     assert.equal(directoryAt(text, at(text, "forge"), "/cwd"), NOWHERE, text);
     assert.equal(directoryAt(text, at(text, "forge")), NOWHERE, `${text}, with no base`);
+  }
+});
+
+/* A reader of many calls walks only the texts MOVE_WORD matches, so one it misses is a move read as none (ISS-545). */
+test("MOVE_WORD matches every text the reading finds a move in, and a text it misses moves nothing", () => {
+  for (const text of ["printf ok; cd /v", "{ cd /v; }", "if cd /v; then :; fi", "pushd /v", "popd", "cd -", "x | cd /v", "(cd /v)"]) {
+    assert.ok(MOVE_WORD.test(text), `${text} is skipped, where the reading reads it`);
+  }
+  for (const text of ["git status --short", "echo cdrom pushdown", "make abcd popdown"]) {
+    assert.equal(MOVE_WORD.test(text) ? "matched" : directoryAt(text, text.length), null, text);
   }
 });

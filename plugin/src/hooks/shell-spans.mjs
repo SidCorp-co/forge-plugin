@@ -24,11 +24,15 @@ const shellWord = (stops) =>
 const OPTION_VALUE = shellWord(";&|()<>");
 const wrapped = (name) => `${name}${optionsAfter(name, OPTION_VALUE)}`;
 const AHEAD = String.raw`(?:[({]\s*|\b(?:${KEYWORDS})\s+)*`;
+/* The words that move a shell, one list every reading of a move is built from. */
+const MOVERS = "cd|pushd|popd";
 const MOVES = new RegExp(
-  `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-(?!-(?![\\w-]))[\\w-]+)*)(?:\\s+--)?(?:\\s+(${shellWord(";&|()<>")}))?`,
+  `^${AHEAD}(?:${MOVERS})(?=\\s|$)((?:\\s+-(?!-(?![\\w-]))[\\w-]+)*)(?:\\s+--)?(?:\\s+(${shellWord(";&|()<>")}))?`,
   "u",
 );
 const STAYS = /(?:^|\s)-[a-zA-Z]*n[a-zA-Z]*(?![\w-])/u;
+/** A text this matches nowhere cannot move the shell: one of the three words anywhere in it, never `MOVES`'s anchored reading, so a move after a separator or inside a group is walked. A word in quoted prose costs a walk that reads no move, and a reader of many calls skips the walk of every text it does not match. */
+export const MOVE_WORD = new RegExp(String.raw`\b(?:${MOVERS})\b`, "u");
 /** A destination the text does not carry — `cd -`, a bare `cd` or `pushd`, a `popd` whose stack this
  *  declines to model, one holding a `$`. `movedTo` hands it back rather than the cwd, and `resolve` throws. */
 export const NOWHERE = Symbol("a tree the command does not name");
@@ -318,7 +322,7 @@ const BEFORE = new RegExp(String.raw`^(?:[A-Za-z_]\w*=|\(+$|(?:${PREFIXES})$)`, 
 const AIMED = /[<>]/u;
 const CLOSES = /^\)+$/u;
 const FLAG = /^-/u;
-const RELOCATES = /^(?:cd|pushd|popd)$/u;
+const RELOCATES = new RegExp(`^(?:${MOVERS})$`, "u");
 const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
 
 /* The words of one command that are some option's value, by index. A verb the option table names has its own options read; one it does not keeps the reading that a word after any flag may be that flag's value, since which of its flags take one is not known here. */

@@ -19,7 +19,7 @@ import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { parsedOr } from "../../../src/wire/request.mjs";
 import { distinctKeysIn, keysIn } from "../../../src/tracker/issues.mjs";
-import { NOWHERE, askedAlready, block, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
+import { MOVE_WORD, NOWHERE, askedAlready, block, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
   turnAt, turnRecords, turnWrites, typed, withoutBodies } from "../../_hook.mjs";
 
 const MAX_ISSUES = 2;
@@ -70,12 +70,11 @@ const readTurn = (records) => {
 
 /* Each shell call starts over at `from`, and where it ends is the shell reading's, every move applied;
    the last call that moved decides, and one whose destination the text does not name leaves no answer.
-   So the calls are read from the last one back, and one naming none of the three words that move a
-   shell is passed without a walk. */
-const MOVING = /\b(?:cd|pushd|popd)\b/u;
+   So the calls are read from the last one back, and one the reading says cannot move a shell is
+   passed without a walk. */
 const endedIn = (commands, from) => {
   for (const command of [...commands].reverse()) {
-    if (!MOVING.test(command)) continue;
+    if (!MOVE_WORD.test(command)) continue;
     const text = withoutBodies(command);
     const moved = directoryAt(text, text.length);
     if (moved === NOWHERE) return null;
