@@ -502,9 +502,8 @@ export const gitTreeOf = (text) => {
   const said = {};
   let at = null;
   for (const [, option, joint, value] of String(text ?? "").matchAll(AIMS)) {
-    /* A tilde names the home only at the head of a word, and behind `--work-tree=` it is not. */
-    const glued = joint === "=" && value.startsWith("~");
-    const one = (glued ? `~${shellSpelled(value.slice(1))}` : shellSpelled(value)).replace(/(?!^)\/+$/u, "");
+    /* A value glued behind `--work-tree=` is the tail of a word, where no tilde names the home. */
+    const one = shellSpelled(value, { home: joint !== "=" }).replace(/(?!^)\/+$/u, "");
     if (option !== "-C") said[option] = one;
     else at = at && !isAbsolute(one) ? join(at, one) : one;
   }

@@ -76,6 +76,7 @@ test("a git global whose quoted value holds an escaped quote is that whole value
 /* A tilde is the home only at the head of a word: behind `--work-tree=` git is handed the literal. */
 test("a git global's tilde is the home where it opens the word, and literal behind an equals sign", () => {
   assert.equal(commitAim(ev("git --work-tree=~/repo commit -m x")).tree, "~/repo");
+  assert.equal(commitAim(ev("git --work-tree=~~/repo commit -m x")).tree, "~~/repo");
   assert.equal(commitAim(ev("git --work-tree ~/repo commit -m x")).tree, join(homedir(), "repo"));
 });
 

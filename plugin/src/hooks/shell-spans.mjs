@@ -45,12 +45,12 @@ const PROVEN = /^[;&|\s]*(?:then|do)\b/u;
 const INVERTED = /^until\b/u;
 const STAGE = /(?:^|[^|])\|&?\s*$/u;
 const COMMENT = /^#[^\n]*/u;
-/* A tilde names the home only standing bare at the head of the word, and only where the word ends there or goes on with a bare slash: `"~"/x`, `\~/x` and `~"/x"` each hand a shell the literal `~/x`. */
+/* A tilde names the home only standing bare at the head of the word, and only where the word ends there or goes on with a bare slash: `"~"/x`, `\~/x` and `~"/x"` each hand a shell the literal `~/x`. `home: false` is for a text that is the tail of a word, an option's value glued behind its `=`, where no tilde opens the word. */
 const bare = (mark) => mark?.under === " ";
-export const spelled = (one) => {
+export const spelled = (one, { home: heads = true } = {}) => {
   const kept = handedOn(one);
   const text = kept.map((mark) => mark.one).join("");
-  const home = kept[0]?.one === "~" && bare(kept[0]) && (kept.length === 1 || (kept[1].one === "/" && bare(kept[1])));
+  const home = heads && kept[0]?.one === "~" && bare(kept[0]) && (kept.length === 1 || (kept[1].one === "/" && bare(kept[1])));
   return home ? homedir() + text.slice(1) : text;
 };
 /** `spelled` run the other way — the word written back into a command a reader pastes, a refusal's way out or a next page's call: bare where a shell hands it on unchanged, quoted where it would split, and since a quoted run has no escape, an apostrophe closes the quote, escapes, reopens.
