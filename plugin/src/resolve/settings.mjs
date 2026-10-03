@@ -232,6 +232,9 @@ export const useProject = ({ slug, from }) => {
 
 export const projectTarget = () => aimed ?? projectScope();
 
+/** Whether this call named its project for itself rather than reading the saved record's. */
+export const aimedHere = () => aimed !== null;
+
 /** The project a call is aimed at and where that aim came from, in the words every refusal naming
  *  it uses: a key missing from the wrong project reads as a key missing, unless the line says which
  *  project was asked and which file or flag chose it (ISS-2910). */

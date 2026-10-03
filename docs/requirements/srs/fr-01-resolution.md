@@ -73,6 +73,19 @@ read by every run and pane standing in the checkout and one call rewriting it mo
 - **AC-01-2-5** · Rev: 1 · Proof: plugin/test/flow/advance/refused-move.test.mjs "a refused move names the status the issue holds and the status it was asked for, above what refused it"
   IF the tracker refuses a status move on an issue a key resolved to THEN the refusal SHALL name the
   project the key was resolved in and where that aim came from.
+- **AC-01-2-6** · Rev: 1 · Proof: plugin/test/cli/aim/claimed-project.test.mjs "a key claimed on one project is refused on the project the saved slug moved to, and nothing is sent"
+  IF a key resolves, in the project the saved record names, to another issue than the one this run's
+  claim under that key was taken on THEN the CLI SHALL refuse the call before anything is sent, and
+  the refusal SHALL name both projects, both issues and the command that puts the saved project back.
+- **AC-01-2-7** · Rev: 1 · Proof: plugin/test/cli/aim/claimed-project.test.mjs "a call aimed at the other project reads its issue under the same key, and the claim still holds"
+  WHERE a call names its project for itself the CLI SHALL resolve the key in that project with no
+  comparison against a claim taken elsewhere, and SHALL leave that claim as it stood.
+- **AC-01-2-8** · Rev: 1 · Proof: plugin/test/cli/aim/claimed-project.test.mjs "a holder that claimed nothing resolves the moved key with no refusal"
+  IF the claim under a key was taken by another run THEN the CLI SHALL resolve that key for this run
+  with no comparison against it.
+- **AC-01-2-9** · Rev: 1 · Proof: plugin/test/cli/aim/claimed-project.test.mjs "a claim by the other project's document id moves the run's claim there"
+  WHEN a run claims an issue by its identifier rather than its key THEN the CLI SHALL hold the key
+  that issue carries to that issue for the run's later calls.
 
 ### UC-01-3 — Report what resolved, and from where
 

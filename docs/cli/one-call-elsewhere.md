@@ -27,6 +27,16 @@ wrong project rather than as a success. The transport's own refusal is left as t
 with nothing on either side, as every caller that frames one reads it, so the naming is the framing
 verb's.
 
+**A claim holds the project it was taken in.** A run's key is resolved afresh on every call, and a
+sibling rebinding the checkout in the middle of a run once sent that run's baseline onto another
+project's issue of the same number, which the write took a lease on as if it were its own
+(ISS-2452). So each lease a run writes keeps, per holder, the issue the key resolved to and the
+project it resolved in, and a later call of the same run whose key resolves to another issue is
+refused before it sends anything. The pin is the holder's and not the tree's, because the holder is
+what a claim names and one git directory serves every session standing in a checkout. An aimed call
+neither compares nor pins, having chosen its project; and a claim typed by the issue's id moves the
+pin, which is how a run that meant the move takes the key where it now resolves.
+
 **Rebinding still works, and says what it does.** `forge doctor --set slug=` is not refused: the
 orientation file the tracker writes into a checkout is prose that nothing here reads, so refusing
 on it would be a second source for the slug. What the reply adds when the value

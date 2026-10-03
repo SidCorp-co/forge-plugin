@@ -9,6 +9,7 @@ import { partsAmong } from "./routes.mjs";
 import { mustBeShown } from "./comments.mjs";
 import { askedInSource, shortOfAsk } from "../resolve/flags.mjs";
 import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
+import { pinClaim } from "../resolve/project/claimed.mjs";
 
 const NOTE_HALVES = ["section", "userFacing", "technical"];
 const MOVED = "SESSION_CONTEXT_MISMATCH";
@@ -188,14 +189,23 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
     const answer = await send(covered ? expecting(held ?? null) : null, override || settling);
     if (answer?.refused) refuse(unrecognisedRefusal(answer.refused, ref) ?? answer.refused);
   }
+  /* The lease's own field is the one place a claim lands, so it is where the key's document is held,
+     once the write is known to have landed: by the tracker's own compare, or by the read-back below. */
+  const pinned = async () => (data.sessionContext ? pinClaim(ref, documentId, data.sessionContext) : null);
   /* The lease's own read-back was the compare-and-set this CLI made in the tracker's stead, so where the tracker made it that read is not spent; every other field's answers whether the text landed, which is a different question no precondition replaces. Nothing reads a lease write's return, which is why dropping the read leaves it null rather than owing a call for it. Softly for the one caller that is settling a call whose payload has landed, whom a transport refusing this read owes a line and never the exit code of a call that did what it was asked; the read-first gate above is skipped for the same caller, that payload having spent it one write earlier in the same process. */
   const owed = rows.filter((one) => !(covered && one.row.expects));
-  if (!owed.length) return null;
+  if (!owed.length) {
+    await pinned();
+    return null;
+  }
   const back = await (settling ? tried : scoped)("forge_issues",
     { action: "get", documentId, fields: partsAmong(owed.map((one) => one.field)) });
   if (back?.refused) return refuse(back.refused) ?? null;
   const wrong = owed.filter((one) => !one.row.same(back?.[one.field], one.sent));
-  if (!wrong.length) return back;
+  if (!wrong.length) {
+    await pinned();
+    return back;
+  }
   /* A field that read back as written has moved, and the caller's record of why is owed before this exits: refusing on its neighbour would leave the tracker holding a value with nothing on the page saying who set it. */
   const landed = owed.filter((one) => !wrong.includes(one)).map(({ field, value, typed }) => typed ?? { field, value });
   if (landed.length) await partly?.(landed);
