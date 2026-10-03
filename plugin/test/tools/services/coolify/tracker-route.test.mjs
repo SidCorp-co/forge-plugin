@@ -129,8 +129,6 @@ test("a name neither route has is refused as unknown rather than as the other ro
     assert.equal(run.status, 1, `${name}: ${run.stdout}`);
     assert.doesNotMatch(run.stderr, /command of the saved instance/u,
       `${name} is in no route of either way and was called the saved instance's: ${run.stderr}`);
-    assert.doesNotMatch(run.stderr, /forge doctor --coolify-route/u,
-      `${name} sends the caller to switch credentials for a word nothing serves: ${run.stderr}`);
     assert.match(run.stderr, /coolify: No command named/u, run.stderr);
     assert.deepEqual(run.calls, [], `${name} sent a request before refusing`);
   }

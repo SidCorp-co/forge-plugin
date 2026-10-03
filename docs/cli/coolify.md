@@ -24,10 +24,11 @@ and they are refused where every other capability with no route is: the transpor
 names the route it wanted so the gap is reportable to the tracker as a route rather than as a verb
 that stopped working.
 
-**Every refusal on the tracker route of a name either route serves names that route, where the
-choice was read, and the command that changes it**, and so does an empty listing there, beside the
-`[]` it still prints. A word neither route has is refused as unknown and offered no switch, which
-would answer nothing. A project
+**Every refusal on the tracker route names that route, where the choice was read, and the command
+that changes it**, and so does an empty listing there, beside the `[]` it still prints. That holds
+for a word neither route has as well: it is refused as unknown and never called the other route's,
+since the switch would not reach it either, and the route line says whose names the near miss it
+offers was drawn from. A project
 bound to nothing answers every call with a true sentence about its bindings, and read without the
 route each one reads as a fact about the deployment: an empty listing as an application that is
 gone, which sends a run looking for it rather than at the route.

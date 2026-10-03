@@ -1,7 +1,7 @@
 /* The tracker route's own surface: what each of its six subcommands takes, the one call it makes
    through the transport every other capability goes through, and the reading that turns a deploy the
    tracker held back into a refusal rather than a deploy that was sent. docs/cli/coolify.md. */
-import { fail, keepOnFailure } from "../../../resolve/settings.mjs";
+import { fail } from "../../../resolve/settings.mjs";
 import { flags } from "../../../resolve/flags.mjs";
 import { documentIdOf } from "../../../tracker/issues.mjs";
 import { callTool } from "../../../tracker/rest.mjs";
@@ -76,7 +76,11 @@ const bodyOf = (answer) => {
 
 const SWITCHES = ["--yes", "--dry-run", "--json", "--table"];
 
-const answer = async (name, argv, route) => {
+/** One subcommand of the tracker route, end to end. Its row's `key` is its row in the transport's own
+ *  table, so the request, the retry decision and the refusal are all that table's. A refusal here ends
+ *  with the route that answered because `overTracker` registered those lines before calling this; an
+ *  empty listing says the same beside it, since printed bare it reads as an application that is gone. */
+export const runTracker = async (name, argv) => {
   const { key, usage } = ROWS[name];
   const given = flags(argv, `coolify ${name}`, SWITCHES, { usage });
   const args = await argued(name, given);
@@ -96,22 +100,6 @@ const answer = async (name, argv, route) => {
      here are the ones the rows actually carry, in the order the tracker wrote them. */
   console.log(rendered(body, asTable, keysOf));
   if (Array.isArray(body) && !body.length) {
-    console.error([`coolify ${name}: the tracker route answered with nothing.`, ...route].join("\n"));
-  }
-};
-
-/** One subcommand of the tracker route, end to end. Its row's `key` is its row in the transport's own
- *  table, so the request, the retry decision and the refusal are all that table's. Whatever refuses
- *  it — a flag only the saved instance's row takes, the tracker's own answer, the consent check —
- *  ends with the route that answered, and an empty listing says the same beside it: printed bare it
- *  reads as an application that is gone. The lines are dropped once the call is over, so a later
- *  refusal in the same process does not inherit them. */
-export const runTracker = async (name, argv) => {
-  const route = trackerRouteLines();
-  const drop = keepOnFailure(route.join("\n"));
-  try {
-    await answer(name, argv, route);
-  } finally {
-    drop();
+    console.error([`coolify ${name}: the tracker route answered with nothing.`, ...trackerRouteLines()].join("\n"));
   }
 };
