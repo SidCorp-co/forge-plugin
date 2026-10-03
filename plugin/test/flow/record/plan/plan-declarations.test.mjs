@@ -97,8 +97,9 @@ test("the top rung refuses a declarations-only plan, naming every section it sti
   const run = await wrote("m", NONE);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /; ISS-2275 is a `feature`, whose plan owes every section, so nothing was written:$/mu, run.stderr);
-  /* Spelled here rather than read off the source, so the case says what is owed independently of it. */
-  const owed = PLAN_SECTIONS.filter((one) => !one.owed && one.name !== "Declarations").map((one) => one.name);
+  /* Spelled here rather than read off the source, so a section the table lost fails this case. */
+  const owed = ["Files touched", "Before", "After", "Deliberately unchanged", "Verified in code", "Conventions reversed",
+    "Declarations", "Steps"];
   for (const name of owed) assert.match(run.stderr, new RegExp(`^ {2}## ${name}$`, "mu"), `${name} is not named`);
   assert.doesNotMatch(run.stderr, new RegExp(`^ {2}## ${WITNESSED}$`, "mu"), "and the section it holds is not");
   assert.equal(state.issues[0].plan, undefined, "the field is untouched");
