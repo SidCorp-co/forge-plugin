@@ -19,6 +19,8 @@ process.chdir(AWAY);
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "3448870";
 const { asItsHolder, leaseOf } = await import("../../../src/flow/lease.mjs");
+const { placeOf } = await import("../../../src/flow/lease/holder.mjs");
+const HERE = placeOf();
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "lost-id-uuid";
@@ -38,9 +40,12 @@ const ISSUE = {
 };
 
 /* Live, so nothing here is about a lapse: the lease is renewed as this case starts and runs an hour. */
-const heldBy = (holder, pid = "3448870") => {
+const heldBy = (holder, pid = "3448870", place = HERE) => {
   ISSUE.sessionContext = {
-    lease: { holder, agent: "claude-code_2-1-258_agent", pid, renewedAt: new Date().toISOString(), minutes: 60, next: null, history: [] },
+    lease: {
+      holder, agent: "claude-code_2-1-258_agent", pid, ...(place ? { place } : {}),
+      renewedAt: new Date().toISOString(), minutes: 60, next: null, history: [],
+    },
   };
 };
 
@@ -92,12 +97,18 @@ test("the claim it sends a refused run to hands the same id back rather than nam
     "and the run that is not the holder keeps a route of its own");
 });
 
+/* The same pid on another host, or on none the lease recorded, is another process: a pid is
+   issued per kernel boot and per pid namespace, so it names this call's process only beside the
+   place it was issued in (ISS-3125). */
 test("a lease recording another process keeps the refusal it had, and the claim is the route it names", async () => {
-  heldBy(HOLDER, "77");
-  const refused = await ran(["claim", "ISS-1084"]);
-  assert.equal(refused.status, 1, refused.stdout);
-  assert.doesNotMatch(refused.stderr, /FORGE_SESSION_ID=/u, "no id is handed to a call the record cannot place");
-  assert.ok(refused.stderr.trimEnd().endsWith("\n  forge claim ISS-1084"), "and the command it ends on is the ordinary one");
+  for (const [pid, place, what] of [["77", HERE, "another pid"], ["3448870", "another-boot pid:[1]", "this pid on another host"],
+    ["3448870", "", "this pid on no recorded host"]]) {
+    heldBy(HOLDER, pid, place);
+    const refused = await ran(["claim", "ISS-1084"]);
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.doesNotMatch(refused.stderr, /FORGE_SESSION_ID=/u, `no id is handed to a call the record cannot place: ${what}`);
+    assert.ok(refused.stderr.trimEnd().endsWith("\n  forge claim ISS-1084"), `and the command it ends on is the ordinary one: ${what}`);
+  }
 });
 
 test("a second run dispatched to the same issue is refused as any second run is, and handed nothing", async () => {
@@ -114,7 +125,7 @@ test("a caller standing in the tree that minted the holder is handed no id, havi
   const at = tempRoom("lost-id-tree-");
   mkdirSync(join(at, ".git"));
   writeFileSync(join(at, ".git", "forge-run-id"), `${HOLDER}\n`);
-  const lease = leaseOf({ lease: { holder: HOLDER, agent: "a", pid: "3448870", renewedAt: RENEWED, minutes: 60 } });
+  const lease = leaseOf({ lease: { holder: HOLDER, agent: "a", pid: "3448870", place: HERE, renewedAt: RENEWED, minutes: 60 } });
   const said = { held: { id: WAVE, source: "inherited" }, call: "forge claim ISS-1084" };
   assert.equal(asItsHolder("ISS-1084", lease, { ...said, at }), null);
   assert.match(asItsHolder("ISS-1084", lease, { ...said, at: tempRoom("lost-id-bare-") }) ?? "",
@@ -122,7 +133,7 @@ test("a caller standing in the tree that minted the holder is handed no id, havi
 });
 
 test("the refusal names the moment the lease is anybody's, which is a duration past its expiry", () => {
-  const lease = leaseOf({ lease: { holder: "another-run", agent: "a", pid: "77", renewedAt: RENEWED, minutes: 60 } });
+  const lease = leaseOf({ lease: { holder: "another-run", agent: "a", pid: "77", place: HERE, renewedAt: RENEWED, minutes: 60 } });
   const at = tempRoom("lost-id-when-");
   const said = asItsHolder("ISS-1084", { ...lease, holder: HOLDER, pid: "3448870" },
     { held: { id: WAVE, source: "inherited" }, at, call: "forge claim ISS-1084" });
