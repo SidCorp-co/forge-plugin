@@ -66,9 +66,8 @@ test("a claim that only renews its own lease leaves it unmarked, and a payload w
   const over = leaseOf(claimed({ lease: renewed }, { holder: "next", at: AT, minutes: 30, how: "reclaim", status: "developed" }));
   assert.equal(over.history.at(-1).wrote, undefined, "so a reclaim over it carries no mark");
   assert.equal(reclaimsOf(over, "developed"), 1, "and is counted");
-  const written = claimed(unmarked, { holder: "now", at: AT, minutes: 30, wrote: true });
-  assert.equal(written.lease.wrote, true, "a payload write marks the lease");
-  assert.equal(claimed(written, { holder: "now", at: AT, minutes: 30 }).lease.wrote, true, "and the holder's own renewal keeps it");
+  const written = { lease: { ...unmarked.lease, wrote: true } };
+  assert.equal(claimed(written, { holder: "now", at: AT, minutes: 30 }).lease.wrote, true, "the holder's own renewal keeps a mark a payload left");
 });
 
 test("a new holder's lease does not carry the mark of the lease it went over", () => {
@@ -105,6 +104,9 @@ const state = {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
       if (args.action === "list") return { issues: state.issues, returned: 1, hasMore: false };
+      if (args.action === "update" && state.refuseNotes && args.data?.releaseNotes !== undefined) {
+        return { refused: "the tracker refused the note" };
+      }
       if (args.action === "update") Object.assign(ISSUE, args.data);
       if (args.action === "transition") ISSUE.status = args.data.status;
       return ISSUE;
@@ -137,6 +139,19 @@ test("a payload write under the holder's own lease marks it, and a claim or a co
   assert.equal(noted.status, 0, `${noted.stdout}${noted.stderr}`);
   assert.equal(ISSUE.sessionContext.lease.holder, OURS);
   assert.equal(ISSUE.sessionContext.lease.wrote, true, "a payload record does");
+});
+
+test("a payload write the tracker refuses leaves the lease unmarked, so a reclaim over it counts", async () => {
+  ours();
+  state.refuseNotes = true;
+  try {
+    const refused = await ran(["record", "note", "ISS-77", "--section", "Fixed", "--user", "The swipe gesture is gone."]);
+    assert.notEqual(refused.status, 0, `the note should have been refused:\n${refused.stdout}${refused.stderr}`);
+  } finally {
+    state.refuseNotes = false;
+  }
+  assert.equal(ISSUE.sessionContext.lease.holder, OURS, "the renewal before it landed");
+  assert.equal(ISSUE.sessionContext.lease.wrote, undefined, "and marked nothing, the record never having landed");
 });
 
 test("a claim over the third lease that wrote a record names no park, and says why", async () => {

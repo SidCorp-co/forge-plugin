@@ -7,6 +7,7 @@ import {
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
 import { historyOf } from "./lease/history.mjs";
+import { OWED, WROTE } from "./lease/written-under.mjs";
 import { NO_LONGER_OWES } from "./earned/park-status.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
@@ -25,8 +26,6 @@ export const KEY = "lease";
 export const MINUTES = 60;
 export const READING_MINUTES = 10;
 export const HISTORY_KEPT = 12;
-/* The mark a lease carries once a payload was written under it, which a reclaim over that lease keeps on its row: crash-park.mjs reads it. */
-const WROTE = "wrote";
 
 /** What the mechanism is, claiming nothing of any far end, because `forge claim -h` has made no write and a run reading it is owed the shape rather than a guess. */
 export const MECHANISM =
@@ -260,7 +259,7 @@ export const unheldRefusal = (ref, status, { next = null, work = null } = {}) =>
 
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
-export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null, over = null, wrote = false }) => {
+export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null, over = null }) => {
   /* The remnant and not the lease: a field a release emptied answers `null` to `leaseOf`, so reading through it would drop every earlier row at the next take and the line the release left with them. What the remnant holds is unjudged, hence the two guards below — a history that is not a list spreads into a throw. The row this builds carries no release mark, the field being held again. */
   const held = remnantOf(context);
   const history = [...historyOf(held)];
@@ -278,8 +277,8 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       ...(held?.[WROTE] === true ? { [WROTE]: true } : {}),
     });
   }
-  /* Set by the payload write that renews the lease and kept across its holder's own renewals, so a claim that only renews marks nothing; a take starts the new holder's lease unmarked, the row above keeping the mark of the lease it went over (ISS-2531). */
-  const marked = wrote || (!how && held?.holder === holder && held?.[WROTE] === true);
+  /* Written by `markOwed` once a payload landed and kept across its holder's own renewals; a take starts the new holder's lease unmarked, the row above keeping the mark of the lease it went over (ISS-2531). */
+  const marked = !how && held?.holder === holder && held?.[WROTE] === true;
   return {
     ...(context && typeof context === "object" ? context : {}),
     ...(worklog ? { [WORKLOG]: worklog } : {}),
@@ -486,7 +485,6 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
     how: over ? (handed ? HANDED : RECLAIM) : TAKEN_BY_WRITING,
     status,
     over,
-    wrote: true,
   });
   await setLease(documentId, sent, ref, () => context);
   saidWritten(patch);
@@ -569,12 +567,15 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     minutes: held.minutes,
     next,
     worklog: worklogFor(from, patch),
-    /* A comment or an edge renews as a finder and is no record of the holder's work, so it marks nothing. */
-    wrote: !finder,
   }));
+  /* A comment or an edge renews as a finder and is no record of the holder's work, so it is owed no mark. */
+  const owe = () => {
+    if (!finder && sent?.[KEY]?.[WROTE] !== true) OWED.set(documentId, ref);
+  };
   if (state === "mine") {
     await setLease(documentId, value(context, lease), ref, () => context);
     saidWritten(patch);
+    owe();
     return sent;
   }
   /* Lapsed is the one another run may take: the last read decides, and the notice waits for the write. */
@@ -590,6 +591,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     return value(again, now);
   }, ref, () => read);
   saidWritten(patch);
+  owe();
   if (renewed) console.error(renewedLapsed(ref, renewed));
   return sent;
 };
