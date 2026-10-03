@@ -2,27 +2,20 @@
 
 import { argumentsAt } from "../../checks/shapes/calls.mjs";
 import { spokenIn } from "./spoken.mjs";
+import { CALLS, METHODS } from "./writers.mjs";
 
-/** Either half of a write made by a library call, anywhere in a text: `open` with a mode that writes, and every call below by name. The cheap test, before `fileCalls` reads which argument the call writes. */
-export const WRITE_CALLS = String.raw`open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
-  + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
-  + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`;
-
-/* Each call by the positions its API writes: a destination is written and a source only read, except where the call takes the source away, which a move and a rename do. `open` writes its file only under a mode opening with `w` or `a`, the two `WRITE_CALLS` reads, and only as the builtin, node's `fs`, or a module's that opens a file by name; a path's `open` is a method, read below. */
-const CALLS = [
-  { name: /\bopen(?:Sync)?\s*\($/u, writes: [[0, "file"]], mode: [1, "mode"] },
-  { name: /(?:FileSync|writeFile|\.write(?:TextFile|File)|\.write)\s*\($/u, writes: [[0, "path"]] },
-  { name: /\bshutil\.(?:copy|copyfile|copy2)\s*\($/u, writes: [[1, "dst"]] },
-  { name: /(?:\bshutil\.move|\bos\.(?:replace|rename))\s*\($/u, writes: [[0, "src"], [1, "dst"]] },
-  { name: /\bos\.symlink\s*\($/u, writes: [[1, "dst"]] },
-];
-const OPENS = /(?:(?<![.\w])open|\b(?:io|codecs|gzip|bz2|lzma|tarfile)\.open|\b(?:fs|fsp|promises)\.open(?:Sync)?|\b(?:append|write)FileSync|\bwriteFile|\bDeno\.write(?:TextFile|File)|\bBun\.write|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink))\s*\(/gu;
-/** A string literal's whole extent, with the prefix python may give one and its triple-quoted forms, as a pattern's source: the one grammar every reading of a program's literal shares, `spelling` saying which of them a reading may place. */
-export const STRING = String.raw`(?:[rRbBuUfF]{1,2})?(?:"""(?:(?!""")[^\n])*"""|'''(?:(?!''')[^\n])*'''|"[^"\n]*"|'[^'\n]*')`;
+/* Every call `CALLS` names, each its own group, so the group a hit filled is the row it is; a path's `open` is a method, read below. */
+const OPENS = new RegExp(String.raw`(?:${CALLS.map(({ owner, name }) => `((?:${owner})(?:${name}))`).join("|")})\s*\(`, "gu");
+const rowOf = (hit) => CALLS[hit.slice(1).findIndex((one) => one !== undefined)];
+const METHOD_NAMES = METHODS.map(({ name }) => name).join("|");
+/* Where a path's `open` takes its mode, and the method that takes one. */
+const { name: OPEN, mode: [MODE_AT, MODE_KEY] } = METHODS.find((one) => one.mode);
+/** A string literal's whole extent, with the prefix python may give one where a word begins and its triple-quoted forms, as a pattern's source: the one grammar every reading of a program's literal shares, `spelling` saying which of them a reading may place. */
+export const STRING = String.raw`(?:(?<![\w])[rRbBuUfF]{1,2})?(?:"""(?:(?!""")[^\n])*"""|'''(?:(?!''')[^\n])*'''|"[^"\n]*"|'[^'\n]*')`;
 /* The path pathlib writes stands before the call as a literal, a `Path` of one, a parenthesised one that is no other call's argument list, or a name. A method named and not called writes nothing. */
 const RECEIVED = new RegExp(
   String.raw`(?:(?<![.\w])(?:pathlib\.)?Path\(\s*${STRING}\s*\)|(?<![\w.)\]]\s*)\(\s*${STRING}\s*\)|${STRING}|(?<![.\w])[A-Za-z_]\w*)`
-    + String.raw`\s*\.(?:write_(?:text|bytes)|open)\s*\(`,
+    + String.raw`\s*\.(?:${METHOD_NAMES})\s*\(`,
   "gu",
 );
 const STRING_IN = new RegExp(STRING, "u");
@@ -72,7 +65,7 @@ const writesMode = (code, args, at) => {
 };
 
 /* pathlib's writes, on the path they are called on, where a module's call above has not already read the same parenthesis: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells with `w` or `a` — an archive's `open('member', 'w')` names a member there, and writes no file, so an `open` taking its mode second is some object's own, placed nowhere and kept for the reading that keeps every candidate. A receiver `RECEIVED` cannot read is computed, and its line is the call. */
-const METHOD = /\.(write_(?:text|bytes)|open)\s*\(/gu;
+const METHOD = new RegExp(String.raw`\.(${METHOD_NAMES})\s*\(`, "gu");
 /* The path a method is called on, walked back from its `.` over names, dots and whole brackets in `bare`, where no string or comment holds a bracket. */
 const receiverAt = (bare, at) => {
   let from = at;
@@ -90,12 +83,12 @@ const receivedCalls = ({ code, bare, inside }, taken) => {
   return [...code.matchAll(METHOD)].filter((one) => !inside(one.index)).flatMap((hit) => {
     const to = hit.index + hit[0].length;
     if (taken.has(to)) return [];
-    if (hit[1] === "open") {
+    if (hit[1] === OPEN) {
       const read = argsFrom(code, bare, to);
-      const writes = (at) => read && writesMode(code, read.args, [at, "mode"]);
-      if (!writes(0)) {
+      const writes = (at) => read && writesMode(code, read.args, [at, MODE_KEY]);
+      if (!writes(MODE_AT)) {
         const text = read && code.slice(hit.index, read.end);
-        return read && writes(1) ? [{ text, targets: [], names: [], computed: true, through: [] }] : [];
+        return read && writes(MODE_AT + 1) ? [{ text, targets: [], names: [], computed: true, through: [] }] : [];
       }
     }
     const by = received.find((one) => one.index + one[0].length === to);
@@ -112,15 +105,15 @@ const receivedCalls = ({ code, bare, inside }, taken) => {
   });
 };
 
-/** Each file call in `given`, the program a `runner` reads: `text` is what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. `through` is each such argument, or the path a method is called on, by where it stands; an archive member's `open` writes no file by name and has none. */
-export const fileCalls = (given, runner) => {
-  const { code, bare, inside } = spokenIn(given, runner);
+/** Each file call in `given`, the program a `runner` reads, off the reading `spokenIn` made of it where the caller already holds one: `text` is what it says, `targets` are the whole literals it writes, each `{ from, to }`. `names` are the written arguments spelled as a bare name, for a reader holding the program's bindings. A written argument that is anything else is no target, and `computed` says the call has one: what a program computes is not placed here. `through` is each such argument, or the path a method is called on, by where it stands; an archive member's `open` writes no file by name and has none. */
+export const fileCalls = (given, runner, reading = spokenIn(given, runner)) => {
+  const { code, bare, inside } = reading;
   const out = [];
   for (const hit of [...code.matchAll(OPENS)].filter((one) => !inside(one.index))) {
     const opened = hit.index + hit[0].length;
-    const call = CALLS.find((one) => one.name.test(hit[0]));
+    const call = rowOf(hit);
     const read = argsFrom(code, bare, opened);
-    if (!call || !read) continue;
+    if (!read) continue;
     if (call.mode && !writesMode(code, read.args, call.mode)) continue;
     const written = call.writes.map((one) => argument(code, read.args, one));
     const targets = written.filter((one) => literalAt(code, one));
