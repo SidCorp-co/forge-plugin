@@ -50,6 +50,14 @@ test("each interpreter takes its inline program by its own word, and only by tha
   }
 });
 
+test("an interpreter's name inside an option's value neither runs a program nor owns the word after it", () => {
+  for (const mode of ["strike", "keep"]) {
+    assert.deepEqual(inline(`node --title=php -r "${WRITES}"`, mode), [], `${mode}: php's -r, after node`);
+    assert.deepEqual(inline(`node --title=php -e "${WRITES}"`, mode), ["w.md"], `${mode}: node's own -e`);
+    assert.deepEqual(inline(`/usr/bin/php -r "${WRITES}"`, mode), ["w.md"], `${mode}: a path to the interpreter is the interpreter`);
+  }
+});
+
 /* The comment each language writes, so a language the table gains without one here fails by name. */
 const COMMENT = { python: "#", node: "//", perl: "#", ruby: "#", php: "//" };
 

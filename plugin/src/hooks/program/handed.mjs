@@ -41,14 +41,16 @@ export const handedIn = (body, runner) => {
   return out;
 };
 
-/* The options an interpreter's name may carry ahead of its inline word, and that word held to the interpreter standing before it, so php's `-e` opens nothing and its `-r` does. */
+/* Where an interpreter's name can stand: at the head of a shell word, or after a path in one, so a name inside an option's value (`--title=php`) is neither the interpreter nor a word's owner. */
+const AT_WORD = String.raw`(?<=(?:^|[\s;&|(){}\x60'"])(?:[^\s;&|(){}\x60'"-]\S*\/)?)`;
+/* The options ahead of the inline word, and that word held to the interpreter standing before them, so php's `-e` opens nothing and its `-r` does. Both names stand where `AT_WORD` allows and only options lie between, so the two are one name. */
 const OPTIONS = String.raw`\s+(?:-\S+\s+)*`;
 const HANDS = Object.entries(INTERPRETERS)
-  .map(([name, { inline }]) => String.raw`(?<=\b${name}${OPTIONS})(?:${inline.join("|")})`)
+  .map(([name, { inline }]) => String.raw`(?<=${AT_WORD}${name}${OPTIONS})(?:${inline.join("|")})`)
   .join("|");
 
 /** An interpreter's inline program: the interpreter, then the body its own inline word hands it, still in the shell quotes it was written in. */
-export const RUNS = new RegExp(String.raw`\b(${INTERPRETER})${OPTIONS}(?:${HANDS})\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
+export const RUNS = new RegExp(String.raw`${AT_WORD}(${INTERPRETER})${OPTIONS}(?:${HANDS})\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
 export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
