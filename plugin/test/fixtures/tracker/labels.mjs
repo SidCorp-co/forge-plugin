@@ -26,6 +26,9 @@ export const labelsOf = (state) => {
     const held = (state.labels ??= []);
     if (args.action === "list") return held;
     if (args.action === "create") {
+      if (held.some((one) => one.name === args.data?.name)) {
+        return { refused: "label name already taken in this project", code: "LABEL_NAME_TAKEN" };
+      }
       const row = { id: `label-${held.length + 1}`, parentId: null, description: null, ...args.data };
       held.push(row);
       return row;

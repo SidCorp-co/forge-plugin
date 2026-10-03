@@ -8,11 +8,14 @@ import { openCounts, shareOf } from "../../../../tracker/modules/attribution.mjs
 export const VERB = "doctor modules";
 export const NONE = "none";
 
-export const defined = async () => {
+/** The modules and the plain labels beside them, or the refusal of the one read that lists both. */
+export const listed = async () => {
   const read = await moduleDefinition();
   if (read.refused) fail(`${VERB}: the tracker would not list this project's labels: ${read.refused}`);
-  return read.modules;
+  return read;
 };
+
+export const defined = async () => (await listed()).modules;
 
 /* Depth first, by name within a level: the order a parent reads above what it holds. */
 const treeOf = (modules) => {

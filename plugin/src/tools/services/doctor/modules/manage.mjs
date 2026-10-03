@@ -9,7 +9,7 @@ import { UNSET } from "../../../../rank/weights.mjs";
 import { MODULE, moduleNamed } from "../../../../tracker/modules/definition.mjs";
 import { carriersOf, openCounts } from "../../../../tracker/modules/attribution.mjs";
 import { SAYS } from "../subjects.mjs";
-import { NONE, VERB, defined, moduleLines } from "./reading.mjs";
+import { NONE, VERB, defined, listed, moduleLines } from "./reading.mjs";
 
 const WRITES = ["add", "edit", "remove"];
 
@@ -58,7 +58,19 @@ const readBack = async (id, what, data) => {
 const said = (module, modules) => `${module.name}, parent ${modules.find((one) => one.id === module.parentId)?.name
   ?? NONE}, ${module.description ? `described "${module.description}"` : "no description"}`;
 
-const added = async (modules, asked) => {
+/* A plain label already holding the name is made the module in place rather than created beside: the
+   tracker refuses a second row of that name, and the row kept keeps its id, so every issue carrying
+   the label carries the module with no issue written. */
+const promoted = async (label, fields) => {
+  const data = { kind: MODULE, ...fields };
+  let posted = data;
+  await write("forge_labels", { action: "update", labelId: label.id, data }, (sent) => (posted = sent ?? data));
+  const back = await readBack(label.id, "promotion", posted);
+  return `Made the plain label ${label.name} the module ${said(back, await defined())}, read back off the `
+    + "tracker. It kept its id, so every issue that carried the label carries the module.";
+};
+
+const added = async (modules, asked, plain) => {
   if (!asked.add.trim()) fail(`${VERB}: --add takes the module's name, not an empty word.`);
   if (RESERVED.includes(asked.add)) {
     fail(`${VERB}: \`${asked.add}\` is ${asked.add === NONE ? "what --parent and --to take for no module"
@@ -68,9 +80,11 @@ const added = async (modules, asked) => {
   if (modules.some((one) => one.name === asked.add)) {
     fail(`${VERB}: \`${asked.add}\` is a module of this project already. Nothing was sent: --edit changes it.`);
   }
-  const data = { name: asked.add, kind: MODULE,
-    ...(asked.parent === undefined ? {} : { parentId: parentFor(modules, asked.parent) }),
+  const fields = { ...(asked.parent === undefined ? {} : { parentId: parentFor(modules, asked.parent) }),
     ...(asked.description === undefined ? {} : { description: asked.description || null }) };
+  const label = plain.find((one) => one.name === asked.add);
+  if (label) return promoted(label, fields);
+  const data = { name: asked.add, kind: MODULE, ...fields };
   let posted = data;
   const answer = await write("forge_labels", { action: "create", data }, (sent) => (posted = sent ?? data));
   const back = await readBack(answer?.id, "create", posted);
@@ -163,8 +177,8 @@ export const modulesSubject = async (argv) => {
         + `${writes[0] ? `makes --${writes[0]}` : "writes nothing"}. Nothing was sent.`);
     }
   }
-  const modules = await defined();
-  if (writes[0]) console.log(await ACTS[writes[0]](modules, asked));
+  const { modules, plain } = await listed();
+  if (writes[0]) console.log(await ACTS[writes[0]](modules, asked, plain));
   const now = writes[0] ? await defined() : modules;
   for (const line of moduleLines(now, await openCounts())) console.log(line);
 };
