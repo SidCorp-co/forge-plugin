@@ -21,7 +21,7 @@ import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, isCommit, sameCommit } from "../tracker/evidence.mjs";
 import { blockersOwed, holdsBack, holdsBackFrom, ordersSaid } from "./earned/blockers.mjs";
 import { shapeGaps } from "./earned/shape-gaps.mjs";
-import { supersededOwed } from "./earned/superseded.mjs";
+import { supersededOwed } from "./qa/superseded.mjs";
 
 export { shapeGaps };
 

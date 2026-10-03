@@ -3,11 +3,11 @@
    `testing` and at every rung after it, whatever the project's judgement: forge-core's release sweep
    counts such a verdict unearned on every project alike. */
 import { need } from "../machine.mjs";
-import { judgeAsk, numbered, owesRuntime, supersededProblem } from "../qa/verdicts.mjs";
+import { judgeAsk, numbered, owesRuntime, supersededProblem } from "./verdicts.mjs";
 import { markedCommit } from "../record/merged.mjs";
 import { landsOutsideGit } from "../record/judged/landing.mjs";
-import { identityOf } from "./asks.mjs";
-import { shapeGaps } from "./shape-gaps.mjs";
+import { identityOf } from "../earned/asks.mjs";
+import { shapeGaps } from "../earned/shape-gaps.mjs";
 
 /** One item per reason, its criteria named together, and the ask a fresh judgement at what serves. */
 export const supersededOwed = (view, ref, exclude = new Set()) => {

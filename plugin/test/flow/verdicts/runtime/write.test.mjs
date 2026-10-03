@@ -5,13 +5,13 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
-import { ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-runtime-write").path;
-const { parseAll } = await import("../../../src/flow/record/page.mjs");
+const { parseAll } = await import("../../../../src/flow/record/page.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const BUILDER = "the-builder-run";
 const JUDGE = "the-judging-run";
 const MERGED = "c8c35500000000000000000000000000000000ab";

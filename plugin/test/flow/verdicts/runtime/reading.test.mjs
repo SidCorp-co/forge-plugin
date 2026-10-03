@@ -6,14 +6,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { tempHome } from "../../fixtures.mjs";
+import { tempHome } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-runtime").path;
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { RUNTIME_ASK, judgeAsk, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
-const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
-const { deploymentOnto } = await import("../../../src/flow/record/judged/carried.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { CHECKS, judgedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
+const { RUNTIME_ASK, judgeAsk, judgedAt } = await import("../../../../src/flow/qa/verdicts.mjs");
+const { releaseFrom } = await import("../../../../src/tracker/project-config.mjs");
+const { deploymentOnto } = await import("../../../../src/flow/record/judged/carried.mjs");
 
 const BUILDER = "the-builder-session";
 const QA = "the-qa-session";
@@ -128,7 +128,7 @@ test("a verification or a finding written after a runtime verdict leaves its sta
 
 test("the qa judging reference sends a judge to --runtime, whole, and to a skip where it read none", () => {
   for (const variant of ["default", "screen"]) {
-    const text = readFileSync(new URL(`../../../guides/skills/qa/${variant}/references/judging.md`, import.meta.url), "utf8");
+    const text = readFileSync(new URL(`../../../../guides/skills/qa/${variant}/references/judging.md`, import.meta.url), "utf8");
     assert.match(text, /name it on each verdict's `--runtime`, whole/u, variant);
     assert.match(text, /write that criterion `skipped`, its `--why` saying what you lacked/u, variant);
   }
