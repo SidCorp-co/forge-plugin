@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { handedIn, shellWrites, writtenPaths } from "../../../hooks/_hook.mjs";
 import { glued } from "../../../src/hooks/program/assembled.mjs";
-import { LANGUAGE_OF, spansOf } from "../../../src/hooks/program/spoken.mjs";
+import { INTERPRETERS, LANGUAGE_OF, spansOf } from "../../../src/hooks/program/spoken.mjs";
 import { struck } from "../../../src/hooks/shell-spans.mjs";
 
 const CWD = "/w/tree";
@@ -20,15 +20,42 @@ const both = (command, want, why = command) => {
 const heredoc = (runner, ...lines) => [`${runner} - <<'EOF'`, ...lines, "EOF"].join("\n");
 const WRITES = "open('w.md', 'w')";
 
+/* The keeping reading also reads the inline body it leaves standing, so the literal is there twice. */
+const inline = (command, mode) => [...new Set(read(command, mode))];
+
 test("every interpreter the table names has its inline body and its heredoc body read as a program", () => {
-  for (const runner of Object.keys(LANGUAGE_OF)) {
+  for (const [runner, { inline: words }] of Object.entries(INTERPRETERS)) {
     both(heredoc(runner, WRITES), ["w.md"], `${runner}'s heredoc`);
-    /* The keeping reading also reads the inline body it leaves standing, so the literal is there twice. */
-    for (const mode of ["strike", "keep"]) {
-      assert.deepEqual([...new Set(read(`${runner} -e "${WRITES}"`, mode))], ["w.md"], `${mode}: ${runner}'s inline body`);
+    assert.ok(words.length, `name the word that hands ${runner} an inline program in INTERPRETERS`);
+    for (const word of words) {
+      for (const mode of ["strike", "keep"]) {
+        assert.deepEqual(inline(`${runner} ${word} "${WRITES}"`, mode), ["w.md"], `${mode}: ${runner} ${word}'s inline body`);
+      }
     }
   }
   both(heredoc("lua", WRITES), [], "while a runner the table does not name is handed data");
+});
+
+/* Which word hands each interpreter its program, as each one's own manual states it: a word the table drops goes red here, where the cases above iterate the table and could not notice. */
+const INLINE = {
+  python: ["-c"], python3: ["-c"],
+  node: ["-e", "--eval", "-p", "--print"], bun: ["-e", "--eval", "-p", "--print"], deno: ["eval"],
+  perl: ["-e", "-E"], ruby: ["-e"], php: ["-r", "-B", "-R", "-E"],
+};
+
+test("each interpreter takes its inline program by its own word, and only by that word", () => {
+  assert.deepEqual(Object.fromEntries(Object.entries(INTERPRETERS).map(([runner, one]) => [runner, one.inline])), INLINE);
+  for (const mode of ["strike", "keep"]) {
+    assert.deepEqual(inline(`php -e "${WRITES};"`, mode), [], `${mode}: php's -e is a debugging switch, so the quoted word after it is an argument`);
+  }
+});
+
+test("an interpreter's name inside an option's value neither runs a program nor owns the word after it", () => {
+  for (const mode of ["strike", "keep"]) {
+    assert.deepEqual(inline(`node --title=php -r "${WRITES}"`, mode), [], `${mode}: php's -r, after node`);
+    assert.deepEqual(inline(`node --title=php -e "${WRITES}"`, mode), ["w.md"], `${mode}: node's own -e`);
+    assert.deepEqual(inline(`/usr/bin/php -r "${WRITES}"`, mode), ["w.md"], `${mode}: a path to the interpreter is the interpreter`);
+  }
 });
 
 /* The comment each language writes, so a language the table gains without one here fails by name. */

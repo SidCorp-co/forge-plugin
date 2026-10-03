@@ -2,9 +2,21 @@
 
 import { COMMENTS, literalsIn } from "../../checks/source/lexical.mjs";
 
-/** Every interpreter whose program the readings look into, by the language it speaks: the one statement of both, so an interpreter added here is one the inline and heredoc patterns open and
+/** Every interpreter whose program the readings look into: the language it speaks, and the words that hand it a program inline, which are each interpreter's own — php's `-e` is a debugging
+ *  switch whose next word is a script argument, and deno's is the `eval` subcommand. The one statement of both, so an interpreter added here is one the inline and heredoc patterns open and
  *  every reading keyed by language below and beside this file answers for. A shell is none of these, its body being commands, and `SHELL_WORD` states the shells. */
-export const LANGUAGE_OF = { python: "python", python3: "python", node: "node", deno: "node", bun: "node", perl: "perl", ruby: "ruby", php: "php" };
+export const INTERPRETERS = {
+  python: { speaks: "python", inline: ["-c"] },
+  python3: { speaks: "python", inline: ["-c"] },
+  node: { speaks: "node", inline: ["-e", "--eval", "-p", "--print"] },
+  deno: { speaks: "node", inline: ["eval"] },
+  bun: { speaks: "node", inline: ["-e", "--eval", "-p", "--print"] },
+  perl: { speaks: "perl", inline: ["-e", "-E"] },
+  ruby: { speaks: "ruby", inline: ["-e"] },
+  php: { speaks: "php", inline: ["-r", "-B", "-R", "-E"] },
+};
+/** Each interpreter by the language it speaks. */
+export const LANGUAGE_OF = Object.fromEntries(Object.entries(INTERPRETERS).map(([name, one]) => [name, one.speaks]));
 /** The interpreters `LANGUAGE_OF` names, as a pattern's alternation, a longer name first so none stops on a shorter one it begins with. */
 export const INTERPRETER = Object.keys(LANGUAGE_OF).sort((a, b) => b.length - a.length).join("|");
 

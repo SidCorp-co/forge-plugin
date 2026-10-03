@@ -1,7 +1,7 @@
 // What a program another language runs hands a shell, and where an interpreter takes its program inline: the readings every write test and the shell guard share, kept out of the hook harness because they are readings and not an entry point. how/learning-gate.md.
 
 import { SHELL_WORD } from "../shell-spans.mjs";
-import { INTERPRETER, LANGUAGE_OF } from "./spoken.mjs";
+import { INTERPRETER, INTERPRETERS, LANGUAGE_OF } from "./spoken.mjs";
 
 /** A program that can hand a string to a shell, and an interpreter's inline program: literals there are
  *  code — by the name that body's own language has, `spawnSync` running nothing from python. An unnamed runner keeps all. */
@@ -41,7 +41,16 @@ export const handedIn = (body, runner) => {
   return out;
 };
 
-export const RUNS = new RegExp(String.raw`\b(${INTERPRETER})\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
+/* Where an interpreter's name can stand: at the head of a shell word, or after a path in one, so a name inside an option's value (`--title=php`) is neither the interpreter nor a word's owner. */
+const AT_WORD = String.raw`(?<=(?:^|[\s;&|(){}\x60'"])(?:[^\s;&|(){}\x60'"-]\S*\/)?)`;
+/* The options ahead of the inline word, and that word held to the interpreter standing before them, so php's `-e` opens nothing and its `-r` does. Both names stand where `AT_WORD` allows and only options lie between, so the two are one name. */
+const OPTIONS = String.raw`\s+(?:-\S+\s+)*`;
+const HANDS = Object.entries(INTERPRETERS)
+  .map(([name, { inline }]) => String.raw`(?<=${AT_WORD}${name}${OPTIONS})(?:${inline.join("|")})`)
+  .join("|");
+
+/** An interpreter's inline program, matched as two groups: which interpreter runs it, and its body quoted as the command line has it. */
+export const RUNS = new RegExp(String.raw`${AT_WORD}(${INTERPRETER})${OPTIONS}(?:${HANDS})\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
 export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
