@@ -116,8 +116,8 @@ test("advance to the rung is refused while the standing verdicts are the builder
   assert.match(said, /criteria 1, 2 carries the builder's own id/u, said);
   assert.doesNotMatch(said, /criterion 2 carries the builder's own id/u,
     "one line names both, rather than one line for each burying the fact to act on");
-  assert.match(said, /forge record verdict ISS-8 --commit \S+ --evidence 9e24c2a --verdict <pass\|fail\|skipped\|short> --criterion 1 --criterion 2$/mu,
-    "and the item carries the write that answers it, citing the identity to judge against");
+  assert.match(said, /forge record verdict ISS-8 --commit \S+ --runtime <the whole object id the deployment reports serving> --evidence <what you exercised> --verdict <pass\|fail\|skipped\|short> --criterion 1 --criterion 2$/mu,
+    "and the item carries the write that answers it, asking for the runtime the judge reads off the deployment");
 });
 
 test("once the QA session has judged every criterion against the deployment, advance earns the rung", async () => {
@@ -128,7 +128,7 @@ test("once the QA session has judged every criterion against the deployment, adv
   assert.match(held.stderr, /has not been shown/u, "the page the builder judged is what the QA run reads first");
   const taken = await qa("claim", "ISS-8");
   assert.equal(taken.status, 0, taken.stderr);
-  const wrote = await qa("record", "verdict", "ISS-8", "--commit", MERGED, "--evidence", DEPLOYED,
+  const wrote = await qa("record", "verdict", "ISS-8", "--commit", MERGED, "--runtime", DEPLOYED, "--evidence", DEPLOYED,
     "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(wrote.status, 0, wrote.stderr);
   assert.equal(wrote.stdout.match(new RegExp(`^judge: ${QA}$`, "gmu")).length, 2, wrote.stdout);

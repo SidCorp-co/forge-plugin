@@ -4,13 +4,17 @@ This is the method of a run dispatched to judge, not of the master that dispatch
 criterion numbers you were given, the thing that is running, and a set of verdicts. Nothing here
 builds, lands or moves a status the verdicts do not earn.
 
-## An identity your brief carries is what every verdict cites
+## An identity your brief carries is what every verdict names
 
-Where your brief names the deployment identity, cite it in each verdict's evidence as the sha itself
-and not as a URL holding it or a file named after it — seven digits are enough, and the shorter of
-the two citations decides the comparison. Cite it rather than deriving one of your own from a branch
-or a deploy log: an identity you worked out is a claim about what is running that nobody read off the
-thing running.
+Where your brief names the deployment identity, read the identity the deployment itself reports
+serving and name it on each verdict's `--runtime`, whole: every hex digit, because an abbreviation of
+what is serving would let a verdict taken somewhere else read as standing. Read it off the thing
+running rather than deriving one of your own from a branch or a deploy log, and never copy it off
+your brief or the record: an identity you worked out or copied is a claim about what is running that
+nobody read off the thing running. The evidence is then what you exercised, not the sha.
+
+A run that read no identity off the deployment exercised no runtime, and a commit cannot stand in for
+one: write that criterion `skipped`, its `--why` saying what you lacked.
 
 Where what you find running does not answer to the identity you were given, stop and report that
 before judging anything. You were sent to judge one artifact and there is a different one there.

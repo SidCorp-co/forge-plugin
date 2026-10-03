@@ -99,7 +99,7 @@ const writesSince = (from) => (state.calls ?? []).slice(from).filter((one) => on
 const verdictSince = (issue, from) =>
   state.comments[issue.documentId].slice(from).map((one) => one.body).find((body) => /^## Verdict$/mu.test(body)) ?? "";
 
-const VERDICT_GIT = ["record", "verdict", "ISS-9", "--commit", MERGED, "--evidence", DEPLOYED,
+const VERDICT_GIT = ["record", "verdict", "ISS-9", "--commit", MERGED, "--runtime", DEPLOYED, "--evidence", DEPLOYED,
   "--verdict", "pass", "--criterion", "1", "--criterion", "2"];
 
 before(() => {
@@ -128,7 +128,7 @@ test("the builder's own verdict is refused before anything is sent, and the rout
   state.config.pipelineConfig = INDEPENDENT;
   inGit.sessionContext.lease = liveLease(MASTER);
   const from = state.calls?.length ?? 0;
-  const run = await as(BUILDER)("record", "verdict", "ISS-9", "--commit", MERGED, "--evidence", CAPTURE,
+  const run = await as(BUILDER)("record", "verdict", "ISS-9", "--commit", MERGED, "--runtime", DEPLOYED, "--evidence", CAPTURE,
     "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(run.status, 1, said(run));
   assert.deepEqual(writesSince(from), [], "no upload, field or comment reached the tracker");

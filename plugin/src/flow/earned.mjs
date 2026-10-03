@@ -10,7 +10,7 @@ import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
-import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm } from "./earned/asks.mjs";
+import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm, withRuntime } from "./earned/asks.mjs";
 
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
@@ -21,6 +21,7 @@ import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, isCommit, sameCommit } from "../tracker/evidence.mjs";
 import { blockersOwed, holdsBack, holdsBackFrom, ordersSaid } from "./earned/blockers.mjs";
 import { shapeGaps } from "./earned/shape-gaps.mjs";
+import { supersededOwed } from "./qa/superseded.mjs";
 
 export { shapeGaps };
 
@@ -29,7 +30,7 @@ import { FIELD as SESSION } from "./lease.mjs";
 import { landingOf } from "./landing/checkpoint.mjs";
 import { holdersOf } from "./landing/reconstruction.mjs";
 import { worklogOf } from "./worklog.mjs";
-import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
+import { judgeAsk, judgeProblems, numbered, owesRuntime } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/fields.mjs";
 import { MIGRATION_CLASSES } from "./record/content.mjs";
 import { assemble } from "./record/page.mjs";
@@ -230,7 +231,7 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
     `the landing moved ${moved.join(", ")}, which this change touched, so ${at} judged ${judged} `
       + `and the evidence was taken before those paths moved`,
     `forge record verdict ${ref} --criterion <n> --verdict ${valuesOf("verdict", "verdict")} `
-      + `--commit ${markedCommit(view.comments)} --evidence <attachment|url|sha>`,
+      + `${withRuntime(view, `--commit ${markedCommit(view.comments)}`)} --evidence <attachment|url|sha>`,
   );
 };
 
@@ -278,7 +279,7 @@ const heldOwed = (view, ref, verdict, exclude = EMPTY_SET) => {
       && (current.has(number) || !correctedAway(view, number)))
     .map(([number, { record }]) => need(
       what(number, record),
-      `${askOne(ref, number, idAsk(view))}\n  or, ${or}: ${correctedForm(ref, number)}`,
+      `${askOne(ref, number, withRuntime(view, idAsk(view)))}\n  or, ${or}: ${correctedForm(ref, number)}`,
     ));
 };
 
@@ -293,7 +294,8 @@ const failedOwed = (view, ref, exclude) => heldOwed(view, ref, "fail", exclude);
    that either, `heldOwed` above already stopping at a number that is gone. */
 const pastJudgingOwed = (view, ref) => {
   const stale = staleCriteria(view);
-  return [...failedOwed(view, ref, stale), ...heldOwed(view, ref, "skipped", stale), ...judgedSince(view, ref, stale)];
+  return [...failedOwed(view, ref, stale), ...heldOwed(view, ref, "skipped", stale), ...judgedSince(view, ref, stale),
+    ...supersededOwed(view, ref, stale)];
 };
 
 /* A landing brings other people's commits and leaves this change's own diff alone, so a verdict
@@ -325,8 +327,9 @@ const verdictsOwed = (view, ref) => {
   const judged = judgedHead(view.comments);
   const moved = judged ? landingMoved(view.comments) : null;
   const stands = judgedStands(view.comments);
-  const ask = (number) => askOne(ref, number, `--commit ${merged ?? "<sha>"}`);
-  const out = foldVerdicts(ref, view.owed, `--commit ${merged ?? "<sha>"}`,
+  const id = withRuntime(view, `--commit ${merged ?? "<sha>"}`);
+  const ask = (number) => askOne(ref, number, id);
+  const out = foldVerdicts(ref, view.owed, id,
     (number) => `criterion ${number} has no verdict`,
     (listed) => `criteria ${listed} have no verdict`);
   const atJudged = [];
@@ -340,7 +343,7 @@ const verdictsOwed = (view, ref) => {
       if (!stands) atJudged.push(number);
     } else {
       out.push(need(`the verdict on criterion ${number} judged ${held.commit}, and the merged commit is ${merged}: `
-        + `nothing on the record says ${held.commit} carries it`, carriedAsk(ref, number, merged)));
+        + `nothing on the record says ${held.commit} carries it`, carriedAsk(ref, number, merged, view)));
     }
   }
   if (atJudged.length) out.push(equivalenceOwed(view, ref, judged, moved, atJudged));
@@ -404,7 +407,7 @@ const judgedSince = (view, ref, stale = staleCriteria(view)) => {
   return foldVerdicts(
     ref,
     [...stale],
-    unreadId(view),
+    withRuntime(view, unreadId(view)),
     (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
     (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
   );
@@ -430,7 +433,7 @@ const shownOwed = (view, ref) => {
     `the plan declares a screen change, and the verdict on ${at} cites no attachment this issue `
       + `carries, so nothing on the record is a thing a person looked at`,
     `forge attach issue ${ref} <the rendered state>, then forge record verdict ${ref} `
-      + `${idAsk(view)} --evidence <that attachment>`
+      + `${withRuntime(view, idAsk(view))} --evidence <that attachment>`
       + heldBlocks(numbers.map((number) => [number, view.verdicts.get(number).record.fields])),
   )];
 };
@@ -446,7 +449,8 @@ const judgeOwed = (view, ref) => {
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
     const blocks = held[0].recite ? heldBlocks(held.map((one) => [one.number, one.held])) : null;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? [], blocks));
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? [], blocks,
+        owesRuntime(view.release, view.issue, view.landing)));
   });
 };
 
@@ -534,7 +538,8 @@ export const judgedOwed = (view, ref) => {
   if (!view.criteria.length) {
     return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
   }
-  const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref)];
+  const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref),
+    ...supersededOwed(view, ref)];
   return view.flags.schema === "yes" ? [...out, ...classificationOwed(view, ref)] : out;
 };
 
@@ -595,7 +600,7 @@ const releaseOwed = (view, ref) => {
 
 /* Every folded finding answered, at the rung the criteria are written and at each from the one they
    are judged at to the close: a finding can land on an issue at any of them (ISS-167). */
-const foldedOwed = (view, ref, judged = false) => findingsOwed(view, ref, { whole: (kind, record) => !shapeGaps(kind, record, view.names).length, judged, id: unreadId(view) });
+const foldedOwed = (view, ref, judged = false) => findingsOwed(view, ref, { whole: (kind, record) => !shapeGaps(kind, record, view.names).length, judged, id: withRuntime(view, unreadId(view)) });
 
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
