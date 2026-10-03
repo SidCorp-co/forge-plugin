@@ -13,6 +13,7 @@ const { render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { RUNTIME_ASK, judgeAsk, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
+const { deploymentOnto } = await import("../../../src/flow/record/judged/carried.mjs");
 
 const BUILDER = "the-builder-session";
 const QA = "the-qa-session";
@@ -106,6 +107,14 @@ test("a superseded verdict where the builder judges is asked for again with no r
     .filter((one) => /superseded/u.test(one.what));
   assert.equal(items.length, 1, said(items).join("\n"));
   assert.doesNotMatch(items[0].command, /--runtime/u, items[0].command);
+});
+
+test("a verdict naming a runtime is stamped with no second reading of the deployment off its evidence", () => {
+  const got = { verdict: "pass", commit: MERGED, runtime: REPLACED, evidence: [MERGED] };
+  const said = [];
+  deploymentOnto(got, CHECKPOINT, (line) => said.push(line));
+  assert.equal(got["carries-deployment"], undefined, "the runtime is the identity testing reads, alone");
+  assert.deepEqual(said, [], "and git is not asked whether its evidence carries the deployment");
 });
 
 test("a verification or a finding written after a runtime verdict leaves its standing as it was", () => {
