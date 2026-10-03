@@ -145,6 +145,17 @@ test("a squash-merged head ends the landing on the merged mark, and the checkpoi
     `and the closing line says which proof it was:\n${run.stdout}`);
 });
 
+/* The note names two heads, and either one ties the mark to this checkpoint: a fix confined to the
+   files the review read leaves the reviewed head behind the one the verdicts judged. */
+test("a mark naming the checkpoint's head as the judged one alone still proves the landing", async () => {
+  const { room, base, judged, squash } = squashedRoom("judged-only");
+  ready(judged, { merged: squash, note: { at: squash, reviewed: base, judged } });
+  const run = await ran(["claim", "ISS-3146", "--landed"], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().state, "done");
+  assert.equal(checkpoint().mergeRecord, squash);
+});
+
 test("a landing the branch reaches takes no merge record, whatever the mark says", async () => {
   const { room, judged } = squashedRoom("merged");
   git(room, "checkout", "-q", "master");
