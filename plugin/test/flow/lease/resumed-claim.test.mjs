@@ -141,3 +141,49 @@ test("an id that is the only fault is sent to the tree at in_progress and to the
     assert.doesNotMatch(judged.stderr, /forge brief|tree cut for that run|Unset that variable/u, status);
   }
 });
+
+/* A flag the live-lease refusal did not read is named at its head, and the refusal is otherwise the unflagged one (ISS-2533). */
+const flagged = (flags) => ranAsync(FORGE, ["claim", "ISS-2205", ...flags],
+  { ...ENV, FORGE_SESSION_ID: RUNNER, CLAUDE_PID: HOST, CLAUDE_CODE_SESSION_ID: "" }, AWAY);
+const STOPPED_SAID = /--stopped settles a holder this call can look for, and [^\n]*?, so the flag was read and settles nothing here\. /u;
+const UNHELD_SAID = /--unheld takes only an issue whose lease field holds no lease, and this one holds one, so the flag was read and settles nothing here\. /u;
+
+test("a live lease refusal names the --stopped and --unheld it did not read, and is otherwise the unflagged refusal", async () => {
+  /* A holder in a process still running on this host, which is not this call's: a run at work. */
+  heldBy(DISPATCHER, { status: "developed", pid: String(process.pid) });
+  const before = updates();
+  const bare = await flagged([]);
+  assert.equal(bare.status, 1, `${bare.stdout}${bare.stderr}`);
+  assert.doesNotMatch(bare.stderr, /--unheld|settles nothing here/u, "the unflagged refusal names neither");
+
+  const stopped = await flagged(["--stopped"]);
+  assert.equal(stopped.status, 1, `${stopped.stdout}${stopped.stderr}`);
+  assert.match(stopped.stderr, STOPPED_SAID);
+  assert.match(stopped.stderr, new RegExp(`pid ${process.pid}, which the lease records as its holder's, is still running on this host`, "u"));
+  assert.doesNotMatch(stopped.stderr, UNHELD_SAID);
+  assert.equal(stopped.stderr.replace(STOPPED_SAID, ""), bare.stderr, "and the rest is the bare refusal");
+
+  const unheld = await flagged(["--unheld"]);
+  assert.equal(unheld.status, 1, `${unheld.stdout}${unheld.stderr}`);
+  assert.match(unheld.stderr, UNHELD_SAID);
+  assert.doesNotMatch(unheld.stderr, STOPPED_SAID);
+  assert.equal(unheld.stderr.replace(UNHELD_SAID, ""), bare.stderr);
+
+  const both = await flagged(["--stopped", "--unheld"]);
+  assert.equal(both.status, 1, `${both.stdout}${both.stderr}`);
+  assert.equal(both.stderr.replace(STOPPED_SAID, "").replace(UNHELD_SAID, ""), bare.stderr, "each named once");
+  assert.match(both.stderr, /\n {2}forge claim ISS-2205 --give-back\n/u, "the route still closes it");
+  assert.equal(updates(), before, "and nothing was taken");
+});
+
+test("a --stopped at a live lease written on another host, or naming no process, says which", async () => {
+  heldBy(DISPATCHER, { status: "developed", place: "another-boot pid:[1]" });
+  const away = await flagged(["--stopped"]);
+  assert.equal(away.status, 1, `${away.stdout}${away.stderr}`);
+  assert.match(away.stderr, /--stopped settles a holder this call can look for, and the lease was written on another host than this call's/u);
+
+  heldBy(DISPATCHER, { status: "developed", pid: "unknown" });
+  const none = await flagged(["--stopped"]);
+  assert.equal(none.status, 1, `${none.stdout}${none.stderr}`);
+  assert.match(none.stderr, /--stopped settles a holder this call can look for, and the lease records no process on a host this call can look at/u);
+});
