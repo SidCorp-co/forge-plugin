@@ -4,6 +4,7 @@ import {
   LANDING_BUILDER_OWED, LANDING_HEAD_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT, landingOf, takeRoute,
 } from "../landing/checkpoint.mjs";
 import { MINUTES, claimed, describe, expiryOf, leaseOf, setLease } from "../lease.mjs";
+import { historyOf } from "./history.mjs";
 import { sessionSourced } from "../../resolve/config.mjs";
 import { sharedNow } from "../../wire/shared-clock.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -11,7 +12,7 @@ import { saidWritten, worklogFor } from "../worklog.mjs";
 
 /** Whether this session's own last claim was a take at this state, which a lease held from before that handoff is not. The holder's latest row and no earlier one, because the history outlives both the holder and the state: a run that took this turn and lost the lease is any other run again, and one that has since taken another turn is at that one. */
 const tookAt = (lease, holder, state) => {
-  const last = (lease?.history ?? []).findLast((one) => one?.holder === holder);
+  const last = historyOf(lease).findLast((one) => one?.holder === holder);
   return last?.how === "take" && last?.landing === state;
 };
 

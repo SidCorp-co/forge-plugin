@@ -102,11 +102,11 @@ export const advisory = (status, fields, held, work = null, finished = [], lease
 const UNREAD = { plan: null, moved: [], whole: false, complexity: null };
 
 /* The worklog is handed in and not read off the issue, which was fetched before this claim's own write: each route passes what it wrote, the two hand-backs writing none, and a page that did not read back still names the branch. */
-/* `landing` is the checkpoint this call wrote, where it wrote one: the issue was fetched before the write, and the opening narrows the phase owed by the head that checkpoint names (ISS-2439). `given` is the give-back's own, the one arm that ends the lease inside the call rather than queueing it. */
-const advise = async (documentId, fetched, held = null, landing = undefined, { given = false } = {}) => {
+/* `landing` is the checkpoint this call wrote, where it wrote one: the issue was fetched before the write, and the opening narrows the phase owed by the head that checkpoint names (ISS-2439). */
+const advise = async (documentId, fetched, held = null, landing = undefined) => {
   const issue = landing === undefined ? fetched : { ...fetched, [FIELD]: { ...fetched[FIELD], [LANDING]: landing } };
   const work = await workNow(held);
-  const leaseSaid = heldBy(documentId, { given });
+  const leaseSaid = heldBy(documentId);
   const page = await commentPage(documentId, true);
   if (page?.refused) {
     console.log(`This issue's comment page did not read back, so no phase is named as passed and the `
@@ -453,8 +453,7 @@ export const claim = async (argv) => {
     if (untold) console.error(untold);
   }
   if (given["give-back"]) {
-    return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })),
-      undefined, { given: true });
+    return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })));
   }
   if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
   if (given.stopped && HOLDING.includes(state) && !working.length) fail(stoppedHeldRefusal(ref, lease));

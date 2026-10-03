@@ -4,7 +4,7 @@ import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, session
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames, runsFor } from "../../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../../rank/weights.mjs";
-import { UNKNOWN, pidOf, placeOf } from "./holder.mjs";
+import { UNKNOWN, pidOf, writtenHere } from "./holder.mjs";
 import { READ_THE_STATE, landingOf, landingTurn } from "../landing/checkpoint.mjs";
 import { describe, leaseOf } from "../lease.mjs";
 
@@ -17,10 +17,7 @@ export const sharedHolder = (lease, held = sessionSourced()) =>
   held.source === INHERITED && lease?.holder === held.id;
 
 /* Whether the holder is provably the session that dispatched this call: written from this call's own host process on this call's own host, and under an id that names no run. Every agent a session dispatches runs inside that session's process, so the only holder there that is no run is the session that sent them — and it sent this one, an id naming the issue being minted only by a dispatch to it (ISS-2205). */
-const hostedHere = (lease) => pidOf() !== UNKNOWN && lease?.pid === pidOf()
-  && Boolean(placeOf()) && lease?.place === placeOf();
-
-const dispatcherHere = (lease) => hostedHere(lease) && runsFor(lease?.holder).length === 0;
+const dispatcherHere = (lease) => writtenHere(lease) && runsFor(lease?.holder).length === 0;
 
 const atDispatch = (status) => TAKEABLE.includes(String(status));
 
@@ -90,7 +87,7 @@ const processSaid = (pid) => (pid === UNKNOWN ? "no process" : `pid ${pid}`);
 
 /* Which half of `dispatcherHere` the holder fails, since each has its own reading: a process that is not this call's, and an id that is a run's. */
 const notDispatcherSaid = (lease) => {
-  if (!hostedHere(lease)) {
+  if (!writtenHere(lease)) {
     return lease?.pid === pidOf() && pidOf() !== UNKNOWN
       ? `the lease records ${processSaid(lease.pid)} on another host than this call's`
       : `the lease records ${processSaid(lease?.pid ?? UNKNOWN)} and this call runs under ${processSaid(pidOf())}`;

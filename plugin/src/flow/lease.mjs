@@ -3,9 +3,10 @@ import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { DRAFT, TAKEABLE } from "../rank/weights.mjs";
 import {
-  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere, workUnder,
+  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere, workUnder, writtenHere,
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
+import { historyOf } from "./lease/history.mjs";
 import { NO_LONGER_OWES } from "./earned/park-status.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
@@ -38,10 +39,11 @@ const GOES_BACK = "This run's lease is given back as this call ends, and the lin
   + "whether it was.";
 
 /** And what this endpoint answered, which only a write can have learned, so this is the claim's own line and never the usage's. */
-/* What the call did to the lease decides the sentence before the endpoint does: a call that ended the lease, or queued its release for the call's end, told it is this run's until it lapses reads as the write it reports not having happened (ISS-3099). The queue is read rather than each arm saying so, so an arm that queues a release is covered by queueing it. */
-export const heldBy = (documentId = null, { given = false } = {}) => {
-  if (given) return GAVE_BACK;
-  if (documentId !== null && OWED.has(documentId)) return GOES_BACK;
+/* What the call did to the lease decides the sentence before the endpoint does: a call that ended the lease, or queued its release for the call's end, told it is this run's until it lapses reads as the write it reports not having happened (ISS-3099). Both are read off the one record this process keeps of its releases rather than each arm saying so, so an arm that queues a release or writes one is covered by doing it (ISS-3125). */
+export const heldBy = (documentId = null) => {
+  const release = documentId === null ? null : RELEASES.get(documentId);
+  if (release?.given) return GAVE_BACK;
+  if (release) return GOES_BACK;
   return enforcementOf() === true
     ? "This tracker refuses a stale write to the field, so the lease is this run's until it lapses."
     : "This tracker did not refuse a stale write to the field, so the lease is advisory: two runs that "
@@ -118,7 +120,7 @@ export const leaseOf = (context) => {
     minutes: Number.isFinite(minutes) && minutes > 0 ? minutes : MINUTES,
     slack: Number.isFinite(Number(held.clock)) && Number(held.clock) >= 0 ? Number(held.clock) : null,
     next: typeof held.next === "string" && held.next ? held.next : null,
-    history: Array.isArray(held.history) ? held.history : [],
+    history: historyOf(held),
   };
 };
 
@@ -259,7 +261,7 @@ export const unheldRefusal = (ref, status, { next = null, work = null } = {}) =>
 export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null, over = null }) => {
   /* The remnant and not the lease: a field a release emptied answers `null` to `leaseOf`, so reading through it would drop every earlier row at the next take and the line the release left with them. What the remnant holds is unjudged, hence the two guards below — a history that is not a list spreads into a throw. The row this builds carries no release mark, the field being held again. */
   const held = remnantOf(context);
-  const history = Array.isArray(held?.history) ? [...held.history] : [];
+  const history = [...historyOf(held)];
   const line = typeof held?.next === "string" && held.next ? held.next : null;
   const state = landing?.state ?? landingOf(context)?.state ?? null;
   /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
@@ -310,7 +312,7 @@ const waitItOut = (ref, lease) => `Wait for it: ${freeFrom(lease)}:\n  forge cla
 export const asItsHolder = (ref, lease, { held = sessionSourced(), at = process.cwd(), call = thisCall() } = {}) => {
   const key = String(ref).trim().toLowerCase();
   if (!call || !runNames(lease?.holder, key) || runNames(held.id, key)) return null;
-  if (lease.pid === UNKNOWN || lease.pid !== pidOf() || runIdAt(at) === lease.holder) return null;
+  if (!writtenHere(lease) || runIdAt(at) === lease.holder) return null;
   return `That holder is a run dispatched to ${ref}, and the lease records pid ${lease.pid}, which `
     + `is this call's own process — the process and not the run inside it, every agent a session `
     + `dispatched sharing one, so nothing here is taken on it. A caller that is not that run waits: `
@@ -484,15 +486,15 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
   console.error(over
     ? reclaimedByWriting(ref, leaseOf(sent), over, { gone, handed, settled })
     : tookByWriting(ref, leaseOf(sent), left));
-  OWED.set(documentId, { ref, turn: false });
+  RELEASES.set(documentId, { ref, turn: false });
   return sent;
 };
 
-/* Registered here and spent by `plugin/src/cli.mjs`, the only place a verb's success is known: `renew` runs before the payload write on every route that calls it, so none of them can tell the write landed. Process state because that is the fact it carries — one call, one lease it did not ask for — and a call exiting through `fail` never reaches the spend, which is how a call that did not complete keeps what it took (ISS-1617). */
-const OWED = new Map();
+/* Registered here and spent by `plugin/src/cli.mjs`, the only place a verb's success is known: `renew` runs before the payload write on every route that calls it, so none of them can tell the write landed. Process state because that is the fact it carries — one call, one lease it did not ask for — and a call exiting through `fail` never reaches the spend, which is how a call that did not complete keeps what it took (ISS-1617). A release the call has already written stays here too, marked `given`, so `heldBy` reads what the call did to the lease off this one record (ISS-3125). */
+const RELEASES = new Map();
 
 /* The same give-back, asked for by a verb that is ending a turn rather than by a write that took a lease for itself. What the two share is the moment: the lease goes back once the call has completed, so a hand-back that fails past its own write keeps the issue rather than freeing one it left half-finished. What only this one knows is that the turn is over, which no lease can be read for — the lease was claimed by hand and says nothing about what the run meant to do under it — so the caller says it and this file does not guess. docs/cli/the-turn.md. */
-export const oweRelease = (documentId, ref) => OWED.set(documentId, { ref, turn: true });
+export const oweRelease = (documentId, ref) => RELEASES.set(documentId, { ref, turn: true });
 
 /* What a release says and what it writes. The sentence is for whoever reads the terminal the run ran in, and it is two sentences because the two releases are two different facts: one lease was taken by the write that is now landing, the other was claimed by hand and covered a turn the caller has just ended, and a run told the first about the second would read that its own claim had been a write's doing. The value takes the holder off so `leaseOf` reads no lease and records the moment so the field is not the one a run that died leaves, touching nothing else — the line the write left and every row of the claim history are the record of what happened here, and a release is not a reclaim and adds no row of its own. */
 const releasedSaid = (ref, turn = false) =>
@@ -501,6 +503,12 @@ const releasedSaid = (ref, turn = false) =>
     : `the lease this write took covered the write, and the write has landed`}. `
   + `Nothing holds the issue, so the run after it claims with no wait.`;
 
+/** A release written, and recorded as given back: every write taking the holder off goes through here. */
+export const writeRelease = async (documentId, value, ref, on, said = {}) => {
+  await setLease(documentId, value, ref, on, said);
+  RELEASES.set(documentId, { ref, given: true });
+};
+
 export const releasedWrite = (context, at = sharedStamp()) => ({
   ...(context && typeof context === "object" ? context : {}),
   [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
@@ -508,8 +516,8 @@ export const releasedWrite = (context, at = sharedStamp()) => ({
 
 /** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. Its write is the writer's settling one, which no other lease write is: everything the call was asked for is already on the tracker by the time this runs, and `writeFields` carries what that buys. */
 export const releaseOwed = async (say = console.error) => {
-  const owed = [...OWED.entries()];
-  OWED.clear();
+  const owed = [...RELEASES.entries()].filter(([, one]) => !one.given);
+  for (const [documentId] of owed) RELEASES.delete(documentId);
   for (const [documentId, { ref, turn }] of owed) {
     try {
       const context = await readContext(documentId, true);
@@ -519,7 +527,7 @@ export const releaseOwed = async (say = console.error) => {
       }
       const state = stateOf(leaseOf(context), sessionOf());
       if (!HOLDING.includes(state)) continue;
-      await setLease(documentId, releasedWrite(context), ref, () => context, { refuse, settling: true });
+      await writeRelease(documentId, releasedWrite(context), ref, () => context, { refuse, settling: true });
       say(releasedSaid(ref, turn));
     } catch (error) {
       say(`${ref}'s lease was not given back and stands until it lapses: ${error?.message ?? error}`);

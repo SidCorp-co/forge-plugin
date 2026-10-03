@@ -4,6 +4,7 @@
    What counts as evidence, and why nothing else can: docs/cli/the-drain-key.md. */
 import { DRAINS, drainScope, fromProject } from "../resolve/settings.mjs";
 import { sessionOf } from "../resolve/config.mjs";
+import { historyOf } from "../flow/lease/history.mjs";
 import { firstLine } from "../resolve/flags.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
@@ -56,7 +57,7 @@ const writtenAt = (one, own) => {
 /* The last claim another session recorded at the judging status on any row read. The asking
    session's own claims say nothing about whether another master is alive. */
 const claimedAt = (judged, own) => latest(judged.flatMap((one) =>
-  (Array.isArray(one.lease?.history) ? one.lease.history : [])
+  historyOf(one.lease)
     .filter((entry) => entry?.holder !== own && JUDGING.includes(String(entry?.status ?? "")))
     .map((entry) => entry?.at)));
 

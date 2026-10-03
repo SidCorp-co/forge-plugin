@@ -46,6 +46,12 @@ export const placeOf = () => {
   return here;
 };
 
+/** Whether a lease was written from this call's own host process: the pid it records and the place
+ *  that pid was issued in, both this call's. A pid alone names another process on another host,
+ *  and a place this call cannot read places nothing (ISS-2205, ISS-3125). */
+export const writtenHere = (lease) => pidOf() !== UNKNOWN && lease?.pid === pidOf()
+  && Boolean(placeOf()) && lease?.place === placeOf();
+
 let standing = null;
 
 export const treeHere = () => {
