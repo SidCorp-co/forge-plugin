@@ -43,6 +43,13 @@ const state = {
       }
       const row = everyRow().find((one) => one.documentId === args.documentId);
       if (!row) return {};
+      /* Once the take has landed, the writer's own read-back is let through and the read after it,
+         which is the key's, is refused once. */
+      const unread = state.unreadAfterTake;
+      if (args.action === "get" && unread?.id === row.documentId && row.sessionContext?.lease?.holder) {
+        unread.reads += 1;
+        if (unread.reads === 2) return { refused: "UNAVAILABLE: the issue read was refused" };
+      }
       if (args.action === "update" && !(state.dropped ?? []).includes(row.documentId)) Object.assign(row, args.data ?? {});
       return row;
     },
@@ -121,6 +128,14 @@ test("a holder that claimed nothing resolves the moved key with no refusal", asy
 
 test("a claim by the other project's document id moves the run's claim there", async () => {
   moveSlug(FAR);
+  state.unreadAfterTake = { id: FAR_SEVEN, reads: 0 };
+  const unread = await run(["claim", FAR_SEVEN]);
+  state.unreadAfterTake = null;
+  assert.match(unread.stderr, new RegExp(`the key it carries did not read back[^]*forge claim ${FAR_SEVEN}`, "u"),
+    "a claim whose key could not be read says the claim was not moved, and how to move it");
+  const stale = await run(["issue", "ISS-7"]);
+  assert.equal(stale.status, 1, "and the key is still held to the issue the run claimed first");
+
   const moved = await run(["claim", FAR_SEVEN]);
   assert.equal(moved.status, 0, moved.stderr);
   const read = await run(["issue", "ISS-7"]);

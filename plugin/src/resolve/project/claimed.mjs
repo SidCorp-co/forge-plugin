@@ -17,6 +17,17 @@ const pinsOf = (holder) => join(pinsDir(), `${encodeURIComponent(holder)}.json`)
 
 const heldPins = (holder) => readJson(pinsOf(holder)) ?? {};
 
+/* The key a document carries, or null with the line saying the claim was not moved: the lease has
+   landed by now, so the call is not refused for it, and the run is told the one call that moves it. */
+const keyOf = async (documentId) => {
+  const read = await tried("forge_issues", { action: "get", documentId, fields: [] });
+  if (KEYED.test(String(read?.issueId ?? ""))) return read.issueId;
+  console.error(`The lease on ${documentId} landed, but the key it carries did not read back${read?.refused
+    ? ` (${read.refused})` : ""}, so this run's claim under that key still names the issue it named before. `
+    + `Claim it by its id again, which moves it: forge claim ${documentId}`);
+  return null;
+};
+
 /** Records the document a lease write landed on under `ref`, where that lease names this process's
  *  holder and the call read its project off the saved record. A call aimed elsewhere pins nothing:
  *  it chose its project, and a pin from it would refuse the run's own key afterwards. */
@@ -27,8 +38,7 @@ export const pinClaim = async (ref, documentId, context) => {
   if (!project) return;
   /* A claim typed by document id writes under that id, and it is the route a run that meant the move
      takes the key on the new project by, so the key is read off the issue rather than skipped. */
-  const key = String(KEYED.test(String(ref ?? "")) ? ref
-    : (await tried("forge_issues", { action: "get", documentId, fields: [] }))?.issueId ?? "").toUpperCase();
+  const key = String(KEYED.test(String(ref ?? "")) ? ref : await keyOf(documentId) ?? "").toUpperCase();
   if (!KEYED.test(key)) return;
   const path = pinsOf(holder);
   mkdirSync(pinsDir(), { recursive: true });
