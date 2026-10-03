@@ -16,6 +16,34 @@ const declarationsOwed = (flags, ref) => {
   )];
 };
 
+/* The plan's other set of criterion numbers: a witnessed set pointing at nothing asks a person to
+   look at nothing, and a section answering no way at all or both ways says nothing about whether one
+   is owed — which the write refuses too, and a plan edited on the tracker never met. Judged wherever
+   a plan is held, the rung asking for one or not: a rung dropping the plan still records its
+   witnessed answer there, and every reader of that answer reads it whatever the rung (ISS-2275). */
+const witnessedOwed = (plan, criteria, ref) => {
+  const out = [];
+  const witnessed = witnessedOn(plan);
+  const answers = witnessedAnswers(witnessed);
+  if (witnessed && answers.length !== 1) {
+    out.push(need(
+      `\`## Witnessed on screen\` ${answers.length ? `cites criterion ${witnessed.cites.join(", ")} and says \`none\` as well` : "answers neither way"}, `
+        + "so nothing there says whether a person at the running product is owed a look",
+      `forge record plan ${ref} <plan.md>, that section citing what only a person there can witness or saying \`none\``,
+    ));
+  }
+  const held = new Set(criteria.map((one) => one.number));
+  const adrift = (witnessed?.cites ?? []).filter((number) => !held.has(number));
+  if (adrift.length) {
+    out.push(need(
+      `\`## Witnessed on screen\` cites criterion ${adrift.join(", ")}, which this issue does not hold, `
+        + "so what a person is asked to witness resolves to nothing",
+      `forge record plan ${ref} <plan.md>, citing under that heading from ${[...held].join(", ")}`,
+    ));
+  }
+  return out;
+};
+
 /** Every shortfall of a plan's shape at `approved`; `asks` is false where the rung waives the plan. */
 export const planShapeOwed = (asks, plan, flags, criteria, ref) => {
   const out = asks && plan ? declarationsOwed(flags, ref) : [];
@@ -49,27 +77,7 @@ export const planShapeOwed = (asks, plan, flags, criteria, ref) => {
         `forge record plan ${ref} <plan.md>, with \`criteria: <n>\` on each, from ${criteria.map((one) => one.number).join(", ")}`,
       ));
     }
-    /* The plan's other set of criterion numbers: a witnessed set pointing at nothing asks a person to
-       look at nothing, and a section answering no way at all or both ways says nothing about whether
-       one is owed — which the write refuses too, and a plan edited on the tracker never met. */
-    const witnessed = witnessedOn(plan);
-    const answers = witnessedAnswers(witnessed);
-    if (witnessed && answers.length !== 1) {
-      out.push(need(
-        `\`## Witnessed on screen\` ${answers.length ? `cites criterion ${witnessed.cites.join(", ")} and says \`none\` as well` : "answers neither way"}, `
-          + "so nothing there says whether a person at the running product is owed a look",
-        `forge record plan ${ref} <plan.md>, that section citing what only a person there can witness or saying \`none\``,
-      ));
-    }
-    const held = new Set(criteria.map((one) => one.number));
-    const adrift = (witnessed?.cites ?? []).filter((number) => !held.has(number));
-    if (adrift.length) {
-      out.push(need(
-        `\`## Witnessed on screen\` cites criterion ${adrift.join(", ")}, which this issue does not hold, `
-          + "so what a person is asked to witness resolves to nothing",
-        `forge record plan ${ref} <plan.md>, citing under that heading from ${[...held].join(", ")}`,
-      ));
-    }
   }
+  if (plan) out.push(...witnessedOwed(plan, criteria, ref));
   return out;
 };

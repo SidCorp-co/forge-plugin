@@ -201,7 +201,7 @@ counts, and nobody writes a report from memory.
 
 ### UC-04-7 — The plan is a typed payload, and its shape is checked at the write
 
-Rev: 2 · Actors: agent · Enforces: BR-01, BR-14
+Rev: 3 · Actors: agent · Enforces: BR-01, BR-14
 
 The plan carries a section per question the write's own help prints, each opened by a heading whose
 text is the section's name. The shape is markdown and not a fenced block because the plan is a field
@@ -213,14 +213,18 @@ can witness, whose answer is a criterion number or the word `none` and is theref
 judged — an unanswered one reads to its next reader exactly like a considered `none`, which is the
 confusion that section exists to end. A plan carrying none of the sections is stored as the free text
 this field held before them, so a plan already on a tracker stays writable and no status is earned on
-it.
+it. A rung that drops the plan still has this field as the one home of what a plan declares: a plan
+holding only the declarations and the sections a declaration asks for is the whole of a plan there,
+because the witnessed answer is read off this field by everything that hands it on, and a second
+place for it would be a second answer to reconcile.
 
 - **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
   WHEN the plan write's help is asked for THEN it SHALL print every section a typed plan carries, each
   as the question that section answers.
-- **AC-04-7-2** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a typed plan missing a section is refused, with each one named"
-  IF a plan carries a section and lacks another THEN the CLI SHALL refuse the write, SHALL name each
-  section that is missing, and SHALL leave the field as it was.
+- **AC-04-7-2** · Rev: 2 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a typed plan missing a section is refused, with each one named"
+  IF a plan carries a section and lacks another, and is not a declarations-only plan written where the
+  issue's rung drops the plan, THEN the CLI SHALL refuse the write, SHALL name each section that is
+  missing, and SHALL leave the field as it was.
 - **AC-04-7-3** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "the way back is refused only where a coupling declaration asks for it"
   WHERE a plan declares schema coupling or deploy coupling, the CLI SHALL refuse a plan carrying no
   way back, and SHALL name the declaration that owes it.
@@ -250,6 +254,16 @@ it.
 - **AC-04-7-11** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "the witnessed section cites only in the criteria form, and none answers from the paragraph it opens"
   WHERE that section answers `none` at the opening of a paragraph after one that answers neither way,
   the CLI SHALL read the section as answering `none`.
+- **AC-04-7-12** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan-declarations.test.mjs "a rung dropping the plan writes a plan holding only the witnessed section, answering none"
+  WHERE the issue's rung drops the plan, the CLI SHALL write a plan holding only the section naming
+  what a person at the running product can witness, whichever way that section answers.
+- **AC-04-7-13** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan-declarations.test.mjs "the top rung refuses a declarations-only plan, naming every section it still owes"
+  IF a plan holds only the declarations and the sections a declaration asks for, and the issue's rung
+  read with that plan's own declarations owes the plan whole, THEN the CLI SHALL refuse the write and
+  SHALL name each section that rung still owes.
+- **AC-04-7-14** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan-declarations.test.mjs "a criteria file carrying a plan section's heading is refused with the plan write named"
+  IF a criteria file carries a heading naming a section of the plan THEN the CLI SHALL refuse the
+  write and SHALL name the plan write as the one that takes that section.
 
 ### UC-04-8 — The merged mark is a record, and a field is shaped as well as present
 

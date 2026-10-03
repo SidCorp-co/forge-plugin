@@ -251,7 +251,8 @@ test("a rung's waiver is printed against the status it is granted from, and waiv
     "and every phase is still owed: a waiver drops a record, never the work");
   /* Two rows on one status: the first alone is what `find` answered, and the plan's row is the second, so a reader taking it would report the plan and say nothing of the reading (ISS-1066). */
   assert.deepEqual(waived[0].waivers.map((one) => one.drops),
-    ["a decision record", "the plan field, and the declarations it would carry, which absent read `no`"],
+    ["a decision record", "the plan field but for what it declares: a plan holding only `## Declarations`, "
+      + "`## Witnessed on screen`, `## The way back` is where this rung records those, and what it leaves unsaid reads `no`"],
     "both rows the status carries are named, in the table's own order");
   assert.match(waived[0].waivers[1].because, /a fix's criteria are the one check that fails without it/u,
     "each by the ladder's own words for why, so the cut cannot say what the ladder does not");

@@ -327,6 +327,9 @@ test("--owed reports the rung the checks run, what it drops and every route up f
   assert.match(run.stdout, /is a `fix`: the tracker's complexity is `s`\. The entry checks run that rung/u);
   const reported = (row) => [`at ${row.status}`, row.drops, row.because].every((one) => run.stdout.includes(one));
   for (const row of LIGHTER) assert.ok(reported(row), `${row.status} is lightened and the report omits ${row.drops}`);
+  /* The plan's drop names where the rung still records what a plan declares, the witnessed answer among it, so a run is told before it writes the criteria file rather than by that file's refusal (ISS-2275). */
+  assert.match(run.stdout, /not owed: the plan field but for what it declares: a plan holding only `## Declarations`, `## Witnessed on screen`/u,
+    "the drop names the plan that carries the declarations at this rung");
   assert.match(run.stdout, /forge record plan ISS-71 <plan\.md>/u, "one route up, in the form it wants");
   assert.match(run.stdout, /--moved "Rung: fix -> feature"/u, "and the other, so neither is inferred");
   assert.match(run.stdout, /no confirmation/u, "while the confirmation with its where is owed all the same");

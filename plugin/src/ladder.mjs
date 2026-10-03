@@ -1,5 +1,5 @@
 /* Which rung of the ladder an issue is at and what it stops owing; the report about it is ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
-import { looksTo, planFlags } from "./flow/machine.mjs";
+import { DECLARING, looksTo, planFlags } from "./flow/machine.mjs";
 
 export const RUNGS = ["trivial", "fix", "feature"];
 const [TRIVIAL, FIX] = RUNGS;
@@ -71,7 +71,8 @@ export const LIGHTER = [
     status: "approved",
     rungs: BELOW_TOP,
     kind: "plan",
-    drops: "the plan field, and the declarations it would carry, which absent read `no`",
+    drops: `the plan field but for what it declares: a plan holding only ${DECLARING.map((one) => `\`## ${one}\``).join(", ")}`
+      + " is where this rung records those, and what it leaves unsaid reads `no`",
     because: "a fix's criteria are the one check that fails without it, which is the whole of its plan",
   },
 ];
