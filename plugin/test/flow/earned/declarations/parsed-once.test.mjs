@@ -11,7 +11,9 @@ process.env.XDG_CONFIG_HOME = tempHome("parsed-once").path;
 const { FIX, declaredRows, landsNoFile, lightens, lighterRows, rungOf } = await import("../../../../src/ladder.mjs");
 const { rungReport } = await import("../../../../src/ladder-report.mjs");
 const { laneLines } = await import("../../../../src/guides/phases.mjs");
-const { ORDER, rungFieldsOf, viewFrom } = await import("../../../../src/flow/earned.mjs");
+const { CHECKS, ORDER, rungFieldsOf, viewFrom } = await import("../../../../src/flow/earned.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { markNote } = await import("../../../../src/flow/record/merged.mjs");
 
 const REQUIRED = "Screen change: no\nSchema coupling: no\nDeploy coupling: yes";
 const plans = {
@@ -45,12 +47,24 @@ test("one fields object's plan is read once, by whichever of the rung, the waive
   assert.equal(first.reads, 1, "and the rung asking after takes that parse");
 });
 
+/* A landing that wrote a path: the developed check refuses it as a no-file landing only where it read the declaration. */
+const SERVED = "43b811e";
+const landed = [
+  { createdAt: "2026-10-02T10:01:00.000Z", authorId: "agent", body: `mark_merged target=base — ${markNote({ branch: "master",
+    at: SERVED, reviewed: SERVED, judged: "nothing", moved: [], wrote: ["src/app.mjs"], ref: "ISS-3" })}` },
+  { createdAt: "2026-10-02T10:02:00.000Z", authorId: "agent",
+    body: render("review", { reviewer: "codex", commit: SERVED, outcome: "approved", finding: [] }) },
+];
+
 test("lands no file is one answer, read alike by the ladder's waiver and by the developed check", () => {
   for (const [how, plan] of Object.entries(plans)) {
-    const fields = rungFieldsOf(viewFrom("the-uuid", { plan, sessionContext: {} }, []));
+    const view = viewFrom("the-uuid", { plan, sessionContext: {}, mergedAt: "2026-10-02T10:03:00.000Z" }, landed);
+    const fields = rungFieldsOf(view);
     assert.equal(landsNoFile(fields), how === "declared", `the plan ${how}`);
     assert.equal(declaredRows(fields, "in_progress").length > 0, landsNoFile(fields),
       `and the waiver the ladder grants agrees with it, the plan ${how}`);
+    const noFile = CHECKS.developed(view, "ISS-3").some((one) => /plan declares the change lands no file/u.test(one.what));
+    assert.equal(noFile, landsNoFile(fields), `and the developed check takes the no-file record exactly where it does, the plan ${how}`);
   }
 });
 
