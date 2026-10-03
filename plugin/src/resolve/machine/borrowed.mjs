@@ -104,9 +104,14 @@ export const borrowing = (own) => {
 export const overlaid = (own, borrowed) => BORROWED
   .reduce((held, row) => settled(held, partsOf(row.key), valueAt(borrowed, row.key)), own);
 
+const borrowedIn = (values) => BORROWED.filter((row) => valueAt(values, row.key) !== undefined).map((row) => row.key);
+
+/** Whether a write setting these values would set a borrowed key, which the refusal below is raised for. */
+export const namesBorrowed = (values) => borrowedIn(values).length > 0;
+
 /** Refuses a write naming any borrowed key before the file is touched. */
 export const refuseBorrowedWrite = (values, borrowed, own) => {
-  const named = BORROWED.filter((row) => valueAt(values, row.key) !== undefined).map((row) => row.key);
+  const named = borrowedIn(values);
   if (!named.length) return;
   const home = dirname(dirname(borrowed));
   fail(`${named.map((key) => `\`${key}\``).join(" and ")} ${named.length > 1 ? "are" : "is"} borrowed from ${borrowed} `

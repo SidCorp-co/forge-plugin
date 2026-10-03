@@ -485,6 +485,10 @@ the worst place to keep an example of the one it replaces.
   WHERE a case of this plugin's own suite needs the project keys of a room standing in for this
   checkout it SHALL take them from one declaration the suite owns, a case reading them off a file at
   the repository's root being the same two-store drift one level down.
+- **AC-01-5-45** · Rev: 1 · Proof: plugin/test/resolve/machine/derived-writes.test.mjs "a cloudflare login keeps an account another process saved after this one read the config"
+  WHEN a write to this machine's own configuration sets a key from what that key already holds THEN
+  the CLI SHALL take what it holds from the file as it stands at the write, so that an entry another
+  process saved under that key after this one first read the file survives the write.
 
 ## The way back
 

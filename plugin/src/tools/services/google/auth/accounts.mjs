@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import { configDir, saveNested, writeJsonPrivate } from "../../../../resolve/config.mjs";
 import { AUTH, INTERNAL, holdSecret, refuse } from "../exits.mjs";
-import { ENV_TOKEN, defaultAccount, environmentToken, googleConfig, savedAccounts } from "./configured.mjs";
+import { ENV_TOKEN, defaultAccount, environmentToken, savedAccounts } from "./configured.mjs";
 
 export const SERVICE = "service";
 export const LOGIN = "login";
@@ -56,27 +56,37 @@ export const checkedName = (name) => {
   return name;
 };
 
+const heldAccounts = (held) => held.accounts ?? {};
+
 /** Writes the account's file at 0600 and its record; the first account saved is the default. */
 export const saveAccount = (name, record, file, { makeDefault = false } = {}) => {
   mkdirSync(accountsDir(), { recursive: true, mode: 0o700 });
   writeJsonPrivate(fileOf(name), file);
-  const accounts = { ...savedAccounts(), [name]: record };
-  const current = googleConfig().default;
-  const becomes = makeDefault || !current || !Object.hasOwn(accounts, current) ? name : current;
-  saveNested("google", { accounts, default: becomes });
+  let becomes = name;
+  saveNested("google", (held) => {
+    const accounts = { ...heldAccounts(held), [name]: record };
+    const current = held.default;
+    becomes = makeDefault || !current || !Object.hasOwn(accounts, current) ? name : current;
+    return { accounts, default: becomes };
+  });
   return becomes === name;
 };
 
 export const updateAccount = (name, patch, { makeDefault = false } = {}) => {
-  const accounts = { ...savedAccounts(), [name]: { ...savedAccounts()[name], ...patch } };
-  saveNested("google", { accounts, ...(makeDefault ? { default: name } : {}) });
+  saveNested("google", (held) => ({
+    accounts: { ...heldAccounts(held), [name]: { ...heldAccounts(held)[name], ...patch } },
+    ...(makeDefault ? { default: name } : {}),
+  }));
 };
 
 export const removeAccount = (name) => {
-  const { [name]: gone, ...rest } = savedAccounts();
+  let gone;
   rmSync(fileOf(name), { force: true });
-  const current = googleConfig().default;
-  saveNested("google", { accounts: rest, default: current === name ? null : current ?? null });
+  saveNested("google", (held) => {
+    const { [name]: dropped, ...rest } = heldAccounts(held);
+    gone = dropped;
+    return { accounts: rest, default: held.default === name ? null : held.default ?? null };
+  });
   return gone;
 };
 

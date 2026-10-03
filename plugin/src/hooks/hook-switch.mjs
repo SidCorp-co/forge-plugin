@@ -104,23 +104,23 @@ export const hookEvent = (name) => (hookEvents()[name] ?? []).join(", ") || "reg
 
 /* A config that will not parse runs every gate: a failing switch must cost a gate firing, never a
    gate silently gone. */
-const hooksOff = () => {
-  const held = userConfig().hooksOff;
-  return new Set(Array.isArray(held) ? held : []);
-};
+const offIn = (config) => new Set(Array.isArray(config.hooksOff) ? config.hooksOff : []);
 
-export const hookOff = (name) => hooksOff().has(name);
+export const hookOff = (name) => offIn(userConfig()).has(name);
 
 /** What a switch thrown off covers and what undoes it, in the words every surface handing the switch out prints: the key is the account's, and a refusal that called it the session's handed one agent a gate down for every project and agent beside it, with no way back named (ISS-45). */
 export const offReach = (name) =>
   `off for every project and every session on this account until \`forge hooks --on ${name}\``;
 
 export const setHook = (name, off) => {
-  const held = hooksOff();
-  if (off) held.add(name);
-  else held.delete(name);
-  const list = [...held].sort();
-  saveConfig({ hooksOff: list });
+  let list = [];
+  saveConfig((config) => {
+    const held = offIn(config);
+    if (off) held.add(name);
+    else held.delete(name);
+    list = [...held].sort();
+    return { hooksOff: list };
+  });
   return list;
 };
 
@@ -131,5 +131,5 @@ export const offNow = () =>
 
 export const strandedSwitches = () => {
   const real = new Set(hookNames());
-  return [...hooksOff()].filter((name) => !real.has(name));
+  return [...offIn(userConfig())].filter((name) => !real.has(name));
 };

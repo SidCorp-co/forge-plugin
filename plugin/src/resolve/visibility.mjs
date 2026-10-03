@@ -223,13 +223,16 @@ export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const HIDDEN = "hidden";
 export const OFF = "off";
 
-export const verbStates = () => {
-  const held = userConfig().withheld;
+/** The states a config's `withheld` value reads as, for a reader and for a write rebuilding it. */
+export const statesIn = (config) => {
+  const held = config.withheld;
   if (Array.isArray(held)) return Object.fromEntries(held.map((verb) => [verb, HIDDEN]));
   if (!held || typeof held !== "object") return {};
   return Object.fromEntries(Object.entries(held)
     .map(([verb, state]) => [verb, state === OFF ? OFF : HIDDEN]));
 };
+
+export const verbStates = () => statesIn(userConfig());
 
 export const stateOf = (verb) => verbStates()[verb] ?? null;
 const withheldVerbs = () => new Set(Object.keys(verbStates()));

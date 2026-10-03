@@ -261,23 +261,32 @@ export const searchDns = async (zones, query, type) => {
   return dedupe(perZone.flat());
 };
 
+const savedAccounts = (held) => (Array.isArray(held.accounts) ? held.accounts : []);
+
 const saveAccount = (rest) => {
   const { name, "account-id": accountId, token, forget } =
     flags(rest, "cloudflare login", [], { usage: LOGIN_USAGE, secret: ["--token"] });
-  const held = userConfig().cloudflare?.accounts ?? [];
+  let left = 0;
   if (forget) {
-    const kept = held.filter((one) => one.name !== forget);
-    if (kept.length === held.length) fail(didYouMean("account", forget, held.map((one) => one.name)));
-    saveNested("cloudflare", { accounts: kept });
-    console.log(`Dropped ${forget}; ${kept.length} account(s) left in ${configPath()}`);
+    const held = userConfig().cloudflare?.accounts ?? [];
+    if (!held.some((one) => one.name === forget)) fail(didYouMean("account", forget, held.map((one) => one.name)));
+    saveNested("cloudflare", (saved) => {
+      const kept = savedAccounts(saved).filter((one) => one.name !== forget);
+      left = kept.length;
+      return { accounts: kept };
+    });
+    console.log(`Dropped ${forget}; ${left} account(s) left in ${configPath()}`);
     return;
   }
   if (!name || !accountId || !token) {
     fail("cloudflare login needs --name, --account-id and --token, or --forget <name>.");
   }
-  const kept = held.filter((one) => one.name !== name);
-  saveNested("cloudflare", { accounts: [...kept, { name, accountId, apiToken: token }] });
-  console.log(`Saved ${name} to ${configPath()} (0600); ${kept.length + 1} account(s) configured.`);
+  saveNested("cloudflare", (saved) => {
+    const accounts = [...savedAccounts(saved).filter((one) => one.name !== name), { name, accountId, apiToken: token }];
+    left = accounts.length;
+    return { accounts };
+  });
+  console.log(`Saved ${name} to ${configPath()} (0600); ${left} account(s) configured.`);
 };
 
 const listAccounts = (rest) => {

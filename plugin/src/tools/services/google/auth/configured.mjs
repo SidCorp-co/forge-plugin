@@ -6,7 +6,7 @@ import { userConfig } from "../../../../resolve/config.mjs";
 
 export const ENV_TOKEN = "FORGE_GOOGLE_ACCESS_TOKEN";
 
-export const googleConfig = () => userConfig().google ?? {};
+const googleConfig = () => userConfig().google ?? {};
 
 /* Read by name, being the one value here a configuration file cannot hold: a CI run has none. */
 export const environmentToken = () => process.env.FORGE_GOOGLE_ACCESS_TOKEN || null;

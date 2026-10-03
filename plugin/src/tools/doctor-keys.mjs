@@ -6,7 +6,7 @@ import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
 import { fromProject, JOB_ALL, declaredJobs, fail } from "../resolve/settings.mjs";
 import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER } from "./services/coolify/chosen-route.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
+import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, statesIn,
   withheldForJob } from "../resolve/visibility.mjs";
 
 const SAVED = ["token", "url"];
@@ -53,10 +53,12 @@ const setStore = (store) => (asked) => {
    older release left behind into the shape every reader now takes. */
 const setVisibility = (verb, hide) => {
   if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
-  const withheld = verbStates();
-  if (hide) withheld[verb] = HIDDEN;
-  else delete withheld[verb];
-  saveConfig({ withheld });
+  saveConfig((held) => {
+    const withheld = statesIn(held);
+    if (hide) withheld[verb] = HIDDEN;
+    else delete withheld[verb];
+    return { withheld };
+  });
   console.log(hide
     ? `${verb} is now hidden from the usage list, and still runs when it is typed.\n`
     : `${verb} is now offered in the usage list.\n`);

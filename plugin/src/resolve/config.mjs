@@ -15,7 +15,7 @@ import { basename, dirname, join } from "node:path";
 
 import { reap } from "../rooms/reap.mjs";
 import { underLock } from "./machine/file-lock.mjs";
-import { BORROW_VAR, borrowing, isBorrowed, overlaid, refuseBorrowedWrite } from "./machine/borrowed.mjs";
+import { BORROW_VAR, borrowing, isBorrowed, namesBorrowed, overlaid, refuseBorrowedWrite } from "./machine/borrowed.mjs";
 import { idGrantedBy } from "./session/granted-id.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runHeldWhere } from "./session/run-id.mjs";
 import { homeIn } from "./session/run-home.mjs";
@@ -99,23 +99,38 @@ export const writeJsonPrivate = (path, value) => {
    quiet holder is given instead, and only past it writes unguarded, leaving the trace that says so. */
 const QUIET_HOLDER_MS = 5_000;
 
-export const saveConfig = (values, settle = (held) => ({ ...held, ...values })) => {
+/** `values` is what the write sets, or a function of the file as it stands under the lock returning
+ *  that: a value built from what a key holds is built there, because built off this process's first
+ *  read it put back a stale copy over an entry another process saved since (ISS-3126). The borrow
+ *  refusal is judged on that same value and raised once the lock is released, a refusal exiting
+ *  inside it leaving the lock behind. */
+export const saveConfig = (values, settle = (held, given) => ({ ...held, ...given })) => {
   const borrow = borrowing(configPath());
-  if (borrow) refuseBorrowedWrite(values, borrow.path, configPath());
   mkdirSync(configDir("forge"), { recursive: true });
-  return underLock(`${configPath()}.lock`, () => {
-    const merged = settle(readJson(configPath()) ?? {});
+  let refused = null;
+  const written = underLock(`${configPath()}.lock`, () => {
+    const held = readJson(configPath()) ?? {};
+    const given = typeof values === "function" ? values(held) : values;
+    if (borrow && namesBorrowed(given)) {
+      refused = given;
+      return null;
+    }
+    const merged = settle(held, given);
     writeJsonPrivate(configPath(), merged);
     const memo = ownConfig();
     for (const key of Object.keys(memo)) delete memo[key];
     Object.assign(memo, merged);
     return configPath();
   }, { waits: QUIET_HOLDER_MS });
+  if (refused) refuseBorrowedWrite(refused, borrow.path, configPath());
+  return written;
 };
 
-/* One key of the config holds an object, and a top-level merge writing one field of it from a bare object drops every sibling under the same key, which is how a login lost what a login before it had saved. */
-export const saveNested = (key, values) =>
-  saveConfig({ [key]: values }, (held) => ({ ...held, [key]: { ...(held[key] ?? {}), ...values } }));
+/* One key of the config holds an object, and a top-level merge writing one field of it from a bare object drops every sibling under the same key, which is how a login lost what a login before it had saved. Under the lock, a function is handed that object rather than the file. */
+export const saveNested = (key, values) => saveConfig(
+  (held) => ({ [key]: typeof values === "function" ? values(held[key] ?? {}) : values }),
+  (held, given) => ({ ...held, [key]: { ...(held[key] ?? {}), ...given[key] } }),
+);
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
 export const sessionPath = () => join(configDir("forge"), "session.json");
