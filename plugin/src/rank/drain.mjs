@@ -133,9 +133,8 @@ export const evidenceSaid = (drain, now = Date.now()) =>
 /** The window the evidence is judged in, named with the key that sets it. */
 const idleSaid = (drain) => `\`rank.drainIdle\` ${drain.idle} minute(s)`;
 
-/** The judging rows and what they say about the master declared to drain them, read once for both
- *  commands: a machine standing down on `forge next --json` reads the same evidence `forge doctor`
- *  prints. */
+/** The judging rows and what they say about the master declared to drain them, one chain for the
+ *  queue and the report alike, so neither judges rows the other did not. */
 export const judgingRead = async (rows, { policy, leaseFor, weights, whole }) => {
   const judging = await judgingFrom(rows, { policy, leaseFor, cap: weights.windowCap });
   return judging && !judging.unread
