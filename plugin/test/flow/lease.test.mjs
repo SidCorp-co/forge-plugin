@@ -20,7 +20,7 @@ const {
   leaseOf, nextLine, nothingWorked, idsHere, reclaimRefusal,
   stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
-const { historyLine, reclaimsOf } = await import("../../src/flow/lease/crash-park.mjs");
+const { historyLine, reclaimsOf } = await import("../../src/flow/lease/reclaims/crash-park.mjs");
 const { agentOf, pidOf } = await import("../../src/flow/lease/holder.mjs");
 const { SHARED_HOLDER, sharedHolder } = await import("../../src/flow/lease/dispatched.mjs");
 const {

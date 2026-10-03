@@ -10,7 +10,7 @@ import { retiredRefusal } from "./resolve/retiring.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
-import { markOwed } from "./flow/lease/mark.mjs";
+import { markOwed } from "./flow/lease/reclaims/mark.mjs";
 import { heldAfterMoves } from "./flow/lease/after-move.mjs";
 import { unwrittenSaid } from "./flow/worklog.mjs";
 import { settleConfigHome } from "./resolve/session/config-home.mjs";

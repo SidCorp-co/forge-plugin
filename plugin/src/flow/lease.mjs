@@ -7,7 +7,7 @@ import {
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
 import { historyOf } from "./lease/history.mjs";
-import { OWED, WROTE } from "./lease/written-under.mjs";
+import { OWED, WROTE } from "./lease/reclaims/written-under.mjs";
 import { NO_LONGER_OWES } from "./earned/park-status.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";

@@ -1,9 +1,9 @@
 /* The mark a lease takes once a payload landed under it, written as the call that wrote the payload
    ends, so a reclaim over that lease is not counted as a run that died at its status (ISS-2531).
    docs/cli/the-dead-holder.md. */
-import { HOLDING, KEY, leaseOf, readContext, setLease, stateOf } from "../lease.mjs";
-import { sessionOf } from "../../resolve/config.mjs";
-import { refuse } from "../../refusal.mjs";
+import { HOLDING, KEY, leaseOf, readContext, setLease, stateOf } from "../../lease.mjs";
+import { sessionOf } from "../../../resolve/config.mjs";
+import { refuse } from "../../../refusal.mjs";
 import { WROTE, marksOwed } from "./written-under.mjs";
 
 /** Spent where the call has completed and before the lease is given back, read back first: a lease

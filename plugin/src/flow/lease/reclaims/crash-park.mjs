@@ -1,6 +1,6 @@
 /* The count of reclaims at one status, read off the claim history the lease carries, and the one line that history takes when a claim prints it. docs/cli/claim.md. */
-import { RECLAIM, declaresNothingWorked, stamp } from "../lease.mjs";
-import { historyOf } from "./history.mjs";
+import { RECLAIM, declaresNothingWorked, stamp } from "../../lease.mjs";
+import { historyOf } from "../history.mjs";
 
 /* Past this many, a claim names the park to its caller. It never writes one: the caller is the one process that knows whether it is alive, and a count cannot tell a retried dispatch, a reading lease or a job that never started from a run that died (ISS-693). */
 export const RECLAIMS_BEFORE_PARK = 2;

@@ -12,7 +12,7 @@ standsInNoTree("moved-reclaim");
 
 const { NOTHING_WORKED } = await import("../../../src/flow/lease.mjs");
 const { historyLine, leftOutOf, overWhom, reclaimsOf, tookWhy, uncountedWhy } =
-  await import("../../../src/flow/lease/crash-park.mjs");
+  await import("../../../src/flow/lease/reclaims/crash-park.mjs");
 
 const MOVED = uncountedWhy({ how: "reclaim", status: "b" }, { status: "a" });
 const READING = uncountedWhy({ how: "reclaim", next: NOTHING_WORKED }, null);
