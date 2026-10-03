@@ -543,6 +543,30 @@ a wait no party can end.
   while the issue stands at a status that is no rebuild THEN the CLI SHALL name the write that records
   a later landing already on the branch and the reopen that starts one still to land, because a
   refusal naming only where the landing is sends the reader to read what the refusal already knew.
+- **AC-03-6-36** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a squash-merged head ends the landing on the merged mark, and the checkpoint names that proof"
+  WHERE a checkpoint still declares a branch ready, the branch this project lands changes on is proved
+  not to reach its head, and that branch carries the commit the issue's merged mark names while the
+  mark's note gives the checkpoint's head as the one reviewed or judged, the CLI SHALL end the landing
+  and SHALL record on the checkpoint that the merge record proved it, because a squash or a rebase
+  merge never puts the captured head on the branch, and a landing proved one way must not read as
+  proved the other.
+- **AC-03-6-37** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "no merged mark keeps the refusal, and the checkpoint stays ready"
+  IF the branch does not reach the head and the issue carries no merged mark THEN the CLI SHALL refuse
+  to end the landing and leave the checkpoint where it stands, because the absence of a mark is not
+  evidence that anything landed.
+- **AC-03-6-38** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a merged mark the landing branch does not reach is refused by its commit, and the checkpoint stays ready"
+  IF the merged mark names a commit the branch does not carry THEN the CLI SHALL refuse naming that
+  commit and leave the checkpoint where it stands, because a mark nothing carries is a change that has
+  not landed.
+- **AC-03-6-39** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a mark of an earlier landing of the issue is refused naming its head, and the second capture stays ready"
+  IF the standing mark's note gives a head other than the checkpoint's as the one reviewed or judged,
+  or a commit other than the one the issue's row holds, THEN the CLI SHALL refuse naming what the note
+  gives and leave the checkpoint where it stands, because the tracker keeps the first stamp until it
+  is taken down, so the mark standing beside a second capture can be the first landing's.
+- **AC-03-6-40** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a later landing over a checkpoint the merge record proved is taken where it carries that commit"
+  WHEN a later landing is written over a finished checkpoint the merge record proved THEN the CLI SHALL
+  read whether it moves forward from the commit that record names rather than from the captured head,
+  because after a squash every later repair carries the squash and never the head.
 
 ## Business rules enforced
 

@@ -61,6 +61,16 @@ fell short. The recorded ref is read whole and never as a conventional name that
 a repository carrying both of the usual two would have the ancestry settled against whichever
 answered first.
 
+A squash or a rebase merge lands the work as a commit of its own, so the head the checkpoint was
+written at is never on the branch and the ancestry answers no for good. Where git proves exactly that
+and nothing less, the issue's merged mark is a second proof: the commit it names has to be on the
+branch, and its note has to name this checkpoint's head as reviewed or judged and the same commit the
+row holds. The note is the tie because a stamp outlives its landing until somebody takes it down, so a
+second capture of the same issue stands beside the first one's mark, reachable and later. The proof is
+named rather than substituted: the checkpoint keeps the head it was captured at, holds the mark's
+commit beside it, and its line says the merge record proved the landing. A later landing written over
+that checkpoint is read forward from that commit, which is what every later repair carries.
+
 Neither route reads that write back as a status. `done` says no turn of the landing is left; how far
 up the ladder the record has carried the issue is the record's own answer, and a release that owes a
 person an act leaves the issue standing at the rung it earned with the checkpoint finished all the
