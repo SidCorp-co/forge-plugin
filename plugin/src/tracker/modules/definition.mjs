@@ -6,15 +6,17 @@ import { suggest } from "../../suggest.mjs";
 
 export const MODULE = "module";
 
-/** The project's modules off its label list, or the tracker's refusal: `soft` hands a caller that
- *  must not exit on one the refusal instead. */
+/** The project's modules off its label list, and the plain labels beside them by id and name, or
+ *  the tracker's refusal: `soft` hands a caller that must not exit on one the refusal instead. */
 export const moduleDefinition = async ({ soft = false } = {}) => {
   const read = await scoped("forge_labels", { action: "list" }, soft);
-  if (read?.refused) return { modules: [], refused: read.refused };
-  const modules = (read?.labels ?? []).filter((one) => one.kind === MODULE)
+  if (read?.refused) return { modules: [], plain: [], refused: read.refused };
+  const rows = read?.labels ?? [];
+  const modules = rows.filter((one) => one.kind === MODULE)
     .map(({ id, name, parentId, description }) => ({ id, name, parentId: parentId ?? null,
       description: description ?? null }));
-  return { modules, refused: null };
+  const plain = rows.filter((one) => one.kind !== MODULE).map(({ id, name }) => ({ id, name }));
+  return { modules, plain, refused: null };
 };
 
 const namesOf = (modules) => modules.map((one) => one.name);

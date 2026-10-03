@@ -89,6 +89,30 @@ test("--add defines a module under the parent and with the text given, and print
   assert.match(run.stdout, /^ {4}docs {2}parent tooling/mu, "and the reading after it holds it");
 });
 
+test("--add of a name a plain label holds makes that label the module, sending no create", async () => {
+  seed();
+  const before = state.issues.map((one) => [one.issueId, JSON.stringify(one.labels)]);
+  const run = await ran(["modules", "--add", "bug", "--parent", "tooling", "--description", "Defects a user meets."]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(sent("forge_labels", "create"), [], "a create of a held name is what the tracker refuses");
+  assert.deepEqual(sent("forge_labels", "update").map((call) => [call.args.labelId, call.args.data]),
+    [["l-bug", { kind: "module", parentId: "m-tool", description: "Defects a user meets." }]],
+    "one update to the plain label's own id, carrying the parent and the text");
+  assert.deepEqual(writes().map((call) => call.method), ["PATCH"], "no issue is written");
+  assert.deepEqual(state.issues.map((one) => [one.issueId, JSON.stringify(one.labels)]), before,
+    "every issue that carried the label still carries the same id");
+  assert.match(run.stdout, /^Made the plain label bug the module bug, parent tooling, described "Defects a user meets\.", read back off the tracker\. It kept its id, so every issue that carried the label carries the module\.$/mu);
+  assert.match(run.stdout, /^ {4}bug {2}parent tooling/mu, "and the reading after it lists it as a module");
+});
+
+test("--add of a name that is already a module sends nothing and names --edit", async () => {
+  seed();
+  const run = await ran(["modules", "--add", "gate"]);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /`gate` is a module of this project already\. Nothing was sent: --edit changes it\./u);
+  assert.deepEqual(writes(), []);
+});
+
 test("--edit --parent moves a module under another, and --parent none to the top", async () => {
   seed();
   const moved = await ran(["modules", "--edit", "surface", "--parent", "tooling"]);

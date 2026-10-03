@@ -54,6 +54,17 @@ gives. What these three change lives on the tracker and in no settings file, and
 the shared row would be handed to every other reading as flags it has no use for. So the subject
 parses them itself, and a refusal that hands one out spells it after `forge doctor modules`.
 
+## An add makes a plain label of its name the module
+
+A project that tagged its modules before the taxonomy existed often holds a plain label under the
+very name it now wants as a module, and the tracker refuses a second row of a name the project
+already holds. Refusing the add as well would hand the caller to the tracker's own screen for a
+change this verb can make, so the existing row is promoted instead of created beside. Promoting
+rather than recreating is also what keeps the history: the row keeps its id, so every issue that
+carried the label carries the module, and no issue is rewritten to get there. The reply says it was
+a promotion, since a caller who meant a fresh, empty module learns from it that the name was already
+in use.
+
 ## A removal refuses rather than strands
 
 The tracker refuses to delete a label any issue carries, and it deletes a parent by moving each child
