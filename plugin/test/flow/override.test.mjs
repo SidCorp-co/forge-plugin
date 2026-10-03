@@ -385,8 +385,9 @@ test("into needs_info the correction goes first, so the move cannot be undone by
   const moved = state.calls.findIndex((one) => one.args.action === "transition");
   assert.ok(wrote >= 0 && moved >= 0, `wrote ${wrote}, moved ${moved}`);
   assert.ok(wrote < moved, "the record is written against the status it left, and the move follows it");
-  const renewals = state.calls.filter((one) => one.args.action === "update" && one.args.data?.sessionContext !== undefined);
-  assert.equal(renewals.length, 1, "one renewal for the pair, spent by the record that went first");
+  const leaseWrites = state.calls.filter((one) => one.args.action === "update" && one.args.data?.sessionContext !== undefined);
+  /* The other lease write is the mark the call's end owes a lease a record landed under (ISS-2531), and no renewal. */
+  assert.deepEqual(leaseWrites.map((one) => one.args.data.sessionContext?.lease?.wrote === true), [false, true], "one renewal for the pair, spent by the record that went first, then the mark");
 });
 
 /* The issue can change hands between the record and the move, and the move must not be the write

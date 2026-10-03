@@ -40,6 +40,8 @@ dispatcher that exited being the one holder whose going is not a crash of this i
 Nor does it count a reclaim made after the issue moved on, its status or landing state changed
 since the run it went over took it: a builder-and-judge route reclaims at `developed` on every
 repair, and a run that moved the issue and then died lost the issue, not the work (ISS-2267).
+Nor one over a lease a call that completed wrote a record under, a judge's verdicts handing the
+issue back where it took it (ISS-2531).
 
 **A holder a worktree minted names the tree and not the run standing in it.** The id lives beside
 that tree's git directory because every agent of a wave inherits one session id and the tree is the

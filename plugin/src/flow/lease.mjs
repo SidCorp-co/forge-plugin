@@ -7,6 +7,7 @@ import {
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
 import { historyOf } from "./lease/history.mjs";
+import { OWED, WROTE } from "./lease/reclaims/written-under.mjs";
 import { NO_LONGER_OWES } from "./earned/park-status.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
@@ -273,8 +274,11 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       holder, at, how, status, next: line,
       ...(state ? { landing: state } : {}),
       ...(over ? { from: over.holder, ranOut: stamp(expiryOf(over)) } : {}),
+      ...(held?.[WROTE] === true ? { [WROTE]: true } : {}),
     });
   }
+  /* Written by `markOwed` once a payload landed and kept across its holder's own renewals; a take starts the new holder's lease unmarked, the row above keeping the mark of the lease it went over (ISS-2531). */
+  const marked = !how && held?.holder === holder && held?.[WROTE] === true;
   return {
     ...(context && typeof context === "object" ? context : {}),
     ...(worklog ? { [WORKLOG]: worklog } : {}),
@@ -289,6 +293,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,
       next: next === undefined ? inherited : nextLine(next),
+      ...(marked ? { [WROTE]: true } : {}),
       history: history.slice(-HISTORY_KEPT),
     },
   };
@@ -563,9 +568,14 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     next,
     worklog: worklogFor(from, patch),
   }));
+  /* A comment or an edge renews as a finder and is no record of the holder's work, so it is owed no mark. */
+  const owe = () => {
+    if (!finder && sent?.[KEY]?.[WROTE] !== true) OWED.set(documentId, ref);
+  };
   if (state === "mine") {
     await setLease(documentId, value(context, lease), ref, () => context);
     saidWritten(patch);
+    owe();
     return sent;
   }
   /* Lapsed is the one another run may take: the last read decides, and the notice waits for the write. */
@@ -581,6 +591,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     return value(again, now);
   }, ref, () => read);
   saidWritten(patch);
+  owe();
   if (renewed) console.error(renewedLapsed(ref, renewed));
   return sent;
 };

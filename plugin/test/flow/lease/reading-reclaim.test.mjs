@@ -10,7 +10,11 @@ process.env.XDG_CONFIG_HOME = tempHome("reading-reclaim").path;
 standsInNoTree("reading-reclaim");
 
 const { NOTHING_WORKED, claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
-const { historyLine, readingsOf, reclaimsOf, tookReading } = await import("../../../src/flow/lease/crash-park.mjs");
+const { historyLine, leftOutOf, reclaimsOf, tookWhy, uncountedWhy } = await import("../../../src/flow/lease/reclaims/crash-park.mjs");
+
+const READING = uncountedWhy({ how: "reclaim", next: NOTHING_WORKED }, null);
+const readingsOf = (lease, status) => leftOutOf(lease, status).find((one) => one.why === READING)?.count ?? 0;
+const tookReading = (lease) => tookWhy(lease)?.why === READING;
 
 const AT = "2026-09-02T12:00:00.000Z";
 const held = (holder, at = AT, minutes = 30, history = []) =>
