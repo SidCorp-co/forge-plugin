@@ -8,8 +8,7 @@ import { WROTE, marksOwed } from "./written-under.mjs";
 
 /** Spent where the call has completed and before the lease is given back, read back first: a lease
  *  another run now holds, or one already marked, is left alone, and a mark that cannot be written is
- *  said and costs the call nothing, its payload having landed. A write that took its lease for itself
- *  owes none, that lease being given back as the call ends. */
+ *  said and costs the call nothing, its payload having landed. */
 export const markOwed = async (say = console.error) => {
   for (const [documentId, ref] of marksOwed()) {
     try {

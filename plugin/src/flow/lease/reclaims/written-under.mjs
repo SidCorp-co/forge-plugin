@@ -6,8 +6,7 @@
 export const WROTE = "wrote";
 
 /** A lease a payload write renewed and found unmarked, by document id with its ref, owed its mark once
- *  the call completes: `renew` runs before the payload write, so only the call's end knows the record
- *  landed. */
+ *  the call completes, for the reason `RELEASES` in `../../lease.mjs` is spent there too. */
 export const OWED = new Map();
 
 /** The leases owed a mark, handed over once and forgotten here. */
