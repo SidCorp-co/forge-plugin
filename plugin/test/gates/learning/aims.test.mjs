@@ -38,7 +38,7 @@ test("a copy, a move or an install into a guarded directory is a write to the fi
 
 /* The walk placed only a substitution a double quote opened, so the whole-name reading stopped at the first bare one and a quoted target after it was cut at its bracket (ISS-3087). */
 test("a substitution closed in an earlier command does not hide the next command's quoted target", () => {
-  for (const opened of ["$(date)", "`date`", '"$(date)"']) {
+  for (const opened of ["$(date)", "`date`", '"$(date)"', "$\\\n(date)"]) {
     assert.equal(decide(`x=${opened}; touch '${MEMORY}/r(1).md'`).allowed, false, opened);
     assert.equal(decide(`x=${opened}; cp notes.md '${MEMORY}/r (1).md'`).allowed, false, opened);
   }

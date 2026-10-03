@@ -45,6 +45,9 @@ test("a bare substitution gives its body a depth, and its brackets stand inside 
   const nested = '"$(a $(b))"';
   assert.equal(markOf(nested, nested.indexOf("b")).depth, 2, "a bare `$(` inside a quoted one is a frame of its own");
   assert.equal(spans("x $(a; b) y").length, 2, "and a bare one is still cut where it was");
+  for (const continued of ["a $\\\n(b) c", '"$\\\n(b)"']) {
+    assert.equal(markOf(continued, continued.indexOf("b")).depth, 1, `a continuation between the \`$\` and its bracket opens it all the same: ${continued}`);
+  }
 });
 
 /* The flat reading these texts had at 39d9b53, written out: the double quote holds the substitution and

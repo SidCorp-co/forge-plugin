@@ -62,14 +62,17 @@ const commented = (w, one) => {
   w.start = w.at + 1;
 };
 
+/* A line continuation is gone before a shell reads a word, so a `$` in front of one still opens what follows it. */
 const escaped = (w) => {
   const { text, at } = w;
+  const continued = text[at + 1] === "\n";
   if (w.quoted && at + 1 < text.length && (!w.quote || ESCAPED_IN_DOUBLE.test(text[at + 1]))) w.gone.add(at);
   mark(w, at, "\\");
   if (at + 1 < text.length) mark(w, at + 1, "\\");
   w.at += 1;
   w.fresh = false;
-  w.dollar = false;
+  w.dollar = continued && w.dollar;
+  if (continued && w.sigil === at - 1) w.sigil = at + 1;
 };
 
 /* Where a backtick closes a pair: inside one, the next backtick no backslash took closes it, whatever opened since. */
