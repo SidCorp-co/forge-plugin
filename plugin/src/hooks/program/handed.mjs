@@ -49,7 +49,7 @@ const HANDS = Object.entries(INTERPRETERS)
   .map(([name, { inline }]) => String.raw`(?<=${AT_WORD}${name}${OPTIONS})(?:${inline.join("|")})`)
   .join("|");
 
-/** An interpreter's inline program: the interpreter, then the body its own inline word hands it, still in the shell quotes it was written in. */
+/** An interpreter's inline program, matched as two groups: which interpreter runs it, and its body quoted as the command line has it. */
 export const RUNS = new RegExp(String.raw`${AT_WORD}(${INTERPRETER})${OPTIONS}(?:${HANDS})\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
