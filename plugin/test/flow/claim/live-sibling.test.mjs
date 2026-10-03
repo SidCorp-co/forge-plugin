@@ -249,6 +249,11 @@ test("a second claim from one worktree is refused while work this call did not s
     assert.equal(onTheRecord().renewedAt, was,
       "and the lease still reads as it did before the call, the refusal coming before the write");
     assert.equal(state.wrote, 0, "which the tracker confirms: no write of the field was even attempted");
+    /* ISS-2533: a flag this refusal does not read is named at its head, ahead of the same refusal. */
+    const unheld = await ran(["claim", "ISS-1872", "--unheld"]);
+    assert.equal(unheld.status, 1, `${unheld.stdout}${unheld.stderr}`);
+    assert.match(unheld.stderr, /--unheld takes only an issue whose lease field holds no lease, and this one holds one, so the flag was read and settles nothing here\. ISS-1872 is claimed and this claim would take a lease/u);
+    assert.match(unheld.stderr, /forge claim ISS-1872 --stopped\n?$/u, "still closing on the flag that takes it");
   } finally {
     sibling.kill();
   }

@@ -83,6 +83,7 @@ import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
 import { workingRefusal } from "./lease/working.mjs";
+import { unreadSaid } from "./lease/unread-flags.mjs";
 import { GIVE_BACK, TURNS, giveBack, giveBackBeside, stoppedHeldRefusal } from "./lease/give-back.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
@@ -450,7 +451,9 @@ export const claim = async (argv) => {
   if (given["give-back"]) {
     return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })));
   }
-  if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
+  /* Every lease refusal below names a flag it did not read (ISS-2533). */
+  const refuse = (said) => fail(unreadSaid(given, state, lease) + said);
+  if (working.length && !given.stopped) refuse(workingRefusal(ref, lease, working));
   if (given.stopped && HOLDING.includes(state) && !working.length) fail(stoppedHeldRefusal(ref, lease));
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, source, minutes, line, patch });
@@ -489,7 +492,7 @@ export const claim = async (argv) => {
     ? takeRoute(ref)
     : null;
   if (state === "live" && !handed) {
-    fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder), takeOpen));
+    refuse(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder), takeOpen));
   }
   /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. A field a write gave the lease back in is none of the readings that anomaly stands for — one write emptied it on purpose and said so — so it is an ordinary claim wherever the issue stands (ISS-1617). */
   const unheld = state === "free" && !takeableFree(issue.status, context);
@@ -499,9 +502,9 @@ export const claim = async (argv) => {
   }
   /* One reading, two sentences: the first owns the lapse the record can tell is fresh and the second only the lapse read as stale that cannot be ruled fresh, which is the direction that takes an issue off a working run (ISS-1212). */
   const unproven = state === "expired" && !given.stopped && !handed ? lapseUnproven(lease, { band }) : "";
-  if (unproven === LAPSE_FRESH) fail(reclaimRefusal(ref, lease, undefined, takeOpen));
+  if (unproven === LAPSE_FRESH) refuse(reclaimRefusal(ref, lease, undefined, takeOpen));
   if (unproven === LAPSE_UNORDERED) {
-    fail(`${straddleSaid(`the moment the lease on ${ref} becomes anybody's`, anybodys, band)} `
+    refuse(`${straddleSaid(`the moment the lease on ${ref} becomes anybody's`, anybodys, band)} `
       + `Until then this reclaim would take the issue off ${describe(lease)}. Where you have `
       + `established that run stopped, say so:\n  forge claim ${ref} ${STOPPED}`);
   }

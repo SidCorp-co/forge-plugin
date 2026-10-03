@@ -88,6 +88,18 @@ test("a reclaim of a lease that has only just lapsed is refused, and the flag is
     "appending the reclaim to the claim history exactly as one needing no flag does");
 });
 
+/* ISS-2533: `--unheld` reads only a field holding no lease, so here it is named rather than dropped. */
+test("a reclaim of a fresh lapse carrying --unheld names the flag ahead of the same refusal", async () => {
+  heldBy(THEIRS, 90, 60);
+  const bare = await claim([]);
+  const unheld = await claim(["--unheld"]);
+  assert.equal(unheld.status, 1, `${unheld.stdout}${unheld.stderr}`);
+  const said = /--unheld takes only an issue whose lease field holds no lease, and this one holds one, so the flag was read and settles nothing here\. /u;
+  assert.match(unheld.stderr, said);
+  assert.equal(unheld.stderr.replace(said, ""), bare.stderr, "and the rest is the refusal with no flag");
+  assert.match(unheld.stderr, /forge claim ISS-1224 --stopped\n?$/u, "closing on the flag that takes it");
+});
+
 test("a lease lapsed by its own duration or more is anybody's again, with no flag at all", async () => {
   /* A minute past the boundary rather than on it. At exactly one duration the predicate asks
      `now < now`, and the two nows come from different clocks: the tracker's `date` header is whole
