@@ -40,8 +40,7 @@ export const LANDING_STATES = {
   done: { turn: null, next: [] },
 };
 
-/* The commit the merged mark names, held where that mark and not the branch reaching the head is
-   what proved the landing, so a reader can tell the two proofs apart (ISS-3146). */
+/* Present only on a landing `finishLanded` ended off the merged mark; landed.mjs says when (ISS-3146). */
 export const MERGE_RECORD = "mergeRecord";
 
 /* Declared: a key nothing here names is dropped rather than read back as a fact. Every one of them

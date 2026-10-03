@@ -130,8 +130,7 @@ const supersedeRefused = (ref, head, deployment, builder, landing) => {
       + `deployment and the builder it already holds, so it would record nothing the checkpoint does not `
       + `say. Where the deployment it names is wrong, name the one serving:\n${form}`;
   }
-  /* Where the merge record proved that landing, its commit is what the branch carries, the head
-     never being on it (ISS-3146). */
+  /* `MERGE_RECORD` in checkpoint.mjs, read first where that checkpoint holds one. */
   const landed = landing[MERGE_RECORD] ?? landing.head;
   if (!landed) return null;
   const read = commitCarries(landed, head);
