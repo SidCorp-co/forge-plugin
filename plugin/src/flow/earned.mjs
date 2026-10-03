@@ -14,7 +14,7 @@ import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, ide
 
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
-import { lightens } from "../ladder.mjs";
+import { landsNoFile, lightens } from "../ladder.mjs";
 import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { findingsOwed } from "./earned/findings.mjs";
 import { rungReport } from "../ladder-report.mjs";
@@ -659,7 +659,7 @@ export const CHECKS = {
     } else if (!markedCommit(view.comments)) {
       out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", mergedForm(ref)));
     }
-    return [...out, ...(view.flags.nofile === "yes" ? noFileOwed(view, ref) : scopeOwed(view, ref)), ...reviewOwed(view, ref)];
+    return [...out, ...(landsNoFile(rungFieldsOf(view)) ? noFileOwed(view, ref) : scopeOwed(view, ref)), ...reviewOwed(view, ref)];
   },
   testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
   awaiting_release: (view, ref) => [...pastJudgingOwed(view, ref), ...deployedOwed(view, ref),

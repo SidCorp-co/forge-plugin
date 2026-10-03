@@ -120,21 +120,34 @@ export const overCeiling = (rung, { files, lines }) => {
   return over.length ? over : null;
 };
 
-/* One rung, not a jump to the top: a person will look at this is one reason among several. */
-export const escalatedBy = (plan) => (looksTo(planFlags(plan)) ? 1 : 0);
+/* Keyed on the fields object and not on the plan text: the rung, every status's waivers, the lane and the report each ask one object, and a key on the text would hold a 25 KB plan for as long as the process runs (ISS-3123). */
+const PARSED = new WeakMap();
 
-export const rungOf = ({ plan, moved, whole, complexity = null }) => {
+/** The declarations a fields object's plan makes, parsed by whichever reader asks first and handed to every later one. */
+export const flagsOf = (fields) => {
+  if (!PARSED.has(fields)) PARSED.set(fields, planFlags(fields.plan));
+  return PARSED.get(fields);
+};
+
+/** Whether the plan declares that the change lands no file in the repository: the one reading of it, for the row below that waives the baseline and for the `developed` check that takes the no-file record instead of the scope (ISS-2384). Only a `yes` grants it, so an empty diff is never read as one. */
+export const landsNoFile = (fields) => flagsOf(fields).nofile === "yes";
+
+/* One rung, not a jump to the top: a person will look at this is one reason among several. */
+export const escalatedBy = (fields) => (looksTo(flagsOf(fields)) ? 1 : 0);
+
+export const rungOf = (fields) => {
+  const { moved, whole, complexity = null } = fields;
   if (whole === false) return FEATURE;
   const claimed = rungClaimed({ complexity }).rung;
-  const climbed = Math.min(heightOf(claimed) + escalatedBy(plan), RUNGS.length - 1);
+  const climbed = Math.min(heightOf(claimed) + escalatedBy(fields), RUNGS.length - 1);
   return RUNGS[Math.max(climbed, ...climbedTo(moved).map(heightOf))];
 };
 
-/* A payload a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the declaration's key, and only its `yes` grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
+/* A payload a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the predicate over the fields that grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
 const DECLARED_AWAY = [
   {
     status: "in_progress",
-    declared: "nofile",
+    declared: landsNoFile,
     kind: "baseline",
     drops: "a baseline, and the branch the worklog would name",
     because: "the plan declares the change lands no file, so there is no tree for a gate to measure or a branch to cut",
@@ -142,10 +155,8 @@ const DECLARED_AWAY = [
 ];
 
 /** The declaration rows a plan grants at a status, or at every status where none is named. */
-export const declaredRows = (fields, status = null) => {
-  const flags = planFlags(fields?.plan);
-  return DECLARED_AWAY.filter((one) => (status === null || one.status === status) && flags[one.declared] === "yes");
-};
+export const declaredRows = (fields, status = null) =>
+  DECLARED_AWAY.filter((one) => (status === null || one.status === status) && one.declared(fields));
 
 /** Every row a rung grants at a status, in the table's own order, and after them every row the plan's declarations grant there. A status carries a row per payload it may drop, so this answers with a list and the two readers below take what each needs from it: taking the first would say one waiver where two are granted (ISS-1066). The rows are a parameter because the live table waives every kind of a status at the same rungs, and a case driving only that table could not tell keying on the kind from keying on the status. */
 export const lighterRows = (status, fields, rows = LIGHTER) => {

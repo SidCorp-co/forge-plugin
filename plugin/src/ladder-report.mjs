@@ -2,10 +2,10 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WRITE_READ_OWED, climbForm, declaredRows, heightOf, rungClaimed,
-  rungOf, splits,
+  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WRITE_READ_OWED, climbForm, declaredRows, flagsOf, heightOf,
+  rungClaimed, rungOf, splits,
 } from "./ladder.mjs";
-import { looksTo, planFlags } from "./flow/machine.mjs";
+import { looksTo } from "./flow/machine.mjs";
 
 /* Past the widest label so a hanging line clears it, measured off the labels: a literal is a column only until a status is renamed longer than it (ISS-1022). */
 const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
@@ -33,9 +33,9 @@ const splitAsk = (complexity) => (splits(complexity) ? [
   "others, and this one confirmed as the first of them. Nothing above is owed differently either way.",
 ] : []);
 
-const climbSaid = (plan, claimed, rung) => {
+const climbSaid = (fields, claimed, rung) => {
   if (rung === claimed) return null;
-  const declared = looksTo(planFlags(plan));
+  const declared = looksTo(flagsOf(fields));
   const byPlan = declared && heightOf(claimed) < RUNGS.length - 1;
   return byPlan && RUNGS[heightOf(claimed) + 1] === rung
     ? `its plan declares ${declared}, which moves it one rung to \`${rung}\``
@@ -57,7 +57,7 @@ export const rungReport = (fields, ref) => {
       "correction that moved it up, so the rung is not applied and the full set is asked."].join("\n");
   }
   const rung = rungOf(fields);
-  const climbed = climbSaid(fields.plan, claimed.rung, rung);
+  const climbed = climbSaid(fields, claimed.rung, rung);
   const opened = `${markSaid(claimed)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that rung:`;
   const dropped = [...lighterLines(rung), ...declaredLines(fields)];
   const baseline = declaredRows(fields).some((one) => one.kind === "baseline") ? "" : "the baseline, ";
