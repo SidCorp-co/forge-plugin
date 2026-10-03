@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { withoutBodies } from "../../../src/resolve/session/here-doc.mjs";
+import { bodiesOut, withoutBodies } from "../../../src/resolve/session/here-doc.mjs";
 
 test("a here-document it can delimit loses its body and its operator, and nothing else", () => {
   const cut = {
@@ -21,6 +21,7 @@ test("a << that is no here-document, or one it cannot vouch for, leaves the text
     "printf '%s\\n' \"$((1 << exit))\"\nexit\nforge comment ISS-1",
     "(( x << y ))\ny\nforge comment ISS-1",
     "x=$(cat <<'E'\nbody\nE\n)\nforge comment ISS-1",
+    "x=`cat <<'E'\nbody\nE\n`\nforge comment ISS-1",
     "echo 'a <<X'\nX\nforge comment ISS-1",
     "cat <<< X\nX\nforge comment ISS-1",
     "cat <<X\n$(forge advance ISS-2)\nX\nforge comment ISS-1",
@@ -35,4 +36,10 @@ test("a << that is no here-document, or one it cannot vouch for, leaves the text
 test("a body after a shift is taken out like any other", () => {
   assert.equal(withoutBodies("echo $(( 1 << 2 ))\ncat > f <<'X'\nforge comment\nX\nls"), "echo $(( 1 << 2 ))\ncat > f      \nls");
   assert.equal(withoutBodies("(( x <<= 1 ))\ncat <<X\nbody\nX\nls"), "(( x <<= 1 ))\ncat    \nls");
+});
+
+/* A backtick pair is the substitution `$(…)` is, so the walk places one a double quote opened and the reader finds its operator there too (ISS-3087). */
+test("a here-document inside a double-quoted backtick pair is placed like one inside `\"$(…)\"`", () => {
+  assert.equal(bodiesOut("echo \"`cat <<'E'\nit's\nE\n`\"; ls"), "echo \"`cat  \n`\"; ls");
+  assert.equal(bodiesOut("echo \"$(cat <<'E'\nit's\nE\n)\"; ls"), "echo \"$(cat  \n)\"; ls");
 });

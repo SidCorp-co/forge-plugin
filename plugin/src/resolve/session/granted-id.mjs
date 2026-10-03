@@ -27,13 +27,13 @@ const EVERY_BODY = new RegExp(BODY, "gu");
 /* What a double quote still runs: a command substitution, in either spelling. A process substitution and a here-doc operator are text there, and commands anywhere a shell reads one. */
 const IN_DOUBLE = new RegExp(String.raw`^(?:\$[({]|${BACKTICK})`, "u");
 
-/* The one reading of a command every question below asks, out of one `quoting` walk: the text a shell reads, its continuations joined as the walk joins them, and beside it the quoting each of its characters stands under and how many substitutions a double quote opened it stands inside, offset for offset. */
+/* The one reading of a command every question below asks, out of one `quoting` walk: the text a shell reads, its continuations joined as the walk joins them, and beside it the quoting each of its characters stands under and the kind of substitution it stands innermost in, offset for offset. */
 const readOf = (text) => {
   const marks = quoting(text);
   return {
     code: marks.map(({ one }) => one).join(""),
     under: marks.map(({ under }) => under).join(""),
-    depth: marks.map(({ depth }) => depth),
+    within: marks.map(({ within }) => within),
   };
 };
 
@@ -53,10 +53,10 @@ const opens = (read, every, any, counts = () => true) => (unplaced(read)
     counts(at + opener.length - 1) && acts(opener, read.under.slice(at, at + opener.length))));
 
 export const runsACommand = (said) => opens(readOf(said), EVERY_OPENER, RUNS_A_COMMAND);
-/* An opener above depth zero ends no reach: `spans` cuts nothing inside what the walk framed, so every command found after it is one this shell runs. Depth zero is also where the walk leaves a substitution it read flat, and that one still ends it. */
+/* An opener in or opening a substitution a double quote opened ends no reach: `spans` cuts nothing inside what the walk framed, so every command found after it is one this shell runs. A bare substitution is cut inside, and one the walk read flat is no frame either, so each of those still ends it. */
 const opensABody = (said) => {
   const read = readOf(said);
-  return opens(read, EVERY_BODY, OPENS_A_BODY, (at) => read.depth[at] === 0);
+  return opens(read, EVERY_BODY, OPENS_A_BODY, (at) => read.within[at] !== "quoted");
 };
 
 /* What a take-back is looked for in: the same text with what a quote, a comment or a backslash made data blanked, space for space, so an escaped or quoted separator starts nothing and a comment runs nothing. What still spells a word once the shell removes its quotes stays — `"unset"` and `\unset` run `unset` as surely as `""unset` does. A heredoc's body is data this walk reads as shell, where one unpaired apostrophe misplaces every quote after it, so a live `<<` makes the reading a guess here too, answered the same way. */

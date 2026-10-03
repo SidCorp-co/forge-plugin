@@ -5,12 +5,12 @@ import { basename, isAbsolute, resolve } from "node:path";
 
 import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
-import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, ticksOpened, underOf } from "./shell/walk.mjs";
+import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, ticksOpened, underOf, withinOf } from "./shell/walk.mjs";
 import { SPLITS, optionsAfter, wraps } from "./shell/wrappers.mjs";
 import { BLANKS, shellWord } from "./shell/word.mjs";
 import { RUNNER, SHELL_OPTION, SHELL_WORD, literalWord, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
-export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, placeable, shellWord, quotedOver, quoting, respelled, spacedSpans, spans, ticksOpened, underOf };
+export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, placeable, shellWord, quotedOver, quoting, respelled, spacedSpans, spans, ticksOpened, underOf, withinOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -272,30 +272,17 @@ export const REDIRECT = new RegExp(
 /* Where a test opens: a `[[` standing where a word begins, since inside one a `>` compares two strings. */
 const TEST_OPENS = /[\s;&|(!]/u;
 
-/* The text with every `>` a shell reads as data spaced out, offset for offset: one under a quote, a comment or a backslash, and one a `[[ … ]]` test or a `(( … ))` arithmetic compares with. Under a double quote a `$(…)` or a backtick pair is still run, so its own `>` keeps its reading: the walk marks the body of one it placed bare, and the counting below is for one it read flat, a here-document standing inside. */
+/* The text with every `>` a shell reads as data spaced out, offset for offset: one under a quote, a comment or a backslash, and one a `[[ … ]]` test or a `(( … ))` arithmetic compares with. Under a double quote a `$(…)` or a backtick pair is still run, so its own `>` keeps its reading: the walk marks the body of one it placed bare, and the body of one it read flat, a here-document standing inside, as `within` flat. */
 const operative = (text) => {
   const out = text.split("");
-  let sub = 0;
-  let ticked = false;
   let sum = 0;
   let tested = false;
-  for (const { at, one, under } of quoting(text)) {
+  for (const { at, one, under, within } of quoting(text)) {
     const next = text[at + 1];
-    if (under === " ") {
-      sub = 0;
-      ticked = false;
-    } else if (under !== '"' || (sub === 0 && !ticked)) {
-      if (under === '"' && one === "(" && text[at - 1] === "$") {
-        sub = 1;
-        if (next === "(") sum = 1;
-      } else if (under === '"' && one === "\x60") ticked = true;
-      else if (one === ">") out[at] = " ";
+    if (under !== " " && !(under === '"' && within === "flat")) {
+      if (one === ">") out[at] = " ";
       continue;
-    } else if (one === "\x60" && sub === 0) {
-      ticked = false;
-      continue;
-    } else if (one === "(") sub += 1;
-    else if (one === ")") sub -= 1;
+    }
     if (sum > 0) {
       if (one === "(") sum += 1;
       else if (one === ")") sum -= 1;
