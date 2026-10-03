@@ -43,9 +43,14 @@ const ran = (...argv) => ranAsync(FORGE, ["coolify", ...argv], tracker.env, room
 const DEFAULTED = /^ {2}route answering: tracker, this project's own binding on the tracker {2}← the plugin's default, this machine having chosen neither$/mu;
 const SWITCH = /^ {2}the saved instance and its own commands: forge doctor --coolify-route instance$/mu;
 
+/* Once, and last: a route line printed twice is two mechanisms attaching it, and one printed above
+   the refusal's own words is not what a reader of the tail sees. */
 const namesTheRoute = (said, what) => {
   assert.match(said, DEFAULTED, `${what} does not name the route answering and where it was chosen:\n${said}`);
   assert.match(said, SWITCH, `${what} does not name the command that changes the route:\n${said}`);
+  assert.equal(said.split("\n").filter((line) => line.startsWith("  route answering: ")).length, 1,
+    `${what} names the route answering more than once:\n${said}`);
+  assert.match(said.trimEnd().split("\n").at(-1), SWITCH, `${what} does not end with the route lines:\n${said}`);
 };
 
 test("a tracker refusal of a served subcommand ends naming the route answering and the switch", async () => {
@@ -84,6 +89,28 @@ test("a name the tracker route does not serve is refused with the same route lin
     assert.equal(run.status, 1, `${name}: ${run.stdout}`);
     namesTheRoute(run.stderr, name);
   }
+});
+
+/* The refusals no sibling's mechanism reached (ISS-3127): a word neither route has, a call naming
+   nothing, and a built-in both routes answer, each refused while this route is the one answering. */
+test("a mistyped name, a bare call and a built-in's refusal end with the same route lines", async () => {
+  chose(null);
+  for (const argv of [["targetz"], ["nonsense"], [], ["login"]]) {
+    const run = await ran(...argv);
+    const what = argv.join(" ") || "a bare call";
+    assert.equal(run.status, 1, `${what}: ${run.stdout}`);
+    namesTheRoute(run.stderr, what);
+  }
+  assert.match((await ran("targetz")).stderr, /^coolify: No command named targetz\. Did you mean: targets\?$/mu,
+    "the refusal's own sentence still leads");
+});
+
+test("the saved instance's route refuses a mistyped name without the tracker route's lines", async () => {
+  chose("instance");
+  const run = await ran("nonsense");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^coolify: No group named nonsense\./mu, run.stderr);
+  assert.doesNotMatch(run.stderr, /route answering:/u, `the instance route named the tracker route:\n${run.stderr}`);
 });
 
 test("a route this machine chose is named by the file it was read from", async () => {

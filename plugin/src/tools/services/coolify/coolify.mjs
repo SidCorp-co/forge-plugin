@@ -3,7 +3,7 @@
    pieces run in: resolve the operation, read its arguments against that operation's own
    declaration, put both past the guard, and only then send. docs/cli/coolify.md. */
 import { configPath, saveNested } from "../../../resolve/config.mjs";
-import { fail } from "../../../resolve/settings.mjs";
+import { fail, keepOnFailure } from "../../../resolve/settings.mjs";
 import { flags, helpAskedOf } from "../../../resolve/flags.mjs";
 import { didYouMean } from "../../../suggest.mjs";
 import { masked } from "../masked.mjs";
@@ -169,45 +169,48 @@ const BUILTIN = { login: saveTarget, accounts: showTarget, whoami, pin };
 
 /* Whether the other route has this name at all, asked of that route's own index and its own
    built-ins rather than of a list kept here. A word neither route serves is not the other route's,
-   and telling a caller to switch credentials for one costs a command and answers nothing. */
+   and calling it that sends a caller to switch credentials for a word the other route lacks too. */
 const onInstance = (name) => Object.hasOwn(BUILTIN, name) || resolveCommand([name]).kind !== "group";
-
-/* Both refusals end here, so the one thing a caller can do about either is on both of them. */
-const said = (lines) => fail([...lines, ...trackerRouteLines()].join("\n"));
 
 /* Refused before anything is sent, with the sentence the kind `chosen-route.mjs` put the name in
    earns. Each returns, though `fail` does not come back: a reader should not have to know that to
    see that one sentence is printed and not three. */
 const refuseOffTracker = (found) => {
-  if (found.kind === ROUTELESS_KIND) return said([noRouteRefusal(found.key)]);
+  if (found.kind === ROUTELESS_KIND) return fail(noRouteRefusal(found.key));
   if (found.kind === HELD_BACK_KIND) {
-    return said([`coolify: the tracker serves \`${found.name}\` and this CLI does not offer it, `
-      + `because ${found.why}.`,
-    `  ${found.instead}`]);
+    return fail(`coolify: the tracker serves \`${found.name}\` and this CLI does not offer it, `
+      + `because ${found.why}.\n  ${found.instead}`);
   }
-  if (!onInstance(found.name)) {
-    return fail(`coolify: ${didYouMean("command", found.name, TAKEN_HERE)}`);
-  }
-  return said([`coolify: \`${found.name}\` is a command of the saved instance, which is not the `
-    + "route answering here.",
-  `  what this route takes: ${TAKEN_HERE.join(", ")}`]);
+  if (!onInstance(found.name)) return fail(`coolify: ${didYouMean("command", found.name, TAKEN_HERE)}`);
+  return fail(`coolify: \`${found.name}\` is a command of the saved instance, which is not the `
+    + `route answering here.\n  what this route takes: ${TAKEN_HERE.join(", ")}`);
 };
 
-const overTracker = async ([sub, ...rest]) => {
+const answerOverTracker = async ([sub, ...rest]) => {
   const { TRACKER_SAYS, TRACKER_USAGE, runTracker } = await import("./tracker.mjs");
   const help = helpAskedOf([sub, ...rest], TAKEN_HERE);
   if (help?.subject) {
     console.log(TRACKER_SAYS[help.subject] ?? SAYS[help.subject] ?? TRACKER_USAGE);
     process.exit(0);
   }
-  if (sub === undefined) {
-    console.error(TRACKER_USAGE);
-    process.exit(1);
-  }
+  if (sub === undefined) fail(TRACKER_USAGE);
   const found = trackerName(sub);
   if (found.kind === BOTH_KIND) return BUILTIN[sub](rest);
   if (found.kind !== SERVED_KIND) refuseOffTracker(found);
   await runTracker(found.name, rest);
+};
+
+/* Every refusal while this route answers ends with the route and the command that changes it, the
+   built-ins, a bare call and a mistyped name included (ISS-2207, ISS-3127): registered here, once,
+   so no refusal on this route can be the one that forgot. Dropped when the call is over, so a later
+   refusal in the same process does not inherit them. */
+const overTracker = async (argv) => {
+  const drop = keepOnFailure(trackerRouteLines().join("\n"));
+  try {
+    await answerOverTracker(argv);
+  } finally {
+    drop();
+  }
 };
 
 export const coolify = async (argv) => {
