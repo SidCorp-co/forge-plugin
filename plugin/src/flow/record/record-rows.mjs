@@ -122,9 +122,8 @@ const PLAN_BLOCKS = [
   "Every numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a",
   "step naming none is refused here. At `approved`, where the criteria field is read, so is a step",
   "whose numbers name no criterion the issue holds, and a criterion no step names.",
-  `Where the rung drops the plan, a plan holding only ${DECLARING.slice(0, -1).join(", ")} and ${DECLARING.at(-1)}`,
-  "is the whole of it: where that rung records its declarations and what a person at the running",
-  "product witnesses. At the top rung such a plan is refused, naming the sections still owed.",
+  `A plan of only ${DECLARING.slice(0, -1).join(", ")} and ${DECLARING.at(-1)} is whole where the rung drops`,
+  "the plan, and refused at the top rung.",
 ];
 
 /* This project's own answer to the screen question, printed where the file is written against rather than learned from the refusal after a consult has read it (ISS-1895). */

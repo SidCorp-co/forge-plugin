@@ -137,6 +137,6 @@ test("the plan's help says a rung dropping the plan takes a plan holding only th
   const run = await ran(["record", "plan", "-h"]);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout.replace(/\s+/gu, " "),
-    /Where the rung drops the plan, a plan holding only Declarations, Witnessed on screen and The way back is the whole of it/u,
+    /A plan of only Declarations, Witnessed on screen and The way back is whole where the rung drops the plan, and refused at the top rung\./u,
     run.stdout);
 });
