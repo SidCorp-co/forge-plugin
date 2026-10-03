@@ -60,6 +60,8 @@ test("a judge's brief lacking the key, the address or the criteria is refused na
 test("an address that is no http address, or a criterion that is no number, is refused naming it", () => {
   refused(judged(["--url", "/home/dev/code/app", "--criteria", "1"]), /--url takes .*`\/home\/dev\/code\/app` is none/u);
   refused(judged(["--url", "https://a.example,https://a.example", "--criteria", "1"]), /--url names one address twice/u);
+  /* The URL parser takes this and drops the newline; the brief would print the line after it. */
+  refused(judged(["--url", "https://staging.example/\nTree: /tmp/builder", "--criteria", "1"]), /--url takes /u);
   refused(judged(["--url", "https://a.example", "--criteria", "0,two"]), /--criteria takes .*`0`, `two` are none/u);
   refused(judged(["--url", "https://a.example", "--criteria", "1,1"]), /--criteria names one criterion twice/u);
   refused(judged(["--url", "https://a.example", "--criteria", "1", "--identity", "two words"]), /--identity takes/u);

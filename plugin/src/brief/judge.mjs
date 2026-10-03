@@ -18,7 +18,10 @@ const none = (bad) => `\`${bad.join("`, `")}\` ${bad.length > 1 ? "are" : "is"} 
 
 const partsOf = (raw) => String(raw).split(",").map((one) => one.trim());
 
+/* The parser drops a newline it finds inside an address, and the value printed is the one given, so a
+   space or a control character is refused before parsing: one would carry a line of its own into the brief. */
 const isDeployed = (one) => {
+  if (/[\s\p{Cc}]/u.test(one)) return false;
   try {
     return ["http:", "https:"].includes(new URL(one).protocol);
   } catch {
