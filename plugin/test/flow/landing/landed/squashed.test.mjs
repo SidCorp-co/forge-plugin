@@ -9,16 +9,16 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("squashed").path;
 /* Away from this checkout, whose git directory names the run this suite is written under. */
 const AWAY = projectRoom(tempRoom("squashed-away-"), process.env.XDG_CONFIG_HOME, OWN);
 process.chdir(AWAY);
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
+const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 const RUN = "the-lander-run";
 const BUILDER = "the-builder-run";
 const BRANCH = "iss-3146-1";

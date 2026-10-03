@@ -422,7 +422,7 @@ a wait no party can end.
   to what it landed THEN that release SHALL leave the checkpoint where it stands, because a branch
   name outlives the work captured under it and a release that reads only the name would finish a
   capture that never went anywhere.
-- **AC-03-6-14** · Rev: 2 · Proof: plugin/test/flow/landing/landed.test.mjs "a default branch already carrying the judged head ends the landing, on the evidence it prints"
+- **AC-03-6-14** · Rev: 2 · Proof: plugin/test/flow/landing/landed/landed.test.mjs "a default branch already carrying the judged head ends the landing, on the evidence it prints"
   WHERE a checkpoint still declares a branch ready and the branch this project lands changes on is
   proved, off refs the checkout already holds, to carry the head that checkpoint was written at, the CLI SHALL offer a
   write that moves it to the state naming no turn and that builds no candidate, runs no gate and
@@ -451,20 +451,20 @@ a wait no party can end.
   read every other write goes by answers alike for a block that is absent and one it cannot read,
   and only the first is a record nobody has made.
 
-- **AC-03-6-18** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "the branch the project declares a change lands on ends the landing, where the recorded default does not carry the head"
+- **AC-03-6-18** · Rev: 1 · Proof: plugin/test/flow/landing/landed/landed.test.mjs "the branch the project declares a change lands on ends the landing, where the recorded default does not carry the head"
   WHERE a project declares which branch a change lands on, the CLI SHALL read a landing's ancestry
   against that branch and against no branch the repository recorded as the remote's own, because a
   release that promotes moves the code to a second branch and a landing read against that one cannot
   end until the release has happened, which is after the verdicts on the change are owed.
-- **AC-03-6-19** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a project declaring no branch falls back to the recorded default, and one that did not read refuses"
+- **AC-03-6-19** · Rev: 1 · Proof: plugin/test/flow/landing/landed/landed.test.mjs "a project declaring no branch falls back to the recorded default, and one that did not read refuses"
   WHERE a project has been read and declares no branch a change lands on, the CLI SHALL read that
   ancestry against the branch the repository recorded as the remote's own, because that is the
   reading such a project already landed against and withdrawing it would refuse a landing that stood.
-- **AC-03-6-20** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a project declaring no branch falls back to the recorded default, and one that did not read refuses"
+- **AC-03-6-20** · Rev: 1 · Proof: plugin/test/flow/landing/landed/landed.test.mjs "a project declaring no branch falls back to the recorded default, and one that did not read refuses"
   IF the reading of a project's own configuration did not happen, THEN the CLI SHALL refuse to end a
   landing and SHALL name the command that says whether that configuration reads, because an unread
   declaration is not a declared absence and the write it would license cannot be taken back.
-- **AC-03-6-21** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a declared branch that does not carry the head refuses, whatever the recorded default carries"
+- **AC-03-6-21** · Rev: 1 · Proof: plugin/test/flow/landing/landed/landed.test.mjs "a declared branch that does not carry the head refuses, whatever the recorded default carries"
   WHEN the CLI says what a landing's ancestry reading answered, THEN it SHALL name which source the
   branch it read came from, because two sources for one reading are a precedence and a precedence a
   reader cannot see is one nobody can undo.
@@ -538,32 +538,32 @@ a wait no party can end.
   WHERE a stored checkpoint names a deployment identity that is not a commit, the CLI SHALL read that
   value as a deployment id kept apart from the identity the judging rung compares, because a value no
   verdict can cite otherwise leaves every verdict on the issue unearnable for good.
-- **AC-03-6-35** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a finished landing at a status that is no rebuild refuses naming the late write and the reopen"
+- **AC-03-6-35** · Rev: 1 · Proof: plugin/test/flow/landing/landed/landed.test.mjs "a finished landing at a status that is no rebuild refuses naming the late write and the reopen"
   IF a write that starts or ends a landing is refused over a checkpoint in the state naming no turn
   while the issue stands at a status that is no rebuild THEN the CLI SHALL name the write that records
   a later landing already on the branch and the reopen that starts one still to land, because a
   refusal naming only where the landing is sends the reader to read what the refusal already knew.
-- **AC-03-6-36** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a squash-merged head ends the landing on the merged mark, and the checkpoint names that proof"
+- **AC-03-6-36** · Rev: 1 · Proof: plugin/test/flow/landing/landed/squashed.test.mjs "a squash-merged head ends the landing on the merged mark, and the checkpoint names that proof"
   WHERE a checkpoint still declares a branch ready, the branch this project lands changes on is proved
   not to reach its head, and that branch carries the commit the issue's merged mark names while the
   mark's note gives the checkpoint's head as the one reviewed or judged, the CLI SHALL end the landing
   and SHALL record on the checkpoint that the merge record proved it, because a squash or a rebase
   merge never puts the captured head on the branch, and a landing proved one way must not read as
   proved the other.
-- **AC-03-6-37** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "no merged mark keeps the refusal, and the checkpoint stays ready"
+- **AC-03-6-37** · Rev: 1 · Proof: plugin/test/flow/landing/landed/squashed.test.mjs "no merged mark keeps the refusal, and the checkpoint stays ready"
   IF the branch does not reach the head and the issue carries no merged mark THEN the CLI SHALL refuse
   to end the landing and leave the checkpoint where it stands, because the absence of a mark is not
   evidence that anything landed.
-- **AC-03-6-38** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a merged mark the landing branch does not reach is refused by its commit, and the checkpoint stays ready"
+- **AC-03-6-38** · Rev: 1 · Proof: plugin/test/flow/landing/landed/squashed.test.mjs "a merged mark the landing branch does not reach is refused by its commit, and the checkpoint stays ready"
   IF the merged mark names a commit the branch does not carry THEN the CLI SHALL refuse naming that
   commit and leave the checkpoint where it stands, because a mark nothing carries is a change that has
   not landed.
-- **AC-03-6-39** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a mark of an earlier landing of the issue is refused naming its head, and the second capture stays ready"
+- **AC-03-6-39** · Rev: 1 · Proof: plugin/test/flow/landing/landed/squashed.test.mjs "a mark of an earlier landing of the issue is refused naming its head, and the second capture stays ready"
   IF the standing mark's note gives a head other than the checkpoint's as the one reviewed or judged,
   or a commit other than the one the issue's row holds, THEN the CLI SHALL refuse naming what the note
   gives and leave the checkpoint where it stands, because the tracker keeps the first stamp until it
   is taken down, so the mark standing beside a second capture can be the first landing's.
-- **AC-03-6-40** · Rev: 1 · Proof: plugin/test/flow/landing/squashed.test.mjs "a later landing over a checkpoint the merge record proved is taken where it carries that commit"
+- **AC-03-6-40** · Rev: 1 · Proof: plugin/test/flow/landing/landed/squashed.test.mjs "a later landing over a checkpoint the merge record proved is taken where it carries that commit"
   WHEN a later landing is written over a finished checkpoint the merge record proved THEN the CLI SHALL
   read whether it moves forward from the commit that record names rather than from the captured head,
   because after a squash every later repair carries the squash and never the head.
