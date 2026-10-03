@@ -98,8 +98,8 @@ const unrun = (spans) => spans.flatMap((one) => {
   return [...pieces, ...one.holes.flatMap((hole) => unrun(hole.spans))].filter((piece) => piece.to > piece.from);
 });
 
-/** `text` with each `{ from, to }` stretch turned to spaces, offset for offset. */
-export const blanked = (text, stretches) => {
+/* `text` with each `{ from, to }` stretch turned to spaces, offset for offset. */
+const blanked = (text, stretches) => {
   const out = text.split("");
   for (const { from, to } of stretches) out.fill(" ", from, to);
   return out.join("");
