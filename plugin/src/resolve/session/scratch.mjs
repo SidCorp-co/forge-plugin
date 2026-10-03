@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { INHERITED, sessionSourced } from "../config.mjs";
-import { SCRATCH_AT, scratchAt } from "./run-id.mjs";
+import { gitEntryAt } from "../../git/checkout-at.mjs";
+import { SCRATCH_AT, runFor, runIdAt, scratchAt } from "./run-id.mjs";
 
 const SHARED = "a directory keyed on that id, the host's own scratchpad among them, is shared by "
   + "every run of the wave that inherited it, and so is the system's temporary directory";
@@ -22,6 +23,16 @@ export const scratchRow = (here = process.cwd()) => {
     };
   }
   const none = `none recorded for this tree, so a file this run writes goes under ${temp}`;
+  /* A tree holding an id was bound by a dispatch, which mints the scratch beside it; one without is that dispatch's
+     defect, and a hand-made directory would be one more that nothing records (ISS-2524). */
+  const key = runFor(runIdAt(here))?.toUpperCase();
+  if (key) {
+    return {
+      owed: true,
+      said: `${none}, though the tree holds the run id of ${key}, which a brief mints its scratch beside: `
+        + `forge brief ${key} --tree ${gitEntryAt(here).tree}`,
+    };
+  }
   if (sessionSourced().source !== INHERITED) return { owed: false, said: none };
   return {
     owed: true,

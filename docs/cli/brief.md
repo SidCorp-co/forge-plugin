@@ -26,8 +26,13 @@ dispatcher sends, so the fix removes it there.
   ledger of that dispatcher's was the other place to read the binding from, and it is one this plugin
   cannot see. The brief is the moment of dispatch and the verb every dispatch of a role runs, so the
   binding is made there. An id already in the tree is read and never extended, since the run it names
-  may still be standing in that tree; one that does not name every key refuses the brief. The scratch
-  directory is not minted: it is the run's own, made when a workspace starts.
+  may still be standing in that tree; one that does not name every key refuses the brief.
+- **The scratch directory, minted beside the id**: the brief makes `forge-run-<id>` under its own
+  temporary root and records it as `forge-run-scratch`, by the writer the workspace start uses, where
+  the tree holds no record naming that id's directory. A run told to make its own with `mktemp -d`
+  made one nothing named, and nothing could say whose it was once the run had died; such directories
+  filled a box to `ENOSPC` (ISS-2524). The record is what makes a directory reapable, so the two are
+  written together or not at all, and a brief that cannot write both is not printed.
 - **What the other trees hold**: both readings for each tree, the uncommitted files and what is
   committed against the remote's default branch. Commits alone answer empty for a tree with twenty
   files open in it, and that empty looks exactly like an idle tree.

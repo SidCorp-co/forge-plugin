@@ -67,3 +67,14 @@ test("no record under the run's own id is at ok level", () => {
   assert.match(row, /^\[ {2}ok {2}\] scratch\s+none recorded for this tree/u);
   assert.doesNotMatch(row, /mktemp/u, "and it asks the run for nothing");
 });
+
+/* A tree holding a run id was bound by a dispatch, whose brief mints the scratch beside it: a
+   hand-made directory there is one more that nothing records (ISS-2524). */
+test("a tree holding a run id and no scratch names the brief that mints it, and never mktemp", () => {
+  const { room } = checkout(false);
+  writeFileSync(join(room, ".git", "forge-run-id"), "iss-7+8-0123abcd\n");
+  const row = rowOf(room, { CLAUDE_CODE_SESSION_ID: "the-dispatching-session" });
+  assert.match(row, /^\[ note \] scratch\s+none recorded for this tree/u);
+  assert.ok(row.endsWith(`forge brief ISS-7 --tree ${room}`), `the row does not end on the brief: ${row}`);
+  assert.doesNotMatch(row, /mktemp/u, "a briefed tree is not told to make a directory nothing records");
+});
