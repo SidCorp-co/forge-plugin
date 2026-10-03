@@ -2,7 +2,7 @@
    because every agent of a wave inherits one session id and the tree is the one thing each has to
    itself (ISS-467). The file's name is spelt here; the rest of the why: docs/cli/claim.md. */
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join } from "node:path";
 
@@ -69,9 +69,10 @@ export const scratchAt = (path) => {
 };
 
 /** The directory a run writes in, under the temporary root and named for its id, and the record `scratchAt` reads. Both
- *  sides of a dispatch reach it, since a directory nothing records is one nothing can reap (ISS-2524). A record already naming this id's directory is kept as it is. The directory is made
- *  before the record, and a record that cannot be written takes the directory it was for with it, so neither stands
- *  without the other. `failed` is the reason where that happened, with `at` the directory it was for. */
+ *  sides of a dispatch reach it, since a directory nothing records is one nothing can reap (ISS-2524). A record already
+ *  naming this id's directory is kept as it is. The directory is made first and the record staged beside its final name
+ *  and renamed onto it, so no reader meets half a record; a record that cannot be written takes the directory it was
+ *  for with it. `failed` is the reason where that happened, naming the path the system refused, with `at` the directory. */
 export const scratchMinted = (path, id) => {
   const held = scratchAt(path);
   if (held && basename(held) === `${SCRATCH}${id}`) return { at: held, failed: null };
@@ -84,10 +85,12 @@ export const scratchMinted = (path, id) => {
   } catch (error) {
     return { at, failed: error.message };
   }
+  const staged = `${record}.${process.pid}`;
   try {
-    writeFileSync(record, `${at}\n`);
+    writeFileSync(staged, `${at}\n`);
+    renameSync(staged, record);
   } catch (error) {
-    answered(() => rmSync(record, { force: true }));
+    rmSync(staged, { force: true });
     if (made) rmSync(made, { force: true, recursive: true });
     return { at, failed: error.message };
   }

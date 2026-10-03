@@ -105,4 +105,24 @@ test("a record that cannot be written refuses the brief and takes the directory 
   assert.equal(run.stdout, "");
   assert.equal(recordOf(fresh.idle), null, "no record, partial or whole");
   assert.ok(!existsSync(join(temp, `forge-run-${RUN}`)), "and no directory it was made for");
+  assert.match(run.stderr, new RegExp(`${escaped(gitDir)}.*the git directory of the tree`, "su"),
+    "naming the path refused and the git directory as what to make writable");
+});
+
+/* A record written in place is truncated before it is filled, so a write that fails partway leaves
+   half of one: the record is staged and renamed, and the one it would replace is never opened. */
+test("a record that cannot be staged leaves the record it would have replaced byte for byte", (t) => {
+  const fresh = repository();
+  const { temp, env } = rooted();
+  writeFileSync(besideGit(fresh.idle, "forge-run-id"), `${RUN}\n`);
+  const stale = "/somewhere/forge-run-iss-9-deadbeef\n";
+  writeFileSync(besideGit(fresh.idle, "forge-run-scratch"), stale);
+  const gitDir = join(besideGit(fresh.idle, "forge-run-id"), "..");
+  chmodSync(gitDir, 0o555);
+  t.after(() => chmodSync(gitDir, 0o755));
+  const run = brief(["ISS-7", "--tree", fresh.idle], fresh.main, env);
+  chmodSync(gitDir, 0o755);
+  assert.notEqual(run.status, 0, "a record the directory refuses was written in place");
+  assert.equal(recordOf(fresh.idle), stale);
+  assert.ok(!existsSync(join(temp, `forge-run-${RUN}`)));
 });

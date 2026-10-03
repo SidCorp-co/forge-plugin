@@ -69,7 +69,8 @@ const scratchFor = (tree) => {
   const { at, failed } = scratchMinted(tree, runIdAt(tree));
   if (!failed) return;
   fail(`brief: the scratch directory ${at} could not be made and recorded (${failed}), so no brief is printed: a run `
-    + "sent now would write where nothing records it. Point TMPDIR at a directory this user can write in, and brief again.");
+    + "sent now would write where nothing records it. Make the path that reason names writable — the temporary root "
+    + "TMPDIR names, or the git directory of the tree — and brief again.");
 };
 
 const heldLine = (tree, held) => {
