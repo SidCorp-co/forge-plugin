@@ -41,6 +41,7 @@ import { askPrepared } from "../park/asked.mjs";
 import { stampedNow, uncommittedOver } from "../worklog.mjs";
 import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
 import { writerChecked } from "./judged/writer.mjs";
+import { runtimeChecked } from "./judged/runtime.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
@@ -426,6 +427,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
   }
+  if (kind === "verdict") await runtimeChecked(reference, blocks, body, landingOf(body?.[SESSION]));
   /* After every refusal, so git is asked only of a write that goes up. */
   if (shape.fields.some((one) => one.flag === CARRIES)) for (const got of blocks) carriedOnto(got, comments, say);
   if (shape.fields.some((one) => one.flag === CARRIES_DEPLOYMENT)) {

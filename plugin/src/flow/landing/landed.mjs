@@ -5,15 +5,20 @@ import { spawnSync } from "node:child_process";
 import { fail } from "../../resolve/settings.mjs";
 import { asksIndependent, landsOn, releasePolicy } from "../../tracker/project-config.mjs";
 import { commentPage } from "../../tracker/comments.mjs";
-import { shortSha } from "../../tracker/evidence.mjs";
+import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
+import { commitCarries } from "../../git/carries.mjs";
 import { viewFrom } from "../earned.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { landingSaved } from "../lease.mjs";
-import { LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY, RECAPTURE, landingLine, landingOf } from "./checkpoint.mjs";
+import {
+  LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY, MERGE_RECORD, RECAPTURE, landingLine, landingOf,
+} from "./checkpoint.mjs";
 import { SECOND_LANDING, recaptureRefusal } from "./written.mjs";
 import { REBUILT_FORM } from "./reconstruction.mjs";
 import { commandAt } from "../machine.mjs";
 import { landsAgain } from "../route.mjs";
+import { judgedHead, markedCommit, reviewedHead, undoForm } from "../record/merged.mjs";
+import { gitMarkForm } from "../record/judged/merged-clauses.mjs";
 
 /* The same overlay switches the ancestry reading is made under, so the tip it asks about and the
    ancestry it proves are read off one history (8faf61 F1). */
@@ -107,17 +112,69 @@ export const finishLanded = async (documentId, ref, issue, context) => {
   }
   const owed = landing.state === LANDING_HEAD_OWED;
   const policy = await releasePolicy();
+  const lands = landsOn(policy);
   const head = owed ? answeredHead(ref, landing) : landing.head;
-  const read = carriedByLanding(head, landsOn(policy));
-  if (!read.carries) fail(unlanded(ref, landing, head, read));
+  const page = once(() => commentPage(documentId));
+  const read = carriedByLanding(head, lands);
+  const marked = read.carries ? null : await markProof(ref, issue, head, { read, lands, page });
+  if (!read.carries && !marked) fail(unlanded(ref, landing, head, read));
   if (owed) {
-    const view = viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
+    const view = viewFrom(documentId, issue, (await page()).comments ?? []);
     const refused = recaptureRefusal(ref, head, view, asksIndependent(policy), LANDED_SAID(ref, head));
     if (refused) fail(refused);
   }
-  const saved = await landingSaved(documentId, ref, { state: LANDING_DONE, head }, { was: landing });
+  const patch = { state: LANDING_DONE, head, ...(marked ? { [MERGE_RECORD]: marked.commit } : {}) };
+  const saved = await landingSaved(documentId, ref, patch, { was: landing });
   console.log(`${ref}  landed: ${landingLine(saved)}`);
+  if (marked) return console.log(markedSaid(ref, head, marked));
   return console.log(`${read.ref}, which is ${read.from}, stands at ${shortSha(read.tip)} and carries `
     + `${shortSha(head)}, so this change is on the branch it lands on already and no release `
     + `is owed to put it there. No turn of this landing is left for anybody to take.`);
 };
+
+const once = (take) => {
+  let held = null;
+  return () => (held ??= take());
+};
+
+/* The route out of a mark that does not prove this landing: down, then up at the commit that landed. */
+const REMARK = (ref, where = "Where this capture's work did land") => `${where}, take the mark down `
+  + `and mark the commit that landed it:\n  ${undoForm(ref)}\n  ${gitMarkForm(ref)}\n  forge claim ${ref} --landed`;
+
+/* The second proof, read only where git proved the branch does not reach the head: a squash or a
+   rebase merge puts the work on the branch as a commit of its own, so the head is never reached and
+   the merged mark is what names the landing (ISS-3146). The mark is tied to this checkpoint by the
+   head its note says was reviewed or judged, a mark of an earlier landing naming that one's own. */
+const markProof = async (ref, issue, head, { read, lands, page }) => {
+  const commit = issue.mergedCommitSha ? String(issue.mergedCommitSha) : null;
+  if (!commit || !read.tip || commitCarries(head, read.tip).carries !== false) return null;
+  const reached = carriedByLanding(commit, lands);
+  const lead = `claim --landed writes \`${LANDING_DONE}\` on a change the branch it lands on carries, `
+    + `and ${read.ref} does not reach ${shortSha(head)}, the head this checkpoint names. ${ref}'s merged `
+    + `mark names ${shortSha(commit)}, the commit it landed at`;
+  if (!reached.carries) {
+    fail(`${lead}, and that proves nothing either: ${reached.why}. Where it is genuinely unlanded, what `
+      + `is owed is the landing and not this write. ${settle(reached)}  forge claim ${ref} --landed\n`
+      + `${REMARK(ref, "Where the mark names the wrong commit")}`);
+  }
+  const comments = (await page()).comments ?? [];
+  const at = markedCommit(comments);
+  if (!sameCommit(at, commit)) {
+    fail(`${lead}, and the standing mark's note names ${at ? shortSha(at) : "no commit"} at its \`at\` `
+      + `clause, so which commit landed is not one answer and neither proves this landing. ${REMARK(ref)}`);
+  }
+  const heads = [...new Set([reviewedHead(comments), judgedHead(comments)].filter(Boolean).map(shortSha))];
+  if (!heads.some((one) => sameCommit(one, head))) {
+    fail(`${lead}, and its note names ${heads.join(" and ") || "no head"} as what was reviewed and `
+      + `judged, not ${shortSha(head)}: it is the mark of another landing of ${ref}, and `
+      + `proves nothing about this one. Where this capture is genuinely unlanded, what is owed is the `
+      + `landing and not this write. ${REMARK(ref)}`);
+  }
+  return { commit, read: reached };
+};
+
+const markedSaid = (ref, head, { commit, read }) => `${read.ref}, which is ${read.from}, stands at `
+  + `${shortSha(read.tip)} and does not reach ${shortSha(head)}, the head this checkpoint names, which `
+  + `is what a squash or a rebase merge leaves. It carries ${shortSha(commit)}, the commit ${ref}'s `
+  + `merged mark names as landing that head, so the merge record proved this landing and the branch reaching `
+  + `the head did not; the checkpoint says so. No turn of this landing is left for anybody to take.`;

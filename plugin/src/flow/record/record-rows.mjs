@@ -42,7 +42,7 @@ const kindRows = (caps) => [
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L --evidence E... [--why W] [--filed R]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L [--runtime R] --evidence E... [--why W] [--filed R]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
@@ -192,7 +192,6 @@ const VERDICT_BLOCKS = [
   "  short    it was exercised, met short of its wording, and the shortfall judged not to block:",
   "           the change releases, --why says how it fell short, --filed names the row it became",
   "  skipped  no route reached it, so nobody looked and there is nothing to cite",
-  "That row's reference goes on --filed, never a sentence, and on no other value.",
   "A later --commit carrying the merged one earns `testing`: the write records what git says of it.",
 ];
 

@@ -6,6 +6,7 @@ import { SPAN, blanked, fenceMarked } from "../prose.mjs";
 import { MARKUP_PATTERN } from "../markdown.mjs";
 import { entriesIn, firstKindIn } from "./machine/block.mjs";
 import { heldOut } from "./machine/held.mjs";
+import { JUDGED_COMMIT, JUDGED_LANDING, RUNTIME_TAKES, identityProblem, runtimeProblem } from "./machine/identity.mjs";
 
 export { blockOf, readRecords, tagFor } from "./machine/block.mjs";
 
@@ -376,22 +377,6 @@ const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it,
   + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
   + "is an assertion nothing on the record stands behind";
 
-/* Which of the two a record holds is decided at the write, by `markedIdentity` in record/merged.mjs.
-   Each is optional alone and exactly one is owed, which is the shape's own check, so a record read
-   back naming both or neither is no whole payload (ISS-2402). */
-const JUDGED_COMMIT = { commit: true, judged: true, optional: true, identity: true };
-const JUDGED_LANDING = { optional: true, landing: true, identity: true };
-
-const identityProblem = (got) => {
-  if (got.commit !== undefined && got.landing !== undefined) {
-    return "one of --commit and --landing, not both: a record names what it judged by the one identity its issue lands under";
-  }
-  if (got.commit === undefined && got.landing === undefined) {
-    return "--commit, or --landing where the issue lands outside git";
-  }
-  return null;
-};
-
 export const SHAPES = {
   confirmation: {
     heading: "Confirmation",
@@ -507,6 +492,7 @@ export const SHAPES = {
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
       FIELD("commit", "Commit", JUDGED_COMMIT),
       FIELD("landing", "Landing judged", JUDGED_LANDING),
+      FIELD("runtime", "Runtime exercised", { optional: true, form: RUNTIME_TAKES }),
       /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
       FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
       FIELD(CARRIES_DEPLOYMENT, "Carries the deployment", { optional: true, stamped: CARRIES_DEPLOYMENT }),
@@ -517,7 +503,7 @@ export const SHAPES = {
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
     ],
     check: (got) => {
-      const identity = identityProblem(got);
+      const identity = identityProblem(got) ?? runtimeProblem(got.runtime);
       if (identity) return identity;
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
       /* A failing verdict is the one another run acts on, and one saying only `fail` sends them back to run it again to find out what. */

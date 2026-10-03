@@ -2245,6 +2245,26 @@
       "rev": 1,
       "digest": "dc5ec5f46d01f1466dea6b8932cdbb396f228ae16c67a90e06fe0abfd82d6c8b"
     },
+    "AC-03-6-36": {
+      "rev": 1,
+      "digest": "fd235665acbcfcc8e16540b89e5caaa41abf19d8a8bb0931bed2bdc6e74ec775"
+    },
+    "AC-03-6-37": {
+      "rev": 1,
+      "digest": "5330440f82a4e333ce8cc2b104c34e01517cd0ec49033d1a1484d804d333c4ba"
+    },
+    "AC-03-6-38": {
+      "rev": 1,
+      "digest": "8c5378348c127e733b19956b37aa816902dd73a1857e4da5b2c62c735ffae5cf"
+    },
+    "AC-03-6-39": {
+      "rev": 1,
+      "digest": "71d086de834a3e0f3645e8be90edefa6a8b2550a5f6d87a49385285882816c63"
+    },
+    "AC-03-6-40": {
+      "rev": 1,
+      "digest": "39c32f8e3bf12f668213d4946a2e40b33ea54828d640317dd2bb1d1f625f4032"
+    },
     "FR-04": {
       "rev": 1,
       "digest": "afe8a4581297056c791d0a844717c43b89aa16003b5c3edcd42f7b18920fee27"

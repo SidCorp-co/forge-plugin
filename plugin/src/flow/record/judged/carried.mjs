@@ -46,6 +46,8 @@ export const carriedOnto = (got, comments, say, cwd = process.cwd()) => {
 export const deploymentOnto = (got, landing, say, cwd = process.cwd()) => {
   const deployment = landing?.deployment;
   const cited = (got.evidence ?? []).filter((one) => isCommit(one));
+  /* A runtime is the verdict's identity and `testing` reads it alone, so a stamp beside it would be a second reading of the deployment. */
+  if (got.runtime !== undefined) return;
   if (!deployment || !cited.length || cited.some((one) => sameCommit(one, deployment))) return;
   /* Only the failure's sentences read every answer, and they are reached only where none carries it. */
   const reads = [];

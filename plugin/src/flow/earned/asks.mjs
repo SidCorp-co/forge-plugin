@@ -3,10 +3,14 @@
 import { VERDICTS, need, valuesOf } from "../machine.mjs";
 import { typed } from "../../hooks/shell-spans.mjs";
 import { markedIdentity } from "../record/merged.mjs";
+import { RUNTIME_ASK, owesRuntime } from "../qa/verdicts.mjs";
 import { identityAsk, landsOutsideGit, markedLanding, samePlace } from "../record/judged/landing.mjs";
 
 /* The identity every ask spends: a commit in git, the mark's landing outside it (ISS-2402). */
 export const identityOf = (view) => markedIdentity(view.issue, view.comments);
+
+/** A verdict ask's identity flags, with the runtime the write owes where it owes one. */
+export const withRuntime = (view, id) => (owesRuntime(view.release, view.issue, view.landing) ? `${id} --runtime ${RUNTIME_ASK}` : id);
 export const idAsk = (view) => identityAsk(identityOf(view));
 
 /* The identity asked of a verdict whose answer has no commit on the record yet: a placeholder sha in
@@ -66,8 +70,8 @@ export const correctedForm = (ref, number) =>
 
 /* The commit judged and never the merged one: filling in the merged commit asks the judge to cite one
    they did not look at. Their write, from a checkout holding both, records that it carries it (ISS-1302). */
-export const carriedAsk = (ref, number, merged) =>
-  `${askOne(ref, number, `--commit <the commit you judged, carrying ${merged}>`)}, from a checkout that holds both`;
+export const carriedAsk = (ref, number, merged, view) =>
+  `${askOne(ref, number, withRuntime(view, `--commit <the commit you judged, carrying ${merged}>`))}, from a checkout that holds both`;
 
 export const verificationForm = (ref, id, evidence, tail = "") =>
   `forge record verification ${ref} --where "<where it runs>" ${id} `

@@ -14,7 +14,7 @@ const { render } = await import("../../../src/flow/record/page.mjs");
 const { NO_VERIFICATION, deployedOwed, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { JUDGE_FROM, SHAPES } = await import("../../../src/flow/machine.mjs");
 const { blocksIn } = await import("../../../src/flow/record/record.mjs");
-const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
+const { RUNTIME_ASK, judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
 const BUILDER = "the-builder-session";
@@ -309,8 +309,10 @@ test("the problem a verdict has is one reading, so a caller outside the check re
 /* The verb gives each block what stands before the first --criterion and nothing after it, so a
    command naming the commit after the list handed it to the last criterion alone, and the others fell
    back to whatever the latest verdict cited — under a second judge, the builder's own (ISS-2371). */
-test("the judge's write for several criteria gives every criterion the commit and the evidence", () => {
-  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED });
+test("the judge's write for several criteria gives every criterion the commit, the runtime and the evidence", () => {
+  /* Filled the way the judge fills the two placeholders: the runtime read off the deployment, and what it exercised. */
+  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED }, null, null, null, [], null, true)
+    .replace(RUNTIME_ASK, DEPLOYED).replace("<what you exercised>", "judged.txt");
   const argv = command.split(" ").slice(4);
   const single = SHAPES.verdict.fields.filter((one) => !one.many).map((one) => `--${one.flag}`);
   const blocks = blocksIn(argv, "criterion", single, "record verdict");
@@ -318,7 +320,8 @@ test("the judge's write for several criteria gives every criterion the commit an
   assert.equal(blocks.length, 2, command);
   for (const block of blocks) {
     assert.equal(valueOf(block, "--commit"), MERGED.slice(0, 7), `every block carries the head: ${block}`);
-    assert.equal(valueOf(block, "--evidence"), DEPLOYED.slice(0, 7), `and cites the deployment: ${block}`);
+    assert.equal(valueOf(block, "--runtime"), DEPLOYED, `names the runtime the judge read: ${block}`);
+    assert.equal(valueOf(block, "--evidence"), "judged.txt", `and cites what it exercised: ${block}`);
   }
 });
 
