@@ -4,6 +4,14 @@ This is the method of a run dispatched to judge, not of the master that dispatch
 criterion numbers you were given, the thing that is running, and a set of verdicts. Nothing here
 builds, lands or moves a status the verdicts do not earn.
 
+**The address your brief names is the one thing you drive.** Its `Deployed at:` line is what you
+exercise, its `Criteria:` line what you judge, and its `Identity:` line what that deployment should
+report serving. A checkout, a worktree, a test runner and a local stack are a builder's equipment:
+you never run the project's gate, a test suite or anything that brings up a stack, never build the
+commit to stand in for the deployment, and never work in a builder's worktree. The gate was proven
+by the landing before the merge, and a suite run again proves nothing new while it loads the machine
+other runs land on.
+
 ## An identity your brief carries is what every verdict names
 
 Where your brief names the deployment identity, read the identity the deployment itself reports
@@ -16,19 +24,28 @@ nobody read off the thing running. The evidence is then what you exercised, not 
 A run that read no identity off the deployment exercised no runtime, and a commit cannot stand in for
 one: write that criterion `skipped`, its `--why` saying what you lacked.
 
-Where what you find running does not answer to the identity you were given, stop and report that
-before judging anything. You were sent to judge one artifact and there is a different one there.
+Where what you find running does not answer to the identity you were given, or plainly does not carry
+the change at all, stop and report that before judging anything. You were sent to judge one artifact
+and there is a different one there, and a build of the commit somewhere else is not that artifact
+either.
 
 **A brief carrying no identity refuses you nothing.** Most issues have none to carry, and what your
-verdicts are then held to is the commit each already names. Cite what you exercised — the render, the
-log, the reply you read — and say in the verdict what you reached it at. Asking for an identity
-nobody has is a round spent on a value the rung does not read.
+verdicts are then held to is the commit each already names. That commit is what a verdict records,
+not something you build: you still judge at the address your brief names, and you never work an
+identity out of the source or out of a local build. Cite what you exercised — the render, the log,
+the reply you read — and say in the verdict what you reached it at. Asking for an identity nobody has
+is a round spent on a value the rung does not read.
 
 ## Read what the verdicts will be held to, before you judge anything
 
 `forge advance <the issue> --owed` prints it. That same read says where the project holds no
 credential to reach what you have to exercise. Establish there which criteria you have a route to,
 while whoever dispatched you can still equip you, rather than at the write that refuses you.
+
+**A criterion only a checkout's run reaches is not yours to run.** The gate passing, a test suite
+passing, a run repeated many times or taken under load: no person at the deployment could observe
+any of them. Write it `skipped`, its `--why` saying that only a checkout's run shows it and who owes
+that evidence — the builder's record on the issue, or the review of the change.
 
 Where every criterion you were given would be a skip, say so and stop before judging. A run that
 returns nothing but skips has spent a whole judging run to report that nobody looked, and a
@@ -92,7 +109,8 @@ and nothing you write is a substitute for it.
 
 You own no tree of your own and you cut none. What you judge is already deployed, so there is nothing
 here a checkout of yours would hold, and a tree cut to hold it is a building run's equipment in the
-hands of the one run that builds nothing.
+hands of the one run that builds nothing. Where a finding needs a location, the source is read in the
+project's own checkout and never in a builder's worktree, and it is read only: nothing in it is run.
 
 Work under an identity of your own, and claim no lease. Set `FORGE_SESSION_ID` to a value of your
 own before your first call rather than inheriting whoever dispatched you, and that is the whole of

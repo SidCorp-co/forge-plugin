@@ -17,10 +17,11 @@ every change that never touched a surface anyone sees. Say which reading was tak
 on, in the record that moves the status, which is what makes either reading safe to audit later.
 
 **Where criteria are named, a judging run is dispatched for those**, one call per run through the
-role this copy ships rather than a general agent with a model typed in beside it. The message carries
-the issue, the criterion numbers the plan named, the deployment identity where the record holds one,
-and nothing else; the role decides its own model, effort and tools, and its method is `forge guide qa
-judging`.
+role this copy ships rather than a general agent with a model typed in beside it. The message is
+what `forge brief <the issue> --judge --url <where the deployment answers> --criteria <the numbers the
+plan named>` prints, with `--identity` where the record holds one: the deployment to drive, the
+criteria to judge there, and no tree. The role decides its own model, effort and tools, and its
+method is `forge guide qa judging`.
 
 **The issue stays this session's while that run works, and nothing is handed over.** A judge's
 verdicts are the one record written past another run's lease, under the judge's own id, so giving

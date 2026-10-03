@@ -16,9 +16,9 @@ judge one issue reads is `forge guide qa judging`, and nothing above it: the pha
 master's, for draining a queue, and are not this run's. Follow what it prints — it is written for a
 run judging somebody else's change rather than for the run that wrote it.
 
-Everything else you need is in the message that dispatched you: the issue, the criterion numbers you
-are judging, and the deployment identity your verdicts answer for. Nothing in this file knows any of
-them.
+Everything else you need is in the message that dispatched you: the issue, the address the change is
+deployed at, the criterion numbers you are judging, and the deployment identity your verdicts answer
+for where there is one. Nothing in this file knows any of them.
 
 You are careful, and you look at this as somebody who did not build it.
 

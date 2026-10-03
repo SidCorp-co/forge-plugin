@@ -9,6 +9,7 @@ import { tempRoom } from "../fixtures.mjs";
 import { WITHIN, keysDeclared, roleNames, roleText, rolesDiffer, rolesIn } from "../../src/tools/roles.mjs";
 import { skillGuideAnswer } from "../../src/guides/skill-guides.mjs";
 import { FROZEN, freezesSession } from "../../src/tools/plugin-copy.mjs";
+import { helpOf } from "../../src/resolve/visibility.mjs";
 
 const PLUGIN = new URL("../..", import.meta.url).pathname;
 
@@ -180,6 +181,48 @@ test("the judging method reads what tested will want before it judges a criterio
     "the two shapes read as the acceptable verdicts rather than as the route past a credential nobody has");
   assert.match(screen, /the ordinary shape is what you write/u,
     "so a judge with a route to the product is sent down the escape it does not need");
+});
+
+/* ISS-3145: judges ran the gate and the suites in a builder's tree, and brought up local stacks, while
+   the deployment served the same commit. Each assertion is the sentence that keeps a judge on it. */
+test("the judging method keeps the judge on the deployment and off a checkout's runs", () => {
+  for (const flow of FLOWS) {
+    const text = judging(flow);
+    const paragraphOf = (pattern) => text.split(/\n\s*\n/u).find((one) => pattern.test(one)) ?? "";
+    const reach = paragraphOf(/only a checkout's run reaches/u);
+    assert.match(reach, /Write it `skipped`/u, `${flow}: a checkout-only criterion is given no verdict shape`);
+    assert.match(reach, /who owes\s+that evidence/u, `${flow}: the skip names nobody to show it`);
+    const drive = paragraphOf(/one thing you drive/u);
+    for (const banned of [/never run the project's gate, a test suite or anything that brings up a stack/u,
+      /never build the\s+commit/u, /never work in a builder's worktree/u]) {
+      assert.match(drive, banned, `${flow}: ${banned} is not said`);
+    }
+    assert.match(paragraphOf(/plainly does not carry/u), /stop and report that\s+before judging anything/u,
+      `${flow}: a deployment without the change is judged anyway`);
+    assert.match(paragraphOf(/refuses you nothing/u), /never work an\s+identity out of the source or out of a local build/u,
+      `${flow}: a judge with no identity may still work one out`);
+  }
+});
+
+test("the masters that dispatch a judge name the judge's brief, and set down a change nothing serves", () => {
+  for (const flow of FLOWS) {
+    for (const slug of ["qa", "dispatch"]) {
+      const text = skillGuideAnswer(slug, PLUGIN, flow)({}).lines.join("\n");
+      assert.match(text, /`forge brief[\s\S]{0,20}--judge --url/u, `${slug} under ${flow} sends a judge no address`);
+    }
+    const master = skillGuideAnswer("qa", PLUGIN, flow)({}).lines.join("\n");
+    assert.match(master, /whose change the deployment does not yet serve is that case, set down/u,
+      `qa under ${flow} judges at a commit nothing serves`);
+    assert.doesNotMatch(master, /judged at the commit its verdicts carry/u, `qa under ${flow} still licenses a local build`);
+  }
+});
+
+test("the brief's help, its hook page and its document name the judge's form", () => {
+  assert.match(helpOf("brief"), /--judge --url/u, "-h names no judge form");
+  assert.match(readFileSync(join(PLUGIN, "hooks", "how", "brief.md"), "utf8"), /--judge --url/u,
+    "the hook's page names no way to brief a judge");
+  assert.match(readFileSync(join(PLUGIN, "..", "docs", "cli", "brief.md"), "utf8"), /## The judge's form/u,
+    "the verb's page says nothing about the form");
 });
 
 test("the roles ship inside the plugin directory, where a copy of it travels alone", () => {
