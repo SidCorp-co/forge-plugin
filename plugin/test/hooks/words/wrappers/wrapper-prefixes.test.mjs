@@ -8,11 +8,11 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { WRITES } from "../../../hooks/_hook.mjs";
-import { answered, callHook, homeEnv } from "../../fixtures.mjs";
-import { patience } from "../../patience.mjs";
+import { WRITES } from "../../../../hooks/_hook.mjs";
+import { answered, callHook, homeEnv } from "../../../fixtures.mjs";
+import { patience } from "../../../patience.mjs";
 
-const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
 const HOME = homeEnv("wrapper-prefixes");
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 const refused = (command) => answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME))
@@ -65,7 +65,7 @@ test("GNU time's output file is taken by the name its table holds", () => {
 });
 
 test("a run of prefixed value-taking options before a word that is no write is read in one way", () => {
-  const spans = new URL("../../../src/hooks/shell-spans.mjs", import.meta.url).href;
+  const spans = new URL("../../../../src/hooks/shell-spans.mjs", import.meta.url).href;
   for (const text of [`env ${"--ch x ".repeat(40)}echo`, `sudo ${"--us x ".repeat(40)}echo`, `sudo ${"--ch x ".repeat(40)}echo`]) {
     const asked = `import(${JSON.stringify(spans)}).then((m) => process.stdout.write(String(m.WRITES.test(process.argv[1]))))`;
     const run = spawnSync(process.execPath, ["-e", asked, text], { encoding: "utf8", timeout: patience(5000) });

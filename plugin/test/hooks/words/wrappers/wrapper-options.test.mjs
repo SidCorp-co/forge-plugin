@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { WRITES, startsAt, writtenPaths } from "../../../hooks/_hook.mjs";
-import { patience } from "../../patience.mjs";
+import { WRITES, startsAt, writtenPaths } from "../../../../hooks/_hook.mjs";
+import { patience } from "../../../patience.mjs";
 
 const strict = (text) => writtenPaths(text, "/w", "md", { unplaceable: "strike" }).map((one) => one.token);
 
@@ -49,7 +49,7 @@ test("a quoted mention of a wrapped write leaves the redirect beside it read", (
    with each part, and forty of them would hold a hook past any deadline. Read in a process of its own,
    which a hang guard can stop. */
 test("a wrapper's value of many quoted parts is read in one way, so the answer comes back", () => {
-  const reader = new URL("../../../src/hooks/shell-spans.mjs", import.meta.url).href;
+  const reader = new URL("../../../../src/hooks/shell-spans.mjs", import.meta.url).href;
   for (const part of ["'a'", '"a"', "'a'\\ "]) {
     const asked = `import(${JSON.stringify(reader)}).then(({ WRITES }) => process.stdout.write(String(WRITES.test(process.argv[1]))))`;
     const run = spawnSync(process.execPath, ["-e", asked, `sudo -p ${part.repeat(40)} true`], { encoding: "utf8", timeout: patience(5000) });
@@ -61,8 +61,8 @@ test("a wrapper's value of many quoted parts is read in one way, so the answer c
    `\s` between words read a run of them as either and the ways multiplied with each option: a wrapper's
    and git's globals are each separated by the shell's blanks alone (ISS-2959). */
 test("an option run whose words hold a carriage return or a no-break space is read in one way", () => {
-  const spans = new URL("../../../src/hooks/shell-spans.mjs", import.meta.url).href;
-  const hook = new URL("../../../hooks/_hook.mjs", import.meta.url).href;
+  const spans = new URL("../../../../src/hooks/shell-spans.mjs", import.meta.url).href;
+  const hook = new URL("../../../../hooks/_hook.mjs", import.meta.url).href;
   for (const [reader, name, text] of [
     [spans, "WRITES", `sudo ${"-ux\r".repeat(40)}echo`],
     [spans, "WRITES", `env ${"--unset=x ".repeat(40)}echo`],
@@ -78,8 +78,8 @@ test("an option run whose words hold a carriage return or a no-break space is re
    command is asked against: a run of them before a quote that is no split string is read in one way,
    and a `-S` of `ls` is asked from its own command's env, not from the start of the text. */
 test("a run of env's options before a quoted argument is answered by both runner readings", () => {
-  const hook = new URL("../../../hooks/_hook.mjs", import.meta.url).href;
-  const corpus = new URL("../../../src/stats/corpus/transcripts.mjs", import.meta.url).href;
+  const hook = new URL("../../../../hooks/_hook.mjs", import.meta.url).href;
+  const corpus = new URL("../../../../src/stats/corpus/transcripts.mjs", import.meta.url).href;
   for (const [reader, name, text] of [
     [hook, "unwrapped", `env ${"--unset=x ".repeat(40)}'x'`],
     [hook, "unwrapped", `env ${"-u 'a' ".repeat(40)}-i 'x'`],
