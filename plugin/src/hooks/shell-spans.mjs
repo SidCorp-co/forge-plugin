@@ -5,12 +5,12 @@ import { basename, isAbsolute, resolve } from "node:path";
 
 import { WRITE_CALLS } from "./program/call-writes.mjs";
 import { NAMED, known, optionsIn, targets, writes, writingOption } from "./shell/options.mjs";
-import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, underOf } from "./shell/walk.mjs";
+import { ESCAPED_IN_DOUBLE, handedOn, quotedOver, quoting, respelled, spans, ticksOpened, underOf } from "./shell/walk.mjs";
 import { SPLITS, optionsAfter, wraps } from "./shell/wrappers.mjs";
 import { BLANKS, shellWord } from "./shell/word.mjs";
 import { RUNNER, SHELL_OPTION, SHELL_WORD, literalWord, placeable, spacedSpans, worded } from "./shell/words.mjs";
 
-export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, placeable, shellWord, quotedOver, quoting, respelled, spacedSpans, spans, underOf };
+export { BLANKS, ESCAPED_IN_DOUBLE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, placeable, shellWord, quotedOver, quoting, respelled, spacedSpans, spans, ticksOpened, underOf };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const KEYWORDS = "if|elif|while|until|then|else|do";
@@ -251,14 +251,17 @@ const WRITE_VERBS = STARTS
 /** Either half, over a text whose quoted arguments the caller has already judged. */
 export const WRITES = new RegExp(`${WRITE_VERBS}|${WRITE_CALLS}`);
 
-/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and the walk says where one ends, so its body stays standing and a commit in it is still a commit. One the walk read flat, a here-document inside it, is kept whole rather than guessed at, which is what a gate that must not miss a commit needs. */
-export const quotedOut = (text) =>
+/* A quoted argument is data, so its `;`, `&&` or newline opens no command: its inside becomes one inert word, quotes and length kept, so an offset here is one in the text given and a quoted `-C` value is still that option's value. Inside a double quote a shell still runs a `$(…)` or a backtick pair, and the walk says where one ends, so its body stays standing and a commit in it is still a commit. One the walk read flat, a here-document inside it, is kept whole rather than guessed at, which is what a gate that must not miss a commit needs. Where a command opens at a backtick, `ticksOpened` puts the start there. */
+const quotedAway = (text) =>
   respelled(text, (span, { flat }) => (flat ? span : quotedOver(span, "_", { delimiters: true })));
+export const quotedOut = (text) => ticksOpened(text, quotedAway(text));
 
 /* `WRITES` for a reader holding a command's own text, quotes and all: a verb only where it starts a command outside a quoted argument, so `echo "sudo touch a.md" > b.md` is the redirect it makes and not a command no reading can place; and a library call anywhere, its quotes being the call's own. */
 const VERB_WRITES = new RegExp(WRITE_VERBS, "u");
 const CALL_WRITES = new RegExp(WRITE_CALLS, "u");
-const writing = (text) => CALL_WRITES.test(text) || VERB_WRITES.test(quotedOut(text));
+/* A span cut by an operator inside a backtick pair holds the closer without its opener, so which backtick opens is asked of `whole`, the text it stands at `from` in. */
+const writing = (text, whole = text, from = 0) =>
+  CALL_WRITES.test(text) || VERB_WRITES.test(ticksOpened(whole, quotedAway(text), from));
 
 /** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces, as one holding a backslash holds the character behind it: the newline a continuation joins the next line on with (ISS-2686), or a space the escape made part of the name (ISS-1592). The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer above, spelt the same here (ISS-1555). */
 export const REDIRECT = new RegExp(
@@ -363,10 +366,10 @@ const afterFlagIn = (program, words) => {
   return words.filter(({ said }, at) => values.has(at) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
 };
 
-/** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
-const aimsOf = (program, operands, stage, said, target) => {
+/** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument, standing at `from` in `whole`. */
+const aimsOf = (program, operands, stage, said, target, { whole, from }) => {
   const aim = AIMS[program];
-  if (!aim) return writing(stage) ? null : [];
+  if (!aim) return writing(stage, whole, from) ? null : [];
   if (aim === "none" || (program === "sed" && !IN_PLACE.test(said))) return [];
   if (aim === "of") return operands.filter((one) => one.said.startsWith("of="));
   /* Into a target directory a copy writes none of its operands, every one being a file it reads; a move still writes each, by taking it away. */
@@ -399,12 +402,12 @@ const commandOf = (stage, from) => {
 };
 
 /** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Every reading below wants the shell's spelling, which is each word's `said`. */
-const readsIn = (stage, from, strict) => {
+const readsIn = (stage, from, strict, whole) => {
   const { words, program, rest } = commandOf(stage, from);
   if (RELOCATES.test(program)) return [];
   const operands = operandsOf(program, rest);
   const said = ` ${words.map((one) => one.said).join(" ")}`;
-  const aims = aimsOf(program, operands, stage, said, targetOf(program, rest));
+  const aims = aimsOf(program, operands, stage, said, targetOf(program, rest), { whole, from });
   if (strict && AIMS[program] === "last" && optionsIn(program, rest)?.some((one) => targets(program, one.name))) return null;
   const spare = strict && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
   return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
@@ -420,13 +423,13 @@ export const struck = (text, { unplaceable = "keep" } = {}) => {
   };
   for (const { start, end } of spans(text)) {
     const span = text.slice(start, end);
-    if (!writing(span)) continue;
+    if (!writing(span, text, start)) continue;
     if (HANDED.test(span)) {
       if (strict) blank(start, end);
       continue;
     }
     const reads = spans(span, { pipes: true })
-      .map((stage) => readsIn(span.slice(stage.start, stage.end), start + stage.start, strict))
+      .map((stage) => readsIn(span.slice(stage.start, stage.end), start + stage.start, strict, text))
       .reduce((all, one) => all && one && [...all, ...one], []);
     if (reads === null && strict) blank(start, end);
     for (const { from, to } of reads ?? []) blank(from, to);
@@ -480,7 +483,7 @@ const aimedIn = (text, stage, kept, bare) => {
 /** The spellings a shell-level text writes through that no spelling in it produces: a redirect's target, a write verb's own target, and a stage whose names `xargs`, `-exec` or `{}` hand over. A character counts only where the shell expands it, which is the quoting walk's to say: a `$` under a single quote or a backslash is text, a pattern under either quote is text, and a redirect is one only where `redirectsIn` finds it. A program body is the caller's to have taken out, being its interpreter's text and not the shell's. how/writes.md. */
 export const unseenNames = (text) => {
   const under = underOf(text);
-  const bare = text.split("").map((one, at) => (under[at] === " " ? one : "_")).join("");
+  const bare = ticksOpened(text, text.split("").map((one, at) => (under[at] === " " ? one : "_")).join(""));
   const asked = (pattern, at) => {
     pattern.lastIndex = at;
     return pattern.test(text);
