@@ -4,16 +4,16 @@ Why: most refused shapes take something with nothing behind it — a process run
 uncommitted changes. `--fix` takes nothing, and is refused for answering the checker instead of the
 code.
 
-Writing *about* a refused command: a rule is read where a command starts, so a phrase inside an
-argument — `echo "…"`, a `grep` pattern — is prose. At a start the quotes come off as a shell takes
-them off: `git add "-A"` is the flag. A body reaching a shell by a name its own language has —
+Writing *about* a refused command: a rule is read where a command starts, so a phrase in an
+argument — `echo "…"`, a `grep` pattern — is prose. At a start quotes come off as a shell takes
+them: `git add "-A"` is the flag. A body reaching a shell by a name its own language has —
 python's `subprocess`, node's `execSync` — has its literals read as commands; an unnamed runner
 counts them all, and a shell's body is commands whatever it names. A prefix reaches the verb:
-`sudo`, `xargs`, `-exec`, a subshell, an assignment, a path, and both readings of a runner's
-options.
+`sudo`, `xargs`, `-exec`, a subshell, a substitution, an assignment, a path, and both readings of a
+runner's options.
 
-A refusal you believe is wrong: put it to the user. Rewording until the pattern misses teaches that
-the guard is noise.
+A refusal you believe is wrong: put it to the user. Rewording until the pattern misses teaches the
+guard is noise.
 
 Not judged: every shape not listed, `git add -A` under a pathspec, `git update-ref -d`, and the git
 rules on a clean tree, bar a ref moved under a checked-out tree and a stash where a second worktree

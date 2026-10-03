@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
+import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, ticksOpened, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { glued, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -387,10 +387,16 @@ const opened = (runner, quoted) => {
 export const unwrapped = (text, onProgram) => {
   let out = text;
   for (let hop = 0; hop < HOPS; hop += 1) {
-    const next = out.replace(WRAPPED, (...all) => {
-      const { start, runner, body } = all.at(-1);
-      return `${start} ; ${bodiless(opened(runner, body), onProgram)} ;`;
-    });
+    /* Matched where an opening backtick reads as the start it is, and spliced from the text itself, the two being one length: the backtick stays a backtick, and the one closing its pair is still read as a closer. */
+    let next = "";
+    let last = 0;
+    for (const m of ticksOpened(out).matchAll(WRAPPED)) {
+      const { start, runner } = m.groups;
+      const body = out.slice(m.index + start.length + runner.length, m.index + m[0].length);
+      next += `${out.slice(last, m.index + start.length)} ; ${bodiless(opened(runner, body), onProgram)} ;`;
+      last = m.index + m[0].length;
+    }
+    next += out.slice(last);
     if (next === out) break;
     out = next;
   }
@@ -424,7 +430,7 @@ export const startsAt = (text) =>
     const raw = text.slice(start, end);
     const one = raw.trim();
     const lead = start + (raw.length - raw.trimStart().length);
-    const bare = quotedOver(one, ".");
+    const bare = ticksOpened(text, quotedOver(one, "."), lead);
     return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => {
       const at = m.index + m[0].length;
       return past(one.slice(at)).map((said) => ({ said, at: lead + at }));
@@ -607,7 +613,7 @@ export const writtenPaths = (text, cwd, tail, { unplaceable } = {}) => {
   /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
   const placed = placeable(read);
   const named = spans(read).flatMap(({ start, end }) => {
-    const said = spoken(read.slice(start, end).replace(BLANK, ""), placed(start));
+    const said = spoken(ticksOpened(read, read.slice(start, end), start).replace(BLANK, ""), placed(start));
     return WRITES.test(said) ? namesIn(said, tail, { whole: placed(start) }).map((one) => ({ ...one, at: start })) : [];
   });
   /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */

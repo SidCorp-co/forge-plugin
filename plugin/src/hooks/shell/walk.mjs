@@ -21,6 +21,9 @@ const walked = (text, pipes, quoted = false) => {
   const gone = new Set();
   /* Each quoted span standing outside every frame, opening quote to closing one, a frame inside it held whole, and whether a substitution in it was read flat. */
   const runs = [];
+  /* Each backtick that opens a pair: one standing bare, outside every quote and frame, opens one where no bare one is open already and closes it otherwise; one a double quote or a frame opened is the frame's own. */
+  let ticks = [];
+  let ticking = false;
   let frames = [];
   let start = 0;
   let quote = "";
@@ -75,6 +78,7 @@ const walked = (text, pipes, quoted = false) => {
     if (quote) {
       if (quote === '"' && !flat && ((dollar && one === "(") || one === BACKTICK)) {
         frames.push({ saved: quote, from: at, depth: 0, tick: one === BACKTICK });
+        if (one === BACKTICK) ticks.push(at);
         quote = "";
         mark(at, " ");
         dollar = false;
@@ -104,6 +108,7 @@ const walked = (text, pipes, quoted = false) => {
     if (frame) {
       if (one === BACKTICK) {
         frames.push({ saved: "", from: at, depth: 0, tick: true });
+        ticks.push(at);
         mark(at, " ");
         continue;
       }
@@ -119,6 +124,7 @@ const walked = (text, pipes, quoted = false) => {
       } else if (one === "<" && text[at + 1] === "<" && text[at - 1] !== "<" && text[at + 2] !== "<") {
         const from = frames[0].from;
         for (const one of [...gone]) if (one >= from) gone.delete(one);
+        ticks = ticks.filter((one) => one < from);
         frames = [];
         quote = '"';
         flat = true;
@@ -127,6 +133,10 @@ const walked = (text, pipes, quoted = false) => {
       }
       dollar = one === "$";
       continue;
+    }
+    if (one === BACKTICK) {
+      if (!ticking) ticks.push(at);
+      ticking = !ticking;
     }
     if (fresh && one === "#") {
       said = at;
@@ -155,7 +165,7 @@ const walked = (text, pipes, quoted = false) => {
   }
   cut(text.length);
   if (quote || frames.length) runs.push([opened, text.length, flat]);
-  return { out, under, held, depth, gone, runs };
+  return { out, under, held, depth, gone, runs, ticks };
 };
 
 /** Where each command begins and ends, with the subshells its span opens and closes. A quoted body is never cut, nor a pipeline split: both hand the next command its arguments. An unclosed quote joins, a backslash escapes outside single quotes, and a comment is outside every span — its `|` is no pipeline. */
@@ -203,6 +213,15 @@ const QUOTES = new Set(["'", '"']);
 /** What a shell hands on of one word, as `quoting`'s entries: every quote that opens or closes a run gone, every backslash the shell takes out gone, and each character a quote or a backslash made literal kept — a quote inside the other quote's run, a backslash in a single-quoted run, one a double quote does not let escape what follows. Walked apart from the texts kept above, since one word is no text the readers of an event share. */
 export const handedOn = (word) =>
   marksOf(word, walked(word, false, true)).filter(({ one, under, removed }) => !removed && !(QUOTES.has(one) && under === one));
+
+/** `over` with each backtick of `text` that opens a pair spelled as the `(` a `$(…)` opens with, so a pattern reading where a command starts finds one there and none behind the backtick that closes the pair. `over` is a reading of `text` offset for offset, standing at `from` in it; which backtick opens is the walk's answer, since only the walk knows which pair a backtick belongs to. */
+export const ticksOpened = (text, over = text, from = 0) => {
+  const { ticks } = readOf(text);
+  if (!ticks.length) return over;
+  const out = over.split("");
+  for (const at of ticks) if (at >= from && at - from < out.length) out[at - from] = "(";
+  return out.join("");
+};
 
 /** The text with `fill` over every code unit a quote holds as data, offset for offset: the body of a substitution a double quote opened is left standing, since a shell runs it, and a quote inside that body is data again. With `delimiters` the quote characters themselves stay, so the text still says where each span was. */
 export const quotedOver = (text, fill, { delimiters = false } = {}) => {
