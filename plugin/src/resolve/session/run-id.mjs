@@ -2,7 +2,8 @@
    because every agent of a wave inherits one session id and the tree is the one thing each has to
    itself (ISS-467). The file's name is spelt here; the rest of the why: docs/cli/claim.md. */
 import { randomUUID } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, isAbsolute, join } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
@@ -65,6 +66,32 @@ export const scratchAt = (path) => {
   const at = heldIn(dir, SCRATCH_AT);
   const named = Boolean(id) && MINTED_FOR.test(id) && basename(at ?? "") === `${SCRATCH}${id}`;
   return named && isAbsolute(at) ? at : null;
+};
+
+/** The directory a run writes in, under the temporary root and named for its id, and the record `scratchAt` reads. Both
+ *  sides of a dispatch reach it, since a directory nothing records is one nothing can reap (ISS-2524). A record already naming this id's directory is kept as it is. The directory is made
+ *  before the record, and a record that cannot be written takes the directory it was for with it, so neither stands
+ *  without the other. `failed` is the reason where that happened, with `at` the directory it was for. */
+export const scratchMinted = (path, id) => {
+  const held = scratchAt(path);
+  if (held && basename(held) === `${SCRATCH}${id}`) return { at: held, failed: null };
+  const at = join(tmpdir(), `${SCRATCH}${id}`);
+  const record = besideGit(path, SCRATCH_AT);
+  if (!record) return { at, failed: "the tree has no git directory to record it in" };
+  let made;
+  try {
+    made = mkdirSync(at, { recursive: true });
+  } catch (error) {
+    return { at, failed: error.message };
+  }
+  try {
+    writeFileSync(record, `${at}\n`);
+  } catch (error) {
+    answered(() => rmSync(record, { force: true }));
+    if (made) rmSync(made, { force: true, recursive: true });
+    return { at, failed: error.message };
+  }
+  return { at, failed: null };
 };
 
 export const runNames = (id, key) => runsFor(id).includes(String(key ?? "").trim().toLowerCase());

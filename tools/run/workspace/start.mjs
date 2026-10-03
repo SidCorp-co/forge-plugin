@@ -1,7 +1,7 @@
 /* The workspace one run works in: the worktree beside the checkout, the two links a gate in it
    resolves its linter through, the id it holds its lease under and the directory its scratch belongs
    in. `finish.mjs` is the counterpart, and the two read one derivation of the path (ISS-1106). */
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { borrowRoute } from "../../../plugin/src/resolve/config.mjs";
@@ -13,11 +13,9 @@ import { mintRunId, RUN_ID_VAR, scratchMinted } from "./run-id.mjs";
 
 /* Made here rather than left to the run, so a run's logs and scratch files have a place whose name says whose they are and `finish` removes that one path. One that cannot be made is said and stops nothing: a run without one writes elsewhere and `finish` then finds nothing to remove, which is the safe answer either way. */
 const scratchMade = (tree, id, self) => {
-  const at = scratchMinted(tree, id);
-  try {
-    mkdirSync(at, { recursive: true });
-  } catch (error) {
-    return console.error(`  ${at} could not be made (${error.message}), so this run has no scratch `
+  const { at, failed } = scratchMinted(tree, id);
+  if (failed) {
+    return console.error(`  ${at} could not be made (${failed}), so this run has no scratch `
       + `directory of its own and whatever it writes elsewhere is nobody's to remove.`);
   }
   console.log(`Put every scratch file this run makes under that id's own directory, which is what`);

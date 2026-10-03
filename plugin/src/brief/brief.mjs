@@ -7,7 +7,7 @@ import { borrowRoute } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { helpOf } from "../resolve/visibility.mjs";
-import { mintRunId, runIdAt, runNames, runsFor } from "../resolve/session/run-id.mjs";
+import { mintRunId, runIdAt, runNames, runsFor, scratchMinted } from "../resolve/session/run-id.mjs";
 import { copiesFor } from "./copies.mjs";
 import { keepBrief } from "./record.mjs";
 import { defaultRef, heldBy, recordsOf, treesOf } from "./trees.mjs";
@@ -60,6 +60,16 @@ const bindTree = (tree, keys) => {
       + `never be placed as the run dispatched to it. Brief the tree under the issue's ISS- key.`);
   }
   return runsFor(mintRunId(tree, keys)).map((one) => one.toUpperCase());
+};
+
+/* The scratch directory goes with the id, under it and recorded beside it, so whatever outlives the run can say whose a
+   directory under the temporary root is (ISS-2524). A tree whose id was minted before the brief made scratch is given it
+   here too. A brief whose run would write where nothing records it is not printed. */
+const scratchFor = (tree) => {
+  const { at, failed } = scratchMinted(tree, runIdAt(tree));
+  if (!failed) return;
+  fail(`brief: the scratch directory ${at} could not be made and recorded (${failed}), so no brief is printed: a run `
+    + "sent now would write where nothing records it. Point TMPDIR at a directory this user can write in, and brief again.");
 };
 
 const heldLine = (tree, held) => {
@@ -121,6 +131,7 @@ export const brief = async (argv) => {
   }
   const batch = batchOf(asked.batch, key, target);
   const members = key && target ? bindTree(target.path, [key, ...batch]) : key ? [key] : [];
+  if (key && target) scratchFor(target.path);
   const base = trees ? defaultRef(here) : null;
   const others = trees?.filter((one) => one !== target).map((tree) => ({ tree, held: heldBy(tree.path, base) })) ?? null;
   const text = briefText({ members, target, others, base });
