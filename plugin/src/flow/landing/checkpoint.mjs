@@ -40,11 +40,15 @@ export const LANDING_STATES = {
   done: { turn: null, next: [] },
 };
 
+/* Present only on a landing `finishLanded` ended off the merged mark; landed.mjs says when (ISS-3146). */
+export const MERGE_RECORD = "mergeRecord";
+
 /* Declared: a key nothing here names is dropped rather than read back as a fact. Every one of them
    is a string; `handWritten` is the one record the checkpoint holds and is read below on its own,
    and `superseded` the list of checkpoints it replaced. */
 const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
-  "candidate", "release", "install", "deployment", "deploymentId", "moved", "reconciled", "judge", "owed"];
+  "candidate", "release", "install", "deployment", "deploymentId", "moved", "reconciled", "judge", "owed",
+  MERGE_RECORD];
 
 export const SUPERSEDED = "superseded";
 
@@ -157,11 +161,15 @@ const supersededSaid = (landing) => {
   return `; supersedes ${earlier.length} earlier landing(s), the last ${landingAt(last)}`;
 };
 
+const mergeRecordSaid = (landing) => (landing[MERGE_RECORD]
+  ? `; landed by the merge record at ${shortSha(landing[MERGE_RECORD])}, the branch not reaching the head`
+  : "");
+
 export const landingLine = (landing) =>
   `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
   + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by `
   + `${landing.builder || "nobody the record can name"}${rebuiltSaid(landing)}`
-  + `${deploymentSaid(landing)}${supersededSaid(landing)}`;
+  + `${mergeRecordSaid(landing)}${deploymentSaid(landing)}${supersededSaid(landing)}`;
 
 /** The builder's two writes out of `head-owed`, one per line under whatever sentence leads to them. */
 export const RECAPTURE = (ref, indent = "  ") =>

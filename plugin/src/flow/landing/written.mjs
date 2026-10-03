@@ -6,7 +6,7 @@
 import { DERIVED, HAND_WRITTEN, REBUILT_FORM, UNRECOVERABLE } from "./reconstruction.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_DONE, LANDING_HEAD_OWED, LANDING_QA_OWED, LANDING_READY,
-  LANDING_RECORDS_OWED, LANDING_STATES, SUPERSEDED, approvedAt, landingAt, notACommit, supersededBy, unjudgedAt,
+  LANDING_RECORDS_OWED, LANDING_STATES, MERGE_RECORD, SUPERSEDED, approvedAt, landingAt, notACommit, supersededBy, unjudgedAt,
 } from "./checkpoint.mjs";
 import { parseAll } from "../record/page.mjs";
 import { carriedAtCapture, carriedByLanding } from "../worklog.mjs";
@@ -130,14 +130,17 @@ const supersedeRefused = (ref, head, deployment, builder, landing) => {
       + `deployment and the builder it already holds, so it would record nothing the checkpoint does not `
       + `say. Where the deployment it names is wrong, name the one serving:\n${form}`;
   }
-  if (!landing.head) return null;
-  const read = commitCarries(landing.head, head);
+  /* `MERGE_RECORD` in checkpoint.mjs, read first where that checkpoint holds one. */
+  const landed = landing[MERGE_RECORD] ?? landing.head;
+  if (!landed) return null;
+  const read = commitCarries(landed, head);
   if (read.carries) return null;
+  const which = landing[MERGE_RECORD] ? "the commit the merge record proved" : "the head";
   const why = read.carries === false
-    ? `${shortSha(head)} does not carry ${shortSha(landing.head)}, the head of the landing it would `
+    ? `${shortSha(head)} does not carry ${shortSha(landed)}, ${which} of the landing it would `
       + `replace, so the checkpoint would move backwards and the judging rung would read an earlier `
       + `deployment than the one serving`
-    : `this checkout cannot say whether ${shortSha(head)} carries ${shortSha(landing.head)}, the head of `
+    : `this checkout cannot say whether ${shortSha(head)} carries ${shortSha(landed)}, ${which} of `
       + `the landing it would replace: ${read.why}`;
   return `claim --rebuilt over the \`${LANDING_DONE}\` checkpoint on ${ref} records a later landing, and ${why}. `
     + `Name the head the later landing put on the branch:\n${form}`;
