@@ -31,6 +31,25 @@ test("a bracket or a quote inside such a substitution closes nothing outside it"
   assert.equal(markOf(nested, nested.indexOf(")")).depth, 2, "a `)` in a backtick pair inside one stands a frame deeper");
 });
 
+/* A bare one is placed as surely as a quoted one, so no reader counts brackets to find where it ends (ISS-3087). */
+test("a bare substitution gives its body a depth, and its brackets stand inside it", () => {
+  const dollar = "a $(b $(c) d) e";
+  assert.deepEqual(quoting(dollar).map((one) => one.depth).join(""), "000111122211100", "one deeper per substitution around it");
+  assert.equal(markOf(dollar, 4).within, "bare", "and it is a bare one");
+  assert.equal(markOf(dollar, 0).within, "", "nothing at depth zero");
+  const ticks = "a `b` `c``d` e";
+  assert.deepEqual(quoting(ticks).map((one) => one.depth).join(""), "00111011111100", "a backtick pair the same, one closing beside the next");
+  const both = 'a $(b "$(c)") d';
+  assert.equal(markOf(both, both.indexOf("c")).depth, 2, "a quoted one inside a bare one");
+  assert.equal(markOf(both, both.indexOf("c")).within, "quoted", "and the innermost names it");
+  const nested = '"$(a $(b))"';
+  assert.equal(markOf(nested, nested.indexOf("b")).depth, 2, "a bare `$(` inside a quoted one is a frame of its own");
+  assert.equal(spans("x $(a; b) y").length, 2, "and a bare one is still cut where it was");
+  for (const continued of ["a $\\\n(b) c", '"$\\\n(b)"']) {
+    assert.equal(markOf(continued, continued.indexOf("b")).depth, 1, `a continuation between the \`$\` and its bracket opens it all the same: ${continued}`);
+  }
+});
+
 /* The flat reading these texts had at 39d9b53, written out: the double quote holds the substitution and
    its here-document whole, so a body's apostrophe opens nothing (ISS-1533). */
 test("a double-quoted substitution holding a here-document is read flat, as the quote around it", () => {
@@ -38,7 +57,10 @@ test("a double-quoted substitution holding a here-document is read flat, as the 
   const open = commit.indexOf('"');
   const shut = commit.lastIndexOf('"');
   assert.equal(unders(commit), `${" ".repeat(open)}${'"'.repeat(shut - open + 1)}${" ".repeat(commit.length - shut - 1)}`);
-  assert.ok(quoting(commit).every((one) => one.depth === 0), "and nothing in it stands in a frame");
+  assert.ok(quoting(commit).every((one) => one.within !== "quoted"), "and nothing in it stands in a frame");
+  const body = markOf(commit, commit.indexOf("done"));
+  assert.deepEqual([body.under, body.depth, body.within], ['"', 1, "flat"], "its body one substitution deep, marked as the quote around it");
+  assert.equal(markOf(commit, shut).depth, 0, "and the quote closing it outside that substitution");
   assert.deepEqual(spans(commit).map(({ start, end }) => commit.slice(start, end).trim()),
     [commit.slice(0, shut + 1), "git push"], "so the command after it is cut where it was");
   const quoted = "echo \"$(cat <<'X'\na 'b' c\nX\n)\"; ls";

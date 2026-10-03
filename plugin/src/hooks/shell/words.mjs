@@ -32,28 +32,35 @@ const BRACKET = /[()]/u;
 const cuts = (mark) => !mark
   || (mark.under === " " ? BARE : ALWAYS).test(mark.one)
   || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
-/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` on either side of a span is the one this leaves out: in front it closes a substitution the shell joins to that span as often as a subshell around it, and behind it closes a substitution the span was computed *inside* — `> $(printf '%s.txt' 'a(1).md')` writes the `.txt` and the span is an argument of the printf. Which of the two a `)` is, this reader does not ask the walk — the walk places a substitution only where a double quote opened it — so the span beside one keeps the reading it had. */
+/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` on either side of a span is the one this leaves out: in front it closes a substitution the shell joins to that span as often as a subshell around it, and behind it closes a substitution the span was computed *inside* — `> $(printf '%s.txt' 'a(1).md')` writes the `.txt` and the span is an argument of the printf. Behind a span, a `)` closing a substitution has the span inside it, which its depth already declines; one closing a subshell is left ending nothing here, as it always was. */
 const OPENED = /[ \t\n;&|<>(]/u;
 const CLOSED = /[ \t\n;&|<>]/u;
 const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
-/* Where a substitution was first opened, past which the whole reading is not offered: anywhere and not in the same command, because what ends a bare one is a `)` the walk does not place. What may put a value into the command that this text does not spell: a `$` opening an expansion of any kind, a backtick pair, and a `(` some other character put in front of — a process substitution's, and the pattern openers a shell with `extglob` on reads `x@('a(1).md'|y)` with. Any of them and this stops claiming a span is a whole operand: `${OUT:+ 'a(1).md' }` is a filename or nothing depending on a variable. An opener inside a substitution the walk did place is not counted: what it puts in stays inside that substitution, whose spans `worded` already declines. */
+/* Where a value the text does not spell was first put in, past which the whole reading is not offered: anywhere and not in the same command, because nothing here says how far what it puts in reaches. What does: a `$` opening an expansion other than a command substitution, and a `(` some other character put in front of — a process substitution's, and the pattern openers a shell with `extglob` on reads `x@('a(1).md'|y)` with. Any of them and this stops claiming a span is a whole operand: `${OUT:+ 'a(1).md' }` is a filename or nothing depending on a variable. A `$(…)` or a backtick pair is not counted, bare or quoted: the walk places where each ends, what it puts in joins only the word it stands in, and every span inside one stands deeper than zero, which `wholeSpans` declines. */
+const SUBSTITUTES = (marks, n) => marks[n].one === "$" && marks[n + 1]?.one === "(" && marks[n + 1].depth > marks[n].depth;
 const openedAt = (marks) => {
   const at = marks.findIndex(({ one, under, depth }, n) => under === " " && !depth
-    && (one === "$" || one === "\x60"
+    && ((one === "$" && !SUBSTITUTES(marks, n))
       || (one === "(" && marks[n - 1]?.under === " " && /[<>?*+@!]/u.test(marks[n - 1]?.one ?? ""))));
   return at < 0 ? marks.length : at;
 };
 
-/** Whether a name read at an offset of this text may be claimed as the whole of an operand: not past a substitution, where it may be an argument of some other command, and not inside a comment, where a redirect is prose and writes nothing. One walk for the text, since the answer is about the whole command and in no slice of it. */
+/** Whether a name read at an offset of this text may be claimed as the whole of an operand: not past a value the text does not spell, and not inside a substitution standing outside every quote, where it may be an argument of some other command, and not inside a comment, where a redirect is prose and writes nothing. One walk for the text, since the answer is about the whole command and in no slice of it: the spans are cut inside a bare substitution, so a slice holding one of its commands no longer says it stands there, where one inside a quoted substitution holds that substitution whole. */
 export const placeable = (text) => {
   const marks = quoting(text);
   const opens = marks[openedAt(marks)]?.at ?? Infinity;
   const said = new Set(marks.filter(({ under }) => under === "#").map(({ at }) => at));
-  return (at) => at < opens && !said.has(at);
+  const inside = new Set();
+  let outermost = "";
+  for (const { at, depth, within } of marks) {
+    outermost = depth ? outermost || within : "";
+    if (outermost === "bare") inside.add(at);
+  }
+  return (at) => at < opens && !said.has(at) && !inside.has(at);
 };
 
-/* Which quoted spans are a whole operand and so could be one filename, as mark indices, and whether its spaces are a name's. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution a double quote opened — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside `"$(…)"` is an argument of the command that substitution runs. A double-quoted span is one only where it holds a bracket or `spacedName` reads it as a path, the one place a space is allowed: a `$`, a backtick and a backslash cut a word, so it holds what a shell writes (ISS-3081). */
+/* Which quoted spans are a whole operand and so could be one filename, as mark indices, and whether its spaces are a name's. Closed, holding nothing that still cuts a word, with an operand's end on either side of it, and outside every substitution — each because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, either would hand a `.md` scan a guarded name nobody wrote, and a span the walk places inside a `$(…)`, quoted or not, is an argument of the command that substitution runs. A double-quoted span is one only where it holds a bracket or `spacedName` reads it as a path, the one place a space is allowed: a `$`, a backtick and a backslash cut a word, so it holds what a shell writes (ISS-3081). */
 const wholeSpans = (marks, alike) => {
   const opens = openedAt(marks);
   /* As a shell reads it, a continuation gone, so a body after one is a runner's. */
@@ -105,7 +112,7 @@ export const literalWord = (given) => {
   return word.text ? word : null;
 };
 
-/* A parameter expansion: a `$` the shell spends, bare or under a double quote, opening a name, a positional or special parameter, or a `${…}`. A `$(` is a substitution, which `placeable` answers, and a `$'…'` or `$"…"` spells text. */
+/* A parameter expansion: a `$` the shell spends, bare or under a double quote, opening a name, a positional or special parameter, or a `${…}`. A `$(` is a substitution, whose spans their depth declines, and a `$'…'` or `$"…"` spells text. */
 const PARAMETER = /[A-Za-z0-9_{@*#?!$-]/u;
 const IDENTIFIER = /[A-Za-z0-9_]/u;
 const expands = (marks, n) => marks[n].one === "$" && (marks[n].under === " " || marks[n].under === '"')

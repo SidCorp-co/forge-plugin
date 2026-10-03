@@ -23,8 +23,8 @@ body this reader cannot vouch for:
   author meant it to stop.
 - **A quoting the walk guesses at** before the operator's line ends — the `$'…'` and nested-quote
   cases [the granted id](the-granted-id.md) names.
-- **An operator inside an open parenthesis.** In `$(…)` or a subshell the body is one the reach
-  already stops at.
+- **An operator inside a substitution or a subshell.** In `$(…)`, a backtick pair or a subshell the
+  body is one the reach already stops at.
 
 A `<<` inside `$((…))` or `((…))` is a shift, and no operator at all: the reader steps past it, and
 a body after it is taken out like any other.

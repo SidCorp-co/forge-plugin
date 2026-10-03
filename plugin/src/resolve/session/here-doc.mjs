@@ -1,7 +1,7 @@
 /* Where a here-document's body is, for every reader that asks: the readers of which run a command is and where it stands, the write gates and the stats corpus. A body is the stdin of the
    command it stands on, so its words are no call, no id and no move of this shell's (ISS-1717). One reader places the bodies and each consumer keeps its own policy over what it cannot vouch
    for (ISS-2865). What each does with the text that is left: docs/cli/the-here-document.md. */
-import { underOf } from "../../hooks/shell-spans.mjs";
+import { underOf, withinOf } from "../../hooks/shell-spans.mjs";
 
 const BACKTICK = "\x60";
 const WORD_ENDS = /[\s;&|()<>]/u;
@@ -56,10 +56,13 @@ const wordAt = (text, from) => {
   return said ? { said, quoted, end: at } : null;
 };
 
-/* What an operator at `at` stands inside: `shift` within `((…))` or `$((…))`, where a `<<` is arithmetic and no operator; `nested` within `(…)` or `$(…)`; `bare` within neither; and
+/* What an operator at `at` stands inside: `shift` within `((…))` or `$((…))`, where a `<<` is arithmetic and no operator; `nested` within `(…)` or a substitution; `bare` within neither; and
    `data` under a quote, a comment or a backslash. Under a double quote a `$(…)` still opens a shell, so a `<<` there is that shell's operator: `git commit -m "$(cat <<'EOF'` is the
-   commonest here-document an agent sends. The walk reads a substitution holding a `<<` as the double quote around it, so a quote of that shell's own is read as the outer one, which is the guess left standing. */
+   commonest here-document an agent sends. The walk reads a substitution holding a `<<` as the double quote around it and says which characters are that substitution's, so a quote of that shell's own is read as the outer one, which is the guess left standing.
+   Which bracket is open is this reader's own, since an arithmetic `((` and a subshell are no substitution the walk places. */
 const contextAt = (text, under, at) => {
+  const within = withinOf(text);
+  const flat = (one) => under[one] === '"' && within[one] === "flat";
   const open = [];
   const push = (one, quoted) => {
     const shift = text[one + 1] === "(";
@@ -67,20 +70,15 @@ const contextAt = (text, under, at) => {
     return shift ? one + 1 : one;
   };
   for (let one = 0; one < at; one += 1) {
-    const mark = under[one];
-    const inside = open.at(-1)?.quoted === true;
-    if (mark === " ") {
-      while (open.at(-1)?.quoted) open.pop();
-      if (text[one] === "(") one = push(one, false);
-      else if (text[one] === ")" && open.length > 0 && open.pop().shift && text[one + 1] === ")") one += 1;
-    } else if (mark === '"' && text[one] === "(" && (inside || text[one - 1] === "$")) one = push(one, true);
-    else if (mark === '"' && text[one] === ")" && inside && open.pop().shift && text[one + 1] === ")") one += 1;
+    if (under[one] !== " " && !flat(one)) continue;
+    if (!flat(one)) while (open.at(-1)?.quoted) open.pop();
+    if (text[one] === "(") one = push(one, flat(one));
+    else if (text[one] === ")" && open.length > 0 && open.pop().shift && text[one + 1] === ")") one += 1;
   }
-  const quoted = under[at] === '"' && open.at(-1)?.quoted === true;
-  if (under[at] !== " " && !quoted) return "data";
-  if (!quoted) while (open.at(-1)?.quoted) open.pop();
+  if (under[at] !== " " && !flat(at)) return "data";
+  if (!flat(at)) while (open.at(-1)?.quoted) open.pop();
   if (open.some(({ shift }) => shift)) return "shift";
-  return open.length > 0 ? "nested" : "bare";
+  return open.length > 0 || within[at] ? "nested" : "bare";
 };
 
 /* The next operator a shell acts on at or after `from`: both characters under one quoting, neither half of a `<<<` here-string, and not a shift. `null` for none, and `unread` on one with
@@ -148,7 +146,7 @@ const lineOf = (text, under, first) => {
 const blanked = (text, from, to) => text.slice(0, from) + text.slice(from, to).replace(/[^\n]/gu, " ") + text.slice(to);
 
 /** Every here-document a shell would open in the text, in order, each `{ at, end, line, from, to, closed, delimiter, quoted, tabbed, nested, guessed, unclosed, substitutes }`: its operator's
- *  span, the newline ending its line, its body's span and where its delimiter line ends, and what about it no reader can vouch for — inside a `$(…)` or a subshell, read under a quoting the walk
+ *  span, the newline ending its line, its body's span and where its delimiter line ends, and what about it no reader can vouch for — inside a substitution or a subshell, read under a quoting the walk
  *  guesses at, with no delimiter line, or unquoted with a substitution in its body. Last, where one is, `{ at, unread: true }`: an operator with no word this reader can place, past which
  *  nothing is said. Operators sharing a line share `line`. */
 const hereDocs = (command) => {

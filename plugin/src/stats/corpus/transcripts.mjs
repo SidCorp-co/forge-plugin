@@ -146,28 +146,22 @@ const handedAt = (text, ends, envAt) => {
   return asked ? null : false;
 };
 
+/* Where the word a quote stands in began. A substitution's body is words of its own, and the word it interrupted goes on once the walk leaves it, so the start each depth had is kept as the walk enters the next one and given back as it leaves. */
 export const shellOf = (command) => {
   const text = bodiesOut(command, { operator: "<<" });
   const said = [];
-  const outer = [];
+  const before = [];
+  let level = 0;
   let word = 0;
   let handed = false;
   let asked = -1;
   let envAt = -1;
   let last = " ";
   for (const { at, one, under, depth } of quoting(text)) {
+    for (; level > depth; level -= 1) word = before[level];
+    for (; level < depth; level += 1) before[level + 1] = word;
     if (under === " ") {
-      if (one === "(") {
-        outer.push({ back: text[at - 1] === "$" ? word : null, depth });
-        word = at + 1;
-      } else if (one === ")" && outer.at(-1)?.depth === depth && !outer.at(-1).tick) {
-        const { back } = outer.pop();
-        word = typeof back === "number" ? back : at + 1;
-      } else if (one === BACKTICK && outer.at(-1)?.tick && outer.at(-1).depth === depth) word = outer.pop().back;
-      else if (one === BACKTICK) {
-        outer.push({ back: word, depth, tick: true });
-        word = at + 1;
-      } else if (ENDS_A_WORD.test(one)) word = at + 1;
+      if (one === BACKTICK || ENDS_A_WORD.test(one)) word = at + 1;
       if (OPERATOR.test(one)) envAt = -1;
       else if (one === "e" && text.startsWith("env", at)) envAt = word;
     }
