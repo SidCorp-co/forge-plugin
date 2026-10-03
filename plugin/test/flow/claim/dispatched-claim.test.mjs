@@ -143,6 +143,13 @@ test("a declared uuid in the variable, from a tree carrying no id, is told both 
 
 /* The whole route a run of an outside dispatcher takes: a tree nobody minted for, the brief the dispatch
    sends, and then the claim from that tree with nothing set, which is where the incident stopped. */
+/* The shell a briefed run stands in: no session id, and the run's own home exported as the brief's line says. */
+const asBriefed = (said) => {
+  const line = /^XDG_CONFIG_HOME=(\S+) FORGE_BORROW_FROM=(\S+)$/mu.exec(said);
+  assert.ok(line, `the brief printed no home to export:\n${said}`);
+  return { ...ENV, FORGE_SESSION_ID: "", XDG_CONFIG_HOME: line[1], FORGE_BORROW_FROM: line[2] };
+};
+
 test("a tree the brief gave an id takes the lease its dispatcher holds, with no flag and no variable", async () => {
   const tree = projectRoom(tempRoom("dispatched-briefed-"), CHILD_HOME, OWN);
   const briefed = await ranAsync(FORGE, ["brief", "ISS-1091", "--tree", tree], ENV, tree);
@@ -151,7 +158,7 @@ test("a tree the brief gave an id takes the lease its dispatcher holds, with no 
   assert.deepEqual(runsFor(minted), ["iss-1091"], `the brief printed ${minted}`);
 
   heldBy(DISPATCHER);
-  const took = await ranAsync(FORGE, ["claim", "ISS-1091"], { ...ENV, FORGE_SESSION_ID: "" }, tree);
+  const took = await ranAsync(FORGE, ["claim", "ISS-1091"], asBriefed(briefed.stdout), tree);
   assert.equal(took.status, 0, `the briefed tree is the dispatch:\n${took.stdout}${took.stderr}`);
   assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${escaped(minted)}`, "u"));
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed");
@@ -167,7 +174,7 @@ test("a batch the brief minted into a bare tree takes the lease on each of its i
     for (const key of ["ISS-1084", "ISS-1091", "ISS-1133"]) {
       ISSUE.issueId = key;
       heldBy(DISPATCHER);
-      const took = await ranAsync(FORGE, ["claim", key], { ...ENV, FORGE_SESSION_ID: "" }, tree);
+      const took = await ranAsync(FORGE, ["claim", key], asBriefed(briefed.stdout), tree);
       assert.equal(took.status, 0, `${key} is a member of the batch:\n${took.stdout}${took.stderr}`);
       assert.match(took.stdout, new RegExp(`${key} {2}handed: session ${escaped(minted)}`, "u"));
     }
