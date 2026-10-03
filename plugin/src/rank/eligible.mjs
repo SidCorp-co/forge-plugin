@@ -5,8 +5,7 @@ import { describe, leaseOf, stateOf } from "../flow/lease.mjs";
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
-import { INDEPENDENT } from "../flow/qa/verdicts.mjs";
-import { judgementOf, policyUnread } from "../tracker/project-config.mjs";
+import { asksIndependent, policyUnread } from "../tracker/project-config.mjs";
 import { filedAt } from "./score.mjs";
 
 /* A path in a code span, in the segment shape a repository names a file or a tree by. */
@@ -73,8 +72,6 @@ export const eligibilityOf = (row,
  *  holds being its own to carry on with. Listed apart and what a row costs: docs/cli/next.md. */
 export const JUDGING = ["developed"];
 
-const offersJudging = (policy) => judgementOf(policy) === INDEPENDENT;
-
 const judgingVerdict = (lease) => {
   const taken = leaseOf(lease);
   const held = stateOf(taken, sessionOf());
@@ -88,7 +85,7 @@ const judgingVerdict = (lease) => {
 export const judgingFrom = async (rows, { policy, leaseFor, cap }) => {
   const why = policyUnread(policy);
   if (why) return { unread: why };
-  if (!offersJudging(policy)) return null;
+  if (!asksIndependent(policy)) return null;
   const at = rows
     .filter((one) => JUDGING.includes(String(one?.status ?? "")))
     .sort((one, other) => filedAt(one) - filedAt(other));

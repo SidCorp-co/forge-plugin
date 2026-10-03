@@ -25,7 +25,7 @@ const claimedBy = (holder, minutes) => ({ lease: { holder: "", released: ago(DAY
   history: [{ holder, at: ago(minutes), how: "claim", status: "developed" }] } });
 
 const STANDS_DOWN = /Another master leaves these standing/u;
-const ANYONE = /any master that reads this takes them/u;
+const ANYONE = /any master that reads the queue takes the rows at developed/u;
 
 test("a declared master over a row nobody has touched for days does not stand another master down", async (t) => {
   load([issue("ISS-1"), stale("ISS-5")]);
@@ -33,7 +33,7 @@ test("a declared master over a row nobody has touched for days does not stand an
   const run = await ran(["next"], declaring("qa-master"));
   assert.equal(run.status, 0, run.stderr);
   assert.doesNotMatch(run.stdout, STANDS_DOWN, run.stdout);
-  assert.match(run.stdout, /drained by — qa-master, declared, and the declaration does not hold:/u);
+  assert.match(run.stdout, /drained by — qa-master, declared and not draining:/u);
   assert.match(run.stdout, ANYONE);
   assert.match(run.stdout, /the oldest offered, ISS-5, was last written 3 day\(s\) ago/u,
     "the age of the row that sat is said where the drainer is named");
@@ -82,7 +82,7 @@ test("a project that has not set the key is told no master is declared and anyon
   judged(t);
   const run = await ran(["next"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /drained by — no master: this project has not set `drainedBy`, so any master that reads this takes them; the oldest offered, ISS-5/u,
+  assert.match(run.stdout, /drained by — no master — `drainedBy` is unset, so any master that reads the queue takes the rows at developed\. 0 of the 1 row\(s\) .* the oldest offered, ISS-5/u,
     run.stdout);
   assert.doesNotMatch(run.stdout, /dispatcher/u, "a project that declared nothing is told of nobody");
   assert.doesNotMatch(run.stdout, STANDS_DOWN);
@@ -93,7 +93,7 @@ test("a drain key the pair does not take names no master and leaves the rows to 
   judged(t);
   const run = await ran(["next"], declaring("qa-mastre"));
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /drained by — `drainedBy` is `qa-mastre`, which is no master that drains developed, so no master is declared and any master that reads this takes them/u,
+  assert.match(run.stdout, /drained by — `drainedBy` is `qa-mastre`, which is no master that drains developed: it takes dispatcher or qa-master\. No master is declared, so any master that reads the queue takes the rows at developed until it is put right/u,
     run.stdout);
   assert.match(run.stdout, /judging — 1 issue\(s\)/u,
     "and the rows are still offered: the drain says who is dispatched, never whether an issue is offered");
@@ -105,7 +105,7 @@ test("a window the read did not finish concludes nothing from it and says how mu
   judged(t);
   const run = await ran(["next"], declaring("qa-master", { rank: { windowCap: 1 } }));
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /declaration does not hold: 0 of the 1 row\(s\) read .*and 1 further row\(s\) at developed went unread/u,
+  assert.match(run.stdout, /declared and not draining: 0 of the 1 row\(s\) read .*and 1 further row\(s\) at developed went unread/u,
     run.stdout);
   assert.doesNotMatch(run.stdout, STANDS_DOWN, "the fresh row behind the window is not evidence nobody read");
 });

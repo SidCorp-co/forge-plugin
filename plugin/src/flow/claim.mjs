@@ -10,8 +10,7 @@ import { Refused } from "../refusal.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { judgementOf, landsOn, releasePolicy } from "../tracker/project-config.mjs";
-import { INDEPENDENT } from "./qa/verdicts.mjs";
+import { asksIndependent, landsOn, releasePolicy } from "../tracker/project-config.mjs";
 import { commentPage, cutIn, mustBeShown } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
@@ -524,7 +523,7 @@ export const claim = async (argv) => {
     ? viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? [])
     : null;
   if (licensing) {
-    const refused = licensing(readyView, judgementOf(await releasePolicy()) === INDEPENDENT);
+    const refused = licensing(readyView, asksIndependent(await releasePolicy()));
     if (refused) fail(refused);
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */

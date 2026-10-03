@@ -3,10 +3,9 @@
 import { spawnSync } from "node:child_process";
 
 import { fail } from "../../resolve/settings.mjs";
-import { judgementOf, landsOn, releasePolicy } from "../../tracker/project-config.mjs";
+import { asksIndependent, landsOn, releasePolicy } from "../../tracker/project-config.mjs";
 import { commentPage } from "../../tracker/comments.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
-import { INDEPENDENT } from "../qa/verdicts.mjs";
 import { viewFrom } from "../earned.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { landingSaved } from "../lease.mjs";
@@ -113,7 +112,7 @@ export const finishLanded = async (documentId, ref, issue, context) => {
   if (!read.carries) fail(unlanded(ref, landing, head, read));
   if (owed) {
     const view = viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
-    const refused = recaptureRefusal(ref, head, view, judgementOf(policy) === INDEPENDENT, LANDED_SAID(ref, head));
+    const refused = recaptureRefusal(ref, head, view, asksIndependent(policy), LANDED_SAID(ref, head));
     if (refused) fail(refused);
   }
   const saved = await landingSaved(documentId, ref, { state: LANDING_DONE, head }, { was: landing });

@@ -14,9 +14,9 @@ import { batchesOf } from "./batch.mjs";
 import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines, judgingShort }
   from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
-import { eligibilityOf, heldPaths, judgingFrom, pathsNamed } from "./eligible.mjs";
+import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { drainOf, leaseOn } from "./drain.mjs";
+import { judgingRead, leaseOn } from "./drain.mjs";
 import { directedEdge, ordersEdge, otherOf } from "../tracker/edges/kinds.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
@@ -154,14 +154,6 @@ const bodiesFor = async (window) =>
        once per candidate, so the route nobody asked for would be paid for a window at a time. */
     await scoped("forge_issues", { action: "get", documentId: one.row.documentId, fields: ["relations"] }),
   ])));
-
-/* The judging rows and what they say about the master declared to drain them, read once for both
-   output forms: a machine standing down on the json reads the same evidence a terminal prints. */
-const judgingIn = async (rows, weights, whole) => {
-  const judging = await judgingFrom(rows, { policy: await releasePolicy(), leaseFor: leaseOn,
-    cap: weights.windowCap });
-  return judging && !judging.unread ? { ...judging, drain: drainOf(judging, { idle: weights.drainIdle, whole }) } : judging;
-};
 
 const drainJson = (drain) => ({
   declared: drain.declared,
@@ -353,7 +345,8 @@ export const next = async (argv) => {
     score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive), ...termsOf(row) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
-  const judging = await judgingIn(rows, weights, read.whole);
+  const judging = await judgingRead(rows,
+    { policy: await releasePolicy(), leaseFor: leaseOn, weights, whole: read.whole });
   const runs = measuredRuns(rootFor(asked.checkout ?? process.cwd()));
   const complexities = complexitiesOf(rows);
   const landed = lastLanded(rows);

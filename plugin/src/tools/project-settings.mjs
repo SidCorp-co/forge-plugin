@@ -17,9 +17,9 @@ import {
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
-import { judgementOf, policyUnread, projectRows, QA_MODES, releasePolicy, stagingDeploy }
+import { asksIndependent, policyUnread, projectRows, QA_MODES, releasePolicy, stagingDeploy }
   from "../tracker/project-config.mjs";
-import { drainHere } from "../rank/drain.mjs";
+import { drainHere, drainRows } from "../rank/drain.mjs";
 import { weightsFrom } from "../rank/weights.mjs";
 import { addBriefLine, briefLines, confirmSource, readBrief, refreshBrief, replaceBriefLine }
   from "../tracker/knowledge/brief.mjs";
@@ -501,7 +501,7 @@ const pmRows = (snapshot, load, graph) => {
    own work pays no call for a row it does not print; and judged in no window but the project's own, a
    `rank` the fold refused leaving the drain unread rather than judged on the built-in table. */
 const drainRead = (policy) => {
-  if (judgementOf(policy) !== INDEPENDENT || policyUnread(policy)) return null;
+  if (!asksIndependent(policy) || policyUnread(policy)) return null;
   const { value, refusal } = weightsFrom();
   return refusal ? { unread: refusal } : drainHere(policy, value);
 };
@@ -515,14 +515,14 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
     releasePolicy(), stagingDeploy(), readSettings(), readBrief(),
     scoped("forge_project_pm.snapshot", {}, true), scoped("forge_project_pm.runner_load", {}, true),
   ]);
-  const drain = await drainRead(policy);
+  const drained = drainRows(policy, await drainRead(policy));
   const flow = flowPinned().value;
   const clashes = flow === null ? [] : [
     flowPolicyConflict(flow, requiresOf(flow), policy),
     flowJudgeConflict(flow, judgeOf(flow), policy),
   ].filter(Boolean);
   return {
-    rows: [...projectRows({ policy, deploy, credentials, drain }),
+    rows: [...projectRows({ policy, deploy, credentials, drained }),
       ...clashes.map((detail) => ({ level: "miss", label: "flow", detail })),
       ...settingRows(settings), ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),
