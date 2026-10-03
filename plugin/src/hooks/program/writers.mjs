@@ -4,7 +4,7 @@
 export const CALLS = [
   { owner: String.raw`(?<![.\w])|\b(?:io|codecs|gzip|bz2|lzma|tarfile|fs|fsp|promises)\.`, name: "open(?:Sync)?", writes: [[0, "file"]], mode: [1, "mode"] },
   { owner: String.raw`\b`, name: "(?:append|write)FileSync|writeFile", writes: [[0, "path"]] },
-  { owner: String.raw`\bDeno\.`, name: "writeTextFile|writeFile", writes: [[0, "path"]] },
+  { owner: String.raw`\bDeno\.`, name: "writeTextFile", writes: [[0, "path"]] },
   { owner: String.raw`\bBun\.`, name: "write", writes: [[0, "path"]] },
   { owner: String.raw`\bshutil\.`, name: "copy|copyfile|copy2", writes: [[1, "dst"]] },
   { owner: String.raw`\bshutil\.`, name: "move", writes: [[0, "src"], [1, "dst"]] },
