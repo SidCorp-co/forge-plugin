@@ -105,7 +105,7 @@ export const drainOf = (judging, { idle, whole = true, now = Date.now(), own = s
 const at = JUDGING.join(" or ");
 
 /** The oldest offered row and how long it has stood untouched, said wherever the drainer is named. */
-export const oldestSaid = (drain, now = Date.now()) => {
+const oldestSaid = (drain, now = Date.now()) => {
   if (!drain.oldest) return "no row is offered";
   const { issueId, idleMinutes } = drain.oldest;
   return idleMinutes === null
@@ -131,7 +131,7 @@ export const evidenceSaid = (drain, now = Date.now()) =>
   + `${claimSaid(drain, now)}, and ${oldestSaid(drain, now)}${unreadSaid(drain)}`;
 
 /** The window the evidence is judged in, named with the key that sets it. */
-export const idleSaid = (drain) => `\`rank.drainIdle\` ${drain.idle} minute(s)`;
+const idleSaid = (drain) => `\`rank.drainIdle\` ${drain.idle} minute(s)`;
 
 /** The judging rows and what they say about the master declared to drain them, read once for both
  *  commands: a machine standing down on `forge next --json` reads the same evidence `forge doctor`
