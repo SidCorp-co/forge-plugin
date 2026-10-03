@@ -192,7 +192,6 @@ const VERDICT_BLOCKS = [
   "  short    it was exercised, met short of its wording, and the shortfall judged not to block:",
   "           the change releases, --why says how it fell short, --filed names the row it became",
   "  skipped  no route reached it, so nobody looked and there is nothing to cite",
-  "That row's reference goes on --filed, never a sentence, and on no other value.",
   "A later --commit carrying the merged one earns `testing`: the write records what git says of it.",
 ];
 

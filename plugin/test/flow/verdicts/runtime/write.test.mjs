@@ -119,7 +119,7 @@ test("the verdict help lists --runtime and says it is read off the deployment, n
   const run = await ranAsync(FORGE, ["record", "verdict", "-h"], ENV);
   assert.equal(run.status, 0, said(run));
   assert.match(run.stdout, /^ {2}verdict .*\[--runtime R\]/mu, run.stdout);
-  assert.match(run.stdout, /^--runtime takes the whole object id read back from what the deployment reports serving, never a branch head/mu, run.stdout);
+  assert.match(run.stdout, /^--runtime takes the whole id the deployment reports, never a branch head\.$/mu, run.stdout);
 });
 
 test("under a second judge at a deployment, a looked verdict naming no runtime is refused with both routes", async () => {

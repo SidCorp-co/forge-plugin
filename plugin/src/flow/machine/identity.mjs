@@ -11,8 +11,7 @@ export const JUDGED_LANDING = { optional: true, landing: true, identity: true };
    which the write fills off the mark. Whole, because an abbreviation of what is serving would let a
    verdict taken somewhere else read as standing, which core's write door refuses by the same words. */
 const WHOLE_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/iu;
-export const RUNTIME_TAKES = "the whole object id read back from what the deployment reports serving, "
-  + "never a branch head and never a command's exit code";
+export const RUNTIME_TAKES = "the whole id the deployment reports, never a branch head";
 export const runtimeProblem = (value) => {
   if (value === undefined || WHOLE_ID.test(String(value).trim())) return null;
   return /^[0-9a-f]+$/iu.test(String(value).trim())
