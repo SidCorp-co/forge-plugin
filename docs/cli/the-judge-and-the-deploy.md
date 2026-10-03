@@ -62,10 +62,12 @@ read-back, so a check comparing only ids would pass it in silence. An id a run i
 however it compares — two ids that differ are two runs only where each is a run's own — naming the
 wave that dispatched it and no run in it; one with no source at all is judged as it was written.
 
-The last is the one worth the argument. A verdict cites the deployment identity off its evidence,
-never off its commit: under route after-merge that identity *is* the merged head, which every verdict
-already carries in the commit slot, so a commit read would pass an ordinary builder verdict by
-accident.
+The last is the one worth the argument. A verdict names the deployment identity on its runtime, or,
+written before it had one, cites it off its evidence — never off its commit: under route after-merge
+that identity *is* the merged head, which every verdict already carries in the commit slot, so a
+commit read would pass an ordinary builder verdict by accident. A runtime is read alone where a
+verdict names one, so a runtime the checkpoint no longer names is superseded whatever its evidence
+cites, and every rung from this one to the close names it, in every judgement mode.
 
 **The citation is asked for where the checkpoint holds an identity and never demanded of one that
 holds none.** Only a reconstruction declares an identity, and the ordinary capture composes no such

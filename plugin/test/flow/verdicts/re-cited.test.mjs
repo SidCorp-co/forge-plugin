@@ -15,6 +15,7 @@ const { CHECKS, judgedOwed, viewFrom } = await import("../../../src/flow/earned.
 const { SHAPES, VERDICTS } = await import("../../../src/flow/machine.mjs");
 const { blocksIn, checked } = await import("../../../src/flow/record/record.mjs");
 const { heldBlocks } = await import("../../../src/flow/earned/asks.mjs");
+const { RUNTIME_ASK } = await import("../../../src/flow/qa/verdicts.mjs");
 const { foldedBody } = await import("../../../src/flow/earned/findings.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
@@ -81,13 +82,19 @@ const fieldsOf = (block) => {
   }
   return got;
 };
+/* The two values only the judge has, filled as it fills them: the runtime it read off the deployment,
+   and what it exercised. Every other value the line carries is the record's own. */
+const EXERCISED = "<what you exercised>";
+const filled = (command) => command.replace(RUNTIME_ASK, DEPLOYED).replace(EXERCISED, "judged.txt");
 const blocksOf = (command, ref) =>
-  blocksIn(argvOf(command, ref), "criterion", single, "record verdict").map(fieldsOf);
+  blocksIn(argvOf(filled(command), ref), "criterion", single, "record verdict").map(fieldsOf);
 
 test("a verdict citing nothing at the deployment is asked for again with the value each criterion holds", () => {
   const [item, ...rest] = owedOn(HELD);
   assert.deepEqual(rest, [], `one item for the one citation: ${rest.map((one) => one.what)}`);
   assert.match(item.what, /^the verdict on criteria 1, 2, 3, 4 cites nothing at 9e24c2a/u);
+  assert.ok(item.command.includes(`--runtime ${RUNTIME_ASK} --evidence ${EXERCISED}`),
+    `the runtime and what was exercised are the judge's to fill, and nothing else is: ${item.command}`);
   const blocks = blocksOf(item.command);
   assert.deepEqual(blocks.map((one) => [Number(one.criterion), one.verdict]), HELD.map((one) => [Number.parseInt(one.criterion, 10), one.verdict]),
     `each criterion its own block, carrying its own value: ${item.command}`);
@@ -105,7 +112,8 @@ test("a held why and a held filed row reach the write unchanged, through the she
 test("the line taken as printed is a write the verdict shape accepts, block by block", () => {
   for (const block of blocksOf(owedOn(HELD)[0].command)) {
     assert.equal(block.commit, MERGED.slice(0, 7), "every block carries the head");
-    assert.deepEqual(block.evidence, [DEPLOYED.slice(0, 7)], "and cites the deployment");
+    assert.equal(block.runtime, DEPLOYED, "names the runtime the judge read");
+    assert.deepEqual(block.evidence, ["judged.txt"], "and cites what it exercised");
     assert.doesNotThrow(() => checked("verdict", block), `criterion ${block.criterion} as printed`);
   }
 });

@@ -1,6 +1,6 @@
 /* Whether an issue's verdicts were judged by somebody other than the run that built the change. `earned.mjs` spends the first reading at `testing`, a promotion the second; why each is the shape it is: docs/cli/the-judge-and-the-deploy.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
-import { CARRIES_DEPLOYMENT, JUDGE_FROM, valuesOf } from "../machine.mjs";
+import { CARRIES_DEPLOYMENT, JUDGE_FROM, somebodyLooked, valuesOf } from "../machine.mjs";
 import { QA_MODES, asksIndependent } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 import { HAND_WRITTEN, REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
@@ -8,10 +8,22 @@ import { identityAsk, landsOutsideGit } from "../record/judged/landing.mjs";
 
 export const [INDEPENDENT] = QA_MODES;
 
-/* Off the evidence and never off the commit: after a merge the deployment identity is the merged head every verdict already carries, so a commit read passes an ordinary builder verdict by accident. Commit-shaped first, or a forty-digit attachment name prefixes its way past the comparison. A served commit carrying the deployment is the deployment judged, and whether it carries it is read by the verdict's write and stamped there, this rung reading no repository (ISS-2587). */
-const citesDeployment = (held, deployment) =>
-  (held.evidence ?? []).some((one) => isCommit(one) && sameCommit(one, deployment))
-  || (isCommit(held[CARRIES_DEPLOYMENT] ?? "") && sameCommit(held[CARRIES_DEPLOYMENT], deployment));
+/* Off the runtime where the verdict names one, read alone so a runtime elsewhere is superseded whatever the evidence cites; else off the evidence, written before a verdict had a runtime. Never off the commit: after a merge the deployment identity is the merged head every verdict already carries, so a commit read passes an ordinary builder verdict by accident. Commit-shaped first, or a forty-digit attachment name prefixes its way past the comparison. A served commit carrying the deployment is the deployment judged, and whether it carries it is read by the verdict's write and stamped there, this rung reading no repository (ISS-2587). */
+const citesDeployment = (held, deployment) => (held.runtime !== undefined
+  ? sameCommit(held.runtime, deployment)
+  : (held.evidence ?? []).some((one) => isCommit(one) && sameCommit(one, deployment))
+    || (isCommit(held[CARRIES_DEPLOYMENT] ?? "") && sameCommit(held[CARRIES_DEPLOYMENT], deployment)));
+
+/** Why a verdict judged at a runtime no longer stands, or null: the checkpoint names another
+ *  deployment as serving. Read off the checkpoint alone, whatever the project's judgement, so no
+ *  verification, finding or prose moves it; a fail is held by its own reading already. */
+export const supersededProblem = (held, landing) => {
+  const deployment = landing?.deployment;
+  if (held.runtime === undefined || !deployment || held.verdict === "fail" || !somebodyLooked(held.verdict)) return null;
+  return sameCommit(held.runtime, deployment) ? null
+    : `was judged at the runtime ${short(held.runtime)}, and the landing checkpoint names ${short(deployment)} `
+      + "as what the deployment serves, so it is superseded: what it exercised is no longer what runs";
+};
 
 /* An id a run inherited is the dispatching session's: it differs from the builder's and proves nothing, which is the reading `takeRefusal` gives an inherited builder take. Absent is not inherited — the field is `newer`, so a verdict written before it is judged as it was written (ISS-705). */
 const inheritedJudge = (held) => held[JUDGE_FROM] === INHERITED;
@@ -44,7 +56,7 @@ export const writerRefusal = (view, held) =>
  *  asking for a judge, no ordinary landing writing the field (ISS-1788). Independence needs no
  *  reading of one. */
 export const judgeProblem = (held, landing, holders = []) =>
-  whoProblem(held, landing, holders) ?? citedProblem(held, landing);
+  whoProblem(held, landing, holders) ?? supersededProblem(held, landing) ?? citedProblem(held, landing);
 
 /* Who wrote the verdict, which a fresh judgement answers and a re-citation cannot. */
 const whoProblem = (held, landing, holders) => {
@@ -98,7 +110,8 @@ export const judgeProblems = (view) => {
   const outside = landsOutsideGit(view.issue);
   return numbered(view.verdicts).flatMap(([number, { record }]) => {
     const who = outside ? outsideProblem(record.fields, holders) : whoProblem(record.fields, view.landing, holders);
-    const why = who ?? (outside ? null : citedProblem(record.fields, view.landing));
+    /* A superseded verdict is `supersededOwed`'s to name, in every judgement mode, and once. */
+    const why = who ?? (outside || supersededProblem(record.fields, view.landing) ? null : citedProblem(record.fields, view.landing));
     return why ? [{ number, why, held: record.fields, recite: !who }] : [];
   });
 };
@@ -110,6 +123,16 @@ export const judgeProblems = (view) => {
    and the branch that stood between handed back a command reprinting the refusal (ISS-1788).
    Shared flags lead: `blocksIn` gives a block only what precedes the first --criterion (ISS-2371).
    `blocks`, where given, is each criterion's own tail in place of the shared placeholder (ISS-2252). */
+/* A placeholder and never the checkpoint's value: a runtime copied off the record is one nobody read off the deployment. */
+export const RUNTIME_ASK = "<the whole object id the deployment reports serving>";
+
+/** Whether a verdict saying somebody looked owes `--runtime`: a second judge asked for, in git, at a
+ *  checkpoint naming what the deployment serves. The write refuses by it and every ask prints by it,
+ *  so no command handed out is one the write turns back. Elsewhere no runtime is on the record for a
+ *  judge to have been sent to, and owing one would hold every such issue (ISS-1788). */
+export const owesRuntime = (release, issue, landing) =>
+  asksIndependent(release) && !landsOutsideGit(issue) && Boolean(landing?.deployment);
+
 export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null, holders = [], blocks = null) => {
   const numbers = Array.isArray(at) ? at : [at];
   const outside = identity?.flag === "landing";
@@ -121,7 +144,8 @@ export const judgeAsk = (ref, at, landing, held = null, merged = null, identity 
   }
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
     + `forge record verdict ${ref} ${outside ? identityAsk(identity) : `--commit ${short(landing.head) || "<sha>"}`} `
-    + `--evidence ${(!outside && short(landing.deployment)) || "<what you exercised>"}`
+    + (!outside && landing.deployment ? `--runtime ${RUNTIME_ASK} ` : "")
+    + "--evidence <what you exercised>"
     + (blocks ?? ` --verdict ${valuesOf("verdict", "verdict")}${numbers.map((number) => ` --criterion ${number}`).join("")}`);
 };
 
