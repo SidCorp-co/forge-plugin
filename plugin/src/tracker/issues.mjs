@@ -2,6 +2,7 @@
    docs/cli/the-projections.md. */
 import { AIMED_FROM, aimSaid, fail, projectTarget, slugIfAny } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
+import { movedUnderClaim } from "../resolve/project/claimed.mjs";
 import { readsAsDate, scoped } from "./rest.mjs";
 
 /* What the browse verb PRINTS; the wire ask is MAX_LIMIT, the route's own cap. reading-a-whole-set.md. */
@@ -200,11 +201,8 @@ export const notAReference = (reference) => (isReference(reference) ? null : not
    offset can be searched. Read off the key the row prints: the browse projection carries no other. */
 const seqOf = (row) => Number(String(row?.issueId ?? "").replace(/\D+/gu, "")) || null;
 
-/** One request where nothing below the key was ever deleted, else a search of the offsets. Soft, and
- *  every offset carrying the request option, for a caller a `fail()` cannot be allowed to exit past. */
-export const documentIdIfAny = async (reference, { soft = false, ...held } = {}) => {
-  if (UUID.test(reference)) return { id: reference };
-  if (!HUMAN_REF.test(reference)) return { refused: notAKey(reference) };
+/** One request where nothing below the key was ever deleted, else a search of the offsets. */
+const resolvedKey = async (reference, soft, held) => {
   const at = (offset) => scoped("forge_issues", { action: "at", offset }, soft, held);
   const wanted = Number(reference.replace(/\D+/gu, ""));
   const guess = await at(Math.max(wanted - 1, 0));
@@ -222,6 +220,16 @@ export const documentIdIfAny = async (reference, { soft = false, ...held } = {})
     else low = mid + 1;
   }
   return { refused: missing(reference, guess.total) };
+};
+
+/** A key's document, refused where this run claimed the key on another document. Soft, and every
+ *  offset carrying the request option, for a caller a `fail()` cannot be allowed to exit past. */
+export const documentIdIfAny = async (reference, { soft = false, ...held } = {}) => {
+  if (UUID.test(reference)) return { id: reference };
+  if (!HUMAN_REF.test(reference)) return { refused: notAKey(reference) };
+  const found = await resolvedKey(reference, soft, held);
+  const moved = found.id ? movedUnderClaim(reference, found.id) : null;
+  return moved ? { refused: moved } : found;
 };
 
 export const documentIdOf = async (reference) => {
