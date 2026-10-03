@@ -1,7 +1,7 @@
 // What a program another language runs hands a shell, and where an interpreter takes its program inline: the readings every write test and the shell guard share, kept out of the hook harness because they are readings and not an entry point. how/learning-gate.md.
 
 import { SHELL_WORD } from "../shell-spans.mjs";
-import { INTERPRETER, LANGUAGE_OF } from "./spoken.mjs";
+import { INTERPRETER, INTERPRETERS, LANGUAGE_OF } from "./spoken.mjs";
 
 /** A program that can hand a string to a shell, and an interpreter's inline program: literals there are
  *  code — by the name that body's own language has, `spawnSync` running nothing from python. An unnamed runner keeps all. */
@@ -41,7 +41,14 @@ export const handedIn = (body, runner) => {
   return out;
 };
 
-export const RUNS = new RegExp(String.raw`\b(${INTERPRETER})\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
+/* The options an interpreter's name may carry ahead of its inline word, and that word held to the interpreter standing before it, so php's `-e` opens nothing and its `-r` does. */
+const OPTIONS = String.raw`\s+(?:-\S+\s+)*`;
+const HANDS = Object.entries(INTERPRETERS)
+  .map(([name, { inline }]) => String.raw`(?<=\b${name}${OPTIONS})(?:${inline.join("|")})`)
+  .join("|");
+
+/** An interpreter's inline program: the interpreter, then the body its own inline word hands it, still in the shell quotes it was written in. */
+export const RUNS = new RegExp(String.raw`\b(${INTERPRETER})${OPTIONS}(?:${HANDS})\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")`, "gu");
 
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. Which word is a shell is `SHELL_WORD`'s, the `-c` reading's own. how/learning-gate.md. */
 export const SHELL = new RegExp(`^(?:${SHELL_WORD})$`, "u");
