@@ -1,5 +1,5 @@
 /* Whether a payload landed under a lease: the mark a lease carries once one did, and the leases this
-   process owes it. A leaf, so `../lease.mjs` can owe a mark and `./mark.mjs` can write one without
+   process owes it. A leaf, so `../../lease.mjs` can owe a mark and `./mark.mjs` can write one without
    either importing the other's caller (ISS-2531). */
 
 /** The mark on a lease, and on the row a reclaim over that lease keeps: `crash-park.mjs` reads the row's. */
