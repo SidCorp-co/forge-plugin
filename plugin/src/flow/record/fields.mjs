@@ -5,8 +5,9 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, WITNESSED, unwrap, declarationLine, declarationsMissing, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+import { DECLARATIONS, DECLARING, SECTIONS, WITNESSED, looksTo, unwrap, declarationLine, declarationsMissing, declaredAs, planDeclaresOnly, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 import { compoundCriteria } from "../../prose.mjs";
+import { FEATURE, LIGHTER, lightens, rungClaimed } from "../../ladder.mjs";
 import { flowPinned, requiresOf, screensHere } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
@@ -24,12 +25,20 @@ const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 const CRITERIA_BODY = "record criteria takes the file holding the numbered lines, which a consult reads before the issue takes them.";
 const PLAN_BODY = "record plan takes the file holding the plan, which a consult reads before the issue takes it.";
 
-export const criteriaLines = (text) => {
+/* A plan's heading in a criteria file is a section looking for its field, so the refusal names that field: at a rung dropping the plan the run reached for the only file it had (ISS-2275). Read by the plan's own section reader, so a heading it would open is the heading named here. */
+const homeOf = (line, ref) => {
+  const [name] = planSections(line).keys();
+  if (!name) return "";
+  return `\n\`## ${name}\` is a section of the plan, which \`forge record plan ${ref} <plan.md>\` takes; where the`
+    + ` rung drops the plan, a plan holding only ${DECLARING.map((one) => `\`## ${one}\``).join(", ")} is the whole of it.`;
+};
+
+export const criteriaLines = (text, ref = "<ref>") => {
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
   const out = [];
   for (const line of lines) {
     const match = NUMBERED.exec(line);
-    if (!match) refuse(`Every criterion is a numbered line, \`N. outcome\`; this one is not:\n  ${line}`);
+    if (!match) refuse(`Every criterion is a numbered line, \`N. outcome\`; this one is not:\n  ${line}${homeOf(line, ref)}`);
     const number = Number(match[1]);
     if (out.some((one) => one.number === number)) refuse(`Two criteria are numbered ${number}; a verdict names one by its number.`);
     out.push({ number, text: match[2] });
@@ -142,7 +151,8 @@ const planChecked = (plan) => {
   }
   const declared = planFlags(plan);
   const held = planSections(plan);
-  const owed = sectionsOwed(plan, declared);
+  const declaresOnly = planDeclaresOnly(plan);
+  const owed = sectionsOwed(plan, declared, { declaresOnly });
   if (owed.length) {
     refuse([
       `The plan carries no ${owed.length === 1 ? "section" : `${owed.length} of the sections`} below, so nothing was written:`,
@@ -153,7 +163,8 @@ const planChecked = (plan) => {
       "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
     ].join("\n"));
   }
-  const unanswered = declarationsMissing(declared);
+  /* A declarations-only plan leaving out `## Declarations` has said nothing there, and at the rung it is written for what it does not say reads `no`. */
+  const unanswered = declaresOnly && !held.has(DECLARATIONS) ? [] : declarationsMissing(declared);
   if (unanswered.length) {
     refuse([
       `The plan leaves ${unanswered.length === 1 ? "a declaration" : `${unanswered.length} declarations`} it owes unanswered, so nothing was written:`,
@@ -175,6 +186,24 @@ const planChecked = (plan) => {
     ].join("\n"));
   }
   return null;
+};
+
+/* A declarations-only plan is the whole of a plan only where the rung drops it. The rung read here is the complexity with this plan's own declarations, a lower bound: a climb a correction records only raises it, and `approved` reads that (ISS-2275). */
+const WAIVER = LIGHTER.find((row) => row.kind === "plan");
+
+const rungRefusal = (plan, issue, ref) => {
+  if (!planDeclaresOnly(plan)) return null;
+  const fields = { plan, moved: [], whole: true, complexity: issue.complexity ?? null };
+  if (WAIVER && lightens(WAIVER.status, WAIVER.kind, fields)) return null;
+  const claimed = rungClaimed(fields).rung;
+  const why = claimed === FEATURE ? `${ref} is a \`${FEATURE}\``
+    : `${ref}'s complexity claims \`${claimed}\`, but this plan declares ${looksTo(planFlags(plan))}, which lifts it to \`${FEATURE}\``;
+  return [
+    `The plan holds only ${[...planSections(plan).keys()].map((one) => `\`## ${one}\``).join(", ")}, which is a whole plan`
+      + ` only at a rung that drops the plan; ${why}, whose plan owes every section, so nothing was written:`,
+    ...sectionsOwed(plan, planFlags(plan)).map((name) => `  ## ${name}`),
+    "Write each of those as well. What each answers: `forge record plan -h`.",
+  ].join("\n");
 };
 
 /* One file and nothing after it, and a flag in the path's place answered as the run flag it may be. */
@@ -208,8 +237,12 @@ export const planPrepared = async (argv, at) => {
   if (!plan.trim()) refuse("An empty plan would clear the field; pass the plan itself.");
   citationsChecked(plan, refuse);
   planChecked(plan);
+  /* Before the consult's refusal, for ISS-483's reason, and on the read of the issue the write makes anyway. */
+  const { body } = await at.issue();
+  const short = rungRefusal(plan, body, at.reference);
+  if (short) refuse(short);
   if (refusal) refuse(refusal);
-  const changed = planChanged(unwrap((await at.issue()).body.plan), plan);
+  const changed = planChanged(unwrap(body.plan), plan);
   return { field: "plan", value: plan, shown: plan, changed,
     ...withUnread("plan", unread, await supersedingOf("plan", plan, at)) };
 };
@@ -222,7 +255,7 @@ export const criteriaPrepared = async (argv, at) => {
   const file = argv.filter((one) => one !== REPLACE);
   const { refusal, text, unread } = onlyFile("criteria", file, CRITERIA_BODY);
   if (refusal && text === null) refuse(refusal);
-  const criteria = criteriaLines(text ?? await bodyFrom(file[0]));
+  const criteria = criteriaLines(text ?? await bodyFrom(file[0]), at.reference);
   criteriaChecked(criteria, refuse);
   compoundRefused(criteria);
   /* Before the consult's refusal, for ISS-483's reason: a file this refuses is one no review round

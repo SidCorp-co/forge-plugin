@@ -466,6 +466,9 @@ that write reaches this status having met nothing.
   IF the witnessed section of the plan cites a number no criterion of the issue carries, answers
   neither way, or answers both ways, THEN the CLI SHALL refuse `approved` and SHALL name what it read
   there.
+- **AC-05-9-7** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/declarations-only.test.mjs "a rung dropping the plan refuses a held witnessed set citing a criterion the issue does not hold"
+  WHERE the issue's rung drops the plan and a plan is held, the CLI SHALL judge that plan's witnessed
+  section at `approved` as it does where the plan is owed.
 
 ### UC-05-10 — One actor lands, and recovers off the checkpoint
 

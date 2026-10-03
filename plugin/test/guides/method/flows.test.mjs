@@ -56,6 +56,15 @@ test("the handover to a judge is the screen flow's, and no flow serves it to a p
   assert.match(method(SCREEN), /Flow screen, which this project runs/u, "and the answer names the flow it was served for");
 });
 
+/* Phase 3 asks every plan on the screen flow what a person witnesses, and a rung dropping the plan
+   is told where that answer still goes rather than finding out from the criteria write (ISS-2275). */
+test("the screen flow's Phase 3 says where a rung dropping the plan records the witnessed answer", () => {
+  assert.match(method(SCREEN), /At a rung that drops the plan the answer is still the plan field's: a plan holding that section alone/u,
+    "a rung with no plan is not told where its witnessed answer goes");
+  assert.doesNotMatch(method(null), /At a rung that drops the plan the answer is still the plan field's/u,
+    "and a project with no screen is served no witnessed section to place");
+});
+
 test("the rendered state is the screen flow's page, and default holds only what its refusal needs", () => {
   const held = verification(DEFAULT);
   assert.doesNotMatch(held, /## Screenshots/u,

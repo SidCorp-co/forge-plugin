@@ -30,7 +30,10 @@ in the field so the issue carries one plan, the current one.
 
 **Which of those criteria only a person at the running product can witness is the plan's own answer,
 never a later reader's guess.** `## Witnessed on screen` names them by number, or answers `none` with
-the reading behind it. A criterion belongs there when what it claims is something a user sees or does;
+the reading behind it. At a rung that drops the plan the answer is still the plan field's: a plan
+holding that section alone, with `## Declarations` where the run declares anything, is the whole of
+the plan there, and the criteria file takes numbered lines and nothing else. A criterion belongs
+in the section when what it claims is something a user sees or does;
 one a reader could check by opening the source is the builder's, and filing it there is the sign it
 was written about the code rather than about the product. The split moves none of the builder's
 obligation: it proves every criterion it can reach, user-facing ones included, and one it cannot

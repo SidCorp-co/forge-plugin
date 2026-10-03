@@ -72,8 +72,9 @@ export const looksIn = ({ screen }) => (screen === "yes" ? "screen-review" : "co
 const WITNESSED_NONE = "^[^\\S\\n]*none\\b[^\\p{L}\\p{N}\\n]*";
 
 export const WITNESSED = "Witnessed on screen";
+export const DECLARATIONS = "Declarations";
 
-/* What a typed plan answers, one section per question: the name is the whole text of the heading that opens it, `owed` the declarations behind which the tree puts a section, `screens` what a flow whose projects have one asks for whichever way the plan declared — only the write reading that second one, under the rule `screensOf` carries.
+/* What a typed plan answers, one section per question: the name is the whole text of the heading that opens it, `owed` the declarations behind which the tree puts a section, `screens` what a flow whose projects have one asks for whichever way the plan declared — only the write reading that second one, under the rule `screensOf` carries — and `declares` the section that states facts about the change rather than steps of building it, which with every section a declaration owes is what a rung dropping the plan still records (`planDeclaresOnly`).
    Presence is the whole of the check; whether a section answers well is the reviewer's. */
 export const PLAN_SECTIONS = [
   { name: "Files touched", asks: "which files this change opens" },
@@ -82,7 +83,7 @@ export const PLAN_SECTIONS = [
   { name: "Deliberately unchanged", asks: "what this change leaves alone on purpose" },
   { name: "Verified in code", asks: "the one thing read in the source that makes this possible" },
   { name: "Conventions reversed", asks: "which documented convention this reverses, and where the same change rewrites it" },
-  { name: "Declarations", asks: DECLARATIONS_ASK },
+  { name: DECLARATIONS, asks: DECLARATIONS_ASK, declares: true },
   { name: WITNESSED, asks: "which criteria only a person at the running product can witness, by number, or `none` and the reading that makes it none", owed: ["screen"], screens: true },
   { name: "Steps", asks: "the ordered steps, each naming the criterion number it serves" },
   { name: "The way back", asks: "what triggers it, the steps, who is told", owed: ["schema", "deploy"] },
@@ -129,6 +130,15 @@ export const planSections = (plan) => {
 /** Typed once it carries one section; carrying none it is the free text `approved` calls untyped. */
 export const planTyped = (plan) => planSections(plan).size > 0;
 
+/* The declarations and every section one of them can owe: a fix declaring a coupling is asked its way back by the same declaration, so a set without it would be one a fix could not hold whole. */
+export const DECLARING = PLAN_SECTIONS.filter((one) => one.declares || one.owed).map((one) => one.name);
+
+/** A typed plan holding only those sections: the whole of a plan at a rung that drops the plan, where the witnessed answer and the declarations still have this field as their one home (ISS-2275). */
+export const planDeclaresOnly = (plan) => {
+  const held = [...planSections(plan).keys()];
+  return held.length > 0 && held.every((name) => DECLARING.includes(name));
+};
+
 /** The `Steps` section's steps, each with the criterion numbers its lines cite. */
 export const planSteps = (plan) => {
   const body = planSections(plan).get("Steps");
@@ -158,11 +168,11 @@ export const witnessedOn = (plan) => {
 };
 export const witnessedAnswers = (witnessed) => [witnessed?.cites.length ? "cites" : null, witnessed?.none ? "none" : null].filter(Boolean);
 
-/** The sections a typed plan is missing, the way back among them where a declaration owes one. */
-export const sectionsOwed = (plan, flags = {}) => {
+/** The sections a typed plan is missing, the way back among them where a declaration owes one. `declaresOnly` asks what a declarations-only plan owes, which is what its own declarations put behind a section and nothing unconditional. */
+export const sectionsOwed = (plan, flags = {}, { declaresOnly = false } = {}) => {
   const held = planSections(plan);
   return PLAN_SECTIONS
-    .filter((one) => !one.owed || one.owed.some((key) => flags[key] === "yes"))
+    .filter((one) => (one.owed ? one.owed.some((key) => flags[key] === "yes") : !declaresOnly))
     .filter((one) => !held.has(one.name))
     .map((one) => one.name);
 };
