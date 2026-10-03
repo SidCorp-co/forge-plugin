@@ -68,6 +68,9 @@ test("a call writing a literal and a computed operand keeps both readings of it"
   const command = python("shutil.move(base + '/src.md', 'planned.md')");
   assert.deepEqual(strict(command), ["planned.md"], "strike aims the literal and places nothing for the other");
   assert.ok(keeps(command).includes("/src.md"), "keep still reads what the computed source spells");
+  for (const call of ["fs.open", "fs.openSync"]) {
+    assert.ok(keeps(heredoc("node", `${call}(base + '/x.md', 'w')`)).includes("/x.md"), `keep reads what ${call}'s computed file spells`);
+  }
 });
 
 test("a read beside a write is not one, and a target the program computes is placed nowhere", () => {
