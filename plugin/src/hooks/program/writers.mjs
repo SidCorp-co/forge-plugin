@@ -12,7 +12,7 @@ export const CALLS = [
   { owner: String.raw`\bos\.`, name: "symlink", writes: [[1, "dst"]] },
 ];
 
-/** pathlib's writes, each a method of the path it is called on: `write_text` and `write_bytes` always, and `open` under a mode its first argument or `mode=` spells. */
+/** The methods a path writes itself through, `mode` saying where the one that needs a writing mode takes it. */
 export const METHODS = [
   { name: String.raw`write_(?:text|bytes)` },
   { name: "open", mode: [0, "mode"] },

@@ -110,7 +110,7 @@ const commentsIn = (spans) => spans.flatMap((one) => (one.comment
   ? [{ from: one.from, to: one.to }]
   : one.holes.flatMap((hole) => commentsIn(hole.spans))));
 
-/** One walk of a program's text, and what every reading of it takes from that walk: `spans`, each string and comment as `spansOf` gives them; `code`, the text with its comments blanked, offset for offset, so a comment between a call's arguments splits and closes nothing; `bare`, the same with its strings blanked too, for a walk that splits arguments; and whether an offset stands where the program runs nothing. */
+/** One walk of a program's text, and what every reading takes from it: `spans` as `spansOf` gives them, `code` with each comment turned to spaces, `bare` with each string as well, and whether an offset stands where the program runs nothing. */
 export const spokenIn = (given, runner) => {
   const spans = spansOf(given, LANGUAGE_OF[runner]);
   const code = blanked(given, commentsIn(spans));
