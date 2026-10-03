@@ -77,7 +77,7 @@ import {
   unheldRefusal,
 } from "./lease.mjs";
 import {
-  RECLAIMS_BEFORE_PARK, historyLine, movedOf, overWhom, readingsOf, reclaimsOf, tookMoved, tookReading,
+  RECLAIMS_BEFORE_PARK, historyLine, leftOutOf, overWhom, reclaimsOf, tookWhy,
 } from "./lease/crash-park.mjs";
 import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
@@ -366,16 +366,11 @@ const liftedIfOwn = async (ref, issue, view, checkpointHead) => {
 /* Said and never done, for the reason the threshold carries in crash-park.mjs: past it the caller reads the history and the park command, and decides. */
 const reclaimLines = (ref, lease, status) => {
   const count = reclaimsOf(lease, status);
-  const readings = readingsOf(lease, status);
-  const moved = movedOf(lease, status);
-  const left = (readings ? ` ${readings} reclaim(s) of ${status} went over a lease that declared nothing was `
-    + "worked, and are not counted." : "")
-    + (moved ? ` ${moved} reclaim(s) of ${status} were taken after the issue moved on from where the run before `
-      + "took it, and are not counted." : "");
-  const uncounted = tookReading(lease) ? "went over a lease that declared nothing was worked"
-    : (tookMoved(lease) ? "was taken after the issue moved on from where the run before took it" : null);
-  const said = uncounted
-    ? `This reclaim of ${status} ${uncounted}, so it counts for none: ${count} counted at ${status}.${left}`
+  const left = leftOutOf(lease, status)
+    .map(({ why, verb, count: out }) => ` ${out} reclaim(s) of ${status} ${verb} ${why}, and are not counted.`).join("");
+  const took = tookWhy(lease);
+  const said = took
+    ? `This reclaim of ${status} ${took.verb} ${took.why}, so it counts for none: ${count} counted at ${status}.${left}`
     : `Reclaim ${count} of ${status}: the lease before this one lapsed without being handed on.${left}`;
   if (count <= RECLAIMS_BEFORE_PARK) return [said];
   const over = overWhom(lease, status);
