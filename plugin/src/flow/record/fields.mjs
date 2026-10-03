@@ -188,7 +188,7 @@ const planChecked = (plan) => {
   return null;
 };
 
-/* A declarations-only plan is the whole of a plan only where the rung drops it. The rung read here is the complexity with this plan's own declarations, a lower bound: a climb a correction records only raises it, and `approved` reads that (ISS-2275). */
+/* Where `planDeclaresOnly` says such a plan belongs. The rung read here is the complexity with this plan's own declarations, a lower bound: a climb a correction records only raises it, and `approved` reads that. */
 const WAIVER = LIGHTER.find((row) => row.kind === "plan");
 
 const rungRefusal = (plan, issue, ref) => {
