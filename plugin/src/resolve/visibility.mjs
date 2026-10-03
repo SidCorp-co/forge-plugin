@@ -67,8 +67,8 @@ export const VERBS = [
     "a release's whole-tree gate result, published for the commit it pushed so a branch cut there cites it",
     null, { group: FLOW }],
   /* Reads git and the plugin cache and no tracker route, so no credential withholds it. */
-  ["brief", "[ISS-45] [--batch ISS-46,ISS-47] [--tree <dir>]",
-    "the message a dispatch sends: the readings a run cannot take itself, generated, never typed, and the run id a tree it names lacks",
+  ["brief", "[ISS-45] [--batch ISS-46,ISS-47] [--tree <dir>] [--judge --url <url,...> --criteria 1,2] [--identity <id>]",
+    "the message a dispatch sends: the readings a run cannot take itself, generated, never typed, and the run id a tree it names lacks; --judge, a judging run's, names the deployment and criteria and no tree",
     null, { group: FLOW }],
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
   ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn] [--rung <name>]",

@@ -3,7 +3,7 @@
    one reading no added sentence survives; a reading of its words was refused (ISS-2147). Nothing here
    needs a checkout, so the hook holds wherever a dispatch is made. */
 import { createHash } from "node:crypto";
-import { mkdirSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir } from "../resolve/config.mjs";
@@ -29,18 +29,26 @@ const ageOf = (path, now) => {
   }
 };
 
-/** Keep what `session` was shown, dropping every record past its window on the way. The room above
- *  the store holds one directory per session, so an aged one goes with what it holds. */
-export const keepBrief = (session, text, now = Date.now()) => {
+/** Keep what `session` was shown and which form of brief it was, dropping every record past its
+ *  window on the way. The room above the store holds one directory per session, so an aged one goes
+ *  with what it holds. */
+export const keepBrief = (session, text, now = Date.now(), form = "") => {
   const store = storeOf(session);
   reap(join(store, ".."), FRESH_MS, now, { whole: true });
   reap(store, FRESH_MS, now);
   mkdirSync(store, { recursive: true });
-  writeFileSync(join(store, digestOf(text)), "");
+  writeFileSync(join(store, digestOf(text)), form);
 };
 
-/** Whether `text` is a brief the verb printed for `session` inside the window. */
-export const generatedFor = (session, text, now = Date.now()) => {
-  const age = ageOf(join(storeOf(session), digestOf(text)), now);
-  return age !== null && age <= FRESH_MS;
+/** The form of a brief the verb printed for `session` inside the window, `""` for a builder's, and
+ *  null where `text` is none it printed. */
+export const briefFormOf = (session, text, now = Date.now()) => {
+  const path = join(storeOf(session), digestOf(text));
+  const age = ageOf(path, now);
+  if (age === null || age > FRESH_MS) return null;
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
 };

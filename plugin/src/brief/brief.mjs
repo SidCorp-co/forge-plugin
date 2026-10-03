@@ -9,6 +9,7 @@ import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { helpOf } from "../resolve/visibility.mjs";
 import { mintRunId, runIdAt, runNames, runsFor, scratchMinted } from "../resolve/session/run-id.mjs";
 import { copiesFor } from "./copies.mjs";
+import { JUDGE_FORM, judgeOf, judgeText, refuseJudgeFlags } from "./judge.mjs";
 import { keepBrief } from "./record.mjs";
 import { defaultRef, heldBy, recordsOf, treesOf } from "./trees.mjs";
 
@@ -116,12 +117,27 @@ const briefText = ({ members, target, others, base }) => [
     : ["Trees: none read, since this directory is in no git checkout."]),
 ].join("\n");
 
+/* The record comes before the print: a brief the hook has no record of is one it refuses once sent. */
+const send = (text, form) => {
+  const restart = restartLine(copiesFor());
+  try {
+    keepBrief(process.env.CLAUDE_CODE_SESSION_ID, text, Date.now(), form);
+  } catch (error) {
+    fail(`brief: the record the hook checks a dispatch against could not be written (${error.message}), `
+      + "so no brief is printed: one sent now would be refused. Make that directory writable and run this again.");
+  }
+  if (restart) console.error(restart);
+  console.log(text);
+};
+
 export const brief = async (argv) => {
   if (wantsHelp(argv)) return console.log(helpOf("brief"));
   const [first, ...rest] = argv;
   const key = first && !first.startsWith("--") ? first : null;
   if (key && !KEY.test(key)) fail(`brief: \`${key}\` is no issue key. Name one as ISS-45, or none for a run that is given no tree.`);
-  const asked = flags(key ? rest : argv, "brief", [], { usage: helpOf("brief") });
+  const asked = flags(key ? rest : argv, "brief", ["--judge"], { usage: helpOf("brief") });
+  if (asked.judge) return send(judgeText(key, judgeOf(key, asked)), JUDGE_FORM);
+  refuseJudgeFlags(key, asked);
   const here = process.cwd();
   const trees = treesOf(here);
   if (!trees && asked.tree) fail(`brief: ${here} is in no git checkout, so --tree names nothing here. Run it from the repository the run works in.`);
@@ -135,14 +151,5 @@ export const brief = async (argv) => {
   if (key && target) scratchFor(target.path);
   const base = trees ? defaultRef(here) : null;
   const others = trees?.filter((one) => one !== target).map((tree) => ({ tree, held: heldBy(tree.path, base) })) ?? null;
-  const text = briefText({ members, target, others, base });
-  const restart = restartLine(copiesFor());
-  try {
-    keepBrief(process.env.CLAUDE_CODE_SESSION_ID, text);
-  } catch (error) {
-    fail(`brief: the record the hook checks a dispatch against could not be written (${error.message}), `
-      + "so no brief is printed: one sent now would be refused. Make that directory writable and run this again.");
-  }
-  if (restart) console.error(restart);
-  console.log(text);
+  send(briefText({ members, target, others, base }), "");
 };

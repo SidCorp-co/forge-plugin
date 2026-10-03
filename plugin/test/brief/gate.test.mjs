@@ -104,3 +104,23 @@ test("every refusal this gate writes leads with its route", () => {
   assert.match(said.reason, /^Hold — run `forge brief ISS-7/u);
   assertRouteFirst(said.reason, "a typed brief");
 });
+
+/* AC-19-3-6. A judge handed a builder's brief worked in its tree, and one handed no address brought up
+   a local stack (ISS-3145): the judging role is held to the one form that names the deployment. */
+test("a dispatch to the judging role passes only on the judge's form of the brief", () => {
+  const who = homeFor();
+  const judge = brief(["ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1,2"], repo.main, who.env);
+  assert.equal(judge.status, 0, judge.stderr);
+  assert.equal(dispatch(who, judge.stdout, { role: "forge:qa" }).allowed, true, "the judge's own brief is refused");
+  for (const builder of [printed(who), brief(["ISS-7"], repo.main, who.env).stdout]) {
+    const said = dispatch(who, builder, { role: "forge:qa" });
+    assert.equal(said.allowed, false, "a builder's brief reaches the judge");
+    assert.match(said.reason, /^Hold — run `forge brief ISS-7 --judge --url <what the deployment answers at> --criteria /u);
+    assert.match(said.reason, /a builder's brief/u, "the refusal does not say which brief it was");
+    assertRouteFirst(said.reason, "a builder's brief to the judge");
+  }
+  const typed = dispatch(who, "ISS-7: judge on staging only.", { role: "forge:qa" });
+  assert.equal(typed.allowed, false);
+  assert.match(typed.reason, /^Hold — run `forge brief ISS-7 --judge /u);
+  assertRouteFirst(typed.reason, "a typed brief to the judge");
+});

@@ -9,8 +9,11 @@ The brief prints a run's own directory as `TMPDIR` where the project mints one; 
 the brief can hand one over, so where it prints none the run makes its own. A wave of one shares
 nothing and needs neither.
 
-A judging run is given no tree, because what it judges is already deployed. It still writes files —
-its captures — and in a wave of more than one they need a directory of its own like any run's.
+A judging run is given no tree, because what it judges is already deployed: its message is `forge brief
+ISS-nn --judge --url <where the deployment answers> --criteria <the numbers it judges>`, with
+`--identity` where the record holds one, which names the deployment and prints no tree. It still
+writes files — its captures — and in a wave of more than one they need a directory of its own like
+any run's.
 
 Whatever else a run cannot learn for itself at its start, `forge brief ISS-nn --tree <its tree>` reads
 now: what the other trees hold, uncommitted and committed. Leave out `--tree` for a run given no

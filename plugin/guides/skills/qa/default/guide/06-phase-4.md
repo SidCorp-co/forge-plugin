@@ -35,7 +35,9 @@ run, and not this session fixing what it found.
 nothing running to exercise is the case that names the rule: it is parked with the reason, not
 carried into the next pass and not judged anyway. Set down means set down — an issue re-offered on
 every read is a queue that never drains and a master that never ends. An issue whose record merely
-names no deployment identity is not that case: it is judged at the commit its verdicts carry.
+names no deployment identity is not that case: it is judged at what the deployment serves. An issue
+whose change the deployment does not yet serve is that case, set down with that reason rather than
+judged at a commit somebody builds elsewhere.
 
 **A criterion nobody could reach is a shortfall and never a pass.** What was owed was a credential, a
 capture route or a person, and saying which is what lets whoever reads it equip the next run rather
