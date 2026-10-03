@@ -53,7 +53,7 @@ const opens = (read, every, any, counts = () => true) => (unplaced(read)
     counts(at + opener.length - 1) && acts(opener, read.under.slice(at, at + opener.length))));
 
 export const runsACommand = (said) => opens(readOf(said), EVERY_OPENER, RUNS_A_COMMAND);
-/* An opener in or opening a substitution a double quote opened ends no reach: `spans` cuts nothing inside what the walk framed, so every command found after it is one this shell runs. A bare substitution is cut inside, and one the walk read flat is no frame either, so each of those still ends it. */
+/* An opener in or opening a substitution a double quote opened ends no reach: `spans` cuts nothing inside what the walk framed, so every command found after it is one this shell runs. Every other opener ends it, inside whichever kind of substitution it stands. */
 const opensABody = (said) => {
   const read = readOf(said);
   return opens(read, EVERY_BODY, OPENS_A_BODY, (at) => read.within[at] !== "quoted");
