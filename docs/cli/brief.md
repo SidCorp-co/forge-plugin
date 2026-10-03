@@ -48,14 +48,12 @@ dispatcher sends, so the fix removes it there.
 
 ## The judge's form
 
-A judging run judges what a deployment serves, so its brief carries the address that deployment
-answers at, the criteria to judge there and the identity where the record holds one, and none of the
-builder's readings: no tree, no run id, no scratch directory, no list of what other trees hold. Every
-judge sent a builder's brief on one project read its tree line as where to work and ran the gate and
-the test suites in it, and judges sent without a tree still brought up the checkout's local stack,
-because nothing in the one message the hook lets through named the deployment (ISS-3145). The record
-the hook reads keeps which form was printed, so a dispatch to the judging role is held to the judge's
-form without reading the prompt's words.
+A builder's readings are the wrong ones for a run that builds nothing. Every judge sent a builder's
+brief on one project read its tree line as where to work and ran the gate and the test suites in it,
+and judges sent without a tree still brought up the checkout's local stack, because nothing in the
+one message the hook lets through named the deployment (ISS-3145). The record the hook reads keeps
+which form was printed, so the judging role is held to its form without the prompt's words being
+read.
 
 ## Why a digest and a window
 

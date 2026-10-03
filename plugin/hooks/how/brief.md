@@ -10,8 +10,7 @@ briefed with `forge brief ISS-nn --judge --url <where the deployment answers> --
 
 What it judges: a dispatch to a role this plugin ships, by whether the whole prompt is one the verb
 printed in the last ten minutes, and a dispatch to the judging role by whether that brief was the
-judge's form. Judges handed a builder's brief read its tree as where to work and ran the gate and
-the suites there, and judges handed no address brought up a local stack (ISS-3145). Past that window the readings (what each tree holds) may have
+judge's form, the one that names the deployment and no tree (ISS-3145). Past that window the readings (what each tree holds) may have
 moved, so it is generated again rather than trusted. A line the verb writes to standard error, such
 as a restart owed, is the dispatcher's and not part of the brief, so a prompt carrying it is refused.
 
