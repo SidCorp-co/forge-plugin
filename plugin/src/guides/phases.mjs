@@ -5,7 +5,7 @@ import { ORDER, stepAfter } from "../flow/earned.mjs";
 import { CLOSES_FROM, atMinute } from "../flow/machine.mjs";
 import { POINTER } from "../flow/worklog.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
-import { lighterRows, rungOf } from "../ladder.mjs";
+import { LIGHTER, lighterRows, rungOf } from "../ladder.mjs";
 import { approvedAt, landingTurn, unjudgedAt } from "../flow/landing/checkpoint.mjs";
 
 /* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
@@ -254,8 +254,8 @@ export const openingLines = (status, held, work = null, finished = []) => {
 /** Whether the opening is where the pointer is printed at this status, so the block below it renders what the opening left to nobody rather than a fact going unsaid (ISS-1183). */
 export const opensWork = (status, held) => Boolean(behind(status, held).first);
 
-/* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. */
-export const laneOf = ({ status, fields }) => {
+/* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. `table` is the rung's rows, a parameter as `lighterRows` takes it, because no status of the live table holds a rung's waiver beside a declaration's. */
+export const laneOf = ({ status, fields, table = LIGHTER }) => {
   const at = ORDER.indexOf(status);
   if (at < 0) return { aside: status, rows: [] };
   return {
@@ -263,35 +263,44 @@ export const laneOf = ({ status, fields }) => {
     rung: rungOf(fields),
     rows: ORDER.slice(at).map((one) => {
       const earns = CITED[one] ?? [];
-      const rows = lighterRows(one, fields);
+      const rows = lighterRows(one, fields, table);
       const dropped = rows.map((row) => row.kind);
       return {
         status: one,
         here: one === status,
         earns,
         dropped,
-        by: rows.some((row) => row.declared) ? "under this plan's declarations" : "at this rung",
+        by: droppedBy(rows),
         owed: earns.filter((kind) => !dropped.includes(kind)),
       };
     }),
   };
 };
 
+/* Each drop said with what dropped it, so a rung's waiver beside a declaration's is not read as the plan's: one group per source, in the order `lighterRows` gives them (AC-05-1-9). */
+const RUNG_SAID = "at this rung";
+const DECLARED_SAID = "under this plan's declarations";
+const droppedBy = (rows) => [
+  { said: RUNG_SAID, kinds: rows.filter((row) => !row.declared).map((row) => row.kind) },
+  { said: DECLARED_SAID, kinds: rows.filter((row) => row.declared).map((row) => row.kind) },
+].filter((one) => one.kinds.length);
+
+const dropsSaid = (by) => by.map((one) => `${one.kinds.map((kind) => `no ${kind}`).join(", ")} ${one.said}`).join(", ");
+
 /* Two answers and not one: a status this rung leaves nothing to write at is one a lighter rung bought, and one no rung ever asks a payload of is earned by the status below it — a reader given a single sentence for both would read the ladder as the reason for either. */
 const laneSaid = (row) => {
   if (row.here) return "← where it stands";
   if (!row.earns.length) return "nothing owed at any rung";
-  const dropped = row.dropped.map((kind) => `no ${kind}`).join(", ");
-  if (!row.owed.length) return `nothing owed ${row.by}`;
-  return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} ${row.by}` : row.owed.join(", ");
+  if (!row.owed.length) return row.by.length === 1 ? `nothing owed ${row.by[0].said}` : `nothing owed: ${dropsSaid(row.by)}`;
+  return row.dropped.length ? `${row.owed.join(", ")}; ${dropsSaid(row.by)}` : row.owed.join(", ");
 };
 
 /* The longest rung the order holds and one space past it, so a rename cannot run a status into what earns it. Measured at the print: the order reaches this file through a cycle, and read at load it is a name in its own dead zone (ISS-1022). */
 const laneWidth = () => Math.max(...ORDER.map((one) => one.length)) + 1;
 
 /** The lane as the three verbs print it, one renderer so their blocks cannot differ (ISS-810). */
-export const laneLines = ({ status, fields }) => {
-  const { aside, rung, rows } = laneOf({ status, fields });
+export const laneLines = ({ status, fields, table = LIGHTER }) => {
+  const { aside, rung, rows } = laneOf({ status, fields, table });
   if (aside) return [`Lane: \`${aside}\` is off the ladder's linear path, so no lane is read from it.`];
   return [
     `Lane at \`${rung}\` — every status from where it stands, and what earns it:`,

@@ -197,20 +197,20 @@ test("a plan declaring a name twice is at the answer that owes more, whichever o
   const [, middle] = RUNGS;
   const top = RUNGS.at(-1);
   for (const plan of ["Screen change: no\nScreen change: yes", "Screen change: yes\nScreen change: no"]) {
-    assert.equal(escalatedBy(plan), 1, `\`${plan.replaceAll("\n", " / ")}\` declares a screen change`);
+    assert.equal(escalatedBy({ plan }), 1, `\`${plan.replaceAll("\n", " / ")}\` declares a screen change`);
   }
   assert.equal(planFlags("Schema coupling: no\nSchema coupling: yes").schema, "yes",
     "and the migration classification is owed by the same reading, which no rung drops");
   assert.equal(rungOf({ complexity: complexityFor(middle), plan: "User-facing outcome: no\nUser-facing outcome: yes", moved: [], whole: true }),
     top, "so a plan that names an outcome anywhere in it has named one");
-  assert.equal(escalatedBy("Screen change: no\nUser-facing outcome: no"), 0,
+  assert.equal(escalatedBy({ plan: "Screen change: no\nUser-facing outcome: no" }), 0,
     "while a plan declaring neither still climbs nothing");
 });
 
 test("a declaration climbs one rung and a correction climbs to what it names, and neither goes down", () => {
-  assert.equal(escalatedBy("Screen change: yes"), 1, "a screen change is one rung, not a jump to the top");
-  assert.equal(escalatedBy("User-facing outcome: yes"), 1);
-  assert.equal(escalatedBy("Screen change: no\nUser-facing outcome: no"), 0);
+  assert.equal(escalatedBy({ plan: "Screen change: yes" }), 1, "a screen change is one rung, not a jump to the top");
+  assert.equal(escalatedBy({ plan: "User-facing outcome: yes" }), 1);
+  assert.equal(escalatedBy({ plan: "Screen change: no\nUser-facing outcome: no" }), 0);
   const climbed = (rung, plan, moved = []) => rungOf({ complexity: complexityFor(rung), plan, moved, whole: true });
   assert.equal(climbed("trivial", "Screen change: yes"), "fix", "one rung up from the shortest");
   assert.equal(climbed("fix", "User-facing outcome: yes"), "feature");
