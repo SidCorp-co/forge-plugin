@@ -8,7 +8,7 @@ import { openCounts, shareOf } from "../../../../tracker/modules/attribution.mjs
 export const VERB = "doctor modules";
 export const NONE = "none";
 
-/** The modules and the plain labels beside them, or the refusal of the one read that lists both. */
+/** The read a write of this subject starts from, ending the call where the tracker refuses it. */
 export const listed = async () => {
   const read = await moduleDefinition();
   if (read.refused) fail(`${VERB}: the tracker would not list this project's labels: ${read.refused}`);
