@@ -30,7 +30,7 @@ import { FIELD as SESSION } from "./lease.mjs";
 import { landingOf } from "./landing/checkpoint.mjs";
 import { holdersOf } from "./landing/reconstruction.mjs";
 import { worklogOf } from "./worklog.mjs";
-import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
+import { judgeAsk, judgeProblems, numbered, owesRuntime } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/fields.mjs";
 import { MIGRATION_CLASSES } from "./record/content.mjs";
 import { assemble } from "./record/page.mjs";
@@ -449,7 +449,8 @@ const judgeOwed = (view, ref) => {
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
     const blocks = held[0].recite ? heldBlocks(held.map((one) => [one.number, one.held])) : null;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? [], blocks));
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? [], blocks,
+        owesRuntime(view.release, view.issue, view.landing)));
   });
 };
 

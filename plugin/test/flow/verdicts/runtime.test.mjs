@@ -80,7 +80,7 @@ test("the landing keeps no superseded verdict among the judgements it counts", (
 });
 
 test("the judge's ask names --runtime and asks for what was exercised as the evidence", () => {
-  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED });
+  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED }, null, null, null, [], null, true);
   assert.ok(command.includes(`--runtime ${RUNTIME_ASK} --evidence <what you exercised>`), command);
   assert.doesNotMatch(command, new RegExp(`--evidence ${DEPLOYED.slice(0, 7)}`, "u"), "and no longer offers the deployment's sha as the evidence");
 });
@@ -99,6 +99,13 @@ test("every verdict ask --owed prints at a deployment under a second judge carri
   }, [mark()], null, BUILDER_JUDGES), "ISS-8");
   assert.ok(builderAsks.length && builderAsks.every((one) => !one.command.includes("--runtime")),
     builderAsks.map((one) => one.command).join("\n"));
+});
+
+test("a superseded verdict where the builder judges is asked for again with no runtime, the write owing none there", () => {
+  const items = CHECKS.closed(viewOf([verdictOf(1), verdictOf(2)], { release: BUILDER_JUDGES, serving: REPLACED }), "ISS-8")
+    .filter((one) => /superseded/u.test(one.what));
+  assert.equal(items.length, 1, said(items).join("\n"));
+  assert.doesNotMatch(items[0].command, /--runtime/u, items[0].command);
 });
 
 test("a verification or a finding written after a runtime verdict leaves its standing as it was", () => {

@@ -133,7 +133,9 @@ export const RUNTIME_ASK = "<the whole object id the deployment reports serving>
 export const owesRuntime = (release, issue, landing) =>
   asksIndependent(release) && !landsOutsideGit(issue) && Boolean(landing?.deployment);
 
-export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null, holders = [], blocks = null) => {
+/* `runtime` is `owesRuntime`'s answer, handed in by a caller holding the view: one predicate for the
+   write and every ask, so no command asks for a runtime the project's write does not owe. */
+export const judgeAsk = (ref, at, landing, held = null, merged = null, identity = null, holders = [], blocks = null, runtime = false) => {
   const numbers = Array.isArray(at) ? at : [at];
   const outside = identity?.flag === "landing";
   if (!landing && !outside) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
@@ -144,7 +146,7 @@ export const judgeAsk = (ref, at, landing, held = null, merged = null, identity 
   }
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
     + `forge record verdict ${ref} ${outside ? identityAsk(identity) : `--commit ${short(landing.head) || "<sha>"}`} `
-    + (!outside && landing.deployment ? `--runtime ${RUNTIME_ASK} ` : "")
+    + (runtime ? `--runtime ${RUNTIME_ASK} ` : "")
     + "--evidence <what you exercised>"
     + (blocks ?? ` --verdict ${valuesOf("verdict", "verdict")}${numbers.map((number) => ` --criterion ${number}`).join("")}`);
 };

@@ -311,7 +311,7 @@ test("the problem a verdict has is one reading, so a caller outside the check re
    back to whatever the latest verdict cited — under a second judge, the builder's own (ISS-2371). */
 test("the judge's write for several criteria gives every criterion the commit, the runtime and the evidence", () => {
   /* Filled the way the judge fills the two placeholders: the runtime read off the deployment, and what it exercised. */
-  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED })
+  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED }, null, null, null, [], null, true)
     .replace(RUNTIME_ASK, DEPLOYED).replace("<what you exercised>", "judged.txt");
   const argv = command.split(" ").slice(4);
   const single = SHAPES.verdict.fields.filter((one) => !one.many).map((one) => `--${one.flag}`);
