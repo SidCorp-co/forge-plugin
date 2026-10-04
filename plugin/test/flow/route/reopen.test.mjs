@@ -62,7 +62,7 @@ test("a reopen falls where its triage says, once the write that outcome owes is 
   assert.deepEqual(moved.missing, []);
   assert.equal(moved.next, "developed", "the criterion was the wrong test, so it and its verdicts go");
   const notMet = targetOf(reopened(NOT_MET), "ISS-3");
-  assert.match(notMet.missing[0].what, /rules the criterion not met, and no failing verdict since it/u);
+  assert.match(notMet.missing[0].what, /rules the criterion not met, and no failing verdict since the landing it reopens/u);
   assert.match(notMet.missing[0].command, /--verdict fail/u);
   const supersedes = targetOf(reopened(NOT_MET, {}, () => [judged("fail")]), "ISS-3");
   assert.deepEqual(supersedes.missing, []);
@@ -124,7 +124,7 @@ test("a wrong-test triage names its criterion, and is refused while that line st
       comment("## Verdict\n\n- **Criterion:** 1 — The first outcome.\n- **Verdict:** fail\n\n`forge-record: verdict · contract 1`"),
     ],
   ), "ISS-3");
-  assert.match(thin.missing[0].what, /no failing verdict since it/u, "and a verdict with no commit and no evidence supersedes nothing");
+  assert.match(thin.missing[0].what, /no failing verdict since the landing/u, "and a verdict with no commit and no evidence supersedes nothing");
 });
 
 test("a reopen with no finding or no triage names both writes", () => {
@@ -173,11 +173,12 @@ test("a second triage repeating the first asks for nothing it already answered",
   assert.deepEqual(twice.missing, [], "and the correction answers a repeated wrong-test the same way");
   const turned = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED },
     () => [recorded("finding", ABOUT_TWO, "0"), corrected(), again("not-met")]), "ISS-3");
-  assert.match(turned.missing[0].what, /no failing verdict since it/u,
+  assert.match(turned.missing[0].what, /no failing verdict since the landing/u,
     "while a ruling that moved is measured from itself, so the correction before it earns nothing");
   assert.deepEqual(targetOf(reopened(NOT_MET), "ISS-3").missing.map((one) => one.what), [
-    "the triage rules the criterion not met, and no failing verdict since it supersedes the passing one",
-  ], "and one triage on its own asks for the verdict in the words it always asked");
+    "the triage rules the criterion not met, and no failing verdict since the landing it reopens, at "
+      + "2026-09-02T16:00, supersedes the passing one",
+  ], "and one triage on its own asks for the verdict measured from the landing it reopens");
 });
 
 /* Two comments the tracker stamped alike are neither before nor after each other, and the record

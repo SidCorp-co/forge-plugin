@@ -697,6 +697,15 @@ defect, or the evidence the run captured when it saw the defect itself.
 - **AC-05-12-7** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a record the tracker stamped with the triage that unearned is not older than it"
   WHERE the record answering a reopen's triage carries the same moment as the triage that unearned,
   the CLI SHALL count it as answering that triage rather than as written before it.
+- **AC-05-12-8** · Rev: 1 · Proof: plugin/test/flow/route/reopen-judge-first.test.mjs "a failing verdict the judge wrote before the triage answers a not-met reopen"
+  WHERE a reopen's triage rules the criterion not met, the CLI SHALL count a whole failing verdict
+  on the criterion the finding names as answering it when that verdict is the latest on its
+  criterion and was written after the landing the reopen is about, whether it came before the
+  triage or after it.
+- **AC-05-12-9** · Rev: 1 · Proof: plugin/test/flow/route/reopen-judge-first.test.mjs "under an independent judgement a not-met reopen asks the builder for no verdict"
+  WHERE the project's record asks for an independent judgement, IF a triage rules the criterion
+  not met and no failing verdict answers it THEN the CLI SHALL name the hand-back of the building
+  run's lease and SHALL name no verdict write.
 
 ## Business rules enforced
 

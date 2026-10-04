@@ -61,6 +61,12 @@ const readClause = (comments, flag) => clause(flag).reads.exec(lastMark(comments
 
 export const markedCommit = (comments) => readClause(comments, "at");
 
+/** When the standing mark went up, off the page and not the row: the tracker keeps a row's first
+ *  stamp, so after a second landing only the page says when the change being judged landed. Null
+ *  where no mark is on the page. */
+export const markedAt = (comments) =>
+  (comments ?? []).filter((one) => MARK.test(unwrap(one.body))).at(-1)?.createdAt ?? null;
+
 /** What a record of this issue names what it judged by: the landing its mark names where the tracker
  *  says the issue lands outside git, and the commit its note names everywhere else. One answer for the
  *  fill, the entry checks and the commands they print, so none of them asks one shape for the other's

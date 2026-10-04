@@ -181,6 +181,36 @@ test("a move whose answer carries no count asks what the reopen owes rather than
   assert.match(run.stdout, /its answer to this move carried none:\n {2}forge advance ISS-90 --owed/u, run.stdout);
 });
 
+/* The policy is read at the reopen too, or the route cannot tell a builder that judges from one that
+   may not: under an independent judgement the judge's fail comes before the reopen and its triage,
+   and where none stands the builder is sent to hand the reopen back rather than to write one
+   (ISS-2952). */
+test("at a reopen the project's judgement is read, and an independent one asks the builder for no verdict", async () => {
+  const { render } = await import("../../../src/flow/record/page.mjs");
+  const held = state.config;
+  state.config = { ...held, pipelineConfig: { ...held.pipelineConfig, qa: "independent" } };
+  const opened = (documentId, issueId) => ({ ...JUDGED, documentId, issueId, status: "reopen", reopenCount: 1 });
+  state.issues.push(opened("waits-uuid", "ISS-92"), opened("answered-uuid", "ISS-93"));
+  const pair = () => [
+    comment(render("finding", { criterion: "1 — The list comes back in the order the criterion names.",
+      expected: "the order criterion 1 names", seen: "the order it was filed in", evidence: ["shot.png"] }, "1")),
+    comment(render("triage", { outcome: "not-met", "would-have-caught": "a verdict against what runs" }, "1")),
+  ];
+  state.comments["waits-uuid"] = pair();
+  state.comments["answered-uuid"] = [comment(render("verdict", { criterion: "1 — The list comes back in the order "
+    + "the criterion names.", verdict: "fail", commit: "43b811e", evidence: ["shot.png"],
+  why: "the order is the one it was filed in" })), ...pair()];
+  const waits = await ran(["advance", "ISS-92", "--owed"]);
+  const answered = await ran(["advance", "ISS-93", "--owed"]);
+  state.config = held;
+  assert.equal(waits.status, 0, `${waits.stdout}${waits.stderr}`);
+  assert.match(waits.stdout, /forge claim ISS-92 --give-back --next /u, waits.stdout);
+  assert.doesNotMatch(waits.stdout, /forge record verdict/u, "the one write a builder here may not make");
+  assert.equal(answered.status, 0, `${answered.stdout}${answered.stderr}`);
+  assert.doesNotMatch(answered.stdout, /no failing verdict/u, "the judge's fail before the triage answers it");
+  assert.match(answered.stdout, /^ISS-93 is reopen; in_progress is next/mu, answered.stdout);
+});
+
 test("a finding through the verb is refused where it quotes nobody and captured nothing", async () => {
   const run = await ran(["record", "finding", "ISS-90", "--expected", "the order criterion 1 names",
     "--seen", "the order it was filed in"]);

@@ -46,7 +46,7 @@ import {
 import { asksIndependent, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 import { REBUILT_FORM, builderProblem } from "./landing/reconstruction.mjs";
 import { landsOutsideGit } from "./record/judged/landing.mjs";
-import { markedCommit } from "./record/merged.mjs";
+import { markedAt, markedCommit } from "./record/merged.mjs";
 import { blockedClearedBy } from "./park/blocked.mjs";
 import { draftSaid, draftTarget } from "./route/aboard.mjs";
 import { DRAFT } from "../rank/weights.mjs";
@@ -210,17 +210,36 @@ const OUTCOME_OWED = {
       )]
       : [];
   },
-  "not-met": (view, ref, since, found) => {
+  /* Measured from the landing the reopen is about and not from the ruling: the page keeps only the
+     latest verdict on a criterion, so a failing one there has already superseded any pass, and what
+     is left to rule out is a fail from a round before this landing. An independent judge's fail is
+     written before the reopen and the triage that read it, so measuring from the ruling asked for
+     a copy of it (ISS-2952). A reopened drop landed nothing, so its ruling stays the line. */
+  "not-met": (view, ref, ruled, found) => {
     const named = criterionNumber(found?.record.fields.criterion);
+    const landed = markedAt(view.comments) ?? view.issue.mergedAt ?? null;
+    const since = landed ?? ruled;
     /* Whole, because a comment carrying the tag and little else reaches this the same way the
        finding and the triage do, and a verdict with no commit or no evidence supersedes nothing. */
     const failed = [...view.verdicts].some(([number, one]) =>
       one.at >= since && one.record.fields.verdict === "fail" && (!named || number === named)
       && !shapeGaps("verdict", one.record, view.names).length);
     if (failed) return [];
+    const what = "the triage rules the criterion not met, and no failing verdict since "
+      + `${landed ? `the landing it reopens, at ${atMinute(landed)},` : "it"}`
+      + `${named ? ` on criterion ${named}, which the finding names,` : ""} supersedes the passing one`;
+    /* A verdict under the builder's id counts for nothing where the judgement is another run's, so
+       the builder is not sent to write one: the judging run's is what this waits on. */
+    if (asksIndependent(view.release)) {
+      return [need(
+        `${what}. This project's judgement is another run's, so the failing verdict is the judge's `
+          + "to write and one under this run's id counts for nothing: hand the reopen back to it",
+        `forge claim ${ref} --give-back --next "the judge's failing verdict on criterion ${named || "<n>"}, `
+          + `which the not-met triage waits on"`,
+      )];
+    }
     return [need(
-      "the triage rules the criterion not met, and no failing verdict since it"
-        + `${named ? ` on criterion ${named}, which the finding names,` : ""} supersedes the passing one`,
+      what,
       `forge record verdict ${ref} --criterion ${named || "<n>"} --verdict fail ${withRuntime(view, unreadId(view))} --evidence <attachment|url|sha>`,
     )];
   },
@@ -423,7 +442,7 @@ const owedLine = (view, ref, held) => {
    judges, one what deploys and one whether the release was anybody's to make. The step is
    `stepAfter`'s, null for a status the flow does not hold. `draft` reads it too, for route/aboard.mjs. */
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || status === DRAFT
+  (personLooks(planFlags(unwrap(plan))) || status === DRAFT || status === REOPEN
     || [stepAfter(BASELINE_AT), JUDGED_AT, CLOSES_FROM, CLOSES_AT].includes(stepAfter(status))
     ? releasePolicy()
     : null);
