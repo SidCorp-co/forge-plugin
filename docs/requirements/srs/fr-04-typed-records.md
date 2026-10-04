@@ -354,6 +354,38 @@ kept text alone.
   IF the rewrite leaves a field byte for byte what was sent THEN the CLI SHALL print only the one
   block, so a run reading the stream is not asked to compare a field against itself.
 
+### UC-04-10 — A criterion names what somebody can show once the change has landed
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-07
+
+The landing runs the project's gate before the merge, so a criterion whose outcome is that gate
+passing asks a later verdict to repeat a proof already made, and a judge sent to the deployment
+either runs the suite on a shared box or skips the line. What counts as the gate is the command the
+project declared, never a word this product guesses, so a project that declared none has nothing
+refused. A criterion measured over repeated runs or under load is a builder's measurement no judge
+observes on a deployment; it is legitimate evidence and stays written, and the write names it so the
+plan says who shows it. Both readings are the criteria grammar's, so a miss writes the line, as a
+compound the grammar cannot prove does.
+
+- **AC-04-10-1** · Rev: 1 · Proof: plugin/test/flow/record/criteria/shown.test.mjs "a criterion making the declared gate's pass its outcome is refused, naming the criterion and the landing"
+  IF a criterion's outcome is one of the project's declared gate commands passing THEN the CLI SHALL
+  refuse the write before any review of the file, and SHALL name that criterion and the landing as
+  what proves the gate.
+- **AC-04-10-2** · Rev: 1 · Proof: plugin/test/flow/record/criteria/shown.test.mjs "a criterion naming the gate for what it does rather than for its pass is written"
+  WHERE a criterion names a declared gate command for what the command prints, spends or refuses
+  rather than for its passing, the CLI SHALL write the criterion.
+- **AC-04-10-3** · Rev: 1 · Proof: plugin/test/flow/record/criteria/shown.test.mjs "a project declaring no gate has no criterion refused for naming one"
+  WHERE the project declares no gate command, the CLI SHALL refuse no criterion for naming a gate.
+- **AC-04-10-4** · Rev: 1 · Proof: plugin/test/flow/record/criteria/shown.test.mjs "a load or repeat-run criterion is written and named on stderr as the builder's evidence"
+  WHEN a criterion's outcome is measured over repeated runs or under load THEN the CLI SHALL write
+  it and SHALL name it on stderr as the builder's evidence, for the plan to say who shows it.
+- **AC-04-10-5** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the frozen corpus refuses its three gate lines and names none of its sixty as a measurement"
+  WHILE a set of criteria written before this reading existed is read, the CLI SHALL refuse only
+  the lines whose outcome is the gate passing, and SHALL name none of them as a measurement.
+- **AC-04-10-6** · Rev: 1 · Proof: plugin/test/flow/record/criteria/shown.test.mjs "the criteria help names the gate commands this project declares"
+  WHEN the criteria write's help is read THEN the CLI SHALL name the gate commands the project
+  declares, or say that it declares none.
+
 ## The way back
 
 *What undoes a change here?*

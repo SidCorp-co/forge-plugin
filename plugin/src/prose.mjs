@@ -27,8 +27,34 @@ const GRAMMAR = {
     subordinators: ["when", "whenever", "if", "where", "wherever", "while", "unless", "until",
       "because", "since", "after", "before", "though", "although", "whether", "which", "who",
       "whom", "whose", "that", "as", "so", "once"],
+    /* What a command's pass is said with, read only right after a declared gate command: a link
+       verb opens a predicate that may run a few words before its verdict (`reports every step
+       green`), and a verb outside it (`records no pass`) is a claim about what the gate does. */
+    passing: {
+      links: ["is", "are", "stays", "remains", "reports", "answers", "reaches", "ends", "comes",
+        "turns", "goes", "runs", "finishes", "completes", "returns"],
+      verdicts: ["passes", "pass", "passed", "green", "succeeds", "clean", "no failure", "no failures"],
+      exits: ["exits 0", "exits zero"],
+    },
+    /* A bare count before `runs` names that many jobs or sessions as often as a repetition of one,
+       so it counts only beside a pass word; a count carrying a repeat word counts on its own. */
+    measured: {
+      counts: ["two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
+        "twelve", "fifteen", "sixteen", "twenty", "thirty", "forty", "fifty", "hundred"],
+      repeats: ["consecutive", "successive", "repeated", "back-to-back"],
+      runs: ["runs", "rounds", "times", "repetitions", "iterations", "copies"],
+      row: "in a row",
+      passes: ["passes", "pass", "passed", "green", "succeeds"],
+      load: "load",
+      under: "under",
+      comparisons: ["of", "at", "under", "over", "above", "below", "≥", ">=", ">", "<", "≤"],
+      workers: ["workers", "CPU-bound"],
+      flags: ["--repeat-each", "--repeat", "--workers"],
+    },
   },
 };
+
+import { escaped } from "./markdown.mjs";
 
 /* One inline code span, built from once below: what `protectMachine` leaves inside one is what `planFlags` refuses to count, and one half saying so alone is not the rule (ISS-488). */
 export const CODE_SPAN = "`[^`\\n]+`";
@@ -118,4 +144,65 @@ export const compoundCriteria = (criteria, language) => {
   const g = GRAMMAR[String(language ?? "en").slice(0, 2).toLowerCase()];
   if (!g) return [];
   return criteria.map((one) => splitOf(one, g)).filter(Boolean);
+};
+
+const grammarOf = (language) => GRAMMAR[String(language ?? "en").slice(0, 2).toLowerCase()] ?? null;
+
+/* Text a criterion quotes is not its outcome: a criterion about the write quotes the line written. */
+const QUOTED = /"[^"\n]*"|“[^”\n]*”/gu;
+const unquoted = (text) => blanked(text, QUOTED);
+
+const BEFORE = String.raw`(?<![\p{L}\d./:_-])`;
+const AFTER = String.raw`(?![\p{L}\d./:_-])`;
+const END = String.raw`(?![\p{L}\d_-])`;
+const anyOf = (words) => words.map((one) => escaped(one).replace(/\s+/gu, String.raw`\s+`)).join("|");
+const HELP = /(?:^|\s)(?:-h|--help)(?=\s|$)/u;
+
+const gateReading = (gates, { passing }) => new RegExp(
+  `${BEFORE}(?:${anyOf(gates)})((?:\\s+-[^\\s\`"')]*)*)${AFTER}[\`'")\\]]?[\\s,\u2014\u2013]*`
+    + `(?:(?:${anyOf(passing.links)})\\s+(?:[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}`,
+  "iu",
+);
+
+/** Each criterion whose outcome is one of `gates` passing, with the command it read: the command
+ *  as the project declared it, then its own flags, then a pass. A help flag asks for the help and
+ *  runs nothing; a language this table does not carry reads nothing. */
+export const gatePassCriteria = (criteria, gates, language) => {
+  const g = grammarOf(language);
+  if (!g || !gates.length) return [];
+  const reading = gateReading(gates, g);
+  return criteria.flatMap((one) => {
+    const found = reading.exec(unquoted(one.text));
+    if (!found || HELP.test(found[1])) return [];
+    return [{ ...one, gate: gates.find((gate) => found[0].toLowerCase().includes(gate.toLowerCase())) ?? gates[0] }];
+  });
+};
+
+const measureReadings = ({ measured: m }) => {
+  const count = `(?:[2-9]|[1-9]\\d+|${anyOf(m.counts)})`;
+  const runs = `(?:[\\p{L}-]+\\s+)?(?:${anyOf(m.runs)})${END}`;
+  return {
+    always: [
+      `${BEFORE}${count}\\s+(?:${anyOf(m.repeats)})\\s+${runs}`,
+      `${BEFORE}${count}\\s+${runs}\\s+${anyOf([m.row])}${END}`,
+      `${BEFORE}${anyOf([m.load])}s?(?:\\s+average)?\\s*(?:${anyOf(m.comparisons)})\\s*\\d`,
+      `${BEFORE}${anyOf([m.under])}\\s+(?:[^\\s,;:.]+\\s+){0,3}?${anyOf([m.load])}s?${END}`,
+      `${BEFORE}${count}\\s+(?:parallel\\s+)?(?:${anyOf(m.workers)})${END}`,
+      `(?:${anyOf(m.flags)})(?![\\w-])`,
+    ].map((one) => new RegExp(one, "iu")),
+    bare: new RegExp(`${BEFORE}${count}\\s+${runs}`, "iu"),
+    passes: new RegExp(`${BEFORE}(?:${anyOf(m.passes)})${END}`, "iu"),
+  };
+};
+
+/** Each criterion measured over repeated runs or under load: evidence a builder gathers on its own
+ *  machine and no judge observes on a deployment. */
+export const measuredCriteria = (criteria, language) => {
+  const g = grammarOf(language);
+  if (!g) return [];
+  const { always, bare, passes } = measureReadings(g);
+  return criteria.filter((one) => {
+    const text = unquoted(one.text);
+    return always.some((reading) => reading.test(text)) || (bare.test(text) && passes.test(text));
+  });
 };

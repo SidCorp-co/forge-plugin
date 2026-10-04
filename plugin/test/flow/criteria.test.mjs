@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { neutralRoom, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("criteria-");
-const { compoundCriteria } = await import("../../src/prose.mjs");
+const { compoundCriteria, gatePassCriteria, measuredCriteria } = await import("../../src/prose.mjs");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
@@ -116,6 +116,21 @@ test("the frozen corpus of sixty criteria is read as three compound lines and no
   const found = read.map((one) => CRITERIA_CORPUS[one.number - 1]).map((one) => `${one.issue}#${one.number}`);
   assert.deepEqual(found, ["ISS-474#3", "ISS-500#7", "ISS-500#15"]);
   assert.equal(CRITERIA_CORPUS.length, 60);
+});
+
+/* The same oracle for the two readings of what somebody can show after the landing (ISS-3154): the
+   corpus's three gate lines are the whole of what the gate reading refuses under this repository's
+   declared gate, and none of the sixty is a measurement over repeated runs or under load. */
+test("the frozen corpus refuses its three gate lines and names none of its sixty as a measurement", () => {
+  const criteria = CRITERIA_CORPUS.map((one, index) => ({ number: index + 1, text: one.text }));
+  const refused = gatePassCriteria(criteria, ["npm run check", "node tools/gates.mjs"], "en")
+    .map((one) => CRITERIA_CORPUS[one.number - 1]).map((one) => `${one.issue}#${one.number}`);
+  assert.deepEqual(refused, ["ISS-474#20", "ISS-500#16", "ISS-445#16"]);
+  assert.deepEqual(measuredCriteria(criteria, "en"), []);
+  const measured = [{ number: 1, text: "Twenty consecutive runs of that file pass at a load of 25." }];
+  assert.equal(measuredCriteria(measured, "en").length, 1, "the reading reads English");
+  assert.deepEqual(measuredCriteria(measured, "vi"), [], "and a prose language the table does not carry names nothing");
+  assert.deepEqual(gatePassCriteria([{ number: 1, text: "`npm run check` passes." }], ["npm run check"], "vi"), []);
 });
 
 /* The round the refusal exists to save: a file no consult has read is refused for the grammar, not

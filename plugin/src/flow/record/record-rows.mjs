@@ -13,6 +13,7 @@ import { usageOf } from "../../resolve/visibility.mjs";
 import { proseHelp } from "./prose-route.mjs";
 import { bodyCap } from "../../tracker/comment-cap.mjs";
 import { flowPinned, screensHere } from "../../guides/flow.mjs";
+import { shownBlocks } from "./criteria-shown.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
@@ -390,6 +391,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(onePerBlocks(kind).length ? ["", ...onePerBlocks(kind)] : []),
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(WHOLE_BLOCKS[kind] ? ["", ...WHOLE_BLOCKS[kind]] : []),
+    ...(kind === "criteria" ? ["", ...shownBlocks()] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS, ...screensBlocks()] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),

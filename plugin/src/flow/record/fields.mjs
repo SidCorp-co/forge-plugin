@@ -19,6 +19,7 @@ import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
 import { supersedingOf } from "./corrections/superseding.mjs";
 import { REPLACE, criteriaSetChecked, planChanged } from "./corrections/criteria-set.mjs";
+import { shownChecked } from "./criteria-shown.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -258,6 +259,7 @@ export const criteriaPrepared = async (argv, at) => {
   const criteria = criteriaLines(text ?? await bodyFrom(file[0]), at.reference);
   criteriaChecked(criteria, refuse);
   compoundRefused(criteria);
+  shownChecked(criteria);
   /* Before the consult's refusal, for ISS-483's reason: a file this refuses is one no review round
      should be spent on, and the read of the issue it costs is one the write makes anyway. */
   const held = unwrap((await at.issue()).body.acceptanceCriteria);
