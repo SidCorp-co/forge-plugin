@@ -30,8 +30,8 @@ const measuredNote = (found) => [
 ].join("\n");
 
 /** Refuses a set holding a criterion whose outcome is a declared gate passing, and says on stderr
- *  which of the rest are measurements only their builder can show. Silent where the project declared
- *  no gate, and where its prose language is one the reading does not carry. */
+ *  which of the rest are measurements only their builder can show. An undeclared gate refuses
+ *  nothing, and prose outside the English table is read for neither. */
 export const shownChecked = (criteria, gates = declaredGates(), language = translateTo()) => {
   const passing = gatePassCriteria(criteria, gates, language);
   if (passing.length) refuse(gateRefusal(passing));
