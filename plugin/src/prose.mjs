@@ -35,6 +35,7 @@ const GRAMMAR = {
         "turns", "goes", "runs", "finishes", "completes", "returns"],
       verdicts: ["passes", "pass", "passed", "green", "succeeds", "clean", "no failure", "no failures"],
       exits: ["exits 0", "exits zero"],
+      negations: ["not", "never", "no", "cannot", "nor"],
     },
     /* A bare count before `runs` names that many jobs or sessions as often as a repetition of one,
        so it counts only beside a pass word; a count carrying a repeat word counts on its own. */
@@ -160,13 +161,14 @@ const HELP = /(?:^|\s)(?:-h|--help)(?=\s|$)/u;
 
 const gateReading = (gates, { passing }) => new RegExp(
   `${BEFORE}(?:${anyOf(gates)})((?:\\s+-[^\\s\`"')]*)*)${AFTER}[\`'")\\]]?[\\s,\u2014\u2013]*`
-    + `(?:(?:${anyOf(passing.links)})\\s+(?:[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}`,
+    + `(?:(?:${anyOf(passing.links)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}`,
   "iu",
 );
 
 /** Each criterion whose outcome is one of `gates` passing, with the command it read: the command
- *  as the project declared it, then its own flags, then a pass. A help flag asks for the help and
- *  runs nothing; a language this table does not carry reads nothing. */
+ *  as the project declared it, then its own flags, then a pass no negation stands between it and.
+ *  A help flag asks for the help and runs nothing; a language this table does not carry reads
+ *  nothing. */
 export const gatePassCriteria = (criteria, gates, language) => {
   const g = grammarOf(language);
   if (!g || !gates.length) return [];
