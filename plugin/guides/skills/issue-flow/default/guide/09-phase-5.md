@@ -27,13 +27,14 @@ exit code or a branch head, written onto the issue. The criteria are left as the
 brief the judging run works from.
 
 **Under an independent judgement, a criterion the judging run proved impossible is the building
-side's to correct**, and is the one edit to the criteria this arm makes: the code is right and the wording is a claim no code can make.
-The judging run's failed verdict says so, and the correction takes the route Phase 3 gives a wrong
-criterion, `forge record correction --corrects criteria:<n>`. It says what made the old wording
-impossible, which is what separates it from one relaxed to match what got built. The judging run
-judges it again against the corrected wording, and the run that corrected it writes no verdict on
-it. It is none of the three stops, for either run: undoing it costs a second correction and moves no
-code, so Rule 3 makes it the run's, and no person is waiting on it.
+side's to correct**, and is the one edit to the criteria this arm makes: the code is right and the
+wording is a claim no code can make. The judging run's failed verdict says so, and the correction
+takes the route Phase 3 gives a wrong criterion, `forge record correction --corrects criteria:<n>`.
+It says what made the old wording impossible, which is what separates it from one relaxed to match
+what got built. The judging run judges it again against the corrected wording, and the run that
+corrected it writes no verdict on it. It is none of the three stops, for either run: undoing it
+costs a second correction and moves no code, so Rule 3 makes it the run's, and no person is waiting
+on it.
 
 **Nothing is handed to a named somebody.** This run posts the records it earned, takes whatever
 rungs those records earn, and stops there. It dispatches no agent, sends no message and waits on
