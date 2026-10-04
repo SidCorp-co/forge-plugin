@@ -27,13 +27,15 @@ const GRAMMAR = {
     subordinators: ["when", "whenever", "if", "where", "wherever", "while", "unless", "until",
       "because", "since", "after", "before", "though", "although", "whether", "which", "who",
       "whom", "whose", "that", "as", "so", "once"],
-    /* What a command's pass is said with, read only right after a declared gate command: a link
-       verb opens a predicate that may run a few words before its verdict (`reports every step
-       green`), and a verb outside it (`records no pass`) is a claim about what the gate does. */
+    /* What a command's pass is said with, read only right after a declared gate command: a copula
+       takes its verdict at once (`is green`, so `is refused on a clean tree` is no pass), a reporting
+       verb may run a few words before it (`reports every step green`), and a verb in neither list
+       (`records no pass`) is a claim about what the gate does. */
     passing: {
-      links: ["is", "are", "stays", "remains", "reports", "answers", "reaches", "ends", "comes",
-        "turns", "goes", "runs", "finishes", "completes", "returns"],
-      verdicts: ["passes", "pass", "passed", "green", "succeeds", "clean", "no failure", "no failures"],
+      copulas: ["is", "are", "stays", "remains", "turns", "goes", "ends", "comes"],
+      adverbs: ["still", "back"],
+      reporters: ["reports", "answers", "reaches", "finishes", "completes", "returns", "runs"],
+      verdicts: ["passes", "pass", "passed", "green", "succeeds", "no failure", "no failures"],
       exits: ["exits 0", "exits zero"],
       negations: ["not", "never", "no", "cannot", "nor"],
     },
@@ -161,7 +163,8 @@ const HELP = /(?:^|\s)(?:-h|--help)(?=\s|$)/u;
 
 const gateReading = (gates, { passing }) => new RegExp(
   `${BEFORE}(?:${anyOf(gates)})((?:\\s+-[^\\s\`"')]*)*)${AFTER}[\`'")\\]]?[\\s,\u2014\u2013]*`
-    + `(?:(?:${anyOf(passing.links)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}`,
+    + `(?:(?:${anyOf(passing.copulas)})\\s+(?:(?:${anyOf(passing.adverbs)})\\s+)?`
+    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}`,
   "iu",
 );
 

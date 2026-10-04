@@ -91,7 +91,9 @@ test("a criterion making the declared gate's pass its outcome is refused, naming
   assert.match(flagged.stderr, /`node tools\/gates\.mjs` is this project's gate/u, "the other declared command, under its own flags");
 
   const linked = await write("ISS-9106", ["`npm run check` is green at the head that lands."]);
-  assert.equal(linked.status, 1, "a pass after a link verb, the positive twin of the negated line the next case writes");
+  assert.equal(linked.status, 1, "a pass after a copula, the positive twin of the negated line the next case writes");
+  const reported = await write("ISS-9107", ["`npm run check` reports every step green at the head that lands."]);
+  assert.equal(reported.status, 1, "a pass a few words after a reporting verb");
 });
 
 test("a criterion naming the gate for what it does rather than for its pass is written", async () => {
@@ -100,6 +102,7 @@ test("a criterion naming the gate for what it does rather than for its pass is w
     "`node tools/gates.mjs -h` exits 0.",
     "`npm run check:vendor` passes on the branch.",
     "Given a deliberately failing fixture, `npm run check` is not green.",
+    "`npm run check` is refused on a clean checkout when credentials are missing.",
     "A criterion reading \"`npm run check` passes on the branch\" is refused.",
   ];
   const run = await write("ISS-9103", lines);
