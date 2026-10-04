@@ -34,11 +34,14 @@ const scopeOf = (root) => {
   return { ref: held[0].ref, named: held.map((one) => one.named).join("\n") };
 };
 
+/* Nothing a hook sees says who is writing, so a judge's or a probe's scratch edit is held here too, and the last paragraph is that run's: a correction from it would record a write the change never made (ISS-2818). */
 const hold = (rel, ref) =>
   deny(
-    `Hold — post the correction, then re-send.\n  ${correctionForm(ref, [rel])}\n\n`
+    `Hold — post the correction if you are building ${ref}, then re-send.\n  ${correctionForm(ref, [rel])}\n\n`
       + `\`${rel}\` is outside ${ref}'s plan: neither the plan nor a correction on it names that `
-      + "path, and a change that grew says where before it grows."
+      + "path, and a change that grew says where before it grows.\n\n"
+      + `Not building ${ref} — judging it, or probing with an edit you will throw away? The correction is `
+      + "not yours to post: make the write in a copy outside this checkout, under your run's own scratch directory."
       + how(),
   );
 
