@@ -69,10 +69,11 @@ const spelt = (said, calls, valueOf) => calls.flatMap((one) => one.names)
     return held === null ? text : `${text.slice(0, from)}${literal(held)}${text.slice(to)}`;
   }, said);
 
-/* A bound value as the f-string opening at `from` carries it: a backslash and the string's own quote escaped, or as it stands where the string is raw and so escapes nothing, which cannot carry its own quote or a backslash at its end. `null` where it cannot. */
+/* A bound value as the f-string opening at `from` carries it: each brace doubled, so it opens no field, and a backslash and the string's own quote escaped, or as it stands where the string is raw and so escapes nothing, which cannot carry its own quote or a backslash at its end. `null` where it cannot. */
 const RAW_BEFORE = /(?<![\w])[rRbBuUfF]{1,2}$/u;
-const carried = (said, from, held) => {
+const carried = (said, from, value) => {
   const quote = said[from];
+  const held = value.replace(/[{}]/gu, "$&$&");
   if (!/r/iu.test(RAW_BEFORE.exec(said.slice(Math.max(0, from - 3), from))?.[0] ?? "")) {
     return held.replace(/\\/gu, "\\\\").replaceAll(quote, `\\${quote}`);
   }

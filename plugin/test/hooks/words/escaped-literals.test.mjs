@@ -83,3 +83,9 @@ test("a bound value folded into a node template keeps its escapes", () => {
   both(heredoc("node", String.raw`const root = "a\\b";`, "writeFileSync(`${root}.md`, 'x');"), [String.raw`a\b.md`], "a backslash");
   both(heredoc("node", String.raw`const root = 'a"b';`, "writeFileSync(`${root}.md`, 'x');"), ['a"b.md'], "a double quote");
 });
+
+test("a bound value holding a brace is folded into an f-string as text, not as a field", () => {
+  both(python(String.raw`root = "a\\{part}"`, 'open(f"{root}.md", "w")'), [String.raw`a\{part}.md`], "a brace behind a backslash");
+  both(python('root = "a{b}"', 'open(f"{root}.md", "w")'), ["a{b}.md"], "a brace alone");
+  both(python('open(f"a{{b}}.md", "w")'), ["a{b}.md"], "and an f-string's own doubled brace");
+});

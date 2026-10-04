@@ -20,20 +20,23 @@ const RECEIVED = new RegExp(
 );
 const STRING_IN = new RegExp(STRING, "u");
 
-/* A whole string literal and nothing else: the one shape a call's argument names a file by that a reading can place without running the program. An f-string still holding a `{` is built at runtime, so it is none. */
+/* A whole string literal and nothing else: the one shape a call's argument names a file by that a reading can place without running the program. An f-string still holding a field is built at runtime, so it is none; a doubled brace is a literal one. */
 const WHOLE = new RegExp(String.raw`^${STRING}$`, "u");
 /* The escaped quote that keeps its backslash, by language and the quote it stands in: a single quote in ruby, perl and php escapes only itself and a backslash, and php's double quote does not escape a single one. Python and node resolve both quotes in either. */
 const KEEPS = { ruby: { "'": '"' }, perl: { "'": '"' }, php: { "'": '"', '"': "'" } };
 /* The escapes a reading resolves are the printable ones every language spells the same way, a backslash and a quote. Any other spells a control character or a code point the program computes, and leaves the literal unplaced. */
 const ESCAPE = /\\(.)/gu;
 const RESOLVED = new Set(["\\", "'", '"']);
+const DOUBLED = /\{\{|\}\}/gu;
 /** What a whole string literal spells in `lang`, the language `LANGUAGE_OF` names, its prefix and quotes off and its escapes resolved as that language resolves them, or `null` where the text is no such literal or holds an escape no reading places. A raw prefix spells the text between the quotes as it stands. */
 export const spelling = (said, lang) => {
   if (!WHOLE.test(said)) return null;
   const prefix = /^[rRbBuUfF]*/u.exec(said)[0];
   const quote = said.startsWith(said[prefix.length].repeat(3), prefix.length) && said.length - prefix.length >= 6 ? 3 : 1;
-  const inner = said.slice(prefix.length + quote, said.length - quote);
-  if (/f/iu.test(prefix) && inner.includes("{")) return null;
+  const written = said.slice(prefix.length + quote, said.length - quote);
+  const formatted = /f/iu.test(prefix);
+  if (formatted && /[{}]/u.test(written.replace(DOUBLED, ""))) return null;
+  const inner = formatted ? written.replace(DOUBLED, (two) => two[0]) : written;
   if (/r/iu.test(prefix)) return inner;
   const kept = KEEPS[lang]?.[said[prefix.length]];
   let placed = true;
