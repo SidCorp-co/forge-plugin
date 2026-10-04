@@ -22,7 +22,19 @@ const BINDS = new RegExp(
 /* Only a string form that interpolates: python's f-string, whose fields the walk finds, and a JS template literal. An ordinary `"{root}/x"` or `"${root}/x"` is a literal in both languages and stays one. A field folds only where it is a bare name. */
 const FIELD = /^\{([A-Za-z_]\w*)\}$/u;
 const TEMPLATE_NAME = /(?<!\\)\$\{([A-Za-z_]\w*)\}/gu;
-const plainTemplate = (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span);
+/* What a template's text may hold and still be read as written: no backtick, escape, `$` or line break, each of which the template would read as something else. */
+const PLAIN_IN_TEMPLATE = /^[^`\n\\$]*$/u;
+/* A template whose text is plain around fields that are each a bound name is the literal of what it spells, written back by `literal` so a value holding an escape is carried whole. Any other keeps its form, a bound value standing in only where the template reads it as written. */
+const plainTemplate = (span, held) => {
+  const inner = span.slice(1, -1);
+  let bound = PLAIN_IN_TEMPLATE.test(inner.replace(TEMPLATE_NAME, ""));
+  const value = inner.replace(TEMPLATE_NAME, (whole, name) => {
+    bound &&= held(name) !== null;
+    return held(name) ?? whole;
+  });
+  if (bound) return literal(value);
+  return `\x60${inner.replace(TEMPLATE_NAME, (whole, name) => (PLAIN_IN_TEMPLATE.test(held(name) ?? "$") ? held(name) : whole))}\x60`;
+};
 /* What a fold writes back where a literal stood: a double quote, escaping a backslash and a double quote the value holds, which every language `spelling` reads resolves alike, so it reads the value back whole. No single quote is added, so a body an inline single quote holds still closes it. */
 const literal = (value) => `"${value.replace(/[\\"]/gu, "\\$&")}"`;
 const JOINS = new RegExp(
@@ -81,8 +93,8 @@ const templated = (said, valueOf) => literalsIn(said, { holes: "text" })
   .filter((one) => one.kind === KINDS.TEMPLATE && !said.slice(one.start + 1, one.end - 1).includes("\x60"))
   .reverse()
   .reduce((text, one) => {
-    const span = text.slice(one.start, one.end).replace(TEMPLATE_NAME, (whole, name) => valueOf(name, one.start) ?? whole);
-    return `${text.slice(0, one.start)}${plainTemplate(span)}${text.slice(one.end)}`;
+    const span = plainTemplate(text.slice(one.start, one.end), (name) => valueOf(name, one.start));
+    return `${text.slice(0, one.start)}${span}${text.slice(one.end)}`;
   }, said);
 
 /* A literal standing in a fold, as what it spells, or `null` where `spelling` places none — which leaves the fold's text as it stands. */

@@ -78,3 +78,8 @@ test("the learning gate refuses a skill write a python body spells with an escap
   assert.equal(run.status, 0, run.stderr);
   assert.equal(answered(run)?.hookSpecificOutput?.permissionDecision, "deny", run.stdout);
 });
+
+test("a bound value folded into a node template keeps its escapes", () => {
+  both(heredoc("node", String.raw`const root = "a\\b";`, "writeFileSync(`${root}.md`, 'x');"), [String.raw`a\b.md`], "a backslash");
+  both(heredoc("node", String.raw`const root = 'a"b';`, "writeFileSync(`${root}.md`, 'x');"), ['a"b.md'], "a double quote");
+});
