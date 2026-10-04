@@ -22,12 +22,21 @@ const BINDS = new RegExp(
 /* Only a string form that interpolates: python's f-string, whose fields the walk finds, and a JS template literal. An ordinary `"{root}/x"` or `"${root}/x"` is a literal in both languages and stays one. A field folds only where it is a bare name. */
 const FIELD = /^\{([A-Za-z_]\w*)\}$/u;
 const TEMPLATE_NAME = /(?<!\\)\$\{([A-Za-z_]\w*)\}/gu;
-const plainTemplate = (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span);
-/* What a fold writes back where a literal stood: a quote the value does not hold, so `spelling` reads it back whole. */
-const literal = (value) => {
-  if (!value.includes('"')) return `"${value}"`;
-  return value.includes("'") ? `"""${value}"""` : `'${value}'`;
+/* What a template's text may hold and still be read as written: no backtick, escape, `$` or line break, each of which the template would read as something else. */
+const PLAIN_IN_TEMPLATE = /^[^`\n\\$]*$/u;
+/* A template whose text is plain around fields that are each a bound name is the literal of what it spells, written back by `literal` so a value holding an escape is carried whole. Any other keeps its form, a bound value standing in only where the template reads it as written. */
+const plainTemplate = (span, held) => {
+  const inner = span.slice(1, -1);
+  let bound = PLAIN_IN_TEMPLATE.test(inner.replace(TEMPLATE_NAME, ""));
+  const value = inner.replace(TEMPLATE_NAME, (whole, name) => {
+    bound &&= held(name) !== null;
+    return held(name) ?? whole;
+  });
+  if (bound) return literal(value);
+  return `\x60${inner.replace(TEMPLATE_NAME, (whole, name) => (PLAIN_IN_TEMPLATE.test(held(name) ?? "$") ? held(name) : whole))}\x60`;
 };
+/* What a fold writes back where a literal stood: a double quote, escaping a backslash and a double quote the value holds, which every language `spelling` reads resolves alike, so it reads the value back whole. No single quote is added, so a body an inline single quote holds still closes it. */
+const literal = (value) => `"${value.replace(/[\\"]/gu, "\\$&")}"`;
 const JOINS = new RegExp(
   String.raw`\b(os\.path\.join|posixpath\.join|path\.join|pathlib\.Path|Path)\s*\(([^()]*)\)`,
   "gu",
@@ -39,12 +48,12 @@ const under = (left, right, resets) =>
   (resets && right.startsWith("/") ? right : `${left}/${right}`).replace(/\/{2,}/gu, "/");
 
 /* Read off the reading `spokenIn` made of the text, whose comments are blanked rather than cut so every offset stays where it was, and this is also what lets a block comment sit between a literal and the end of its statement. */
-const bound = ({ spans, code }) => {
+const bound = ({ spans, code }, lang) => {
   const strings = spans.filter((one) => !one.comment);
   const set = [];
   for (const one of code.matchAll(BINDS)) {
     if (strings.some(({ from, to }) => one.index > from && one.index < to)) continue;
-    set.push({ at: one.index + one[0].length, name: one[1], value: one[2] === undefined ? null : spelling(one[2]) });
+    set.push({ at: one.index + one[0].length, name: one[1], value: one[2] === undefined ? null : spelling(one[2], lang) });
   }
   return (name, at) => set.filter((one) => one.name === name && one.at < at).pop()?.value ?? null;
 };
@@ -60,11 +69,23 @@ const spelt = (said, calls, valueOf) => calls.flatMap((one) => one.names)
     return held === null ? text : `${text.slice(0, from)}${literal(held)}${text.slice(to)}`;
   }, said);
 
-/* A python f-string's fields, as the walk found them, each bare name among them folded to the literal it is bound to. Last back, as every fold here goes. */
+/* A bound value as the f-string opening at `from` carries it: each brace doubled, so it opens no field, and a backslash and the string's own quote escaped, or as it stands where the string is raw and so escapes nothing, which cannot carry its own quote or a backslash at its end. `null` where it cannot. */
+const RAW_BEFORE = /(?<![\w])[rRbBuUfF]{1,2}$/u;
+const carried = (said, from, value) => {
+  const quote = said[from];
+  const held = value.replace(/[{}]/gu, "$&$&");
+  if (!/r/iu.test(RAW_BEFORE.exec(said.slice(Math.max(0, from - 3), from))?.[0] ?? "")) {
+    return held.replace(/\\/gu, "\\\\").replaceAll(quote, `\\${quote}`);
+  }
+  return held.includes(quote) || held.endsWith("\\") ? null : held;
+};
+
+/* A python f-string's fields, as the walk found them, each bare name among them folded to the literal it is bound to, carried as the string reads it. Last back, as every fold here goes. */
 const fielded = (said, { reading, valueOf }) => reading.spans.filter((one) => one.interpolates).reverse()
   .reduce((text, one) => [...one.holes].reverse().reduce((inner, hole) => {
     const name = FIELD.exec(said.slice(hole.from, hole.to))?.[1];
-    const held = name ? valueOf(name, one.from) : null;
+    const value = name ? valueOf(name, one.from) : null;
+    const held = value === null ? null : carried(said, one.from, value);
     return held === null ? inner : `${inner.slice(0, hole.from)}${held}${inner.slice(hole.to)}`;
   }, text), said);
 
@@ -73,13 +94,13 @@ const templated = (said, valueOf) => literalsIn(said, { holes: "text" })
   .filter((one) => one.kind === KINDS.TEMPLATE && !said.slice(one.start + 1, one.end - 1).includes("\x60"))
   .reverse()
   .reduce((text, one) => {
-    const span = text.slice(one.start, one.end).replace(TEMPLATE_NAME, (whole, name) => valueOf(name, one.start) ?? whole);
-    return `${text.slice(0, one.start)}${plainTemplate(span)}${text.slice(one.end)}`;
+    const span = plainTemplate(text.slice(one.start, one.end), (name) => valueOf(name, one.start));
+    return `${text.slice(0, one.start)}${span}${text.slice(one.end)}`;
   }, said);
 
 /* A literal standing in a fold, as what it spells, or `null` where `spelling` places none — which leaves the fold's text as it stands. */
-const glue = (left, right, join) => {
-  const parts = [spelling(left), spelling(right)];
+const glue = (left, right, join, lang) => {
+  const parts = [spelling(left, lang), spelling(right, lang)];
   return parts.includes(null) ? null : literal(join(...parts));
 };
 
@@ -92,7 +113,7 @@ const fold = (body, runner) => {
   const fresh = () => {
     if (read !== out) {
       const reading = spokenIn(out, runner);
-      state = { reading, valueOf: bound(reading), calls: null };
+      state = { reading, valueOf: bound(reading, lang), calls: null };
       read = out;
     }
     return state;
@@ -126,13 +147,13 @@ const fold = (body, runner) => {
     });
     pass(JOINS, ([, verb, args], at, valueOf) => {
       const parts = args.split(",").map((each) => each.trim()).filter(Boolean)
-        .map((each) => spelling(each) ?? valueOf(each, at));
+        .map((each) => spelling(each, lang) ?? valueOf(each, at));
       if (!parts.length || parts.some((each) => each === null)) return null;
       return literal(parts.reduce((left, right) => under(left, right, RESETS.test(verb))));
     });
     out = spelt(out, callsOf(), fresh().valueOf);
     out = out.replace(GLUED, (all, left, sign, right) =>
-      glue(left, right, (one, two) => (sign === "/" ? under(one, two, true) : one + two)) ?? all);
+      glue(left, right, (one, two) => (sign === "/" ? under(one, two, true) : one + two), lang) ?? all);
     if (out === before) break;
   }
   return { text: out, callsOf };
