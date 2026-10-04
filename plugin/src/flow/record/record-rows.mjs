@@ -13,7 +13,7 @@ import { usageOf } from "../../resolve/visibility.mjs";
 import { proseHelp } from "./prose-route.mjs";
 import { bodyCap } from "../../tracker/comment-cap.mjs";
 import { flowPinned, screensHere } from "../../guides/flow.mjs";
-import { shownBlocks } from "./criteria-shown.mjs";
+import { shownBlocks } from "./criteria/shown.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back

@@ -2,10 +2,10 @@
    landing's own proof, so a criterion making it the outcome is refused; a measurement over repeated
    runs or under load is the builder's to show, so it is written and named. Why the gate is the
    declared command and nothing else, and why the second reading refuses nothing: UC-04-10. */
-import { refuse } from "../../refusal.mjs";
-import { gatePassCriteria, measuredCriteria } from "../../prose.mjs";
-import { translateTo } from "../../resolve/settings.mjs";
-import { declaredGates } from "../earned/published.mjs";
+import { refuse } from "../../../refusal.mjs";
+import { gatePassCriteria, measuredCriteria } from "../../../prose.mjs";
+import { translateTo } from "../../../resolve/settings.mjs";
+import { declaredGates } from "../../earned/published.mjs";
 
 const DECLARED_AT = "`stats.commands.gate`";
 

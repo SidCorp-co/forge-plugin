@@ -19,7 +19,7 @@ import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
 import { supersedingOf } from "./corrections/superseding.mjs";
 import { REPLACE, criteriaSetChecked, planChanged } from "./corrections/criteria-set.mjs";
-import { shownChecked } from "./criteria-shown.mjs";
+import { shownChecked } from "./criteria/shown.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
