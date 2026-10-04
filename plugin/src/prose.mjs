@@ -38,6 +38,7 @@ const GRAMMAR = {
       verdicts: ["passes", "pass", "passed", "green", "succeeds", "no failure", "no failures"],
       exits: ["exits 0", "exits zero"],
       negations: ["not", "never", "no", "cannot", "nor"],
+      tails: ["to", "whole", "end", "and", "or"],
     },
     /* A bare count before `runs` names that many jobs or sessions as often as a repetition of one,
        so it counts only beside a pass word; a count carrying a repeat word counts on its own. */
@@ -161,10 +162,15 @@ const END = String.raw`(?![\p{L}\d_-])`;
 const anyOf = (words) => words.map((one) => escaped(one).replace(/\s+/gu, String.raw`\s+`)).join("|");
 const HELP = /(?:^|\s)(?:-h|--help)(?=\s|$)/u;
 
-const gateReading = (gates, { passing }) => new RegExp(
+/* A verdict closes its clause: what follows it is the clause's end, a condition or a place, so `reports
+   the green badge as hidden` names a badge rather than a pass. */
+const closing = (g) => `(?=[\`'"]?(?:\\s*(?:$|[.,;:!?)\u2014\u2013])|\\s+(?:${anyOf([...g.modifiers,
+  ...g.subordinators, ...g.determiners, ...g.passing.tails])})${END}))`;
+
+const gateReading = (gates, g, { passing } = g) => new RegExp(
   `${BEFORE}(?:${anyOf(gates)})((?:\\s+-[^\\s\`"')]*)*)${AFTER}[\`'")\\]]?[\\s,\u2014\u2013]*`
     + `(?:(?:${anyOf(passing.copulas)})\\s+(?:(?:${anyOf(passing.adverbs)})\\s+)?`
-    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}`,
+    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}${closing(g)}`,
   "iu",
 );
 
