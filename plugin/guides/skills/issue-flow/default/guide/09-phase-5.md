@@ -26,8 +26,8 @@ deployed to, identified by reading back what that deployment answers it is servi
 exit code or a branch head, written onto the issue. The criteria are left as they stand, being the
 brief the judging run works from.
 
-**A criterion the judging run proved impossible is the building side's to correct**, and is the one
-edit to the criteria this arm makes: the code is right and the wording is a claim no code can make.
+**Under an independent judgement, a criterion the judging run proved impossible is the building
+side's to correct**, and is the one edit to the criteria this arm makes: the code is right and the wording is a claim no code can make.
 The judging run's failed verdict says so, and the correction takes the route Phase 3 gives a wrong
 criterion, `forge record correction --corrects criteria:<n>`. It says what made the old wording
 impossible, which is what separates it from one relaxed to match what got built. The judging run

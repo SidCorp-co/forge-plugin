@@ -74,9 +74,9 @@ answering for code nobody shipped. Under an independent judgement that repair is
 against this issue rather than this run resumed, so what it needs is on the record and not in a
 session.
 
-**A criterion the judging run proved impossible is the building side's to correct**, and is neither
-a harm nor a repair: the code is right and the wording is a claim no code can make. The judging
-run's failed verdict says so, and under an independent judgement the correction is a fresh dispatch
+**Under an independent judgement, a criterion the judging run proved impossible is the building
+side's to correct**, and is neither a harm nor a repair: the code is right and the wording is a claim
+no code can make. The judging run's failed verdict says so, and the correction is a fresh dispatch
 against this issue, as a repair is, taking the route Phase 3 gives a wrong criterion, `forge record
 correction --corrects criteria:<n>`. It says what made the old wording impossible, which is what
 separates it from one relaxed to match what got built. The judging run judges it again against the

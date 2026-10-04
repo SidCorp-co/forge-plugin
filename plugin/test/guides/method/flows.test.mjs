@@ -219,7 +219,7 @@ test("Phase 5 under an independent judgement gives a criterion proved impossible
   for (const flow of [DEFAULT, SCREEN]) {
     const held = served(flow, "guide", "issue-flow", "5");
     for (const [n, beat, phrase] of [
-      [flow === DEFAULT ? 1 : 2, "who corrects it", /criterion the judging run proved impossible is the building side's to correct/u],
+      [flow === DEFAULT ? 1 : 2, "who corrects it", /Under an independent judgement, a criterion the judging run proved impossible is the building side's to correct/u],
       [flow === DEFAULT ? 1 : 2, "the record that corrects it", /`forge record correction --corrects criteria:<n>`/u],
       [3, "that it is judged again", /The judging run judges it again against the corrected wording/u],
       [4, "what separates it from relaxing it", /says what made the old wording impossible, which is what separates it from one relaxed to match what got built/u],
