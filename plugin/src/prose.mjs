@@ -37,6 +37,7 @@ const GRAMMAR = {
       adverbs: ["still", "back"],
       reporters: ["reports", "answers", "finishes", "completes", "returns", "runs"],
       quantifiers: ["every", "each", "all"],
+      negations: ["not", "never", "no", "none", "cannot", "nor"],
       verdicts: ["passes", "pass", "passed", "green", "succeeds", "no failure", "no failures"],
       exits: ["exits 0", "exits zero"],
       tails: ["to", "whole", "end", "and", "or"],
@@ -171,7 +172,7 @@ const closing = (g) => `(?=[\`'"]?(?:\\s*(?:$|[.,;:!?)\u2014\u2013])|\\s+(?:${an
 const gateReading = (gates, g, { passing } = g) => new RegExp(
   `${BEFORE}(?:${anyOf(gates)})((?:\\s+-[^\\s\`"')]*)*)${AFTER}[\`'")\\]]?[\\s,\u2014\u2013]*`
     + `(?:(?:${anyOf(passing.copulas)})\\s+(?:(?:${anyOf(passing.adverbs)})\\s+)?`
-    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?:${anyOf(passing.quantifiers)})\\s+(?:[\\p{L}-]+\\s+){0,2}?)?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}${closing(g)}`,
+    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?:${anyOf(passing.quantifiers)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[\\p{L}-]+\\s+){0,2}?)?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}${closing(g)}`,
   "iu",
 );
 
