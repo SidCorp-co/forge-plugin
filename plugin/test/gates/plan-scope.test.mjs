@@ -3,7 +3,7 @@
    credential, which is also what proves the gate asks the tracker nothing. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -152,8 +152,25 @@ test("the gate decides with the tracker unreachable, so it asks the tracker noth
 test("every refusal this gate writes leads with its route", async () => {
   await scope([["ISS-411", PLAN]]);
   const said = writes("plugin/src/unplanned.mjs");
-  assert.match(said.reason, /^Hold — post the correction, then re-send\.\n {2}forge record correction/u);
+  assert.match(said.reason, /^Hold — post the correction if you are building ISS-411, then re-send\.\n {2}forge record correction/u);
   assertRouteFirst(said.reason, "a write outside the plan");
+});
+
+/* ISS-2818: a judge's or a probe's scratch edit is held like a builder's, since no hook knows who is writing, so the same refusal tells that run the correction is not its own and where the edit goes instead. */
+test("a refusal tells a run not building the issue to post no correction and to write in a copy outside the checkout", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const held = runs("sed -i s/a/b/ plugin/src/unplanned.mjs");
+  assert.equal(held.allowed, false);
+  const [, , theirs] = held.reason.split("\n\n");
+  assert.match(theirs, /^Not building ISS-411 — judging it, or probing/u);
+  assert.match(theirs, /The correction is not yours to post/u);
+  assert.match(theirs, /make the write in a copy outside this checkout, under your run's own scratch directory/u);
+  assert.doesNotMatch(theirs, /forge record correction/u);
+  const page = spawnSync(process.execPath, [join(PLUGIN, "src", "cli.mjs"), "hooks", "--how", "plan-scope"], { encoding: "utf8", env: ENV, cwd: ENV.TMPDIR });
+  assert.equal(page.status, 0, page.stderr);
+  const said = page.stdout.replace(/\s+/gu, " ");
+  assert.match(said, /Not building the issue — judging it, or probing: post no correction/u);
+  assert.match(said, /Make the edit in a copy outside the checkout/u);
 });
 
 /* ISS-2445: a `>` in the source a heredoc feeds an interpreter is that program's, and a refusal for
