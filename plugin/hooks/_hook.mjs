@@ -13,7 +13,7 @@ import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, ticksOpened, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { folded, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
-import { fileCalls, spelling } from "../src/hooks/program/call-writes.mjs";
+import { fileCalls } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
 import { LITERALS, RUNS, SHELL, handedIn, literal } from "../src/hooks/program/handed.mjs";
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
@@ -465,7 +465,7 @@ const aimedAt = (name) => {
 const INERT = /[;&|<>$\x60\\#![\]=]/gu;
 /* A heredoc body a shell does not run is another language, so none of it is shell words. What stands in its place: a string it hands a shell, which is that shell's command; a redirect to each literal its file calls write, the one write every reading aims; and a call with a target it computes, flattened and with every character a shell reads blanked, where it leaves nothing open — a reading that keeps every candidate reads what it still spells, and one that strikes what it cannot place strikes it. A bracket, a quote, an assignment or a `cd` in the body then reaches no command after it (ISS-3038). */
 const called = (body, calls, { computed = true } = {}) => calls.map((one) => {
-  const aimed = one.targets.map(({ from, to }) => aimedAt(spelling(body.slice(from, to)))).join("");
+  const aimed = one.targets.map(({ spelt }) => aimedAt(spelt)).join("");
   const flat = one.text.replace(/\s+/gu, " ").replace(INERT, " ");
   return computed && one.computed && closes(flat) ? `${aimed}\n${flat}` : aimed;
 }).join("");

@@ -427,8 +427,9 @@ test("a join keeps the rule of the API that was called", () => {
 
 test("a binding holds every literal a file call places, by the one grammar both read", () => {
   assert.match(py('p = r"rb.md"\nopen(p, "w")'), /open\("rb\.md", "w"\)/u, "a prefixed literal");
-  assert.match(py(`p = """a"b.md"""\nopen(p, "w")`), /open\('a"b\.md', "w"\)/u, "a triple-quoted one holding a quote");
-  assert.match(py('p = "a\\\\b.md"\nopen(p, "w")'), /open\(p, "w"\)/u, "and one escaping a character is placed by neither");
+  assert.match(py(`p = """a"b.md"""\nopen(p, "w")`), /open\("a\\"b\.md", "w"\)/u, "a triple-quoted one holding a quote, written back escaped");
+  assert.match(py('p = "a\\\\b.md"\nopen(p, "w")'), /open\("a\\\\b\.md", "w"\)/u, "one escaping a backslash, written back escaped");
+  assert.match(py('p = "a\\nb.md"\nopen(p, "w")'), /open\(p, "w"\)/u, "and one escaping a control character is placed by neither");
   assert.match(py('root = "/tmp/r"\nopen(root + r"/a.md", "w")'), /open\("\/tmp\/r\/a\.md", "w"\)/u, "a prefixed literal a binding is concatenated with");
   assert.match(py('root = "/tmp/r"\nopen(os.path.join(root, r"a.md"), "w")'), /open\("\/tmp\/r\/a\.md", "w"\)/u, "a prefixed member of a join");
   assert.match(py('root = "/tmp/r"\nopen(f"""{root}/d.md""", "w")'), /open\(f"""\/tmp\/r\/d\.md""", "w"\)/u, "a triple-quoted f-string");
