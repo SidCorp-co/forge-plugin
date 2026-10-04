@@ -29,15 +29,16 @@ const GRAMMAR = {
       "whom", "whose", "that", "as", "so", "once"],
     /* What a command's pass is said with, read only right after a declared gate command: a copula
        takes its verdict at once (`is green`, so `is refused on a clean tree` is no pass), a reporting
-       verb may run a few words before it (`reports every step green`), and a verb in neither list
-       (`records no pass`) is a claim about what the gate does. */
+       verb takes it at once or after a quantifier over the gate's own parts (`reports every step
+       green`, never `reports the word green`), and a verb in neither list (`records no pass`) is a
+       claim about what the gate does. */
     passing: {
       copulas: ["is", "are", "stays", "remains", "turns", "goes", "ends", "comes"],
       adverbs: ["still", "back"],
-      reporters: ["reports", "answers", "reaches", "finishes", "completes", "returns", "runs"],
+      reporters: ["reports", "answers", "finishes", "completes", "returns", "runs"],
+      quantifiers: ["every", "each", "all"],
       verdicts: ["passes", "pass", "passed", "green", "succeeds", "no failure", "no failures"],
       exits: ["exits 0", "exits zero"],
-      negations: ["not", "never", "no", "cannot", "nor"],
       tails: ["to", "whole", "end", "and", "or"],
     },
     /* A bare count before `runs` names that many jobs or sessions as often as a repetition of one,
@@ -170,7 +171,7 @@ const closing = (g) => `(?=[\`'"]?(?:\\s*(?:$|[.,;:!?)\u2014\u2013])|\\s+(?:${an
 const gateReading = (gates, g, { passing } = g) => new RegExp(
   `${BEFORE}(?:${anyOf(gates)})((?:\\s+-[^\\s\`"')]*)*)${AFTER}[\`'")\\]]?[\\s,\u2014\u2013]*`
     + `(?:(?:${anyOf(passing.copulas)})\\s+(?:(?:${anyOf(passing.adverbs)})\\s+)?`
-    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?!(?:${anyOf(passing.negations)})${END})[^\\s,;:.]+\\s+){0,4}?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}${closing(g)}`,
+    + `|(?:${anyOf(passing.reporters)})\\s+(?:(?:${anyOf(passing.quantifiers)})\\s+(?:[\\p{L}-]+\\s+){0,2}?)?)?[\`'"]?(?:${anyOf(passing.verdicts)}|${anyOf(passing.exits)})${END}${closing(g)}`,
   "iu",
 );
 

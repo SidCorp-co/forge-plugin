@@ -104,6 +104,7 @@ test("a criterion naming the gate for what it does rather than for its pass is w
     "Given a deliberately failing fixture, `npm run check` is not green.",
     "`npm run check` is refused on a clean checkout when credentials are missing.",
     "`npm run check` reports the green badge as hidden when a fixture fails.",
+    "`npm run check` reports the word green on stderr when a fixture fails.",
     "A criterion reading \"`npm run check` passes on the branch\" is refused.",
   ];
   const run = await write("ISS-9103", lines);
