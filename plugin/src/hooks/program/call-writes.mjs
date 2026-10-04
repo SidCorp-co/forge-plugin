@@ -73,7 +73,7 @@ const argument = (code, args, [at, key]) => {
   return { from: one.from + skip, to: one.to };
 };
 
-/* The argument as a target carrying what it spells, or `null` where it is no literal `spelling` places. */
+/* A written argument kept as a target with its file name attached, for the call that aims it. */
 const literalAt = (code, one, lang) => {
   const spelt = one && spelling(code.slice(one.from, one.to), lang);
   return spelt === null || !one ? null : { ...one, spelt };
