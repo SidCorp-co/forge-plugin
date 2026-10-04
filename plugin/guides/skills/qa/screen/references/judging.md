@@ -12,6 +12,13 @@ commit to stand in for the deployment, and never work in a builder's worktree. T
 by the landing before the merge, and a suite run again proves nothing new while it loads the machine
 other runs land on.
 
+**Every artifact a verdict cites comes off that deployment.** The same commit rendered anywhere else
+— a local stack, a production build of a checkout, a preview you brought up yourself — is the
+builder's proof and never yours, however exactly its sha matches: an identity read off the wrong
+estate still matches, and the verdict it supports passes code nobody shipped, which is the one
+failure a judge exists to prevent. Where no route reaches what the deployment renders, the criterion
+is `skipped`, its `--why` naming what was missing; a local render is not the fallback.
+
 ## An identity your brief carries is what every verdict names
 
 Where your brief names the deployment identity, read the identity the deployment itself reports
@@ -39,13 +46,17 @@ is a round spent on a value the rung does not read.
 ## Read what the verdicts will be held to, before you judge anything
 
 `forge advance <the issue> --owed` prints it, and it is stricter under a plan declaring a screen
-change: a verdict that captured nothing earns nothing there, whatever its value. Where this project
-holds what reaches the running product, the ordinary shape is what you write — every verdict citing
-the state you took. **Where it holds nothing that reaches one, two shapes still get past**: a skip
-whose reason names what was missing, and a pass citing a render taken where no login is needed.
-Neither is a route round a state you could have captured. Establish which of your criteria you have
-a route to while whoever dispatched you can still equip you, rather than at the write that refuses
-you.
+change: a verdict that captured nothing earns nothing there, whatever its value. It speaks about
+credentials only where the project holds none, so its silence is not a finding that none are held.
+**What the project holds to reach the running product is yours to read rather than to be handed**:
+`forge doctor project` says on its `test credentials` line how many it keeps, and `forge doctor
+--credentials` prints them. Where this project holds what reaches the running product, the ordinary
+shape is what you write — every verdict citing the state you took. **Where it holds nothing that
+reaches one, two shapes still get past**: a skip whose reason names what was missing, and a pass
+citing a render taken on a route of the deployed host that does not authenticate. Neither is a route
+round a state you could have captured, and a skip for want of a credential is written only after
+that read has said none is held. Establish which of your criteria you have a route to while whoever
+dispatched you can still equip you, rather than at the write that refuses you.
 
 **A criterion only a checkout's run reaches is not yours to run.** The gate passing, a test suite
 passing, a run repeated many times or taken under load: no person at the deployment could observe
@@ -72,6 +83,24 @@ count and which criterion is the first carrying none that does. Judge only the c
 verdict that counts. A verdict a stopped run left is a verdict and not a draft: it is judged again
 only where it cites something other than what you were sent to judge.
 
+## What a screen judgement asks
+
+A person opens a screen to answer four questions, and a verdict answers its criterion through them
+rather than beside them:
+
+- does it behave the way this kind of screen behaves in this product — the product's own
+  conventions, not yours;
+- is what it shows clean and usable, set against the way the rest of this product does the same
+  thing;
+- is the data a user reads correct — the numbers, the labels, the locale, the empty and the loading
+  state;
+- does it fit what the person in your charter is actually asking of it.
+
+Ask them while you exercise every criterion, and report what they found on every run, a run that
+found nothing included. They are your subject and not more criteria: they add no criterion, they move
+nothing about what earns `testing`, and a finding from them is held to the harm bar below like any
+other, so one demonstrating no harm goes on the backlog as its own row.
+
 ## How a criterion is exercised
 
 Write the charter before any observation is mapped to a criterion: the role you are playing, the task
@@ -87,20 +116,24 @@ accident rather than on purpose — the empty list, the lapsed session, the fiel
 second submit, the back button. A criterion exercised only down the path that works is a criterion
 you have not tested.
 
-The screen comes first and the source second. A criterion is reached by using the thing answering at
-the identity you were given, and the charter is walked against what renders rather than against what
-the code says will render. Reading the source afterwards is how a finding gets a location — the file
-and the line a behaviour comes from, so the run that has to act on it starts where you finished
-rather than from your prose. Taken the other way round it settles the answer before the observation
-and then goes looking for it, and a verdict whose evidence is a file path and nothing else is a code
-review under a judge's name.
+**Source is read to validate a defect, never to establish a pass.** A criterion is answered by using
+the thing answering at the identity you were given, and the charter is walked against what renders
+rather than against what the code says will render. Where you have seen something wrong there,
+reading the source that produced it is how the finding gets a location — the file and the line a
+behaviour comes from, so the run that has to act on it starts where you finished rather than from
+your prose. Where a criterion looks met, opening the source to confirm it re-derives the proof the
+builder already made under its own contract before the issue reached `developed`: it settles the
+answer before the observation and then goes looking for it, and a verdict whose evidence is the code
+is a code review under a judge's name.
 
 A verdict is worth what its reader can re-run: the steps you took, what you expected, what you
-observed. Attach what you saw. The capture goes through the shell, because a judge that can write the
-tree is one that can fix what it found — so the artifact is a rendered state driven by whatever
-capture tool the project itself installs, a session captured with `script`, or a body fetched into a
-file. The tool is the project's equipment and not yours: check for it by name before you count on it,
-and say it is absent rather than reporting a state you could not take.
+observed. Attach what you saw. The capture goes through the shell because what you attach has to be
+a file somebody else can open, and your account of a screen is not one — so the artifact is the
+rendered state, driven by whatever capture tool the project itself installs, including the empty,
+loading and error states a criterion reaches. A terminal session and a fetched body are not that
+artifact: neither shows what a person sees, and a redirect, a pair of answering routes or a version
+number earn no verdict. The tool is the project's equipment and not yours: check for it by name
+before you count on it, and say it is absent rather than reporting a state you could not take.
 
 **Only a demonstrated harm blocks.** A finding blocks where it demonstrates material harm to a task
 the change is meant to support: the task cannot be completed, its result is materially wrong, work is
@@ -112,8 +145,8 @@ real and neither is this issue's: they go on the backlog as their own rows.
 
 ## What you do not do
 
-You do not edit the criteria you are judging, and you do not fix what you find. Say what you saw and
-leave it.
+You do not edit the criteria you are judging, and you do not fix what you find. Judging and building
+are two runs: say what you saw and leave it for the run that owns the change.
 
 Where the plan declares a person's review, that review is a person's. You do not stand in for one,
 and nothing you write is a substitute for it.
