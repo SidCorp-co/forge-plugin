@@ -211,3 +211,27 @@ test("a project on the screen flow is served every skill a project on the defaul
       `criterion 5: \`forge guide ${slug}\` under the screen flow answers for some other flow`);
   }
 });
+
+/* A judge that proved a criterion's wording impossible and the builder before it each stopped for an
+   owner nobody named, and the issue stood a day at `developed` (ISS-2362): the branch is served in
+   the phase both runs read, under either flow, and in no other phase of the method. */
+test("Phase 5 under an independent judgement gives a criterion proved impossible to the building side, and calls it no stop", () => {
+  for (const flow of [DEFAULT, SCREEN]) {
+    const held = served(flow, "guide", "issue-flow", "5");
+    for (const [n, beat, phrase] of [
+      [flow === DEFAULT ? 1 : 2, "who corrects it", /criterion the judging run proved impossible is the building side's to correct/u],
+      [flow === DEFAULT ? 1 : 2, "the record that corrects it", /`forge record correction --corrects criteria:<n>`/u],
+      [3, "that it is judged again", /The judging run judges it again against the corrected wording/u],
+      [4, "what separates it from relaxing it", /says what made the old wording impossible, which is what separates it from one relaxed to match what got built/u],
+      [5, "that the corrector writes no verdict", /the run that corrected it writes no verdict on it/u],
+      [6, "that it is no stop", /It is none of the three stops/u],
+    ]) {
+      assert.match(held, phrase, `criterion ${n}: Phase 5 under ${flow} no longer says ${beat}, so a run `
+        + "meeting a criterion the judge proved impossible stops for an owner nobody named");
+    }
+    const naming = ran(flow, ["guide", "issue-flow"]).split(/^## /mu)
+      .filter((one) => /proved impossible/u.test(one)).map((one) => /^Phase \d|^[^\n]*/u.exec(one)[0]);
+    assert.deepEqual(naming, ["Phase 5"], `criterion 7: under ${flow} the branch is stated in a phase `
+      + "other than Phase 5, which is a second rule the moment one of them is edited");
+  }
+});

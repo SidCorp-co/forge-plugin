@@ -74,6 +74,16 @@ answering for code nobody shipped. Under an independent judgement that repair is
 against this issue rather than this run resumed, so what it needs is on the record and not in a
 session.
 
+**A criterion the judging run proved impossible is the building side's to correct**, and is neither
+a harm nor a repair: the code is right and the wording is a claim no code can make. The judging
+run's failed verdict says so, and under an independent judgement the correction is a fresh dispatch
+against this issue, as a repair is, taking the route Phase 3 gives a wrong criterion, `forge record
+correction --corrects criteria:<n>`. It says what made the old wording impossible, which is what
+separates it from one relaxed to match what got built. The judging run judges it again against the
+corrected wording, and the run that corrected it writes no verdict on it. It is none of the three
+stops, for either run: undoing it costs a second correction and moves no code, so Rule 3 makes it
+the run's, and no person is waiting on it.
+
 **A criterion the judging run could not reach is a shortfall, not a pass.** Where every criterion
 under a declared screen change would be a skip, what was owed was a credential, a capture route or a
 person — and that is asked for the way Phase 2 asks, not reported at Phase 7 when the judging is
