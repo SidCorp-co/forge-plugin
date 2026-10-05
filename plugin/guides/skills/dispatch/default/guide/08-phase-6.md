@@ -35,17 +35,6 @@ that costs is the readings taken at the candidate it gave up. A branch that will
 parked with its conflict list and lands nothing; the one after it is somebody else's release, so the
 fold carries on rather than stopping at the first refusal.
 
-**A member handed in with a gap saying its own gate gave no verdict is landed in the set like any
-other**, because the candidate's gate is the reading it was handed in for: a builder whose gate the
-machine could not carry stops after one attempt and one wait, and the verification reference says
-what it owes instead. The fold sends it back to gate nowhere and holds the set for no quieter
-machine. Where that member is at fault, the red candidate hands it back as above, and its builder
-fixes it after the set has landed. The landing's own gate is bounded the same way: where it waits
-its minutes for a place and none frees, it has judged no branch and handed none back, and every
-member's checkpoint is still the landing's. The fold records that wait in the section, carries on,
-and lands the set again at the next fold with the command the decline printed, rather than this
-fold waiting on the machine.
-
 **Where the project asks for an independent judge**, the landing stops for one and the fold
 dispatches it: a role of its own, given the issue, its criteria and Outcome, and whatever
 deployment identity the checkpoint names — never the run that built the change, whose own verdicts

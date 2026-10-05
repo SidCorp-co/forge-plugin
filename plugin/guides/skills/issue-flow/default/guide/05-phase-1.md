@@ -32,5 +32,5 @@ Then decide what the issue *is*. Three outcomes, none a stop:
 **Batching.** Issues may share one branch when they are unblocked, touch the same module and are
 proved by one build and smoke run. Each report lists its batchmates, and a group that cannot shed one
 member is one change wearing several keys. Every commit stays independently removable: a member that
-fails its own criteria is dropped and parked, the gates re-run for those left. What a member still
+fails its own criteria is dropped and parked, its checks re-run for those left. What a member still
 earns on its own record: `forge guide contract earning-and-unearning`.

@@ -13,7 +13,7 @@ A default branch checked out in a tree this run does not own is landed by the ch
 claim ISS-nn --pushed --ready`, and never by moving its ref, a move `bash-guard` refuses with the
 paths it would leave stale.
 
-**A plan declaring `Lands no file: yes` cuts no branch and spends no baseline**: the change is
+**A plan declaring `Lands no file: yes` cuts no branch**: the change is
 configuration this repository does not hold, so there is no tree to write in or to measure, and no
 landing to carry it either. The mark is this run's own, written once the configuration is in place,
 at the commit the deployment serves, with nothing moved and nothing written — `forge record merged
@@ -76,5 +76,4 @@ The pass's own shape, what a consult taken to clear a commit gate earns instead,
 record holds: `forge guide contract the-review`.
 
 The order a change is proved in, a migration's classification among it:
-`forge guide issue-flow verification`, read again here for that question, the baseline having been
-Phase 0's.
+`forge guide issue-flow verification`, read again here for that question.

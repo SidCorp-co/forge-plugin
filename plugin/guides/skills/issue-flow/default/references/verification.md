@@ -1,48 +1,20 @@
 # Proving a change, and capturing the evidence
 
-## Before you edit
+## What a run measures
 
-Read the **baseline** Phase 0 owes, then record it with what already fails and
-whether the run measured the whole tree. Whether it was whole is the baseline record's own field, and
-`in_progress` refuses one saying it was not, so that demand is the entry check's rather than this
-page's.
+**A run proves its own change, and the whole-tree gate is the landing's.** The landing spends that
+gate once, on the change merged onto the base as the base is at that moment, and hands a red back
+to the run that built the change with the failing cases named; a gate any run spent before it
+measured a base the landing measures again. So a run takes no baseline and spends no gate: what it
+spends is the suites that exercise the files it touched and the checks that answer in seconds.
+Where the landing is the run's own ship, that ship is the one place the gate is spent. Where it is
+another actor's, the gate typed in a session is refused, and `forge hooks --how landing-gate` says
+why.
 
-**At any rung the baseline may cite a run rather than be one, where a ship published one for the
-commit you are standing at.** A ship publishes the whole-tree result for the head it releases, and
-that record is the only thing a citation may rest on: the write is refused where nothing is
-published for the commit it names, so a citation for some other commit is not a cheap path but a
-wrong one. You are told rather than left to know — `forge advance <ref> --owed` looks that store up
-on the very head the write would stamp, and either prints the write that cites it or says nothing is
-published for that head and names the fresh run. Take the command it prints: the published result
-carries what already fails, and a run retyping that field from memory attributes an inherited
-failure to itself. The write stamps that head only where nothing in the checkout is uncommitted,
-which is why the baseline is recorded before the first edit rather than after it — the entry check
-takes the citation only where the stamped head is the commit cited.
-
-What the check cannot judge is yours. **A gate that stops at its first failure has measured only what
-ran**: one red at the front leaves every step behind it unknown, so run the remaining steps by hand
-and record what each answered before calling the run whole. A baseline that cannot be obtained at all
-is said rather than assumed green — without one a pre-existing red is indistinguishable from your
-regression.
-
-**The baseline above is the only whole run the work owes**, and the ship spends the gate itself, so
-the release's gate is that run and there is nothing left to spend after the push.
-<!-- forge:when rung feature -->
-**The gate is spent once per unit of work**, between those two:
-one scoped run when a unit of work is finished — a change that stands on its own, never each edit
-inside one. A gate too slow to spend once a unit is
-the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
-<!-- forge:end -->
-Whatever else is spent, the changed file's own suite answers one question faster than any gate
-reaches it, and a gate too slow to spend at all is the gate-review skill's to profile.
-Whichever of those runs, what is read is the gate's own verdict rather than its log. Where the project's gate has a call that waits for that verdict,
-that one call is the whole of the wait and the answer both, and the gate's own `-h` names it. A
-completion notice is not that answer: it says a process ended, and a run holding a log with no
-verdict in it cannot tell a gate still running from one that died at a step or one that never
-started — three states, one silence, and a run that waits on the notice for the second or the third
-waits for something nothing will send. Where the gate writes no verdict at all, the log is read when
-the notice arrives and never before, and the verdict it does not write is the project's own defect to
-file.
+**What is read is a check's own verdict, never its log or the notice that it ended.** A completion
+notice says a process ended, and a log with no verdict in it cannot tell a check still running from
+one that died at a step or one that never started. Where a check writes no verdict, its log is read
+once the notice arrives and never before.
 
 **The checks that answer in seconds are spent before a landing is armed, and the file set is put
 beside the review's after them.** A fault the landing is the first thing to meet is paid for at the
@@ -50,29 +22,7 @@ landing's price and paid again at that price after the fix, where the changed fi
 the cheap checkers standing in the tree would have answered while the run was still editing. So
 those go first; then put the paths this change touched beside the file list the review read — `git
 diff --name-only <base>...HEAD` — and settle any difference before the arming rather than leaving it
-for the landing to find, because a review earned over one file set is not a review of another. None
-of this is the gate, and the rung a run claims bounds the gate alone.
-
-<!-- forge:when ship ready -->
-**A gate the machine could not carry is handed to the landing's gate after one attempt and one
-wait, and never started again.** What says so is the gate's own exit, as its `-h` names them: a
-decline for want of a place that the one wait for a place did not clear, a wait for its verdict that
-reached its deadline with the gate still running, a verdict saying it overran the machine rather than
-judged the tree, or a gate that ended having written no verdict at all. How long it took says nothing
-of the kind — a gate that answers late has answered, and its slowness is the gate-review skill's. None
-of those exits is red or green; each is no reading, and a second gate started on the same box answers
-what the first did, so a run that keeps starting one has turned a busy machine into a wait with no
-end. The run stops there and takes the reading that needs no gate place, the review, taken
-at the head it hands over and owing nothing by `forge claim ISS-nn --review`. The checks that answer in seconds are owed as above.
-Then `forge record gap` names the exit the gate gave and says the landing's gate is this change's
-first whole reading, and `forge claim ISS-nn --pushed --ready` hands the branch over. **Where no
-reviewer can be reached either, nothing stands in for the gate and nothing is handed over**: the
-issue is parked as `blocked` on the reviewer, the gate's exit and the reviewer's both in the reason,
-and resumed at this step once one answers. A candidate the landing finds red hands the member at fault back to
-the run that built it, so a fault this run could not see is still its own to fix, later and by the
-route every hand-back takes. **A gate that answered red is not this case**: that reading is of this
-run's tree, and it is fixed here before any checkpoint.
-<!-- forge:end -->
+for the landing to find, because a review earned over one file set is not a review of another.
 
 ## A measurement does not race what it reads
 
@@ -101,7 +51,8 @@ it is measuring.
 
 ## The order
 
-1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.
+1. **The suites that exercise what you changed, and the checks that answer in seconds.** That is
+   the floor; the whole gate is the landing's.
 2. **Schema and deployment coupling, if the change has any.** Establish how a migration
    reaches the deployed environment before the merge — an entrypoint that migrates at boot
    means merging *is* a schema change. Then classify it, statement by statement, by what
