@@ -72,6 +72,14 @@ test("a reopened issue's second landing captures the fix over the first one's do
   assert.ok(bare.stdout.includes(`the worklog for a later capture, at ${short(tip)}, which the second landing begins with:`),
     `the brief says it with no lease on the issue too:\n${bare.stdout}`);
 
+  /* The records the second landing walks by, judged at the fix, as the rebuilt issue earns them:
+     the review of the fix comes before its capture, which refuses a review of any other head. */
+  const { said: bodies, ...fields } = earning(tip);
+  Object.assign(issue(), fields);
+  for (const body of bodies) {
+    comments().push({ documentId: `c-${comments().length + 1}`, createdAt: new Date().toISOString(), authorId: "agent", body });
+  }
+
   const captured = await builderRan(["claim", KEY, "--pushed", "--ready"]);
   assert.equal(captured.status, 0, said(captured));
   assert.equal(landing().state, "ready", said(captured));
@@ -82,12 +90,6 @@ test("a reopened issue's second landing captures the fix over the first one's do
   const again = await builderRan(["resume", KEY]);
   assert.doesNotMatch(again.stdout, /heads: /u, `one head, so nothing to tell apart:\n${again.stdout}`);
 
-  /* The records the second landing walks by, judged at the fix, as the rebuilt issue earns them. */
-  const { said: bodies, ...fields } = earning(tip);
-  Object.assign(issue(), fields);
-  for (const body of bodies) {
-    comments().push({ documentId: `c-${comments().length + 1}`, createdAt: new Date().toISOString(), authorId: "agent", body });
-  }
   git(work, "checkout", "-q", BASE);
   const second = await landingRan([KEY], work);
   const now = sha(join(at, "origin.git"), `refs/heads/${BASE}`);
