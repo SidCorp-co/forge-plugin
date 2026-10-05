@@ -127,7 +127,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "redBatch": "one-by-one",
   "ship": "ready",
   "asks": { "mode": "decide", "owner": ["pricing"] },
-  "ready": { "checks": ["npm run lint"] },
+  "ready": { "checks": ["npx eslint {files}"] },
   "shape": "staged",
   "release": "manual",
   "report": "daily",
@@ -215,7 +215,10 @@ project's rather than the box's so two projects on one machine may answer differ
 `ready.checks` names the checks a run of this project spends before it arms a landing with `forge
 claim <ref> --pushed --ready`: that capture runs them and refuses on a red one, and every capture
 that arms nothing prints them with the file they were read from; absent, nothing runs and nothing is
-printed, the served method naming the cheap checkers without naming any project's. `shape` says
+printed, the served method naming the cheap checkers without naming any project's. A check naming
+`{files}` is handed the files the change touched instead of reading the tree, which is what keeps a
+capture the change's measure rather than the landing's: [the ready checks](docs/cli/the-ready-checks.md).
+`shape` says
 what kind of project this is — `storefront` keeps no repository and the store is its own source of
 truth, `staged` has a preview deployment somebody opens before live, `direct` is live only, so
 preview is this box and a criterion needing a running product is answered by standing it up here.

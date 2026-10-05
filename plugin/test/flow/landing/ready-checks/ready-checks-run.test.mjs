@@ -6,8 +6,8 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
-import { BUILDER, BUILT, CHANGED, checkpoint, declared, field, git, ran } from "./fixture.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
+import { BUILDER, BUILT, CHANGED, checkpoint, declared, field, git, ran } from "../fixture.mjs";
 
 const LOG = join(tempRoom("ready-checks-log-"), "ran.log");
 const logged = () => {
