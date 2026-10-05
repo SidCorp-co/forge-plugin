@@ -5,10 +5,12 @@ import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { listed, unverdicted } from "../../../src/codex/log/replies.mjs";
 import { DROP, consultFor, downSaid, escapeFor, logReader, malformed, readIn, unreadApart, unruled } from "../../../src/codex/log/owed-refusal.mjs";
 import { unreadSaid } from "../../../src/codex/log/unavailable.mjs";
-import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
+import { at, declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, enumOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
-import { NOWHERE, context, deny, directoryAt, how, shellText, spans, typed, done } from "../../_hook.mjs";
+import { WRITER_WORD } from "../../../src/resolve/session/writer-word.mjs";
+import { commandsAt, opensWithAny } from "../../../src/hooks/declared-at.mjs";
+import { context, deny, how, quotedOut, shellText, typed, done } from "../../_hook.mjs";
 
 const GATE = "codex-owed";
 const ESCAPE = escapeFor(GATE);
@@ -18,32 +20,28 @@ const ESCAPE = escapeFor(GATE);
    The declared half alone: a door this project named and armed with no command guards nothing, since
    a table of one repository's own commands, reached from a route that refuses, is a refusal in every
    tree that spells its gate differently and never chose this (G-12). `forge doctor` names it. */
+/* The one door whose command is this plugin's own verb, so no project declares it: a `--ready` capture,
+   whatever the key's form and wherever `--pushed` stands. Read off the command alone with its quoted
+   arguments blanked, so a `--ready` in a comment or inside a quoted value is no flag of the claim. */
+const READY = at(String.raw`${WRITER_WORD}[ \t]+claim\b[^\n;&|]*?[ \t]--ready(?![\w-])`);
+const capturing = (span) => READY.exec(quotedOut(span))?.index === 0;
+
 const heldIn = (tree) => {
   const parsed = projectFileAt(tree);
   const owed = codexOwedOf(parsed?.codex);
-  const classes = declaredClasses(parsed?.stats?.commands ?? null)
-    .filter(([label]) => (owed.unknown ? OWED_DOORS : owed.value).includes(label));
-  return { classes, unknown: owed.unknown, consult: enumOf("codex.consult", parsed).value };
+  const doors = owed.unknown ? OWED_DOORS : owed.value;
+  const classes = declaredClasses(parsed?.stats?.commands ?? null).filter(([label]) => doors.includes(label));
+  return { classes, ready: doors.includes("ready"), unknown: owed.unknown, consult: enumOf("codex.consult", parsed).value };
 };
 
-/* Every command of the line against the tree the shell stands in AT that command, and every tree it
-   reaches rather than the first: a `cd` into another project moves both what a gate command is and
-   whose record owes, and a line gating in two trees would judge the second one's content too. */
+/* `commandsAt` says which tree each command is read in; what is added here is that every tree
+   counts, not the first: a line gating in two trees judges the second one's content too. */
 const heldBy = (text, cwd) => {
-  const seen = new Map();
   const found = [];
   let unreadable = false;
-  for (const { start } of spans(text, { pipes: true })) {
-    const stood = directoryAt(text, start, cwd);
-    const tree = stood === NOWHERE ? null : stood;
-    /* A destination no reading can name leaves the shell's own list to say whether this asks at all,
-       which settles the asking and never the answer: a tree that never chose this is refused nothing. */
-    const asks = tree ?? cwd;
-    if (!seen.has(asks)) seen.set(asks, heldIn(asks));
-    const { classes, unknown, consult } = seen.get(asks);
-    const here = text.slice(start);
-    if (!classes.some(([, match]) => match.exec(here)?.index === 0)) continue;
-    /* This gate's answer to a door behind that destination: the tree is unreadable, and the call is refused below. */
+  for (const { tree, held: { classes, ready, unknown, consult }, here, span } of commandsAt(text, cwd, heldIn)) {
+    if (!opensWithAny(classes, here) && !(ready && capturing(span))) continue;
+    /* This gate's answer to a door behind a destination no reading names: the tree is unreadable, and the call is refused below. */
     if (!tree) {
       unreadable = true;
       continue;

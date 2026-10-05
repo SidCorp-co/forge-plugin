@@ -1,85 +1,23 @@
 # codex — the check
 
-The one thing in this design the reviewer runs for itself. What a finding coming back has to carry:
+The reviewer runs nothing for itself. What a finding coming back has to carry:
 [the finding](codex-the-finding.md). What a round buys: [the round](codex-the-round.md).
 
 **No local agent.** The first engine spawned a `claude` session with `--allowedTools Read Grep Glob`;
 that flag auto-approves and does not confine, so the child inherited this machine's skills, answered a
 review prompt by running a multi-agent review skill, and had to be killed by pid after eleven minutes.
-The one exception since is `codex.check`: a command the *checkout* names in its own configuration, run at most
-once per consult under a clock, exit code and tail returned. "The tests pass" was the claim every review
-said it could not verify; a fixed command it did not choose is not a shell.
+The tools a reviewer is handed read the checkouts under review and nothing else.
 
-**And the clock is `codex.checkMs`, which is the half that had no surface.** A check stopped at it
-costs the consult one of its few tool calls and hands back nothing, so the review that follows rules
-by reading and says so — 33 of 1,119 consults over one week here, 13 of which closed saying they
-could not check (ISS-1882). The key that moves that clock is the project's own, so the pair has to
-be legible together rather than one in a config and the other in this module: `forge codex show`
-prints the command with the budget in force, `forge doctor` prints it beside how often this
-machine's log recorded that same command stopped at or above it, and the
-refusal the reviewer is handed names the clock and the key. None of those says the command will fail
-— a check that returns early returns under any clock — and the budget a project wants is the one its
-own recorded stops fall under, which is why the count is compared against the budget in force rather
-than kept flat.
+**And no check either.** For a while the one exception was a command the checkout named, run once per
+consult under a clock, because "the tests pass" was the claim every review said it could not verify.
+Two things ended it. The landing gates every change on the base as it is, so a suite a reviewer ran
+measured nothing the landing would not; and it was the one call that could outlive the consult that
+made it — 26 of the 78 consults here that ran or cut a check returned after the caller's call had
+already ended, against 3 of the 5,935 that ran none (ISS-2108). Only the landing runs the whole-tree
+gate (ISS-3184), so the reviewer is offered no command at all.
 
-**And the clock is a share of the consult's now, because advice to set it below one was advice
-nobody took.** The two numbers were independent, so this project handed its check the whole of what
-a caller waits in one call, and 26 of the 78 consults here that ran or cut a check returned after
-that call had already ended, against 3 of the 5,935 that ran none. The twelve stopped at that clock
-are the arithmetic rather than the anecdote: every one of them ran a further 55.9s to 117.9s past
-the stop, so a clock equal to what the caller waits loses the call even when it fires, whatever the
-command underneath it does (ISS-2108). A check is therefore given no number of its own. The most it
-may ever have is the budget less a share held back for the calls after it and the reply it streams,
-and what it is handed at the call it is made on is that less whatever the consult has spent by then
-— because five calls can spend the room a static cap assumed was there, and an abort signal cannot
-reach into a synchronous spawn to take that room back. A project declaring less than the room keeps
-what it declared; one declaring more is refused where it writes and told where it stands where it
-wrote before any of this; and a consult with nothing left to spare refuses the call rather than
-starting the one check no clock can stop. None of it promises that a command fits: the suite this
-repository declares does not, and narrowing what is declared is ISS-1957's.
-
-**And the round now says which of five things became of the offer.** Whether a reviewer took it was
-in no field at all: a row logged the tools called and the calls refused, and neither tells a consult
-that was offered the command and let it alone from one taken where nothing names a command. Over
-seven days on the machine that raised it, 1,778 of 1,814 answered consults called nothing and no
-artifact of any of them said so, so a run that wanted to know read the reply for an absence — which
-is a thing found after it has already acted on the review (ISS-1898). The row now carries `check`,
-one of `ran`, `cut`, `failed`, `declined` and `none`, and `checkCommand` beside it, the command as
-the scope froze it, so the row stays legible after the project has moved its own `codex.check` off
-that value. The consult prints the word where it prints what the round cost, `forge codex log` puts
-it on the line and the command under `--full`, and `none` is written rather than omitted because a
-row carrying no field is one from before any of this and that is something else to know. Nothing
-refuses on the word and no review is worth less for reading `declined`: the narrowing is deliberate
-and a review by inspection is most of what a review is. What was wrong was that taking the offer and
-leaving it alone read the same.
-
-**And a red now hands back what failed, not only that something did.** The window is the end of the
-output, and a suite puts its counts there and the line naming the case thousands of lines above:
-`npm test` in this repository prints 1,047,557 characters over 4,195 top-level TAP subtests and 23
-of them start inside the last 6,000, so one red in 182 could name its case and the rest reached the
-reviewer as a number with nothing attached — two consults on ISS-1898 reported a failing test that
-nobody, then or since, has been able to identify. What changed is what is selected into the window
-rather than how big it is: a non-zero run's failures are read out of the output's own TAP and put
-above the tail, each with whatever its diagnostic carried of where it failed, what kind of failure
-it was, and the assertion itself. The stack and the operands stay out, every line spent there being
-one the tail loses, and a run naming more failures than the bound says how many it did not name. The
-block is held to the size of the tail it sits above, so what a red costs is bounded whatever the
-command printed: a count, a value and a name are each bounded on their own, and none of the three
-settles what a page of them comes to.
-TAP because a format that announces itself is read exactly where a vocabulary of failure words is
-guessed at, and node's runner writes TAP whenever its stdout is not a terminal, which under this
-spawn it never is. Output that is not TAP is handed back exactly as it was before, the tail and
-nothing else: this promises to read the failures a command named, never to invent them for one that
-named none. Nor does it say whose the failure is — the red that raised this was most likely the
-box refusing a fixture its temporary room, a thing this machine's own gate ledger has recorded 512
-times, and the reason that could not be said at the time is that the sentence saying it was outside
-the window (ISS-1901).
-
-**The environment the check runs under is composed rather than inherited.** The spawn passed none at
-all, so the command ran under whatever the consulting process happened to carry. It now runs under
-this CLI's own copy of that environment with `FORGE_SESSION_ID` taken out: a check is the project's
-command and not the run that consulted, and one reading that variable would write to the tracker as
-a run it is not. `TMPDIR` is kept on purpose — a delegated run's scratch root is where a check's
-leftovers belong, and it is what that run's own cleanup removes. What this does not claim is that
-the inheritance was the defect: one arm of the same spawn, with that environment in place and under
-three times the load of the occasion complained of, ran the same command green at 4,251 of 4,251.
+**What the key still does.** `codex.check` names the checks a consult tells the reviewer this
+project runs, where the caller passes no `--checks`, so a finding one of them already refuses is
+left out rather than spent a round on. Nothing runs it, so `forge doctor` reports a `codex.checkMs`
+still set as a miss: a clock for a check that never starts. Log rows written before this
+still carry `check` and `checkCommand`, and `forge codex log` prints them as the history they are.

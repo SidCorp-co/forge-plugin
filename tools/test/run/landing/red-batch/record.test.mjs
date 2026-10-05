@@ -62,17 +62,6 @@ test("a red set the search halves is resolved as split with its rounds and the g
   assert.deepEqual(resolved.back, [THIRD_KEY], said);
 });
 
-test("a search a declined gate place stopped is resolved as unread with the gates it spent", async () => {
-  const { work } = three();
-  judging([
-    { when: ["one"], step: "check:dup", says: DUP_SAYS },
-    { when: ["two", "three"], exact: true, status: 75 },
-  ]);
-  const { said, resolved } = await recorded(work);
-  assert.equal(resolved.outcome, "unread", said);
-  assert.equal(resolved.gates, 2, said);
-});
-
 const MEMBERS = [{ key: "ISS-1" }, { key: "ISS-2" }, { key: "ISS-3" }];
 
 test("a search whose subset does not merge names every member as landed alone", () => {

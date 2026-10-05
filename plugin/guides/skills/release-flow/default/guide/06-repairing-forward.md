@@ -5,7 +5,8 @@ imagination leaves out — is that the fix is code that does not exist yet. That
 release job, not handed away from it:
 
 **Land the fix. Promote it. Deploy it. Verify it.** Four steps, in that order, all within the run you
-are already in. The release is not finished and nothing else is waiting on your handover; a fix
+are already in. The fix lands by the project's landing route, whose gate is the only whole one it
+gets. The release is not finished and nothing else is waiting on your handover; a fix
 pushed to somebody else at this point is a release left half done with a person owed an explanation
 nobody wrote.
 

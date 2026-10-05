@@ -6,7 +6,8 @@ import { didYouMean } from "./suggest.mjs";
 import { blockedLine, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, typedRefusal,
   verbForPluginDefect } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
-import { retiredRefusal } from "./resolve/retiring.mjs";
+import { retiredRefusal } from "./resolve/gone/retiring.mjs";
+import { absentSaid } from "./resolve/gone/absent.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
@@ -141,6 +142,11 @@ if (form) {
    prototype member ran it and exited 0. */
 if (asked || !command || !Object.hasOwn(commands, command)) {
   if (command && !asked) {
+    const absent = absentSaid("verb", command);
+    if (absent) {
+      console.error(`\`forge ${command}\` is no verb of this CLI, and ${absent}.`);
+      process.exit(1);
+    }
     const verbs = offered.map(([verb]) => verb);
     console.error(didYouMean("verb", command, verbs, routeSaid(command, verbs) ?? LIST_ROUTE));
     process.exit(1);

@@ -1,12 +1,10 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
-import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, OWED_DOORS, RUNS_TAKES,
-  checkCeilingMs, codexCheck, codexOwed, checkoutRoot, enumScope, feedbackScope, machineLeftovers,
+import { FEEDBACK_CHANNELS, fromProject, OWED_DOORS, RUNS_TAKES,
+  codexCheck, codexOwed, projectCodex, checkoutRoot, enumScope, feedbackScope, machineLeftovers,
   parallelRuns, projectWorkPattern } from "../../../resolve/settings.mjs";
 import { ENUM_KEYS, meaningOf, valuesOf } from "../../../resolve/project/enum-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
-import { logBytes } from "../../../codex/codex-log.mjs";
-import { checkStops } from "../../../codex/log/asked.mjs";
 import { anglesShown } from "../../../codex/codex-plan.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
@@ -90,11 +88,13 @@ const owedRow = () => {
   const root = checkoutRoot();
   const declared = root ? declaredIn(root) : null;
   const unarmed = unarmedDoors(owed.value, declared);
-  const commands = Object.fromEntries(owed.value.map((one) => [one, declaredCommands(one, declared)]));
+  /* `ready` is this plugin's own verb, so it is armed by nothing a project declares. */
+  const commands = Object.fromEntries(owed.value.map((one) =>
+    [one, one === "ready" ? ["forge claim <key> --pushed --ready"] : declaredCommands(one, declared)]));
   const armed = owed.value.filter((one) => !unarmed.some((door) => door.label === one))
     .map((one) => armedSaid(one, commands[one]));
   if (!unarmed.length) {
-    const arming = owed.value.some((one) => commands[one].length)
+    const arming = owed.value.some((one) => one !== "ready" && commands[one].length)
       ? `, and each command door at what \`${DECLARES}\` names` : "";
     return { label: "codex.owed", detail: `${armed.join(", ")} — each held until a consult has read `
       + `what it would judge${arming}  ← ${owed.from}` };
@@ -109,46 +109,17 @@ const owedRow = () => {
     + `  ← ${owed.from}` };
 };
 
-const WEEK = 7 * 24 * 60 * 60 * 1000;
-
-/* What the log can and cannot settle. A consult row names the checkout it ran in and no project, so
-   two projects declaring one command are one record here: the recorded stops are reported as what
-   they are, each with its own checkout, and the two readings that ARE a miss are the ones
-   configuration settles on its own (ISS-1882, consult 30fdbc F1). Neither says the command will
-   fail — a check that returns early returns under any clock. */
-const stoppedSaid = (check) => {
-  const stops = checkStops(logBytes(), { command: check.command, ms: check.ms, since: Date.now() - WEEK });
-  if (!stops.length) return "";
-  return `. This machine's consult log holds ${stops.length} consult(s) in the last 7 days whose `
-    + `check of that command was stopped at or above ${check.ms / 1000}s, the newest on `
-    + `${stops[0].at.slice(0, 10)} in ${stops[0].root ?? "a checkout it did not record"}`;
-};
-
-/* Silent where the project declared no check: the reviewer is then given no such tool at all, and a
-   row about a clock nothing runs under is a line every project without the key would read (G-12). */
+/* Silent where the project declared none (G-12); what the key means is `codexCheck`'s. A clock left
+   beside it is read by nothing, and is said so with the call that clears it. */
 const checkRow = () => {
   const check = codexCheck();
-  if (!check) return null;
-  /* The most a check may be given, which is what a reading taken before any consult can answer for:
-     the clock one round hands the spawn is that less whatever the consult has spent by then, and a
-     row printing a figure without saying which of the two it is has a run reading its own
-     configuration as the allowance a stopped check had (ISS-2108). */
-  const clock = `${check.command} \u2014 at most ${check.ms / 1000}s  \u2190 ${check.msFrom}`;
-  if (check.unknown !== undefined) {
-    return { level: MISS, label: "codex.check", detail: `${check.unknown} is no value of \`codex.checkMs\` `
-      + `\u2014 it takes ${CHECK_MS_TAKES}; reading ${clock}` };
+  if (projectCodex().checkMs !== undefined) {
+    return { level: MISS, label: "codex.checkMs", detail: `${JSON.stringify(projectCodex().checkMs)} is read by `
+      + `nothing: a consult runs no check, so no clock is given one. Drop it from ${fromProject()}` };
   }
-  /* The one reading configuration settles on its own: both numbers are on disk before a consult is
-     spent, so a declaration no consult can honour is said here rather than met by a caller whose own
-     call has already died. */
-  if (check.over !== undefined) {
-    return { level: MISS, label: "codex.check", detail: `${check.over} is past the `
-      + `${checkCeilingMs()} \`codex.checkMs\` may name \u2014 ${CHECK_MS_SPARED()} \u2014 so `
-      + `${check.command} runs at most ${check.ms / 1000}s instead. Lower it in ${fromProject()}, or `
-      + `raise \`codex.budgetMs\` where the caller can wait longer than one call` };
-  }
-  const stopped = stoppedSaid(check);
-  return { level: stopped ? "note" : undefined, label: "codex.check", detail: `${clock}${stopped}` };
+  return check
+    ? { label: "codex.check", detail: `${check.command} \u2014 the checks a consult names where \`--checks\` names none${arrow(check.from)}` }
+    : null;
 };
 
 const runsRow = () => {
@@ -157,7 +128,7 @@ const runsRow = () => {
   return { label: "parallel runs", detail: runs.value
     ? `${runs.value} at once for the whole project, whoever dispatched them, so a second master sizes `
       + `itself by what is left rather than taking this number afresh  ← ${runs.from}`
-    : "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling" };
+    : "unset, so a wave is sized by whoever dispatches it" };
 };
 
 /* Three answers: an absent key and a pattern that will not compile decide the same claim and mean

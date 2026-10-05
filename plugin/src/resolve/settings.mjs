@@ -474,11 +474,13 @@ export const chosen = (given, allowed, fallback, { source = fromProject(), absen
     : { value: fallback, from: absent, unknown: held };
 };
 
-export const OWED_DOORS = ["gate", "commit", "ship"];
-const OWED_ABSENT = ["commit"];
+export const OWED_DOORS = ["gate", "commit", "ship", "ready"];
+/* The ready capture beside the commit: the landing gates whatever the capture names, so a consult
+   still owed there is one nothing asks for again until a gate has been spent on the change. */
+const OWED_ABSENT = ["commit", "ready"];
 
 /** Every door at which a consult is demanded, read by each hook that holds one so none keeps a second
- *  copy. Absent is the commit alone, what this did before the key; an empty list is the off switch. */
+ *  copy. Absent is the commit and the ready capture; an empty list is the off switch. */
 export const codexOwedOf = (codex) => {
   const given = codex?.owed;
   if (given === undefined || given === null) return { value: OWED_ABSENT, from: PLUGIN_DEFAULT };
@@ -492,8 +494,6 @@ export const codexOwedOf = (codex) => {
 
 export const codexOwed = () => codexOwedOf(projectCodex());
 
-export const CHECK_MS_TAKES = "a whole number of milliseconds above 0";
-
 /* The one figure here that no code can read for itself. A consult is spent inside one call of
    whatever tool asked for it, and an answer arriving after that call has ended is one the caller
    paid five model calls for and never sees; this is the foreground ceiling of the harness this
@@ -505,43 +505,12 @@ const CALLER_CALL_MS = 600_000;
  *  than a second number standing beside it, so a bound on any one part is read against the sum. */
 export const budgetMs = () => Number(userConfig().codex?.budgetMs || CALLER_CALL_MS);
 
-/** What a consult holds back from its check for the calls that follow it and the reply it streams.
- *  Measured rather than chosen: of the consults on the machine that raised ISS-2108 whose check was
- *  stopped at its clock, every one ran a further 55.9s to 117.9s past it, and those offered a check
- *  and not running one read a 99th centile of 166.9s for a whole consult. */
-export const AROUND_CHECK_MS = 120_000;
-
-/** The most a check may ever be given, which is what it has at a consult's first call. What it is
- *  handed at the call it is actually made on is that less what the consult has spent by then, and
- *  `codex/codex-tools.mjs` is where the two meet: a configuration is judged against this figure and
- *  never against the allowance one round happened to have left (BR-08). */
-export const checkCeilingMs = () => budgetMs() - AROUND_CHECK_MS;
-
-/** Where that ceiling came from, for the surfaces that print it, and what the key will take, for the
- *  write that refuses past it — the same arithmetic said the two ways its two readers need. */
-export const CHECK_MS_SPARED = () => `what a consult can spare a check: its ${budgetMs() / 1000}s `
-  + `budget less the ${AROUND_CHECK_MS / 1000}s after one`;
-export const CHECK_MS_AT_MOST = () => `at most ${checkCeilingMs()}, ${CHECK_MS_SPARED()}`;
-
-/** The budget alone, the reader below reaching it only once a command is declared: a `checkMs` written on its own is judged by nobody until one is, so a write of that key asks this directly rather than through the reader that would pass over it. The type is asked before the value, `Number` reading `true` as 1 and `[600000]` as 600000, and what the key will not take is carried stringified rather than cast, `""` and `[]` casting to nothing at all and a row naming nothing being the row a project that set the key legally would read (BR-14). `over` is the third answer and the one this key grew: a number of the shape it asks for that no consult can honour is an input written and then ignored wherever nothing says so, so the reader carries what was declared beside the ceiling that displaced it. */
-export const checkMsOf = (given) => {
-  const spared = { ms: checkCeilingMs(), msFrom: CHECK_MS_SPARED() };
-  if (given === undefined || given === null) return spared;
-  if (!(typeof given === "number" && Number.isInteger(given) && given > 0)) {
-    return { ...spared, unknown: JSON.stringify(given) };
-  }
-  return given > spared.ms ? { ...spared, over: given } : { ms: given, msFrom: fromProject() };
+/** The checks a project says it runs before a change lands, which a consult names to the reviewer
+ *  where its caller names none; the reviewer runs nothing. Null where the project declares none. */
+export const codexCheck = () => {
+  const command = projectCodex()?.check;
+  return command && typeof command === "string" ? { command, from: fromProject() } : null;
 };
-
-/** The check a project declares for the reviewer, with the clock it runs under: the command, the most that clock may be in milliseconds and where each was read. Null where the project declares no command, that being the case the reviewer is given no such tool at all rather than one with a default. */
-
-export const codexCheckOf = (codex) => {
-  const command = codex?.check;
-  if (!command || typeof command !== "string") return null;
-  return { command, from: fromProject(), ...checkMsOf(codex?.checkMs) };
-};
-
-export const codexCheck = () => codexCheckOf(projectCodex());
 
 export const FEEDBACK_CHANNELS = ["off", "bugs", "all"];
 const FEEDBACK_DEFAULTS = { plugin: "bugs", project: "all" };
@@ -647,7 +616,7 @@ export const releaseScope = (at = null) => (at === null ? enumScope("release")
 
 export const RUNS_TAKES = "a whole number above 0";
 
-// How many runs this project carries at once, whoever dispatched them: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. One ceiling over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The key is the PROJECT's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two projects on one box each answer for their own work and neither inherits the other's; the file holding it is this MACHINE's, per ISS-1403, so two boxes carrying one project may differ. The two are one shape and neither reverses the other: the store is keyed on the project and kept on the device. Absent it is null, and every reader then behaves as it did before the key existed.
+// How many runs this project lets work at once, whoever dispatched them: the width of a wave a master fills. One number over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The key is the PROJECT's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two projects on one box each answer for their own work and neither inherits the other's; the file holding it is this MACHINE's, per ISS-1403, so two boxes carrying one project may differ. The two are one shape and neither reverses the other: the store is keyed on the project and kept on the device. Absent it is null, and every reader then behaves as it did before the key existed.
 export const runsOf = (given) => {
   if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
   const held = Number(given);

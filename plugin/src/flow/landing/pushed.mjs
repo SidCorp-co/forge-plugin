@@ -18,8 +18,7 @@ const again = (ref) => `forge claim ${ref} --pushed --ready`;
 
 /* The sha origin answers for the branch, "" where it holds none, or the failure git gave. Bounded,
    and with no prompt for credentials, since nobody is at this terminal to answer one and a capture
-   that waits forever is not a refusal; the bound is the one `forge baseline publish` gives the same
-   question. */
+   that waits forever is not a refusal. */
 const REMOTE_MS = 30_000;
 
 export const remoteTip = (branch, { cwd = process.cwd(), ms = REMOTE_MS } = {}) => {

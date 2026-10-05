@@ -13,7 +13,7 @@ import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
 import { SAYS as CODEX } from "../../src/codex/codex.mjs";
 import { kindUsage } from "../../src/flow/record/record-rows.mjs";
-import { retiredFlagIn, retiredRefusal } from "../../src/resolve/retiring.mjs";
+import { retiredFlagIn, retiredRefusal } from "../../src/resolve/gone/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, reachFor, unknownFlag } from "../../src/resolve/flags.mjs";
 import { LIST_USAGE, READ_USAGE } from "../../src/commands.mjs";
@@ -408,6 +408,15 @@ test("a verb nobody has is answered with the way to the list, and never with the
   assert.doesNotMatch(wholeOf(run), /Usage: forge </u, "the list is what `forge -h` prints when it is asked for");
   assert.equal(wholeOf(run).trimEnd().split("\n").length, 1, wholeOf(run));
   assert.ok(wholeOf(run).length < BUDGET, `${wholeOf(run).length} characters for one miss: ${wholeOf(run)}`);
+});
+
+/* A verb removed on purpose is answered with why, not with a nearest name: a run recalling it from an older method would otherwise go looking for the write that replaced it, and there is none. */
+test("the baseline verb is refused as one this CLI does not have, saying the landing's gate measures the tree", async () => {
+  const run = await ran("baseline", "publish", "--commit", "abc1234", "--result", "green", "--scope", "whole");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^`forge baseline` is no verb of this CLI, and there is no baseline: the landing's gate measures the tree, so a run records none and runs none\.$/mu);
+  assert.doesNotMatch(run.stderr, /Did you mean/u, "and no nearest name is offered for it");
+  assert.equal(wholeOf(run).trimEnd().split("\n").length, 1, wholeOf(run));
 });
 
 test("a name for a call spends one sentence on the call, not thirty-three lines on the catalogue", async () => {

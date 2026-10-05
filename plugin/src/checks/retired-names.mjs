@@ -1,7 +1,7 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
    entry names no replacement: pointing at what took over is the redirect docs/cli/retiring-a-name.md forbids. */
 import { lineAt } from "../markdown.mjs";
-import { RETIRING } from "../resolve/retiring.mjs";
+import { RETIRING } from "../resolve/gone/retiring.mjs";
 
 export const RETIRED = [
   { name: "feedback", kind: "directory", release: "3.35.45" },

@@ -113,15 +113,6 @@ test("ISS-2425 8. a push the base moved under ends that attempt for cause moved-
   assert.deepEqual(endings(KEY).map((one) => [one.outcome, one.cause]), [["back", "moved-base"], ["landed", null]], said);
 });
 
-test("ISS-2425 9. a declined gate place ends the attempt for cause declined, and its gate record holds no seconds", async () => {
-  const { work, head, base } = world({ base: "other", gate: JUDGED_GATE });
-  seeded({ landing: ready(head, base) });
-  judging([{ when: ["one"], status: 75 }]);
-  const { said, gates, ended } = await recorded([KEY], work);
-  assert.deepEqual([ended(KEY).outcome, ended(KEY).cause], ["back", "declined"], said);
-  assert.deepEqual([gates[0].verdict, gates[0].seconds], ["declined", null], said);
-});
-
 test("ISS-2425 10. a tracker refusal ends every attempt of the set for cause tracker", async () => {
   const { work, head, next, base } = world({ base: "other", second: true });
   seeded({ landing: ready(head, base), next: beside(next, base) });

@@ -81,7 +81,7 @@ test("a gate the project named waits for the documents it would judge, and says 
   assert.doesNotMatch(because(out), /for the session/iu);
 });
 
-test("a door the project did not name holds nothing, and the key absent holds only the commit", () => {
+test("a door the project did not name holds nothing, and the key absent holds only the commit and the ready capture", () => {
   assert.equal(gate({ command: "node tools/run.mjs ship" }), null, "`ship` is not in this project's list");
   assert.equal(gate({ command: "ls -la" }), null, "and a call that is no door at all");
   assert.equal(gate({ command: "npm run check", project: { slug: "fixture", codex: { owed: [] } } }), null,
@@ -171,13 +171,61 @@ test("a finding nobody ruled on holds the gate, with the disposition that closes
   assert.match(out, /forge codex verdict --of c9 --accepted/u);
 });
 
+/* The landing gates whatever a ready capture names, so a consult still owed at the capture is one
+   nothing asks for again until a gate has been spent on the change. The door's command is this
+   plugin's own verb: no project declares it, and the key left out holds it beside the commit. */
+const READY = "forge claim ISS-7 --pushed --ready";
+const ABSENT = { slug: "fixture" };
+
+test("a ready capture with a change no consult has read is held, whatever form the capture takes", () => {
+  for (const command of [READY, "forge claim --ready --pushed ISS-7", `cd ${REPO} && forge claim 1a2b-uuid --pushed --ready`]) {
+    const out = gate({ command, project: ABSENT });
+    assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny", `${command} is the ready door`);
+    assert.match(because(out), /Codex has not read what this call would judge/u);
+    assert.match(because(out), /forge codex consult --diff --only blocker,major/u, "with the consult that reads it");
+  }
+  assert.equal(gate({ command: "forge claim ISS-7 --pushed", project: ABSENT }), null, "a capture that arms nothing is no door");
+  assert.equal(gate({ command: "forge claim ISS-7 --pushed; echo --ready", project: ABSENT }), null,
+    "and a flag in another command of the line is not this one's");
+  assert.equal(gate({ command: "forge claim ISS-7 --pushed # next capture uses --ready", project: ABSENT }), null,
+    "nor one in a comment after the claim, which the shell never hands it");
+  assert.equal(gate({ command: 'forge claim ISS-7 --pushed --next "then --ready"', project: ABSENT }), null,
+    "nor one inside a quoted value of another flag");
+  assert.equal(gate({ command: `${READY} # armed`, project: ABSENT })?.hookSpecificOutput?.permissionDecision, "deny",
+    "while the real flag before a comment is still the capture");
+});
+
+test("a ready capture with a finding nobody ruled on is held, with the disposition that closes it", () => {
+  const found = { kind: "consult", id: "c8", at: at(300_000), root: realpathSync(REPO), ok: true, files: ["a.mjs"],
+    reply: "- **F1 — New — major:** `a.mjs:1` — x." };
+  const out = because(gate({ command: READY, pending: null, log: lines(found), project: ABSENT }));
+  assert.match(out, /Consult c8 made F1 on a\.mjs; nothing says what became of F1/u);
+  assert.match(out, /forge codex verdict --of c8 --accepted/u);
+});
+
+test("a ready capture after a clean, ruled read goes", () => {
+  const text = "// the bytes that went up, ready\n";
+  const read = { kind: "consult", id: "c7", ok: true, root: realpathSync(REPO), at: at(300_000),
+    reply: "no blocker found", files: ["work.mjs"],
+    sent: [{ rel: "work.mjs", sha: digest(text), chars: text.length, clipped: false }] };
+  assert.equal(gate({ command: READY, held: text, log: lines(read), project: ABSENT }), null);
+});
+
+test("a project that names its doors without ready is not held at the capture", () => {
+  assert.equal(gate({ command: READY, project: { slug: "fixture", codex: { owed: ["commit"] } } }), null,
+    "its own choice, read the way every other door is");
+  assert.equal(gate({ command: READY, project: { slug: "fixture", codex: { owed: [] } } }), null, "nor under the off switch");
+  assert.equal(gate({ command: READY, project: { slug: "fixture", codex: { owed: ["ready"] } } })
+    ?.hookSpecificOutput?.permissionDecision, "deny", "and naming it holds it with no command declared");
+});
+
 test("a value the key does not take is refused with the key named, and nothing is guessed", () => {
   for (const owed of [["refuse"], "gate", [1]]) {
     const out = because(gate({ command: "npm run check", project: { ...GATED, codex: { owed } } }));
     assert.match(out, /is no door this reads/u, `\`${JSON.stringify(owed)}\` was taken for something`);
     assert.match(out, /^Name only doors out of .* in `codex\.owed`, or drop the key/u, "the key is named, in the route");
     assert.match(out, /is a list of the doors a consult is demanded at/u, "and what it holds, after the route");
-    assert.match(out, /gate, commit, ship/u, "with what it takes");
+    assert.match(out, /gate, commit, ship, ready/u, "with what it takes");
     assert.match(out, /until `forge hooks --on codex-owed`/u, "and the switch, as every other refusal names it");
   }
 });

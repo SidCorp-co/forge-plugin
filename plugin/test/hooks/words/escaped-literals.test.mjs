@@ -69,7 +69,7 @@ test("a bound value folded into an f-string keeps its escapes", () => {
     "and a raw one that cannot carry its own quote is not folded");
 });
 
-const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("escaped-literals");
 
 test("the learning gate refuses a skill write a python body spells with an escape", () => {

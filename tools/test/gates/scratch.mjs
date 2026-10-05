@@ -35,14 +35,8 @@ export const reachedFrom = (roots) => {
 };
 
 // The runner, and the reporter and the preload `steps.mjs` names by path: a walk sees no runtime specifier.
-// The modules the runner reaches only by a literal dynamic import, which a static reach cannot see:
-// `--baseline`'s, the two `worklog.mjs` loads in its turn, the clause reader `codex-tools.mjs` loads for `read_spec`,
-// and the brief reader `codex-api.mjs` loads for the debt angle's goals.
 export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs"),
-  join("plugin", "test", "fixtures", "process", "isolated.mjs"),
-  join("tools", "gates", "baseline.mjs"), join("plugin", "src", "codex", "codex-log.mjs"),
-  join("plugin", "src", "codex", "log", "replies.mjs"), join("plugin", "src", "spec", "verbs.mjs"),
-  join("plugin", "src", "tracker", "knowledge", "brief.mjs")];
+  join("plugin", "test", "fixtures", "process", "isolated.mjs")];
 
 // `recurrence.mjs`'s own, and `project-config.mjs` and `guides.mjs`, which every `write()` reaches
 // the same way — the first to resolve the project, the second to read what the tracker warned about
@@ -189,7 +183,7 @@ const scripts = (marks) =>
    `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at,
    `hanging` a step that prints `HOLDING` and then never returns, so a gate can be held open. */
 export const scratch = (name, failing, leaking,
-  { also = [], slug = null, hanging = null, runs = null, declares = null, needing = null,
+  { also = [], slug = null, hanging = null, declares = null, needing = null,
     declaring = null, reading = [] } = {}) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
@@ -211,7 +205,7 @@ export const scratch = (name, failing, leaking,
       scripts: scripts({ failing, leaking, hanging, needing }) }, null, 2));
   git(work, "init", "-b", "master");
   /* Once the tree is a checkout and outside it, the record being keyed on the repository. */
-  if (slug || runs) projectRecord(work, configHome(work), { ...(slug && { slug }), ...(runs && { runs }) });
+  if (slug) projectRecord(work, configHome(work), { slug });
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
   git(work, "add", "-A");
   git(work, "commit", "-m", "the tree");
@@ -219,8 +213,7 @@ export const scratch = (name, failing, leaking,
   return { at, work };
 };
 
-/** A second worktree of a scratch checkout, cut beside it: a second gate of the same tree is refused before any ceiling is
- *  read (ISS-1705), so a case about the ceiling needs a second tree to put its second gate in. */
+/** A second worktree of a scratch checkout, cut beside it, for a case about a gate of another tree of the same checkout. */
 export const sibling = (work, name = "sibling") => {
   const tree = join(work, "..", name);
   git(work, "worktree", "add", "-q", "-b", name, tree);

@@ -91,17 +91,17 @@ const EARNS = {
 };
 const LOGIN = { testCredentials: { user: "qa@example.test", password: "a-real-password" } };
 /* Carrying an id: the read-before-write hold credits a comment by one, and nothing else. */
-const baseline = (documentId) => ({
+const confirmed = (documentId) => ({
   documentId,
   createdAt: "2026-09-03T11:01:00.000Z",
   authorId: "agent",
-  body: render("baseline", { gate: "npm test", result: "green", commit: "08ca795", scope: "whole" }),
+  body: render("confirmation", { is: "it holds", where: ["a.mjs"], finding: "holds" }),
 });
 const state = {
   calls: [],
   deploy: {},
   issues: [SCREENING, NOTHING, EARNS],
-  comments: { "screen-uuid": [baseline("screen-note")], "earns-uuid": [baseline("earns-note")] },
+  comments: { "screen-uuid": [confirmed("screen-note")], "earns-uuid": [confirmed("earns-note")] },
   answer: {
     forge_config: () => ({ config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: {} } }),
     "forge_projects.get": () => ({ project: { environments: state.deploy } }),

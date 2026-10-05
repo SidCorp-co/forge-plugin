@@ -10,8 +10,8 @@ import { readFileSync } from "node:fs";
 import { escaped, tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
-const { parse, render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, deployedOwed, judgedOwed, namedIn, rungFieldsOf, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
+const { CHECKS, deployedOwed, judgedOwed, namedIn, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { rungOf } = await import("../../../src/ladder.mjs");
 const { planFlags, planSections, planSteps } = await import("../../../src/flow/machine.mjs");
 const { markNote } = await import("../../../src/flow/record/merged.mjs");
@@ -33,96 +33,34 @@ const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item
 const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
 
-test("a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it", () => {
-  const ran = (scope) => [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e", ...scope })];
-  assert.deepEqual(missing("in_progress", view({}, ran({}))), [],
-    "a record written before the field existed reads back whole");
-  assert.deepEqual(missing("in_progress", view({}, ran({ scope: "whole" }))), []);
-  const part = CHECKS.in_progress(view({}, ran({ scope: "part" })), "ISS-3");
-  assert.equal(part.length, 1);
-  assert.match(part[0].what, /measured part of the tree/u);
-  assert.match(part[0].what, /npm run check/u, "the refusal names the run, there being no ledger to name");
-  assert.match(part[0].command, /--scope whole$/u);
-  /* A value that is neither is a gap like any other: `newer` excuses an absence, never a wrong word. */
-  assert.deepEqual(shapeGaps("baseline", parse(render("baseline", { gate: "g", result: "r", commit: "43b811e", scope: "half" }))), ["--scope"]);
-  /* The other route in: the command a run with no baseline copies carries the field, or is refused. */
-  const none = CHECKS.in_progress(view({}, []), "ISS-3");
-  assert.match(none[0].command, /--scope whole$/u);
-});
+/* The landing's gate measures the tree and every commit reaches the default branch through it, so a build is earned by the branch and the blockers and owes no measurement of its own (ISS-3184). A baseline a run wrote before that is no kind this build reads, so it is neither owed nor in the way. */
+const OLD_BASELINE = "## Baseline\n\n- **Gate:** npm run check\n- **Result:** 354 pass\n- **Commit:** 43b811e\n"
+  + "- **Scope:** part\n\n`forge-record: baseline · contract 1`";
 
-/* The citation's two legs, and the four ways a record can fail one. The head is what the write
-   stamped from its own checkout, so every case here is the record's own facts and no case reaches
-   for git — which is the whole reason the provenance is a field rather than a question. */
-const HEAD = "43b811e2c9d0f1a3b4c5d6e7f8091a2b3c4d5e6f";
-const cite = (fields) => [recorded("baseline",
-  { gate: "npm run check", result: "354 pass", commit: HEAD, scope: "whole", cited: "the release's gate", head: HEAD, ...fields })];
-const citing = (complexity, fields) => CHECKS.in_progress(view({ complexity }, cite(fields)), "ISS-3");
-
-test("a cited baseline is taken at every rung where the commit is the head the write stamped", () => {
-  assert.deepEqual(missing("in_progress", view({ complexity: "xs" }, cite({}))), [],
-    "the lowest rung cites a recorded result and owes nothing further");
-  assert.deepEqual(missing("in_progress", view({ complexity: "s" }, cite({}))), [],
-    "and so does the rung above it");
-  /* The leg that makes the citation worth accepting: the branch is still at the tree that gate read. */
-  const moved = citing("s", { commit: "0f1e2d3c4b5a69788796a5b4c3d2e1f009182736" });
-  assert.equal(moved.length, 1);
-  assert.match(moved[0].what, /cites a result at 0f1e2d3c/u, "the refusal names the commit cited");
-  assert.match(moved[0].what, new RegExp(`written at ${HEAD}`, "u"), "and the head it disagrees with");
-  assert.match(moved[0].command, /--scope whole$/u, "and the fresh run that answers instead");
-});
-
-test("a cited baseline is taken at every rung, and refused on a record that carries no head", () => {
-  assert.deepEqual(citing("m", {}), [],
-    "the top rung cites the same result: what a tree already fails is no property of the issue reading it");
-  for (const complexity of ["l", "xl"]) {
-    assert.deepEqual(citing(complexity, {}), [], `and so does a \`${complexity}\`, which claims the same rung`);
+test("in_progress is earned by the branch alone at every rung, with no baseline on the record", () => {
+  for (const complexity of ["xs", "s", "m", "l", "xl"]) {
+    assert.deepEqual(missing("in_progress", view({ complexity, status: "approved" })), [],
+      `a \`${complexity}\` on a branch owes nothing more for in_progress`);
+    assert.equal(targetOf(view({ complexity, status: "approved" }), "ISS-3").next, "in_progress", complexity);
   }
-  /* A baseline written outside a checkout: the stamp is the one fact nothing else can supply. */
-  const bare = citing("s", { head: undefined });
-  assert.equal(bare.length, 1);
-  assert.match(bare[0].what, /carries no head/u);
-  assert.match(bare[0].command, /--cited "the release's gate"$/u, "and the re-record keeps the citation");
-  assert.match(bare[0].command, /re-record it from the checkout the branch was cut in/u,
-    "and says where to run it, a headless baseline being what running it anywhere else writes again");
-  /* Deferred to `wholeOwed` rather than refused twice: one rule, one refusal, and it names the gate. */
-  const part = citing("s", { scope: "part" });
-  assert.equal(part.length, 1, "a partial scope is one refusal and not two");
-  assert.match(part[0].what, /measured part of the tree/u);
-});
-
-/* `scope` is `newer`, so its absence reads back whole — right for a run of one's own, wrong for a citation, which is granted on the strength of that very word. */
-test("a citation naming no scope is refused, where an uncited baseline naming none is not", () => {
-  const none = citing("s", { scope: undefined });
-  assert.equal(none.length, 1);
-  assert.match(none[0].what, /cites a recorded result and names no scope/u);
-  assert.match(none[0].command, /--scope whole$/u);
-  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: HEAD })];
-  assert.deepEqual(missing("in_progress", view({ complexity: "s" }, ran)), [],
-    "a baseline written before the field existed still reads back whole, citing nothing");
-});
-
-test("a citation waives no payload, so a rung with no baseline at all is still refused", () => {
-  for (const complexity of ["xs", "s", "m"]) {
-    const none = missing("in_progress", view({ complexity }, []));
-    assert.ok(none.some((one) => /^no baseline/u.test(one)),
-      `a rung claimed by \`${complexity}\` reaches in_progress with no baseline record on it`);
-  }
+  const old = view({ complexity: "s" }, [comment(OLD_BASELINE)]);
+  assert.deepEqual(missing("in_progress", old), [], "and a baseline left on the page by an earlier build refuses nothing");
+  assert.equal(old.latest.baseline, undefined, "being no kind this build reads back");
 });
 
 /* Two runs built one rename because `owed` is the same word for nothing started and a change staged and blocked. Read off the worklog, so this opens no tree either (ISS-1183). */
 test("in_progress owes the branch the change is built on, and the refusal names the capture", () => {
-  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e", scope: "whole" })];
-  const bare = CHECKS.in_progress(viewFrom("the-uuid", { sessionContext: {} }, ran), "ISS-3");
+  const bare = CHECKS.in_progress(viewFrom("the-uuid", { sessionContext: {} }, []), "ISS-3");
   assert.equal(bare.length, 1, JSON.stringify(bare));
   assert.match(bare[0].what, /worklog names no branch/u);
   assert.match(bare[0].command, /^forge claim ISS-3 --pushed/u, "and the capture that supplies one");
   assert.match(bare[0].command, /checkout the branch is cut in/u, "read where the branch is");
-  assert.deepEqual(missing("in_progress", view({}, ran)), [], "and a worklog naming one owes nothing");
-  const headless = viewFrom("the-uuid", { sessionContext: { worklog: { head: "43b811e" } } }, ran);
+  assert.deepEqual(missing("in_progress", view({})), [], "and a worklog naming one owes nothing");
+  const headless = viewFrom("the-uuid", { sessionContext: { worklog: { head: "43b811e" } } }, []);
   assert.deepEqual(CHECKS.in_progress(headless, "ISS-3").map((one) => one.what), [bare[0].what],
     "a worklog with facts in it and no branch among them is no branch, not a branch unread");
   for (const complexity of ["xs", "s", "m"]) {
-    const at = viewFrom("the-uuid", { complexity, sessionContext: {} }, ran);
+    const at = viewFrom("the-uuid", { complexity, sessionContext: {} }, []);
     assert.equal(CHECKS.in_progress(at, "ISS-3").length, 1,
       `${complexity} is owed the branch too: a tree the record cannot name is no judgement repeated`);
   }

@@ -25,7 +25,7 @@ export const readIn = () => `Read from ${typed(configDir("forge"))}, so a consul
   + "XDG_CONFIG_HOME clears nothing here.";
 
 export const malformed = (unknown, gate) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, `
-  + `or drop the key and the commit alone asks. ${escapeFor(gate)}\n\n${unknown} is no door this reads: that key `
+  + `or drop the key and the commit and the ready capture ask. ${escapeFor(gate)}\n\n${unknown} is no door this reads: that key `
   + "in this project's configuration is a list of the doors a consult is demanded at.";
 
 /** The consult that reads `paths`, from the tree `cd` moves to ("" where the caller already stands there). */

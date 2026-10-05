@@ -30,7 +30,7 @@ test("the walk reaches the suite, so a clean answer is a clean suite and not an 
   const walked = files();
   assert.ok(walked.length > 30, `${walked.length} file(s) under plugin/test and tools/test; the selector matches too little`);
   assert.ok(walked.some((one) => one.rel === "plugin/test/tracker/rest.test.mjs"), "a nested file is not reached");
-  assert.ok(walked.some((one) => one.rel === "tools/test/gates/wait/waiting.mjs"), "nor is the tests of tools/");
+  assert.ok(walked.some((one) => one.rel === "tools/test/gates/scratch.mjs"), "nor is the tests of tools/");
 });
 
 test("no case in this suite bounds elapsed wall-clock time above by a constant", () => {

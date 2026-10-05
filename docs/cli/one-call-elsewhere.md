@@ -28,7 +28,7 @@ with nothing on either side, as every caller that frames one reads it, so the na
 verb's.
 
 **A claim holds the project it was taken in.** A run's key is resolved afresh on every call, and a
-sibling rebinding the checkout in the middle of a run once sent that run's baseline onto another
+sibling rebinding the checkout in the middle of a run once sent that run's record onto another
 project's issue of the same number, which the write took a lease on as if it were its own
 (ISS-2452). So each lease a run writes keeps, per holder, the issue the key resolved to and the
 project it resolved in, and a later call of the same run whose key resolves to another issue is

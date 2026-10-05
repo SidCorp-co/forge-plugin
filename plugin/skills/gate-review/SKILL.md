@@ -3,7 +3,7 @@ name: gate-review
 description: >-
   Profile a project's gate — the check, lint, build and test pipeline a change has to pass — and
   make the same gate answer faster on the same machine without letting anything through it. Use
-  when a gate run has grown into a tax every run pays, when its whole-run time crosses the budget
+  when a gate run has grown into a tax every landing pays, when its whole-run time crosses the budget
   the project set or has grown by a quarter since it was last profiled, or when asked why the
   pipeline takes as long as it does. Triggers on "the gate is slow", "profile the gate", "speed up
   the suite", "why does check take so long", "run the tests in parallel", "the fixtures are

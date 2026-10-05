@@ -104,11 +104,26 @@ const switchText = (path) => {
   return body ? `${text}\n${readFileSync(body, "utf8")}` : text;
 };
 
+/* Entries nest by responsibility, so the walk under `entries/` goes down every folder: a flat
+   listing would let an entry moved into one drop out of the audit with nothing failing. */
+const hookFiles = () => {
+  const hooks = join(HERE, "..", "..", "hooks");
+  const entries = join(hooks, "entries");
+  return [
+    ...readdirSync(hooks).map((name) => join(hooks, name)),
+    ...readdirSync(entries, { recursive: true }).map((name) => join(entries, name)),
+  ].filter((path) => path.endsWith(".mjs") && !basename(path).startsWith("_") && basename(path) !== "gate.mjs");
+};
+
+test("the switch audit reads the entries a folder holds", () => {
+  const read = hookFiles().map((path) => basename(path));
+  for (const nested of ["learning-gate.mjs", "learning-landed.mjs", "codex-owed.mjs", "stop-check.mjs"]) {
+    assert.ok(read.includes(nested), `${nested} sits in a folder under hooks/entries/ and the audit must read it`);
+  }
+});
+
 test("every hook honours the switch, not only the ones that read an event", () => {
-  const dirs = [join(HERE, "..", "..", "hooks"), join(HERE, "..", "..", "hooks", "entries")];
-  const missing = dirs
-    .flatMap((dir) => readdirSync(dir).map((name) => join(dir, name)))
-    .filter((path) => path.endsWith(".mjs") && !basename(path).startsWith("_") && basename(path) !== "gate.mjs")
+  const missing = hookFiles()
     .filter((path) => !/\balone\("[\w-]+"\)|\bhookOff\(/u.test(switchText(path)))
     .map((path) => basename(path));
   assert.deepEqual(

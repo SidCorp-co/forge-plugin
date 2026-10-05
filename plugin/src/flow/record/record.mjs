@@ -1,8 +1,8 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
-import { fail, slugIfAny } from "../../resolve/settings.mjs";
+import { fail } from "../../resolve/settings.mjs";
+import { absentSaid } from "../../resolve/gone/absent.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
-import { citationProblem } from "../earned/published.mjs";
 import { NO_LONGER_OWES, SIDE, answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
@@ -98,13 +98,6 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
 export const checked = (kind, got) => {
   const said = SHAPES[kind].check?.(got);
   if (said) refuse(`record ${kind} needs ${said}.`);
-};
-
-/* Beside `checked` rather than inside the shape's own `check`, which is handed the payload and nothing else: this one asks what a ship published, and machine.mjs imports nothing that reads a file. It is the whole of where a citation's authority is settled, so no entry check has to reach for a store one machine holds (ISS-1101). */
-const citationChecked = (kind, reference, got) => {
-  if (kind !== "baseline") return;
-  const said = citationProblem(reference, slugIfAny(), got);
-  if (said) refuse(`record ${kind} needs ${said}`);
 };
 
 /* A verdict or a review names the head it judged, and a run judges the tree it has open: where that tree holds work its head lacks, the record says the head was judged when the tree was (ISS-381). Only the head is asked about, so an older commit cited on purpose and a checkout other than the one holding the commit are never refused here. */
@@ -423,7 +416,6 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     checked(kind, got);
     landedChecked(kind, got, body);
     judgedTreeChecked(kind, got);
-    citationChecked(kind, reference, got);
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
   }
@@ -521,6 +513,8 @@ const criteriaCount = (body) => {
 
 const run = async ([kind, reference, ...argv]) => {
   if (!kind || wantsHelp([kind])) return console.log(usage());
+  const absent = absentSaid("kind", kind);
+  if (absent) refuse(`record knows no kind \`${kind}\`, and ${absent}.`);
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   /* `record` answers its own help, so cli.mjs hands the whole tail over and `-h` in the reference
      position was spent as an issue key — the one flag its own refusal could not answer for. */

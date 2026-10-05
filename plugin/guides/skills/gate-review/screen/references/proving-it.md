@@ -13,8 +13,8 @@ the same:
 - a deliberate violation of each rule the changed steps enforce, one per rule, on a scratch tree
 - the exact message each refusal produced, not its exit code
 
-Run the inventory against the old harness, keep the output, run it against the new one, and compare
-the two outputs.
+Spend each step the inventory reaches against the old harness, keep the output, spend them against
+the new one, and compare the two outputs.
 
 **A step you cannot watch refuse anything has not been proven.** Green and switched-off are the same
 observation. The verdict says that rather than pass, and writing the case it lacks is the most
@@ -35,9 +35,9 @@ The claim under test is the declaration, and it takes three pieces of evidence:
 
 ## Where concurrency changed
 
-Fix the number of runs before starting, from the project's own tolerance: a project accepting one red
-run in fifty needs enough runs for that race to have had its chance; one treating any flake as a
-defect needs more than a review can afford, which means the parallelism is proposed, not shipped.
+Fix the number of repeats before starting, from the project's own tolerance: a project accepting one
+red repeat in fifty needs enough repeats for that race to have had its chance; one treating any flake
+as a defect needs more than a review can afford, which means the parallelism is proposed, not shipped.
 Report the count and the tolerance it came from.
 
 Vary the schedule: more than one concurrency level, a different unit order, a loaded machine as well

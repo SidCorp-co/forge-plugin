@@ -122,7 +122,21 @@ export const BUILT = {
    other: every case here starts from a field holding no lease at `developed`, which is the record
    a claim refuses without `--unheld` (ISS-1184), and the flag says nothing about any state a
    checkpoint names. */
-export const ran = async (argv, id, cwd = process.cwd(), env = asRun) => {
+/* A capture is refused where no approved review of its head is on the record, which only the cases
+   in review-ready.test.mjs are about: every other `--ready` here is sent with one of the head its
+   tree stands at, unless the case put a review there itself or says `{ reviewed: false }`. */
+const { render } = await import("../../../src/flow/record/page.mjs");
+const reviewedHere = (argv, cwd) => {
+  const held = state.comments["landing-uuid"];
+  if (!argv.includes("--ready") || held.some((one) => /^## Code review$/mu.test(one.body))) return;
+  const head = git(cwd, "rev-parse", "HEAD").stdout.trim();
+  if (!head) return;
+  held.push({ documentId: `c-${held.length + 1}`, createdAt: "2026-09-07T11:00:00.000Z", authorId: "agent",
+    body: render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }) });
+};
+
+export const ran = async (argv, id, cwd = process.cwd(), env = asRun, { reviewed = true } = {}) => {
+  if (reviewed) reviewedHere(argv, cwd);
   const sent = argv[0] === "claim" ? [...argv, "--unheld"] : argv;
   let run = null;
   for (const again of [1, 2]) {

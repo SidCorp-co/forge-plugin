@@ -73,11 +73,6 @@ would have printed anyway. A `review.lines` that is not a whole number above zer
 naming no row of its table, a `jobs` entry that is neither a list of verbs nor a table of them, a
 `lease.workingRe` that will not compile: each is refused in its own words, before a byte is written.
 
-One judgement had to be reached for rather than borrowed. The reader of `codex.checkMs` answers
-nothing at all until `codex.check` is a string, so a budget written on its own was judged by nobody
-until a command arrived beside it; that budget is now its own reading, which both the reader and this
-write take.
-
 A command-line word becomes JSON by what the key takes — a whole number, a comma-separated list,
 `null`, a command, or text — and a word that is not the shape it was asked for is passed through as
 typed, so the key's own reader is what says so rather than a coercion inventing a second answer. No key

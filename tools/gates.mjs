@@ -9,28 +9,22 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
-import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForSlot, waitForVerdict }
-  from "./gates/verdict.mjs";
-import { CALL_CEILING_SECONDS } from "../plugin/src/host/call-ceiling.mjs";
+import { gateDecided, gateStarted, said, TERMINAL } from "./gates/verdict.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/reporters/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
-import { DECLINED, heldSaid, LANDING_ENV, outputOf, placeFor, runnersOf, SLOT, treeHeldBy, WAIT } from "./gates/machine.mjs";
-import { declinedSaid, LANDING_WAIT_ENV, landingAsked, waitAsLanding } from "./gates/landing/wait.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { deadClaim, escapedClaim, escapedStep, ledgerSaid, readsSaid, severalCauses, stepRead, stepSaid,
   wroteSets } from "./gates/report/said.mjs";
 import { spendOf } from "./gates/report/spend.mjs";
 import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "../plugin/test/fixtures/room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
-import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
-import { argvForTests, DECLARED_READS, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";
+import { argvForTests, DECLARED_READS, gateSteps, launcherOf, TEST_FILE } from "./gates/steps.mjs";
 import { failedReads } from "./gates/reads/failed.mjs";
 import { auditEnv, claimsJudged, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom,
   stepEscapes, stepSetFrom } from "./gates/reads/sets.mjs";
 import { ATTRIBUTION_HELP } from "./gates/help/attribution.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
-import { MACHINE_HELP } from "./gates/help/machine.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { onStop, stepRun, stoppedCode } from "./gates/stop/step.mjs";
 import { alonePath, casesPath, CEILING_PERCENTILE, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
@@ -40,10 +34,8 @@ const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
 
 const ANYWAY = "--anyway";
-const BASELINE = "--baseline";
-const KEY = /^ISS-\d+$/u;
 
-const USAGE = `Usage: node tools/gates.mjs [${BASELINE} [ISS-nn]] [--full] [${ANYWAY}] [${WAIT} [${SLOT}] [M]]
+const USAGE = `Usage: node tools/gates.mjs [--full] [${ANYWAY}]
 
 Every check this repository gates a change with, stopping at the first failure. It is what
 \`npm run check\` runs; each step is still the npm script of its own name, spent by hand.
@@ -111,47 +103,26 @@ Every step runs under a temporary directory of this run's own, and a step that l
 hook stamps in it is failed: on a developer's machine that directory is the room every hook reaps
 before every stamp, and a suite that fills it is a cost no green can show.
 
-${MACHINE_HELP}
+A gate admits itself whatever else is running: only a landing runs the whole gate, and the landing
+lock already lets one landing of a checkout run at a time, so nothing here counts the gates running,
+declines for want of a place or refuses a second gate of the same tree. A test step spends every core
+this machine has.
 
 A run in the shared checkout is refused while that checkout holds uncommitted paths: more than one
 session stands there, so the result would be about a tree none of them owns. A worktree is never
 refused — its uncommitted work is the point of it.
 
-  ${BASELINE} [ISS-nn]  a run's Phase 0 baseline, and the only route to one here. Where a ship
-             published a whole-tree result for this clean head it spends no step and prints the
-             write that cites it; where none is published it runs the gate as a bare call does,
-             record and all, and prints the write to record. A dirty tree is refused. The one wait
-             it takes is ${WAIT} ${SLOT} [M], which waits for a place and then measures in the
-             same call; ${WAIT} for a verdict is refused beside it
-  --full     every step, whatever the diff or the ledger says. It proves a tree independently
-             and is never the baseline route: it trusts no record, so a clean head spends all of it
+  --full     every step, whatever the diff or the ledger says. It proves a tree independently:
+             it trusts no record, so a clean head spends all of it
   ${ANYWAY}   gate the shared checkout as it stands, uncommitted paths and all. The run names
              them when it starts and says again at the end that it used this, so a result reached
              this way cannot be mistaken for a clean one.
-  ${WAIT} [M]  wait for the verdict of a gate of this tree instead of running one, up to M
-             minutes (${DEFAULT_MINUTES} where none is given, which is the most a call can hold:
-             one may live ${CALL_CEILING_SECONDS}s, and an M past that is refused), and exit on
-             that verdict
-  ${WAIT} ${SLOT} [M]  wait for a place at the ceiling this project declares instead of declining for
-             want of one, and exit 0 once a gate started then would not be declined
 
 Every exit past the tree it judges prints one line beginning \`${TERMINAL}\` and writes the same line
 to a record beside the ledger — the verdict, the steps spent of the table, the head and the pid — so
-nothing here has to be grepped for and no run has to invent a token to grep for. ${WAIT} reads that
-record and never a log, and never a process's exit code either. It answers a verdict already written
-at once, since the common case after a resume is a gate that finished while the run was elsewhere;
-waits on a notification for one a running gate has yet to write; and tells apart the three states a
-log with no verdict in it cannot. Each of those three has its own exit code, past every code a run of
-this gate uses: ${GONE} a gate that exited having written no verdict, which is a failure and not a
-pass; ${DEADLINE} this wait's own deadline with the gate still running; ${NO_GATE} no gate of this
-tree having ever written one, answered at once rather than waited out. A verdict exits with the
-status the gate itself exited with. The line names the pid that wrote it and how long ago, because a
-wait attaches to a run it did not start. One further line is written before the wait blocks, naming
-the tree and the deadline, so a result carrying that line alone is one where no answer was observed
-and a run holding it knows to wait again rather than to go looking. The deadline's own line carries
-what the newest whole gates recorded here took, which is what says whether one more wait reaches the
-verdict. A wait runs no gate and judges no tree, so it is refused
-beside --full and ${ANYWAY}, and the uncommitted paths of a shared checkout do not refuse it.
+nothing here has to be grepped for and no run has to invent a token to grep for. A landing reads its
+gate's verdict off that record rather than off a log, and a gate that exited having written none is
+no pass.
 
 A gate sent SIGINT, SIGTERM or SIGHUP by its pid stops as it would at Ctrl-C: it sends the same signal
 to every process of the step it is running — found by parent, and by a marker every process of that
@@ -159,17 +130,6 @@ step inherits in its environment, so one whose parent already exited is found to
 seconds for all of them and then kills what is left, and a second signal kills them at once. Nothing
 outside that step is signalled, its caller and its own process group included. It then writes the
 verdict \`stopped\`, naming the signal and the step, and exits 128 plus the signal's number.
-
-${WAIT} ${SLOT} is that same wait pointed at the other thing a run here waits on. A run declined for
-the ceiling has no gate of its own — the decline happens before the table, the record and the first
-step — so there is no verdict of this tree coming and the subject above has nothing to read. This one
-reads the process table instead: it exits 0 once a gate started then would not be declined, naming
-the command that gates, and ${DEADLINE} at its own deadline, naming the pid still holding the place.
-That is a code no run of this gate exits with, so a caller can tell a tree that never ran from one
-that ran and was red, which is the confusion a run improvises around (ISS-1345). It reserves nothing:
-the ceiling is advisory, so the place it reports free is the place any gate may take. Waiting is
-asked for and never assumed — a bare invocation still declines at ${DECLINED}, because a gate that
-blocked by default would hide the contention this project sizes with the number above.
 
 The tree judged is the one this copy of the runner sits in, never the one you stand in, so a run of
 another checkout's copy is refused rather than answered about that checkout. Both verdict lines
@@ -183,79 +143,13 @@ if (argv.includes("-h") || argv.includes("--help")) {
 }
 
 const full = argv.includes("--full");
-const baselining = argv.includes(BASELINE);
-const keyAt = argv.indexOf(BASELINE) + 1;
-const baselineKey = baselining && KEY.test(argv[keyAt] ?? "") ? argv[keyAt] : null;
 const allowDirty = argv.includes(ANYWAY);
-const waiting = argv.includes(WAIT);
-const mark = argv.indexOf(WAIT);
-/* The subject and then the minutes, each read only where it is there and each spent by its position
-   rather than by its text: `--wait --full` names neither, reading the next token blindly would
-   swallow the flag whose refusal is below, and a token matched by value would let a second copy of
-   it anywhere on the line pass as this one. */
-const subject = waiting && argv[mark + 1] === SLOT ? SLOT : null;
-const minutesAt = mark + (subject === null ? 1 : 2);
-const after = waiting ? argv[minutesAt] : undefined;
-const patience = after !== undefined && !after.startsWith("-") ? after : null;
-const taken = new Set([mark, subject === null ? -1 : mark + 1, patience === null ? -1 : minutesAt,
-  baselineKey === null ? -1 : keyAt]);
-const unknown = argv.filter((one, at) => !taken.has(at) && one !== "--full" && one !== ANYWAY
-  && one !== BASELINE);
-const waitCall = `${WAIT}${subject === null ? "" : ` ${subject}`}`;
-const waitedOn = subject === SLOT ? "place" : "verdict";
+const unknown = argv.filter((one) => one !== "--full" && one !== ANYWAY);
 
 if (unknown.length > 0) {
   console.error(`No such option: ${unknown.join(" ")}\n\n${USAGE}`);
   process.exit(1);
 }
-
-const verdictWait = waiting && subject !== SLOT;
-
-if (baselining && (full || verdictWait || allowDirty)) {
-  const { besideSaid } = await import("./gates/baseline.mjs");
-  console.error(besideSaid(full ? "--full" : verdictWait ? WAIT : ANYWAY, baselineKey));
-  process.exit(1);
-}
-
-if (waiting && (full || allowDirty)) {
-  const other = full ? "--full" : ANYWAY;
-  console.error(`${waitCall} runs no gate — it ${subject === SLOT
-    ? "waits for a place at the ceiling this checkout declares"
-    : "reads the verdict of one this tree already has"} — so ${other} has nothing here to act on.`);
-  console.error(`Wait for the ${waitedOn}: node tools/gates.mjs ${waitCall}`);
-  console.error(`Or run the gate:      npm run check -- ${other}`);
-  process.exit(1);
-}
-
-const minutes = patience === null ? DEFAULT_MINUTES : Number(patience);
-
-if (waiting && !(minutes > 0)) {
-  console.error(`${waitCall} takes the minutes to wait for a ${waitedOn}, not \`${patience}\`.`);
-  console.error(`Wait ${DEFAULT_MINUTES} minutes: node tools/gates.mjs ${waitCall}`);
-  process.exit(1);
-}
-
-/* Refused and not taken: past what a call can hold the host ends it before the wait can answer, no route here holds one longer — `forge hooks --how polling` refuses a backgrounded loop with the rest — and thirty minutes of it defaulted to cost 310 of 4,102 wall minutes over 54 runs (ISS-1889). Against what a call can hold and not against the ceiling itself, a deadline of exactly the ceiling starting after this process does and the host arriving first. Here and not in the wait, the ceiling being the host's rather than the tree's: a caller under another host still gets the deadline it passes those functions. */
-if (waiting && minutes > DEFAULT_MINUTES) {
-  console.error(`${waitCall} ${patience} is ${Math.round(minutes * 60)}s and the most a call can hold is `
-    + `${DEFAULT_MINUTES * 60}s of the ${CALL_CEILING_SECONDS}s it may live, so the host would end this one `
-    + `before the wait could answer.`);
-  console.error(`Wait ${DEFAULT_MINUTES} minutes in a call that returns, as often as it takes: `
-    + `node tools/gates.mjs ${waitCall}`);
-  process.exit(1);
-}
-
-/* Read once and then taken out of the environment every step inherits: a gate a step starts is never a landing's. What
-   other gates read is this process's own entry in the table, which the removal leaves as it was started. */
-const asked = landingAsked();
-
-if (asked.refused) {
-  console.error(`${asked.refused}\nNo step ran and nothing was recorded. land-ready sets both: node tools/run.mjs land-ready -h`);
-  process.exit(1);
-}
-
-delete process.env[LANDING_ENV];
-delete process.env[LANDING_WAIT_ENV];
 
 const elsewhere = crossTree(ROOT);
 
@@ -266,35 +160,6 @@ if (elsewhere) {
   process.exit(1);
 }
 
-/* After the wrong-tree guard, because the head it reads is the caller's: a citation printed for the tree
-   the caller stands in, by the gate of another, is the certificate that guard exists to refuse. */
-if (baselining) {
-  const { baselineAfterPlace, takeBaseline } = await import("./gates/baseline.mjs");
-  if (waiting) process.exit(await baselineAfterPlace(ROOT, baselineKey, { minutes }));
-  const code = takeBaseline(baselineKey);
-  if (code !== null) process.exit(code);
-}
-
-/* Before the checkout is judged for its uncommitted paths, which is a rule about running a gate:
-   this runs none, and a wait refused for a tree two sessions are writing would leave the verdict
-   they are waiting for unreadable. */
-if (waiting) {
-  process.exit(subject === SLOT
-    ? await waitForSlot(ROOT, { minutes })
-    : await waitForVerdict(ROOT, { minutes }));
-}
-
-const ours = runnersOf(ROOT);
-
-/* Before the start record, because the later of two gates over one tree writing a line there is what a wait reading
-   that record would be handed in place of the earlier gate's verdict (ISS-1705). */
-const holder = treeHeldBy(ROOT, ours);
-
-if (holder !== null) {
-  console.error(heldSaid(ROOT, holder, { output: outputOf(holder.pid), seconds: DEFAULT_MINUTES * 60 }));
-  process.exit(DECLINED);
-}
-
 const dirty = uncommittedInShared(ROOT);
 const listed = (say) => {
   for (const one of dirty) say(`    ${one}`);
@@ -302,7 +167,7 @@ const listed = (say) => {
 const banner = `gating ${ROOT} with ${dirty.length} uncommitted path(s), asked for with ${ANYWAY}`;
 
 /* Written before the first step and before the refusal below, so every exit from here on has a
-   record to decide: a run that reached this tree and left no verdict is one a waiter cannot tell
+   record to decide: a run that reached this tree and left no verdict is one a reader cannot tell
    from a crash. */
 const opened = gateStarted(ROOT, { full });
 
@@ -325,7 +190,7 @@ const finish = (code, verdict, figures = {}) => {
   process.exit(code);
 };
 
-/* Past the start record, so a gate stopped anywhere from here writes a verdict a waiter can read rather
+/* Past the start record, so a gate stopped anywhere from here writes a verdict a reader can read rather
    than leaving one it reads as a crash; and set before the first step it could leave running. */
 let stepAt = null;
 onStop((signal) => finish(stoppedCode(signal), "stopped", { signal, ...(stepAt ? { step: stepAt } : {}) }));
@@ -354,20 +219,6 @@ try {
   console.error(`\n${refusal.message}`);
   console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
   finish(1, "refused");
-}
-
-/* Before the table, the record and the first step, because a refusal that cost the caller a step has
-   already lost the argument. It says nothing about the tree and records nothing of it. */
-const place = placeFor(ours);
-
-if (place.declined && asked.landing?.minutes) {
-  if (!await waitAsLanding(ROOT, asked.landing, { ours })) finish(DECLINED, "declined");
-} else if (place.declined) {
-  const { baselineWaitCall } = baselining ? await import("./gates/baseline.mjs") : {};
-  console.error(declinedSaid(place, ROOT, baselining
-    ? `Wait for a place and take the baseline in the same call: node tools/gates.mjs ${baselineWaitCall(baselineKey)}`
-    : undefined));
-  finish(DECLINED, "declined");
 }
 
 const files = gitFiles(ROOT);
@@ -488,12 +339,6 @@ const started = Date.now();
 stepsFrom = started;
 const [load] = loadavg();
 const cores = availableParallelism();
-const declared = parallelRuns();
-const workers = testWorkers({ cores, declared });
-if (planned.some((step) => step.tests)) {
-  console.log(`\n=== ${workers} test worker(s) of ${cores} core(s)`
-    + `${declared.value === null ? ", this box having declared no runs" : `, ${declared.value} run(s) declared in ${declared.from}`} ===`);
-}
 const record = recordDir(ROOT);
 const mine = runKey(ROOT);
 const unproved = [];

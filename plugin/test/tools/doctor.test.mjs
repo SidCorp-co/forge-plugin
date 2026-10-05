@@ -475,7 +475,7 @@ test("a declared number is reported as the whole project's at once, not as one t
 
 test("a project that declares no number of runs is told the key is unset and what follows from that", () => {
   const { out } = withRuns({});
-  assert.match(out, /\[ {2}ok {2}\] parallel runs\s+unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling/u,
+  assert.match(out, /\[ {2}ok {2}\] parallel runs\s+unset, so a wave is sized by whoever dispatches it$/mu,
     out);
 });
 
@@ -492,9 +492,9 @@ test("the doors a consult is demanded at are reported with the file they were re
   entry), out);
 });
 
-test("the key absent is the commit alone and the empty list is no door, and the report tells them apart", () => {
-  assert.match(withOwed({}).out, /\[ {2}ok {2}\] codex\.owed\s+commit — each held until a consult has read what it would judge {2}← the plugin's default/u,
-    "absent, the commit asks, which is what this did before the key");
+test("the key absent is the commit and the ready capture, the empty list is no door, and the report tells them apart", () => {
+  assert.match(withOwed({}).out, /\[ {2}ok {2}\] codex\.owed\s+commit, ready at `forge claim <key> --pushed --ready` — each held until a consult has read what it would judge {2}← the plugin's default/u,
+    "absent, the commit and the ready capture ask, the review being what a run hands over on (ISS-3184)");
   const empty = withOwed({ owed: [] });
   assert.match(empty.out, row(OK, "codex.owed", "nothing — the key is an empty list, so no door asks", empty.entry),
     "and an empty list is the off switch, read off the project rather than off the default");
@@ -504,8 +504,8 @@ test("a door the key does not take is reported as one, naming what the key takes
   for (const given of [["refuse"], "gate", [1], 3]) {
     const { out } = withOwed({ owed: given });
     assert.match(out, /\[ miss \] codex\.owed\s+\S+ is no value of this key/u, `\`${JSON.stringify(given)}\` was taken: ${out}`);
-    assert.match(out, /it takes gate, commit, ship/u, "the report does not say what the key takes");
-    assert.match(out, /reading commit {2}←/u, "nor that the default is what it fell back on");
+    assert.match(out, /it takes gate, commit, ship, ready/u, "the report does not say what the key takes");
+    assert.match(out, /reading commit, ready {2}←/u, "nor that the default is what it fell back on");
   }
 });
 

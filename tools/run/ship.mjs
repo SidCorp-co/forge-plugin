@@ -14,7 +14,6 @@ import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs
 import { checkpointsFinished, keysHere } from "./ship/checkpoint.mjs";
 import { gatedShip, pushedShip, shipAttempt, shipLeft } from "./attempts/ship.mjs";
 import { onlyRelease } from "./landing.mjs";
-import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
 import { REVIEWED, reviewReported, whereFrom } from "./review.mjs";
@@ -26,6 +25,8 @@ import { releaseReadings } from "./release/readings.mjs";
 import { partForLanding } from "../../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+/* The gate the ship keeps, the one whole-tree run a release spends before it pushes. */
+const CHECK = ["run", "check"];
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
 
 /* A caller who typed `-h` asked what this does, and a configuration fault answered instead withholds
@@ -282,7 +283,6 @@ const shipSteps = (tree, root, base, note, attempt) => {
       const landed = releaseSays(tree, base);
       const was = shipFrom(tree);
       await releaseOwes({ tree, self: SELF, landed: [{ ref: branchKey(tree), was, at: landed }], gate: attempt.gate });
-      publishes(tree, base, copy?.installed);
       await releaseReadings(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
         issues: keysHere(tree) });
       await checkpointsFinished({ tree, base, copy, resume: again(), installs: installs(), ships: SELF + " ship" });

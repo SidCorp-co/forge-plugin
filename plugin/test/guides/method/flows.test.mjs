@@ -187,22 +187,27 @@ test("the rung the independent arm ends at is the ship mode's, and the mode that
     "and it is told to end at a rung only the run that lands the change can write");
 });
 
-/* The flow with a screen carries its own copy of both parts, and a copy is what drifts (ISS-3181). */
-test("under the screen flow a ready builder hands a gate with no verdict to the landing, which lands it", () => {
-  const ready = shipping("ready", "guide", "issue-flow", "verification");
-  assert.match(ready, /handed to the landing's gate after one attempt and one wait, and never started again/u,
-    "criteria 1 and 4: the screen flow's builder retries a gate the machine could not carry");
-  assert.match(ready, /What says so is the gate's own exit, as its `-h` names them/u, "criterion 2: under the screen flow");
-  assert.match(ready, /Where no reviewer can be reached either, nothing stands in for the gate and nothing is handed over/u,
-    "criterion 1: the screen flow hands over a head no gate and no review read");
-  assert.match(ready, /A gate that answered red is not this case/u, "criterion 3: under the screen flow");
-  assert.match(ready, /Then `forge record gap` names the exit the gate gave/u, "criterion 4: under the screen flow");
-  assert.doesNotMatch(shipping("self", "guide", "issue-flow", "verification"), /handed to the landing's gate/u,
-    "criterion 5: under the screen flow");
-  const fold = shipping("ready", "guide", "dispatch");
-  assert.match(fold, /The fold sends it back to gate nowhere/u, "criterion 6: the screen flow's fold sends it back to gate");
-  assert.match(fold, /lands the set again at the next fold with the command the decline printed/u,
-    "criterion 7: the screen flow's fold waits on the machine");
+/* The whole-tree gate is the landing's, so the method asks a builder for none of it, and each flow's copy is what drifts (ISS-3184). */
+test("under either flow a builder is told to take no baseline and spend no gate, and the evidence is the change's own", () => {
+  for (const flow of [DEFAULT, SCREEN]) {
+    const method = served(flow, "guide", "issue-flow");
+    const reference = served(flow, "guide", "issue-flow", "verification");
+    assert.match(reference, /So a run takes no baseline and spends no gate/u,
+      `criterion 16, ${flow}: the verification reference still asks a builder for a whole-tree measurement`);
+    assert.match(method, /A run measures its own change and never the whole tree/u,
+      `criterion 16, ${flow}: Phase 0 still owes a baseline`);
+    for (const text of [method, reference]) {
+      assert.doesNotMatch(text, /The baseline is owed|record baseline|The gate is spent once per unit of work/u,
+        `criterion 16, ${flow}: a builder is still told to measure the whole tree`);
+    }
+    assert.doesNotMatch(served(flow, "guide", "dispatch"), /gave no verdict/u,
+      `criterion 17, ${flow}: the fold still carries the paragraph for a member whose own gate gave no verdict`);
+    const evidence = served(flow, "guide", "contract", "evidence");
+    assert.match(evidence, /the moved files' own suites green from their new locations/u,
+      `criterion 18, ${flow}: a change claiming no behaviour change is not asked for its moved files' suites`);
+    assert.doesNotMatch(evidence, /the suite green from the new locations/u,
+      `criterion 18, ${flow}: a change claiming no behaviour change is still asked for the whole suite`);
+  }
 });
 
 test("an automatic release is looked at where it landed, and what the run leaves is legible", () => {

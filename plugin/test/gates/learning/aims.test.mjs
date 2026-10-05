@@ -8,7 +8,7 @@ import test from "node:test";
 
 import { answered, callHook, homeEnv } from "../../fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("learning-gate-aims");
 /* Fixture paths, not this machine's: a string holding /memory/ or /skills/ is what the gate guards. */
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";

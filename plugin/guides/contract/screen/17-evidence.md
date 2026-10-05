@@ -6,13 +6,13 @@ the project's prose rewrite leaves alone, and its field names are the flags the 
 
 **The equivalence is about paths and not about behaviour.** Judging before the landing is allowed
 because what a landing brings is other people's work. That argument stops short of a criterion whose
-proof rested on the whole tree — a gate's result, a suite's count, a rendered screen, a fixture. Judge
+proof rested on more than its own paths — a rendered screen, a fixture another change can move. Judge
 those on the tree that shipped, and the author is who knows which they are.
 
 **A change claiming no behaviour change earns `testing` by identity.** Its criteria are the three
-things a move can break: the export surface of every touched module against the base, the suite green
-from the new locations with the count before and after, and history reaching each moved file through
-the rename.
+things a move can break: the export surface of every touched module against the base, the moved
+files' own suites green from their new locations with their case count before and after, and history
+reaching each moved file through the rename.
 
 **Testify to nothing nobody said.** Prove a route with no person behind it in a test or against the
 installed copy, and quote no person. A finding with words nobody said is a false record, and a false

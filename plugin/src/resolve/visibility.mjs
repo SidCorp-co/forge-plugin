@@ -63,9 +63,6 @@ export const VERBS = [
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG, wraps: { attributed: "`forge next`" } }],
-  ["baseline", "publish --commit <sha> --result R --scope whole [--gate G] [--version V]",
-    "a release's whole-tree gate result, published for the commit it pushed so a branch cut there cites it",
-    null, { group: FLOW }],
   /* Reads git and the plugin cache and no tracker route, so no credential withholds it. */
   ["brief", "[ISS-45] [--batch ISS-46,ISS-47] [--tree <dir>] [--judge --url <url,...> --criteria 1,2] [--identity <id>]",
     "the message a dispatch sends: the readings a run cannot take itself, generated, never typed, and the run id a tree it names lacks; --judge, a judging run's, names the deployment and criteria and no tree",

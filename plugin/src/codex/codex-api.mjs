@@ -111,7 +111,7 @@ const PROPOSAL = "\n- WHERE you are given a PROPOSAL section, the files it names
 const BOARD = "\n- Open each angle's part with a heading line carrying its name, `### <the angle's name>`, and write "
   + "that angle's findings under it.";
 
-export const roleFor = (angles = DEFAULT_ANGLES, { check = false, recheck = false, tracker = false, spec = false, proposal = false } = {}) => {
+export const roleFor = (angles = DEFAULT_ANGLES, { recheck = false, tracker = false, spec = false, proposal = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
   const board = named.length === 1
     ? `Reply as the ${named[0].split(" — ")[0]}:`
@@ -130,8 +130,7 @@ FORM
 RULES
 ${SCOPED}
 - You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
-- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${
-  check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}${tracker ? TRACKER : ""}${spec ? SPEC : ""}${proposal ? PROPOSAL : ""}${angles.includes("debt") ? DEBT : ""}
+- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${tracker ? TRACKER : ""}${spec ? SPEC : ""}${proposal ? PROPOSAL : ""}${angles.includes("debt") ? DEBT : ""}
 ${UNTRUSTED}
 - You are given the coding agent's intent. Judge the work against that intent as well as against the repository's own rules, and say so plainly where the two disagree.
 - Severity: blocker, major, minor. At most 4 findings per angle. An angle with nothing real to add writes "nothing material".

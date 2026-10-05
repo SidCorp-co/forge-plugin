@@ -58,9 +58,9 @@ round a state you could have captured, and a skip for want of a credential is wr
 that read has said none is held. Establish which of your criteria you have a route to while whoever
 dispatched you can still equip you, rather than at the write that refuses you.
 
-**A criterion only a checkout's run reaches is not yours to run.** The gate passing, a test suite
-passing, a run repeated many times or taken under load: no person at the deployment could observe
-any of them. Write it `skipped`, its `--why` saying that only a checkout's run shows it and who owes
+**A criterion only a checkout's run reaches is not yours to run.** A test suite passing, a run
+repeated many times or taken under load: no person at the deployment could observe any of them, and
+the gate the landing ran before you is the only whole-tree reading the change gets. Write it `skipped`, its `--why` saying that only a checkout's run shows it and who owes
 that evidence — the builder's record on the issue, or the review of the change.
 
 Where every criterion you were given would be a skip, say so and stop before judging. A run that

@@ -1,0 +1,650 @@
+/* The gate is a decision, so it is exercised the way Claude Code calls it: the event on stdin and
+   the permission decision on stdout. The Bash fixtures are shapes observed slipping through. */
+import { mkdirSync, writeFileSync } from "node:fs";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import test from "node:test";
+
+import { answered, callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
+import { dupRoom, dupWrite } from "../../fixtures/skill-duplicate.mjs";
+
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
+/* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
+const HOME = homeEnv("learning-gate");
+/* A fixture path, not this machine's: the Bash cases need only a string holding /memory/, and
+   the ones that judge content build a real directory below. */
+const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
+const SKILL = "plugin/skills/issue-flow/SKILL.md";
+const SKILL_DIR = "/home/dev/app/plugin/skills/issue-flow";
+
+/* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a
+   re-run for the wrong reason. Every call gets its own session. */
+const ask = (event) =>
+  callHook(HOOK, { session_id: randomUUID(), ...event }, HOME);
+
+const decided = (run) => {
+  const said = answered(run);
+  if (said === null) return { allowed: true };
+  const answer = said.hookSpecificOutput;
+  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
+};
+
+/* Silence is this gate allowing; an answer with no decision in it is neither, and reading the two as
+   one would let a malformed answer stand for permission (ISS-1909). */
+test("an answer carrying no decision is malformed, and only silence is this gate allowing", () => {
+  assert.deepEqual(decided({ status: 0, stdout: "", stderr: "" }), { allowed: true });
+  assert.throws(() => decided({ status: 0, stdout: "{}", stderr: "" }));
+  assert.throws(() => decided({ status: 0, stdout: "null", stderr: "" }));
+});
+
+const decide = (command) => decided(ask({ tool_name: "Bash", tool_input: { command } }));
+const at = (cwd, command) => decided(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
+/* The endpoint's one route: a connected client's own tool call, with its arguments already parsed. */
+const called = (input) => decided(ask({ tool_name: `mcp__forge__forge${"_"}memory${"_"}write`, tool_input: input }));
+
+/* A value naming another was dropped whole rather than carried, so this exact write — found by firing
+   the live gate — landed a memory file with nothing asked. The `/memory/` it spells out is enough. */
+test("a guarded path held by a variable of a variable is refused", () => {
+  assert.equal(decide(`M="$HOME/p/memory"\nprintf x > "$M/trap.md"`).allowed, false);
+  assert.equal(decide(`printf x > "$HOME/p/memory/trap.md"`).allowed, false);
+  assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
+});
+
+/* Measured escaping after that fix: a value naming a second value, a use before the name is
+   reassigned, a brace modifier, and an assignment a prefix or a subshell hid. A use resolves
+   against the assignment before it, so the last one in the file no longer answers for all of them. */
+test("a path resolves through a second name, a reassignment, a modifier and a prefix", () => {
+  assert.equal(decide(`A=${MEMORY}\nB=$A\nprintf x > $B/trap.md`).allowed, false, "one name holding another");
+  assert.equal(decide(`M=${MEMORY}\ncp a "$M/trap.md"\nM=/tmp`).allowed, false, "the assignment before the use");
+  assert.equal(decide(`M=${MEMORY}\ncp a \${M:-/tmp}/trap.md`).allowed, false, "a brace modifier");
+  assert.equal(decide(`( M=${MEMORY} ; cp a $M/trap.md )`).allowed, false, "inside a subshell");
+  /* Measured: `$M` expands before `env` sets it, so this lands in `/trap.md` and is nothing to refuse. */
+  assert.equal(decide(`env M=${MEMORY} cp a $M/trap.md`).allowed, true, "a prefix is unset on its own line");
+  assert.equal(decide(`env M=${MEMORY} sh -c 'cp a $M/trap.md'`).allowed, false, "the shell it starts reads it");
+});
+
+/* An assignment is what a shell would set — a line, a separator, a command that takes one — because
+   a phantom out of quoted data answers for a name the shell leaves unset. */
+test("text that looks like an assignment but sets nothing resolves nothing", () => {
+  assert.equal(decide(`echo DEST=${MEMORY} ; printf y > "$DEST/trap.md"`).allowed, true);
+  assert.equal(decide(`node -e "const s = 'M=${MEMORY}'" ; printf y > $M/trap.md`).allowed, true);
+});
+
+test("an assignment reaches the shell a wrapper starts, and no interpreter beyond it", () => {
+  assert.equal(decide(`env A=1 M=${MEMORY} sh -c 'cp a $M/trap.md'`).allowed, false, "beside another assignment");
+  const inner = 'writeFileSync("$M/trap.md", "x")';
+  assert.equal(decide(`env M=${MEMORY} node -e '${inner}'`).allowed, true, "a literal `$M` is no directory");
+});
+
+/* What a substitution returns is unknowable; a directory its text names is one the write reaches. */
+test("a directory a command substitution spells out is still refused", () => {
+  assert.equal(decide(`M=$(dirname ${MEMORY}/a.md)\nprintf x > $M/trap.md`).allowed, false);
+  assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
+});
+
+/* A verb answers for its own command, not for the line: any of them made every `.md` token a target. */
+test("a write in one command does not answer for a path named in another", () => {
+  assert.equal(decide(`cat ${MEMORY}/a.md | grep -c x && touch /tmp/done.md`).allowed, true);
+  assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md && cp notes.md /tmp/`).allowed, true);
+  assert.equal(decide(`wc -l ${MEMORY}/a.md ; truncate -s 0 /tmp/log.md`).allowed, true);
+  assert.equal(decide(`cp notes.md ${MEMORY}/trap.md && echo done`).allowed, false, "its own target still counts");
+  assert.equal(decide(`echo start ; touch ${MEMORY}/trap.md`).allowed, false, "in whichever command it is");
+});
+
+/* Read as a quote, an escaped one split the verb from its target and the write was lost. */
+test("a quote the shell escapes does not end a command", () => {
+  assert.equal(decide(`cp "a\\";b" ${MEMORY}/trap.md`).allowed, false);
+});
+
+/* Two ways a target reaches a verb in another command, both of which a plain split would let through. */
+test("a command that hands the next one its target is one command", () => {
+  assert.equal(decide(`printf '%s' ${MEMORY}/trap.md | xargs touch`).allowed, false, "a pipe is not a boundary");
+  assert.equal(decide(`python3 -c 'p="${MEMORY}/trap.md"; open(p, "w")'`).allowed, false, "nor a program's own `;`");
+  assert.equal(decide(`printf '%s' ${MEMORY}/trap.md |& xargs touch`).allowed, false, "nor the `&` in `|&`");
+});
+
+test("a `-c` body inside a `-c` body is unwrapped too", () => {
+  assert.equal(decide(`sh -c 'sh -c "cp a ${MEMORY}/trap.md"'`).allowed, false);
+});
+
+/* A verb belongs here only with a target the command spells out: `tar -x` is the backstop's business. */
+test("the write verbs an agent reaches for are writes", () => {
+  for (const command of [
+    `touch ${MEMORY}/trap.md`,
+    `truncate -s 0 ${MEMORY}/trap.md`,
+    `mv a.md ${MEMORY}/trap.md`,
+    `install -m 644 a.md ${MEMORY}/trap.md`,
+    `rsync a.md ${MEMORY}/trap.md`,
+    `dd if=a.md of=${MEMORY}/trap.md`,
+    `curl -sS https://x/a.md -o ${MEMORY}/trap.md`,
+    `wget -O ${MEMORY}/trap.md https://x/a.md`,
+  ]) {
+    assert.equal(decide(command).allowed, false, command);
+  }
+});
+
+/* `open(…, "w")` was read and `"a"` was not: the shape that keeps the file was the one that passed. */
+test("a call that appends or copies is a write, in whichever language reached for it", () => {
+  for (const program of [
+    `open("${MEMORY}/trap.md", "a").write("x")`,
+    `appendFileSync("${MEMORY}/trap.md", "x")`,
+    `await writeFile("${MEMORY}/trap.md", "x")`,
+    `Deno.writeTextFile("${MEMORY}/trap.md", "x")`,
+    `Bun.write("${MEMORY}/trap.md", "x")`,
+    `shutil.copyfile("a.md", "${MEMORY}/trap.md")`,
+  ]) {
+    assert.equal(decide(`python3 -c '${program}'`).allowed, false, program);
+  }
+});
+
+/* Read as a quoted argument, a `-c` body let every verb through: `sh -c 'cp …'` was not a write. */
+test("a verb inside a `-c` body is where the shell puts it", () => {
+  assert.equal(decide(`sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false);
+  assert.equal(decide(`bash -lc "tee ${MEMORY}/trap.md < a"`).allowed, false);
+  assert.equal(decide(`ls | xargs -I{} sh -c 'cp {} ${MEMORY}/trap.md'`).allowed, false);
+  assert.equal(decide(`sh -c 'grep -c x ${MEMORY}/a.md'`).allowed, true, "reading is still free");
+});
+
+/* The tracker holds project memory too, so the endpoint is guarded where it is reached: a connected client's tool call and nothing else, no verb of this CLI sending a payload. */
+test("the tracker's own memory write is held with the same brief a file is", () => {
+  const { allowed, reason } = called({ source: "note", text: "x" });
+  assert.equal(allowed, false);
+  assert.match(reason, /Record only what cost a cycle/u);
+  assert.match(reason, /code cannot hold/u, "the hold sends a fixable fact to the code first");
+  assert.match(reason, /which of the five conditions/u, "the tracker route counts them as the brief does");
+  assert.match(reason, /metadata\.checked/u);
+});
+
+/* Naming a thing is not calling it: a grep for the endpoint was refused as a write to it. */
+test("a command that only names the tracker's endpoint is not writing to it", () => {
+  const named = `forge${"_"}memory${"_"}write`;
+  assert.equal(decide(`grep -rn ${named} plugin/hooks`).allowed, true);
+  assert.equal(decide(`printf '%s' ${named}`).allowed, true, "and neither is printing it");
+});
+
+/* The arguments are read, not searched for the word: a field set to false cleared the hold, and a
+   source the tracker itself authors is not a memory anybody chose to keep. */
+test("the arguments are read, not searched, and the tracker's own sources pass", () => {
+  assert.equal(called({ source: "note", metadata: { checked: false } }).allowed, false, "false is not checked");
+  assert.equal(called({ source: "note", metadata: { checked: "trap" } }).allowed, true, "a category clears it");
+  assert.equal(called({ source: "issue", text: "x" }).allowed, true, "the tracker authors this one");
+});
+
+/* A wrapper's own options stand between it and the verb it runs, and hide nothing: `sudo -u root touch`
+   went through while `sudo touch` was refused (ISS-2870). Spelled inside a quoted argument it starts nothing. */
+test("a wrapper's options do not hide its verb, and a quoted mention of one is still no write", () => {
+  assert.equal(decide(`echo "sudo -u me touch ${SKILL}"`).allowed, true);
+  for (const runner of ["sudo", "exec", "sudo -u root", "exec -a alias", "env -u X"]) assert.equal(decide(`${runner} touch ${MEMORY}/trap.md`).allowed, false, runner);
+});
+
+/* A wrapper counts where a verb counts: promoting a `-c` body promoted one quoted in a message too. */
+test("a `-c` body quoted inside an argument is not the shell running one", () => {
+  assert.equal(decide(`git commit -m "ran sh -c 'cp a b'" -- ${MEMORY}/a.md`).allowed, true);
+  for (const lead of ["", "exec "]) assert.equal(decide(`${lead}sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false, `${lead}at the start it is`);
+  assert.equal(decide(`ls | xargs -I{} sh -c 'cp {} ${MEMORY}/trap.md'`).allowed, false, "after a wrapper too");
+});
+
+test("a heredoc through a variable-held memory path is refused", () => {
+  const { allowed, reason } = decide(
+    `M=${MEMORY}\ncat > $M/coolify-deploy-log-location.md <<'EOF'\nbody\nEOF`,
+  );
+  assert.equal(allowed, false);
+  assert.match(reason, /coolify-deploy-log-location\.md/);
+  assert.match(reason, /Record only what cost a cycle/, "the rule, not only the tool");
+  assert.match(reason, /^Hold — write it with Write .* if all five conditions below hold/u, "a new file is the one the bar is for");
+});
+
+test("the braced form resolves too", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat > \${M}/trap.md <<'EOF'\nx\nEOF`).allowed, false);
+});
+
+test("a relative write after cd into the guarded directory is refused", () => {
+  assert.equal(decide(`cd ${MEMORY} && cat > trap.md <<'EOF'\nx\nEOF`).allowed, false);
+});
+
+/* Three gates ask which directory a command runs in and this one kept its own answer: the last `cd`
+   in the text won, whatever preceded it, and the shell's own cwd was no tree at all (ISS-260). */
+test("a relative write is placed against every tree the shell could be standing in", () => {
+  assert.equal(
+    decide(`cd ${dirname(MEMORY)} && cd memory && cat > trap.md <<'EOF'\nx\nEOF`).allowed,
+    false,
+    "two relative moves compose, where the last of them alone names nothing guarded",
+  );
+  const doubted = decide(`cd ${MEMORY} || cd /tmp/a && echo x > trap.md`);
+  assert.equal(doubted.allowed, false, "a cd in front of a || may have run, so its tree is still live");
+  assert.match(doubted.reason, /could run in more than one tree/u, "and the refusal names the doubt");
+  assert.match(doubted.reason, /Join them with .&&./u, "with the one action that settles it");
+  assert.equal(decide(`(cd ${MEMORY}; echo hi); echo x > trap.md`).allowed, true, "a subshell's move died with it");
+  assert.equal(decide(`pushd ${MEMORY} && echo x > trap.md`).allowed, false, "a pushd moves this shell too");
+  assert.equal(
+    decide(`pushd ${MEMORY} && popd && echo x > trap.md`).allowed,
+    true,
+    "and the stack it returns to is what the reading declines to model, so that tree is named nowhere",
+  );
+});
+
+/* Refusing on this doubt would refuse every relative `.md` write behind a `cd -`, and a gate refusing too much is one somebody switches off. */
+test("a tree the command does not name leaves the token to decide alone", () => {
+  assert.equal(decide(`cd - && echo x > notes.md`).allowed, true);
+  assert.equal(decide(`cd - && echo x > ${MEMORY}/trap.md`).allowed, false, "while the token still counts");
+  assert.equal(decide(`cd /tmp/a || cd /tmp/b && echo x > notes.md`).allowed, true, "and doubt alone refuses nothing");
+});
+
+/* The shell stands somewhere before any `cd`, and that tree was read as no tree: a relative write
+   from a session already inside the directory it guards was the write nobody was asked about. */
+test("the call's own cwd is a tree the write resolves against", () => {
+  assert.equal(at(MEMORY, `echo x > trap.md`).allowed, false);
+  assert.equal(at(`${SKILL_DIR}`, `sed -i s/a/b/ references/plan.md`).allowed, false, "a skill's own text too");
+  assert.equal(at(MEMORY, `echo x >> MEMORY.md`).allowed, true, "the index is still not a memory");
+  assert.equal(at("/tmp/notes", `echo x > trap.md`).allowed, true, "and a tree guarding nothing refuses nothing");
+});
+
+/* Placing a token against the cwd placed one the *shell* would still have expanded there too, so an agent standing in a skills tree had every `~/…md` write of its own refused, and an over-refusal on a file nowhere near the tree is how a gate gets routed around (ISS-279). A `$` ends a word, so the name begins after it and the rest reads as a relative path. */
+test("a `~` destination is placed against no tree", () => {
+  assert.equal(at(SKILL_DIR, `echo x > ~/notes.md`).allowed, true);
+  assert.equal(at(SKILL_DIR, `echo x > notes~.md`).allowed, false, "while a `~` inside a token is a path");
+});
+
+test("a destination whose `$` the reading stopped at is placed against no tree", () => {
+  assert.equal(at(SKILL_DIR, `echo x > $HOME/notes.md`).allowed, true);
+  assert.equal(at(SKILL_DIR, `cat > $UNSET/notes.md <<EOF\nx\nEOF`).allowed, true, "set or unset alike");
+  assert.equal(at(SKILL_DIR, "echo x > ${HOME}/notes.md").allowed, true, "the braced form, whose match starts at the `/`");
+});
+
+/* Only the join moved: read as "skip the token", the same fix would have freed every guarded path written through a variable, which is the shape the gate was built for. */
+test("an expanded destination still answers for what the token itself spells", () => {
+  assert.equal(at(SKILL_DIR, `printf x > "$HOME/p/memory/trap.md"`).allowed, false);
+  assert.equal(at(SKILL_DIR, `echo x > ~/p/memory/trap.md`).allowed, false);
+});
+
+/* The reading cut a path at the first character an allow-list left out, and what was left of one cut past its guarded segment carried no `/memory/` at all — so the write went through unasked (ISS-1535). */
+test("a name carrying a character a name usually does not is read whole, guarded segment and all", () => {
+  assert.equal(decide(`printf x > /tmp/run/memory/trap+one.md`).allowed, false, "a plus");
+  assert.equal(decide(`printf x > /tmp/run/memory/trap,one.md`).allowed, false, "a comma");
+  assert.equal(decide(`printf x > /tmp/run/memory/trap#one.md`).allowed, false, "a hash");
+  assert.equal(decide(`printf x > /tmp/run/memory/trap=one.md`).allowed, false, "a key's own separator");
+  assert.equal(decide(`printf x > /tmp/forge-run-iss-1477+1447/memory/trap.md`).allowed, false, "a scratch root's own");
+  assert.equal(decide(`curl -o/tmp/run/memory/trap.md https://x`).allowed, false, "a value written against its option's letter");
+  assert.equal(at(MEMORY, `tee "$OUT.md" OUT.md`).allowed, false, "and a name spelled twice is placed where no `$` precedes it");
+  assert.equal(at(MEMORY, `printf x > --trap.md`).allowed, false, "and a redirect's target is a filename however it opens");
+  assert.equal(at(MEMORY, `tee -- --trap.md`).allowed, false, "as is an operand past the word saying there are no options left");
+});
+
+test("nothing standing where a name cannot is claimed as one, from inside the tree that guards them", () => {
+  assert.equal(at(MEMORY, `sed -i s/x/y/ *.md`).allowed, true, "what a glob matches is not in this text");
+  assert.equal(at(MEMORY, `curl --output=/tmp/a/notes.md https://x`).allowed, true, "the option is no path under the cwd");
+  assert.equal(at(MEMORY, `python3 -c 'root="/tmp"; open(f"{root}/notes.md", "w").write("x")'`).allowed, true,
+    "nor is a placeholder this cannot read, whose own tail lands elsewhere");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=/tmp/notes.md count=1`).allowed, true, "nor a key in front of a value");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=../notes.md count=1`).allowed, true, "spelled from the root or from beside this tree");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=~/notes.md count=1`).allowed, true, "or from a home");
+});
+
+test("a literal an interpreter's body carries is a name, and the value behind a key is one", () => {
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=/tmp/memory/trap.md count=1`).allowed, false, "the value itself is read");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=~/memory/trap.md count=1`).allowed, false, "from a home as much as from the root");
+  assert.equal(at(MEMORY, `python3 -c 'open("--trap.md", "w").write("x")'`).allowed, false,
+    "and a literal a body carries is no option, whatever it opens with");
+  const back = String.fromCharCode(96);
+  assert.equal(at(MEMORY, `node -e 'writeFileSync(${back}--trap.md${back}, "x")'`).allowed, false,
+    "under a template's own quote as much as under the other two");
+});
+
+test("a literal path is still refused", () => {
+  assert.equal(decide(`sed -i s/a/b/ ${MEMORY}/trap.md`).allowed, false);
+});
+
+test("a skill file through a variable is refused", () => {
+  assert.equal(decide("S=plugin/skills/issue-flow\ncat > $S/SKILL.md <<'EOF'\nx\nEOF").allowed, false);
+});
+
+/* The served method and its references are the skill's own text under another root (ISS-353), and a method is a directory of parts under the flow serving it: a reading that stops at the name `guide.md` guards none of them. */
+test("a served method part and its references are a skill's own text", () => {
+  assert.equal(decide("cat > plugin/guides/skills/issue-flow/default/guide/05-phase-1.md <<'EOF'\nx\nEOF").allowed, false);
+  assert.equal(decide("sed -i s/a/b/ plugin/guides/skills/issue-flow/default/references/plan.md").allowed, false);
+  assert.equal(decide("cat > plugin/guides/contract/default/03-the-flow.md <<'EOF'\nx\nEOF").allowed, true, "the contract is not a skill");
+});
+
+test("MEMORY.md is the index, not a memory", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat > $M/MEMORY.md <<'EOF'\n- a line\nEOF`).allowed, true);
+});
+
+test("reading a memory is free", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat $M/trap.md | head -5`).allowed, true);
+});
+
+test("an unrelated variable-held markdown write is free", () => {
+  assert.equal(decide("D=/tmp/docs\ncat > $D/notes.md <<'EOF'\nx\nEOF").allowed, true);
+});
+
+test("an unresolvable variable does not deny by accident", () => {
+  assert.equal(decide("cat > $UNSET/notes.md <<'EOF'\nx\nEOF").allowed, true);
+});
+
+test("a `-i` inside the filename is not an in-place edit", () => {
+  assert.equal(decide(`sed -n 1,7p ${MEMORY}/erp-issue-workflow.md`).allowed, true);
+});
+
+test("a real in-place edit of the same file is still refused", () => {
+  assert.equal(decide(`sed -i s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
+  assert.equal(decide(`sed --in-place s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
+  assert.equal(decide(`sed -i.bak s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
+});
+
+test("a commit trailer's `>` is not a redirect", () => {
+  const body = "msg\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>";
+  const { allowed, reason } = decide(
+    `git add plugin/skills/issue-flow/SKILL.md && git commit -F - <<'EOF'\n${body}\nEOF`,
+  );
+  assert.equal(allowed, true, reason);
+});
+
+test("an arrow in a commit message is not a redirect", () => {
+  assert.equal(decide('git add plugin/skills/forge/SKILL.md && git commit -m "list -> table"').allowed, true);
+});
+
+test("a quoted write target is still found", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat > "$M/trap.md" <<EOF\nx\nEOF`).allowed, false);
+});
+
+test("a python write through the shell is still found", () => {
+  assert.equal(decide(`python3 -c "open('${MEMORY}/trap.md','w').write('x')"`).allowed, false);
+});
+
+/* A heredoc body is data — but `python3 - <<PY` executes it, and stripping it as data let a memory
+   file be rewritten with no question asked. Found by doing it. */
+test("a body an interpreter executes is command, not data", () => {
+  const write = `import pathlib\npathlib.Path("${MEMORY}/trap.md").write_text("x")`;
+  assert.equal(decide(`python3 - <<'PY'\n${write}\nPY`).allowed, false);
+  assert.equal(decide(`node - <<'JS'\nwriteFileSync("${MEMORY}/trap.md", "x")\nJS`).allowed, false);
+});
+
+/* The prose case below reads the same dropped or kept; a body holding a write shape is what asks. */
+test("a write shape inside a data body is text, not a write", () => {
+  assert.equal(decide(`cat > /tmp/note.md <<'MD'\ncp a ${MEMORY}/x.md\nMD`).allowed, true);
+});
+
+test("the same shape aimed anywhere else stays free", () => {
+  assert.equal(decide(`python3 - <<'PY'\nimport pathlib\npathlib.Path("docs/HOOKS.md").write_text("x")\nPY`).allowed, true);
+  /* `cat` executes nothing, so its body is data again and only the operator line is read. */
+  assert.equal(decide(`cat > docs/X.md <<'MD'\nsee ${MEMORY}/a.md for the fact\nMD`).allowed, true);
+});
+
+/* Twelve refusals in three days: a python body editing one file, its replacement string a sentence.
+   That fixture passes on the whitespace in it, so the payload one beside it is what carries "read
+   the write, not the mention" (ISS-242) and the two belong in one test. */
+test("a sentence inside a string is prose, and the line that writes the file is a write", () => {
+  const prose = `s = s.replace('''the route is write_text; see ${SKILL} for the rule''', "x")`;
+  assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\np = Path("plugin/src/tools/vi.mjs")\ns = p.read_text()\n${prose}\np.write_text(s)\nPY`).allowed, true);
+  const listed = `p.write_text('["${SKILL}"]')`;
+  const payload = `python3 - <<'PY'\nimport pathlib\np = pathlib.Path("plugin/test/tracker/contract.test.mjs")\n${listed}\nPY`;
+  assert.equal(decide(payload).allowed, true, "a path written as a list element is the payload, not the target");
+  assert.equal(decide(`cp a.txt b.txt && ${payload}`).allowed, true, "and the compound is not lost with it");
+  assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\nPath("${SKILL}").write_text("x")\nPY`).allowed, false, "the path is the argument");
+  assert.equal(decide(`python3 -c 'p = "${MEMORY}/trap.md"; open(p, "w")'`).allowed, false, "a -c body with spaces is code");
+  const escaped = `python3 -c "open(\\"${MEMORY}/trap.md\\", \\"w\\").write(\\"x\\")"`;
+  assert.equal(decide(escaped).allowed, false, "a body quoting with escapes is one body");
+});
+
+/* The other direction of the same rule: the gate read a path token and never the path the body
+   would have built, so an assembled skill file went through unasked (ISS-242). */
+test("a path an interpreter assembles from its own binding is a write", () => {
+  const bound = 'root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 - <<'PY'\nimport os.path, pathlib, sys\n${bound}\n${line}\nPY`;
+  assert.equal(decide(py('pathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, false, "concatenated");
+  assert.equal(decide(py('pathlib.Path(f"{root}/SKILL.md").write_text("x")')).allowed, false, "an f-string");
+  assert.equal(decide(py('(pathlib.Path(root) / "SKILL.md").write_text("x")')).allowed, false, "pathlib's join");
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "SKILL.md")).write_text("x")')).allowed, false, "os.path.join");
+  assert.equal(decide(`cat > ${SKILL} <<'EOF'\nx\nEOF`).allowed, false, "and the path spelled out whole still is");
+});
+
+/* Each join keeps its own API's rule, or the fold invents a guarded path for a write landing elsewhere. */
+test("an assembled path is read the way the runner would have read it", () => {
+  const bound = 'root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 - <<'PY'\nimport os.path, pathlib, sys\n${bound}\n${line}\nPY`;
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "/tmp/o.md")).write_text("x")')).allowed, true, "python's join drops what is before an absolute member");
+  assert.equal(decide(py('(pathlib.Path(root) / "/tmp/o.md").write_text("x")')).allowed, true, "so does pathlib's operator");
+  const js = 'const root = "plugin/skills/issue-flow";';
+  assert.equal(decide(`node - <<'JS'\n${js}\nwriteFileSync(path.join(root, "/SKILL.md"), "x")\nJS`).allowed, false, "node's path.join does not");
+  assert.equal(decide(py('pathlib.Path("{root}/SKILL.md").write_text("x")')).allowed, true, "a python string without the f prefix is a literal");
+  assert.equal(decide(`node - <<'JS'\n${js}\nwriteFileSync("\${root}/SKILL.md", "x")\nJS`).allowed, true, "and a JS quoted string is not a template");
+  assert.equal(decide(`python3 - <<'PY'\nimport pathlib\npathlib.Path(root + "/SKILL.md").write_text("x")\n${bound}\nPY`).allowed, true, "a binding after the write decides nothing");
+  assert.equal(decide(py('root = sys.argv[1]\npathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, true, "and one rebound to a value this cannot read unsets it");
+  assert.equal(decide(`python3 - <<'PY'\nimport pathlib, sys\nroot = sys.argv[1]\npathlib.Path(f"{root}/skills/issue-flow/SKILL.md").write_text("x")\nPY`).allowed, false, "what an unresolved interpolation still spells is read");
+});
+
+/* Four ways the first cut of that reading answered for a path the program would not have built,
+   each found by the review of the landing head (ISS-242). */
+test("an assembled path is read only where the body really binds one", () => {
+  const py = (lines) => `python3 - <<'PY'\nimport os, os.path, pathlib, sys\n${lines}\nPY`;
+  const write = 'pathlib.Path(root + "/SKILL.md").write_text("x")';
+  assert.equal(decide(py(`root = "plugin/skills/issue-flow" if False else "/tmp"\n${write}`)).allowed, true,
+    "a literal that opens a larger expression binds nothing");
+  assert.equal(decide(py(`root = os.environ["ROOT"]\n${write}`)).allowed, true, "nor does a subscript");
+  assert.equal(decide(py(`root = "plugin/skills/issue-flow"  # the skill\n${write}`)).allowed, false,
+    "a trailing comment still leaves one literal");
+  assert.equal(
+    decide(py(`root = "plugin/skills/issue-flow"\nlabel = f"{root}{root}{root}{root}"\n${write}\nroot = "/tmp"`)).allowed,
+    false,
+    "a substitution that lengthens the body does not move the write past a later binding");
+  assert.equal(decide(py('(pathlib.Path("plugin/skills/issue-flow") / "SKILL.md").write_text("x")')).allowed, false,
+    "an assembly needs no binding at all");
+  assert.equal(
+    decide(py('pathlib.Path("docs" + "/HOOKS.md").write_text("x")\npathlib.Path("plugin" + "/skills" + "/issue-flow" + "/SKILL.md").write_text("x")')).allowed,
+    false,
+    "and a second assembly in the same body is folded too");
+});
+
+/* The same assemblies spelled as an inline program: a gate that folds one spelling and not the other teaches the run to change spelling (ISS-444). */
+test("an assembled path is held inside a -c or -e body as it is inside a heredoc", () => {
+  const bound = 'import os.path, pathlib, sys; root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 -c '${bound}; ${line}'`;
+  assert.equal(decide(py('pathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, false, "concatenated");
+  assert.equal(decide(py('pathlib.Path(f"{root}/SKILL.md").write_text("x")')).allowed, false, "an f-string");
+  assert.equal(decide(py('(pathlib.Path(root) / "SKILL.md").write_text("x")')).allowed, false, "pathlib's join");
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "SKILL.md")).write_text("x")')).allowed, false, "os.path.join");
+  const js = 'const root = "plugin/skills/issue-flow";';
+  const back = String.fromCharCode(96);
+  assert.equal(decide(`node -e '${js} writeFileSync(root + "/SKILL.md", "x")'`).allowed, false, "node's -e, concatenated");
+  assert.equal(decide(`node --eval '${js} writeFileSync(${back}\${root}/SKILL.md${back}, "x")'`).allowed, false, "--eval, a template");
+  assert.equal(decide(`node -e '${js} writeFileSync(path.join(root, "SKILL.md"), "x")'`).allowed, false, "path.join");
+  const escaped = `python3 -c "import pathlib; root = \\"plugin/skills/issue-flow\\"; pathlib.Path(root + \\"/SKILL.md\\").write_text(\\"x\\")"`;
+  assert.equal(decide(escaped).allowed, false, "a body quoting with escapes");
+  const beside = String.raw`python3 -c "p = \"a\" + \"/b\"; open(\"$PWD/${SKILL}\", \"w\")"`;
+  assert.equal(decide(beside).allowed, false, "and a fold elsewhere in it leaves an expansion the shell still makes");
+});
+
+test("an inline body keeps each join's own rule, and a binding it cannot read answers for nothing", () => {
+  const bound = 'import os.path, pathlib, sys; root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 -c '${bound}; ${line}'`;
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "/tmp/o.md")).write_text("x")')).allowed, true, "python's join drops what is before an absolute member");
+  assert.equal(decide(`python3 -c 'import pathlib; pathlib.Path(root + "/SKILL.md").write_text("x"); root = "plugin/skills/issue-flow"'`).allowed, true, "a binding after the write decides nothing");
+  assert.equal(decide(py('root = sys.argv[1]; pathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, true, "and one rebound to a value this cannot read unsets it");
+});
+
+test("a heredoc keeps the rest of its own operator line", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat <<EOF > $M/trap.md\nx\nEOF`).allowed, false);
+});
+
+/* A redirect is aim, not coexistence. Anchoring `>` to the start of a token made `2>/dev/null`
+   a write shape, so reading a skill file with stderr silenced was refused — this suite's own
+   harness hit it first. */
+test("stderr redirection is not a write", () => {
+  assert.equal(decide(`ls -la ${SKILL} 2>/dev/null | head`).allowed, true);
+  assert.equal(decide(`cat ${MEMORY}/a.md 2>&1 | head -5`).allowed, true);
+});
+
+test("a read of a guarded file that writes somewhere else is free", () => {
+  assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md > /tmp/out.txt`).allowed, true);
+});
+
+/* The shared reading answers with every name beside a write shape, the breadth a gate asking what a
+   call may have touched wants: here it held a `grep` of a skill piped into `tee` as a write (ISS-81). */
+test("a guarded path a pipeline stage only reads is not where the write lands", () => {
+  assert.equal(decide(`grep -n rule ${SKILL} | tee /tmp/ev.txt`).allowed, true);
+  assert.equal(decide(`grep -n rule ${SKILL} | tee -a /tmp/ev.txt`).allowed, true);
+  assert.equal(decide(`cat ${MEMORY}/a.md | tee /tmp/ev.txt`).allowed, true);
+  assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md | tee /tmp/ev.txt`).allowed, true, "a `sed -n` writes nothing");
+  assert.equal(decide(`grep -n rule /tmp/notes.md | tee ${SKILL}`).allowed, false, "tee's own target counts");
+  assert.equal(decide(`echo x>${SKILL} | tee /tmp/ev.txt`).allowed, false, "and so does a redirect with no space");
+});
+
+test("a copy reads its source and writes its destination", () => {
+  assert.equal(decide(`cp ${SKILL} /tmp/backup.md`).allowed, true);
+  assert.equal(decide(`dd if=${SKILL} of=/tmp/o.md`).allowed, true);
+  assert.equal(decide(`rsync ${SKILL} /tmp/b.md`).allowed, true);
+  assert.equal(decide(`cp a.md ${SKILL}`).allowed, false, "the destination is still a write");
+  assert.equal(decide(`cp -a ${SKILL} /tmp/backup.md`).allowed, true, "`-a` takes no value, so its word is the source");
+  assert.equal(decide(`cp -a a.md ${SKILL}`).allowed, false, "and the destination after one is still a write");
+});
+
+/* A backup beside a guarded file was read as the file: the `.md` stopped short of the name's end and was taken anyway, so the one way back from an edit to an untracked runbook was refused (ISS-379). */
+test("a copy's backup beside a guarded file is not that file", () => {
+  assert.equal(decide(`cp ${SKILL} ${SKILL}.bak`).allowed, true);
+  assert.equal(decide(`cp -p ${SKILL} ${SKILL}~`).allowed, true, "an editor's spelling of one too");
+  assert.equal(decide(`echo x > ${SKILL}.md`).allowed, false, "while a name that ends in the extension still is");
+});
+
+/* `cp`, `mv` and `install` name the flags that take a value, so every other one is read as taking none; `-S` still takes the next word, and a guarded path there is kept as the candidate it may be. */
+test("a value a copy's flag takes is still that flag's", () => {
+  assert.equal(decide(`cp -S /p/skills/x/SKILL.md a b`).allowed, false);
+  assert.equal(decide(`cp -S .bak a.md ${SKILL}`).allowed, false, "and the destination after it is a write");
+});
+
+test("a verb that unlinks what it reads writes its source too", () => {
+  assert.equal(decide(`mv ${SKILL} /tmp/backup.md`).allowed, false);
+  assert.equal(decide(`rsync --remove-source-files ${SKILL} /tmp/b.md`).allowed, false);
+  assert.equal(decide(`rsync ${SKILL} /tmp/b.md --remove-source-files`).allowed, false, "wherever the flag stands");
+  assert.equal(decide(`rsync ${SKILL} /tmp/b.md '--remove-source-files'`).allowed, false, "and however it is quoted");
+  assert.equal(decide(`sed '-i' s/a/b/ ${SKILL} | tee /tmp/ev.txt`).allowed, false, "as with a quoted `-i`");
+});
+
+/* Which of these verbs' flags take a value is not written here, so the word after one is never struck out. */
+test("a guarded path a flag carries is a target in either spelling", () => {
+  assert.equal(decide(`rsync --log-file=${SKILL} a.md /tmp/b.md`).allowed, false);
+  assert.equal(decide(`rsync --log-file ${SKILL} a.md /tmp/b.md`).allowed, false);
+  assert.equal(decide(`curl -sS https://x/a.md -o ${SKILL}`).allowed, false);
+  assert.equal(decide(`wget -O ${SKILL} https://x/a.md`).allowed, false);
+  assert.equal(decide(`curl '--output' ${SKILL} https://x/a.md | tee /tmp/ev.txt`).allowed, false, "quoted too");
+});
+
+/* Where the file never reaches the verb, which name it is would be a guess, so the command stands whole. */
+test("a write handed its file by another command counts every name beside it", () => {
+  assert.equal(at(SKILL_DIR, "grep -l rule SKILL.md | xargs sed -i s/a/b/").allowed, false);
+  assert.equal(at(SKILL_DIR, "find . -name SKILL.md -exec sed -i s/a/b/ {} +").allowed, false);
+  assert.equal(decide(`printf '%s' ${MEMORY}/trap.md | xargs cp -t /tmp`).allowed, false);
+});
+
+test("a write made by a language's own call names no position here, so it is read as it was", () => {
+  assert.equal(decide(`python3 <<'EOF'\nopen("${MEMORY}/trap.md", "w")\nEOF`).allowed, false);
+  assert.equal(decide(`python3 -c 'shutil.copyfile("a.md", "${MEMORY}/trap.md")'`).allowed, false);
+});
+
+test("a redirect aimed at a guarded file is refused, appended or truncated", () => {
+  assert.equal(decide(`cat > ${MEMORY}/trap.md`).allowed, false);
+  assert.equal(decide(`echo x >> ${MEMORY}/trap.md`).allowed, false);
+  assert.equal(decide(`echo x > ${SKILL}`).allowed, false);
+  assert.equal(decide(`echo x > ${MEMORY}\\\n/trap.md`).allowed, false,
+    "and one whose target is continued onto the next line, which a shell joins into the same word (ISS-2686)");
+});
+
+/* A memory write is judged on content, so these need a real directory to compare against. */
+const room = join(tempRoom("memory-gate-"), "memory");
+mkdirSync(room);
+const KNOWN = `---
+name: background-work-survives-tool-timeout
+metadata:
+  type: feedback
+---
+
+A Bash tool timeout stops the waiting and never the process, so an empty output file beside a live
+pid means the work is still running rather than killed.
+`;
+writeFileSync(join(room, "background-work-survives-tool-timeout.md"), KNOWN);
+
+const write = (name, content, tool = "Write") => {
+  const key = tool === "Write" ? "content" : "new_string";
+  const session = randomUUID();
+  const once = () => {
+    const run = callHook(
+      HOOK,
+      { session_id: session, tool_name: tool, tool_input: { file_path: join(room, name), [key]: content } },
+      HOME,
+    );
+    assert.equal(run.status, 0, run.stderr);
+    const answer = answered(run);
+    return answer === null ? null : answer.hookSpecificOutput.permissionDecisionReason;
+  };
+  return { first: once(), again: once() };
+};
+
+/* The shape of a second copy is not what is wrong with it, so a declared type buys no pass: a
+   well-formed write is stopped exactly like a malformed one. */
+test("every memory write is stopped once, well-formed or not", () => {
+  const fact = "Zed opens a worktree without its main checkout, so a project-wide search misses vendored files.";
+  const { first, again } = write("zed-typed.md", `---\nname: zed\nmetadata:\n  type: reference\n---\n\n${fact}\n`);
+  assert.match(write("zed-untyped.md", `---\nname: zed\n---\n\n${fact}\n`).first, /Record only what cost/);
+  assert.match(first, /Record only what cost a cycle/);
+  assert.match(first, /One file, one fact/, "the shape, so re-sending is not guesswork");
+  assert.match(first, /one pointer line in MEMORY\.md/);
+  assert.match(first, /^Hold — fix the memory that already states this, if one does/u);
+  assert.equal(again, null, "the re-send passes, or the file could never be written");
+});
+
+test("a fact already written names the file that has it", () => {
+  const { first } = write("killed-jobs-keep-running.md", KNOWN);
+  assert.match(first, /Already in `background-work-survives-tool-timeout\.md`/);
+  assert.match(first, /^Hold — fix `background-work-survives-tool-timeout\.md` if its rule is wrong/u);
+  assert.doesNotMatch(first, /One file, one fact/, "the shape belongs where a file is being shaped");
+});
+
+test("editing an existing memory is told to replace, not append", () => {
+  const { first } = write("background-work-survives-tool-timeout.md", "a corrected sentence", "Edit");
+  assert.match(first, /never append a second version/);
+  assert.doesNotMatch(first, /Already in/, "a file is not a copy of itself");
+});
+
+/* A refusal on every edit reprinted the same 300 tokens; the document it restated is one file. */
+const skillWrite = (session, name) => {
+  const room = tempRoom("skill-gate-");
+  const file = join(room, "skills", "demo", name);
+  mkdirSync(dirname(file), { recursive: true });
+  const run = callHook(
+    HOOK,
+    { session_id: session, tool_name: "Write", tool_input: { file_path: file, content: "a line of method" } },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+};
+
+test("the refusal names the categories and does not reprint the test", () => {
+  const first = skillWrite(randomUUID(), "SKILL.md");
+  assert.match(first, /trap \| method \| invariant \| discovery \| boundary/);
+  assert.doesNotMatch(first, /it cost a cycle, not a thought/, "the five conditions belong to one file");
+  assert.ok(first.split("\n").length <= 10, `five lines, not twenty-five: got ${first.split("\n").length}`);
+});
+
+const skillDuplicate = () => dupWrite(randomUUID(), dupRoom(), { home: HOME });
+
+/* Every route, not the one that was easiest to reach: the memory write fires most and shipped
+   without the pointer, and the duplicate refusal named a repository script — a path the project a
+   gate fires in cannot resolve or run. A file in the user's own tree is fair to name. */
+test("every refusal ends by naming where the argument is, and no path of this repository's", () => {
+  const session = randomUUID();
+  const reasons = [
+    skillWrite(session, "SKILL.md"),
+    skillWrite(session, "SKILL.md"),
+    skillDuplicate(),
+    write("a-new-trap.md", "A pnpm workspace resolves a symlinked package twice.").first,
+    write("background-work-survives-tool-timeout.md", KNOWN).first,
+  ];
+  for (const reason of reasons) {
+    assert.match(reason, /forge hooks --how learning-gate/u, reason);
+    const ours = /(?:^|[\s(`])(?:\.\/)?(?:plugin|packages|scripts|docs|src|tools)\/\S+/u;
+    assert.doesNotMatch(reason, ours, `names a path of this repository: ${reason}`);
+  }
+});
+

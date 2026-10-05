@@ -2,7 +2,6 @@ import { availableParallelism } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
 import { HUMAN_REPORTER, ISOLATED } from "./reporters/isolation.mjs";
 import { digestFile } from "./ledger.mjs";
 import { under } from "./scope.mjs";
@@ -13,12 +12,9 @@ const TREE = resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 
 const ours = (name) => fileURLToPath(new URL(`./${name}`, import.meta.url));
 
-/* A gate that runs out of machine reports no verdict and is spent again, so the runs this box
-   declares divide its cores; never to zero, and nothing declared is the whole machine (ISS-1613). */
-export const testWorkers = ({ cores = availableParallelism(), declared = parallelRuns() } = {}) =>
-  (declared.value === null ? cores : Math.max(1, Math.floor(cores / declared.value)));
-
-export const testFlags = (workers = testWorkers()) => [
+/* Every core: only a landing runs the whole gate, and landings run one at a time, so no other gate of
+   this checkout is owed a share of the machine. */
+export const testFlags = (workers = availableParallelism()) => [
   `--test-concurrency=${workers}`,
   `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
   `--test-reporter=${ours("reporters/file-times.mjs")}`, "--test-reporter-destination=stdout",

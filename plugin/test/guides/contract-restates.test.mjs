@@ -31,9 +31,9 @@ test("the measure catches a copied sentence and a copied cell, and passes a poin
   const copied = "the plan is untyped — it carries none of the sections a typed plan owes, and each "
     + "section is opened by a heading whose text is its name";
   assert.ok(worstIn(`## A part\n\n${copied}\n`), "a sentence copied from a shortfall message is not caught");
-  const cell = "| Scenario | Writes |\n|---|---|\n| the baseline's gate ran over part of the tree | "
-    + "the baseline says the gate measured part of the tree, so what it did not run has no answer "
-    + "and a green after it stands on nothing |\n";
+  const cell = "| Scenario | Writes |\n|---|---|\n| the build names no branch | "
+    + "the worklog names no branch, so nothing on the record says which tree the code is being "
+    + "written against, and a run resuming this issue cannot tell work already done from none |\n";
   assert.ok(worstIn(`## A part\n\n${cell}`), "a rule copied into a table cell is not caught");
   assert.equal(worstIn("## A part\n\nWhat each row is earned by is `forge advance <ref> --owed`, for "
     + "the issue in hand rather than in general.\n"), undefined, "a pointer at the command is refused");

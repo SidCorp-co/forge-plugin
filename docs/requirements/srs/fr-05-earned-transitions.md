@@ -54,7 +54,7 @@ agent learns what a status wants.
   WHEN a record is written THEN the CLI SHALL close that write with the same sentence this rehearsal
   opens with, counting the record just written, and SHALL exit zero where that sentence cannot be
   worked out at all.
-- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance/judged-again.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
+- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/judged-again.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
   WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
   single owed item whose command re-judges every member of it in one write.
 - **AC-05-1-7** · Rev: 2 · Proof: none yet — ISS-2123
@@ -68,7 +68,7 @@ agent learns what a status wants.
   CLI SHALL name every status from the issue's own onwards with the payloads that earn each at the
   issue's own rung and under its plan's declarations, and SHALL say of a status the rung or a
   declaration leaves no payload to write that nothing is owed at it and which of the two left it so.
-- **AC-05-1-10** · Rev: 2 · Proof: plugin/test/flow/route/baseline-ahead.test.mjs "--owed names the published baseline and the write that cites it, and says so where none is published"
+- **AC-05-1-10** · Rev: 2 · Status: retired (ISS-3184)
   WHERE a whole-tree gate result is published for the commit the checkout stands at, the rehearsal
   of every status below the one a baseline earns SHALL name that commit and SHALL print the write
   that cites it; where none is published for that commit the rehearsal SHALL say so and SHALL name
@@ -94,10 +94,10 @@ agent learns what a status wants.
   WHEN a write of the plan or the criteria is refused for a file no reviewer has read THEN the
   refusal SHALL say that the read is owed at every rung, before it names anything that would stand
   the check down.
-- **AC-05-1-16** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the brief headlines the review's outcome and head and the baseline's result"
-  WHERE the record holds a baseline or a review, the CLI SHALL headline the latest of each when it
-  re-mints the issue's context, the baseline with the result its gate gave and the review with its
-  outcome and the head it judged, these being what a resuming run needs before anything else.
+- **AC-05-1-16** · Rev: 2 · Proof: plugin/test/flow/resume/resume.test.mjs "the brief headlines the review's outcome and head, and reads past a baseline an earlier build left"
+  WHERE the record holds a review, the CLI SHALL headline the latest one when it re-mints the issue's
+  context, with its outcome and the head it judged, that being what a resuming run needs before
+  anything else.
 - **AC-05-1-17** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the footer counts the typed records it read and points at the report for the ones it gave no line"
   WHEN the CLI re-mints an issue's context THEN it SHALL say how many typed records it read and,
   where a later record of their kind superseded any of those, how many.
@@ -141,14 +141,14 @@ deciding a status.
 - **AC-05-2-5** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "advance earns tested from a batched write exactly as from one write per criterion"
   WHEN the verdicts on several criteria are written in one record THEN the CLI SHALL judge the status
   exactly as it judges one record per criterion.
-- **AC-05-2-6** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
+- **AC-05-2-6** · Rev: 2 · Status: retired (ISS-3184)
   IF the latest baseline records that its gate run measured part of the tree, and the plan does not
   declare that the change lands no file in the repository, THEN the CLI SHALL refuse `in_progress`
   and SHALL name the gate command that baseline itself recorded.
-- **AC-05-2-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
+- **AC-05-2-7** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a newer field is asked for at the write and excused at the read-back"
   WHERE a record was written before a field was added to its shape, the CLI SHALL read it back as a
   whole payload rather than refusing it for lacking that field.
-- **AC-05-2-8** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a cited baseline is taken at every rung, and refused on a record that carries no head"
+- **AC-05-2-8** · Rev: 2 · Status: retired (ISS-3184)
   WHERE the latest baseline cites a recorded gate result and the plan does not declare that the
   change lands no file in the repository, the CLI SHALL judge `in_progress` on the scope, the head
   and the commit that record itself carries and on no other reading, the state of a tree being no
@@ -177,11 +177,11 @@ deciding a status.
   WHERE the tracker sent no answer about whether an edge gates dispatch, the CLI SHALL judge that edge
   by its kind's own row in the one table of edge kinds, and a kind with no row there SHALL order
   nothing.
-- **AC-05-2-15** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "a plan declaring the change lands no file reaches in_progress with no branch and no baseline"
+- **AC-05-2-15** · Rev: 2 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "a plan declaring the change lands no file reaches in_progress with no branch"
   WHERE the plan declares that the change lands no file in the repository, the CLI SHALL owe
-  `in_progress` neither a branch nor a baseline and SHALL hold it to every other entry criterion of
-  that status, granting this on that declaration alone and never on a change that happens to be
-  empty, because a gate measures a tree and a change landing no file leaves that tree as it found it.
+  `in_progress` no branch and SHALL hold it to every other entry criterion of that status, granting
+  this on that declaration alone and never on a change that happens to be empty, because a change
+  landing no file leaves the tree as it found it and a branch would name a tree nobody wrote in.
 - **AC-05-2-16** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "under the declaration a mark that wrote paths is refused, naming them and the plan write"
   IF the plan declares that the change lands no file in the repository and the merged mark says the
   landing wrote paths THEN the CLI SHALL refuse `developed`, SHALL name those paths, and SHALL name
@@ -532,17 +532,34 @@ so a death between the two is recovered by reading back rather than by doing aga
   WHEN several ready changes are landed together THEN the landing SHALL build one candidate over one
   pinned base, SHALL spend one gate, one version and one push on it, and SHALL write each change's
   own mark and statuses against that release.
-- **AC-05-10-12** · Rev: 2 · Proof: tools/test/run/landing/batch.test.mjs "the bound on the gate runs a set may spend is named before the first of them is spent"
+- **AC-05-10-12** · Rev: 3 · Proof: tools/test/run/landing/red-batch/halves.test.mjs "a red set of two ready branches no failing case attributes gates its halves one at a time, never two at once"
   WHERE a landing takes several ready changes as one candidate, the gate runs it may spend SHALL be
   named before the first of them is spent, SHALL be one for a green candidate, SHALL be, for a red
   one, none to find a member the failing cases' paths name alone and two per halving of the suspects
-  otherwise, SHALL gate at once no more halves than the project's runs leaves places for, and SHALL
-  add, for a base that moves, no run beyond the rebuild one change's own landing is already allowed.
+  otherwise, SHALL gate a red set's halves one at a time and never two at once, and SHALL add, for a
+  base that moves, no run beyond the rebuild one change's own landing is already allowed.
 - **AC-05-10-8** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the install after that promotion holds the version the release commit carries"
   WHEN the candidate is promoted THEN the landing SHALL install from the tree that shipped.
 - **AC-05-10-9** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the merged mark names the judged head, the landed head and that the landing moved nothing"
   WHEN the install has completed THEN the landing SHALL write the merged mark naming the judged head,
   the landed head and whether the landing moved the change's own paths.
+- **AC-05-10-17** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the declared gate is refused where the project ships ready"
+  WHILE a project ships ready, the CLI SHALL refuse an agent's shell call that runs the gate command
+  that project declared, in whichever tree the call runs it, because the landing gates every change
+  on the base as it then is and a run of that gate before it measures nothing new.
+- **AC-05-10-18** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the refusal names the changed files' suites and the hand-over for the tree's own issue"
+  WHEN that call is refused THEN the refusal SHALL open with the suites that exercise the files the
+  change touched as the proof to run instead, naming no test runner, and with the hand-over that
+  clears it, keyed to the issue the tree is working.
+- **AC-05-10-19** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "under ship self, or with ship unset, the declared gate runs"
+  WHERE a project ships its own changes, or has not said how it ships, the CLI SHALL let its declared
+  gate run.
+- **AC-05-10-20** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "a project that declares no gate command is refused nothing"
+  WHERE a project declares no gate command, the CLI SHALL refuse no call as that gate, rather than
+  judge it by the commands this plugin's own repository runs.
+- **AC-05-10-21** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the landing's own verbs are not the gate, and pass under ship ready"
+  WHILE a project ships ready, the CLI SHALL let the landing's own verbs through, the gate they run
+  being a child of theirs that no shell call carries.
 
 ### UC-05-11 — An independent judge earns `testing`
 
@@ -676,10 +693,10 @@ verb's own, refused before the status moves where the record cannot say what the
 the finding under it is worth reading on either of two grounds: the words of whoever reported the
 defect, or the evidence the run captured when it saw the defect itself.
 
-- **AC-05-12-1** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a reopen moves the status and writes no correction for it"
+- **AC-05-12-1** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/reopen.test.mjs "a reopen moves the status and writes no correction for it"
   WHEN the agent reopens an issue THEN the CLI SHALL transition it to the tracker's reopen status and
   SHALL write no correction for that move.
-- **AC-05-12-2** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a reopen is refused where nothing on the record says what the work got to"
+- **AC-05-12-2** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/reopen.test.mjs "a reopen is refused where nothing on the record says what the work got to"
   IF the record names neither a merged mark nor the status a dropped park left THEN the CLI SHALL
   refuse the reopen before the status moves.
 - **AC-05-12-3** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a finding the run made itself is whole on the evidence it captured"
@@ -688,7 +705,7 @@ defect, or the evidence the run captured when it saw the defect itself.
 - **AC-05-12-4** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a finding that quotes nobody and captured nothing is no finding"
   IF a finding carries neither the reporter's words nor any evidence THEN the CLI SHALL refuse it
   naming both of the two grounds.
-- **AC-05-12-5** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a failing verdict moves no status, the reopen being an act of its own"
+- **AC-05-12-5** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/reopen.test.mjs "a failing verdict moves no status, the reopen being an act of its own"
   WHEN a verdict fails THEN the CLI SHALL leave the issue's status where it stands.
 - **AC-05-12-6** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a second triage repeating the first asks for nothing it already answered"
   WHERE a reopen holds more than one triage, the CLI SHALL read what that reopen owes from the

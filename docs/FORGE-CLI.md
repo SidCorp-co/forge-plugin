@@ -57,7 +57,6 @@ how many topics there may be.
 | [the entry checks](cli/the-entry-checks.md) | The obligations a plugin holds a project to without reading its tree, and why `--scope` is both asked for and excused. |
 | [the judge and the deploy](cli/the-judge-and-the-deploy.md) | Why `testing` reads the judge and `awaiting_release` the deployment, which half of that reading a project's own declaration buys, and why a citation is asked for where an identity is there and demanded of nobody. |
 | [the work](cli/the-work.md) | What the opening says about a branch already carrying the phase it names, why reaching it is two offline readings, and why a capture with no diff behind it still writes one. |
-| [the published baseline](cli/the-published-baseline.md) | Why only a release publishes the whole-tree result a baseline may cite and what `forge baseline publish` refuses, why the lookup is one exact commit, and why the authority is settled at the write and the store stays one machine's. |
 | [the ladder](cli/the-ladder.md) | Why a doubtful rung answers with the rung that owes more, why the complexity field is its one source, and what the rule is not. |
 | [the rung in text](cli/the-rung-in-text.md) | Why a declaration a plan quotes is not one it makes, and why a run's rung is read off the record its own write printed rather than off the words beside it. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the shared markdown set, and where the SSE frame reader's home stops. |
@@ -81,7 +80,7 @@ how many topics there may be.
 | [chatgpt — the detached turn](cli/chatgpt-detached.md) | Which number decides that a wait is longer than a caller can hold and where that number came from, why one record has one writer at a time, and why nothing is ever signalled. |
 | [codex — the consult](cli/codex-the-consult.md) | What the advisor forwards, why the plan and the criteria owe a whole body, what a refusal reports, where a base is read from, and what a recheck narrows its range to. |
 | [codex — the unavailable gateway](cli/codex-the-unavailable.md) | What a consult the gateway could not give costs, why the default holds it, what `advisory` lets through and records, and why a consult nobody asked for is held either way. |
-| [codex — the check](cli/codex-the-check.md) | Why the reviewer is given a fixed command rather than a shell of its own, the clock that command runs under, what a check stopped at it costs, and the key that moves it. |
+| [codex — the check](cli/codex-the-check.md) | Why the reviewer runs nothing for itself — no shell and no check — and what `codex.check` still names. |
 | [codex — the payload](cli/codex-the-payload.md) | What of a file travels, which passes earn a review, why a set too large is refused rather than clipped, and what never travels at all. |
 | [codex — the finding](cli/codex-the-finding.md) | What one finding must carry to be worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves a round's effort, what a review that could not check is owed, and what a recheck is anchored to. |

@@ -60,14 +60,13 @@ export const rungReport = (fields, ref) => {
   const climbed = climbSaid(fields, claimed.rung, rung);
   const opened = `${markSaid(claimed)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that rung:`;
   const dropped = [...lighterLines(rung), ...declaredLines(fields)];
-  const baseline = declaredRows(fields).some((one) => one.kind === "baseline") ? "" : "the baseline, ";
   return [
     opened,
     ...(dropped.length ? dropped : [`  ${"nothing dropped".padEnd(WIDTH)}a feature owes the whole set, which is what the rungs below it are measured against`]),
     ...spareLines(rung),
     ...splitAsk(fields.complexity),
     "Every other demand below stands as a feature's does — the confirmation with its where, the",
-    `criteria, ${baseline}the merged mark, the review of the head that landed, a verdict on every`,
+    "criteria, the merged mark, the review of the head that landed, a verdict on every",
     "criterion, the verification, and the migration classification where a plan declares schema",
     "coupling, which no rung drops.",
     ...routesOff(rung, ref),

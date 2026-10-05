@@ -91,7 +91,7 @@ test("a blank on a field that is not prose is refused by the flag's name before 
     for (const [argv, flag] of [
       [[...verdict, "--evidence", value], "verdict: --evidence"],
       [[...verdict, "--evidence", "c8c3550", "--evidence", value], "verdict: --evidence"],
-      [["baseline", "ISS-7", "--gate", value, "--result", "354 pass", "--commit", "43b811e", "--scope", "whole"], "baseline: --gate"],
+      [["review", "ISS-7", "--reviewer", value, "--commit", "43b811e", "--outcome", "approved"], "review: --reviewer"],
     ]) {
       const run = await write(argv);
       assert.equal(run.status, 1, run.stdout);

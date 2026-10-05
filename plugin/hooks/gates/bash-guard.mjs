@@ -98,8 +98,8 @@ const RULES = [
       "more than one worktree. A stash pushed in one tree is what a pop in another takes, so this " +
       "call can hand your work to a session working elsewhere, or apply theirs over your files.",
     instead:
-      "Cut a second `git worktree` at the base for a clean baseline, or copy the one file aside and " +
-      `restore it afterwards. ${LEFT_ALONE} move nothing and stay allowed.`,
+      "Copy the one file aside and restore it afterwards, or cut a second `git worktree` at the base " +
+      `to read the old version there. ${LEFT_ALONE} move nothing and stay allowed.`,
   },
   {
     name: "stash-reverts",
@@ -109,7 +109,7 @@ const RULES = [
       "git stash silently reverts the working tree, so everything read afterwards reports about " +
       "code that is no longer there.",
     instead:
-      "Copy the file aside to undo a probe, or use a separate `git worktree` for a clean baseline.",
+      "Copy the file aside to undo a probe, or cut a second `git worktree` at the base to read the old version there.",
   },
   {
     name: "checkout-path",

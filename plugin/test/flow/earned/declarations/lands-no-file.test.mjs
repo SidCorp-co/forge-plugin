@@ -1,5 +1,5 @@
 /* A change whose whole substance is configuration on a deployment lands no file in the repository,
-   and the plan says so in a line of its own: `in_progress` then owes no tree, `developed` still takes
+   and the plan says so in a line of its own: `in_progress` then owes no branch, `developed` still takes
    the mark at the commit the deployment serves, and nothing after that reads the line at all. The
    line is the only thing that grants it, so an undeclared plan is refused as before however empty its
    change is (ISS-2384). */
@@ -34,8 +34,8 @@ const view = (plan, comments = [], over = {}) =>
 const owed = (status, one) => CHECKS[status](one, "ISS-3");
 const said = (status, one) => owed(status, one).map((item) => item.what);
 
-test("a plan declaring the change lands no file reaches in_progress with no branch and no baseline", () => {
-  assert.deepEqual(said("in_progress", view(DECLARED)), [], "neither the branch nor the baseline is owed");
+test("a plan declaring the change lands no file reaches in_progress with no branch", () => {
+  assert.deepEqual(said("in_progress", view(DECLARED)), [], "the branch is not owed");
   const blocked = view(DECLARED, [], { relations: { blockedBy: [
     { kind: "blocks", otherDisplayId: "ISS-9", otherStatus: "open", gatesDispatch: true },
   ] } });
@@ -43,19 +43,11 @@ test("a plan declaring the change lands no file reaches in_progress with no bran
   assert.match(said("in_progress", blocked)[0], /ISS-9/u);
 });
 
-test("under the declaration a baseline that measured part of the tree is not refused", () => {
-  const part = [recorded("baseline", { gate: "npm run check", result: "nothing ran", commit: SERVED, scope: "part" })];
-  assert.deepEqual(said("in_progress", view(DECLARED, part)), []);
-});
-
-test("a plan leaving the line out or answering no owes the branch and the whole tree, however empty the change", () => {
-  const part = [recorded("baseline", { gate: "npm run check", result: "nothing ran", commit: SERVED, scope: "part" })];
+test("a plan leaving the line out or answering no owes the branch, however empty the change", () => {
   for (const [plan, how] of [[SILENT, "left out"], [ANSWERED_NO, "answered no"]]) {
     const bare = said("in_progress", view(plan));
-    assert.ok(bare.some((one) => /^no baseline/u.test(one)), `the baseline is owed with the line ${how}`);
-    assert.ok(bare.some((one) => /worklog names no branch/u.test(one)), `and the branch, with the line ${how}`);
-    assert.ok(said("in_progress", view(plan, part)).some((one) => /measured part of the tree/u.test(one)),
-      `and a part-scope baseline is refused, with the line ${how}`);
+    assert.equal(bare.length, 1, `the branch and nothing else is owed with the line ${how}: ${bare.join(" | ")}`);
+    assert.match(bare[0], /worklog names no branch/u);
   }
 });
 
@@ -81,8 +73,8 @@ test("under the declaration the verdicts and the verification are owed exactly a
   assert.ok(deploying(DECLARED).some((one) => /^no verification/u.test(one)));
 });
 
-/* The rehearsal a run reads before it spends a gate: the baseline line, the lane and the rung report
-   each say the waiver is the plan's, read through the verb a run types. */
+/* The rehearsal a run reads before it builds: the rung report says the waiver is the plan's, read
+   through the verb a run types. */
 const issue = { documentId: "nofile-uuid", issueId: "ISS-3", status: "approved", complexity: "m",
   title: "thirteen settings on the staging application", description: "x", acceptanceCriteria: CRITERIA };
 const project = {
@@ -94,17 +86,15 @@ const project = {
 const { tracker, env } = await trackerFor(project);
 test.after(() => tracker.close());
 
-test("--owed says nothing of a baseline ahead of in_progress under the declaration, and the lane and the rung report give the waiver to the plan", async () => {
+test("--owed under the declaration earns in_progress with no branch, and the rung report gives the waiver to the plan", async () => {
   issue.plan = DECLARED;
   const run = await ranAsync(FORGE, ["advance", "ISS-3", "--owed"], env);
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stdout, /Ahead: in_progress is earned by a baseline/u, run.stdout);
-  assert.match(run.stdout, /^ {2}in_progress +nothing owed under this plan's declarations$/mu, run.stdout);
-  assert.match(run.stdout, /not owed, by this plan's declaration: a baseline, and the branch the worklog would name/u);
-  assert.doesNotMatch(run.stdout, /criteria, the baseline, the merged mark/u, "and the closing sentence does not owe it back");
+  assert.match(run.stdout, /in_progress is next and the record earns it/u, run.stdout);
+  assert.match(run.stdout, /not owed, by this plan's declaration: the branch the worklog would name/u);
   issue.plan = SILENT;
   const plain = await ranAsync(FORGE, ["advance", "ISS-3", "--owed"], env);
   assert.equal(plain.status, 0, plain.stderr);
-  assert.match(plain.stdout, /Ahead: in_progress is earned by a baseline/u, "without the line the baseline is ahead as before");
-  assert.match(plain.stdout, /^ {2}in_progress +baseline$/mu);
+  assert.match(plain.stdout, /worklog names no branch/u, "without the line the branch is owed as before");
+  assert.doesNotMatch(plain.stdout, /by this plan's declaration/u);
 });

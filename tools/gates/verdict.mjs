@@ -1,30 +1,17 @@
 /* What the gate decided, written where a second process can read it: 230 calls of one wave asked that by re-reading a log, in seven
    spellings of a line no gate writes, and two runs parked on a notice that says a process ended and never what it decided (ISS-1102).
-   A wait exits on the line and never on the process, one that exited having written nothing being its own answer and not a pass. */
+   A landing reads its gate's verdict off this record and never off the process, one that exited having written nothing being no pass. */
 import { gitOut, lines, parsed } from "../checkout.mjs";
-import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./machine.mjs";
 import { verdictSaid } from "./report/said.mjs";
-import { recordDir, treeKey, wholeGatesRecorded } from "./timing.mjs";
-import { heldMinutes } from "../../plugin/src/host/call-ceiling.mjs";
-import { watching } from "../watching.mjs";
+import { recordDir, treeKey } from "./timing.mjs";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The wait's own answers, past every code a gate run exits with — 0, a step's status, 75 declined — so one number says which of the five it got.
-export const GONE = 76;
-export const DEADLINE = 77;
-export const NO_GATE = 78;
-
-/* Derived and never chosen: at thirty minutes this was three times the seconds a call may live, so it could not be reached and every offer built on it sent the caller further past that ceiling than the one before (ISS-1889). The margin `heldMinutes` keeps back covers a round of the tick below, a node start and a caller that began the call late. */
-export const DEFAULT_MINUTES = heldMinutes();
 export const TERMINAL = "gate verdict:";
-export const WAITED = "gate wait:";
-// A killed gate changes no file and so wakes no watcher: this tick re-reads the table, spending a syscall inside one call and no turn, which is what NFR-11 prices.
-export const TICK_MS = 3000;
 
 export const verdictPath = (root) => join(recordDir(root), `verdict-${treeKey(root)}`);
 
-// Appended and never rewritten, since two gates of one tree would overwrite each other and B's verdict over A's is A's waiter told that A wrote none.
+// Appended and never rewritten, since two gates of one tree would overwrite each other and B's verdict over A's is A's reader told that A wrote none.
 const wrote = (root, record) => {
   mkdirSync(recordDir(root), { recursive: true });
   appendFileSync(verdictPath(root), `${JSON.stringify(record)}\n`);
@@ -42,36 +29,20 @@ export const verdictRuns = (root) => {
   return lines(text).map(parsed).filter(Boolean);
 };
 
-export const runOf = (root, pid, start = null) => {
-  const runs = verdictRuns(root) ?? [];
-  const mine = pid === null
-    ? runs
-    : runs.filter((one) => one.pid === pid && (start === null || one.start === start));
-  return mine.at(-1) ?? null;
-};
+/** The newest run this tree recorded, or null where none has written one. */
+export const runOf = (root) => (verdictRuns(root) ?? []).at(-1) ?? null;
 
-/* The incarnation beside the pid, in the kernel's ticks since boot: the record outlives every process in it, and a pid the kernel
-   reuses would hand a wait the verdict of the run before it. Null off a machine with no /proc, where a wait matches by pid alone;
-   one that knows an incarnation demands the line say the same, a line that cannot prove it is this run's certifying nothing. */
-const ownStart = () => {
-  try {
-    return startedAt(readFileSync(join(PROC, "self", "stat"), "utf8"));
-  } catch {
-    return null;
-  }
-};
-
-/** Before the first step, so a wait armed while this gate runs finds this run and not the one before it; `head` is what it judged, or null where git would not say. */
+/** Before the first step, so a reader of this record finds this run and not the one before it; `head` is what it judged, or null where git would not say. */
 export const gateStarted = (root, { full }) => wrote(root, {
-  tree: root, pid: process.pid, start: ownStart(), full,
+  tree: root, pid: process.pid, full,
   head: gitOut(["rev-parse", "--short", "HEAD"], root), started: new Date().toISOString(), verdict: null,
 });
 
-/** Every exit past the tree it judges, the decline and the refusals included: no verdict where a run reached the tree is what leaves a waiter unable to tell a crash from a pass. */
+/** Every exit past the tree it judges, the refusals included: no verdict where a run reached the tree is what leaves a reader unable to tell a crash from a pass. */
 export const gateDecided = (root, started, decided) =>
   wrote(root, { ...started, ...decided, at: new Date().toISOString() });
 
-export const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
+const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
 
 const steps = (record) => {
   if (Number.isInteger(record.ran)) {
@@ -83,139 +54,10 @@ const steps = (record) => {
 // The file unit after the step count and never in place of it, so a run that spent no step still reads as one.
 const figures = (record) => [steps(record), ...verdictSaid(record)].join(", ");
 
-/** The one line both a gate's exit and the wait print; `since` is the wait's own start, because a verdict written before it is the resume case, which answers at once and must not read as this run's. */
-export const said = (record, { since = null } = {}) => {
+/** The one line a gate's every exit past the tree prints. */
+export const said = (record) => {
   const written = Date.parse(record.at ?? record.started);
   const age = Number.isFinite(written) ? `, written ${spent(Date.now() - written)} ago` : "";
-  const before = since !== null && Number.isFinite(written) && written < since ? " and before this wait began" : "";
   return `${TERMINAL} ${record.verdict} — ${figures(record)}, head ${record.head ?? "unknown"}, `
-    + `pid ${record.pid}${age}${before} — the tree judged: ${record.tree}`;
-};
-
-const noGateSaid = (root) => `${WAITED} no gate — nothing has ever written a verdict for ${root}, so there is nothing `
-  + `here to wait for and this waited for nothing.\nStart one, then wait on it:\n  npm run check\n`
-  + `  node tools/gates.mjs --wait`;
-
-const goneSaid = (root, pid, record) => `${TERMINAL} failed — the gate of this tree, pid ${pid}, is gone having `
-  + `written no verdict${record
-    ? `, ${spent(Date.now() - Date.parse(record.started))} after starting at head ${record.head ?? "unknown"}`
-    : ` and having written no record of itself at all`}, so nothing judged ${root}.\nA wait exits on a verdict and never `
-  + `on a process, and a process that exited having written nothing is not a pass. Run the gate again:\n  npm run check`;
-
-/* Beside how far this one has got: a deadline saying only that the gate is still running is one a run stops believing and starts polling around, and this is the figure that answers "wait again or go and look" without a second call. */
-const recordedSaid = (root, held) => {
-  const was = wholeGatesRecorded(recordDir(root));
-  if (!was) {
-    return "No whole gate is recorded under this checkout, so nothing here says how much longer this one has.";
-  }
-  const left = was.median * 1000 - held;
-  return `The newest ${was.runs} whole gate(s) of ${was.steps} step(s) recorded under this checkout took `
-    + `${was.median}s median — every worktree sharing that record appends to it — so ${left > 0
-      ? `about ${spent(left)} of this one is left by that figure`
-      : "this one is already past that figure, and a gate that dies writes no verdict, which this same wait "
-        + `answers as \`${TERMINAL} failed\` rather than as silence`}.`;
-};
-
-const deadlineSaid = (root, pid, minutes, held) => `${WAITED} deadline — the gate of ${root} (pid ${pid}) has been `
-  + `running ${spent(held)} and has written no verdict, and this wait was given ${minutes} minute(s), which is what it `
-  + `hit. The gate is still running, so nothing here judges that tree either way.\n${recordedSaid(root, held)}\n`
-  + `Wait again, in a call that returns:\n  node tools/gates.mjs ${WAIT}`;
-
-const holding = (ahead) => ahead.map((one) => `  pid ${one.pid}  gating ${one.tree}`).join("\n");
-
-const GATE_IT = "Nothing here judged <root>: the ceiling is advisory, so a gate that starts before yours takes the place "
-  + "instead.\nGate it:\n  npm run check";
-
-const slotFreeSaid = (root, ahead, waited, then) => `${WAITED} place — ${ahead.length} gate(s) of this checkout are `
-  + `running, which is under the number it declares${waited >= 1000 ? `, after ${spent(waited)}` : ""}. `
-  + then.replace("<root>", root);
-
-const slotHeldSaid = (root, ahead, minutes, again) => `${WAITED} deadline — every place this checkout declares is still `
-  + `held and this wait was given ${minutes} minute(s), which is what it hit:\n${holding(ahead)}\nNo gate of ${root} `
-  + `ran at all, so this is not a tree that was judged and found red — it is one that never got a place.\n`
-  + `Wait again, in a call that returns:\n  node tools/gates.mjs ${again}`;
-
-/* Written before the first round and read by a caller holding nothing else: a result carrying this line alone is one where no answer of its own was observed. Which of the ways that happened it does not say — a call the host ended and a failure in here after this line was written look alike from outside, and the next move is the same for both: the gate is untouched by either and waiting again is what reads it. */
-const watchingSaid = (root, minutes, subject) => `${WAITED} watching — the ${subject} of ${root}, for up to `
-  + `${minutes} minute(s). An answer is one more line of its own, so a result carrying this one alone `
-  + `is a call that reached none.`;
-
-/** The wait's other subject: a place at the ceiling this checkout declares, answered 0 where a gate starting now would not be declined and DEADLINE where it still would. It starts no gate, judges no tree and writes no verdict, so nothing it does can be read back as a result about this tree; what it watches is the verdict file of the gate ahead, since that is the last thing that gate writes, and the tick behind it is what answers a gate killed before it wrote one. `place` is the seam a case drives a ceiling through, this repository's own number being one a suite may not be made to answer to. `again` and `then` are the caller's route, since a baseline that waited goes on to measure where a plain wait hands back: the arguments that wait again, and what follows a place found free. */
-export const waitForSlot = async (root, { minutes = DEFAULT_MINUTES, say = console.log, warn = console.error,
-  tick = TICK_MS, place = placeFor, again = `${WAIT} ${SLOT}`, then = GATE_IT } = {}) => {
-  const began = Date.now();
-  const until = began + minutes * 60_000;
-  mkdirSync(recordDir(root), { recursive: true });
-  warn(watchingSaid(root, minutes, "place"));
-  let ours = runnersOf(root);
-  for (;;) {
-    let where = place(ours);
-    /* The worktree list again, and only where the answer is about to be yes: a tree cut while this wait was armed
-       holds a place a set read once cannot count, and the caller would be sent to a gate that declines. A round that
-       is still declined keeps the cached set, a git spawn every three seconds being the cost that caching removes. */
-    if (!where.declined) {
-      ours = runnersOf(root);
-      where = place(ours);
-    }
-    if (!where.declined) {
-      say(slotFreeSaid(root, where.ahead, Date.now() - began, then));
-      return 0;
-    }
-    if (Date.now() >= until) {
-      warn(slotHeldSaid(root, where.ahead, minutes, again));
-      return DEADLINE;
-    }
-    const ms = Math.min(tick, Math.max(until - Date.now(), 1));
-    const wake = watching(verdictPath(where.ahead[0].tree), ms);
-    await Promise.race([wake.settled, new Promise((woke) => setTimeout(woke, ms))]);
-    wake.cancel();
-  }
-};
-
-export const gatesHere = (root, ours = runnersOf(root)) =>
-  (gatesOn(ours) ?? []).filter((one) => one.tree === root && one.pid !== process.pid);
-
-/** One call, armed on the record's own directory, and one of five answers. The pid it latches onto comes off the process table before the record, since a gate that has execed and not yet written its start record is the second in which the only verdict on file is the run before it. The worktrees are read once and the table each round, a wait spawning git every three seconds being the cost this removes; `gates` is the seam a case drives an interleaving through, a verdict landing between one round's read and its liveness answer being a race no real table produces to order. */
-export const waitForVerdict = async (root, { minutes = DEFAULT_MINUTES, say = console.log, warn = console.error,
-  tick = TICK_MS, gates = gatesHere } = {}) => {
-  const began = Date.now();
-  const until = began + minutes * 60_000;
-  const path = verdictPath(root);
-  // The directory, because `fs.watch` cannot arm on one the gate has not made yet, and this wait would then have no notification at all.
-  mkdirSync(recordDir(root), { recursive: true });
-  warn(watchingSaid(root, minutes, "verdict"));
-  const ours = runnersOf(root);
-  const here = () => gates(root, ours);
-  const held = here().at(0) ?? null;
-  const latched = held?.pid ?? null;
-  for (;;) {
-    const mine = runOf(root, latched, held?.start ?? null);
-    if (mine?.verdict) {
-      say(said(mine, { since: began }));
-      return mine.code;
-    }
-    if (!here().some((one) => one.pid === latched)) {
-      // Read again, since a gate writes its verdict and then exits; and one watched running that wrote no line at all is gone rather than absent, `no gate` being for a tree nothing has ever run in.
-      const last = runOf(root, latched, held?.start ?? null);
-      if (last?.verdict) {
-        say(said(last, { since: began }));
-        return last.code;
-      }
-      if (!last && latched === null) {
-        warn(noGateSaid(root));
-        return NO_GATE;
-      }
-      warn(goneSaid(root, latched ?? last.pid, last));
-      return GONE;
-    }
-    if (Date.now() >= until) {
-      warn(deadlineSaid(root, latched, minutes, Date.now() - Date.parse(mine?.started ?? new Date().toISOString())));
-      return DEADLINE;
-    }
-    const ms = Math.min(tick, Math.max(until - Date.now(), 1));
-    const wake = watching(path, ms);
-    // A timer this process references beside it: the ceiling inside `watching` is unreferenced, and a wait holding only that exits with nothing said rather than waiting.
-    await Promise.race([wake.settled, new Promise((woke) => setTimeout(woke, ms))]);
-    wake.cancel();
-  }
+    + `pid ${record.pid}${age} — the tree judged: ${record.tree}`;
 };

@@ -112,7 +112,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "translate": "vi",
   "runs": 2,
   "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" },
-  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$", "check": "npm test", "checkMs": 600000,
+  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$", "check": "npm test",
              "complexityModel": "cx/gpt-6-luna", "priorityModel": "cx/gpt-6-astra-medium" },
   "priorities": { "critical": "stops the flow outright or loses a record", "high": "a lost turn or a failed landing", "medium": "friction with a way round it", "low": "wording, docs, cosmetic" },
   "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] },
@@ -145,14 +145,9 @@ a client still reports its tracker slug correctly.
 and defaults to the English sentence shown. `codex.pathRe` decides which of a turn's writes are
 worth a second opinion, and belongs here rather than in the account's config: a docs tree and a
 code tree do not want the same answer. `forge codex show` names which of the three levels
-answered. `codex.check` is the one command the reviewer may run for itself, and `codex.checkMs` is
-the clock it runs under, in milliseconds; absent, that clock is 300000, and a value that is not a
-whole number above zero is reported by `forge doctor` rather than taken. A check stopped at the
-clock costs the consult a tool call and returns nothing, so the two are read together: `forge
-doctor` prints the command with the budget in force, and says how often this machine's consult log
-recorded that same command stopped at or above it. Set the clock below the one a whole consult runs
-under — `forge codex show` prints that too — because a check reaching a clock past it takes the
-consult with it instead of coming back as a call that was stopped. `codex.consult` says what a consult the gateway could
+answered. `codex.check` names the checks a consult tells the reviewer this project runs, where the
+caller passes no `--checks`; the reviewer runs nothing itself, since the landing gates every change
+and a reviewer's run of the gate would measure nothing the landing will not. `codex.consult` says what a consult the gateway could
 not give costs: `required`, unset, holds the plan and criteria writes and the doors as a consult never
 taken does, and `advisory` lets the file through and records that nothing read it. On a machine with a
 gateway configured, a file no consult was asked about is held under both; on one with none, `advisory`
@@ -188,12 +183,11 @@ English and Vietnamese, and a question with no common word of either, or a lette
 alphabet, goes to the owner. `forge hooks --how ask-decide` says how a question declares itself and
 where each decision is logged.
 
-`runs` is how many runs this project carries at once, whoever dispatched them, and absent it
+`runs` is how many runs this project lets work at once, whoever dispatched them, and absent it
 resolves to no number at all — every reader then behaves as it did before the key existed, which is
-a box with more work on it than it can hold starving itself. It is one number rather than two keys
-because it bounds one thing, the work this checkout has taken on: both whether a gate of this
-checkout is admitted and how many test workers an admitted one gets are read off it. What this
-repository's own gate does with it: `node tools/gates.mjs -h`.
+a box with more work on it than it can hold starving itself. It bounds the runs and never a gate:
+only a landing runs the whole gate, landings run one at a time, and a gate spends every core:
+`node tools/gates.mjs -h`.
 
 Each key below is read from one place and nowhere else. `jobs` names the jobs this project has, a
 job being a name and the verbs and skills its usage list offers; absent, nothing is withheld.
@@ -256,8 +250,8 @@ Neither limit is a guess; both are
 stated without naming the project — here it is the script that pushes and releases — so **absent,
 no process in a tree reads as a run working there and every claim is decided by the record alone**,
 which is how the plugin behaved before the key existed. Declare the commands that would cost
-something to run twice, not the gate: a run starts its own gate before it claims, and a pattern
-matching that refuses the run its own issue. A pattern that is not a regular expression is reported
+something to run twice, not the gate: the script that lands starts the gate inside itself, so the
+pattern names that script and the gate under it is held by it. A pattern that is not a regular expression is reported
 by `forge doctor` and read as no declaration at all.
 
 `coolifyPin` is the project of a saved Coolify instance this project's checkouts are pinned to, and
@@ -270,7 +264,7 @@ The project **id** is never configured — it is looked up from the slug at runt
 
 `forge doctor` prints every one of these, says which source answered, and reaches the endpoint.
 Run it first when anything refuses. **It also writes them**, one at a time and into this same file:
-`forge doctor --set review.paths=plugin/src,docs`, `forge doctor --set codex.checkMs=600000`,
+`forge doctor --set review.paths=plugin/src,docs`, `forge doctor --set project.codex.check="npm test"`,
 `forge doctor --set jobs.ba.skills=forge`. The value is judged by the reader that reads that key
 before anything is written, only the key named is touched, and `forge doctor --set` with a key this
 plugin reads nowhere lists what the file holds. `--set flow=<slug>` writes the flow alone, and
@@ -346,8 +340,7 @@ plugin/
                           for the tools this machine has configured
     entries/              one registered line each, running one gate alone
       bash-guard.mjs        PreToolUse: the shell commands that cannot be undone, and the wait that polls
-      learning-gate.mjs     PreToolUse: one stop before a memory or skill write
-      learning-landed.mjs   PostToolUse: one that arrived by a route no shape reads
+      learning/             the memory and skill writes, before a call and after one
       code-quality.mjs      PostToolUse: every written code file, to the project's own linter
       derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     vendor/               copies of packages/code-quality — see below

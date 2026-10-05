@@ -3,7 +3,7 @@
    The wait is the detached landing's own and never its caller's: a host call ends at its ceiling long
    before an hour's `--wait` does, and the detached landing outlives the call. It writes nothing of
    the tree's landing record until the landing ahead has recorded its end there, so one landing per
-   tree holds throughout, and it takes no step — so no lock and no gate place — while it waits. */
+   tree holds throughout, and it takes no step — so no lock — while it waits. */
 import { rmSync } from "node:fs";
 
 import { read, stop } from "../../checkout.mjs";
@@ -101,7 +101,7 @@ export const waitedBehind = (ahead, { dir, record, verb, argv, tree, files, scri
   const started = { verb, argv, tree, pid: process.pid, start: startOf(process.pid), ...files, record };
   console.log(`  waiting behind the ${ahead.verb ?? "landing"} of this tree, pid ${ahead.pid}, running since `
     + `${ahead.since}: one landing per tree, and --wait ${minutes} lets this one wait up to ${minutes} minute(s) `
-    + `for it to end rather than refusing. It holds no lock and no gate place while it waits, so this is a `
+    + `for it to end rather than refusing. It holds no lock while it waits, so this is a `
     + `wait and not a hang.`);
   let told = waitedFrom;
   let gone = null;

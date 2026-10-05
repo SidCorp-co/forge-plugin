@@ -201,6 +201,7 @@ export const MARKERS = [
   { phase: 1, classes: [CLAIM_CLASS] },
   { phase: 2, classes: [CONFIRMS] },
   { phase: 3, classes: ["forge record decision"] },
+  /* `forge record baseline` is no kind this CLI writes; the class stays for the transcripts recorded while it was one, which it opened this phase in. */
   { phase: 4, classes: ["forge record plan", "forge record criteria", "forge record baseline"] },
   { phase: 5, classes: [WHOLE_SET_CLASS], after: 4 },
   /* `only` books its own call and moves the run's phase for nothing after it: the method posts the note after the landing under one ship mode and before the ready checkpoint under the other, so a row that opened a segment measured the interval to whatever came next rather than the note (ISS-1583). */

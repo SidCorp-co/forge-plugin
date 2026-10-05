@@ -89,7 +89,7 @@ test("a > in a comment, a test, an arithmetic or behind a backslash redirects no
 });
 
 /* The learning gate's own suite is at its length cap, so its case for this reading stands here. */
-const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("redirect-data");
 const refused = (command) => {
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);

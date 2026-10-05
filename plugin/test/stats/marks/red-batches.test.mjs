@@ -7,7 +7,7 @@ import { mkdirSync } from "node:fs";
 
 import { BATCHES, marksOf, marksPath } from "../../../src/stats/marks/marks.mjs";
 import {
-  ALONE, ATTRIBUTED, SPLIT, UNREAD, batchOpened, batchResolved, redBatchLine, redBatchesOver,
+  ALONE, ATTRIBUTED, SPLIT, batchOpened, batchResolved, redBatchLine, redBatchesOver,
 } from "../../../src/stats/marks/red-batches.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 
@@ -49,7 +49,7 @@ test("a resolution with no whole-number gate figure, or one that reads unread, i
   const records = [
     ...set("a", AT, ["ISS-1", "ISS-2"], { outcome: SPLIT, gates: 1.5 }),
     ...set("b", AT, ["ISS-3", "ISS-4"], { outcome: ATTRIBUTED, gates: null }),
-    ...set("c", AT, ["ISS-5", "ISS-6"], { outcome: UNREAD, gates: 3 }),
+    ...set("c", AT, ["ISS-5", "ISS-6"], { outcome: "unread", gates: 3 }),
   ];
   const held = redBatchesOver(SCOPE, null, null, records);
   assert.equal(held.unknown, 3);

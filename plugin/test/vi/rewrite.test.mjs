@@ -64,7 +64,6 @@ const FIELDS = {
   park: { kind: "blocked", why: "ISS-9 first", evidence: [] },
   correction: { moved: "the plan names a second file", why: "the ship path needs it", corrects: "plan:steps" },
   superseded: { kind: "plan", by: "6bd04311", attached: "plan-as-it-stood.md", was: "# The plan\n\nThe first reading, `fenced` as it stood." },
-  baseline: { gate: "npm run check", result: "one known failure", commit: "117978d" },
   verdict: { criterion: "1 — the first outcome", verdict: "pass", commit: "117978d", evidence: ["run.txt"], why: "the check is green" },
   review: { reviewer: "codex", commit: "117978d", outcome: "approved", finding: ["F1 accepted"] },
   finding: { expected: "the list sorted", seen: "sorted by id", evidence: ["run.txt"], quoted: "I cannot find it" },
@@ -123,7 +122,6 @@ test("a status is earned from records that came back through the rewrite, with n
   const comments = [
     posted("confirmation", FIELDS.confirmation),
     posted("decision", FIELDS.decision),
-    posted("baseline", FIELDS.baseline),
     posted("review", FIELDS.review),
     { createdAt: at(), authorId: "agent", body: "mark_merged target=base — merged to master at 117978d" },
     verdict(1),
@@ -160,13 +158,13 @@ test("a record whose keys were rewritten is named as rewritten, and never as fie
 });
 
 test("a bullet-form record this build did not write still reads back under its flags", () => {
-  const older = "## Baseline\n\n- **Gate:** npm run check\n- **Result:** one known failure; and a second\n"
-    + "- **Commit:** 117978d\n\n`forge-record: baseline · contract 1`";
+  const older = "## Code review\n\n- **Reviewer:** codex; and a second\n- **Head judged:** 117978d\n"
+    + "- **Outcome:** approved\n\n`forge-record: review · contract 1`";
   assert.deepEqual(parse(older), {
-    kind: "baseline",
+    kind: "review",
     contract: 1,
     rewritten: false,
-    fields: { gate: "npm run check", result: "one known failure; and a second", commit: "117978d" },
+    fields: { reviewer: "codex; and a second", commit: "117978d", outcome: "approved" },
   });
   const park = "## Park\n\n- **Kind:** blocked\n- **Why:** ISS-9 first\n- **Status left:** in_progress\n\n"
     + "`forge-record: park · contract 1`";

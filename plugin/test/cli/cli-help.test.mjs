@@ -217,7 +217,6 @@ const FIELDS_OF = {
   attach: "bytes",
   alike: null,
   next: "limit, module, offset, statusNot, statuses",
-  baseline: null,
   brief: null,
   guide: "slug",
   project: "archived, projectRef",
@@ -517,7 +516,7 @@ test("record -h lists the kinds one per line, and each kind's flags are under it
     assert.ok(!row.includes("--"), `the ${kind} row still carries its flags: ${row}`);
   }
   assert.match(ask("record", "verdict", "-h").stdout, /--criterion N --verdict pass\|fail\|skipped/u);
-  assert.match(ask("record", "baseline", "-h").stdout, /--gate G --result R --commit C/u);
+  assert.match(ask("record", "review", "-h").stdout, /--reviewer R --commit C\|--landing L/u);
 });
 
 /* Now that the set is the text's, a field the row leaves out is a field the parse refuses: the verification's `--contains` was offered by `earned.mjs` as the way out of a build past the merge and named on no row, so the one command that cleared it was turned away. */

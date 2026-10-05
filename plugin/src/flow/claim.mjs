@@ -44,6 +44,7 @@ import { finishLanded } from "./landing/landed.mjs";
 import { recordsWalked } from "./landing/statuses.mjs";
 import { readyChecks, readyChecksLines, runReadyChecks } from "./landing/ready-checks.mjs";
 import { unpushedRefusal } from "./landing/pushed.mjs";
+import { reviewReadyRefusal } from "./landing/review-ready.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -514,9 +515,9 @@ export const claim = async (argv) => {
     [LANDING_RECORDS_OWED]: (view, independent) => reworkRefusal(ref, patch.head, landingHere, view, independent),
     [LANDING_BUILDER_OWED]: (view, independent) => answerRefusal(ref, patch.head, landingHere, view, independent),
   }[landingHere?.state] : null;
-  /* Fetched once for both the licensing question above and the park a `--ready` over a side status
-     may have to lift below, since both read the same page and neither owns fetching it twice. */
-  const readyView = given.ready && (licensing || SIDE.includes(issue.status))
+  /* Fetched once for the licensing question above, the review the head is handed over under and the
+     park a `--ready` over a side status may have to lift below, since all read the same page. */
+  const readyView = given.ready && (patch?.head || SIDE.includes(issue.status))
     ? viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? [])
     : null;
   if (licensing) {
@@ -543,6 +544,9 @@ export const claim = async (argv) => {
   /* Asked of the remote after every refusal the record makes and before any check runs: a head the landing cannot fetch is refused before it spends one (ISS-2662). */
   const unpushed = given.ready ? unpushedRefusal(ref, checkpoint) : null;
   if (unpushed) fail(unpushed);
+  /* After the record's and the remote's refusals, which a consult cannot clear, and before any check runs. */
+  const unreviewed = given.ready && readyView ? reviewReadyRefusal(ref, checkpoint.head, readyView) : null;
+  if (unreviewed) fail(unreviewed);
   /* After every refusal the lease and the checkpoint make, so a capture refused for either spends no check on it. */
   const green = given.ready ? runReadyChecks(ref, readyChecks(), checkpoint.head) : null;
   const next = claimed(context, {

@@ -20,11 +20,9 @@ already gone unjudged.
 Then `forge knowledge search` on the issue's title: an entry about the module this issue touches is
 read before the code, and against the source it cites.
 
-**The baseline is owed** where nothing published answers for the commit this branch was cut at: the
-project's gate, whole. Which of the two this issue is owed is a question rather than a guess —
-`forge advance <ref> --owed` names the published result or the fresh run. What a baseline must record, and what a citation rests on, and
-what binds an edit to a running measurement's verdict rather than its start: `forge guide issue-flow
-verification`.
+**A run measures its own change and never the whole tree**, which is the landing's, so nothing is
+measured before the first edit. What a run spends instead, and what binds an edit to a running
+measurement's verdict rather than its start: `forge guide issue-flow verification`.
 
 Phase 0 writes nothing. Carry it into Phase 1, where the claim comes before the first write, and a
 brief this run found wrong is corrected on the way out.

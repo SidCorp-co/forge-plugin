@@ -50,7 +50,7 @@ test("the corpus finds a runner past the spaces before its quote, and a word onl
 /* Through the gate that refuses on it, so the case proves the whole chain: the runner the gate did
    not know, the body it left quoted, the write it let through. Each runs its body in the real shell,
    so a refusal here is of a write that happens. */
-const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("runners");
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 

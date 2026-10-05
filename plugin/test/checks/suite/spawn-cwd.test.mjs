@@ -41,7 +41,7 @@ test("the walk reaches every tree this repository ships, so a clean answer is no
   const walked = files();
   assert.ok(walked.length > 500, `the walk found ${walked.length} files, and this repository has hundreds`);
   for (const one of ["plugin/test/fixtures.mjs", "plugin/src/checks/duplication.mjs",
-    "plugin/scripts/blast-radius.mjs", "plugin/hooks/gates/learning-gate.mjs",
+    "plugin/scripts/blast-radius.mjs", "plugin/hooks/gates/learning/learning-gate.mjs",
     "tools/gates.mjs", "packages/code-quality/bin/code-quality-gate.mjs"]) {
     assert.ok(walked.some((each) => each.rel === one), `${one} is in the walk`);
   }

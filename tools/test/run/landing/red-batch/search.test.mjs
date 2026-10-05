@@ -1,7 +1,7 @@
 /* A set whose combined candidate the gate refuses, searched rather than landed one member at a time:
    the member the failing cases' paths name alone goes back and the rest land after one more gate, a
-   set nothing names is halved, the members left land as one candidate on a tree a gate already read,
-   and a gate place declined anywhere in it moves no checkpoint (ISS-2480). Each outcome is read off
+   set nothing names is halved, and the members left land as one candidate on a tree a gate already
+   read (ISS-2480). Each outcome is read off
    the checkpoints, the remote and the gates the fake one says it ran, never off the output alone. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -104,35 +104,6 @@ test("every candidate the search gates stands on the one pin the landing took", 
     assert.ok(one.below.includes(pinned), `the candidate over ${one.present} stands on the pin:\n${said}`);
   }
   assert.ok(holds(work, remote(at), pinned), `and so does what landed:\n${said}`);
-});
-
-test("a gate place declined over the members left after an attribution moves no checkpoint", async () => {
-  const { at, work } = three();
-  const before = remote(at);
-  judging([
-    { when: ["one"], step: "check:dup", says: DUP_SAYS },
-    { when: ["two", "three"], exact: true, status: 75 },
-  ]);
-  const said = await landingRan([KEY, NEXT_KEY, THIRD_KEY], work);
-  assert.deepEqual(gated(), ["red one,two,three", "red two,three"], said);
-  for (const one of [undefined, NEXT_UUID, THIRD_UUID]) {
-    assert.equal(landing(one).state, "reconciled", `each checkpoint is still the landing's turn:\n${said}`);
-  }
-  assert.match(said, /none freed, so it ran no step: no branch of .* was judged and nothing was handed back/u, said);
-  assert.doesNotMatch(said, /goes back to the run that built it/u, said);
-  assert.equal(remote(at), before, said);
-});
-
-test("a gate place declined at a half after the other half came back red moves no checkpoint", async () => {
-  const { work } = three();
-  judging([
-    { when: ["three"], exact: true, status: 75 },
-    { when: ["one", "two"], step: "lint", says: "" },
-  ]);
-  const said = await landingRan([KEY, NEXT_KEY, THIRD_KEY], work);
-  assert.deepEqual(gated(), ["red one,two,three", "red one,two", "red three"], said);
-  for (const one of [undefined, NEXT_UUID, THIRD_UUID]) assert.equal(landing(one).state, "reconciled", said);
-  assert.doesNotMatch(said, /goes back to the run that built it/u, said);
 });
 
 test("the members left are gated once more where no gate of the search read their tree", async () => {

@@ -8,20 +8,14 @@ import test from "node:test";
 import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("blocker-ends").path;
-const { render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, holdsBack, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { eligibilityOf } = await import("../../../src/rank/eligible.mjs");
 const { holdingKeys } = await import("../../../src/rank/score.mjs");
 
-const BASELINE = {
-  createdAt: "2026-09-27T09:00:00.000Z",
-  authorId: "agent",
-  body: render("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" }),
-};
 const BUILT = { sessionContext: { worklog: { branch: "iss-3-the-work" } } };
 const edge = (otherStatus, held = {}) => ({ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", ...held });
 const owed = (...blockedBy) =>
-  CHECKS.in_progress(viewFrom("the-uuid", { ...BUILT, relations: { blockedBy } }, [BASELINE]), "ISS-3")
+  CHECKS.in_progress(viewFrom("the-uuid", { ...BUILT, relations: { blockedBy } }, []), "ISS-3")
     .map((one) => one.what);
 const PAST = "2026-01-01T00:00:00.000Z";
 const FUTURE = "2999-01-01T00:00:00.000Z";

@@ -120,16 +120,13 @@ const RETIRED_CADENCE = /as often as the work changes it/u;
 test("the gate's cadence is stated in the verification reference and restated nowhere", () => {
   const held = flat(readFileSync(VERIFICATION, "utf8"));
   for (const [beat, phrase] of [
-    ["how often the gate is spent", "The gate is spent once per unit of work"],
-    ["that the baseline is the only whole run", "the only whole run the work owes"],
-    ["what a finished unit spends", "one scoped run when a unit of work is finished"],
-    ["that a unit is not an edit", "never each edit inside one"],
-    ["what runs between units", "the changed file's own suite"],
-    ["that the ship's gate is the release's",
-      "the release's gate is that run and there is nothing left to spend after the push"],
+    ["whose the whole gate is", "the whole-tree gate is the landing's"],
+    ["that a run spends none of it", "So a run takes no baseline and spends no gate"],
+    ["what a run spends instead", "the suites that exercise the files it touched"],
+    ["where a run that lands its own change spends it", "that ship is the one place the gate is spent"],
   ]) {
     assert.ok(held.includes(phrase), `the verification reference no longer states ${beat}, so a run `
-      + `reading it is back to guessing how often to spend the gate (ISS-290)`);
+      + `reading it is back to guessing how often to spend the gate (ISS-290, ISS-3184)`);
   }
   const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
@@ -299,14 +296,14 @@ test("what a rung drops and the rounds it spares are the rung report's, and no g
     "the two rungs below the top spare different rounds, and the contract says they differ by ceiling alone");
 });
 
-/* A rung's claim is that the work is small, never a claim about what the gate found: this gate is
-   scoped and remembers, so its failure mode is a step ABSENT rather than red, and a rung skipping
-   the one whole run would hand later scoped runs a green nothing established. */
-test("no rung buys a judgement: the baseline and the migration classification cost every rung alike", () => {
+/* A rung's claim is that the work is small, never a claim about what the gate found: the tree is
+   measured by the landing's gate at every rung alike, so no rung owes a measurement of its own and
+   none is spared one (ISS-3184). */
+test("no rung buys a judgement: the migration classification costs every rung alike, and none owes a baseline", () => {
   for (const rung of RUNGS) {
     const held = weighed(rung, { plan: "Schema coupling: yes" });
-    assert.ok(missing("in_progress", held).some((one) => /^no baseline/u.test(one)),
-      `a ${rung} is asked for no baseline, and the one whole gate run of the work is what it skipped`);
+    assert.equal(missing("in_progress", held).some((one) => /baseline|gate/u.test(one)), false,
+      `a ${rung} is asked for a measurement of the tree, which is the landing's gate's`);
     assert.ok(missing("awaiting_release", { ...held, acceptanceCriteria: "" }).length,
       `a ${rung} declaring schema coupling earns the rung with nothing said about the migration`);
   }
@@ -382,13 +379,9 @@ test("a sentence an entry check now enforces is stated by the check and by no gu
 
 test("the checks point back from the guides, and the evidence table keeps the kinds no check can detect", () => {
   const held = flat(readFileSync(VERIFICATION, "utf8"));
-  for (const [beat, phrase] of [
-    ["that the baseline's scope is the check's demand", "`in_progress` refuses one saying it was not"],
-    ["what the check cannot judge", "a gate that stops at its first failure has measured only what"],
-  ]) {
-    assert.ok(held.toLowerCase().includes(phrase.toLowerCase()),
-      `the verification reference no longer names ${beat}, so a run meets the refusal with no page behind it`);
-  }
+  assert.ok(held.includes("`forge hooks --how landing-gate` says why"),
+    "the verification reference no longer points at the refusal a run meets typing the gate, so it meets it "
+      + "with no page behind it");
   assert.ok(flat(readFileSync(SCREEN_VERIFICATION, "utf8")).toLowerCase()
     .includes("refuses a verdict under a declared screen change".toLowerCase()),
   "the screen flow's verification reference no longer says a screen's verdict owes an attachment, "

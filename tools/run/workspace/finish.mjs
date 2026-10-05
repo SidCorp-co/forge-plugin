@@ -13,8 +13,10 @@ import { typed } from "../../../plugin/src/hooks/shell-spans.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef, stop,
   uncommittedIn } from "../../checkout.mjs";
-import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
-import { runnersOf } from "../../gates/machine.mjs";
+import { verdictPath } from "../../gates/verdict.mjs";
+import { gatesOf } from "../../gates/machine.mjs";
+import { WAIT_COMMAND } from "../../../plugin/src/hooks/wait-idiom.mjs";
+import { heldMinutes } from "../../../plugin/src/host/call-ceiling.mjs";
 import { treeKey } from "../../gates/timing.mjs";
 import { aheadRoute } from "./ahead-route.mjs";
 import { carried } from "./corpus-carried.mjs";
@@ -133,7 +135,7 @@ const readTree = (root, path, base, gates, branch = startBranch(root, path)) => 
      too, and null from here is a status git would not report rather than a clean tree. */
   dirty: uncommittedIn(path),
   ahead: ahead(path, base, branch),
-  gates: gates(path, runnersOf(root)),
+  gates: gates(path),
   locked: lockedOn(root, path),
   verdict: verdictPath(path),
 });
@@ -175,11 +177,11 @@ const aheadRefusal = (path, base, tree, route) => {
 };
 
 /* Off the process table, which is where a gate is its own record: on a machine whose table cannot be
-   read this sees none and refuses nobody, exactly as the gate's own count does. */
+   read this sees none and refuses nobody. The route waits on the first of them, in a call that returns. */
 const gateRefusal = (path, held) => (held.length
   ? { why: `${held.length} gate(s) of that tree are still running — pid `
     + `${held.map((one) => one.pid).join(", ")} — and the tree they are judging is the one this would `
-    + `remove`, how: `${runnerIn(path, "gates.mjs")} --wait` }
+    + `remove`, how: WAIT_COMMAND.replace("<seconds>", String(heldMinutes() * 60)).replace("<pid>", String(held[0].pid)) }
   : null);
 
 const lockRefusal = (root, path, held) => (held
@@ -407,7 +409,7 @@ const removedWhole = (root, path, base, read, ended, retry) => {
   return failed;
 };
 
-export const finish = async ({ words: [given] }, { here, cwd = process.cwd(), gates = gatesHere }) => {
+export const finish = async ({ words: [given] }, { here, cwd = process.cwd(), gates = gatesOf }) => {
   const key = String(given ?? "").toUpperCase();
   if (!KEY.test(key)) {
     console.error(`finish takes the issue key whose workspace it ends, \`ISS-nn\`, not \`${given ?? ""}\`.`);

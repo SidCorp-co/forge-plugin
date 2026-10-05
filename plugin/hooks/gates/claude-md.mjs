@@ -25,7 +25,7 @@ const named = (text, root) => {
   return KINDS.flatMap(([key, said]) => (held[key] ?? []).map((token) => `\`${token}\` ${said}`));
 };
 
-/* The baseline, so a repository whose CLAUDE.md is already wrong still gets the edit that fixes it. */
+/* The file as committed, so a repository whose CLAUDE.md is already wrong still gets the edit that fixes it. */
 const asCommitted = (root) => {
   const run = gitProbe(["show", "HEAD:CLAUDE.md"], { cwd: root, ms: probeMs(remaining()) });
   return run?.status === 0 ? run.out : "";

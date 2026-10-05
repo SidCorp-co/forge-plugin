@@ -17,7 +17,8 @@ export const BACK = "back";
 export const BRANCH = "branch";
 export const COMBINATION = "combination";
 export const MOVED_BASE = "moved-base";
-export const DECLINED = "declined";
+/* Read and never written: no landing waits for a gate place, and a record that carries it still counts as that cause. */
+const DECLINED = "declined";
 export const TRACKER = "tracker";
 export const JUDGE = "judge";
 const CAUSES = [BRANCH, COMBINATION, MOVED_BASE, DECLINED, TRACKER, JUDGE];
