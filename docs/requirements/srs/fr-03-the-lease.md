@@ -497,7 +497,7 @@ a wait no party can end.
   state a landing starts from at that head, because a reading that finds the candidate wrong is
   answered by a head and a reconciliation of the candidate it refused is a judgement nobody made.
 
-- **AC-03-6-27** · Rev: 1 · Proof: plugin/test/flow/landing/ready-checks-run.test.mjs "a red check refuses the capture, names it with its exit and its last lines, and runs none after it"
+- **AC-03-6-27** · Rev: 1 · Proof: plugin/test/flow/landing/ready-checks/ready-checks-run.test.mjs "a red check refuses the capture, names it with its exit and its last lines, and runs none after it"
   WHERE a project declares the checks a run spends before it arms a landing, the CLI SHALL run each of
   them in the checkout the capture reads its head from before it writes the ready checkpoint, and
   SHALL refuse that checkpoint on the first one that fails, naming it and the command that runs it
@@ -578,6 +578,16 @@ a wait no party can end.
 - **AC-03-6-43** · Rev: 1 · Proof: plugin/test/flow/landing/review-ready.test.mjs "the route names the consult where a reviewer is configured, and forge doctor where none is"
   WHERE no reviewer is configured on the machine, the refusal SHALL name where one is configured
   rather than a consult that cannot run.
+- **AC-03-6-44** · Rev: 1 · Proof: plugin/test/flow/landing/ready-checks/ready-checks-scoped.test.mjs "a check naming {files} is handed the files the change touched, and one naming none runs as declared"
+  WHERE a declared ready check names `{files}`, the CLI SHALL run it with the files the branch changed
+  against the capture's base in that place, deleted files left out, and SHALL run a check naming none
+  as declared.
+- **AC-03-6-45** · Rev: 1 · Proof: plugin/test/flow/landing/ready-checks/ready-checks-scoped.test.mjs "a scoped check whose change touches no file is skipped and said to be, and the capture still writes"
+  IF a check names `{files}` and the change hands it no file THEN the CLI SHALL skip that check and say
+  so on the line it prints.
+- **AC-03-6-46** · Rev: 1 · Proof: plugin/test/flow/landing/ready-checks/ready-checks-scoped.test.mjs "a list green at a head is not run again by the next capture there, and the line names the capture that ran it"
+  WHEN the declared list was green at the same head, base and declaration in any worktree of the
+  checkout THEN the capture SHALL run none of it again and SHALL name the capture that ran it.
 
 ## Business rules enforced
 

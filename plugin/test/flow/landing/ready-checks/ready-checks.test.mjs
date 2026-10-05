@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BUILDER, CHANGED, declared, field, ran } from "./fixture.mjs";
+import { BUILDER, CHANGED, declared, field, ran } from "../fixture.mjs";
 
-const { readyProblem } = await import("../../../src/flow/landing/ready-checks.mjs");
+const { readyProblem } = await import("../../../../src/flow/landing/ready-checks.mjs");
 
 const CHECKS = ["npm run lint:code-quality", "npm run check:dup"];
 const HEADING = /the checks this project declares \(`ready\.checks` in [^)]+\):/u;

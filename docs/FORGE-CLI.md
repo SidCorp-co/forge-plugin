@@ -34,6 +34,7 @@ how many topics there may be.
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
 | [`advance` — what a move sends](cli/advance-what-it-sends.md) | The two readings of one shortfall list, the reading that refuses nothing, and why a park's question and its reason are never written from each other. |
 | [`claim`](cli/claim.md) | What a lease is, what the step line is for, and why the capture that arms nothing prints the checks a project spends before a landing. |
+| [the ready checks](cli/the-ready-checks.md) | Why a ready check may be handed the change's files rather than the tree, and why a list green at a head is not run again by the next capture there. |
 | [`claim` — comments first](cli/claim-comments-first.md) | Why every write lists the issue's comments first, where the list is made, and the two routes whose cost is their own. |
 | [`the dead holder`](cli/the-dead-holder.md) | What the lease records beside the holder, what a recorded process id proves and in which direction, why a holder a worktree minted is read off that tree, which of its processes the project counts, and what is left to the clock. |
 | [`the precondition`](cli/the-precondition.md) | What every write the lease covers carries, the one call that establishes the far end honours it, and which read-back stops being spent once it does. |

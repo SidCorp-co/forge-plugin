@@ -548,7 +548,7 @@ export const claim = async (argv) => {
   const unreviewed = given.ready && readyView ? reviewReadyRefusal(ref, checkpoint.head, readyView) : null;
   if (unreviewed) fail(unreviewed);
   /* After every refusal the lease and the checkpoint make, so a capture refused for either spends no check on it. */
-  const green = given.ready ? runReadyChecks(ref, readyChecks(), checkpoint.head) : null;
+  const green = given.ready ? runReadyChecks(ref, readyChecks(), checkpoint.head, checkpoint.base) : null;
   const next = claimed(context, {
     holder, minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
     landing: checkpoint ?? undefined,
