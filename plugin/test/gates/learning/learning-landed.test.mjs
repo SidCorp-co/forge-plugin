@@ -8,10 +8,10 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { answered, callHook, escaped, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
-import { assertRouteFirst } from "../fixtures/route-first.mjs";
+import { answered, callHook, escaped, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
+import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 
-const HOOK = new URL("../../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../../hooks/entries/learning/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
 const room = join(tempRoom("landed-"), "memory");
 mkdirSync(room);
@@ -247,7 +247,7 @@ test("a guarded name that links out of the tree is swept as itself", () => {
    the gate asked about before the write is asked about again after it. */
 test("a swept link the gate already asked about is not asked again", () => {
   const session = randomUUID();
-  const gate = new URL("../../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
+  const gate = new URL("../../../hooks/entries/learning/learning-gate.mjs", import.meta.url).pathname;
   const project = tempRoom("landed-swept-asked-");
   mkdirSync(join(project, "memory"));
   const outside = join(tempRoom("landed-swept-real-"), "kept.md");
@@ -376,7 +376,7 @@ test("a document outside the two guarded kinds is not this gate's", () => {
    from a tool's `file_path`, one realpathed off the disk. Keyed apart, every write is stopped twice. */
 test("a write the gate asked about before it landed is not asked about after", () => {
   const session = randomUUID();
-  const gate = new URL("../../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
+  const gate = new URL("../../../hooks/entries/learning/learning-gate.mjs", import.meta.url).pathname;
   const via = join(tempRoom("landed-link-"), "memory");
   symlinkSync(room, via);
   const asking = callHook(
@@ -391,7 +391,7 @@ test("a write the gate asked about before it landed is not asked about after", (
 /* A link to the file counts as much as a link to its directory: one resolves and the other did not. */
 test("a link to the file itself is the same file to both halves", () => {
   const session = randomUUID();
-  const gate = new URL("../../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
+  const gate = new URL("../../../hooks/entries/learning/learning-gate.mjs", import.meta.url).pathname;
   const elsewhere = join(tempRoom("landed-file-"), "memory");
   mkdirSync(elsewhere);
   writeFileSync(join(room, "by-a-link.md"), "a line\n");

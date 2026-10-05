@@ -5,8 +5,8 @@ import test from "node:test";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { STEPS } from "../../gates/steps.mjs";
-import { landed, run, scratch } from "./scratch.mjs";
+import { STEPS } from "../../../gates/steps.mjs";
+import { landed, run, scratch } from "../scratch.mjs";
 
 const everyStepRan = (said) => new RegExp(`All ${STEPS.length} gate step\\(s\\) passed`, "u").test(said.stdout);
 

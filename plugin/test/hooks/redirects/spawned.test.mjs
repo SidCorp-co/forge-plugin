@@ -56,7 +56,7 @@ test("a > in a program body that spawns no shell is still the program's own", ()
   both(["python3 - <<'PY'", "if n > buf.len():", "    print('a > b.md')", "PY"].join("\n"), []);
 });
 
-const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("redirect-spawned");
 
 test("the learning gate refuses a memory write a python program sends through the shell it spawns", () => {

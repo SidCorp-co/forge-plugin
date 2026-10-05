@@ -5,7 +5,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { entryNames, landed, run, scratch, touchedEverywhere } from "./scratch.mjs";
+import { entryNames, landed, run, scratch, touchedEverywhere } from "../scratch.mjs";
 
 const DECLARED = { widget: "^1.0.0" };
 const GREEN = /=== ledger: (\d+) of \d+ step\(s\) green already ===/u;

@@ -4,11 +4,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome, typedPlan } from "../../fixtures.mjs";
+import { tempHome, typedPlan } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance-judged").path;
-const { render } = await import("../../../src/flow/record/page.mjs");
-const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { render } = await import("../../../../src/flow/record/page.mjs");
+const { judgedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
 
 let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

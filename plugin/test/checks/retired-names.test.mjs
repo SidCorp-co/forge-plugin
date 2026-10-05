@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { RETIRED, exempt, problems, registryProblems, retiringProblems } from "../../src/checks/retired-names.mjs";
-import { RETIRING } from "../../src/resolve/retiring.mjs";
+import { RETIRING } from "../../src/resolve/gone/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { tempRoom } from "../fixtures.mjs";
 

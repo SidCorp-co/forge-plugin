@@ -12,7 +12,7 @@ import { WRITES } from "../../../../hooks/_hook.mjs";
 import { answered, callHook, homeEnv } from "../../../fixtures.mjs";
 import { patience } from "../../../patience.mjs";
 
-const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("wrapper-prefixes");
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 const refused = (command) => answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME))

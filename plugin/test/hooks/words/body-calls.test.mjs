@@ -153,7 +153,7 @@ test("an inline body's file call is aimed the same as a heredoc's", () => {
   assert.deepEqual(strict(`python3 -c "open('docs/x.md','w')" && echo x > ${SKILL}`), ["docs/x.md", SKILL], "and what follows it is still read");
 });
 
-const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const LEARNING = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("body-calls");
 
 test("the learning gate refuses a skill write behind a python body that opens a test", () => {

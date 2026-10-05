@@ -32,7 +32,7 @@ skill, guide and how page that named the losing one was written believing it and
 learned the surface learned both. A retirement that takes nothing over gets no such line.
 
 What makes it a window rather than a repeal is where the line lives and what ends it.
-`plugin/src/resolve/retiring.mjs` holds one row per such name — the form a caller types, the release
+`plugin/src/resolve/gone/retiring.mjs` holds one row per such name — the form a caller types, the release
 that retired it, and the line to print — and nothing else in the CLI knows the old name. The release
 after that one deletes the row and enters the name in the checker above, which is the landing that
 closes the window; the row's own release is what says the window has been open a release too long.

@@ -35,7 +35,7 @@ import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
 import { typed } from "./hooks/shell-spans.mjs";
 import { finderSaid, renew } from "./flow/lease.mjs";
-import { retiredFlagIn } from "./resolve/retiring.mjs";
+import { retiredFlagIn } from "./resolve/gone/retiring.mjs";
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));

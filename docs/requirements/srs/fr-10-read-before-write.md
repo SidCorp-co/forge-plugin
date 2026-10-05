@@ -120,7 +120,7 @@ thing once; a refusal keeps its one line because every hold owes the command tha
 - **AC-10-5-5** · Rev: 1 · Proof: plugin/test/shown/ledger.test.mjs "the subagent's credit is written under its own id and not its dispatcher's"
   WHEN a subagent is told a thing THEN the credit SHALL be that subagent's alone and never its
   dispatcher's.
-- **AC-10-5-6** · Rev: 1 · Proof: plugin/test/gates/learning-gate-duplicate.test.mjs "a second duplicate of another sentence carries the instruction and the route beside its new pair"
+- **AC-10-5-6** · Rev: 1 · Proof: plugin/test/gates/learning/learning-gate-duplicate.test.mjs "a second duplicate of another sentence carries the instruction and the route beside its new pair"
   WHEN a refusal repeats changed in one session THEN it SHALL print what to do instead and the
   command that clears it whole, and only its reason SHALL be cut to what the session has not read.
 

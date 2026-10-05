@@ -54,7 +54,7 @@ agent learns what a status wants.
   WHEN a record is written THEN the CLI SHALL close that write with the same sentence this rehearsal
   opens with, counting the record just written, and SHALL exit zero where that sentence cannot be
   worked out at all.
-- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance/judged-again.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
+- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/judged-again.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
   WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
   single owed item whose command re-judges every member of it in one write.
 - **AC-05-1-7** · Rev: 2 · Proof: none yet — ISS-2123
@@ -693,10 +693,10 @@ verb's own, refused before the status moves where the record cannot say what the
 the finding under it is worth reading on either of two grounds: the words of whoever reported the
 defect, or the evidence the run captured when it saw the defect itself.
 
-- **AC-05-12-1** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a reopen moves the status and writes no correction for it"
+- **AC-05-12-1** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/reopen.test.mjs "a reopen moves the status and writes no correction for it"
   WHEN the agent reopens an issue THEN the CLI SHALL transition it to the tracker's reopen status and
   SHALL write no correction for that move.
-- **AC-05-12-2** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a reopen is refused where nothing on the record says what the work got to"
+- **AC-05-12-2** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/reopen.test.mjs "a reopen is refused where nothing on the record says what the work got to"
   IF the record names neither a merged mark nor the status a dropped park left THEN the CLI SHALL
   refuse the reopen before the status moves.
 - **AC-05-12-3** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a finding the run made itself is whole on the evidence it captured"
@@ -705,7 +705,7 @@ defect, or the evidence the run captured when it saw the defect itself.
 - **AC-05-12-4** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a finding that quotes nobody and captured nothing is no finding"
   IF a finding carries neither the reporter's words nor any evidence THEN the CLI SHALL refuse it
   naming both of the two grounds.
-- **AC-05-12-5** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a failing verdict moves no status, the reopen being an act of its own"
+- **AC-05-12-5** · Rev: 1 · Proof: plugin/test/flow/advance/reopen/reopen.test.mjs "a failing verdict moves no status, the reopen being an act of its own"
   WHEN a verdict fails THEN the CLI SHALL leave the issue's status where it stands.
 - **AC-05-12-6** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a second triage repeating the first asks for nothing it already answered"
   WHERE a reopen holds more than one triage, the CLI SHALL read what that reopen owes from the

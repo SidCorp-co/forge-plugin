@@ -25,10 +25,10 @@ const check = (body) => spawnSync(process.execPath, [SCRIPT, skillSaying(body)],
 /* The case the check was blind to: a path resolving under the plugin root was exempt however far it
    sat from the skill naming it, which is how `scripts/migration-risk.mjs` stood for months. */
 test("a path inside the plugin but not inside the skill is refused, with its own remedy", () => {
-  const run = check("The gate is `hooks/entries/learning-gate.mjs`, which stops the first write.");
+  const run = check("The gate is `hooks/entries/learning/learning-gate.mjs`, which stops the first write.");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /SKILL\.md/u);
-  assert.match(run.stdout, /hooks\/entries\/learning-gate\.mjs/u);
+  assert.match(run.stdout, /hooks\/entries\/learning\/learning-gate\.mjs/u);
   assert.match(run.stdout, /inside this plugin/u);
   assert.match(run.stdout, /forge hooks --how/u);
   assert.doesNotMatch(run.stdout, /let the project name it/u, "a plugin path is nothing the project can supply");

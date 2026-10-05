@@ -4,10 +4,10 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../_hook.mjs";
-import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
-import { compare, load, sentences } from "../../src/checks/duplication.mjs";
-import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill } from "../../src/checks/learning.mjs";
+import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../../_hook.mjs";
+import { readerKey, sayOnce } from "../../../src/shown/ledger.mjs";
+import { compare, load, sentences } from "../../../src/checks/duplication.mjs";
+import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill } from "../../../src/checks/learning.mjs";
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The reading is `_hook.mjs`'s, so a name it would read is a name this reads. */
 const MD_ONLY = "md";
 

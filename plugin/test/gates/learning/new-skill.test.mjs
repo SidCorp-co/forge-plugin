@@ -8,7 +8,7 @@ import test from "node:test";
 
 import { callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("learning-gate-new-skill");
 /* Sentences long enough for the duplicate reading to compare, which is the reading that met the missing directory. */
 const FIRST = "# Fresh\n\nA master reads which command answers the question a pass is asking before it reaches for one.\n";

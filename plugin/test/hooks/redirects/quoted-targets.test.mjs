@@ -54,7 +54,7 @@ test("a redirect target the shell still expands or globs is read as it was", () 
 
 /* What the whole reading is for: the learning gate, which judges a guarded path by its name, met only the tail behind the apostrophe and let the write into memory through. */
 test("the learning gate refuses a redirect into memory whose name holds an apostrophe under a double quote", () => {
-  const hook = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+  const hook = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
   const command = `echo x > "/home/dev/.claude/projects/-home-dev-app/memory/author's.md"`;
   const run = callHook(hook, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, homeEnv("quoted-targets"));
   assert.equal(run.status, 0, run.stderr);

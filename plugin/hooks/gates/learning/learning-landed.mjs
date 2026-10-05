@@ -2,8 +2,8 @@
 
 import { basename } from "node:path";
 
-import { FRESH_MS, askedAlready, askedByAnyone, block, how, named, settled, touched } from "../_hook.mjs";
-import { BRIEF, guarded, installedCopy, swept } from "../../src/checks/learning.mjs";
+import { FRESH_MS, askedAlready, askedByAnyone, block, how, named, settled, touched } from "../../_hook.mjs";
+import { BRIEF, guarded, installedCopy, swept } from "../../../src/checks/learning.mjs";
 
 export const run = (ev) => {
   /* A link out of a guarded directory answers as its target, and that target is the key the gate

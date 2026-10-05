@@ -340,8 +340,7 @@ plugin/
                           for the tools this machine has configured
     entries/              one registered line each, running one gate alone
       bash-guard.mjs        PreToolUse: the shell commands that cannot be undone, and the wait that polls
-      learning-gate.mjs     PreToolUse: one stop before a memory or skill write
-      learning-landed.mjs   PostToolUse: one that arrived by a route no shape reads
+      learning/             the memory and skill writes, before a call and after one
       code-quality.mjs      PostToolUse: every written code file, to the project's own linter
       derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     vendor/               copies of packages/code-quality — see below

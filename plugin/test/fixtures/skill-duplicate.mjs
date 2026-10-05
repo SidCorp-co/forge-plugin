@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 
 import { agentRefusal, callHook, tempRoom } from "../fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 
 export const dupRoom = () => {
   const room = join(tempRoom("skill-dup-gate-"), "skills", "demo");

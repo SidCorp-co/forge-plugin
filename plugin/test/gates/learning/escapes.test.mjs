@@ -8,7 +8,7 @@ import test from "node:test";
 
 import { answered, callHook, homeEnv } from "../../fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("learning-gate-escapes");
 
 /* Every call its own session, since the gate asks once per file per session. */

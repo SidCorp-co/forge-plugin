@@ -13,7 +13,7 @@ import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
 import { SAYS as CODEX } from "../../src/codex/codex.mjs";
 import { kindUsage } from "../../src/flow/record/record-rows.mjs";
-import { retiredFlagIn, retiredRefusal } from "../../src/resolve/retiring.mjs";
+import { retiredFlagIn, retiredRefusal } from "../../src/resolve/gone/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, reachFor, unknownFlag } from "../../src/resolve/flags.mjs";
 import { LIST_USAGE, READ_USAGE } from "../../src/commands.mjs";

@@ -5,13 +5,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance-reopen").path;
-const { SHAPES } = await import("../../../src/flow/machine.mjs");
+const { SHAPES } = await import("../../../../src/flow/machine.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 let clock = 0;
 const at = () => `2026-09-18T09:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

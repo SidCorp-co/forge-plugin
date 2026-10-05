@@ -8,12 +8,12 @@ import test from "node:test";
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { digestIn, forgetContent, ledgerFor } from "../../gates/ledger.mjs";
-import { gateSteps, STEPS, TEST_FILE } from "../../gates/steps.mjs";
-import { under } from "../../gates/scope.mjs";
-import { gitFiles } from "../../checkout.mjs";
-import { tempRoom } from "../../../plugin/test/fixtures.mjs";
-import { git, landed, run, scratch, write } from "./scratch.mjs";
+import { digestIn, forgetContent, ledgerFor } from "../../../gates/ledger.mjs";
+import { gateSteps, STEPS, TEST_FILE } from "../../../gates/steps.mjs";
+import { under } from "../../../gates/scope.mjs";
+import { gitFiles } from "../../../checkout.mjs";
+import { tempRoom } from "../../../../plugin/test/fixtures.mjs";
+import { git, landed, run, scratch, write } from "../scratch.mjs";
 
 const MANIFEST = join("plugin", ".claude-plugin", "plugin.json");
 const LOCK = "package-lock.json";

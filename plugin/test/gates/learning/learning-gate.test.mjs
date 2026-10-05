@@ -7,10 +7,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
-import { dupRoom, dupWrite } from "../fixtures/skill-duplicate.mjs";
+import { answered, callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
+import { dupRoom, dupWrite } from "../../fixtures/skill-duplicate.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
 const HOME = homeEnv("learning-gate");
 /* A fixture path, not this machine's: the Bash cases need only a string holding /memory/, and

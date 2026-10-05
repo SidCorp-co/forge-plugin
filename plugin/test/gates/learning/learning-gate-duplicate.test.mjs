@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { homeEnv } from "../fixtures.mjs";
-import { dupRoom, dupWrite } from "../fixtures/skill-duplicate.mjs";
+import { homeEnv } from "../../fixtures.mjs";
+import { dupRoom, dupWrite } from "../../fixtures/skill-duplicate.mjs";
 
 const HOME = homeEnv("learning-gate-duplicate");
 

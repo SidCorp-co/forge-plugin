@@ -1,7 +1,7 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail } from "../../resolve/settings.mjs";
-import { absentSaid } from "../../resolve/absent.mjs";
+import { absentSaid } from "../../resolve/gone/absent.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { NO_LONGER_OWES, SIDE, answersByComment } from "../earned/park-status.mjs";
 

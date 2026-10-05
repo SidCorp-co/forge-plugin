@@ -7,13 +7,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { appendedLine } from "../../src/refusal.mjs";
-import { refusalCauseIn } from "../../src/stats/corpus/refusals.mjs";
-import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
-import { assertRouteFirst } from "../fixtures/route-first.mjs";
-import { dupRoom } from "../fixtures/skill-duplicate.mjs";
+import { appendedLine } from "../../../src/refusal.mjs";
+import { refusalCauseIn } from "../../../src/stats/corpus/refusals.mjs";
+import { answered, callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
+import { assertRouteFirst } from "../../fixtures/route-first.mjs";
+import { dupRoom } from "../../fixtures/skill-duplicate.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 const HOME = homeEnv("learning-gate-routes");
 
 /* Every call its own session: the gate asks once per file per session, and a shared id would pass the

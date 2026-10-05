@@ -6,8 +6,8 @@ import { didYouMean } from "./suggest.mjs";
 import { blockedLine, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, typedRefusal,
   verbForPluginDefect } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
-import { retiredRefusal } from "./resolve/retiring.mjs";
-import { absentSaid } from "./resolve/absent.mjs";
+import { retiredRefusal } from "./resolve/gone/retiring.mjs";
+import { absentSaid } from "./resolve/gone/absent.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
