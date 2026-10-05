@@ -23,6 +23,9 @@ writeFileSync(join(REPO, "scripts", "other.mjs"), "// not the gate\n");
 writeFileSync(join(REPO, "package.json"), JSON.stringify({
   scripts: { gate: "node scripts/gates.mjs", "gate:spec": "node scripts/other.mjs" },
 }));
+/* Another repository holding a script at the same relative path, which is not that repository's gate. */
+mkdirSync(join(ELSEWHERE, "scripts"));
+writeFileSync(join(ELSEWHERE, "scripts", "gates.mjs"), "// another repository's script\n");
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
 /* Declared once, as the npm script; the node script it runs is reached through the script's own body. */
@@ -57,6 +60,8 @@ const SPELLINGS = [
   "npm run-script gate",
   `node ${join(REPO, "scripts", "gates.mjs")}`,
   "node 'scripts/gates.mjs'",
+  "sudo --close-from 3 node scripts/gates.mjs",
+  "nice -n10 node scripts/gates.mjs",
 ];
 
 test("every spelling that runs the declared gate's script is refused", () => {
@@ -67,6 +72,17 @@ test("npm pointed at the tree from outside it is refused by the tree it names", 
   assert.equal(decision(`npm --prefix ${REPO} run gate`, { cwd: ELSEWHERE }), "deny");
   assert.equal(decision(`npm --prefix=${REPO} run gate`, { cwd: ELSEWHERE }), "deny");
   assert.equal(decision(`node ${join(REPO, "scripts", "gates.mjs")}`, { cwd: ELSEWHERE }), "deny");
+  assert.equal(decision(`npm run --prefix ${REPO} gate`, { cwd: ELSEWHERE }), "deny", "npm's option after run");
+  assert.equal(decision(`npm run gate --prefix ${REPO}`, { cwd: ELSEWHERE }), "deny", "and after the script's name");
+  assert.equal(decision(`npm run gate -- --prefix ${REPO}`, { cwd: ELSEWHERE }), "allow",
+    "past a `--` the option is the script's, and the caller's own package runs");
+});
+
+test("a launcher that changes directory moves where the script is resolved", () => {
+  assert.equal(decision(`env -C ${REPO} node scripts/gates.mjs`, { cwd: ELSEWHERE }), "deny", "into the ready tree");
+  assert.equal(decision(`env --chdir=${REPO} node scripts/gates.mjs`, { cwd: ELSEWHERE }), "deny");
+  assert.equal(decision(`env -C ${ELSEWHERE} node scripts/gates.mjs`), "allow",
+    "out of it, onto another repository's script at the same relative path");
 });
 
 test("reading the script, or running another, is let through", () => {

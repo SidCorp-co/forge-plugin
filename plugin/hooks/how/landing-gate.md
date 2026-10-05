@@ -11,8 +11,9 @@ The landing's own gate runs as a child of its verb, which no hook sees, so nothi
 Which command is the gate is the project's, in `stats.commands.gate`, and which mode is the
 project's `ship`. A tree at `self`, with `ship` unset, or with no gate declared is refused nothing.
 
-The gate is matched by the script it runs, so `npm run gate` declared once also covers
-`node ./scripts/gates.mjs` and a launcher before it; no script is a gate for its name.
+The gate is matched by the script it runs, so a gate declared once as an npm script also covers
+the node script that script runs, any path to it, and a launcher before it; no script is a gate
+for its name.
 
 A refusal you believe is wrong: `forge hooks --off landing-gate`, account-wide until `--on`.
 

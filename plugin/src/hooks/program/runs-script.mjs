@@ -6,10 +6,12 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
+import { wrapperRow } from "../shell/wrappers.mjs";
+
 /** The words of one command as the shell would hand them over: quotes removed, a backslash escaping
  *  the character after it, and every redirection dropped with its target. Null where a quote is left
  *  open, which reads as nothing rather than as a guess. */
-export const wordsOf = (span) => {
+const wordsOf = (span) => {
   const words = [];
   let word = null;
   let quote = null;
@@ -53,54 +55,51 @@ const withoutRedirections = (words) => {
   return kept;
 };
 
-/* What runs another program and how many of its own words come first. A value-taking option names its
-   value as the next word unless it is attached; `positional` is the arguments the launcher takes before
-   the program, as `timeout`'s duration. */
-const LAUNCHERS = {
-  sudo: { takes: ["-u", "-g", "-C", "-D", "-p", "-r", "-t", "-T", "-U", "--user", "--group", "--chdir"] },
-  env: { takes: ["-u", "-C", "-S", "--unset", "--chdir"], assigns: true },
-  time: { takes: ["-f", "-o", "--format", "--output"] },
-  timeout: { takes: ["-k", "-s", "--kill-after", "--signal"], positional: 1 },
-  nohup: { takes: [] },
-  nice: { takes: ["-n", "--adjustment"] },
-  setsid: { takes: [] },
-  ionice: { takes: ["-c", "-n", "-p", "-P", "-u", "--class", "--classdata", "--pid", "--pgid", "--uid"] },
-  stdbuf: { takes: ["-i", "-o", "-e", "--input", "--output", "--error"] },
-  command: { takes: [] },
-  exec: { takes: ["-a"] },
-  xargs: { takes: ["-a", "-d", "-E", "-I", "-L", "-n", "-P", "-s", "--arg-file", "--delimiter", "--max-args", "--max-procs"] },
-  npx: { takes: ["-p", "--package", "-c", "--call"] },
-};
-
-const NODE_TAKES = ["-r", "--require", "--import", "--loader", "--experimental-loader", "--env-file", "--conditions", "-C", "--title", "--input-type"];
-const NPM_TAKES = ["--prefix", "-C", "--workspace", "-w", "--loglevel", "--userconfig", "--cache", "--registry"];
+const NODE_TAKES = { takes: "rC", long: ["require", "import", "loader", "experimental-loader", "env-file", "conditions", "title", "input-type"] };
+const NPM_TAKES = { takes: "Cw", long: ["prefix", "workspace", "loglevel", "userconfig", "cache", "registry"] };
 const NPM_RUN = new Set(["run", "run-script", "rum", "urn"]);
+/* node handed its program inline runs no script file. */
+const INLINE = /^(?:-[a-zA-Z]*[ep][a-zA-Z]*|--eval|--print)(?:=|$)/u;
 const ASSIGNMENT = /^[A-Za-z_][\w]*=/u;
 
 const base = (word) => word.split("/").at(-1);
 
-/** The index of the first word past `from` that is no option of `takes`, an attached `--x=v` or `-xV`
- *  form included; a bare `--` ends the options. */
-const pastOptions = (words, from, takes) => {
+/** The options at `from` in getopt's shape, by `row`'s `takes` and `long`: a short cluster whose value
+ *  is attached or the next word, a long option with `=value` or the next word. Calls `seen(name,
+ *  value)` for each and returns the index of the first word that is no option; a bare `--` ends them. */
+const optionsFrom = (words, from, row, seen = () => {}) => {
   let at = from;
   while (at < words.length && words[at].startsWith("-") && words[at] !== "-") {
-    if (words[at] === "--") return at + 1;
-    if (takes.includes(words[at])) at += 1;
+    const word = words[at];
+    if (word === "--") return at + 1;
+    if (word.startsWith("--")) {
+      const [name, attached] = word.slice(2).split(/=(.*)/su);
+      const value = attached ?? (row.long.includes(name) ? words[(at += 1)] : undefined);
+      seen(name, value);
+    } else {
+      const letters = word.slice(1);
+      const taking = [...letters].findIndex((one) => row.takes.includes(one));
+      if (taking >= 0) seen(letters[taking], letters.slice(taking + 1) || words[(at += 1)]);
+    }
     at += 1;
   }
   return at;
 };
 
-/** The words of the program a command runs once every assignment and launcher before it is skipped. */
-const programOf = (words) => {
+/** The program a command runs once every assignment and launcher before it is skipped, and the
+ *  directory it runs in, moved by a launcher's own change-directory option. */
+const programOf = (words, directory) => {
   let at = 0;
+  let stands = directory;
   for (;;) {
     while (at < words.length && ASSIGNMENT.test(words[at])) at += 1;
-    const launcher = LAUNCHERS[base(words[at] ?? "")];
-    if (!launcher) return words.slice(at);
-    at = pastOptions(words, at + 1, launcher.takes);
-    if (launcher.assigns) while (at < words.length && ASSIGNMENT.test(words[at])) at += 1;
-    at += launcher.positional ?? 0;
+    const row = wrapperRow(base(words[at] ?? ""));
+    if (!row) return { program: words.slice(at), directory: stands };
+    at = optionsFrom(words, at + 1, row, (name, value) => {
+      if (row.chdir.includes(name) && value) stands = resolve(stands, value);
+    });
+    while (at < words.length && ASSIGNMENT.test(words[at])) at += 1;
+    at += row.positional;
   }
 };
 
@@ -128,32 +127,32 @@ const packageAbove = (directory) => {
 export const runsOf = (span, directory) => {
   const words = wordsOf(span);
   if (!words) return null;
-  const program = programOf(words);
+  const { program, directory: stands } = programOf(words, directory);
   const name = base(program[0] ?? "");
   if (name === "node" || name === "nodejs") {
-    const at = pastOptions(program, 1, NODE_TAKES);
+    const at = optionsFrom(program, 1, NODE_TAKES);
     const script = program[at];
-    if (!script || program.slice(1, at).some((one) => /^(?:-e|--eval|-p|--print)$/u.test(one))) return null;
-    const file = real(isAbsolute(script) ? script : resolve(directory, script));
+    if (!script || program.slice(1, at).some((one) => INLINE.test(one))) return null;
+    const file = real(isAbsolute(script) ? script : resolve(stands, script));
     return file ? { node: file } : null;
   }
-  if (name === "npm") {
-    let prefix = null;
-    let at = 1;
-    while (at < program.length && !NPM_RUN.has(program[at])) {
-      const one = program[at];
-      if (one === "--prefix" || one === "-C") prefix = program[(at += 1)];
-      else if (one.startsWith("--prefix=")) prefix = one.slice("--prefix=".length);
-      else if (NPM_TAKES.includes(one)) at += 1;
-      else if (!one.startsWith("-")) return null;
-      at += 1;
-    }
-    const script = program[pastOptions(program, at + 1, NPM_TAKES)];
-    if (at >= program.length || !script) return null;
-    const pkg = prefix ? real(resolve(directory, prefix)) : packageAbove(directory);
-    return pkg ? { npm: pkg, script } : null;
+  if (name !== "npm") return null;
+  /* npm reads its own options on either side of `run` and after the script's name alike. */
+  let prefix = null;
+  const noted = (option, value) => {
+    if ((option === "prefix" || option === "C") && value) prefix = value;
+  };
+  const verbAt = optionsFrom(program, 1, NPM_TAKES, noted);
+  if (!NPM_RUN.has(program[verbAt])) return null;
+  const scriptAt = optionsFrom(program, verbAt + 1, NPM_TAKES, noted);
+  const script = program[scriptAt];
+  if (!script) return null;
+  /* Past the script's name npm still reads its own options, up to a `--`, which hands the rest to the script. */
+  for (let at = scriptAt + 1; at < program.length && program[at] !== "--";) {
+    at = program[at].startsWith("-") ? optionsFrom(program, at, NPM_TAKES, noted) : at + 1;
   }
-  return null;
+  const pkg = prefix ? real(resolve(stands, prefix)) : packageAbove(stands);
+  return pkg ? { npm: pkg, script } : null;
 };
 
 /** The targets a project's declared gate commands resolve to from `root`, an npm script's own body
