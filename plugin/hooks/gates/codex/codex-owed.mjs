@@ -34,9 +34,8 @@ const heldIn = (tree) => {
   return { classes, ready: doors.includes("ready"), unknown: owed.unknown, consult: enumOf("codex.consult", parsed).value };
 };
 
-/* Every command of the line against the tree the shell stands in AT that command, and every tree it
-   reaches rather than the first: a `cd` into another project moves both what a gate command is and
-   whose record owes, and a line gating in two trees would judge the second one's content too. */
+/* `commandsAt` says which tree each command is read in; what is added here is that every tree
+   counts, not the first: a line gating in two trees judges the second one's content too. */
 const heldBy = (text, cwd) => {
   const found = [];
   let unreadable = false;

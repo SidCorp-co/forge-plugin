@@ -19,9 +19,9 @@ const unanswered = (ref, head, view, record) => {
   return held.commit && sameCommit(held.commit, head) ? null : `the latest review on ${ref} judged ${judged}, not ${shortSha(head)}`;
 };
 
-/** The refusal a `--ready` capture of `head` owes, or null; `view` is `viewFrom`'s. Where this machine
- *  has no reviewer configured, the route names where one is configured rather than a consult that
- *  cannot run. */
+/** Why the review on record does not answer for `head`, as the message that clears it; null where
+ *  it does. `view` is `viewFrom`'s. Where this machine has no reviewer configured, the route names
+ *  where one is configured rather than a consult that cannot run. */
 export const reviewReadyRefusal = (ref, head, view, { unconfigured = unconfiguredTool("codex") } = {}) => {
   if (landsOutsideGit(view.issue)) return null;
   const record = `forge record review ${ref} --reviewer codex --commit ${shortSha(head)} --outcome approved --finding "F1 accepted"`;

@@ -109,9 +109,8 @@ const owedRow = () => {
     + `  ← ${owed.from}` };
 };
 
-/* Silent where the project declared none (G-12). The reviewer runs no command, so what the key does
-   is name the checks a consult tells the reviewer this project runs, where the caller names none; a
-   clock left beside it is read by nothing, and is said so with the call that clears it. */
+/* Silent where the project declared none (G-12); what the key means is `codexCheck`'s. A clock left
+   beside it is read by nothing, and is said so with the call that clears it. */
 const checkRow = () => {
   const check = codexCheck();
   if (projectCodex().checkMs !== undefined) {
