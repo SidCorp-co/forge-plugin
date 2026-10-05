@@ -80,7 +80,8 @@ reads as a step that passed.
 
 ## One run of the evidence, at the head Phase 4's last two steps left
 
-Run it once, at that head, and attach it once. A suite re-run per criterion proves nothing the first
+The evidence is the change's own — the suites of the files it touched and the cases each criterion
+names, never the whole gate — run once at that head and attached once. A suite re-run per criterion proves nothing the first
 run did not. The verdicts go up together, all criteria in a single record (`forge record verdict -h`),
 and the suite runs again only for a criterion whose evidence is its own.
 

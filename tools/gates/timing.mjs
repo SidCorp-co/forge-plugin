@@ -9,7 +9,7 @@ import { gitCommonDir } from "../checkout.mjs";
 const FILE = "runs";
 const RUN = /^(\S+) (\d+)s (\d+)\/(\d+)(?: load (\d+(?:\.\d+)?)\/(\d+))?$/u;
 
-export const PLANTS = "npm run check -- --full";
+export const PLANTS = "the next landing whose gate spends every step";
 
 /* The figure the last gate review measured and the one-minute load it measured under: a dated
    anchor kept as context on a run's own line, and never the drift trigger — a ceiling fixed to one
@@ -142,10 +142,10 @@ const compared = (wholes, review) => `${said(wholes.at(-1))}, ${reviewed(wholes.
 export const runSays = (dir, review = REVIEW) => {
   const series = runSeries(dir);
   const newest = series.at(-1);
-  if (!newest) return `no run is recorded, so nothing says whether this gate has grown; ${PLANTS} plants a figure`;
+  if (!newest) return `no run is recorded, so nothing says whether this gate has grown until ${PLANTS} plants a figure`;
   const wholes = series.filter(whole);
   if (wholes.length === 0) {
-    return `${said(newest)}, and no run recorded spent the whole table; ${PLANTS} plants a figure`;
+    return `${said(newest)}, and no run recorded spent the whole table, so a figure waits for ${PLANTS}`;
   }
   return whole(newest)
     ? compared(wholes, review)

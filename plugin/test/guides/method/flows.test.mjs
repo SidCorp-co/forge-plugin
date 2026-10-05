@@ -210,6 +210,21 @@ test("under either flow a builder is told to take no baseline and spend no gate,
   }
 });
 
+/* The run at the replayed head is the change's own evidence; "run it once" naming no subject read as the
+   whole suite, and gate-review's "full run" as one this session starts (ISS-3190). */
+test("under either flow the evidence at the replayed head is the change's own, and no reference asks for a full run", () => {
+  for (const flow of [DEFAULT, SCREEN]) {
+    const reference = served(flow, "guide", "issue-flow", "verification");
+    assert.match(reference, /The evidence is the change's own — the suites of the files it touched and the cases each criterion\snames, never the whole gate — run once at that head/u,
+      `${flow}: the evidence run at the replayed head does not say what it runs`);
+    assert.doesNotMatch(reference, /Run it once, at that head/u, `${flow}: the subjectless run is still served`);
+    const measuring = served(flow, "guide", "gate-review", "measuring");
+    assert.doesNotMatch(measuring, /full run/u, `${flow}: the gate review still measures a full run of its own`);
+    assert.match(measuring, /where it does not, the review says the\smeasurement is not on record rather than starting a gate of its own/u,
+      `${flow}: a landing record without sizes leaves the review no route but a gate of its own`);
+  }
+});
+
 test("an automatic release is looked at where it landed, and what the run leaves is legible", () => {
   const held = served(SCREEN, "guide", "issue-flow", "7");
   assert.match(held, /this phase looks at production/u,

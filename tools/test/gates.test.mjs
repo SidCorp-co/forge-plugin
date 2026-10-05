@@ -408,7 +408,8 @@ test("the dirty shared checkout is refused, --anyway gates it and says so at bot
     const refused = run(work);
     assert.equal(refused.status, 1, refused.stdout);
     assert.match(refused.stderr, /docs\/three\.md/u, refused.stderr);
-    assert.match(refused.stderr, /node tools\/run\.mjs start <ISS-nn>/u, refused.stderr);
+    assert.match(refused.stderr, /The whole gate is the landing's: hand a change over from its own worktree with forge claim <ISS-nn> --pushed --ready/u, refused.stderr);
+    assert.doesNotMatch(refused.stderr, /Gate from a worktree/u, "an agent refused here is sent to the hand-over, not to a gate of its own");
 
     const anyway = run(work, ["--anyway"]);
     assert.equal(anyway.status, 0, anyway.stdout + anyway.stderr);
