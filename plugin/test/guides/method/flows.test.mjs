@@ -187,6 +187,22 @@ test("the rung the independent arm ends at is the ship mode's, and the mode that
     "and it is told to end at a rung only the run that lands the change can write");
 });
 
+/* The flow with a screen carries its own copy of both parts, and a copy is what drifts (ISS-3181). */
+test("under the screen flow a ready builder hands a gate with no verdict to the landing, which lands it", () => {
+  const ready = shipping("ready", "guide", "issue-flow", "verification");
+  assert.match(ready, /handed to the landing's gate after one attempt and one wait, and never started again/u,
+    "criteria 1 and 4: the screen flow's builder retries a gate the machine could not carry");
+  assert.match(ready, /What says so is the gate's own exit, as its `-h` names them/u, "criterion 2: under the screen flow");
+  assert.match(ready, /A gate that answered red is not this case/u, "criterion 3: under the screen flow");
+  assert.match(ready, /Then `forge record gap` names the exit the gate gave/u, "criterion 4: under the screen flow");
+  assert.doesNotMatch(shipping("self", "guide", "issue-flow", "verification"), /handed to the landing's gate/u,
+    "criterion 5: under the screen flow");
+  const fold = shipping("ready", "guide", "dispatch");
+  assert.match(fold, /The fold sends it back to gate nowhere/u, "criterion 6: the screen flow's fold sends it back to gate");
+  assert.match(fold, /lands the set again at the next fold with the command the decline printed/u,
+    "criterion 7: the screen flow's fold waits on the machine");
+});
+
 test("an automatic release is looked at where it landed, and what the run leaves is legible", () => {
   const held = served(SCREEN, "guide", "issue-flow", "7");
   assert.match(held, /this phase looks at production/u,

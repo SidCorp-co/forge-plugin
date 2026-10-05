@@ -53,6 +53,27 @@ diff --name-only <base>...HEAD` — and settle any difference before the arming 
 for the landing to find, because a review earned over one file set is not a review of another. None
 of this is the gate, and the rung a run claims bounds the gate alone.
 
+<!-- forge:when ship ready -->
+**A gate the machine could not carry is handed to the landing's gate after one attempt and one
+wait, and never started again.** What says so is the gate's own exit, as its `-h` names them: a
+decline for want of a place that the one wait for a place did not clear, a wait for its verdict that
+reached its deadline with the gate still running, a verdict saying it overran the machine rather than
+judged the tree, or a gate that ended having written no verdict at all. How long it took says nothing
+of the kind — a gate that answers late has answered, and its slowness is the gate-review skill's. None
+of those exits is red or green; each is no reading, and a second gate started on the same box answers
+what the first did, so a run that keeps starting one has turned a busy machine into a wait with no
+end. The run stops there and takes the reading that needs no gate place, the review: the whole-set
+read over the head it hands over, every finding it raised answered, and nothing owed where `forge
+claim ISS-nn --review` reads the last consult. The checks that answer in seconds are owed as above.
+Then `forge record gap` names the exit the gate gave and says the landing's gate is this change's
+first whole reading — and where no reviewer could be reached either, says that too — and `forge claim
+ISS-nn --pushed --ready` hands the branch over. The landing spends one gate on its whole set, ahead
+of every builder's for the next place, and a candidate it finds red hands the member at fault back to
+the run that built it, so a fault this run could not see is still its own to fix, later and by the
+route every hand-back takes. **A gate that answered red is not this case**: that reading is of this
+run's tree, and it is fixed here before any checkpoint.
+<!-- forge:end -->
+
 ## A measurement does not race what it reads
 
 A proof whose cost makes rerunning it a decision rather than a reflex — a whole gate, a sweep over

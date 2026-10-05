@@ -26,13 +26,25 @@ have, and the size of a set is a judgement this phase makes rather than a number
 branch is landed on its own however disjoint their paths are. A wave composed for a cheap landing
 buys nothing under that route, and the route is the project's rather than this phase's to choose.
 
-A branch handed back is not a failure of the fold, and one thing hands one back: a merge that touched
-a path the change owns, which leaves the checkpoint at `builder-owed`. The run that built it is
+A branch handed back is not a failure of the fold. A merge that touched a path the change owns leaves
+the checkpoint at `builder-owed`, and a fault of the branch's own — a candidate the gate found red
+with that member at fault among them — leaves it at `head-owed`. The run that built it is
 resumed as a parked run is, by the same agent and from the checkpoint. A base that moved under the
 pin hands nothing back — the landing builds the candidate again from the new base itself, and what
 that costs is the readings taken at the candidate it gave up. A branch that will not merge at all is
 parked with its conflict list and lands nothing; the one after it is somebody else's release, so the
 fold carries on rather than stopping at the first refusal.
+
+**A member handed in with a gap saying its own gate gave no verdict is landed in the set like any
+other**, because the candidate's gate is the reading it was handed in for: a builder whose gate the
+machine could not carry stops after one attempt and one wait, and the verification reference says
+what it owes instead. The fold sends it back to gate nowhere and holds the set for no quieter
+machine. Where that member is at fault, the red candidate hands it back as above, and its builder
+fixes it after the set has landed. The landing's own gate is bounded the same way: where it waits
+its minutes for a place and none frees, it has judged no branch and handed none back, and every
+member's checkpoint is still the landing's. The fold records that wait in the section, carries on,
+and lands the set again at the next fold with the command the decline printed, rather than this
+fold waiting on the machine.
 
 **Where the project asks for an independent judge**, the landing stops for one and the fold
 dispatches it: a role of its own, given the issue, its criteria and Outcome, and whatever
