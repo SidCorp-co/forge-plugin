@@ -568,6 +568,13 @@ so a death between the two is recovered by reading back rather than by doing aga
   WHEN a release reports its gate series and no recorded run spent the whole table THEN it SHALL say
   that the next landing whose gate spends every step plants the figure, and SHALL name no `--full`
   run for the lander to start.
+- **AC-05-10-24** · Rev: 1 · Proof: plugin/test/gates/landing/by-run.test.mjs "every spelling that runs the declared gate's script is refused"
+  WHILE a project ships ready, the CLI SHALL refuse a shell call that runs the script that project's
+  declared gate runs, however the call spells it: a relative or absolute path resolved against where it
+  stands, an interpreter or package manager flag, or a launcher before it.
+- **AC-05-10-25** · Rev: 1 · Proof: plugin/test/gates/landing/by-run.test.mjs "reading the script, or running another, is let through"
+  WHEN a shell call reads the declared gate's script, or runs a script the declaration does not resolve
+  to, THEN the CLI SHALL let it through, whatever the script's name.
 
 ### UC-05-11 — An independent judge earns `testing`
 
