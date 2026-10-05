@@ -12,6 +12,9 @@ const LEADS = String.raw`(?:^|[\n;|&(){}])[ \t]*`
 
 export const at = (what) => new RegExp(LEADS + what, "u");
 
+/* `npm run check` declared is not `npm run check:spec`. */
+const WORD_ENDS = String.raw`(?=$|[ \t\n;&|()<>])`;
+
 /** What a checkout says its own gate, test and ship are, so `--checkout` reads the profiled project's commands and not this process's. */
 export const DECLARES = "stats.commands";
 export const DECLARABLE = ["gate", "ship", "test", "cleanup"];
@@ -38,7 +41,7 @@ export const declares = (label, declared) => {
 /** The half of the table a route that REFUSES is handed — the labels this project declared a command for — and beside it the doors given that no declared command arms, with what the project wrote there. A fallback at a door costs an adopting project a refusal at a command it never named, which is why the built-in table stayed in the classifier, out of reach of this module (G-12, ISS-1905). The two are one reading, so the gate silent at a door and the row saying why cannot disagree. */
 export const declaredClasses = (declared = null) => DECLARABLE
   .map((label) => [label, declares(label, declared)])
-  .filter(([, said]) => said !== null).map(([label, said]) => [label, at(said)]);
+  .filter(([, said]) => said !== null).map(([label, said]) => [label, at(said + WORD_ENDS)]);
 
 export const unarmedDoors = (doors, declared = null) => doors
   .filter((label) => DECLARABLE.includes(label) && !declares(label, declared))

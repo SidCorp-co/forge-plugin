@@ -80,6 +80,16 @@ test("a project that declares no gate command is refused nothing", () => {
     "a project held at the command it declared is not held at another");
 });
 
+/* A declared command's last word ends where a shell word does: `check:spec` is another script. */
+test("a script whose name only begins with the declared gate's is not the gate", () => {
+  for (const other of ["npm run check:spec", "npm run check:vendor", "npm run check:dup", "npm run checker"]) {
+    assert.equal(gate(other), null, `${other} is another script`);
+  }
+  for (const same of ["npm run check", "npm run check -- --full", "npm run check;", "(npm run check)"]) {
+    assert.equal(gate(same)?.hookSpecificOutput?.permissionDecision, "deny", `${same} is the gate`);
+  }
+});
+
 test("the landing's own verbs are not the gate, and pass under ship ready", () => {
   assert.equal(gate("node tools/run.mjs land-ready ISS-1"), null, "the landing starts the gate as its own child");
   assert.equal(gate("node tools/run.mjs ship"), null, "and so does the ship");

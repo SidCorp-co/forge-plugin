@@ -28,9 +28,10 @@ test("a criterion that the declared gate passes is refused by number, with what 
   assert.match(said, /the landing gates the whole tree on every change; a criterion names the outcome this issue changes and the case that shows it/iu);
   assert.match(said, /Rewrite 2 as that, or drop it/u);
   for (const text of [
-    "WHEN the change lands THEN `node tools/gates.mjs --full` SHALL pass.",
-    "npm run check exits 0 on the branch.",
+    "`node tools/gates.mjs` exits 0.",
+    "npm run check exits 0",
     "`npm run check` stays green.",
+    "`node tools/gates.mjs` SHALL pass.",
     "`node tools/gates.mjs` succeeds.",
   ]) assert.equal(gateCriteria(numbered(text), DECLARED).length, 1, `a pass of the declared gate: ${text}`);
 });
@@ -41,7 +42,7 @@ test("the generic forms of the whole suite passing are refused whatever the proj
     "The full suite is green.",
     "the whole suite stays green",
     "The entire test suite passes.",
-    "THEN the whole gate (`make verify`) SHALL pass.",
+    "The whole gate (`make verify`) SHALL pass.",
   ]) {
     assert.equal(gateCriteria(numbered(text), DECLARED).length, 1, `with a gate declared: ${text}`);
     assert.equal(gateCriteria(numbered(text), null).length, 1, `and with none: ${text}`);
@@ -50,8 +51,14 @@ test("the generic forms of the whole suite passing are refused whatever the proj
     /^Criteria 1, 2 name the whole-tree gate passing/u);
 });
 
+/* A pass the criterion qualifies — a condition, a flag, a step, a `without` — is an outcome of the
+   gate's own, which only the change under it can show. */
 test("a criterion about the gate's own behaviour, or one file's suite, is written", () => {
   for (const text of [
+    "WHEN every step has a matching cached result THEN `node tools/gates.mjs` exits 0 without running a step.",
+    "WHEN the change lands THEN `node tools/gates.mjs --full` SHALL pass.",
+    "`npm run check -- --full` passes.",
+    "npm run check exits 0 on the branch.",
     "`node tools/gates.mjs -h` names every flag.",
     "node tools/gates.mjs --help exits 0 and lists the steps.",
     "`npm run check` refuses a file holding a stray comment.",

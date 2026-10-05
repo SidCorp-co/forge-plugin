@@ -10,7 +10,7 @@ import { OWED_DOORS, codexOwedOf, enumOf, projectFileAt } from "../../../src/res
 import { inRunHome } from "../../../src/resolve/session/run-home.mjs";
 import { WRITER_WORD } from "../../../src/resolve/session/writer-word.mjs";
 import { commandsAt, opensWithAny } from "../../../src/hooks/declared-at.mjs";
-import { context, deny, how, shellText, typed, done } from "../../_hook.mjs";
+import { context, deny, how, quotedOut, shellText, typed, done } from "../../_hook.mjs";
 
 const GATE = "codex-owed";
 const ESCAPE = escapeFor(GATE);
@@ -21,15 +21,17 @@ const ESCAPE = escapeFor(GATE);
    a table of one repository's own commands, reached from a route that refuses, is a refusal in every
    tree that spells its gate differently and never chose this (G-12). `forge doctor` names it. */
 /* The one door whose command is this plugin's own verb, so no project declares it: a `--ready` capture,
-   whatever the key's form and wherever `--pushed` stands, inside one command of the line. */
-const READY = ["ready", at(String.raw`${WRITER_WORD}[ \t]+claim\b[^\n;&|]*?[ \t]--ready(?![\w-])`)];
+   whatever the key's form and wherever `--pushed` stands. Read off the command alone with its quoted
+   arguments blanked, so a `--ready` in a comment or inside a quoted value is no flag of the claim. */
+const READY = at(String.raw`${WRITER_WORD}[ \t]+claim\b[^\n;&|]*?[ \t]--ready(?![\w-])`);
+const capturing = (span) => READY.exec(quotedOut(span))?.index === 0;
 
 const heldIn = (tree) => {
   const parsed = projectFileAt(tree);
   const owed = codexOwedOf(parsed?.codex);
-  const classes = [...declaredClasses(parsed?.stats?.commands ?? null), READY]
-    .filter(([label]) => (owed.unknown ? OWED_DOORS : owed.value).includes(label));
-  return { classes, unknown: owed.unknown, consult: enumOf("codex.consult", parsed).value };
+  const doors = owed.unknown ? OWED_DOORS : owed.value;
+  const classes = declaredClasses(parsed?.stats?.commands ?? null).filter(([label]) => doors.includes(label));
+  return { classes, ready: doors.includes("ready"), unknown: owed.unknown, consult: enumOf("codex.consult", parsed).value };
 };
 
 /* Every command of the line against the tree the shell stands in AT that command, and every tree it
@@ -38,8 +40,8 @@ const heldIn = (tree) => {
 const heldBy = (text, cwd) => {
   const found = [];
   let unreadable = false;
-  for (const { tree, held: { classes, unknown, consult }, here } of commandsAt(text, cwd, heldIn)) {
-    if (!opensWithAny(classes, here)) continue;
+  for (const { tree, held: { classes, ready, unknown, consult }, here, span } of commandsAt(text, cwd, heldIn)) {
+    if (!opensWithAny(classes, here) && !(ready && capturing(span))) continue;
     /* This gate's answer to a door behind a destination no reading names: the tree is unreadable, and the call is refused below. */
     if (!tree) {
       unreadable = true;

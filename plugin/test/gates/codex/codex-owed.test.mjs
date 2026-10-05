@@ -187,6 +187,12 @@ test("a ready capture with a change no consult has read is held, whatever form t
   assert.equal(gate({ command: "forge claim ISS-7 --pushed", project: ABSENT }), null, "a capture that arms nothing is no door");
   assert.equal(gate({ command: "forge claim ISS-7 --pushed; echo --ready", project: ABSENT }), null,
     "and a flag in another command of the line is not this one's");
+  assert.equal(gate({ command: "forge claim ISS-7 --pushed # next capture uses --ready", project: ABSENT }), null,
+    "nor one in a comment after the claim, which the shell never hands it");
+  assert.equal(gate({ command: 'forge claim ISS-7 --pushed --next "then --ready"', project: ABSENT }), null,
+    "nor one inside a quoted value of another flag");
+  assert.equal(gate({ command: `${READY} # armed`, project: ABSENT })?.hookSpecificOutput?.permissionDecision, "deny",
+    "while the real flag before a comment is still the capture");
 });
 
 test("a ready capture with a finding nobody ruled on is held, with the disposition that closes it", () => {

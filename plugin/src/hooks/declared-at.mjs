@@ -4,16 +4,17 @@
 import { NOWHERE, directoryAt, spans } from "./shell-spans.mjs";
 
 /** Every command span of `text` with the tree it runs in — null where no reading names one — the
- *  text from that command on, and what `read` says of the tree, asked once per tree. A tree no
- *  reading names is asked of `cwd`: that settles whether the line asks at all, and never the answer. */
+ *  text from that command on, the command alone as `span`, a comment after it left out, and what
+ *  `read` says of the tree, asked once per tree. A tree no reading names is asked of `cwd`: that
+ *  settles whether the line asks at all, and never the answer. */
 export const commandsAt = (text, cwd, read) => {
   const seen = new Map();
-  return spans(text, { pipes: true }).map(({ start }) => {
+  return spans(text, { pipes: true }).map(({ start, end }) => {
     const stood = directoryAt(text, start, cwd);
     const tree = stood === NOWHERE ? null : stood;
     const asks = tree ?? cwd;
     if (!seen.has(asks)) seen.set(asks, read(asks));
-    return { tree, held: seen.get(asks), here: text.slice(start) };
+    return { tree, held: seen.get(asks), here: text.slice(start), span: text.slice(start, end) };
   });
 };
 
