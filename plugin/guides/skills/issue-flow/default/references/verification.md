@@ -66,8 +66,10 @@ end. The run stops there and takes the reading that needs no gate place, the rev
 read over the head it hands over, every finding it raised answered, and nothing owed where `forge
 claim ISS-nn --review` reads the last consult. The checks that answer in seconds are owed as above.
 Then `forge record gap` names the exit the gate gave and says the landing's gate is this change's
-first whole reading — and where no reviewer could be reached either, says that too — and `forge claim
-ISS-nn --pushed --ready` hands the branch over. The landing spends one gate on its whole set, ahead
+first whole reading, and `forge claim ISS-nn --pushed --ready` hands the branch over. **Where no
+reviewer can be reached either, nothing stands in for the gate and nothing is handed over**: the
+issue is parked as `blocked` on the reviewer, the gate's exit and the reviewer's both in the reason,
+and resumed at this step once one answers. The landing spends one gate on its whole set, ahead
 of every builder's for the next place, and a candidate it finds red hands the member at fault back to
 the run that built it, so a fault this run could not see is still its own to fix, later and by the
 route every hand-back takes. **A gate that answered red is not this case**: that reading is of this

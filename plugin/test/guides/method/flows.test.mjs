@@ -193,6 +193,8 @@ test("under the screen flow a ready builder hands a gate with no verdict to the 
   assert.match(ready, /handed to the landing's gate after one attempt and one wait, and never started again/u,
     "criteria 1 and 4: the screen flow's builder retries a gate the machine could not carry");
   assert.match(ready, /What says so is the gate's own exit, as its `-h` names them/u, "criterion 2: under the screen flow");
+  assert.match(ready, /Where no reviewer can be reached either, nothing stands in for the gate and nothing is handed over/u,
+    "criterion 1: the screen flow hands over a head no gate and no review read");
   assert.match(ready, /A gate that answered red is not this case/u, "criterion 3: under the screen flow");
   assert.match(ready, /Then `forge record gap` names the exit the gate gave/u, "criterion 4: under the screen flow");
   assert.doesNotMatch(shipping("self", "guide", "issue-flow", "verification"), /handed to the landing's gate/u,

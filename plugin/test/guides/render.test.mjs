@@ -295,6 +295,8 @@ test("a ready builder whose gate gave no verdict hands over after one attempt an
   assert.match(ready, /What says so is the gate's own exit, as its `-h` names them/u,
     "criterion 2: the sign the machine could not carry it is not the gate's own exit");
   assert.match(ready, /How long it took says nothing of the kind/u, "criterion 2: elapsed time is read as that sign");
+  assert.match(ready, /Where no reviewer can be reached either, nothing stands in for the gate and nothing is handed over/u,
+    "criterion 1: a head no gate and no review read is handed over");
   assert.match(ready, /A gate that answered red is not this case/u, "criterion 3: a red verdict is handed over too");
   assert.match(ready, /Then `forge record gap` names the exit the gate gave/u,
     "criterion 4: the gate's exit is not on the record before the checkpoint");
