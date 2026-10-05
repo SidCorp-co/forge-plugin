@@ -62,15 +62,13 @@ judged the tree, or a gate that ended having written no verdict at all. How long
 of the kind — a gate that answers late has answered, and its slowness is the gate-review skill's. None
 of those exits is red or green; each is no reading, and a second gate started on the same box answers
 what the first did, so a run that keeps starting one has turned a busy machine into a wait with no
-end. The run stops there and takes the reading that needs no gate place, the review: the whole-set
-read over the head it hands over, every finding it raised answered, and nothing owed where `forge
-claim ISS-nn --review` reads the last consult. The checks that answer in seconds are owed as above.
+end. The run stops there and takes the reading that needs no gate place, the review, taken
+at the head it hands over and owing nothing by `forge claim ISS-nn --review`. The checks that answer in seconds are owed as above.
 Then `forge record gap` names the exit the gate gave and says the landing's gate is this change's
 first whole reading, and `forge claim ISS-nn --pushed --ready` hands the branch over. **Where no
 reviewer can be reached either, nothing stands in for the gate and nothing is handed over**: the
 issue is parked as `blocked` on the reviewer, the gate's exit and the reviewer's both in the reason,
-and resumed at this step once one answers. The landing spends one gate on its whole set, ahead
-of every builder's for the next place, and a candidate it finds red hands the member at fault back to
+and resumed at this step once one answers. A candidate the landing finds red hands the member at fault back to
 the run that built it, so a fault this run could not see is still its own to fix, later and by the
 route every hand-back takes. **A gate that answered red is not this case**: that reading is of this
 run's tree, and it is fixed here before any checkpoint.

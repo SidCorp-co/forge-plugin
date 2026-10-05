@@ -288,7 +288,7 @@ test("a ready builder whose gate gave no verdict hands over after one attempt an
   const ready = shipping("ready", "issue-flow", "verification");
   assert.match(ready, /handed to the landing's gate after one attempt and one wait, and never started again/u,
     "criterion 1: a gate the machine could not carry is retried without bound");
-  assert.match(ready, /nothing owed where `forge claim ISS-nn --review` reads the last consult/u,
+  assert.match(ready, /the review, taken at the head it hands over and owing nothing by `forge claim ISS-nn --review`/u,
     "criterion 1: the hand-over does not rest on a review that owes nothing");
   assert.match(ready, /`forge claim ISS-nn --pushed --ready` hands the branch over/u,
     "criterion 1: the run is not told which checkpoint ends it");
