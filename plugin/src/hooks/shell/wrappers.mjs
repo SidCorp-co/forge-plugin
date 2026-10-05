@@ -8,6 +8,7 @@ import { BLANKS, shellWord } from "./word.mjs";
 const OPTIONS = {
   sudo: {
     takes: "CDgpRrTtUu",
+    chdir: ["D", "chdir"],
     long: ["chdir", "chroot", "close-from", "command-timeout", "group", "other-user", "prompt", "role", "type", "user"],
     others: ["askpass", "auth-type", "background", "bell", "edit", "help", "host", "list", "login", "login-class", "no-update",
       "non-interactive", "preserve-env", "preserve-groups", "remove-timestamp", "reset-timestamp", "set-home", "shell", "stdin",
@@ -15,6 +16,7 @@ const OPTIONS = {
   },
   env: {
     takes: "Cafu",
+    chdir: ["C", "chdir"],
     long: ["argv0", "chdir", "file", "unset"],
     others: ["block-signal", "debug", "default-signal", "help", "ignore-environment", "ignore-signal", "list-signal-handling", "null",
       "split-string", "version"],
@@ -23,12 +25,29 @@ const OPTIONS = {
   time: { takes: "fo", long: ["format", "output-file"], others: ["append", "help", "portability", "quiet", "verbose", "version"] },
   command: { takes: "", long: [] },
   nohup: { takes: "", long: [] },
+  /* Read only by the word walk below, which asks what program a launcher runs; the shell reader's
+     patterns are built for its own prefix list and never reach these rows. `positional` counts the
+     arguments a launcher takes before its program, as timeout's duration. */
+  nice: { takes: "n", long: ["adjustment"] },
+  setsid: { takes: "", long: [] },
+  ionice: { takes: "cnpPu", long: ["class", "classdata", "pid", "pgid", "uid"] },
+  stdbuf: { takes: "ioe", long: ["input", "output", "error"] },
+  timeout: { takes: "ks", long: ["kill-after", "signal"], positional: 1 },
+  xargs: { takes: "adEILnPs", long: ["arg-file", "delimiter", "eof", "replace", "max-lines", "max-args", "max-procs", "max-chars"] },
+  npx: { takes: "pc", long: ["package", "call"] },
 };
 
 const VALUE = shellWord(";&|()<>");
 
 /** Whether the table names this wrapper. */
 export const wraps = (name) => Object.hasOwn(OPTIONS, name);
+
+/** One wrapper's row for a reader walking words rather than a pattern: the short options taking a
+ *  value, the long ones, how many arguments come before its program, and the options naming the
+ *  directory it runs that program in. Null for a word the table does not name. */
+export const wrapperRow = (name) => (wraps(name)
+  ? { takes: OPTIONS[name].takes, long: OPTIONS[name].long, positional: OPTIONS[name].positional ?? 0, chdir: OPTIONS[name].chdir ?? [] }
+  : null);
 
 /* A long option cut to any prefix getopt takes, the same rule clap's inferred long options keep: down to the shortest prefix no other long option of its program begins with, or its whole name alone where a longer option begins with all of it, since an exact name is selected even where it prefixes another. A prefix two options share is refused by the program, so it is neither of them here. */
 const abbreviated = (wrapper, name) => {

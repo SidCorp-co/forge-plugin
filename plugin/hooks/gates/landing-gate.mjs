@@ -1,9 +1,11 @@
 // Under ship `ready` the landing runs the project's whole-tree gate, and nothing before it does. how/landing-gate.md.
 
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
+import { repoRoot } from "../../src/git/repo-root.mjs";
 import { commandsAt, opensWithAny } from "../../src/hooks/declared-at.mjs";
+import { declaredTargets, runsOf, sameRun } from "../../src/hooks/program/runs-script.mjs";
 import { offReach } from "../../src/hooks/hook-switch.mjs";
 import { enumOf, projectFileAt } from "../../src/resolve/settings.mjs";
 import { gitDirAt, runFor, runIdAt } from "../../src/resolve/session/run-id.mjs";
@@ -42,12 +44,22 @@ const keyOf = (tree) => {
   return BRANCHED.exec(head.trim())?.[1].toUpperCase() ?? "ISS-nn";
 };
 
+/* The same script reached by another spelling: the target's own repository answers whether it ships
+   ready and what it declared, so a path into another worktree is judged by that worktree. */
+const byRun = ({ tree, span }) => {
+  const target = tree ? runsOf(span, tree) : null;
+  const root = target ? repoRoot(target.node ? dirname(target.node) : target.npm) : null;
+  const held = root ? heldIn(root) : null;
+  return held?.said.length && sameRun(target, declaredTargets(held.said, root)) ? { tree: root, held } : null;
+};
+
 export const run = (ev) => {
   if (ev.tool_name !== "Bash") done();
   const cwd = ev.cwd ?? process.cwd();
   /* A destination no reading names is not judged: refusing it would rest on a guess at whose gate it is. */
-  const hit = commandsAt(shellText((ev.tool_input ?? {}).command), cwd, heldIn)
-    .find(({ tree, held, here }) => tree && opensWithAny(held.classes, here));
+  const spans = commandsAt(shellText((ev.tool_input ?? {}).command), cwd, heldIn);
+  const hit = spans.find(({ tree, held, here }) => tree && opensWithAny(held.classes, here))
+    ?? spans.map(byRun).find(Boolean);
   if (!hit) done();
   const key = keyOf(hit.tree);
   deny(
