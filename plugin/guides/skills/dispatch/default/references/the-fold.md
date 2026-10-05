@@ -16,8 +16,8 @@ The record is a commit, and the runs the wave dispatched put their own on that s
 trees of their own. So the fold's landing goes through the route the project's record names for
 landing a commit — the route those runs take — and never a fetch, a rebase and a push typed by
 hand. A push made from the shared checkout is invisible to whatever serializes the runs' landings:
-it can land between a run's rebase and its push, and the run pays for it with a second rebase and a
-second gate.
+it can land between a landing's rebase and its push, and that landing pays for it with a second
+rebase and a second gate.
 
 Where that route makes landings wait for each other, a fold that meets one in progress waits for
 it. It has nothing half-made to unwind, so the wait is its whole cost, and the wait is recorded in

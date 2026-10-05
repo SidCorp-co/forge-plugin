@@ -1,6 +1,7 @@
 # Skill: issue-flow
 
-One session takes an issue from its title to a deployed and closed change, and then the next issue.
+One session takes an issue from its title to a deployed and closed change, or to the ready checkpoint
+where the project's landing is another actor's, and then the next issue.
 Nothing here dispatches to a runner or hands off to another agent.
 
 **Arguments.** An issue key, or several, starts at Phase 1 on those. No argument means take the open

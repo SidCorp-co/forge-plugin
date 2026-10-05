@@ -87,7 +87,7 @@ runs. The whole gate, `npm run check`, is the landing's: it gates every change o
 it is, so a run's own gate would only measure what the landing measures again. The gate is scoped
 and remembers, which trades one danger for another: a step whose declared paths are too narrow is
 never red, it is absent. So a step is added to the table with the paths it read off its own script,
-a claim every run holds it to by watching the step read, and `--full` is how a run distrusts the
+a claim every gate holds it to by watching the step read, and `--full` is how a gate distrusts the
 record. `node tools/gates.mjs -h` carries the rest.
 
 Fix the source, never the gate. A real violation that passes means the checker is wrong, and it gets

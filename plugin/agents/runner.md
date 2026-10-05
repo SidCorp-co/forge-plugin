@@ -2,7 +2,7 @@
 name: runner
 description: >-
   Take one tracker issue from its title to landed, released and closed code, in a worktree of its
-  own. Dispatched with an issue key and the facts only the dispatcher knows at that moment; the
+  own, or to the ready checkpoint where the project's landing is the dispatcher's. Dispatched with an issue key and the facts only the dispatcher knows at that moment; the
   method is the issue-flow skill's and the rules are the contract's. Use this role for an issue that
   has to become deployed code. For judging a change somebody else wrote, use the reviewer role
   instead; for setting an issue's metadata without building it, the triage role.

@@ -26,8 +26,8 @@ for the landing to find, because a review earned over one file set is not a revi
 
 ## A measurement does not race what it reads
 
-A proof whose cost makes rerunning it a decision rather than a reflex — a whole gate, a sweep over
-live data that runs the better part of an hour — carries one more duty once it is under
+A proof whose cost makes rerunning it a decision rather than a reflex — a suite repeated under load, a
+sweep over live data that runs the better part of an hour — carries one more duty once it is under
 way: say the condition holds before you measure, and take the figure against a head that is already
 settled, or, where that head cannot be had first, state which round the figure was taken at and what
 moved after it. A proof cheap enough to rerun freely owes none of this; the cost is the whole of the

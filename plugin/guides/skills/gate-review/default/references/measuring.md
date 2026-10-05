@@ -19,7 +19,11 @@ unchanged on the two a CI runner has, and that is a result to report.
 
 ## 1. The whole run, then every step alone
 
-Time the gate the way the project spends it; then each step on its own, and add the parts up.
+The whole run is the landing's, so it is read off what the landings' gates record and never started
+from this session: under a landing another actor makes, the gate typed here is refused. Where the
+harness records each landing's whole-run seconds, the series is the whole run; then time each step on
+its own, and add the parts up. Where it records none, the sum of the steps is the figure, and it is
+reported as a sum.
 
 Where the sum and the whole disagree, the gap is a question. It can be orchestration the harness
 pays for, a cache the second measurement found warm, a setup one run shared, or contention during
