@@ -127,7 +127,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "redBatch": "one-by-one",
   "ship": "ready",
   "asks": { "mode": "decide", "owner": ["pricing"] },
-  "ready": { "checks": ["npm run lint", "npm test"] },
+  "ready": { "checks": ["npm run lint"] },
   "shape": "staged",
   "release": "manual",
   "report": "daily",

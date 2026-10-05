@@ -29,7 +29,8 @@ const says = (lines) => runSays(planted(lines), REVIEWED);
 
 test("a figure is compared only with a whole-gate figure, and what is comparable is always named", () => {
   assert.match(says([]), /no run is recorded/u);
-  assert.match(says([]), /npm run check -- --full/u);
+  assert.match(says([]), /until the next landing whose gate spends every step plants a figure/u);
+  assert.doesNotMatch(says([]), /--full/u, "the lander is never sent to a second, whole run of its own");
 
   // The shape this repository produces: scoped ship-gate runs between the full ones, which the newest two *runs* would never subtract across.
   const apart = says([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]);
@@ -42,7 +43,7 @@ test("a figure is compared only with a whole-gate figure, and what is comparable
     `a scoped run that names no comparable figure leaves the reader to assume one:\n${scoped}`);
 
   const first = says(["2026-01-04T00:00:00.000Z 9s 3/12"]);
-  assert.match(first, /no run recorded spent the whole table; npm run check -- --full plants a figure/u, first);
+  assert.match(first, /no run recorded spent the whole table, so a figure waits for the next landing whose gate spends every step/u, first);
 
   // A table that gained a step is another gate, and subtracting across the two reports the addition as drift, which is what a review would act on.
   const grown = says([FULL, "2026-01-07T00:00:00.000Z 100s 13/13"]);

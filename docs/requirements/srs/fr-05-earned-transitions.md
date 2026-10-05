@@ -560,6 +560,14 @@ so a death between the two is recovered by reading back rather than by doing aga
 - **AC-05-10-21** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the landing's own verbs are not the gate, and pass under ship ready"
   WHILE a project ships ready, the CLI SHALL let the landing's own verbs through, the gate they run
   being a child of theirs that no shell call carries.
+- **AC-05-10-22** · Rev: 1 · Proof: tools/test/gates.test.mjs "the dirty shared checkout is refused, --anyway gates it and says so at both ends"
+  IF the gate is started in the checkout every session shares while it holds uncommitted paths, and
+  without `--anyway`, THEN it SHALL refuse, SHALL name the hand-over to the landing as the route, and
+  SHALL name no gate run of the caller's own.
+- **AC-05-10-23** · Rev: 1 · Proof: tools/test/gates/timing.test.mjs "a figure is compared only with a whole-gate figure, and what is comparable is always named"
+  WHEN a release reports its gate series and no recorded run spent the whole table THEN it SHALL say
+  that the next landing whose gate spends every step plants the figure, and SHALL name no `--full`
+  run for the lander to start.
 
 ### UC-05-11 — An independent judge earns `testing`
 

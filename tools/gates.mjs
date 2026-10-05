@@ -199,8 +199,9 @@ if (dirty.length > 0 && !allowDirty) {
   console.error(`${ROOT} is the checkout every session shares and it holds ${dirty.length} `
     + `uncommitted path(s), so a gate run here judges a tree nobody owns:`);
   listed((line) => console.error(line));
-  console.error(`Gate from a worktree of your own: node tools/run.mjs start <ISS-nn>`);
-  console.error(`Or gate this tree as it stands, said out loud: npm run check -- ${ANYWAY}`);
+  console.error(`The whole gate is the landing's: hand a change over from its own worktree with `
+    + `forge claim <ISS-nn> --pushed --ready, and the landing gates it.`);
+  console.error(`A person gating this tree as it stands says so: npm run check -- ${ANYWAY}`);
   finish(1, "refused");
 }
 

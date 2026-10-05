@@ -54,7 +54,7 @@ and is the unit most likely to break when run beside others.
 ## 3. What a run leaves behind
 
 Size *and* count the temporary directory, every cache, build and fixture directory before and after
-a full run. Two numbers because they fail differently: a filesystem runs out of inodes while
+a landing's gate, read off the landing's own record. Two numbers because they fail differently: a filesystem runs out of inodes while
 gigabytes are free.
 
 Attribute the growth before calling it a leak: a package cache is supposed to grow, a fixture tree is
@@ -63,7 +63,7 @@ not. Growth that never comes back is reported even when the clock is unmoved.
 ## 4. The same work spent twice
 
 Compare what each step *runs*, not what it is called. The cheap way is the step list beside the
-processes one full run spawns; the reliable way is each step's own command, read.
+processes each step spawns when it is timed alone; the reliable way is each step's own command, read.
 
 ## Keep the output, not a summary of it
 

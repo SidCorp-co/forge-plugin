@@ -20,7 +20,7 @@ test("the last step prints the series' newest whole-run figure beside the volume
   const blank = lastStep(work);
   assert.match(blank.stdout, /the gate: this release's own left no record of what it took, so no figure below is this release's/u, blank.stdout);
   assert.match(blank.stdout, /appends to, whose newest line may be another run's: no run is recorded, so nothing says whether this gate has grown/u, blank.stdout);
-  assert.match(blank.stdout, /npm run check -- --full/u, "a tree with no figure is told what plants one");
+  assert.match(blank.stdout, /until the next landing whose gate spends every step plants a figure/u, "a tree with no figure is told what plants one");
 
   const dir = join(work, ".git", "gate-ledger");
   mkdirSync(dir, { recursive: true });
