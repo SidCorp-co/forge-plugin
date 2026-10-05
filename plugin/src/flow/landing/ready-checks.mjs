@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 
 import { repoRoot } from "../../git/repo-root.mjs";
+import { pathed } from "../../hooks/shell-spans.mjs";
 import { fail, fromProject, projectFileAt } from "../../resolve/settings.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
 import { uncommittedOver } from "../worklog.mjs";
@@ -65,8 +66,6 @@ const changedFiles = (base, head, root) => {
   const diff = spawnSync("git", ["diff", "--name-only", "-z", "--diff-filter=d", `${base}..${head}`], { cwd: root, encoding: "utf8" });
   return diff.status === 0 ? diff.stdout.split("\0").filter(Boolean) : null;
 };
-
-const quoted = (path) => `'${path.replaceAll("'", "'\\''")}'`;
 
 /* A batch's members captured at one head ask one question, so a green answer is kept where every
    worktree of the checkout reads it, keyed by the head, the base and the checks as declared; any one
@@ -144,7 +143,7 @@ export const runReadyChecks = (ref, declared, head, base = null) => {
       console.error(`${READY_CHECKS}: skipping \`${declaredCheck}\`: the change touches no file it would be handed`);
       continue;
     }
-    const check = declaredCheck.replaceAll(FILES, (files ?? []).map(quoted).join(" "));
+    const check = declaredCheck.replaceAll(FILES, (files ?? []).map(pathed).join(" "));
     console.error(`${READY_CHECKS}: running \`${declaredCheck}\`${declaredCheck.includes(FILES) ? ` over ${files.length} changed file(s)` : ""}`);
     /* One stream, so the tail printed is the order the check wrote it in. */
     const run = spawnSync("/bin/sh", ["-c", `exec 2>&1\n${check}`], { cwd: root, encoding: "utf8", maxBuffer: BUFFER });
