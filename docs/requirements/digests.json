@@ -3313,6 +3313,14 @@
       "rev": 1,
       "digest": "812d099a456bd7540527a3df64ba5c64629ec2f6a3fa92cbc36a01e9c3e2873b"
     },
+    "AC-06-1-20": {
+      "rev": 1,
+      "digest": "7544a5564ef4e685d6edef03193aeafa91b22caafe27565accaca922690f7d96"
+    },
+    "AC-06-1-21": {
+      "rev": 1,
+      "digest": "8f74cfdc4a615408b53e912f70b86f6adec23248d13557a1f5650ee6bbb95062"
+    },
     "UC-06-2": {
       "rev": 1,
       "digest": "d8a214d05f4e34cd1a2d387b823cf5d4d011fbfce64e45e4db88c7816af9d0c2"

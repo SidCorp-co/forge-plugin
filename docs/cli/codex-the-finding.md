@@ -67,3 +67,11 @@ four-finding cap, and debt set against correctness in one list would crowd one o
 goals it rules against are the brief's, sent as words and not only as identifiers, because a project
 with no requirements tree has nothing `read_spec` could answer. What it finds is a finding like any
 other angle's, and no gate refuses on it.
+
+**The simplify angle is on unless a project's list leaves it out** (2026-10-06, ISS-3188). It asks
+whether the same behaviour could land in less code — what the checkout already has, the level the
+change builds at, and work the code need not do — because a change that works and passes every other
+angle can still merge twice the code it needed, and every such line is read and maintained from then
+on. One angle owns each kind of finding: the copied mechanism moved to it from debt's list, and a test
+repeating a contract stayed debt's, whose test-debt rules already name it. A list without it is told
+the write that adds it, as one without debt is.

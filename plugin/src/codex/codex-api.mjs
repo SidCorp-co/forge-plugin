@@ -31,12 +31,13 @@ export const ANGLES = {
   user: "End User — whether this serves the person actually doing the job; steps that confuse, cases nobody accounted for.",
   ux: "UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.",
   debt: "Debt Reviewer — what the change leaves behind, and whether it moves the code toward the project's live goals.",
+  simplify: "Simplifier — whether the same behaviour could land in less code: what the checkout already has, the level the change builds at, and work the code need not do.",
 };
 
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
-const PROMPT_VERSION = 8;
+const PROMPT_VERSION = 9;
 
 export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
 
@@ -87,7 +88,7 @@ const SPEC = "\n- `read_spec` reads a clause of this checkout's requirements tre
 const DEBT = `
 - As the Debt Reviewer, judge what this change adds, or leaves standing in the lines it touches:
   - Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words. Where \`read_spec\` answers for a goal's identifier, read the clause and quote it. Where that section gives no goals, say in the angle that you found none to rule against, and why the section says there are none, and judge debt alone; never supply a goal of your own.
-  - The debt to name: a workaround where the cause should have been fixed; a special case where configuration belongs; a step that leaves a person in the loop; a mechanism copied rather than shared; dead code or a branch left behind; a comment or doc the change makes stale; a module grown past what it should hold, or a boundary crossed.
+  - The debt to name: a workaround where the cause should have been fixed; a special case where configuration belongs; a step that leaves a person in the loop; dead code or a branch left behind; a comment or doc the change makes stale; a module grown past what it should hold, or a boundary crossed.
   - Test debt, where the diff adds or changes a test: an expected value produced by the code under test; a mock or fixture that implements or supplies what the owner should produce; a contract run again at a second layer that holds no risk of its own; an assertion that passes whether or not the behaviour happened; a name or fixture promising more than its input exercises. A test-debt finding's **Fix** names the stronger owner case the check belongs in, or the assertion that would fail.
   - A Debt Reviewer finding opens with the numbered bullet every finding opens with. It says in **Fails when** which goal or which rule of this repository it breaks, and its **Fix** is the smaller shape that would not add the debt.
   - Another angle's finding on the same line does not stand in for a debt finding: that angle judged whether the code works, and the debt is what the shape leaves behind even where it works.
@@ -95,6 +96,18 @@ const DEBT = `
   - Only the diff is under review. Debt you see outside it is one unnumbered line, \`outside this change: <path>\`, and never a refactor asked for.
   - These unnumbered lines, and your word that there were no goals to rule against, are written under the angle's heading after the findings line, and they follow \`CODEX: 0 findings\` as an OUT OF SCOPE section may: a review that found nothing still says what it removed and what it ruled against.
   - A style is not debt; a shape is. Judge by this repository's own configuration and rules, never by a preference of yours.`;
+
+/* Its own block for the reason debt's is, and the copied mechanism is this angle's alone: one owner per
+   kind of finding. A test repeating a contract stays debt's, whose test-debt rules name it. */
+const SIMPLIFY = `
+- As the Simplifier, judge whether this change could reach the same behaviour with less code:
+  - Reuse: code the change writes that the checkout already has — a helper, a parser, a constant, a pattern. Look for it with \`grep\` before you call anything new; the **Fix** names the path and symbol to call instead.
+  - Abstraction: a mechanism copied where one shared shape belongs, and a layer, wrapper, option or indirection with one caller that the code is as clear without. The **Fix** is the shape one level up or one level down.
+  - Efficiency: work the change makes the code do twice or for nothing — the same file or call read again for one answer, a loop over what one lookup answers, a result computed and dropped. The **Fix** does the work once.
+  - Each Simplifier **Fix** states the lines it saves or the work it stops.
+  - A shorter shape that changes what the code does is no Simplifier finding: a simplification keeps the behaviour.
+  - A test repeating a contract is the Debt Reviewer's and no Simplifier finding; judge the code the diff adds.
+  - Only the diff is under review, and a style is never a Simplifier finding: judge by this repository's own configuration and rules.`;
 
 /* In the system prompt and not only the opening, because the opening line and the FORM's list are
    what the reviewer took the criteria for: a checklist to verify against the tree (ISS-2500). */
@@ -130,7 +143,7 @@ FORM
 RULES
 ${SCOPED}
 - You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
-- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${tracker ? TRACKER : ""}${spec ? SPEC : ""}${proposal ? PROPOSAL : ""}${angles.includes("debt") ? DEBT : ""}
+- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${tracker ? TRACKER : ""}${spec ? SPEC : ""}${proposal ? PROPOSAL : ""}${angles.includes("debt") ? DEBT : ""}${angles.includes("simplify") ? SIMPLIFY : ""}
 ${UNTRUSTED}
 - You are given the coding agent's intent. Judge the work against that intent as well as against the repository's own rules, and say so plainly where the two disagree.
 - Severity: blocker, major, minor. At most 4 findings per angle. An angle with nothing real to add writes "nothing material".

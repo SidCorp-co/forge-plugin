@@ -82,11 +82,11 @@ test("where debt is off, show and doctor name the write that turns it on, and th
   fresh();
   const show = spawnSync(FORGE, ["codex", "show"], { cwd: room.path, env, encoding: "utf8" });
   const route = "forge doctor --set project.codex.angles=tech,debt";
-  assert.match(show.stdout, new RegExp(`^angles {4}: tech {2}← [^\\n]*debt is available and off here: \`${escaped(route)}\` adds it$`, "mu"),
+  assert.match(show.stdout, new RegExp(`^angles {4}: tech {2}← [^\\n]*debt is available and off here: \`${escaped(route)}\` adds it;`, "mu"),
     show.stdout + show.stderr);
   const doctor = await ask();
-  assert.match(doctor.stdout, new RegExp(`codex\\.angles +tech {2}← [^\\n]*\`${escaped(route)}\` adds it$`, "mu"), doctor.stdout);
+  assert.match(doctor.stdout, new RegExp(`codex\\.angles +tech {2}← [^\\n]*\`${escaped(route)}\` adds it;`, "mu"), doctor.stdout);
   assert.equal((await ask("--set", route.split(" ").at(-1))).status, 0);
   const after = spawnSync(FORGE, ["codex", "show"], { cwd: room.path, env, encoding: "utf8" });
-  assert.match(after.stdout, /^angles {4}: tech, debt {2}← [^\n]* — debt is on$/mu, after.stdout);
+  assert.match(after.stdout, /^angles {4}: tech, debt {2}← [^\n]* — debt is on; simplify is available and off here: /mu, after.stdout);
 });

@@ -193,9 +193,12 @@ export const plannedFor = ({ parts, bodies, recheck, risks = 0, asked, effort })
 };
 
 /* What a checkout naming no angles is reviewed by: every angle, debt among them by the owner's choice of
-   2026-09-25 (ISS-2466). A project turns debt off by naming a list without it, and `forge codex stats`
-   prints its row so whether it pays is a figure. */
-export const DEFAULT_ANGLES = ["tech", "ba", "user", "ux", "debt"];
+   2026-09-25 (ISS-2466) and simplify by the owner's of 2026-10-06 (ISS-3188). A project turns either off
+   by naming a list without it, and `forge codex stats` prints its row so whether it pays is a figure. */
+export const DEFAULT_ANGLES = ["tech", "ba", "user", "ux", "debt", "simplify"];
+
+/* The angles added after projects had begun writing lists of their own, each named on the angles line. */
+const LATER_ANGLES = ["debt", "simplify"];
 
 const listed = (given) =>
   (Array.isArray(given) ? given : String(given).split(",")).map((one) => String(one).trim()).filter(Boolean);
@@ -215,15 +218,15 @@ export const anglesInEffect = (raw) => {
   return said ? { angles: listed(said[0]), from: said[1] } : { angles: DEFAULT_ANGLES, from: DEFAULT_FROM };
 };
 
-/* A list a project wrote before debt existed is its own choice and is kept. What it is owed is to
+/* A list a project wrote before an angle existed is its own choice and is kept. What it is owed is to
    learn the angle exists, and the one write that adds it. */
-const debtSaid = ({ angles }) => (angles.includes("debt")
-  ? "debt is on"
-  : `debt is available and off here: \`forge doctor --set project.codex.angles=${[...angles, "debt"].join(",")}\` adds it`);
+const laterSaid = ({ angles }) => LATER_ANGLES.map((one) => (angles.includes(one)
+  ? `${one} is on`
+  : `${one} is available and off here: \`forge doctor --set project.codex.angles=${[...angles, one].join(",")}\` adds it`)).join("; ");
 
-/** The line `show` and `doctor` print, whether the debt angle is among them said on it. */
+/** The line `show` and `doctor` print, whether each later angle is among them said on it. */
 export const anglesShown = (raw) => {
   const held = anglesInEffect(raw);
   if (!held.angles.length) return `none  ← ${held.from} — a list naming no angle, so a consult here is refused`;
-  return `${held.angles.join(", ")}  ← ${held.from} — ${debtSaid(held)}`;
+  return `${held.angles.join(", ")}  ← ${held.from} — ${laterSaid(held)}`;
 };
