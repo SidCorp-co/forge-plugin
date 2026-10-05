@@ -8,6 +8,7 @@ import { tempRoom } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-simplify-home-");
 const { roleFor } = await import("../../../src/codex/codex-api.mjs");
 const { anglesOfFindings } = await import("../../../src/codex/log/replies.mjs");
+const { anglesOf } = await import("../../../src/codex/stats/figures.mjs");
 
 const said = roleFor(["tech", "debt", "simplify"]);
 
@@ -52,15 +53,24 @@ test("a consult reviewed without the Simplifier is sent none of its rules", () =
   }
 });
 
+const REPLY = [
+  "CODEX: 2 findings (0 blocker, 1 major, 1 minor)",
+  "",
+  "### Tech Lead",
+  "- **F1 — New — major:** `a.mjs:2` — a coupling.",
+  "",
+  "### Simplifier",
+  "- **F2 — New — minor:** `a.mjs:7` — a second reader of the same file; saves 6 lines.",
+].join("\n");
+
 test("a reply's Simplifier part is placed under simplify", () => {
-  const reply = [
-    "CODEX: 2 findings (0 blocker, 1 major, 1 minor)",
-    "",
-    "### Tech Lead",
-    "- **F1 — New — major:** `a.mjs:2` — a coupling.",
-    "",
-    "### Simplifier",
-    "- **F2 — New — minor:** `a.mjs:7` — a second reader of the same file; saves 6 lines.",
-  ].join("\n");
-  assert.deepEqual([...anglesOfFindings(reply, ["tech", "simplify"])], [["F1", "tech"], ["F2", "simplify"]]);
+  assert.deepEqual([...anglesOfFindings(REPLY, ["tech", "simplify"])], [["F1", "tech"], ["F2", "simplify"]]);
+});
+
+test("the stats count a Simplifier finding, and the verdict that kept it, under simplify", () => {
+  const rows = [{ kind: "consult", id: "s1", ok: true, root: "/r", at: "2026-10-06T00:00:00.000Z", model: "cx/alpha",
+    reply: REPLY, angles: ["tech", "simplify"] }];
+  const verdicts = [{ kind: "verdict", of: "s1", at: "2026-10-06T00:01:00.000Z", accepted: 1, rejected: 1, kept: ["F2"], dropped: { F1: "not so" } }];
+  const by = Object.fromEntries(anglesOf(rows, verdicts).angles.map((one) => [one.angle, one]));
+  assert.deepEqual(by.simplify, { angle: "simplify", consults: 1, findings: 1, accepted: 1, rejected: 0 });
 });
