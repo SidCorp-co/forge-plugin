@@ -2,7 +2,7 @@
    changed against its base (ISS-3192). And a list already green at one head is not run again by the
    next capture there, the case of a batch whose members share a branch (ISS-3191). */
 import assert from "node:assert/strict";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -59,6 +59,38 @@ test("a list green at a head is not run again by the next capture there, and the
   assert.match(second.stdout, /ready\.checks: green at [0-9a-f]{7,} already, by the capture of ISS-673 at \S+, so none was run again/u,
     second.stdout);
   assert.equal(checkpoint()?.state, "ready", "and it still writes the checkpoint");
+});
+
+test("a green list is read from another worktree of the checkout, so a batch member there runs none of it", async () => {
+  declared(CHANGED, { ready: { checks: [note("across-worktrees")] } });
+  field(null, null);
+  assert.equal((await capture(CHANGED)).status, 0);
+  const linked = join(tempRoom("ready-checks-linked-"), "tree");
+  git(CHANGED, "worktree", "add", "-q", "-b", "iss-673-7", linked, "HEAD");
+  git(linked, "push", "-q", "-u", "origin", "iss-673-7");
+  declared(linked, { ready: { checks: [note("across-worktrees")] } });
+  field(null, null);
+  const there = await capture(linked);
+  assert.equal(there.status, 0, `${there.stdout}${there.stderr}`);
+  assert.deepEqual(logged().split("\n").filter(Boolean), ["across-worktrees"], "the linked worktree ran the list again");
+  assert.match(there.stdout, /green at [0-9a-f]{7,} already, by the capture of ISS-673/u, there.stdout);
+});
+
+/* Names git would print quoted: each reaches the check as the file it is. */
+const ODD = pushedRepo([], "ready-checks-odd-names-");
+const NAMES = ["café.mjs", "it's here.mjs", "tab\there.mjs"];
+for (const one of NAMES) writeFileSync(join(ODD, one), "changed\n");
+git(ODD, "add", ...NAMES);
+git(ODD, "commit", "-qm", "names git quotes");
+git(ODD, "push", "-q", "origin", "iss-673-6");
+
+test("a changed file whose name git would quote reaches a scoped check as the name it has", async () => {
+  declared(ODD, { ready: { checks: [`for one in {files}; do [ -f "$one" ] && printf 'found %s\\n' "$one" >> '${LOG}'; done`] } });
+  field(null, null);
+  const run = await capture(ODD);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(logged().split("\n").filter(Boolean).sort(), NAMES.map((one) => `found ${one}`).sort(),
+    "every changed file the check was handed is one it found on disk");
 });
 
 test("a list declared differently at the same head is another question, and runs", async () => {

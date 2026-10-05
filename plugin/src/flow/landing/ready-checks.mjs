@@ -61,8 +61,9 @@ export const readyChecksLines = (ref, declared) => {
  *  path is no file a check can read. Null where the capture has no base to measure them from. */
 const changedFiles = (base, head, root) => {
   if (!base) return null;
-  const diff = spawnSync("git", ["diff", "--name-only", "--diff-filter=d", `${base}..${head}`], { cwd: root, encoding: "utf8" });
-  return diff.status === 0 ? diff.stdout.split("\n").filter(Boolean) : null;
+  /* NUL-separated, since git quotes a name it would print with an unusual byte and the quoted form names no file. */
+  const diff = spawnSync("git", ["diff", "--name-only", "-z", "--diff-filter=d", `${base}..${head}`], { cwd: root, encoding: "utf8" });
+  return diff.status === 0 ? diff.stdout.split("\0").filter(Boolean) : null;
 };
 
 const quoted = (path) => `'${path.replaceAll("'", "'\\''")}'`;
