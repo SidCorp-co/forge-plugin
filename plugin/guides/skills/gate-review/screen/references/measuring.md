@@ -54,7 +54,8 @@ and is the unit most likely to break when run beside others.
 ## 3. What a run leaves behind
 
 Size *and* count the temporary directory, every cache, build and fixture directory before and after
-a landing's gate, read off the landing's own record. Two numbers because they fail differently: a filesystem runs out of inodes while
+a landing's gate, where the landing's record carries them; where it does not, the review says the
+measurement is not on record rather than starting a gate of its own. Two numbers because they fail differently: a filesystem runs out of inodes while
 gigabytes are free.
 
 Attribute the growth before calling it a leak: a package cache is supposed to grow, a fixture tree is

@@ -220,6 +220,8 @@ test("under either flow the evidence at the replayed head is the change's own, a
     assert.doesNotMatch(reference, /Run it once, at that head/u, `${flow}: the subjectless run is still served`);
     const measuring = served(flow, "guide", "gate-review", "measuring");
     assert.doesNotMatch(measuring, /full run/u, `${flow}: the gate review still measures a full run of its own`);
+    assert.match(measuring, /where it does not, the review says the\smeasurement is not on record rather than starting a gate of its own/u,
+      `${flow}: a landing record without sizes leaves the review no route but a gate of its own`);
   }
 });
 
