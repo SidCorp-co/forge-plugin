@@ -7,8 +7,8 @@ reading that thread, not taken.
 <!-- forge:when ship ready -->
 **Where the runs end at ready-to-land, the landing is this phase's and it is one actor's.** Every
 branch a run left with a ready checkpoint is landed from this checkout, in the order the fold names
-them. Landed here they are gated against the base as it actually is at that moment, which is what a
-run's own gate cannot be while its siblings are still landing.
+them. Landed here they are gated against the base as it actually is at that moment, and that gate is
+the only whole one any of them gets: no run gated its branch, and no judge gates anything.
 
 **The switch that put it here is the project's ship mode, read at `ship ready`.** A project set to
 `ship self` lands nothing here: each run ships its own change as its last phase, and this phase folds
@@ -35,8 +35,9 @@ that costs is the readings taken at the candidate it gave up. A branch that will
 parked with its conflict list and lands nothing; the one after it is somebody else's release, so the
 fold carries on rather than stopping at the first refusal.
 
-**Where the project asks for an independent judge**, the landing stops for one and the fold
-dispatches it: a role of its own, given the issue, its criteria and Outcome, and whatever
+**Where the project asks for an independent judge**, the landing stops for one after its gate and
+the fold dispatches it: a role of its own that judges what is running and runs no gate, given the
+issue, its criteria and Outcome, and whatever
 deployment identity the checkpoint names — never the run that built the change, whose own verdicts
 earn nothing there. A checkpoint naming none refuses that judge nothing; it is the route the landing
 took that decides whether there is one to hand over. Its verdicts and its hand-back are what let the landing finish.
