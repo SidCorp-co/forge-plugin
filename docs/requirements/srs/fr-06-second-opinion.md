@@ -116,6 +116,13 @@ checkout's decision rather than the account's, and `README.md` says why that lev
 - **AC-06-1-19** · Rev: 1 · Proof: plugin/test/codex/gateway/consult-row.test.mjs "a consult offers the reviewer no check to run, even where the checkout names one"
   WHEN a consult reaches the reviewer in a checkout that names a check THEN no request SHALL offer or
   name a command to run, and the consult's record SHALL carry no check state.
+- **AC-06-1-20** · Rev: 1 · Proof: plugin/test/codex/angles/default.test.mjs "the debt and simplify angles are on by default, and a list without them turns them off"
+  WHERE neither the consult, the checkout nor the account names the angles THEN the consult SHALL be
+  reviewed under every angle the CLI ships, the simplify angle among them.
+- **AC-06-1-21** · Rev: 1 · Proof: plugin/test/codex/angles/simplify.test.mjs "a consult reviewed without the Simplifier is sent none of its rules"
+  WHEN a consult is reviewed under the simplify angle THEN the reviewer SHALL be asked to name code the
+  checkout already has, a copy or a single-caller layer, and work done twice or for nothing, each with
+  a fix that keeps the behaviour; and WHEN it is not THEN none of those rules SHALL be sent.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

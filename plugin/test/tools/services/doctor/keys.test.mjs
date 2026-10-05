@@ -222,15 +222,15 @@ test("a backlog that came back short leaves who holds the debt unread, and claim
 });
 
 /* A list a project wrote before the debt angle existed is its own choice, kept, and told the angle is there. */
-test("the angles row says debt is on by default, and tells a project whose list leaves it out how to add it", async () => {
+test("the angles row says debt and simplify are on by default, and tells a project whose list leaves one out how to add it", async () => {
   const angles = async (name, project) => {
     const at = doorRoom(name, project);
     const { stdout } = await ranAsync(FORGE, ["doctor", "project"], at.env, at.room);
     return stdout.split("\n").filter((one) => one.includes("] codex.angles ")).join("\n");
   };
-  assert.match(await angles("angles-default", {}), /codex\.angles +tech, ba, user, ux, debt {2}← the plugin's default — debt is on$/u);
+  assert.match(await angles("angles-default", {}), /codex\.angles +tech, ba, user, ux, debt, simplify {2}← the plugin's default — debt is on; simplify is on$/u);
   const kept = await angles("angles-kept", { codex: { angles: ["tech"] } });
-  assert.match(kept, /codex\.angles +tech {2}← codex\.angles in \S+ — debt is available and off here: `forge doctor --set project\.codex\.angles=tech,debt` adds it$/u, kept);
+  assert.match(kept, /codex\.angles +tech {2}← codex\.angles in \S+ — debt is available and off here: `forge doctor --set project\.codex\.angles=tech,debt` adds it; simplify is available and off here: `forge doctor --set project\.codex\.angles=tech,simplify` adds it$/u, kept);
 });
 
 /* The ask rows: the mode and where it was read, and under `decide` the layer's size and the categories

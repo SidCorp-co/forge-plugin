@@ -150,7 +150,7 @@ test("the debt angle carries its rules, and a consult without it carries none of
   assert.match(said, /- Debt Reviewer — what the change leaves behind, and whether it moves the code toward the project's live goals\./u);
   assert.match(said, /Rule on the change against each goal in the GOALS section that it reaches, quoting that goal's own words/u);
   for (const kind of ["a workaround where the cause should have been fixed", "a special case where configuration belongs",
-    "a step that leaves a person in the loop", "a mechanism copied rather than shared", "dead code or a branch left behind",
+    "a step that leaves a person in the loop", "dead code or a branch left behind",
     "a comment or doc the change makes stale", "a module grown past what it should hold, or a boundary crossed"]) {
     assert.ok(said.includes(kind), `${kind} is not among the debt the rules name`);
   }

@@ -115,7 +115,7 @@ const CONSULT_USAGE = [
   "                 with only ISS-nn named, the files the last consult naming them recorded travel",
   "  --of <id>      the answered consult a recheck pins by id, in any worktree of this repository;",
   "                 with no file named, the files that consult recorded travel",
-  "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt; all five by default",
+  "  --angles a,a   which angles review this consult: tech, ba, user, ux, debt, simplify; all six by default",
   "  --effort e     minimal | low | medium | high, for this consult only",
   "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
   "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words",

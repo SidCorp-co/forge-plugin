@@ -188,7 +188,7 @@ test("the checkout picks the angles, and one angle is not a board", () => {
   const one = roleFor(["tech"]);
   assert.match(one, /Reply as the Tech Lead:/u);
   assert.ok(!one.includes("Business Analyst") && !one.includes("UI/UX"), one.slice(0, 300));
-  assert.deepEqual(Object.keys(ANGLES), ["tech", "ba", "user", "ux", "debt"]);
+  assert.deepEqual(Object.keys(ANGLES), ["tech", "ba", "user", "ux", "debt", "simplify"]);
   assert.deepEqual(consultArgs(["a.mjs", "--angles", "tech,ux"]).angles, ["tech", "ux"]);
   assert.equal(consultArgs(["a.mjs", "--recheck"]).recheck, true);
   /* HEAD from `--diff` is this end's guess at a base and a recheck may improve on it with the head
