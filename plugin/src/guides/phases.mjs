@@ -81,7 +81,6 @@ export const phaseNumber = (status) => Number(NUMBERED.exec(PHASE[status]?.[0] ?
 export const CITED = {
   confirmed: ["confirmation"],
   approved: ["decision", "plan", "criteria"],
-  in_progress: ["baseline"],
   developed: ["review", "merged"],
   testing: ["verdict"],
   awaiting_release: ["verification", "note"],
@@ -101,7 +100,6 @@ export const ENDS_PHASE = {
   decision: 2,
   plan: 3,
   criteria: 3,
-  baseline: 4,
   review: 4,
   merged: 7,
   verdict: 5,

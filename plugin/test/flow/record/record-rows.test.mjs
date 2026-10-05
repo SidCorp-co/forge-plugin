@@ -206,6 +206,17 @@ test("a kind -h answers for the kind alone, and a name that is no kind still ref
   assert.match(bad.stderr, /record knows no kind `nosuchkind`/u);
 });
 
+/* A kind removed on purpose says why, before the list of kinds a run would otherwise search for its replacement. */
+test("record baseline is refused as a kind this CLI does not have, saying the landing's gate measures the tree", () => {
+  assert.equal(KINDS.includes("baseline"), false, "no verb writes a baseline");
+  for (const argv of [["record", "baseline", "ISS-1", "--gate", "npm run check", "--result", "green", "--commit", "abc1234", "--scope", "whole"],
+    ["record", "baseline", "-h"]]) {
+    const bad = ask(...argv);
+    assert.equal(bad.status, 1, bad.stdout);
+    assert.match(bad.stderr, /record knows no kind `baseline`, and there is no baseline: the landing's gate measures the tree, so a run records none and runs none\./u);
+  }
+});
+
 /* The demand the `approved` check makes was written in its refusal and on no surface a run reads
    before the file, so adding the citation moved text a consult had read and cost a second one (ISS-516). */
 test("both file kinds print the citation demand, and only where the project keeps a tree", () => {

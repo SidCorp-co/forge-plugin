@@ -11,10 +11,8 @@ const RESOLVED = "resolved";
 export const ATTRIBUTED = "attributed";
 export const SPLIT = "split";
 export const ALONE = "one-by-one";
-/* A search a declined gate place stopped: it resolved nothing, and the landing that takes it up again
-   meets the set afresh. */
-export const UNREAD = "unread";
 
+/* Only these resolved a set: any other outcome on record resolved nothing and is counted as unknown. */
 const RESOLVING = new Set([ATTRIBUTED, SPLIT, ALONE]);
 
 /* Said and carried past: the release or hand-back the record describes goes on whatever the store

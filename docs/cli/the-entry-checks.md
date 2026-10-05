@@ -12,24 +12,19 @@ That is the shape, and it is the same division `advance` is already held to: wha
 is written onto a payload at the step that knew it, and the check reads what the run said of itself.
 A check that opened a file would be a check that works in one repository.
 
-## The baseline says whether the gate run was whole
+## A build is earned on its branch
 
-`forge record baseline` takes `--scope whole` or `--scope part`, and `in_progress` refuses `part`.
-The refusal names that baseline's own `--gate` command, because there is no ledger this plugin could
-name and no project whose ledger it would understand. What the check does not judge is whether the
-answer is true — the same line every other field of a record is read on.
+`in_progress` is earned by the branch the worklog names and by the blockers, and by no reading of the
+tree: what a tree already fails is the landing's to find, through the one gate every commit passes on
+its way in. The baseline kind and verb a run recalls from an older copy of the method are refused
+saying so, rather than offered a nearest name, because the run would otherwise go looking for the
+write that replaced them and there is none.
 
-The rule behind it is this project's own and is argued in `CLAUDE.md`, where the scoped gate is
-described: the run that distrusts the ledger is what a later scoped green stands on.
-
-## A change that lands no file owes no tree
+## A change that lands no file owes no branch
 
 A plan may declare `Lands no file: yes` — configuration on a deployment, a setting on the tracker —
-and `in_progress` then owes no baseline and no branch, and reads neither the scope nor the citation
-of a baseline that is there anyway. A gate measures a tree, and a change that lands nothing leaves
-the tree it lands on as it found it: the whole-tree run the section above asks for would measure
-only what the change did not touch, and a branch would name a tree nobody wrote in. Only the line
-grants it. An empty diff is no declaration, since a change not yet written reads exactly like one
+and `in_progress` then owes no branch. A change that lands nothing leaves the tree it lands on as it
+found it, and a branch would name a tree nobody wrote in. Only the line grants it. An empty diff is no declaration, since a change not yet written reads exactly like one
 that never will be.
 
 `developed` is not waived, because the tracker's own work-evidence rule is not this plugin's to
@@ -74,12 +69,12 @@ every record predating the clause is.
 change rather than the version bump. By commit and not by filename: a manifest is where a dependency
 lives too, and a change that added one would otherwise vanish from a clause a check reads back.
 
-## Why `--scope` is asked for and excused at once
+## Why a newer field is asked for and excused at once
 
 A shape gains a field after issues already carry its records, and the two halves of *required* come
 apart there. `newer` on a field is the answer: the write asks for it as for any other field, and the
 read-back does not refuse a payload written before it existed. Without the second half every open
-issue's baseline would stop earning `in_progress` the day `--scope` landed. Without the first the
+issue's earlier record would stop earning its status the day the field landed. Without the first the
 field would be plainly optional, no run would ever type it, and the check reading it could fire only
 in a test — which is the same thing as no check at all.
 

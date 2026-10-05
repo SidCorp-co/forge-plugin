@@ -1,6 +1,6 @@
 /* What a verdict, a review and a verification of an issue landing outside git name what they judged by:
    the landing the tracker's mark holds, read off it where the flag is absent, and never a commit
-   (ISS-2402). End to end, beside an issue landing in git, and the baseline whose commit stays asked. */
+   (ISS-2402). End to end, beside an issue landing in git. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -113,16 +113,6 @@ test("each of the three kinds given --landing on a git issue is refused naming -
     assert.match(run.stderr, /\n {2}--commit <sha>/u);
     assert.deepEqual(posted("git-uuid"), [], `${kind}: nothing was written`);
   }
-});
-
-test("the baseline of such an issue still takes and asks for its commit", async () => {
-  const bare = await forge("record", "baseline", "ISS-38", "--gate", "none", "--result", "nothing fails", "--scope", "whole");
-  assert.equal(bare.status, 1, bare.stdout);
-  assert.match(bare.stderr, /record baseline needs --commit \(commit\), and no merged mark on this issue names one/u);
-  const run = await forge("record", "baseline", "ISS-38", "--gate", "none", "--result", "nothing fails",
-    "--commit", HEAD, "--scope", "whole");
-  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.ok(lastPosted("outside-uuid").includes(`commit: ${HEAD}`), "the commit the gate ran at, as asked");
 });
 
 test("a record written with a landing shows it under its own key, and resume names the mark's landing", async () => {

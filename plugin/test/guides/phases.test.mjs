@@ -30,9 +30,9 @@ const asked = (status, complexity = null) => [{ acceptanceCriteria: "1. The outc
 
 /* The index invents nothing: every phase, citation and waiver is another table's row. */
 test("every citation names the record the check into the next status refuses without", () => {
-  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all and `closed` asks the project rather than the record, and neither is a payload a phase could be discharged by (ISS-1918). */
+  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all, `closed` asks the project rather than the record, and `in_progress` asks the worklog for its branch, the tree being the landing's gate's to measure (ISS-1918, ISS-3184) — none of them a payload a phase could be discharged by. */
   const terminal = Object.keys(CHECKS).filter((status) => !CITED[status]);
-  assert.deepEqual(terminal, ["closed", "dropped"], "the two ends of the ladder ask no payload");
+  assert.deepEqual(terminal, ["in_progress", "closed", "dropped"], "the build and the two ends of the ladder ask no payload");
   for (const status of Object.keys(CHECKS).filter((one) => !terminal.includes(one))) {
     assert.ok(CITED[status], `${status} has an entry check and no record named for it, so the phase `
       + "below it would print as discharged by nothing");
@@ -85,7 +85,7 @@ test("the judging rung owes 6 and 7 while the deploying rung owes the close", ()
   const index = phaseIndex({ status: "testing", fields: fieldsOf("m"), held: EVERY_KIND });
   assert.deepEqual(index.owed.map((one) => one.phase), ["6, 7 Ship", "7 Ship, the close"],
     "so a run at the judging rung is told both, in the order it walks them");
-  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "baseline", "review", "verdict"],
+  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "review", "verdict"],
     "and the verdict is what discharged the phase below it");
 });
 
@@ -122,19 +122,17 @@ test("the opening lists each phase behind with the record that discharged it, or
    writes it with no entry check reading it, so a status alone claimed phases nothing earned. */
 test("a phase is passed on the record that discharges it and not on where the status sits", () => {
   const behind = (held) => openingLines("in_progress", held).slice(1);
-  assert.deepEqual(behind(["confirmation", "decision", "baseline"]), [
+  assert.deepEqual(behind(["confirmation", "decision"]), [
     "  passed: 1 Triage  —  confirmation",
     "  passed: 2 Clarify; 3 Plan  —  decision",
-    "  passed: 4 Implement, to the branch  —  baseline",
-  ], "a page holding all three names all three, which the status alone is what claimed");
+  ], "a page holding both names both, and not the branch's phase, which no record discharges");
   assert.deepEqual(behind(["confirmation"]), ["  passed: 1 Triage  —  confirmation"],
     "and a status set forward over a page holding one record claims that one rung and no other");
   assert.deepEqual(openingLines("in_progress", []), [],
     "a status nothing earned earns no opening: every phase behind it is still owed");
-  assert.deepEqual(behind(["confirmation", "baseline"]), [
-    "  passed: 1 Triage  —  confirmation",
-    "  passed: 4 Implement, to the branch  —  baseline",
-  ], "and a gap in the middle is left as a gap rather than filled in from the status");
+  assert.deepEqual(behind(["decision"]), [
+    "  passed: 2 Clarify; 3 Plan  —  decision",
+  ], "and a gap is left as a gap rather than filled in from the status");
 });
 
 /* On ISS-979 a second run read `4 Implement` as owed, which was true, and cut the same rename its predecessor had staged and could not commit: the record-level opening was right and one layer short (ISS-804, ISS-1183). */
@@ -207,7 +205,7 @@ test("the lane names what earns each status ahead, and what the rung drops on th
     "  open             ← where it stands",
     "  confirmed        confirmation",
     "  approved         criteria; no decision, no plan at this rung",
-    "  in_progress      baseline",
+    "  in_progress      nothing owed at any rung",
     "  developed        review, merged",
     "  testing          verdict",
     "  awaiting_release verification, note",

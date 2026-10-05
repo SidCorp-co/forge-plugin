@@ -4,13 +4,28 @@
 import { gitOut } from "../../checkout.mjs";
 import { carries } from "../land-ready/candidate.mjs";
 import { ownReplay } from "../replayed.mjs";
-import { unshippedSays } from "../publish.mjs";
+import { remoteHeadOf, shortly } from "../install.mjs";
 import { landingOf, LANDING_DONE, LANDING_READY } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { landingSaved, readContext } from "../../../plugin/src/flow/lease.mjs";
 import { runIdAt, runsFor } from "../../../plugin/src/resolve/session/run-id.mjs";
 import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../../plugin/src/refusal.mjs";
 import { documentIdOf } from "../../../plugin/src/tracker/issues.mjs";
+
+/* The two things that have to be true of a head before a release may finish a checkpoint for it, asked because a resume reaches this step without them: `--from` puts the gate back and neither the push nor the clean-tree check. The remote holds it, pinned by ls-remote rather than off a tracking ref a resume never refreshed, an unreachable remote reading as no answer. And nothing is uncommitted, untracked files counted and submodules not ignored, since a dirty tree is content no commit carries. */
+const CLEAN = ["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"];
+
+const unshippedSays = (tree, base, commit) => {
+  const held = remoteHeadOf(tree, base);
+  if (!held) return `${base} could not be read off the remote, so nothing says this commit is shipped`;
+  if (held !== commit) {
+    return `the remote holds ${shortly(held)} for ${base} and this tree is at ${shortly(commit)}`;
+  }
+  const dirty = gitOut(CLEAN, tree);
+  if (dirty === null) return `this tree could not be asked whether anything in it is uncommitted`;
+  if (dirty !== "") return `this tree holds uncommitted work, so what stands here is content no commit carries`;
+  return null;
+};
 
 /** The issues this tree was started for, off the id `start` minted into its git directory rather than
  *  off the branch name: a batch is one tree under one id, and the branch is named for its first key alone. */

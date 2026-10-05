@@ -221,9 +221,9 @@ export const GUIDE_TABLE = [
           + " `forge advance` reads a status off",
       },
       {
-        says: "a baseline, a decision, a correction, a park and a merged mark belong at the issue's"
+        says: "a decision, a correction, a park and a merged mark belong at the issue's"
           + " attributes route under a registered key, the sentence left behind in the comment",
-        instead: "each of those five is a kind `forge record` writes whole in one typed comment, and an"
+        instead: "each of those four is a kind `forge record` writes whole in one typed comment, and an"
           + " assertion split off into a second row earns no status here",
       },
     ],

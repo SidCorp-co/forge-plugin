@@ -3,8 +3,8 @@
 One session runs a wave: it decides what is worth a run, sends each one to a role, and folds what
 comes back. It writes no code: the runs it dispatches do, under their own skill and their own
 contract, and nothing here repeats a rule either of those already carries. Where the project's ship
-mode leaves those runs at ready-to-land, this session makes the landing, and that landing's gate is
-the only whole gate their changes get.
+mode leaves the landing to this session, it makes the landing, and that landing's gate is the only
+whole gate their changes get.
 
 **Arguments.** Issue keys start a wave on exactly those. No argument means take the order the CLI
 gives and go down it until the wave holds what is left of the number this project declares —

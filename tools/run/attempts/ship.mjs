@@ -3,12 +3,11 @@
    the stop that ended it. A ship re-runs its gate on every resume, so one pass is one attempt. What
    the records are and who reads them: docs/cli/stats-the-landing.md. */
 import { git, gitOut, remoteRef, Stop } from "../../checkout.mjs";
-import { DECLINED as DECLINED_STATUS } from "../../gates/machine.mjs";
 import { remoteHeadOf } from "../install.mjs";
 import { gateNoted } from "./gate.mjs";
 import { keysHere } from "../ship/checkpoint.mjs";
 import {
-  BACK, BRANCH, DECLINED, GATE_ERROR, GREEN, LANDED, MOVED_BASE, RED, attemptEnded, attemptOpened,
+  BACK, BRANCH, GATE_ERROR, GREEN, LANDED, MOVED_BASE, RED, attemptEnded, attemptOpened,
 } from "../../../plugin/src/stats/marks/attempts.mjs";
 
 const VERB = "ship";
@@ -23,13 +22,12 @@ const endAll = (attempt, outcome, cause = null) => {
 };
 
 /* What a gate that did not pass stops its attempts for. */
-const CAUSE_OF = { [RED]: BRANCH, [DECLINED]: DECLINED };
+const CAUSE_OF = { [RED]: BRANCH };
 
 /* How the gate exited, off the run itself: a gate that wrote no record of its own still exited somehow. */
 const exitedAs = (run) => {
   if (!run || run.error) return GATE_ERROR;
-  if (run.status === 0) return GREEN;
-  return run.status === DECLINED_STATUS ? DECLINED : RED;
+  return run.status === 0 ? GREEN : RED;
 };
 
 /* Whether the remote base already carries the head: a resume after a push that was taken, whose version

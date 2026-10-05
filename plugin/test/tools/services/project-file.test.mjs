@@ -86,10 +86,10 @@ test("a key inside a table the file already holds is written without its sibling
 /* A key added in the other shape is a second line in somebody's review for a change to one value. */
 test("a key added to a table takes the shape that table is already written in", async () => {
   fresh();
-  const inline = await ask("--set", "project.codex.checkMs=400000");
+  const inline = await ask("--set", "project.codex.pathRe=^docs/");
   assert.equal(inline.status, 0, inline.stderr);
   assert.equal(moved(HELD, now()), 1, now());
-  assert.ok(now().includes(`"codex": { "checkMs": 400000, "check": "npm test" },`), now());
+  assert.ok(now().includes(`"codex": { "pathRe": "^docs/", "check": "npm test" },`), now());
   const deep = `{\n  "slug": "a-tree",\n  "jobs": {\n    "ba": { "verbs": ["issue"] }\n  }\n}\n`;
   fresh(deep);
   const broken = await ask("--set", "jobs.reviewer=issue");
@@ -158,40 +158,16 @@ test("a blank model, a blank level text and a level no proposal may answer with 
 
 /* Named by its resource: `codex` is a head this machine owns too — the credential — and a bare key
    of that name is refused before the project's half is reached, so a case about the project's own
-   `codex` keys says which store it means. */
-/* The reader that reads this key answers null before it looks at the budget when no command is
-   declared, so a `checkMs` written on its own would be judged by nobody until one was (consult b97115). */
-test("a budget written where no command is declared is still judged", async () => {
+   `codex` keys says which store it means. A consult runs no check, so a clock for one is a value
+   nothing would read: the write is refused, and the paths it names are the ones a write does take. */
+test("a check clock is no key a write takes, a consult running no check", async () => {
   fresh(`{\n  "slug": "a-tree",\n  "codex": {}\n}\n`);
   const held = now();
-  const bad = await ask("--set", "project.codex.checkMs=0");
-  assert.equal(bad.status, 1, bad.stdout);
-  assert.match(bad.stderr,
-    new RegExp(`\`codex\\.checkMs\` in ${AT} is a whole number of milliseconds above 0`, "u"), bad.stderr);
-  assert.equal(now(), held);
-  const good = await ask("--set", "project.codex.checkMs=400000");
-  assert.equal(good.status, 0, good.stderr);
-  assert.deepEqual(JSON.parse(now()).codex, { checkMs: 400000 },
-    "and a good one lands without inventing the command beside it");
-});
-
-/* The second of this key's refusals, and the one its shape cannot reach: a whole number of
-   milliseconds above zero that no consult can honour is exactly the value this repository had on
-   disk, read past by every consult and reported by none, which is the input written and then
-   ignored that nothing here may store (ISS-2108). */
-test("a check clock past what a consult can spare is refused where it is written", async () => {
-  fresh(`{\n  "slug": "a-tree",\n  "codex": {}\n}\n`);
-  const held = now();
-  const over = await ask("--set", "project.codex.checkMs=600000");
-  assert.equal(over.status, 1, over.stdout);
-  assert.match(over.stderr, new RegExp(`\`codex\\.checkMs\` in ${AT} is at most 480000, what a `
-    + "consult can spare a check: its 600s budget less the 120s after one, not `600000`", "u"),
-  over.stderr);
-  assert.equal(now(), held, "and the file is as it was, a refusal being the whole of what happened");
-  const fits = await ask("--set", "project.codex.checkMs=480000");
-  assert.equal(fits.status, 0, fits.stderr);
-  assert.deepEqual(JSON.parse(now()).codex, { checkMs: 480000 },
-    "the room itself is a value the key takes, the bound being what is past it");
+  const clock = await ask("--set", "project.codex.checkMs=400000");
+  assert.equal(clock.status, 1, clock.stdout);
+  assert.match(clock.stderr, /whose paths are codex\.pathRe, codex\.check, /u, clock.stderr);
+  assert.doesNotMatch(clock.stderr.split("whose paths are")[1], /checkMs/u, "and the clock is not among them");
+  assert.equal(now(), held, "the file is as it was");
 });
 
 /* The spelling is JSON's number and the judgement of which numbers a key takes is its reader's, so a

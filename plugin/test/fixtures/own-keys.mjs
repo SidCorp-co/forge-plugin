@@ -33,7 +33,6 @@ export const OWN = {
     pathRe: "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$",
     angles: ["tech"],
     check: "npm test",
-    checkMs: 400000,
     owed: ["gate"],
   },
   rank: {

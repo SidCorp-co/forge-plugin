@@ -145,7 +145,7 @@ test("the claim and the resume name the work under the phase owed, in the same w
     return lines;
   };
   const fields = { plan: null, moved: [], whole: true, complexity: "m" };
-  const held = ["confirmation", "decision", "plan", "criteria", "baseline"];
+  const held = ["confirmation", "decision", "plan", "criteria"];
   const work = {
     branch: "ISS-979-assistant-layer", head: "ea3a7033e18", base: "ed861ebac6f",
     at: "2026-09-11T08:16:19.832Z", reach: { here: false, remote: null },
@@ -248,18 +248,22 @@ test("the latest confirmation, decision and correction come down to one line eac
   assert.match(long.latest.confirmation.said, /…$/u);
 });
 
-/* ISS-67's resume at `in_progress` headlined three kinds while the baseline and the review naming
-   the head sat on the record unshown, and nothing on the screen said more existed (ISS-47). */
-test("the brief headlines the review's outcome and head and the baseline's result", () => {
+/* ISS-67's resume at `in_progress` headlined three kinds while the review naming the head sat on the
+   record unshown, and nothing on the screen said more existed (ISS-47). A baseline an earlier build
+   left on the page is no kind this one reads, so it is read past rather than headlined (ISS-3184). */
+const OLD_BASELINE = "## Baseline\n\n- **Gate:** npm run check\n- **Result:** 3 steps red at the base\n"
+  + `- **Commit:** ${"c".repeat(40)}\n- **Scope:** whole\n\n\`forge-record: baseline · contract 1\``;
+
+test("the brief headlines the review's outcome and head, and reads past a baseline an earlier build left", () => {
   const head = "b".repeat(40);
   const one = brief({}, [
-    recorded("baseline", { gate: "npm run check", result: "3 steps red at the base", commit: "c".repeat(40), scope: "whole" }),
+    comment(OLD_BASELINE),
     recorded("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }),
   ]);
-  assert.equal(one.latest.baseline.said, "3 steps red at the base", "the baseline's line is the result the gate gave");
   assert.match(one.latest.review.said, /^approved — b{40}$/u, `the review's line is its outcome and the head judged: ${one.latest.review.said}`);
-  assert.deepEqual(Object.keys(one.latest), ["baseline", "review"], "and a kind nobody wrote is still left out");
-  assert.match(USAGE, /decision, baseline, review and correction/u, "and the help names both among the headlines");
+  assert.deepEqual(Object.keys(one.latest), ["review"], "and a kind nobody wrote, or no build reads, is left out");
+  assert.match(USAGE, /decision, review and correction/u, "and the help names the review among the headlines");
+  assert.doesNotMatch(USAGE, /baseline/u, "and no baseline");
 });
 
 test("the footer counts the typed records it read and points at the report for the ones it gave no line", () => {
@@ -426,11 +430,11 @@ test("a brief on an issue at the release rung with no verification still owes th
 
 test("the brief names the comments it read, which is the read the gate asks for", () => {
   const one = brief({}, [
-    recorded("baseline", { gate: "npm test", result: "one known failure", commit: "aaa1111" }),
+    recorded("confirmation", { is: "it holds", where: ["a.mjs"], finding: "holds" }),
     comment("a person's word"),
   ]);
   assert.equal(one.comments.length, 2);
-  assert.equal(one.comments[0].kind, "baseline", "a typed record is named by its kind");
+  assert.equal(one.comments[0].kind, "confirmation", "a typed record is named by its kind");
   assert.equal(one.comments[1].kind, undefined, "and a plain comment is a comment");
   assert.equal(one.whole, true);
   assert.equal(briefOf(viewFrom("the-uuid", issue(), [], "the list returned 36 of more"), "ISS-44").whole, false,

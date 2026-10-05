@@ -14,7 +14,7 @@ import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { commandAt, valuesOf } from "../machine.mjs";
-import { BASELINE_AT, ORDER } from "../earned.mjs";
+import { BUILD_AT, ORDER } from "../earned.mjs";
 import { landsAgain, reopenForm } from "../route.mjs";
 
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
@@ -208,10 +208,10 @@ const againRefused = (ref, head, landing, status) => {
    a park, is left to the checks that read it. */
 const unbuiltRefusal = (ref, status) => {
   const at = ORDER.indexOf(status);
-  const built = ORDER.indexOf(BASELINE_AT);
+  const built = ORDER.indexOf(BUILD_AT);
   if (at < 0 || at >= built) return null;
   return `claim --ready arms the landing of a built change, and ${ref} stands at \`${status}\`, `
-    + `before \`${BASELINE_AT}\`, the status a build stands at: the landing could move no status of `
+    + `before \`${BUILD_AT}\`, the status a build stands at: the landing could move no status of `
     + `it, and a resume would name a phase this checkpoint says is over. Advance it, then capture `
     + `again:\n${ORDER.slice(at + 1, built + 1).map((to) => `  forge advance ${ref} --to ${to}\n`).join("")}`
     + `  forge claim ${ref} --pushed --ready`;

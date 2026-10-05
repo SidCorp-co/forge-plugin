@@ -9,7 +9,9 @@ import { DECLARATIONS, DECLARING, SECTIONS, WITNESSED, looksTo, unwrap, declarat
 import { compoundCriteria } from "../../prose.mjs";
 import { FEATURE, LIGHTER, lightens, rungClaimed } from "../../ladder.mjs";
 import { flowPinned, requiresOf, screensHere } from "../../guides/flow.mjs";
-import { translateTo } from "../../resolve/settings.mjs";
+import { projectFileHere, translateTo } from "../../resolve/settings.mjs";
+import { escaped } from "../../markdown.mjs";
+import { declaredCommands } from "../../stats/corpus/declared.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
 import { bodyFrom } from "../../resolve/payload.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -60,6 +62,40 @@ export const compoundRefused = (criteria, language = translateTo()) => {
       `  ${String(one.number).replace(/./gu, " ")}  another: ${one.second}`,
     ]),
     "Split each into two numbered lines, renumber what follows, and send the file one consult reads.",
+  ].join("\n"));
+};
+
+/* What a pass is said as, after the command or the suite it is said of. */
+const PASSES = String.raw`(?:still\s+)?(?:passes|is green|stays green|remains green|exits (?:with )?0|succeeds`
+  + String.raw`|(?:shall|must|will|should)\s+(?:still\s+)?(?:pass|succeed|be green|stay green|exit 0))\b`;
+/* The generic forms, opening the criterion or after `the`, so the suite of one changed file is not read as the whole one. */
+const WHOLE_SUITE = new RegExp(String.raw`(?:^|\bthe\s+)(?:whole|full|entire)\s+(?:tree's\s+)?(?:test\s+)?(?:gate|suite)`
+  + String.raw`(?:\s*\([^)]*\))?\s+${PASSES}`, "iu");
+/* A declared command with its arguments, a help flag among them being a question about the gate rather than its run. */
+const TICK = "`";
+const passingRun = (command) =>
+  new RegExp(String.raw`${escaped(command)}(?:\s+(?!-h\b|--help\b)[^\s${TICK}]+)*${TICK}?\s+${PASSES}`, "iu");
+
+/** The criteria whose outcome is the whole-tree gate passing: the project's declared gate command said
+ *  with a pass, or the whole suite said as one. A criterion about the gate's own behaviour names
+ *  another outcome and passes; with no gate declared only the generic forms are read. */
+export const gateCriteria = (criteria, declared = projectFileHere()?.stats?.commands ?? null) => {
+  const runs = declaredCommands("gate", declared).map(passingRun);
+  return criteria.filter(({ text }) => WHOLE_SUITE.test(text) || runs.some((one) => one.test(text)));
+};
+
+/* The landing gates every change, so a criterion that the gate passes is met by every change and shows nothing. */
+export const gateCriteriaRefused = (criteria, declared) => {
+  const found = gateCriteria(criteria, declared);
+  if (!found.length) return;
+  const numbers = found.map((one) => one.number).join(", ");
+  refuse([
+    `${found.length === 1 ? `Criterion ${numbers} names` : `Criteria ${numbers} name`} the whole-tree gate passing `
+      + "as the outcome, so nothing was written:",
+    ...found.map((one) => `  ${one.number}. ${one.text}`),
+    "The landing gates the whole tree on every change; a criterion names the outcome this issue changes and the "
+      + `case that shows it. Rewrite ${numbers} as that, or drop ${found.length === 1 ? "it" : "them"}, and send the `
+      + "file one consult reads.",
   ].join("\n"));
 };
 
@@ -258,6 +294,7 @@ export const criteriaPrepared = async (argv, at) => {
   const criteria = criteriaLines(text ?? await bodyFrom(file[0]), at.reference);
   criteriaChecked(criteria, refuse);
   compoundRefused(criteria);
+  gateCriteriaRefused(criteria);
   /* Before the consult's refusal, for ISS-483's reason: a file this refuses is one no review round
      should be spent on, and the read of the issue it costs is one the write makes anyway. */
   const held = unwrap((await at.issue()).body.acceptanceCriteria);

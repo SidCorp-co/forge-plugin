@@ -93,7 +93,7 @@ test("a draft is routed onto the ladder past an open that starts the project's p
   assert.match(owed.stdout, /`draft` is before the ladder, and `open` is passed over: this project's pipeline declares its `open` state `auto`, so entering it starts the pipeline/u,
     "the line under it says why open is not the move");
   for (const item of [/^ {2}no confirmation/mu, /^ {2}no decision record/mu, /^ {2}the plan field is empty/mu,
-    /^ {2}the criteria field holds no numbered line/mu, /^ {2}no baseline/mu]) {
+    /^ {2}the criteria field holds no numbered line/mu, /^ {2}the worklog names no branch/mu]) {
     assert.match(owed.stdout, item, `each rung the route passes owes its own records: ${item}`);
   }
   assert.deepEqual(moves(), [], "and asking moved nothing");
@@ -102,7 +102,7 @@ test("a draft is routed onto the ladder past an open that starts the project's p
   const moved = await advance();
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
   assert.match(moved.stdout, /ISS-3 {2}draft -> in_progress/u, moved.stdout);
-  assert.match(moved.stdout, /moved by its record, and by no person: confirmation, decision, plan, criteria and baseline are what in_progress is entered on/u,
+  assert.match(moved.stdout, /moved by its record, and by no person: confirmation, decision, plan and criteria are what in_progress is entered on/u,
     "and the line under it names every rung's records the move was earned on, not the last rung's alone");
   assert.deepEqual(moves(), ["in_progress"], "the one transition sent is the one that starts nothing, and open is never sent");
 });
@@ -151,7 +151,7 @@ test("a record write that completes the draft route moves the issue onto the lad
   const run = await record("criteria", fileAt("criteria.md", CRITERIA));
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /^ISS-3 {2}draft -> in_progress$/mu, run.stderr);
-  assert.match(run.stderr, /moved by its record, and by no person: confirmation, decision, plan, criteria and baseline are what in_progress is entered on/u,
+  assert.match(run.stderr, /moved by its record, and by no person: confirmation, decision, plan and criteria are what in_progress is entered on/u,
     "and the line under it names every passed rung's records");
   assert.deepEqual(moves(), ["in_progress"], "one transition, and never to open");
 

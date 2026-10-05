@@ -39,13 +39,6 @@ export const pushing = (tree, base, rejected) => {
   if (run.status !== 0) stop(`git push ${REMOTE} HEAD:${base} exited ${run.status}. ${rejected()}`);
 };
 
-/* A stop may carry its own code, which is what tells a caller a landing that never got a gate place from one that was
-   refused; a run that met two kinds of stop is 1, since retrying it as the first kind would rerun the second. */
-const exitOf = (error) => {
-  const code = error.exitCode ?? 1;
-  return process.exitCode && process.exitCode !== code ? 1 : code;
-};
-
 /** One landing's steps, in the order given: the span is the roles', never the caller's to decide.
  *  `stopped` is handed the stop that ended them, which is how a landing reads the cause it carries. */
 export const runLanding = async (steps, order, tree, { ms, held, again, stopped = () => {} }) => {
@@ -63,7 +56,7 @@ export const runLanding = async (steps, order, tree, { ms, held, again, stopped 
         stopped(error);
         console.error(`\nstopped at step ${at + 1} (${name}): ${error.message}`);
         console.error(again(at));
-        process.exitCode = exitOf(error);
+        process.exitCode = 1;
         return false;
       }
       if (at === last && drop) {

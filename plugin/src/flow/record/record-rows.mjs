@@ -41,7 +41,6 @@ const kindRows = (caps) => [
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
-  "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
   "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L [--runtime R] --evidence E... [--why W] [--filed R]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
@@ -72,7 +71,6 @@ const KIND_PHRASE = {
   answer: "a person's answer to a park, and who gave it",
   park: "the issue set down, its kind saying who it waits on",
   correction: "what moved in which record, and why",
-  baseline: "the gate, what it reports, its commit, and a citation's source",
   verdict: "one criterion judged, at a commit, citing its own evidence",
   review: "who read which head, each finding answered, and the outcome",
   routed: "a finding this run sent to the issue that owns it",
@@ -97,7 +95,7 @@ const KIND_PHRASE = {
    A kind absent from here would be a kind `forge record -h` no longer lists, so the row order is
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
-  "migration", "note", "declined", "finding", "triage", "confirmation", "merged", "park", "answer", "baseline",
+  "migration", "note", "declined", "finding", "triage", "confirmation", "merged", "park", "answer",
   "decision", "question", "wave", "fold", "plan", "criteria"];
 
 const phraseRows = () =>

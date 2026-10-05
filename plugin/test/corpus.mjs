@@ -58,8 +58,6 @@ export const FAMILIES = {
     ...owed("awaiting_release", { plan: "", acceptanceCriteria: CRITERIA }),
   ],
   "an untyped plan": () => owed("approved", { plan: "Some free prose.", acceptanceCriteria: CRITERIA }),
-  "a baseline of partial scope": () => owed("in_progress", { plan: "", acceptanceCriteria: "" },
-    [recorded("baseline", { gate: "npm run check", result: "nothing fails", commit: "43b811e", scope: "part" })]),
   "a declared screen change with no attachment": () => owed("awaiting_release",
     { plan: "Screen change: yes\nSchema coupling: no", acceptanceCriteria: CRITERIA },
     [recorded("verdict", { criterion: "1. The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] })]),

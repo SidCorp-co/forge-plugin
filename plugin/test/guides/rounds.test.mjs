@@ -126,16 +126,15 @@ test("a contract part holding no fence is served byte for byte as it was written
   }
 });
 
-test("the gate demand a lighter rung does not buy is absent from the text it is served", () => {
+/* The gate is the landing's at every rung, so no rung is served a gate run of its own (ISS-3184). */
+test("no rung is served a gate run, and every rung is told the whole gate is the landing's", () => {
   const served = (rung) => text(skillGuideAnswer("issue-flow")({ part: "verification", rung }));
-  assert.ok(served(FEATURE).includes(SCOPED), "the top rung still owes the run per unit of work");
-  assert.ok(!served(TRIVIAL).includes(SCOPED), "and a lighter rung is not shown a round its ceiling refuses");
-  assert.ok(served(FEATURE).includes(SLOWER) && !served(TRIVIAL).includes(SLOWER),
-    "the sentence answering a slow gate with `spend it no less often` goes with the demand it defends");
-  assert.ok(served(TRIVIAL).includes("the only whole run the work owes"),
-    "what every rung owes standing at both, the fence taking the demand and not the paragraph");
-  assert.ok(served(TRIVIAL).includes("gate-review skill"),
-    "and the route to a gate too slow stands at every rung, which is not a round anything buys");
+  for (const rung of [FEATURE, TRIVIAL]) {
+    assert.ok(!served(rung).includes(SCOPED) && !served(rung).includes(SLOWER),
+      `the ${rung} rung is still owed a gate run per unit of work`);
+    assert.ok(served(rung).includes("So a run takes no baseline and spends no gate"),
+      `the ${rung} rung is not told that the whole gate is the landing's`);
+  }
 });
 
 /* The rounds line the two lighter rungs share bounds the gate, and a run reading it as a bound on

@@ -2,10 +2,9 @@
 
 ## What a run measures
 
-**A run proves its own change, and the whole-tree gate is the landing's.** The landing spends that
-gate once, on the change merged onto the base as the base is at that moment, and hands a red back
-to the run that built the change with the failing cases named; a gate any run spent before it
-measured a base the landing measures again. So a run takes no baseline and spends no gate: what it
+**A run proves its own change, and the whole-tree gate is the landing's.** A red the landing finds
+comes back to the run that built the change with the failing cases named, and a gate any run spent
+before the landing measured a base the landing measures again. So a run takes no baseline and spends no gate: what it
 spends is the suites that exercise the files it touched and the checks that answer in seconds.
 Where the landing is the run's own ship, that ship is the one place the gate is spent. Where it is
 another actor's, the gate typed in a session is refused, and `forge hooks --how landing-gate` says

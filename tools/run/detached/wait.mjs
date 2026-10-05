@@ -7,16 +7,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 
 import { read, stop } from "../../checkout.mjs";
-import { DEADLINE, GONE, NO_GATE } from "../../gates/verdict.mjs";
 import { watching } from "../../watching.mjs";
 import { heldMinutes } from "../../../plugin/src/host/call-ceiling.mjs";
 import { gitDir, liveWaiter, recordIn, reservationIn, startOf, stillLanding, waitCommand } from "./record.mjs";
 
-/* The gate's wait's three numbers, so a caller holding both reads one table: past every code a
-   landing exits with, 76 a landing gone without deciding, 77 this wait's own deadline, 78 nothing to
-   wait on. */
-export { DEADLINE, GONE };
-export const NO_LANDING = NO_GATE;
+/* Past every code a landing exits with, so one number says which answer this wait got: a landing
+   gone without deciding, this wait's own deadline, nothing to wait on. */
+export const GONE = 76;
+export const DEADLINE = 77;
+export const NO_LANDING = 78;
 
 export const TERMINAL = "landing verdict:";
 export const WAITED = "landing wait:";

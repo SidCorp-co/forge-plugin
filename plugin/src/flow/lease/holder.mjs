@@ -295,8 +295,7 @@ const partOf = (argv, words) =>
   argv.length > 0 && words.some((one, at) => argv.every((two, by) => words[at + by] === two));
 
 /* Either way round, because a wrapper's line holds the whole command and a leaf left by a shell
-   that exited holds a part of it — `node tools/gates.mjs --wait 30` out of the line that put it in
-   the background. The second way round then asks a second thing, that the process's own arguments
+   that exited holds a part of it — `npm run check` out of the line that put it in the background. The second way round then asks a second thing, that the process's own arguments
    stand as consecutive *words* the turn typed and not merely somewhere inside its text: a line cut
    out by a shell was words, and one handed to something whole was an argument, which is what a
    reader of the process table or an echo into a note does with another run's line (ISS-2062). Both

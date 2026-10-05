@@ -115,12 +115,12 @@ test("the reader finds a specifier that reaches tools, and leaves the plugin's o
     "and prose naming a path is not an import, this being a check on what a module loads");
 });
 
-/* The direction, stated as a case rather than as prose: the ship is what publishes the baseline the
+/* The direction, stated as a case rather than as prose: the ship finishes the landing checkpoint the
    plugin reads back, so it imports the plugin and the plugin must not import it. */
 test("the ship imports the plugin, which is the direction this boundary allows", () => {
-  const ship = readFileSync(join(ROOT, "tools", "run", "publish.mjs"), "utf8");
-  assert.match(ship, /from "\.\.\/\.\.\/plugin\/src\/flow\/earned\/published\.mjs"/u,
-    "the publish reads the store through the plugin, so the record's shape has one owner");
-  assert.match(ship, /join\(tree, "tools", "gates", "green\.mjs"\)/u,
-    "and reads the gate's record here, where the ledger belongs, with the published tree's own copy of the reader");
+  const ship = readFileSync(join(ROOT, "tools", "run", "ship", "checkpoint.mjs"), "utf8");
+  assert.match(ship, /from "\.\.\/\.\.\/\.\.\/plugin\/src\/flow\/landing\/checkpoint\.mjs"/u,
+    "the ship reads the checkpoint through the plugin, so the record's shape has one owner");
+  assert.ok(relativeImports("tools/run/ship/checkpoint.mjs", ship).some((one) => one.startsWith(PLUGIN)),
+    "and the specifier resolves inside plugin/, which is what the boundary reads");
 });

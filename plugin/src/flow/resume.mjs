@@ -30,7 +30,7 @@ export const USAGE = [
   usageOf("resume"),
   "The whole context of one issue on one screen, re-minted from the record and the worklog beside",
   "its lease: the status and the phase it owes, the plan, every criterion with its verdict mark, the",
-  "last confirmation, decision, baseline, review and correction, the worklog, the parks and",
+  "last confirmation, decision, review and correction, the worklog, the parks and",
   "blockers, the command the next status is owed, where the method for that phase is written, and",
   "how many typed records it read and left out. On a wave's headline it opens with the wave: each",
   "dispatch since the last fold with its members' status and lease read live from each member,",

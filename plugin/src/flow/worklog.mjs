@@ -13,7 +13,7 @@ const consultLog = () => import("../codex/codex-log.mjs");
 const replies = () => import("../codex/log/replies.mjs");
 import { jsonLines } from "../hooks/log/hook-log-file.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
-import { SHAPES, atMinute } from "./machine.mjs";
+import { atMinute } from "./machine.mjs";
 
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;
@@ -132,19 +132,13 @@ export const gitNow = (lands = null) => {
 };
 
 /* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). The open findings carry the consult that made them, which after a clean round is not the one this line opens with, and the ids alone sent a run to `--of` the consult the verb refused them on (ISS-1679). */
-/* The mirror of `writtenBy` for facts git holds rather than the session: every key is present, so a value a caller typed is cleared and not left standing. A head names a commit and not the tree in hand, so a dirty checkout stamps nothing and neither does no checkout — either way the field is absent, and a citation resting on it is refused rather than claiming a green for files no gate run measured. The two flags are what makes that reading the tree's rather than the machine's: `status.showUntrackedFiles=no` empties the default output over an uncommitted source file, and a submodule set to `ignore=all` hides its own. */
-const CLEAN = ["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"];
-
-const cleanHead = () => (git(CLEAN) === "" ? git(["rev-parse", "HEAD"]) ?? undefined : undefined);
-
-const STAMPS = { head: cleanHead };
-
+/* The mirror of `writtenBy` for facts git holds rather than the session: every key is present and empty, so a value a caller typed is cleared and not left standing, and the write fills each from git once every refusal has cleared. */
 export const stampedNow = (shape) => Object.fromEntries(shape.fields
   .filter((one) => one.stamped)
-  .map((one) => [one.flag, STAMPS[one.stamped]?.()]));
+  .map((one) => [one.flag, undefined]));
 
-/** The head the baseline write would stamp, asked for through that write's own stamp so the two cannot disagree about which commit is in hand — a dirty checkout and no checkout both answer with none, which is the head that write would fail to stamp too. */
-export const headNow = () => stampedNow(SHAPES.baseline).head ?? null;
+/* The two flags are what makes a clean reading the tree's rather than the machine's: `status.showUntrackedFiles=no` empties the default output over an uncommitted source file, and a submodule set to `ignore=all` hides its own. */
+const CLEAN = ["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"];
 
 /** The paths this checkout holds that `commit` does not carry, read only where `commit` is the head the checkout stands at; null where it is another commit or no checkout answers, since then this tree says nothing about what that commit holds. The status is read untrimmed, its first column being a space for a change left unstaged. */
 export const uncommittedOver = (commit) => {

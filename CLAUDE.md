@@ -82,9 +82,8 @@ procedure, read by one session, with nothing to fail when it goes stale.
 
 ## Verifying
 
-A change is proved by the suites that exercise what it touched and the checks `forge claim --ready`
-runs. The whole gate, `npm run check`, is the landing's: it gates every change once, on the base as
-it is, so a run's own gate would only measure what the landing measures again. The gate is scoped
+The whole gate, `npm run check`, is the landing's, and what a run spends instead is served at
+`forge guide issue-flow verification`. The gate is scoped
 and remembers, which trades one danger for another: a step whose declared paths are too narrow is
 never red, it is absent. So a step is added to the table with the paths it read off its own script,
 a claim every gate holds it to by watching the step read, and `--full` is how a gate distrusts the

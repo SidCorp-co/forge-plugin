@@ -67,7 +67,7 @@ landing writes two records per set into the store the release reading lives in �
 release reading itself, because a set that hands every member back makes no release. The first is
 written the moment the combined candidate reads red and before the search spends a gate; the
 second once the set is resolved. A set with the first and not the second — a landing that died, or
-a write the store refused — is counted as unknown, and so is one a declined gate place stopped,
+a write the store refused — is counted as unknown, and so is any outcome other than a resolution,
 since it resolved nothing: an unknown set adds to neither gate figure rather than reading as a set
 that cost nothing. The `red batches` line, and the daily page's Landings section, put the gates the
 resolved sets spent beside what landing every member alone would have: one per member and the
@@ -80,9 +80,10 @@ history the tracker keeps was the first place looked: it gains a row only when a
 issue, keeps twelve, and names no cause, so a hand-back leaves nothing until its builder picks it up.
 So both verbs that land here write into the same store: an opening per issue before a pass's first
 step, one record per gate with its verdict and the seconds its steps ran — the gate's own figure,
-which leaves out the wait for a place — and an ending, landed once the push is taken or back with
+which leaves out the gate's own start — and an ending, landed once the push is taken or back with
 the one cause of a closed set that stopped it: the branch's own fault, a combination, a moved base,
-a declined gate place, a tracker refusal, or an independent judge's turn. A stop none of those names
+a tracker refusal, or an independent judge's turn; a declined gate place on record from a landing
+that once waited for one is still read as that cause. A stop none of those names
 ends its attempt with no cause, and an opening whose ending never reached the store is read the same
 way, as unrecorded, so a landing in flight at the moment of reading is counted among those. An
 attempt belongs to the window its opening falls in. The first-gate share is over the landings that a

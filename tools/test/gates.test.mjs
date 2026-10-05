@@ -5,12 +5,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { join } from "node:path";
 
-import { STEPS, gateSteps, testWorkers } from "../gates/steps.mjs";
+import { STEPS, gateSteps } from "../gates/steps.mjs";
 import { ISOLATED } from "../gates/reporters/isolation.mjs";
-import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../gates/verdict.mjs";
-import { CALL_CEILING_SECONDS } from "../../plugin/src/host/call-ceiling.mjs";
+import { TERMINAL } from "../gates/verdict.mjs";
 import { REVIEW } from "../gates/timing.mjs";
 import { tempRoom } from "../../plugin/test/fixtures.mjs";
 import { entries, entryDir, entryNames, git, landed, NAMED, passesDir, passesFor, ROOT, RUNNER, run,
@@ -56,9 +56,8 @@ const orderedIn = (said) => orderBlock(said).map((line) => line.trim().split(/\s
 
 test("-h names every flag it reads and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
-  for (const one of ["Usage: node tools/gates.mjs [--baseline [ISS-nn]] [--full] [--anyway] [--wait [slot] [M]]",
-    "--wait slot [M]", "wait for a place at the ceiling this project declares",
-    "reads the process table instead", "It reserves nothing", "still declines at 75",
+  for (const one of ["Usage: node tools/gates.mjs [--full] [--anyway]\n",
+    "admits itself whatever else is running", "A test step spends every core",
     "--full", "--anyway", "node_modules", "merge-base", "tree judged",
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
     "a path no step claims", "leaves the record", "records no pass",
@@ -76,14 +75,7 @@ test("-h names every flag it reads and what the record cannot see", () => {
     "unless it has a row of its own",
     "An issue somebody has closed or dropped", "does not come back whole files nothing",
     "leaves the run's status alone", "sends no request",
-    "--wait [M]", "wait for the verdict of a gate of this tree instead of running one",
-    `${DEFAULT_MINUTES} where none is given, which is the most a call can hold`,
-    `one may live ${CALL_CEILING_SECONDS}s, and an M past that is refused`,
-    "One further line is written before the wait blocks", "one where no answer was observed",
-    `one line beginning \`${TERMINAL}\``,
-    "never a log, and never a process's exit code either", "answers a verdict already written",
-    `${GONE} a gate that exited having written no verdict`, `${DEADLINE} this wait's own deadline`,
-    `${NO_GATE} no gate of this`, "refused\nbeside --full",
+    `one line beginning \`${TERMINAL}\``, "rather than off a log",
     "spent 6 = 4 reached + 2 blind", "The files it knows are its whole list before any",
     "would read `0 of 0`", "accounted for neither way", "a set recorded before the file gained a",
     "202 spent under a context the record does not\nhold", "a field no digest here reads",
@@ -93,6 +85,9 @@ test("-h names every flag it reads and what the record cannot see", () => {
   }
   // The attribution a diff was once read for, which the record cannot prove and which no longer prints (ISS-1746).
   assert.ok(!said.includes("invalidated by this change"), `the superseded clause is still in the usage:\n${said}`);
+  for (const gone of ["--wait", "--baseline", "declines at"]) {
+    assert.ok(!said.includes(gone), `the usage still offers ${gone}:\n${said}`);
+  }
 });
 
 test("a docs-only change runs the steps that read docs and no others", () => {
@@ -570,12 +565,12 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
   }
 });
 
-test("a test step runs on the workers this box derives, with node's own reporter, the per-file one and the failing-case one, under the suite's isolation", () => {
+test("a test step runs on every core, with node's own reporter, the per-file one and the failing-case one, under the suite's isolation", () => {
   const [tree, rest] = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).filter((step) => step.tests);
   const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", "reporters", name)}`;
   for (const step of [tree, rest]) {
     const flags = step.argv.slice(2, 9);
-    assert.deepEqual(flags, [`--test-concurrency=${testWorkers()}`,
+    assert.deepEqual(flags, [`--test-concurrency=${availableParallelism()}`,
       `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
       ours("file-times.mjs"), "--test-reporter-destination=stdout",
       ours("isolation.mjs"), "--test-reporter-destination=stdout"], step.label);

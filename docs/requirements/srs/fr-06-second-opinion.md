@@ -44,7 +44,7 @@ checkout's decision rather than the account's, and `README.md` says why that lev
 - **AC-06-1-3** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "a path escapes the repo by neither dots nor a symlink"
   IF a named path leaves the checkout, by relative segments or by a symbolic link, THEN the CLI
   SHALL refuse to send it.
-- **AC-06-1-4** · Rev: 2 · Proof: plugin/test/codex/codex-tools.test.mjs "a red check names the cases its own output named, above the tail"
+- **AC-06-1-4** · Rev: 2 · Status: retired (ISS-3184)
   WHERE the checkout names a command the reviewer may run, the CLI SHALL run it once per consult,
   from that checkout, under an environment it composed, and SHALL report its exit status and the tail
   of its output; and WHERE that output announces itself as TAP it SHALL report the failing cases the
@@ -80,35 +80,42 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   SHALL send every file of that consult whole where neither the command nor the configuration named
   a send mode, SHALL leave a named mode standing and say that it stands, and SHALL name on every
   consult the mode it is sending under.
-- **AC-06-1-12** · Rev: 2 · Proof: plugin/test/codex/check/clock.test.mjs "the check's clock is what the consult's budget spares it, and a smaller declaration stands"
+- **AC-06-1-12** · Rev: 2 · Status: retired (ISS-3184)
   WHEN the checkout names a command the reviewer may run THEN the clock that command runs under SHALL
   be the room that consult's own budget still holds at the call the check is made on — the budget,
   less what the consult has spent by then, less a stated share held back for what follows the check —
   bounded below that room by the project's own declaration where it declares one as a whole number of
   milliseconds above zero, resolved once so that no reader of it supplies a second default.
-- **AC-06-1-13** · Rev: 2 · Proof: plugin/test/codex/codex-tools.test.mjs "a check stopped at its clock names the clock, where it was read, and a key that can move it"
+- **AC-06-1-13** · Rev: 2 · Status: retired (ISS-3184)
   IF that command is stopped at its clock THEN what comes back SHALL name the clock it was stopped
   at, where that clock was read from, and a key that can move it rather than one that cannot, so
   that the run which paid for the stopped call learns from it what to change.
-- **AC-06-1-14** · Rev: 1 · Proof: plugin/test/codex/gateway/check-state.test.mjs "a review that declined the offered check says so where the run reads what the round cost"
+- **AC-06-1-14** · Rev: 1 · Status: retired (ISS-3184)
   WHEN a consult ends THEN the CLI SHALL record on that consult's own log row which of five states
   the check the checkout declared left the round in — run, stopped at its clock, unable to start,
   offered and not taken, or never offered — SHALL record beside it the command that check was,
   wherever the checkout declared one, and SHALL say that state to the caller in the same place it
   says what the round cost, so that a review given by inspection alone is told apart from one that
   executed the suite without either being read for an absence.
-- **AC-06-1-15** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check clock past what a consult can spare is a fault the report names"
+- **AC-06-1-15** · Rev: 1 · Status: retired (ISS-3184)
   IF the checkout declares a clock above the most the consult budget can ever spare a check THEN the
   CLI SHALL report that declaration as a fault where the configuration is read, naming the value
   declared, the most that may be named, the budget it came from and the call that clears it, and
   SHALL run the check under that most rather than under the value declared.
-- **AC-06-1-16** · Rev: 1 · Proof: plugin/test/tools/services/project-file.test.mjs "a check clock past what a consult can spare is refused where it is written"
+- **AC-06-1-16** · Rev: 1 · Status: retired (ISS-3184)
   WHEN a write of that clock names a value above the most the consult budget can ever spare a check
   THEN the CLI SHALL refuse the write, so that no value the key takes is stored for a reader that
   will pass over it.
-- **AC-06-1-17** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "a consult with nothing left to spare refuses the check rather than starting one no clock can stop"
+- **AC-06-1-17** · Rev: 1 · Status: retired (ISS-3184)
   WHERE a consult has no room left to spare its check, the CLI SHALL refuse that call and say what
   would clear it, rather than start the command under a clock that cannot stop it.
+- **AC-06-1-18** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "a consult's tool list carries no run_check, whatever the checkout names"
+  WHEN a consult offers the reviewer its tools THEN the CLI SHALL offer no tool that runs a command,
+  whatever the checkout names, because the landing gates every change and a check the reviewer ran
+  would measure nothing the landing will not.
+- **AC-06-1-19** · Rev: 1 · Proof: plugin/test/codex/gateway/consult-row.test.mjs "a consult offers the reviewer no check to run, even where the checkout names one"
+  WHEN a consult reaches the reviewer in a checkout that names a check THEN no request SHALL offer or
+  name a command to run, and the consult's record SHALL carry no check state.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 
@@ -141,9 +148,9 @@ commit is the one that list holds when nobody has written it — so a project th
 asked exactly what it was asked before there was a list. Nothing between commits is asked anything: a
 gate deciding per write reviewed fragments, and the trigger it decided on could not be read at all.
 
-- **AC-06-3-10** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a door the project did not name holds nothing, and the key absent holds only the commit"
-  WHERE the project has not said which doors ask, the CLI SHALL ask at the commit and at no other,
-  which is what it asked before the saying was possible.
+- **AC-06-3-10** · Rev: 2 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a door the project did not name holds nothing, and the key absent holds only the commit and the ready capture"
+  WHERE the project has not said which doors ask, the CLI SHALL ask at the commit and at the ready
+  capture and at no other, the capture being where the landing's gate is next spent on the change.
 - **AC-06-3-11** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "the commit door is the same key, so a project naming only the gate is not asked twice"
   WHERE the project says which doors ask and the commit is not among them, the CLI SHALL let a commit
   through without asking, whatever that record holds.
@@ -370,6 +377,19 @@ reading and not two, so a run that meets it reaches the commit with nothing left
   WHEN the resolution report reads a project naming a door no declared command arms THEN the report
   SHALL name that door, the key that arms it and the shape of the value it takes, and SHALL repeat
   what was written where that value is no command, a silent door having no other way to be known.
+- **AC-06-7-9** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a ready capture with a change no consult has read is held, whatever form the capture takes"
+  WHERE the ready capture is a door the project asks at, the CLI SHALL refuse a capture that would
+  hand over a change no consult has read, in whatever order its flags and whatever form its key
+  take, needing no command of the project's declared for it, the capture being this plugin's own verb.
+- **AC-06-7-10** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a ready capture with a finding nobody ruled on is held, with the disposition that closes it"
+  IF the last consult made findings nobody has ruled on THEN the CLI SHALL refuse the ready capture
+  and SHALL name the disposition that closes them.
+- **AC-06-7-11** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a ready capture after a clean, ruled read goes"
+  WHEN a consult has read what the capture would hand over and nothing it found is unruled THEN the
+  CLI SHALL let the capture through.
+- **AC-06-7-12** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a project that names its doors without ready is not held at the capture"
+  WHERE the project names its doors and the ready capture is not among them, the CLI SHALL let the
+  capture through without asking.
 
 ### UC-06-8 — A question the session declares reversible is decided from the owner's own precedent
 
@@ -466,7 +486,7 @@ was down from an agent that skipped it. Why the default stays required: `docs/cl
 - **AC-06-10-5** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a plan taken under the stand-down posts that no consult read it, and why"
   WHEN a plan or criteria write goes through because the check was stood down THEN the CLI SHALL post
   on the issue that no consult read the file, and that the check was stood down.
-- **AC-06-10-6** · Rev: 1 · Proof: plugin/test/codex/gateway/check-state.test.mjs "a consult the gateway answered with an HTTP error logs that status in a field of its own"
+- **AC-06-10-6** · Rev: 1 · Proof: plugin/test/codex/gateway/consult-row.test.mjs "a consult the gateway answered with an HTTP error logs that status in a field of its own"
   WHEN the reviewer answers a consult with an HTTP error THEN the CLI SHALL log that status in a
   field of the consult's row of its own, apart from the error's text.
 - **AC-06-10-7** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "an advisory reading lets a commit through when the gateway could not give its consult, and says what went unread"

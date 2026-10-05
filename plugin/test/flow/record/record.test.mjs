@@ -16,6 +16,7 @@ const {
 } = await import("../../../src/flow/record/record.mjs");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
+const { shapeGaps } = await import("../../../src/flow/earned/shape-gaps.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 const { TWICE } = await import("../../../src/tracker/evidence.mjs");
 const { cutLine } = await import("../../../src/tracker/comments.mjs");
@@ -535,20 +536,18 @@ test("a record write ends with the line advance --owed would print, and never fa
 /* A field added to a shape that already has records on issues: the write asks for it as for any
    other, and the read-back does not refuse a payload written before it existed (ISS-359). */
 test("a newer field is asked for at the write and excused at the read-back", () => {
-  const wrote = (...extra) => ask("record", "baseline", "ISS-43", "--gate", "npm run check",
-    "--result", "354 pass", "--commit", "43b811e", ...extra);
-  const bare = wrote();
+  const bare = ask("record", "correction", "ISS-43", "--moved", "criterion 2", "--why", "it read as two outcomes");
   assert.equal(bare.status, 1, bare.stdout);
-  assert.match(bare.stderr, /^record baseline needs --scope \(scope\)\.$/mu, bare.stderr);
+  assert.match(bare.stderr, /^record correction needs --corrects \(what it corrects\), which takes a record kind/mu, bare.stderr);
   assert.equal(bare.stdout, "", "and it is refused before anything is fetched");
-  const odd = wrote("--scope", "half");
-  assert.match(odd.stderr, /^--scope takes one of whole, part, not `half`\.$/mu, odd.stderr);
-  const scope = SHAPES.baseline.fields.find((one) => one.flag === "scope");
-  assert.ok(scope.newer, "the bit the gap list reads and the write's own field loop does not");
-  assert.ok(!scope.optional, "and it is not optional, or no run would ever type it");
-  /* The read-back is the half the bit is for: a baseline written before the field existed is a
+  const corrects = SHAPES.correction.fields.find((one) => one.flag === "corrects");
+  assert.ok(corrects.newer, "the bit the gap list reads and the write's own field loop does not");
+  assert.ok(!corrects.optional, "and it is not optional, or no run would ever type it");
+  /* The read-back is the half the bit is for: a correction written before the field existed is a
      whole payload, and only a wrong word is a gap. */
-  assert.equal(parse(render("baseline", { gate: "g", result: "r", commit: "43b811e" })).fields.scope, undefined);
+  const before = parse(render("correction", { moved: "criterion 2", why: "it read as two outcomes" }));
+  assert.equal(before.fields.corrects, undefined);
+  assert.deepEqual(shapeGaps("correction", before), [], "and nothing is owed for it");
 });
 
 
@@ -575,7 +574,7 @@ test("the report prints the count of a repeating kind on the line above its reco
   const at = (n) => `2026-09-09T06:0${n}:00.000Z`;
   project.comments["held-uuid"] = [
     { createdAt: at(1), body: render("correction", { moved: "criterion 9", why: "it named the wrong file" }) },
-    { createdAt: at(2), body: render("baseline", { gate: "npm run check", result: "green", commit: "43b811e", scope: "whole" }) },
+    { createdAt: at(2), body: render("confirmation", { is: "it holds", where: ["a.mjs"], finding: "holds" }) },
     { createdAt: at(3), body: render("correction", { moved: "criterion 20", why: "it read as two outcomes" }) },
   ];
   const run = await ranAsync(FORGE, ["resume", "ISS-5", "--report"], ENV);
@@ -587,6 +586,6 @@ test("the report prints the count of a repeating kind on the line above its reco
   assert.match(lines[count + 1], /^Correction {2}\(2026-09-09T06:01/u, "immediately above the oldest of them");
   assert.match(lines[count + 2], /^ {2}What moved: criterion 9$/u, "which is the one the report used to drop");
   assert.match(run.stdout, /^ {2}What moved: criterion 20$/mu, "and the newest is still there, under it");
-  assert.doesNotMatch(run.stdout, /^1 Baseline record/mu, "a kind holding one record gets no count line");
-  assert.match(run.stdout, /^Baseline {2}\(/mu, "and is printed on its own, as it always was");
+  assert.doesNotMatch(run.stdout, /^1 Confirmation record/mu, "a kind holding one record gets no count line");
+  assert.match(run.stdout, /^Confirmation {2}\(/mu, "and is printed on its own, as it always was");
 });

@@ -1,10 +1,9 @@
 /* A red set searched for the members at fault with the fewest gates: attribution first, which costs
-   none, then halves of the suspects, each gated as its own candidate on the one pin. Nothing here
-   writes a checkpoint: what it finds is returned, and written by the caller only once every gate it
-   needed has answered, so a gate place declined anywhere in it leaves every member the landing's
-   turn. docs/cli/the-candidate.md. */
-import { gatesOn, runnersOf } from "../../gates/machine.mjs";
-import { parallelRuns } from "../../../plugin/src/resolve/settings.mjs";
+   none, then halves of the suspects, each gated as its own candidate on the one pin and one after the
+   other, since a landing's gate is the one whole gate running. Nothing here writes a checkpoint: what
+   it finds is returned, and written by the caller only once every gate it needed has answered, so a
+   gate that could not run anywhere in it leaves every member the landing's turn.
+   docs/cli/the-candidate.md. */
 import { chainOver, treeOf } from "./candidate.mjs";
 import { dropRoom } from "../rooms/room.mjs";
 import { attributed, casesOf } from "./fault.mjs";
@@ -12,43 +11,26 @@ import { gateOver } from "./gated.mjs";
 
 const keysIn = (members) => members.map((one) => one.key).join(" ");
 
-/* Two places free under the number this project declares: an undeclared number is a project that has
-   not decided, so its halves go one after the other. */
-const roomForTwo = (root) => {
-  const declared = parallelRuns().value;
-  if (declared === null) return false;
-  const running = gatesOn(runnersOf(root));
-  return running !== null && declared - running.length >= 2;
-};
-
 class Unbuildable extends Error {}
 
 /** The search, from the combined candidate's red reading: `{ green, back, gates, rounds, kept,
  *  candidate }`, `kept` being the green gate that read the tree the members left make, and its room
  *  the one room left standing. `{ unbuildable }` where a subset does not merge on the pin, and
- *  `{ unread }` where a gate declined its place or never ran, each with every room dropped and the
+ *  `{ unread }` where a gate never ran, each with every room dropped and the
  *  `gates` spent before it. */
 export const searched = async ({ at, ctx, first }) => {
-  const { root, ms } = ctx;
+  const { root } = ctx;
   const found = { green: [], back: [], gates: 1, rounds: 0, trees: new Map() };
   const rooms = [];
-  const gate = async (members, label = null) => {
+  const gate = async (members) => {
     const candidate = chainOver(root, at.pin, members.map((one) => one.landing.head));
     if (!candidate) throw new Unbuildable(keysIn(members));
-    const read = await gateOver({ root, candidate, keys: keysIn(members), minutes: ms / 60_000, label });
+    const read = await gateOver({ root, candidate, keys: keysIn(members) });
     rooms.push(read.room);
     found.gates += 1;
-    if (read.declined || read.error) throw Object.assign(new Error("no reading"), { read });
+    if (read.error) throw Object.assign(new Error("no reading"), { read });
     if (read.green) found.trees.set(read.tree, read);
     return read;
-  };
-  /* Settled both before either is read, so a half that declined leaves no gate of the other running. */
-  const both = async (one, other) => {
-    if (!roomForTwo(root)) return [await gate(one), await gate(other)];
-    const reads = await Promise.allSettled([gate(one, keysIn(one)), gate(other, keysIn(other))]);
-    const failed = reads.find((read) => read.status === "rejected");
-    if (failed) throw failed.reason;
-    return reads.map((read) => read.value);
   };
   const red = async (members, reading) => {
     if (members.length === 1) {
@@ -69,7 +51,8 @@ export const searched = async ({ at, ctx, first }) => {
     const half = Math.ceil(fall.suspects.length / 2);
     const [low, high] = [fall.suspects.slice(0, half), fall.suspects.slice(half)];
     found.rounds += 1;
-    const [lowRead, highRead] = await both(low, high);
+    const lowRead = await gate(low);
+    const highRead = await gate(high);
     if (lowRead.green && highRead.green) {
       found.back.push({ members: fall.suspects, reading, combination: true });
       return;

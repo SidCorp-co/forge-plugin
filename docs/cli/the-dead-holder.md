@@ -75,8 +75,8 @@ tree, and no tree is no reading.
 silence.** The key is `lease.workingRe` and the reason it is the project's rather than a default
 here is that no sentence naming the command holds in the next repository: the thing worth refusing a
 second run over is whatever that repository pushes and releases with. Reading every process in the
-tree instead was measured and does not stand — it refuses a run's own baseline gate, which the
-method starts before the claim is taken, and a refusal that fires on the ordinary case is cleared by
+tree instead was measured and did not stand — it refused a run's own gate, which the method then
+started before the claim was taken, and a refusal that fires on the ordinary case is cleared by
 typing `--stopped` at nothing, which spends the one flag carrying a caller's judgement. So the
 declaration names what costs something to run twice and never the gate, and the reading is off
 without it: the lease is decided by the record alone, exactly as before the key existed. What a

@@ -52,7 +52,7 @@ a correction beside any of them.
 - **AC-04-1-5** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "a criterion named twice in one write is refused, and nothing is posted"
   IF one write opens two blocks on the same value THEN the CLI SHALL refuse the write and SHALL name
   that value.
-- **AC-04-1-6** · Rev: 1 · Proof: tools/test/flow/published-baseline.test.mjs "a citation for a commit nothing published is refused at the write, and the refusal names the fresh run"
+- **AC-04-1-6** · Rev: 1 · Status: retired (ISS-3184)
   IF a baseline cites a recorded gate result for a commit no published whole-tree result names THEN
   the CLI SHALL refuse the write and SHALL name the command that measures a fresh baseline, so that
   the authority a citation rests on is established where the payload is made rather than believed
@@ -77,7 +77,7 @@ a correction beside any of them.
   WHERE a verdict value records that somebody exercised the criterion, the CLI SHALL owe evidence at
   the write and an attachment under a declared screen change alike, so that no value carries one
   obligation and is excused the other.
-- **AC-04-1-12** · Rev: 2 · Proof: tools/test/flow/published-baseline.test.mjs "a published citation written from a moved or dirty checkout is refused before anything is posted, and its route is taken"
+- **AC-04-1-12** · Rev: 2 · Status: retired (ISS-3184)
   IF a baseline cites a published gate result from a checkout whose clean head is not the commit it
   cites THEN the CLI SHALL refuse the write, SHALL name both commits and SHALL give the command that
   writes the same baseline, under the run the refused write holds, from a checkout standing at the
@@ -177,6 +177,14 @@ consult the write asks for, or the round it saves is the round it spends.
   IF a criteria write leaves out a number the field holds, or its set does not open at one, THEN the CLI SHALL refuse the write unless the caller asks for the replacement, and SHALL name both counts and each number the write would drop.
 - **AC-04-5-8** · Rev: 1 · Proof: plugin/test/flow/record/criteria/whole-set.test.mjs "--replace stores a set that drops held numbers, and stderr names the counts and what was dropped"
   WHEN a criteria write lands THEN the CLI SHALL say how many criteria the field held and how many it holds now, and SHALL name each number the write dropped.
+- **AC-04-5-9** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "a criterion that the declared gate passes is refused by number, with what to write instead"
+  IF a criterion's outcome is the project's declared gate command passing THEN the CLI SHALL refuse the write, SHALL name that criterion by its number, and SHALL say that a criterion names the outcome the issue changes and the case that shows it, because the landing gates the whole tree on every change.
+- **AC-04-5-10** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "the generic forms of the whole suite passing are refused whatever the project declared"
+  IF a criterion's outcome is the whole gate or the whole suite passing, said in so many words THEN the CLI SHALL refuse the write whether or not the project declares a gate command.
+- **AC-04-5-11** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "a criterion about the gate's own behaviour, or one file's suite, is written"
+  WHERE a criterion names the gate's own behaviour, or the suite of one file, as its outcome, the CLI SHALL write it.
+- **AC-04-5-12** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "where the project declares no gate, its command passing is not read as the gate"
+  WHERE the project declares no gate command, the CLI SHALL read no other command passing as the gate passing.
 
 ### UC-04-6 — A report is assembled, never remembered
 

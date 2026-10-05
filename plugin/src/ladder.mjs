@@ -93,7 +93,6 @@ const readsWord = `${SPELLED[REVIEW_READS] ?? REVIEW_READS} review consult${REVI
 const LIGHTER_ROUNDS = [
   "Phase 0 is the brief alone, where no source of it is stale",
   `${readsWord} — the whole-set read at the replayed head, and no recheck after a clean pass — counted apart from ${WRITE_READ}`,
-  "one whole run of the gate on the clean path, the ship's, so no commit spends one and none is left after it — the gate is what this line bounds, and a checker the gate contains is not the gate, so those are spent as often as they answer",
 ];
 
 export const SPARES = {
@@ -130,7 +129,7 @@ export const flagsOf = (fields) => {
   return PARSED.get(fields);
 };
 
-/** Whether the plan declares that the change lands no file in the repository: the one reading of it, for the row below that waives the baseline and for the `developed` check that takes the no-file record instead of the scope (ISS-2384). Only a `yes` grants it, so an empty diff is never read as one. */
+/** Whether the plan declares that the change lands no file in the repository: the one reading of it, for the row below that waives the branch and for the `developed` check that takes the no-file record instead of the scope (ISS-2384). Only a `yes` grants it, so an empty diff is never read as one. */
 export const landsNoFile = (fields) => flagsOf(fields).nofile === "yes";
 
 /* One rung, not a jump to the top: a person will look at this is one reason among several. */
@@ -144,14 +143,14 @@ export const rungOf = (fields) => {
   return RUNGS[Math.max(climbed, ...climbedTo(moved).map(heightOf))];
 };
 
-/* A payload a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the predicate over the fields that grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
+/* A demand a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the predicate over the fields that grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
 const DECLARED_AWAY = [
   {
     status: "in_progress",
     declared: landsNoFile,
-    kind: "baseline",
-    drops: "a baseline, and the branch the worklog would name",
-    because: "the plan declares the change lands no file, so there is no tree for a gate to measure or a branch to cut",
+    kind: "branch",
+    drops: "the branch the worklog would name",
+    because: "the plan declares the change lands no file, so there is no tree to cut a branch from",
   },
 ];
 

@@ -221,7 +221,8 @@ test("finish leaves the tree a gate of its own is still judging, and stops no pr
   assert.equal(run.status, 1, run.stdout);
   assert.ok(existsSync(tree), "a tree with a gate of its own still running was removed");
   assert.ok(run.stderr.includes(`pid ${gate.pid}`), run.stderr);
-  assert.match(run.stderr, /clear it: node .*gates\.mjs --wait/u, run.stderr);
+  assert.match(run.stderr, /clear it: timeout \d+ tail --pid=\d+ -f \/dev\/null/u, run.stderr);
+  assert.ok(run.stderr.includes(`tail --pid=${gate.pid} -f /dev/null`), run.stderr);
   assert.equal(gate.exitCode, null, "the gate this call reported was stopped by it");
   gate.kill();
 });

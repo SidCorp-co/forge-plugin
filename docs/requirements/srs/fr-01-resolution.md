@@ -365,9 +365,9 @@ the worst place to keep an example of the one it replaces.
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL print
   that number, SHALL name the project's own file as where it was read, and SHALL neither read nor
   write that number in the account's configuration.
-- **AC-01-5-8** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "a project that declares no number of runs is told the key is unset and what follows from that"
+- **AC-01-5-8** · Rev: 3 · Proof: plugin/test/tools/doctor.test.mjs "a project that declares no number of runs is told the key is unset and what follows from that"
   IF the project declares no number of runs THEN the resolution report SHALL say the key is unset
-  and SHALL say what follows for a wave and for a gate.
+  and SHALL say what follows for a wave.
 - **AC-01-5-13** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a declared number is reported as the whole project's at once, not as one this session may take afresh"
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL say on
   that same line that the number is the whole project's at once whoever dispatched the runs, so that
@@ -388,27 +388,34 @@ the worst place to keep an example of the one it replaces.
   IF a setting a flow asks for is sent and the resource will not say what it now holds THEN the CLI
   SHALL refuse naming that setting unconfirmed beside the call that reads it, and SHALL leave the
   flow it wrote standing rather than putting back a state the unread half may contradict.
-- **AC-01-5-14** · Rev: 2 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check is printed with the most its clock may be and where that figure was read"
+- **AC-01-5-14** · Rev: 2 · Status: retired (ISS-3184)
   WHERE the project declares a command the reviewer may run, the resolution report SHALL print that
   command with the most its clock may ever be and the source that figure was read from, said as the
   most rather than as the clock one call hands it, the two being one reading: a command a project
   declares and a clock it cannot see are a call spent for nothing.
-- **AC-01-5-15** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock that is not a whole number above zero is named rather than taken"
+- **AC-01-5-15** · Rev: 1 · Status: retired (ISS-3184)
   IF the project sets that clock to anything but a whole number of milliseconds above zero THEN the
   resolution report SHALL name the value it will not take beside the clock actually in force.
 - **AC-01-5-16** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a project declaring no check is one the report says nothing about"
   IF the project declares no such command THEN the resolution report SHALL print no line about it at
   all, the reviewer being given no such tool where nothing was declared.
-- **AC-01-5-17** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "recorded stops of that same command name each one's own checkout, and a larger clock clears them"
+- **AC-01-5-17** · Rev: 1 · Status: retired (ISS-3184)
   WHERE this machine's consult log records that same command stopped at or above the clock now in
   force, inside a window the report states, the resolution report SHALL say how many and name the
   newest one's own checkout by the time each record carries rather than by the order they were
   written, and SHALL count no record stopped under that clock, a record answering for the clock it
   was taken at.
-- **AC-01-5-18** · Rev: 2 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check clock past what a consult can spare is a fault the report names"
+- **AC-01-5-18** · Rev: 2 · Status: retired (ISS-3184)
   IF the project declares that clock above the most a consult's own budget can spare a check THEN
   the resolution report SHALL report it a fault, a clock reaching what the caller waits in one call
   costing that call even when the clock fires.
+- **AC-01-5-46** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check is printed as the checks a consult names, and where it was read"
+  WHERE the project declares a check, the resolution report SHALL print it as the checks a consult
+  names to the reviewer where the caller names none, with the source it was read from and no clock,
+  the reviewer running nothing itself.
+- **AC-01-5-47** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock left in the project file is named as read by nothing"
+  IF the project's configuration still holds a clock for a check THEN the resolution report SHALL
+  report it as read by nothing, naming the file it is in.
 
 - **AC-01-5-19** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "each key the entry now holds is printed beside the file it was read back from"
   WHEN a project key is read THEN the CLI SHALL read it from this machine's own record of that

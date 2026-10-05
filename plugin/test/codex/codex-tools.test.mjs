@@ -1,20 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { TOOLS, checkCommand, checkState, runTool, scopeFor, specFor, toolsFor } from "../../src/codex/codex-tools.mjs";
+import { TOOLS, runTool, scopeFor, specFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { reviewSet } from "../../src/codex/codex-set.mjs";
-import { AROUND_CHECK_MS, CHECK_MS_SPARED } from "../../src/resolve/settings.mjs";
-import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
-import { tapOf } from "./check/tap-of.mjs";
-import { patience } from "../patience.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
-/* The refusal below names where this machine keeps the project's record, and reading that path off
-   the developer's own configuration home would make the case the machine's rather than the suite's. */
+/* Whatever a case resolves about a project is the suite's, never the developer's own configuration home. */
 process.env.XDG_CONFIG_HOME = tempRoom("codex-tools-home-");
-const ENTRY = projectEntry(process.cwd(), process.env.XDG_CONFIG_HOME);
 
 const repo = () => {
   const dir = tempRoom("codex-check-");
@@ -185,125 +180,17 @@ test("a checkout's base is resolved once, whatever the ref does after", () => {
   assert.equal(divergedFrom(root, base), first, "and the base this consult diffs from is the one it started with");
 });
 
-test("run_check is offered only where the checkout named a command", async () => {
+/* The landing gates every change, so a reviewer running the project's gate measures nothing the
+   landing will not and spends the consult's clock on it: no check is offered, whatever a checkout names. */
+test("a consult's tool list carries no run_check, whatever the checkout names", async () => {
   const root = repo();
   assert.deepEqual(toolsFor(scopeFor(root)), TOOLS);
-  const scope = scopeFor(root, [], { command: "true" });
-  assert.equal(toolsFor(scope).at(-1).name, "run_check");
-  assert.equal(toolsFor(scope).length, TOOLS.length + 1);
-  assert.match((await runTool(scopeFor(root), "run_check", {})).text, /configures no `codex.check`/u);
-  assert.match(roleFor(["tech"], { check: true }), /`run_check` runs this checkout's own check command, once/u);
-  assert.doesNotMatch(roleFor(["tech"]), /run_check/u);
-});
-
-test("run_check runs the named command once, from the checkout, and reports exit and tail", async () => {
-  const root = repo();
-  const scope = scopeFor(root, [], { command: "echo start; ls a.txt; echo oops >&2; exit 3" });
-  const first = await runTool(scope, "run_check", {});
-  assert.equal(first.error, undefined);
-  assert.match(first.text, /^`echo start; .*` exited 3\n/u);
-  assert.match(first.text, /start\na\.txt\noops/u, "stdout then stderr, run from the checkout");
-  assert.doesNotMatch(first.text, /failing case\(s\)/u, "a red naming no case reads as it always did");
-  const again = await runTool(scope, "run_check", {});
-  assert.equal(again.error, true);
-  assert.match(again.text, /runs once per consult, and it has run/u);
-});
-
-/* The window is the end of the stream and a suite's `not ok` is thousands of lines above it: of the
-   1,047,557 characters this repository's own check prints over 4,195 top-level subtests, 23 start
-   inside the last 6,000, so one red in 182 could name its case and the rest arrived as a count
-   (ISS-1901). The tail stays; what goes above it is selected. */
-test("a red check names the cases its own output named, above the tail", async () => {
-  const root = repo();
-  const { out } = tapOf(`test("the case that went red", () => { throw new Error("the assertion that failed"); });
-`, "run-check-red-");
-  const filler = `seq 1 4000; cat ${JSON.stringify(join(root, "s.tap"))}`;
-  writeFileSync(join(root, "s.tap"), out);
-  const red = await runTool(scopeFor(root, [], { command: `${filler}; exit 1` }), "run_check", {});
-  assert.equal(red.error, undefined);
-  const [said, count, name, ...rest] = red.text.split("\n");
-  assert.match(said, /` exited 1$/u);
-  assert.equal(count, "1 failing case(s) its output named:");
-  assert.equal(name, "  the case that went red");
-  assert.match(rest.join("\n"), /^ {4}location: .*s\.test\.mjs:2:1\n {4}failureType: testCodeFailure\n {4}error: the assertion that failed\n\n…\n/u,
-    "the case, then the tail it would have been buried in");
-  assert.match(red.text.split("\n").at(-1), /^# duration_ms /u, "and the tail is still the end of the stream");
-});
-
-test("the check runs under an environment this CLI composed, without the run that consulted it", async () => {
-  const root = repo();
-  const room = tempRoom("run-check-env-");
-  const was = { session: process.env.FORGE_SESSION_ID, tmp: process.env.TMPDIR };
-  process.env.FORGE_SESSION_ID = "the-run-that-consulted";
-  process.env.TMPDIR = room;
-  try {
-    const said = (await runTool(scopeFor(root, [], {
-      command: `echo "session=[\${FORGE_SESSION_ID-absent}] tmpdir=[$TMPDIR]"`,
-    }), "run_check", {})).text;
-    assert.match(said, /session=\[absent\]/u, "a check is the project's command, not the run that consulted");
-    assert.ok(said.includes(`tmpdir=[${room}]`), "and the caller's own scratch root is where its leftovers go");
-  } finally {
-    if (was.session === undefined) delete process.env.FORGE_SESSION_ID; else process.env.FORGE_SESSION_ID = was.session;
-    if (was.tmp === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = was.tmp;
-  }
-});
-
-test("run_check keeps only the tail of a long output and stops a run past its clock", async () => {
-  const root = repo();
-  const long = await runTool(scopeFor(root, [], { command: "seq 1 5000" }), "run_check", {});
-  assert.match(long.text, /^`seq 1 5000` exited 0\n…\n/u);
-  assert.ok(long.text.length < 6_200, "the tail is bounded");
-  assert.match(long.text, /\n5000$/u, "the end survives");
-  const pidfile = join(root, "child.pid");
-  const slow = await runTool(scopeFor(root, [], { command: `sleep 30 & echo $! > child.pid; wait`, ms: 300 }), "run_check", {});
-  assert.equal(slow.error, true);
-  assert.match(slow.text, /ran past 0\.3s and was stopped/u);
-  const child = Number(readFileSync(pidfile, "utf8").trim());
-  const alive = (pid) => { try { return execFileSync("ps", ["-o", "stat=", "-p", String(pid)]).toString().trim(); } catch { return ""; } };
-  const t0 = Date.now();
-  while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < patience(2000)) execFileSync("sleep", ["0.05"]);
-  assert.ok(!alive(child) || alive(child).startsWith("Z"), `the runner the shell started (${child}) went with it`);
-});
-
-/* The five words a round can end on, each read off the scope the tool ran against. `declined` and
-   `none` are the pair the log could not tell apart at all, and `failed` is the one an ordinary
-   non-zero exit must not reach: a check that answered is `ran` whatever it answered (ISS-1898). */
-test("the scope carries which state the declared check left the round in", async () => {
-  const root = repo();
-  assert.equal(checkState(scopeFor(root)), "none", "a checkout that declared no command");
-  assert.equal(checkCommand(scopeFor(root)), null);
-  const offered = scopeFor(root, [], { command: "true" });
-  assert.equal(checkState(offered), "declined", "offered and never called is not the same as never offered");
-  assert.equal(checkCommand(offered), "true", "and which command was declined is on the scope either way");
-
-  const red = scopeFor(root, [], { command: "exit 3" });
-  await runTool(red, "run_check", {});
-  assert.equal(checkState(red), "ran", "a check that answered is `ran` whatever it exited");
-
-  const stopped = scopeFor(root, [], { command: "sleep 30", ms: 300 });
-  await runTool(stopped, "run_check", {});
-  assert.equal(checkState(stopped), "cut");
-
-  const burst = scopeFor(root, [], { command: "yes | head -c 20000000" });
-  await runTool(burst, "run_check", {});
-  assert.equal(checkState(burst), "failed", "a command that gave no answer at all is not a clock and not a run");
-
-  /* The second call is refused before it spawns, so what the first reached stands. */
-  await runTool(red, "run_check", {});
-  assert.equal(checkState(red), "ran");
-});
-
-test("a run the buffer ends takes its process group with it too", async () => {
-  const root = repo();
-  const scope = scopeFor(root, [], { command: "sleep 30 & echo $! > child.pid; yes | head -c 20000000; wait" });
-  const out = await runTool(scope, "run_check", {});
-  assert.equal(out.error, true);
-  assert.match(out.text, /could not finish: .*ENOBUFS/u);
-  const child = Number(readFileSync(join(root, "child.pid"), "utf8").trim());
-  const alive = (pid) => { try { return execFileSync("ps", ["-o", "stat=", "-p", String(pid)]).toString().trim(); } catch { return ""; } };
-  const t0 = Date.now();
-  while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < patience(2000)) execFileSync("sleep", ["0.05"]);
-  assert.ok(!alive(child) || alive(child).startsWith("Z"), `the runner (${child}) went with the shell`);
+  assert.equal(TOOLS.some((one) => one.name === "run_check"), false);
+  const named = toolsFor(scopeFor(root, [], { issues: ["ISS-1"] })).map((one) => one.name);
+  assert.equal(named.includes("run_check"), false, "nor beside the tools a scope adds");
+  assert.equal((await runTool(scopeFor(root), "run_check", {})).text, "no tool named run_check",
+    "and a reviewer asking for it is answered as for any tool that is not there");
+  assert.doesNotMatch(roleFor(["tech"]), /run_check/u, "the prompt names no such tool");
 });
 
 /* A reviewer shown a diff from a merge-base and handed the whole checkout at HEAD when it asked for
@@ -320,7 +207,7 @@ test("git_diff with neither path nor base answers the diff this consult was give
   git("commit", "-qm", "two");
   writeFileSync(join(root, "b.txt"), "also moved\n");
 
-  const anchored = scopeFor(root, [], null, { anchor: first, files: ["a.txt"] });
+  const anchored = scopeFor(root, [], { anchor: first, files: ["a.txt"] });
   const own = await runTool(anchored, "git_diff", {});
   assert.equal(own.error, undefined);
   assert.match(own.text, new RegExp(`from ${first.slice(0, 7)}`, "u"), "and it names the commit it diffed from");
@@ -336,13 +223,13 @@ test("git_diff with neither path nor base answers the diff this consult was give
   assert.match(loose.text, /b\.txt/u, "anchored to nothing, the whole checkout against HEAD as before");
   assert.equal(/from /u.test(loose.text), false);
 
-  const quiet = scopeFor(root, [], null, { anchor: "HEAD", files: ["a.txt"] });
+  const quiet = scopeFor(root, [], { anchor: "HEAD", files: ["a.txt"] });
   assert.match((await runTool(quiet, "git_diff", {})).text, /no change against HEAD in the file\(s\) this consult named/u);
 
   /* `git diff` never lists a file git has not been told about, and this CLI deliberately discovers
      one and sends its whole text as the change: "no change" there is the wrong answer. */
   writeFileSync(join(root, "new.txt"), "every line of it is the change\n");
-  const withNew = scopeFor(root, [], null, { anchor: first, files: ["a.txt", "new.txt"] });
+  const withNew = scopeFor(root, [], { anchor: first, files: ["a.txt", "new.txt"] });
   const named = await runTool(withNew, "git_diff", {});
   assert.match(named.text, /new\.txt/u, "the untracked file is named rather than passed over");
   assert.match(named.text, /untracked, so git shows no diff for (?:it|them)/u, "and why it carries none");
@@ -350,48 +237,10 @@ test("git_diff with neither path nor base answers the diff this consult was give
 
   /* A scoped diff that will not run is answered as that, never by widening to the whole checkout —
      which is the scope the anchor exists to hold. */
-  const bad = scopeFor(root, [], null, { anchor: "HEAD", files: ["../outside.txt"] });
+  const bad = scopeFor(root, [], { anchor: "HEAD", files: ["../outside.txt"] });
   const failed = await runTool(bad, "git_diff", {});
   assert.match(failed.text, /^git diff failed: /u, "the scoped command's own answer");
   assert.equal(/b\.txt/u.test(failed.text), false, "and not the tree it was asked not to hand over");
-});
-
-/* The refusal is the whole of what the run that paid for the stopped call is handed, so it carries
-   the clock, where the clock came from and a key that can move it: the two sources read differently
-   because a project's own declaration is raised by its own key and a room a budget spared is not
-   (ISS-1882, ISS-2108). Naming the key that cannot move it is the advice that costs a run its next
-   consult as well, which is why a key that cannot is what this asserts against. */
-test("a check stopped at its clock names the clock, where it was read, and a key that can move it", async () => {
-  const root = repo();
-  const slow = { command: "sleep 30", ms: 200 };
-  const set = await runTool(scopeFor(root, [], { ...slow, msFrom: ENTRY }), "run_check", {});
-  assert.equal(set.error, true);
-  assert.match(set.text, new RegExp(
-    `ran past 0\\.2s and was stopped\\. That clock is \`codex\\.checkMs\` in ${escaped(ENTRY)}\\. `
-    + "Raise it, or narrow `codex\\.check` to what fits 0\\.2s$", "u"), set.text);
-  const fell = await runTool(scopeFor(root, [], { ...slow, msFrom: CHECK_MS_SPARED() }), "run_check", {});
-  assert.match(fell.text, new RegExp(
-    `That clock is ${escaped(CHECK_MS_SPARED())}, which \`codex\\.checkMs\` cannot raise past\\. `
-    + "Narrow `codex\\.check` to what fits 0\\.2s, or raise `codex\\.budgetMs` where the caller can "
-    + "wait longer than one call$", "u"), fell.text);
-  assert.equal(/Raise it/u.test(fell.text), false,
-    "and it does not offer the project's own clock, which cannot reach past the room a budget spared");
-});
-
-/* `spawnSync` reads a timeout of 0 as no timeout at all, so the one arithmetic that must not floor
-   to a number is this one: a consult with nothing left to spend would otherwise start the single
-   check no clock can stop, on a budget that has already run out (ISS-2108). */
-test("a consult with nothing left to spare refuses the check rather than starting one no clock can stop", async () => {
-  const root = repo();
-  const spent = scopeFor(root, [], { command: "sleep 30", ms: 200_000, msFrom: ENTRY },
-    { by: Date.now() + AROUND_CHECK_MS - 1 });
-  const none = await runTool(spent, "run_check", {});
-  assert.equal(none.error, true);
-  assert.match(none.text, /^`sleep 30` was not started: this consult's 600s budget has nothing left/u, none.text);
-  assert.match(none.text, /Raise `codex\.budgetMs` where the caller can wait longer than one call$/u,
-    "and the refusal names what clears it, a clock in the project reaching none of this");
-  assert.equal(checkState(spent), "failed", "the state a check that could not start leaves the round in");
-  assert.equal(/ran past/u.test(none.text), false, "and it is not reported as a command that was stopped");
 });
 
 /* A citation names a clause by identifier and never by path, so a reviewer holding only a file
@@ -424,7 +273,7 @@ const treed = () => {
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const verb = (root, id) => spawnSync(FORGE, ["spec", id], { cwd: root, encoding: "utf8", env: process.env });
 // The consult builds its scope this way: whether a tree is kept is asked before the scope is made.
-const specScope = async (root) => scopeFor(root, [], null, { spec: await specFor(root) });
+const specScope = async (root) => scopeFor(root, [], { spec: await specFor(root) });
 
 test("read_spec is offered only where the checkout under review keeps a requirements tree", async () => {
   assert.equal(toolsFor(await specScope(repo())).some((one) => one.name === "read_spec"), false);

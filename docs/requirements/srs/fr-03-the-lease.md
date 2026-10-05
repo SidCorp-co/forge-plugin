@@ -567,6 +567,17 @@ a wait no party can end.
   WHEN a later landing is written over a finished checkpoint the merge record proved THEN the CLI SHALL
   read whether it moves forward from the commit that record names rather than from the captured head,
   because after a squash every later repair carries the squash and never the head.
+- **AC-03-6-41** · Rev: 1 · Proof: plugin/test/flow/landing/review-ready.test.mjs "a ready capture whose review judged another head is refused, naming both"
+  IF the latest review on the record is absent, is not approved, or judged a head other than the one a
+  ready capture hands over THEN the CLI SHALL refuse the capture before it writes the checkpoint,
+  SHALL name what the record says instead, and SHALL name the review that clears it and the capture
+  sent again, because the landing reads that review only after it has spent its gate.
+- **AC-03-6-42** · Rev: 1 · Proof: plugin/test/flow/landing/review-ready.test.mjs "a ready capture with an approved review of the head it captures writes the checkpoint"
+  WHEN the latest review is an approved one of the head the capture hands over THEN the CLI SHALL write
+  the ready checkpoint at that head.
+- **AC-03-6-43** · Rev: 1 · Proof: plugin/test/flow/landing/review-ready.test.mjs "the route names the consult where a reviewer is configured, and forge doctor where none is"
+  WHERE no reviewer is configured on the machine, the refusal SHALL name where one is configured
+  rather than a consult that cannot run.
 
 ## Business rules enforced
 

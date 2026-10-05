@@ -21,8 +21,6 @@ import { PIN_FIELDS } from "./coolify/config.mjs";
 import { FLOW_SLUGS } from "../../guides/flow.mjs";
 import { ENUM_KEYS, valuesOf } from "../../resolve/project/enum-keys.mjs";
 import {
-  CHECK_MS_AT_MOST,
-  CHECK_MS_TAKES,
   Refusal,
   projectFileToWrite,
   fail,
@@ -31,7 +29,6 @@ import {
   fromProject,
   OWED_DOORS,
   RUNS_TAKES,
-  checkMsOf,
   slugRouteHere,
   chosen,
   testsProblem,
@@ -226,16 +223,6 @@ const codexRefusal = (given) => {
   if (given.check !== undefined && aString("codex.check", given.check)) {
     return aString("codex.check", given.check);
   }
-  const clock = checkMsOf(given.checkMs);
-  if (clock.unknown !== undefined) {
-    return said("codex.checkMs", CHECK_MS_TAKES, given.checkMs);
-  }
-  /* The second of this key's two refusals, and the one the shape alone cannot reach: a number of
-     exactly the form asked for that no consult can honour is written, read past, and never used, so
-     it is refused where it is typed rather than reported by whichever caller happens to notice. */
-  if (clock.over !== undefined) {
-    return said("codex.checkMs", CHECK_MS_AT_MOST(), given.checkMs);
-  }
   /* A model is named or the proposal is off, so a blank is refused: written, it would read as on and ask nothing. */
   for (const key of ["complexityModel", "priorityModel"]) {
     const refused = given[key] === undefined ? null : aString(`codex.${key}`, given[key]);
@@ -314,7 +301,7 @@ export const PROJECT_KEYS = {
   },
   deps: { paths: { "*": "text" }, judge: (given) => eachString("deps", given) },
   codex: {
-    paths: { pathRe: "text", check: "text", checkMs: "number", owed: "list", consult: "text", angles: "list",
+    paths: { pathRe: "text", check: "text", owed: "list", consult: "text", angles: "list",
       complexityModel: "text", priorityModel: "text" },
     judge: codexRefusal,
   },

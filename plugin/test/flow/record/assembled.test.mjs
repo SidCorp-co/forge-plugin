@@ -63,12 +63,12 @@ test("every correction, park and question is kept and counted, and a kind that c
   const { latest, repeated } = assemble([
     said("correction", { moved: "criterion 9", why: "it named the wrong file" }, 1),
     said("park", { kind: "paused", why: "the wave stopped", evidence: [] }, 2),
-    said("baseline", { gate: "npm run check", result: "green", commit: "6c5b128", scope: "whole" }, 3),
+    said("confirmation", { is: "the first reading", where: ["a.mjs"], finding: "holds" }, 3),
     said("question", { reading: ["the flag", "the report"], to: "the author" }, 4),
     said("correction", { moved: "criterion 20", why: "it read as two outcomes" }, 5),
     said("question", { reading: ["one line", "one record"], to: "the author" }, 6),
     said("park", { kind: "crashed", why: "the shell died", evidence: [] }, 7),
-    said("baseline", { gate: "npm run check -- --full", result: "green", commit: "a862409", scope: "whole" }, 8),
+    said("confirmation", { is: "the second reading", where: ["b.mjs"], finding: "holds" }, 8),
   ], []);
   const kept = (kind, field) => (repeated[kind] ?? []).map((one) => one.record.fields[field]);
   assert.deepEqual(kept("correction", "moved"), ["criterion 9", "criterion 20"], "oldest first");
@@ -76,8 +76,8 @@ test("every correction, park and question is kept and counted, and a kind that c
   assert.deepEqual(kept("park", "kind"), ["paused", "crashed"]);
   assert.equal(latest.park.record.fields.kind, "crashed", "and advance still reads the newest park, which is what it read before");
   assert.equal(latest.correction.record.fields.moved, "criterion 20", "as the brief's headline still reads the newest correction");
-  assert.equal(repeated.baseline, undefined, "a kind a later one supersedes keeps no list");
-  assert.equal(latest.baseline.record.fields.commit, "a862409", "and is read back as the later of the two");
+  assert.equal(repeated.confirmation, undefined, "a kind a later one supersedes keeps no list");
+  assert.equal(latest.confirmation.record.fields.is, "the second reading", "and is read back as the later of the two");
   assert.equal(heldSaid("correction", repeated.correction.length), "2 Correction records", "the count above the records");
   assert.equal(heldSaid("gap", 1), null, "and nothing above a kind holding one, where the count is the line itself");
 });

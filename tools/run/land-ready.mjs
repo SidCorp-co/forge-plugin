@@ -7,7 +7,6 @@ import { gitOut, REMOTE, stop, Stop } from "../checkout.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
 import { fetchedFor, tipSaid } from "./land-ready/branch.mjs";
-import { publishes } from "./publish.mjs";
 import { releaseOwes } from "./release/owed.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { versionAt } from "./landing.mjs";
@@ -357,7 +356,6 @@ const installStep = async (one) => {
         again: `${self} land-ready ${named}`, release: `${self} land-ready ${named}` });
       at.installing = false;
     }
-    publishes(at.room, base, release);
     await releaseOwes({ tree: at.room, self, landed: at.members.map((member) => changeOf(at, member)), gate: at.gate });
   }
   for (const member of at.members) await saveOn(member, { state: "installed" });

@@ -28,16 +28,15 @@ const HEADLINE_CHARS = 200;
 const HEADLINE = {
   confirmation: ["is"],
   decision: ["decision"],
-  baseline: ["result"],
   review: ["outcome", "commit"],
   correction: ["moved", "why"],
   park: ["why"],
   finding: ["seen"],
   triage: ["outcome"],
 };
-/* The review and the baseline in lane order after the decision, because a run resuming at
-   `in_progress` needs the head that was judged and the gate result before anything else (ISS-47). */
-const LATEST = ["confirmation", "decision", "baseline", "review", "correction", "finding", "triage"];
+/* The review in lane order after the decision, because a run resuming at `in_progress` needs the
+   head that was judged before anything else (ISS-47). */
+const LATEST = ["confirmation", "decision", "review", "correction", "finding", "triage"];
 const JOIN = " — ";
 
 const flat = (one) => String(Array.isArray(one) ? one.join("; ") : one ?? "").replace(/\s+/gu, " ").trim();

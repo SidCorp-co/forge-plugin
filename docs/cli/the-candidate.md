@@ -83,7 +83,9 @@ member among n in about log2(n) gates. What makes two changes incompatible is so
 either touches, so a half red while its own halves are each green is a combination, handed back
 together with each builder told of the others — neither blamed alone, and neither landed over the
 other's head. The members left land as one candidate and one release, and the gate already spent on
-their tree is not spent again. A place declined anywhere in the search stops the landing with every
-checkpoint where it was, since the hand-backs are written only once every gate has answered.
+their tree is not spent again. The halves are gated one after the other and never two at once: a
+landing's gate is the one whole gate running, and two of them would be two whole gates on one
+machine. A gate that could not run anywhere in the search stops the landing with every checkpoint
+where it was, since the hand-backs are written only once every gate has answered.
 What a set may spend is said before its first gate. `redBatch: one-by-one` in the project's record
 keeps the old landing; `land-ready -h` names both.

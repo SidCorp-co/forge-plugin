@@ -121,10 +121,10 @@ test("the three worklog flags are on claim's own line, which is what the tree la
 
 /* The printed route answered `[]` and the CLI refused it: the value past the flag went unread (ISS-118). */
 test("a value the flag does not take fails, and the printed route is that case", () => {
-  const printed = "console.log(`  the baseline:  forge record baseline ISS-1 --scope partial`);";
+  const printed = "console.log(`  the review:  forge record review ISS-1 --outcome partial`);";
   assert.deepEqual(routeProblems(printed, held),
-    ["`forge record baseline --scope partial` is no value it takes: whole or part"]);
-  assert.deepEqual(routeProblems(printed.replace("partial", "whole"), held), [],
+    ["`forge record review --outcome partial` is no value it takes: approved or changes-requested"]);
+  assert.deepEqual(routeProblems(printed.replace("partial", "approved"), held), [],
     "and the value the usage does spell passes");
   assert.deepEqual(routeProblems("forge record verdict ISS-1 --verdict maybe", held),
     ["`forge record verdict --verdict maybe` is no value it takes: pass or fail or skipped or short"],

@@ -6,11 +6,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { failuresSaid } from "./check/output.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { AROUND_CHECK_MS, budgetMs, fromProject, refusing } from "../resolve/settings.mjs";
+import { refusing } from "../resolve/settings.mjs";
 
 const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
@@ -20,18 +19,8 @@ const GREP_LINES = 200;
 const TOOL_MS = 10_000;
 const SKIP = /(?:^|\/)(?:node_modules|\.git|dist|coverage|\.next)(?:\/|$)/;
 
-/* One command the checkout named, once, with a clock on it — not a shell. The version that could run
-   commands took eleven minutes and spawned its own subagents; a project's own `npm test` is the one
-   claim a reviewer keeps saying it could not verify. */
-const CHECK = {
-  name: "run_check",
-  description: "Run this checkout's own check command once — the one the project configured, not one you choose. Returns the exit code and the output's tail.",
-  input_schema: { type: "object", properties: {} },
-};
-
 export const toolsFor = (scope) => [
   ...TOOLS,
-  ...(scope?.check ? [CHECK] : []),
   ...(scope?.tracker ? [READ_ISSUE] : []),
   ...(scope?.spec ? [READ_SPEC] : []),
 ];
@@ -206,7 +195,7 @@ export const TOOLS = [
 
 /** The roots a model-initiated read may reach, and the single files allowed outside them. A reply
  *  that could read any path could read `~/.config/forge/config.json`, which holds a live token. */
-export const scopeFor = (root, extras = [], check = null, consult = null) => {
+export const scopeFor = (root, extras = [], consult = null) => {
   const roots = new Set([canonical(root)]);
   const files = new Set();
   for (const one of extras) {
@@ -221,14 +210,6 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
   return {
     roots: [...roots],
     files: [...files],
-    /* The consult's own deadline travels with the check, because the clock the spawn is handed is
-       what the budget has left at the call and not what the configuration allowed at the first one:
-       five calls can spend the room a static cap assumed was there, and `AbortSignal` cannot reach
-       into a synchronous spawn to take it back. A scope built without one is given a deadline from
-       here, so there is no path on which a check runs against no budget at all (ISS-2108). */
-    check: check
-      ? { ...check, root: canonical(root), used: false, by: consult?.by ?? Date.now() + budgetMs() }
-      : null,
     diff: consult?.anchor && rels.length ? { anchor: consult.anchor, rels } : null,
     tracker: trackerFor(consult?.issues ?? []),
     spec: consult?.spec ?? null,
@@ -259,85 +240,6 @@ const specRead = async (scope, input) => {
   return { text: `${clip(text, RESULT_CHARS - PAGE_ROOM)}; ask for a clause under ${clause.id} by its own `
     + `identifier, as ${clause.children.slice(0, 3).join(", ")}, for the rest.` };
 };
-
-const TAIL_CHARS = 6_000;
-
-/* What bounded the clock decides which key can move it, and naming a key that cannot is the advice
-   that costs a run its next consult too. Three answers: the project's own declaration, which its own
-   key raises; the ceiling a budget spares a check, which only a larger budget raises; and the room
-   this consult had left by the time the check was called, which no configuration reaches at all.
-   This string is the whole of what the run that paid for the stopped call is handed, and the seconds
-   stay first in it, being what the log's own readers parse back out. */
-const clockSaid = (check, ms) => {
-  if (ms < check.ms) {
-    return `the ${ms / 1000}s this consult had left of its ${budgetMs() / 1000}s budget once the `
-      + `${AROUND_CHECK_MS / 1000}s after a check was held back, so no clock in ${fromProject()} `
-      + `raises it. Narrow \`codex.check\` to what fits, or raise \`codex.budgetMs\` where the caller `
-      + `can wait longer than one call`;
-  }
-  return check.msFrom === fromProject()
-    ? `\`codex.checkMs\` in ${check.msFrom}. Raise it, or narrow \`codex.check\` to what fits ${ms / 1000}s`
-    : `${check.msFrom}, which \`codex.checkMs\` cannot raise past. Narrow \`codex.check\` to what fits `
-      + `${ms / 1000}s, or raise \`codex.budgetMs\` where the caller can wait longer than one call`;
-};
-
-// Composed, not inherited: a check is the project's command and not the run that consulted it.
-const checkEnv = () => {
-  const env = { ...process.env };
-  delete env.FORGE_SESSION_ID;
-  return env;
-};
-
-const checkOnce = (scope) => {
-  if (!scope.check) return { text: "this checkout configures no `codex.check`, so there is nothing to run", error: true };
-  if (scope.check.used) return { text: "run_check runs once per consult, and it has run", error: true };
-  /* Floored by a refusal and not by a number: `spawnSync` reads a timeout of 0 as no timeout at all,
-     so a consult with nothing left to spend would start the one check that can never be stopped. */
-  const room = scope.check.by - Date.now() - AROUND_CHECK_MS;
-  if (room <= 0) {
-    scope.check.used = true;
-    scope.check.outcome = "failed";
-    return { text: `\`${scope.check.command}\` was not started: this consult's ${budgetMs() / 1000}s `
-      + `budget has nothing left to spare it once the ${AROUND_CHECK_MS / 1000}s after a check is `
-      + `held back. Raise \`codex.budgetMs\` where the caller can wait longer than one call`, error: true };
-  }
-  /* The room bounds the clock whatever the check carried, a resolved figure or nothing at all, so a
-     check reaching here without one is bounded by the room rather than by the spawn's own absence of
-     a timeout. */
-  const ms = Math.min(scope.check.ms ?? room, room);
-  scope.check.used = true;
-  /* Its own process group: the clock kills the shell, and a runner the shell started would outlive
-     it — the orphan the rule exists to prevent — unless the group goes with it. */
-  const run = spawnSync("sh", ["-c", scope.check.command], {
-    cwd: scope.check.root,
-    encoding: "utf8",
-    env: checkEnv(),
-    timeout: ms,
-    maxBuffer: 16 << 20,
-    detached: true,
-  });
-  if (run.error) {
-    if (run.pid) try { process.kill(-run.pid, "SIGKILL"); } catch { /* already gone */ }
-    const stopped = run.error.code === "ETIMEDOUT";
-    scope.check.outcome = stopped ? "cut" : "failed";
-    const why = stopped
-      ? `ran past ${ms / 1000}s and was stopped. That clock is ${clockSaid(scope.check, ms)}`
-      : `could not finish: ${run.error.message}`;
-    return { text: `\`${scope.check.command}\` ${why}`, error: true };
-  }
-  scope.check.outcome = run.status === null && run.signal ? "failed" : "ran";
-  const out = `${run.stdout ?? ""}${run.stderr ?? ""}`;
-  const tail = out.length > TAIL_CHARS ? `…\n${out.slice(-TAIL_CHARS)}` : out;
-  const failed = failuresSaid(out);
-  return { text: `\`${scope.check.command}\` exited ${run.status}\n${failed ? `${failed}\n\n` : ""}${tail.trim()}` };
-};
-
-/** Which of five states the declared check left this round in, `none` being a word rather than an absence: a row with no field at all is one from before any of this, and a signal that left no exit status is `failed` and not `ran`. docs/cli/codex-the-check.md. */
-export const checkState = (scope) => (scope?.check ? scope.check.outcome ?? "declined" : "none");
-
-export const checkCommand = (scope) => scope?.check?.command ?? null;
-
-export const checkRow = (scope) => ({ check: checkState(scope), ...(checkCommand(scope) ? { checkCommand: checkCommand(scope) } : {}) });
 
 /* Not `resolve/canonical.mjs`'s: a relative path falls inside any root it would be matched against. */
 const canonical = (path) => {
@@ -577,8 +479,7 @@ const answered = async (scope, name, given = {}) => {
   /* A default catches undefined and not `null`, which is what `"input": null` parses to — and a
      throw here ends the consult, where a refusal is something the reviewer can answer. */
   const input = given && typeof given === "object" ? given : {};
-  if (name === "run_check") return checkOnce(scope);
-  /* Before the path reading below, as `run_check` is: this tool's subject is a key, and the reader
+  /* Before the path reading below: this tool's subject is a key, and the reader
      that answers "not a readable path in" would refuse the one argument it takes. */
   if (name === "read_issue") return issueRead(scope, input);
   if (name === "read_spec") return specRead(scope, input);

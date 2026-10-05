@@ -3,60 +3,36 @@
    the record the gate wrote for that room. The combined gate and every gate of the search are this. */
 import { spawn } from "node:child_process";
 
-import { DECLINED, LANDING_ENV } from "../../gates/machine.mjs";
-import { LANDING_WAIT_ENV } from "../../gates/landing/wait.mjs";
 import { treeOf } from "./candidate.mjs";
 import { roomFor } from "../rooms/room.mjs";
 import { gateNoted, verdictIn } from "../attempts/gate.mjs";
-import { GATE_ERROR, GREEN, RED, DECLINED as PLACE_DECLINED } from "../../../plugin/src/stats/marks/attempts.mjs";
-
-/* Each line of a gate run beside another under the keys it gates, so two at once still read apart. */
-const passed = (to, label) => {
-  let held = "";
-  return {
-    write: (chunk) => {
-      if (!label) return to.write(chunk);
-      held += chunk;
-      const lines = held.split("\n");
-      held = lines.pop();
-      for (const line of lines) to.write(`[${label}] ${line}\n`);
-      return true;
-    },
-    end: () => (label && held ? to.write(`[${label}] ${held}\n`) : true),
-  };
-};
+import { GATE_ERROR, GREEN, RED } from "../../../plugin/src/stats/marks/attempts.mjs";
 
 const exitedAs = (status, error) => {
   if (error) return GATE_ERROR;
-  if (status === 0) return GREEN;
-  return status === DECLINED ? PLACE_DECLINED : RED;
+  return status === 0 ? GREEN : RED;
 };
 
-/** `{ status, green, declined, output, verdict, own, tree, room, error }`, `own` being the record this
+/** `{ status, green, output, verdict, own, tree, room, error }`, `own` being the record this
  *  run wrote whatever it decided; the room is the caller's to drop. */
-export const gateOver = ({ root, candidate, keys, minutes, label = null }) => new Promise((done) => {
+export const gateOver = ({ root, candidate, keys }) => new Promise((done) => {
   const room = roomFor(root, candidate);
-  const env = { ...process.env, [LANDING_ENV]: keys, [LANDING_WAIT_ENV]: String(minutes) };
   const since = Date.now();
-  const child = spawn("npm", ["run", "check"], { cwd: room, env, stdio: ["ignore", "pipe", "pipe"] });
-  const out = passed(process.stdout, label);
-  const err = passed(process.stderr, label);
+  const child = spawn("npm", ["run", "check"], { cwd: room, stdio: ["ignore", "pipe", "pipe"] });
   const chunks = [];
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
-  child.stdout.on("data", (chunk) => { chunks.push(chunk); out.write(chunk); });
-  child.stderr.on("data", (chunk) => { chunks.push(chunk); err.write(chunk); });
+  child.stdout.on("data", (chunk) => { chunks.push(chunk); process.stdout.write(chunk); });
+  child.stderr.on("data", (chunk) => { chunks.push(chunk); process.stderr.write(chunk); });
   /* Once: a child that could not be spawned reports its error and may still report a close. */
   let settled = false;
   const finished = (status, error = null) => {
     if (settled) return;
     settled = true;
-    out.end();
-    err.end();
     const { record } = gateNoted({ root, tree: room, candidate, members: String(keys).split(/\s+/u).filter(Boolean), since,
       exited: exitedAs(status, error) });
     done({
-      status, error, green: status === 0, declined: status === DECLINED, output: chunks.join(""),
+      status, error, green: status === 0, output: chunks.join(""),
       verdict: status === 0 ? null : record ?? verdictIn(room), own: record ?? null, tree: treeOf(root, candidate), room, candidate,
     });
   };

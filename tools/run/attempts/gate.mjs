@@ -1,13 +1,13 @@
 /* What a landing writes down about a gate it ran, off the record the gate itself wrote for the tree it
-   judged: the verdict, and the seconds its steps ran rather than the wall time, which holds the wait
-   for a place. Both landing verbs gate, so both note it here. docs/cli/stats-the-landing.md. */
+   judged: the verdict, and the seconds its steps ran rather than the wall time, which holds the
+   gate's own start. Both landing verbs gate, so both note it here. docs/cli/stats-the-landing.md. */
 import { realpathSync } from "node:fs";
 
 import { runOf } from "../../gates/verdict.mjs";
-import { GATE_ERROR, GREEN, RED, DECLINED, gateRecorded } from "../../../plugin/src/stats/marks/attempts.mjs";
+import { GATE_ERROR, GREEN, RED, gateRecorded } from "../../../plugin/src/stats/marks/attempts.mjs";
 
-/* The gate's own words for how a run ended, read as the landing's four. */
-const READ_AS = { pass: GREEN, unproved: GREEN, failed: RED, declined: DECLINED, refused: GATE_ERROR };
+/* The gate's own words for how a run ended, read as the landing's three. */
+const READ_AS = { pass: GREEN, unproved: GREEN, failed: RED, refused: GATE_ERROR };
 
 /** The tree's own record, under the path the gate knows itself by: node resolves a link in the path
  *  before the gate reads where it stands, and the record is keyed on that. */
@@ -18,7 +18,7 @@ export const verdictIn = (tree) => {
   } catch {
     /* A tree that cannot be resolved is read as named, and a missing record reads as no verdict. */
   }
-  return runOf(real, null);
+  return runOf(real);
 };
 
 /* The newest record, where it was decided at or after `since`: an older one is another run's. */

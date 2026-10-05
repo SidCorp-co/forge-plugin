@@ -69,7 +69,7 @@ test("every cited kind answers a phase, and one the flow tables can derive answe
       assert.equal(answer, owed, `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
     }
   }
-  assert.deepEqual(derived, ["confirmation", "baseline", "verdict"],
+  assert.deepEqual(derived, ["confirmation", "verdict"],
     "the rows this derivation still reaches: one leaving the set is a row this case stopped checking, and the pin below is what has to gain it");
   assert.deepEqual(Object.keys(ENDS_PHASE).sort(), Object.values(CITED).flat().sort(),
     "and the column holds a row for exactly the cited kinds, so neither a dead row nor a mistyped key sits in it unread");

@@ -4,8 +4,8 @@ What one round buys, what effort it is asked at, and what a follow-up round is f
 [the round](codex-the-round.md). What a finding coming back has to carry, and where the two
 boundaries the reviewer cannot see for itself are filled from: [the
 finding](codex-the-finding.md). What of a file travels, how much of it fits and which passes earn a
-review: [the payload](codex-the-payload.md). Why the reviewer runs a fixed command rather than a
-shell of its own, and the clock that command runs under: [the check](codex-the-check.md).
+review: [the payload](codex-the-payload.md). Why the reviewer runs nothing for itself, neither a
+shell nor a check: [the check](codex-the-check.md).
 
 **What the advisor is, measured.** From a transcript: the built-in advisor forwards the whole
 conversation (32,385 input tokens, no cache read, ~33 s) and its reply comes back encrypted, never

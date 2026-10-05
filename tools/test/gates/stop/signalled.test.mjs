@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { escaped, tempRoom } from "../../../../plugin/test/fixtures.mjs";
-import { configHome, HANGS_IN, HOLDING, landed, ROOT, RUNNER, run, scratch, SHELL_ENV } from "../scratch.mjs";
+import { configHome, HANGS_IN, HOLDING, landed, ROOT, RUNNER, scratch, SHELL_ENV } from "../scratch.mjs";
 import { STEPS } from "../../../gates/steps.mjs";
 import { verdictRuns } from "../../../gates/verdict.mjs";
 
@@ -109,9 +109,6 @@ test("a gate stopped by its pid takes every process of its step, the orphaned on
     const written = verdictRuns(work).at(-1);
     assert.deepEqual([written.verdict, written.signal, written.step, written.code], ["stopped", "SIGTERM", HANGS_IN, 143]);
     assert.deepEqual(rooms(tmp), [], `the stopped gate left its temp root:\n${gate.said}`);
-    const waited = run(work, ["--wait", "1"]);
-    assert.equal(waited.status, 143, waited.stdout + waited.stderr);
-    assert.match(waited.stdout, new RegExp(`gate verdict: stopped — at the step ${escaped(HANGS_IN)}, `, "u"), waited.stdout);
   } finally {
     await cleared(gate, at, Object.values(pids));
   }

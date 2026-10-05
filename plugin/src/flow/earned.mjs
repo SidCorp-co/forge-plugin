@@ -15,7 +15,6 @@ import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, ide
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
 import { landsNoFile, lightens } from "../ladder.mjs";
-import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { findingsOwed } from "./earned/findings.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, isCommit, sameCommit } from "../tracker/evidence.mjs";
@@ -47,8 +46,8 @@ export const ORDER = [
 /** The rung the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a rung free to disagree with this order. */
 export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
 
-/** The rung the baseline is owed at, and the rung the release policy is read at — the last one, which is entered on the project rather than on the record. Both off the sequence, for the reason above. */
-export const BASELINE_AT = ORDER[ORDER.indexOf("developed") - 1];
+/** The rung a build stands at, and the rung the release policy is read at — the last one, which is entered on the project rather than on the record. Both off the sequence, for the reason above. */
+export const BUILD_AT = ORDER[ORDER.indexOf("developed") - 1];
 export const CLOSES_AT = ORDER.at(-1);
 
 /* A default nothing ever mutates, for a call that owes no number the exclusion after it. */
@@ -57,13 +56,12 @@ const EMPTY_SET = new Set();
 export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
 export { blockersOwed, holdsBack, holdsBackFrom, ordersSaid };
 
-/** Five shortfalls a caller compares whole, named so a case holding an exact list names them rather
+/** Four shortfalls a caller compares whole, named so a case holding an exact list names them rather
  *  than restating the wording the file that proves each one pins. */
 export const NO_VERIFICATION = "no verification: where the change now runs, at which commit, and the evidence";
 export const NO_NOTE = "no release note and no withholding either";
 export const NO_DECISION = "no decision record: each reading decided with its assumption and undo, or an explicit none";
 export const NO_CRITERIA = "the criteria field holds no numbered line `N. outcome`";
-export const NO_BASELINE = "no baseline: the gate, what it already reports and the commit it ran at";
 
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
@@ -72,7 +70,7 @@ export const atLeast = (status, floor) =>
  *  sequence rather than off a second list of names: a holder whose every claim came at or past the
  *  status a build hands over at judged the change or landed it, and nothing on the record proposes
  *  it as the builder (ISS-2045). A status the sequence does not hold reads as a build. */
-export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELINE_AT) + 1]);
+export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BUILD_AT) + 1]);
 
 /** `buildsAt` for a claim-history row, read against the page: a claim taken at a side status was
  *  taken where the park that set it left, which is the newest park landing there posted before the
@@ -159,8 +157,6 @@ export const rungFieldsOf = (view) => (view.rungFields ??= {
 });
 
 const lightPath = (view, status, kind) => lightens(status, kind, rungFieldsOf(view));
-/** Whether the baseline and the tree readings beside it are dropped, which only a plan's declaration does: read by the entry check and by the rehearsal that would otherwise offer a baseline. */
-export const baselineWaived = (view) => lightPath(view, BASELINE_AT, "baseline");
 export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
@@ -641,18 +637,9 @@ export const CHECKS = {
     }
     return [...out, ...foldedOwed(view, ref)];
   },
-  /* The tree's four demands go together: a plan declaring the change lands no file drops the baseline, and the branch, its scope and its citation are each a reading of the same tree (ISS-2384). */
-  in_progress: (view, ref) => {
-    if (baselineWaived(view)) return blockersOwed(view);
-    const baseline = payloadOwed(
-      view,
-      "baseline",
-      NO_BASELINE,
-      `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha> --scope whole`,
-    );
-    return [...blockersOwed(view), ...baseline, ...branchOwed(view, ref), ...wholeOwed(view, ref),
-      ...citedOwed(view, ref)];
-  },
+  /* No measurement of the tree: the landing's gate measures it, and every commit reaches the default branch through that gate, so a run's own reading before the first edit would say nothing the landing does not. A plan declaring the change lands no file drops the branch, there being no tree to cut one from (ISS-2384). */
+  in_progress: (view, ref) =>
+    [...blockersOwed(view), ...(lightPath(view, BUILD_AT, "branch") ? [] : branchOwed(view, ref))],
   developed: (view, ref) => {
     const out = [];
     if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", mergedForm(ref, view.issue)));

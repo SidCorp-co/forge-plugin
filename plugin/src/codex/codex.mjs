@@ -21,7 +21,7 @@ import { didYouMean } from "../suggest.mjs";
 import { anglesRefusal } from "./angles/refusal.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
-import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
+import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, scopeFor, specFor } from "./codex-tools.mjs";
 import { consultSet, digestsAt, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
@@ -127,7 +127,7 @@ const CONSULT_USAGE = [
 
 const SHOW_USAGE = [
   "Usage: forge codex show",
-  "Profile, model, records, rounds, effort, angles, check, recorded files and log, in effect here.",
+  "Profile, model, records, rounds, effort, angles, recorded files and log, in effect here.",
 ].join("\n");
 
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
@@ -198,30 +198,16 @@ export const consultArgs = (given) => {
   };
 };
 
-/* Said where the round's own cost is said, because otherwise a run learns it by reading the reply for an absence, after it has acted on the review. It judges nothing: declining is what the offer's condition asks for, and the defect was the silence (ISS-1898). docs/cli/codex-the-check.md. */
-const CHECK_SAID = {
-  ran: (command) => `check ran — \`${command}\`.`,
-  cut: (command) => `check cut — \`${command}\` was stopped at its clock, so none of it reached this review.`,
-  failed: (command) => `check failed — \`${command}\` gave no answer to reach this review.`,
-  declined: (command) => `check declined — \`${command}\` was offered and not run: this review is inspection, not execution.`,
-};
-
 /* Said whichever way the intent came out empty: a pipe that closed with nothing on it (a redirect from a missing file, a flag that took its neighbour as its value) ran silent and still answered `0 findings`, the artefact a review stands on (ISS-471). Said and not refused, an intent-free consult being one a caller may mean. */
 const noIntentSaid = (said) => (said === null
   ? `codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`
   : 'codex: stdin closed with nothing on it, so the consult carries no intent. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
 
-const checkSaid = (reach) => {
-  const state = checkState(reach);
-  return state === "none" ? null : `codex: ${CHECK_SAID[state](checkCommand(reach))}`;
-};
-
-/* Everything the run is told once the round is done, in one place: this list is what a run reads to decide whether the review answered, and the check's own word sits in it rather than two thirds of the way down a reply. */
-const toldAfter = (held, reach, { left, since, crossing, place }) => {
+/* Everything the run is told once the round is done, in one place: this list is what a run reads to decide whether the review answered. */
+const toldAfter = (held, { left, since, crossing, place }) => {
   const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
   const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");
   if (spent) console.error(`codex: ${held.calls} call(s), tools it ran: ${spent}.`);
-  if (checkSaid(reach)) console.error(checkSaid(reach));
   if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
   if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
   if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
@@ -385,7 +371,7 @@ const consult = async (given) => {
   const id = randomBytes(3).toString("hex");
   const history = historyFor(entries, root, undefined, rels);
   const spec = await specFor(root);
-  const system = roleFor(angles, { check: Boolean(codexCheck()), recheck, tracker: issues.length > 0, spec: Boolean(spec), proposal: proposal.length > 0 });
+  const system = roleFor(angles, { recheck, tracker: issues.length > 0, spec: Boolean(spec), proposal: proposal.length > 0 });
   const started = Date.now();
   const record = {
     id,
@@ -423,9 +409,8 @@ const consult = async (given) => {
     shown += text.length;
     process.stdout.write(text);
   };
-  /* Hoisted because the round writes the check's outcome onto it and both rows are owed that outcome. `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so anchors no log row, but the reviewer asking for "the diff" still means the change since that head, and the tree at HEAD would hand it every file this consult is not about. */
-  const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(),
-    { anchor: reached, files: rels, issues, spec, by: started + budgetMs() });
+  /* `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so anchors no log row, but the reviewer asking for "the diff" still means the change since that head, and the tree at HEAD would hand it every file this consult is not about. */
+  const reach = scopeFor(root, rels.filter(isAbsolute), { anchor: reached, files: rels, issues, spec });
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues, proposal, goals: await goalsFor(angles) });
     const held = await reviewed(
@@ -452,7 +437,6 @@ const consult = async (given) => {
       ...(held.retriedFrom === undefined ? {} : { retriedFrom: held.retriedFrom }),
       attempt: held.attempt,
       incomplete: incompleteIn(held.text),
-      ...checkRow(reach),
       ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
       reply: held.text,
     };
@@ -464,10 +448,9 @@ const consult = async (given) => {
       console.error(`codex: ${ruledSaid(plan, offset, held.text, id, entries, { root, sent: record.sent })}`);
     }
     const place = placeLine(entries, { ...finished, run: runOf() }, { keys: issues, run: runOf(), here: hereOf(root) });
-    toldAfter(held, reach, { left, since, crossing, place });
+    toldAfter(held, { left, since, crossing, place });
   } catch (error) {
-    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ...failedWith(error), ...checkRow(reach) });
-    if (checkSaid(reach)) console.error(checkSaid(reach));
+    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ...failedWith(error) });
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
       + "not recorded as a consult." : "";
     fail(`${partial}\ncodex: ${error.message}`);
@@ -511,14 +494,6 @@ const show = (rest = []) => {
   console.log(`effort    : ${base}, a step down on a recheck or under ${limits.small} changed line(s), `
     + `a step up on a bodies pass, on a named risk or over ${limits.large}`);
   console.log(`angles    : ${anglesShown()}`);
-  const check = codexCheck();
-  /* The most it may be given and not the clock one round handed it: what a check actually runs under
-     is that less whatever the consult has spent by the time it is called, which no reading taken
-     before a consult can know. Saying which of the two this is costs a word and saves a run reading
-     a configured ceiling as the allowance its stopped check had (ISS-2108). */
-  console.log(`check     : ${check
-    ? `${check.command}, at most ${check.ms / 1000}s  \u2190 ${check.msFrom}`
-    : "none — a codex.check in the project's own settings names one"}`);
   console.log(`per call  : ${Math.round(budgetMs() / 1000)}s of budget, and the tool list is `
     + `${keepsTools() ? "kept on the last call with none asked for" : "dropped for the last call"}`);
   /* The record whole and not a commit's demand, which `pending` prints: one word had two answers (ISS-45). */

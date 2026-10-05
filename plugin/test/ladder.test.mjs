@@ -158,8 +158,8 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
       `${row.status} drops ${row.drops} for the top rung`);
   }
   for (const rung of RUNGS) {
-    assert.equal(lightens("in_progress", "baseline", at(rung)), false,
-      `${rung} is exempted from the baseline, which no rung buys`);
+    assert.equal(lightens("in_progress", "branch", at(rung)), false,
+      `${rung} is exempted from the branch, which only a plan's declaration drops`);
   }
 });
 
@@ -352,23 +352,9 @@ test("the shortest rung drops what the one above drops, and is told what else it
     "and the rung above is told every one of them, the two being granted one list");
   assert.ok(SPARES.trivial.every((one) => !top.includes(one)),
     "and the top rung is told none of them, which is what the two below it are measured against");
-  /* The one the ladder gained: a run told the gate is the ship's spends none of its own, and a feature reading that would spend a judgement it owes. No rung is granted a cited baseline, because every rung has one — what a tree already fails is a property of the tree, so a waiver here would report a difference between the rungs that is not there, and the rehearsal is what tells any of them a result is published (ISS-1101). */
-  for (const [rung, out] of [["trivial", trivial], ["fix", fix]]) {
-    assert.match(out.stdout, /one whole run of the gate on the clean path, the ship's/u,
-      `a \`${rung}\` is not told the gate is spent once, at the ship`);
-    /* Three readings of the same line, because a run that takes it as a bound on each checker arms a
-       landing having run nothing cheap first: what it bounds, what is not that thing, and that the
-       thing that is not it is unbounded here (ISS-2085). */
-    assert.match(out.stdout, /the gate is what this line bounds/u,
-      `a \`${rung}\` is not told which thing the line bounds, so the bound reads onto each checker`);
-    assert.match(out.stdout, /a checker the gate contains is not the gate/u,
-      `a \`${rung}\` is not told a checker inside the gate is not the gate`);
-    assert.match(out.stdout, /those are spent as often as they answer/u,
-      `a \`${rung}\` is not told it may spend a checker inside the gate as often as it likes`);
-  }
-  assert.doesNotMatch(feature.stdout, /whole run of the gate on the clean path/u, "and the top rung is offered one gate run");
+  /* No rung talks about whole runs of the gate: the landing's gate measures the tree at every rung alike, so a line bounding them would report a difference between the rungs that is not there (ISS-3184). */
   for (const out of [trivial, fix, feature]) {
-    assert.doesNotMatch(out.stdout, /baseline citing/u, "no rung is told a cited baseline is its own to spend");
+    assert.doesNotMatch(out.stdout, /run of the gate|baseline/u, `no rung is told a gate cadence or a baseline:\n${out.stdout}`);
   }
   assert.match(trivial.stdout, /--moved "Rung: trivial -> fix"/u, "the route up names the next rung, not the top");
   assert.match(feature.stdout, /holds no complexity on the tracker, so it is a `feature`/u);

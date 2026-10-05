@@ -56,7 +56,7 @@ const clear = () => { state.calls = []; };
 
 test("read_issue answers with the fields, the body and the comments, each part named for anchoring", async () => {
   clear();
-  const scope = scopeFor(room(), [], null, { issues: ["ISS-1"] });
+  const scope = scopeFor(room(), [], { issues: ["ISS-1"] });
   const held = await runTool(scope, "read_issue", { key: "ISS-1" });
   assert.equal(held.error, undefined, held.text);
   assert.match(held.text, /^ISS-1 — page 1 of 1, \d+ tracker request\(s\) left\. 1 comment\(s\)\./u);
@@ -81,7 +81,7 @@ test("the tool is offered only where the consult named an issue, and reads nothi
   assert.equal(held.error, true);
   assert.match(held.text, /named no issue, so there is nothing here to read/u);
   assert.deepEqual(asked(), [], "and the tracker was never contacted");
-  const named = scopeFor(room(), [], null, { issues: ["ISS-1"] });
+  const named = scopeFor(room(), [], { issues: ["ISS-1"] });
   assert.equal(toolsFor(named).at(-1).name, "read_issue");
   assert.match(roleFor(["tech"], { tracker: true }), /`read_issue` reads an issue off this project's tracker/u);
   assert.doesNotMatch(roleFor(["tech"]), /read_issue/u);
@@ -135,7 +135,7 @@ test("a multiline field is numbered by its own lines, as the body is", async () 
 
 test("a key the tracker does not hold, and one that is not a key, come back as text", async () => {
   clear();
-  const scope = scopeFor(room(), [], null, { issues: ["ISS-1"] });
+  const scope = scopeFor(room(), [], { issues: ["ISS-1"] });
   const missing = await runTool(scope, "read_issue", { key: "ISS-4242" });
   assert.equal(missing.error, true);
   assert.match(missing.text, /^read_issue ISS-4242: /u);
@@ -252,7 +252,7 @@ test("a single line longer than a page is clipped, so no answer runs past the ca
   const blob = "x".repeat(60_000);
   state.comments["iss-1-uuid"] = [{ documentId: "big", authorId: "agent", createdAt: "now", body: `${blob}\nafter it` }];
   try {
-    const scope = scopeFor(room(), [], null, { issues: ["ISS-1"] });
+    const scope = scopeFor(room(), [], { issues: ["ISS-1"] });
     const seen = [];
     for (let page = 1; page <= 6; page += 1) seen.push((await runTool(scope, "read_issue", { key: "ISS-1", page })).text);
     for (const [at, text] of seen.entries()) {

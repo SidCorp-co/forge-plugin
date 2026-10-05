@@ -232,7 +232,7 @@ export const DETACH_HELP = [
   "naming its pid, refused with the command that clears it, and a second landing of a tree whose",
   "landing is still running — the pid that record names, begun at the moment it records — is",
   "refused with the wait that answers how that one ended, unless the second is given --wait M: it then",
-  "waits in its own detached session, holding no lock and no gate place, up to M minutes for that one",
+  "waits in its own detached session, holding no lock, up to M minutes for that one",
   "to record its end, and then runs; past M it is refused having run no step. One waits at a time.",
   "Two calls of one tree in the same instant launch one landing: forge-landing.starting is held from",
   "that check to the record, and one a dead call left is refused with the command that clears it.",

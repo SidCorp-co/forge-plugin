@@ -593,7 +593,7 @@ export const filingRefusal = async (filing, { gaps, fix, tokens },
   const head = owesRoute && !out.length
     ? "Hold — name one of the routes below, then re-send.\n\n"
       + `This body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
-      + "fix: filed as a feature the flow costs a confirmation, a decision, a plan, criteria, a baseline, a "
+      + "fix: filed as a feature the flow costs a confirmation, a decision, a plan, criteria, a "
       + "review, a verdict per criterion, a verification, a release note and eight transitions, and the mark "
       + "is what drops the decision, the plan and the note."
     : SHAPE_HEAD;

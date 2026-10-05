@@ -1,7 +1,7 @@
 # Skill: issue-flow
 
-One session takes an issue from its title to a deployed change a judge has exercised, or to the
-ready checkpoint where the project's landing is another actor's, and then the next issue. The judging between `developed` and `testing` is one dispatched agent's; nothing else
+One session takes an issue from its title to the end Phase 7 names, a judge exercising the
+deployed change on the way, and then the next issue. The judging between `developed` and `testing` is one dispatched agent's; nothing else
 here is handed off.
 
 **Arguments.** An issue key, or several, starts at Phase 1 on those. No argument means take the open

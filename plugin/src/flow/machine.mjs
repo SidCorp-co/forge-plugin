@@ -279,7 +279,6 @@ export const VERDICTS = ["pass", FAIL, "skipped", SHORT];
  *  added to the set cannot be exempt from one of them and not the other. */
 export const somebodyLooked = (verdict) => verdict !== "skipped";
 export const JUDGE_FROM = "judge-from";
-const SCOPES = ["whole", "part"];
 
 export { commandAt, missingLines, need } from "./machine/owed.mjs";
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
@@ -466,21 +465,6 @@ export const SHAPES = {
       FIELD("attached", "Attached as"),
       FIELD("was", "As it stood", { optional: true }),
     ],
-  },
-  baseline: {
-    heading: "Baseline",
-    fields: [
-      FIELD("gate", "Gate"),
-      FIELD("result", "Result", { prose: true }),
-      FIELD("commit", "Commit", { commit: true }),
-      FIELD("scope", "Scope", { oneOf: SCOPES, newer: true }),
-      FIELD("cited", "Cited from", { optional: true }),
-      FIELD("head", "Head at the write", { optional: true, stamped: "head" }),
-    ],
-    check: (got) =>
-      (got.cited !== undefined && !String(got.cited).trim()
-        ? "--cited to name the recorded gate result its result was read off: a citation naming no source is a result from nowhere"
-        : null),
   },
   /* What a schema-coupled change's migration does once deployed, owed at `testing` where the plan
      declares schema coupling: a record the gate reads, because the attachment it once counted could

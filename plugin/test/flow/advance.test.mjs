@@ -102,28 +102,24 @@ test("confirmed needs a confirmation, and approved the decision record beside th
     "and an explicit none is the record, as it was at the rung that went");
 });
 
-test("in_progress waits for every blocker to be developed, and for a baseline", () => {
+test("in_progress waits for every blocker to be developed, and for no measurement of the tree", () => {
   const blocked = (otherStatus) => ({
     relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] },
   });
   const said = CHECKS.in_progress(view(blocked("open")), "ISS-3");
   assert.deepEqual(said.map((one) => one.what), [
     "ISS-4 gates this by a blocks edge and is open, which is not yet developed",
-    "no baseline: the gate, what it already reports and the commit it ran at",
   ]);
   assert.equal(said[0].command, "forge advance ISS-4");
-  assert.match(said[1].command, /^forge record baseline ISS-3 --gate/u);
-  const baseline = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
-  assert.deepEqual(missing("in_progress", view(blocked("closed"), baseline)), []);
-  assert.deepEqual(missing("in_progress", view(blocked("developed"), baseline)), []);
+  assert.deepEqual(missing("in_progress", view(blocked("closed"))), []);
+  assert.deepEqual(missing("in_progress", view(blocked("developed"))), []);
 });
 
 /* The tracker puts a mention and an ordering constraint in the one list and carries the difference
    on each edge, as `kind` and as its own answer about dispatch. The check read neither and refused
    a transition on a *relates* edge in two runs (ISS-19). */
 test("only an edge that gates dispatch holds a status back, and the refusal names the kind", () => {
-  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
-  const edged = (...blockedBy) => view({ relations: { blockedBy } }, ran);
+  const edged = (...blockedBy) => view({ relations: { blockedBy } });
   const relates = { otherDisplayId: "ISS-18", otherStatus: "open", kind: "relates", gatesDispatch: false };
   const blocks = { otherDisplayId: "ISS-33", otherStatus: "open", kind: "blocks", gatesDispatch: true };
   assert.deepEqual(missing("in_progress", edged(relates)), [], "a relates edge is a mention and orders nothing");
@@ -139,8 +135,7 @@ test("only an edge that gates dispatch holds a status back, and the refusal name
 /* `gatesDispatch` is the tracker's own field and `kind` the fallback where it sent none; an edge
    carrying neither did not come from the tracker, which sends both on every edge. */
 test("an edge the tracker sent no answer for falls back to its kind, and one with no kind gates nothing", () => {
-  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
-  const edged = (edge) => view({ relations: { blockedBy: [edge] } }, ran);
+  const edged = (edge) => view({ relations: { blockedBy: [edge] } });
   const bare = { otherDisplayId: "ISS-9", otherStatus: "open" };
   assert.deepEqual(missing("in_progress", edged({ ...bare, kind: "blocks" })),
     ["ISS-9 gates this by a blocks edge and is open, which is not yet developed"]);
@@ -268,12 +263,12 @@ test("the deploying half needs a verification and a release note", () => {
    records the write never saw: a comment through an unhooked client, or a hand. */
 test("a record read back is measured by the write's own rules, and a future contract by none it has", () => {
   const tagged = (body) => view({ attachments: ATTACHED }, [comment(body)]);
-  const junk = tagged("## Baseline\n\n- **Gate:** npm test\n- **Result:** green\n- **Commit:** c8c3550junk\n\n`forge-record: baseline · contract 1`");
-  assert.deepEqual(missing("in_progress", junk), ["the baseline on the record is not a whole payload: it lacks --commit `c8c3550junk`, which is no commit"]);
+  const junk = tagged("## Verdict\n\n- **Criterion:** 1\n- **Verdict:** pass\n- **Commit:** c8c3550junk\n- **Evidence:** run.txt\n\n`forge-record: verdict · contract 1`");
+  assert.deepEqual(shapeGaps("verdict", parse(junk.comments[0].body), ["run.txt"]), ["--commit `c8c3550junk`, which is no commit"]);
   const unnumbered = tagged("## Verdict\n\n- **Criterion:** the first outcome\n- **Verdict:** pass\n- **Commit:** 43b811e\n- **Evidence:** run.txt\n\n`forge-record: verdict · contract 1`");
   assert.match(shapeGaps("verdict", parse(unnumbered.comments[0].body), ["run.txt"]).join(" "), /which opens with no number/u);
-  const ahead = tagged("## Baseline\n\n- **Gate:** npm test\n- **Result:** green\n- **Commit:** 43b811e\n\n`forge-record: baseline · contract 9`");
-  assert.match(missing("in_progress", ahead)[0], /a contract 9 record, and this build reads contract 1: `claude plugin update` then restart the session/u);
+  const ahead = tagged("## Confirmation\n\n- **What it is:** it is this\n- **Where looked:** a.mjs\n- **Finding:** holds\n\n`forge-record: confirmation · contract 9`");
+  assert.match(missing("confirmed", ahead)[0], /a contract 9 record, and this build reads contract 1: `claude plugin update` then restart the session/u);
   /* The stamp is read off the issue at the write and is no flag, so a copy of the shape can carry
      every flag and still not be a park: nothing on it says which status it left. */
   const unstamped = view({ status: "waiting", attachments: ATTACHED }, [

@@ -95,8 +95,6 @@ test("a value added to a closed set appears in every command that asks for that 
 /* Where the check accepts one value only, that value is the instruction rather than an example, and a
    set there would offer values the next check refuses. */
 test("a command whose check accepts one value keeps that literal", () => {
-  assert.match(CHECKS.in_progress(view({}), "ISS-9").find((one) => one.command.includes("baseline")).command,
-    /--scope whole$/u);
   const reopened = view({
     status: "reopen", mergedAt: "2026-09-24T09:00:00.000Z", plan: SCREEN.replace("yes", "no"),
     acceptanceCriteria: CRITERIA, attachments: [{ name: "run.txt" }],

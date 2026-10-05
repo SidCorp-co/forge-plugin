@@ -7,13 +7,13 @@ How to clear it: consult the files it names, then re-send; one reading meets thi
 commit. `forge codex pending --drop` discards the record unread; where a finding holds it, rule on
 it.
 
-Which calls ask is the project's, in `codex.owed`: a list out of `gate`, `commit` and `ship`.
-**Absent** it is `commit` alone, what this did before the key; an **empty list** is the off switch, a
-different answer from the key left out. A name it does not take is refused at an armed door.
+Which calls ask is the project's, in `codex.owed`: a list out of `gate`, `commit`, `ship` and
+`ready`. **Absent** it is `commit` and `ready`; an **empty list** is the off switch, a different
+answer from the key left out. A name it does not take is refused at an armed door.
 
-Which command stands at a door is the project's too, in `stats.commands`. A door with no command
-declared is **unarmed** and holds nothing: a refusal cannot rest on a guess at another
-repository's gate. `forge doctor` names it and the key.
+`ready` is `forge claim <key> --pushed --ready`, declared by nobody: the landing gates what it
+names. The others stand at `stats.commands`, a refusal resting on no guess at another repository's
+gate; `forge doctor` says which are armed.
 
 Naming the gate not the commit buys the reading early, at the cost of the commit's own demand.
 

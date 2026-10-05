@@ -10,7 +10,7 @@ import { tempHome, typedPlan } from "../../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("parsed-once").path;
 const { FIX, declaredRows, landsNoFile, lightens, lighterRows, rungOf } = await import("../../../../src/ladder.mjs");
 const { rungReport } = await import("../../../../src/ladder-report.mjs");
-const { laneLines } = await import("../../../../src/guides/phases.mjs");
+const { laneLines, laneOf } = await import("../../../../src/guides/phases.mjs");
 const { CHECKS, ORDER, rungFieldsOf, viewFrom } = await import("../../../../src/flow/earned.mjs");
 const { render } = await import("../../../../src/flow/record/page.mjs");
 const { markNote } = await import("../../../../src/flow/record/merged.mjs");
@@ -34,7 +34,7 @@ test("one fields object's plan is read once, by whichever of the rung, the waive
     const fields = counted(plan);
     rungOf(fields);
     for (const status of ORDER) lighterRows(status, fields);
-    assert.equal(lightens("in_progress", "baseline", fields), how === "declared");
+    assert.equal(lightens("in_progress", "branch", fields), how === "declared");
     laneLines({ status: "open", fields });
     rungReport(fields, "ISS-3");
     declaredRows(fields);
@@ -69,11 +69,14 @@ test("lands no file is one answer, read alike by the ladder's waiver and by the 
 });
 
 test("a status where a rung's waiver stands beside a declaration's names each with what dropped it", () => {
-  const table = [{ status: "in_progress", rungs: [FIX], kind: "branch", drops: "the branch", because: "a fix is small" }];
-  const lane = (plan) => laneLines({ status: "open", fields: { plan, moved: [], whole: true, complexity: "s" }, table });
-  assert.match(lane(plans.declared).join("\n"),
-    /^ {2}in_progress +nothing owed: no branch at this rung, no baseline under this plan's declarations$/mu,
-    "both sources dropped a payload here, so neither is said as the other's");
-  assert.match(lane(plans.silent).join("\n"), /^ {2}in_progress +baseline; no branch at this rung$/mu,
+  /* `in_progress` is the one status a declaration drops anything at, and it earns no record kind, so the lane line says nothing of either drop: the row the line is read off is where the two sources stay apart. */
+  const table = [{ status: "in_progress", rungs: [FIX], kind: "worklog", drops: "the worklog", because: "a fix is small" }];
+  const row = (plan) => laneOf({ status: "open", fields: { plan, moved: [], whole: true, complexity: "s" }, table })
+    .rows.find((one) => one.status === "in_progress");
+  assert.deepEqual(row(plans.declared).by, [
+    { said: "at this rung", kinds: ["worklog"] },
+    { said: "under this plan's declarations", kinds: ["branch"] },
+  ], "both sources dropped something here, so neither is said as the other's");
+  assert.deepEqual(row(plans.silent).by, [{ said: "at this rung", kinds: ["worklog"] }],
     "and with the declaration absent the rung's own waiver is still the rung's");
 });

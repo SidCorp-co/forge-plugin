@@ -23,7 +23,6 @@ This is the one place a term is defined. A clause elsewhere uses the term and do
 | **lease** | the claim one run holds on an issue: a holder, a renew time, a duration and the claims before it, in a field the issue already has | [FR-03](../srs/fr-03-the-lease.md) |
 | **stale** | said of a lease past its duration — reclaimable by any run, and refused for its own former holder | [FR-03](../srs/fr-03-the-lease.md) |
 | **verdict** | one judgement of one acceptance criterion, citing evidence and the commit it judged | [FR-04](../srs/fr-04-typed-records.md) |
-| **baseline** | what a gate already reported before the work started, recorded with the commit it ran at, so a later red has something to be judged against | [FR-04](../srs/fr-04-typed-records.md) |
 | **evidence** | a reference the tracker can resolve: an attachment on the issue, a URL, or a commit | [FR-04](../srs/fr-04-typed-records.md) |
 | **the mark** | the tracker's merged stamp, whose note carries the commit that landed and the head that was reviewed | [FR-05](../srs/fr-05-earned-transitions.md), C-03 |
 | **finding** | one point a reviewer raised, by the identifier the review that issued it gave | [FR-06](../srs/fr-06-second-opinion.md) |

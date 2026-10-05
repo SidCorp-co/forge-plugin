@@ -1,9 +1,7 @@
-/* Which state the checkout's declared check left a round in, end to end, because no unit reaches it:
-   the state is written where the tool runs, read where the row is logged, and what a run actually
-   sees is the process's own stderr. A review given by inspection alone and one that executed the
-   suite read the same everywhere else, so each arm below asserts the row and the line together
-   (ISS-1898). In this directory because it stands up a gateway and spawns the CLI against it, which
-   is what everything here does and what nothing in the sibling units does. */
+/* What one consult sends and logs, end to end, because no unit reaches it: the request is built where
+   the tools are, the row where the round ends, and what a run sees is the process's own stderr. In
+   this directory because it stands up a gateway and spawns the CLI against it, which is what
+   everything here does and what nothing in the sibling units does. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
@@ -13,15 +11,18 @@ import { projectRecord, tempRoom } from "../../fixtures.mjs";
 
 /* `calls` is what the reviewer asks for on its first call, by name; the second answers in text. A
    `fail` arm answers the second call with a 500, which is a consult that dies after its round has
-   already done whatever it did with the check. */
+   already run a tool. Every request body is kept, so a case can read what the reviewer was offered. */
 const standIn = async (answer, { calls = [], fail = false } = {}) => {
   const { createServer } = await import("node:http");
   const sse = (events) => events.map((one) => `event: ${one.type}\ndata: ${JSON.stringify(one)}\n\n`).join("");
   let call = 0;
+  const asked = [];
   const server = createServer((req, res) => {
-    req.resume();
+    let body = "";
+    req.on("data", (one) => { body += one; });
     req.on("end", () => {
       call += 1;
+      asked.push(JSON.parse(body || "{}"));
       if (fail && call === 2) {
         res.writeHead(500, { "content-type": "application/json" });
         return res.end(JSON.stringify({ error: { message: "the gateway gave up" } }));
@@ -41,14 +42,14 @@ const standIn = async (answer, { calls = [], fail = false } = {}) => {
     });
   });
   await new Promise((ready) => server.listen(0, "127.0.0.1", ready));
-  return { port: server.address().port, close: () => server.close() };
+  return { port: server.address().port, asked, close: () => server.close() };
 };
 
 /* One consult in a checkout of its own, answered by a stand-in, returning the row it logged and
    every line the run would have read on its console. */
-const consulted = async (label, { check = null, calls = [], fail = false } = {}) => {
-  const room = tempRoom(`codex-check-${label}-`);
-  const home = tempRoom(`codex-check-${label}-home-`);
+const consulted = async (label, { codex = null, calls = [], fail = false } = {}) => {
+  const room = tempRoom(`codex-row-${label}-`);
+  const home = tempRoom(`codex-row-${label}-home-`);
   const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: room, encoding: "utf8" });
   spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   writeFileSync(join(room, "judged.txt"), "the file under review\n");
@@ -56,7 +57,7 @@ const consulted = async (label, { check = null, calls = [], fail = false } = {})
   git("commit", "-qm", "one");
   /* The project's keys are this machine's record of them now, under the configuration home the
      child is handed rather than in the tree it reviews. */
-  projectRecord(room, home, check ? { codex: check } : {});
+  projectRecord(room, home, codex ? { codex } : {});
 
   mkdirSync(join(home, "forge"), { recursive: true });
   const gateway = await standIn("CODEX: 0 findings", { calls, fail });
@@ -76,43 +77,18 @@ const consulted = async (label, { check = null, calls = [], fail = false } = {})
   gateway.close();
   const rows = readFileSync(join(home, "forge", "codex-log.jsonl"), "utf8")
     .split("\n").filter(Boolean).map((one) => JSON.parse(one));
-  return { row: rows.findLast((one) => one.kind === "consult"), said, home, room };
+  return { row: rows.findLast((one) => one.kind === "consult"), said, asked: gateway.asked };
 };
 
-test("a review that declined the offered check says so where the run reads what the round cost", async () => {
-  const { row, said } = await consulted("declined", { check: { check: "true" } });
+/* The landing gates every change, so a reviewer running the project's gate measures nothing the
+   landing will not: a checkout naming `codex.check` still hands the reviewer no command to run. */
+test("a consult offers the reviewer no check to run, even where the checkout names one", async () => {
+  const { row, said, asked } = await consulted("no-check", { codex: { check: "npm test" } });
   assert.equal(row.ok, true, said);
-  assert.equal(row.check, "declined");
-  assert.equal(row.checkCommand, "true");
-  assert.match(said, /codex: check declined — `true` was offered and not run: this review is inspection, not execution\./u, said);
-});
-
-test("a review that ran the check says so, whatever the command exited", async () => {
-  const { row, said } = await consulted("ran", { check: { check: "exit 3" }, calls: ["run_check"] });
-  assert.equal(row.check, "ran", said);
-  assert.equal(row.checkCommand, "exit 3");
-  assert.match(said, /codex: check ran — `exit 3`\./u, said);
-});
-
-test("a check stopped at its clock is cut, and is not read as a review that ran one", async () => {
-  const { row, said } = await consulted("cut", { check: { check: "sleep 30", checkMs: 300 }, calls: ["run_check"] });
-  assert.equal(row.check, "cut", said);
-  assert.match(said, /codex: check cut — `sleep 30` was stopped at its clock, so none of it reached this review\./u, said);
-});
-
-test("a checkout that declared no check records none and says nothing about one", async () => {
-  const { row, said } = await consulted("none");
-  assert.equal(row.check, "none", said);
-  assert.equal(Object.hasOwn(row, "checkCommand"), false, "there is no command to record");
+  assert.ok(asked.length > 0 && asked[0].tools.some((one) => one.name === "read_file"), "the reviewer keeps its read tools");
+  for (const body of asked) assert.doesNotMatch(JSON.stringify(body), /run_check/u, "no request offers or names the tool");
+  assert.equal(Object.hasOwn(row, "check"), false, "and the row records no check state");
   assert.doesNotMatch(said, /codex: check /u, said);
-});
-
-test("a consult that died after its check ran still records that the round ran it", async () => {
-  const { row, said } = await consulted("failed-consult", { check: { check: "exit 0" }, calls: ["run_check"], fail: true });
-  assert.equal(row.ok, false, said);
-  assert.equal(row.check, "ran", "the row a failure writes carries what the round reached, not a blank");
-  assert.equal(row.checkCommand, "exit 0");
-  assert.match(said, /codex: check ran — `exit 0`\./u, said);
 });
 
 /* ISS-2932: what the gateway answered is read off a field, never out of the error's prose, by the
