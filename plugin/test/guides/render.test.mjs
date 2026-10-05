@@ -282,6 +282,33 @@ test("a ready reader is told somewhere who moves the release rung, which the mod
     "while the mode that does land its own change still closes it there");
 });
 
+/* A loaded box answered a builder's gate with no verdict, and the run started another, then waited again, with no
+   bound: under `ready` the landing's gate over the set already answers for every member, so that is where it goes (ISS-3181). */
+test("a ready builder whose gate gave no verdict hands over after one attempt and one wait, and the fold lands it", () => {
+  const ready = shipping("ready", "issue-flow", "verification");
+  assert.match(ready, /handed to the landing's gate after one attempt and one wait, and never started again/u,
+    "criterion 1: a gate the machine could not carry is retried without bound");
+  assert.match(ready, /the review, taken at the head it hands over and owing nothing by `forge claim ISS-nn --review`/u,
+    "criterion 1: the hand-over does not rest on a review that owes nothing");
+  assert.match(ready, /`forge claim ISS-nn --pushed --ready` hands the branch over/u,
+    "criterion 1: the run is not told which checkpoint ends it");
+  assert.match(ready, /What says so is the gate's own exit, as its `-h` names them/u,
+    "criterion 2: the sign the machine could not carry it is not the gate's own exit");
+  assert.match(ready, /How long it took says nothing of the kind/u, "criterion 2: elapsed time is read as that sign");
+  assert.match(ready, /Where no reviewer can be reached either, nothing stands in for the gate and nothing is handed over/u,
+    "criterion 1: a head no gate and no review read is handed over");
+  assert.match(ready, /A gate that answered red is not this case/u, "criterion 3: a red verdict is handed over too");
+  assert.match(ready, /Then `forge record gap` names the exit the gate gave/u,
+    "criterion 4: the gate's exit is not on the record before the checkpoint");
+  assert.doesNotMatch(shipping("self", "issue-flow", "verification"), /handed to the landing's gate/u,
+    "criterion 5: a run that lands its own change is told of a landing gate it does not have");
+  const fold = shipping("ready", "dispatch");
+  assert.match(fold, /landed in the set like any other/u, "criterion 6: the fold does not land a member without a verdict");
+  assert.match(fold, /The fold sends it back to gate nowhere/u, "criterion 6: the fold sends that member back to gate");
+  assert.match(fold, /lands the set again at the next fold with the command the decline printed, rather than this fold waiting on the machine/u,
+    "criterion 7: a landing whose gate found no place holds the fold on the machine");
+});
+
 /* The shape the reader above exists to remove: the pattern is the phrase a reader reads, the fixture the wrap it arrived under. */
 test("a phrase of served prose is matched across whatever break the formatter chose", () => {
   const wrapped = "and the fold, whose landing it follows, is where `released` and\n`closed` are\nmoved from here.";
