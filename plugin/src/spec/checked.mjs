@@ -1,8 +1,7 @@
 /* What a write outside the tree owes it, in one place: `forge record plan` over a plan's text less what it quotes (AC-14-4-5), `forge record criteria` over each criterion's opening (AC-14-4-1), and the transition asking whether an issue names any clause (AC-14-4-2). The wording is `citation.mjs`'s and the storage is `tree.mjs`'s; what is decided here is which span each caller hands over, and `raise` is the caller's own because the verb exits where the record throws. The text is asked before the project is (ISS-428): a text naming no identifier has nothing to resolve, and building the index for it parses every document of the tree to answer nothing. That order is also the one place this check is not invisible — where the tree is unreadable, a write citing nothing stores, because it makes no traversal it has no reason to make. */
-import { citationProblems, citationRefusal, revisionSaid, unrevisionedIn } from "./citation.mjs";
-import { citationsIn, identifiersIn, opensWith } from "./parse.mjs";
+import { citationProblems, citationRefusal, namedIn, revisionSaid, unrevisionedIn } from "./citation.mjs";
+import { identifiersIn, opensWith } from "./parse.mjs";
 import { keepsSpecTree, specTreeIfAny } from "./tree.mjs";
-import { lookup } from "./index.mjs";
 import { withoutFences, withoutSpans } from "../markdown.mjs";
 
 const referencesChecked = (ids, raise, escape = null) => {
@@ -41,17 +40,22 @@ export const CITED_IN = `${NAMED.slice(0, -1).join(", ")} or ${NAMED.at(-1)}`;
 export const citationBlocks = (keeps = keepsSpecTree()) => (keeps
   ? ["This project keeps a requirements tree, and `approved` is refused until one of",
     `${CITED_IN} names a clause of it. A criterion carries one by`,
-    "opening with `<id>~<rev>:`, and `forge spec <id>` prints the clause with the revision to cite.",
+    "opening with `<id>~<rev>:`, or with `<id>:` alone where the clause carries no revision, and",
+    "`forge spec <id>` prints the clause with the revision to cite or `(no revision)`.",
     "Write it into the file the consult reads: this write compares the file with what that consult was",
     "given, so a citation added afterwards is a second consult."]
   : []);
 
-/** The clauses an issue names, resolved rather than recognised: a prefix and a revision make an identifier, not a clause. `null` is a project keeping no tree and is the one answer that turns the condition off; `[]` is a tree with nothing cited. The probe is what keeps those two apart once the text has answered nothing, and it is the whole of what an issue citing no clause pays here (ISS-461). */
+/** The clauses an issue names, resolved rather than recognised: a prefix and a revision make an identifier, not a clause, and which identifiers name one is `namesClause`'s. `null` is a project keeping no tree and is the one answer that turns the condition off; otherwise `named` is the clauses named, `unrevised` the bare identifiers of revisioned clauses with the revision each carries, and `revisions` whether any clause of the tree carries one — `null` where the text named no identifier, so the refusal says which absence it found without reading a tree for a text that names nothing (ISS-461). */
 export const citedClauses = (issue) => {
   const text = CITED_FIELDS.map(({ field }) => issue?.[field]).join("\n");
-  const cited = citationsIn(text);
-  if (!cited.length) return keepsSpecTree() ? [] : null;
+  const ids = identifiersIn(text);
+  if (!ids.length) return keepsSpecTree() ? { named: [], unrevised: [], revisions: null } : null;
   const index = specTreeIfAny();
   if (!index) return null;
-  return [...new Set(cited.filter((one) => lookup(index, one.id).clause).map((one) => one.id))];
+  return {
+    named: namedIn(index, ids),
+    unrevised: unrevisionedIn(index, ids),
+    revisions: [...index.clauses.values()].some((clause) => clause.rev !== null),
+  };
 };

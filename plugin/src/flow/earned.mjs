@@ -61,6 +61,27 @@ export { blockersOwed, holdsBack, holdsBackFrom, ordersSaid };
 export const NO_VERIFICATION = "no verification: where the change now runs, at which commit, and the evidence";
 export const NO_NOTE = "no release note and no withholding either";
 export const NO_DECISION = "no decision record: each reading decided with its assumption and undo, or an explicit none";
+/* The form a refusal asks for is one this tree can produce: a tree carrying no revision is cited bare, and `revisions: null` is a text naming nothing, read against no tree, so both forms are given. */
+const citationForm = ({ unrevised, revisions }) => {
+  if (unrevised.length) {
+    const cites = unrevised.map((one) => `${one.id}~${one.rev}`);
+    return { said: `${unrevised.map((one) => one.id).join(", ")} ${unrevised.length > 1 ? "are" : "is"} named without the `
+      + `revision ${unrevised.length > 1 ? "each" : "it"} carries, which names no clause: cite ${cites.join(", ")}`,
+    opening: `\`${cites[0]}:\`` };
+  }
+  if (revisions === false) {
+    return { said: `no clause of this tree carries a revision, so a citation is the bare \`<id>\` — ${FORMS}`, opening: "`<id>:`" };
+  }
+  return { said: `a citation is \`<id>~<rev>\`, or \`<id>\` alone where the clause carries no revision — ${FORMS}`,
+    opening: "`<id>~<rev>:`, or `<id>:` where `forge spec <id>` prints `(no revision)`" };
+};
+
+const clauseOwed = (cited, ref) => {
+  const { said, opening } = citationForm(cited);
+  return need(`no clause of this project's requirements tree is named by the description, the plan or the criteria, and ${said}`,
+    `forge record criteria ${ref} <criteria.md>, with a criterion opening ${opening}`);
+};
+
 export const NO_CRITERIA = "the criteria field holds no numbered line `N. outcome`";
 
 export const atLeast = (status, floor) =>
@@ -628,13 +649,7 @@ export const CHECKS = {
     }
     /* Called here and nowhere else, so a transition with no citation to weigh reads no tree. A list and empty, never falsy — an empty array is truthy. Which absence is which: `citedClauses`. */
     const cited = view.cited?.();
-    if (cited && !cited.length) {
-      out.push(need(
-        "no clause of this project's requirements tree is named by the description, the plan or the "
-          + `criteria, and a citation is \`<id>~<rev>\` — ${FORMS}`,
-        `forge record criteria ${ref} <criteria.md>, with a criterion opening \`<id>~<rev>:\``,
-      ));
-    }
+    if (cited && !cited.named.length) out.push(clauseOwed(cited, ref));
     return [...out, ...foldedOwed(view, ref)];
   },
   /* No measurement of the tree: the landing's gate measures it, and every commit reaches the default branch through that gate, so a run's own reading before the first edit would say nothing the landing does not. A plan declaring the change lands no file drops the branch, there being no tree to cut one from (ISS-2384). */

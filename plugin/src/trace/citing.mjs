@@ -2,7 +2,8 @@
 import { scoped } from "../tracker/rest.mjs";
 import { MAX_LIMIT, readSaid, rowsOf } from "../tracker/issues.mjs";
 import { CITED_FIELDS } from "../spec/checked.mjs";
-import { citationsIn } from "../spec/parse.mjs";
+import { identifiersIn } from "../spec/parse.mjs";
+import { namesClause } from "../spec/citation.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { viewFrom } from "../flow/earned.mjs";
 import { specTreeIfAny } from "../spec/tree.mjs";
@@ -17,10 +18,13 @@ const pageAt = async (id, offset, held) => scoped("forge_issues", {
   filters: { search: id },
 }, held.soft !== false, held);
 
-/** Every citation of `id` in a row, through the reader the write side spends, with its revision. */
+/** Every citation of `id` in a row, by the rule `approved` counts one by, with its revision. */
 const citedIn = (row, index, id) => CITED_FIELDS
-  .flatMap(({ field }) => citationsIn(row?.[field]).map((one) => ({ ...one, field })))
-  .filter((one) => one.id === id && lookup(index, one.id).clause);
+  .flatMap(({ field }) => identifiersIn(row?.[field]).map((one) => ({ id: one.id, rev: one.rev, field })))
+  .filter((one) => {
+    const { clause } = one.id === id ? lookup(index, one.id) : {};
+    return Boolean(clause) && namesClause(clause, one);
+  });
 
 /* Ends on `hasMore`: one stopping on a short page reports what it read as the whole answer. */
 const walk = async (id, index, held) => {

@@ -313,12 +313,15 @@ const UNTYPED = "Screen change: no. Schema coupling: no. Deploy coupling: no.\n\
    a fixture and `earned.mjs` still reads no checkout. `null` is a project with no tree and owes
    nothing; the empty array is a tree with nothing named, which is the whole of what it fires on. */
 const DECIDED = [recorded("decision", { decision: [], none: "none found" })];
-const cited = (issue, ids) => viewFrom("the-uuid", issue, DECIDED, null, null, () => ids);
+const read = (named, unrevised = [], revisions = null) => ({ named, unrevised, revisions });
+const cited = (issue, answer) => viewFrom("the-uuid", issue, DECIDED, null, null,
+  () => (Array.isArray(answer) ? read(answer) : answer));
 const planned = (plan) => view({ plan, acceptanceCriteria: CRITERIA }, DECIDED);
 const APPROVABLE = { plan: PLAN, acceptanceCriteria: CRITERIA };
 const UNREAD = () => assert.fail("the tree was walked by a transition that had no citation to weigh");
-const CITES_NOTHING = "no clause of this project's requirements tree is named by the description, the plan or the "
-  + "criteria, and a citation is `<id>~<rev>` — FR-04 · UC-04-3 · AC-04-3-1 · NFR-02 · EI-01 · BR-09 · G-01 · M-01 · C-05 · A-02";
+const FORMS_SAID = "FR-04 · UC-04-3 · AC-04-3-1 · NFR-02 · EI-01 · BR-09 · G-01 · M-01 · C-05 · A-02";
+const NAMES_NOTHING = "no clause of this project's requirements tree is named by the description, the plan or the criteria, and ";
+const CITES_NOTHING = `${NAMES_NOTHING}a citation is \`<id>~<rev>\`, or \`<id>\` alone where the clause carries no revision — ${FORMS_SAID}`;
 
 test("approved is refused where the project keeps a tree and the issue names no clause of it", () => {
   assert.deepEqual(missing("approved", cited(APPROVABLE, [])), [CITES_NOTHING]);
@@ -328,6 +331,27 @@ test("approved is refused where the project keeps a tree and the issue names no 
   assert.deepEqual(missing("approved", cited({ complexity: "s", acceptanceCriteria: CRITERIA }, [])),
     [CITES_NOTHING], "the light path drops the plan field and never the clause");
   assert.deepEqual(missing("approved", cited({}, [])).length, 3, "and it is owed beside what was already owed");
+});
+
+/* ISS-1041: the refusal says which absence it found, and asks only for a form the tree can produce. */
+test("approved's refusal names a revisioned clause written bare with the citation that counts", () => {
+  const bare = cited(APPROVABLE, read([], [{ id: "UC-14-4", rev: 2 }, { id: "FR-14", rev: 3 }], true));
+  assert.deepEqual(missing("approved", bare),
+    [`${NAMES_NOTHING}UC-14-4, FR-14 are named without the revision each carries, which names no clause: cite UC-14-4~2, FR-14~3`]);
+  assert.equal(commands("approved", bare)[0], "forge record criteria ISS-3 <criteria.md>, with a criterion opening `UC-14-4~2:`");
+});
+
+test("approved's refusal on a tree carrying no revision asks for the bare identifier and never for one", () => {
+  const none = cited(APPROVABLE, read([], [], false));
+  assert.deepEqual(missing("approved", none),
+    [`${NAMES_NOTHING}no clause of this tree carries a revision, so a citation is the bare \`<id>\` — ${FORMS_SAID}`]);
+  assert.equal(commands("approved", none)[0], "forge record criteria ISS-3 <criteria.md>, with a criterion opening `<id>:`");
+  assert.ok(!`${missing("approved", none)}${commands("approved", none)}`.includes("~<rev>"), "no form this tree cannot produce");
+});
+
+test("approved's refusal where nothing was named gives both forms, the tree unread", () => {
+  assert.match(commands("approved", cited(APPROVABLE, []))[0],
+    /opening `<id>~<rev>:`, or `<id>:` where `forge spec <id>` prints `\(no revision\)`$/u);
 });
 
 /* A resume restores the status the park left rather than earning it again, so the entry check does

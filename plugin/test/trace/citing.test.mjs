@@ -39,11 +39,21 @@ The identifier is the whole surface.
    case runs against: the record is this machine's now, so a room and the home holding its record
    travel together. */
 
+/* A goal carries no revision, so its bare identifier is the only citation it has (ISS-1041). */
+const GOALS = `# BRD §3 — Goals
+
+| Goal | Met by |
+|---|---|
+| **G-01** A status is earned by a record. | FR-01 |
+`;
+
 const project = (prefix, home) => {
   const root = projectRoom(tempRoom(prefix), home, OWN);
   const srs = join(root, TREE, "srs");
   mkdirSync(srs, { recursive: true });
   writeFileSync(join(srs, "fr-01-first.md"), REQUIREMENT);
+  mkdirSync(join(root, TREE, "brd"), { recursive: true });
+  writeFileSync(join(root, TREE, "brd", "03-goals.md"), GOALS);
   return root;
 };
 
@@ -114,6 +124,18 @@ test("the citing set is what the tree resolves, not what the index matched", asy
   assert.ok(!run.stdout.includes("ISS-3"),
     `a row the index matched whose only citation is of another clause is dropped:\n${run.stdout}`);
   assert.equal(searches(held.calls).length, 1, "one ask for the one clause asked about");
+});
+
+test("a clause carrying no revision is cited by its bare identifier, and a revisioned one written bare is not", async () => {
+  const GOAL = issue({ issueId: "ISS-4", title: "serves the goal", status: "open", mergedAt: null,
+    acceptanceCriteria: "1. G-01: the outcome." });
+  const { tracker, env, project: roomOf } = await trackerFor({ issues: [GOAL, PROSE] });
+  const goal = await ranAsync(FORGE, ["spec", "G-01", "--status"], env, roomOf("citing-goal-"));
+  const clause = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-bare-"));
+  tracker.close();
+  assert.equal(goal.status, 0, goal.stderr);
+  assert.match(goal.stdout, /G-01 {2}partial {2}cited by ISS-4/u);
+  assert.match(clause.stdout, /AC-01-1-1 {2}unclaimed/u, `ISS-3 names AC-01-1-1 bare, which names no clause:\n${clause.stdout}`);
 });
 
 test("a criterion opening at a revision is answered by the bare identifier the reader asks with", async () => {

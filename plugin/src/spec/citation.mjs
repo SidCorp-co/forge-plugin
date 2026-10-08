@@ -53,10 +53,22 @@ export const citationProblems = (index, ids) =>
     .map((one) => problemOf(index, one))
     .filter(Boolean);
 
-/** Said and never refused: an identifier with no revision makes no claim a checker could fail. */
-export const unrevisionedIn = (index, ids) => [...new Set(ids
-  .filter((one) => one.rev === null && lookup(index, one.id).clause)
+/** Whether an identifier names the clause it resolves to: by its revision where the clause carries one, and bare where it carries none, which is the only form such a clause has. A bare identifier of a revisioned clause names nothing, because R-10's digest is keyed on the revision. The write's said line, the `approved` check and the citing set read this one rule, so no write stores a citation the check then fails to count. */
+export const namesClause = (clause, one) => one.rev !== null || clause.rev === null;
+
+/** The clauses `ids` name by that rule, each once. */
+export const namedIn = (index, ids) => [...new Set(ids
+  .filter((one) => {
+    const { clause } = lookup(index, one.id);
+    return clause && namesClause(clause, one);
+  })
   .map((one) => one.id))];
+
+/** Said and never refused: the bare identifiers of clauses that carry a revision, each with that revision, since a plan names identifiers in prose. */
+export const unrevisionedIn = (index, ids) => [...new Map(ids
+  .map((one) => ({ one, clause: lookup(index, one.id).clause }))
+  .filter(({ one, clause }) => clause && !namesClause(clause, one))
+  .map(({ one, clause }) => [one.id, { id: one.id, rev: clause.rev }])).values()];
 
 /** `escape` is the caller's closing line: the one reader that skips quoted text says how to quote. */
 export const citationRefusal = (problems, escape = null) => (problems.length
@@ -66,8 +78,11 @@ export const citationRefusal = (problems, escape = null) => (problems.length
 
 export const revisionSaid = (ids) => {
   if (!ids.length) return null;
-  const names = ids.length > 1 ? `${ids.join(", ")} name clauses and carry` : `${ids[0]} names a clause and carries`;
-  return `${names} no revision. R-10 asks for \`<id>~<rev>\`, so a clause that is reworded takes its`
-    + " citations with it: only a citation carrying a revision is compared with the digest the tree"
-    + " records, and this was written as given.";
+  const many = ids.length > 1;
+  const names = ids.map((one) => one.id).join(", ");
+  const cites = ids.map((one) => `${one.id}~${one.rev}`).join(", ");
+  return `${names} ${many ? "name clauses that carry" : "names a clause that carries"} a revision and`
+    + ` ${many ? "were" : "was"} written without it, which \`approved\` does not count as naming the`
+    + ` clause: cite ${cites}. R-10 asks for \`<id>~<rev>\`, so a clause that is reworded takes its citations`
+    + " with it, and this was written as given.";
 };
