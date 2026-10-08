@@ -134,7 +134,7 @@ export const USAGE = [
   "The lease on an issue: a holder, a renew time, a duration and the claims before it.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
-  `  ${STOPPED}       a lapse, work in a tree, or an earlier run on this issue: the run the lease named stopped`,
+  `  ${STOPPED}       a lapse, work, or an earlier run: the run the lease named stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
   `  ${GIVE_BACK}     this run's own lease, handed back`,
   "  --next <line>   the next run's first step; a status move clears the line, not the lease",

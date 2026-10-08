@@ -51,7 +51,7 @@ const ISSUE = {
   complexity: "m",
 };
 
-/* Written from this test's own process, which every forge call below names as its host: the shape a
+/* Written from this test's own process, which every claim below names as its host: the shape a
    session's two sub-agents leave, one lease written and the next claim made under the same process. */
 const heldBy = (tree, { status = "approved", pid = String(process.pid), landing = null } = {}) => {
   ISSUE.status = status;
