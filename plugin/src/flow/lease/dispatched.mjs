@@ -25,7 +25,7 @@ const atDispatch = (status) => TAKEABLE.includes(String(status));
 /* Past the statuses a run is first dispatched at, with a holder that is not this call's own dispatcher: the one condition both the take and its refusal read. */
 const pastDispatch = (context, status) => !atDispatch(status) && !dispatcherHere(leaseOf(context));
 
-/* What a holder cut for this same issue left behind, read where the lease was written from this call's own host process: that process is every agent of one session, so it says nothing about the run and the tree has to (ISS-3254). Asked only of a caller whose id is the one its own tree mints, since a caller standing in the holder's tree is the second agent of one tree ISS-1872 reads and not a later dispatch. A tree re-minted for this caller is the dispatcher's own act ending the run before, and is still read for declared work, as an idle tree is; work found or no reading leaves the take to the caller's assertion. */
+/* What a holder cut for this same issue left behind, read only where `writtenHere` holds: that process is every agent of one session, so it says nothing about the run and the tree has to (ISS-3254). Asked only of a caller whose id is the one its own tree mints, since a caller standing in the holder's tree is the second agent of one tree ISS-1872 reads and not a later dispatch. A tree re-minted for this caller is the dispatcher's own act ending the run before, and is still read for declared work, as an idle tree is; work found or no reading leaves the take to the caller's assertion. */
 const TREE_FATES = {
   gone: "whose tree is no longer a checkout",
   reminted: "whose tree has since been minted for this run, with no declared work standing in it",
