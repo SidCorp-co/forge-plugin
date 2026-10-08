@@ -116,7 +116,8 @@ test("a second run dispatched to the same issue is refused as any second run is,
   const refused = await ran(["claim", "ISS-1084"], "iss-1084-99999999");
   assert.equal(refused.status, 1, refused.stdout);
   assert.doesNotMatch(refused.stderr, /FORGE_SESSION_ID=/u);
-  assert.match(refused.stderr, /past the statuses a run is dispatched at/u, "which is the answer that case already had");
+  assert.match(refused.stderr, /mints no id, so nothing here tells a later dispatch from a second run beside that one/u,
+    "the tree minted for a run being what would tell an earlier run's lease from a sibling's (ISS-3254)");
 });
 
 /* The other id ISS-467 gave a run: where the tree this call stands in minted the holder, the

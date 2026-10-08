@@ -134,7 +134,7 @@ export const USAGE = [
   "The lease on an issue: a holder, a renew time, a duration and the claims before it.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
-  `  ${STOPPED}       a lapse, or work in this tree: the run the lease named stopped`,
+  `  ${STOPPED}       a lapse, work in a tree, or an earlier run on this issue: the run the lease named stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
   `  ${GIVE_BACK}     this run's own lease, handed back`,
   "  --next <line>   the next run's first step; a status move clears the line, not the lease",
@@ -483,7 +483,7 @@ export const claim = async (argv) => {
   /* The issue's own key and never the caller's spelling of it: `documentIdOf` takes a uuid too, and
      a run refused for how it typed the reference is refused by nothing on the record (codex F1). */
   const key = issue.issueId ?? ref;
-  const handed = handedOn(key, context, issue.status, holder);
+  const handed = handedOn(key, context, issue.status, holder, { asserted: given.stopped });
   /* Read once for both refusals below: where the checkpoint names this caller's turn, `--take` is
      open and is the route that asserts nothing about the run being taken from (ISS-1600). */
   const mineHere = sessionSourced();
@@ -559,7 +559,7 @@ export const claim = async (argv) => {
   if (batchLine) console.log(batchLine);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken, source)}`);
-  if (state === "live") console.log(handedSaid(ref, lease));
+  if (state === "live") console.log(handedSaid(ref, lease, typeof handed === "string" ? handed : null));
   if (state === "gone") console.log(holderGoneSaid(lease, undefined, { asserted: given.stopped }));
   if (green) console.log(green);
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);

@@ -4,9 +4,10 @@ import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, session
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames, runsFor } from "../../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../../rank/weights.mjs";
-import { UNKNOWN, pidOf, writtenHere } from "./holder.mjs";
+import { UNKNOWN, pidOf, treeFate, workIn, workUnder, writtenHere } from "./holder.mjs";
+import { rowLines } from "./working.mjs";
 import { READ_THE_STATE, landingOf, landingTurn } from "../landing/checkpoint.mjs";
-import { describe, leaseOf } from "../lease.mjs";
+import { STOPPED, describe, leaseOf } from "../lease.mjs";
 
 /* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
 export const SHARED_HOLDER =
@@ -24,12 +25,41 @@ const atDispatch = (status) => TAKEABLE.includes(String(status));
 /* Past the statuses a run is first dispatched at, with a holder that is not this call's own dispatcher: the one condition both the take and its refusal read. */
 const pastDispatch = (context, status) => !atDispatch(status) && !dispatcherHere(leaseOf(context));
 
-/* The one live lease a claim may take, and the fact that licenses it is the caller's own id rather than any judgement about the holder: a run standing in the tree cut for this issue IS the run the issue was dispatched to, and the id ISS-467 gave that tree already names which issue. Until this, a dispatcher's own lease over a triage write was waited out by the runner it had just dispatched — fifteen minutes of a 25-minute lease when this was filed, forty-five of the hour a default one runs now (ISS-1091). Three conditions keep it to the dispatch, each one a case where a live lease is work rather than a hold: the checkpoint governs wherever its state names a turn, so a landing's turns stay `--take`'s alone; past the statuses a run is first dispatched at, the holder has to be this call's own dispatcher by `dispatcherHere`, since a resume is dispatched there too and any other holder there is a run at work; and a holder cut for this same issue is the run the dispatch already reached. */
-export const handedOn = (key, context, status, holder = sessionOf()) => {
+/* What a holder cut for this same issue left behind, read where the lease was written from this call's own host process: that process is every agent of one session, so it says nothing about the run and the tree has to (ISS-3254). Asked only of a caller whose id is the one its own tree mints, since a caller standing in the holder's tree is the second agent of one tree ISS-1872 reads and not a later dispatch. A tree re-minted for this caller is the dispatcher's own act ending the run before, and is still read for declared work, as an idle tree is; work found or no reading leaves the take to the caller's assertion. */
+const TREE_FATES = {
+  gone: "whose tree is no longer a checkout",
+  reminted: "whose tree has since been minted for this run, with no declared work standing in it",
+  held: "whose tree holds nothing this project calls a run's own work",
+};
+
+const fateOf = (lease, holder, at) => {
+  const fate = treeFate(lease, holder);
+  if (fate === "gone") return { fate };
+  if (fate === "reminted") return { fate, work: workIn(lease.tree) };
+  if (fate === "held") return { fate, work: workUnder(lease, at) };
+  return { fate: null };
+};
+
+/* Why a holder that is an earlier run dispatched to this issue is read as finished, or null where the holder is no such run or nothing here says so. */
+const earlierFinished = (key, lease, holder, { asserted, at }) => {
+  if (!runNames(lease?.holder, key) || !writtenHere(lease)) return null;
+  if (lease.holder === holder || runIdAt(at) !== holder) return null;
+  if (asserted) return "which you have established finished";
+  const { fate, work } = fateOf(lease, holder, at);
+  if (fate === "gone") return TREE_FATES.gone;
+  return fate && Array.isArray(work) && work.length === 0 ? TREE_FATES[fate] : null;
+};
+
+/* The one live lease a claim may take, and the fact that licenses it is the caller's own id rather than any judgement about the holder: a run standing in the tree cut for this issue IS the run the issue was dispatched to, and the id ISS-467 gave that tree already names which issue. Until this, a dispatcher's own lease over a triage write was waited out by the runner it had just dispatched — fifteen minutes of a 25-minute lease when this was filed, forty-five of the hour a default one runs now (ISS-1091). Three conditions keep it to the dispatch, each one a case where a live lease is work rather than a hold: the checkpoint governs wherever its state names a turn, so a landing's turns stay `--take`'s alone; a holder cut for this same issue is taken only where `earlierFinished` reads it as a run before this one, whatever the status; and past the statuses a run is first dispatched at, any other holder has to be this call's own dispatcher by `dispatcherHere`, since a resume is dispatched there too and any other holder there is a run at work. */
+/** Whether the claim is handed the lease: `false`, `true`, or — where the holder was an earlier run on
+ *  this issue — the reason it was read as finished, so the sentence printed after the write is the
+ *  reading that licensed it and not a second one. */
+export const handedOn = (key, context, status, holder = sessionOf(), { asserted = false, at = process.cwd() } = {}) => {
   if (!runNames(holder, key)) return false;
-  if (pastDispatch(context, status)) return false;
   if (landingTurn(landingOf(context))) return false;
-  return !runNames(leaseOf(context)?.holder, key);
+  const lease = leaseOf(context);
+  if (runNames(lease?.holder, key)) return earlierFinished(key, lease, holder, { asserted, at }) ?? false;
+  return !pastDispatch(context, status);
 };
 
 /* What is wrong with the caller's id, said apart from what the tree carries, because the two have different ways out: an id that names no issue at all, and one minted for other issues, read as a dispatcher that declared wrongly when a single sentence answered both (ISS-1682). */
@@ -108,6 +138,10 @@ const giveBackRoute = (ref) => ` Where that holder did dispatch this run and is 
 export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd(), held = sessionSourced()) => {
   const named = String(key).trim().toLowerCase();
   const judging = JUDGING_AT.includes(String(status)) ? judgeRoute(ref, holder, held) : "";
+  const lease = leaseOf(context);
+  if (runNames(holder, named) && runNames(lease?.holder, named) && !landingTurn(landingOf(context))) {
+    return earlierSaid(ref, lease, holder, at) + judging;
+  }
   if (pastDispatch(context, status)) {
     return pastSaid(ref, status, leaseOf(context))
       + (runNames(holder, named) ? giveBackRoute(ref) : "") + judging;
@@ -123,10 +157,42 @@ export const notHandedHere = (ref, key, context, status, holder = sessionOf(), a
     return `A landing checkpoint on ${ref} names the ${turn}'s turn, and a turn changes hands `
       + `through the checkpoint and not through a claim. ${READ_THE_STATE(ref)}`;
   }
-  return `That holder is another run dispatched to ${ref}, so the issue is already with a run it `
-    + `was handed to and the lease is doing work.`;
+  return anotherRun(ref);
 };
 
-export const handedSaid = (ref, lease) =>
-  `The lease on ${ref} was live and ${describe(lease)} held it. This run is the one ${ref} was `
-  + `dispatched to, so the claim took it rather than waiting the lease out.`;
+const anotherRun = (ref) => `That holder is another run dispatched to ${ref}, so the issue is already `
+  + `with a run it was handed to and the lease is doing work.`;
+
+/* Which reading of the tree left the run before this one unproven, since each names its own state. */
+const treeSaid = (lease, holder, at) => {
+  const { fate, work } = fateOf(lease, holder, at);
+  if (!lease.tree) return "the lease records no tree for it";
+  if (!fate) {
+    return `${lease.tree}, the tree it records, now mints ${runIdAt(lease.tree) ?? "no id"}, which is neither `
+      + "that run's nor this one's";
+  }
+  if (!work) return `${lease.tree}, the tree it records, could not be read for work standing in it`;
+  return [`${work.length} process(es) running what this project declares a run's own work stand in `
+    + `${lease.tree}, the tree it records:`, ...rowLines(work)].join("\n");
+};
+
+/* A holder cut for this same issue that `earlierFinished` could not read as finished, said by the condition that failed: another process is a run at work, an id its own tree does not mint is no later dispatch, and a tree that reads neither way is the caller's to settle (ISS-3254). */
+const earlierSaid = (ref, lease, holder, at) => {
+  if (!writtenHere(lease)) return anotherRun(ref);
+  if (runIdAt(at) !== holder) {
+    return `That holder is a run dispatched to ${ref} from this call's own host process, and this call `
+      + `holds ${holder} while the tree it stands in mints ${runIdAt(at) ?? "no id"}, so nothing here `
+      + `tells a later dispatch from a second run beside that one. Make the call from the tree minted `
+      + `for this run, with ${RUN_ID_VAR} unset or naming the same id.`;
+  }
+  return `That holder is an earlier run dispatched to ${ref}, written from this call's own host process `
+    + `— the process every agent of one session shares, so it says nothing about whether that run is `
+    + `still working — and ${treeSaid(lease, holder, at)}.\nWhere the session that dispatched this run `
+    + `has seen that one finish, say so:\n  forge claim ${ref} ${STOPPED}\n`;
+};
+
+export const handedSaid = (ref, lease, earlier = null) => (earlier
+  ? `The lease on ${ref} was live and ${describe(lease)} held it. That holder was an earlier run `
+    + `dispatched to ${ref}, ${earlier}, so the claim took it rather than waiting the lease out.`
+  : `The lease on ${ref} was live and ${describe(lease)} held it. This run is the one ${ref} was `
+    + `dispatched to, so the claim took it rather than waiting the lease out.`);

@@ -7,7 +7,7 @@ import { STOPPED, describe } from "../lease.mjs";
 
 const NAMED = 3;
 
-const rowLines = (rows) => [
+export const rowLines = (rows) => [
   ...rows.slice(0, NAMED).map((one) => `  pid ${one.pid}  ${one.command}`
     + `${one.since ? `, running since ${one.since.slice(11, 16)}` : ""}`),
   ...(rows.length > NAMED ? [`  and ${rows.length - NAMED} more`] : []),

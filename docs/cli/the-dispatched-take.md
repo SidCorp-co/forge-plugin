@@ -23,7 +23,23 @@ walk a builder past the state that handed its turn to somebody else — those tu
 Past the statuses a run is first dispatched at, the holder has to be provably the session that
 sent this run, because a lease there is otherwise a run at work. And a holder whose own id names the
 same issue is the run the dispatch already reached, which is the wave of several runners the lease
-exists for.
+exists for — unless the record shows it is a run before this one, below.
+
+**An issue dispatched more than once in one session meets its own earlier run's lease** (ISS-3254).
+A spec run, then a refactor run, each in its own tree: the first finishes without handing its lease
+over, and the second is refused for as long as the session lives, because the process the lease
+records is the session's and every agent of it shares that process — it never reads as gone. The
+process says nothing about the run there, so the tree does. Where the lease was written from the
+claiming call's own host process, and the claiming run stands in a tree that minted its own id, the
+earlier run is read as finished when the tree its lease records is no longer a checkout, or has been
+minted since for this run, or still mints that run and holds nothing the project declares a run's
+own work, the last two read for that work as any lease's tree is. Work found, or a tree that reads
+none of those ways, leaves it to the caller: the refusal says which, and `--stopped` is the
+assertion that the session which dispatched both saw the earlier one finish. A lease written from
+another process is a second run's as before, and a caller whose id is not its own tree's is told so,
+since only the tree tells a later dispatch from a sibling beside the earlier run. The take holds
+past the dispatch statuses too, the earlier run being no dispatcher, and a landing checkpoint naming
+a turn still governs.
 
 **A resume is dispatched past those statuses, so the proof there is the process and not the
 status.** A run sent to take up an issue at `in_progress`, or to finish one at `developed`, met its
