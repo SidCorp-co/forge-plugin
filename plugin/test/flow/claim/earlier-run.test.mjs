@@ -165,6 +165,7 @@ test("a recorded tree this call cannot look into is not read as gone", { skip: p
     assert.equal(refused.status, 1, `an unreadable tree licensed the take:\n${refused.stdout}`);
     assert.match(refused.stderr, /\n {2}forge claim ISS-3254 --stopped\n/u, "the caller settles it instead");
     assert.equal(took().holder, EARLIER);
+    handed(await claim(["--stopped"]), "which you have established finished");
   } finally {
     chmodSync(shut, 0o700);
   }
