@@ -76,10 +76,13 @@ verb above is, so a plan and a `spec` call disagree about no clause; what differ
 and so the sentence — a reader who asked for one clause is told it is stale and stops, an author
 still holding the file is told which revision to write instead.
 
-Two boundaries decide what that check may refuse. **A citation is `<id>~<rev>`, and an identifier
-written without one is not one:** it makes no claim a checker could fail, R-10 is what wants the
-revision, and the recorded digest the gate compares is keyed on one, so a bare identifier that names
-a real clause is said and the plan is written. **A project that keeps no tree
+Two boundaries decide what that check may refuse. **A citation is `<id>~<rev>` where the clause
+carries a revision, and the bare `<id>` where it carries none:** a clause whose table has no Rev
+column has no other form, and refusing it there would leave a goal, or a whole tree written without
+revisions, uncitable. A bare identifier of a clause that does carry one makes no claim a checker
+could fail, R-10 is what wants the revision, and the recorded digest the gate compares is keyed on
+one, so it is said with the citation to write, the plan is written, and `approved` does not count
+it. **A project that keeps no tree
 reads nothing:** this runs in repositories it cannot see, and `documents()` refuses outright where
 there is no `docs/requirements/`, which is the right answer to somebody who asked for a clause and
 the wrong one to somebody who asked to write a plan. The predicate that separates the two is

@@ -21,7 +21,7 @@ const { citationsIn, identifiersIn } = await import("../../src/spec/parse.mjs");
 const { clauseIndex } = await import("../../src/spec/index.mjs");
 const { TREE } = await import("../../src/spec/tree.mjs");
 const {
-  citationProblems, citationRefusal, revisionSaid, unrevisionedIn,
+  citationProblems, citationRefusal, namedIn, revisionSaid, unrevisionedIn,
 } = await import("../../src/spec/citation.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -136,15 +136,28 @@ test("a citation that resolves at the revision it names is no problem, and is sa
   assert.match(citationRefusal(["what went wrong"]), /nothing was written/u);
 });
 
-test("an identifier written with no revision is said and never refused, and only where it resolves", () => {
+test("an identifier written with no revision is said and never refused, and only where its clause carries one", () => {
   const index = tree();
-  assert.deepEqual(unrevised(index, "this serves UC-01-1 and FR-01"), ["UC-01-1", "FR-01"]);
+  assert.deepEqual(unrevised(index, "this serves UC-01-1 and FR-01"), [{ id: "UC-01-1", rev: 1 }, { id: "FR-01", rev: 2 }]);
   assert.deepEqual(unrevised(index, "this serves AC-01-1-9"), [], "an identifier naming nothing is not an unrevised citation");
   assert.deepEqual(unrevised(index, "this serves UC-01-1~1"), [], "and neither is one that carries its revision");
+  assert.deepEqual(unrevised(index, "this serves G-01"), [], "nor the bare identifier of a clause that carries none");
   assert.deepEqual(citationProblems(index, identifiersIn("this serves AC-01-1-9")), [], "a bare identifier makes no citation to refuse");
-  assert.match(revisionSaid(["UC-01-1"]), /names a clause and carries no revision/u);
-  assert.match(revisionSaid(["UC-01-1", "FR-01"]), /name clauses and carry no revision/u);
+  const one = revisionSaid([{ id: "UC-01-1", rev: 1 }]);
+  assert.match(one, /UC-01-1 names a clause that carries a revision and was written without it/u);
+  assert.match(one, /`approved` does not count as naming the clause: cite UC-01-1~1\./u, "the line names the citation that counts");
+  assert.match(revisionSaid([{ id: "UC-01-1", rev: 1 }, { id: "FR-01", rev: 2 }]), /name clauses that carry a revision and were written without it.*cite UC-01-1~1, FR-01~2/su);
   assert.equal(revisionSaid([]), null);
+});
+
+/* ISS-1041: a clause whose table has no Rev column has one form, the bare identifier, and that form
+   names it; the bare form of a clause that carries a revision still names nothing. */
+test("a clause is named by its revision where it carries one, and bare where it carries none", () => {
+  const index = tree();
+  assert.deepEqual(namedIn(index, identifiersIn("serves G-01")), ["G-01"], "a goal has no revision to carry");
+  assert.deepEqual(namedIn(index, identifiersIn("serves UC-01-1 and FR-01")), [], "a revisioned clause written bare names nothing");
+  assert.deepEqual(namedIn(index, identifiersIn("serves UC-01-1~1, UC-01-1~1 and G-01")), ["UC-01-1", "G-01"]);
+  assert.deepEqual(namedIn(index, identifiersIn("serves AC-01-1-9 and R-10")), [], "an identifier that resolves to no clause names none");
 });
 
 /* The boundary F1 of consult bd9e1c named: the writer has to see `R-10~1` to refuse it, and every

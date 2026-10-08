@@ -50,13 +50,23 @@ The identifier is the whole surface.
   IF the identifier is unknown THEN the CLI SHALL refuse.
 `;
 
-const project = (prefix, withTree) => {
+/* A goals table has no Rev column, which is the clause this tree's goals and a whole tree written
+   without revisions both are (ISS-1041). */
+const GOALS = `# BRD §3 — Goals
+
+| Goal | Met by |
+|---|---|
+| **G-01** A status is earned by a record. | FR-01 |
+`;
+
+const project = (prefix, withTree, documents = { "srs/fr-01-first.md": REQUIREMENT, "brd/03-goals.md": GOALS }) => {
   const root = temporary(prefix);
   projectRoom(root, process.env.XDG_CONFIG_HOME, { slug: "checked-fixture" });
   if (withTree) {
-    const srs = join(root, TREE, "srs");
-    mkdirSync(srs, { recursive: true });
-    writeFileSync(join(srs, "fr-01-first.md"), REQUIREMENT);
+    for (const [rel, text] of Object.entries(documents)) {
+      mkdirSync(join(root, TREE, rel, ".."), { recursive: true });
+      writeFileSync(join(root, TREE, rel), text);
+    }
   }
   return root;
 };
@@ -98,10 +108,17 @@ test("a criterion opening with a rule of the tree's own index is told it is one"
     "and that R-10 was not looked up as one, which is the half this case adds to the line above");
 });
 
-test("a criterion opening with a bare identifier is written, and R-10 is said over it", () => {
+test("a criterion opening with the bare identifier of a revisioned clause is written, and told the citation that counts", () => {
   const run = written(project("crit-bare-", true), "1. UC-01-1: the outcome.\n");
   assert.match(run.stderr, /R-10 asks for/u);
+  assert.match(run.stderr, /`approved` does not count as naming the clause: cite UC-01-1~1\./u);
   assert.match(run.stderr, REACHED_THE_TRACKER, "a said line stops nothing");
+});
+
+test("a criterion opening with the bare identifier of a clause carrying no revision is written and asked for none", () => {
+  const run = written(project("crit-bare-goal-", true), "1. G-01: the outcome.\n");
+  assert.match(run.stderr, REACHED_THE_TRACKER);
+  assert.ok(!run.stderr.includes("R-10"), `a clause with no revision is asked for none: ${run.stderr}`);
 });
 
 /* The narrowing AC-14-4-1 states, and the case that pays for it: ISS-28's own shipped criterion 7
@@ -208,6 +225,8 @@ const asked = (root, issue) => spawnSync(process.execPath, [
 ], { encoding: "utf8", cwd: root });
 
 const clauses = (root, issue) => asked(root, issue).stdout.trim();
+const NOTHING_READ = '{"named":[],"unrevised":[],"revisions":null}';
+const named = (root, issue) => JSON.parse(clauses(root, issue)).named;
 
 test("a project with no tree answers null, which is the one answer that owes nothing", () => {
   assert.equal(clauses(project("cited-no-tree-", false), { description: "serves UC-01-1~1" }), "null");
@@ -215,13 +234,25 @@ test("a project with no tree answers null, which is the one answer that owes not
 
 test("the clauses an issue names are resolved, not recognised by their prefix", () => {
   const root = project("cited-tree-", true);
-  assert.equal(clauses(root, { description: "serves UC-01-1~1" }), '["UC-01-1"]');
-  assert.equal(clauses(root, { plan: "serves AC-01-1-1~1" }), '["AC-01-1-1"]');
-  assert.equal(clauses(root, { acceptanceCriteria: "1. AC-01-1-2~3: the outcome." }), '["AC-01-1-2"]');
-  assert.equal(clauses(root, { description: "serves FR-999999~1" }), "[]", "a prefix and a revision are not a clause");
-  assert.equal(clauses(root, { description: "serves R-10~1" }), "[]", "a rule of the index is not a clause");
-  assert.equal(clauses(root, { description: "serves UC-01-1" }), "[]", "a revision is what makes a citation");
-  assert.equal(clauses(root, {}), "[]", "a tree with nothing cited is empty and never null");
+  assert.deepEqual(named(root, { description: "serves UC-01-1~1" }), ["UC-01-1"]);
+  assert.deepEqual(named(root, { plan: "serves AC-01-1-1~1" }), ["AC-01-1-1"]);
+  assert.deepEqual(named(root, { acceptanceCriteria: "1. AC-01-1-2~3: the outcome." }), ["AC-01-1-2"]);
+  assert.deepEqual(named(root, { description: "serves FR-999999~1" }), [], "a prefix and a revision are not a clause");
+  assert.deepEqual(named(root, { description: "serves R-10~1" }), [], "a rule of the index is not a clause");
+  assert.equal(clauses(root, {}), NOTHING_READ, "a tree with nothing cited is empty and never null");
+});
+
+/* ISS-1041: the rule the write says is the rule this counts by, and the answer carries what the
+   refusal needs to say which absence it found. */
+test("a bare identifier names a clause carrying no revision, and a revisioned clause written bare comes back with its revision", () => {
+  const root = project("cited-bare-", true);
+  assert.equal(clauses(root, { acceptanceCriteria: "1. G-01: the outcome." }),
+    '{"named":["G-01"],"unrevised":[],"revisions":true}', "a goal's only form names it");
+  assert.equal(clauses(root, { description: "serves UC-01-1" }),
+    '{"named":[],"unrevised":[{"id":"UC-01-1","rev":1}],"revisions":true}', "a clause carrying a revision is not named without it");
+  const bare = project("cited-revisionless-", true, { "brd/03-goals.md": GOALS });
+  assert.equal(clauses(bare, { description: "serves G-09" }),
+    '{"named":[],"unrevised":[],"revisions":false}', "a tree with no revision anywhere says so");
 });
 
 /* The one path this reader's order is observable on: a tree that is there and throws when it is
@@ -233,7 +264,7 @@ test("the clauses an issue names are resolved, not recognised by their prefix", 
 test("an issue citing nothing answers [] where the tree is there and the read of it throws", () => {
   const root = project("cited-unreadable-", true);
   symlinkSync("./nowhere.md", join(root, TREE, "srs", "dangling.md"));
-  assert.equal(clauses(root, { description: "a body naming no identifier at all" }), "[]");
+  assert.equal(clauses(root, { description: "a body naming no identifier at all" }), NOTHING_READ);
   const citing = asked(root, { description: "serves UC-01-1~1" });
   assert.notEqual(citing.status, 0, "the citing path reads the tree as it always did");
   assert.match(citing.stderr, /ENOENT/u, citing.stderr);
@@ -244,7 +275,7 @@ test("an issue citing nothing answers [] where the tree is there and the read of
 test("citedClauses is the only reader here that touches the checkout", () => {
   const root = project("cited-untrusted-", true);
   const fenced = "⟦UNTRUSTED_DATA source=\"issue.description\"⟧\nserves UC-01-1~1\n⟦END_UNTRUSTED_DATA⟧";
-  assert.equal(clauses(root, { description: fenced }), '["UC-01-1"]', "the tracker's own wrapping names no identifier");
+  assert.deepEqual(named(root, { description: fenced }), ["UC-01-1"], "the tracker's own wrapping names no identifier");
 });
 
 /* The three shapes this step exists to hold: one home for the check, `earned.mjs` proved from a
@@ -289,6 +320,8 @@ test("the two file writes' help carries the citation where a project keeps a tre
     const kept = run(project(`cited-help-${kind}-`, true));
     assert.equal(kept.status, 0, kept.stderr);
     assert.match(kept.stdout, /opening with `<id>~<rev>:`/u, `${kind} names the form a criterion opens with`);
+    assert.match(kept.stdout, /or with `<id>:` alone where the clause carries no revision/u,
+      `${kind} names the bare form a clause with no revision takes`);
     assert.match(kept.stdout, /the description, the plan or the criteria/u, `${kind} names the fields it may sit in`);
     const none = run(project(`uncited-help-${kind}-`, false));
     assert.equal(none.status, 0, none.stderr);
