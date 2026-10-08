@@ -111,12 +111,15 @@ test("a holder in another host process, or on another host, is a run at work, an
 });
 
 test("inside one host process a holder that is a run, of this issue or of another, is still at work", async () => {
-  for (const [holder, said] of [["iss-2205-cccccccc", "ISS-2205"], ["iss-1084-deadbeef", "ISS-1084"]]) {
-    heldBy(holder);
-    const refused = await claim();
-    assert.equal(refused.status, 1, `${holder} is a run:\n${refused.stdout}${refused.stderr}`);
-    assert.match(refused.stderr, new RegExp(`its holder ${escaped(holder)} is the run dispatched to ${said}`, "u"));
-  }
+  heldBy("iss-1084-deadbeef");
+  const other = await claim();
+  assert.equal(other.status, 1, `a run of another issue is a run:\n${other.stdout}${other.stderr}`);
+  assert.match(other.stderr, /its holder iss-1084-deadbeef is the run dispatched to ISS-1084/u);
+  /* A run of this same issue is read as an earlier one only from a tree minted for the caller, and this caller stands in none (ISS-3254). */
+  heldBy("iss-2205-cccccccc");
+  const same = await claim();
+  assert.equal(same.status, 1, `a run of this issue is a run:\n${same.stdout}${same.stderr}`);
+  assert.match(same.stderr, /nothing here tells a later dispatch from a second run beside that one/u);
 });
 
 test("inside one host process a landing checkpoint naming a turn still governs", async () => {

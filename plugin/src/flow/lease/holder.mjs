@@ -1,7 +1,8 @@
 /* What the record proves about the run behind a lease, which the clock never could: the recorded
    process id absent in the place that id was issued, and nothing the project calls a run's own work
    standing in the tree that lease was claimed in. docs/cli/the-dead-holder.md carries every why. */
-import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { projectWorkPattern } from "../../resolve/settings.mjs";
@@ -51,6 +52,15 @@ export const placeOf = () => {
  *  and a place this call cannot read places nothing (ISS-2205, ISS-3125). */
 export const writtenHere = (lease) => pidOf() !== UNKNOWN && lease?.pid === pidOf()
   && Boolean(placeOf()) && lease?.place === placeOf();
+
+const missing = (path) => {
+  try {
+    lstatSync(path);
+    return false;
+  } catch (error) {
+    return error.code === "ENOENT" || error.code === "ENOTDIR";
+  }
+};
 
 let standing = null;
 
@@ -118,11 +128,28 @@ export const treeOf = (lease, at = process.cwd()) => {
   return gitEntryAt(said)?.tree ?? null;
 };
 
+/** What became of the tree a lease records, read only where its place is this call's own: `gone`
+ *  where that path is no longer a checkout's root, `reminted` where it now mints `id`, `held` where
+ *  it still mints the lease's holder, and `null` where nothing here can say (ISS-3254). */
+export const treeFate = (lease, id) => {
+  const said = lease?.tree;
+  if (!said || !lease.place || lease.place !== placeOf()) return null;
+  /* Absence read off the error, never off a walk that turns every failure into none: a checkout this
+     call may not look into is not one that has gone. */
+  if (missing(said) || missing(join(said, ".git"))) return "gone";
+  if (gitEntryAt(said)?.tree !== said) return null;
+  const minted = runIdAt(said);
+  if (minted && minted === lease.holder) return "held";
+  return minted && minted === id ? "reminted" : null;
+};
+
 /** The declared work standing in that tree, none where the tree is idle or the project declares
  *  nothing, and `null` where the reading could not be made — no tree of the lease's own to read, or
  *  no host this call can place its own work against. An empty list says a tree was read. */
-export const workUnder = (lease, at = process.cwd(), said = pidOf()) => {
-  const tree = treeOf(lease, at);
+export const workUnder = (lease, at = process.cwd(), said = pidOf()) => workIn(treeOf(lease, at), said);
+
+/** The same reading of a tree named by its path, which a tree re-minted for another run still needs. */
+export const workIn = (tree, said = pidOf()) => {
   if (!tree) return null;
   const host = Number(said);
   const mine = chainOf(process.pid);

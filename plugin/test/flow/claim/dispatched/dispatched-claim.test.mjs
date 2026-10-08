@@ -7,8 +7,8 @@ import test from "node:test";
 import { mkdirSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -17,9 +17,9 @@ process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 const AWAY = projectRoom(tempRoom("dispatched-claim-away-"), process.env.XDG_CONFIG_HOME, OWN);
 process.chdir(AWAY);
 
-const { RUN_ID_VAR, mintRunId, runFor, runsFor } = await import("../../../src/resolve/session/run-id.mjs");
+const { RUN_ID_VAR, mintRunId, runFor, runsFor } = await import("../../../../src/resolve/session/run-id.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const UUID = "3f5b0a1c-2d4e-4b6a-8c9d-0e1f2a3b4c5d";
 const RUNNER = "iss-1091-90f5a52f";
 const DISPATCHER = "bc3ef73b-0e08-4e9d-869e-b2168403c7c0";
