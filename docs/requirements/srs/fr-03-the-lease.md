@@ -147,12 +147,12 @@ a release started standing under that release.
 - **AC-03-2-2** · Rev: 1 · Proof: plugin/test/tracker/precondition.test.mjs "the payload write carries the sessionContext its own renewal sent, and a moved one does not land"
   WHEN a payload is written THEN the tracker SHALL refuse the write if the lease field is no longer
   exactly what the writer read.
-- **AC-03-2-3** · Rev: 1 · Proof: plugin/test/flow/claim/dispatched-claim.test.mjs "a run dispatched to the issue takes a live lease its dispatcher is only holding"
+- **AC-03-2-3** · Rev: 1 · Proof: plugin/test/flow/claim/dispatched/dispatched-claim.test.mjs "a run dispatched to the issue takes a live lease its dispatcher is only holding"
   IF a live lease is held by a run other than the one the issue was dispatched to, and the issue is
   at a status a run is dispatched at, and no landing checkpoint on it names a turn, THEN the CLI
   SHALL let the dispatched run take the lease and SHALL record the handoff as neither a first claim
   nor a dead run's reclaim.
-- **AC-03-2-4** · Rev: 3 · Proof: plugin/test/flow/claim/dispatched-claim.test.mjs "a live lease is refused where its holder is another run dispatched to the same issue"
+- **AC-03-2-4** · Rev: 3 · Proof: plugin/test/flow/claim/dispatched/dispatched-claim.test.mjs "a live lease is refused where its holder is another run dispatched to the same issue"
   IF a run other than the holder claims a live lease without asking for the turn a landing
   checkpoint names, and either that run is not the one the issue was dispatched to, or a landing
   checkpoint on it names a turn, or the holder is itself a run the issue was dispatched to that the
@@ -215,7 +215,7 @@ a release started standing under that release.
   the claiming run is the one the issue was dispatched to, and no landing checkpoint on it names a
   turn, THEN the CLI SHALL let that run take the lease and SHALL record the handoff as it records one
   at a status a run is dispatched at.
-- **AC-03-2-19** · Rev: 1 · Proof: plugin/test/flow/claim/earlier-run.test.mjs "an earlier run's lease is taken where the tree it records is no longer a checkout"
+- **AC-03-2-19** · Rev: 1 · Proof: plugin/test/flow/claim/dispatched/earlier-run.test.mjs "an earlier run's lease is taken where the tree it records is no longer a checkout"
   IF a live lease was written from the claiming call's own host process by another run dispatched to
   the same issue, and the claiming run is the one the tree it stands in was minted for, and no landing
   checkpoint names a turn, and either the tree that lease records is no longer a checkout, or it holds

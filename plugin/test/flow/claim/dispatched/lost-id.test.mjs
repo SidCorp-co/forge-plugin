@@ -7,8 +7,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("lost-id").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -18,11 +18,11 @@ const AWAY = projectRoom(tempRoom("lost-id-away-"), process.env.XDG_CONFIG_HOME,
 process.chdir(AWAY);
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "3448870";
-const { asItsHolder, leaseOf } = await import("../../../src/flow/lease.mjs");
-const { placeOf } = await import("../../../src/flow/lease/holder.mjs");
+const { asItsHolder, leaseOf } = await import("../../../../src/flow/lease.mjs");
+const { placeOf } = await import("../../../../src/flow/lease/holder.mjs");
 const HERE = placeOf();
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const UUID = "lost-id-uuid";
 const HOLDER = "iss-1084-5370ae10";
 const WAVE = "the-whole-wave-of-them";

@@ -8,14 +8,14 @@ import { spawn } from "node:child_process";
 import { chmodSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { placeOf } from "../../../src/flow/lease/holder.mjs";
-import { OWN } from "../../fixtures/own-project.mjs";
+import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { placeOf } from "../../../../src/flow/lease/holder.mjs";
+import { OWN } from "../../../fixtures/own-project.mjs";
 
 const HOME = tempHome("earlier-run").path;
 process.env.XDG_CONFIG_HOME = HOME;
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const UUID = "earlier-run-uuid";
 const EARLIER = "iss-3254-aaaaaaaa";
 const LATER = "iss-3254-bbbbbbbb";
