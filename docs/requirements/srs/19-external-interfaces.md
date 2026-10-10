@@ -34,7 +34,7 @@ tracker keeps the verdict on it.
 
 ### EI-02 — The review provider
 
-Rev: 1 · Enforces: BR-16 · Reached from: `plugin/src/codex/codex-api.mjs`, `plugin/src/codex/image.mjs`
+Rev: 1 · Enforces: BR-16 · Reached from: `plugin/src/codex/codex-api.mjs`, `plugin/src/codex/image/image.mjs`
 
 A model from another provider, reached over its own gateway. It is worth its tokens only because it
 is a different family, so a slot resolving to this model's own family is refused (C-09). Every tool

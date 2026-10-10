@@ -24,7 +24,7 @@ import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, scopeFor, specFor } from "./codex-tools.mjs";
 import { consultSet, digestsAt, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
-import { IMAGE_USAGE, image } from "./image.mjs";
+import { IMAGE_USAGE, image } from "./image/image.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, askedRounds, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, proposalSaid, rungFor, rungLadder, severities } from "./codex-plan.mjs";

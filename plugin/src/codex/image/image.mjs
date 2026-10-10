@@ -5,11 +5,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { extname } from "node:path";
 
-import { bytesWithin, clockFor, deadlineOf, parsedOr, ranOut, textWithin, waitSeconds } from "../wire/request.mjs";
-import { fail } from "../resolve/settings.mjs";
-import { gateway } from "../resolve/machine/stores.mjs";
-import { flags, promptFirst, pullRepeated } from "../resolve/flags.mjs";
-import { imageAsk, ratioFrom, savedFraming, stating } from "../tools/services/picture.mjs";
+import { bytesWithin, clockFor, deadlineOf, parsedOr, ranOut, textWithin, waitSeconds } from "../../wire/request.mjs";
+import { fail } from "../../resolve/settings.mjs";
+import { gateway } from "../../resolve/machine/stores.mjs";
+import { flags, promptFirst, pullRepeated } from "../../resolve/flags.mjs";
+import { imageAsk, ratioFrom, savedFraming, stating } from "../../tools/services/picture.mjs";
 
 const VERB = "codex image";
 /* The backend serves one model whatever id is sent, so this is the `image_only` id the gateway's

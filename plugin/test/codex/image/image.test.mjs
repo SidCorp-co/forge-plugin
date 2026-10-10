@@ -7,9 +7,9 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ranAsync, tempHome } from "../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const KEY = "sk_codex_stub_never_a_real_credential";
 const FRAMING = "Flat vector illustration, muted palette, no text anywhere.";
 const PNG = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
