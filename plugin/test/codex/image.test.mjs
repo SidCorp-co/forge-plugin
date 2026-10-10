@@ -23,6 +23,7 @@ const GATEWAY = {
   b64: (res) => json(res, 200, { data: [{ b64_json: B64 }], size: "1370x1148" }),
   url: (res) => json(res, 200, { data: [{ url: `${state.origin}/hosted.png` }], size: "1536x1024" }),
   garbled: (res) => json(res, 200, { data: [{ b64_json: "!!!!" }] }),
+  cut: (res) => json(res, 200, { data: [{ b64_json: B64.slice(0, -1) }] }),
   torn: (res) => res.writeHead(200, { "content-type": "application/json" }).end(`{"data":[{"b64_json":"${B64.slice(0, 12)}`),
   /* Held and never answered, so the client's own clock is what ends the call. */
   hang: state.hung.push.bind(state.hung),
@@ -37,6 +38,7 @@ const stub = createServer((request, response) => {
   const { pathname } = new URL(request.url, state.origin);
   if (pathname === "/hosted.png") {
     state.downloads += 1;
+    if (state.hosted === "empty") return response.writeHead(200, { "content-type": "image/png" }).end();
     return state.hosted === 200 ? response.writeHead(200, { "content-type": "image/png" }).end(PNG)
       : response.writeHead(state.hosted).end();
   }
@@ -221,17 +223,19 @@ test("11. a gateway error echoing the key in its code or message prints neither"
   assert.match(run.stderr, /400 <the key> — stub <the key>/u);
 });
 
-test("8. an answer whose bytes are not base64 is no picture: nothing is written and the image may exist", async () => {
-  state.mode = "garbled";
-  const path = saveAt("kept.png");
-  writeFileSync(path, "what was here before");
-  const run = await ran(["a fox", "--ratio", "1:1", "--save", path]);
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /carry no image to read/u);
-  assert.match(run.stderr, MAYBE);
-  assert.doesNotMatch(run.stdout, /saved/u);
-  assert.equal(readFileSync(path, "utf8"), "what was here before");
-  assert.equal(state.sent.length, 1);
+test("8. an answer whose bytes are not whole base64 is no picture: nothing is written and the image may exist", async () => {
+  for (const mode of ["garbled", "cut"]) {
+    state.mode = mode;
+    const path = saveAt("kept.png");
+    writeFileSync(path, "what was here before");
+    const run = await ran(["a fox", "--ratio", "1:1", "--save", path]);
+    assert.equal(run.status, 1, mode);
+    assert.match(run.stderr, /carry no image to read/u, mode);
+    assert.match(run.stderr, MAYBE, mode);
+    assert.doesNotMatch(run.stdout, /saved/u, mode);
+    assert.equal(readFileSync(path, "utf8"), "what was here before", mode);
+    assert.equal(state.sent.length, 1, mode);
+  }
 });
 
 test("11. a Retry-After echoing the key is not printed", async () => {
@@ -313,16 +317,18 @@ test("19. without --save, an answer carrying only bytes is refused and names --s
   assert.match(run.stderr, /Ask with --save <path> to write the next one\./u);
 });
 
-test("20. a failed download of a returned url says the image was made and not saved, with one POST", async () => {
+test("20. a failed or empty download of a returned url says the image was made and not saved, with one POST", async () => {
   state.mode = "url";
-  state.hosted = 404;
-  const path = saveAt("never.png");
-  const run = await ran(["a fox", "--ratio", "1:1", "--save", path]);
+  for (const hosted of [404, "empty"]) {
+    state.hosted = hosted;
+    const path = saveAt("never.png");
+    const run = await ran(["a fox", "--ratio", "1:1", "--save", path]);
+    assert.equal(run.status, 1, String(hosted));
+    assert.match(run.stderr, /the image was made and did not reach .*never\.png/u);
+    assert.match(run.stderr, /It is not sent again\./u);
+    assert.equal(state.sent.length, 1);
+    assert.equal(state.downloads, 1);
+    assert.ok(!existsSync(path), `${hosted} left a file`);
+  }
   state.hosted = 200;
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /the image was made and did not reach .*never\.png/u);
-  assert.match(run.stderr, /It is not sent again\./u);
-  assert.equal(state.sent.length, 1);
-  assert.equal(state.downloads, 1);
-  assert.ok(!existsSync(path));
 });

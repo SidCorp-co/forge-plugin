@@ -21,7 +21,7 @@ const REFERENCE_CAP = 5;
 const FLOOR_SECONDS = 130;
 const BODY_CHARS = 400;
 const URL_LIKE = /^https?:\/\//u;
-const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/u;
+const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
 const TYPES = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" };
 
 const MAYBE = "The image may already have been made and counted against the Codex seat's quota. It is not sent again.";
@@ -121,11 +121,13 @@ const savedFrom = async (picture, save, deadline, struck) => {
   const clock = clockFor(deadline);
   const drawn = await fetch(picture.url, { signal: clock });
   if (!drawn.ok) throw new Error(`the image at ${struck(picture.url)} answered ${drawn.status}`);
-  return writeFileSync(save, await bytesWithin(drawn, clock));
+  const bytes = await bytesWithin(drawn, clock);
+  if (!bytes.length) throw new Error(`the image at ${struck(picture.url)} answered ${drawn.status} with no bytes`);
+  return writeFileSync(save, bytes);
 };
 
-/* Read strictly, because Node decodes base64 leniently: a field of stray characters decodes to no
-   bytes at all, which written to the path would read as a picture saved. */
+/* Read strictly, because Node decodes base64 leniently: stray characters decode to no bytes and a
+   group cut short to fewer, either of which written to the path would read as a picture saved. */
 const pictureIn = (item) => {
   const bytes = typeof item?.b64_json === "string" && BASE64.test(item.b64_json) ? Buffer.from(item.b64_json, "base64") : null;
   return { bytes: bytes?.length ? bytes : null, url: typeof item?.url === "string" && URL_LIKE.test(item.url) ? item.url : null };
