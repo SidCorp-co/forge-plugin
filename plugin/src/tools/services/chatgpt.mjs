@@ -11,7 +11,8 @@ import { apiBaseOf, bytesWithin, clockFor, deadlineOf, deadlineSeconds, MAX_WAIT
 import { sseEvents } from "../../wire/sse.mjs";
 import { fail, refusing } from "../../resolve/settings.mjs";
 import { CHATGPT_PREFIX, chatgptSettings } from "../../resolve/machine/stores.mjs";
-import { firstLine, flags, helpAskedOf, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
+import { imageAsk, ratioFrom, stating } from "./picture.mjs";
+import { firstLine, flags, helpAskedOf, promptFirst, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { CALL_CEILING_SECONDS, pastCeiling } from "../../host/call-ceiling.mjs";
 import {
@@ -121,37 +122,9 @@ const PENDING_USAGE = [
   "  --drop id      give that turn up: its process stops itself and the answer is not collected",
 ].join("\n");
 
-const RATIO = /^([1-9]\d*):([1-9]\d*)$/u;
-
 /** What continues a turn, per action, printed by the reply's resume line and by a spent turn's recovery line: a second picture of a set wants the ratio the first was drawn at, and a follow-up question wants none. */
 const RESUMES_ASK = (id) => `forge chatgpt ask "<next>" --resume ${id}`;
 const resumesImage = (ratio) => (id) => `forge chatgpt image "<next>" --ratio ${ratio} --resume ${id}`;
-
-/* Last and alone on its line: a ratio inside the prose is the instruction a generation model most often reads past, which is the thing this action exists to fix. Which spelling lands is not diffable, so docs/cli/chatgpt-image.md carries what was run rather than an argument. */
-const ratioSaid = (ratio) => `Aspect ratio: ${ratio}. Render the image at exactly ${ratio} and at no `
-  + "other shape — do not crop or pad it to a different one.";
-
-/** The framing first, the caller's words in the middle, the shape last. */
-const imageAsk = (prefix, prompt, ratio) => `${prefix}\n\n${prompt}\n\n${ratioSaid(ratio)}`;
-
-/* Both are named whichever of them is missing: a caller told about one, who fixes it and then meets the other, has spent two rounds learning one shape. Neither is defaulted — a default ratio is the square picture nobody asked for, arriving with no sign that a choice was made for them. */
-const stating = (prefix, ratio) => {
-  if (prefix && ratio) return;
-  const lacks = !prefix && !ratio ? "neither" : (prefix ? "no ratio" : "no framing");
-  fail(`chatgpt image: a picture is asked for under a framing and at a shape, and this call states ${lacks}.`
-    + `\n  framing   ${prefix ? "saved, and every picture is drawn under it"
-      : `none saved — \`forge doctor --${CHATGPT_PREFIX.flag} <${CHATGPT_PREFIX.asks}>\`, once, for every picture after it`}`
-    + `\n  ratio     ${ratio ? `${ratio}, as this call asked` : "--ratio w:h, and nothing defaults one"}`
-    + "\n  Nothing was sent.");
-};
-
-const ratioFrom = (given) => {
-  if (!RATIO.test(given)) {
-    fail(`chatgpt image: --ratio takes two whole numbers above nought with a colon between them, and \`${given}\` is not one.`
-      + "\n  Nothing was sent. Ask again with the shape you want: --ratio 16:9, --ratio 9:16, --ratio 1:1.");
-  }
-  return given;
-};
 
 const settingsFor = () => {
   const held = chatgptSettings();
@@ -437,23 +410,11 @@ const turned = async (action, argv, prepare) => {
   return printed(await sent({ ...asked, parts, held, deadline, signal: null }));
 };
 
-/* The prompt is a subject, not a flag's value, so it comes off before the parser, which refuses a
-   bare word. A flag standing in its place is two mistakes at once, so the flags are judged first —
-   or a mistyped one is never named and reads as a missing prompt. */
-const promptIn = (argv, usage, judged) => {
-  const [prompt] = argv;
-  if (prompt.startsWith("--")) judged();
-  if (prompt.startsWith("--") || !prompt.trim()) {
-    fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(usage)}`);
-  }
-  return prompt;
-};
-
 const ask = async (argv) => {
   const said = askUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
   const row = { usage: said, modes: otherCalls("ask") };
-  const prompt = promptIn(argv, said, () =>
+  const prompt = promptFirst(argv, "chatgpt", said, () =>
     flags(pullRepeated(argv, "--file", "chatgpt ask", row).rest, "chatgpt ask", [], row));
   const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt ask", row);
   const { resume, model, save, wait } = flags(rest, "chatgpt ask", [], row);
@@ -468,15 +429,15 @@ const image = async (argv) => {
   const said = imageUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
   const row = { usage: said, modes: otherCalls("image") };
-  const prompt = promptIn(argv, said, () =>
+  const prompt = promptFirst(argv, "chatgpt", said, () =>
     flags(pullRepeated(argv, "--file", "chatgpt image", row).rest, "chatgpt image", [], row));
   const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt image", row);
   const { ratio, resume, model, save, wait } = flags(rest, "chatgpt image", [], row);
   const asked = waitFrom(wait, "chatgpt image", "this one turn may hold the connection open for");
   return await turned("image", argv, () => {
     const { prefix } = chatgptSettings();
-    stating(prefix, ratio);
-    const shape = ratioFrom(ratio);
+    stating("chatgpt image", prefix, ratio);
+    const shape = ratioFrom("chatgpt image", ratio);
     return { prompt: imageAsk(prefix, prompt, shape), shown: prompt, model, resume, given, save,
       asked, resumeAs: resumesImage(shape) };
   });

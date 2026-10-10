@@ -271,3 +271,15 @@ export const thisCall = () => {
   const argv = typedArgv();
   return argv?.length ? ["forge", ...argv].join(" ") : null;
 };
+
+/* The prompt is a subject, not a flag's value, so it comes off before the parser, which refuses a
+   bare word. A flag standing in its place is two mistakes at once, so the flags are judged first —
+   or a mistyped one is never named and reads as a missing prompt. */
+export const promptFirst = (argv, verb, usage, judged) => {
+  const [prompt = ""] = argv;
+  if (prompt.startsWith("--")) judged();
+  if (prompt.startsWith("--") || !prompt.trim()) {
+    fail(`${verb}: the prompt comes first, before any flag.\n${firstLine(usage)}`);
+  }
+  return prompt;
+};
