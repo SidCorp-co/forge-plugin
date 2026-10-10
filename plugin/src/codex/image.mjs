@@ -19,6 +19,7 @@ const REFERENCE_CAP = 5;
 /* The gateway ends a call at 115s and the proxy in front of it near 125s; a client that gives up
    first has lost an image the seat already paid for. */
 const FLOOR_SECONDS = 130;
+const MIN_WAIT_SECONDS = 0.001;
 const BODY_CHARS = 400;
 const URL_LIKE = /^https?:\/\//u;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
@@ -75,12 +76,13 @@ const referencesOf = (given) => {
 };
 
 /* Judged on the seconds typed: `deadlineOf` reads a value it cannot use as no value, which would
-   hold this call to the configured wait while the caller believes their own number is in force. */
+   hold this call to the configured wait while the caller believes their own number is in force, and
+   the clock counts whole milliseconds, so a wait under one of them would spend a picture on nought. */
 const waitFrom = (raw) => {
   if (raw === undefined) return null;
   const value = Number(raw);
-  if (!Number.isFinite(value) || value <= 0) {
-    fail(`${VERB}: --wait takes a number of seconds above nought, and \`${raw}\` is not one.`
+  if (!Number.isFinite(value) || value < MIN_WAIT_SECONDS) {
+    fail(`${VERB}: --wait takes a number of seconds, ${MIN_WAIT_SECONDS} at the least, and \`${raw}\` is not one.`
       + `\n  Nothing was sent. Ask again with the seconds this call may wait, ${FLOOR_SECONDS} or more.`);
   }
   return value;

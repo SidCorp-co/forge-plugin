@@ -265,10 +265,10 @@ test("13. the wait is the larger of waitSeconds and 130 unless --wait sets it, a
     /waiting up to 200s \(waitSeconds in config\.json\)/u);
   assert.match((await ran(["a fox", "--ratio", "1:1", "--wait", "7"])).stderr,
     /waiting up to 7s \(the caller's own deadline\)/u);
-  for (const wait of ["soon", "0", "-3"]) {
+  for (const wait of ["soon", "0", "-3", "0.0001"]) {
     const run = await ran(["a fox", "--ratio", "1:1", "--wait", wait]);
     assert.equal(run.status, 1, wait);
-    assert.match(run.stderr, new RegExp(`--wait takes a number of seconds above nought, and \`${wait}\` is not one`, "u"));
+    assert.match(run.stderr, new RegExp(`--wait takes a number of seconds, 0\\.001 at the least, and \`${wait}\` is not one`, "u"));
     assert.equal(state.sent.length, 0, `--wait ${wait} sent something`);
   }
 });

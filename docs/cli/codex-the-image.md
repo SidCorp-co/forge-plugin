@@ -33,7 +33,8 @@ key for the same decision would be a second source that drifts.
 
 The wait has a floor above the gateway's own 115-second cut and the proxy's near 125, because a client
 that gives up first has thrown away a picture the account already paid for. A wait the caller types
-is the one in force, and one that is not a number above nought is refused rather than read as none.
+is the one in force, and one that is not a number of seconds, or falls under the millisecond the
+clock counts in, is refused rather than read as none.
 
 ## What it is not
 
