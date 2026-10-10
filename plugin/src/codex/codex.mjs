@@ -24,6 +24,7 @@ import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, scopeFor, specFor } from "./codex-tools.mjs";
 import { consultSet, digestsAt, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
+import { IMAGE_USAGE, image } from "./image.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, anglesInEffect, anglesShown, askedRounds, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, proposalSaid, rungFor, rungLadder, severities } from "./codex-plan.mjs";
@@ -73,10 +74,11 @@ import { LOG_USAGE, VERDICT_USAGE, consultOf, printLog, verdict } from "./log/ve
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 
 export const USAGE = [
-  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|marks|replay|complexity> [args]",
-  "A second model reviews what this turn changed, streamed over the gateway's own API. The files you",
-  "name travel with the prompt; beyond them it reads for itself, over this checkout and any other",
-  "you name a file in. Each action's own flags: `forge codex <action> -h`.",
+  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|marks|replay|complexity|image> [args]",
+  "A model on another provider, over the gateway's own API: mostly a second reviewer of what this turn",
+  "changed, and `image` draws a picture. A consult's files travel with the prompt; beyond them it",
+  "reads for itself, over this checkout and any other you name a file in. Each action's own flags:",
+  "`forge codex <action> -h`.",
   "",
   "  consult   review the files you name, or what this turn touched; intent on stdin",
   "  verdict   what became of each finding, which is the half of an eval set only you hold",
@@ -88,6 +90,7 @@ export const USAGE = [
   "  marks     the consult readings `codex eval --against` takes, held on this device, newest first",
   "  replay    which of a window a candidate prompt could be scored against",
   "  complexity  one typed question per issue — which of the five its body claims — proposed, never written; --measure scores it against run minutes",
+  "  image     one picture over the gateway's images API, from the Codex window a consult spends",
   "",
   "Every key of the `codex` object is optional and `forge codex show` prints what each resolved to",
   "and from where; `forge doctor` names the files. FORGE_CODEX_DISABLE=1 is the one variable: a",
@@ -551,6 +554,7 @@ const SUBS = {
   marks: printMarks,
   replay: printReplay,
   complexity,
+  image,
 };
 
 /* One text per action, which is the set its own parse refuses against: the two cannot drift, and
@@ -566,6 +570,7 @@ export const SAYS = {
   marks: MARKS_USAGE,
   replay: REPLAY_USAGE,
   complexity: COMPLEXITY_USAGE,
+  image: IMAGE_USAGE,
 };
 
 export const codex = async ([sub, ...rest]) => {

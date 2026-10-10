@@ -157,7 +157,7 @@ const SUBJECT_HELP = [
     ["zones", "zone", "dns", "purge", "search", "login", "accounts"]],
   ["stats", STATS, STATS_SAYS, ["runs", "models", "eval", "change", "marks", "diagnose", "waves", "surface", "daily"]],
   ["codex", CODEX, CODEX_SAYS,
-    ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay", "complexity"]],
+    ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay", "complexity", "image"]],
   ["spec", SPEC, { check: CHECK_USAGE }, ["check"]],
   ["record", RECORD, Object.fromEntries(KINDS.map((kind) => [kind, kindUsage(kind).split("\n")[0]])), KINDS],
   ["doctor", DOCTOR, DOCTOR_SAYS, SUBJECT_SLUGS],

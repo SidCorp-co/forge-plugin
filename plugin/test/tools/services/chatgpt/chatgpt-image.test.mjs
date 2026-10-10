@@ -94,6 +94,9 @@ test("the framing opens the prompt, the caller's words sit in the middle and the
   assert.match(said.split("\n").at(-1), /^Aspect ratio: 16:9\./u,
     "the shape is the last line and opens it, not a clause somewhere in the prose");
   assert.match(said, /exactly 16:9/u, "and it says exactly, or it is a preference");
+  /* Whole, and the same text codex image's suite expects; the stub reads the body as latin1. */
+  assert.equal(said, Buffer.from(`${FRAMING}\n\na fox asleep on a windowsill\n\nAspect ratio: 16:9. Render the image at `
+    + "exactly 16:9 and at no other shape — do not crop or pad it to a different one.").toString("latin1"));
 });
 
 test("a call that names no ratio is refused, and nothing is sent", async () => {
