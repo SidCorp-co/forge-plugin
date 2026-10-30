@@ -69,7 +69,7 @@ const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
 const ran = (argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: OURS });
-const note = () => ran(["record", "note", "ISS-42", "--section", "Fixed", "--user", "The swipe gesture is gone."]);
+const note = () => ran(["record", "note", "ISS-42", "--section", "Fixed", "--title", "The change in a few words", "--user", "The swipe gesture is gone."]);
 const onTheRecord = () => ISSUE.sessionContext.lease;
 
 test("a note written to a closed issue under another run's live lease lands, and the lease is reclaimed by name and given back", async () => {

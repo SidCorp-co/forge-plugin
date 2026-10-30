@@ -53,7 +53,7 @@ const kindRows = (caps) => [
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  merged       " + CLAUSES.map((one) => (one.read ? `[--${one.flag} V]` : `--${one.flag} V`)).join(" ") + " [--to B] | --undo | --landing L",
-  "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
+  "  note         --section S --title T --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
     + " [--technical " + withCap("T", caps.releaseNotes?.halves?.technical)
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
   `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,

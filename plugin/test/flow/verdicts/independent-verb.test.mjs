@@ -136,7 +136,7 @@ test("once the QA session has judged every criterion against the deployment, adv
   /* One rung, two records: the judging leaves the release rung owed, and this session writes both of the records that rung cites in one call, so that call is what moves it (ISS-1103). */
   const proved = await qa("record", "verification", "ISS-8", "--where", "the deployed app",
     "--commit", MERGED, "--evidence", "https://ci.example.test/9",
-    "--also", "note", "--section", "Fixed", "--user", "it works");
+    "--also", "note", "--section", "Fixed", "--title", "The change in a few words", "--user", "it works");
   assert.equal(proved.status, 0, proved.stderr);
   assert.match(proved.stderr, /^ISS-8 {2}testing -> awaiting_release$/mu, "both records, one call, one move");
   const run = await qa("advance", "ISS-8");

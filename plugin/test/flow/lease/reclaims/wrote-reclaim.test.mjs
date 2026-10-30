@@ -135,7 +135,7 @@ test("a payload write under the holder's own lease marks it, and a claim or a co
   const commented = await ran(["comment", "ISS-77", body]);
   assert.equal(commented.status, 0, `${commented.stdout}${commented.stderr}`);
   assert.equal(ISSUE.sessionContext.lease.wrote, undefined, "nor does a comment, which renews as a finder");
-  const noted = await ran(["record", "note", "ISS-77", "--section", "Fixed", "--user", "The swipe gesture is gone."]);
+  const noted = await ran(["record", "note", "ISS-77", "--section", "Fixed", "--title", "The change in a few words", "--user", "The swipe gesture is gone."]);
   assert.equal(noted.status, 0, `${noted.stdout}${noted.stderr}`);
   assert.equal(ISSUE.sessionContext.lease.holder, OURS);
   assert.equal(ISSUE.sessionContext.lease.wrote, true, "a payload record does");
@@ -145,7 +145,7 @@ test("a payload write the tracker refuses leaves the lease unmarked, so a reclai
   ours();
   state.refuseNotes = true;
   try {
-    const refused = await ran(["record", "note", "ISS-77", "--section", "Fixed", "--user", "The swipe gesture is gone."]);
+    const refused = await ran(["record", "note", "ISS-77", "--section", "Fixed", "--title", "The change in a few words", "--user", "The swipe gesture is gone."]);
     assert.notEqual(refused.status, 0, `the note should have been refused:\n${refused.stdout}${refused.stderr}`);
   } finally {
     state.refuseNotes = false;

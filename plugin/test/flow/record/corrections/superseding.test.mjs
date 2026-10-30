@@ -122,7 +122,7 @@ test("criteria replaced past approved with no correction naming them are refused
 
 test("a release note replaced at awaiting_release or closed is refused, a stray probe among them", async () => {
   issue("ISS-7403", { status: "awaiting_release", releaseNotes: OLD_NOTE });
-  const run = await ask("note", "ISS-7403", "--section", "Changed", "--user", "the list sorts by date");
+  const run = await ask("note", "ISS-7403", "--section", "Changed", "--title", "The change in a few words", "--user", "the list sorts by date");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--corrects note --moved "<what moved in the release note>"/u);
   const held = issue("ISS-7404", { status: "closed", releaseNotes: OLD_NOTE });
@@ -145,7 +145,7 @@ test("nothing is asked of a first write, an equal one, one below the status, or 
   assert.equal((await ask("plan", "ISS-7407", fileOf("plan.md", NEW_PLAN))).status, 0);
   assert.equal(below.plan, `${NEW_PLAN}\n`, "below approved the plan has earned nothing yet");
   const noteBelow = issue("ISS-7408", { status: "testing", releaseNotes: OLD_NOTE });
-  assert.equal((await ask("note", "ISS-7408", "--section", "Changed", "--user", "sorted by date")).status, 0);
+  assert.equal((await ask("note", "ISS-7408", "--section", "Changed", "--title", "The change in a few words", "--user", "sorted by date")).status, 0);
   assert.equal(noteBelow.releaseNotes.section, "Changed", "a note is earned at awaiting_release, not before");
   const fix = issue("ISS-7409", { status: "in_progress", complexity: "s", plan: OLD_PLAN });
   const excused = await ask("plan", "ISS-7409", fileOf("plan.md", NEW_PLAN));

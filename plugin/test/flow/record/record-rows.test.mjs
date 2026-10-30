@@ -52,10 +52,10 @@ test("the cap of a capped field is on its row, and a row with no cap read prints
     acceptanceCriteria: { self: 42, halves: {} },
   };
   const shown = kindHelp("note", caps);
-  assert.match(shown, /^ {2}note {9}--section S --user T\(40\) \[--technical T\(41\)\]/mu, "both halves of the note");
+  assert.match(shown, /^ {2}note {9}--section S --title T --user T\(40\) \[--technical T\(41\)\]/mu, "both halves of the note");
   assert.match(kindHelp("criteria", caps), /^ {2}criteria {5}<file\.md>\(42\) +numbered lines/mu, "and the criteria file");
   assert.match(shown, /^A number in parentheses after a value is that field's cap in code points/mu, "notation said once");
-  assert.match(kindHelp("note"), /^ {2}note {9}--section S --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
+  assert.match(kindHelp("note"), /^ {2}note {9}--section S --title T --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
   assert.match(kindHelp("criteria"), /^ {2}criteria {5}<file\.md> +numbered lines/mu, "the description column holding where it was");
   assert.doesNotMatch(kindHelp("note"), /A number in parentheses/u, "and no notation to explain, so none is printed");
   assert.doesNotMatch(usage(), /\(4[01]\)|A number in parentheses/u,

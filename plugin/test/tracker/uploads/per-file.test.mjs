@@ -96,7 +96,7 @@ test("a refused evidence file stops the field a kind beside it would write, as i
   const before = written().length;
   const run = await ask("record", "verification", "ISS-80", "--where", "https://staging.test", "--commit", COMMIT,
     "--evidence", text, "--evidence", binary,
-    "--also", "note", "--section", "Fixed", "--user", "Evidence files attach whatever they are called.");
+    "--also", "note", "--section", "Fixed", "--title", "The change in a few words", "--user", "Evidence files attach whatever they are called.");
   assert.deepEqual(sent, ["deployed.log", "screen.bin"]);
   assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
   assert.match(run.stderr, /No record was written/u);

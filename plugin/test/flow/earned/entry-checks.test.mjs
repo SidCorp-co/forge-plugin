@@ -298,7 +298,7 @@ test("the release note is owed at a lighter rung, and the owed line names both f
   const none = owed({});
   assert.equal(none.length, 1, "the note is the one thing a landed change at this rung still owes");
   assert.match(none[0].what, /no release note and no withholding either/u);
-  assert.match(none[0].command, /--section Added --user/u, "the form for a change somebody reads");
+  assert.match(none[0].command, /--section Added --title "<at most 10 words>" --user/u, "the form for a change somebody reads");
   assert.match(none[0].command, /--skip --why/u, "and the withholding, which is the form this rung most often wants");
 
   assert.deepEqual(owed({ releaseNotes: { section: "Fixed" } }), [], "a note written clears it");

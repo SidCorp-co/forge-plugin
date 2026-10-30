@@ -585,7 +585,7 @@ export const deployedOwed = (view, ref) => {
   /* Both forms, the sentence above offering two: a line naming one sends a change with no user-facing half hunting for the other, and the tracker refuses the close without the field at every rung (ISS-1485). */
   if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM, "note")) {
     out.push(need(NO_NOTE,
-      `forge record note ${ref} --section Added --user "<what the reporter sees>", `
+      `forge record note ${ref} --section Added --title "<at most 10 words>" --user "<what the reporter sees>", `
       + `or --skip --why "<why the change has no user-facing half>"`));
   }
   const declared = personLooks(view.flags, view.release, view.witnessed);

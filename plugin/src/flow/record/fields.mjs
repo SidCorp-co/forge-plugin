@@ -98,10 +98,24 @@ export const gateCriteriaRefused = (criteria, declared) => {
   ].join("\n"));
 };
 
+/* The tracker's own bound on a note's short title (REQ-40 BC-6), counted as it counts it. */
+const TITLE_WORDS = 10;
+
+const titleChecked = (section, title) => {
+  if (!title) {
+    refuse(`record note --section ${section} needs --title: the short title a user scans, at most ${TITLE_WORDS} words, `
+      + "with --user as its one full sentence. The tracker refuses a note a user reads without one.");
+  }
+  const words = title.split(/\s+/u).filter(Boolean).length;
+  if (words > TITLE_WORDS) {
+    refuse(`--title has ${words} words; a title is at most ${TITLE_WORDS}, and the rest belongs in --user.`);
+  }
+};
+
 /* Two forms, and a flag from the other one is refused rather than dropped. */
 export const noteFrom = (argv) => {
   const { skip, ...rest } = flags(argv, "record note", ["--skip"], { usage: kindUsage("note") });
-  const allowed = skip ? ["why", "technical"] : ["section", "user", "technical"];
+  const allowed = skip ? ["why", "technical"] : ["section", "title", "user", "technical"];
   for (const given of Object.keys(rest)) {
     if (!allowed.includes(given)) {
       refuse(`record note${skip ? " --skip" : ""} takes ${allowed.map((one) => `--${one}`).join(" ")}, not --${given}.`);
@@ -113,8 +127,9 @@ export const noteFrom = (argv) => {
     return { section: "Skip", userFacing: rest.why, technical: rest.technical ?? null };
   }
   if (!SECTIONS.includes(rest.section)) refuse(`--section takes one of ${SECTIONS.join(", ")}, or --skip --why.`);
+  titleChecked(rest.section, rest.title);
   if (!rest.user) refuse("record note needs --user: what the reporter will now see, in their words.");
-  return { section: rest.section, userFacing: rest.user, technical: rest.technical ?? null };
+  return { section: rest.section, title: rest.title, userFacing: rest.user, technical: rest.technical ?? null };
 };
 
 /** Why this plan does not answer what its flow requires, or null where it does. Read here and at no rung, so one persisted plan means the same thing under either flow; satisfied by `yes` alone, the reading `flowPolicyConflict` gives the same list; and taking its flow and its list, so a case proves it on a planted flow. */

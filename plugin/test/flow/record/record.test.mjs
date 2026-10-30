@@ -164,11 +164,24 @@ test("a run flag takes a value whose first word is a flag name", () => {
 });
 
 test("a release note has two forms, and a flag from the other form is refused, not dropped", () => {
-  assert.deepEqual(noteFrom(["--section", "Fixed", "--user", "You see it now."]), { section: "Fixed", userFacing: "You see it now.", technical: null });
+  assert.deepEqual(noteFrom(["--section", "Fixed", "--title", "The list shows again", "--user", "You see it now."]),
+    { section: "Fixed", title: "The list shows again", userFacing: "You see it now.", technical: null });
   assert.deepEqual(noteFrom(["--skip", "--why", "internal only"]), { section: "Skip", userFacing: "internal only", technical: null });
   assert.throws(() => noteFrom(["--skip", "--why", "w", "--user", "dropped?"]), /takes --why --technical, not --user/u);
-  assert.throws(() => noteFrom(["--section", "Fixed", "--user", "t", "--why", "w"]), /not --why/u);
-  assert.throws(() => noteFrom(["--section", "Nope", "--user", "t"]), /--section takes one of/u);
+  assert.throws(() => noteFrom(["--section", "Fixed", "--title", "t", "--user", "t", "--why", "w"]), /not --why/u);
+  assert.throws(() => noteFrom(["--section", "Nope", "--title", "t", "--user", "t"]), /--section takes one of/u);
+  assert.throws(() => noteFrom(["--skip", "--why", "w", "--title", "t"]), /takes --why --technical, not --title/u);
+});
+
+/* The tracker refuses a note a user reads with no short title, or one over ten words (REQ-40 BC-6),
+   and runs filed that refusal five times on one day as a defect of a verb that took no --title. */
+test("a written note carries its title, refused here with no title or one over ten words", () => {
+  assert.throws(() => noteFrom(["--section", "Added", "--user", "You see it now."]),
+    /record note --section Added needs --title: the short title a user scans, at most 10 words/u);
+  assert.throws(() => noteFrom(["--section", "Added", "--title", "one two three four five six seven eight nine ten eleven",
+    "--user", "You see it now."]), /--title has 11 words; a title is at most 10, and the rest belongs in --user/u);
+  assert.equal(noteFrom(["--section", "Added", "--title", "one two three four five six seven eight nine ten",
+    "--user", "You see it now."]).title, "one two three four five six seven eight nine ten");
 });
 
 /* Every record carries the contract it was written under, and the reader judges all of them against

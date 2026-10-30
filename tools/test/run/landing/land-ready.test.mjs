@@ -277,7 +277,7 @@ test("the builder writes the records the landing stops for, and the landing fini
   const verified = await asBuilder(["record", "verification", KEY,
     "--where", "the installed plugin", "--commit", landed, "--evidence", "https://ci.example.test/12"]);
   assert.equal(verified.status, 0, `${verified.stdout}${verified.stderr}`);
-  const note = await asBuilder(["record", "note", KEY, "--section", "Fixed", "--user", "it works"]);
+  const note = await asBuilder(["record", "note", KEY, "--section", "Fixed", "--title", "It works", "--user", "it works"]);
   assert.equal(note.status, 0, `${note.stdout}${note.stderr}`);
 
   /* The hand-back walks every rung the landing stopped short of itself, so the landing's own turn,

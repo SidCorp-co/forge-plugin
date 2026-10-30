@@ -123,7 +123,7 @@ test("a call whose second payload is refused writes none of them", async () => {
 test("a field over its cap refuses the whole call, and the comment beside it is not posted", async () => {
   const run = await ask("record", "verification", "ISS-2005", "--where", "the deployed app",
     "--commit", SHA, "--evidence", "https://ci.example.test/9",
-    "--also", "note", "--section", "Fixed", "--user", "x".repeat(501));
+    "--also", "note", "--section", "Fixed", "--title", "The change in a few words", "--user", "x".repeat(501));
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /releaseNotes\.userFacing is capped at 500/u);
   assert.deepEqual(kindsOn("ISS-2005"), [], "the verification is not on the page");

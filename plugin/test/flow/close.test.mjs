@@ -326,7 +326,7 @@ test("the line a record write leaves at that rung names the same shortfall", asy
   state.config = OWES_A_PERSON;
   await claimed("ISS-101");
   /* The note the issue already holds, so the write replaces nothing its status was earned on. */
-  const run = await ranAsync(FORGE, ["record", "note", "ISS-101", "--section", "Fixed",
+  const run = await ranAsync(FORGE, ["record", "note", "ISS-101", "--section", "Fixed", "--title", "The change in a few words",
     "--user", "it works"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stderr.includes(personOwedForRelease(releaseFrom(OWES_A_PERSON))),
