@@ -21,7 +21,9 @@ to write `2>&1` first.
 started with, so for two days every project on this machine ran one checkout: one of them died on a
 `SyntaxError` from a refactor half-finished there, and another silently ran an unreleased build. A
 call that arrives through that link picks its copy per call — the checkout the working directory sits
-in, else the newest installed copy the record resolves to — so the answer changes with `cd` and the
+in, else the copy the calling session was started with by path (`--plugin-dir`, read off that Claude
+Code process's command line), else the newest installed copy the record resolves to — so the answer
+changes with `cd` and the
 report has to answer for a directory rather than for the machine. A call that names a copy by its own
 path still runs that copy: the probe of a worktree, the suite's own spawns and the bundled
 `vi-natural` all mean the copy they name, and a caller who typed a path was not asking.

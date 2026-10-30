@@ -3,7 +3,7 @@ import { lstatSync, mkdirSync, symlinkSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { pluginCopy } from "../tools/plugin-copy.mjs";
+import { installedCopy, pluginCopy } from "../tools/plugin-copy.mjs";
 import { writeStubs } from "../tools/services/skill-stubs.mjs";
 import { hookOff } from "./hook-switch.mjs";
 import { dailyDue } from "../stats/daily/trigger.mjs";
@@ -63,7 +63,10 @@ export const linkCli = (root) => {
 
   /* Said at the start because it cannot be noticed later: the registration is this copy's. */
   const copy = pluginCopy(root);
-  if (copy?.stale) {
+  if (copy && !installedCopy(root)) {
+    process.stdout.write(`${copy.name} ${copy.running} is loaded by path from ${root} (--plugin-dir): its hooks `
+      + `and the \`forge\` calls this session makes run that copy, not the installed ${copy.installed}.\n`);
+  } else if (copy?.stale) {
     process.stdout.write(
       `${copy.name} ${copy.running} is running in this session and ${copy.installed} is installed: a `
         + "session keeps the registration it started with — which hooks run, on which events, and the "

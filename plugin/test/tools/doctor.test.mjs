@@ -1,5 +1,5 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
@@ -188,6 +188,20 @@ test("the copy a call through the link would run is reported, with why that one"
 /* An install holding one entry and not the other answers differently for each: only this shows it. */
 test("the copy the gates come from is reported beside the copy on PATH", () => {
   assert.match(report(null), /\[ {2}ok {2}\] copy the gates run\s+this \S+ at \S+ — no checkout at or above the working directory/u);
+});
+
+/* The session's own registration is the copy it was started with by path, read off its process. */
+test("a session started with --plugin-dir is told its gates run that copy", async () => {
+  const dir = join(dirname(CLI), "..");
+  const session = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", "--", "--plugin-dir", dir], { stdio: "ignore" });
+  try {
+    await new Promise((up) => session.once("spawn", up));
+    const out = report(null, { CLAUDE_PID: String(session.pid) });
+    assert.match(out, /\[ {2}ok {2}\] copy the gates run\s+inline \S+ at \S+ — the session loaded \S+ by path \(--plugin-dir\)/u, out);
+    assert.match(out, /\[ {2}ok {2}\] copy on PATH\s+inline \S+ at \S+ — .*a call from it runs that copy/u, out);
+  } finally {
+    session.kill();
+  }
 });
 
 

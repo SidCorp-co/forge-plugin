@@ -4,15 +4,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { escaped, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/link-cli.mjs", import.meta.url).pathname;
 const ROOT = new URL("../..", import.meta.url).pathname;
 
-const started = (installed) => {
+/* Started as an install starts it, from a directory under the install cache, unless `byPath`: then
+   from this checkout's own plugin directory, as `--plugin-dir` does. */
+const started = (installed, { byPath = false } = {}) => {
   const home = tempRoom("plugin-copy-");
+  const cached = join(home, ".claude", "plugins", "cache", "forge-local", "forge", "copy");
+  mkdirSync(join(cached, ".."), { recursive: true });
+  symlinkSync(ROOT, cached);
   if (installed) {
     mkdirSync(join(home, ".claude", "plugins"), { recursive: true });
     writeFileSync(
@@ -20,7 +25,7 @@ const started = (installed) => {
       JSON.stringify(installed),
     );
   }
-  const run = spawnSync(process.execPath, [HOOK, ROOT], {
+  const run = spawnSync(process.execPath, [HOOK, byPath ? ROOT : cached], {
     encoding: "utf8",
     env: { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config") },
   });
@@ -71,4 +76,13 @@ test("an install record this cannot read is silence, not a warning", () => {
   assert.doesNotMatch(started({ version: 2 }), /Restart/u);
   assert.doesNotMatch(started({ version: 2, plugins: { "forge@forge-local": "not a list" } }), /Restart/u);
   assert.doesNotMatch(started({ version: 2, plugins: { "other@elsewhere": [{ version: "1.0.0" }] } }), /Restart/u);
+});
+
+/* A copy no install put where it runs was loaded by path, and its hooks and calls are its own, which
+   is the thing to say at the start rather than a restart that would load the same directory again. */
+test("a session loaded by path is told its hooks run that copy, not the installed one", () => {
+  const said = started(record("99.0.0"), { byPath: true });
+  assert.match(said, new RegExp(`forge ${escaped(mine)} is loaded by path from \\S+ \\(--plugin-dir\\)`, "u"), said);
+  assert.match(said, /run that copy, not the installed 99\.0\.0/u, said);
+  assert.doesNotMatch(said, /Restart/u, "a restart would load the same directory again");
 });

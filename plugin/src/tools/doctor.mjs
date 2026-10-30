@@ -32,7 +32,7 @@ import { everyIssue } from "../tracker/issues.mjs";
 import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
-import { copyToRun, FROZEN } from "./plugin-copy.mjs";
+import { copyToRun, FROZEN, sessionPluginDir } from "./plugin-copy.mjs";
 import { flowRow } from "./copies/flow-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
@@ -584,7 +584,9 @@ export const doctor = async (argv) => {
   line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
     + ` — ${dispatched.why}`);
   line(OK, "copy of the flow", flowRow());
-  const gating = copyToRun({ entry: join("hooks", "_hook.mjs") });
+  /* The session's registration: the copy it was started with by path, where it names one. */
+  const loaded = sessionPluginDir();
+  const gating = copyToRun({ entry: join("hooks", "_hook.mjs"), ...(loaded ? { root: loaded, registered: true } : {}) });
   line(OK, "copy the gates run", `${gating.kind} ${gating.version ?? "?"} at ${gating.dir}`
     + ` — ${gating.why}`);
   /* The two lines above say which copy answers a call; this one says what no call reaches. One reading, spent by the release step and by the gate that holds a write to any of them. */

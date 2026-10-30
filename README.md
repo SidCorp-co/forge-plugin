@@ -26,8 +26,8 @@ The `SessionStart` hook symlinks both binaries into `~/.local/bin`. After a fres
 `node plugin/hooks/link-cli.mjs "$PWD/plugin"` once rather than waiting for the next session.
 
 One symlink serves the machine and the session that wrote it last decided where it points, so what
-it runs is decided per call instead: inside a checkout of this plugin, that checkout; anywhere else,
-the newest installed copy. A tree mid-refactor is therefore nobody else's problem, and `forge
+it runs is decided per call instead: inside a checkout of this plugin, that checkout; in a session
+started with `--plugin-dir`, that directory; anywhere else, the newest installed copy. A tree mid-refactor is therefore nobody else's problem, and `forge
 doctor` names the copy a call from the current directory would run.
 
 `install` **copies** this tree into `~/.claude/plugins/cache/forge-local/forge/<version>/`, and the

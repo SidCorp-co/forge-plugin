@@ -1,8 +1,8 @@
 /* A session keeps the registration it read at start; the code behind it is chosen per call, here,
    so a landed fix reaches an open session. `FROZEN` is what a restart is still owed for. */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const installRecord = () => join(homedir(), ".claude", "plugins", "installed_plugins.json");
@@ -69,6 +69,40 @@ const checkoutAbove = (from, name) => {
 /** Whether a path sits inside a checkout that ships this plugin, which is somebody's source tree. */
 export const insideCheckout = (from, root = PLUGIN_ROOT) => checkoutAbove(from, nameAt(root)) !== null;
 
+/** Whether the copy at `root` is one an install put there: a record's own path, or a path under the
+ *  cache the records point into, which is an older install the newest replaced. Anything else was
+ *  loaded by path (`--plugin-dir`), and no install record answers for it. */
+export const installedCopy = (root = PLUGIN_ROOT, record = installRecord()) => {
+  const at = resolve(root);
+  return installedPaths(record, root).some((one) => resolve(one) === at)
+    || at.startsWith(join(dirname(record), "cache") + sep);
+};
+
+/** The plugin directory the session was started with by path (`--plugin-dir`), off the Claude Code
+ *  process's own command line; null where it named none for this plugin, or none could be read. */
+export const sessionPluginDir = (pid = process.env.CLAUDE_PID, root = PLUGIN_ROOT) => {
+  let argv;
+  try {
+    argv = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
+  } catch {
+    return null;
+  }
+  const name = nameAt(root);
+  /* A relative directory is the session's, read against where that process stands. */
+  let from = "/";
+  try {
+    from = readlinkSync(`/proc/${pid}/cwd`);
+  } catch {
+    /* an absolute --plugin-dir still reads */
+  }
+  for (const [at, one] of argv.entries()) {
+    const given = one === "--plugin-dir" ? argv[at + 1] : one.startsWith("--plugin-dir=") ? one.slice(13) : null;
+    const dir = given ? resolve(from, given) : null;
+    if (dir && nameAt(dir) === name) return dir;
+  }
+  return null;
+};
+
 const installedAbleToRun = (name, entry, record) => {
   const able = recordsOf(name, record)
     .filter((one) => typeof one.installPath === "string" && existsSync(join(one.installPath, entry)));
@@ -81,16 +115,32 @@ const versionAt = (dir) => read(join(dir, ".claude-plugin", "plugin.json"))?.ver
 /** The copy running this, whatever any record holds: `copyToRun` answers which one the link would. */
 export const hereCopy = (root = PLUGIN_ROOT) => ({ dir: resolve(root), version: versionAt(root) });
 
+/* The copy a session loaded by path, which stands in for its install. */
+const loadedBy = ({ root, record, registered, pid }) => {
+  if (registered) return installedCopy(root, record) ? null : resolve(root);
+  return sessionPluginDir(pid, root);
+};
+
 /** Which copy a call through the link on PATH runs, and why that one: the checkout the working
- *  directory sits in, else the newest installed copy that resolves, else this one. `entry` defaults
- *  to this CLI's, which is the copy doctor asks about. */
-export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = PLUGIN_ROOT, record = installRecord() } = {}) => {
+ *  directory sits in, else the copy the session loaded by path, else the newest installed copy that
+ *  resolves, else this one. `entry` defaults to this CLI's, which is the copy doctor asks about.
+ *  `registered` is a hook's caller, whose session registered the copy at `root`; `pid` the Claude
+ *  Code process a call through the link came from. A session loaded by path runs that copy: the
+ *  installed one is another version, whose gates are not the ones its registration names. */
+export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = PLUGIN_ROOT, record = installRecord(), registered = false, pid = process.env.CLAUDE_PID } = {}) => {
   const name = nameAt(root);
-  const installed = name ? installedAbleToRun(name, entry, record) : null;
+  const loaded = loadedBy({ root, record, registered, pid });
+  const installed = loaded && existsSync(join(loaded, entry)) ? { ...hereCopy(loaded), sha: null }
+    : name ? installedAbleToRun(name, entry, record) : null;
   const checkout = name ? checkoutAbove(cwd, name) : null;
   if (checkout) {
     return { ...hereCopy(checkout), kind: "checkout", installed,
       why: `the working directory is inside the checkout that ships ${name}` };
+  }
+  if (loaded && installed?.dir === loaded) {
+    return { ...installed, kind: "inline", installed,
+      why: `the session loaded ${loaded} by path (--plugin-dir) and no install record holds it, so `
+        + `${registered ? "its hooks run" : "a call from it runs"} that copy and not the installed one` };
   }
   if (installed) {
     return { ...installed, kind: "installed", installed,
@@ -117,7 +167,7 @@ export const freezesSession = (path) =>
 /** What a registered entry runs: the chosen copy's module, else the entry's own — a failed hop runs
  *  the gates beside it rather than none. Only the load is tried, since what runs next owns fd 0. */
 export const moduleToRun = async (entry, holds, own) => {
-  const chosen = copyToRun({ entry });
+  const chosen = copyToRun({ entry, registered: true });
   const target = pathToFileURL(join(chosen.dir, entry)).href;
   const mine = pathToFileURL(own).href;
   const load = async (where) => {
