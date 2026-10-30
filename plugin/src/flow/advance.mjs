@@ -129,7 +129,7 @@ const stepped = async (view, ref, status, moved) => {
   } catch (error) {
     if (!(error instanceof Refused)) throw error;
     return { refused: `${to ? `the move to ${to} landed and ` : ""}the work step \`${step}\` that makes it `
-      + `${status} was refused: ${error.message}`, landed: to };
+      + `${status} did not come back as written: ${error.message}`, landed: to };
   }
 };
 

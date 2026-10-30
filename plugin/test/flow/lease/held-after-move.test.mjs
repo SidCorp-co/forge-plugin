@@ -36,6 +36,7 @@ const handoffOn = new Set([HANDED.documentId]);
 const unreadAfterMove = new Set([UNREAD.documentId]);
 const refusesComments = new Set([BROKEN.documentId]);
 const moved = new Set();
+const stepping = new Set();
 
 const state = {
   calls: [],
@@ -56,13 +57,19 @@ const state = {
     forge_issues: (args) => {
       if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
       const held = state.issues.find((one) => one.documentId === args.documentId);
+      if (args.action === "get" && stepping.delete(args.documentId)) {
+        moved.add(args.documentId);
+        return held;
+      }
       if (args.action === "get") {
         if (moved.has(args.documentId) && unreadAfterMove.has(args.documentId)) return { refused: "Error: the read timed out" };
         return held ?? {};
       }
+      /* A rung at a work step is moved by its step, written after the status and read back. */
+      if (args.action === "update" && held && args.data.workState) stepping.add(args.documentId);
       if (args.action === "update" && held) return Object.assign(held, args.data);
       if (args.action === "transition" && held) {
-        moved.add(args.documentId);
+        if (!["in_progress"].includes(args.data.status)) moved.add(args.documentId);
         if (handoffOn.has(args.documentId)) {
           const lease = { ...held.sessionContext.lease, holder: OTHER, renewedAt: new Date().toISOString(), minutes: 60 };
           held.sessionContext = { ...held.sessionContext, lease };
