@@ -29,8 +29,7 @@ const query = (pairs) => {
 /* The order the tool answered in, and a verb printing a page prints what it put there. */
 const ORDER = "updatedAt:desc";
 
-/* A rung that is a work step is asked for as the status the tracker holds it at, and the walk keeps
-   the rows at that rung (`issues.mjs`, LOCAL). */
+/* A filter on the wire is in the tracker's words; the walk narrows back to the rung (`issues.mjs`). */
 const onWire = (name, value) => (name === "status" && value ? trackerStatusOf(value) : value);
 
 const listQuery = (args) => query({

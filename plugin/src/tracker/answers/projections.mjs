@@ -29,8 +29,8 @@ const NOT_THE_ISSUE = new Set(["id", "displayId", "projectId", "issSeq", "identS
 const columns = (row) =>
   Object.fromEntries(Object.entries(row ?? {}).filter(([name]) => !NOT_THE_ISSUE.has(name)));
 
-/* The rung a row stands at, off its status and its work step (`../declared/rungs.mjs`), with the
-   tracker's own status beside it where the two differ. A row carrying no status is left as it is. */
+/* Named by its rung on the way back, the tracker's own status beside it where the two differ; a
+   row carrying no status is left as it is. */
 const placed = (row) => {
   if (row?.status === undefined || row?.status === null) return {};
   const rung = rungOf(row.status, row.step ?? row.workState?.step);

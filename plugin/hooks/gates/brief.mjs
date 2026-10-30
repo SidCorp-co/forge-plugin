@@ -44,8 +44,7 @@ const builderGivenRequirement = (role) =>
   `Hold — a requirement's brief is a judge's, so it goes to \`${JUDGE_ROLE}\` and not to \`${role}\`. Send `
   + `\`${role}\` what \`forge brief ISS-nn --tree <its worktree>\` prints, unchanged.`;
 
-/* An issue's judge whose facts name a requirement judges the wrong record, and only the tracker holds
-   those facts: read where the hook can, and said where it cannot rather than passed as checked. */
+/* Read where the hook can, and said where it cannot rather than passed as checked. */
 const factsChecked = async (ev, role, key) => {
   const facts = await requirementInFacts(key, ev.cwd || process.cwd());
   if (facts.named) deny(aimedAtIssue(role, key, facts) + how());

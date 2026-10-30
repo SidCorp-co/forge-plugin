@@ -3,11 +3,9 @@
    requirement's criterion under an issue's brief carries the requirement only there, and judged the
    issue's own criteria three times running. Read off the tracker at the dispatch. */
 import { accountCredentials, projectAt, useProject } from "../resolve/settings.mjs";
+import { ONE_READ } from "./waived.mjs";
 
 const NAMED = /\bREQ-\d+\b/u;
-
-/* A gate holds a dispatch while it reads, so one attempt on a short clock. */
-const ONE_READ = { once: true, waits: 8 };
 
 /** `{ named, next }` where the line the issue's lease carries names a requirement, `{ none: true }`
  *  where it names none, or `{ unread }` saying why nothing could be read. */

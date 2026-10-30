@@ -107,11 +107,9 @@ const closeIsARelease = (view, status, ref) => (status !== "closed" || view.issu
     + `release that shipped the change:\n  forge release-batch record ${ref} --commit <sha> --account "<how it `
     + `was released>"\nand \`forge release-batch readiness\` names whatever would refuse that.`);
 
-/* A rung is the status the tracker holds it at and, for the four that are a work step, that step
-   (`../tracker/declared/rungs.mjs`): the move is sent where the status changes, and the step is
-   written after it through the field writer, so a refused move leaves the step where it was. A rung
-   whose status the issue already holds is its step alone, the tracker refusing a move to the status
-   it is at. What a refused step says names the move that landed before it. */
+/* The move, then the step, through the field writer: a refused move leaves the step where it was,
+   and an issue already at the status sends its step alone, the tracker refusing a move to the status
+   it is at. A failed step names the move that landed before it. */
 const moveSent = (view, status) =>
   trackerStatusOf(status) !== trackerStatusOf(view.issue.status) || !stepOfRung(status);
 

@@ -5,7 +5,7 @@
 import { projectAt, accountCredentials, useProject } from "../resolve/settings.mjs";
 
 /* A gate holds a dispatch while it reads, so one attempt on a short clock, never the retry ladder. */
-const ONE_READ = { once: true, waits: 8 };
+export const ONE_READ = { once: true, waits: 8 };
 
 /** The project the process is aimed at, as its gates stand: `{ profile, fast, waived }`, or
  *  `{ unread }` with the tracker's first line where either read failed. */

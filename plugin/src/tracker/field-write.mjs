@@ -76,8 +76,7 @@ const fields = () => (rows ??= {
   sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false, expects: true },
   /* The set is replaced whole and moved by a module's removal over issues nobody holds for it, so it
      takes no lease and reads no thread: docs/cli/modules.md. */
-  /* The step a rung is written with, after the move that set its status (`./declared/rungs.mjs`):
-     that move renewed the lease and read the thread, so this takes neither. */
+  /* Written after the move that renewed the lease and read the thread, so it takes neither. */
   workState: { same: (held, sent) => (held?.step ?? null) === sent?.step, renews: false },
   labels: { same: labelsLandedAs, renews: false,
     by: "`forge new --module` on a filing, `forge issue <ref> --set module=<name> --why <w>` on an issue "
