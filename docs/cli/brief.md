@@ -55,6 +55,11 @@ one message the hook lets through named the deployment (ISS-3145). The record th
 which form was printed, so the judging role is held to its form without the prompt's words being
 read.
 
+A judge's target is its brief's first line because nothing else carries it: three judges sent for a
+requirement's criterion (REQ-79 BC-6) under an issue's brief judged the issue's own criteria, the
+requirement having reached them only in the lease's facts. Those facts are the tracker's, so the
+hook reads them where it can and says so where it cannot, rather than passing a check it never made.
+
 ## Why a digest and a window
 
 The hook compares a digest of the whole prompt with the ones the verb recorded in the repository's

@@ -9,7 +9,13 @@ export const JUDGE_ROLE = "qa";
 /** What the brief's record keeps for this form, so the hook reads a form and never a prompt's words. */
 export const JUDGE_FORM = "judge";
 
-const OWN_FLAGS = ["url", "criteria", "identity"];
+/** The judge's form aimed at a requirement's criteria rather than an issue's, kept apart for the same reason. */
+export const REQUIREMENT_FORM = "requirement";
+
+const OWN_FLAGS = ["url", "criteria", "identity", "requirement", "criterion"];
+
+const REQUIREMENT = /^REQ-\d+$/u;
+const CLAUSE = /^BC-\d+$/u;
 
 const callFor = (key) => `forge brief ${key ?? "ISS-45"} --judge --url <what the deployment answers at> --criteria 1,2 `
   + "[--identity <what it reports serving>]";
@@ -76,12 +82,50 @@ export const judgeOf = (key, asked) => {
   return { urls: urlsOf(asked.url, key), criteria: criteriaOf(asked.criteria), identity: identityOf(asked.identity) };
 };
 
-/** The judge's brief, every line a reading. */
+const NOTHING_ELSE = "judge these and write nothing else";
+
+/** The judge's brief, every line a reading, the first naming what it judges. */
 export const judgeText = (key, { urls, criteria, identity }) => [
-  key,
+  `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   "Role: judge",
   `Deployed at: ${urls.join(", ")}`,
   `Identity: ${identity ?? "none given"}`,
   `Criteria: ${criteria.join(", ")}`,
+  "Tree: none",
+].join("\n");
+
+const requirementCall = (requirement) => `forge brief --requirement ${requirement ?? "REQ-79"} [--criterion BC-6] `
+  + "--url <what the deployment answers at> [--identity <what it reports serving>]";
+
+/** A requirement judge's readings: the requirement, the clauses of it to judge or all of them, and the
+ *  deployment. An issue key, a tree, a batch and an issue's criterion numbers are refused by name: each
+ *  would aim the judge at an issue's record, which is how three judges judged ISS-n for REQ-79 BC-6. */
+export const requirementOf = (key, asked) => {
+  const requirement = String(asked.requirement ?? "").trim();
+  if (!REQUIREMENT.test(requirement)) {
+    fail(`brief: --requirement takes one requirement key, as REQ-79, and \`${asked.requirement}\` is none:\n  ${requirementCall()}`);
+  }
+  const stray = [key ? key : null, ...["tree", "batch", "criteria"].filter((name) => asked[name] !== undefined)
+    .map((name) => `--${name}`)].filter(Boolean);
+  if (stray.length) {
+    fail(`brief: a requirement's judge is aimed at ${requirement} alone, so it takes no ${stray.join(" or ")}: an issue `
+      + "key or an issue's criterion numbers would send it to judge that issue's record instead. Brief it as:\n  "
+      + requirementCall(requirement));
+  }
+  if (asked.url === undefined) fail(`brief: a requirement's judge drives what is deployed, and this brief lacks --url:\n  ${requirementCall(requirement)}`);
+  const clauses = asked.criterion === undefined ? [] : partsOf(asked.criterion);
+  const bad = clauses.filter((one) => !CLAUSE.test(one));
+  if (bad.length) fail(`brief: --criterion takes the requirement's criteria as BC-6, joined by commas, and ${none(bad)}.`);
+  if (new Set(clauses).size !== clauses.length) fail("brief: --criterion names one criterion twice. Name each one time.");
+  return { requirement, clauses, urls: urlsOf(asked.url, null), identity: identityOf(asked.identity) };
+};
+
+/** The requirement judge's brief: the target first, so nothing below it reads as a second one. */
+export const requirementText = ({ requirement, clauses, urls, identity }) => [
+  `Target: ${requirement}, ${clauses.length ? `criteria ${clauses.join(", ")}` : "every criterion"} — ${NOTHING_ELSE}: `
+    + "no issue's criteria, no other record.",
+  "Role: judge",
+  `Deployed at: ${urls.join(", ")}`,
+  `Identity: ${identity ?? "none given"}`,
   "Tree: none",
 ].join("\n");

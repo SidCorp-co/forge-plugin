@@ -11,7 +11,9 @@ nothing and needs neither.
 
 A judging run is given no tree, because what it judges is already deployed: its message is `forge brief
 ISS-nn --judge --url <where the deployment answers> --criteria <the numbers it judges>`, with
-`--identity` where the record holds one, which names the deployment and prints no tree. It still
+`--identity` where the record holds one, which names the deployment and prints no tree. A judge sent
+to a requirement's criterion is briefed with `forge brief --requirement REQ-nn --criterion BC-n --url
+<where the deployment answers>` instead, since an issue's brief aims it at that issue's criteria. It still
 writes files — its captures — and in a wave of more than one they need a directory of its own like
 any run's.
 

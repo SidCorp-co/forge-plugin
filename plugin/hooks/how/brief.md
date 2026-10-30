@@ -4,8 +4,8 @@ Why: a typed message carries what the dispatcher believed about the method, and 
 first. On 2026-09-23 five briefs carried a rebase order under text forbidding it (ISS-2148).
 
 How to clear it: send what `forge brief ISS-nn --tree <the run's worktree>` prints (no `--tree`
-for a run given none), whole and unchanged. A judge takes `forge brief ISS-nn --judge --url
-<deployed url> --criteria <numbers>`.
+for a run given none), whole and unchanged. A judge has forms of its own, aimed at an issue or at a
+requirement: `forge brief -h`.
 
 What it judges: a dispatch to a role this plugin ships, by whether the whole prompt is one the verb
 printed in the last ten minutes, and a judge's by whether it is the judge's form, which names the

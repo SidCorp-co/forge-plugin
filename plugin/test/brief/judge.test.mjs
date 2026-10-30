@@ -19,7 +19,7 @@ test("the judge's brief names the issue, its role, every deployed address, the i
   const run = judged(["--url", "https://staging.example.com,https://api.example.com", "--criteria", "1,3", "--identity", "794dc78"]);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(run.stdout.trim().split("\n"), [
-    "ISS-7",
+    "Target: ISS-7, criteria 1, 3 — judge these and write nothing else.",
     "Role: judge",
     "Deployed at: https://staging.example.com, https://api.example.com",
     "Identity: 794dc78",
