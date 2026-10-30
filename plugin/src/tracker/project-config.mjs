@@ -386,12 +386,43 @@ export const bindingsOf = (project) => (project.environments === undefined
   ? unread(NO_BINDINGS)
   : deployFrom(stagingOf(project.environments)));
 
-/** Null is a checkout naming no project, which holds none of a project's credentials to carry; a reading that did not answer is the deploy's own empty shape carrying `refused`, so every walker below still meets arrays and only the credential guard acts on the field (ISS-487). */
+const DOCUMENT_SOURCE = "the project document";
+
+const NO_ENVIRONMENTS = "the project document named no deploy targets, where a document declaring "
+  + "none names them empty";
+
+/* The keys of a declared environment that hold a host: the rest are a tier, a branch, a binding's id
+   and a testing profile's name, none of them a credential, and each would be withheld and matched
+   against every payload as one if it were kept. */
+const hostsOf = (one) => ({
+  ...(one?.url ? { url: one.url } : {}),
+  ...(one?.services ? { services: one.services } : {}),
+  ...(one?.verification?.runtime ? { verification: one.verification.runtime.map((probe) => ({ url: probe?.url })) } : {}),
+});
+
+/** The staging deploy a project document declares (`GET /projects/:id/config`), where the tracker
+ *  keeps a project's environments rather than on its row: every environment but production, by the
+ *  name the project gave it, holding its hosts. The document carries no credential — a login's value
+ *  is served only through a testing profile — so nothing is withheld; a document the project never
+ *  declared is a project with no deploy, and one declaring no environments is a reading that did not
+ *  happen. */
+export const documentDeploy = (held) => {
+  if (held?.refused) return unread(held.refused);
+  if (held?.declared === false || held?.document === null) return deployFrom(undefined);
+  const environments = held?.document?.environments;
+  if (!environments || typeof environments !== "object") return unread(NO_ENVIRONMENTS);
+  return { ...deployFrom(Object.fromEntries(Object.entries(environments)
+    .filter(([, one]) => one?.tier !== "production")
+    .map(([name, one]) => [name, hostsOf(one)]))), from: DOCUMENT_SOURCE };
+};
+
+/** Null is a checkout naming no project, which holds none of a project's credentials to carry; a reading that did not answer is the deploy's own empty shape carrying `refused`, so every walker below still meets arrays and only the credential guard acts on the field (ISS-487). A row carrying its bindings is read off the row; one carrying none is a tracker that keeps them in the project document, which is read instead. */
 export const stagingDeploy = once(async () => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_projects.get", {}, true);
-  if (answer?.project) return bindingsOf(answer.project);
-  return unread(answer?.refused ?? NO_RECORD);
+  if (!answer?.project) return unread(answer?.refused ?? NO_RECORD);
+  if (answer.project.environments !== undefined) return bindingsOf(answer.project);
+  return documentDeploy(await scoped("forge_config", { action: "document" }, true));
 });
 
 const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `awaiting_release` asks the "

@@ -283,9 +283,10 @@ test("a write is refused where the deploy could not be read at all, and the refu
     "and the credential row a judging run decides on says so itself, with the reading's reason");
 });
 
-/* The tracker answers null for a project with no bindings, so a row without the key is the read
-   failing one layer up — the shape that printed `none` for a project holding ten (ISS-2050). */
-test("a project row carrying no bindings key reads as unread everywhere, and the write is held", async () => {
+/* A row without the key sends the reading to the project document; a document naming no deploy
+   targets either is the read failing one layer up — the shape that printed `none` for a project
+   holding ten (ISS-2050). */
+test("a row with no bindings key and a document naming no deploy targets read as unread, and the write is held", async () => {
   const room = tempHome("project-no-key");
   const body = join(room.path, "secret.md");
   writeFileSync(body, `Signed in with ${PASSWORD}.\n`);
@@ -295,7 +296,7 @@ test("a project row carrying no bindings key reads as unread everywhere, and the
   const rows = await ask("doctor");
   const run = await ask("comment", "ISS-1", body);
   delete state.answer["forge_projects.read"];
-  assert.match(rows.stdout, NOTE_ROW("test credentials", "not read — the project record carried no deploy bindings"),
+  assert.match(rows.stdout, NOTE_ROW("test credentials", "not read — the project document named no deploy targets"),
     rows.stdout);
   assert.doesNotMatch(rows.stdout, /test credentials\s+none/u, "an unread field is not an empty one");
   assert.equal(run.status, 1, run.stdout);

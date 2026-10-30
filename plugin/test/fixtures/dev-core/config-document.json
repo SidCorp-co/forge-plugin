@@ -1,0 +1,46 @@
+{
+  "taken": "2026-10-30",
+  "core": "forge-dev origin/dev",
+  "route": "GET /projects/:id/config",
+  "note": "the document as served, cut to its environments; uuids renumbered, hosts under example.test",
+  "rest": {
+    "declared": true,
+    "revision": 28,
+    "document": {
+      "$schema": "https://forge.sidcorp.co/schemas/project-v1.json",
+      "version": 1,
+      "environments": {
+        "dev": {
+          "tier": "production",
+          "deploysFrom": "dev",
+          "deployment": {
+            "binding": "00000000-0000-4000-8000-000000000121",
+            "trigger": "on-land"
+          },
+          "services": {
+            "api": "https://api.example.test"
+          },
+          "testing": "dev",
+          "url": "https://url.example.test",
+          "verification": {
+            "runtime": [
+              {
+                "type": "http",
+                "url": "https://url.example.test/version",
+                "path": "sourceCommit",
+                "identifies": "source"
+              }
+            ]
+          }
+        },
+        "demo": {
+          "tier": "preview",
+          "deploysFrom": "dev",
+          "deployment": {
+            "mode": "external"
+          }
+        }
+      }
+    }
+  }
+}

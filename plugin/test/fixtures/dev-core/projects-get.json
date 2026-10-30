@@ -1,0 +1,23 @@
+{
+  "taken": "2026-10-30",
+  "core": "forge-dev origin/dev",
+  "route": "GET /projects/:id",
+  "note": "keys as served; values replaced: uuids renumbered, hosts under example.test, prose bracketed; nested agentConfig/labels/members/devicePool emptied",
+  "rest": {
+    "agentConfig": null,
+    "archivedAt": null,
+    "baseBranch": "<baseBranch>",
+    "createdAt": "2026-10-30T00:00:00.000Z",
+    "createdBy": "00000000-0000-4000-8000-000000000001",
+    "devicePool": [],
+    "id": "00000000-0000-4000-8000-000000000004",
+    "issuePrefix": null,
+    "labels": [],
+    "members": [],
+    "name": "<name>",
+    "orgId": "00000000-0000-4000-8000-000000000120",
+    "orgRole": "<orgRole>",
+    "role": "<role>",
+    "slug": "<slug>"
+  }
+}
