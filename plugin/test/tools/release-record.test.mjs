@@ -143,11 +143,22 @@ test("10. record missing --commit, --account or every key is refused before any 
 test("10. a key named twice, and a flag given empty, are refused before any write rather than folded or dropped", async () => {
   for (const argv of [["record", "ISS-1", "ISS-1", "--commit", SHA, "--account", ACCOUNT],
     ["record", "ISS-1", "--commit", SHA, "--account", ACCOUNT, "--provider-ref", ""],
-    ["start", "ISS-1", "--recut-of", " "], ["finish", RUN_ID, "--commit", ""]]) {
+    ["finish", RUN_ID, "--commit", ""]]) {
     const run = await ran(...argv);
     assert.equal(run.status, 1, argv.join(" "));
     assert.match(run.stderr, /name the same issue|a value for --/u, run.stderr);
     assert.deepEqual(run.released, [], `${argv.join(" ")} wrote nothing`);
+  }
+});
+
+/* The tracker's create body takes no re-cut key and derives one itself, so the flag is refused by name
+   rather than sent to a strict schema or dropped. */
+test("10b. --recut-of is refused by name before any write, saying the tracker derives the re-cut", async () => {
+  for (const argv of [["start", "ISS-1", "--recut-of", "1.2.3"], ["start", "ISS-1", "--recut-of=1.2.3"]]) {
+    const run = await ran(...argv);
+    assert.equal(run.status, 1, argv.join(" "));
+    assert.match(run.stderr, /--recut-of is no longer sent, and nothing was sent\. The tracker derives a re-cut/u, run.stderr);
+    assert.deepEqual(run.calls, [], `${argv.join(" ")} sent nothing`);
   }
 });
 

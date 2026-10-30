@@ -289,6 +289,16 @@ describe("a write answers what the caller could not already know", () => {
   });
 });
 
+/* Two rows whose wire the tracker narrowed: the graph's root is `rootIssueId`, and an unknown query key
+   is refused UNKNOWN_QUERY_PARAMETER; the memory search takes no `scope`, which its schema drops unread. */
+describe("the rows ask in the tracker's own words", () => {
+  it("the graph names its root as rootIssueId, and memory search sends no scope", () => {
+    const graph = ROUTES["forge_project_pm.graph"].requests({ issueId: "u1", depth: 2 }, "p1").page.path;
+    assert.equal(graph, "/projects/p1/pm/graph?rootIssueId=u1&depth=2");
+    assert.ok(!ROUTES["forge_memory.search"].sends.includes("scope"), "a key the tracker drops is refused here");
+  });
+});
+
 describe("every row of the table is judged", () => {
   it("each row is paired against the tool or shape-checked", () => {
     const judged = new Set([...Object.values(PAIRS), ...Object.values(SHAPES)].map((one) => one.key));

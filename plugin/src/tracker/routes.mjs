@@ -284,7 +284,7 @@ export const ROUTES = {
   "forge_memory.search": {
     project: true,
     requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
-    sends: ["query", "topK", "scope", "strategy", "sourceFilter"],
+    sends: ["query", "topK", "strategy", "sourceFilter"],
   },
   /* The tracker's own release routes, raw: each answers with the shape its own REST surface already
      declares (ISS-764 in that repository) rather than one this CLI reprojects, which is the same
@@ -307,7 +307,7 @@ export const ROUTES = {
     project: true,
     writes: true,
     requests: (args, project) => one(`/projects/${project}/release-batches`, "POST",
-      filled({ issueIds: args.data?.issueIds, recutOf: args.data?.recutOf })),
+      filled({ issueIds: args.data?.issueIds })),
     sends: ["data"],
   },
   "forge_release_batch.finish": {
@@ -445,7 +445,7 @@ export const ROUTES = {
   },
   "forge_project_pm.graph": {
     project: true,
-    requests: (args, project) => one(`/projects/${project}/pm/graph${query({ issueId: args.issueId, depth: args.depth })}`),
+    requests: (args, project) => one(`/projects/${project}/pm/graph${query({ rootIssueId: args.issueId, depth: args.depth })}`),
     sends: ["issueId", "depth"],
   },
   "forge_project_pm.runner_load": {

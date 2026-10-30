@@ -33,7 +33,7 @@ const USAGE = [
   "  readiness                     every reason the tracker would refuse a release now, by code",
   "  roster                        the issues waiting at the release gate, oldest merge first",
   "  start <ISS-nn>...             open a batch over exactly those issues; prints its runId",
-  "  [--recut-of <version>]        and the version it cut. --recut-of re-cuts a FAILED release",
+  "                                 and the version it cut, a re-cut of a FAILED release included",
   "  finish <runId> [--commit S]   ask the tracker to verify the deploy and close the batch's",
   "                                 issues; no --commit asks only that the deploy arrived",
   "  record <ISS-nn>... --commit <sha> --account \"<text>\" [--provider-ref <ref>]",

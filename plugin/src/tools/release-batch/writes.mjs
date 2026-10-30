@@ -9,7 +9,7 @@ import { write } from "../../tracker/rest.mjs";
 import { IN_FLIGHT, finishLines, verifiedLine } from "./reads.mjs";
 import { answeredOr, reasonSaid } from "./refused.mjs";
 
-export const START_USAGE = "Usage: forge release-batch start <ISS-nn>... [--recut-of <version>]";
+export const START_USAGE = "Usage: forge release-batch start <ISS-nn>...";
 export const FINISH_USAGE = "Usage: forge release-batch finish <runId> [--commit <sha>]";
 export const RECORD_USAGE = 'Usage: forge release-batch record <ISS-nn>... --commit <sha> --account "<text>" '
   + "[--provider-ref <ref>]";
@@ -51,12 +51,17 @@ const keyOf = (byId, id) => byId.get(String(id).toLowerCase()) ?? id;
 
 export const start = async (argv) => {
   const [keys, rest] = keysThen(argv);
-  const given = flags(rest, "release-batch start", [], { usage: START_USAGE });
-  const recutOf = filledOr("start", START_USAGE, given, "recut-of");
+  /* Named rather than left to the parser's "no such flag": the tracker reads a batch over a failed
+     release's issues as its re-cut and numbers it itself, and its create body takes no such key. */
+  if (rest.some((one) => one === "--recut-of" || one.startsWith("--recut-of="))) {
+    fail("release-batch start: --recut-of is no longer sent, and nothing was sent. The tracker derives a re-cut of a "
+      + `failed release from the issues it carries: start the batch over those issues with no --recut-of.\n${START_USAGE}`);
+  }
+  flags(rest, "release-batch start", [], { usage: START_USAGE });
   if (!keys.length) owed("start", START_USAGE, "at least one issue key");
   const byId = await idsOf("start", keys);
   const opened = answeredOr("start", await write("forge_release_batch.create",
-    { data: { issueIds: [...byId.keys()], ...(recutOf === undefined ? {} : { recutOf }) } }, undefined, true));
+    { data: { issueIds: [...byId.keys()] } }, undefined, true));
   console.log(`runId      ${opened.runId}`);
   console.log(`version    ${opened.version ?? "unread"}`);
   console.log(`roster     ${(opened.issueIds ?? []).map((id) => keyOf(byId, id)).join(", ") || "none"}`);
