@@ -10,7 +10,7 @@
   "scripts": {
     "version": "node tools/sync-manifest-version.mjs",
     "lint": "eslint .",
-    "lint:code-quality": "code-quality-gate",
+    "lint:code-quality": "code-quality-gate --ignore-dir=.claude",
     "check:vi-text": "node tools/check-vi-text.mjs",
     "check:vi-goldens": "node tools/diff-python.mjs --goldens",
     "check:vendor": "node plugin/scripts/check-vendor.mjs",
