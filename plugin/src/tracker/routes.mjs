@@ -367,6 +367,20 @@ export const ROUTES = {
     requests: (args, project) => one(`/projects/${project}/pipeline-config`, "PATCH", args.data),
     sends: ["data"],
   },
+  /* How tightly the tracker gates this project's agents (REQ-76): `profile` is strict, standard or
+     yolo, with each gate's resolved mode beside it. */
+  "forge_config.gates": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/gates`),
+    sends: [],
+  },
+  /* The project document, `{ declared, revision, document }`: `document.delivery.fast` absent is
+     fast delivery on (REQ-79 BC-1). */
+  "forge_config.document": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/config`),
+    sends: [],
+  },
   "forge_guide.list": {
     requests: () => one(`/guides`),
     sends: [],

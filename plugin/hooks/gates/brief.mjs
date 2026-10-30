@@ -1,10 +1,12 @@
 // Refuse a dispatch to one of this plugin's roles whose message `forge brief` did not print, and a
 // dispatch to the judging role whose message is not the judge's form: a typed brief is where a
 // dispatcher's method reached a run, and a judge handed a tree works in it. how/brief.md says why.
+// A project gated `yolo` on fast delivery asked for neither: its agents act first and record after.
 
-import { deny, how } from "../_hook.mjs";
+import { context, deny, how } from "../_hook.mjs";
 import { JUDGE_FORM, JUDGE_ROLE } from "../../src/brief/judge.mjs";
 import { FRESH_MS, briefFormOf } from "../../src/brief/record.mjs";
+import { briefWaived } from "../../src/brief/waived.mjs";
 import { PLUGIN_ROOT, nameAt } from "../../src/tools/plugin-copy.mjs";
 
 const DISPATCHES = new Set(["Agent", "Task"]);
@@ -32,7 +34,7 @@ const notJudged = (role, key, printed) =>
     : `not one \`forge brief --judge\` printed in the last ${FRESH_MS / 60_000} minutes`}: `
   + "a judge given a tree, or no URL, judges a checkout or a local stack instead of the deployment.";
 
-export const run = (ev) => {
+export const run = async (ev) => {
   if (!DISPATCHES.has(ev.tool_name ?? "")) return;
   const role = String(ev.tool_input?.subagent_type ?? "");
   const prefix = rolePrefix();
@@ -42,5 +44,12 @@ export const run = (ev) => {
   const judging = role === `${prefix}${JUDGE_ROLE}`;
   if (form !== null && (!judging || form === JUDGE_FORM)) return;
   const key = KEY.exec(prompt)?.[0] ?? "ISS-nn";
-  deny((judging ? notJudged(role, key, form !== null) : typed(role, key)) + how());
+  const waiver = await briefWaived(ev.cwd || process.cwd());
+  if (waiver.waived) {
+    context(`No brief asked: ${waiver.slug} is gated \`yolo\` on fast delivery, so \`${role}\` takes this message as `
+      + "it stands. What the run did is recorded on the issue afterwards.");
+    return;
+  }
+  const read = `\n\nNot waived: ${waiver.why}.`;
+  deny((judging ? notJudged(role, key, form !== null) : typed(role, key)) + read + how());
 };

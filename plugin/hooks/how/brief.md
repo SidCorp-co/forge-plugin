@@ -16,3 +16,10 @@ as a restart owed, is the dispatcher's and not part of the brief, so a prompt ca
 
 Not judged: a role another plugin ships, and a general agent. The words of a message are never read:
 a digest of the whole is compared, and a reading of words was refused (ISS-2147).
+
+Not asked: a dispatch made from a checkout of a project the tracker gates `yolo` (`GET
+/api/projects/:id/gates`) while it delivers fast (`delivery.fast` not `false` in `GET
+/api/projects/:id/config`). That project chose to let its agents act first and record after, so the
+message goes through as typed and the session is told why. Both are read on every dispatch, since a
+profile raised after an incident must not be outlived by a remembered `yolo`; a read that fails
+leaves the gate asking, and its refusal names what could not be read.

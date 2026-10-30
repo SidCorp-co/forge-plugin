@@ -458,6 +458,8 @@ export const fakeTracker = async (state) => {
       answered("forge_release_batch", { action: "abort", runId, data: sent })],
     [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
       method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
+    [/^\/api\/projects\/[^/]+\/gates$/u, () => answered("forge_config", { action: "gates" })],
+    [/^\/api\/projects\/[^/]+\/config$/u, () => answered("forge_config", { action: "document" })],
     [/^\/api\/projects\/([^/]+)\/(archive|unarchive)$/u, (q, sent, method, [id, act]) =>
       answered(`forge_projects.${act}`, { projectRef: id })],
     /* One route, two readers: a case answering a project the caller NAMED registers
