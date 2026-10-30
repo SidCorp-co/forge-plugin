@@ -55,9 +55,8 @@ before the promotion or after it is the project's landing route, which Phase 0 r
 
 **The statuses past the judging rung are the landing's, not this run's**, because the release they
 answer for does not exist while this phase runs. The landing walks as far as the record earns and
-the project's release allows, and never past `awaiting_release`: the tracker closes an issue only
-by the release that claimed it, so the close is that release's record, a person's act or the
-batch's, which is a stop by decision and not a gap.
+the project's release allows, and never past `awaiting_release`, where the close is the
+release's: a stop by decision and not a gap.
 So leave the Phase 6 note on the issue, which is what those last rungs are earned by, and let the
 report say the statuses are the landing's rather than reporting them moved.
 <!-- forge:end -->

@@ -41,9 +41,8 @@ nothing there for a person's own judgement to stand in for either.
 
 ## A release that shipped is recorded, never moved
 
-The close from `awaiting_release` belongs to the release: the tracker refuses a run's own move to
-`closed` with `CLOSE_ONLY_BY_RELEASE`, and only a release that claimed the issue closes it, so the
-close every route of this CLI names is this record. A run that deployed by hand, because the batch machinery was refused, was left with no
+The close from `awaiting_release` belongs to the release, and the tracker refuses a run's own move
+there (`CLOSE_ONLY_BY_RELEASE`). A run that deployed by hand, because the batch machinery was refused, was left with no
 command that could say it had (ISS-1992). Twenty issues read as waiting for a release that was
 already serving, and the only writes a run could make were a status it was not entitled to or
 nothing.
