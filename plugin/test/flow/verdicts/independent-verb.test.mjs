@@ -7,6 +7,7 @@ import test, { after, before } from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
+import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent-verb").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -40,7 +41,8 @@ const at = () => `2026-09-07T13:${String((clock += 1)).padStart(2, "0")}:00.000Z
 const judging = {
   documentId: "judging-uuid",
   issueId: "ISS-8",
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "the change two sessions judged",
   description: "no mark here",
   plan: PLAN,
@@ -111,7 +113,7 @@ test("advance to the rung is refused while the standing verdicts are the builder
       judge: BUILDER, "judge-from": "asked" }))) });
   const run = await builder("advance", "ISS-8");
   assert.equal(run.status, 1, run.stdout);
-  assert.equal(judging.status, "developed", "and nothing moved");
+  assert.equal(rungOf(judging.status, judging.workState?.step), "developed", "and nothing moved");
   const said = `${run.stdout}\n${run.stderr}`;
   assert.match(said, /criteria 1, 2 carries the builder's own id/u, said);
   assert.doesNotMatch(said, /criterion 2 carries the builder's own id/u,
@@ -185,8 +187,8 @@ test("the judging run hands the turn back, and the lander takes the lease it lef
 
 /* The other half of the round ISS-1260 removed: a payload write takes a field holding no lease where a bare claim would have been granted, and this write never can, every landing state being past the statuses a run is dispatched at. So what it owes is the claim that does clear the state, and not the one refused there in turn (ISS-1252). */
 test("the hand-back on a field holding no lease names the claim that clears that state", async () => {
-  const was = judging.status;
-  judging.status = "testing";
+  const was = judging.workState;
+  judging.workState = { step: "release" };
   judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
   delete judging.sessionContext.lease;
   try {
@@ -196,7 +198,7 @@ test("the hand-back on a field holding no lease names the claim that clears that
       "and not the bare claim, which is itself refused at a status past the dispatch ones");
     assert.equal(judging.sessionContext.landing.state, "qa-owed", "with the turn still owed to a judge");
   } finally {
-    judging.status = was;
+    judging.workState = was;
   }
 });
 

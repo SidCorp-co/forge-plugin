@@ -7,7 +7,7 @@ import test from "node:test";
 
 import {
   BASE, BUILDER, KEY, UUID,
-  comments, context, ctx, earning, issue, ready, seeded, state, tracker, world,
+  comments, context, ctx, earning, issue, ready, rungsMoved, seeded, state, tracker, world,
 } from "../fixture.mjs";
 import { ranAsync } from "../../../../../plugin/test/fixtures.mjs";
 
@@ -61,8 +61,7 @@ const ran = async (keys, work) => {
 };
 
 const landing = () => landingOf(context());
-const moves = () =>
-  state.calls.filter((one) => one.args?.action === "transition").map((one) => one.args.data.status);
+const moves = rungsMoved;
 
 /** The verification an automatic release owes (ISS-428): the sha the deployment built, which is
  *  the one this landing pushed. Credited as delivered, the thread's own gate being another rule's. */

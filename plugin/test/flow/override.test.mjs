@@ -368,10 +368,10 @@ test("a status set on an issue nobody holds moves in the one call, the write tak
 
 test("a status that waits on a person carries the kind the tracker demands of one", async () => {
   before("awaiting_release");
-  const run = await setStatus("--set", "waiting", "--why", WHY);
+  assert.match((await setStatus("--set", "waiting", "--why", WHY)).stderr, /`needs_info` is the rung that took it over/u);
+  const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.equal(sent("transition").waitingKind, "needs_decision",
-    "set by hand or parked, a waiting status is the same payload to the tracker");
+  assert.equal(sent("transition").waitingKind, "needs_decision", "set with no question, a wait on a decision");
 });
 
 /* The order this one is written in is not a preference: the tracker reads any comment on a

@@ -75,7 +75,7 @@ test("a park rehearsed prints what it would send and writes nothing", async () =
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(writes(), before, "no transition, no comment and no lease write went to the tracker");
   assert.equal(PARKING.status, "confirmed");
-  assert.match(run.stdout, /^ {2}ISS-71 {2}confirmed -> waiting$/mu, "the status it leaves and the one it enters");
+  assert.match(run.stdout, /^ {2}ISS-71 {2}confirmed -> needs_info$/mu, "the status it leaves and the one it enters");
   assert.match(run.stdout, /^ {2}reason: the new column has to be looked at$/mu, "the reason the move sends");
   assert.match(run.stdout, /^ {2}waitingKind: needs_decision$/mu, "and the kind the tracker demands beside it");
 });

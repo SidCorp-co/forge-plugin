@@ -5,6 +5,7 @@ import { boundsOf, weekBefore } from "../day.mjs";
 import { MOVED, NO_ENDPOINT, TRACKER, endpointHeld, firstLine, oncePerSlug, walkBack } from "./history.mjs";
 import { PARK_STATUS, answersByComment } from "../../../flow/earned/park-status.mjs";
 import { shortOf } from "../../../tracker/issues.mjs";
+import { DECLARES } from "../../../tracker/declared/declares.mjs";
 import { refusing, useProject } from "../../../resolve/settings.mjs";
 import { tenth } from "../../figures.mjs";
 
@@ -15,8 +16,13 @@ const AHEAD = 60_000;
 const NO_READING = "no tracker reading was made for this page";
 const NO_START = "its history holds no creation to start the wait it began at";
 
-/** The statuses a park answered by a person lands an issue in, read off the flow's own table. */
-export const PERSON = new Set(Object.values(PARK_STATUS).filter(answersByComment));
+const PARKED = Object.values(PARK_STATUS).filter(answersByComment);
+
+/** The statuses a park answered by a person lands an issue in, read off the flow's own table, and
+ *  each retired name one of them took over: a history walked back past the rename still holds moves
+ *  into `waiting`, and a wait there is the same wait. */
+export const PERSON = new Set([...PARKED,
+  ...DECLARES.forge_issues.status.filter((one) => PARKED.includes(one.replacedBy)).map((one) => one.name)]);
 
 /* The moves in the order they were made. Time orders them, and moves sharing a millisecond, which no
    cursor or page order says the order of, are put in the order whose statuses link: next is the one

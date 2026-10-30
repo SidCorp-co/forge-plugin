@@ -9,6 +9,7 @@ import { basename, dirname, join } from "node:path";
 import { fakeTracker, pathed, projectRecord, ranAsync, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 import { render } from "../../../../plugin/src/flow/record/page.mjs";
 import { noteShown } from "../../../../plugin/src/tracker/comments.mjs";
+import { rungOf } from "../../../../plugin/src/tracker/declared/rungs.mjs";
 import { childRefusal, madeIn, roomBuilt } from "../../../../plugin/test/fixtures/room.mjs";
 import { developerCorepack, lendCorepack } from "./room/corepack.mjs";
 
@@ -292,6 +293,24 @@ export const seeded = ({
 };
 
 export const issue = (documentId = UUID) => state.issues.find((one) => one.documentId === documentId);
+/** The rung an issue stands at, read off the tracker's status and work step as this CLI reads it. */
+export const rungNow = (documentId = UUID) => rungOf(issue(documentId)?.status, issue(documentId)?.workState?.step);
+/** Each rung moved to, in order: a transition is one, and so is a work step, which after a move to
+ *  its status names the rung that move was for rather than a second one. */
+export const rungsMoved = () => {
+  const moved = [];
+  let sentTo = null;
+  for (const { args } of state.calls) {
+    const step = args?.action === "update" ? args.data?.workState?.step : undefined;
+    if (args?.action === "transition") moved.push((sentTo = args.data.status));
+    else if (step !== undefined) {
+      if (sentTo === "in_progress") moved.pop();
+      moved.push(rungOf("in_progress", step));
+      sentTo = null;
+    }
+  }
+  return moved;
+};
 export const context = (documentId = UUID) => issue(documentId)?.sessionContext ?? null;
 export const comments = (documentId = UUID) => state.comments[documentId];
 /** A checkpoint rewound to before its mark: the page emptied and the row's stamp taken with it, the tracker writing the two in one call. */
@@ -467,7 +486,7 @@ export const strayWrites = () => state.calls
   .filter((one) => one.args.data)
   .filter((one) => {
     if (one.name === "forge_comments") return !/^## Park\b/mu.test(one.args.data?.body ?? "");
-    if (one.args.action === "update") return Object.keys(one.args.data ?? {}).join(",") !== "sessionContext";
+    if (one.args.action === "update") return !["sessionContext", "workState"].includes(Object.keys(one.args.data ?? {}).join(","));
     return one.args.action !== "mark_merged" && one.args.action !== "transition";
   })
   .map((one) => `${one.name} ${one.args.action} ${Object.keys(one.args.data ?? {}).join(",")}`);

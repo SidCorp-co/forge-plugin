@@ -1,11 +1,13 @@
 /* The move and the check it runs: the entry criteria of the next status, checked against the issue's
    record and nothing else. Two callers — this verb, and a record write through `movedByRecord`.
    The rule a status is earned by, stage by stage: `forge guide contract <status>`. */
-import { exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { askedInSource, exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { aimSaid, fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
+import { stepOfRung, trackerStatusOf } from "../tracker/declared/rungs.mjs";
+import { writeFields } from "../tracker/field-write.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
 import { CLOSES_FROM, PARKS } from "./machine.mjs";
@@ -105,15 +107,46 @@ const closeIsARelease = (view, status, ref) => (status !== "closed" || view.issu
     + `release that shipped the change:\n  forge release-batch record ${ref} --commit <sha> --account "<how it `
     + `was released>"\nand \`forge release-batch readiness\` names whatever would refuse that.`);
 
+/* A rung is the status the tracker holds it at and, for the four that are a work step, that step
+   (`../tracker/declared/rungs.mjs`): the move is sent where the status changes, and the step is
+   written after it through the field writer, so a refused move leaves the step where it was. A rung
+   whose status the issue already holds is its step alone, the tracker refusing a move to the status
+   it is at. What a refused step says names the move that landed before it. */
+const moveSent = (view, status) =>
+  trackerStatusOf(status) !== trackerStatusOf(view.issue.status) || !stepOfRung(status);
+
+const stepped = async (view, ref, status, moved) => {
+  const step = stepOfRung(status);
+  const to = moved ? trackerStatusOf(status) : null;
+  /* A move answered at another status is the caller's to refuse, and no step is written over it. The
+     written row leaves out a status that landed as sent, so only one it names is another. */
+  const answered = moved?.trackerStatus ?? moved?.status;
+  if (moved?.refused || !step || (answered !== undefined && answered !== to)) return moved;
+  try {
+    await writeFields(view.documentId, [{ field: "workState", value: { step } }],
+      { ref, refuse, ask: askedInSource(ref, "workState") });
+    return { ...(moved ?? {}), status };
+  } catch (error) {
+    if (!(error instanceof Refused)) throw error;
+    return { refused: `${to ? `the move to ${to} landed and ` : ""}the work step \`${step}\` that makes it `
+      + `${status} was refused: ${error.message}`, landed: to };
+  }
+};
+
 /* The renew before it is where the line is cleared: the transition is refused before this runs unless the record earns it, and a second lease write would cost three more calls. `said` is what a park adds to the payload; a plain advance sends the status alone and nothing else.
    `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
 export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log, heard = null, by = null } = {}) => {
   if (!soft) await renew(view.documentId, ref, next);
   /* Asked softly whoever the caller is, so the refusal is worded here rather than printed bare by the transport: a refusal that makes a claim about this issue's status is read as true by a run that has nothing beside it to compare, and both statuses it could be compared against are values this call is already holding (ISS-1422). */
   const voided = view.voids ? { voidQuestions: view.voids } : {};
-  const answer = await write("forge_issues",
-    { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}), ...voided } }, undefined, true);
+  const moved = moveSent(view, status) ? await write("forge_issues", { action: "transition",
+    documentId: view.documentId, data: { status: trackerStatusOf(status), ...(said ?? {}), ...voided } }, undefined, true) : null;
+  const answer = await stepped(view, ref, status, moved);
   /* Soft is for the caller that has already written something: it words its own refusal around the record it left behind, so nothing is framed for it here. */
+  if (answer?.refused && answer.landed) {
+    refuse(`${ref} on ${aimSaid()} moved from ${view.issue.status} to ${answer.landed}, and ${answer.refused}\n`
+      + `Read where it stands before writing anything else:\n  forge issue ${ref} --fields status,workState`);
+  }
   if (answer?.refused) {
     const route = voidRoute(answer.refused, ref, view.again, view.voids);
     if (soft) return `${answer.refused}${route && `\n${route.trim()}`}`;
@@ -452,7 +485,7 @@ const setStatus = async (view, ref, status, why, asked) => {
   let answered = null;
   const move = async (soft = false) => {
     const refused = await moveTo(view, ref, status,
-      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status), ...(asked ? { needs: asked } : {}) }, credit: "the set transition", heard: (answer) => { answered = answer; } }, soft);
+      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status, Boolean(asked)), ...(asked ? { needs: asked } : {}) }, credit: "the set transition", heard: (answer) => { answered = answer; } }, soft);
     if (refused) return refused;
     console.log(UNREAD);
     return null;

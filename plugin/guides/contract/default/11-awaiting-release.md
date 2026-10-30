@@ -18,9 +18,10 @@ that policy leaves a person an act before the release is out, the close is refus
 rests here until they make it. Where it promotes to a live branch that deploys on its own, nobody owes
 an act and the release is still owed: the batch moving the change onto that branch is cut only for an
 issue resting here, so the close is refused to a run as well, and that batch makes it. Where neither
-holds, the close is made in the same run, no comment deciding it and no thread too long to return
-whole refusing it. The policy is read at the
-move itself, so the answer a rehearsal gives and the answer the write gives are one answer.
+holds, the close is still no run's move: the tracker closes an issue that ships code only by a
+release that claimed it (`CLOSE_ONLY_BY_RELEASE`), so recording that release is the close. The
+policy is read at the move itself, so the answer a rehearsal gives and the answer the write gives
+are one answer.
 
 **A failed reading is the release actor's to repair forward.** The actor that promotes and deploys
 takes no way back from here: it repairs in the same direction, or hands the release over carrying

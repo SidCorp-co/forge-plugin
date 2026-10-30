@@ -3,12 +3,14 @@
    docs/cli/advance-what-it-sends.md. */
 export const ANSWERED_BY_COMMENT = "needs_info";
 
+/* The tracker folded `waiting` into `needs_info`, the kind of wait carried as `waitingKind`
+   (`../park/compose.mjs:waitsFor`), so every park on a person lands there. */
 export const PARK_STATUS = {
   question: ANSWERED_BY_COMMENT,
-  "screen-review": "waiting",
-  "destructive-migration": "waiting",
-  "release-decision": "waiting",
-  "code-review": "waiting",
+  "screen-review": ANSWERED_BY_COMMENT,
+  "destructive-migration": ANSWERED_BY_COMMENT,
+  "release-decision": ANSWERED_BY_COMMENT,
+  "code-review": ANSWERED_BY_COMMENT,
   "rolled-back": "on_hold",
   "no-way-back": "on_hold",
   unshippable: "on_hold",

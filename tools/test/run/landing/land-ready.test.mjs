@@ -10,7 +10,7 @@ import { join } from "node:path";
 import {
   BASE, BRANCH, BUILDER, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, RECORD,
   claudeCalls, comments, context, ctx, earning, forgetInstall, git, issue, marks, ready, seeded,
-  serverPushes, sha, state, strayWrites, tracker, world,
+  rungNow, rungsMoved, serverPushes, sha, state, strayWrites, tracker, world,
 } from "./fixture.mjs";
 import { escaped, ranAsync } from "../../../../plugin/test/fixtures.mjs";
 
@@ -106,8 +106,7 @@ test("the landing walks the judging rung and the deploying one, and rests at don
   assert.equal(issue().status, "awaiting_release", `both rungs were walked:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
   assert.match(said, /the checkpoint reads `done`/u, said);
-  const moves = state.calls.filter((one) => one.args?.action === "transition").map((one) => one.args.data.status);
-  assert.deepEqual(moves, ["developed", "testing", "awaiting_release"],
+  assert.deepEqual(rungsMoved(), ["developed", "testing", "awaiting_release"],
     `one move per rung, in the table's order, and no jump:\n${said}`);
   /* `done` here means the landing is finished and not that the issue is, so the stop is said. */
   assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\``, "u"), said);
@@ -125,7 +124,7 @@ test("a landing whose record earns the judging rung alone stops at it and names 
   const { releaseNotes, ...half } = earning(head);
   seeded({ landing: ready(head, base), earned: { ...half, said: half.said.slice(0, 2) } });
   const said = await ran([KEY], work);
-  assert.equal(issue().status, "testing", `the judging rung is where it rests:\n${said}`);
+  assert.equal(rungNow(), "testing", `the judging rung is where it rests:\n${said}`);
   assert.equal(landing().state, "records-owed", `the checkpoint is not done, and the rung left is the builder's:\n${said}`);
   assert.match(said, /what `awaiting_release` is owed is above/u, said);
   assert.match(said, /no verification/u, "and what that is, is on the report");

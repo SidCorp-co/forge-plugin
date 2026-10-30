@@ -206,13 +206,13 @@ export const statusStep = async (one) => {
   const owed = releaseOwedOf(policy);
   await perMemberOwed(at, async (member) => {
     const { key, documentId, landing } = member;
-    const out = await walkEarned({ key, documentId, landing, route, judgement, owed, intended: intendedOf(at), ask: asked });
+    const out = await walkEarned({ key, documentId, landing, route, judgement, intended: intendedOf(at), ask: asked });
     if (out.state === LANDING_QA_OWED) {
       await saveOn(member, { state: LANDING_QA_OWED, deployment: out.deployment });
       return stop(OWED_TO_QA(key, member.landing, "the release"));
     }
     if (out.state === LANDING_RECORDS_OWED) return handRecordsBack(member, out.rung);
-    if (owed) console.log(restsSaid(key, owed));
+    console.log(restsSaid(key, owed));
     await saveOn(member, { state: LANDING_DONE });
     return console.log(`  the checkpoint reads \`${LANDING_DONE}\`: no turn of this landing is left`);
   });

@@ -11,6 +11,7 @@ process.env.XDG_CONFIG_HOME = tempHome("park").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { PARKS } = await import("../../../src/flow/machine.mjs");
 const { PARK_STATUS, answered, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { rungOf } = await import("../../../src/tracker/declared/rungs.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -108,9 +109,9 @@ const filed = () => state.calls.filter((one) => one.name === "forge_comments" &&
 test("a park sends the reason it was typed and the kind the tracker takes, in one call", async () => {
   const run = await parked("ISS-97");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> waiting$/mu, "the status moves");
+  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> needs_info$/mu, "the status moves");
   const moved = sent("transition");
-  assert.equal(moved.status, "waiting");
+  assert.equal(moved.status, "needs_info", "the tracker folded `waiting` into `needs_info`");
   assert.equal(moved.reason, "the new column has to be looked at", "the sentence is typed once");
   assert.equal(moved.waitingKind, "needs_decision", "and the kind is derived from the park kind");
 });
@@ -126,14 +127,14 @@ test("a park whose move the tracker refuses leaves no park record behind, where 
 
 /* The other landing cannot be written that way round, so its refused move is worded around the
    record standing above it instead — which is the whole of what it costs (ISS-1633). */
-test("a park landing in waiting names the record it left above a move the tracker refused", async () => {
+test("a park landing in needs_info names the record it left above a move the tracker refused", async () => {
   Object.assign(PARKING, { status: "awaiting_release" });
   state.comments["parking-uuid"] = [];
-  state.refuse = { transition: "TRANSITION_REASON_REQUIRED: a transition to `waiting` must carry a reason" };
+  state.refuse = { transition: "TRANSITION_REASON_REQUIRED: a transition to `needs_info` must carry a reason" };
   const run = await parked("ISS-97");
   delete state.refuse;
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /the record for waiting went up and the move was refused/u, run.stderr);
+  assert.match(run.stderr, /the record for needs_info went up and the move was refused/u, run.stderr);
   assert.ok(state.comments["parking-uuid"].some((one) => /forge-record: park/u.test(one.body)),
     "and the record it names is on the page");
 });
@@ -206,7 +207,7 @@ test("a park written by the verb is resumed by the verb, back to the status it l
   Object.assign(PARKING, { status: "awaiting_release" });
   const park = await parked("ISS-97");
   assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
-  assert.equal(PARKING.status, "waiting", "the move landed");
+  assert.equal(PARKING.status, "needs_info", "the move landed");
   const page = state.comments["parking-uuid"];
   assert.match(page[0].body, /forge-record: park/u, "the record went up first");
   assert.match(page[1].body, /moved from `awaiting_release`/u, "and the tracker announced the move under it");
@@ -216,7 +217,7 @@ test("a park written by the verb is resumed by the verb, back to the status it l
   const back = await ranAsync(FORGE, ["advance", "ISS-97"], ENV);
   assert.match(back.stderr, /looked, and it is right/u, "the reply is delivered ahead of the move it answers");
   assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
-  assert.match(back.stdout, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
+  assert.match(back.stdout, /^ISS-97 {2}needs_info -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
 });
 
 /* One credential throughout, as a CLI has: the park, the refusal, the answer and the resume all come
@@ -237,7 +238,7 @@ test("a person's answer relayed on the record resumes a park no comment on the p
     "--quoted", "ship it"], ENV);
   assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
   assert.equal(state.comments["parking-uuid"].at(-1).authorId, "agent", "the answer is on the parker's own credential too");
-  assert.match(answer.stderr, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, answer.stderr);
+  assert.match(answer.stderr, /^ISS-97 {2}open -> awaiting_release {2}\(resumed where its park left it\)$/mu, answer.stderr);
   assert.equal(PARKING.status, "awaiting_release", "the write that carries the answer is the resume");
 });
 
@@ -253,7 +254,7 @@ test("a question park answered on the record resumes where it left, though the a
     "--quoted", "the first reading"], ENV);
   assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
   assert.match(answer.stderr, /ISS-98 {2}open -> confirmed {2}\(resumed where its park left it\)/u, answer.stderr);
-  assert.equal(MOVING.status, "confirmed", "back at the status the park left, not at the one the comment dropped it to");
+  assert.equal(rungOf(MOVING.status, MOVING.workState?.step), "confirmed", "back where the park left, not at open");
 });
 
 test("an answer write missing who gave it or their words is refused with nothing posted", async () => {
@@ -461,11 +462,10 @@ test("a park lands its record where the tracker answers the other name of the la
   assert.match(record.body, /left: awaiting_release/u, "stamped with the step it left, not the side status");
 });
 
-test("the reply names the status the tracker landed on and the one the kind asked for", async () => {
+test("a park asks for the status the tracker lands it on, so the reply carries no second spelling", async () => {
   const run = await remapped();
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> needs_info {2}\(asked for waiting, which this tracker spells needs_info\)$/mu,
-    run.stdout);
+  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> needs_info$/mu, run.stdout);
 });
 
 test("the record a remapped park left pairs with the entry, and the way back is the step it named", async () => {
@@ -528,11 +528,11 @@ test("the announcement under a record-first park is not the person's look that a
 test("a status outside the landing asked for is still refused", async () => {
   Object.assign(PARKING, { status: "awaiting_release" });
   state.comments["parking-uuid"] = [];
-  state.remap = { waiting: "on_hold" };
+  state.remap = { needs_info: "on_hold" };
   const run = await parked("ISS-97");
   delete state.remap;
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /answered with status on_hold, not waiting/u, run.stderr);
+  assert.match(run.stderr, /answered with status on_hold, not needs_info/u, run.stderr);
 });
 
 test("a set to a status of that landing writes its correction before its transition", async () => {
@@ -540,7 +540,7 @@ test("a set to a status of that landing writes its correction before its transit
   state.comments["parking-uuid"] = [];
   state.calls.length = 0;
   state.remap = REMAPPED;
-  const run = await ranAsync(FORGE, ["advance", "ISS-97", "--set", "waiting", "--why",
+  const run = await ranAsync(FORGE, ["advance", "ISS-97", "--set", "needs_info", "--why",
     "the person who knows where it belongs put it here"], ENV);
   delete state.remap;
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);

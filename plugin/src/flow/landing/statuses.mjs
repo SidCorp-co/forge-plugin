@@ -21,9 +21,11 @@ const RUNGS = ORDER.slice(ORDER.indexOf(DEVELOPED) + 1);
 export const [JUDGED] = RUNGS;
 const BEFORE_MERGE = "before-merge";
 
-/* How far a walk goes: through the close only where the release owes nothing, neither a person's act
-   (ISS-1147) nor the batch that promotes the change (ISS-2409). */
-const walkedWhere = (owed) => (owed ? RUNGS.slice(0, RUNGS.indexOf(CLOSES_FROM) + 1) : RUNGS);
+/* How far a walk goes: to the status the release closes from, and never through the close. The
+   tracker closes an issue that ships code only through the release that claimed it
+   (CLOSE_ONLY_BY_RELEASE), whatever the project's release policy owes, so a landing that walked on
+   would end every walk on a refusal. */
+const walkedWhere = () => RUNGS.slice(0, RUNGS.indexOf(CLOSES_FROM) + 1);
 
 const direct = (run) => run();
 
@@ -55,7 +57,7 @@ const moveTo = async (key, to, documentId, ask = direct) => {
 /** Where the record takes a landed change, every rung it earns moved on the way: `done`; `qa-owed`
  *  with the deployment an independent judge is owed; or `records-owed` with the rung the record does
  *  not earn, which is the builder's to answer. `intended` is the release the landing pushed. */
-export const walkEarned = async ({ key, documentId, landing, route, judgement, owed, intended, ask = direct }) => {
+export const walkEarned = async ({ key, documentId, landing, route, judgement, intended, ask = direct }) => {
   const developed = await moveTo(key, DEVELOPED, documentId, ask);
   /* The other place the route puts that turn; the release is what says what is running. */
   if (judgement === INDEPENDENT && route !== BEFORE_MERGE && landing.state !== LANDING_JUDGED) {
@@ -66,7 +68,7 @@ export const walkEarned = async ({ key, documentId, landing, route, judgement, o
   /* One rung at a time up the tail, a jump being refused, and `done` refused to every turn so it
      waits on the last of them: closed over a record that did not earn a rung, the issue would be
      reachable by no route at all. A rung the record does not earn stops the walk where it stands. */
-  for (const rung of walkedWhere(owed)) {
+  for (const rung of walkedWhere()) {
     if (await moveTo(key, rung, documentId, ask)) continue;
     /* The one rung that is not the builder's: where a second judge is asked for, `judgeProblem`
        refuses a verdict carrying the builder's id, so that turn is one nobody can discharge. */
@@ -86,7 +88,11 @@ export const OWED_TO_QA = (key, landing, what) =>
   + `    ... the verdicts, then: forge claim ${key} --judged`;
 
 /** What a walk that stopped at the rung says, by whose act the policy's answer `held` waits for. */
-export const restsSaid = (key, held) => (held.by === BY_BATCH
+export const restsSaid = (key, held) => (!held
+  ? `  ${key} rests at \`${CLOSES_FROM}\`: the tracker closes an issue that ships code only by a release `
+    + `that claimed it (CLOSE_ONLY_BY_RELEASE), so the close is that release's record and not this `
+    + `landing's:\n    forge release-batch record ${key} --commit <the sha that shipped> --account "<how it was released>"`
+  : held.by === BY_BATCH
   ? `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is ${whoseRelease(held)} and not `
     + `this landing's, made by the release that promotes the change. A promotion made outside a batch `
     + `is recorded instead, and the record closes it:\n    ${closeForm(key, held)}`
@@ -101,7 +107,7 @@ export const recordsWalked = async (documentId, ref, landing) => {
   const policy = await releasePolicy();
   const owed = releaseOwedOf(policy);
   const out = await walkEarned({
-    key: ref, documentId, landing, owed, intended: landing.intended,
+    key: ref, documentId, landing, intended: landing.intended,
     route: landingRoute(policy, landingScope()).value, judgement: judgementOf(policy),
   });
   if (out.state === LANDING_QA_OWED) {
@@ -111,7 +117,7 @@ export const recordsWalked = async (documentId, ref, landing) => {
     return saved;
   }
   if (out.state === LANDING_DONE) {
-    if (owed) console.log(restsSaid(ref, owed));
+    console.log(restsSaid(ref, owed));
     const saved = await landingSaved(documentId, ref, { state: LANDING_DONE });
     oweRelease(documentId, ref);
     console.log(`${ref}  ${landingLine(saved)}`);

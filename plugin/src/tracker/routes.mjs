@@ -4,6 +4,7 @@
 
 import { mimeFor } from "../wire/upload-mimes.mjs";
 import { COLLECTIONS, DECLARES, FILTERS, declaredFor } from "./declared/declares.mjs";
+import { trackerStatusOf } from "./declared/rungs.mjs";
 import { PROJECT_ROW, attachmentOf, attributedOf, browseOf, citingOf, commentOf, configOf, eventsOf,
   filled, issueOf, labelOf, paged, pick, projectOf, rowsIn, threadOf, writtenRow } from "./answers/projections.mjs";
 
@@ -28,20 +29,26 @@ const query = (pairs) => {
 /* The order the tool answered in, and a verb printing a page prints what it put there. */
 const ORDER = "updatedAt:desc";
 
+/* A rung that is a work step is asked for as the status the tracker holds it at, and the walk keeps
+   the rows at that rung (`issues.mjs`, LOCAL). */
+const onWire = (name, value) => (name === "status" && value ? trackerStatusOf(value) : value);
+
 const listQuery = (args) => query({
   q: args.filters?.search,
   limit: args.limit,
   offset: args.offset,
   sort: ORDER,
-  ...Object.fromEntries(WIRE_FILTERS.map((name) => [name, args.filters?.[name]])),
+  ...Object.fromEntries(WIRE_FILTERS.map((name) => [name, onWire(name, args.filters?.[name])])),
 });
 
 /* The search route with each row's module attributions — the list route refuses `withModules` — and
    a set of statuses repeated rather than joined, which is how the route takes one. */
 const attributedQuery = (args) => {
   const held = new URLSearchParams({ withModules: "true", sort: ORDER });
-  for (const status of args.statuses ?? []) held.append("status", status);
-  for (const status of args.statusNot ?? []) held.append("statusNot", status);
+  for (const status of new Set((args.statuses ?? []).map(trackerStatusOf))) held.append("status", status);
+  for (const status of args.statusNot ?? []) {
+    if (trackerStatusOf(status) === status) held.append("statusNot", status);
+  }
   return `?${held.toString()}${query({ module: args.module, limit: args.limit, offset: args.offset }).replace("?", "&")}`;
 };
 

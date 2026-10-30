@@ -31,7 +31,7 @@ const reopened = async () => {
   assert.equal(landing().state, "done", first);
   /* What the tracker's reopen and the triage after it leave: the status the finding routed the
      change back to, the checkpoint as a transition leaves it, and the builder's lease on the rework. */
-  Object.assign(issue(), { status: "in_progress", sessionContext: { ...context(), lease: LEASE() } });
+  Object.assign(issue(), { status: "in_progress", workState: { step: "build" }, sessionContext: { ...context(), lease: LEASE() } });
   return { at, work, first: landing() };
 };
 

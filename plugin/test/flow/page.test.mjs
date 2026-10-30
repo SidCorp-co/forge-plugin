@@ -44,7 +44,7 @@ const state = {
       if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
       const held = state.issues.find((one) => one.documentId === args.documentId);
       if (args.action === "get") return held ?? {};
-      if (args.action === "update" && held) return Object.assign(held, args.data);
+      if ((args.action === "update" || args.action === "transition") && held) return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
     /* `hasMore` and no reason for it; on one issue, called whole and counting one more than it sent. */
@@ -65,7 +65,9 @@ const state = {
 const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], ENV);
-const moved = () => state.calls.filter((one) => one.args.action === "transition").map((one) => one.args.data.status);
+/* Each move as the tracker is sent it: the status, and the work step where the rung is one. */
+const moved = () => state.calls.filter((one) => one.args.action === "transition" || one.args.data?.workState)
+  .map((one) => one.args.data.status ?? one.args.data.workState.step);
 
 test("a thread the walk could not finish is judged, and the record on it earns the move", async () => {
   const run = await owed("ISS-95");
@@ -112,7 +114,7 @@ test("the transition a cut page earns is made, and nothing about it is done by h
   const run = await ranAsync(FORGE, ["advance", "ISS-95"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-95 {2}open -> confirmed/u, run.stdout);
-  assert.deepEqual(moved(), ["confirmed"], "the verb made it, which is the only route that read the record first");
+  assert.deepEqual(moved(), ["in_progress", "plan"], "the verb made it, which is the only route that read the record first");
 });
 
 /* What a thread it cannot read whole owes an agent is the shortfall's own commands. The refusal
@@ -135,5 +137,5 @@ test("a shortfall on a short read names what is owed, and no route past it write
     assert.equal(said.includes('"action":"transition"'), false, `a hand transition was offered: ${said}`);
     assert.equal(said.includes("transition by hand"), false, said);
   }
-  assert.deepEqual(moved(), ["confirmed"], "and the issue with the shortfall moved nowhere");
+  assert.deepEqual(moved(), ["in_progress", "plan"], "and the issue with the shortfall moved nowhere");
 });

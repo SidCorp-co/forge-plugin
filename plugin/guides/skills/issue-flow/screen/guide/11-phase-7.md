@@ -68,9 +68,9 @@ says which happened.
 
 **The judging is this run's and the statuses past it are the landing's**, because the release they
 answer for does not exist while this phase runs. The landing walks as far as the record earns and
-the project's release allows: to `closed` where that release owes nothing more, and to
-`awaiting_release` where a person still owes it an act or the batch that promotes the change has yet
-to make it, which is a stop by decision and not a gap.
+the project's release allows, and never past `awaiting_release`: the tracker closes an issue only
+by the release that claimed it, so the close is that release's record, a person's act or the
+batch's, which is a stop by decision and not a gap.
 So leave the Phase 6 note on the issue, which is what those last rungs are earned by, and let the
 report say the statuses are the landing's rather than reporting them moved — and say which state
 the issue is left in, because a reader of the rung alone cannot tell a change that is live from one

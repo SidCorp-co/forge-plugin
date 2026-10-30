@@ -8,6 +8,7 @@ import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
+import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("blocked-park").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -177,7 +178,7 @@ test("an answer on an edgeless blocked park is taken, and resumes the issue wher
   const said = `${run.stdout}${run.stderr}`;
   assert.equal(run.status, 0, said);
   assert.match(run.stderr, /^ISS-420 {2}on_hold -> confirmed {2}\(resumed where its park left it\)$/mu, said);
-  assert.equal(PARKED.status, "confirmed");
+  assert.equal(rungOf(PARKED.status, PARKED.workState?.step), "confirmed");
 });
 
 test("an answer is refused with nothing sent where the on_hold park is anything but an edgeless blocked one", async () => {

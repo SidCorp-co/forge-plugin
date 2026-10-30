@@ -58,8 +58,8 @@ test("the claim that takes a draft prints the owed line advance --owed prints, n
   const owed = await forge("advance", ["--owed"]);
   assert.equal(owed.status, 0, owed.stderr);
   const line = owed.stdout.split("\n").find((one) => one.startsWith("ISS-1244 is draft;"));
-  assert.match(line ?? "", /^ISS-1244 is draft; in_progress is next/u, owed.stdout);
+  assert.match(line ?? "", /^ISS-1244 is draft; open is next/u, owed.stdout);
   assert.ok(taken.stdout.split("\n").includes(line), `the claim prints that same line:\n${taken.stdout}`);
-  assert.match(taken.stdout, /`open` is passed over: this project's pipeline declares its `open` state `auto`/u,
-    "with the sentence saying why that status and not open");
+  assert.match(taken.stdout, /the tracker admits a draft to `open` and to no rung past it/u,
+    "with the sentence saying why open, though this project's `open` state starts its pipeline");
 });

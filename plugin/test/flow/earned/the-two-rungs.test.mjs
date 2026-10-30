@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
+import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-two-rungs").path;
 const { CHECKS, NO_NOTE, ORDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");
@@ -160,7 +161,9 @@ test("no served guide and no topic names the deploying rung with a verdict and n
 const SHIPPED = {
   documentId: "two-rungs-uuid",
   issueId: "ISS-96",
-  status: "developed",
+  /* `developed` as the tracker holds it: in_progress at the test step. */
+  status: "in_progress",
+  workState: { step: "test" },
   title: "the change whose halves are judged apart",
   description: "no mark here",
   acceptanceCriteria: CRITERIA,
@@ -191,7 +194,7 @@ state.answer.forge_issues = (args) => {
 };
 const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const statusNow = () => SHIPPED.status;
+const statusNow = () => rungOf(SHIPPED.status, SHIPPED.workState?.step);
 /* One id across the spawns, or each is a session the page has never been shown to and every write
    is held to deliver it again. */
 const walking = (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "the-walk" });

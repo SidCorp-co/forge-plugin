@@ -7,6 +7,7 @@ import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
+import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("moved-by").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -87,7 +88,8 @@ test("the move a record write earns says the same, on stderr under its own move 
   const run = await ranAsync(FORGE, ["record", "confirmation", "ISS-12", "--is", CONFIRMED.is,
     "--where", "ISS-1", "--finding", "holds"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(state.issues.find((one) => one.issueId === "ISS-12").status, "confirmed", run.stderr);
+  const moved = state.issues.find((one) => one.issueId === "ISS-12");
+  assert.equal(rungOf(moved.status, moved.workState?.step), "confirmed", run.stderr);
   assert.ok(run.stderr.includes(`ISS-12  open -> confirmed\n${SAID}\n`), run.stderr);
   assert.ok(!run.stdout.includes("moved by its record"), `the record on stdout carries the line:\n${run.stdout}`);
 });

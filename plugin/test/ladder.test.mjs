@@ -69,7 +69,7 @@ const state = {
       if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
       const held = state.issues.find((one) => one.documentId === args.documentId) ?? state.issues[0];
       if (args.action === "get") return held;
-      if (args.action === "update") return Object.assign(held, args.data);
+      if (args.action === "update" || args.action === "transition") return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
   },

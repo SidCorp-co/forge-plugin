@@ -79,7 +79,8 @@ test("an advance to developed leaves nothing holding the issue, and another run 
   /* The write that earns the next status takes the lease on a field the release left, at a status an empty field is refused at. */
   const developed = await setTo("developed", BUILDER);
   assert.equal(developed.status, 0, `and so should the second:\n${developed.stdout}${developed.stderr}`);
-  assert.equal(ISSUE.status, "developed", "the issue is where the next run claims from");
+  assert.deepEqual([ISSUE.status, ISSUE.workState?.step], ["in_progress", "test"],
+    "the issue is where the next run claims from, developed being in_progress at the test step");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "and nothing holds it");
 
   const judge = await ran(["claim", "ISS-1617"], JUDGE);

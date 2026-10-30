@@ -33,11 +33,11 @@ describe("the module rows carry what a module is read by", () => {
     assert.ok(row.modules.some((one) => one.isPrimary === true), "the primary flag survives as the tracker set it");
   });
 
-  it("the attributed read repeats each status and names the module it narrows to", () => {
+  it("the attributed read repeats each status the tracker holds, a rung at a work step sent as its status", () => {
     const { page } = ROUTES["forge_issues.attributed"].requests(
       { statuses: ["open", "confirmed"], statusNot: ["closed"], module: "m-1", limit: 200, offset: 400 }, "p");
     const query = new URL(`http://x${page.path}`).searchParams;
-    assert.deepEqual(query.getAll("status"), ["open", "confirmed"]);
+    assert.deepEqual(query.getAll("status"), ["open", "in_progress"]);
     assert.deepEqual(query.getAll("statusNot"), ["closed"]);
     assert.equal(query.get("withModules"), "true");
     assert.equal(query.get("module"), "m-1");

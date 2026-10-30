@@ -2,6 +2,7 @@
    reads. Pure, as that table is. */
 
 import { relationsOf } from "../edges/kinds.mjs";
+import { rungOf } from "../declared/rungs.mjs";
 
 export const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));
@@ -28,6 +29,14 @@ const NOT_THE_ISSUE = new Set(["id", "displayId", "projectId", "issSeq", "identS
 const columns = (row) =>
   Object.fromEntries(Object.entries(row ?? {}).filter(([name]) => !NOT_THE_ISSUE.has(name)));
 
+/* The rung a row stands at, off its status and its work step (`../declared/rungs.mjs`), with the
+   tracker's own status beside it where the two differ. A row carrying no status is left as it is. */
+const placed = (row) => {
+  if (row?.status === undefined || row?.status === null) return {};
+  const rung = rungOf(row.status, row.step ?? row.workState?.step);
+  return rung === row.status ? { status: rung } : { status: rung, trackerStatus: row.status };
+};
+
 const COMMENT = ["issueId", "authorId", "authorDeviceId", "body", "format", "template", "slots",
   "text", "parentId", "createdAt", "updatedAt", "attachments"];
 
@@ -44,7 +53,7 @@ const named = (row) => filled({ documentId: row?.id, issueId: row?.displayId });
 
 /* The answer is what the caller could not already know: the row less the columns the read path drops, less every field this same call sent and got back unchanged — docs/cli/what-a-write-says.md (ISS-1400). */
 export const writtenRow = ({ page }, args) => ({ ...named(page), ...Object.fromEntries(
-  Object.entries(columns(page)).filter(([name, held]) =>
+  Object.entries({ ...columns(page), ...placed(page) }).filter(([name, held]) =>
     JSON.stringify(args?.data?.[name]) !== JSON.stringify(held))) });
 
 
@@ -65,6 +74,7 @@ export const projectOf = (row) => {
 export const issueOf = ({ issue, dependencies, attachments }) => ({
   ...named(issue),
   ...columns(issue),
+  ...placed(issue),
   labels: issue?.labels ?? [],
   ...(attachments === undefined ? {} : { attachments: rowsIn(attachments, "items") }),
   ...(dependencies === undefined ? {} : { relations: relationsOf(dependencies) }),
@@ -76,7 +86,7 @@ export const browseOf = (row) => {
   const { title, status, priority, category, complexity, assigneeId, reopenCount, mergedAt,
     createdAt, updatedAt } = row ?? {};
   return { ...named(row), title, status, priority, category, complexity, assigneeId, reopenCount,
-    mergedAt, createdAt, updatedAt };
+    mergedAt, createdAt, updatedAt, ...placed(row) };
 };
 
 /* What reading a citation backwards needs and `browseOf` may not grow: docs/cli/spec-the-status.md. */
@@ -84,6 +94,7 @@ export const citingOf = (row) => ({
   ...named(row),
   ...pick(row, ["title", "status", "mergedAt", "mergedCommitSha", "landingShape", "mergedLanding", "matchedFields",
     "description", "plan", "acceptanceCriteria"]),
+  ...placed(row),
 });
 
 export const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
@@ -106,7 +117,7 @@ export const configOf = (project) => {
   };
 };
 
-export const attributedOf = (row) => ({ ...named(row), status: row?.status ?? null, modules: row?.modules ?? null });
+export const attributedOf = (row) => ({ ...named(row), status: row?.status ?? null, ...placed(row), modules: row?.modules ?? null });
 
 const eventOf = (row) => ({ id: row?.id ?? null, issueId: row?.issueId ?? null, action: row?.action ?? null,
   from: row?.payload?.from ?? null, to: row?.payload?.to ?? null, reopenCount: row?.payload?.reopenCount ?? null,

@@ -6,7 +6,7 @@ import test from "node:test";
 
 import {
   BASE, BUILDER, KEY, UUID,
-  comments, context, ctx, earning, issue, ready, seeded, state, tracker, world,
+  comments, context, ctx, earning, issue, ready, rungsMoved, seeded, state, tracker, world,
 } from "../fixture.mjs";
 import { ranAsync } from "../../../../../plugin/test/fixtures.mjs";
 
@@ -60,8 +60,7 @@ const ran = async (keys, work) => {
 };
 
 const landing = () => landingOf(context());
-const moves = () =>
-  state.calls.filter((one) => one.args?.action === "transition").map((one) => one.args.data.status);
+const moves = rungsMoved;
 
 /** The verification an automatic release owes (ISS-428): the sha the deployment built, which is
  *  the one this landing pushed. Credited as delivered, the thread's own gate being another rule's. */
@@ -74,7 +73,7 @@ const verified = (at) => {
   noteShown(LANDER, UUID, comments(UUID));
 };
 
-test("a release the project makes without a person is closed by the landing that made it", async () => {
+test("a release the project makes without a person rests at the release rung, the record of it being the close", async () => {
   const { work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base), earned: earning(head) });
   /* It stops at the judging rung first: the fixture's verification cites the head, not what shipped. */
@@ -90,12 +89,14 @@ test("a release the project makes without a person is closed by the landing that
   const back = await asBuilder(["claim", KEY, "--recorded"]);
   const said = `${back.stdout}${back.stderr}`;
   assert.equal(back.status, 0, said);
-  assert.equal(issue().status, "closed", `the hand-back took the last rung itself:\n${said}`);
+  /* The tracker closes an issue that ships code only by a release that claimed it, so no walk moves it there. */
+  assert.equal(issue().status, "awaiting_release", `the hand-back walks to the release rung and no further:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
-  assert.deepEqual(moves(), ["developed", "testing", "awaiting_release", "closed"],
+  assert.deepEqual(moves(), ["developed", "testing", "awaiting_release"],
     `one move per rung of the tail, in the table's order, and no jump:\n${said}`);
   assert.match(said, /no landing call is owed/u, `so the hand-back says none is:\n${said}`);
   assert.doesNotMatch(said, new RegExp(`forge claim ${KEY} --take`, "u"), `and names no take of a landing that is over:\n${said}`);
-  assert.doesNotMatch(said, /rests at `awaiting_release`/u,
-    `nothing is left for a person, so nothing says a person is owed:\n${said}`);
+  assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the tracker closes an issue that ships code only by a release that claimed it \\(CLOSE_ONLY_BY_RELEASE\\)`, "u"), said);
+  assert.match(said, new RegExp(`forge release-batch record ${KEY} --commit <the sha that shipped>`, "u"),
+    `naming the record that closes it:\n${said}`);
 });

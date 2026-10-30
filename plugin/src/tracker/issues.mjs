@@ -53,6 +53,8 @@ const dated = (key, keep) =>
   Object.assign((row, value) => keep(instant(row?.[key]), instant(value)), { date: true });
 
 const LOCAL = {
+  /* The route narrows on the status a rung is held at, so a rung that is a work step is kept here. */
+  status: (row, value) => row?.status === value,
   statusNot: (row, value) => row?.status !== value,
   complexity: (row, value) => row?.complexity === value,
   createdAfter: dated("createdAt", (stamp, given) => stamp >= given),

@@ -92,7 +92,7 @@ test("a park record at closed is refused, and the advance it names parks the iss
 });
 
 test("a park record at dropped is refused the same way, and its advance parks the issue off dropped", async () => {
-  await refusedThenReplayed(DROPPED, "screen-review", "waiting");
+  await refusedThenReplayed(DROPPED, "screen-review", "needs_info");
 });
 
 /* A question asks only from open or confirmed, so printing the advance would send the caller to a

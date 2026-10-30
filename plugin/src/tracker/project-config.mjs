@@ -60,7 +60,6 @@ export const releaseFrom = (config, release = UNDECLARED) => ({
   strategy: config?.releaseModel === PROMOTE ? config?.releaseStrategy ?? null : null,
   ...switchOf(config, release),
   qa: config?.pipelineConfig?.qa ?? null,
-  opens: config?.pipelineConfig?.states?.open?.mode ?? null,
   from: CONFIG_SOURCE,
 });
 
@@ -135,31 +134,6 @@ const [INDEPENDENT] = QA_MODES;
 /** Whether the judgement between developed and testing is an independent run's, asked here and
  *  nowhere else: a reader comparing the mode by hand is a second spelling to drift. */
 export const asksIndependent = (policy) => judgementOf(policy) === INDEPENDENT;
-
-/* The one mode in which entering `open` starts nothing, named by the project rather than inferred:
-   `auto` starts the project's pipeline on the issue, and a word this CLI does not know, a state the
-   project never declared, or a configuration that did not read are each a pipeline that may start,
-   so each is read as starting it. A run that holds an issue already is the one caller that reading
-   protects, and the route it is sent instead costs statuses and starts nothing. */
-const QUIET_OPEN = "manual";
-const STARTING_OPEN = "auto";
-
-/** Whether entering `open` starts this project's pipeline, as the sentence that says which reading
- *  decided it. `starts` is false only where the project declared the quiet mode. */
-export const openStarts = (policy) => {
-  const why = policyUnread(policy);
-  if (why) return { starts: true, said: `${UNREAD_CONFIG}, so nothing says entering \`open\` starts no pipeline: ${firstLine(why)}` };
-  if (!policy) return { starts: true, said: "this checkout names no project, so nothing says entering `open` starts no pipeline" };
-  if (policy.opens === QUIET_OPEN) {
-    return { starts: false, said: `this project's pipeline declares its \`open\` state \`${QUIET_OPEN}\`, so entering it starts nothing` };
-  }
-  if (!policy.opens) {
-    return { starts: true, said: "this project's pipeline declares no mode for its `open` state, so nothing says entering it starts nothing" };
-  }
-  return { starts: true, said: policy.opens === STARTING_OPEN
-    ? `this project's pipeline declares its \`open\` state \`${STARTING_OPEN}\`, so entering it starts the pipeline on an issue a run already holds`
-    : `this project's pipeline declares its \`open\` state \`${policy.opens}\`, a mode this CLI does not know, so nothing says entering it starts nothing` };
-};
 
 /* Whether a person is shown the change before it goes out. A promotion is itself that showing, and a
    model declaring no release step leaves no moment before one at which anybody could be shown

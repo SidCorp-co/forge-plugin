@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 
 import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("rebuilt").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: what
@@ -37,7 +38,9 @@ const git = (room, ...args) =>
 const ISSUE = {
   documentId: "rebuilt-uuid",
   issueId: "ISS-1784",
-  status: "developed",
+  /* `developed` as the tracker holds it: in_progress at the test step. */
+  status: "in_progress",
+  workState: { step: "test" },
   title: "one flow: the checkpoint nobody captured",
   description: "no mark here",
 };
@@ -69,6 +72,7 @@ const CHILD_HOME = ENV.HOME;
 test.after(() => tracker.close());
 
 const checkpoint = () => landingOf(state.issues[0].sessionContext);
+const rungNow = () => rungOf(state.issues[0].status, state.issues[0].workState?.step);
 
 /* The lease is this run's own and the history is what the rule is read against: one holder across
    the whole of it names the builder, and several is a question no record here can answer. */
@@ -225,7 +229,7 @@ test("a builder the claim history answers for on its own is written as the build
   assert.equal(read.handWritten.by, RUN, "while the run that made the write is still its writer and not its builder");
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.equal(state.issues[0].status, "testing", `${moved.stdout}${moved.stderr}`);
+  assert.equal(rungNow(), "testing", `${moved.stdout}${moved.stderr}`);
 });
 
 /* sid-desk ISS-391: a judge dispatched onto an issue parked at `on_hold` from `developed` claims it
@@ -254,7 +258,7 @@ test("a judge that claimed an issue parked from developed is no build holder, so
     "the claim taken at on_hold reads at the status its park left, which no build is done at");
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.equal(state.issues[0].status, "testing", `the judge's own verdict earns it:\n${moved.stdout}${moved.stderr}`);
+  assert.equal(rungNow(), "testing", `the judge's own verdict earns it:\n${moved.stdout}${moved.stderr}`);
 });
 
 test("a history naming no run that built the change still declares the builder unrecoverable", async () => {
@@ -363,7 +367,7 @@ test("a change that reached no deployment takes a checkpoint declaring that, and
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
   assert.match(moved.stdout, /developed -> testing/u, `${moved.stdout}${moved.stderr}`);
-  assert.equal(state.issues[0].status, "testing",
+  assert.equal(rungNow(), "testing",
     "and the status the tracker holds is the one the judging run was dispatched to earn");
 });
 
@@ -488,7 +492,7 @@ test("a later landing is written over a finished checkpoint, which stays readabl
     { documentId: "c-new", createdAt: "2026-09-07T12:05:00.000Z", authorId: "agent", body: judgedAtWith(repaired, [repaired]) });
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.equal(state.issues[0].status, "testing", "verdicts citing the later landing earn the rung");
+  assert.equal(rungNow(), "testing", "verdicts citing the later landing earn the rung");
 });
 
 test("a later landing said to reach no deployment leaves none to cite, and keeps the replaced one readable", async () => {

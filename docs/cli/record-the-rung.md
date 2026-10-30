@@ -64,15 +64,11 @@ are moves a record does not earn, and a side status is left where it stands: `ow
 routed park `targetOf` answers with, and those stay `forge advance`'s. A close is earned by no
 record, so it is the one rung a run still asks for outright.
 
-The route onto the ladder from `draft`, which is before it. The tracker takes `open`, `in_progress`
-and `dropped` from there, and `open` is the only one of them a project can tie its own pipeline to.
-So `open` is next only where the project declares that state's mode quiet; everywhere else —
-including a mode this CLI does not know and a configuration that did not read — the route is
-`in_progress`, owing every record of each rung it passes, because the run asking already holds the
-issue that pipeline would be started on, and the route that costs statuses starts nothing.
-`plugin/src/flow/route/aboard.mjs` is where the reading is made, and the owed line names it. The
-record write that completes that route makes the move, as at any rung, on the kinds of every rung it
-passes. A route ending at `open` or `dropped` passes none, so `forge advance` stays the move there,
-as it is for a disposition at `confirmed`.
+The route onto the ladder from `draft`, which is before it. The tracker's one forward edge out of
+`draft` is `open`, admitted through its issue-ready checklist, and `dropped` the one way off; a move
+from `draft` to any rung past `open` is refused. So the route is `open` whatever the project
+declares that state's mode to be, or `dropped` on a disposition, and neither passes a rung, so
+`forge advance` makes the move there, as it does for a disposition at `confirmed`.
+`plugin/src/flow/route/aboard.mjs` is where the reading is made.
 
 The order the owed line and a served guide part are printed in, which is ISS-968's.

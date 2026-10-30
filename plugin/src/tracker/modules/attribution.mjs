@@ -27,7 +27,10 @@ const walked = async (narrowing, each) => {
  *  the walk stopped short, which the caller says rather than reading absence as no module. */
 export const primaryModules = async (statuses) => {
   const found = new Map();
-  const whole = await walked({ statuses }, (row) => found.set(row.issueId, primaryOf(row.modules)));
+  /* The route narrows on the status a rung is held at, and a rung that is a work step shares it. */
+  const whole = await walked({ statuses }, (row) => {
+    if (statuses.includes(row.status)) found.set(row.issueId, primaryOf(row.modules));
+  });
   return { found, whole };
 };
 

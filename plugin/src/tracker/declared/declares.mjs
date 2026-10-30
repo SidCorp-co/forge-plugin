@@ -31,7 +31,7 @@ export const DECLARES = {
       { name: "open", step: true },
       { name: "confirmed", step: true },
       { name: "clarified", replacedBy: "approved" },
-      { name: "waiting" },
+      { name: "waiting", replacedBy: "needs_info" },
       { name: "approved", step: true },
       { name: "in_progress", step: true },
       { name: "developed", step: true },

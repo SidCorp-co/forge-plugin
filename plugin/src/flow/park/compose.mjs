@@ -13,10 +13,11 @@ import { finishes, parkLeft } from "./left.mjs";
 export const ASKS_A_QUESTION = "question";
 const ASKED_AT = ["open", "confirmed"];
 
-/* Every park kind landing in `waiting` asks a person to decide, so the kind the tracker demands is
-   derived; one that waited on a thing would need a row of its own. */
-const WAITING = "waiting";
-export const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decision" } : {});
+/* A move to `needs_info` says what it is stopped on, and the tracker refuses it otherwise
+   (WAITING_KIND_REQUIRED): a question asks for an answer, and every other park there asks a person
+   to decide. One that waited on a thing would need a row of its own. */
+export const waitsFor = (status, asking = false) => (status === ANSWERED_BY_COMMENT
+  ? { waitingKind: asking ? "needs_answer" : "needs_decision" } : {});
 
 /* The one field of this payload the tracker mints an answer box from, where `reason` is why the work stopped: neither is ever written from the other, and a text over the endpoint's cap is refused here rather than sent to take the status write down with it — docs/cli/advance-what-it-sends.md. */
 const NEEDS_CAP = 2000;
@@ -52,7 +53,8 @@ const asksFor = (view, asked, ref) => {
  *  comment claiming a move nothing attempted. */
 export const parkPayload = (view, ref, kind, why, evidence = [], { left = null, asked = null } = {}) => {
   const status = PARK_STATUS[kind];
-  const said = { reason: why, ...waitsFor(status), ...(status === ANSWERED_BY_COMMENT ? asksFor(view, asked, ref) : {}) };
+  const asking = kind === ASKS_A_QUESTION;
+  const said = { reason: why, ...waitsFor(status, asking), ...(asking ? asksFor(view, asked, ref) : {}) };
   const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
   unpairable(view, ref, body);
   return { status, said, body };
@@ -74,7 +76,7 @@ const unpairable = (view, ref, body) => {
 export const parkChecked = (view, ref, kind, evidence) => {
   const to = PARK_STATUS[kind];
   if (!to) refuse(`--park takes one of ${Object.keys(PARK_STATUS).join(", ")}, not \`${kind}\`.`);
-  if (to === ANSWERED_BY_COMMENT && !ASKED_AT.includes(view.issue.status)) {
+  if (kind === ASKS_A_QUESTION && !ASKED_AT.includes(view.issue.status)) {
     refuse(`a question goes to the reporter, and ${ref} is ${view.issue.status}: the readings it would `
       + `offer are the triage ones. Ask from ${ASKED_AT.join(" or ")}, or park for a reviewer instead.`);
   }

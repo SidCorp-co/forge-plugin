@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { ranAsync, tempHome, tempRoom, typedPlan } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
+import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
 import { CITED } from "../../../src/guides/phases.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-rung").path;
@@ -81,7 +82,11 @@ const env = () => ({
 
 const ask = (...argv) => ranAsync(FORGE, argv, env());
 const listed = (from) => state.calls.slice(from).filter((one) => one.args.action === "list").length;
-const statusOf = (key) => state.issues.find((one) => one.issueId === key).status;
+/* The rung the stored row stands at: a rung that is a work step is held as `in_progress` and its step. */
+const statusOf = (key) => {
+  const row = state.issues.find((one) => one.issueId === key);
+  return rungOf(row.status, row.workState?.step);
+};
 const held = (key) => state.issues.find((one) => one.issueId === key);
 const kindsOn = (key) => (state.comments[`uuid-${key}`] ?? [])
   .map((one) => /^`forge-record: (\w+)/mu.exec(one.body ?? "")?.[1])
