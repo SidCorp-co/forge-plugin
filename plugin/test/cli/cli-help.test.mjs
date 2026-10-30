@@ -221,7 +221,7 @@ const FIELDS_OF = {
   guide: "slug",
   project: "archived, projectRef",
   knowledge: "authoredBy, body, confidence, injection, injectionFilter, kind, kindFilter, metadata,"
-    + " query, scope, slug, sourceFilter, strategy, title, topK",
+    + " query, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
   coolify: "deploymentUuid, integrationId, issueId, pipelineRunId, resourceUuid",
   "release-batch": "runId",
