@@ -64,6 +64,9 @@ const PROJECT_ROWS = ["forge_projects.create", "forge_projects.read", "forge_pro
    projection at all, so there is no shape here to judge and the absence is what is asserted. */
 const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config.pipeline",
   "forge_config.set_pipeline",
+  /* The gates and the project document as the tracker keeps them: `src/brief/waived.mjs` reads two
+     keys and a projection here would be a second list of them. */
+  "forge_config.gates", "forge_config.document",
   /* A label's delete answers 204 and nothing: `forge doctor modules` reads the list back instead. */
   "forge_labels.delete",
   /* The deployment platform's own words, which this CLI does not own and does not rename: a

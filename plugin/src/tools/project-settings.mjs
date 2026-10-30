@@ -9,6 +9,7 @@ import { fromProject, Refusal, drainScope, fail, projectFileToWrite, projectSlug
 import { pairOf } from "../resolve/flags.mjs";
 import { configPath } from "../resolve/config.mjs";
 import { meaningOf } from "../resolve/project/enum-keys.mjs";
+import { gatesOf, gatesRow } from "../brief/waived.mjs";
 import { MACHINE_KEYS, MACHINE_KEY_NAMES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
   READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, setCall, spelled, withKey,
@@ -511,9 +512,10 @@ const drainRead = (policy) => {
  *  the read behind it, which the reading of what nobody decided asks its own question of. The
  *  reads go together — one report is one round trip's worth of waiting, not six. */
 export const projectReport = async ({ credentials, graph = null } = {}) => {
-  const [policy, deploy, settings, brief, snapshot, load] = await Promise.all([
+  const [policy, deploy, settings, brief, snapshot, load, gates] = await Promise.all([
     releasePolicy(), stagingDeploy(), readSettings(), readBrief(),
     scoped("forge_project_pm.snapshot", {}, true), scoped("forge_project_pm.runner_load", {}, true),
+    gatesOf(),
   ]);
   const drained = drainRows(policy, await drainRead(policy));
   const flow = flowPinned().value;
@@ -522,7 +524,7 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
     flowJudgeConflict(flow, judgeOf(flow), policy),
   ].filter(Boolean);
   return {
-    rows: [...projectRows({ policy, deploy, credentials, drained }),
+    rows: [...projectRows({ policy, deploy, credentials, drained }), gatesRow(gates),
       ...clashes.map((detail) => ({ level: "miss", label: "flow", detail })),
       ...settingRows(settings), ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),

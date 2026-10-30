@@ -291,6 +291,8 @@ const PROBES = [
   ["POST", "/api/projects/p1/release-records"],
   ["GET", "/api/projects/p1/release-records/r1"],
   ["GET", "/api/projects/p1/pipeline-config"],
+  ["GET", "/api/projects/p1/gates"],
+  ["GET", "/api/projects/p1/config"],
   ["GET", "/api/projects/p1/labels"],
   ["PATCH", "/api/labels/l1"],
   ["POST", "/api/projects/p1/archive"],

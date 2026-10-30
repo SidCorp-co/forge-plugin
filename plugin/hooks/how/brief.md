@@ -1,25 +1,19 @@
 # brief — a dispatch message nobody generated
 
 Why: a typed message carries what the dispatcher believed about the method, and a run reads it
-first. On 2026-09-23 five briefs carried a rebase order and a restated park under text forbidding
-both (ISS-2148), so the message is generated.
+first. On 2026-09-23 five briefs carried a rebase order under text forbidding it (ISS-2148).
 
-How to clear it: run `forge brief ISS-nn --tree <the run's worktree>`, or with no `--tree` for a run
-that is given none, and send what it prints as the prompt, whole and unchanged. A judging run is
-briefed with `forge brief ISS-nn --judge --url <deployed url> --criteria <numbers>`.
+How to clear it: send what `forge brief ISS-nn --tree <the run's worktree>` prints (no `--tree`
+for a run given none), whole and unchanged. A judge takes `forge brief ISS-nn --judge --url
+<deployed url> --criteria <numbers>`.
 
 What it judges: a dispatch to a role this plugin ships, by whether the whole prompt is one the verb
-printed in the last ten minutes, and a dispatch to the judging role by whether that brief was the
-judge's form, which names the deployment and no tree (ISS-3145). Past that window the readings (what each tree holds) may have
-moved, so it is generated again rather than trusted. A line the verb writes to standard error, such
-as a restart owed, is the dispatcher's and not part of the brief, so a prompt carrying it is refused.
+printed in the last ten minutes, and a judge's by whether it is the judge's form, which names the
+deployment and no tree (ISS-3145). A line the verb writes to standard error is not the brief.
 
-Not judged: a role another plugin ships, and a general agent. The words of a message are never read:
-a digest of the whole is compared, and a reading of words was refused (ISS-2147).
+Not asked: under a project the tracker gates `yolo` while it delivers fast. The message goes as
+typed and the session is told why; both are read per dispatch, and a failed read keeps the gate.
+`forge doctor` prints the `gates` row.
 
-Not asked: a dispatch made from a checkout of a project the tracker gates `yolo` (`GET
-/api/projects/:id/gates`) while it delivers fast (`delivery.fast` not `false` in `GET
-/api/projects/:id/config`). That project chose to let its agents act first and record after, so the
-message goes through as typed and the session is told why. Both are read on every dispatch, since a
-profile raised after an incident must not be outlived by a remembered `yolo`; a read that fails
-leaves the gate asking, and its refusal names what could not be read.
+Not judged: a role another plugin ships, and a general agent. Words are never read: a digest of the
+whole is compared (ISS-2147).

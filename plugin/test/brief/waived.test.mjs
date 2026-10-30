@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callHookAsync } from "../fixtures.mjs";
+import { answered, callHookAsync } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
 import { HOOK, repository } from "./fixture.mjs";
 
@@ -30,8 +30,7 @@ const dispatch = async (prompt, role = "forge:runner") => {
     session_id: "session-waived", cwd: repo.main, tool_name: "Agent",
     tool_input: { description: "run it", prompt, subagent_type: role },
   }, { ...env, CLAUDE_CODE_SESSION_ID: "session-waived" }, repo.main);
-  assert.equal(run.status, 0, run.stderr);
-  const answer = run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput : {};
+  const answer = answered(run)?.hookSpecificOutput ?? {};
   return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason ?? "",
     context: answer.additionalContext ?? "" };
 };
