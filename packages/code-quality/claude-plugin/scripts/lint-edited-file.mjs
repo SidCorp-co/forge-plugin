@@ -156,6 +156,24 @@ function resolveWorkspace(editedFile, projectRoot) {
   return { directory: fallback ?? projectRoot, config: null };
 }
 
+const LEGACY_NAMES = [".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc.yml"];
+
+/**
+ * A project with no flat config that still asked for ESLint: a legacy config, or this package
+ * installed. Otherwise any ESLint found is another package's dependency (a Biome repo).
+ */
+function asksForEslint(editedFile, projectRoot) {
+  let directory = path.dirname(editedFile);
+  while (directory.startsWith(projectRoot)) {
+    if (LEGACY_NAMES.some((name) => existsSync(path.join(directory, name)))) return true;
+    if (existsSync(path.join(directory, "node_modules", "eslint-plugin-code-quality"))) return true;
+    const parent = path.dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  return false;
+}
+
 // `"hook": false` in code-quality.json, looked for in each directory below. The hook is enabled
 // once for every project this user opens, so opting one out has to be the project's own say.
 function hookDisabled(directories) {
@@ -327,6 +345,7 @@ const { file: editedFile, projectRoot } = edited;
 
 const { directory: workspace, config } = resolveWorkspace(editedFile, projectRoot);
 if (hookDisabled([workspace, projectRoot])) process.exit(0);
+if (!config && !asksForEslint(editedFile, projectRoot)) process.exit(0);
 
 // Anchoring on the workspace lets Node's own upward lookup find either a package-level install
 // or one hoisted to the repository root.

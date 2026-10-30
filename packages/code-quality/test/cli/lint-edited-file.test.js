@@ -415,6 +415,27 @@ test("stays silent in a project without ESLint", () => {
   assert.doesNotMatch(result.stdout, /npm WARN|npx/);
 });
 
+/* A Biome repository whose node_modules holds an ESLint some other package depends on: asked, that
+   ESLint answers "couldn't find an eslint.config.* file" on every edit, which is a finding about a
+   decision the project never made. */
+test("stays silent where ESLint is installed but the project configures none and installed no rules", () => {
+  const root = makeConsumer({ plugin: false, config: false });
+  writeFileSync(path.join(root, "biome.json"), '{"linter":{"enabled":true}}\n');
+  write(root, "packages/contracts/src/file.ts", "export const ok = true;\n");
+  const result = runHook(root, "packages/contracts/src/file.ts");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, "");
+});
+
+test("a legacy .eslintrc is a configuration too, so the project's ESLint is still asked", () => {
+  const root = makeConsumer({ plugin: false, config: false });
+  writeFileSync(path.join(root, ".eslintrc.json"), '{"root":true}\n');
+  write(root, "src/file.js", "export const ok = true;\n");
+  const result = runHook(root, "src/file.js");
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /code-quality:/);
+});
+
 test("says so once when a project configured ESLint but did not install it", () => {
   const root = makeConsumer({ eslint: false });
   write(root, "src/file.js", "export const ok = true;\n");

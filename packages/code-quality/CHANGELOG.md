@@ -2,6 +2,15 @@
 
 All notable changes to this package are documented here.
 
+## Unreleased
+
+### Fixed
+
+- The edit hook stays silent in a project that does not lint with ESLint: no flat config, no legacy
+  `.eslintrc`, and this package not installed. An ESLint reachable there is another package's
+  dependency, and asking it answered "ESLint couldn't find an eslint.config.* file" on every edit
+  in a Biome repository. A project that installed this package with no configuration is still told.
+
 ## 0.16.5 - 2026-09-30
 
 ### Fixed
