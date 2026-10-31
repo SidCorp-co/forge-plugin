@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
+import { wireAt } from "../fixtures.mjs";
 import { claims, issue, rankRoom, recordOf, standing } from "./room.mjs";
 import { bounded, waveUnder, wanted } from "../../src/rank/next.mjs";
 
@@ -67,13 +68,15 @@ test("an issue with a second blocker is named with it rather than promised", asy
   assert.doesNotMatch(run.stdout, /ISS-2 \(eligible after this lands\)/u);
 });
 
-/* An issue being worked, waiting on a person, or released and not yet closed still holds up what
-   waits on it: the chain's stop and the eligibility filter read one set or they disagree. */
+/* An issue being worked, landed and not yet judged, or waiting on a person still holds up what waits
+   on it, and one core reads as settled — awaiting_release or closed — does not: the chain's stop and
+   the eligibility filter read one set or they disagree. */
 test("the chain counts through an issue that is in flight and stops at one the flow lets through", async () => {
-  for (const [status, points] of [["in_progress", 6], ["waiting", 6], ["developed", 0], ["closed", 0]]) {
+  for (const [status, points] of [["in_progress:build", 6], ["needs_info", 6], ["in_progress:test", 6],
+    ["awaiting_release", 0], ["closed", 0]]) {
     load([
       issue("ISS-1", { priority: "low", title: "the first thing" }),
-      issue("ISS-2", { status, title: "the second thing", description: claims("first thing") }),
+      issue("ISS-2", { ...wireAt(status), title: "the second thing", description: claims("first thing") }),
       issue("ISS-3", { title: "the third thing", description: claims("second thing") }),
     ]);
     const run = await ran(["next", "--json"]);
@@ -458,12 +461,12 @@ const judged = (t, qa) => {
   t.after(() => { delete state.answer.forge_config; delete state.config; });
 };
 
-test("a developed issue with no live lease is offered as judging work, apart from the ranked rows", async (t) => {
-  load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { status: "developed" })]);
+test("an in_progress:test issue with no live lease is offered as judging work, apart from the ranked rows", async (t) => {
+  load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { ...wireAt("in_progress:test") })]);
   judged(t, "independent");
   const run = await ran(["next"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /judging — 1 issue\(s\) at developed with no live lease,/u);
+  assert.match(run.stdout, /judging — 1 issue\(s\) at in_progress:test with no live lease,/u);
   assert.match(run.stdout, /ISS-5[^\n]*\n\nissue\s+pts/u, "and a blank line between the two");
   assert.match(run.stdout, /judging[\s\S]*ISS-5[\s\S]*issue\s+pts/u,
     "the section stands above the ranked table rather than inside it");
@@ -473,7 +476,7 @@ test("a developed issue with no live lease is offered as judging work, apart fro
 });
 
 test("a project that declared the judgement the builder's own is offered no judging section", async (t) => {
-  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  load([issue("ISS-1"), issue("ISS-5", { ...wireAt("in_progress:test") })]);
   for (const qa of ["builder", null]) {
     judged(t, qa);
     const run = await ran(["next"]);
@@ -489,7 +492,7 @@ test("a file another run's plan holds sets a builder aside and leaves a judging 
   load([
     issue("ISS-9", { plan: "It edits `plugin/src/flow/record.mjs`." }),
     issue("ISS-2", { description: names }),
-    issue("ISS-5", { status: "developed", description: names }),
+    issue("ISS-5", { ...wireAt("in_progress:test"), description: names }),
   ]);
   judged(t, "independent");
   const run = await ran(["next", "--holding", "ISS-9"]);
@@ -501,13 +504,13 @@ test("a file another run's plan holds sets a builder aside and leaves a judging 
 
 test("a judging read that spent its bound says so on the error stream, in either output form", async (t) => {
   const rows = [issue("ISS-1")];
-  for (let n = 10; n < 24; n += 1) rows.push(issue(`ISS-${n}`, { status: "developed" }));
+  for (let n = 10; n < 24; n += 1) rows.push(issue(`ISS-${n}`, { ...wireAt("in_progress:test") }));
   load(rows);
   judged(t, "independent");
   for (const argv of [["next"], ["next", "--json"]]) {
     const run = await ran(argv);
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stderr, /2 further issue\(s\) at developed went unread/u, argv.join(" "));
+    assert.match(run.stderr, /2 further issue\(s\) at in_progress:test went unread/u, argv.join(" "));
     assert.match(run.stderr, /windowCap 12[\s\S]*rank\.windowCap/u, argv.join(" "));
   }
   const run = await ran(["next", "--json"]);
@@ -518,7 +521,7 @@ test("a judging read that spent its bound says so on the error stream, in either
    print what a deliberate opt-out prints, which is nothing at all. Only the config read is refused
    here — the issue reads answer, which is what makes such a silence invisible (ISS-1663). */
 test("a config read the tracker refused says so rather than printing the judging section away", async (t) => {
-  load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { status: "developed" })]);
+  load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { ...wireAt("in_progress:test") })]);
   state.config = { pipelineConfig: { qa: "independent" } };
   state.answer.forge_config = () => ({ refused: "no available server" });
   t.after(() => { delete state.answer.forge_config; delete state.config; });
@@ -528,7 +531,7 @@ test("a config read the tracker refused says so rather than printing the judging
   assert.match(run.stdout, /judging — this project's declaration about who judges went unread/u,
     "the section says the declaration went unread instead of standing down as an opt-out");
   assert.match(run.stdout, /BAD_REQUEST: no available server/u, "carrying the tracker's own sentence");
-  assert.doesNotMatch(run.stdout, /1 issue\(s\) at developed/u, "and offers nothing it could not know");
+  assert.doesNotMatch(run.stdout, /1 issue\(s\) at in_progress:test/u, "and offers nothing it could not know");
   assert.match(run.stderr, /release policy: the project config could not be read/u,
     "said once at the read, for every reader that answers with a boolean and has nowhere to put it");
   assert.match(run.stdout, /ISS-1/u, "and the ranking this verb was asked for is unchanged");
@@ -543,7 +546,7 @@ test("a config read the tracker refused says so rather than printing the judging
 });
 
 test("the machine-readable form carries the judging candidates under a key of their own", async (t) => {
-  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  load([issue("ISS-1"), issue("ISS-5", { ...wireAt("in_progress:test") })]);
   judged(t, "independent");
   const run = await ran(["next", "--json"]);
   assert.equal(run.status, 0, run.stderr);

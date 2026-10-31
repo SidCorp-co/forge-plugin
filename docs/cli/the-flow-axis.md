@@ -21,11 +21,11 @@ project wrote and not an absence. Both keys absent is `default`.
 ## Setting one is one call, and the file is the half that goes first
 
 The key is the project's, but a flow asks the project for things the key cannot carry: `screen`
-wants an independent judgement between `developed` and `testing`, and that lives on the tracker,
+wants an independent judgement between `in_progress:test` and `in_progress:release`, and that lives on the tracker,
 where `judgementOf` reads it. Two writes in two resources with no verb making both is how a project
 ends up on a flow whose ask nobody answered. So `forge doctor --flow <slug>` makes both, and what a
-flow asks for is derived from the table that declares the slug, so a flow that starts asking for a
-second thing extends that table and not the verb.
+flow asks for is derived from the table declaring the slug, so a flow asking a second thing extends
+that table and not the verb.
 
 **The checkout's file goes first because its undo is the certain one.** Its previous bytes are
 held, the tracker's settings go after it, and a tracker that refuses the write or reads the value

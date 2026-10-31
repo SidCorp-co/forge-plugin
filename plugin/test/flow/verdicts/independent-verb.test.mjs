@@ -7,7 +7,7 @@ import test, { after, before } from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
-import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
+import { placeOf } from "../../../src/tracker/declared/issue-machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent-verb").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -113,7 +113,7 @@ test("advance to the rung is refused while the standing verdicts are the builder
       judge: BUILDER, "judge-from": "asked" }))) });
   const run = await builder("advance", "ISS-8");
   assert.equal(run.status, 1, run.stdout);
-  assert.equal(rungOf(judging.status, judging.workState?.step), "developed", "and nothing moved");
+  assert.equal(placeOf(judging.status, judging.workState?.step), "in_progress:test", "and nothing moved");
   const said = `${run.stdout}\n${run.stderr}`;
   assert.match(said, /criteria 1, 2 carries the builder's own id/u, said);
   assert.doesNotMatch(said, /criterion 2 carries the builder's own id/u,
@@ -134,16 +134,17 @@ test("once the QA session has judged every criterion against the deployment, adv
     "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(wrote.status, 0, wrote.stderr);
   assert.equal(wrote.stdout.match(new RegExp(`^judge: ${QA}$`, "gmu")).length, 2, wrote.stdout);
-  assert.match(wrote.stderr, /^ISS-8 {2}developed -> testing$/mu, "the verdicts earn the judging rung in their own call");
+  assert.match(wrote.stderr, /^ISS-8 {2}in_progress:test -> in_progress:release$/mu, "the verdicts earn the judging rung in their own call");
   /* One rung, two records: the judging leaves the release rung owed, and this session writes both of the records that rung cites in one call, so that call is what moves it (ISS-1103). */
   const proved = await qa("record", "verification", "ISS-8", "--where", "the deployed app",
     "--commit", MERGED, "--evidence", "https://ci.example.test/9",
     "--also", "note", "--section", "Fixed", "--title", "The change in a few words", "--user", "it works");
   assert.equal(proved.status, 0, proved.stderr);
-  assert.match(proved.stderr, /^ISS-8 {2}testing -> awaiting_release$/mu, "both records, one call, one move");
+  assert.match(proved.stderr, /^ISS-8 {2}in_progress:release -> awaiting_release$/mu, "both records, one call, one move");
   const run = await qa("advance", "ISS-8");
-  assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.equal(judging.status, "closed", "every rung moved on the call that earned it, and the close is what is left");
+  assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+  assert.match(run.stderr, /CLOSE_ONLY_BY_RELEASE/u, "every place moved on the call that earned it, and the close is the release's");
+  assert.equal(judging.status, "awaiting_release", "so the advance moved nothing past the top of the ladder");
 });
 
 /* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,

@@ -5,17 +5,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BUILDER, CHANGED, checkpoint, field, ran, state } from "../fixture.mjs";
+import { statusOfPlace, stepOfPlace } from "../../../../src/tracker/declared/issue-machine.mjs";
 
 const said = (run) => `${run.stdout}${run.stderr}`;
-const at = (status) => {
+/* Put at a place in core's words: the status, and the step where the place is inside in_progress. */
+const at = (place) => {
   field(null, null);
-  state.issues[0] = { ...state.issues[0], status };
+  state.issues[0] = { ...state.issues[0], status: statusOfPlace(place),
+    workState: stepOfPlace(place) ? { step: stepOfPlace(place) } : null };
 };
 
 const CHAINS = {
-  open: ["confirmed", "approved", "in_progress"],
-  confirmed: ["approved", "in_progress"],
-  approved: ["in_progress"],
+  open: ["in_progress:plan", "approved", "in_progress:build"],
+  "in_progress:plan": ["approved", "in_progress:build"],
+  approved: ["in_progress:build"],
 };
 
 test("a ready capture before the build is refused, writes nothing, and prints each advance then the capture", async () => {
@@ -25,17 +28,17 @@ test("a ready capture before the build is refused, writes nothing, and prints ea
     assert.equal(run.status, 1, `${status}: ${said(run)}`);
     assert.equal(checkpoint(), null, `${status}: no checkpoint was written`);
     assert.equal(state.issues[0].sessionContext?.worklog, undefined, `${status}: nor the capture beside it`);
-    assert.ok(run.stderr.includes(`ISS-673 stands at \`${status}\`, before \`in_progress\``),
+    assert.ok(run.stderr.includes(`ISS-673 stands at \`${status}\`, before \`in_progress:build\``),
       `${status}: naming the status it read:\n${run.stderr}`);
     const lines = chain.map((to) => `  forge advance ISS-673 --to ${to}\n`).join("");
     assert.ok(run.stderr.includes(`again:\n${lines}  forge claim ISS-673 --pushed --ready`),
       `${status}: one advance per status owed, in order, then the capture:\n${run.stderr}`);
-    assert.equal(state.issues[0].status, status, `${status}: and the capture moved no status`);
+    assert.equal(state.issues[0].status, statusOfPlace(status), `${status}: and the capture moved no status`);
   }
 });
 
-test("a ready capture at in_progress writes the checkpoint", async () => {
-  at("in_progress");
+test("a ready capture at in_progress:build writes the checkpoint", async () => {
+  at("in_progress:build");
   const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED);
   assert.equal(run.status, 0, said(run));
   assert.equal(checkpoint().state, "ready", said(run));

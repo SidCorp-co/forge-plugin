@@ -203,11 +203,11 @@ const waiting = (from, held) => ({ issueId: "ISS-777", documentId: "u-777", stat
 
 test("a reading left open and untaken is reported with its age, its range's multiple and the call that starts it", () => {
   const { work, from } = owedAt("overdue");
-  noBacklog({ key: "ISS-777", issues: [waiting(from, { status: "confirmed" })] });
+  noBacklog({ key: "ISS-777", issues: [waiting(from, { status: "in_progress", workState: { step: "plan" } })] });
   const run = lastStep(work);
   assert.equal(seen("create").length, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stdout,
-    /ISS-777 holds this reading, confirmed and untaken since 2026-09-22 \(\d+ day\(s\)\); its range is now 1x the 1500-line threshold/u,
+    /ISS-777 holds this reading, in_progress:plan and untaken since 2026-09-22 \(\d+ day\(s\)\); its range is now 1x the 1500-line threshold/u,
     run.stdout);
   assert.match(run.stdout, /start it: node \S*tools\/run\.mjs start ISS-777/u, run.stdout);
 });
@@ -219,7 +219,7 @@ test("a reading somebody started, holds a live lease on, or whose lease cannot b
     const { work, from } = owedAt(`taken-${Object.keys(held)[0]}`);
     noBacklog({ key: "ISS-777", issues: [waiting(from, held)] });
     const run = lastStep(work);
-    assert.match(run.stdout, /ISS-777 is (open|in_progress) for this mark already, so nothing was filed/u, run.stdout);
+    assert.match(run.stdout, /ISS-777 is (open|in_progress:build) for this mark already, so nothing was filed/u, run.stdout);
     assert.doesNotMatch(run.stdout, /untaken|start it:/u, `${JSON.stringify(held)}:\n${run.stdout}`);
   }
 });
@@ -314,7 +314,7 @@ test("the mark's issue is found at whatever status it has reached, and the looku
   const held = lastStep(work);
   assert.equal(seen("create").length, 0,
     `an issue the tracker already holds for this mark was filed again:\n${held.stdout}${held.stderr}`);
-  assert.match(held.stdout, /ISS-501 is in_progress for this mark already, so nothing was filed/u, held.stdout);
+  assert.match(held.stdout, /ISS-501 is in_progress:build for this mark already, so nothing was filed/u, held.stdout);
   assert.ok(held.stdout.includes("Work ISS-501."), held.stdout);
   const lookup = seen("list").find((one) => one.args.filters?.search);
   assert.equal(lookup.args.filters.status, undefined,
@@ -369,7 +369,7 @@ test("a row found over a backlog that came back short is still this debt's answe
   const run = lastStep(work);
   assert.equal(seen("create").length, 0,
     `a row the short page carried was passed over and a second one filed:\n${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /ISS-505 is in_progress for this mark already, so nothing was filed/u, run.stdout);
+  assert.match(run.stdout, /ISS-505 is in_progress:build for this mark already, so nothing was filed/u, run.stdout);
   assert.doesNotMatch(run.stderr, /unread/u,
     `a reading that answered the question was reported as one that could not:\n${run.stderr}`);
 });

@@ -2,7 +2,7 @@
    reads. Pure, as that table is. */
 
 import { relationsOf } from "../edges/kinds.mjs";
-import { rungOf } from "../declared/rungs.mjs";
+import { placeOf } from "../declared/issue-machine.mjs";
 
 export const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));
@@ -29,12 +29,12 @@ const NOT_THE_ISSUE = new Set(["id", "displayId", "projectId", "issSeq", "identS
 const columns = (row) =>
   Object.fromEntries(Object.entries(row ?? {}).filter(([name]) => !NOT_THE_ISSUE.has(name)));
 
-/* Named by its rung on the way back, the tracker's own status beside it where the two differ; a
+/* Named by its place on the way back, the tracker's own status beside it where the two differ; a
    row carrying no status is left as it is. */
 const placed = (row) => {
   if (row?.status === undefined || row?.status === null) return {};
-  const rung = rungOf(row.status, row.step ?? row.workState?.step);
-  return rung === row.status ? { status: rung } : { status: rung, trackerStatus: row.status };
+  const place = placeOf(row.status, row.step ?? row.workState?.step);
+  return place === row.status ? { status: place } : { status: place, trackerStatus: row.status };
 };
 
 const COMMENT = ["issueId", "authorId", "authorDeviceId", "body", "format", "template", "slots",

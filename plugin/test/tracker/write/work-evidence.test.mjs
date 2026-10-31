@@ -41,8 +41,8 @@ const answering = async ([status, body], call) => {
 
 test("a status move refused for want of work evidence names the capture of the issue it was sent for", async () => {
   const answer = await answering(
-    [409, { code: "NO_WORK_EVIDENCE", message: SENTENCE, details: { issueId: "u-7", toStatus: "developed" } }],
-    () => callTool("forge_issues", { action: "transition", documentId: "u-7", data: { status: "developed" } }, true));
+    [409, { code: "NO_WORK_EVIDENCE", message: SENTENCE, details: { issueId: "u-7", toStatus: "awaiting_release" } }],
+    () => callTool("forge_issues", { action: "transition", documentId: "u-7", data: { status: "awaiting_release" } }, true));
   assert.match(answer.refused, CAPTURE, answer.refused);
   assert.ok(answer.refused.startsWith(`NO_WORK_EVIDENCE: ${SENTENCE}\n`),
     `the tracker's own sentence, whole and under its code, ahead of the command: ${answer.refused}`);
@@ -50,8 +50,8 @@ test("a status move refused for want of work evidence names the capture of the i
 
 test("the same refusal names the whole merged mark of that issue, for a change that landed on the base branch itself", async () => {
   const answer = await answering(
-    [409, { code: "NO_WORK_EVIDENCE", message: SENTENCE, details: { issueId: "u-7", toStatus: "developed" } }],
-    () => callTool("forge_issues", { action: "transition", documentId: "u-7", data: { status: "developed" } }, true));
+    [409, { code: "NO_WORK_EVIDENCE", message: SENTENCE, details: { issueId: "u-7", toStatus: "awaiting_release" } }],
+    () => callTool("forge_issues", { action: "transition", documentId: "u-7", data: { status: "awaiting_release" } }, true));
   assert.ok(answer.refused.includes(MARK), answer.refused);
   assert.match(mergedForm("u-7"), OPENS_WITH, "the form carries --at and every flag the verb requires");
   assert.ok(answer.refused.indexOf(MARK) > answer.refused.indexOf(SENTENCE), "the route comes after the tracker's sentence");
@@ -66,9 +66,9 @@ test("the merged mark refused the same way names the same capture", async () => 
 });
 
 test("a refusal carrying another code names no capture", async () => {
-  const answer = await answering([422, { code: "ENTRY_CRITERIA_UNMET", message: "`developed` requires a record" }],
-    () => callTool("forge_issues", { action: "transition", documentId: "u-7", data: { status: "developed" } }, true));
-  assert.equal(answer.refused, "ENTRY_CRITERIA_UNMET: `developed` requires a record");
+  const answer = await answering([422, { code: "ENTRY_CRITERIA_UNMET", message: "`awaiting_release` requires a record" }],
+    () => callTool("forge_issues", { action: "transition", documentId: "u-7", data: { status: "awaiting_release" } }, true));
+  assert.equal(answer.refused, "ENTRY_CRITERIA_UNMET: `awaiting_release` requires a record");
 });
 
 test("the --set row of the verb's help names the tracker's check that still applies and both records that meet it", async () => {
@@ -76,6 +76,6 @@ test("the --set row of the verb's help names the tracker's check that still appl
   assert.equal(run.status, 0, run.stderr);
   const row = run.stdout.slice(run.stdout.indexOf("  --set "), run.stdout.indexOf("\n\n", run.stdout.indexOf("  --set ")));
   assert.match(row.replace(/\s+/gu, " "),
-    /work-evidence check still holds developed and testing to a branch `forge claim <ref> --pushed` captured, or to the commit on the base branch a merged mark carries/u,
+    /work-evidence check still holds a move to awaiting_release to a branch `forge claim <ref> --pushed` captured, or to the commit on the base branch a merged mark carries/u,
     row);
 });

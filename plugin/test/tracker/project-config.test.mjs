@@ -429,7 +429,7 @@ test("the independent-judgement line is the tracker record's, and no checkout ke
 test("the report prints both lines, the route with the source it was read from", () => {
   const out = said({ landing: NONE });
   assert.match(out, /^where the merge sits: after-merge {2}← the tracker's project config$/mu);
-  assert.match(out, /^independent judgement: not stated between developed and testing {2}← the tracker's project config$/mu);
+  assert.match(out, /^independent judgement: not stated between in_progress:test and in_progress:release {2}← the tracker's project config$/mu);
   assert.match(said({ landing: { value: "before-merge", from: RECORD } }),
     new RegExp(`^where the merge sits: before-merge {2}\u2190 ${escaped(RECORD)}$`, "mu"));
 });

@@ -3,8 +3,8 @@
    docs/cli/advance-what-it-sends.md. */
 export const ANSWERED_BY_COMMENT = "needs_info";
 
-/* The tracker folded `waiting` into `needs_info`, the kind of wait carried as `waitingKind`
-   (`../park/compose.mjs:waitsFor`), so every park on a person lands there. */
+/* Every park on a person lands at `needs_info`, the kind of wait carried as `waitingKind`
+   (`../park/compose.mjs:waitsFor`). */
 export const PARK_STATUS = {
   question: ANSWERED_BY_COMMENT,
   "screen-review": ANSWERED_BY_COMMENT,
@@ -20,16 +20,14 @@ export const PARK_STATUS = {
   dropped: "dropped",
 };
 
-export const SIDE = [ANSWERED_BY_COMMENT, "waiting", "on_hold"];
+export const SIDE = [ANSWERED_BY_COMMENT, "on_hold"];
 
 /* The two statuses an issue owes nothing further from. Named beside the park kind that reaches one
    of them, because both readers of the pair ask the same question of it: the plan scope a tree no
    longer holds, and the escapes whose promise ended when the owing did (ISS-2111). */
 export const NO_LONGER_OWES = ["closed", "dropped"];
 
-const ONE_LANDING = [["waiting", ANSWERED_BY_COMMENT]];
-
-export const sameLanding = (one, other) =>
-  one === other || ONE_LANDING.some((pair) => pair.includes(one) && pair.includes(other));
+/* One landing is one status, now that core holds no second name for any of them. */
+export const sameLanding = (one, other) => one === other;
 
 export const answersByComment = (status) => sameLanding(status, ANSWERED_BY_COMMENT);

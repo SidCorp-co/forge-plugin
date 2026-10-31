@@ -202,7 +202,7 @@ const clearsDrain = (route, value) =>
   && drainScope().declared;
 
 const DRAIN_SAID = `\`${DRAIN_KEY}\` in ${fromProject()}, which names the master that claims this `
-  + "project's issues at developed";
+  + "project's issues at in_progress:test";
 
 /* Proved rewritable before the tracker is sent anything: a judgement that lands over a file this
    could not have rewritten leaves exactly the orphaned drain the pair is cleared together to stop. */
@@ -498,7 +498,7 @@ const pmRows = (snapshot, load, graph) => {
   ];
 };
 
-/* The rows at developed are read only where the judgement offers them, so a project that judges its
+/* The rows at in_progress:test are read only where the judgement offers them, so a project that judges its
    own work pays no call for a row it does not print; and judged in no window but the project's own, a
    `rank` the fold refused leaving the drain unread rather than judged on the built-in table. */
 const drainRead = (policy) => {

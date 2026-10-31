@@ -5,8 +5,8 @@ it: the mark its commit, a review the head it judged, a verdict the commit it ju
 repository state at transition time. A check that read the working tree would answer differently on
 every machine.
 
-**A later change unearns.** A moved merged commit unearns `developed` and above; moved criteria
-unearn `testing` and above. The run that moved it is who notices. Old reviews and verdicts stay as
+**A later change unearns.** A moved merged commit unearns `in_progress:test` and above; moved
+criteria unearn `in_progress:release` and above. The run that moved it is who notices. Old reviews and verdicts stay as
 superseded history, and the new ones are written beside them.
 
 **A later commit can earn, too.** Where a criterion comes true only after the landing, because some

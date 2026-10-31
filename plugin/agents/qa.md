@@ -2,7 +2,7 @@
 name: qa
 description: >-
   Exercise a deployed change against the issue's acceptance criteria and write the verdicts that
-  earn it `tested`, judging what is running rather than what was written. Dispatched once a
+  earn it `in_progress:release`, judging what is running rather than what was written. Dispatched once a
   deployment has reported the commit it is serving. Use this role where the project asks for a
   judge other than the run that built the change; for building it, use the runner role instead.
 model: opus

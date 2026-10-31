@@ -49,7 +49,7 @@ const blank = (kind, field, value) =>
   + " Nothing was sent.";
 
 /* The two routes and not the third: a value that is only a file's name is a sentence here, since a
-   correction's --moved names the file a landing wrote and `developed` reads that name back. */
+   correction's --moved names the file a landing wrote and `in_progress:test` reads that name back. */
 const routed = (value) => {
   const said = value.trim();
   return said === "-" || said.startsWith("@") ? routeIn(value) : null;

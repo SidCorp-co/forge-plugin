@@ -2,13 +2,13 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WRITE_READ_OWED, climbForm, declaredRows, flagsOf, heightOf,
+  FEATURE, FIELD_SAID, LIGHTER, RUNGS, SPARES, WAIVED_AT, WRITE_READ_OWED, climbForm, declaredRows, flagsOf, heightOf,
   rungClaimed, rungOf, splits,
 } from "./ladder.mjs";
 import { looksTo } from "./flow/machine.mjs";
 
 /* Past the widest label so a hanging line clears it, measured off the labels: a literal is a column only until a status is renamed longer than it (ISS-1022). */
-const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
+const WIDTH = Math.max(...WAIVED_AT.map((one) => one.length + 4), 18);
 const rowLine = (one, said) =>
   `  ${`at ${one.status}`.padEnd(WIDTH)}${said}: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`;
 const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) => rowLine(one, "not owed"));

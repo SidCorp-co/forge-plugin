@@ -176,7 +176,7 @@ test("no checkpoint means nothing names the builder, and the check says so", () 
 });
 
 /* The checkpoint every ordinary landing leaves: `readyCheckpoint`'s own keys and no deployment among
-   them. Demanding one here closed the ladder above `developed` for every project that asked for a
+   them. Demanding one here closed the ladder above `in_progress:test` for every project that asked for a
    judge, the one route that writes the field refusing where a checkpoint already stands (ISS-1788). */
 const ORDINARY = { state: "ready", builder: BUILDER, branch: "iss-1788-4", head: MERGED,
   base: CHECKPOINT.base, files: CHECKPOINT.files, at: AT };
@@ -235,7 +235,7 @@ const MANUAL = releaseFrom({
 });
 
 test("the rung above still owes the verification where the project declares no automatic deploy", () => {
-  const view = viewFrom("the-uuid", issueOf({ releaseNotes: { section: "Added" } }),
+  const view = viewFrom("the-uuid", issueOf({ releaseNotes: { section: "Added", title: "The new page" } }),
     [mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))], null, MANUAL);
   const said = deployedOwed(view, "ISS-8").map((one) => one.what);
   assert.deepEqual(said, [NO_VERIFICATION],
@@ -345,8 +345,8 @@ const REBUILT = {
    every run that asks this question claimed the issue to ask it. */
 const heldBy = (...holders) => ({
   landing: REBUILT,
-  lease: { holder: QA, history: [...holders.map((holder) => ({ holder, status: "in_progress" })),
-    { holder: QA, status: "developed" }] },
+  lease: { holder: QA, history: [...holders.map((holder) => ({ holder, status: "in_progress:build" })),
+    { holder: QA, status: "in_progress:test" }] },
 });
 
 test("a checkpoint declaring its builder unrecoverable earns the verdict the deployment half alone", () => {
@@ -406,22 +406,24 @@ const parkedFrom = (left, createdAt = PARKED_AT) => ({ createdAt, authorId: "age
   body: render("park", { kind: "paused", why: "the deploy is not made yet" }, left) });
 const judgedFromHold = (parks, cut = null) => viewFrom("the-uuid", issueOf({ sessionContext: {
   landing: REBUILT,
-  lease: { holder: QA, history: [{ holder: "one", status: "in_progress", at: AT },
-    { holder: "two", status: "in_progress", at: AT }, { holder: QA, status: "on_hold", at: "2026-09-07T12:40:00.000Z" }] },
+  lease: { holder: QA, history: [{ holder: "one", status: "in_progress:build", at: AT },
+    { holder: "two", status: "in_progress:build", at: AT }, { holder: QA, status: "on_hold", at: "2026-09-07T12:40:00.000Z" }] },
 } }), [...parks, mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))], cut, INDEPENDENT);
 
-test("a judge that claimed an issue parked from developed is no build holder, and its verdicts stand", () => {
-  const view = judgedFromHold([parkedFrom("developed")]);
+test("a judge that claimed an issue parked from in_progress:test is no build holder, and its verdicts stand", () => {
+  const view = judgedFromHold([parkedFrom("in_progress:test")]);
   assert.deepEqual(view.holders, ["one", "two"], "the judging claim is not among the runs that built it");
+  assert.deepEqual(judgedFromHold([parkedFrom("developed")]).holders, ["one", "two"],
+    "and a park this CLI wrote before its ladder was core's, naming the same place `developed`, reads the same");
   assert.deepEqual(judgedOwed(view, "ISS-8").map((one) => one.what), [], "so nothing refuses its verdicts");
 });
 
 test("a claim at a side status whose park left a build, or that no park preceded, is still a build", () => {
-  assert.deepEqual(judgedFromHold([parkedFrom("in_progress")]).holders, ["one", "two", QA]);
+  assert.deepEqual(judgedFromHold([parkedFrom("in_progress:build")]).holders, ["one", "two", QA]);
   assert.deepEqual(judgedFromHold([]).holders, ["one", "two", QA], "no park on the page places the claim nowhere");
-  assert.deepEqual(judgedFromHold([parkedFrom("developed", "2026-09-07T12:50:00.000Z")]).holders, ["one", "two", QA],
+  assert.deepEqual(judgedFromHold([parkedFrom("in_progress:test", "2026-09-07T12:50:00.000Z")]).holders, ["one", "two", QA],
     "and a park posted after the claim says nothing about where the claim was taken");
-  assert.deepEqual(judgedFromHold([parkedFrom("developed")], "a prefix of the thread").holders, ["one", "two", QA],
+  assert.deepEqual(judgedFromHold([parkedFrom("in_progress:test")], "a prefix of the thread").holders, ["one", "two", QA],
     "nor does a page cut short, whose newer park may be among the comments it never reached");
 });
 

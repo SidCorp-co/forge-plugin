@@ -48,7 +48,7 @@ evidence is judged against. Reusing the check buys nothing if its input is the w
 
 **What is owed is named, not counted.** The owed line reports how many items a rung is short of, and
 a run that wrote half a rung had to ask a second time which. The tail prints the missing items under
-that line from the same formatter `forge advance` prints a shortfall with, so a `developed` call
+that line from the same formatter `forge advance` prints a shortfall with, so an `in_progress:test` call
 carrying only a review names the merged mark.
 
 ## What is not in this verb
@@ -68,7 +68,7 @@ The route onto the ladder from `draft`, which is before it. The tracker's one fo
 `draft` is `open`, admitted through its issue-ready checklist, and `dropped` the one way off; a move
 from `draft` to any rung past `open` is refused. So the route is `open` whatever the project
 declares that state's mode to be, or `dropped` on a disposition, and neither passes a rung, so
-`forge advance` makes the move there, as it does for a disposition at `confirmed`.
+`forge advance` makes the move there, as it does for a disposition at `in_progress:plan`.
 `plugin/src/flow/route/aboard.mjs` is where the reading is made.
 
 The order the owed line and a served guide part are printed in, which is ISS-968's.

@@ -16,7 +16,8 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const issue = {
   documentId: "landing-uuid",
   issueId: "ISS-7",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "the export drops the header row",
   description: "x",
 };
@@ -61,7 +62,7 @@ const BUILT = { sessionContext: { worklog: { branch: "iss-7-the-work" } } };
 const pageOf = (bodies, shape = {}) =>
   viewFrom("landing-uuid", { ...BUILT, ...issue, ...shape },
     bodies.map((body, at) => ({ createdAt: `2026-09-28T10:0${at}:00.000Z`, authorId: "agent", body })));
-const confirmedOwes = (view) => CHECKS.confirmed(view, "ISS-7");
+const confirmedOwes = (view) => CHECKS["in_progress:plan"](view, "ISS-7");
 /* A confirmation as another client would post it: the fenced block keyed by flag, and the tag. */
 const byHand = (fields) => [
   "## Confirmation", "", "```forge-record",
@@ -78,14 +79,14 @@ test("an own-landing confirmation naming its landing is written, and --owed name
   const body = bodyOf(run.posted[0]);
   assert.match(body, new RegExp(`^landed: ${SHA}$`, "mu"), body);
   const view = pageOf([body]);
-  assert.deepEqual(confirmedOwes(view), [], "the posted page earns confirmed");
+  assert.deepEqual(confirmedOwes(view), [], "the posted page earns in_progress:plan");
   assert.equal(dispositionOf(view), null, "a landing of the issue's own change is no disposition");
-  assert.equal(nextOf("confirmed", view), "approved");
+  assert.equal(nextOf("in_progress:plan", view), "approved");
   project.comments["landing-uuid"] = [{ documentId: "c-1", createdAt: "2026-09-28T10:00:00.000Z", authorId: "agent", body }];
   try {
     const owed = await ranAsync(FORGE, ["advance", "ISS-7", "--owed"], env);
     assert.equal(owed.status, 0, owed.stderr);
-    assert.match(owed.stdout, /ISS-7 is confirmed; approved is next/u, owed.stdout);
+    assert.match(owed.stdout, /ISS-7 is in_progress:plan; approved is next/u, owed.stdout);
     assert.doesNotMatch(owed.stdout, /dropped is next/u, owed.stdout);
   } finally {
     project.comments["landing-uuid"] = [];
@@ -125,9 +126,9 @@ test("a --landed in a shape the issue does not land in is refused at the write",
   });
 });
 
-test("a hand-written own-landing page earns confirmed only with a landing in the issue's own shape", () => {
+test("a hand-written own-landing page earns in_progress:plan only with a landing in the issue's own shape", () => {
   const bare = handPage({ finding: "own-landing" });
-  assert.equal(confirmedOwes(bare).length, 1, "a page lacking the landed line earns no confirmed");
+  assert.equal(confirmedOwes(bare).length, 1, "a page lacking the landed line earns no in_progress:plan");
   assert.equal(dispositionOf(bare), null, "and drops nothing either");
   assert.equal(confirmedOwes(handPage({ finding: "own-landing", landed: "it shipped" })).length, 1,
     "prose is no landing on an issue landing in git");
@@ -138,10 +139,10 @@ test("a hand-written own-landing page earns confirmed only with a landing in the
   assert.deepEqual(confirmedOwes(handPage({ finding: "own-landing", landed: SHA })), []);
 });
 
-test("an already-fixed page written before own-landing existed still earns confirmed and still drops", () => {
+test("an already-fixed page written before own-landing existed still earns in_progress:plan and still drops", () => {
   const old = handPage({ finding: "already-fixed" });
   assert.deepEqual(confirmedOwes(old), [], "the old single reading still resolves");
-  assert.equal(nextOf("confirmed", old), "dropped");
+  assert.equal(nextOf("in_progress:plan", old), "dropped");
   assert.equal(dispositionOf(old), "already-fixed", "and the finding is still the drop's reason");
 });
 

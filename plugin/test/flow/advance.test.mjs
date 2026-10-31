@@ -14,7 +14,7 @@ process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record/page.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const {
-  CHECKS, NO_NOTE, NO_VERIFICATION, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, deployedOwed, dispositionOf,
+  CHECKS, LADDER, NO_NOTE, NO_VERIFICATION, PARK_STATUS, SIDE, atLeast, criteriaOf, deployedOwed, dispositionOf,
   holdsBack, judgedOwed, nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
@@ -42,16 +42,19 @@ const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
 const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
 const deploying = (one) => deployedOwed(one, "ISS-3").map((item) => item.what);
+/* What a blocker that still holds is said to be short of: core's own two settled statuses. */
+const UNSETTLED = "which core does not yet read as settled (awaiting_release or closed)";
 
 test("the flow table names one next status, and a disposition sends the issue to dropped", () => {
-  for (const [index, status] of ORDER.slice(0, -1).entries()) {
-    assert.equal(nextOf(status, {}), ORDER[index + 1], status);
+  for (const [index, status] of LADDER.slice(0, -1).entries()) {
+    assert.equal(nextOf(status, {}), LADDER[index + 1], status);
   }
-  assert.equal(nextOf("closed", {}), null, "closed is terminal");
-  assert.equal(nextOf("dropped", {}), null, "and so is dropped");
+  assert.equal(nextOf("awaiting_release", {}) ?? null, null, "the close is the release's, so nothing is next here");
+  assert.equal(nextOf("closed", {}) ?? null, null, "closed is terminal");
+  assert.equal(nextOf("dropped", {}) ?? null, null, "and so is dropped");
   const said = (finding) => view({}, [recorded("confirmation", { where: ["a.mjs"], is: "it is this", finding })]);
-  assert.equal(nextOf("confirmed", said("holds")), "approved");
-  assert.equal(nextOf("confirmed", said("obsolete")), "dropped", "the confirmation is the reason");
+  assert.equal(nextOf("in_progress:plan", said("holds")), "approved");
+  assert.equal(nextOf("in_progress:plan", said("obsolete")), "dropped", "the confirmation is the reason");
   assert.equal(dispositionOf(said("obsolete")), "obsolete");
   assert.equal(dispositionOf(said("holds")), null);
   assert.equal(dispositionOf({}), null);
@@ -59,7 +62,7 @@ test("the flow table names one next status, and a disposition sends the issue to
      whole of what earns it, and a comment carrying the finding alone earns nothing. */
   const thin = view({}, [comment("## Confirmation\n\n- **Finding:** obsolete\n\n`forge-record: confirmation · contract 1`")]);
   assert.equal(dispositionOf(thin), null, "a confirmation that is not a whole payload disposes of nothing");
-  assert.equal(nextOf("confirmed", thin), "approved");
+  assert.equal(nextOf("in_progress:plan", thin), "approved");
 });
 
 test("every park kind lands in one side status, and none is left without a home", () => {
@@ -70,11 +73,13 @@ test("every park kind lands in one side status, and none is left without a home"
   assert.deepEqual(Object.keys(PARK_STATUS).filter((kind) => !PARKS.includes(kind)), [], "and none is invented");
 });
 
-test("a blocker outside the flow is not developed, whatever its status reads like", () => {
-  assert.ok(atLeast("developed", "developed") && atLeast("closed", "developed"));
-  assert.ok(!atLeast("in_progress", "developed"));
-  assert.ok(!atLeast("dropped", "developed"), "nothing landed, so nothing is unblocked");
-  assert.ok(!atLeast("on_hold", "developed"));
+test("a status outside the ladder ranks nowhere, whatever it reads like, and closed is past every place", () => {
+  assert.ok(atLeast("in_progress:test", "in_progress:test") && atLeast("closed", "in_progress:test"));
+  assert.ok(atLeast("closed", "awaiting_release"), "the close the release makes is past the rung it is made from");
+  assert.ok(!atLeast("in_progress:build", "in_progress:test"));
+  assert.ok(!atLeast("dropped", "in_progress:test"), "nothing landed, so nothing is past it");
+  assert.ok(!atLeast("on_hold", "in_progress:test"));
+  assert.ok(!atLeast("developed", "in_progress:test"), "a name core retired ranks nowhere either");
   assert.ok(!atLeast("", "open"), "an absent status ranks nowhere");
 });
 
@@ -87,11 +92,11 @@ test("the criteria field is read off its numbered lines, and unnumbered prose is
 const PLAN = typedPlan();
 const NO_DECISION = "no decision record: each reading decided with its assumption and undo, or an explicit none";
 
-test("confirmed needs a confirmation, and approved the decision record beside the plan", () => {
-  assert.deepEqual(missing("confirmed", view({})), ["no confirmation: what the issue is in the code's own terms, where you looked, and the finding"]);
-  assert.match(commands("confirmed", view({}))[0], /^forge record confirmation ISS-3 --is/u);
+test("in_progress:plan needs a confirmation, and approved the decision record beside the plan", () => {
+  assert.deepEqual(missing("in_progress:plan", view({})), ["no confirmation: what the issue is in the code's own terms, where you looked, and the finding"]);
+  assert.match(commands("in_progress:plan", view({}))[0], /^forge record confirmation ISS-3 --is/u);
   const confirmed = view({}, [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })]);
-  assert.deepEqual(missing("confirmed", confirmed), []);
+  assert.deepEqual(missing("in_progress:plan", confirmed), []);
   /* The decision is owed at the rung the plan is owed at, and is asked for ahead of it: a run
      holding neither is told the order it writes them in (ISS-1066). */
   assert.match(commands("approved", confirmed)[0], /^forge record decision ISS-3 --decision/u);
@@ -102,17 +107,19 @@ test("confirmed needs a confirmation, and approved the decision record beside th
     "and an explicit none is the record, as it was at the rung that went");
 });
 
-test("in_progress waits for every blocker to be developed, and for no measurement of the tree", () => {
+test("in_progress:build waits for every blocker core reads as settled, and for no measurement of the tree", () => {
   const blocked = (otherStatus) => ({
     relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] },
   });
-  const said = CHECKS.in_progress(view(blocked("open")), "ISS-3");
+  const said = CHECKS["in_progress:build"](view(blocked("open")), "ISS-3");
   assert.deepEqual(said.map((one) => one.what), [
-    "ISS-4 gates this by a blocks edge and is open, which is not yet developed",
+    `ISS-4 gates this by a blocks edge and is open, ${UNSETTLED}`,
   ]);
   assert.equal(said[0].command, "forge advance ISS-4");
-  assert.deepEqual(missing("in_progress", view(blocked("closed"))), []);
-  assert.deepEqual(missing("in_progress", view(blocked("developed"))), []);
+  assert.deepEqual(missing("in_progress:build", view(blocked("closed"))), []);
+  assert.deepEqual(missing("in_progress:build", view(blocked("awaiting_release"))), []);
+  assert.deepEqual(missing("in_progress:build", view(blocked("in_progress"))), [`ISS-4 gates this by a blocks edge and is in_progress, ${UNSETTLED}`],
+    "a blocker still being built, judged or released holds this back");
 });
 
 /* The tracker puts a mention and an ordering constraint in the one list and carries the difference
@@ -122,13 +129,13 @@ test("only an edge that gates dispatch holds a status back, and the refusal name
   const edged = (...blockedBy) => view({ relations: { blockedBy } });
   const relates = { otherDisplayId: "ISS-18", otherStatus: "open", kind: "relates", gatesDispatch: false };
   const blocks = { otherDisplayId: "ISS-33", otherStatus: "open", kind: "blocks", gatesDispatch: true };
-  assert.deepEqual(missing("in_progress", edged(relates)), [], "a relates edge is a mention and orders nothing");
-  assert.deepEqual(missing("in_progress", edged(blocks)),
-    ["ISS-33 gates this by a blocks edge and is open, which is not yet developed"]);
-  assert.equal(missing("in_progress", edged(relates, blocks)).length, 1, "and the two are told apart in one list");
-  assert.deepEqual(missing("in_progress", edged({ ...blocks, gatesDispatch: false })), [],
+  assert.deepEqual(missing("in_progress:build", edged(relates)), [], "a relates edge is a mention and orders nothing");
+  assert.deepEqual(missing("in_progress:build", edged(blocks)),
+    [`ISS-33 gates this by a blocks edge and is open, ${UNSETTLED}`]);
+  assert.equal(missing("in_progress:build", edged(relates, blocks)).length, 1, "and the two are told apart in one list");
+  assert.deepEqual(missing("in_progress:build", edged({ ...blocks, gatesDispatch: false })), [],
     "the tracker's answer about the edge decides, not the word written on it");
-  assert.deepEqual(missing("in_progress", edged({ ...blocks, otherStatus: "closed" })), [],
+  assert.deepEqual(missing("in_progress:build", edged({ ...blocks, otherStatus: "closed" })), [],
     "and the blocker's status stays a second test beside that answer");
 });
 
@@ -137,19 +144,19 @@ test("only an edge that gates dispatch holds a status back, and the refusal name
 test("an edge the tracker sent no answer for falls back to its kind, and one with no kind gates nothing", () => {
   const edged = (edge) => view({ relations: { blockedBy: [edge] } });
   const bare = { otherDisplayId: "ISS-9", otherStatus: "open" };
-  assert.deepEqual(missing("in_progress", edged({ ...bare, kind: "blocks" })),
-    ["ISS-9 gates this by a blocks edge and is open, which is not yet developed"]);
-  assert.deepEqual(missing("in_progress", edged({ ...bare, kind: "relates" })), []);
-  assert.deepEqual(missing("in_progress", edged(bare)), []);
-  assert.deepEqual(missing("in_progress", edged({ ...bare, gatesDispatch: true })),
-    ["ISS-9 gates this by an edge whose kind the tracker did not name and is open, which is not yet developed"],
+  assert.deepEqual(missing("in_progress:build", edged({ ...bare, kind: "blocks" })),
+    [`ISS-9 gates this by a blocks edge and is open, ${UNSETTLED}`]);
+  assert.deepEqual(missing("in_progress:build", edged({ ...bare, kind: "relates" })), []);
+  assert.deepEqual(missing("in_progress:build", edged(bare)), []);
+  assert.deepEqual(missing("in_progress:build", edged({ ...bare, gatesDispatch: true })),
+    [`ISS-9 gates this by an edge whose kind the tracker did not name and is open, ${UNSETTLED}`],
     "the answer is the answer, and the line says the kind is missing rather than inventing one");
   assert.ok(holdsBack({ kind: "blocks", otherStatus: "open" }), "the kind answers where the field does not");
   assert.ok(!holdsBack({ kind: "relates", otherStatus: "open" }));
   assert.ok(!holdsBack({ otherStatus: "open" }));
   assert.ok(!holdsBack({ kind: "duplicates", otherStatus: "open" }),
     "and a kind this CLI has no row for gates nothing, the fallback being the table's and not a guess here");
-  assert.ok(!holdsBack({ kind: "blocks", otherStatus: "developed", gatesDispatch: true }),
+  assert.ok(!holdsBack({ kind: "blocks", otherStatus: "awaiting_release", gatesDispatch: true }),
     "and the one answer the screen reads is the one the check acted on, floor included");
 });
 
@@ -173,10 +180,14 @@ test("a blocked park is lifted by the same filter the entry check reads", () => 
 
 test("a jump past where the triage routes is refused, and a side status names the park", () => {
   const held = { issue: { status: "reopen" } };
-  assert.equal(checkTarget(undefined, "developed", held, "ISS-3"), undefined, "no target named is no jump");
-  assert.equal(checkTarget("developed", "developed", held, "ISS-3"), undefined);
-  assert.throws(() => checkTarget("closed", "developed", held, "ISS-3"), /is reopen and developed is next, not closed/u);
-  assert.throws(() => checkTarget("on_hold", "developed", held, "ISS-3"), /is a side status, which a park reaches/u);
+  assert.equal(checkTarget(undefined, "in_progress:test", held, "ISS-3"), undefined, "no target named is no jump");
+  assert.equal(checkTarget("in_progress:test", "in_progress:test", held, "ISS-3"), undefined);
+  assert.equal(checkTarget("in_progress", "in_progress:test", held, "ISS-3"), undefined, "the status a place is held at names it");
+  assert.throws(() => checkTarget("awaiting_release", "in_progress:test", held, "ISS-3"),
+    /is reopen and in_progress:test is next, not awaiting_release/u);
+  assert.throws(() => checkTarget("on_hold", "in_progress:test", held, "ISS-3"), /is a side status, which a park reaches/u);
+  assert.throws(() => checkTarget("developed", "in_progress:test", held, "ISS-3"),
+    /developed is no status core holds \(ISSUE_STATUS_LEGACY\): in_progress:test is the place that took it over/u);
 });
 
 /* A result nobody with a stake in it looked at is what a reopen is usually made of, and the plan's
@@ -185,7 +196,7 @@ test("a user-facing outcome owes a person's look, and --owed says so first", () 
   const looking = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
   const shipped = {
     status: "awaiting_release", plan: looking, acceptanceCriteria: CRITERIA,
-    attachments: ATTACHED, releaseNotes: { section: "Fixed" },
+    attachments: ATTACHED, releaseNotes: { section: "Fixed", title: "It works again" },
   };
   const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
   assert.deepEqual(deploying(view(shipped, ready)), [
@@ -194,7 +205,7 @@ test("a user-facing outcome owes a person's look, and --owed says so first", () 
   assert.equal(personLooks({ look: "yes", screen: "no" }), "a user-facing outcome");
   assert.equal(personLooks({ look: null, screen: "yes" }), "a screen change");
   assert.equal(personLooks({ look: "no", screen: "no" }), null, "and a plan declaring neither owes nobody");
-  const ahead = lookAhead(view({ ...shipped, status: "developed" }, []), "ISS-3");
+  const ahead = lookAhead(view({ ...shipped, status: "in_progress:test" }, []), "ISS-3");
   assert.match(ahead, /^Ahead: awaiting_release owes a person's look, because the plan declares a user-facing outcome/u);
   assert.match(ahead, /--park code-review/u,
     "the kind a change with no screen is asked for, which is the one it can answer (ISS-1694)");
@@ -209,7 +220,7 @@ test("the project's release policy decides whether a user-facing outcome parks",
   const looking = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
   const shipped = {
     status: "awaiting_release", plan: looking, acceptanceCriteria: CRITERIA,
-    attachments: ATTACHED, releaseNotes: { section: "Fixed" },
+    attachments: ATTACHED, releaseNotes: { section: "Fixed", title: "It works again" },
   };
   const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
   const asked = "the plan declares a user-facing outcome, and no person has answered since it was parked for review";
@@ -224,7 +235,7 @@ test("the project's release policy decides whether a user-facing outcome parks",
   assert.deepEqual(seen(policy("publish", true)), [], "the same record earns the rung where the project publishes for itself");
   assert.deepEqual(seen(policy("promote", false, { liveBranch: "live" })), [], "and where the promotion is itself the act a person takes");
   assert.deepEqual(seen(policy("none", false)), [], "and where the project declares no release step at all");
-  const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "developed" }, [], null, release), "ISS-3");
+  const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "in_progress:test" }, [], null, release), "ISS-3");
   assert.match(ahead(policy("publish", false)), /^Ahead: awaiting_release owes a person's look/u);
   assert.equal(ahead(policy("publish", true)), null, "and the warning three statuses earlier reads the same answer");
 });
@@ -268,10 +279,10 @@ test("a record read back is measured by the write's own rules, and a future cont
   const unnumbered = tagged("## Verdict\n\n- **Criterion:** the first outcome\n- **Verdict:** pass\n- **Commit:** 43b811e\n- **Evidence:** run.txt\n\n`forge-record: verdict · contract 1`");
   assert.match(shapeGaps("verdict", parse(unnumbered.comments[0].body), ["run.txt"]).join(" "), /which opens with no number/u);
   const ahead = tagged("## Confirmation\n\n- **What it is:** it is this\n- **Where looked:** a.mjs\n- **Finding:** holds\n\n`forge-record: confirmation · contract 9`");
-  assert.match(missing("confirmed", ahead)[0], /a contract 9 record, and this build reads contract 1: `claude plugin update` then restart the session/u);
+  assert.match(missing("in_progress:plan", ahead)[0], /a contract 9 record, and this build reads contract 1: `claude plugin update` then restart the session/u);
   /* The stamp is read off the issue at the write and is no flag, so a copy of the shape can carry
      every flag and still not be a park: nothing on it says which status it left. */
-  const unstamped = view({ status: "waiting", attachments: ATTACHED }, [
+  const unstamped = view({ status: "needs_info", attachments: ATTACHED }, [
     comment("## Park\n\n- **Kind:** screen-review\n- **Why:** look at it\n\n`forge-record: park · contract 1`"),
   ]);
   assert.match(shapeGaps("park", parse(unstamped.comments[0].body), []).join(" "), /its Status left stamp/u);
@@ -282,11 +293,11 @@ test("a comment carrying the tag and little else is no payload", () => {
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
   const landed = mark("merged to master at c8c3550");
   const bare = comment("## Code review\n\n- **Outcome:** approved\n\n`forge-record: review · contract 1`");
-  assert.deepEqual(missing("developed", view(stamped, [landed, bare])),
+  assert.deepEqual(missing("in_progress:test", view(stamped, [landed, bare])),
     ["the review on the record is not a whole payload: it lacks --reviewer, --commit, or --landing where the issue lands outside git"]);
   const odd = comment("## Code review\n\n- **Reviewer:** me\n- **Head judged:** c8c3550\n"
     + "- **Outcome:** looks fine\n\n`forge-record: review · contract 1`");
-  assert.deepEqual(missing("developed", view(stamped, [landed, odd])),
+  assert.deepEqual(missing("in_progress:test", view(stamped, [landed, odd])),
     ["the review on the record is not a whole payload: it lacks --outcome"], "a value off the list is no value");
   const issue = { acceptanceCriteria: CRITERIA, attachments: ATTACHED, ...stamped };
   const noEvidence = recorded("verdict", { criterion: "1 — text", verdict: "pass", commit: "c8c3550", evidence: [] });
@@ -316,16 +327,16 @@ test("a parked issue resumes where its park record says it left, once somebody a
   const asked = (kind, left) => recorded("park", { kind, why: "asked", evidence: ["https://example.test/shot.png"] }, left);
   /* The tracker announces the move, and a park is written on either side of that announcement — the
      order changed at ISS-1633 — so a fixture for a status it announces writes the two in an order
-     the pairing has to read back. */
+     the pairing has to read back. It names the status it moved from, never the place inside it. */
   const moved = (from, said = "⏸ **Waiting on a human decision**") => comment(`${said} — moved from \`${from}\``);
   const at = (status, comments, issue = {}) => targetOf(view({ status, ...issue }, comments), "ISS-3");
-  assert.throws(() => at("waiting", []), /no park record/u);
-  assert.throws(() => at("waiting", [moved("awaiting_release"), asked("code-review", "nowhere")]),
+  assert.throws(() => at("needs_info", []), /no park record/u);
+  assert.throws(() => at("needs_info", [moved("awaiting_release"), asked("code-review", "nowhere")]),
     /names `nowhere` as the status it left/u);
 
-  const asking = [asked("question", "confirmed"), moved("confirmed", "❓ **Needs info**")];
+  const asking = [asked("question", "in_progress:plan"), moved("in_progress", "❓ **Needs info**")];
   const unanswered = at("needs_info", asking);
-  assert.deepEqual({ next: unanswered.next, resumed: unanswered.resumed }, { next: "confirmed", resumed: true });
+  assert.deepEqual({ next: unanswered.next, resumed: unanswered.resumed }, { next: "in_progress:plan", resumed: true });
   assert.match(unanswered.missing[0].what, /kind question and nobody has answered it/u);
   /* The write that supplies the item, and not the transition that skips the criterion the item is:
      an answer is what earns the resume, and a raw transition writes the status over an unanswered
@@ -343,24 +354,25 @@ test("a parked issue resumes where its park record says it left, once somebody a
   const older = { ...relayed, createdAt: "2026-09-01T00:00:00.000Z" };
   assert.equal(at("needs_info", [older, ...asking]).missing.length, 1, "an answer older than the park answers another one");
 
-  const paused = at("on_hold", [asked("paused", "in_progress")]);
-  assert.equal(paused.next, "in_progress");
+  const paused = at("on_hold", [asked("paused", "in_progress:build")]);
+  assert.equal(paused.next, "in_progress:build");
   assert.match(paused.missing[0].what, /kind paused, which a person lifts/u);
   const blocked = (otherStatus) => at("on_hold", [asked("blocked", "approved")],
     { relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] } });
   assert.match(blocked("open").missing[0].what, /^ISS-4 gates this by a blocks edge/u);
-  assert.deepEqual(blocked("developed").missing, [], "the next run picks up a blocked issue itself");
-  assert.equal(blocked("developed").next, "approved");
+  assert.deepEqual(blocked("awaiting_release").missing, [], "the next run picks up a blocked issue itself");
+  assert.equal(blocked("awaiting_release").next, "approved");
 
   /* The park that put the issue where it is, and not the last one written: a side status set from
      outside, with an older park of another kind behind it, would resume by that park's policy. */
-  const stale = at("waiting", [asked("paused", "in_progress"), moved("awaiting_release"), asked("screen-review", "awaiting_release")]);
-  assert.equal(stale.next, "awaiting_release", "the screen-review park is the one that lands in waiting");
-  /* `waiting` and `needs_info` are two names for one landing, so a screen-review park pairs with an
-     entry into either of them (ISS-1633); a kind landing anywhere else still resumes nothing. */
+  const stale = at("needs_info", [asked("paused", "in_progress:build"), moved("awaiting_release", "❓ **Needs info**"),
+    asked("screen-review", "awaiting_release")]);
+  assert.equal(stale.next, "awaiting_release", "the screen-review park is the one that lands in needs_info");
+  /* The tracker announced the same landing under the name it retired (`waiting`, ISS-1633), and an
+     announcement written then pairs as one written now; a kind landing anywhere else resumes nothing. */
   assert.equal(at("needs_info", [moved("awaiting_release"), asked("screen-review", "awaiting_release")]).next,
-    "awaiting_release", "the screen-review park is the one that landed here, under the tracker's own name for it");
-  assert.throws(() => at("needs_info", [moved("in_progress"), asked("paused", "in_progress")]), /no park record/u,
+    "awaiting_release", "the screen-review park is the one that landed here, under the announcement's older words");
+  assert.throws(() => at("needs_info", [moved("in_progress"), asked("paused", "in_progress:build")]), /no park record/u,
     "and a park of a kind that lands elsewhere resumes nothing");
 });
 
@@ -412,7 +424,7 @@ test("`-h` names its flags and sends each status's rule to the contract, asking 
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stdout.includes("Usage: forge advance"), run.stdout);
   assert.match(USAGE, /`forge guide contract <status>`/u, "where what a status is earned by is written");
-  for (const status of [...ORDER.slice(1), "dropped"]) {
+  for (const status of [...LADDER.slice(1), "dropped"]) {
     assert.doesNotMatch(USAGE, new RegExp(`^  ${status}\\s`, "mu"), `${status} has no second row here`);
   }
   assert.match(USAGE, /^  --next <line>/mu, "the line the status it enters starts on is a flag");
@@ -454,11 +466,12 @@ const passed = () => recorded("verdict", { criterion: "1 — The first outcome."
 const LOOKING = {
   documentId: "looking-uuid",
   issueId: "ISS-93",
-  status: "testing",
+  status: "in_progress",
+  workState: { step: "release" },
   title: "the change a person may have to look at",
   description: "no mark here",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.",
-  acceptanceCriteria: "1. The first outcome.", releaseNotes: { section: "Fixed", userFacing: "it works" },
+  acceptanceCriteria: "1. The first outcome.", releaseNotes: { section: "Fixed", title: "It works again", userFacing: "it works" },
 };
 const QUIET = { ...LOOKING, documentId: "quiet-uuid", issueId: "ISS-94", plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no." };
 /* Landed at one sha and verified at another: the shape of a run that opened the app, saw the build
@@ -466,7 +479,7 @@ const QUIET = { ...LOOKING, documentId: "quiet-uuid", issueId: "ISS-94", plan: "
 const HEADS = "reviewed head 08ca795; judged head 08ca795; landing moved nothing; landing wrote nothing";
 const STALE = { ...QUIET, documentId: "stale-uuid", issueId: "ISS-96", mergedAt: "2026-09-03T09:00:00.000Z" };
 /* At `approved` and marked merged: the only status from which the merged-mark refusal is the one
-   that can fire, since a status past `developed` is refused a drop before the mark is read. */
+   that can fire, since a status past the build is refused a drop before the mark is read. */
 const LANDED = {
   ...OPEN,
   documentId: "landed-uuid",
@@ -499,7 +512,7 @@ test("the project's config is asked once the plan declares a person, and never b
   const asked = () => state.calls.filter((one) => one.name === "forge_config").length;
   const quiet = asked();
   const early = await owed("ISS-92");
-  assert.match(early.stdout, /confirmed is next and the record earns it/u, "a plan declaring neither owes no person");
+  assert.match(early.stdout, /in_progress:plan is next and the record earns it/u, "a plan declaring neither owes no person");
   assert.equal(asked(), quiet, "and a status with no release ahead of it pays no round to hear what the project would have said");
   const nobody = await owed("ISS-94");
   assert.match(nobody.stdout, /awaiting_release is next and the record earns it/u,
@@ -528,11 +541,11 @@ test("--owed ends by naming the contract's part for the status it would enter, o
   const short = await owed("ISS-91");
   assert.match(short.stdout, /no confirmation/u, "the shortfall first");
   const earns = await owed("ISS-92");
-  assert.match(earns.stdout, /confirmed is next and the record earns it/u, "and the same line where nothing is owed");
+  assert.match(earns.stdout, /in_progress:plan is next and the record earns it/u, "and the same line where nothing is owed");
   for (const run of [short, earns]) {
     const last = run.stdout.trim().split("\n").at(-1);
-    assert.match(last, /^Contract, the confirmed stage — reads the confirmation and the code behind it/u, run.stdout);
-    assert.match(last, /`forge guide contract confirmed` \(\d+ characters\)/u);
+    assert.match(last, /^Contract, the in_progress:plan stage — reads the confirmation and the code behind it/u, run.stdout);
+    assert.match(last, /`forge guide contract in_progress:plan` \(\d+ characters\)/u);
     assert.equal(run.stdout.includes("| Scenario | Writes | Goes to |"), false, "and none of the part with it");
   }
 });

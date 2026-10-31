@@ -15,7 +15,7 @@ holds one and otherwise leaves the field alone. The same reason makes each a cal
 `--also` rides a rung that moves a status and every run flag writes onto the lease, and a write that
 touches neither can carry neither.
 
-**A park is the one headline these refuse.** At waiting and needs_info the tracker reads a comment
+**A park is the one headline these refuse.** At needs_info the tracker reads a comment
 as the person's reply and moves the issue on, so a dispatch record there would move a status that no
 record earned. Refusing is cheaper than a rule about which headline to pick, and the choice stays the
 dispatcher's.

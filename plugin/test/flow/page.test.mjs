@@ -76,7 +76,7 @@ test("a thread the walk could not finish is judged, and the record on it earns t
   assert.match(run.stdout, /What the rows read earn, they earn/u, run.stdout);
   assert.doesNotMatch(run.stdout, /write it again/u, "and no write is advised into a tail the walk never read");
   assert.doesNotMatch(run.stdout, /most recent|oldest|newest/u, "and no message names the end it missed");
-  assert.match(run.stdout, /confirmed is next and the record earns it/u, "and the page's own confirmation earns it");
+  assert.match(run.stdout, /in_progress:plan is next and the record earns it/u, "and the page's own confirmation earns it");
   assert.doesNotMatch(run.stdout, /more than the 200/u, "no message names a cap the tracker did not report");
 });
 
@@ -88,7 +88,7 @@ test("a thread called whole below its own count is said, and the count claims no
   assert.match(run.stdout, /What the rows read earn, they earn/u, "and what the shortfall costs the answer");
   assert.match(run.stdout, /write it again for this status/u, "where the rows are the whole read, a rewrite is the route");
   assert.doesNotMatch(run.stdout, /stopped after/u, "a read the tracker called whole is no short read");
-  assert.match(run.stdout, /confirmed is next and the record earns it/u, "and the count refuses nothing");
+  assert.match(run.stdout, /in_progress:plan is next and the record earns it/u, "and the count refuses nothing");
 });
 
 /* The one short read left since ISS-697: a tracker naming a fresh cursor for ever, where the record
@@ -113,7 +113,7 @@ test("the transition a cut page earns is made, and nothing about it is done by h
   }
   const run = await ranAsync(FORGE, ["advance", "ISS-95"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /ISS-95 {2}open -> confirmed/u, run.stdout);
+  assert.match(run.stdout, /ISS-95 {2}open -> in_progress:plan/u, run.stdout);
   assert.deepEqual(moved(), ["in_progress", "plan"], "the verb made it, which is the only route that read the record first");
 });
 

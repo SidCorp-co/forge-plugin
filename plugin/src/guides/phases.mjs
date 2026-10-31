@@ -1,7 +1,8 @@
 /* The spine cut to one issue, off the tables other readers answer to. The shift this file turns on:
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
    at a rung answers to the rung above. docs/cli/the-phase-owed.md. */
-import { ORDER, stepAfter } from "../flow/earned.mjs";
+import { LADDER, stepAfter } from "../flow/earned.mjs";
+import { HELD } from "../tracker/declared/issue-machine.mjs";
 import { CLOSES_FROM, atMinute } from "../flow/machine.mjs";
 import { POINTER } from "../flow/worklog.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -13,23 +14,23 @@ export const PHASES = [
   "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Clean up",
 ];
 
-/* The one cell naming phases a record ends inside the status, in the order they are worked: a run finishes the review and the proof at `in_progress`, the landing moving the status past both, so each part names the kind that ends it and the reference its method lives in. `after` is the part's phrase behind another. */
+/* The one cell naming phases a record ends inside the status, in the order they are worked: a run finishes the review and the proof at the build, `in_progress:build`, the landing moving the status past both, so each part names the kind that ends it and the reference its method lives in. `after` is the part's phrase behind another. */
 const IN_PROGRESS = [
   { ends: "review", said: `${PHASES[4]}, to the review`, reference: "verification" },
   { ends: "verdict", said: PHASES[5], reference: "verification" },
   { said: `${PHASES[7]}, the landing`, after: "then 7's landing", reference: null },
 ];
-const PARTS = { in_progress: IN_PROGRESS };
+const PARTS = { [HELD.build]: IN_PROGRESS };
 const cellOf = (parts) => parts.map((one, at) => (at ? one.after ?? one.said : one.said)).join("; ");
 
-/* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `ORDER`, the sequence being what a record earns and this what the method owes at each rung. A cell names as many phases as are worked while the status is held, so a rung the ladder folded two into names both and holds the records that earn the status above it across the pair. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
+/* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `LADDER`, the sequence being what a record earns and this what the method owes at each rung. A cell names as many phases as are worked while the status is held, so a rung the ladder folded two into names both and holds the records that earn the status above it across the pair. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
 export const PHASE = {
   open: [PHASES[1], null],
-  confirmed: [`${PHASES[2]}; ${PHASES[3]}`, null],
+  [HELD.plan]: [`${PHASES[2]}; ${PHASES[3]}`, null],
   approved: [`${PHASES[4]}, to the branch`, "verification"],
-  in_progress: [cellOf(IN_PROGRESS), "verification"],
-  developed: [PHASES[5], "verification"],
-  testing: [`6, ${PHASES[7]}`, null],
+  [HELD.build]: [cellOf(IN_PROGRESS), "verification"],
+  [HELD.test]: [PHASES[5], "verification"],
+  [HELD.release]: [`6, ${PHASES[7]}`, null],
   /* The contract's cells and this table's are mirrored, so `forge guide contract awaiting_release` is what a reader is held to: the close is the tail of the ship's own phase and the row names it there. */
   awaiting_release: [`${PHASES[7]}, the close`, null],
   closed: ["none", "learning"],
@@ -79,10 +80,10 @@ export const phaseNumber = (status) => Number(NUMBERED.exec(PHASE[status]?.[0] ?
 
 /* Every payload each entry check refuses without, held to their own refusals by a case. The one that discharges the phase below the status leads the row, `dischargedBy` answering with it. */
 export const CITED = {
-  confirmed: ["confirmation"],
+  [HELD.plan]: ["confirmation"],
   approved: ["decision", "plan", "criteria"],
-  developed: ["review", "merged"],
-  testing: ["verdict"],
+  [HELD.test]: ["review", "merged"],
+  [HELD.release]: ["verdict"],
   awaiting_release: ["verification", "note"],
 };
 
@@ -94,7 +95,7 @@ const EVERY_NUMBER = /\d+/gu;
 export const phasesOwed = (status) =>
   [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
 
-/* Which phase each cited record ends, declared per kind rather than derived from where its rung sits in the order. A rung naming several phases holds records that end different ones and no table says which, so the derivation answered nothing for four of these ten (ISS-1064) and answers nothing for seven of them now that the fold gave `confirmed` two phases (ISS-1066). Keyed by the kind, so merging two rungs moves no row of this: every row below outlived the fold unedited, which is what the column was for. */
+/* Which phase each cited record ends, declared per kind rather than derived from where its rung sits in the order. A rung naming several phases holds records that end different ones and no table says which, so the derivation answered nothing for four of these ten (ISS-1064) and answers nothing for seven of them now that the fold gave the plan two phases (ISS-1066). Keyed by the kind, so merging two rungs moves no row of this: every row below outlived the fold unedited, which is what the column was for. */
 export const ENDS_PHASE = {
   confirmation: 1,
   decision: 2,
@@ -118,8 +119,8 @@ const waiversFor = (status, fields) => {
 };
 
 const owedFrom = (status) => {
-  const at = ORDER.indexOf(status);
-  return at < 0 ? [] : ORDER.slice(at);
+  const at = LADDER.indexOf(status);
+  return at < 0 ? [] : LADDER.slice(at);
 };
 
 const numbered = (status) => Number.isFinite(phaseNumber(status));
@@ -127,14 +128,14 @@ const numbered = (status) => Number.isFinite(phaseNumber(status));
 /* A rung below the status is passed when the record that discharges it is on the page: the status is
    a cache of the records with fewer slots than there are facts, so one set by hand claimed phases
    nothing earned (ISS-1064). Capped at the status, since the phase owed is still the status's. */
-const passedIn = (status, held) => ORDER.slice(0, ORDER.indexOf(status)).filter(numbered)
+const passedIn = (status, held) => LADDER.slice(0, LADDER.indexOf(status)).filter(numbered)
   .map((one) => ({ status: one, phase: PHASE[one][0], cites: dischargedBy(one) }))
   .filter((one) => one.cites && held.includes(one.cites));
 
 /* What is ahead is the status's alone, the waiver below being the only reading that needs a rung. A
-   status off `ORDER` — a reopen, a park's side — owes its own row's phase and is not completion. */
+   status off `LADDER` — a reopen, a park's side — owes its own row's phase and is not completion. */
 const behind = (status, held, finished = []) => {
-  const aside = !ORDER.includes(status) && numbered(status);
+  const aside = !LADDER.includes(status) && numbered(status);
   const owing = aside ? [status] : owedFrom(status).filter(numbered);
   const own = narrowed(status, finished);
   return {
@@ -254,12 +255,12 @@ export const opensWork = (status, held) => Boolean(behind(status, held).first);
 
 /* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. `table` is the rung's rows, a parameter as `lighterRows` takes it, because no status of the live table holds a rung's waiver beside a declaration's. */
 export const laneOf = ({ status, fields, table = LIGHTER }) => {
-  const at = ORDER.indexOf(status);
+  const at = LADDER.indexOf(status);
   if (at < 0) return { aside: status, rows: [] };
   return {
     aside: null,
     rung: rungOf(fields),
-    rows: ORDER.slice(at).map((one) => {
+    rows: LADDER.slice(at).map((one) => {
       const earns = CITED[one] ?? [];
       const rows = lighterRows(one, fields, table);
       const dropped = rows.map((row) => row.kind);
@@ -294,7 +295,7 @@ const laneSaid = (row) => {
 };
 
 /* The longest rung the order holds and one space past it, so a rename cannot run a status into what earns it. Measured at the print: the order reaches this file through a cycle, and read at load it is a name in its own dead zone (ISS-1022). */
-const laneWidth = () => Math.max(...ORDER.map((one) => one.length)) + 1;
+const laneWidth = () => Math.max(...LADDER.map((one) => one.length)) + 1;
 
 /** The lane as the three verbs print it, one renderer so their blocks cannot differ (ISS-810). */
 export const laneLines = ({ status, fields, table = LIGHTER }) => {

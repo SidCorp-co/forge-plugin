@@ -131,7 +131,7 @@ export const judgementOf = (policy) =>
 
 const [INDEPENDENT] = QA_MODES;
 
-/** Whether the judgement between developed and testing is an independent run's, asked here and
+/** Whether the judgement between in_progress:test and in_progress:release is an independent run's, asked here and
  *  nowhere else: a reader comparing the mode by hand is a second spelling to drift. */
 export const asksIndependent = (policy) => judgementOf(policy) === INDEPENDENT;
 
@@ -521,8 +521,8 @@ const policyRows = (policy, landing, drained) => {
        happens, and this one row moves between the two (ISS-2190). */
     { level: "ok", label: "production deploy", detail: deployDetail(policy) },
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
-    { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
-      + ` and testing  ← ${policy.from}` },
+    { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between in_progress:test`
+      + ` and in_progress:release  ← ${policy.from}` },
     ...drained,
   ];
   if (policy.autoProd) out.push({ level: "ok", label: "", detail: NOTHING_DEPLOYS });

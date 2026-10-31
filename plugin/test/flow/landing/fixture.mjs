@@ -52,7 +52,8 @@ export const NOTHING = pushedRepo([]);
 const ISSUE = {
   documentId: "landing-uuid",
   issueId: "ISS-673",
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "one flow: the ready checkpoint and the handoff",
   description: "no mark here",
 };
@@ -119,7 +120,7 @@ export const BUILT = {
 
 /* The read-before-write gate delivers a comment this session has not been shown and refuses once;
    the same command sent again lands. That hold is not this file's subject, and neither is the
-   other: every case here starts from a field holding no lease at `developed`, which is the record
+   other: every case here starts from a field holding no lease at `in_progress:test`, which is the record
    a claim refuses without `--unheld` (ISS-1184), and the flag says nothing about any state a
    checkpoint names. */
 /* A capture is refused where no approved review of its head is on the record, which only the cases

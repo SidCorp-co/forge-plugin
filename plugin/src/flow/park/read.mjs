@@ -5,11 +5,20 @@ import { unwrap } from "../machine.mjs";
 import { parse } from "../record/page.mjs";
 import { PARK_STATUS, sameLanding } from "../earned/park-status.mjs";
 import { shapeGaps } from "../earned/shape-gaps.mjs";
+import { placeRead } from "../../tracker/declared/issue-machine.mjs";
+
+/* A park's `left` in core's words, `FORMER_RUNGS` saying why an older name reads as its place; a name
+   that was never one is left as written, for the reader that refuses it by name. */
+const inPlaces = (record) => {
+  const left = record?.kind === "park" ? record.fields?.left : undefined;
+  if (typeof left !== "string") return record;
+  return { ...record, fields: { ...record.fields, left: placeRead(left) } };
+};
 
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments
     .filter((one) => (!since || (one.createdAt ?? "") > since) && (!until || (one.createdAt ?? "") < until))
-    .map((one) => ({ comment: one, record: parse(one.body ?? "") }))
+    .map((one) => ({ comment: one, record: inPlaces(parse(one.body ?? "")) }))
     .filter((one) => one.record?.kind === "park" && wanted(one.record.fields.kind))
     .filter((one) => !shapeGaps("park", one.record, view.names).length);
   return found.length ? found.at(-1) : null;

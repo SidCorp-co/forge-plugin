@@ -17,7 +17,7 @@ const issue = (key, status) => ({ documentId: `${key}-uuid`, issueId: key, statu
 const CLOSED = issue("ISS-21", "closed");
 const DROPPED = issue("ISS-22", "dropped");
 const ASKED = issue("ISS-23", "closed");
-const WORKING = issue("ISS-24", "in_progress");
+const WORKING = { ...issue("ISS-24", "in_progress"), workState: { step: "build" } };
 
 const state = {
   calls: [],
@@ -111,7 +111,7 @@ test("a park record at a lane status still goes up", async () => {
   await claimed("ISS-24");
   const run = await ranAsync(FORGE, ["record", "park", "ISS-24", "--kind", "paused", "--why", "left for the night"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(parksOn(WORKING).map((one) => one.fields.left), ["in_progress"]);
+  assert.deepEqual(parksOn(WORKING).map((one) => one.fields.left), ["in_progress:build"]);
 });
 
 test("the park kind's help says where it is refused and what to run there", async () => {

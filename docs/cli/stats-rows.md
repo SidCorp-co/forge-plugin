@@ -30,7 +30,7 @@ got wrong:
   shell runner, taken off the word the quote opens so a body an interpolation cuts in two resumes. A
   double-quoted substitution holding a here-document is one the walk reads as the quote around it,
   so its operators are struck with the quote's. The character struck in is one no pattern reads
-  rather than a space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed,
+  rather than a space: with a space, `'/tmp/forge;close'` turned into a `forge` command whose verb was `close`, which nobody typed,
   and a reading that may only ever take a call away had invented one.
 
 **A wait on work already running is a wait, and the word the command opens with says nothing about

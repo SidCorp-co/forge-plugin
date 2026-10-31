@@ -14,7 +14,7 @@ const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
 standsInNoTree("resume");
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { ORDER, SIDE, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { LADDER, SIDE, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { PHASE, methodOf } = await import("../../../src/guides/phases.mjs");
 const { briefOf } = await import("../../../src/flow/brief.mjs");
 const { USAGE, edgeSaid, readLines } = await import("../../../src/flow/resume.mjs");
@@ -32,7 +32,7 @@ const CRITERIA = "1. The first outcome.\n2. The second outcome.\n3. The third ou
 const LEASE = {
   holder: "a-dead-run", agent: "claude-code_2-1-258_agent", pid: "3830915",
   renewedAt: "2026-09-03T02:00:00.000Z", minutes: 30, next: "fold F2, then recheck",
-  history: [{ holder: "a-dead-run", at: "2026-09-03T02:00:00.000Z", how: "claim", status: "in_progress" }],
+  history: [{ holder: "a-dead-run", at: "2026-09-03T02:00:00.000Z", how: "claim", status: "in_progress:build" }],
 };
 const WORKLOG = {
   branch: "iss-44-resume", head: "aaa1111bbb2222", base: "ccc3333", touched: "src/one.mjs, src/two.mjs",
@@ -42,7 +42,7 @@ const WORKLOG = {
 };
 
 const issue = (extra = {}) => ({
-  status: "in_progress",
+  status: "in_progress:build",
   plan: "Screen change: no.\nSchema coupling: no.\nOne line of plan.",
   acceptanceCriteria: CRITERIA,
   sessionContext: { lease: LEASE, worklog: WORKLOG },
@@ -68,7 +68,7 @@ test("the brief carries the rung the lane is at, off the record's whole correcti
   const xs = (comments) => brief({ complexity: "xs" }, comments);
   const moved = (fields) => recorded("correction", fields);
   const lane = (comments) => laneOf({
-    status: "in_progress",
+    status: "in_progress:build",
     fields: rungFieldsOf(viewFrom("the-uuid", issue({ complexity: "xs" }), comments)),
   }).rung;
   assert.equal(xs([]).rung, "trivial", "the complexity field claims it");
@@ -86,10 +86,10 @@ test("the brief carries the rung the lane is at, off the record's whole correcti
 
 test("the brief carries the status, the phase it owes and the reference that holds its method", () => {
   const one = brief();
-  assert.equal(one.status, "in_progress");
+  assert.equal(one.status, "in_progress:build");
   assert.equal(one.phase, "4 Implement, to the review; 5 Prove; then 7's landing");
-  assert.equal(one.reference, `forge guide issue-flow ${PHASE.in_progress[1]}`);
-  for (const status of [...ORDER, "dropped", "reopen"]) {
+  assert.equal(one.reference, `forge guide issue-flow ${PHASE["in_progress:build"][1]}`);
+  for (const status of [...LADDER, "closed", "dropped", "reopen"]) {
     assert.ok(PHASE[status], `${status} owes no phase, so a resuming run is told nothing`);
     const held = methodOf(status);
     assert.match(held.reference, /^forge guide issue-flow( [a-z-]+)?$/u, `${held.reference} is not the served route`);
@@ -154,13 +154,13 @@ test("the claim and the resume name the work under the phase owed, in the same w
   assert.equal(lines.length, 2, "the pointer and the sentence about reaching it");
   assert.match(lines[0], /ISS-979-assistant-layer, at ea3a703, cut from ed861eb/u);
   const onBoth = (run) => said(run).filter((one) => lines.includes(one));
-  assert.deepEqual(onBoth(() => opening("in_progress", fields, held, work)), lines, "the resume prints it");
-  assert.deepEqual(onBoth(() => advisory("in_progress", fields, held, work)), lines,
+  assert.deepEqual(onBoth(() => opening("in_progress:build", fields, held, work)), lines, "the resume prints it");
+  assert.deepEqual(onBoth(() => advisory("in_progress:build", fields, held, work)), lines,
     "and the claim prints the same lines, one renderer answering for both");
   /* The half of the promise that is about doing nothing: a phase owed with no work behind it. */
   for (const run of [opening, advisory]) {
-    assert.deepEqual(said(() => run("in_progress", fields, held, null)),
-      said(() => run("in_progress", fields, held)), "a worklog naming no branch changes no line");
+    assert.deepEqual(said(() => run("in_progress:build", fields, held, null)),
+      said(() => run("in_progress:build", fields, held)), "a worklog naming no branch changes no line");
   }
 });
 
@@ -178,11 +178,11 @@ test("the claim and the resume print the lane, and neither composes a line of it
     return lines;
   };
   const fields = { plan: null, moved: [], whole: true, complexity: "s" };
-  const lane = laneLines({ status: "in_progress", fields });
+  const lane = laneLines({ status: "in_progress:build", fields });
   assert.ok(lane.length > 1, "a lane at a status short of the end has rows to print");
   const inside = (lines) => lines.slice(lines.indexOf(lane[0]), lines.indexOf(lane[0]) + lane.length);
-  assert.deepEqual(inside(said(() => opening("in_progress", fields, []))), lane, "the resume prints it whole");
-  assert.deepEqual(inside(said(() => advisory("in_progress", fields, []))), lane,
+  assert.deepEqual(inside(said(() => opening("in_progress:build", fields, []))), lane, "the resume prints it whole");
+  assert.deepEqual(inside(said(() => advisory("in_progress:build", fields, []))), lane,
     "and the claim prints the same block, byte for byte, since one renderer answers for both");
   for (const path of ["../../../src/flow/claim.mjs", "../../../src/flow/resume.mjs", "../../../src/flow/advance.mjs"]) {
     const source = readFileSync(new URL(path, import.meta.url), "utf8");
@@ -372,7 +372,7 @@ test("every blocking edge is named with its kind, and the park with the status i
   assert.equal(edgeSaid({ gates: false, satisfied: false }), "not an edge the tracker gates dispatch on");
   /* An expired edge says it is expired and a dropped blocker says it is satisfied, each read off the
      predicate the entry check spends; both printed as holding while it skipped the expiry and put
-     `dropped` below `developed` (ISS-347). */
+     `dropped` below the floor (ISS-347). */
   const edged = (edge) => brief({ relations: { blockedBy: [{ otherDisplayId: "ISS-9", kind: "blocks", ...edge }] } })
     .blockers.map(edgeSaid);
   assert.deepEqual(edged({ otherStatus: "open", expired: true }), ["expired, so it orders nothing"]);
@@ -380,16 +380,16 @@ test("every blocking edge is named with its kind, and the park with the status i
     "and one the tracker sent no expired field for is read off its validUntil");
   assert.deepEqual(edged({ otherStatus: "dropped", expired: false }), ["satisfied"]);
   assert.deepEqual(edged({ otherStatus: "open", expired: false }), ["holding this issue back now"]);
-  const parked = brief({ status: "on_hold" }, [recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress")]);
+  const parked = brief({ status: "on_hold" }, [recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress:build")]);
   assert.match(parked.park.said, /three reclaims of in_progress/u);
   /* The park the owed route resumes from, chosen the way that route chooses it: a newer park may
      land in another side status, and a brief showing that one would disagree with its own owed. */
   const both = brief({ status: "on_hold" }, [
-    recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress"),
+    recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress:build"),
     recorded("park", { kind: "screen-review", why: "look at it", evidence: ["https://example.test/x"] }, "awaiting_release"),
   ]);
   assert.match(both.park.said, /three reclaims of in_progress/u, "the newer park lands in waiting, not here");
-  assert.equal(both.owed.next, "in_progress", "and the owed route reads the same one");
+  assert.equal(both.owed.next, "in_progress:build", "and the owed route reads the same one");
   assert.ok(SIDE.includes("on_hold"));
 });
 
@@ -397,7 +397,7 @@ test("every blocking edge is named with its kind, and the park with the status i
    would be useless exactly where it is needed most. */
 test("the owed section is what advance would say, and a refusal becomes the line rather than an exit", () => {
   const one = brief();
-  assert.equal(one.owed.next, "developed");
+  assert.equal(one.owed.next, "in_progress:test");
   assert.ok(one.owed.missing.length, "the shortfall is the same list advance --owed prints");
   assert.match(one.owed.missing[0].what, /merged mark/u);
   const stuck = brief({ status: "on_hold" });
@@ -406,26 +406,18 @@ test("the owed section is what advance would say, and a refusal becomes the line
   assert.equal(brief({ status: "closed" }).owed.next, null);
 });
 
-/* A run's end is measured by `closed`, so a brief re-minted on an issue at the release rung says the
-   close is owed rather than leaving the phase's name to imply that somebody else might make it (ISS-105). */
-test("a brief on an issue at the release rung owes the close, and names the phase that makes it", () => {
+/* A run's end is measured by `closed`, so a brief re-minted on an issue at the release rung says whose
+   the close is rather than leaving the phase's name to imply that somebody else might make it
+   (ISS-105). Core closes it there only by the release that ships it, so that release's record is named. */
+test("a brief on an issue at the release rung names the release's record as the close, and the phase that makes it", () => {
   const verified = recorded("verification",
     { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] });
   const one = brief({ status: "awaiting_release" }, [verified]);
   assert.equal(one.phase, "7 Ship, the close", "the deploying rung names the ship and its tail");
-  assert.equal(one.owed.next, "closed");
-  assert.deepEqual(one.owed.missing, [],
-    "the status and a verification naming the deployment are the whole of what a close is earned by");
+  assert.equal(one.owed.next, null, "no advance closes it");
+  assert.match(one.owed.refused, /CLOSE_ONLY_BY_RELEASE/u, "the brief says why, rather than exiting");
+  assert.match(one.owed.refused, /forge release-batch record ISS-44 /u, "and names the record that closes it");
   assert.equal(one.ahead, null, "and nothing is ahead of it");
-});
-
-/* ISS-1480: the release rung alone is not enough, however far short a brief's own read of the
-   page falls — the same page `--owed` would read and refuse the close on. */
-test("a brief on an issue at the release rung with no verification still owes the close", () => {
-  const one = brief({ status: "awaiting_release" });
-  assert.equal(one.owed.next, "closed");
-  assert.ok(one.owed.missing.length, "no verification on the page is still something owed");
-  assert.match(one.owed.missing[0].what, /no verification/u);
 });
 
 test("the brief names the comments it read, which is the read the gate asks for", () => {
@@ -548,11 +540,11 @@ test("a resume at in_progress with the review and every verdict at the checkpoin
     try { run(); } finally { console.log = was; }
     return lines.filter((line) => line.trim().startsWith("passed:"));
   };
-  const args = ["in_progress", rungFieldsOf(view), kindsHeld(view), null, finishedAtHead(view)];
+  const args = ["in_progress:build", rungFieldsOf(view), kindsHeld(view), null, finishedAtHead(view)];
   const resumed = said(() => opening(...args));
   assert.ok(resumed.includes("  passed: 4 Implement, to the review  —  review"), resumed.join("\n"));
   assert.ok(resumed.includes("  passed: 5 Prove  —  verdict"), resumed.join("\n"));
   assert.deepEqual(said(() => advisory(...args)), resumed, "and the claim prints the same passed lines");
   const moved = brief(extra, [recorded("review", { reviewer: "codex", commit: "9f0e1d2", outcome: "approved", finding: [] }), ...comments.slice(1)]);
-  assert.equal(moved.phase, PHASE.in_progress[0], "a review of another commit ends no phase at this head");
+  assert.equal(moved.phase, PHASE["in_progress:build"][0], "a review of another commit ends no phase at this head");
 });

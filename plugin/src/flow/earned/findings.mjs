@@ -1,5 +1,5 @@
 /* What a finding the fold landed on an issue is owed before the rungs that judge the issue: a
-   criterion carrying it, or a record declining it. The rule is the contract's `testing` part; why a
+   criterion carrying it, or a record declining it. The rule is the contract's `in_progress:release` part; why a
    folded finding is typed at all is docs/cli/the-fold.md's. Nothing here fetches or writes. */
 import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor, valuesOf } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";

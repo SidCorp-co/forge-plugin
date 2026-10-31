@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { ranAsync, tempHome, tempRoom, typedPlan } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
-import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
+import { placeOf, statusOfPlace, stepOfPlace } from "../../../src/tracker/declared/issue-machine.mjs";
 import { CITED } from "../../../src/guides/phases.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-rung").path;
@@ -26,21 +26,23 @@ const leased = () => ({
     minutes: 30, next: null, history: [] },
 });
 
-const issue = (key, status, over = {}) => ({
-  documentId: `uuid-${key}`, issueId: key, status, title: `${key} title`,
+/* Put at a place in core's words: the status, and the step where the place is inside in_progress. */
+const issue = (key, place, over = {}) => ({
+  documentId: `uuid-${key}`, issueId: key, status: statusOfPlace(place),
+  workState: stepOfPlace(place) ? { step: stepOfPlace(place) } : null, title: `${key} title`,
   description: "what it is", complexity: "m", sessionContext: leased(), ...over,
 });
 
 const state = {
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [
-    issue("ISS-2001", "confirmed"),
+    issue("ISS-2001", "in_progress:plan"),
     issue("ISS-2002", "open"),
-    issue("ISS-2003", "confirmed"),
-    issue("ISS-2004", "in_progress", { plan: PLAN, acceptanceCriteria: CRITERIA }),
-    issue("ISS-2006", "confirmed"),
+    issue("ISS-2003", "in_progress:plan"),
+    issue("ISS-2004", "in_progress:build", { plan: PLAN, acceptanceCriteria: CRITERIA }),
+    issue("ISS-2006", "in_progress:plan"),
     issue("ISS-2007", "open"),
-    issue("ISS-2005", "testing", { plan: PLAN, acceptanceCriteria: CRITERIA, mergedAt: "2026-09-10T00:00:00.000Z" }),
+    issue("ISS-2005", "in_progress:release", { plan: PLAN, acceptanceCriteria: CRITERIA, mergedAt: "2026-09-10T00:00:00.000Z" }),
   ],
   comments: {},
   minted: 0,
@@ -82,10 +84,10 @@ const env = () => ({
 
 const ask = (...argv) => ranAsync(FORGE, argv, env());
 const listed = (from) => state.calls.slice(from).filter((one) => one.args.action === "list").length;
-/* The rung the stored row stands at: a rung that is a work step is held as `in_progress` and its step. */
+/* The place the stored row stands at: a place that is a work step is held as `in_progress` and its step. */
 const statusOf = (key) => {
   const row = state.issues.find((one) => one.issueId === key);
-  return rungOf(row.status, row.workState?.step);
+  return placeOf(row.status, row.workState?.step);
 };
 const held = (key) => state.issues.find((one) => one.issueId === key);
 const kindsOn = (key) => (state.comments[`uuid-${key}`] ?? [])
@@ -107,7 +109,7 @@ test("the three records approved cites go in one call, and that call moves the s
   assert.deepEqual(kindsOn("ISS-2001"), ["decision"], "the one kind of the three whose payload is a comment");
   assert.equal(held("ISS-2001").plan.trim(), PLAN, "the plan field is written by the same call");
   assert.equal(held("ISS-2001").acceptanceCriteria, CRITERIA);
-  assert.match(run.stderr, /^ISS-2001 {2}confirmed -> approved$/mu, "and the set completes the rung, so it moves");
+  assert.match(run.stderr, /^ISS-2001 {2}in_progress:plan -> approved$/mu, "and the set completes the rung, so it moves");
   assert.equal(statusOf("ISS-2001"), "approved");
 });
 
@@ -133,7 +135,7 @@ test("a field over its cap refuses the whole call, and the comment beside it is 
   assert.match(run.stderr, /releaseNotes\.userFacing is capped at 500/u);
   assert.deepEqual(kindsOn("ISS-2005"), [], "the verification is not on the page");
   assert.equal(held("ISS-2005").releaseNotes, undefined, "and the note is not in the field");
-  assert.equal(statusOf("ISS-2005"), "testing", "so nothing moved");
+  assert.equal(statusOf("ISS-2005"), "in_progress:release", "so nothing moved");
 });
 
 /* The check reads the record the tracker holds and not the one the call sent: a project that rewrites
@@ -148,7 +150,7 @@ test("the move judges the field the tracker read back, not the value the call se
   state.stores = null;
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
   assert.equal(held("ISS-2003").plan, short, "the tracker stored a plan short of a section");
-  assert.equal(statusOf("ISS-2003"), "confirmed", "so the rung is not earned and the call moved nothing");
+  assert.equal(statusOf("ISS-2003"), "in_progress:plan", "so the rung is not earned and the call moved nothing");
   assert.match(run.stderr, /Screen change|Declarations/u, "and the item the stored plan is short of is named");
 });
 
@@ -157,8 +159,8 @@ test("a call that leaves the rung short moves nothing and names what is owed, as
   const run = await ask("record", "review", "ISS-2004", "--reviewer", "codex", "--commit", SHA,
     "--outcome", "approved");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.equal(statusOf("ISS-2004"), "in_progress", "the rung cites a merged mark too");
-  assert.match(run.stderr, /developed is next and the record does not earn it/u);
+  assert.equal(statusOf("ISS-2004"), "in_progress:build", "the rung cites a merged mark too");
+  assert.match(run.stderr, /in_progress:test is next and the record does not earn it/u);
   assert.match(run.stderr, /no merged mark, so/u, "named, not counted");
   const owed = await ask("advance", "ISS-2004", "--owed");
   assert.equal(owed.status, 0, owed.stderr);
@@ -173,18 +175,18 @@ test("a rung cited by one kind moves on that record's own call", async () => {
   const run = await ask("record", "confirmation", "ISS-2002", "--where", "plugin/src/flow/record",
     "--is", "the verb takes one kind", "--finding", "holds");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.match(run.stderr, /^ISS-2002 {2}open -> confirmed$/mu);
-  assert.equal(statusOf("ISS-2002"), "confirmed");
+  assert.match(run.stderr, /^ISS-2002 {2}open -> in_progress:plan$/mu);
+  assert.equal(statusOf("ISS-2002"), "in_progress:plan");
 });
 
 /* Or the status is moved by whatever write followed the one that earned it, which is not a status
    earned by a record. */
 test("a write of a kind the rung does not cite moves nothing, however complete the rung is", async () => {
-  assert.equal(statusOf("ISS-2002"), "confirmed", "standing where the case above left it");
+  assert.equal(statusOf("ISS-2002"), "in_progress:plan", "standing where the case above left it");
   const run = await ask("record", "gap", "ISS-2002", "--none", "the method answered");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.doesNotMatch(run.stderr, /confirmed -> /u, "no move on an uncited kind");
-  assert.equal(statusOf("ISS-2002"), "confirmed");
+  assert.doesNotMatch(run.stderr, /in_progress:plan -> /u, "no move on an uncited kind");
+  assert.equal(statusOf("ISS-2002"), "in_progress:plan");
   const moved = await ask("advance", "ISS-2002");
   assert.equal(moved.status, 1, moved.stdout);
   assert.match(moved.stdout, /approved is next and the record does not earn it/u,
@@ -236,7 +238,7 @@ test("a comment whose answer names no device is judged against the page read aga
   const seen = await ask("record", "gap", "ISS-2004", "--none", "the method answered again");
   assert.equal(seen.status, 0, seen.stderr);
   assert.ok(reread > listed(named), "the unnamed author costs the read the named one does not");
-  assert.equal(statusOf("ISS-2004"), "in_progress", "and neither write moved anything");
+  assert.equal(statusOf("ISS-2004"), "in_progress:build", "and neither write moved anything");
 });
 
 /* The citation guard decides the move; what a rung is short of is owed to whoever wrote anything. */
@@ -268,5 +270,5 @@ test("a row the tracker named no author of and did not hand back is not counted,
   const named = await ask("record", "confirmation", "ISS-2007", "--where", "plugin/src/flow",
     "--is", "the verb takes one kind", "--finding", "holds");
   assert.equal(named.status, 0, named.stderr);
-  assert.match(named.stderr, /^ISS-2007 {2}open -> confirmed$/mu, "named, it counts and the rung moves");
+  assert.match(named.stderr, /^ISS-2007 {2}open -> in_progress:plan$/mu, "named, it counts and the rung moves");
 });

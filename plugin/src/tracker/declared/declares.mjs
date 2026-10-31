@@ -3,6 +3,8 @@
    targets. Apart from `../routes.mjs`, which builds the requests: this is the table and that is the
    transport's use of it. */
 
+import { HELD, LEGACY_STATUSES } from "./issue-machine.mjs";
+
 /* Every filter the browse verb takes, by what applies it: the list route narrows on `wire`, `route`
    is served by a route of its own, and the walk applies `here` to the rows it is holding. */
 export const FILTERS = {
@@ -23,6 +25,10 @@ export const FILTERS = {
    `releaseNotes` cap below, core's `RELEASE_NOTE_TITLE_CHARS_MAX`. */
 export const NOTE_TITLE_WORDS = 10;
 
+/* Kept apart from every declared set so none offers one; read only where a caller or an old history
+   still names one. */
+export const RETIRED_STATUS = Object.entries(LEGACY_STATUSES).map(([name, replacedBy]) => ({ name, replacedBy }));
+
 /* Strict: a target outside this map builds no path, and its one caller refuses one before asking. */
 export const COLLECTIONS = { issue: "issues", comment: "comments" };
 
@@ -33,24 +39,22 @@ export const DECLARES = {
   forge_issues: {
     filters: Object.keys(FILTERS),
     priority: ["critical", "high", "medium", "low", "none"],
+    /* A bare `in_progress` names every place inside it, which a browse filter takes and a set does
+       not, a set having to say which step it writes. */
     status: [
+      { name: "draft" },
       { name: "open", step: true },
-      { name: "confirmed", step: true },
-      { name: "clarified", replacedBy: "approved" },
-      { name: "waiting", replacedBy: "needs_info" },
-      { name: "approved", step: true },
-      { name: "in_progress", step: true },
-      { name: "developed", step: true },
-      { name: "testing", step: true },
-      { name: "tested", replacedBy: "awaiting_release" },
-      { name: "awaiting_release", step: true },
-      { name: "releasing", past: "awaiting_release", writtenByNobody: "the release path's own status: the release button "
-        + "enters it and the release batch alone leaves it" },
-      { name: "closed", step: true },
       { name: "reopen" },
+      { name: "in_progress", heldAt: Object.values(HELD) },
+      { name: HELD.plan, step: true },
+      { name: "approved", step: true },
+      { name: HELD.build, step: true },
+      { name: HELD.test, step: true },
+      { name: HELD.release, step: true },
+      { name: "awaiting_release", step: true },
+      { name: "closed" },
       { name: "on_hold" },
       { name: "needs_info" },
-      { name: "draft" },
       { name: "dropped", landsNothing: true },
     ],
     caps: {
@@ -73,7 +77,7 @@ export const DECLARES = {
     caps: {
       body: { self: 10000, halves: {} },
       /* What core screens one field of a `forge-record` block at, counted in code points as it counts
-         them (core `messaging/forge-record.ts:FORGE_RECORD_FIELD_BUDGET`): a record carrying a longer
+         them (core's `FORGE_RECORD_FIELD_BUDGET`): a record carrying a longer
          value is refused whole with `field-budget`, so `forge record` measures each value against it
          before anything is sent. */
       recordField: { self: 400, halves: {} },
@@ -86,13 +90,12 @@ export const DECLARES = {
     authoredBy: ["human", "agent", "imported"],
   },
   /* The ask route's own bounds, as its schema states them: a choice question holds at most ten
-     options, each label at most 500 characters and the prompt at most 8000, all counted as the
-     route counts a string. Read by `flow/park/asked.mjs`, so a question over one is refused while
-     nothing of the call is up. */
+     options and the prompt at most 8000 characters, counted as the route counts a string. Read by
+     `flow/park/asked.mjs`, so a question over one is refused while nothing of the call is up. An
+     option's label is a reading, which `recordField` above already holds under the route's 500. */
   forge_questions: {
     caps: {
       prompt: { self: 8000, halves: {} },
-      label: { self: 500, halves: {} },
       options: { self: 10, halves: {} },
     },
   },

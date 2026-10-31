@@ -187,7 +187,7 @@ const edgeRows = (edges, verbose) => {
   return [
     ...(orders.length ? orders.map(edgeRow) : ["  none of them orders a dispatch"]),
     ...(rest ? [`  and ${rest} that order nothing: a relates edge, an expired one, or one whose`
-      + " other end is already developed"] : []),
+      + " other end core already reads as settled (awaiting_release or closed)"] : []),
   ];
 };
 

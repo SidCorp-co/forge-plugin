@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
 import { ROUTES } from "../../../src/tracker/routes.mjs";
+import { placeOf } from "../../../src/tracker/declared/issue-machine.mjs";
 
 const captures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "fixtures", "rest");
 const held = (name) => JSON.parse(readFileSync(join(captures, `${name}.json`), "utf8"));
@@ -27,15 +28,16 @@ describe("the module rows carry what a module is read by", () => {
     const answered = page.items.find((one) => one.modules.length);
     assert.ok(answered, "the capture holds no row carrying a module, so no attribution is proved to survive");
     const row = issues.find((one) => one.issueId === answered.displayId);
-    assert.equal(row.status, answered.status);
+    assert.equal(row.trackerStatus ?? row.status, answered.status, "core's status, beside the place it is read as");
+    assert.equal(row.status, placeOf(answered.status, answered.workState?.step));
     assert.deepEqual(row.modules.map(({ labelId, name, isPrimary }) => ({ labelId, name, isPrimary })),
       answered.modules.map(({ labelId, name, isPrimary }) => ({ labelId, name, isPrimary })));
     assert.ok(row.modules.some((one) => one.isPrimary === true), "the primary flag survives as the tracker set it");
   });
 
-  it("the attributed read repeats each status the tracker holds, a rung at a work step sent as its status", () => {
+  it("the attributed read repeats each status the tracker holds, a place at a work step sent as its status", () => {
     const { page } = ROUTES["forge_issues.attributed"].requests(
-      { statuses: ["open", "confirmed"], statusNot: ["closed"], module: "m-1", limit: 200, offset: 400 }, "p");
+      { statuses: ["open", "in_progress:plan"], statusNot: ["closed"], module: "m-1", limit: 200, offset: 400 }, "p");
     const query = new URL(`http://x${page.path}`).searchParams;
     assert.deepEqual(query.getAll("status"), ["open", "in_progress"]);
     assert.deepEqual(query.getAll("statusNot"), ["closed"]);

@@ -51,11 +51,11 @@ const viewOf = (verdicts, { release = INDEPENDENT, serving = DEPLOYED, extra = [
 }, [mark(), comment(render("verdict", verdicts)), ...extra], null, release);
 const said = (items) => items.map((one) => one.what);
 
-test("under a second judge, a verdict at the runtime the checkpoint names counts at testing with no sha in its evidence", () => {
+test("under a second judge, a verdict at the runtime the checkpoint names counts at in_progress:release with no sha in its evidence", () => {
   assert.deepEqual(said(judgedOwed(viewOf([verdictOf(1), verdictOf(2)]), "ISS-8")), []);
 });
 
-test("--owed at testing names a superseded verdict with its criterion, the runtime it was judged at and what is serving", () => {
+test("--owed at in_progress:release names a superseded verdict with its criterion, the runtime it was judged at and what is serving", () => {
   const items = judgedOwed(viewOf([verdictOf(1), verdictOf(2)], { serving: REPLACED }), "ISS-8");
   assert.equal(items.length, 1, said(items).join("\n"));
   assert.match(items[0].what, SUPERSEDED, items[0].what);
@@ -63,9 +63,9 @@ test("--owed at testing names a superseded verdict with its criterion, the runti
   assert.ok(items[0].command.includes(`--runtime ${RUNTIME_ASK}`), `and the ask is a judgement at what serves: ${items[0].command}`);
 });
 
-test("awaiting_release and closed refuse a superseded verdict by criterion and reason, whoever judges", () => {
+test("awaiting_release refuses a superseded verdict by criterion and reason, whoever judges", () => {
   for (const release of [INDEPENDENT, BUILDER_JUDGES]) {
-    for (const rung of ["awaiting_release", "closed"]) {
+    for (const rung of ["awaiting_release"]) {
       const items = CHECKS[rung](viewOf([verdictOf(1), verdictOf(2, { runtime: undefined })], { release, serving: REPLACED }), "ISS-8");
       const named = said(items).filter((one) => /superseded/u.test(one));
       assert.equal(named.length, 1, `${rung} under ${release.qa ?? "builder"}: ${said(items).join("\n")}`);
@@ -103,7 +103,7 @@ test("every verdict ask --owed prints at a deployment under a second judge carri
 });
 
 test("a superseded verdict where the builder judges is asked for again with no runtime, the write owing none there", () => {
-  const items = CHECKS.closed(viewOf([verdictOf(1), verdictOf(2)], { release: BUILDER_JUDGES, serving: REPLACED }), "ISS-8")
+  const items = CHECKS.awaiting_release(viewOf([verdictOf(1), verdictOf(2)], { release: BUILDER_JUDGES, serving: REPLACED }), "ISS-8")
     .filter((one) => /superseded/u.test(one.what));
   assert.equal(items.length, 1, said(items).join("\n"));
   assert.doesNotMatch(items[0].command, /--runtime/u, items[0].command);
@@ -113,16 +113,16 @@ test("a verdict naming a runtime is stamped with no second reading of the deploy
   const got = { verdict: "pass", commit: MERGED, runtime: REPLACED, evidence: [MERGED] };
   const said = [];
   deploymentOnto(got, CHECKPOINT, (line) => said.push(line));
-  assert.equal(got["carries-deployment"], undefined, "the runtime is the identity testing reads, alone");
+  assert.equal(got["carries-deployment"], undefined, "the runtime is the identity in_progress:release reads, alone");
   assert.deepEqual(said, [], "and git is not asked whether its evidence carries the deployment");
 });
 
 test("a verification or a finding written after a runtime verdict leaves its standing as it was", () => {
   const verification = comment(render("verification", [{ where: "the deployed app", commit: REPLACED, evidence: ["https://ci.example.test/10"] }]));
   const finding = comment(render("finding", [{ expected: "the list", seen: "an empty page", evidence: ["https://ci.example.test/11"], criterion: "1" }]));
-  const standing = CHECKS.closed(viewOf([verdictOf(1), verdictOf(2)], { extra: [verification, finding] }), "ISS-8");
+  const standing = CHECKS.awaiting_release(viewOf([verdictOf(1), verdictOf(2)], { extra: [verification, finding] }), "ISS-8");
   assert.deepEqual(said(standing).filter((one) => /superseded/u.test(one)), [], said(standing).join("\n"));
-  const moved = CHECKS.closed(viewOf([verdictOf(1), verdictOf(2)], { serving: REPLACED, extra: [verification, finding] }), "ISS-8");
+  const moved = CHECKS.awaiting_release(viewOf([verdictOf(1), verdictOf(2)], { serving: REPLACED, extra: [verification, finding] }), "ISS-8");
   assert.equal(said(moved).filter((one) => /superseded/u.test(one)).length, 1, said(moved).join("\n"));
 });
 

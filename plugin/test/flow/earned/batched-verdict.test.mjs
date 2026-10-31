@@ -14,7 +14,7 @@ process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
 const { blocksIn } = await import("../../../src/flow/record/record.mjs");
 const { parse, parseAll, render } = await import("../../../src/flow/record/page.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
-/* Every case here asks the judging half of the one rung after `developed`, which is the half a verdict earns: its deploying half asks for a verification and a note, and no case here is about either (ISS-1022). */
+/* Every case here asks the judging half of the one place after `in_progress:test`, which is the half a verdict earns: its deploying half asks for a verification and a note, and no case here is about either (ISS-1022). */
 const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 
@@ -144,7 +144,8 @@ test("several criteria with no verdict are one owed item carrying one write", ()
 const judging = {
   documentId: "judging-uuid",
   issueId: "ISS-7",
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "the change being judged",
   description: "no mark here",
   acceptanceCriteria: CRITERIA,

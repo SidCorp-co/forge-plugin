@@ -10,8 +10,8 @@ import { refuse } from "../refusal.mjs";
 /** Null where nothing declares one, which measures nothing rather than guessing a number. */
 export const bodyCap = () => capsOf("forge_comments").body?.self ?? null;
 
-/** What core screens one field of a record block at, from the same table; null where none is declared. */
-export const recordFieldCap = () => capsOf("forge_comments").recordField?.self ?? null;
+/** The `recordField` budget the declared table holds for a `forge-record` block. */
+const recordFieldCap = () => capsOf("forge_comments").recordField?.self ?? null;
 
 /** The refusal of one value past that cap, before anything is sent: the field, its length and the
  *  limit, and the two ways under it, since core's own refusal of the record is the round this saves. */

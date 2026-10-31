@@ -5,7 +5,7 @@ page is the half of that reading which is about what happens once a change is bu
 
 **Phase 7 opens on the landing, which is one of three acts and only one of them a command.** The row
 opened on the declared ship alone, so on a project that declares none the phase and the phase behind
-it read unrecognised and the whole post-`developed` half of the corpus was counted inside the
+it read unrecognised and the whole post-`in_progress:test` half of the corpus was counted inside the
 proving — measured, 14224 tool-minutes of it on one adopting project and 3412 on another, while this
 repository's own reading measured that phase at 8391 over 425 runs. The three are the command a
 project declares, the checkpoint another actor lands — a capture on this CLI's own claim, which is

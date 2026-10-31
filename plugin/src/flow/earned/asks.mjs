@@ -57,7 +57,7 @@ export const foldVerdicts = (ref, numbers, id, one, many) =>
     : numbers.map((number) => need(one(number), askOne(ref, number, id))));
 
 /* A criterion the judgement proved impossible is corrected in the open rather than left to wait on
-   a verdict that can never come — `forge guide contract testing`'s own sentence, and the route
+   a verdict that can never come — `forge guide contract in_progress:release`'s own sentence, and the route
    ISS-2362 names. Exported and read by `route.mjs`'s own advisory too, so the one line spelling the
    two writes cannot drift between the two callers (ISS-2430 review, F1). The correction record alone
    moves nothing on the field itself — ISS-1741 is open on exactly that gap — so the second write is

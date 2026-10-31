@@ -3,9 +3,9 @@
    project's `open` state is configured: docs/cli/record-the-rung.md. */
 import { DRAFT } from "../../rank/weights.mjs";
 import { CITED } from "../../guides/phases.mjs";
-import { ORDER, dispositionOf } from "../earned.mjs";
+import { LADDER, dispositionOf } from "../earned.mjs";
 
-const OPENING = ORDER[0];
+const OPENING = LADDER[0];
 
 /** The sentence under the owed line, read off the view rather than carried beside the target, so
  *  every printer of that line says it whatever it was handed. */

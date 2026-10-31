@@ -42,7 +42,7 @@ past the dispatch statuses too, the earlier run being no dispatcher, and a landi
 a turn still governs.
 
 **A resume is dispatched past those statuses, so the proof there is the process and not the
-status.** A run sent to take up an issue at `in_progress`, or to finish one at `developed`, met its
+status.** A run sent to take up an issue at `in_progress:build`, or to finish one at `in_progress:test`, met its
 dispatcher's lease exactly as the triage runner did, and the status alone sent it to wait out the
 lapse — two hours, once (ISS-2205). Every agent a session dispatches runs inside that session's host
 process, and the lease records the process and the host it was written from. So a lease written from

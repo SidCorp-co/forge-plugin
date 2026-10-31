@@ -5,8 +5,8 @@ import { askedInSource, exclusive, firstLine, flags, pullRepeated, wantsHelp } f
 import { aimSaid, fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
-import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
-import { stepOfRung, trackerStatusOf } from "../tracker/declared/rungs.mjs";
+import { declaredValue, statusKind, tried, write } from "../tracker/rest.mjs";
+import { LEGACY_STATUSES, statusOfPlace, stepOfPlace } from "../tracker/declared/issue-machine.mjs";
 import { writeFields } from "../tracker/field-write.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -16,7 +16,7 @@ import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/thread/posting.mjs";
 import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, waitsFor } from "./park/compose.mjs";
-import { ANSWERED_BY_COMMENT, ORDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
+import { ANSWERED_BY_COMMENT, LADDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
 import { finishes, parkLeft } from "./park/left.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
@@ -40,33 +40,33 @@ export const USAGE = [
   "The next status, its entry criteria checked against the issue's record alone, and either the",
   "transition or every missing item beside the one command that supplies it.",
   "",
-  "  --owed                  what the next status is owed, moving nothing, and the line last left;",
-  "                          beside --park or --drop, what that park sends and posts, or what",
-  "                          refuses it, writing nothing",
+  "  --owed                  what the next status is owed, moving nothing; beside --park or --drop,",
+  "                          what that park sends and posts, or what refuses it",
   "  --next <line>           the step the status it enters starts on, for whoever comes next",
   "  --to <status>           refused unless that status is the next one; a jump is not advancing",
-  "  --park <kind> --why W [--needs N] [--evidence E]...  a park record, then the side status the",
-  "                          kind implies",
+  "  --park <kind> --why W [--needs N] [--evidence E]...  a park record, then its side status",
   "  --drop --why W          park as dropped; refused once the merged mark is set",
-  `  --reopen --why W        the tracker's \`${REOPEN}\`, where a finding blocks the change: a person's`,
-  "                          word or this run's own. The finding and the triage under it are what",
-  "                          route where the work goes back to, and no correction is written for it",
-  "  --set <status> --why W [--needs N]  the status outright, no entry check read; the reply says",
-  "                          so and a correction goes on the record naming the status and the reason.",
-  "                          Refused where the record already earns a rung, the plain advance's. The",
-  "                          tracker's work-evidence check still holds developed and testing to a",
-  "                          branch `forge claim <ref> --pushed` captured, or to the commit on the",
-  "                          base branch a merged mark carries",
-  `  ${VOID_FLAG} <why>  beside a move to closed or dropped, voids each open question with`,
-  "                          this sentence in the same write",
+  `  --reopen --why W        the tracker's \`${REOPEN}\`, where a finding blocks the change; the finding`,
+  "                          and its triage route where the work goes back to",
+  "  --set <status> --why W [--needs N]  the status outright, no entry check read, said in the reply",
+  "                          and in a correction; refused where the record earns a place already.",
+  "                          A place inside in_progress is named whole (in_progress:test). Core's",
+  "                          work-evidence check still holds a move to awaiting_release to a branch",
+  "                          `forge claim <ref> --pushed` captured, or to the commit on the base",
+  "                          branch a merged mark carries",
+  `  ${VOID_FLAG} <why>  beside a move to dropped or a set to closed, voids each open question`,
   "",
-  `Only a move to ${ANSWERED_BY_COMMENT} takes --needs, which is what would settle the question and what`,
-  "the tracker mints the answer box from; --why is why the work stopped. Neither is ever written from",
-  "the other. A question park given no --needs carries the readings its question record already holds.",
+  "The ladder is core's; each in_progress:<step> is in_progress at that work step:",
+  `  ${LADDER.join(" -> ")}`,
+  "A move core does not serve from where the issue stands is refused before it is sent. It offers no",
+  "closed: core closes an issue only by its release (CLOSE_ONLY_BY_RELEASE), recorded by",
+  "`forge release-batch record`.",
+  "",
+  `Only a move to ${ANSWERED_BY_COMMENT} takes --needs, what would settle the question; --why is why the`,
+  "work stopped. A question park given no --needs carries its question record's readings.",
   "",
   `A park kind: ${PARKS.join("|")}.`,
-  "What each status is earned by, rung by rung: `forge advance <ref> --owed` for this issue, and",
-  "`forge guide contract <status>` for the rule.",
+  "What a status is earned by: `forge advance <ref> --owed`, and `forge guide contract <status>`.",
 ].join("\n");
 
 /* What every correction of a status names as corrected: the issue's own field, which no record holds. */
@@ -76,8 +76,10 @@ const STATUS_CORRECTED = "issue:status";
    side status is a park the caller is choosing and several refusals here send one there; a rung behind
    where it stands is how a landing is walked back, and the drop's own refusal prints that walk. Neither
    is a status anything on the page earns, so neither is worth a page. An issue standing outside the lane
-   sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). */
-const couldBeEarned = (body, status) => ORDER.includes(status) && atLeast(status, body.status);
+   sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). A
+   set to `closed` is one too: no advance reaches it, and it stands past every place of the ladder all
+   the same, so a record that earns a drop instead is read before it. */
+const couldBeEarned = (body, status) => atLeast(status, body.status);
 
 /* Every plain advance is judged on the page, the one into `closed` included: that rung is entered on the verdicts and the folded findings as well as on the release policy, and a page skipped there read a failed verdict as none (ISS-2511). A set reads it only where the record could have earned the status instead.
    Decided here once and marked `unread` on the view, so every later reader of the page asks the view rather than judging the status again. */
@@ -100,22 +102,35 @@ const viewOf = async (reference, given) => {
   };
 };
 
-/* A tracker that keeps a release step makes the close from awaiting_release itself, on its release
-   path, and answers a run's own move there with words about the status alone (ISS-1992). */
+/* Core makes the close from awaiting_release itself, on its release path (CLOSE_ONLY_BY_RELEASE), and
+   answers a set there with words about the status alone (ISS-1992). */
 const closeIsARelease = (view, status, ref) => (status !== "closed" || view.issue.status !== CLOSES_FROM ? ""
-  : ` Where the tracker keeps a release step, the close from ${CLOSES_FROM} is made by recording the `
-    + `release that shipped the change:\n  forge release-batch record ${ref} --commit <sha> --account "<how it `
+  : ` Core closes an issue at ${CLOSES_FROM} only by the release that shipped it (CLOSE_ONLY_BY_RELEASE), `
+    + `and that release's record is the close:\n  forge release-batch record ${ref} --commit <sha> --account "<how it `
     + `was released>"\nand \`forge release-batch readiness\` names whatever would refuse that.`);
 
 /* The move, then the step, through the field writer: a refused move leaves the step where it was,
    and an issue already at the status sends its step alone, the tracker refusing a move to the status
    it is at. A failed step names the move that landed before it. */
 const moveSent = (view, status) =>
-  trackerStatusOf(status) !== trackerStatusOf(view.issue.status) || !stepOfRung(status);
+  statusOfPlace(status) !== statusOfPlace(view.issue.status) || !stepOfPlace(status);
+
+/* Asked before a move up the ladder is sent. An unreadable standing leaves the move to core's own
+   transition, which refuses it by name either way, so this is the earlier answer and never the only one. */
+const unservedMove = async (view, status) => {
+  const key = view.issue.issueId;
+  if (!key) return null;
+  const standing = await tried("forge_issues", { action: "moves", key });
+  const moves = Array.isArray(standing?.moves) ? standing.moves.map((one) => one?.to ?? one) : null;
+  const to = statusOfPlace(status);
+  if (!moves || moves.includes(to)) return null;
+  return `core serves no move from ${statusOfPlace(view.issue.status)} to ${to} for ${key}: the moves it `
+    + `serves from where the issue stands are ${moves.length ? moves.join(", ") : "none"}. Nothing was sent.`;
+};
 
 const stepped = async (view, ref, status, moved) => {
-  const step = stepOfRung(status);
-  const to = moved ? trackerStatusOf(status) : null;
+  const step = stepOfPlace(status);
+  const to = moved ? statusOfPlace(status) : null;
   /* A move answered at another status is the caller's to refuse, and no step is written over it. The
      written row leaves out a status that landed as sent, so only one it names is another. */
   const answered = moved?.trackerStatus ?? moved?.status;
@@ -137,8 +152,12 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   if (!soft) await renew(view.documentId, ref, next);
   /* Asked softly whoever the caller is, so the refusal is worded here rather than printed bare by the transport: a refusal that makes a claim about this issue's status is read as true by a run that has nothing beside it to compare, and both statuses it could be compared against are values this call is already holding (ISS-1422). */
   const voided = view.voids ? { voidQuestions: view.voids } : {};
-  const moved = moveSent(view, status) ? await write("forge_issues", { action: "transition",
-    documentId: view.documentId, data: { status: trackerStatusOf(status), ...(said ?? {}), ...voided } }, undefined, true) : null;
+  const sends = moveSent(view, status);
+  /* A park and a set carry their own payload and are core's to judge whole; a move up the ladder is
+     read against what core serves first. */
+  const unserved = sends && !said ? await unservedMove(view, status) : null;
+  const moved = unserved ? { refused: unserved } : sends ? await write("forge_issues", { action: "transition",
+    documentId: view.documentId, data: { status: statusOfPlace(status), ...(said ?? {}), ...voided } }, undefined, true) : null;
   const answer = await stepped(view, ref, status, moved);
   /* Soft is for the caller that has already written something: it words its own refusal around the record it left behind, so nothing is framed for it here. */
   if (answer?.refused && answer.landed) {
@@ -273,7 +292,10 @@ const park = async (view, ref, kind, why, evidence, asked = null) => {
 /* A named target is checked rather than obeyed: the only legal one is where the route says the
    issue goes, which for a reopen is wherever its triage decided. */
 export const checkTarget = (to, next, view, ref) => {
-  if (!to || to === next) return;
+  if (!to || to === next || (stepOfPlace(next) && statusOfPlace(next) === to)) return;
+  if (LEGACY_STATUSES[to]) {
+    refuse(`${to} is no status core holds (ISSUE_STATUS_LEGACY): ${LEGACY_STATUSES[to]} is the place that took it over, and ${next} is next.`);
+  }
   if (SIDE.includes(to)) refuse(`${to} is a side status, which a park reaches: forge advance ${ref} --park <kind> --why "<why>".`);
   refuse(`${ref} is ${view.issue.status} and ${next} is next, not ${to}. A jump past a status is refused.`);
 };
@@ -344,7 +366,7 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null, 
   const standing = resumes ? { ...issue, status: parkedAt } : issue;
   const view = viewFrom(documentId, standing, page.comments, page.cut,
     await policyFor(issue.plan, standing.status), () => citedClauses(issue));
-  const routed = resumes || ORDER.includes(issue.status) || issue.status === DRAFT;
+  const routed = resumes || LADDER.includes(issue.status) || issue.status === DRAFT;
   const { next, missing } = routed ? owedIn(view, ref) : { next: null, missing: [] };
   const cited = Boolean(next) && (resumes || citedOn(issue.status, next).some((kind) => kinds.includes(kind)));
   /* `holds` is a write that may not move a status, a judge's past another run's lease, told the move it earned instead. */
@@ -466,13 +488,13 @@ const setStatus = async (view, ref, status, why, asked) => {
   /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check of the name a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
   const kind = statusKind(status);
   if (kind?.replacedBy) {
-    refuse(`\`${status}\` is no step of the flow: \`${kind.replacedBy}\` is the rung that took it over, `
-      + `and it asks for more than \`${status}\` did, so nothing was sent. Setting the rung that `
-      + `replaced it writes a status no entry check read:\n  ${setForm(ref, kind.replacedBy)}`);
+    refuse(`\`${status}\` is no status core holds: it refuses the name ISSUE_STATUS_LEGACY, and \`${kind.replacedBy}\` `
+      + `is the place that took it over, so nothing was sent. Setting that place writes a status no entry `
+      + `check read:\n  ${setForm(ref, kind.replacedBy)}`);
   }
-  if (kind?.writtenByNobody) {
-    refuse(`\`${status}\` is ${kind.writtenByNobody}, so no run of this CLI writes it and nothing was `
-      + `sent. The rung a run reaches is \`${CLOSES_FROM}\`, which its record earns: forge advance ${ref}`);
+  if (kind?.heldAt) {
+    refuse(`\`${status}\` is a status core holds at a work step, and a set names which: ${kind.heldAt.join(", ")}. `
+      + `Nothing was sent:\n  ${setForm(ref, kind.heldAt[0])}`);
   }
   const said = whyChecked("advance --set", why);
   const near = declaredValue("forge_issues", "status", status);

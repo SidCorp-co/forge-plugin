@@ -9,7 +9,7 @@ owed — and cut the same change again on a branch of its own. The run that had 
 knew into a comment six minutes later. Prose on a thread is not what a claim reads.
 
 The worklog beside the lease held the missing fact all along, and three things kept it from the
-reader. No entry check named it, so a run could reach `developed` having never said where its branch
+reader. No entry check named it, so a run could reach `in_progress:test` having never said where its branch
 was. The verb every run calls printed the record and not the worklog. And where the worklog is
 captured, the capture could not name a branch that had no commit on it yet — which is every branch
 at the moment its run enters the status it will build under.
@@ -69,7 +69,7 @@ branch's own ref and offline.
 
 ## The status a change is built under owes the branch
 
-`in_progress` is refused where the worklog names no branch, and the refusal names the capture that
+`in_progress:build` is refused where the worklog names no branch, and the refusal names the capture that
 writes one. It is an entry check like the ones [the entry checks](the-entry-checks.md) argues, and
 it reads the record alone — what git knew was written onto the issue by the capture that knew it,
 and no check here opens a tree. What it does not judge is whether that branch was pushed or whether

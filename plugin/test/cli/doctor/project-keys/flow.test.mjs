@@ -110,7 +110,7 @@ test("a tracker that takes the key and keeps it not is refused, and the file goe
   try {
     const run = await ask("--flow", "screen");
     assert.equal(run.status, 1);
-    assert.match(run.stderr, /flow screen asks this project for the judgement between developed and testing/u);
+    assert.match(run.stderr, /flow screen asks this project for the judgement between in_progress:test and in_progress:release/u);
     assert.match(run.stderr, /pipeline\.qa was sent as "independent" and the tracker's pipeline configuration reads back "builder"/u);
     assert.match(run.stderr, /The project file is as it was, so this project is on the flow it had/u);
     assert.equal(readFileSync(file, "utf8"), HELD);

@@ -7,8 +7,8 @@ project-discovery`, which is the whole of this phase where a project has no brie
 Four of its lines are read here rather than later, because the phase that owes each cannot go back
 for it. **The brief's goal line** is what *cause or surface* is judged against, so a run deciding how
 far to fix something answers to the project's goals rather than its own taste, and it is that list a
-`Serves:` names. **Where the merge sits** and **whether the judgement between `developed` and
-`testing` is an independent run's** are what Phase 3's plan is written against: a run finding either
+`Serves:` names. **Where the merge sits** and **whether the judgement between `in_progress:test` and
+`in_progress:release` is an independent run's** are what Phase 3's plan is written against: a run finding either
 unstated cannot know whether the judging comes before the push or after it, and discovers it rather
 than assuming.
 

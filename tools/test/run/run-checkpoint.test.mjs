@@ -45,7 +45,8 @@ const seeded = ({ landing, holder, mine = holder, batch = false }) => noBacklog(
 const row = (documentId, issueId, landing, holder) => ({
   documentId,
   issueId,
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "the change this release ships",
   description: "a body.\n",
   sessionContext: { ...(landing ? { landing } : {}), lease: lease(holder) },

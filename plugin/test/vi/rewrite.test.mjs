@@ -16,7 +16,7 @@ const { SHAPES } = await import("../../src/flow/machine.mjs");
 const {
   PLAN_SECTIONS, planFlags, planSections, planSteps, protectMachine, restoreMachine, sectionsOwed, witnessedOn,
 } = await import("../../src/flow/machine.mjs");
-const { CHECKS, ORDER, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
+const { CHECKS, LADDER, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 
 /* What the real call does, measured by putting a rendered record, a plan and a criteria list through
    `vi-natural doc --register san-pham --no-glossary`, which is the call the write boundary makes: a
@@ -80,7 +80,7 @@ const FIELDS = {
 
 test("every kind's payload survives the rewrite byte for byte, and reads back under its flags", () => {
   for (const [kind, fields] of Object.entries(FIELDS)) {
-    const body = render(kind, fields, SHAPES[kind].stamp ? "in_progress" : null);
+    const body = render(kind, fields, SHAPES[kind].stamp ? "in_progress:build" : null);
     const after = rewritten(body);
     const block = /```forge-record\n[\s\S]*?\n```/u;
     assert.match(after, block, kind);
@@ -114,9 +114,9 @@ test("a status is earned from records that came back through the rewrite, with n
     plan: plan,
     acceptanceCriteria: criteria,
     mergedAt: "2026-09-03T11:30:00.000Z",
-    releaseNotes: { section: "Fixed", userFacing: "You see it now." },
+    releaseNotes: { section: "Fixed", title: "It shows again", userFacing: "You see it now." },
     attachments: [{ name: "run.txt" }],
-    /* The branch `in_progress` owes, which no rewrite touches: the field is the lease's, not prose. */
+    /* The branch `in_progress:build` owes, which no rewrite touches: the field is the lease's, not prose. */
     sessionContext: { worklog: { branch: "iss-67-the-work" } },
   };
   const comments = [
@@ -128,10 +128,10 @@ test("a status is earned from records that came back through the rewrite, with n
     verdict(2),
     posted("verification", FIELDS.verification),
   ];
-  /* A project that releases itself, `closed` being entered on that and never on prose a rewrite could reach. */
+  /* A project that releases itself, every place up to the top earned on records that came through the rewrite. */
   const view = viewFrom("the-uuid", issue, comments, null,
     { staging: "master", model: "publish", said: "publish", live: null, strategy: null, autoProd: true });
-  for (const status of ORDER.slice(1)) {
+  for (const status of LADDER.slice(1)) {
     assert.deepEqual(CHECKS[status](view, "ISS-67").map((one) => one.what), [], `${status} is not earned`);
   }
 });
@@ -150,7 +150,7 @@ test("a record whose keys were rewritten is named as rewritten, and never as fie
   assert.deepEqual(read.fields, {}, "and not one key of the shape reads back");
   assert.ok(read.rewritten);
   const view = viewFrom("the-uuid", {}, [{ createdAt: at(), authorId: "agent", body: REWRITTEN_RECORD }]);
-  const owed = CHECKS.confirmed(view, "ISS-67");
+  const owed = CHECKS["in_progress:plan"](view, "ISS-67");
   assert.equal(owed.length, 1);
   assert.match(owed[0].what, /was rewritten by the project's prose pipeline/u);
   assert.doesNotMatch(owed[0].what, /it lacks/u, "the write supplied them; a list of flags sends the author back");

@@ -10,11 +10,11 @@ contract's part for the status it would enter and the call that prints it, so th
 the stage that needs it instead of at the start of the run: `forge guide contract <status>`.
 
 Then the one thing this verb says that refuses nothing. The obvious home for it was the
-`testing` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a
-shortfall a run carries rather than clears; and *`testing` is next* is a trigger that fires after the
-landing, the merged mark standing between an issue and `developed`. So the reading is the project's
+`in_progress:release` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a
+shortfall a run carries rather than clears; and *`in_progress:release` is next* is a trigger that fires after the
+landing, the merged mark standing between an issue and `in_progress:test`. So the reading is the project's
 deploy, taken where a plan declares a screen and not otherwise, and said from every status below
-`testing` — the window in which the plan is written and the evidence captured.
+`in_progress:release` — the window in which the plan is written and the evidence captured.
 
 And the one place where the verb was writing a payload the tracker had a field for and sending half
 of it. A `needs_info` move carried the reason the work stopped and nothing else, so
@@ -34,18 +34,12 @@ cannot take outright and takes the status write down with it, so a text over the
 and never sent to find out. What the tracker does with the row once it has it — who may answer, and
 the rule that refuses the mint for a person's own credential — is the tracker's and not this verb's.
 
-And the landing a park asks for, which is not always the one it gets. Four kinds name `waiting` and
-this tracker answers `needs_info`; a set to `waiting` from there comes back `NO_OP: issue already in
-toStatus`, which is the tracker's own word that the issue is where it was asked to go. It is not a
-project's configured remap — this project holds one key in `pipelineConfig.states`, `open`, and the
-landing is the same — so nothing a caller can read before it sends predicts which name comes back.
-That decides three things. A transition answering with the other name of its own landing is a write
-that took, so it is reported rather than refused, naming both spellings; a name outside the landing
-still refuses, and a write that did not take is caught above by the transport. A park's record goes
-up before its move for that whole landing rather than for the name `needs_info` alone, because a
-call cannot know which of the two it will land on and a record posted onto an issue already at
-`needs_info` is read as the answer that unparks it. And a record is paired with an entry by the
-landing rather than the spelling, in the two places the two write orders put one: under the last
+And the landing a park asks for. Every park on a person lands at `needs_info`: the four kinds that
+once named `waiting` name it directly, `waiting` being a name core refuses `ISSUE_STATUS_LEGACY`, so
+one landing is one status and a transition answering with any other refuses. A park's record goes
+up before its move where it lands at `needs_info`, because a record posted onto an issue already at
+`needs_info` is read as the answer that unparks it. And a record is paired with an entry in the two
+places the two write orders put one: under the last
 announcement, where a move-first park left it, and failing that over it, where a record-first park
 did. The second of those has to be told from a record an earlier entry left and somebody already
 answered, since both sit in the same stretch of page. What tells them apart is that the older order
@@ -74,7 +68,8 @@ open, and the tracker voids each such question with a sentence when the move car
 that was in the tracker's refusal and in no flag, so a close the landing walked stopped there until
 a person answered (ISS-3104). `--void-questions` is that field. The tracker takes it on any move and
 voids the open questions whichever status the move enters; this CLI sends it only on a move into
-`closed` or `dropped`, because a park or a step up the lane that also ended a person's question is
+`dropped` or a set to `closed` (the plain advance offers no `closed`, core closing an issue at
+`awaiting_release` only by its release), because a park or a step up the lane that also ended a person's question is
 the one outcome a caller could not tell from the move it asked for. Whether a question should be voided is the caller's to decide, which is
 why the field goes only where the flag was typed; the refusal names both ways past it, the person
 answering and the same command again with the flag, and leaves the choice there.

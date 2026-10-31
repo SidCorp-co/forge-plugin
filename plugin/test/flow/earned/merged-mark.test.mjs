@@ -27,7 +27,7 @@ const ATTACHED = [{ name: "run.txt" }];
 const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
-/* The mark is read by the judging half of the one rung after `developed`, so that half is what these ask: the deploying half's own items would answer here for nothing this file is about (ISS-1022). */
+/* The mark is read by the judging half of the one place after `in_progress:test`, so that half is what these ask: the deploying half's own items would answer here for nothing this file is about (ISS-1022). */
 const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
 const judgingAsks = (one) => judgedOwed(one, "ISS-3").map((item) => item.command);
 
@@ -50,35 +50,35 @@ test("the merged commit is read out of the mark's note, because the mark has no 
   assert.equal(markedCommit(twice), "43b811e", "the latest mark is the one that landed");
 });
 
-test("developed needs the mark, its commit, and an approving review of that commit", () => {
+test("in_progress:test needs the mark, its commit, and an approving review of that commit", () => {
   const review = (commit, outcome = "approved") =>
     recorded("review", { reviewer: "codex", commit, outcome, finding: ["F1 accepted"] });
-  assert.deepEqual(missing("developed", view({})), [
+  assert.deepEqual(missing("in_progress:test", view({})), [
     "no merged mark, so nothing says the change landed",
     "no code review of the head that landed",
   ]);
-  assert.match(commands("developed", view({}))[0], /^forge record merged ISS-3 --at /u,
+  assert.match(commands("in_progress:test", view({}))[0], /^forge record merged ISS-3 --at /u,
     "the verb that marks a merge, with a flag per clause of the note it writes");
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
-  assert.deepEqual(missing("developed", view(stamped, [mark("merged to master")]))[0],
+  assert.deepEqual(missing("in_progress:test", view(stamped, [mark("merged to master")]))[0],
     "the merged mark names no commit; its note carries it as `at <sha>`");
   const landed = [mark("merged to master at c8c3550; reviewed head c8c3550")];
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550")])), []);
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("43b811e")])),
+  assert.deepEqual(missing("in_progress:test", view(stamped, [...landed, review("c8c3550")])), []);
+  assert.deepEqual(missing("in_progress:test", view(stamped, [...landed, review("43b811e")])),
     ["the review judged 43b811e, and the mark names c8c3550 from head c8c3550"]);
   const squashed = [mark("merged to master at c8c3550 (squashed); reviewed head 43b811e")];
-  assert.deepEqual(missing("developed", view(stamped, [...squashed, review("43b811e")])), [],
+  assert.deepEqual(missing("in_progress:test", view(stamped, [...squashed, review("43b811e")])), [],
     "a squash moved the hash, and the note kept the head that was reviewed");
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550", "changes-requested")])),
+  assert.deepEqual(missing("in_progress:test", view(stamped, [...landed, review("c8c3550", "changes-requested")])),
     ["the latest review of c8c3550 says changes-requested"]);
   /* The outcome is read before the head, so a read that asked for changes earns no head at all: one
      that approved head A and a mark naming B is a mismatch to answer, and this is not that. */
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("43b811e", "changes-requested")])),
+  assert.deepEqual(missing("in_progress:test", view(stamped, [...landed, review("43b811e", "changes-requested")])),
     ["the latest review of 43b811e says changes-requested"],
     "a read that asked for changes on one head is refused for the outcome, not for naming another");
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550")])), [],
+  assert.deepEqual(missing("in_progress:test", view(stamped, [...landed, review("c8c3550")])), [],
     "and an approving read of the head the mark names earns the rung with no consult log read");
-  assert.match(commands("developed", view(stamped, landed))[0], /--commit c8c3550 --outcome <approved\|changes-requested>/u,
+  assert.match(commands("in_progress:test", view(stamped, landed))[0], /--commit c8c3550 --outcome <approved\|changes-requested>/u,
     "the commit the review owes is the one the mark named");
 });
 
@@ -121,9 +121,8 @@ test("a verdict at a later commit carrying the landing stands as one at the merg
   const failedFirst = verdict(1, "fail", "c8c3550", { why: "the other issue's fix had not landed" });
   const superseded = view(issue, [landed, failedFirst, later(1), later(2)]);
   assert.deepEqual(judging(superseded), [], "the latest verdict is the one read, so the fail before it holds nothing");
-  for (const rung of ["awaiting_release", "closed"]) {
-    assert.ok(!missing(rung, superseded).some((one) => /failed its verdict/u.test(one)), `nor at ${rung}`);
-  }
+  assert.ok(!missing("awaiting_release", superseded).some((one) => /failed its verdict/u.test(one)),
+    "nor at awaiting_release, the top of the ladder");
   const failedLater = verdict(1, "fail", "43b811e", { carries: "c8c3550", why: "still empty" });
   assert.deepEqual(judging(view(issue, [landed, failedLater, later(2)])), ["criterion 1 failed its verdict"],
     "carrying the landing makes a fail no less one");
@@ -215,15 +214,15 @@ test("the mark's note answers for the judged head and what the landing moved", (
   assert.equal(landingMoved(note("landing moved , ,")), null);
 });
 /* A rung no actor may reach is a rung the flow does not have (ISS-607): four runs on one real state
-   recorded four statuses, because this repository earned `developed` by a merge the run itself had to
+   recorded four statuses, because this repository earned `in_progress:test` by a merge the run itself had to
    make and a run a project binds not to merge cannot write that truthfully. The note's two heads are
    what the stage may read and the writer is what it may not, and the text is what this case reads —
    no check can refuse a field the view has no key for, and the writer is exactly that field. */
-test("the mark's writer decides nothing: `developed` is earned by the note, whichever actor landed", () => {
+test("the mark's writer decides nothing: `in_progress:test` is earned by the note, whichever actor landed", () => {
   const parts = partsOf(readContract());
-  const developed = partFor(parts, "developed").text;
+  const developed = partFor(parts, "in_progress:test").text;
   assert.match(developed, /Whichever actor landed the change writes the mark/u,
-    "the developed stage does not say the landing may be another actor's, so a builder bound not to "
+    "the in_progress:test stage does not say the landing may be another actor's, so a builder bound not to "
     + "merge reads a rung it cannot earn and picks some other status instead");
   assert.match(developed, /Nothing in this stage reads who wrote the mark,\s+and nothing may/u,
     "and it does not say the writer goes unread, which is the half a second actor needs to write the mark");
@@ -241,7 +240,7 @@ test("the mark's writer decides nothing: `developed` is earned by the note, whic
 
 /* The claim above, read off the code: the mark and the verdicts carry different authors and every
    check earns alike, because no reader keys on one. Regression coverage — it holds before the clause. */
-test("a mark one actor wrote earns developed for verdicts another wrote", () => {
+test("a mark one actor wrote earns in_progress:test for verdicts another wrote", () => {
   const note = "merged to master at 9a4d36d; judged head 9a4d36d; landing moved nothing";
   const by = (who, body) => ({ ...comment(body), authorId: who });
   const landed = by("the-lander", `mark_merged target=base — ${note}`);
@@ -249,8 +248,8 @@ test("a mark one actor wrote earns developed for verdicts another wrote", () => 
     finding: ["F1 accepted"] }), authorId: "the-builder" };
   const issue = { mergedAt: "2026-09-02T13:49:51.777Z", acceptanceCriteria: CRITERIA,
     plan: "", attachments: ATTACHED };
-  assert.deepEqual(missing("developed", view(issue, [landed, review])), [],
-    "the lander wrote the mark and the builder the review, and developed reads neither author");
+  assert.deepEqual(missing("in_progress:test", view(issue, [landed, review])), [],
+    "the lander wrote the mark and the builder the review, and in_progress:test reads neither author");
   const verdicts = [1, 2].map((number) => ({ ...recorded("verdict", { criterion: `${number}. one`,
     verdict: "pass", commit: "9a4d36d", evidence: ["run.txt"] }), authorId: "the-builder" }));
   assert.deepEqual(judging(view(issue, [landed, review, ...verdicts])), [],

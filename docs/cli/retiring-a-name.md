@@ -15,7 +15,7 @@ retired names and refuses any occurrence under `plugin/` and `docs/` that is not
 it exempts as history (ISS-108).
 
 **A handled form is not a redirect, because a redirect does not run.** A form is a word the
-dispatcher performs through a verb it has — `forge close ISS-45` as `forge advance` — for one line on
+dispatcher performs through a verb it has — `forge develop ISS-45` as `forge advance` — for one line on
 stderr naming what ran. A redirect spends the turn and asks for another; a form spends it and
 answers. That is why the rule above forbids the one and this allows the other: the objection was
 never to the old word but to hearing about a better one instead of being served. So a form is

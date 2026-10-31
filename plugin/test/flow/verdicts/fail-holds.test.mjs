@@ -1,5 +1,6 @@
-/* A failed verdict holds every rung from the judging one to the close. The builder's records turn
-   writes its verdicts after the landing has already entered `testing`, and a fail read by that rung
+/* A failed verdict holds every place from the judging one to the top of the ladder, past which only
+   core's release closes the issue (CLOSE_ONLY_BY_RELEASE). The builder's records turn writes its
+   verdicts after the landing has already entered `in_progress:release`, and a fail read by that rung
    alone was judged by nothing once the issue had passed it: ISS-2507 went on to `awaiting_release`
    with a failed criterion on its page (ISS-2511). */
 import assert from "node:assert/strict";
@@ -40,9 +41,9 @@ const owed = (status, comments, issue = {}) =>
 const naming = (status, comments, number, issue) =>
   owed(status, comments, issue).filter((one) => one.what.includes(`criterion ${number}`));
 
-test("a whole fail standing on a criterion refuses awaiting_release and closed, naming the criterion", () => {
+test("a whole fail standing on a criterion refuses awaiting_release, naming the criterion", () => {
   const page = [mark(), pass(1), fail(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, page, 2).map((one) => one.what), ["criterion 2 failed its verdict"],
       `${status} is refused on the failed criterion, by name`);
     assert.deepEqual(naming(status, page, 1), [], `${status}: and the passing criterion beside it is not named`);
@@ -51,25 +52,24 @@ test("a whole fail standing on a criterion refuses awaiting_release and closed, 
 
 test("the item a failed verdict raises past the judging carries the verdict write for that criterion", () => {
   const page = [mark(), pass(1), fail(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     const [item] = naming(status, page, 2);
     assert.match(item?.command ?? "", /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
       `${status}: the one write that answers it, at the commit the mark names`);
   }
 });
 
-test("a fail written after the issue entered testing refuses awaiting_release as one written before it", () => {
-  const earlier = [mark(), pass(1), fail(2), entered("testing", "developed")];
-  const later = [mark(), pass(1), entered("testing", "developed"), fail(2)];
+test("a fail written after the issue entered in_progress:release refuses awaiting_release as one written before it", () => {
+  const earlier = [mark(), pass(1), fail(2), entered("in_progress", "in_progress")];
+  const later = [mark(), pass(1), entered("in_progress", "in_progress"), fail(2)];
   const said = (page) => naming("awaiting_release", page, 2).map((one) => one.what);
   assert.deepEqual(said(later), ["criterion 2 failed its verdict"], "the records turn's own fail holds the rung");
   assert.deepEqual(said(later), said(earlier), "exactly as a fail the judging rung read");
 });
 
-test("a whole short verdict carrying its row holds neither awaiting_release nor closed", () => {
+test("a whole short verdict carrying its row does not hold awaiting_release", () => {
   const page = [mark(), pass(1), short(2)];
   assert.deepEqual(naming("awaiting_release", page, 2), [], "awaiting_release: the shortfall released the change");
-  assert.deepEqual(naming("closed", page, 2), [], "closed: and it went to the row it names, not onto this rung");
 });
 
 test("a fail superseded by a later pass on the same criterion holds nothing past the judging", () => {
@@ -80,19 +80,19 @@ test("a fail superseded by a later pass on the same criterion holds nothing past
 /* A fail written before a reopen's ruling would be named twice at the later rungs — once by
    failedOwed (which fires on `fail` alone, staleness or not) and once by judgedSince (the
    reopen's own reading) — so pastJudgingOwed leaves a stale number out of failedOwed's own set,
-   naming it once, by judgedSince, instead: one criterion, one reason (codex review). Testing
-   itself is unaffected and unchanged: `verdictsOwed`'s own embedded fail check still runs beside
+   naming it once, by judgedSince, instead: one criterion, one reason (codex review). The judging
+   place itself is unaffected and unchanged: `verdictsOwed`'s own embedded fail check still runs beside
    `judgedSince` there, out of this fix's scope, so the two counts need not agree. */
 test("a stale fail is named once, by the reopen route, not doubled with the fail route", () => {
   const staleFail = [mark(), fail(2), ruling("wrong-test")];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, staleFail, 2).map((one) => one.what), [
       "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
     ], `${status}: named once, by the reopen route, not twice`);
   }
   assert.ok(judgedOwed(viewFrom("the-uuid", ISSUE, staleFail), "ISS-7")
     .filter((one) => one.what.includes("criterion 2")).length >= 1,
-    "testing (out of this fix's scope, unchanged) still names it too, so the criterion is never left unheld anywhere");
+    "in_progress:release (out of this fix's scope, unchanged) still names it too, so the criterion is never left unheld anywhere");
 });
 
 /* A criterion the judgement proved wrong, not the code, is corrected in the open rather than left
@@ -100,7 +100,7 @@ test("a stale fail is named once, by the reopen route, not doubled with the fail
    verdict, and taking it — the number gone from the current criteria — clears the hold (ISS-2430). */
 test("the need names both routes clear of a fail, and a recorded correction is what clears it", () => {
   const page = [mark(), pass(1), fail(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     const [item] = naming(status, page, 2);
     assert.match(item?.command ?? "",
       /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
@@ -109,12 +109,12 @@ test("the need names both routes clear of a fail, and a recorded correction is w
       `${status}: the correction route is the exact string the shared correctedForm returns, beside the fresh verdict`);
   }
   const droppedField = { acceptanceCriteria: "1. The first outcome." };
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.ok(naming(status, page, 2, droppedField).length,
       `${status}: the criteria field alone dropping the number is not a correction, so the old fail still holds`);
   }
   const withCorrection = [...page, corrected(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, withCorrection, 2, droppedField), [],
       `${status}: a recorded correction naming criterion 2 is what clears the old fail on that number`);
   }
@@ -129,8 +129,8 @@ test("a failed carrier of a folded finding is named by exactly one item past the
     "one reading of the failed verdict, not a second for the finding it carries");
 });
 
-test("at testing a failed verdict raises the one item it always raised", () => {
-  const items = owed("testing", [mark(), pass(1), fail(2)]).map((one) => one.what);
+test("at in_progress:release a failed verdict raises the one item it always raised", () => {
+  const items = owed("in_progress:release", [mark(), pass(1), fail(2)]).map((one) => one.what);
   assert.deepEqual(items, ["criterion 2 failed its verdict"], "the judging rung's refusal did not double");
 });
 
@@ -175,7 +175,7 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
-test("an issue at awaiting_release keeps that status when a fail is written, and closed is refused", async () => {
+test("an issue at awaiting_release keeps that status when a fail is written, and advance offers no close", async () => {
   const run = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
     "--criterion", "2", "--verdict", "fail", "--why", "35 test files against a ceiling of 30");
   assert.equal(run.status, 0, run.stderr);
@@ -183,6 +183,7 @@ test("an issue at awaiting_release keeps that status when a fail is written, and
   const moves = state.calls.filter((one) => one.name === "forge_issues" && one.args?.data?.status);
   assert.deepEqual(moves.map((one) => one.args.data.status), [], "and no status was sent at all");
   const next = await ask("advance", "ISS-7", "--owed");
-  assert.match(next.stdout, /closed is next and the record does not earn it/u, next.stdout);
-  assert.match(next.stdout, /criterion 2 failed its verdict/u, "the fail is what holds it");
+  assert.match(`${next.stdout}${next.stderr}`, /nothing advances from it here: core closes it only by the release that ships it \(CLOSE_ONLY_BY_RELEASE\)/u,
+    `${next.stdout}${next.stderr}`);
+  assert.match(`${next.stdout}${next.stderr}`, /forge release-batch record ISS-7 /u, "the close it names is the release's record");
 });

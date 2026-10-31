@@ -99,9 +99,7 @@ const READY = {
   releaseNotes: { section: "Skip", userFacing: "-" },
   sessionContext: { lease: LEASE },
 };
-/* The rung this issue is set at asks for a verification naming the deployment (ISS-1480): a bare
-   record with no comment on it would be one this test never meant to be about, so it is here rather
-   than owed by the case below. */
+/* A page carrying a record, so the drop below reads a thread rather than an empty one. */
 const VERIFIED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
   body: render("verification",
     { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) }];
@@ -126,15 +124,17 @@ const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const ENV = { ...tracker.env, FORGE_SESSION_ID: HOLDER };
 projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
-const closing = (at) => {
-  READY.status = "awaiting_release";
-  return ranAsync(FORGE, ["advance", KEY], ENV, at);
+/* The act through this verb that ends an owing: a drop. `forge advance` offers no close, core closing
+   an issue at awaiting_release only by the release that ships it (CLOSE_ONLY_BY_RELEASE). */
+const dropping = (at) => {
+  READY.status = "open";
+  return ranAsync(FORGE, ["advance", KEY, "--drop", "--why", "the work is not wanted"], ENV, at);
 };
 
-test("forge advance closing an issue names the criteria whose escape cited it", async () => {
-  const run = await closing(ROOT);
+test("forge advance dropping an issue names the criteria whose escape cited it", async () => {
+  const run = await dropping(ROOT);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, new RegExp(`^${KEY} {2}awaiting_release -> closed`, "mu"), run.stdout);
+  assert.match(run.stdout, new RegExp(`^${KEY} {2}open -> dropped`, "mu"), run.stdout);
   assert.ok(run.stdout.includes(`${OWED.length} criteria under docs/requirements/ stand unproved `
     + `and owed to ${KEY}, which owes nothing now:`), run.stdout);
   for (const one of OWED.slice(0, 3)) {
@@ -146,9 +146,9 @@ test("forge advance closing an issue names the criteria whose escape cited it", 
 test("a move from a checkout that keeps no requirements tree says nothing about escapes", async () => {
   const room = tempHome("gone-escapes-treeless");
   projectRoom(room.path, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
-  const run = await closing(room.path);
+  const run = await dropping(room.path);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, new RegExp(`^${KEY} {2}awaiting_release -> closed`, "mu"), run.stdout);
+  assert.match(run.stdout, new RegExp(`^${KEY} {2}open -> dropped`, "mu"), run.stdout);
   assert.doesNotMatch(run.stdout, /stand unproved and owed to/u,
     "a directory with no tree under it is told nothing, rather than told none");
   room.remove();

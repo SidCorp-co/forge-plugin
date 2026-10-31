@@ -1,6 +1,7 @@
-/* A skipped verdict holds every rung from the judging one to the close, the same shape a fail
-   already holds (ISS-2511), and so does a verdict a reopen's triage already moved past
-   (`judgedSince`). ISS-1192 reached `testing` with criterion 18 skipped, and the issue would have
+/* A skipped verdict holds every place from the judging one to the top of the ladder, the same shape a
+   fail already holds (ISS-2511), and so does a verdict a reopen's triage already moved past
+   (`judgedSince`). The close past `awaiting_release` is core's release alone (CLOSE_ONLY_BY_RELEASE),
+   whose sweep refuses a skip the same way. ISS-1192 reached `in_progress:release` with criterion 18 skipped, and the issue would have
    closed over a criterion nobody ever exercised (ISS-2430); core's own release sweep already refuses
    a skip and a stale verdict the same way it refuses a fail. A never-judged criterion is left alone:
    `the-rung.test.mjs` (ISS-1065) holds the judging half and the deploying half apart on that one, and
@@ -39,9 +40,9 @@ const owed = (status, comments, issue = {}) =>
 const naming = (status, comments, number, issue) =>
   owed(status, comments, issue).filter((one) => one.what.includes(`criterion ${number}`));
 
-test("a whole skip standing on a criterion refuses awaiting_release and closed, naming the criterion and the why", () => {
+test("a whole skip standing on a criterion refuses awaiting_release, naming the criterion and the why", () => {
   const page = [mark(), pass(1), skip(2, "no route in the fixture suite reaches this criterion")];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, page, 2).map((one) => one.what), [
       "criterion 2 was skipped (\"no route in the fixture suite reaches this criterion\"), and "
         + "nothing on the record says it has been judged since",
@@ -52,14 +53,14 @@ test("a whole skip standing on a criterion refuses awaiting_release and closed, 
 
 test("the item a skipped verdict raises past the judging carries the verdict write for that criterion", () => {
   const page = [mark(), pass(1), skip(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     const [item] = naming(status, page, 2);
     assert.match(item?.command ?? "", /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
       `${status}: the one write that answers it, at the commit the mark names`);
   }
 });
 
-test("testing itself asks nothing past the skip's own --why: out of scope is left alone", () => {
+test("in_progress:release itself asks nothing past the skip's own --why: out of scope is left alone", () => {
   const page = [mark(), pass(1), skip(2)];
   const view = viewFrom("the-uuid", ISSUE, page);
   assert.deepEqual(judgedOwed(view, "ISS-7"), [], "a skip earns the judging rung it was written at");
@@ -68,30 +69,27 @@ test("testing itself asks nothing past the skip's own --why: out of scope is lef
 test("a skip superseded by a later verdict on the same criterion holds nothing past the judging", () => {
   assert.deepEqual(naming("awaiting_release", [mark(), pass(1), skip(2), pass(2)], 2), [],
     "the latest verdict is the one standing");
-  assert.deepEqual(naming("closed", [mark(), pass(1), skip(2), pass(2)], 2), [],
-    "and closed reads the same page the same way");
 });
 
 test("each rung is entered on its own half still: a criterion with no verdict at all holds neither by this change", () => {
   const bare = { acceptanceCriteria: "1. The one outcome." };
   assert.deepEqual(naming("awaiting_release", [], 1, bare), [], "awaiting_release names no skip where none was written");
-  assert.deepEqual(naming("closed", [], 1, bare), [], "closed reads the same empty page the same way");
 });
 
-test("a verdict a reopen's triage already moved past holds awaiting_release and closed too", () => {
+test("a verdict a reopen's triage already moved past holds awaiting_release too", () => {
   const marked = mark();
   const early2 = pass(2);
   const wrong = ruling("wrong-test");
   const late1 = pass(1);
   const page = [marked, early2, wrong, late1];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, page, 2).map((one) => one.what), [
       "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
-    ], `${status}: a verdict the reopen already moved past still holds it, exactly as testing reads it`);
+    ], `${status}: a verdict the reopen already moved past still holds it, exactly as in_progress:release reads it`);
     assert.deepEqual(naming(status, page, 1), [], `${status}: the verdict written since the triage is not named`);
   }
   const rejudged = [...page, pass(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, rejudged, 2), [], `${status}: a verdict written since the triage earns it again`);
   }
 });
@@ -99,24 +97,24 @@ test("a verdict a reopen's triage already moved past holds awaiting_release and 
 /* A stale skip would be named twice at the later rungs — once by skippedOwed (which fires on
    `skipped` alone, staleness or not) and once by judgedSince (the reopen's own reading) — so
    pastJudgingOwed leaves a stale number out of skippedOwed's own set, naming it once, by
-   judgedSince, instead: one criterion, one reason (codex review). Testing already names a stale
+   judgedSince, instead: one criterion, one reason (codex review). The judging place already names a stale
    skip once this same way (judgedSince alone; a skip carries no evidence obligation of its own to
    duplicate there), so this is the one later-rung count that already agreed even before the fix. */
 test("a stale skip is named once, by the reopen route, not doubled with the skip route", () => {
   const staleSkip = [mark(), skip(2), ruling("wrong-test")];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, staleSkip, 2).map((one) => one.what), [
       "the verdict on criterion 2 was written before this reopen's triage, and a reopen judges again",
     ], `${status}: named once, by the reopen route, not twice`);
   }
   assert.deepEqual(judgedOwed(viewFrom("the-uuid", ISSUE, staleSkip), "ISS-7")
     .filter((one) => one.what.includes("criterion 2")).length, 1,
-    "testing names it once too, the same count this fix now gives the later rungs");
+    "in_progress:release names it once too, the same count this fix now gives the later rungs");
 });
 
 test("the need names both routes clear of a skip: a fresh verdict, or correcting the criterion away", () => {
   const page = [mark(), pass(1), skip(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     const [item] = naming(status, page, 2);
     assert.match(item?.command ?? "",
       /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
@@ -133,12 +131,12 @@ test("the need names both routes clear of a skip: a fresh verdict, or correcting
 test("correcting the criterion away clears the hold, and an edit with no correction record does not", () => {
   const page = [mark(), pass(1), skip(2)];
   const droppedField = { acceptanceCriteria: "1. The first outcome." };
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.ok(naming(status, page, 2, droppedField).length,
       `${status}: the criteria field alone dropping the number is not a correction, so the old skip still holds`);
   }
   const withCorrection = [...page, corrected(2)];
-  for (const status of ["awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release"]) {
     assert.deepEqual(naming(status, withCorrection, 2, droppedField), [],
       `${status}: a recorded correction naming criterion 2 is what clears the old skip on that number`);
   }
@@ -185,7 +183,7 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
-test("an issue at awaiting_release keeps that status when a skip is written, and closed is refused", async () => {
+test("an issue at awaiting_release keeps that status when a skip is written, and advance offers no close", async () => {
   const run = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
     "--criterion", "2", "--verdict", "skipped", "--why", "no route in the fixture suite reaches this criterion");
   assert.equal(run.status, 0, run.stderr);
@@ -193,6 +191,7 @@ test("an issue at awaiting_release keeps that status when a skip is written, and
   const moves = state.calls.filter((one) => one.name === "forge_issues" && one.args?.data?.status);
   assert.deepEqual(moves.map((one) => one.args.data.status), [], "and no status was sent at all");
   const next = await ask("advance", "ISS-7", "--owed");
-  assert.match(next.stdout, /closed is next and the record does not earn it/u, next.stdout);
-  assert.match(next.stdout, /criterion 2 was skipped/u, "the skip is what holds it");
+  assert.match(`${next.stdout}${next.stderr}`, /nothing advances from it here: core closes it only by the release that ships it \(CLOSE_ONLY_BY_RELEASE\)/u,
+    `${next.stdout}${next.stderr}`);
+  assert.match(`${next.stdout}${next.stderr}`, /forge release-batch record ISS-7 /u, "the close it names is the release's record");
 });

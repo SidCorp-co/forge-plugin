@@ -8,7 +8,7 @@ refused. What it does is make the change judgeable and leave the record a judgin
 is deployed before it is promoted, the deploy comes first and the promotion waits on the judgement.
 Where the deployment is fed by the branch a change lands on, Phase 7's landing is taken first and
 this phase resumes at the deployment that landing produced. The statuses move in one order either
-way — `developed` on the mark the landing writes, `testing` on the judgement — and neither moves
+way — `in_progress:test` on the mark the landing writes, `in_progress:release` on the judgement — and neither moves
 before what earns it.
 
 **The deployment identity is acquired here and left on the issue.** Read back the commit the
@@ -33,7 +33,7 @@ stops. It dispatches nobody and it waits for nothing. The criteria the plan name
 Witnessed on screen` stay on the issue, which is where the judging run reads its own brief.
 
 <!-- forge:when ship self -->
-**This run lands the change itself, so it ends at `developed` and the handoff is that status** —
+**This run lands the change itself, so it ends at `in_progress:test` and the handoff is that status** —
 not a message and not a lease. A lease ends with the run that took it, so an issue left there is a
 free issue at a status somebody else claims from, and nothing in the route asks for a tool a judging
 role does not ship.

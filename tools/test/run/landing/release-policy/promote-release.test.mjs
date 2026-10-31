@@ -88,7 +88,7 @@ test("a promotion the project deploys on its own rests at the rung for the relea
   const said = `${back.stdout}${back.stderr}`;
   assert.equal(back.status, 0, said);
   assert.equal(issue().status, "awaiting_release", `the walk took the close the release batch is owed:\n${said}`);
-  assert.deepEqual(moves(), ["developed", "testing", "awaiting_release"],
+  assert.deepEqual(moves(), ["in_progress:test", "in_progress:release", "awaiting_release"],
     `the walk stops at the rung and no further:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
   assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the promotion from ${BASE} to production is the release batch's`, "u"),

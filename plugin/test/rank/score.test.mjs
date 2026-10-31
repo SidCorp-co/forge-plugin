@@ -170,20 +170,20 @@ test("the chain stops at an issue that has already landed", () => {
     "and with the middle still open it is");
 });
 
-/* What a run may take and what still holds work up are two sets, and the second is the flow's own
-   answer: `forge advance` moves an issue past a blocker at `developed`, so a rank that called that
-   blocker a wall would name one the transition does not. */
+/* What a run may take and what still holds work up are two sets, and the second is core's own
+   answer: a blocker is settled at `awaiting_release` or `closed`, so a rank that called one there a
+   wall would name one the transition does not, and one landed but not yet judged still holds. */
 test("the set the chain stops at is what still gates, not what a run may take", () => {
   const rows = [
     { issueId: "ISS-1", status: "open" },
-    { issueId: "ISS-2", status: "in_progress" },
-    { issueId: "ISS-3", status: "waiting" },
-    { issueId: "ISS-4", status: "developed" },
+    { issueId: "ISS-2", status: "in_progress:build" },
+    { issueId: "ISS-3", status: "needs_info" },
+    { issueId: "ISS-4", status: "in_progress:test" },
     { issueId: "ISS-5", status: "awaiting_release" },
     { issueId: "ISS-6", status: "closed" },
   ];
   assert.deepEqual([...takeableKeys(rows)], ["ISS-1"]);
-  assert.deepEqual([...holdingKeys(rows)], ["ISS-1", "ISS-2", "ISS-3"]);
+  assert.deepEqual([...holdingKeys(rows)], ["ISS-1", "ISS-2", "ISS-3", "ISS-4"]);
   const blocks = graph([["ISS-1", "ISS-2"], ["ISS-2", "ISS-3"]]);
   assert.deepEqual(chainOf("ISS-1", blocks, holdingKeys(rows)).sort(), ["ISS-2", "ISS-3"],
     "an in-flight blocker is walked through, not stopped at");

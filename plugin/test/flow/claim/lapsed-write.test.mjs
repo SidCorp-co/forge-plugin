@@ -1,5 +1,5 @@
 /* The three rungs a payload write meets on another run's lease, watched through the CLI on the very
-   call the round was measured on: a wave closing an issue its runner had left behind. A lapse older
+   call the round was measured on: a wave moving an issue its runner had left behind. A lapse older
    than the duration the holder named is one a bare `forge claim` grants with no flag, so the write
    makes that claim itself; a younger one and a live one are refused exactly as they were, or the
    change could not be told from deleting the freshness guard (ISS-1660). */
@@ -28,7 +28,7 @@ const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 const ISSUE = {
   documentId: UUID,
   issueId: "ISS-1660",
-  status: "awaiting_release",
+  status: "open",
   title: "a write refused only by an expired lease",
   description: "no mark here",
   complexity: "s",
@@ -38,12 +38,13 @@ const ISSUE = {
    case reads through the one before it. */
 let displaced = null;
 const heldBy = (holder, since, minutes) => {
-  ISSUE.status = "awaiting_release";
+  ISSUE.status = "open";
+  ISSUE.workState = null;
   displaced = { renewedAt: ago(since), minutes };
   ISSUE.sessionContext = {
     lease: {
       holder, agent: "a-test-agent", pid: "4242", renewedAt: displaced.renewedAt, minutes, next: LEFT,
-      history: [{ holder, at: displaced.renewedAt, how: "claim", status: "in_progress", next: null }],
+      history: [{ holder, at: displaced.renewedAt, how: "claim", status: "open", next: null }],
     },
   };
 };
@@ -52,16 +53,16 @@ const heldBy = (holder, since, minutes) => {
 const ranOutOf = () =>
   new Date(Date.parse(displaced.renewedAt) + displaced.minutes * 60_000).toISOString().slice(0, 16);
 
-/* The rung this issue is set at asks for a verification naming the deployment (ISS-1480), which no
-   case below is about: the lease is the one thing each meets, so the record already holds one. */
-const VERIFIED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
-  body: render("verification",
-    { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) }];
+/* The place this issue moves to asks for a whole confirmation, which no case below is about: the
+   lease is the one thing each meets, so the record already holds one. */
+const CONFIRMED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
+  body: render("confirmation",
+    { is: "the write refused by an expired lease", where: ["plugin/src/flow/lease.mjs"], finding: "holds" }) }];
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } },
   issues: [ISSUE],
-  comments: { [UUID]: VERIFIED },
+  comments: { [UUID]: CONFIRMED },
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
@@ -90,9 +91,10 @@ test("a write meeting a lease the record proves dead reclaims it and lands, in o
      so nothing about that run is left for a caller to establish. */
   heldBy(THEIRS, 121, 60);
   const moved = await ran(["advance", "ISS-1660"]);
-  assert.equal(moved.status, 0, `one call should have closed it:\n${moved.stdout}${moved.stderr}`);
-  assert.match(moved.stdout, /ISS-1660 {2}awaiting_release -> closed/u, "the write the caller asked for landed");
-  assert.equal(ISSUE.status, "closed", "and the status moved on the tracker, not only in the output");
+  assert.equal(moved.status, 0, `one call should have moved it:\n${moved.stdout}${moved.stderr}`);
+  assert.match(moved.stdout, /ISS-1660 {2}open -> in_progress:plan/u, "the write the caller asked for landed");
+  assert.deepEqual([ISSUE.status, ISSUE.workState?.step], ["in_progress", "plan"],
+    "and the status moved on the tracker, not only in the output");
   assert.doesNotMatch(moved.stderr, /Reclaim it first/u, "with nothing sending the caller back for a claim");
 
   assert.match(moved.stderr, new RegExp(`session ${THEIRS}`, "u"), "the notice names the run it displaced");
@@ -103,7 +105,7 @@ test("a write meeting a lease the record proves dead reclaims it and lands, in o
   const row = onTheRecord().history.at(-1);
   assert.equal(row.how, "reclaim",
     "the history keeps the word a typed reclaim writes, so the count of reclaims still counts this pickup");
-  assert.equal(row.status, "awaiting_release", "at the status the issue stood at when it was taken");
+  assert.equal(row.status, "open", "at the status the issue stood at when it was taken");
   assert.equal(row.from, THEIRS, "and names the run it went over, which no earlier row has to survive for");
   assert.equal(row.ranOut, ranOutOf(),
     "and when that lease ran out, off its own renew time and duration, which nothing else on the record holds");
@@ -120,7 +122,7 @@ test("a lease lapsed inside the threshold refuses the write, and the claim it na
   assert.match(refused.stderr, /the lease on ISS-1660 is another run's and has expired/u,
     "in the words it used before this change");
   assert.match(refused.stderr, /Reclaim it first:\n {2}forge claim ISS-1660/u, "naming the claim");
-  assert.equal(ISSUE.status, "awaiting_release", "and nothing moved");
+  assert.equal(ISSUE.status, "open", "and nothing moved");
 
   const claim = await ran(["claim", "ISS-1660"]);
   assert.equal(claim.status, 1, `and that claim is itself refused:\n${claim.stdout}${claim.stderr}`);
@@ -135,5 +137,5 @@ test("another run's live lease refuses the write as it always did", async () => 
   assert.equal(refused.status, 1, `a live lease is that run's:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /ISS-1660 is held by another run/u);
   assert.doesNotMatch(refused.stderr, /reclaimed it/u, "and nothing was taken");
-  assert.equal(ISSUE.status, "awaiting_release");
+  assert.equal(ISSUE.status, "open");
 });

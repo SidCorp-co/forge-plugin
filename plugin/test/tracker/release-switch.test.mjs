@@ -88,7 +88,7 @@ const ASSERTED = [
 ];
 
 const owed = (autoProdDeploy, release) => deployedOwed(
-  viewFrom("the-uuid", { attachments: [{ name: "run.txt" }], releaseNotes: { section: "Fixed" } },
+  viewFrom("the-uuid", { attachments: [{ name: "run.txt" }], releaseNotes: { section: "Fixed", title: "The list shows again" } },
     ASSERTED, null, policy(autoProdDeploy, declared(release))),
   "ISS-3",
 );

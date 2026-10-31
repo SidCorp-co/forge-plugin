@@ -1,6 +1,6 @@
-/* A blocker that was dropped held its dependant forever, a status off the ladder reading as below
-   `developed`, and an edge the tracker reported expired held it too, the predicate never reading
-   the edge's own expiry (ISS-347). Every reader goes through that one predicate, so each case below
+/* A blocker that was dropped held its dependant forever, a status off the ladder reading as below the
+   floor, and an edge the tracker reported expired held it too, the predicate never reading the edge's
+   own expiry (ISS-347). The floor is core's: a blocker settles at awaiting_release or closed. Every reader goes through that one predicate, so each case below
    is asked of the reader a verb prints from. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -15,7 +15,7 @@ const { holdingKeys } = await import("../../../src/rank/score.mjs");
 const BUILT = { sessionContext: { worklog: { branch: "iss-3-the-work" } } };
 const edge = (otherStatus, held = {}) => ({ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", ...held });
 const owed = (...blockedBy) =>
-  CHECKS.in_progress(viewFrom("the-uuid", { ...BUILT, relations: { blockedBy } }, []), "ISS-3")
+  CHECKS["in_progress:build"](viewFrom("the-uuid", { ...BUILT, relations: { blockedBy } }, []), "ISS-3")
     .map((one) => one.what);
 const PAST = "2026-01-01T00:00:00.000Z";
 const FUTURE = "2999-01-01T00:00:00.000Z";
@@ -26,12 +26,13 @@ test("forge advance holds nothing back for a blocker at either terminal status",
 });
 
 test("forge advance still refuses on an open blocker, and the refusal names it", () => {
-  assert.deepEqual(owed(edge("open")), ["ISS-4 gates this by a blocks edge and is open, which is not yet developed"]);
+  assert.deepEqual(owed(edge("open")), ["ISS-4 gates this by a blocks edge and is open, which core does not yet read as settled (awaiting_release or closed)"]);
 });
 
-test("a blocker that got past developed off the ladder holds nothing", () => {
-  assert.deepEqual(owed(edge("releasing")), [], "releasing is reached only past awaiting_release");
-  assert.deepEqual(owed(edge("tested")), [], "and the retired name reads at the rung that took it over");
+test("a blocker settles where core settles it, at awaiting_release, and holds at every step before", () => {
+  assert.deepEqual(owed(edge("awaiting_release")), [], "awaiting_release is where core reads a blocker as settled");
+  assert.equal(owed(edge("in_progress")).length, 1, "and in_progress holds, whatever step the work is at");
+  assert.equal(owed(edge("approved")).length, 1, "as does an approved plan nobody has built");
 });
 
 test("an edge the tracker reports expired holds nothing, whatever its blocker", () => {
@@ -43,14 +44,14 @@ test("an edge with no expired field is judged on its validUntil, and one carryin
   assert.deepEqual(owed(edge("open", { validUntil: PAST })), [], "a validUntil in the past retracted it");
   assert.equal(owed(edge("open", { validUntil: FUTURE })).length, 1, "one still ahead has not");
   assert.deepEqual(owed(edge("open")),
-    ["ISS-4 gates this by a blocks edge and is open, which is not yet developed"],
+    ["ISS-4 gates this by a blocks edge and is open, which core does not yet read as settled (awaiting_release or closed)"],
     "and absent evidence is no retraction");
   assert.equal(owed(edge("open", { expired: false, validUntil: PAST })).length, 1,
     "the tracker's own field, where it sent one, is the answer rather than a second reading of the date");
 });
 
 test("a blocker parked or waiting holds its dependant back", () => {
-  for (const status of ["waiting", "on_hold", "needs_info", "reopen", "draft"]) {
+  for (const status of ["on_hold", "needs_info", "reopen", "draft"]) {
     assert.equal(owed(edge(status)).length, 1, `${status} released its dependant`);
   }
   assert.equal(owed(edge("nothing-the-table-declares")).length, 1, "and a name nobody declared holds too");
@@ -65,7 +66,7 @@ test("forge next does not leave an issue out for a dropped blocker or an expired
 });
 
 test("forge next's holding set does not count a dropped issue as holding anything", () => {
-  const rows = ["open", "dropped", "closed", "releasing", "on_hold"]
+  const rows = ["open", "dropped", "closed", "awaiting_release", "on_hold"]
     .map((status, index) => ({ issueId: `ISS-${index + 1}`, status }));
   assert.deepEqual([...holdingKeys(rows)], ["ISS-1", "ISS-5"]);
   assert.equal(holdsBack(edge("dropped")), false);

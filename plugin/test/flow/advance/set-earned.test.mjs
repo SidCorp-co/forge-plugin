@@ -36,7 +36,8 @@ const MARK = () => comment("mark_merged — merged to master at 43b811e; reviewe
 const FIXED = {
   documentId: "fixed-uuid",
   issueId: "ISS-90",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "the issue whose confirmation earned a drop",
   description: "no mark here",
   complexity: "s",
@@ -82,8 +83,10 @@ test.after(() => tracker.close());
 const advance = (...argv) =>
   ranAsync(FORGE, ["advance", "ISS-90", ...argv], { ...ENV, FORGE_SESSION_ID: HOLDER });
 
-const before = (status = "confirmed", comments = [CONFIRMED()]) => {
-  FIXED.status = status;
+/* Set as the place a reader sees, held as core holds it: the status, and the step inside it. */
+const before = (place = "in_progress:plan", comments = [CONFIRMED()]) => {
+  const [status, step] = place.split(":");
+  Object.assign(FIXED, { status, workState: step ? { step } : null });
   delete FIXED.mergedAt;
   state.comments = comments;
   state.unmarkRefuses = null;
@@ -102,16 +105,16 @@ test("a set past the status the record earns is refused, and names that status a
   before();
   const run = await advance("--set", "closed", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /ISS-90 is confirmed and its record earns dropped, not closed\./u, run.stderr);
+  assert.match(run.stderr, /ISS-90 is in_progress:plan and its record earns dropped, not closed\./u, run.stderr);
   assert.match(run.stderr, /nothing was sent/u, run.stderr);
   assert.match(run.stderr, /^ {2}forge advance ISS-90$/mu,
     `the refusal names the command that takes what the record earns: ${run.stderr}`);
   assert.deepEqual(sent("transition"), [], "the move the refusal was there to stop was made anyway");
-  assert.equal(FIXED.status, "confirmed");
+  assert.equal(FIXED.status, "in_progress");
 });
 
 test("a set the record earns nothing against is written as it was, and says no check read it", async () => {
-  before("confirmed", [MARK()]);
+  before("in_progress:plan", [MARK()]);
   const run = await advance("--set", "closed", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.deepEqual(sent("transition").map((one) => one.args.data.status), ["closed"]);
@@ -128,7 +131,7 @@ test("a set naming a side status reads no record, whatever the record earns", as
 });
 
 test("a set to a rung behind where the issue stands reads no record either", async () => {
-  before("developed");
+  before("in_progress:test");
   const run = await advance("--set", "approved", "--why", "the commit was reverted");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(listed(), 2, "what every set pays and no more: walking a landing back is not a status anything on the page earns");
@@ -136,7 +139,7 @@ test("a set to a rung behind where the issue stands reads no record either", asy
 });
 
 test("a close that comes back stamped with no mark on the page has the stamp taken down in the same call", async () => {
-  before("confirmed", []);
+  before("in_progress:plan", []);
   const run = await advance("--set", "closed", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stdout, new RegExp(`came back stamped merged at ${STAMPED_AT.replace(/\./u, "\\.")}`, "u"), run.stdout);
@@ -159,7 +162,7 @@ test("a set that read no page leaves a stamp on its answer standing", async () =
 });
 
 test("a close whose page carries a merged mark keeps its stamp", async () => {
-  before("confirmed", [MARK()]);
+  before("in_progress:plan", [MARK()]);
   const run = await advance("--set", "closed", "--why", "the release went out and I read the installed copy");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.deepEqual(sent("unmark"), [], "a stamp beside a mark names a landing, and this took it down");
@@ -172,7 +175,7 @@ test("a close whose page carries a merged mark keeps its stamp", async () => {
    on the page saying who set it — which is the record the set exists to leave, and the one an unearned
    status is read against ever afterwards (consult 6e172b F1). */
 test("a repair the tracker refuses still leaves the correction the set owes, and names the way back", async () => {
-  before("confirmed", []);
+  before("in_progress:plan", []);
   state.unmarkRefuses = "FORBIDDEN: this issue's merge cannot be unmade";
   const run = await advance("--set", "closed", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
@@ -190,7 +193,7 @@ test("a repair the tracker refuses still leaves the correction the set owes, and
    that its correction did not go up, a run would walk away from a row still claiming a landing nothing
    made, and a refusal naming one of two problems is a refusal that hid the other (consult 17b76c F1). */
 test("a correction the tracker refuses does not swallow the repair the same set owes", async () => {
-  before("confirmed", []);
+  before("in_progress:plan", []);
   state.commentRefuses = "BAD_REQUEST: this issue takes no more comments";
   const run = await advance("--set", "closed", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
@@ -205,7 +208,7 @@ test("a correction the tracker refuses does not swallow the repair the same set 
    still there a run undoes a removal that may have landed, and the row's own field is the only thing
    that settles which happened (consult 17b76c F2). */
 test("a repair that neither landed nor failed cleanly claims nothing, and sends the run to read the row", async () => {
-  before("confirmed", []);
+  before("in_progress:plan", []);
   state.unmarkRefuses = `Forge did not answer DELETE /api/issues/fixed-uuid/merge: socket hang up\n${AMBIGUOUS}`;
   const run = await advance("--set", "closed", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);

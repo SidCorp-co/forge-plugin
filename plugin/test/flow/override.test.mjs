@@ -31,7 +31,7 @@ const ISSUE = {
   priority: "medium",
 };
 
-const ANNOUNCE = { waiting: "⏸ **Waiting on a human decision**", needs_info: "❓ **Needs info**" };
+const ANNOUNCE = { needs_info: "❓ **Needs info**" };
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
@@ -107,10 +107,9 @@ await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], ENV);
 /* The claim above is this suite's lease, restored per case: one of them hands the issue to another run. */
 const MINE = structuredClone(ISSUE.sessionContext);
 
-const before = (status = "in_progress") => {
-  ISSUE.status = status;
-  ISSUE.priority = "medium";
-  ISSUE.complexity = "s";
+const before = (place = "in_progress:build") => {
+  const [status, step] = place.split(":");
+  Object.assign(ISSUE, { status, workState: step ? { step } : null, priority: "medium", complexity: "s" });
   ISSUE.sessionContext = structuredClone(MINE);
   state.calls = [];
   state.refuses = null;
@@ -352,7 +351,7 @@ test("a status set by hand carries the reason the tracker demands, and says no c
 
 /* The round this removes, end to end and on the verb that was spending it most: the move lands in the one call that asked for it, on an issue no run had ever taken (ISS-1260). The transition's own `--next` is a clearing of a line the issue was carrying, and a field holding no lease carries none, so the lease gets the line that says no work followed the write, and the write gives that lease back. */
 test("a status set on an issue nobody holds moves in the one call, the write taking the lease it was refused for", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   ISSUE.sessionContext = null;
   const run = await setStatus("--set", "on_hold", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
@@ -368,7 +367,7 @@ test("a status set on an issue nobody holds moves in the one call, the write tak
 
 test("a status that waits on a person carries the kind the tracker demands of one", async () => {
   before("awaiting_release");
-  assert.match((await setStatus("--set", "waiting", "--why", WHY)).stderr, /`needs_info` is the rung that took it over/u);
+  assert.match((await setStatus("--set", "waiting", "--why", WHY)).stderr, /ISSUE_STATUS_LEGACY, and `needs_info` is the place that took it over/u);
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(sent("transition").waitingKind, "needs_decision", "set with no question, a wait on a decision");
@@ -378,7 +377,7 @@ test("a status that waits on a person carries the kind the tracker demands of on
    `needs_info` issue as the reporter's answer and puts the issue back, so a correction written
    after the move would be read as that answer and undo it. */
 test("into needs_info the correction goes first, so the move cannot be undone by it", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const wrote = state.calls.findIndex((one) => one.name === "forge_comments" && one.args.action === "create");
@@ -395,7 +394,7 @@ test("into needs_info the correction goes first, so the move cannot be undone by
    exits the process and would leave the correction claiming a status nothing was asked to set,
    with only a lease sentence to read it by. */
 test("a lease taken under the correction stops the move, and the message names what the record claims", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   state.takesLease = "another-run";
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
@@ -413,7 +412,7 @@ test("a lease taken under the correction stops the move, and the message names w
    here would report a transport and never the record standing above it. Not knowing is not a
    handoff, so it is said as not knowing, and the move to make is the one the run already typed. */
 test("a lease the transport would not read stops the move, and is reported as not knowing", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   state.losesLeaseRead = "Forge answered 503";
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
@@ -429,11 +428,11 @@ test("a lease the transport would not read stops the move, and is reported as no
    status did not move, and only this message says so. The park spends the same route into the same
    status, so a park refused after its record reports it too. */
 test("a move refused after the record went up is reported as the pair it left", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   state.refuses = "a status change needs a reason";
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /is still confirmed: the record for needs_info went up and the move was refused/u);
+  assert.match(run.stderr, /is still in_progress:plan: the record for needs_info went up and the move was refused/u);
   assert.match(run.stderr, /a status change needs a reason/u, "carrying what the tracker said, which is what to act on");
   assert.match(run.stderr, /forge record correction ISS-96 --corrects issue:status --moved/u, "and the way to say the record above is wrong");
   assert.equal(posted().length, 1, "the correction that did go up is the thing the message is about");
@@ -442,7 +441,7 @@ test("a move refused after the record went up is reported as the pair it left", 
 /* A dropped write is not a rejected one, and the transport says which it was. Told the issue is
    still where it was, a run would correct a move that may have landed. */
 test("a move that neither landed nor failed sends the run to read the status first", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   state.refuses = "Forge did not answer POST /api/issues/x/transition: socket hang up\n"
     + "This call may have been processed and is not sent again: idempotence is documented for the "
     + "merged mark alone, so a repeat could write twice. Read the record first.";
@@ -450,13 +449,13 @@ test("a move that neither landed nor failed sends the run to read the status fir
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /neither landed nor failed cleanly/u);
   assert.match(run.stderr, /forge issue ISS-96 --fields status/u, "the read that settles it comes first");
-  assert.doesNotMatch(run.stderr, /is still confirmed/u, "and nothing asserts a status nobody read back");
+  assert.doesNotMatch(run.stderr, /is still in_progress:plan/u, "and nothing asserts a status nobody read back");
 });
 
 /* The record goes first here, so its own failure means nothing happened at all — and the body this
    route offers to post by hand would claim a move that was never attempted. */
 test("a record refused before the move says nothing was sent, and offers no body to post", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   state.dropsRecord = "the comment route is not available";
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
@@ -469,7 +468,7 @@ test("a record refused before the move says nothing was sent, and offers no body
 /* The same reading on the record's own write: a comment whose response dropped may be on the page,
    and a run told it is not there posts the claim a second time. */
 test("a record whose write neither landed nor failed sends the run to the page", async () => {
-  before("confirmed");
+  before("in_progress:plan");
   state.dropsRecord = "Forge did not answer POST /api/issues/x/comments: socket hang up\n"
     + "This call may have been processed and is not sent again: idempotence is documented for the "
     + "merged mark alone, so a repeat could write twice. Read the record first.";

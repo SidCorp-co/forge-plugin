@@ -38,7 +38,7 @@ The take is a reclaim like any other on the claim history, so the count of recla
 counts it — except where the record already calls the take a handoff, the
 dispatcher that exited being the one holder whose going is not a crash of this issue's.
 Nor does it count a reclaim made after the issue moved on, its status or landing state changed
-since the run it went over took it: a builder-and-judge route reclaims at `developed` on every
+since the run it went over took it: a builder-and-judge route reclaims at `in_progress:test` on every
 repair, and a run that moved the issue and then died lost the issue, not the work (ISS-2267).
 Nor one over a lease a call that completed wrote a record under, a judge's verdicts handing the
 issue back where it took it (ISS-2531).

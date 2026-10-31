@@ -1,4 +1,4 @@
-/* What the release step that knows what the change landed prints for the merged mark's two path clauses: the flag `landing wrote` is typed into, which `developed` reads back against the plan, and the word that `landing moved` is git's reading, which `testing` reads to decide whether a verdict taken before the landing still judges the code that landed.
+/* What the release step that knows what the change landed prints for the merged mark's two path clauses: the flag `landing wrote` is typed into, which `in_progress:test` reads back against the plan, and the word that `landing moved` is git's reading, which `in_progress:release` reads to decide whether a verdict taken before the landing still judges the code that landed.
    Its own file because the lines are typed by hand into a shell, which is a question about what is printed rather than about the steps around a change (ISS-1023). */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -73,7 +73,7 @@ test("a release that landed nothing of its own says so in the value the flag tak
   assert.match(out, /^ {4}--wrote nothing$/mu, `a release of the bump alone named paths:\n${out}`);
 });
 
-/* The clause `testing` reads to decide whether the verdicts survived the landing is git's reading, taken by
+/* The clause `in_progress:release` reads to decide whether the verdicts survived the landing is git's reading, taken by
    `forge record merged` between the judged head and the sha a mark takes, which the release step cannot
    know the first of (ISS-1362). The write reads it where no flag is typed, so the step prints no value for
    a run to type and says who reads it instead (ISS-2485). */

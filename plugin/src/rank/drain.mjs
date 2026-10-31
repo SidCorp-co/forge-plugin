@@ -210,7 +210,7 @@ export const drainRows = (policy, drain) => {
   if (!asksIndependent(policy)) {
     if (settled?.state === UNKNOWN) return verdictRow(settled);
     return scope.declared ? [{ level: "miss", label: "drained by", detail: `\`drainedBy\` names `
-      + `${scope.value} and the judgement between ${at} and testing is ${judgementOf(policy)}, so `
+      + `${scope.value} and the judgement between ${at} and in_progress:release is ${judgementOf(policy)}, so `
       + "nothing is offered at that status for it to drain: set the judgement to independent, or take "
       + "the key out" }] : [];
   }

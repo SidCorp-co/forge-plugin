@@ -18,7 +18,12 @@ const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 test("--corrects takes a kind this verb writes or a field of the issue, either with an occasion after it", () => {
-  for (const kind of KINDS) assert.equal(check({ corrects: kind }), null, `${kind} is a kind the verb writes`);
+  /* `landed` writes no record of its own: what it puts up is the merged mark and a comment, and a
+     correction of it names `merged`. */
+  for (const kind of KINDS.filter((one) => one !== "landed")) {
+    assert.equal(check({ corrects: kind }), null, `${kind} is a kind the verb writes`);
+  }
+  assert.equal(check({ corrects: "merged" }), null, "the mark `landed` writes is corrected as itself");
   for (const good of ["plan:steps", "criteria:3", "verdict:2", "review:43b811e", "issue:status", "issue:status:2", "issue:complexity,priority"]) {
     assert.equal(check({ corrects: good }), null, good);
   }
@@ -50,7 +55,7 @@ test("a correction with no --corrects is refused before any call, naming the fla
 
 test("the help names the field on the kind's own row, and says which kinds refuse a replacement", () => {
   const own = ask("record", "correction", "-h").stdout;
-  assert.match(own, /^ {2}correction {3}--moved M --why W --corrects K /mu, "on the row the parse reads its flags off");
+  assert.match(own, /^ {2}correction {3}--moved M\(400\) --why W\(400\) --corrects K\(400\) /mu, "on the row the parse reads its flags off, each with its budget");
   const all = ask("record", "-h").stdout;
   assert.match(all, /^Every other kind is latest-wins, an earned plan, criteria, note only after a correction\.$/mu);
 });

@@ -5,7 +5,7 @@ phase goes, and the text below is the route that mode names.
 
 <!-- forge:when ship self -->
 **The landing is this phase's first step**: the change goes onto the default branch here, after the
-judging. What the mark written there carries: `forge guide contract developed`.
+judging. What the mark written there carries: `forge guide contract in_progress:test`.
 
 **Where the judgement is an independent run's, a capture comes before that step.** That judge's
 verdicts are read against a checkpoint naming the run that built the change, and a capture this run

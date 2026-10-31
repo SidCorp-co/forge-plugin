@@ -44,7 +44,7 @@ Object.assign(ISSUES[2], { sessionContext: worklog({ batch: "ISS-3, ISS-4" }) })
 Object.assign(ISSUES[4], { sessionContext: worklog({ batch: "ISS-5, ISS-6" }) });
 Object.assign(ISSUES[9], { status: "in_progress", acceptanceCriteria: "1. The first outcome.", sessionContext: worklog({ batch: ALL }) });
 Object.assign(ISSUES[10], { status: "in_progress", sessionContext: worklog({ head: HEAD_11, batch: ALL }) });
-Object.assign(ISSUES[12], { status: "developed", sessionContext: worklog({ head: HEAD_13, batch: "ISS-13, ISS-14" }) });
+Object.assign(ISSUES[12], { status: "in_progress", workState: { step: "test" }, sessionContext: worklog({ head: HEAD_13, batch: "ISS-13, ISS-14" }) });
 Object.assign(ISSUES[19], { status: "in_progress", sessionContext: worklog({}) });
 
 const project = {
@@ -107,8 +107,8 @@ test("a capture from a tree not naming the member among several clears its batch
   assert.match(run.stdout, /^batch: ISS-5, ISS-6 cleared, since this capture was taken in a tree whose run id does not name this member among several\.$/mu);
 });
 
-const LINE = "batch       with ISS-11 in_progress at abc1234; ISS-12 open, no capture, names no batch; "
-  + "ISS-13 developed at 1234567, names another batch; ISS-15 unreadable:";
+const LINE = "batch       with ISS-11 in_progress:build at abc1234; ISS-12 open, no capture, names no batch; "
+  + "ISS-13 in_progress:test at 1234567, names another batch; ISS-15 unreadable:";
 
 test("resume names every sibling with its status, its captured head and whether it names this batch", async () => {
   const run = await forgeIn(neutralRoom(), "resume", "ISS-10");
@@ -121,12 +121,12 @@ test("resume names every sibling with its status, its captured head and whether 
 });
 
 test("each sibling is read at the moment of the resume, never off the member's own worklog", async () => {
-  ISSUES[10].status = "developed";
+  ISSUES[10].workState = { step: "test" };
   try {
     const run = await forgeIn(neutralRoom(), "resume", "ISS-10");
-    assert.match(lineOf(run.stdout), /^batch {7}with ISS-11 developed at abc1234; /u);
+    assert.match(lineOf(run.stdout), /^batch {7}with ISS-11 in_progress:test at abc1234; /u);
   } finally {
-    ISSUES[10].status = "in_progress";
+    delete ISSUES[10].workState;
   }
 });
 
@@ -144,9 +144,9 @@ test("--json carries the batch in the one shape batchLive owns", async () => {
   const { batch } = JSON.parse(run.stdout);
   assert.deepEqual(batch.members, ["ISS-10", "ISS-11", "ISS-12", "ISS-13", "ISS-15"]);
   assert.deepEqual(batch.siblings.slice(0, 3), [
-    { key: "ISS-11", status: "in_progress", head: HEAD_11, batch: "same" },
+    { key: "ISS-11", status: "in_progress:build", head: HEAD_11, batch: "same" },
     { key: "ISS-12", status: "open", head: null, batch: "none" },
-    { key: "ISS-13", status: "developed", head: HEAD_13, batch: "other" },
+    { key: "ISS-13", status: "in_progress:test", head: HEAD_13, batch: "other" },
   ]);
   assert.deepEqual(Object.keys(batch.siblings[3]), ["key", "unreadable"]);
   assert.equal(batch.siblings[3].key, "ISS-15");

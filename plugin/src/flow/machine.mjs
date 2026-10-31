@@ -466,7 +466,7 @@ export const SHAPES = {
       FIELD("was", "As it stood", { optional: true }),
     ],
   },
-  /* What a schema-coupled change's migration does once deployed, owed at `testing` where the plan
+  /* What a schema-coupled change's migration does once deployed, owed at `in_progress:release` where the plan
      declares schema coupling: a record the gate reads, because the attachment it once counted could
      be any file at all (ISS-2196). */
   migration: {

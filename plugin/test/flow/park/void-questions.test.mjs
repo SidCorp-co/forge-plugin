@@ -8,6 +8,7 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 const { render } = await import("../../../src/flow/record/page.mjs");
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 process.env.XDG_CONFIG_HOME = tempHome("advance-void-questions").path;
 
@@ -26,14 +27,16 @@ const ISSUE = {
   releaseNotes: { section: "Skip", userFacing: "-" },
   sessionContext: { lease: LEASE },
 };
-const VERIFIED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
-  body: render("verification",
-    { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] }) }];
+/* A whole confirmation whose finding is a disposition: the plain advance from the plan is then the
+   drop, the one terminal move a plain advance makes now that core closes an issue only by its release. */
+const DISPOSED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
+  body: render("confirmation",
+    { is: "the asked-about defect", where: ["plugin/src/flow/advance.mjs"], finding: "already-fixed", detail: "ISS-98 fixed it" }) }];
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } },
   issues: [ISSUE],
-  comments: { "asked-uuid": VERIFIED },
+  comments: { "asked-uuid": DISPOSED },
   answer: {},
   sent: [],
 };
@@ -44,7 +47,7 @@ state.answer.forge_issues = (args) => {
   if (args.action === "transition") {
     state.sent.push(args.data);
     if (state.asked && args.data.voidQuestions === undefined) return { refused: OPEN, code: "OPEN_QUESTIONS" };
-    ISSUE.status = args.data.status;
+    Object.assign(ISSUE, { status: args.data.status, workState: null });
     return { ...ISSUE };
   }
   return Object.assign(ISSUE, args.data ?? {});
@@ -52,19 +55,30 @@ state.answer.forge_issues = (args) => {
 const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const advance = async (status, ...argv) => {
-  ISSUE.status = status;
+/* Put at a place in core's words: the status, and the step where the place is inside in_progress. */
+const advance = async (place, ...argv) => {
+  ISSUE.status = statusOfPlace(place);
+  ISSUE.workState = stepOfPlace(place) ? { step: stepOfPlace(place) } : null;
   state.sent = [];
   return ranAsync(FORGE, ["advance", "ISS-99", ...argv], { ...ENV, FORGE_SESSION_ID: HOLDER });
 };
 const voided = () => state.sent.map((data) => data.voidQuestions);
 
-test("a plain advance into closed carries the sentence, trimmed, and the issue closes", async () => {
+test("a plain advance into dropped carries the sentence, trimmed, and the issue drops", async () => {
   state.asked = true;
-  const run = await advance("awaiting_release", "--void-questions", "  the work it asked about shipped  ");
+  const run = await advance("in_progress:plan", "--void-questions", "  the work it asked about was done elsewhere  ");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.deepEqual(voided(), ["the work it asked about shipped"], JSON.stringify(state.sent));
-  assert.equal(ISSUE.status, "closed");
+  assert.deepEqual(voided(), ["the work it asked about was done elsewhere"], JSON.stringify(state.sent));
+  assert.equal(ISSUE.status, "dropped");
+});
+
+test("a plain advance at awaiting_release offers no close to carry the sentence on, and sends nothing", async () => {
+  state.asked = true;
+  const run = await advance("awaiting_release", "--void-questions", "the work it asked about shipped");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /CLOSE_ONLY_BY_RELEASE/u, run.stderr);
+  assert.deepEqual(state.sent, [], "no move was sent");
+  assert.equal(ISSUE.status, "awaiting_release");
 });
 
 test("a set into closed or dropped carries the sentence on its move", async () => {
@@ -84,21 +98,21 @@ test("a drop carries the sentence on its move", async () => {
   assert.equal(ISSUE.status, "dropped");
 });
 
-/* What the landing's status walk sends is `advance <key> --to closed`, so the route repeats the --to. */
+/* A caller naming the target with --to is repeated with it, so the route repeats the --to. */
 test("a move held for open questions names the same command again with the flag, above the tracker's words", async () => {
   state.asked = true;
-  const run = await advance("awaiting_release", "--to", "closed");
+  const run = await advance("in_progress:plan", "--to", "dropped");
   assert.equal(run.status, 1, run.stdout);
   const [above, under = ""] = run.stderr.split("What refused it:\n");
-  assert.match(above, /\n {2}forge advance ISS-99 --to closed --void-questions "<why they died with the work>"\n/u, run.stderr);
+  assert.match(above, /\n {2}forge advance ISS-99 --to dropped --void-questions "<why they died with the work>"\n/u, run.stderr);
   assert.ok(under.trimEnd().endsWith(OPEN), `the tracker's words stay whole and last: ${run.stderr}`);
   assert.match(under, /^OPEN_QUESTIONS: /u, under);
-  assert.equal(ISSUE.status, "awaiting_release");
+  assert.equal(ISSUE.status, "in_progress");
 });
 
 test("that refusal names the person answering as the other route", async () => {
   state.asked = true;
-  const run = await advance("awaiting_release");
+  const run = await advance("in_progress:plan");
   assert.equal(run.status, 1, run.stdout);
   const [above] = run.stderr.split("What refused it:\n");
   assert.match(above, /The person it asked answers it on the tracker, and this move then goes through as it stands; or,/u, above);
@@ -109,14 +123,14 @@ test("a move that sent the voiding and was held all the same is handed no comman
   const held = state.answer.forge_issues;
   state.answer.forge_issues = (args) => (args.action === "transition" ? (state.sent.push(args.data), { refused: OPEN, code: "OPEN_QUESTIONS" }) : held(args));
   try {
-    const run = await advance("awaiting_release", "--to", "closed", "--void-questions", "it died with the work");
+    const run = await advance("in_progress:plan", "--to", "dropped", "--void-questions", "it died with the work");
     assert.equal(run.status, 1, run.stdout);
     assert.deepEqual(voided(), ["it died with the work"], JSON.stringify(state.sent));
     const [above] = run.stderr.split("What refused it:\n");
     assert.doesNotMatch(above, /^\s*forge advance .*--void-questions/mu, above);
     assert.match(above, /This move sent --void-questions "it died with the work" and the tracker held it all the same/u, above);
     assert.match(above, /The person it asked answers it on the tracker, and this move then goes through as it stands\./u, above);
-    assert.equal(ISSUE.status, "awaiting_release");
+    assert.equal(ISSUE.status, "in_progress");
   } finally {
     state.answer.forge_issues = held;
   }
@@ -127,7 +141,7 @@ test("a refusal for anything else names no voiding route", async () => {
   const held = state.answer.forge_issues;
   state.answer.forge_issues = (args) => (args.action === "transition" ? { refused: "NO_OP: issue already in toStatus" } : held(args));
   try {
-    const run = await advance("awaiting_release");
+    const run = await advance("in_progress:plan");
     assert.equal(run.status, 1, run.stdout);
     assert.doesNotMatch(run.stderr, /--void-questions/u, run.stderr);
   } finally {
@@ -142,7 +156,7 @@ test("a blank sentence, or the flag beside a form that sends no terminal move, i
     [["--owed", "--void-questions", "why"], /--owed sends none/u],
     [["--park", "blocked", "--why", "w", "--void-questions", "why"], /--park sends none/u],
     [["--reopen", "--why", "w", "--void-questions", "why"], /--reopen sends none/u],
-    [["--set", "testing", "--why", "w", "--void-questions", "why"], /this set goes to testing/u],
+    [["--set", "in_progress:release", "--why", "w", "--void-questions", "why"], /this set goes to in_progress:release/u],
   ];
   for (const [argv, said] of refused) {
     const run = await advance("awaiting_release", ...argv);
@@ -154,7 +168,7 @@ test("a blank sentence, or the flag beside a form that sends no terminal move, i
 
 test("a plain advance whose next status is not closed or dropped is refused, naming it", async () => {
   state.asked = false;
-  const run = await advance("testing", "--void-questions", "why");
+  const run = await advance("in_progress:release", "--void-questions", "why");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /this advance goes to awaiting_release\. Nothing was sent\./u, run.stderr);
   assert.deepEqual(state.sent, []);

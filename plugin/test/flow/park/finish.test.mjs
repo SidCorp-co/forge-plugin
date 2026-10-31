@@ -34,16 +34,17 @@ const MET = held("ISS-84", "on_hold");
 const moved = (id, from, to, at) => ({ id, action: "issue.statusChanged", payload: { from, to }, createdAt: at });
 const said = (id, at) => ({ id, action: "comment.created", payload: {}, createdAt: at });
 
-/* Newest first, as the tracker answers: a comment after the move, the move, and an older one. */
+/* Newest first, as the tracker answers: a comment after the move, the move, and an older one. The
+   history names core's statuses alone, so a move out of `in_progress` names no step. */
 const HISTORY = {
   [RESENT.documentId]: [said("e3", "2026-09-20T10:05:00.000Z"),
     moved("e2", "in_progress", "on_hold", "2026-09-20T10:00:00.000Z"),
     moved("e1", "approved", "in_progress", "2026-09-19T10:00:00.000Z")],
   /* From one side status to another: where the park leaves is where the first of them was entered from. */
-  [RECORDED.documentId]: [moved("e5", "waiting", "on_hold", "2026-09-20T09:00:00.000Z"),
-    moved("e4", "approved", "waiting", "2026-09-20T08:30:00.000Z")],
+  [RECORDED.documentId]: [moved("e5", "needs_info", "on_hold", "2026-09-20T09:00:00.000Z"),
+    moved("e4", "approved", "needs_info", "2026-09-20T08:30:00.000Z")],
   [UNREAD.documentId]: [said("e6", "2026-09-20T08:00:00.000Z")],
-  [MET.documentId]: [moved("e7", "testing", "on_hold", "2026-09-20T07:00:00.000Z")],
+  [MET.documentId]: [moved("e7", "in_progress", "on_hold", "2026-09-20T07:00:00.000Z")],
 };
 
 const state = {
@@ -123,13 +124,14 @@ test("a park sent again where its move landed and its record did not posts the r
 test("the record that finishes a park names the status the tracker's history says the issue left", () => {
   const [record] = postedTo(RESENT.documentId);
   assert.equal(parse(record.body)?.kind, "park");
-  assert.equal(leftOn(record), "in_progress", "the newest move into on_hold came from in_progress, not on_hold");
+  assert.equal(leftOn(record), "in_progress:build",
+    "the newest move into on_hold came from in_progress, not on_hold, and a history naming no step reads as the build");
 });
 
 test("once the finishing record is up, the advance resumes where it says the issue left", async () => {
   const run = await forge("advance", "ISS-81", "--owed");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /in_progress is next/u, run.stdout);
+  assert.match(run.stdout, /in_progress:build is next/u, run.stdout);
 });
 
 test("a park record written at a side status stamps where the history says the issue came from", async () => {

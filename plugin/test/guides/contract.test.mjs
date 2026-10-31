@@ -25,7 +25,7 @@ const {
   statesContract,
 } = await import("../../src/guides/contract.mjs");
 const { servedBody } = await import("../../src/guides/skill-guides.mjs");
-const { CHECKS, NO_CRITERIA, NO_DECISION, NO_NOTE, ORDER, deployedOwed, judgedOwed, viewFrom }
+const { CHECKS, NO_CRITERIA, NO_DECISION, NO_NOTE, LADDER, deployedOwed, judgedOwed, viewFrom }
   = await import("../../src/flow/earned.mjs");
 const { DEFAULT, FLOW_SLUGS, SCREEN, servedFor } = await import("../../src/guides/flow.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
@@ -36,7 +36,7 @@ const ROOT = new URL("../../../", import.meta.url).pathname;
 const PLUGIN = join(ROOT, "plugin");
 const TEXT = readContract();
 const PARTS = partsOf(TEXT);
-const STAGED = [...ORDER, "dropped"];
+const STAGED = [...LADDER, "closed", "dropped"];
 const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
   .trim().split("\n").filter(Boolean);
 const SKILL = servedBody("issue-flow", PLUGIN);
@@ -75,7 +75,7 @@ test("each part is one file, whose name carries its order and its slug", () => {
   files.forEach(({ name }, at) => {
     assert.match(name, /^\d\d-[a-z][a-z0-9-]*\.md$/u, `${name} does not name an order and a slug`);
     const slug = name.slice(3, -3);
-    const keys = PARTS[at].keys.map((one) => one.replace(/_/gu, "-"));
+    const keys = PARTS[at].keys.map((one) => one.replace(/[_:]/gu, "-"));
     assert.ok(keys.some((one) => slug === one || slug.startsWith(`${one}-`)) || keys.join("-") === slug,
       `${name} sits at part ${at} whose keys are ${PARTS[at].keys.join(", ")}`);
   });
@@ -152,7 +152,7 @@ test("the contract names no issue and no date, which the tracker and git hold", 
 
 /* One rung per actor, so a reader at either is told what that actor owes and not the other's: a part stating both is the composed rung wearing two file names (ISS-1065). */
 test("each rung at the end of a run has a part, and neither states the other's half", () => {
-  const judging = flat(partFor(PARTS, "testing").text);
+  const judging = flat(partFor(PARTS, "in_progress:release").text);
   const deploying = flat(partFor(PARTS, "awaiting_release").text);
   assert.match(judging, /verdict/u, "the judging rung's part is about the verdicts");
   assert.doesNotMatch(judging, /verification/u, "and says nothing of what the deploying actor owes");
@@ -161,7 +161,7 @@ test("each rung at the end of a run has a part, and neither states the other's h
 });
 
 test("a separator misremembered costs no round", () => {
-  assert.equal(partFor(PARTS, "in-progress"), partFor(PARTS, "in_progress"));
+  assert.equal(partFor(PARTS, "in-progress:build"), partFor(PARTS, "in_progress:build"));
   assert.equal(partFor(PARTS, "mechanics"), null, "and only a separator or a case is forgiven");
 });
 
@@ -196,8 +196,8 @@ test("the stage line names the part for the status and the command that prints i
     "a status no part covers is said out loud, never left silent",
   );
   assert.match(
-    stageLine("confirmed", partsOf(null), "/gone/guides/v1/contract"),
-    /No confirmed stage in the contract at \/gone\/guides\/v1\/contract/u,
+    stageLine("in_progress:plan", partsOf(null), "/gone/guides/v1/contract"),
+    /No in_progress:plan stage in the contract at \/gone\/guides\/v1\/contract/u,
     "and a copy that arrived without the parts reads the same way, which `forge doctor` tells apart",
   );
 });
@@ -302,17 +302,17 @@ test("what a rung drops and the rounds it spares are the rung report's, and no g
 test("no rung buys a judgement: the migration classification costs every rung alike, and none owes a baseline", () => {
   for (const rung of RUNGS) {
     const held = weighed(rung, { plan: "Schema coupling: yes" });
-    assert.equal(missing("in_progress", held).some((one) => /baseline|gate/u.test(one)), false,
+    assert.equal(missing("in_progress:build", held).some((one) => /baseline|gate/u.test(one)), false,
       `a ${rung} is asked for a measurement of the tree, which is the landing's gate's`);
     assert.ok(missing("awaiting_release", { ...held, acceptanceCriteria: "" }).length,
       `a ${rung} declaring schema coupling earns the rung with nothing said about the migration`);
   }
-  assert.equal(LIGHTER.some((row) => row.status === "in_progress"), false,
-    "and no row lightens in_progress, so the demand is the table's and not this case's");
+  assert.equal(LIGHTER.some((row) => row.status === "in_progress:build"), false,
+    "and no row lightens in_progress:build, so the demand is the table's and not this case's");
 });
 
 test("the rung drops nothing the contract keeps, and a declared person takes a fix off the path", () => {
-  assert.equal(missing("confirmed", weighed("fix")).length, 1, "the confirmation with its where");
+  assert.equal(missing("in_progress:plan", weighed("fix")).length, 1, "the confirmation with its where");
   assert.deepEqual(missing("approved", weighed("fix", { acceptanceCriteria: "" })),
     [NO_CRITERIA], "the criteria, being the whole of a fix's plan");
   assert.deepEqual(deploying(weighed("fix")).map((one) => one.slice(0, 16)),
@@ -360,11 +360,11 @@ test("a correction climbs a fix back onto the full path, and reads one direction
 /* CLAUDE.md, Rules only: the checker is the one statement, so the guide may not keep the sentence. */
 const RETIRED_BY_CHECK = [
   [/the project's gate run once, whole and\s+distrusting any remembered pass/u,
-    "the baseline's wholeness, which `in_progress` now refuses on the record's own scope"],
+    "the baseline's wholeness, which `in_progress:build` now refuses on the record's own scope"],
   [/An image left on your disk proved nothing to anyone/u,
     "that a screen's proof is an attachment, which the rung now refuses a verdict for lacking"],
   [/Do not silently expand scope/u,
-    "that a file the plan does not name is a correction, which `developed` now refuses the mark for"],
+    "that a file the plan does not name is a correction, which `in_progress:test` now refuses the mark for"],
 ];
 
 test("a sentence an entry check now enforces is stated by the check and by no guide", () => {
@@ -392,7 +392,7 @@ test("the checks point back from the guides, and the evidence table keeps the ki
     assert.ok(held.includes(`| ${kind} |`), `the evidence table no longer names ${kind}, which no check replaced`);
   }
   const guide = flat(SKILL);
-  assert.ok(guide.includes("`developed` refuses a path in it that neither the plan nor a correction"),
+  assert.ok(guide.includes("`in_progress:test` refuses a path in it that neither the plan nor a correction"),
     "Phase 4 no longer names the check that refuses a file the plan does not name");
 });
 

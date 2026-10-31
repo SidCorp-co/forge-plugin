@@ -1,6 +1,6 @@
-# The two rungs above `developed`, and which actor answers for each
+# The two rungs above `in_progress:test`, and which actor answers for each
 
-`testing` reads a judge's verdicts and `awaiting_release` reads a deploying actor's verification, and
+`in_progress:release` reads a judge's verdicts and `awaiting_release` reads a deploying actor's verification, and
 neither reads the other's record. This is the argument for that division and for the one field whose
 demand sat on the wrong side of it; what a rung is entered on, rung by rung, is `forge guide
 contract`.
@@ -55,7 +55,7 @@ as `judge-from:`, off the session the CLI resolved and never off a flag — `--j
 the reason the lease's holder is read rather than passed. Declared on the shape so the read keeps
 them, and `newer` for the reason `--scope` is below.
 
-`testing` reads each standing verdict against the landing checkpoint, the only record naming both the
+`in_progress:release` reads each standing verdict against the landing checkpoint, the only record naming both the
 builder and what the deployment reported running. The builder's own id is the case the project asked
 about. *No* judge is refused too, and is not read as the builder's: `judge` is excused at the
 read-back, so a check comparing only ids would pass it in silence. An id a run inherited is refused
@@ -72,7 +72,7 @@ cites, and every rung from this one to the close names it, in every judgement mo
 **The citation is asked for where the checkpoint holds an identity and never demanded of one that
 holds none.** Only a reconstruction declares an identity, and the ordinary capture composes no such
 key, so demanding one here asked the judging rung for a value only the rung above produces — which
-closed the ladder above `developed` for every project that asked for a judge at all, on any issue
+closed the ladder above `in_progress:test` for every project that asked for a judge at all, on any issue
 that landed the ordinary way. What the rung reads instead is what its own actor can answer for: the
 judge is present, is its own rather than the wave's, and is apart from the builder the checkpoint
 names or from the holders the claim history does. None of those reads a deployment, so nothing about

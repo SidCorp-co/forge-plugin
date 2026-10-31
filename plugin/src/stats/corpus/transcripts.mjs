@@ -99,7 +99,7 @@ export const rungRun = (calls) => {
 };
 
 /* Text a command carries is not a command it ran: read as one, heredoc bodies named `npm run
-   check` 423 times and `printf '%s\n' '; forge close ISS-45'` was a close that never happened.
+   check` 423 times and a `printf` quoting a form was a move that never happened.
    Where a body is, the here-document reader says, the same one the write gates take. Which spans
    go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
 const OPERATOR = /[\n;|&(){}]/u;

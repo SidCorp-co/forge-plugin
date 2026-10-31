@@ -31,13 +31,14 @@ const LEASE = {
   renewedAt: new Date().toISOString(),
   minutes: 60,
   next: null,
-  history: [{ holder: DISPATCHER, at: new Date().toISOString(), how: "claim", status: "developed" }],
+  history: [{ holder: DISPATCHER, at: new Date().toISOString(), how: "claim", status: "in_progress:test" }],
 };
 
 const ISSUE = {
   documentId: UUID,
   issueId: "ISS-7",
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "the change being judged",
   description: "no mark here",
   acceptanceCriteria: "1. The first outcome.\n2. The second outcome.",
@@ -161,9 +162,9 @@ test("a judge's record that earns the next status moves none, and names the hold
   const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
     "--criterion", "1", "--verdict", "pass", "--criterion", "2", "--verdict", "pass");
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(ISSUE.status, "developed", "criterion 4: the status did not move");
+  assert.deepEqual([ISSUE.status, ISSUE.workState?.step], ["in_progress", "test"], "criterion 4: the status did not move");
   assert.equal(leaseWrites(), writes, "criterion 4: no transition was sent");
-  assert.match(run.stderr, /ISS-7's record now earns testing, and the move is the holder's/u,
+  assert.match(run.stderr, /ISS-7's record now earns in_progress:release, and the move is the holder's/u,
     `criterion 5: the move it earned is named:\n${run.stderr}`);
   assert.match(run.stderr, /The holder takes it with:\n {2}forge advance ISS-7/u, "criterion 5: with the holder's call");
   assert.deepEqual(ISSUE.sessionContext.lease, LEASE, "and the lease still reads as it stood");
@@ -223,7 +224,7 @@ test("the owed read says, before any judging, whether this caller's verdict woul
    verdict there would move a status no lease-less write may move. */
 test("a judge's verdict at a park a comment answers is refused before anything is sent", async () => {
   const [before, sent] = [posted(), uploads()];
-  for (const status of ["waiting", "needs_info"]) {
+  for (const status of ["needs_info"]) {
     ISSUE.status = status;
     const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
       "--criterion", "1", "--verdict", "pass");
@@ -239,7 +240,7 @@ test("a judge's verdict at a park a comment answers is refused before anything i
     assert.match(owed.stdout, new RegExp(`A verdict from this call would be refused: ISS-7 is ${status} under another run's lease`, "u"),
       `${status}: the owed read predicts the refusal the write meets:\n${owed.stdout}${owed.stderr}`);
   }
-  ISSUE.status = "developed";
+  ISSUE.status = "in_progress";
   assert.equal(posted(), before, "nothing was posted");
   assert.equal(uploads(), sent, "and nothing was sent");
   assert.deepEqual(ISSUE.sessionContext.lease, LEASE, "and the lease is as it stood");

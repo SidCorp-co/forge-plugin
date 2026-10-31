@@ -14,7 +14,7 @@ A check that opened a file would be a check that works in one repository.
 
 ## A build is earned on its branch
 
-`in_progress` is earned by the branch the worklog names and by the blockers, and by no reading of the
+`in_progress:build` is earned by the branch the worklog names and by the blockers, and by no reading of the
 tree: what a tree already fails is the landing's to find, through the one gate every commit passes on
 its way in. The baseline kind and verb a run recalls from an older copy of the method are refused
 saying so, rather than offered a nearest name, because the run would otherwise go looking for the
@@ -23,11 +23,11 @@ write that replaced them and there is none.
 ## A change that lands no file owes no branch
 
 A plan may declare `Lands no file: yes` — configuration on a deployment, a setting on the tracker —
-and `in_progress` then owes no branch. A change that lands nothing leaves the tree it lands on as it
+and `in_progress:build` then owes no branch. A change that lands nothing leaves the tree it lands on as it
 found it, and a branch would name a tree nobody wrote in. Only the line grants it. An empty diff is no declaration, since a change not yet written reads exactly like one
 that never will be.
 
-`developed` is not waived, because the tracker's own work-evidence rule is not this plugin's to
+`in_progress:test` is not waived, because the tracker's own work-evidence rule is not this plugin's to
 waive: on an issue landing in git it takes a captured branch or a mark carrying a commit, and only
 the mark is left to a change with no branch. A mark saying the landing wrote paths contradicts the
 line and is refused with the paths named: the record would say two things about one change, and
@@ -36,7 +36,7 @@ unchanged.
 
 ## A screen's verdict cites an attachment
 
-Where the plan declares `Screen change: yes`, `testing` refuses a verdict whose evidence set holds no
+Where the plan declares `Screen change: yes`, `in_progress:release` refuses a verdict whose evidence set holds no
 attachment the issue carries. A URL and a sha are citations; an attachment is the thing itself, and a
 screen is the one change whose whole proof is that somebody looked at it. A `skipped` verdict is
 exempt, for the reason the write exempts it from evidence: there was nothing to look at.
@@ -52,7 +52,7 @@ itself landed; the second is what other commits moved under it, spent to invalid
 before those paths shifted. Neither is derived from the other, and a check reading one for the other
 would answer a question nobody asked.
 
-What earns `developed` therefore includes an accounting of the change's own file set against the
+What earns `in_progress:test` therefore includes an accounting of the change's own file set against the
 field the plan wrote it in, and the refusal carries both the paths and the write that answers for
 them. The match is a whole path or nothing: a plan is prose, and it names a directory to disclaim it
 — *this tree is another issue's* — as often as to claim it, so a prefix test would pass a whole tree

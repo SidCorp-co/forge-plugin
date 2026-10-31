@@ -20,7 +20,8 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ISSUE = {
   documentId: "content-uuid",
   issueId: "ISS-95",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "the record a reader can act on",
   description: "`forge issue` should take the `data.relations` route.",
   complexity: "s",

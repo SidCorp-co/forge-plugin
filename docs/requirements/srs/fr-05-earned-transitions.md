@@ -42,7 +42,7 @@ agent learns what a status wants.
 - **AC-05-1-1** · Rev: 1 · Proof: plugin/test/ladder.test.mjs "--owed reports the rung the checks run, what it drops and every route up from it"
   WHEN the agent asks what is owed THEN the CLI SHALL name the next status and every missing item
   without writing to the tracker.
-- **AC-05-1-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "confirmed needs a confirmation, and approved the decision record beside the plan"
+- **AC-05-1-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "in_progress:plan needs a confirmation, and approved the decision record beside the plan"
   WHEN an item is missing THEN the CLI SHALL print the command that supplies that item beside it.
 - **AC-05-1-3** · Rev: 1 · Proof: plugin/test/flow/park/rehearsal.test.mjs "a park rehearsed prints the record the park then posts, byte for byte"
   WHEN the move being rehearsed is a park or a drop THEN the CLI SHALL rehearse it like any other
@@ -62,7 +62,7 @@ agent learns what a status wants.
   nothing in the body, and SHALL name the complexity that claimed it.
 - **AC-05-1-8** · Rev: 1 · Proof: plugin/test/flow/route/credential-ahead.test.mjs "--owed says a screen change has no login to prove it with, and refuses nothing for it"
   WHERE the plan declares a screen change and the project holds no test credential, the CLI SHALL
-  say so in the rehearsal of every status below `testing`, and SHALL refuse none of them for it.
+  say so in the rehearsal of every status below `in_progress:release`, and SHALL refuse none of them for it.
 - **AC-05-1-9** · Rev: 2 · Proof: plugin/test/flow/resume/resume.test.mjs "the claim and the resume print the lane, and neither composes a line of it"
   WHEN the agent asks what is owed, takes an issue's lease, or has its context re-minted THEN the
   CLI SHALL name every status from the issue's own onwards with the payloads that earn each at the
@@ -162,9 +162,9 @@ deciding a status.
 - **AC-05-2-10** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "a write of a kind the rung does not cite moves nothing, however complete the rung is"
   IF the payload written is not one the next status is earned by THEN the CLI SHALL leave the status
   where it stands, however little that status is owed.
-- **AC-05-2-11** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "in_progress owes the branch the change is built on, and the refusal names the capture"
+- **AC-05-2-11** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "in_progress:build owes the branch the change is built on, and the refusal names the capture"
   IF the worklog holds no branch and the plan does not declare that the change lands no file in the
-  repository THEN the CLI SHALL refuse `in_progress` and SHALL name the capture that writes one.
+  repository THEN the CLI SHALL refuse `in_progress:build` and SHALL name the capture that writes one.
 - **AC-05-2-12** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "only an edge that gates dispatch holds a status back, and the refusal names the kind"
   IF an edge on the issue's blocking relations is one the tracker says does not gate dispatch THEN
   the CLI SHALL hold no status back for it, whatever the status of the issue at its other end,
@@ -177,14 +177,14 @@ deciding a status.
   WHERE the tracker sent no answer about whether an edge gates dispatch, the CLI SHALL judge that edge
   by its kind's own row in the one table of edge kinds, and a kind with no row there SHALL order
   nothing.
-- **AC-05-2-15** · Rev: 2 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "a plan declaring the change lands no file reaches in_progress with no branch"
+- **AC-05-2-15** · Rev: 2 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "a plan declaring the change lands no file reaches in_progress:build with no branch"
   WHERE the plan declares that the change lands no file in the repository, the CLI SHALL owe
-  `in_progress` no branch and SHALL hold it to every other entry criterion of that status, granting
+  `in_progress:build` no branch and SHALL hold it to every other entry criterion of that status, granting
   this on that declaration alone and never on a change that happens to be empty, because a change
   landing no file leaves the tree as it found it and a branch would name a tree nobody wrote in.
 - **AC-05-2-16** · Rev: 1 · Proof: plugin/test/flow/earned/declarations/lands-no-file.test.mjs "under the declaration a mark that wrote paths is refused, naming them and the plan write"
   IF the plan declares that the change lands no file in the repository and the merged mark says the
-  landing wrote paths THEN the CLI SHALL refuse `developed`, SHALL name those paths, and SHALL name
+  landing wrote paths THEN the CLI SHALL refuse `in_progress:test`, SHALL name those paths, and SHALL name
   the plan write that answers the declaration no, because the record would otherwise say two things
   about one change.
 - **AC-05-2-17** · Rev: 2 · Proof: plugin/test/flow/route/draft-aboard.test.mjs "a draft takes open whatever its open state declares, owing nothing, and never a rung past it"
@@ -269,69 +269,69 @@ landed is closed, never dropped.
 Rev: 3 · Actors: agent · Enforces: BR-04
 
 Each of those records names what it judged, which is what makes the fall-back computable rather
-than remembered: when the merged commit moves, everything above `in_progress` is unearned except
-what the mark itself accounts for, and when the criteria change, everything above `developed` is.
+than remembered: when the merged commit moves, everything above `in_progress:build` is unearned except
+what the mark itself accounts for, and when the criteria change, everything above `in_progress:test` is.
 The mark accounts for a review at the head it records, and for a verdict at that head where it says
 the landing took no path the change touched. A verdict taken after the landing accounts for itself,
 where its own write found the commit it judged carrying the merged commit. Nothing is deleted — the earlier records stay as
 superseded history and the check simply stops being met.
 
-- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "developed needs the mark, its commit, and an approving review of that commit"
+- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "in_progress:test needs the mark, its commit, and an approving review of that commit"
   IF the latest approving review judged neither the commit the merged mark names nor the reviewed
-  head that mark records THEN the CLI SHALL refuse `developed` and name the commit judged beside the
+  head that mark records THEN the CLI SHALL refuse `in_progress:test` and name the commit judged beside the
   commit marked.
 - **AC-05-6-2** · Rev: 3 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at a later commit carrying the landing stands as one at the merged commit"
   IF a verdict judged neither the merged commit nor the judged head the merged mark records, and its
   record does not say the commit it judged carries the merged commit, THEN the CLI SHALL refuse
-  `testing`, name the criterion, the commit judged and the merged commit, and print a write that asks
+  `in_progress:release`, name the criterion, the commit judged and the merged commit, and print a write that asks
   for the commit judged rather than the merged commit.
 - **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
-  WHEN a criterion has no verdict THEN the CLI SHALL refuse `testing` and name that criterion.
+  WHEN a criterion has no verdict THEN the CLI SHALL refuse `in_progress:release` and name that criterion.
 - **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-2124
   WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
-  `developed` against the mark alone.
+  `in_progress:test` against the mark alone.
 - **AC-05-6-5** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
-  WHERE the merged mark records a judged head, a verdict at that head SHALL earn `testing` only where
+  WHERE the merged mark records a judged head, a verdict at that head SHALL earn `in_progress:release` only where
   the mark says the landing moved no path the change touched.
 - **AC-05-6-6** · Rev: 2 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a file the landing wrote and the plan does not name owes a correction"
   IF the merged mark records that the landing wrote a path which neither the plan's text nor a
-  correction of the plan names THEN the CLI SHALL refuse `developed`, name that path, and print the
+  correction of the plan names THEN the CLI SHALL refuse `in_progress:test`, name that path, and print the
   correction that clears it, a correction that does not say what it corrects counting as one of the
   plan.
-- **AC-05-6-7** · Rev: 1 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "a whole fail standing on a criterion refuses awaiting_release and closed, naming the criterion"
-  IF a criterion's latest verdict is a failed one THEN the CLI SHALL refuse `awaiting_release` and
-  `closed` as it refuses `testing`, and name that criterion, because a rung past the judging that
+- **AC-05-6-7** · Rev: 2 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "a whole fail standing on a criterion refuses awaiting_release, naming the criterion"
+  IF a criterion's latest verdict is a failed one THEN the CLI SHALL refuse `awaiting_release` as it
+  refuses `in_progress:release`, and name that criterion, because a rung past the judging that
   ignores a fail releases a change its own record says does not work.
 - **AC-05-6-8** · Rev: 1 · Proof: plugin/test/flow/record/judged/carries.test.mjs "a verdict at a later commit records the merged commit it carries, and says so"
   WHEN a verdict is written at a commit other than the merged commit and the checkout's git reads the
   merged commit as its ancestor THEN the CLI SHALL record the merged commit on the verdict, and a
-  verdict that records the merged commit the latest mark names SHALL earn `testing` as one at that
+  verdict that records the merged commit the latest mark names SHALL earn `in_progress:release` as one at that
   commit does.
-- **AC-05-6-9** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "a whole skip standing on a criterion refuses awaiting_release and closed, naming the criterion and the why"
-  IF a criterion's latest verdict is a skip THEN the CLI SHALL refuse `awaiting_release` and `closed`,
-  name that criterion and the `--why` its skip carried, and SHALL still earn `testing` on it as
+- **AC-05-6-9** · Rev: 2 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "a whole skip standing on a criterion refuses awaiting_release, naming the criterion and the why"
+  IF a criterion's latest verdict is a skip THEN the CLI SHALL refuse `awaiting_release`, name that
+  criterion and the `--why` its skip carried, and SHALL still earn `in_progress:release` on it as
   before, a skip being a gap in equipment rather than a decision that clears the rungs past the one
   it was written at.
-- **AC-05-6-10** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "a verdict a reopen's triage already moved past holds awaiting_release and closed too"
+- **AC-05-6-10** · Rev: 2 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "a verdict a reopen's triage already moved past holds awaiting_release too"
   IF a criterion's latest verdict was written before the ruling of the reopen it stands at THEN the
-  CLI SHALL refuse `awaiting_release` and `closed` on it as `testing` already refuses it, so a verdict
-  a reopen has already moved past does not earn the rungs past the judging one either; a criterion
+  CLI SHALL refuse `awaiting_release` on it as `in_progress:release` already refuses it, so a verdict a
+  reopen has already moved past does not earn the rung past the judging one either; a criterion
   with no verdict at all is not read again here, that being `judgedOwed` and `deployedOwed`'s own
   boundary (ISS-1065).
-- **AC-05-6-11** · Rev: 1 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "the need names both routes clear of a fail, and a recorded correction is what clears it"
+- **AC-05-6-11** · Rev: 2 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "the need names both routes clear of a fail, and a recorded correction is what clears it"
   IF a whole correction record names `--corrects criteria:<n>` for a number the criteria field no
   longer holds, and a failed or a skipped verdict answered that number, THEN the CLI SHALL stop
-  refusing `awaiting_release` and `closed` on it, and `testing` too where the verdict was a fail,
+  refusing `awaiting_release` on it, and `in_progress:release` too where the verdict was a fail,
   because a criterion no route can ever reach is cleared by correcting it in the open rather than by
   a verdict that will never come (ISS-2362, ISS-2430).
-- **AC-05-6-12** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "correcting the criterion away clears the hold, and an edit with no correction record does not"
+- **AC-05-6-12** · Rev: 2 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "correcting the criterion away clears the hold, and an edit with no correction record does not"
   IF the criteria field no longer holds a number a failed or a skipped verdict answered, and no
   correction record names `--corrects criteria:<n>` for it, THEN the CLI SHALL still refuse
-  `awaiting_release` and `closed` on that number exactly as an unanswered one already refuses
-  `testing`, because the field can change for reasons this reading never sees and only a record a
+  `awaiting_release` on that number exactly as an unanswered one already refuses
+  `in_progress:release`, because the field can change for reasons this reading never sees and only a record a
   reader can point to answers for why the number is gone.
-- **AC-05-6-13** · Rev: 1 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "the need names both routes clear of a skip: a fresh verdict, or correcting the criterion away"
-  WHEN a fail or a skip holds `awaiting_release` or `closed` THEN the need it raises, and the
+- **AC-05-6-13** · Rev: 2 · Proof: plugin/test/flow/verdicts/skipped-holds.test.mjs "the need names both routes clear of a skip: a fresh verdict, or correcting the criterion away"
+  WHEN a fail or a skip holds `awaiting_release` THEN the need it raises, and the
   rehearsal that offers a skip as the way past a missing test credential, SHALL each name both routes
   that clear it: a fresh verdict, and correcting the criterion away where no route ever reaches it.
 
@@ -343,7 +343,7 @@ Which declarations a plan must answer is decided in one place, and the plan writ
 both read it, so a typed plan the write accepts is never one `approved` refuses for a missing
 declaration; today it holds whether this is a screen change, whether it couples to a schema and
 whether it couples to a deploy. What a screen change and schema coupling declare is read at the
-ship steps rather than at the write. Entering `testing`, a screen change owes an attachment on every
+ship steps rather than at the write. Entering `in_progress:release`, a screen change owes an attachment on every
 verdict and schema coupling owes the migration risk classification. Entering
 `awaiting_release`, a screen change owes a person's answer instead. Whether that
 person is owed at all is the project's to decide in its own configuration, because a project whose
@@ -352,7 +352,7 @@ for.
 
 - **AC-05-7-1** · Rev: 2 · Proof: plugin/test/flow/earned/declarations/schema-classification.test.mjs "a schema-coupled change owes the classification record, whatever else the issue carries"
   IF the plan declares schema coupling and no whole record classifies the migration's risk THEN the
-  CLI SHALL refuse `testing` and name the record it wants, whatever attachments the issue carries.
+  CLI SHALL refuse `in_progress:release` and name the record it wants, whatever attachments the issue carries.
 - **AC-05-7-2** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "a user-facing outcome owes a person's look, and --owed says so first"
   IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
   for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL
@@ -368,7 +368,7 @@ for.
   releases on that record, from a value no author supplies.
 - **AC-05-7-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a screen change owes an attachment on every verdict that is not skipped"
   IF the plan declares a screen change and a verdict that is not `skipped` cites no attachment the
-  issue carries THEN the CLI SHALL refuse `testing` and name that criterion.
+  issue carries THEN the CLI SHALL refuse `in_progress:release` and name that criterion.
 - **AC-05-7-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a project that deploys on its own earns released by proving the deploy, not by asserting it"
   IF the project's configuration says production deploys on its own and the release verification
   names a commit other than the one the merged mark names, and does not name that commit as one the
@@ -385,15 +385,16 @@ for.
   WHERE the project's configuration leaves a person an act to make before the release is out, the
   CLI SHALL report that act as what the deploying rung owes rather than the close, because a run
   told to close is one that closes an issue whose release nobody has made.
-- **AC-05-7-11** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "a policy that leaves a person the release refuses the close, in the report's own words"
+- **AC-05-7-11** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "a policy that leaves a person the release says so in the refusal, in the report's own words"
   IF the project's configuration leaves a person an act to make before the release is out THEN the
-  CLI SHALL refuse `closed` and SHALL name that act in the words it reports it in, because a rule a
-  careful run obeys and a careless one cannot detect is no rule.
-- **AC-05-7-12** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "a project declaring no release step closes in the run that landed the change"
+  CLI SHALL offer no `closed` from `awaiting_release` and SHALL name that act in the words it reports
+  it in, because a rule a careful run obeys and a careless one cannot detect is no rule.
+- **AC-05-7-12** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "a project declaring no release step owes nobody the release, and the close is still its record"
   WHERE the project declares that its release model is that there is no release step, the CLI SHALL
-  earn `closed` from the records the deploying rung already holds and SHALL leave no act to a person,
-  because a rung that waits for a release the project has declared it does not make is a keystroke
-  asked of somebody for nothing (G-11).
+  name no act of a person at `awaiting_release` and SHALL name the release record as the write that
+  closes the issue, because the tracker closes an issue there only by the release that shipped it and
+  a rung that waits for a person the project has declared it does not ask is a keystroke asked of
+  somebody for nothing (G-11).
 - **AC-05-7-13** · Rev: 1 · Proof: plugin/test/flow/record/report-policy.test.mjs "the report names the policy it read wherever the issue stands"
   WHERE an issue's whole record is reported, the CLI SHALL name what the project's release policy
   declares, whatever status the issue stands at and whether or not that policy leaves anybody an
@@ -403,10 +404,10 @@ for.
   WHERE a plan answers every required declaration and leaves the user-facing outcome unanswered, the
   CLI SHALL not refuse `approved` for it, because only a change with such a result has a reason to
   answer it.
-- **AC-05-7-15** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "a promotion the project deploys on its own waits for the release batch, and names the record that closes it"
+- **AC-05-7-15** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "a promotion the project deploys on its own waits for the release batch, and names the record that closes it"
   IF the project promotes to a live branch whose production deploys on its own THEN the CLI SHALL
-  refuse `closed`, SHALL name the release batch rather than a person as what the rung waits for, and
-  SHALL name the record of a promotion made outside a batch as the write that closes it, because the
+  offer no `closed` from `awaiting_release`, SHALL name the release batch rather than a person as
+  what the rung waits for, and SHALL name the record of a promotion made outside a batch as the write that closes it, because the
   deploy moves no code onto the live branch and the batch that does is cut only for an issue still
   resting at the rung.
 - **AC-05-7-16** · Rev: 1 · Proof: plugin/test/flow/record/report-policy.test.mjs "on a promotion the project deploys on its own, the report hands the close to the release batch"
@@ -416,21 +417,21 @@ for.
 
 ### UC-05-8 — A record too large to read whole
 
-Rev: 4 · Actors: agent · Enforces: BR-02
+Rev: 5 · Actors: agent · Enforces: BR-02
 
 The check reads the whole record, so a record that cannot be read whole cannot be judged. Today such
 an issue is refused outright, and ISS-17 and ISS-18 own what replaces that. Every plain advance is
-judged on the page, the advance into `closed` included: that rung is entered on the verdicts and the
-folded findings as well as on the project's own declaration about who releases, so a page skipped
-there reads a failed verdict as none. The project is read whichever way the page falls, being no
+judged on the page, the advance into `awaiting_release` included: that rung is entered on the
+verdicts and the folded findings as well as on the deploy, so a page skipped there reads a failed
+verdict as none. The project is read whichever way the page falls, being no
 part of what a page could hold.
 
 - **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-2124
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
   partial record, for every status whose entry criteria that record holds.
-- **AC-05-8-2** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "the status a close is earned from is the flow table's own tail, and a verification besides"
-  WHERE the entry criteria of the next status name no payload, the CLI SHALL fetch no comment page
-  to judge that transition, the exemption being of the record a page carries and not of the
+- **AC-05-8-2** · Rev: 3 · Proof: plugin/test/flow/advance/set-earned.test.mjs "a set naming a side status reads no record, whatever the record earns"
+  WHERE a `--set` names a status no plain advance could have earned instead, the CLI SHALL fetch no
+  comment page to judge it, the exemption being of the record a page carries and not of the
   project's own configuration, which no page carries either.
 
 ### UC-05-9 — A plan whose shape is unfinished earns no approval
@@ -575,12 +576,12 @@ so a death between the two is recovered by reading back rather than by doing aga
   WHEN a shell call reads the declared gate's script, or runs a script the declaration does not resolve
   to, THEN the CLI SHALL let it through, whatever the script's name.
 
-### UC-05-11 — An independent judge earns `testing`
+### UC-05-11 — An independent judge earns `in_progress:release`
 
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-04
 
 A builder judging its own criteria proves the code matches what the builder thought the criteria
-meant. Where a project asks for it, the judgement between `developed` and `testing` is another
+meant. Where a project asks for it, the judgement between `in_progress:test` and `in_progress:release` is another
 actor's, exercising the deployed change as a user would; for the check to hold, who judged must be
 on the record as the CLI captured it, never as the writer claims it (BR-02), and the judgement is
 of one deployment, so a candidate that changed after it is judged again (BR-04).
@@ -593,12 +594,12 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
 - **AC-05-11-6** · Rev: 1 · Proof: plugin/test/flow/verdicts/judge.test.mjs "the assembled view of an issue's verdicts keeps the judge on each"
   WHEN an issue's verdicts are assembled THEN the view SHALL keep the judge's identity on each.
 - **AC-05-11-2** · Rev: 2 · Proof: plugin/test/flow/verdicts/independent.test.mjs "an ordinary landing carries no deployment identity, and its judge's verdicts earn the rung"
-  WHERE the project's record asks for an independent judgement, the CLI SHALL refuse `testing` while
+  WHERE the project's record asks for an independent judgement, the CLI SHALL refuse `in_progress:release` while
   any standing verdict carries the builder's identity or none, and SHALL earn it once every standing
   verdict carries another judge, because whether a deployment was reported is the rung above's
   question and a judging rung asking it demanded of one actor what another answers for.
 - **AC-05-11-3** · Rev: 1 · Proof: none yet — ISS-2123
-  WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `testing` as
+  WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `in_progress:release` as
   they did before.
 - **AC-05-11-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the route verifies before the merge, a candidate whose base or batch changed after its
@@ -609,7 +610,7 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   own actor's.
 - **AC-05-11-8** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a verdict whose judge id was inherited earns nothing, however that id compares with the builder's"
   WHERE the project's record asks for an independent judgement, IF a standing verdict's identity was
-  inherited from the session that dispatched the run THEN the CLI SHALL refuse `testing` naming the
+  inherited from the session that dispatched the run THEN the CLI SHALL refuse `in_progress:release` naming the
   environment variable that gives a run an identity of its own.
 - **AC-05-11-9** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a checkpoint declaring its builder unrecoverable earns the verdict the deployment half alone"
   WHERE the project's record asks for an independent judgement and the landing checkpoint carries a
@@ -625,7 +626,7 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
 - **AC-05-11-11** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a judge the claim history names as a run that held the build is no judge apart from it"
   IF the landing checkpoint declares its builder unrecoverable and the issue's own claim history
   names a standing verdict's judge as a run that held it at a status the change was still being
-  built at THEN the CLI SHALL refuse `testing` naming that judge, because the builder is one of
+  built at THEN the CLI SHALL refuse `in_progress:release` naming that judge, because the builder is one of
   those runs and nothing shows the judge apart from a set it is inside.
 - **AC-05-11-12** · Rev: 1 · Proof: plugin/test/flow/landing/reconstruction.test.mjs "a reconstruction is disclosed on the checkpoint line and on every verdict read back against it"
   WHERE a landing checkpoint carries a hand-written block, the CLI SHALL say that it was rebuilt by
@@ -643,12 +644,12 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   landing is and writes no checkpoint at all.
 - **AC-05-11-15** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the landing's reading of which criteria were judged refuses what the entry check refuses"
   WHERE a landing reads which criteria an independent judge answered for, it SHALL count a verdict
-  only where the entry check to `testing` would let that verdict stand, because two readings of one
+  only where the entry check to `in_progress:release` would let that verdict stand, because two readings of one
   judgement that disagree make the landing spend a promotion on a verdict the transition will then
   refuse.
 
 - **AC-05-11-16** · Rev: 2 · Proof: plugin/test/flow/verdicts/independent.test.mjs "an identity the checkpoint does hold is still cited, and a verdict citing some other head is refused"
-  WHERE the landing checkpoint names a deployment identity, the CLI SHALL refuse `testing` while any
+  WHERE the landing checkpoint names a deployment identity, the CLI SHALL refuse `in_progress:release` while any
   standing verdict's evidence neither cites that identity nor cites a commit its write read as
   carrying it, because a checkpoint naming one was written off a reading of the deployment, a verdict
   answering to some other head judged something else, and a served commit carrying the identity is
@@ -656,7 +657,7 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
 - **AC-05-11-17** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the builder's own verdict earns nothing on a checkpoint that names no deployment identity"
   IF a standing verdict carries the builder's identity, was written under an inherited identity or
   carries none WHILE the landing checkpoint names no deployment identity THEN the CLI SHALL refuse
-  `testing`, because what the judging rung reads is who judged and no part of that reads a
+  `in_progress:release`, because what the judging rung reads is who judged and no part of that reads a
   deployment.
 - **AC-05-11-18** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a judge refused on a checkpoint holding no identity is handed the verdict write"
   IF a standing verdict is refused WHILE a landing checkpoint stands on the issue THEN the CLI SHALL
@@ -675,7 +676,7 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   is one nobody established.
 - **AC-05-11-21** · Rev: 1 · Proof: plugin/test/flow/resume/coverage.test.mjs "under an independent judgement a verdict the entry check refuses is marked on its own row"
   WHERE the project's record asks for an independent judgement, the CLI SHALL mark, when it re-mints
-  the issue's context, every criterion whose standing verdict the entry check to `testing` would
+  the issue's context, every criterion whose standing verdict the entry check to `in_progress:release` would
   refuse, because a builder's verdict read back like a judge's makes a judgement nobody has made
   read as a finished one.
 - **AC-05-11-22** · Rev: 1 · Proof: plugin/test/flow/verdicts/writer.test.mjs "an inherited verdict is refused before anything is sent, and the route is the same call under an id of its own" · Source: docs/cli/record-the-judge.md

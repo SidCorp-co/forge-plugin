@@ -73,7 +73,7 @@ test("the refusal names the verb, the state and the one command that clears it",
 
 test("a form performed through an off verb is refused before the verb behind it runs", () => {
   const { run } = atJob();
-  const said = run("close", "ISS-45");
+  const said = run("release", "ISS-45");
   assert.equal(said.status, 1, said.stdout);
   assert.equal(said.stdout, "");
   assert.match(said.stderr, /^`forge advance` is off on this machine/u, said.stderr);

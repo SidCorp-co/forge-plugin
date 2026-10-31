@@ -122,7 +122,7 @@ test("the field is no flag, so a caller cannot type the ancestry", async () => {
 
 test("the verdict's help says a later commit carrying the landing earns the rung, and how", async () => {
   const run = await ask("record", "verdict", "-h");
-  assert.match(run.stdout + run.stderr, /A later --commit carrying the merged one earns `testing`: the write records what git says of it\./u);
+  assert.match(run.stdout + run.stderr, /A later --commit carrying the merged one earns `in_progress:release`: the write records what git says of it\./u);
 });
 
 test("a shallow history and a directory no checkout holds settle nothing", () => {
@@ -165,7 +165,7 @@ test("a verdict citing no commit that carries the deployment records nothing, an
   const run = await deployedAt(MERGED, () => cites(ASIDE));
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stderr.includes(`No commit this verdict cites carries the deployment ${short(MERGED)} the landing checkpoint names`), run.stderr);
-  assert.ok(run.stderr.includes(`so \`testing\` refuses it unless it cites ${short(MERGED)} itself.`), run.stderr);
+  assert.ok(run.stderr.includes(`so \`in_progress:release\` refuses it unless it cites ${short(MERGED)} itself.`), run.stderr);
   assert.doesNotMatch(lastBody(), /^carries-deployment:/mu);
 });
 

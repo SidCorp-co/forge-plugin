@@ -1,6 +1,6 @@
 ## The five rules
 
-1. **One master owns one status.** Everything this session claims stands at `developed` and nothing
+1. **One master owns one status.** Everything this session claims stands at `in_progress:test` and nothing
    else does. That is what keeps it from ever contending with the run that put an issue there, and
    it is the property the whole shape rests on rather than a narrowing of the fight.
 2. **The queue is re-read, never snapshotted.** Ask again after each issue. An issue that arrives

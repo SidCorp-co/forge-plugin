@@ -76,7 +76,7 @@ test("the claim prints the lane at the rung the complexity claims, and takes the
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-810 {2}claim:/u, "the lease is taken and said so");
   assert.match(run.stdout, /^Lane at `fix` — every status/mu, "and the lane is printed under it");
-  assert.match(run.stdout, /^ {2}approved {9}criteria; no decision, no plan at this rung$/mu,
+  assert.match(run.stdout, /^ {2}approved {12}criteria; no decision, no plan at this rung$/mu,
     "a fix writes neither the reading nor the plan, and its criteria still stand where both are "
     + "dropped: two rows of the ladder on one status, and the row after the first is not silent");
 });
@@ -95,7 +95,7 @@ test("a correction that climbed a rung moves the lane the claim prints", async (
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Lane at `feature` — every status/mu,
     "the rung the entry checks run is the one the lane is printed at");
-  assert.match(run.stdout, /^ {2}approved {9}decision, plan, criteria$/mu,
+  assert.match(run.stdout, /^ {2}approved {12}decision, plan, criteria$/mu,
     "so the decision record and the plan a fix would not have written are owed again");
 });
 

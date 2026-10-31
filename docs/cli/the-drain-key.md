@@ -1,7 +1,7 @@
 # The drain key, and why it is not the tracker's
 
 Two adjacent decisions, two keys, two homes. `pipelineConfig.qa` says whether the judgement between
-`developed` and `testing` is an independent run's — a fact about the product, the same for every
+`in_progress:test` and `in_progress:release` is an independent run's — a fact about the product, the same for every
 checkout, and the tracker's. `drainedBy` says which master claims what that judgement offers, and it
 is a key of the project's own file beside `flow` and `landing`.
 
@@ -24,7 +24,7 @@ touched.
 
 **A name is checked against the queue it takes a worker from.** The key subtracts a
 worker from a queue on the strength of a name, and nothing about a name says whether the master it
-names is running: a declared QA master with no pane and no process held four rows at `developed` for a
+names is running: a declared QA master with no pane and no process held four rows at `in_progress:test` for a
 whole session while the master that could have judged them read that they were not its own. So the
 declaration is checked where it subtracts, against the rows standing at that status, and holds only
 on positive evidence — another session's live lease on one of them, a claim another session recorded

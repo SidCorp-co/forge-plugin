@@ -78,7 +78,7 @@ const scenario = () => {
   const issues = {
     "ISS-1": { title: "plans", status: "open" }, "ISS-2": { title: "merges", status: "closed" },
     "ISS-3": { title: "notes", status: "closed" }, "ISS-4": { title: "x", status: "open", relates: ["ISS-5"] },
-    "ISS-5": { title: "x again", status: "in_progress" },
+    "ISS-5": { title: "x again", status: "in_progress:build" },
     "ISS-6": { title: "A case passes in company [gate-recurrence 0123456789ab]", status: "open" },
     "ISS-7": { title: "Another case passes in company [gate-recurrence 0123456789ab]", status: "closed" },
     "ISS-12": { title: "A third sibling [gate-recurrence 0123456789ab]", status: "dropped" },

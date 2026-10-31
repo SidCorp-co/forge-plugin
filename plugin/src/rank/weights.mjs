@@ -3,8 +3,9 @@
    docs/cli/next-weights.md's, and why the reading stops where it does is docs/cli/next.md's. */
 import { fromProject, rankConvention } from "../resolve/settings.mjs";
 import { KIND_NAMES } from "../tracker/declared/kinds.mjs";
+import { HELD } from "../tracker/declared/issue-machine.mjs";
 
-export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
+export const TAKEABLE = ["open", HELD.plan, "approved", "reopen"];
 
 /** The reporter's status before those: no run is dispatched at it and nothing ranks it, which is why it
  *  stands beside the list rather than in it. */

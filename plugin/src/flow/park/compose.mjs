@@ -8,10 +8,11 @@ import { parse, render } from "../record/page.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm, shapeGaps } from "../earned.mjs";
 import { undoForm } from "../record/merged.mjs";
 import { finishes, parkLeft } from "./left.mjs";
+import { HELD } from "../../tracker/declared/issue-machine.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
 export const ASKS_A_QUESTION = "question";
-const ASKED_AT = ["open", "confirmed"];
+const ASKED_AT = ["open", HELD.plan];
 
 /* A move to `needs_info` says what it is stopped on, and the tracker refuses it otherwise
    (WAITING_KIND_REQUIRED): a question asks for an answer, and every other park there asks a person
@@ -80,7 +81,7 @@ export const parkChecked = (view, ref, kind, evidence) => {
     refuse(`a question goes to the reporter, and ${ref} is ${view.issue.status}: the readings it would `
       + `offer are the triage ones. Ask from ${ASKED_AT.join(" or ")}, or park for a reviewer instead.`);
   }
-  if (to === "dropped" && atLeast(view.issue.status, "developed")) {
+  if (to === "dropped" && atLeast(view.issue.status, HELD.test)) {
     refuse(`${ref} is ${view.issue.status}, and dropped means no code landed. Revert first, then drop `
       + `from approved:\n  ${setForm(ref, "approved")}`);
   }

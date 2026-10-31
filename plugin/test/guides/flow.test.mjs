@@ -20,7 +20,7 @@ const { DEFAULT, FLOWS, FLOW_SLUGS, SCREEN, screensOf } = flowModule;
 const { QA_MODES } = await import("../../src/tracker/project-config.mjs");
 /* The plan's declaration keys, read off the flags a plan parses to rather than named again here. */
 const DECLARED_KEYS = Object.keys((await import("../../src/flow/machine.mjs")).planFlags(""));
-const { ORDER } = await import("../../src/flow/earned.mjs");
+const { LADDER } = await import("../../src/flow/earned.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
@@ -81,29 +81,29 @@ const installed = (files) => {
 
 const BASE = {
   "01-first.md": "# First\n\n**Contract 1.** The number.\n",
-  "09-developed.md": "### `developed` — reads the review\n\nThe base's own.\n",
-  "10-testing.md": "### `testing` — reads the verdict\n\nAlso the base's.\n",
+  "09-in-progress-test.md": "### `in_progress:test` — reads the review\n\nThe base's own.\n",
+  "10-in-progress-release.md": "### `in_progress:release` — reads the verdict\n\nAlso the base's.\n",
 };
 
 const OWN = {
   "01-first.md": "# First\n\n**Contract 1.** The flow's own number.\n",
   "05-a-part-of-its-own.md": "### `open` — reads a finding\n\nA part default has not got.\n",
-  "09-developed.md": "### `developed` — reads the review\n\nThe flow's own.\n",
+  "09-in-progress-test.md": "### `in_progress:test` — reads the review\n\nThe flow's own.\n",
 };
 
 test("a flow holding three parts is served exactly those three, in its own order", () => {
   const root = installed({ [DEFAULT]: BASE, [FIXTURE]: OWN });
   const entries = contractParts({ root, flow: FIXTURE });
   assert.deepEqual(entries.map(({ name }) => name),
-    ["01-first.md", "05-a-part-of-its-own.md", "09-developed.md"],
+    ["01-first.md", "05-a-part-of-its-own.md", "09-in-progress-test.md"],
     "a fourth entry is default's order leaking into a flow that never asked for it");
   const parts = addressed(entries);
-  assert.deepEqual(parts.map((one) => one.keys[0]), ["first", "open", "developed"]);
-  assert.match(partFor(parts, "developed").text, /The flow's own/u);
+  assert.deepEqual(parts.map((one) => one.keys[0]), ["first", "open", "in_progress:test"]);
+  assert.match(partFor(parts, "in_progress:test").text, /The flow's own/u);
   assert.match(partFor(parts, "open").text, /A part default has not got/u,
     "a part name default has not got needs no permission and is served");
-  assert.equal(partFor(parts, "testing"), null,
-    "default holds 10-testing.md and this flow does not: serving it would be the base coming back");
+  assert.equal(partFor(parts, "in_progress:release"), null,
+    "default holds 10-in-progress-release.md and this flow does not: serving it would be the base coming back");
   assert.match(readContract(root, FIXTURE), /The flow's own number/u);
   assert.doesNotMatch(readContract(root, FIXTURE), /Also the base's/u,
     "the join is the flow's directory and nothing merged into it");
@@ -113,30 +113,30 @@ test("serving one flow reads no other flow's file, for a part it holds or one it
   const root = installed({
     [DEFAULT]: BASE,
     [FIXTURE]: OWN,
-    [SIBLING]: { "10-testing.md": "### `testing`\n\nA sibling's, which nothing may reach.\n" },
+    [SIBLING]: { "10-in-progress-release.md": "### `in_progress:release`\n\nA sibling's, which nothing may reach.\n" },
   });
-  const missing = contractAnswer({ root, flow: FIXTURE, part: "testing" });
-  assert.match(missing.refusal, /No guide contract named testing/u,
+  const missing = contractAnswer({ root, flow: FIXTURE, part: "in_progress:release" });
+  assert.match(missing.refusal, /No guide contract named in_progress:release/u,
     "the part is refused, not fetched from default or from the sibling");
   assert.doesNotMatch(missing.refusal, /sibling|Also the base's|A sibling's/u);
-  const held = contractAnswer({ root, flow: FIXTURE, part: "developed" });
+  const held = contractAnswer({ root, flow: FIXTURE, part: "in_progress:test" });
   assert.match(held.lines.join("\n"), /The flow's own/u);
   assert.equal(held.lines.at(-1), `Flow ${FIXTURE}, which this project runs; \`forge doctor\` names its source.`,
     "and the answer names the flow it was served for, not the one the settings pin");
   const base = addressed(contractParts({ root, flow: DEFAULT }));
-  assert.match(partFor(base, "developed").text, /The base's own/u,
+  assert.match(partFor(base, "in_progress:test").text, /The base's own/u,
     "and default is served its own file, never the flow's");
 });
 
 test("two flows holding one part byte-identically are both served it, and nothing is refused", () => {
-  const shared = "### `developed` — reads the review\n\nWord for word in both.\n";
+  const shared = "### `in_progress:test` — reads the review\n\nWord for word in both.\n";
   const root = installed({
-    [DEFAULT]: { ...BASE, "09-developed.md": shared },
-    [FIXTURE]: { ...OWN, "09-developed.md": shared },
+    [DEFAULT]: { ...BASE, "09-in-progress-test.md": shared },
+    [FIXTURE]: { ...OWN, "09-in-progress-test.md": shared },
   });
   for (const flow of [DEFAULT, FIXTURE]) {
     const parts = addressed(contractParts({ root, flow }));
-    assert.match(partFor(parts, "developed").text, /Word for word in both/u, flow);
+    assert.match(partFor(parts, "in_progress:test").text, /Word for word in both/u, flow);
     assert.deepEqual(contractProblems({ root, flow }), [], contractProblems({ root, flow }).join("\n"));
   }
   assert.deepEqual(
@@ -243,10 +243,10 @@ test("a copy with no contract, one with no number and one from another build are
    without a part is legal, and `stageLine` already answers for one at the call. */
 test("the statuses a set leaves unanswered are read off that set and off no other flow's", () => {
   const parts = addressed(contractParts({ root: installed({ [FIXTURE]: OWN }), flow: FIXTURE }));
-  assert.deepEqual(unansweredIn(parts, ORDER),
-    ORDER.filter((one) => one !== "open" && one !== "developed"),
+  assert.deepEqual(unansweredIn(parts, LADDER),
+    LADDER.filter((one) => one !== "open" && one !== "in_progress:test"),
     "a status the flow's own parts answer is not reported, and every other one is");
-  assert.deepEqual(unansweredIn(addressed(contractParts({})), ORDER), [],
+  assert.deepEqual(unansweredIn(addressed(contractParts({})), LADDER), [],
     "and the shipped set answers every stage of the ladder");
 });
 
@@ -284,7 +284,7 @@ test("doctor names the missing file, and a file from another build, in the copy 
    half that matters: a `miss` here would make a flow's own choice of parts a refusal. */
 test("doctor reports a flow's set and what it leaves unanswered, at a mark that refuses nothing", () => {
   const short = copyOfCode("# A contract\n\n**Contract 1.** The number.\n");
-  assert.match(short, /\[ note \] flow set\s+default: 1 part\(s\) — leaves open, confirmed, approved/u);
+  assert.match(short, /\[ note \] flow set\s+default: 1 part\(s\) — leaves open, in_progress:plan, approved/u);
   assert.match(short, /which `stageLine` says at the call/u, "and names where a run would meet it");
   assert.doesNotMatch(short, /\[ miss \] flow set/u,
     "an unanswered status is a report; a miss here would make a flow's own set a refusal");

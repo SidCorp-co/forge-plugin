@@ -89,7 +89,7 @@ the thing answering at the identity you were given. Where you have seen somethin
 reading the code that produced it is how the finding gets a location — the file and the line a
 behaviour comes from, so the run that has to act on it starts where you finished rather than from
 your prose. Where a criterion looks met, opening the source to confirm it re-derives the proof the
-builder already made under its own contract before the issue reached `developed`: it settles the
+builder already made under its own contract before the issue reached `in_progress:test`: it settles the
 answer before the observation and then goes looking for it, and a verdict whose evidence is the code
 is a code review under a judge's name.
 

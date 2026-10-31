@@ -43,9 +43,12 @@ earn nothing there. A checkpoint naming none refuses that judge nothing; it is t
 took that decides whether there is one to hand over. Its verdicts and its hand-back are what let the landing finish.
 
 **A status the landing could not reach is this phase's**, and `forge resume ISS-nn` says which one
-that is. It is `closed` where the project's release owes nothing more; where it owes a person, the
-issue rests at `awaiting_release`: the release note each run left drafted is published from here
-once the release is actually out, and the close follows it. Where the release is the batch that
+that is. A landing walks no further than `awaiting_release`: core closes an issue there only by the
+release that ships it (`CLOSE_ONLY_BY_RELEASE`), so the close is that release's record,
+`forge release-batch record ISS-nn --commit <sha> --account "<how it was released>"`, made where the
+project's release owes nothing more once the release is out. Where it owes a person, the issue rests
+at `awaiting_release`: the release note each run left drafted is published from here once the release
+is actually out, and the close follows it. Where the release is the batch that
 promotes the change, the issue rests there for that batch and its close is not this phase's. A wave that lands every branch and leaves a rung nobody moves has left the queue exactly where a person has
 to finish it, which is the one outcome this method exists to remove.
 <!-- forge:end -->

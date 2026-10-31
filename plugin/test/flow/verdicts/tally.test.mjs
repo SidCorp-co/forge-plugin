@@ -21,7 +21,8 @@ const at = () => `2026-10-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z
 const judging = {
   documentId: "tally-uuid",
   issueId: "ISS-9",
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "the change being judged",
   description: "no mark here",
   acceptanceCriteria: CRITERIA,
@@ -79,7 +80,7 @@ test("a verdict write counts each value it recorded on stderr, ahead of the guid
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(counted(run.stderr), ["wrote 5 verdict(s) on ISS-9: 2 pass (1, 5), 1 fail (3), 1 short (4), 1 skipped (2)"],
     run.stderr);
-  assert.ok(run.stderr.indexOf("wrote 5 verdict(s)") < run.stderr.indexOf("ISS-9 is developed; testing is next"),
+  assert.ok(run.stderr.indexOf("wrote 5 verdict(s)") < run.stderr.indexOf("ISS-9 is in_progress:test; in_progress:release is next"),
     `ahead of what the write says is owed and of the guidance after it: ${run.stderr}`);
   assert.doesNotMatch(run.stderr, /--why rode onto/u, "no pass carried a why, so nothing is remarked");
   assert.deepEqual(records(run), [["5", "pass"], ["2", "skipped"], ["3", "fail"], ["4", "short"], ["1", "pass"]],

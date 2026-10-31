@@ -17,6 +17,7 @@ import { translated } from "../tools/vi.mjs";
 import { DATA_FENCE_PATTERN } from "../markdown.mjs";
 import { nearestOutside } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./routes.mjs";
+import { RETIRED_STATUS } from "./declared/declares.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
 import { gitMarkForm } from "../flow/record/judged/merged-clauses.mjs";
 
@@ -436,9 +437,9 @@ export const refuseUnreadableDate = (verb, flag, given) => {
     + "against it, which answers the same for all of them.");
 };
 
-/** What a status name is, off the row that declares it: `step` a rung of this plugin's own flow, `replacedBy` the rung that took a retired name over, `writtenByNobody` the clause saying whose path enters it and no run's. Two more place a status off the ladder for a reader asking how far work got: `past` the rung only a run beyond it reaches this status from, `landsNothing` a status the work ended at without landing. A row carrying none of the step, retired and nobody's three is readable, written by a park or a set, and no step. Null for a name the table does not declare, which `declaredValue` is what refuses. */
+/** What a status name is, off the row that declares it: `step` a place on this plugin's ladder, `heldAt` the places inside a status a set has to choose between, `replacedBy` the place that took a name core retired over, `landsNothing` a status the work ended at without landing. A row carrying none of these is readable, written by a park or a set, and no step. Null for a name the table does not declare, which `declaredValue` is what refuses. */
 export const statusKind = (name) =>
-  DECLARES.forge_issues.status.find((one) => one.name === name) ?? null;
+  [...DECLARES.forge_issues.status, ...RETIRED_STATUS].find((one) => one.name === name) ?? null;
 
 const saidStored = new Set();
 

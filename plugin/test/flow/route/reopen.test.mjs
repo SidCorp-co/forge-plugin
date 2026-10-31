@@ -60,13 +60,13 @@ test("a reopen falls where its triage says, once the write that outcome owes is 
   assert.match(wrong.missing[0].command, /^forge record correction ISS-3 --corrects criteria:2 --moved/u);
   const moved = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED }, () => [recorded("finding", ABOUT_TWO, "0"), corrected()]), "ISS-3");
   assert.deepEqual(moved.missing, []);
-  assert.equal(moved.next, "developed", "the criterion was the wrong test, so it and its verdicts go");
+  assert.equal(moved.next, "in_progress:test", "the criterion was the wrong test, so it and its verdicts go");
   const notMet = targetOf(reopened(NOT_MET), "ISS-3");
   assert.match(notMet.missing[0].what, /rules the criterion not met, and no failing verdict since it/u);
   assert.match(notMet.missing[0].command, /--verdict fail/u);
   const supersedes = targetOf(reopened(NOT_MET, {}, () => [judged("fail")]), "ISS-3");
   assert.deepEqual(supersedes.missing, []);
-  assert.equal(supersedes.next, "in_progress", "the criterion was right and the code is not");
+  assert.equal(supersedes.next, "in_progress:build", "the criterion was right and the code is not");
   assert.equal(supersedes.park, undefined, "neither of the two parks anything");
   assert.equal(supersedes.resumed, false, "and neither is a park being resumed");
   assert.equal(targetOf(reopened(NOT_MET, {}, () => [judged("pass")]), "ISS-3").missing.length, 1,
@@ -107,7 +107,7 @@ test("a wrong-test triage names its criterion, and is refused while that line st
   assert.match(unmoved.missing[0].command, /^forge record criteria ISS-3/u);
   const moved = ruled(MOVED, written(ABOUT_TWO));
   assert.deepEqual(moved.missing, [], "a line the finding quoted differently is a line that moved");
-  assert.equal(moved.next, "developed");
+  assert.equal(moved.next, "in_progress:test");
   const dropped = ruled("1. The first outcome.", written(ABOUT_TWO));
   assert.deepEqual(dropped.missing, [], "and so is the criterion the correction took out altogether");
   /* A comment carrying the tag and little else reaches this the way the finding does, so it is
@@ -153,10 +153,10 @@ test("each reopen owes the finding and the triage written at it, and not the one
   const pair = () => [recorded("finding", FOUND, "2"), recorded("triage", NOT_MET, "2"), judged("fail")];
   const again = targetOf(reopened(NOT_MET, { reopenCount: 2 }, pair, "1"), "ISS-3");
   assert.deepEqual(again.missing, [], "the pair written at this reopen earns it");
-  assert.equal(again.next, "in_progress");
+  assert.equal(again.next, "in_progress:build");
   const ruled = () => [recorded("finding", FOUND, "2"), recorded("triage", WRONG, "2"), corrected()];
   const routed = targetOf(reopened(NOT_MET, { reopenCount: 2 }, ruled, "1"), "ISS-3");
-  assert.equal(routed.next, "developed", "and it is this reopen's triage that routes, not the latest of the kind");
+  assert.equal(routed.next, "in_progress:test", "and it is this reopen's triage that routes, not the latest of the kind");
 });
 
 /* A second triage at one reopen said nothing the first had not, and the demand it re-armed named
@@ -167,7 +167,7 @@ test("a second triage repeating the first asks for nothing it already answered",
   const again = (outcome) => recorded("triage", { outcome, "would-have-caught": CAUGHT }, "0");
   const repeated = targetOf(reopened(NOT_MET, {}, () => [judged("fail"), again("not-met")]), "ISS-3");
   assert.deepEqual(repeated.missing, [], "the verdict that answered the first ruling answers the repeat");
-  assert.equal(repeated.next, "in_progress", "and the fall is the one that outcome names");
+  assert.equal(repeated.next, "in_progress:build", "and the fall is the one that outcome names");
   const written = () => [recorded("finding", ABOUT_TWO, "0"), corrected(), again("wrong-test")];
   const twice = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED }, written), "ISS-3");
   assert.deepEqual(twice.missing, [], "and the correction answers a repeated wrong-test the same way");
@@ -208,7 +208,7 @@ const SAW = { expected: FOUND.expected, seen: FOUND.seen, evidence: ["run.txt"] 
 test("a finding the run made itself is whole on the evidence it captured", () => {
   const held = looked(SAW, () => [judged("fail")]);
   assert.deepEqual(held.missing, [], "no quote is owed where the record carries what the run saw");
-  assert.equal(held.next, "in_progress", "and the triage routes it as it routes a person's");
+  assert.equal(held.next, "in_progress:build", "and the triage routes it as it routes a person's");
 });
 
 test("a finding that quotes nobody and captured nothing is no finding", () => {
@@ -257,7 +257,7 @@ test("not-in-spec parks the issue behind the edge that gates it", () => {
 });
 
 test("where a reopen lands is read from the mark", () => {
-  assert.equal(targetOf(reopened(WRONG, {}, () => [corrected()]), "ISS-3").next, "developed",
+  assert.equal(targetOf(reopened(WRONG, {}, () => [corrected()]), "ISS-3").next, "in_progress:test",
     "a mark says code landed, so a close was reopened");
   const drop = targetOf(reopened(WRONG, { mergedAt: null }, () => [
     recorded("park", { kind: "dropped", why: "the premise was false", evidence: [] }, "approved"),
@@ -267,27 +267,27 @@ test("where a reopen lands is read from the mark", () => {
   assert.throws(() => targetOf(reopened(WRONG, { mergedAt: null }), "ISS-3"), /no park record of kind dropped/u);
 });
 
-/* The tracker announces a move into `waiting` or `needs_info` with a comment of its own, and that
+/* The tracker announces a move into `needs_info` with a comment of its own, and that
    announcement is what pairs a park record with the transition it caused. Without the pairing the
    newest park of a matching kind answers, so a park already resumed sends the issue on a second
    time — to a `left` nobody decided this time round (ISS-142). */
-const ANNOUNCED = "⏸ **Waiting on a human decision** — moved from `in_progress`\n\nsomebody has to look";
+const ANNOUNCED = "❓ **Needs info** — moved from `in_progress`\n\nsomebody has to look";
 const PARKED = { kind: "screen-review", why: "somebody has to look", evidence: ["run.txt"] };
 const answering = () => comment("looked, and it is right", { authorId: "a-person" });
-const waiting = (comments) =>
-  view({ status: "waiting", plan: PLAN, acceptanceCriteria: CRITERIA, attachments: ATTACHED }, comments);
+const onPerson = (comments) =>
+  view({ status: "needs_info", plan: PLAN, acceptanceCriteria: CRITERIA, attachments: ATTACHED }, comments);
 
 test("the park a resume reads is the one written after the tracker announced the move", () => {
-  const parked = waiting([comment(ANNOUNCED), recorded("park", PARKED, "in_progress"), answering()]);
+  const parked = onPerson([comment(ANNOUNCED), recorded("park", PARKED, "in_progress:build"), answering()]);
   const held = targetOf(parked, "ISS-3");
-  assert.equal(held.next, "in_progress", "the park that set this status says where it goes back to");
+  assert.equal(held.next, "in_progress:build", "the park that set this status says where it goes back to");
   assert.equal(held.resumed, true);
   assert.deepEqual(held.missing, [], "and a reply by somebody else clears it");
 });
 
 test("a park an earlier announcement already spent does not transition the issue a second time", () => {
-  const again = waiting([
-    comment(ANNOUNCED), recorded("park", PARKED, "in_progress"), answering(), comment(ANNOUNCED),
+  const again = onPerson([
+    comment(ANNOUNCED), recorded("park", PARKED, "in_progress:build"), answering(), comment(ANNOUNCED),
   ]);
   assert.throws(() => targetOf(again, "ISS-3"), (error) => {
     assert.match(error.message, /no park record on the page is paired with the entry into it/u);
@@ -304,17 +304,17 @@ test("a park an earlier announcement already spent does not transition the issue
 test("an on_hold issue is read as it was, the tracker announcing no move into it", () => {
   const paused = view(
     { status: "on_hold", plan: PLAN, acceptanceCriteria: CRITERIA, attachments: ATTACHED },
-    [recorded("park", { kind: "blocked", why: "waiting on ISS-9", evidence: [] }, "in_progress")],
+    [recorded("park", { kind: "blocked", why: "waiting on ISS-9", evidence: [] }, "in_progress:build")],
   );
   const held = targetOf(paused, "ISS-3");
-  assert.equal(held.next, "in_progress", "no announcement is needed where the tracker writes none");
+  assert.equal(held.next, "in_progress:build", "no announcement is needed where the tracker writes none");
   assert.equal(held.resumed, true);
 });
 
-/* The tracker announces every entry into `waiting`, so a page in it carrying none is a page that
+/* The tracker announces every entry into `needs_info`, so a page in it carrying none is a page that
    cannot say which park moved it — and the newest of a matching kind is a guess (ISS-142). */
 test("a park with no announcement anywhere on the page pairs with nothing and moves nothing", () => {
-  const unpaired = waiting([recorded("park", PARKED, "in_progress"), answering()]);
+  const unpaired = onPerson([recorded("park", PARKED, "in_progress:build"), answering()]);
   assert.throws(() => targetOf(unpaired, "ISS-3"), (error) => {
     assert.match(error.message, /no park record on the page is paired with the entry into it/u);
     assert.match(error.message, /the page carries no announcement at all/u,
@@ -326,16 +326,17 @@ test("a park with no announcement anywhere on the page pairs with nothing and mo
 /* A `needs_info` park is filed before the move it causes, so the pairing is the other way round: the
    park that set the status is one of the comments between the last two announcements. An old park,
    the reply that answered it, and a later entry into the status pair with nothing (ISS-429). */
-const ASKED = "❓ **Needs info** — moved from `confirmed`";
+const ASKED = "❓ **Needs info** — moved from `in_progress`";
 test("a needs_info park that an earlier entry already used is not read by a later one", () => {
   const asking = { kind: "question", why: "which of the two readings", evidence: [] };
   const page = (comments) => view(
     { status: "needs_info", plan: PLAN, acceptanceCriteria: CRITERIA, attachments: ATTACHED },
     comments,
   );
+  /* Written before the ladder was core's, so it names the plan by the rung it was then: read as its place. */
   const first = [recorded("park", asking, "confirmed"), comment(ASKED)];
   const held = targetOf(page(first), "ISS-3");
-  assert.equal(held.next, "confirmed", "the park filed under the announcement is the one that set it");
+  assert.equal(held.next, "in_progress:plan", "the park filed under the announcement is the one that set it");
   const again = page([...first, comment("the answer", { authorId: "the-reporter" }), comment(ASKED)]);
   assert.throws(() => targetOf(again, "ISS-3"), (error) => {
     assert.match(error.message, /no park record on the page is paired with the entry into it/u);

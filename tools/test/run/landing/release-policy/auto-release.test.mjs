@@ -1,5 +1,5 @@
-/* The landing under a project whose release owes a person nothing: it walks the last rung too and
-   the issue reaches `closed` untouched. Its own file because the policy is read once per process
+/* The landing under a project whose release owes a person nothing: it walks to `awaiting_release`
+   and rests there, core closing an issue only by the release that ships it. Its own file because the policy is read once per process
    and every other case here runs a branch deploying nothing, so they prove the other ceiling. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -92,7 +92,7 @@ test("a release the project makes without a person rests at the release rung, th
   /* The tracker closes an issue that ships code only by a release that claimed it, so no walk moves it there. */
   assert.equal(issue().status, "awaiting_release", `the hand-back walks to the release rung and no further:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
-  assert.deepEqual(moves(), ["developed", "testing", "awaiting_release"],
+  assert.deepEqual(moves(), ["in_progress:test", "in_progress:release", "awaiting_release"],
     `one move per rung of the tail, in the table's order, and no jump:\n${said}`);
   assert.match(said, /no landing call is owed/u, `so the hand-back says none is:\n${said}`);
   assert.doesNotMatch(said, new RegExp(`forge claim ${KEY} --take`, "u"), `and names no take of a landing that is over:\n${said}`);

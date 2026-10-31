@@ -234,7 +234,7 @@ test("the screen judging method states what a screen judgement asks, and makes n
   }
   assert.match(text, /Ask them while you exercise every criterion, and report what they found on every run/u,
     "the questions are listed and never asked");
-  assert.match(text, /they add no criterion, they move nothing about what earns `testing`/u,
+  assert.match(text, /they add no criterion, they move nothing about what earns `in_progress:release`/u,
     "the questions read as criteria, moving what the status is earned by");
   assert.match(text, /one demonstrating no harm goes on the backlog as its own row/u, "the harm bar is not the one they answer to");
   assert.doesNotMatch(flat(judging("default")), /What a screen judgement asks/u, "a CLI judge is asked a screen's questions");

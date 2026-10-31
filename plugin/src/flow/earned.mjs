@@ -38,18 +38,19 @@ import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } 
 export { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince };
 import { BY_BATCH, judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
 import { NOTE_TITLE_WORDS } from "../tracker/declared/declares.mjs";
+import { HELD } from "../tracker/declared/issue-machine.mjs";
 
-/* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
-export const ORDER = [
-  "open", "confirmed", "approved", "in_progress", "developed", "testing", "awaiting_release", "closed",
-];
+/* Core's issue machine climbed in its own order, each place a status core holds or `in_progress` at
+   a work step (`tracker/declared/issue-machine.mjs`): the sequence is the rule, so listing it is the
+   point. It stops at `awaiting_release`, core closing an issue from there only by the release that
+   ships it (CLOSE_ONLY_BY_RELEASE), so nothing here climbs to `closed`. */
+export const LADDER = ["open", HELD.plan, "approved", HELD.build, HELD.test, HELD.release, CLOSES_FROM];
 
-/** The rung the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a rung free to disagree with this order. */
-export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
+/** The place the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a place free to disagree with this order. */
+export const JUDGED_AT = LADDER[LADDER.indexOf(HELD.test) + 1];
 
-/** The rung a build stands at, and the rung the release policy is read at — the last one, which is entered on the project rather than on the record. Both off the sequence, for the reason above. */
-export const BUILD_AT = ORDER[ORDER.indexOf("developed") - 1];
-export const CLOSES_AT = ORDER.at(-1);
+/** The place a build stands at, off the sequence for the reason above. */
+export const BUILD_AT = LADDER[LADDER.indexOf(HELD.test) - 1];
 
 /* A default nothing ever mutates, for a call that owes no number the exclusion after it. */
 const EMPTY_SET = new Set();
@@ -85,18 +86,22 @@ const clauseOwed = (cited, ref) => {
 
 export const NO_CRITERIA = "the criteria field holds no numbered line `N. outcome`";
 
+/* How far up the ladder a status stands: `closed` is no place a run climbs to, core closing an issue
+   only by its release, and it stands past every one of them all the same. */
+const heightOf = (status) => (status === "closed" ? LADDER.length : LADDER.indexOf(status));
+
 export const atLeast = (status, floor) =>
-  ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
+  heightOf(status) >= 0 && heightOf(status) >= heightOf(floor);
 
 /** Whether a claim taken at that status was taken while the change was still being built. Off the
  *  sequence rather than off a second list of names: a holder whose every claim came at or past the
  *  status a build hands over at judged the change or landed it, and nothing on the record proposes
  *  it as the builder (ISS-2045). A status the sequence does not hold reads as a build. */
-export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BUILD_AT) + 1]);
+export const buildsAt = (status) => !atLeast(status, LADDER[LADDER.indexOf(BUILD_AT) + 1]);
 
 /** `buildsAt` for a claim-history row, read against the page: a claim taken at a side status was
  *  taken where the park that set it left, which is the newest park landing there posted before the
- *  claim. A judge dispatched onto an issue parked from `developed` claims it at `on_hold`, and read as
+ *  claim. A judge dispatched onto an issue parked from `in_progress:test` claims it at `on_hold`, and read as
  *  itself that claim made the judge a build holder and voided every verdict it wrote (ISS-2044). A
  *  row no such park precedes stays unplaced, which reads as a build, and so does every side-status
  *  row on a page cut short: the park that placed it may be among the comments the walk never reached. */
@@ -125,12 +130,12 @@ export const dispositionOf = (view) => {
 };
 
 export const stepAfter = (status) => {
-  const at = ORDER.indexOf(status);
-  return at < 0 || at === ORDER.length - 1 ? null : ORDER[at + 1];
+  const at = LADDER.indexOf(status);
+  return at < 0 || at === LADDER.length - 1 ? null : LADDER[at + 1];
 };
 
 export const nextOf = (status, view) =>
-  (status === "confirmed" && dispositionOf(view) ? "dropped" : stepAfter(status));
+  (status === HELD.plan && dispositionOf(view) ? "dropped" : stepAfter(status));
 
 /* The park is a look at the evidence either way, which the project's own policy may say it does
    not want: the declaration is the plan's and whether a person is waited for is the project's.
@@ -156,7 +161,7 @@ export const flowJudgeConflict = (flow, judge, policy) => {
   if (!judge) return null;
   const held = judgementOf(policy);
   if (held === judge) return null;
-  return `flow ${flow} asks for ${judge} judgement between developed and testing, and this project's`
+  return `flow ${flow} asks for ${judge} judgement between in_progress:test and in_progress:release, and this project's`
     + ` configuration says ${held}, so the method dispatches a judge whose verdicts the rung does not`
     + " ask for: change the flow, or the project's qa configuration";
 };
@@ -184,12 +189,11 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
-/** The one write that closes an issue the release policy holds at the closing rung. The record is
- *  the tracker's own close, and names the release it followed (ISS-2409). */
-export const closeForm = (ref, held) => (held.by === BY_BATCH
-  ? `forge release-batch record ${ref} --commit <the sha the live branch serves> `
-    + `--account "<how it was promoted, and why not by a batch>"`
-  : setForm(ref, CLOSES_AT));
+/** The one write that closes an issue at `awaiting_release`, whoever made the release: core closes
+ *  it from there only by recording the release that shipped it (CLOSE_ONLY_BY_RELEASE), and that
+ *  record names the release it followed (ISS-2409). */
+export const closeForm = (ref) => `forge release-batch record ${ref} --commit <the sha the live branch serves> `
+  + `--account "<how it was released>"`;
 
 /** The possessive a refusal, a report and a landing's rest each print for `held.by`. */
 export const whoseRelease = (held) => (held.by === BY_BATCH ? "the release batch's" : "a person's");
@@ -265,7 +269,7 @@ const correctedAway = (view, number) => (view.repeated?.correction ?? []).some((
   && !shapeGaps("correction", one.record, view.names).length);
 
 /* A failed verdict holds every rung from the judging one to the close, whenever it was written: the
-   builder's records turn writes its verdicts after the landing has entered `testing`, and a fail read
+   builder's records turn writes its verdicts after the landing has entered `in_progress:release`, and a fail read
    by that rung alone held nothing once it was passed (ISS-2511). One reading for the three rungs, so
    none of them can disagree with another about which criterion failed. Current criteria, or a number
    a correction names as dropped: a correction that removes the criterion this fail was judged
@@ -310,7 +314,7 @@ const failedOwed = (view, ref, exclude) => heldOwed(view, ref, "fail", exclude);
    criterion, one reason (codex review). A criterion with no verdict at all stays out, the boundary
    `test/flow/earned/the-rung.test.mjs` (ISS-1065) keeps; a criterion a correction removed is not
    that either, `heldOwed` above already stopping at a number that is gone. */
-const pastJudgingOwed = (view, ref) => {
+export const pastJudgingOwed = (view, ref) => {
   const stale = staleCriteria(view);
   return [...failedOwed(view, ref, stale), ...heldOwed(view, ref, "skipped", stale), ...judgedSince(view, ref, stale),
     ...supersededOwed(view, ref, stale)];
@@ -390,7 +394,7 @@ const heldAtThisReopen = (view, kind) => {
 /* The ruling is the newest triage and the moment it unearned is the oldest of the unbroken run of
    like rulings ending at it: a second triage repeating the one before it rules on nothing the first
    did not, so a demand measured from it asks again for a record already written to answer the
-   first — and where a project puts the judgement above `developed` in another run's hands, the one
+   first — and where a project puts the judgement above `in_progress:test` in another run's hands, the one
    command that demand names is the one command the run standing there may not issue (ISS-2030). An
    outcome the triage before it did not rule is a reading that moved, and opens a run of its own. */
 export const rulingAtThisReopen = (view) => {
@@ -551,7 +555,7 @@ const classificationOwed = (view, ref) => payloadOwed(
     + `--statement "<statement> | ${MIGRATION_CLASSES.join("|")}"...`,
 );
 
-/* The whole of what `testing` is entered on: the judge's half of the end of a run, and the rung a project asking for an independent judgement hands its turn over at. Kept a function of its own beside the other half, so a case holds each to its own refusals rather than to the union two rungs would make (ISS-1022, consult 8736c3 F2; ISS-1065). */
+/* The whole of what `in_progress:release` is entered on: the judge's half of the end of a run, and the rung a project asking for an independent judgement hands its turn over at. Kept a function of its own beside the other half, so a case holds each to its own refusals rather than to the union two rungs would make (ISS-1022, consult 8736c3 F2; ISS-1065). */
 export const judgedOwed = (view, ref) => {
   if (!view.criteria.length) {
     return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
@@ -615,14 +619,13 @@ const branchOwed = (view, ref) => (view.work?.branch ? [] : [need(
   `forge claim ${ref} --pushed, from the checkout the branch is cut in`,
 )]);
 
-/* The one rung entered on the project rather than on the record, and so the one check no payload can answer: where the release policy leaves a person an act, a run moving this has taken the keystroke the report already told it was theirs (ISS-1918). The sentence is the report's own derivation, not a second one, and what would end the rung is said beside it because the two states — a project that has declared nothing, and one whose release nobody automates — end it differently. The command is the set, which is what the person who made the release types and the only route past an entry check. */
-const releaseOwed = (view, ref) => {
+/* The one status entered on the project rather than on the record, and so said rather than checked:
+   core closes an issue at `awaiting_release` only by the release that ships it, and where the release
+   policy leaves a person the act, a run that closed it would have taken the keystroke the report
+   already told it was theirs (ISS-1918). The sentence is the report's own derivation, not a second one. */
+export const releaseSaid = (view) => {
   const held = releaseOwedOf(view.release);
-  return held ? [need(
-    `the release is ${whoseRelease(held)} and nothing here says ${held.by === BY_BATCH ? "it has been made"
-      : "they have made it"}: ${held.owed} — ${held.clears}`,
-    closeForm(ref, held),
-  )] : [];
+  return held ? `The release is ${whoseRelease(held)}: ${held.owed} — ${held.clears}. ` : "";
 };
 
 /* Every folded finding answered, at the rung the criteria are written and at each from the one they
@@ -632,7 +635,7 @@ const foldedOwed = (view, ref, judged = false) => findingsOwed(view, ref, { whol
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
-  confirmed: (view, ref) =>
+  [HELD.plan]: (view, ref) =>
     payloadOwed(
       view,
       "confirmation",
@@ -640,7 +643,7 @@ export const CHECKS = {
       `forge record confirmation ${ref} --is "<what it is>" --where <where> `
         + `--finding ${valuesOf("confirmation", "finding")}`,
     ),
-  /* Three payloads and two phases behind them: the reading is decided and the plan written while the issue stands at `confirmed`, and this is the one rung that refuses without all three. Each is waived by its own row, so a rung dropping the plan still owes the decision if no row says otherwise (ISS-1066). */
+  /* Three payloads and two phases behind them: the reading is decided and the plan written while the issue stands at the plan, and this is the one place that refuses without all three. Each is waived by its own row, so a rung dropping the plan still owes the decision if no row says otherwise (ISS-1066). */
   approved: (view, ref) => {
     const out = lightPath(view, "approved", "decision") ? [] : payloadOwed(
       view,
@@ -663,9 +666,9 @@ export const CHECKS = {
     return [...out, ...foldedOwed(view, ref)];
   },
   /* No measurement of the tree: the landing's gate measures it, and every commit reaches the default branch through that gate, so a run's own reading before the first edit would say nothing the landing does not. A plan declaring the change lands no file drops the branch, there being no tree to cut one from (ISS-2384). */
-  in_progress: (view, ref) =>
+  [HELD.build]: (view, ref) =>
     [...blockersOwed(view), ...(lightPath(view, BUILD_AT, "branch") ? [] : branchOwed(view, ref))],
-  developed: (view, ref) => {
+  [HELD.test]: (view, ref) => {
     const out = [];
     if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", mergedForm(ref, view.issue)));
     else if (landsOutsideGit(view.issue)) {
@@ -678,11 +681,9 @@ export const CHECKS = {
     }
     return [...out, ...(landsNoFile(rungFieldsOf(view)) ? noFileOwed(view, ref) : scopeOwed(view, ref)), ...reviewOwed(view, ref)];
   },
-  testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
+  [HELD.release]: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
   awaiting_release: (view, ref) => [...pastJudgingOwed(view, ref), ...deployedOwed(view, ref),
     ...foldedOwed(view, ref, true)],
-  closed: (view, ref) => [...pastJudgingOwed(view, ref), ...releaseOwed(view, ref),
-    ...verificationOwed(view, ref), ...foldedOwed(view, ref, true)],
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */

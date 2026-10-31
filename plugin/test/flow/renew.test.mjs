@@ -48,7 +48,9 @@ globalThis.fetch = async (address, init = {}) => {
     return answer({ id: ISSUE });
   }
   sent.push("forge_issues:get");
-  return answer({ id: ISSUE, status, sessionContext: field });
+  /* Set as the place a reader sees, answered as core holds it: the status, and the step inside it. */
+  const [held, step] = status.split(":");
+  return answer({ id: ISSUE, status: held, ...(step ? { workState: { step } } : {}), sessionContext: field });
 };
 
 const { NOTHING_WORKED, landingSaved, leaseOf, releaseOwed, releasedIn, renew, renewedLapsed, writeRefusal }
@@ -287,7 +289,7 @@ test("the take is said after its write, not before it", async () => {
    granted. Past the dispatch statuses that claim is refused in turn, and a write that took the lease
    there would be picking silently between the three readings the flag exists to ask a person about. */
 test("a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used", async () => {
-  for (const at of ["in_progress", "developed", "awaiting_release"]) {
+  for (const at of ["in_progress:build", "in_progress:test", "awaiting_release"]) {
     field = null;
     status = at;
     const refusal = await refused(() => renew(ISSUE, "ISS-1260"));
@@ -309,7 +311,7 @@ test("the statuses a write takes at are exactly the statuses a bare claim is gra
     await said(() => renew(ISSUE, "ISS-1260"));
     assert.equal(leaseOf(field)?.holder, "this-run", `${at}: a bare claim is granted here, so the write takes`);
   }
-  for (const at of ["draft", "in_progress", "developed", "testing", "awaiting_release", "closed", "on_hold"]) {
+  for (const at of ["draft", "in_progress:build", "in_progress:test", "in_progress:release", "awaiting_release", "closed", "on_hold"]) {
     field = null;
     status = at;
     assert.match(await refused(() => renew(ISSUE, "ISS-1260")) ?? "", /--unheld/u,
@@ -340,7 +342,7 @@ test("the lease a write took excludes the next run, and names the run whose writ
    so the empty field here is the anomaly, and what it owed was the right claim to name (ISS-1252). */
 test("a landing write on a field holding no lease names the claim that clears it", async () => {
   field = null;
-  status = "testing";
+  status = "in_progress:release";
   const refusal = await refused(() => landingSaved(ISSUE, "ISS-1260", { state: "judged", judge: "a-judge" }));
   assert.match(refusal, /forge claim ISS-1260 --unheld/u);
   assert.equal(field, null, "and no landing was written either");
@@ -472,7 +474,7 @@ test("a lease another run took between the write and the release is not written 
    own doing and names no reading to pick between, so the write after it takes where an empty field is
    still refused. The case above it, which asserts that refusal, is what holds the other side. */
 test("a write takes a field a lease was given back in, at a status an empty one is refused at", async () => {
-  for (const at of ["in_progress", "developed", "awaiting_release"]) {
+  for (const at of ["in_progress:build", "in_progress:test", "awaiting_release"]) {
     field = null;
     status = "open";
     await said(() => renew(ISSUE, "ISS-1617"));
@@ -505,7 +507,7 @@ test("the take's notice says the lease it took goes back when the write lands", 
    nobody released, where no line is owed to anybody (codex F2 of the whole-set read). */
 test("a write taking a released field keeps the line the release left, and a bare one still gets the derived line", async () => {
   field = { lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: "fold F1", history: [{ holder: "a-run-before", at: ago(30), how: "write", status: "approved" }] } };
-  status = "developed";
+  status = "in_progress:test";
   await said(() => renew(ISSUE, "ISS-1617"));
   assert.equal(leaseOf(field).next, "fold F1", "the line survives the take");
   assert.deepEqual(leaseOf(field).history.map((one) => one.holder), ["a-run-before", "this-run"],
@@ -522,12 +524,12 @@ test("a write taking a released field keeps the line the release left, and a bar
 test("a transition's explicit null clears the line a release left, where silence would have carried it", async () => {
   const released = () => ({ lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: "fold F1", history: [] } });
   field = released();
-  status = "developed";
+  status = "in_progress:test";
   await said(() => renew(ISSUE, "ISS-1617", null));
   assert.equal(leaseOf(field).next, null, "the clearing is honoured on a released field");
 
   field = { lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: null, history: [] } };
-  status = "developed";
+  status = "in_progress:test";
   await said(() => renew(ISSUE, "ISS-1617", null));
   assert.equal(leaseOf(field).next, null,
     "and on a released field carrying no line either, which is released all the same");

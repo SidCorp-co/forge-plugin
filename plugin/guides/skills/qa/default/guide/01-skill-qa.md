@@ -1,6 +1,6 @@
 # Skill: qa
 
-One session drains a status. It takes the issues a project has left standing at `developed`, decides
+One session drains a status. It takes the issues a project has left standing at `in_progress:test`, decides
 per issue what judgement is owed, gets that judgement made, moves the issue as far as its record
 earns, and ends when the status reads empty. It writes no code and it lands nothing.
 

@@ -1,6 +1,6 @@
 /* A filing the fold landed on an issue is a finding that issue owes an answer: a criterion naming
    its handle, or a record declining it, at the rung the criteria are written and at every rung from
-   the judging to the close (ISS-167). The rule is the contract's `testing` part. */
+   the judging to the close (ISS-167). The rule is the contract's `in_progress:release` part. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -26,7 +26,7 @@ const verdict = (criterion, value, minute = 3) => ({ documentId: `v-${minute}`, 
   body: render("verdict", { criterion, verdict: value, commit: "43b811e", evidence: ["43b811e"], why: "read" }) });
 
 const ISSUE = {
-  status: "developed",
+  status: "in_progress:test",
   plan: "Screen change: no\nSchema coupling: no",
   acceptanceCriteria: "1. The first outcome.",
 };
@@ -49,13 +49,13 @@ test("the fold's comment is the filing, then a folded record carrying its title"
     "nor is one whose id heads no handle, since no declining could name it");
 });
 
-test("an unanswered finding is owed at testing and at approved, by handle and title", () => {
-  const [item] = findingItems(owedAt("testing", [folded()]));
-  assert.ok(item, "testing lists it");
+test("an unanswered finding is owed at in_progress:release and at approved, by handle and title", () => {
+  const [item] = findingItems(owedAt("in_progress:release", [folded()]));
+  assert.ok(item, "in_progress:release lists it");
   assert.match(item, new RegExp(`^finding ${HANDLE} \\("${TITLE}"\\) is carried by no criterion and declined by no record`, "u"));
-  assert.equal(findingItems(owedAt("approved", [folded()], { status: "confirmed" })).length, 1, "approved lists it too");
+  assert.equal(findingItems(owedAt("approved", [folded()], { status: "in_progress:plan" })).length, 1, "approved lists it too");
   const view = viewFrom("the-uuid", ISSUE, [folded()]);
-  const [need] = CHECKS.testing(view, "ISS-7").filter((one) => one.what.includes(HANDLE));
+  const [need] = CHECKS["in_progress:release"](view, "ISS-7").filter((one) => one.what.includes(HANDLE));
   assert.match(need.command, new RegExp(`forge record criteria ISS-7 <criteria.md>, with a line naming \`finding ${HANDLE}\``, "u"));
   assert.match(need.command, new RegExp(`forge record declined ISS-7 --finding ${HANDLE} --why`, "u"),
     "and the refusal carries both writes that answer it");
@@ -63,20 +63,20 @@ test("an unanswered finding is owed at testing and at approved, by handle and ti
 
 test("a criterion naming the handle carries the finding, and a declined record answers it", () => {
   const carried = { acceptanceCriteria: `1. The first outcome.\n2. The attach verb takes a name already on the issue (finding \`${HANDLE}\`).` };
-  assert.deepEqual(findingItems(owedAt("testing", [folded()], carried)), []);
-  assert.deepEqual(findingItems(owedAt("approved", [folded()], { ...carried, status: "confirmed" })), []);
-  assert.deepEqual(findingItems(owedAt("testing", [folded(), declined()])), []);
-  assert.deepEqual(findingItems(owedAt("testing", [folded(), declined(`${HANDLE}-be5c-4f45-81fb-32e3c05c1886`)])), [],
+  assert.deepEqual(findingItems(owedAt("in_progress:release", [folded()], carried)), []);
+  assert.deepEqual(findingItems(owedAt("approved", [folded()], { ...carried, status: "in_progress:plan" })), []);
+  assert.deepEqual(findingItems(owedAt("in_progress:release", [folded(), declined()])), []);
+  assert.deepEqual(findingItems(owedAt("in_progress:release", [folded(), declined(`${HANDLE}-be5c-4f45-81fb-32e3c05c1886`)])), [],
     "a whole comment id declines the finding it heads");
   const halfDeclined = { ...declined(), body: render("declined", { finding: HANDLE }) };
-  assert.equal(findingItems(owedAt("testing", [folded(), halfDeclined])).length, 1, "a record with no reason answers nothing");
+  assert.equal(findingItems(owedAt("in_progress:release", [folded(), halfDeclined])).length, 1, "a record with no reason answers nothing");
   const sibling = { acceptanceCriteria: `1. The first outcome.\n2. Names ${HANDLE}9 and no finding.` };
-  assert.equal(findingItems(owedAt("testing", [folded()], sibling)).length, 1, "a longer hex run is not the handle");
+  assert.equal(findingItems(owedAt("in_progress:release", [folded()], sibling)).length, 1, "a longer hex run is not the handle");
 });
 
 test("past the judging, a carrying criterion owes a verdict that did not fail", () => {
-  const carried = { status: "testing", acceptanceCriteria: `1. The first outcome.\n2. Takes the name — finding ${HANDLE}.` };
-  for (const status of ["awaiting_release", "closed"]) {
+  const carried = { status: "in_progress:release", acceptanceCriteria: `1. The first outcome.\n2. Takes the name — finding ${HANDLE}.` };
+  for (const status of ["awaiting_release"]) {
     const owed = findingItems(owedAt(status, [folded(), verdict(1, "pass")], carried));
     assert.deepEqual(owed, [`criterion 2 carries finding ${HANDLE} and has no verdict, so the finding it carries stands unjudged`], status);
     /* A carrier that failed is held by the rung's own reading of failed verdicts, once, rather than a second time for the finding it carries (ISS-2511). */
@@ -85,22 +85,22 @@ test("past the judging, a carrying criterion owes a verdict that did not fail", 
     assert.deepEqual(failing.filter((one) => one.includes("criterion 2")), ["criterion 2 failed its verdict"],
       `${status}: and the failed carrier is named by exactly one item`);
     assert.deepEqual(findingItems(owedAt(status, [folded(), verdict(2, "pass")], carried)), [], `${status}: a pass answers it`);
-    /* The standard `testing` holds every criterion to: a whole skipped or short verdict stands, a gappy one does not. */
+    /* The standard `in_progress:release` holds every criterion to: a whole skipped or short verdict stands, a gappy one does not. */
     const skipped = { ...verdict(2, "skipped"), body: render("verdict", { criterion: 2, verdict: "skipped", commit: "43b811e", evidence: [], why: "no route reached it" }) };
     const short = { ...verdict(2, "short"), body: render("verdict", { criterion: 2, verdict: "short", commit: "43b811e", evidence: ["43b811e"], why: "met short", filed: "ISS-81" }) };
     assert.deepEqual(findingItems(owedAt(status, [folded(), skipped], carried)), [], `${status}: a whole skipped verdict stands`);
     assert.deepEqual(findingItems(owedAt(status, [folded(), short], carried)), [], `${status}: a whole short verdict stands`);
     const gappy = { ...verdict(2, "short"), body: render("verdict", { criterion: 2, verdict: "short", commit: "43b811e", evidence: ["43b811e"], why: "met short" }) };
     assert.match(findingItems(owedAt(status, [folded(), gappy], carried))[0] ?? "", /has a verdict that is not a whole payload/u);
-    assert.equal(findingItems(owedAt(status, [folded()], { status: "testing" })).length, 1, `${status}: and one never answered is still listed`);
+    assert.equal(findingItems(owedAt(status, [folded()], { status: "in_progress:release" })).length, 1, `${status}: and one never answered is still listed`);
   }
-  assert.deepEqual(findingItems(owedAt("testing", [folded()], carried)), [],
-    "at testing the verdicts check already owes the carrier its verdict, so the finding is not listed twice");
+  assert.deepEqual(findingItems(owedAt("in_progress:release", [folded()], carried)), [],
+    "at in_progress:release the verdicts check already owes the carrier its verdict, so the finding is not listed twice");
 });
 
 const OPEN = {
-  documentId: "the-uuid", issueId: "ISS-7", status: "developed", title: "the attach verb",
-  description: "no mark here", ...ISSUE,
+  documentId: "the-uuid", issueId: "ISS-7", title: "the attach verb",
+  description: "no mark here", ...ISSUE, status: "in_progress", workState: { step: "test" },
 };
 const state = {
   calls: [],
@@ -143,14 +143,14 @@ test("a declined write naming no finding on the issue is refused before anything
   assert.deepEqual(record.fields, { finding: HANDLE, why: "the cache owns this defect" }, "a whole id is stored as the handle");
 });
 
-test("the verb takes declined and no folded, and the contract's testing part states the rule", async () => {
+test("the verb takes declined and no folded, and the contract's in_progress:release part states the rule", async () => {
   const help = await ranAsync(FORGE, ["record", "-h"], ENV);
   assert.match(help.stdout, /^ {2}declined {5}/mu);
   assert.doesNotMatch(help.stdout, /^ {2}folded\b/mu, "a kind no verb writes is not offered to one");
   const refused = await ranAsync(FORGE, ["record", "folded", "ISS-7", "--title", "t"], ENV);
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stdout + refused.stderr, /record knows no kind `folded`/u);
-  const part = await ranAsync(FORGE, ["guide", "contract", "testing"], ENV);
+  const part = await ranAsync(FORGE, ["guide", "contract", "in_progress:release"], ENV);
   assert.equal(part.status, 0, `${part.stdout}${part.stderr}`);
   assert.match(part.stdout.replace(/\s+/gu, " "), /Every finding the fold landed on the issue is answered before this rung/u);
   assert.match(part.stdout.replace(/\s+/gu, " "), /A criterion naming that handle carries it/u);

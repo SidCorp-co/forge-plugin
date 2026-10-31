@@ -18,7 +18,7 @@ const { NONE_STATED, NOT_STATED, SECTION, goalsIn, resolvedBy, servesIn, servesS
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const ROOT = neutralCheckout();
 const ISSUE = "33333333-3333-4333-8333-333333333333";
-const held = { documentId: ISSUE, issueId: "ISS-1", status: "confirmed", title: "one" };
+const held = { documentId: ISSUE, issueId: "ISS-1", status: "in_progress", workState: { step: "plan" }, title: "one" };
 
 const BRIEF = [
   "# a project's map",

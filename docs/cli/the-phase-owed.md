@@ -46,7 +46,7 @@ record stops there for every issue; and a reopened issue stands at `open` holdin
 the cycle before, which read forward would be told it owes the ship. A case holds no phase to
 appearing in both lists: passed and owed at once contradicts the line above them.
 
-One cell is read inside itself. `in_progress` names the review, the proof and the landing, and a
+One cell is read inside itself. `in_progress:build` names the review, the proof and the landing, and a
 run that finished the first two stays at that status until the landing moves it, so a phase read
 off the status alone told a finished run to review and judge again (ISS-2439). The records narrow
 that cell, and only records bound to the head the landing takes: the checkpoint's, at a turn that

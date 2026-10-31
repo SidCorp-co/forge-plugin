@@ -43,7 +43,7 @@ import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
 import { writerChecked } from "./judged/writer.mjs";
 import { runtimeChecked } from "./judged/runtime.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
-import { LANDED, recordLanded } from "./landed-by-hand.mjs";
+import { LANDED, recordLanded } from "./landed/by-hand.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */

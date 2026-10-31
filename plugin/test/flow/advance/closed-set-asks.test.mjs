@@ -36,8 +36,8 @@ const asks = () => {
   const passed = (number, commit) =>
     recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit, evidence: [commit] });
   return {
-    confirmation: CHECKS.confirmed(view({}), "ISS-9")[0].command,
-    review: CHECKS.developed(view({ mergedAt: landed.mergedAt }, [mark()]), "ISS-9")
+    confirmation: CHECKS["in_progress:plan"](view({}), "ISS-9")[0].command,
+    review: CHECKS["in_progress:test"](view({ mergedAt: landed.mergedAt }, [mark()]), "ISS-9")
       .find((one) => one.command.startsWith("forge record review")).command,
     one: judgedOwed(view(landed, [mark(), passed(1, COMMIT)]), "ISS-9")[0].command,
     several: judgedOwed(view(landed, [mark()]), "ISS-9")[0].command,

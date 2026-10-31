@@ -1,6 +1,6 @@
 /* A plan's declarations are read off one fields object by the rung, every status's waivers, the lane
    and the rung report, and parsed once for all of them; the `Lands no file` line is one predicate,
-   so the ladder's waiver and the `developed` check cannot read it two ways; and a status where a
+   so the ladder's waiver and the `in_progress:test` check cannot read it two ways; and a status where a
    rung's waiver stands beside a declaration's says which dropped what (ISS-3123, AC-05-1-9). */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -11,7 +11,7 @@ process.env.XDG_CONFIG_HOME = tempHome("parsed-once").path;
 const { FIX, declaredRows, landsNoFile, lightens, lighterRows, rungOf } = await import("../../../../src/ladder.mjs");
 const { rungReport } = await import("../../../../src/ladder-report.mjs");
 const { laneLines, laneOf } = await import("../../../../src/guides/phases.mjs");
-const { CHECKS, ORDER, rungFieldsOf, viewFrom } = await import("../../../../src/flow/earned.mjs");
+const { CHECKS, LADDER, rungFieldsOf, viewFrom } = await import("../../../../src/flow/earned.mjs");
 const { render } = await import("../../../../src/flow/record/page.mjs");
 const { markNote } = await import("../../../../src/flow/record/merged.mjs");
 
@@ -33,8 +33,8 @@ test("one fields object's plan is read once, by whichever of the rung, the waive
   for (const [how, plan] of Object.entries(plans)) {
     const fields = counted(plan);
     rungOf(fields);
-    for (const status of ORDER) lighterRows(status, fields);
-    assert.equal(lightens("in_progress", "branch", fields), how === "declared");
+    for (const status of LADDER) lighterRows(status, fields);
+    assert.equal(lightens("in_progress:build", "branch", fields), how === "declared");
     laneLines({ status: "open", fields });
     rungReport(fields, "ISS-3");
     declaredRows(fields);
@@ -47,7 +47,7 @@ test("one fields object's plan is read once, by whichever of the rung, the waive
   assert.equal(first.reads, 1, "and the rung asking after takes that parse");
 });
 
-/* A landing that wrote a path: the developed check refuses it as a no-file landing only where it read the declaration. */
+/* A landing that wrote a path: the in_progress:test check refuses it as a no-file landing only where it read the declaration. */
 const SERVED = "43b811e";
 const landed = [
   { createdAt: "2026-10-02T10:01:00.000Z", authorId: "agent", body: `mark_merged target=base — ${markNote({ branch: "master",
@@ -56,23 +56,23 @@ const landed = [
     body: render("review", { reviewer: "codex", commit: SERVED, outcome: "approved", finding: [] }) },
 ];
 
-test("lands no file is one answer, read alike by the ladder's waiver and by the developed check", () => {
+test("lands no file is one answer, read alike by the ladder's waiver and by the in_progress:test check", () => {
   for (const [how, plan] of Object.entries(plans)) {
     const view = viewFrom("the-uuid", { plan, sessionContext: {}, mergedAt: "2026-10-02T10:03:00.000Z" }, landed);
     const fields = rungFieldsOf(view);
     assert.equal(landsNoFile(fields), how === "declared", `the plan ${how}`);
-    assert.equal(declaredRows(fields, "in_progress").length > 0, landsNoFile(fields),
+    assert.equal(declaredRows(fields, "in_progress:build").length > 0, landsNoFile(fields),
       `and the waiver the ladder grants agrees with it, the plan ${how}`);
-    const noFile = CHECKS.developed(view, "ISS-3").some((one) => /plan declares the change lands no file/u.test(one.what));
-    assert.equal(noFile, landsNoFile(fields), `and the developed check takes the no-file record exactly where it does, the plan ${how}`);
+    const noFile = CHECKS["in_progress:test"](view, "ISS-3").some((one) => /plan declares the change lands no file/u.test(one.what));
+    assert.equal(noFile, landsNoFile(fields), `and the in_progress:test check takes the no-file record exactly where it does, the plan ${how}`);
   }
 });
 
 test("a status where a rung's waiver stands beside a declaration's names each with what dropped it", () => {
-  /* `in_progress` is the one status a declaration drops anything at, and it earns no record kind, so the lane line says nothing of either drop: the row the line is read off is where the two sources stay apart. */
-  const table = [{ status: "in_progress", rungs: [FIX], kind: "worklog", drops: "the worklog", because: "a fix is small" }];
+  /* `in_progress:build` is the one place a declaration drops anything at, and it earns no record kind, so the lane line says nothing of either drop: the row the line is read off is where the two sources stay apart. */
+  const table = [{ status: "in_progress:build", rungs: [FIX], kind: "worklog", drops: "the worklog", because: "a fix is small" }];
   const row = (plan) => laneOf({ status: "open", fields: { plan, moved: [], whole: true, complexity: "s" }, table })
-    .rows.find((one) => one.status === "in_progress");
+    .rows.find((one) => one.status === "in_progress:build");
   assert.deepEqual(row(plans.declared).by, [
     { said: "at this rung", kinds: ["worklog"] },
     { said: "under this plan's declarations", kinds: ["branch"] },

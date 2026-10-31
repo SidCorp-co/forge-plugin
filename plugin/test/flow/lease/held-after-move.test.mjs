@@ -111,7 +111,7 @@ test("a plain advance ends on the line naming this run's live lease, its holder 
   await claimed("ISS-21");
   const run = await ranAsync(FORGE, ["advance", "ISS-21"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(run.stdout.includes("ISS-21  open -> confirmed"), run.stdout);
+  assert.ok(run.stdout.includes("ISS-21  open -> in_progress:plan"), run.stdout);
   const last = lastLine(run.stdout);
   assert.match(last, /^ISS-21 is still held by this run after the move: session \S+ /u, run.stdout);
   assert.ok(last.includes(`expiring ${expiryOf("ISS-21")}`), `the expiry the field holds:\n${last}`);
@@ -122,7 +122,7 @@ test("a move a record write earns ends its stderr, where its move line went, on 
   const run = await ranAsync(FORGE, ["record", "confirmation", "ISS-22", "--is", CONFIRMED.is,
     "--where", "ISS-1", "--finding", "holds"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(run.stderr.includes("ISS-22  open -> confirmed"), run.stderr);
+  assert.ok(run.stderr.includes("ISS-22  open -> in_progress:plan"), run.stderr);
   const last = lastLine(run.stderr);
   assert.match(last, /^ISS-22 is still held by this run after the move: session \S+ /u, run.stderr);
   assert.ok(last.includes(`expiring ${expiryOf("ISS-22")}`), `the expiry the field holds:\n${last}`);

@@ -19,7 +19,8 @@ const comment = (body) => ({ documentId: `comment-${clock + 1}`, createdAt: at()
 const ASKING = {
   documentId: "asking-uuid",
   issueId: "ISS-99",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "the verb that has to ask somebody",
   description: "no mark here",
 };
@@ -61,7 +62,7 @@ const record = (...extra) => ranAsync(FORGE, ["record", "question", "ISS-99",
   ...READINGS.flatMap((one) => ["--reading", one]), ...extra], ENV);
 
 const fresh = () => {
-  Object.assign(ASKING, { status: "confirmed" });
+  Object.assign(ASKING, { status: "in_progress", workState: { step: "plan" } });
   state.comments["asking-uuid"] = [];
   state.questions = [];
   state.calls.length = 0;
@@ -105,12 +106,14 @@ test("a question record with no recommendation, or one naming no reading, writes
   }
 });
 
-test("a reading longer than an option label takes is refused by the cap, before any write", async () => {
+/* The record's own field budget (400) is under the 500 an option label takes, so a reading that long
+   is refused by the budget first, naming the field, its length and the cap. */
+test("a reading longer than a record field takes is refused by the budget, before any write", async () => {
   fresh();
   const run = await ranAsync(FORGE, ["record", "question", "ISS-99", "--reading", `${"long ".repeat(110)}-> outcome`,
     "--reading", READINGS[1], "--recommend", "2"], ENV);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /--reading 1 is \d+ characters and an option on the question route takes 500/u, run.stderr);
+  assert.match(run.stderr, /record question: --reading is 560 code points and its cap is 400/u, run.stderr);
   assert.equal(asks().length + posted().length, 0);
 });
 
@@ -183,7 +186,7 @@ test("a question record on an issue another run holds is refused before the ask,
   fresh();
   const ours = ASKING.sessionContext;
   ASKING.sessionContext = { lease: { holder: THEIRS, agent: "a-test-agent", pid: "4242", renewedAt: ago(2), minutes: 60,
-    next: "Phase 4: implementing", history: [{ holder: THEIRS, at: ago(2), how: "claim", status: "confirmed", next: null }] } };
+    next: "Phase 4: implementing", history: [{ holder: THEIRS, at: ago(2), how: "claim", status: "in_progress:plan", next: null }] } };
   const run = await record("--recommend", "1");
   ASKING.sessionContext = ours;
   assert.equal(run.status, 1, run.stdout);

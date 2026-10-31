@@ -32,12 +32,10 @@ const USAGE = () => [
   "              by commas; the keys the note's own body names are listed under the reply instead",
   "  --module M  its primary module, one the plugin's project defines",
   "  --new       file it even where it would have folded onto a neighbour, and say which",
-  "  --where W   where in Forge it was met, for a note core's own door files; the forge CLI absent one",
+  "  --where W   where in Forge it was met, when core's own door files it",
   "",
-  `Where this credential sees no ${PROJECT} project, the note goes to the pinned core's own door for`,
-  "feedback about Forge, POST /api/forge/feedback, which files it into Forge's home from any project:",
-  `${Object.entries(DOOR_KINDS).map(([ours, core]) => `${ours} as ${core}`).join(", ")}. --with, --module and --new are refused there, that`,
-  "door taking no edge, no module and no fold.",
+  `Where this credential sees no ${PROJECT} project, the note goes to core's own door,`,
+  "POST /api/forge/feedback, the kind mapped onto core's; --with, --module and --new are refused there.",
   "",
   CAUSE_HELP,
   "",
@@ -72,8 +70,8 @@ const DOOR_KINDS = { bug: "bug", enhancement: "change_request", feature: "idea",
 /* What a note filed to the door says of where it was met, absent `--where`. */
 const doorWhere = () => `command forge (forge-plugin ${hereCopy().version ?? "unknown"})`;
 
-/* Whether this credential reaches the plugin's own project. A list the transport could not read is
-   the call's to refuse, never a reading that the project is absent. */
+/* Whether this credential reaches the plugin's own project: a refused read stops the call, being no
+   evidence either way. */
 const seesPlugin = async () => {
   const held = await projectIdOf(PROJECT, { soft: true });
   if (held.refused) fail(`The projects this credential sees could not be read, so where this note goes is undecided: ${held.refused}`);

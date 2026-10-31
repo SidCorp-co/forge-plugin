@@ -21,7 +21,7 @@ transition, and a person's word then left the issue at a status no entry check a
 `--owed` said nothing advances from it. Two records route it now, the finding and the triage, and
 where the reopen landed comes from the merged mark, because a mark is what says code landed and so
 which of a close and a drop was reopened. The one measurement that shaped the routing: an outcome
-alone would have sent a reopened drop *forward*, to `developed` from the `approved` it fell back
+alone would have sent a reopened drop *forward*, to `in_progress:test` from the `approved` it fell back
 to, so the landing status is a ceiling rather than a starting point.
 
 And the plan gained a third declaration, `User-facing outcome`, which is the only optional one of
@@ -46,10 +46,11 @@ line an author could type proves only that they typed it.
 A third measurement, two runs later: an edge the tracker had already answered for forced a raw
 transition twice. `relations.blockedBy` returns mentions beside orderings, each edge naming its kind
 and whether it gates dispatch, and the entry check filtered that list on the blocker's status alone
-— so a mention of an issue nobody will develop refused `in_progress` with nothing to type past it.
+— so a mention of an issue nobody will develop refused `in_progress:build` with nothing to type past it.
 The check reads the edge's own answer now, falling back to the kind where the tracker sent none, and
-keeps the blocker's status as a second test beside it: the tracker gates on a merged mark and this
-contract's floor is `developed`, so the two answer different questions.
+keeps the blocker's status as a second test beside it: the tracker gates on a merged mark and core
+reads a blocker as settled only at `awaiting_release` or `closed` (a dropped one holding nothing), so
+the two answer different questions.
 
 A fourth measurement, and the plainest of them: a comment list comes back short of the count asked
 for. A list of ISS-99 with a limit of two hundred came back with thirty-six rows and
@@ -71,7 +72,7 @@ the verdicts' check read only the first. Where a repository's landing is the mer
 exists only after the ship, so a run that judged before it cited a head the landing replaced and paid
 one re-posted verdict per criterion: four runs on 2026-09-04, one of them twenty-eight records where
 fourteen carried the meaning. The verdicts' check now takes the same escape the review's has, off two
-more clauses of the same note; the rule those clauses answer to is the contract's `developed` part and
+more clauses of the same note; the rule those clauses answer to is the contract's `in_progress:test` part and
 is not repeated here.
 
 A sixth, and it is the reopen again from the other side. That status had one write reaching it,
@@ -101,4 +102,8 @@ set completes the rung asks this file's own target and check for the move, so on
 (ISS-285, ISS-1103; [record-the-rung.md](record-the-rung.md)). The count the line carries is
 followed by the items in both places, from one formatter: a run told only how many spent a call
 asking which. Where the reading refuses — a closed issue, a side status whose page holds no park
-record — the line is the refusal's first sentence, and the refusing verb prints the command.
+record, an issue at `awaiting_release` — the line is the refusal's first sentence, and the refusing
+verb prints the command.
+
+
+The ladder itself: [advance — the ladder is core's](advance-the-ladder.md).

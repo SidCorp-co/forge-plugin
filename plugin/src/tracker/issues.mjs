@@ -4,6 +4,7 @@ import { AIMED_FROM, aimSaid, fail, projectTarget, slugIfAny } from "../resolve/
 import { didYouMean } from "../suggest.mjs";
 import { movedUnderClaim } from "../resolve/project/claimed.mjs";
 import { readsAsDate, scoped } from "./rest.mjs";
+import { statusOfPlace } from "./declared/issue-machine.mjs";
 
 /* What the browse verb PRINTS; the wire ask is MAX_LIMIT, the route's own cap. reading-a-whole-set.md. */
 export const DEFAULT_LIMIT = 200;
@@ -53,9 +54,10 @@ const dated = (key, keep) =>
   Object.assign((row, value) => keep(instant(row?.[key]), instant(value)), { date: true });
 
 const LOCAL = {
-  /* The route narrows on the status a rung is held at, so a rung that is a work step is kept here. */
-  status: (row, value) => row?.status === value,
-  statusNot: (row, value) => row?.status !== value,
+  /* The route narrows on the status core holds, so a place that is a work step is kept here, and a
+     status names every place inside it. */
+  status: (row, value) => row?.status === value || statusOfPlace(row?.status) === value,
+  statusNot: (row, value) => row?.status !== value && statusOfPlace(row?.status) !== value,
   complexity: (row, value) => row?.complexity === value,
   createdAfter: dated("createdAt", (stamp, given) => stamp >= given),
   createdBefore: dated("createdAt", (stamp, given) => !(stamp >= given)),

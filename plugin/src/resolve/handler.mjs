@@ -1,15 +1,17 @@
 /* A form is a word this CLI performs through a verb it already has, not a redirect: it runs and says which verb ran it; a route is a word nothing runs, whose shape wanted a flag, so a refusal says the call. Why a form is allowed where a retirement's is not, what it may never be, why its line goes to stderr: docs/cli/retiring-a-name.md. */
 
-/* One row per status something advances to, `open` having none; this file imports nothing, because the near-miss reader reads it and the order table's own tree reads that. */
+/* One row per place something advances to, `open` having none, each spelt as core's machine names it
+   (`tracker/declared/issue-machine.mjs`, which a case holds this to); this file imports nothing,
+   because the near-miss reader reads it and the order table's own tree reads that. No row reaches
+   `closed` (`flow/earned.mjs` LADDER), and `close` is a route below. */
 export const MOVES = {
-  confirmed: "confirm",
+  "in_progress:plan": "confirm",
   approved: "approve",
-  in_progress: "start",
-  developed: "develop",
-  /* The word names the actor the rung waits for rather than the rung: `test` in a CLI that also ships gates reads as *run the suite*, and a form performs a move. */
-  testing: "judge",
+  "in_progress:build": "start",
+  "in_progress:test": "develop",
+  /* The word names the actor the place waits for rather than the place: `test` in a CLI that also ships gates reads as *run the suite*, and a form performs a move. */
+  "in_progress:release": "judge",
   awaiting_release: "release",
-  closed: "close",
 };
 
 const moved = Object.fromEntries(Object.entries(MOVES)
@@ -33,6 +35,8 @@ export const handledBy = (word) => (Object.hasOwn(FORMS, word) ? FORMS[word] : n
 
 export const ROUTES = {
   search: { verb: "issue", call: "forge issue --search <query>", does: "reads the backlog by a query" },
+  close: { verb: "release-batch", call: "forge release-batch record <ISS-nn> --commit <sha> --account \"<how it was released>\"",
+    does: "closes an issue at awaiting_release: core closes one only by the release that ships it (CLOSE_ONLY_BY_RELEASE)" },
 };
 
 export const routeSaid = (word, verbs) => {

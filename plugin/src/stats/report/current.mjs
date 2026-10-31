@@ -16,11 +16,12 @@ import { CURRENT, INDEX, againPath, clearMark, contentOf as heldContentOf, heldD
 import { indexLineOf } from "../daily/page/summary.mjs";
 import { RELEASES, marksOf } from "../marks/marks.mjs";
 import { fail } from "../../resolve/settings.mjs";
+import { HELD } from "../../tracker/declared/issue-machine.mjs";
 
 /** How many rows each section lists past the ones a matched issue keeps on the report. */
 const LISTED = { new: 15, recurring: 25, "one-off": 10 };
 
-const FIXING = new Set(["confirmed", "approved", "in_progress", "developed", "testing", "awaiting_release"]);
+const FIXING = new Set([...Object.values(HELD), "approved", "awaiting_release"]);
 
 /* The latest release reading holding any of a row's issues: the fix the row is read against. */
 const releaseOf = (issues, marks) => {

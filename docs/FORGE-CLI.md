@@ -21,17 +21,20 @@ how many topics there may be.
 | [`new`](cli/new.md) | What a body is read against before the tracker sees it, the value a filing nobody ranked carries, and why the rung is the `complexity` field alone. |
 | [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |
 | [`record`](cli/record.md) | Why the CLI owns a payload's shape, which two flags are read off the record, and what it cannot undo. |
+| [`record` — the budget](cli/record-the-budget.md) | Why every field's 400-code-point budget is printed in `-h` and refused before the request, and the note title's own bound. |
 | [`record` — the four kinds prose was losing](cli/record-the-unwritten.md) | What a reopen, a fold and a run's own report were each losing to prose, and why two of the four earn no status and are asked for anyway. |
 | [`record merged`](cli/record-merged.md) | Why the mark is a verb rather than a template a refusal prints, why one module writes the note and parses it, what each of the five clauses decides for the status that reads it, and what `--undo` removes. |
 | [`record merged` — the two clauses that hold paths](cli/record-merged-the-paths.md) | What a path clause may hold, why the refusal is where the value is typed, how a note too long for the tracker's room is fitted and which two are refused instead, and why both are computed at the landing. |
 | [`record merged` — outside git](cli/record-merged-outside-git.md) | Why an issue the tracker says lands outside git is marked with the place the change now is and no git clause, what each shape refuses of the other, and where every reader of the mark takes the landing from. |
 | [`record merged` — the commit field](cli/record-merged-the-commit.md) | Why the mark sends its commit as the tracker's own field, what an empty field means where the tracker takes only a commit it observed, and why a stamp already standing refuses a second mark before it is sent. |
+| [`record landed` — a landing built by hand](cli/record-landed.md) | Why a hand-built landing is recorded in one call in core's direct order, why the base is fetched before the mark, and why a refused step names every step already done. |
 | [`record verdict` — the judge's write](cli/record-the-judge.md) | Why a verdict is the one record written past another run's lease, what it leaves of that lease and of the status, and why the id it goes up under has to be the caller's own. |
 | [`record` — a rung in one call](cli/record-the-rung.md) | The pair counts behind `--also`, the order a call writes in, and why the move is a cited kind's alone. |
 | [`record question` — a question asks somebody](cli/record-question.md) | Why the question kind asks on the issue's own screen rather than only in the thread, why the ask goes before the comment and is reused on a retry, and why the recommendation is owed. |
 | [`record` — a correction names what it corrects](cli/record-corrections.md) | Why the three field kinds refuse a replacement once their status is earned, why one route out, what a replaced value leaves behind, and why a criteria write dropping a held number is refused at any status. |
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
+| [`advance` — the ladder is core's](cli/advance-the-ladder.md) | Why the ladder is core's issue machine, what a move reads of core's standing before it is sent, and why it offers no `closed`. |
 | [`advance` — what a move sends](cli/advance-what-it-sends.md) | The two readings of one shortfall list, the reading that refuses nothing, and why a park's question and its reason are never written from each other. |
 | [`claim`](cli/claim.md) | What a lease is, what the step line is for, and why the capture that arms nothing prints the checks a project spends before a landing. |
 | [the ready checks](cli/the-ready-checks.md) | Why a ready check may be handed the change's files rather than the tree, and why a list green at a head is not run again by the next capture there. |
@@ -56,7 +59,7 @@ how many topics there may be.
 | [spec — the Proof lines read backwards](cli/spec-proofs.md) | Why the map from test to criterion is derived from the Proof lines and stored nowhere, why the test root is a declaration with no default, and why no list is a finding. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, why the read-back compares the copy the boundary sent, and why the count a reply answers to is read off argv, not at the layer reporting. |
 | [the entry checks](cli/the-entry-checks.md) | The obligations a plugin holds a project to without reading its tree, and why `--scope` is both asked for and excused. |
-| [the judge and the deploy](cli/the-judge-and-the-deploy.md) | Why `testing` reads the judge and `awaiting_release` the deployment, which half of that reading a project's own declaration buys, and why a citation is asked for where an identity is there and demanded of nobody. |
+| [the judge and the deploy](cli/the-judge-and-the-deploy.md) | Why `in_progress:release` reads the judge and `awaiting_release` the deployment, which half of that reading a project's own declaration buys, and why a citation is asked for where an identity is there and demanded of nobody. |
 | [the work](cli/the-work.md) | What the opening says about a branch already carrying the phase it names, why reaching it is two offline readings, and why a capture with no diff behind it still writes one. |
 | [the ladder](cli/the-ladder.md) | Why a doubtful rung answers with the rung that owes more, why the complexity field is its one source, and what the rule is not. |
 | [the rung in text](cli/the-rung-in-text.md) | Why a declaration a plan quotes is not one it makes, and why a run's rung is read off the record its own write printed rather than off the words beside it. |
@@ -98,6 +101,7 @@ how many topics there may be.
 | [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |
 | [`alike`](cli/alike.md) | Which of the two floors a sweep of the open backlog reports at and the measurement that settled it, what the score does not establish, and what a reading shorter than the backlog is owed. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue, not a file, where its destination is held, which kinds the project allows, what no refusal loses. |
+| [`feedback` — core's door](cli/feedback-the-door.md) | Where a note goes when the credential cannot see this plugin's project, and which flags that path refuses. |
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why it neither prints nor exits, why a route adds a section rather than joining text, and the two decisions each route makes. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what an unanswered call counts as. |

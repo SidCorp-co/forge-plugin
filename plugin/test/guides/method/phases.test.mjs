@@ -38,7 +38,7 @@ const phasesOf = (text) => Object.fromEntries(
    records for nineteen criteria, once (ISS-236, ISS-51, ISS-230). */
 test("the read that earns the review has one place, and no landing owes a recheck", () => {
   const phases = phasesOf(SKILL);
-  assert.match(PHASE.in_progress[0], /to the review/u, "the ladder names the review in Phase 4");
+  assert.match(PHASE["in_progress:build"][0], /to the review/u, "the ladder names the review in Phase 4");
   const naming = Object.keys(phases).filter((n) => /read that earns the review/u.test(phases[n]));
   assert.deepEqual(naming, ["4"], "and the spine names that read in Phase 4 and in no other phase");
   const order = (text, first, then) => text.includes(first) && text.indexOf(first) < text.indexOf(then);
@@ -47,7 +47,7 @@ test("the read that earns the review has one place, and no landing owes a rechec
     + "first leaves both phrases in the section and judges a head the mark's note cannot bridge");
   const naming4 = Object.keys(phases).filter((n) => /Replay the change onto/u.test(phases[n]));
   assert.deepEqual(naming4, ["4"], "and the replay is stated in that phase and nowhere else");
-  const held = flat(partFor(PARTS, "in_progress").text);
+  const held = flat(partFor(PARTS, "in_progress:build").text);
   assert.match(held, /the pass the review is earned by/u, "the contract names what earns the review");
   assert.match(held, /never a recheck/u, "and says what a landing owes instead");
   for (const [what, held2] of [["the contract", TEXT], ["the served method", SKILL],

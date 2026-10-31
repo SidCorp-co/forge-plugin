@@ -212,7 +212,7 @@ const FIELDS_OF = {
   claim: null,
   resume: null,
   record: "issueId",
-  advance: "documentId",
+  advance: "documentId, key",
   spec: "filters, limit, offset",
   attach: "bytes",
   alike: null,
@@ -516,7 +516,7 @@ test("record -h lists the kinds one per line, and each kind's flags are under it
     assert.ok(!row.includes("--"), `the ${kind} row still carries its flags: ${row}`);
   }
   assert.match(ask("record", "verdict", "-h").stdout, /--criterion N --verdict pass\|fail\|skipped/u);
-  assert.match(ask("record", "review", "-h").stdout, /--reviewer R --commit C\|--landing L/u);
+  assert.match(ask("record", "review", "-h").stdout, /--reviewer R\(400\) --commit C\|--landing L/u);
 });
 
 /* Now that the set is the text's, a field the row leaves out is a field the parse refuses: the verification's `--contains` was offered by `earned.mjs` as the way out of a build past the merge and named on no row, so the one command that cleared it was turned away. */
@@ -545,7 +545,8 @@ test("codex -h names no configuration key", () => {
 
 /* The rule that a `--set` value is the text and never a route to it is the refusal's, which names the file, the cost and the call to run instead; the help's copy drifted from it in silence, naming one body field where the checker named three, and the names below come off the checker so a fourth cannot leave this case behind (ISS-1451). */
 test("issue -h restates no part of the rule its own --set refusal owns", () => {
-  const said = ask("issue", "-h").stdout;
+  /* The caps line names each capped field beside its number, which is the cap and not the route rule. */
+  const said = ask("issue", "-h").stdout.split("\n").filter((line) => !line.startsWith("before the write: ")).join("\n");
   for (const form of ["@file", "$(cat", "as it is typed", ...BODY_FIELDS]) {
     assert.ok(!said.includes(form), `issue -h states the route rule again, at \`${form}\`: ${said}`);
   }

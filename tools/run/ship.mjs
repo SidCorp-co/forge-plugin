@@ -176,7 +176,7 @@ const clauseFlags = (tree, own) => {
   }
   const said = [...wrote].sort();
   const landed = own.at(-1) ?? null;
-  console.log("  the clause of the mark's note that says what this change wrote, which `developed` "
+  console.log("  the clause of the mark's note that says what this change wrote, which `in_progress:test` "
     + "reads against the plan, is written by this flag:");
   console.log(`    --wrote ${said.length ? typed(said.join(", ")) : "nothing"}`);
   console.log("  the clause that says what the landing moved of this change, which is what lets the "

@@ -2,8 +2,8 @@
 
 The merged mark rides in the audit comment the tracker writes, as one sentence of prose whose five
 clauses the next two statuses read values back out of. Two of the five hold paths rather than a sha:
-`landing moved`, which `testing` reads for whether the landing moved a path this change touched, and
-`landing wrote`, which `developed` reads for what this change itself landed. This file carries what
+`landing moved`, which `in_progress:release` reads for whether the landing moved a path this change touched, and
+`landing wrote`, which `in_progress:test` reads for what this change itself landed. This file carries what
 may go in those two, how the sentence is fitted to the room the tracker gives it, and which step
 computes each of them. Why the mark is a verb rather than a template, and what each of the five
 clauses answers: [the mark](record-merged.md).
@@ -18,7 +18,7 @@ whose value parses to no path rather than storing the empty string.
 Whitespace is what tells a path from a phrase, and a typed value holding it is refused. The reason
 the question came up: the ship printed the clause the note would carry, `landing moved nothing`,
 under the words *type that clause whole*, and the run that did got a mark naming a path of that name
-— so `testing` reported nine verdicts as taken before that path moved and offered nine
+— so `in_progress:release` reported nine verdicts as taken before that path moved and offered nine
 fresh verdicts as the way out (ISS-1023). Three things follow.
 
 **The refusal is where the value is typed.** A record that says the wrong thing about a set of paths
@@ -27,7 +27,7 @@ clears it there is `--undo` and a second mark rather than anything that refusal 
 
 **It is asked of the shape and never of the filesystem.** A path this change wrote and a later
 commit deleted is still what the landing wrote, and a path no tree ever held is refused by
-`developed` reading it against the plan, which is that check's question and not this one's.
+`in_progress:test` reading it against the plan, which is that check's question and not this one's.
 
 **And it is the flag's alone.** The landing task hands the composer paths off `git diff`, where a
 space in a name is the tree's business and not a typo, and every clause word the note is read by
@@ -47,7 +47,7 @@ already past it. The number is the route table's `note` cap, read where every ot
 read, so a tracker that raises it is one table edit and not a search for the composer that decided
 otherwise.
 
-So the composer fits the sentence, and what it leaves out it leaves out by a rule. `developed` reads
+So the composer fits the sentence, and what it leaves out it leaves out by a rule. `in_progress:test` reads
 each path of `landing wrote` against the plan and its corrections and refuses one they do not name:
 a path they *do* name is one that check already passes, and dropping it changes no answer, while a
 path they do not name is the whole evidence that the change grew. Every unnamed path therefore stays
@@ -58,7 +58,7 @@ not, that the plan names those, and where the whole list is read from.
 Two notes are refused before the call rather than fitted, because fitting either would say something
 untrue:
 
-- one whose unnamed paths alone overrun it. Shortening there would earn `developed` for a change
+- one whose unnamed paths alone overrun it. Shortening there would earn `in_progress:test` for a change
   that grew and never disclosed it, so the refusal names those paths and the correction that clears
   them — which is the correction the status asks for anyway, and once it is written they are named
   and the note has room to leave them out.

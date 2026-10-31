@@ -174,8 +174,8 @@ test("the phases the miner counts are the phases the method names", () => {
   for (const { phase } of MARKERS) {
     assert.match(PHASES[phase] ?? "", new RegExp(`^${phase} `, "u"), `phase ${phase} has a row of its own`);
   }
-  assert.equal(methodOf("developed").phase, PHASES[5], "which is the phase the resume header owes");
-  assert.ok(methodOf("in_progress").phase.includes(PHASES[4]), methodOf("in_progress").phase);
+  assert.equal(methodOf("in_progress:test").phase, PHASES[5], "which is the phase the resume header owes");
+  assert.ok(methodOf("in_progress:build").phase.includes(PHASES[4]), methodOf("in_progress:build").phase);
 });
 
 /* The closing report is generation after the final tool result: it counts in the run's wall and in

@@ -39,7 +39,7 @@ export const FLAG_ROWS = [WHOLE_SET_CLASS, RECHECK_CLASS, READY_CLASS];
 
 /* Minting the name, apart from whichever pattern found it, so a lookup of a verb's help is filed in the row that verb's own work is filed in rather than in one spelled beside it. */
 const classFor = (verb, slug, shell) => {
-  /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
+  /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so a form fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
   if (handledBy(verb)) return row(verb);
   if (!VERB_NAMES.includes(verb)) return null;
   const sub = slug ? SUB_WORD.exec(slug)?.[0] : undefined;

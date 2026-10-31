@@ -13,7 +13,7 @@ run holding it makes: without one, that state is where a landing goes to die.
 
 `--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
 is over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
-deployment identity where the checkpoint holds one — is the contract's at `testing` and is not
+deployment identity where the checkpoint holds one — is the contract's at `in_progress:release` and is not
 re-judged here, because a judge this claim refused could neither hand back nor be replaced. Whether
 a deployment was reported at all is the verification's question one rung up, so a checkpoint holding
 no identity refuses no verdict here.

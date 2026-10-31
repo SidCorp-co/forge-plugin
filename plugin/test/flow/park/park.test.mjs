@@ -11,7 +11,7 @@ process.env.XDG_CONFIG_HOME = tempHome("park").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { PARKS } = await import("../../../src/flow/machine.mjs");
 const { PARK_STATUS, answered, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { rungOf } = await import("../../../src/tracker/declared/rungs.mjs");
+const { placeOf } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -38,7 +38,8 @@ const PARKING = {
 const MOVING = {
   documentId: "moving-uuid",
   issueId: "ISS-98",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "the fix that walks the flow",
   description: "`forge issue` should take the `data.relations` route.\n",
   /* A fix is waived the reading and the plan on the way into `approved` and never the criteria or the clause one of them cites, so the one step this file takes along the flow needs both on the record to be a step. */
@@ -49,7 +50,7 @@ const MOVING = {
    fixture that acknowledges a move without making one cannot produce the sequence: an update is
    kept, a move is kept, and a move into a side status it announces posts the comment it announces
    it with. `state.refuse` puts the tracker's own refusal of a move back in the way. */
-const ANNOUNCE = { waiting: "⏸ **Waiting on a human decision**", needs_info: "❓ **Needs info**" };
+const ANNOUNCE = { needs_info: "❓ **Needs info**" };
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
@@ -68,8 +69,8 @@ const state = {
       if (args.action === "get") return found ?? {};
       if (args.action === "update" && found) return Object.assign(found, args.data);
       if (args.action === "transition" && found) {
-        /* The tracker this defect was met on answers a `waiting` ask with `needs_info` and says so
-           nowhere a caller can read first, which is the whole of ISS-1633. */
+        /* `state.remap` lands a move somewhere other than the status it asked for, as a tracker
+           can without saying so anywhere a caller reads first (ISS-1633). */
         const landed = state.remap?.[args.data.status] ?? args.data.status;
         const said = ANNOUNCE[landed];
         if (said) {
@@ -151,10 +152,7 @@ test("the move is the first of a park's two writes where the kind lands in on_ho
   assert.ok(moved < wrote, "the record is written against a status that has already moved");
 });
 
-/* A call asked for `waiting` cannot know before it sends whether it will land on `needs_info`, so
-   the record goes up first for the whole landing or it goes up where the tracker reads it as the
-   answer that unparks the issue (ISS-1633). */
-test("a park landing in waiting writes its record before its transition", async () => {
+test("a park landing in needs_info writes its record before its transition", async () => {
   Object.assign(PARKING, { status: "awaiting_release" });
   state.comments["parking-uuid"] = [];
   state.calls.length = 0;
@@ -165,8 +163,10 @@ test("a park landing in waiting writes its record before its transition", async 
   assert.ok(wrote >= 0 && moved > wrote, `wrote ${wrote}, moved ${moved}`);
 });
 
-test("every park kind that lands in waiting carries the kind the tracker demands", async () => {
-  for (const kind of PARKS.filter((one) => PARK_STATUS[one] === "waiting")) {
+test("every park kind that lands in needs_info carries the kind the tracker demands", async () => {
+  const kinds = PARKS.filter((one) => PARK_STATUS[one] === "needs_info" && one !== "question");
+  assert.ok(kinds.length, "a loop over no kind proves nothing");
+  for (const kind of kinds) {
     /* Each from a flow status: a park from a side status reads where it left off the tracker's
        history, which this fixture does not serve and `finish.test.mjs` does (ISS-425). */
     Object.assign(PARKING, { status: "awaiting_release" });
@@ -193,7 +193,7 @@ test("a plain advance sends the status alone, with no reason and no waiting kind
 test("the tracker's announcement of the park is not the person's look that answers it", () => {
   const announcement = comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`\n\nlook at it");
   const asked = recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release");
-  const view = (comments) => viewFrom("the-uuid", { status: "waiting" }, comments);
+  const view = (comments) => viewFrom("the-uuid", { status: "needs_info" }, comments);
   assert.equal(answered(view([announcement, asked]), "screen-review"), false, "the park is the last word on the page");
   const looked = view([announcement, asked, comment("looked, and it is right", { authorId: "a-person" })]);
   assert.equal(answered(looked, "screen-review"), true, "and a comment after it is the answer");
@@ -253,12 +253,12 @@ test("a question park answered on the record resumes where it left, though the a
   const answer = await ranAsync(FORGE, ["record", "answer", "ISS-98", "--from", "the reporter, through the dispatcher",
     "--quoted", "the first reading"], ENV);
   assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
-  assert.match(answer.stderr, /ISS-98 {2}open -> confirmed {2}\(resumed where its park left it\)/u, answer.stderr);
-  assert.equal(rungOf(MOVING.status, MOVING.workState?.step), "confirmed", "back where the park left, not at open");
+  assert.match(answer.stderr, /ISS-98 {2}open -> in_progress:plan {2}\(resumed where its park left it\)/u, answer.stderr);
+  assert.equal(placeOf(MOVING.status, MOVING.workState?.step), "in_progress:plan", "back where the park left, not at open");
 });
 
 test("an answer write missing who gave it or their words is refused with nothing posted", async () => {
-  Object.assign(PARKING, { status: "waiting" });
+  Object.assign(PARKING, { status: "needs_info" });
   const before = filed();
   const nobody = await ranAsync(FORGE, ["record", "answer", "ISS-97", "--quoted", "ship it"], ENV);
   assert.notEqual(nobody.status, 0);
@@ -270,11 +270,11 @@ test("an answer write missing who gave it or their words is refused with nothing
 });
 
 test("an answer to an issue no park holds for a person is refused, naming the status it holds", async () => {
-  Object.assign(MOVING, { status: "confirmed" });
+  Object.assign(MOVING, { status: "in_progress", workState: { step: "plan" } });
   const before = filed();
   const run = await ranAsync(FORGE, ["record", "answer", "ISS-98", "--from", "the owner", "--quoted", "ship it"], ENV);
   assert.notEqual(run.status, 0);
-  assert.match(run.stderr, /ISS-98 is confirmed, and an answer is read only where a park waits on a person/u, run.stderr);
+  assert.match(run.stderr, /ISS-98 is in_progress:plan, and an answer is read only where a park waits on a person/u, run.stderr);
   assert.match(run.stderr, /forge advance ISS-98 --owed/u, "and it names what the issue does wait on");
   assert.equal(filed(), before, "nothing was posted");
 });
@@ -285,7 +285,7 @@ test("the person's look counts their answer relayed on the record after the park
   const device = { authorDeviceId: "a-device" };
   const asked = { ...recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"), ...device };
   const relayed = () => ({ ...recorded("answer", { from: "the owner", quoted: "it looks right" }), ...device });
-  const view = (comments) => viewFrom("the-uuid", { status: "waiting" }, comments);
+  const view = (comments) => viewFrom("the-uuid", { status: "needs_info" }, comments);
   assert.equal(answered(view([asked, { ...comment("looked"), ...device }]), "screen-review"), false,
     "a device's comment is no person's look");
   const older = { ...relayed(), createdAt: "2026-09-01T00:00:00.000Z" };
@@ -297,7 +297,7 @@ test("the person's look counts their answer relayed on the record after the park
    and a comment there is the answer, so a record under the move would take the issue straight out of
    the status the move just set. The order is reversed for that kind alone (ISS-157, ISS-420). */
 test("a needs_info park writes its record first, because a record under the move would undo it", async () => {
-  Object.assign(MOVING, { status: "confirmed" });
+  Object.assign(MOVING, { status: "in_progress", workState: { step: "plan" } });
   state.comments["moving-uuid"] = [];
   const asked = await ranAsync(FORGE, ["record", "question", "ISS-98", "--reading",
     "the park set the status -> resume by its left", "--reading", "an earlier move set it -> refuse", "--recommend", "1"], ENV);
@@ -322,7 +322,7 @@ const asked = (reference, extra = []) =>
     "which of the two readings is the one this issue is about", ...extra], ENV);
 
 const readied = async (...readings) => {
-  Object.assign(MOVING, { status: "confirmed" });
+  Object.assign(MOVING, { status: "in_progress", workState: { step: "plan" } });
   state.comments["moving-uuid"] = [];
   const held = readings.length ? readings
     : ["the park set the status -> resume by its left", "an earlier move set it -> refuse"];
@@ -419,8 +419,8 @@ test("a needs over the cap the transition body takes is refused with nothing sen
 });
 
 test("a derived needs over that cap is refused, and the refusal costs no write", async () => {
-  /* Five readings each inside the option label a question may carry, together over the needs cap. */
-  await readied(...Array.from({ length: 5 }, (_, at) => `reading ${at} ${"alpha ".repeat(70)}-> ${"outcome ".repeat(5)}`));
+  /* Five readings each inside the 400 a record field may carry, together over the needs cap. */
+  await readied(...Array.from({ length: 5 }, (_, at) => `reading ${at} ${"alpha ".repeat(61)}-> ${"outcome ".repeat(2)}`));
   const run = await asked("ISS-98");
   assert.equal(run.status, 1, run.stdout);
   const wrote = state.calls.filter((one) =>
@@ -438,23 +438,18 @@ test("advance's own help puts needs on the row of each call that takes it", asyn
   assert.ok(rows.some((line) => /^\s+--set <status>.*--needs/u.test(line)), run.stdout);
 });
 
-/* Every case below fails on a CLI that reads the answer as a mismatch: the refusal fires with the
-   move already landed, so the record it was about to write never goes up and nothing on the page
-   says where the status came from. */
-const REMAPPED = { waiting: "needs_info" };
-const remapped = async (kind = "screen-review") => {
+/* A needs_info park as the verb writes it, read back: the record stamped with the place it left,
+   paired with the entry the tracker announces, by the owed list and by the resume. */
+const parkedAfresh = async (kind = "screen-review") => {
   Object.assign(PARKING, { status: "awaiting_release" });
   state.comments["parking-uuid"] = [];
   state.calls.length = 0;
-  state.remap = REMAPPED;
-  const run = await parked("ISS-97", kind);
-  delete state.remap;
-  return run;
+  return parked("ISS-97", kind);
 };
 const pageOf = () => state.comments["parking-uuid"];
 
-test("a park lands its record where the tracker answers the other name of the landing asked for", async () => {
-  const run = await remapped();
+test("a needs_info park's record is stamped with the place it left, not the side status", async () => {
+  const run = await parkedAfresh();
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(PARKING.status, "needs_info", "the move landed on the tracker's own name for it");
   const record = pageOf().find((one) => /forge-record: park/u.test(one.body));
@@ -462,14 +457,8 @@ test("a park lands its record where the tracker answers the other name of the la
   assert.match(record.body, /left: awaiting_release/u, "stamped with the step it left, not the side status");
 });
 
-test("a park asks for the status the tracker lands it on, so the reply carries no second spelling", async () => {
-  const run = await remapped();
-  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> needs_info$/mu, run.stdout);
-});
-
-test("the record a remapped park left pairs with the entry, and the way back is the step it named", async () => {
-  const park = await remapped();
+test("the record a needs_info park left pairs with the entry, and the way back is the place it named", async () => {
+  const park = await parkedAfresh();
   assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
   const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], ENV);
   assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
@@ -478,8 +467,8 @@ test("the record a remapped park left pairs with the entry, and the way back is 
   assert.match(said, /awaiting_release/u, said);
 });
 
-test("the report shows the park a remapped landing left, under the side status it landed on", async () => {
-  const park = await remapped();
+test("the report shows the park a needs_info landing left, under the side status it landed on", async () => {
+  const park = await parkedAfresh();
   assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
   const read = await ranAsync(FORGE, ["resume", "ISS-97"], ENV);
   assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
@@ -539,10 +528,8 @@ test("a set to a status of that landing writes its correction before its transit
   Object.assign(PARKING, { status: "awaiting_release" });
   state.comments["parking-uuid"] = [];
   state.calls.length = 0;
-  state.remap = REMAPPED;
   const run = await ranAsync(FORGE, ["advance", "ISS-97", "--set", "needs_info", "--why",
     "the person who knows where it belongs put it here"], ENV);
-  delete state.remap;
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const moved = state.calls.findIndex((one) => one.args.action === "transition");
   const wrote = state.calls.findIndex((one) => one.name === "forge_comments" && one.args.action === "create");
@@ -559,7 +546,7 @@ test("an entry that wrote no record of its own does not pair with an answered on
     comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
     recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
     comment("looked, and it is right", { authorId: "a-person" }),
-    comment("⏸ **Waiting on a human decision** — moved from `testing`"),
+    comment("⏸ **Waiting on a human decision** — moved from `in_progress`"),
   ];
   const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], ENV);
   assert.equal(owed.status, 1, `${owed.stdout}${owed.stderr}`);
@@ -572,13 +559,13 @@ test("a record before its own announcement pairs with the entry that announcemen
     comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
     recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
     comment("looked, and it is right", { authorId: "a-person" }),
-    recorded("park", { kind: "screen-review", why: "look again", evidence: ["c8c3550"] }, "testing"),
-    comment("⏸ **Waiting on a human decision** — moved from `testing`"),
+    recorded("park", { kind: "screen-review", why: "look again", evidence: ["c8c3550"] }, "in_progress:release"),
+    comment("⏸ **Waiting on a human decision** — moved from `in_progress`"),
   ];
   const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], ENV);
   assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
   const said = `${owed.stdout}${owed.stderr}`;
-  assert.match(said, /testing/u, said);
+  assert.match(said, /in_progress:release/u, said);
 });
 
 test("nor with one that left the same status it did, where an answer stands between them", async () => {

@@ -50,7 +50,7 @@ test("a reopened issue's second landing captures the fix over the first one's do
 
   const landed = await builderRan(["claim", KEY, "--landed"]);
   assert.equal(landed.status, 1, said(landed));
-  assert.ok(landed.stderr.includes(`\`in_progress\`, being built again`), said(landed));
+  assert.ok(landed.stderr.includes(`\`in_progress:build\`, being built again`), said(landed));
   assert.ok(landed.stderr.includes(`  forge claim ${KEY} --pushed --ready\n  forge claim ${KEY} --landed`),
     `the capture, then this write:\n${said(landed)}`);
   assert.equal(landing().state, "done", "and nothing was written");

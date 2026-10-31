@@ -54,7 +54,7 @@ test("a landing whose owed reading already has an issue names it and files none"
     title: readingTitle(base, head), createdAt: new Date().toISOString(), sessionContext: {} });
   const said = await landingRan([KEY], work);
   assert.equal(creates().length, 0, `a second row was filed for one mark:\n${said}`);
-  assert.match(said, /ISS-501 is in_progress for this mark already, so nothing was filed/u, said);
+  assert.match(said, /ISS-501 is in_progress:build for this mark already, so nothing was filed/u, said);
 });
 
 /* Each member over its own commits: the candidate holds both changes, two files and three lines,

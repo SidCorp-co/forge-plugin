@@ -7,14 +7,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { neutralRoom, ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { neutralRoom, ranAsync, tempHome } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("field-budget").path;
-const { KINDS } = await import("../../../src/flow/record/record-rows.mjs");
-const { SHAPES } = await import("../../../src/flow/machine.mjs");
+const { KINDS } = await import("../../../../src/flow/record/record-rows.mjs");
+const { SHAPES } = await import("../../../../src/flow/machine.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 const state = { calls: [], issues: [], comments: {}, answer: {} };

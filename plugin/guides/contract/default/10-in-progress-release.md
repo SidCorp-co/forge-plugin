@@ -1,4 +1,4 @@
-### `testing` — reads the verdicts, against the criteria and the plan's flags, and every finding folded onto the issue
+### `in_progress:release` — reads the verdicts, against the criteria and the plan's flags, and every finding folded onto the issue
 
 The rung promises *the evidence is here to be judged*. The verdicts are what earns it, so it is the
 judge's record that gets an issue here: where a project asks for a judgement other than the

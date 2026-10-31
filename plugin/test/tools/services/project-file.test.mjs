@@ -299,7 +299,7 @@ test("the flow is written alone, and what it asks the project for is named and l
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(now()).flow, "screen");
   assert.equal(moved(HELD, now()), 1, now());
-  assert.match(run.stdout, /^flow screen also asks for the judgement between developed and testing, which this left as it was: `forge doctor --set pipeline\.qa=independent` writes it, and `forge doctor --flow screen` writes both$/mu,
+  assert.match(run.stdout, /^flow screen also asks for the judgement between in_progress:test and in_progress:release, which this left as it was: `forge doctor --set pipeline\.qa=independent` writes it, and `forge doctor --flow screen` writes both$/mu,
     run.stdout);
 
   fresh();

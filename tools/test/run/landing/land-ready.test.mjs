@@ -84,7 +84,7 @@ test("a ready branch is pinned, merged, proved to have moved nothing and promote
   assert.equal(held.reconciled, git(work, "rev-parse", `${landed}^`).stdout.trim(), said);
   /* This project asks for no independent judge, so no QA turn is written at all; and its record
      earns neither status, so the checkpoint rests at `marked` for the landing to be run again
-     rather than closing at `done` over a `tested` nothing earned. */
+     rather than closing at `done` over an `awaiting_release` nothing earned. */
   assert.equal(held.state, "records-owed", `no judge is asked for and neither status is earned, so the turn is the builder's:\n${said}`);
   assert.equal(held.owed, "marked", `and the checkpoint names the state it was handed back from:\n${said}`);
   assert.match(said, /no judge's turn sits here: this project lands after-merge/u, said);
@@ -106,15 +106,16 @@ test("the landing walks the judging rung and the deploying one, and rests at don
   assert.equal(issue().status, "awaiting_release", `both rungs were walked:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
   assert.match(said, /the checkpoint reads `done`/u, said);
-  assert.deepEqual(rungsMoved(), ["developed", "testing", "awaiting_release"],
+  assert.deepEqual(rungsMoved(), ["in_progress:test", "in_progress:release", "awaiting_release"],
     `one move per rung, in the table's order, and no jump:\n${said}`);
   /* `done` here means the landing is finished and not that the issue is, so the stop is said. */
   assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\``, "u"), said);
   assert.match(said, /the release is an act/u,
     `the reason is the project's own, so a reader knows which setting said so:\n${said}`);
   assert.match(said, new RegExp(`the close is theirs and not this landing's`, "u"), said);
-  assert.match(said, new RegExp(`forge advance ${KEY}`, "u"),
-    `with the command that takes it once the release is out:\n${said}`);
+  assert.match(said, new RegExp(`forge release-batch record ${KEY}`, "u"),
+    `with the record that closes it once the release is out, core closing it only by the release:\n${said}`);
+  assert.doesNotMatch(said, /--set closed/u, `and never a set core refuses (CLOSE_ONLY_BY_RELEASE):\n${said}`);
 });
 
 /* And the other way: a record earning the judging rung and not the deploying one stops there rather
@@ -124,7 +125,7 @@ test("a landing whose record earns the judging rung alone stops at it and names 
   const { releaseNotes, ...half } = earning(head);
   seeded({ landing: ready(head, base), earned: { ...half, said: half.said.slice(0, 2) } });
   const said = await ran([KEY], work);
-  assert.equal(rungNow(), "testing", `the judging rung is where it rests:\n${said}`);
+  assert.equal(rungNow(), "in_progress:release", `the judging rung is where it rests:\n${said}`);
   assert.equal(landing().state, "records-owed", `the checkpoint is not done, and the rung left is the builder's:\n${said}`);
   assert.match(said, /what `awaiting_release` is owed is above/u, said);
   assert.match(said, /no verification/u, "and what that is, is on the report");
@@ -287,7 +288,7 @@ test("the builder writes the records the landing stops for, and the landing fini
   assert.equal(issue().status, "awaiting_release", `the hand-back walks every rung the landing stopped short of:\n${after}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${after}`);
   assert.match(after, /rests at `awaiting_release`/u, `the close being a person's, which it says:\n${after}`);
-  assert.match(after, new RegExp(`forge advance ${KEY} --set closed`, "u"), `with the set that closes it:\n${after}`);
+  assert.match(after, new RegExp(`forge release-batch record ${KEY}`, "u"), `with the record that closes it:\n${after}`);
   assert.equal(marks().length, 1, `over the release it already made:\n${after}`);
   assert.doesNotMatch(after, /records-owed/u, `with no second hand-back:\n${after}`);
 });
@@ -439,7 +440,7 @@ test("--pushed --ready lifts the conflict park it finds, and the next landing la
      answers to) — so this second run hands back rather than landing, and what matters here is which
      way: never the jump this issue was filed over. */
   const second = await ran([KEY], work);
-  assert.doesNotMatch(second, /is on_hold and .* is next, not `?developed`?/u,
+  assert.doesNotMatch(second, /is on_hold and .* is next, not `?in_progress:test`?/u,
     `no jump out of a status the lift already left:\n${second}`);
   assert.equal(issue().status, "in_progress", `the lift held, and nothing parked it again:\n${second}`);
   const handedBack = landing();
@@ -457,9 +458,9 @@ test("--pushed --ready lifts the conflict park it finds, and the next landing la
   assert.equal(git(work, "merge-base", "--is-ancestor", tip, landed).status, 0,
     `and it is the fixed head that landed:\n${third}`);
   assert.equal(marks().length, 1, `and it was marked:\n${third}`);
-  /* `developed` itself asks for a review of the landed commit, which nothing here wrote — a
+  /* `in_progress:test` itself asks for a review of the landed commit, which nothing here wrote — a
      shortfall the record names, and not the jump ISS-2832 was filed over: the issue rests exactly
-     where the lift left it, `in_progress`, waiting on a record and never on a status a park held. */
+     where the lift left it, `in_progress:build`, waiting on a record and never on a status a park held. */
   assert.equal(issue().status, "in_progress", `still where the lift left it:\n${third}`);
   assert.equal(landing().state, "records-owed", `the checkpoint waits on a record, not a park:\n${third}`);
 });

@@ -277,7 +277,7 @@ place for it would be a second answer to reconcile.
 
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-14
 
-The mark that earns `developed` carries five clauses the entry checks parse out of one sentence, and
+The mark that earns `in_progress:test` carries five clauses the entry checks parse out of one sentence, and
 until now no verb wrote that sentence: a run composed it by hand from a template in a refusal, and a
 sha in the wrong slot was refused two statuses later by a message about the verdicts. A record kind
 with one flag per clause writes the sentence in the one form the checks read, refuses once with

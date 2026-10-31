@@ -70,10 +70,11 @@ const DEATHS = [
     installs: false,
   },
   {
-    name: "after the `developed` move",
+    name: "after the move to `in_progress:test`",
     state: "marked",
-    status: "developed",
-    says: /is developed already/u,
+    status: "in_progress",
+    step: "test",
+    says: /is in_progress:test already/u,
     installs: false,
   },
 ];
@@ -89,7 +90,7 @@ for (const row of DEATHS) {
     /* The world as the death left it: the checkpoint back at that state, and where the death was
        before the write itself, whatever that write had produced taken away again. */
     issue().sessionContext.landing = { ...held, state: row.state };
-    if (row.status) issue().status = row.status;
+    if (row.status) Object.assign(issue(), { status: row.status, workState: row.step ? { step: row.step } : null });
     if (row.forget) forgetInstall();
     const before = { calls: claudeCalls().length, moves: transitions() };
     const said = await ran([KEY], work);

@@ -92,20 +92,23 @@ export const recordReport = async (reference) => {
   /* Wherever the issue stands, because this report is where the method sends a run for the policy's answer, and one that first reads it at the rung it is already standing on has read it a phase late. Printed in the answer that owes nobody too: a run told only that the close is owed cannot tell a policy this CLI read from one it never consulted, and a run holding this line beside `forge doctor`'s own rows can settle which of them moved (ISS-1656). */
   const policy = await releasePolicy();
   console.log(`\nRelease policy  ${releaseAnswer(policy)}`);
-  /* Where a run stops, and the route it leaves for whoever picks the issue up from here: a set, which is the only move out of this rung the entry check `earned.mjs` holds for `closed` admits (ISS-105, ISS-1147, ISS-1918). The act itself is named once, on the line above, and this one says only whose the next move is. */
+  /* Where a run stops, and the route it leaves for whoever picks the issue up from here: the release's record, `closeForm`'s (ISS-105, ISS-1147, ISS-1918). The act itself is named once, on the line above, and this one says only whose the next move is. */
   if (body.status === CLOSES_FROM) console.log(closingSaid(releaseOwedOf(policy), reference));
 };
 
 /* The closing rung's line: the close itself where nothing is owed, and otherwise whose the rung is. */
 const closingSaid = (held, reference) => {
-  if (!held) return `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`;
+  if (!held) {
+    return `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}, and core closes an issue there only by `
+      + `the release that ships it (CLOSE_ONLY_BY_RELEASE), so the close is that release's record:\n  ${closeForm(reference)}`;
+  }
   if (held.by === BY_BATCH) {
     return `Owed: the release, which is the release batch's and not a person's. The line above says `
       + `what it waits for, so this run ends at ${CLOSES_FROM} and the close is the batch's, made by `
       + `the release that promotes the change and naming it. A promotion made outside a batch is `
-      + `recorded instead, and the record closes the issue:\n  ${closeForm(reference, held)}`;
+      + `recorded instead, and the record closes the issue:\n  ${closeForm(reference)}`;
   }
   return `Owed: the release, which is a person's. The line above says whose act it is and what would `
     + `end the rung, so this run ends at ${CLOSES_FROM} and the close is theirs, made once it is `
-    + `out and with the release named:\n  ${closeForm(reference, held)}`;
+    + `out and with the release named:\n  ${closeForm(reference)}`;
 };

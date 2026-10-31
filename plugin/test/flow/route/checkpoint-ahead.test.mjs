@@ -28,16 +28,16 @@ const READY = {
 const MARK = { createdAt: "2026-09-07T13:00:00.000Z", authorId: "agent",
   body: `mark_merged target=base — merged to master at ${MERGED}` };
 
-const ahead = ({ status = "in_progress", release = JUDGED_APART, landing = null, comments = [], issue = {} } = {}) =>
+const ahead = ({ status = "in_progress:build", release = JUDGED_APART, landing = null, comments = [], issue = {} } = {}) =>
   checkpointAhead(viewFrom("the-uuid", {
     status, plan: PLAN, acceptanceCriteria: "1. The one outcome.",
     sessionContext: landing ? { landing } : {}, ...issue,
   }, comments, null, release), "ISS-8");
 
 test("before the merge, the builder is told to capture the checkpoint and then to say the landing is over", () => {
-  for (const status of ["in_progress", "developed"]) {
+  for (const status of ["in_progress:build", "in_progress:test"]) {
     const said = ahead({ status });
-    assert.match(said ?? "", /^Ahead: testing is earned here by an independent judge's verdicts/u, `${status}: ${said}`);
+    assert.match(said ?? "", /^Ahead: in_progress:release is earned here by an independent judge's verdicts/u, `${status}: ${said}`);
     assert.match(said, /ISS-8 has no landing checkpoint naming a builder/u, "the missing half is named in builderProblem's words");
     assert.ok(said.endsWith("\n  forge claim ISS-8 --pushed --ready\n  forge claim ISS-8 --landed"),
       `the two commands, capture first, close the line at ${status}:\n${said}`);
@@ -45,7 +45,7 @@ test("before the merge, the builder is told to capture the checkpoint and then t
 });
 
 test("once the merged mark stands, the line names the late write at the merged sha, in both of its forms", () => {
-  const said = ahead({ status: "developed", comments: [MARK] });
+  const said = ahead({ status: "in_progress:test", comments: [MARK] });
   assert.match(said ?? "", /has landed at c8c3550/u, said);
   const both = REBUILT_FORM("ISS-8", "c8c3550").split("\n").map((line) => `  ${line}`).join("\n");
   assert.ok(said.endsWith(both), `both deployment forms, indented:\n${said}`);
@@ -58,9 +58,9 @@ test("the line is silent on every reading that owes the builder nothing", () => 
   assert.equal(ahead({ release: BUILDER_JUDGES }), null, "the builder is this project's judge");
   assert.equal(ahead({ release: null }), null, "a policy nobody read declares no independent judge");
   assert.equal(ahead({ landing: READY }), null, "a ready capture names the builder, which is what ship ready leaves");
-  assert.equal(ahead({ status: "developed", landing: { ...READY, state: "done" } }), null, "a finished landing names it too");
+  assert.equal(ahead({ status: "in_progress:test", landing: { ...READY, state: "done" } }), null, "a finished landing names it too");
   assert.equal(ahead({ issue: { landingShape: "outside_git" } }), null, "a landing outside git writes no checkpoint");
-  for (const status of ["approved", "testing", "awaiting_release", "closed", "reopen"]) {
+  for (const status of ["approved", "in_progress:release", "awaiting_release", "closed", "reopen"]) {
     assert.equal(ahead({ status }), null, `${status} is not where the builder can still write it`);
   }
 });

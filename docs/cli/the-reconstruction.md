@@ -40,7 +40,7 @@ deployment is a fact about the world no checkout can read, and a test-only fix r
 will — so a write demanding an identity asked such a change for one that does not exist, and the
 judge in front of it had no route at all. What the write asks for instead is which of the two is
 true: an identity, or that there is none. The silence is refused rather than read as the second,
-because an omission taken that way switches off the citation `testing` spends on a checkpoint that
+because an omission taken that way switches off the citation `in_progress:release` spends on a checkpoint that
 names an identity, and nothing on the record would say it had been. A checkpoint naming none is
 judged at the head its verdicts carry, which the block says in its own account of itself.
 

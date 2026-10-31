@@ -567,7 +567,7 @@ test("a project whose configuration names the judgement its flow asks for earns 
     { project: { flow: "screen" } },
   );
   assert.doesNotMatch(out, /\[ miss \] flow/u, "the two sources agree, so there is nothing to report");
-  assert.match(out, /independent judgement\s+independent between developed/u, "and the key is reported as it stands");
+  assert.match(out, /independent judgement\s+independent between in_progress:test/u, "and the key is reported as it stands");
 });
 
 /* One line per flow this copy serves: the set a project chooses between is visible where it is

@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 process.env.XDG_CONFIG_HOME = tempHome("released").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -32,9 +33,11 @@ const ISSUE = {
 /* Whether the far end honours the move it is sent: turned off, the transition answers with the status the issue already held, which is the verb refusing after its own renewal has landed. */
 let moves = true;
 
-const stands = (context, status = "approved") => {
+/* Put at a place in core's words: the status, and the step where the place is inside in_progress. */
+const stands = (context, place = "approved") => {
   ISSUE.sessionContext = context;
-  ISSUE.status = status;
+  ISSUE.status = statusOfPlace(place);
+  ISSUE.workState = stepOfPlace(place) ? { step: stepOfPlace(place) } : null;
   moves = true;
 };
 
@@ -68,19 +71,19 @@ const setTo = (status, who) =>
   ran(["advance", "ISS-1617", "--set", status, "--why", "the fixture moves it without earning it"], who);
 
 /* The case the issue asks for. The assertion that carries it is the second run getting the issue with no wait and no flag in its hand. */
-test("an advance to developed leaves nothing holding the issue, and another run claims it with no wait and no flag", async () => {
+test("an advance to in_progress:test leaves nothing holding the issue, and another run claims it with no wait and no flag", async () => {
   stands({});
-  const started = await setTo("in_progress", BUILDER);
+  const started = await setTo("in_progress:build", BUILDER);
   assert.equal(started.status, 0, `the first move should have gone through:\n${started.stdout}${started.stderr}`);
   assert.match(started.stderr, /carried no lease/u, "taking the lease as it writes");
   assert.match(started.stderr, /ISS-1617 is free again/u, "and giving it back once the write has landed");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "so the field names no holder");
 
   /* The write that earns the next status takes the lease on a field the release left, at a status an empty field is refused at. */
-  const developed = await setTo("developed", BUILDER);
+  const developed = await setTo("in_progress:test", BUILDER);
   assert.equal(developed.status, 0, `and so should the second:\n${developed.stdout}${developed.stderr}`);
   assert.deepEqual([ISSUE.status, ISSUE.workState?.step], ["in_progress", "test"],
-    "the issue is where the next run claims from, developed being in_progress at the test step");
+    "the issue is where the next run claims from, in_progress at the test step");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "and nothing holds it");
 
   const judge = await ran(["claim", "ISS-1617"], JUDGE);
@@ -99,7 +102,7 @@ test("a lease the run claimed for itself is not given back by the writes made un
   stands({});
   const claimed = await ran(["claim", "ISS-1617", "--minutes", "45"], BUILDER);
   assert.equal(claimed.status, 0, claimed.stderr);
-  const moved = await setTo("in_progress", BUILDER);
+  const moved = await setTo("in_progress:build", BUILDER);
   assert.equal(moved.status, 0, moved.stderr);
   assert.equal(ISSUE.sessionContext.lease.holder, BUILDER, "the lease is still the run's");
   assert.equal(ISSUE.sessionContext.lease.minutes, 45, "for the duration it asked for");
@@ -114,7 +117,7 @@ test("a lease the run claimed for itself is not given back by the writes made un
 test("a call that took the lease and then did not complete leaves the lease standing", async () => {
   stands({});
   moves = false;
-  const refused = await setTo("in_progress", BUILDER);
+  const refused = await setTo("in_progress:build", BUILDER);
   assert.equal(refused.status, 1, `the move should have been refused:\n${refused.stdout}${refused.stderr}`);
   assert.equal(ISSUE.sessionContext.lease.holder, BUILDER, "and the lease the write took is still held");
   assert.doesNotMatch(refused.stderr, /is free again/u, "nothing having been given back");
@@ -133,7 +136,7 @@ test("a take on a field a lease was given back in keeps the history and the line
       next: LEFT,
       history: [{ holder: "a-run-before-this-one", at: ago(30), how: "write", status: "approved" }],
     },
-  }, "developed");
+  }, "in_progress:test");
   const taken = await ran(["claim", "ISS-1617"], JUDGE);
   assert.equal(taken.status, 0, `the claim should have been granted:\n${taken.stdout}${taken.stderr}`);
   const held = ISSUE.sessionContext.lease;
@@ -157,7 +160,7 @@ test("a verb reached through a form gives the lease back on the form's own route
 
 /* The other side of the same boundary: a field with no lease and no release in it is still the anomaly it was, refused in the same words. */
 test("a field emptied by something other than a release is refused exactly as it was", async () => {
-  stands({ lease: { next: LEFT, history: [] } }, "developed");
+  stands({ lease: { next: LEFT, history: [] } }, "in_progress:test");
   const refused = await ran(["claim", "ISS-1617"], JUDGE);
   assert.equal(refused.status, 1, `still refused:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /lease field holds no lease/u, "in the words it always used");
@@ -167,7 +170,7 @@ test("a field emptied by something other than a release is refused exactly as it
 /* A lease the run claimed by hand, and the one route that hands it back by name. `--stopped` from the holder is not that route: with no work under the lease it settles nothing, so it is refused rather than answered with a renewal (ISS-1998). */
 const heldBy = (holder, { minutesAgo = 5, next = null } = {}) => stands({
   lease: { holder, agent: "a-test-agent", pid: "1", renewedAt: ago(minutesAgo), minutes: 60, next, history: [] },
-}, "in_progress");
+}, "in_progress:build");
 
 test("a holder's own --give-back leaves nothing holding the issue, and the next run claims it with no wait", async () => {
   heldBy(BUILDER);

@@ -4,7 +4,8 @@
 
 import { mimeFor } from "../wire/upload-mimes.mjs";
 import { COLLECTIONS, DECLARES, FILTERS, declaredFor } from "./declared/declares.mjs";
-import { trackerStatusOf } from "./declared/rungs.mjs";
+import { ISSUE_STATUSES, LEGACY_STATUSES, statusOfPlace } from "./declared/issue-machine.mjs";
+import { refuse } from "../refusal.mjs";
 import { PROJECT_ROW, attachmentOf, attributedOf, browseOf, citingOf, commentOf, configOf, eventsOf,
   filled, issueOf, labelOf, paged, pick, projectOf, rowsIn, threadOf, writtenRow } from "./answers/projections.mjs";
 
@@ -29,8 +30,21 @@ const query = (pairs) => {
 /* The order the tool answered in, and a verb printing a page prints what it put there. */
 const ORDER = "updatedAt:desc";
 
-/* A filter on the wire is in the tracker's words; the walk narrows back to the rung (`issues.mjs`). */
-const onWire = (name, value) => (name === "status" && value ? trackerStatusOf(value) : value);
+/* A filter on the wire is in the tracker's words; the walk narrows back to the place (`issues.mjs`). */
+const onWire = (name, value) => (name === "status" && value ? statusOfPlace(value) : value);
+
+/* The one door every status move goes out through, so a name core does not hold never reaches it: a
+   legacy status is refused ISSUE_STATUS_LEGACY there, and a place inside `in_progress` is the status
+   and then a step, which the caller writes as two. Refused here naming the status core holds. A
+   request built with no status at all — the shape a reader of the table derives a path from — names
+   no move, and core refuses a transition sent without one by itself. */
+const toStatusOf = (status) => {
+  if (status === undefined || ISSUE_STATUSES.includes(status)) return status;
+  const took = LEGACY_STATUSES[status] ?? (ISSUE_STATUSES.includes(statusOfPlace(status)) ? status : null);
+  return refuse(`\`${status}\` is no status core holds, so no move to it was sent: core refuses a legacy name `
+    + `ISSUE_STATUS_LEGACY and holds ${ISSUE_STATUSES.join(", ")}.${took ? ` The place that took it over is `
+      + `\`${took}\`, which is \`${statusOfPlace(took)}\` and then its work step.` : ""}`);
+};
 
 const listQuery = (args) => query({
   q: args.filters?.search,
@@ -44,9 +58,9 @@ const listQuery = (args) => query({
    a set of statuses repeated rather than joined, which is how the route takes one. */
 const attributedQuery = (args) => {
   const held = new URLSearchParams({ withModules: "true", sort: ORDER });
-  for (const status of new Set((args.statuses ?? []).map(trackerStatusOf))) held.append("status", status);
+  for (const status of new Set((args.statuses ?? []).map(statusOfPlace))) held.append("status", status);
   for (const status of args.statusNot ?? []) {
-    if (trackerStatusOf(status) === status) held.append("statusNot", status);
+    if (statusOfPlace(status) === status) held.append("statusNot", status);
   }
   return `?${held.toString()}${query({ module: args.module, limit: args.limit, offset: args.offset }).replace("?", "&")}`;
 };
@@ -120,9 +134,8 @@ export const ROUTES = {
     answers: writtenRow,
     sends: ["documentId", "data", "expect"],
   },
-  /* Core's standing of one issue, read for the moves it serves from where the issue stands
-     (`moves`, `@forge/contracts/issue-machine:issueMovesFrom`): the ladder's move is checked against
-     that list before it is sent. Raw, as the tracker answers it: the one key read is `moves`. */
+  /* One issue's standing, `@forge/contracts/issue-machine:issueMovesFrom` among its keys. Raw, as
+     the tracker answers it: the one key read is `moves`. */
   "forge_issues.moves": {
     project: true,
     requests: (args, project) => ({
@@ -133,12 +146,11 @@ export const ROUTES = {
   "forge_issues.transition": {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}/transition`, "POST",
-      { toStatus: args.data?.status, ...filled({ ...args.data, status: undefined }) }),
+      { toStatus: toStatusOf(args.data?.status), ...filled({ ...args.data, status: undefined }) }),
     answers: writtenRow,
     sends: ["documentId", "data"],
   },
-  /* Feedback about Forge itself, into the home the pinned core names (REQ-47): the door a note takes
-     where the credential sees no project of the plugin's own. Raw: the reply's item key is read. */
+  /* The door `tools/feedback.mjs` files through (REQ-47). Raw: the reply's item key is read. */
   "forge_feedback.submit": {
     writes: true,
     account: true,

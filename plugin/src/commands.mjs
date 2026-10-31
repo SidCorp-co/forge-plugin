@@ -152,7 +152,7 @@ const SET_PROSE = "`--set f=v` sends the value through this project's prose lang
 
 /* The caps `--set` is measured against, off the table the write measures by: a field of the issue's own
    row, each with its number, so a value is drafted to the cap rather than learnt from the refusal. */
-const SET_CAPPED = ["title", "description", "category", "detectorKey", "acceptanceCriteria", "plan"];
+const SET_CAPPED = ["title", "description", "category", "detectorKey", "acceptanceCriteria"];
 const setCaps = () => {
   const caps = declaredFor("forge_issues", "caps");
   const held = SET_CAPPED.filter((name) => typeof caps[name]?.self === "number").map((name) => `${name}(${caps[name].self})`);

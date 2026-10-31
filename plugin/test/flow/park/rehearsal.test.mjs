@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 process.env.XDG_CONFIG_HOME = tempHome("park-rehearsal").path;
 
@@ -14,16 +15,18 @@ let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
 const comment = (body) => ({ documentId: `comment-${clock + 1}`, createdAt: at(), authorId: "agent", body });
 
-const issue = (number, status, extra = {}) => ({
+/* Put at a place in core's words: the status, and the step where the place is inside in_progress. */
+const issue = (number, place, extra = {}) => ({
   documentId: `issue-${number}`,
   issueId: `ISS-${number}`,
-  status,
-  title: `the issue at ${status}`,
+  status: statusOfPlace(place),
+  workState: stepOfPlace(place) ? { step: stepOfPlace(place) } : null,
+  title: `the issue at ${place}`,
   description: "no mark here",
   ...extra,
 });
-const PARKING = issue(71, "confirmed");
-const LANDED = issue(72, "developed");
+const PARKING = issue(71, "in_progress:plan");
+const LANDED = issue(72, "in_progress:test");
 const DROPPING = issue(73, "approved");
 const MERGED = issue(74, "approved", { mergedAt: "2026-09-01T09:00:00.000Z" });
 
@@ -74,8 +77,8 @@ test("a park rehearsed prints what it would send and writes nothing", async () =
   const run = await advance("ISS-71", "--owed", ...PARK);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(writes(), before, "no transition, no comment and no lease write went to the tracker");
-  assert.equal(PARKING.status, "confirmed");
-  assert.match(run.stdout, /^ {2}ISS-71 {2}confirmed -> needs_info$/mu, "the status it leaves and the one it enters");
+  assert.deepEqual([PARKING.status, PARKING.workState?.step], ["in_progress", "plan"]);
+  assert.match(run.stdout, /^ {2}ISS-71 {2}in_progress:plan -> needs_info$/mu, "the status it leaves and the one it enters");
   assert.match(run.stdout, /^ {2}reason: the new column has to be looked at$/mu, "the reason the move sends");
   assert.match(run.stdout, /^ {2}waitingKind: needs_decision$/mu, "and the kind the tracker demands beside it");
 });
@@ -88,7 +91,7 @@ test("a park rehearsed prints the record the park then posts, byte for byte", as
 });
 
 test("a park the real move refuses is rehearsed as refused, in the real refusal's words, exiting zero", async () => {
-  Object.assign(PARKING, { status: "confirmed" });
+  Object.assign(PARKING, { status: "in_progress", workState: { step: "plan" } });
   const bare = ["--park", "code-review", "--why", "read the diff"];
   const before = writes();
   const run = await advance("ISS-71", "--owed", ...bare);

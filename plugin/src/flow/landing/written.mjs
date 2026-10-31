@@ -14,7 +14,7 @@ import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { commandAt, valuesOf } from "../machine.mjs";
-import { BUILD_AT, ORDER } from "../earned.mjs";
+import { BUILD_AT, LADDER } from "../earned.mjs";
 import { landsAgain, reopenForm } from "../route.mjs";
 
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
@@ -46,7 +46,7 @@ export const rebuiltCheckpoint = (ref, holder, head,
   /* One statement about the deployment is owed and the write refuses a silence rather than choosing
      for the caller. Whether a change reached a deployment is a fact about the world no checkout can
      read, and an omitted `--deployment` taken as `there is none` would switch off the citation the
-     verdict gate spends at `testing` with nothing on the record saying so. The judge holds either
+     verdict gate spends at `in_progress:release` with nothing on the record saying so. The judge holds either
      value: an identity is what it judged against, and its absence is what it judged without
      (ISS-1993). */
   if (deployment && undeployed) {
@@ -207,13 +207,13 @@ const againRefused = (ref, head, landing, status) => {
    checkpoint calls over (ISS-2604). Off the flow's own order: a status it does not place, a reopen or
    a park, is left to the checks that read it. */
 const unbuiltRefusal = (ref, status) => {
-  const at = ORDER.indexOf(status);
-  const built = ORDER.indexOf(BUILD_AT);
+  const at = LADDER.indexOf(status);
+  const built = LADDER.indexOf(BUILD_AT);
   if (at < 0 || at >= built) return null;
   return `claim --ready arms the landing of a built change, and ${ref} stands at \`${status}\`, `
     + `before \`${BUILD_AT}\`, the status a build stands at: the landing could move no status of `
     + `it, and a resume would name a phase this checkpoint says is over. Advance it, then capture `
-    + `again:\n${ORDER.slice(at + 1, built + 1).map((to) => `  forge advance ${ref} --to ${to}\n`).join("")}`
+    + `again:\n${LADDER.slice(at + 1, built + 1).map((to) => `  forge advance ${ref} --to ${to}\n`).join("")}`
     + `  forge claim ${ref} --pushed --ready`;
 };
 

@@ -27,12 +27,12 @@ export const carriedOnto = (got, comments, say, cwd = process.cwd()) => {
   if (read.carries) {
     got[CARRIES] = merged;
     say(`${at} carries the merged commit ${shortSha(merged)}, as this checkout's git reads it, and the `
-      + "verdict says so: `testing` reads it as judged at the landing.");
+      + "verdict says so: `in_progress:release` reads it as judged at the landing.");
     return;
   }
   say(read.carries === false
     ? `${at} does not carry the merged commit ${shortSha(merged)}: ${read.why}. The verdict says `
-      + "nothing of it, and earns `testing` only at the head the mark names as judged."
+      + "nothing of it, and earns `in_progress:release` only at the head the mark names as judged."
     : `This checkout cannot say whether ${at} carries the merged commit ${shortSha(merged)}: `
       + `${read.why}. The verdict says nothing of it; written from a checkout holding both, it would.`);
 };
@@ -46,7 +46,7 @@ export const carriedOnto = (got, comments, say, cwd = process.cwd()) => {
 export const deploymentOnto = (got, landing, say, cwd = process.cwd()) => {
   const deployment = landing?.deployment;
   const cited = (got.evidence ?? []).filter((one) => isCommit(one));
-  /* A runtime is the verdict's identity and `testing` reads it alone, so a stamp beside it would be a second reading of the deployment. */
+  /* A runtime is the verdict's identity and `in_progress:release` reads it alone, so a stamp beside it would be a second reading of the deployment. */
   if (got.runtime !== undefined) return;
   if (!deployment || !cited.length || cited.some((one) => sameCommit(one, deployment))) return;
   /* Only the failure's sentences read every answer, and they are reached only where none carries it. */
@@ -64,15 +64,15 @@ export const deploymentOnto = (got, landing, say, cwd = process.cwd()) => {
   if (carrier) {
     got[CARRIES_DEPLOYMENT] = deployment;
     say(`--evidence ${shortSha(carrier.one)} carries ${at}, as this checkout's git reads it, and the `
-      + "verdict says so: `testing` reads it as citing that deployment.");
+      + "verdict says so: `in_progress:release` reads it as citing that deployment.");
     return;
   }
   const unsettled = reads.find((each) => each.read.carries === null);
   say(unsettled
     ? `This checkout cannot say whether --evidence ${shortSha(unsettled.one)} carries ${at}: `
-      + `${unsettled.read.why}. The verdict says nothing of it, so \`testing\` refuses it unless it cites `
+      + `${unsettled.read.why}. The verdict says nothing of it, so \`in_progress:release\` refuses it unless it cites `
       + `${shortSha(deployment)} itself: add \`--evidence ${shortSha(deployment)}\`, or write it from a `
       + "checkout holding both commits."
     : `No commit this verdict cites carries ${at} (${reads.map((each) => each.read.why).join("; ")}), `
-      + `so \`testing\` refuses it unless it cites ${shortSha(deployment)} itself.`);
+      + `so \`in_progress:release\` refuses it unless it cites ${shortSha(deployment)} itself.`);
 };

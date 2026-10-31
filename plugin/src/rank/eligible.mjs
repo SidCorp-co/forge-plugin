@@ -7,6 +7,7 @@ import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
 import { asksIndependent, policyUnread } from "../tracker/project-config.mjs";
 import { filedAt } from "./score.mjs";
+import { HELD } from "../tracker/declared/issue-machine.mjs";
 
 /* A path in a code span, in the segment shape a repository names a file or a tree by. */
 const SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "gu");
@@ -70,7 +71,7 @@ export const eligibilityOf = (row,
 /** The status a judging run claims from, the declaration that offers one, and the lease that leaves
  *  one out — this session's own included, where `eligibilityOf` lets it through, an issue a run
  *  holds being its own to carry on with. Listed apart and what a row costs: docs/cli/next.md. */
-export const JUDGING = ["developed"];
+export const JUDGING = [HELD.test];
 
 const judgingVerdict = (lease) => {
   const taken = leaseOf(lease);

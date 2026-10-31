@@ -8,7 +8,8 @@ import { Refused } from "../../refusal.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
 import { BY_BATCH, judgementOf, landingRoute, releaseOwedOf, releasePolicy } from "../../tracker/project-config.mjs";
-import { ORDER, atLeast, closeForm, whoseRelease } from "../earned.mjs";
+import { LADDER, atLeast, closeForm, whoseRelease } from "../earned.mjs";
+import { HELD } from "../../tracker/declared/issue-machine.mjs";
 import { CLOSES_FROM } from "../machine.mjs";
 import { landingSaved, oweRelease } from "../lease.mjs";
 import { INDEPENDENT } from "../qa/verdicts.mjs";
@@ -16,15 +17,13 @@ import {
   LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, LANDING_RECORDS_OWED, landingLine, takeRoute,
 } from "./checkpoint.mjs";
 
-export const DEVELOPED = "developed";
-const RUNGS = ORDER.slice(ORDER.indexOf(DEVELOPED) + 1);
+export const DEVELOPED = HELD.test;
+const RUNGS = LADDER.slice(LADDER.indexOf(DEVELOPED) + 1);
 export const [JUDGED] = RUNGS;
 const BEFORE_MERGE = "before-merge";
 
-/* How far a walk goes: to the status the release closes from, and never through the close. The
-   tracker closes an issue that ships code only through the release that claimed it
-   (CLOSE_ONLY_BY_RELEASE), whatever the project's release policy owes, so a landing that walked on
-   would end every walk on a refusal. */
+/* How far a walk goes: to the top of the ladder, `LADDER` saying why it stops there whatever the
+   project's release policy owes. */
 const walkedWhere = () => RUNGS.slice(0, RUNGS.indexOf(CLOSES_FROM) + 1);
 
 const direct = (run) => run();
@@ -95,10 +94,10 @@ export const restsSaid = (key, held) => (!held
   : held.by === BY_BATCH
   ? `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is ${whoseRelease(held)} and not `
     + `this landing's, made by the release that promotes the change. A promotion made outside a batch `
-    + `is recorded instead, and the record closes it:\n    ${closeForm(key, held)}`
+    + `is recorded instead, and the record closes it:\n    ${closeForm(key)}`
   : `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is theirs and not this landing's. `
-    + `Once the release is out, set rather than advanced, that same policy being what \`closed\` is `
-    + `entered on:\n    ${closeForm(key, held)}`);
+    + `Once the release is out, its record is the close, core closing an issue here only by the release `
+    + `that shipped it (CLOSE_ONLY_BY_RELEASE):\n    ${closeForm(key)}`);
 
 /** The walk a records turn ends on, off the checkpoint the hand-back just wrote: the landing's own
  *  status step would run nothing else, so where the record earns every rung left the landing ends

@@ -158,7 +158,7 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
       `${row.status} drops ${row.drops} for the top rung`);
   }
   for (const rung of RUNGS) {
-    assert.equal(lightens("in_progress", "branch", at(rung)), false,
+    assert.equal(lightens("in_progress:build", "branch", at(rung)), false,
       `${rung} is exempted from the branch, which only a plan's declaration drops`);
   }
 });
@@ -277,7 +277,7 @@ test("a confirmation a write posts carries the rung, and one handed in without i
   state.comments["claimed-uuid"] = [{ createdAt: "2026-09-05T10:00:00.000Z", body: handed }];
   const read = await owed("ISS-73");
   assert.equal(read.status, 0, read.stderr);
-  assert.match(read.stdout, /confirmed is next and the record earns it/u,
+  assert.match(read.stdout, /in_progress:plan is next and the record earns it/u,
     "and it earns the status all the same: every entry check reads the description, never this copy");
 });
 

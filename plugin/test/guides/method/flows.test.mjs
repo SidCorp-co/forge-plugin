@@ -101,7 +101,7 @@ test("the builder's proving reference carries no judging method, and keeps every
     "criterion 5: a hot-reload connection is a local symptom, and the section that names it went with the judging method");
   assert.match(held, /development overlays and error badges land in the image/u,
     "criterion 6: the builder is a capturer, and the craft of capturing went with the judging method");
-  assert.match(held, /Two verdict shapes get past `testing`/u,
+  assert.match(held, /Two verdict shapes get past `in_progress:release`/u,
     "criterion 7: the shapes the entry check lets past went, and the flow with no judge still carries them");
   const none = verification(DEFAULT);
   assert.doesNotMatch(none, /mapped to a criterion/u, "and the flow with no judge serves no charter");
@@ -178,12 +178,12 @@ const shipping = (mode, ...argv) => {
 
 test("the rung the independent arm ends at is the ship mode's, and the mode that lands nothing names none", () => {
   const self = shipping("self", "guide", "issue-flow", "5");
-  assert.match(self, /it ends at `developed` and the handoff is that status/u,
+  assert.match(self, /it ends at `in_progress:test` and the handoff is that status/u,
     "a run that lands its own change is not told which rung it hands over at");
   const ready = shipping("ready", "guide", "issue-flow", "5");
   assert.match(ready, /This run reaches no rung/u,
     "a run that lands nothing is not told that the rung is not its to reach");
-  assert.doesNotMatch(ready, /it ends at `developed`/u,
+  assert.doesNotMatch(ready, /it ends at `in_progress:test`/u,
     "and it is told to end at a rung only the run that lands the change can write");
 });
 

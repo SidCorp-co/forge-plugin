@@ -50,7 +50,7 @@ export const VERBS = [
       "forge_questions.ask": "`forge record question`",
       "forge_questions.list": "`forge record question`" } }],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes",
-    "forge_issues", { group: FLOW, wraps: { transition: "`forge advance`" } }],
+    "forge_issues", { group: FLOW, wraps: { transition: "`forge advance`", moves: "`forge advance`" } }],
   /* Another tool's route by its whole key: this verb owns none of its own. */
   ["spec", "<id>[~<rev>] [--status] | check | proofs", "one clause of the requirements tree, read by its identifier",
     null, { group: METHOD, wraps: { "forge_issues.citing": "`forge spec <id> --status`" } }],
@@ -130,7 +130,7 @@ export const VERBS = [
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--module M] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
-    null, { group: HARNESS, channel: "plugin" }],
+    null, { group: HARNESS, channel: "plugin", wraps: { "forge_feedback.submit": "`forge feedback`" } }],
   ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
     + " [--hide v|--show v] [--job name|all]"
     + ENUM_FLAGS.map((key) => ` [--${key} ${valuesOf(key).join("|")}]`).join("")

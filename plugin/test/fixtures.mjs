@@ -34,6 +34,14 @@ export const typedPlan = (over = {}) => {
     .join("\n\n");
 };
 
+/** A place on core's ladder as core's wire carries it, for a fake tracker's row: the status, and
+ *  inside `in_progress` the work step (`in_progress:test` is `in_progress` at step `test`). The CLI
+ *  reads the row back as the place, which is what a case then asserts on. */
+export const wireAt = (place) => {
+  const [status, step] = String(place).split(":");
+  return step ? { status, workState: { step } } : { status };
+};
+
 export const flat = (text) => text.replace(/\s+/gu, " ");
 
 export { escaped } from "../src/markdown.mjs";

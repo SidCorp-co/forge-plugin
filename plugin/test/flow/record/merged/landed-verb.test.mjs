@@ -1,6 +1,6 @@
 /* A landing built by hand was recorded in four separate steps — a lease, a mark, a move and a lease
    rewrite — and the Agenfold sessions of 2026-10-30/31 saw them fail apart with NO_HOLDER and NO_OP.
-   One verb makes them in the order core's direct mode names (`masters/owed.ts` DIRECT_ORDER): claim
+   One verb makes them in the order core's direct mode names (core's `DIRECT_ORDER`): claim
    or verify the lease, mark merged at a sha the remote base branch carries, move to awaiting_release
    with the sha as the reason, comment, and hand the lease back last. Each case stands a real remote up,
    because whether the base carries the sha is the check the verb makes before the mark. */
@@ -10,16 +10,16 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("landed-verb").path;
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const HOLDER = "the-master-run";
 
 const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
 
 /* A bare origin and a checkout of it, the change pushed to master and a second commit kept local. */
 const ROOT = tempRoom("landed-verb-");

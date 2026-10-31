@@ -194,8 +194,8 @@ test("a read carrying the same key says nothing, and a write carrying none says 
   const quiet = await heard(() => answering([ok({ id: ISSUE_ID, displayId: "ISS-1", warnings: ["a read is not a write"] })],
     () => callTool("forge_issues", { action: "get", documentId: ISSUE_ID, fields: [] })));
   assert.deepEqual(quiet.said, [], "nothing here declined anything: a read asked for one thing and got it");
-  const bare = await heard(() => answering([ok({ id: ISSUE_ID, status: "confirmed" })],
-    () => callTool("forge_issues", { action: "transition", documentId: ISSUE_ID, data: { status: "confirmed" } })));
+  const bare = await heard(() => answering([ok({ id: ISSUE_ID, status: "approved" })],
+    () => callTool("forge_issues", { action: "transition", documentId: ISSUE_ID, data: { status: "approved" } })));
   assert.deepEqual(bare.said, [], "and a write whose answer carries no such key prints no empty line for it");
   assert.equal(bare.answer.documentId, ISSUE_ID, "and the write answered about the row it was asked about");
   assert.equal(Object.hasOwn(bare.answer, "status"), false,

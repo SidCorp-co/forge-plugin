@@ -11,6 +11,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("claim-parks-nothing").path;
 
 const { render } = await import("../../../src/flow/record/page.mjs");
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const OURS = "this-run";
@@ -19,10 +20,12 @@ const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 const reclaim = (at, status) => ({ at, how: "reclaim", holder: "a-dead-run", status, next: null });
 
 /* Lapsed past its own duration, so the claim below is a reclaim and adds one row to those given. */
-const issue = (key, status, history) => ({
+/* The row in core's words: the status, and the step where the place is one inside in_progress. */
+const issue = (key, place, history) => ({
   documentId: `${key}-uuid`,
   issueId: key,
-  status,
+  status: statusOfPlace(place),
+  workState: stepOfPlace(place) ? { step: stepOfPlace(place) } : null,
   title: "the status where runs keep stopping",
   description: "no mark here",
   complexity: "s",
@@ -31,22 +34,22 @@ const issue = (key, status, history) => ({
   },
 });
 
-const THIRD = issue("ISS-90", "in_progress", [reclaim(ago(300), "in_progress"), reclaim(ago(200), "in_progress")]);
-const FIRST = issue("ISS-91", "in_progress", [{ ...reclaim(ago(300), "in_progress"), how: "claim" }]);
-const SECOND = issue("ISS-93", "in_progress", [reclaim(ago(300), "in_progress")]);
+const THIRD = issue("ISS-90", "in_progress:build", [reclaim(ago(300), "in_progress:build"), reclaim(ago(200), "in_progress:build")]);
+const FIRST = issue("ISS-91", "in_progress:build", [{ ...reclaim(ago(300), "in_progress:build"), how: "claim" }]);
+const SECOND = issue("ISS-93", "in_progress:build", [reclaim(ago(300), "in_progress:build")]);
 const NOTHING = "nothing was worked under this lease";
 const readingRow = (at, status) => ({ ...reclaim(at, status), next: NOTHING });
 /* The shape ISS-986 was measured in: every reclaim a reading, the lease it lapsed from one too. */
-const READINGS = issue("ISS-94", "in_progress", [readingRow(ago(300), "in_progress"), readingRow(ago(200), "in_progress")]);
+const READINGS = issue("ISS-94", "in_progress:build", [readingRow(ago(300), "in_progress:build"), readingRow(ago(200), "in_progress:build")]);
 READINGS.sessionContext.lease.next = NOTHING;
-const MIXED = issue("ISS-95", "in_progress", [reclaim(ago(400), "in_progress"), readingRow(ago(300), "in_progress"),
-  reclaim(ago(200), "in_progress")]);
-/* The independent-judgement route on a repaired issue: each pickup at developed follows a status or a
+const MIXED = issue("ISS-95", "in_progress:build", [reclaim(ago(400), "in_progress:build"), readingRow(ago(300), "in_progress:build"),
+  reclaim(ago(200), "in_progress:build")]);
+/* The independent-judgement route on a repaired issue: each pickup at in_progress:test follows a status or a
    landing state that moved since the run it went over took the issue, the claim below included (ISS-2267). */
-const ROUTE = issue("ISS-96", "developed", [{ ...reclaim(ago(400), "in_progress"), how: "claim" },
-  { ...reclaim(ago(300), "developed"), landing: "qa-owed" }, { ...reclaim(ago(200), "developed"), landing: "records-owed" }]);
-const PARKED = issue("ISS-92", "on_hold", [reclaim(ago(400), "in_progress"), reclaim(ago(300), "in_progress"),
-  reclaim(ago(200), "in_progress")]);
+const ROUTE = issue("ISS-96", "in_progress:test", [{ ...reclaim(ago(400), "in_progress:build"), how: "claim" },
+  { ...reclaim(ago(300), "in_progress:test"), landing: "qa-owed" }, { ...reclaim(ago(200), "in_progress:test"), landing: "records-owed" }]);
+const PARKED = issue("ISS-92", "on_hold", [reclaim(ago(400), "in_progress:build"), reclaim(ago(300), "in_progress:build"),
+  reclaim(ago(200), "in_progress:build")]);
 
 const state = {
   calls: [],
@@ -54,7 +57,7 @@ const state = {
   issues: [THIRD, FIRST, SECOND, PARKED, READINGS, MIXED, ROUTE],
   comments: {
     [PARKED.documentId]: [{ documentId: "the-park", createdAt: ago(150), authorId: "agent",
-      body: render("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress") }],
+      body: render("park", { kind: "crashed", why: "three reclaims of in_progress:build" }, "in_progress:build") }],
   },
   answer: {
     forge_config: () => ({ config: state.config }),
@@ -89,10 +92,10 @@ test("the third reclaim of one status moves no status, posts nothing, and names 
   assert.equal(THIRD.status, "in_progress", "the issue stays at the status it stood at");
   assert.deepEqual(movesOf(THIRD.documentId), [], "no transition and no comment was sent for it");
   assert.equal(THIRD.sessionContext.lease.holder, OURS, "and the lease is this run's");
-  assert.match(run.stdout, /Reclaim 3 of in_progress/u, "the count is read back");
-  assert.match(run.stdout, /Claims at in_progress: reclaim by a-dead-run at .* \| reclaim by this-run at /u,
+  assert.match(run.stdout, /Reclaim 3 of in_progress:build/u, "the count is read back");
+  assert.match(run.stdout, /Claims at in_progress:build: reclaim by a-dead-run at .* \| reclaim by this-run at /u,
     "with the history it counted, the caller's own row last");
-  assert.match(run.stdout, /forge record park ISS-90 --kind crashed --why "3 reclaims of in_progress, the last over a-dead-run: /u,
+  assert.match(run.stdout, /forge record park ISS-90 --kind crashed --why "3 reclaims of in_progress:build, the last over a-dead-run: /u,
     "and the command that parks it, naming the run the last counted reclaim went over, for the caller to run where it judges the runs died here");
   assert.match(run.stdout, /^The last counted reclaim went over a-dead-run, whose line was: none, it left no line$/mu,
     "with the line that run left printed beside it");
@@ -102,7 +105,7 @@ test("the third reclaim of one status moves no status, posts nothing, and names 
 test("a first reclaim prints its count and no park command, and moves nothing either", async () => {
   const run = await claim("ISS-91");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /Reclaim 1 of in_progress/u);
+  assert.match(run.stdout, /Reclaim 1 of in_progress:build/u);
   assert.doesNotMatch(run.stdout, /forge record park/u, "one reclaim is a run resumed");
   assert.equal(FIRST.status, "in_progress");
   assert.deepEqual(movesOf(FIRST.documentId), []);
@@ -111,7 +114,7 @@ test("a first reclaim prints its count and no park command, and moves nothing ei
 test("a second reclaim is still under the threshold: its count, no park command, nothing moved", async () => {
   const run = await claim("ISS-93");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /Reclaim 2 of in_progress/u);
+  assert.match(run.stdout, /Reclaim 2 of in_progress:build/u);
   assert.doesNotMatch(run.stdout, /forge record park/u, "two reclaims are not yet past it");
   assert.equal(SECOND.status, "in_progress");
   assert.deepEqual(movesOf(SECOND.documentId), []);
@@ -132,7 +135,7 @@ test("a claim of an issue parked as crashed writes its own row and no second one
 test("reclaims over leases that declared nothing was worked are not counted, however many there are", async () => {
   const run = await claim("ISS-94");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /This reclaim of in_progress went over a lease that declared nothing was worked, so it counts for none: 0 counted at in_progress\. 3 reclaim\(s\) of in_progress went over/u);
+  assert.match(run.stdout, /This reclaim of in_progress:build went over a lease that declared nothing was worked, so it counts for none: 0 counted at in_progress:build\. 3 reclaim\(s\) of in_progress:build went over/u);
   assert.doesNotMatch(run.stdout, /forge record park|Reclaim \d/u, "three readings are not three deaths");
   assert.equal(READINGS.sessionContext.lease.next, null, "and the declaration is not carried onto this run's lease");
 });
@@ -140,18 +143,18 @@ test("reclaims over leases that declared nothing was worked are not counted, how
 test("past the threshold the history names which reclaims were readings, and counts only the rest", async () => {
   const run = await claim("ISS-95");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /Reclaim 3 of in_progress: .* 1 reclaim\(s\) of in_progress went over a lease that declared nothing was worked, and are not counted\./u);
-  const history = run.stdout.split("\n").find((one) => one.startsWith("Claims at in_progress: ")).split(" | ");
+  assert.match(run.stdout, /Reclaim 3 of in_progress:build: .* 1 reclaim\(s\) of in_progress:build went over a lease that declared nothing was worked, and are not counted\./u);
+  const history = run.stdout.split("\n").find((one) => one.startsWith("Claims at in_progress:build: ")).split(" | ");
   assert.equal(history.length, 4, history.join("\n"));
   assert.deepEqual(history.map((one) => one.endsWith("so not counted")), [false, true, false, false], history.join("\n"));
-  assert.match(run.stdout, /forge record park ISS-95 --kind crashed --why "3 reclaims of in_progress, the last over a-dead-run: /u);
+  assert.match(run.stdout, /forge record park ISS-95 --kind crashed --why "3 reclaims of in_progress:build, the last over a-dead-run: /u);
 });
 
 test("three pickups each taken after the issue moved on name no park, and move nothing", async () => {
   const run = await claim("ISS-96");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /This reclaim of developed was taken after the issue moved on from where the run before took it, so it counts for none: 0 counted at developed\. 3 reclaim\(s\) of developed were taken after/u);
+  assert.match(run.stdout, /This reclaim of in_progress:test was taken after the issue moved on from where the run before took it, so it counts for none: 0 counted at in_progress:test\. 3 reclaim\(s\) of in_progress:test were taken after/u);
   assert.doesNotMatch(run.stdout, /forge record park|Reclaim \d/u, "a route that handed the issue round is no crash loop");
-  assert.equal(ROUTE.status, "developed", "the issue stays where the route left it");
+  assert.deepEqual([ROUTE.status, ROUTE.workState?.step], ["in_progress", "test"], "the issue stays where the route left it");
   assert.deepEqual(movesOf(ROUTE.documentId), []);
 });

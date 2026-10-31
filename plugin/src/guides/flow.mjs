@@ -27,7 +27,7 @@ export const screensOf = (flow, flows = FLOWS) => {
 export const projectAsksOf = (flow, flows = FLOWS) => {
   const judge = judgeOf(flow, flows);
   return judge
-    ? [{ key: "pipeline.qa", value: judge, said: "the judgement between developed and testing" }]
+    ? [{ key: "pipeline.qa", value: judge, said: "the judgement between in_progress:test and in_progress:release" }]
     : [];
 };
 

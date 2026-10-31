@@ -95,7 +95,7 @@ test("the kind that opens a block carries what its one row cannot, and no other 
    refuses, and `park`, `routed` and `finding` a --commit they have never had (ISS-835). Every kind
    is asked of its own shape, so a kind added tomorrow inherits no promise. */
 test("a kind is shown the evidence vocabulary and the read sentence its own shape earns", () => {
-  const VOCABULARY = /^Evidence is an attachment name on the issue/mu;
+  const VOCABULARY = /^Evidence is an attachment name, a URL/mu;
   const COMMIT = /^--commit is read off the merged mark's note/mu;
   /* A kind that also takes a landing says both in one line, the verdict's help having no room for two. */
   const IDENTITY = /^--commit, or --landing outside git, is read off the mark/mu;
@@ -127,7 +127,7 @@ test("a kind is shown the evidence vocabulary and the read sentence its own shap
 test("the evidence vocabulary says a file of text goes up as text, and never that the name types it", () => {
   const shown = kindHelp("verdict").replace(/\n/gu, " ");
   assert.match(shown, /A file whose bytes are text goes up as text whatever its name/u);
-  assert.match(shown, /A file it refuses leaves the rest going up and no record written/u);
+  assert.match(shown, /a file the tracker refuses leaves the rest going up, no record written/u);
   assert.doesNotMatch(shown, /types a file by its name/u);
 });
 

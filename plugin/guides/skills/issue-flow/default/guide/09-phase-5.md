@@ -1,7 +1,7 @@
 ## Phase 5 — Prove it by running it, and post what you proved
 
 **Who writes the verdicts is the declaration Phase 0 read off the project** — whether the judgement
-between `developed` and `testing` is an independent run's — and it is read here again rather than
+between `in_progress:test` and `in_progress:release` is an independent run's — and it is read here again rather than
 carried in the head, because the two answers end this phase in different places.
 
 Where the project made the builder its judge, or answered nothing, that is this run. Read the
@@ -11,16 +11,16 @@ for the set, and judge a criterion against the issue before
 judging the code against it. Where the proof is a test, what a criterion is matched against is the
 assertion lines that would go red and never a case's name: a name is prose, one carrying two claims
 is two searches rather than one, and an assertion that cannot fail covers nothing. Nothing advances
-from this phase; both `developed` and `testing` move at the landing on the record written
+from this phase; both `in_progress:test` and `in_progress:release` move at the landing on the record written
 here,
 whether this run makes that landing or leaves it ready for the one that does. Which head, what each
 kind of change owes as evidence and how to capture it is the verification reference again, read for
 that question: `forge guide issue-flow verification`. What a record holds before either status is
-earned, and on which outcomes: `forge guide contract developed`, `forge guide contract testing`.
+earned, and on which outcomes: `forge guide contract in_progress:test`, `forge guide contract in_progress:release`.
 
 **Where that judgement is an independent run's, this run stops short of judging and prepares what
 that run cannot get anywhere else.** A verdict carrying this run's id counts towards
-nothing at `testing` under that declaration, so the round spent writing one buys the issue no rung.
+nothing at `in_progress:release` under that declaration, so the round spent writing one buys the issue no rung.
 What is owed instead is the thing under test made reachable and named: whatever the change was
 deployed to, identified by reading back what that deployment answers it is serving rather than by an
 exit code or a branch head, written onto the issue. The criteria are left as they stand, being the

@@ -14,6 +14,7 @@ const AWAY = projectRoom(tempRoom("resumed-claim-away-"), process.env.XDG_CONFIG
 process.chdir(AWAY);
 
 const { placeOf } = await import("../../../src/flow/lease/holder.mjs");
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "6d1e2f30-4a5b-4c6d-8e7f-000000002205";
@@ -34,8 +35,10 @@ const ISSUE = {
   complexity: "s",
 };
 
-const heldBy = (holder, { status = "in_progress", pid = HOST, place = placeOf(), landing = null } = {}) => {
-  ISSUE.status = status;
+/* `at` is a place of core's ladder, written as core's row carries it: the status and the work step. */
+const heldBy = (holder, { at = "in_progress:build", pid = HOST, place = placeOf(), landing = null } = {}) => {
+  ISSUE.status = statusOfPlace(at);
+  ISSUE.workState = stepOfPlace(at) ? { step: stepOfPlace(at) } : null;
   ISSUE.sessionContext = {
     lease: { holder, agent: "a-test-agent", pid, place, renewedAt: new Date().toISOString(), minutes: 60, next: LEFT, history: [] },
     ...(landing ? { landing } : {}),
@@ -82,13 +85,13 @@ test("a run resumed at in_progress takes the lease its dispatcher holds from the
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed", "a handoff, and no dead run's reclaim");
 });
 
-test("the same take is made at developed and at draft", async () => {
-  for (const status of ["developed", "draft"]) {
-    heldBy(DISPATCHER, { status });
+test("the same take is made at in_progress:test and at draft", async () => {
+  for (const at of ["in_progress:test", "draft"]) {
+    heldBy(DISPATCHER, { at });
     const took = await claim();
-    assert.equal(took.status, 0, `${status}:\n${took.stdout}${took.stderr}`);
-    assert.match(took.stdout, /ISS-2205 {2}handed: session /u, status);
-    assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed", status);
+    assert.equal(took.status, 0, `${at}:\n${took.stdout}${took.stderr}`);
+    assert.match(took.stdout, /ISS-2205 {2}handed: session /u, at);
+    assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed", at);
   }
 });
 
@@ -129,19 +132,19 @@ test("inside one host process a landing checkpoint naming a turn still governs",
   assert.match(refused.stderr, /names the lander's turn/u);
 });
 
-test("an id that is the only fault is sent to the tree at in_progress and to the verdict at the judging rungs", async () => {
+test("an id that is the only fault is sent to the tree at in_progress:build and to the verdict at the judging places", async () => {
   heldBy(DISPATCHER);
   const resumed = await claim("a-whole-wave-of-runs");
   assert.equal(resumed.status, 1, `${resumed.stdout}${resumed.stderr}`);
   assert.match(resumed.stderr, /which names no issue at all/u);
   assert.match(resumed.stderr, /`forge brief ISS-2205 --tree /u, "the route that now takes this lease");
 
-  for (const status of ["developed", "testing"]) {
-    heldBy(DISPATCHER, { status });
+  for (const at of ["in_progress:test", "in_progress:release"]) {
+    heldBy(DISPATCHER, { at });
     const judged = await claim("a-whole-wave-of-runs");
-    assert.equal(judged.status, 1, `${status}: ${judged.stdout}${judged.stderr}`);
-    assert.match(judged.stderr, /Where this call is/u, status);
-    assert.doesNotMatch(judged.stderr, /forge brief|tree cut for that run|Unset that variable/u, status);
+    assert.equal(judged.status, 1, `${at}: ${judged.stdout}${judged.stderr}`);
+    assert.match(judged.stderr, /Where this call is/u, at);
+    assert.doesNotMatch(judged.stderr, /forge brief|tree cut for that run|Unset that variable/u, at);
   }
 });
 
@@ -153,7 +156,7 @@ const UNHELD_SAID = /--unheld takes only an issue whose lease field holds no lea
 
 test("a live lease refusal names the --stopped and --unheld it did not read, and is otherwise the unflagged refusal", async () => {
   /* A holder in a process still running on this host, which is not this call's: a run at work. */
-  heldBy(DISPATCHER, { status: "developed", pid: String(process.pid) });
+  heldBy(DISPATCHER, { at: "in_progress:test", pid: String(process.pid) });
   const before = updates();
   const bare = await flagged([]);
   assert.equal(bare.status, 1, `${bare.stdout}${bare.stderr}`);
@@ -180,12 +183,12 @@ test("a live lease refusal names the --stopped and --unheld it did not read, and
 });
 
 test("a --stopped at a live lease written on another host, or naming no process, says which", async () => {
-  heldBy(DISPATCHER, { status: "developed", place: "another-boot pid:[1]" });
+  heldBy(DISPATCHER, { at: "in_progress:test", place: "another-boot pid:[1]" });
   const away = await flagged(["--stopped"]);
   assert.equal(away.status, 1, `${away.stdout}${away.stderr}`);
   assert.match(away.stderr, /--stopped settles a holder this call can look for, and the lease was written on another host than this call's/u);
 
-  heldBy(DISPATCHER, { status: "developed", pid: "unknown" });
+  heldBy(DISPATCHER, { at: "in_progress:test", pid: "unknown" });
   const none = await flagged(["--stopped"]);
   assert.equal(none.status, 1, `${none.stdout}${none.stderr}`);
   assert.match(none.stderr, /--stopped settles a holder this call can look for, and the lease records no process on a host this call can look at/u);

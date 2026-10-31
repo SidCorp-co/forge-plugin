@@ -18,21 +18,21 @@ const RUNNERS = [
   "zsh -c", "dash -c", "ksh -c",
   "env -S", "env -iS", "env -u X -S", "env -C /tmp -S", "env --split-string", "env --split", "env --s", "/usr/bin/env -S",
 ];
-const BODY = "true; forge close ISS-1";
+const BODY = "true; forge judge ISS-1";
 
 test("every runner in the table is one both readings open", () => {
   for (const runner of RUNNERS) {
     const command = `${runner} '${BODY}'`;
-    assert.equal(classOf("Bash", shellOf(command)), "forge close", `the corpus reads ${runner}'s body as run`);
-    assert.match(unwrapped(command), /; true; forge close ISS-1 ;$/u, `the gates put ${runner}'s body in command position`);
+    assert.equal(classOf("Bash", shellOf(command)), "forge judge", `the corpus reads ${runner}'s body as run`);
+    assert.match(unwrapped(command), /; true; forge judge ISS-1 ;$/u, `the gates put ${runner}'s body in command position`);
   }
 });
 
 /* A bare word before `-c` that no option took is the script, and the script is what runs: the rest are its arguments. */
 test("a quoted argument to a word that runs nothing is data to both readings", () => {
-  for (const command of ["printf '%s\\n' '; forge close ISS-45'", "git commit -m \"ran sh -c 'cp a b'\"", "shell -c '; forge close ISS-45'",
-    "bash -x script -c '; forge close ISS-45'"]) {
-    assert.notEqual(classOf("Bash", shellOf(command)), "forge close", command);
+  for (const command of ["printf '%s\\n' '; forge judge ISS-45'", "git commit -m \"ran sh -c 'cp a b'\"", "shell -c '; forge judge ISS-45'",
+    "bash -x script -c '; forge judge ISS-45'"]) {
+    assert.notEqual(classOf("Bash", shellOf(command)), "forge judge", command);
     assert.equal(unwrapped(command), command, command);
   }
 });
@@ -40,10 +40,10 @@ test("a quoted argument to a word that runs nothing is data to both readings", (
 /* The corpus asks the whole runner pattern only where the word before a quote could end it (ISS-1843), so the word is read past its spaces and behind its operator, and a word that only ends like a runner is still none. */
 test("the corpus finds a runner past the spaces before its quote, and a word only ending like one runs nothing", () => {
   for (const runner of ["bash -c  ", "bash -c\t", "true;eval", "true && sh -ec", "(eval"]) {
-    assert.equal(classOf("Bash", shellOf(`${runner} '${BODY}'`)), "forge close", runner);
+    assert.equal(classOf("Bash", shellOf(`${runner} '${BODY}'`)), "forge judge", runner);
   }
   for (const word of ["medieval", "echo -c", "bash -x", "bash -c-"]) {
-    assert.notEqual(classOf("Bash", shellOf(`${word} '${BODY}'`)), "forge close", word);
+    assert.notEqual(classOf("Bash", shellOf(`${word} '${BODY}'`)), "forge judge", word);
   }
 });
 
@@ -85,7 +85,7 @@ test("a heredoc whose reader is no shell the declaration names keeps its body as
 /* Which words are a shell's options was spelled once for a `-c` body and again for a heredoc on stdin, and the second stopped at a `+` option and at the value `-o` takes (ISS-3023). */
 test("a shell's options are read alike before a -c body and before a heredoc on its stdin", () => {
   for (const options of ["-e", "--norc", "-o pipefail", "+o posix", "-O extglob", "+O extglob", "-eo pipefail", "-x"]) {
-    assert.match(unwrapped(`bash ${options} -c '${BODY}'`), /; true; forge close ISS-1 ;$/u, `-c after ${options}`);
+    assert.match(unwrapped(`bash ${options} -c '${BODY}'`), /; true; forge judge ISS-1 ;$/u, `-c after ${options}`);
     const written = writtenPaths(shellWrites(fed(`bash ${options}`, "cp a /m/memory/x.md")), "/w").map((one) => one.token);
     assert.ok(written.includes("/m/memory/x.md"), `stdin after ${options}: ${JSON.stringify(written)}`);
   }
@@ -107,8 +107,8 @@ const ATTACHED = [`env -S'${BODY}'`, `env -S"${BODY}"`, `env -iS'${BODY}'`, `env
 
 test("env's split string attached to its option is opened by both readings", () => {
   for (const command of ATTACHED) {
-    assert.equal(classOf("Bash", shellOf(command)), "forge close", `the corpus reads ${command}'s string as run`);
-    assert.match(unwrapped(command), /; true; forge close ISS-1 ;$/u, `the gates put ${command}'s string in command position`);
+    assert.equal(classOf("Bash", shellOf(command)), "forge judge", `the corpus reads ${command}'s string as run`);
+    assert.match(unwrapped(command), /; true; forge judge ISS-1 ;$/u, `the gates put ${command}'s string in command position`);
   }
 });
 
@@ -116,7 +116,7 @@ test("env's split string attached to its option is opened by both readings", () 
    string is the next word are no split string of the quote behind them, which is an argument. */
 test("a -S that env does not read as the quote's split string opens neither reading", () => {
   for (const command of [`env -u -S '${BODY}'`, `env -- -S '${BODY}'`, `env -S -i '${BODY}'`, `env -Su '${BODY}'`, `env --unset '${BODY}'`]) {
-    assert.notEqual(classOf("Bash", shellOf(command)), "forge close", command);
+    assert.notEqual(classOf("Bash", shellOf(command)), "forge judge", command);
     assert.equal(unwrapped(command), command, command);
   }
 });

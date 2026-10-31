@@ -26,7 +26,8 @@ let clock = 0;
 const at = () => `2026-10-03T09:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
 
 const judged = {
-  documentId: "runtime-uuid", issueId: "ISS-9", status: "developed", title: "a change judged at a deployment",
+  documentId: "runtime-uuid", issueId: "ISS-9", status: "in_progress", workState: { step: "test" },
+  title: "a change judged at a deployment",
   description: "here", plan: PLAN, acceptanceCriteria: CRITERIA, mergedAt: AT, attachments: [],
   sessionContext: {
     landing: { state: "judged", builder: BUILDER, branch: "iss-9-1", head: MERGED, base: MERGED,
@@ -118,7 +119,7 @@ test("a runtime that is no object id is refused before anything is sent, naming 
 test("the verdict help lists --runtime and says it is read off the deployment, never a branch head", async () => {
   const run = await ranAsync(FORGE, ["record", "verdict", "-h"], ENV);
   assert.equal(run.status, 0, said(run));
-  assert.match(run.stdout, /^ {2}verdict .*\[--runtime R\]/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}verdict .*\[--runtime R\(400\)\]/mu, run.stdout);
   assert.match(run.stdout, /^--runtime takes the whole id the deployment reports, never a branch head\.$/mu, run.stdout);
 });
 

@@ -1,5 +1,5 @@
 /* The two rungs at the end of a run, each entered on one actor's half: every refusal `judgedOwed`
-   makes is asked at `testing` and none of them at `awaiting_release`, and the other way round for
+   makes is asked at `in_progress:release` and none of them at `awaiting_release`, and the other way round for
    `deployedOwed`. Composed back into one row, every case below goes red (ISS-1065). */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -8,10 +8,10 @@ import { readFileSync } from "node:fs";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
-import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
+import { placeOf } from "../../../src/tracker/declared/issue-machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-two-rungs").path;
-const { CHECKS, NO_NOTE, ORDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, NO_NOTE, LADDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { CLOSES_FROM } = await import("../../../src/flow/machine.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { statusKind } = await import("../../../src/tracker/rest.mjs");
@@ -35,7 +35,7 @@ const verdict = (fields = {}) => recorded("verdict",
 const verification = () => recorded("verification",
   { where: "the installed plugin", commit: MERGED, evidence: ["https://ci.example.test/9"] });
 
-const NOTED = { section: "Fixed", userFacing: "it works" };
+const NOTED = { section: "Fixed", title: "It works again", userFacing: "it works" };
 /* The payloads are made inside, in the order they are read: an argument is evaluated first, so a
    record handed in would carry a stamp older than the ones it is meant to supersede. */
 const whole = (issue = {}, made = () => []) => viewFrom(
@@ -50,8 +50,8 @@ test("a record holding both halves earns both rungs, and each rung reads only it
   const view = whole();
   assert.deepEqual(owed(JUDGED_AT, view), [], "the verdict is the whole of what the judging rung asks");
   assert.deepEqual(owed(CLOSES_FROM, view), [], "the verification and the note the whole of the other");
-  assert.equal(JUDGED_AT, "testing");
-  assert.equal(ORDER[ORDER.indexOf(JUDGED_AT) + 1], CLOSES_FROM, "and the deploying rung follows it");
+  assert.equal(JUDGED_AT, "in_progress:release");
+  assert.equal(LADDER[LADDER.indexOf(JUDGED_AT) + 1], CLOSES_FROM, "and the deploying rung follows it");
   /* Over a record earning neither, so both lists are long: an item on both is a rung answering for
      an actor it is not waiting for, which is the whole of what the composed row did. */
   const bare = viewFrom("the-uuid", { acceptanceCriteria: CRITERIA, plan: NO_SCREEN, complexity: "m" }, [mark()]);
@@ -161,7 +161,7 @@ test("no served guide and no topic names the deploying rung with a verdict and n
 const SHIPPED = {
   documentId: "two-rungs-uuid",
   issueId: "ISS-96",
-  /* `developed` as the tracker holds it: in_progress at the test step. */
+  /* `in_progress:test` as the tracker holds it: in_progress at the test step. */
   status: "in_progress",
   workState: { step: "test" },
   title: "the change whose halves are judged apart",
@@ -194,17 +194,17 @@ state.answer.forge_issues = (args) => {
 };
 const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const statusNow = () => rungOf(SHIPPED.status, SHIPPED.workState?.step);
+const statusNow = () => placeOf(SHIPPED.status, SHIPPED.workState?.step);
 /* One id across the spawns, or each is a session the page has never been shown to and every write
    is held to deliver it again. */
 const walking = (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "the-walk" });
 
-test("the verb walks developed to the judging rung and on to the deploying one, and refuses the jump", async () => {
+test("the verb walks the test to the judging place and on to the deploying one, refuses the jump, and offers no close", async () => {
   const jump = await walking("advance", "ISS-96", "--to", CLOSES_FROM);
   assert.equal(jump.status, 1, jump.stdout);
   assert.match(jump.stdout + jump.stderr,
-    new RegExp(`is developed and ${JUDGED_AT} is next, not ${CLOSES_FROM}`, "u"));
-  assert.equal(statusNow(), "developed", "and the refused jump moved nothing");
+    new RegExp(`is in_progress:test and ${JUDGED_AT} is next, not ${CLOSES_FROM}`, "u"));
+  assert.equal(statusNow(), "in_progress:test", "and the refused jump moved nothing");
   /* The page this session has not been shown holds the first write to deliver it; the second takes. */
   const shown = await walking("claim", "ISS-96", "--unheld");
   assert.match(shown.stderr, /has not been shown/u, shown.stderr);
@@ -216,7 +216,10 @@ test("the verb walks developed to the judging rung and on to the deploying one, 
   const second = await walking("advance", "ISS-96");
   assert.equal(second.status, 0, `${second.stdout}${second.stderr}`);
   assert.equal(statusNow(), CLOSES_FROM, second.stdout);
+  /* Core closes it only by the release that ships it, so the verb offers no close and says whose it is. */
   const close = await walking("advance", "ISS-96");
-  assert.equal(close.status, 0, `${close.stdout}${close.stderr}`);
-  assert.equal(statusNow(), "closed", "the close still follows the deploying half");
+  assert.equal(close.status, 1, `${close.stdout}${close.stderr}`);
+  assert.match(close.stdout + close.stderr, /CLOSE_ONLY_BY_RELEASE/u);
+  assert.match(close.stdout + close.stderr, /forge release-batch record ISS-96/u);
+  assert.equal(statusNow(), CLOSES_FROM, "and nothing moved");
 });

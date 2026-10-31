@@ -9,7 +9,7 @@ because what a landing brings is other people's work. That argument stops short 
 proof rested on more than its own paths — a rendered screen, a fixture another change can move. Judge
 those on the tree that shipped, and the author is who knows which they are.
 
-**A change claiming no behaviour change earns `testing` by identity.** Its criteria are the three
+**A change claiming no behaviour change earns `in_progress:release` by identity.** Its criteria are the three
 things a move can break: the export surface of every touched module against the base, the moved
 files' own suites green from their new locations with their case count before and after, and history
 reaching each moved file through the rename.

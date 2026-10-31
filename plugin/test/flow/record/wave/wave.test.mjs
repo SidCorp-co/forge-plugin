@@ -25,7 +25,7 @@ const dispatch = (member, session, extra = {}) => posted("wave", { member, role:
 
 const lease = (holder) => ({ lease: {
   holder, agent: "claude-code_agent", pid: "1", minutes: 60, renewedAt: new Date().toISOString(),
-  history: [{ holder, at: new Date().toISOString(), how: "claim", status: "in_progress" }],
+  history: [{ holder, at: new Date().toISOString(), how: "claim", status: "in_progress:build" }],
 } });
 
 /* Keyed by sequence, so the key resolution's offset read lands on the row whose number it asked for. */
@@ -37,7 +37,7 @@ const row = (n, status, extra = {}) => ({
 const ISSUES = [
   row(1, "in_progress", { sessionContext: lease("another-run") }),
   row(2, "closed"),
-  row(3, "waiting", { sessionContext: lease("run-three") }),
+  row(3, "needs_info", { sessionContext: lease("run-three") }),
   row(4, "closed"),
   row(5, "dropped"),
   row(6, "open"),
@@ -203,7 +203,7 @@ test("resume prints every member of an open wave live, which dispatch is complet
   assert.match(run.stdout, /open: 2 dispatch\(es\), 2 run\(s\), 3 member issue\(s\)/u, "a run per dispatch, not per member");
   assert.match(run.stdout, /dispatch 1, \S+: forge:runner, session run-a, tree \/trees\/a/u);
   assert.match(run.stdout, /^ {4}ISS-2 {2}closed {2}no lease$/mu);
-  assert.match(run.stdout, /^ {4}ISS-3 {2}waiting {2}leased by run-three, \w+$/mu);
+  assert.match(run.stdout, /^ {4}ISS-3 {2}needs_info {2}leased by run-three, \w+$/mu);
   assert.match(run.stdout, /dispatch 2, \S+: forge:runner, session run-b, no tree\n {4}ISS-4 {2}closed {2}no lease$/mu,
     "and the second dispatch's member under its own line");
   assert.match(run.stdout, /^ {4}not complete: ISS-3 still owed$/mu, "a parked member keeps its dispatch open");
@@ -228,7 +228,7 @@ test("the resume's json carries the open wave with each member's live status", a
   assert.equal(wave.state, "open");
   assert.equal(wave.runs, 2);
   assert.deepEqual(wave.dispatches.map((one) => one.members.map((two) => `${two.key}=${two.status}`)),
-    [["ISS-2=closed", "ISS-3=waiting"], ["ISS-4=closed"]]);
+    [["ISS-2=closed", "ISS-3=needs_info"], ["ISS-4=closed"]]);
   assert.deepEqual(wave.dispatches.map((one) => one.complete), [false, true]);
 });
 

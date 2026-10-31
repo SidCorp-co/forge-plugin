@@ -8,6 +8,7 @@ import { UNKNOWN, pidOf, treeFate, workIn, workUnder, writtenHere } from "./hold
 import { rowLines } from "./working.mjs";
 import { READ_THE_STATE, landingOf, landingTurn } from "../landing/checkpoint.mjs";
 import { STOPPED, describe, leaseOf } from "../lease.mjs";
+import { HELD } from "../../tracker/declared/issue-machine.mjs";
 
 /* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
 export const SHARED_HOLDER =
@@ -96,10 +97,11 @@ const whatTheTreeSays = (ref, key, at, asked) => {
     + `to, and a lease its dispatcher is only holding is the dispatched run's to take.${there}${asked}`;
 };
 
-/** The rung a verdict is written from and the rung it earns: where a claim meeting a live lease is
- *  likelier a judge's than a builder's. Spelled here rather than read off `ORDER` in earned.mjs,
- *  whose imports every hook loading the lease would pay for; a case holds the two to one order. */
-export const JUDGING_AT = ["developed", "testing"];
+/** The place a verdict is written from and the place it earns: where a claim meeting a live lease
+ *  is likelier a judge's than a builder's. Read off the machine's own module rather than off `LADDER`
+ *  in earned.mjs, whose imports every hook loading the lease would pay for; a case holds the two to
+ *  one order. */
+export const JUDGING_AT = [HELD.test, HELD.release];
 
 const OWN_SOURCES = [ASKED, WORKTREE];
 

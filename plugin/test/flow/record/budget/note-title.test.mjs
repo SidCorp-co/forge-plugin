@@ -7,13 +7,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { neutralRoom, tempHome } from "../../fixtures.mjs";
+import { neutralRoom, tempHome } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("note-title").path;
-const { noteFrom } = await import("../../../src/flow/record/record.mjs");
-const { deployedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { noteFrom } = await import("../../../../src/flow/record/record.mjs");
+const { deployedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
 
 test("record note -h prints the title's bounds beside the flag", () => {

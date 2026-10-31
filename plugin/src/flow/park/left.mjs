@@ -2,7 +2,8 @@
    from: a park whose move landed and whose record did not leaves nothing there naming it (ISS-425). */
 import { scoped } from "../../tracker/rest.mjs";
 import { refuse } from "../../refusal.mjs";
-import { ORDER, PARK_STATUS, SIDE, parkRecord, parkThatSet, sameLanding, setForm } from "../earned.mjs";
+import { placeOf } from "../../tracker/declared/issue-machine.mjs";
+import { LADDER, PARK_STATUS, SIDE, parkRecord, parkThatSet, sameLanding, setForm } from "../earned.mjs";
 
 const MOVED = "issue.statusChanged";
 const PAGE = 100;
@@ -41,9 +42,11 @@ export const parkLeft = async (view, ref) => {
   const status = view.issue.status;
   if (!SIDE.includes(status)) return { left: status, at: null };
   const paired = parkThatSet(view, status)?.record.fields.left;
-  if (ORDER.includes(paired)) return { left: paired, at: null };
+  if (LADDER.includes(paired)) return { left: paired, at: null };
   const moved = await moveInto(view.documentId, status);
-  if (ORDER.includes(moved.from)) return { left: moved.from, at: moved.at };
+  /* The history names core's status alone, and an `in_progress` it names reads as the build. */
+  const from = placeOf(moved.from);
+  if (LADDER.includes(from)) return { left: from, at: moved.at };
   return refuse(`${ref} is ${status}, and the park record would name the status it left, which the `
     + `page cannot say and the tracker's history ${moved.unread ? `would not: ${moved.unread}` : `names as \`${moved.from}\`, no step of the flow`}. `
     + `Nothing was written. Whoever knows where it belongs sets it, and this writes a status no entry `

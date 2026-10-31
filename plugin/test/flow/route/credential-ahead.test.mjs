@@ -20,24 +20,24 @@ const ahead = (issue, deploy) =>
   credentialAhead(viewFrom("the-uuid", issue, [], null, null, null, deploy), "ISS-3");
 
 test("a screen change on a project with no test credential is told at the rehearsal, not at the refusal", () => {
-  const said = ahead({ status: "in_progress", plan: SCREEN }, NO_LOGIN);
+  const said = ahead({ status: "in_progress:build", plan: SCREEN }, NO_LOGIN);
   assert.match(said, /holds no test credential/u, said);
   assert.match(said, /--verdict skipped --why/u, "the skip is one of the two shapes it names");
   assert.match(said, /cited as the evidence/u, "and the pass on another route's render is the other");
   assert.match(said, /forge guide issue-flow verification/u, "which carries the rest, unrestated");
   assert.equal(ahead({ status: "approved", plan: SCREEN }, NO_LOGIN), said,
     "and it is said from the status the plan was written at, not only from the one before it");
-  assert.equal(ahead({ status: "developed", plan: SCREEN }, NO_LOGIN), said,
+  assert.equal(ahead({ status: "in_progress:test", plan: SCREEN }, NO_LOGIN), said,
     "and from the rung below the judging one, which is the last that can still act on it");
-  assert.match(said, /^Ahead: testing wants an attachment/u,
+  assert.match(said, /^Ahead: in_progress:release wants an attachment/u,
     "naming the rung that refuses the verdict, which is the judging one");
 });
 
 /* A skip taken here now holds awaiting_release and closed (ISS-2430), so a line offering it as the
    way past owes what it leads to: a fresh verdict once a credential arrives, or, where none is
    ever coming, correcting the criterion away instead of leaving the skip standing forever. */
-test("the line says a skip taken here holds past testing, and names both ways clear of that", () => {
-  const said = ahead({ status: "in_progress", plan: SCREEN }, NO_LOGIN);
+test("the line says a skip taken here holds past in_progress:release, and names both ways clear of that", () => {
+  const said = ahead({ status: "in_progress:build", plan: SCREEN }, NO_LOGIN);
   assert.match(said, /holds awaiting_release/u, said);
   assert.match(said, /and `closed` until it is judged again/u, said);
   assert.ok(said.includes(`  ${correctedForm("ISS-3", "<n>")}\n`),
@@ -45,23 +45,23 @@ test("the line says a skip taken here holds past testing, and names both ways cl
 });
 
 test("the line stays silent on every reading that is not a screen change without a login", () => {
-  assert.equal(ahead({ status: "in_progress", plan: QUIET }, NO_LOGIN), null,
+  assert.equal(ahead({ status: "in_progress:build", plan: QUIET }, NO_LOGIN), null,
     "a user-facing outcome is not a screen change, which is the split the entry check already makes");
-  assert.equal(ahead({ status: "in_progress", plan: SCREEN }, A_LOGIN), null,
+  assert.equal(ahead({ status: "in_progress:build", plan: SCREEN }, A_LOGIN), null,
     "a project that recorded a login is owed nothing");
-  assert.equal(ahead({ status: "in_progress", plan: SCREEN }, null), null,
+  assert.equal(ahead({ status: "in_progress:build", plan: SCREEN }, null), null,
     "and a deploy nobody read reports no empty set: null is unread, never none");
-  assert.equal(ahead({ status: "in_progress", plan: SCREEN }, { ...NO_LOGIN, refused: "no answer" }), null,
+  assert.equal(ahead({ status: "in_progress:build", plan: SCREEN }, { ...NO_LOGIN, refused: "no answer" }), null,
     "as is a reading that did not answer, which carries the empty set the guard's own shape needs");
-  for (const status of ["testing", "awaiting_release", "closed"]) {
+  for (const status of ["in_progress:release", "awaiting_release", "closed"]) {
     assert.equal(ahead({ status, plan: SCREEN }, NO_LOGIN), null, `${status} is past the point of saying it`);
   }
 });
 
 /* The gate on the fetch and the line spell one pair of conditions; the calls are counted below. */
 test("the reading is not taken where the line would not read it", async () => {
-  assert.equal(await deployFor(QUIET, "in_progress"), null, "a plan declaring no screen change");
-  assert.equal(await deployFor(SCREEN, "testing"), null, "and a status already at the judging rung");
+  assert.equal(await deployFor(QUIET, "in_progress:build"), null, "a plan declaring no screen change");
+  assert.equal(await deployFor(SCREEN, "in_progress:release"), null, "and a status already at the judging rung");
   assert.equal(await deployFor(SCREEN, "awaiting_release"), null, "or past it");
 });
 
@@ -168,14 +168,14 @@ test("a record that earns its move still earns it, and the line is said over the
   const env = { ...ENV, FORGE_SESSION_ID: HOLDER };
   const said = await ranAsync(FORGE, ["advance", "ISS-99", "--owed"], env);
   assert.equal(said.status, 0, `${said.stdout}${said.stderr}`);
-  assert.match(said.stdout, /in_progress is next and the record earns it/u, said.stdout);
+  assert.match(said.stdout, /in_progress:build is next and the record earns it/u, said.stdout);
   assert.doesNotMatch(said.stdout, /item\(s\) owed/u, "the line is no item owed");
   assert.match(said.stdout, /holds no test credential/u, "and it is said all the same");
   /* The page this session has not been shown is delivered by the write that owes it, which makes
      the move in the same call rather than spending one on a re-send (ISS-1715). */
   const moved = await ranAsync(FORGE, ["advance", "ISS-99"], env);
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.match(moved.stdout, /approved -> in_progress/u, "a project with no login is refused nothing");
+  assert.match(moved.stdout, /approved -> in_progress:build/u, "a project with no login is refused nothing");
 });
 
 /* An absent bindings key is the read failing, and the tracker's null is a project that configured

@@ -9,5 +9,7 @@ Check presence, recency, the sha a payload carries and, where a rule says *since
 nowhere: whether an attachment is really the migration classification, or a comment really an
 approving review, is the reviewer's to say.
 
-Three of the tracker's statuses are no step of this flow. `draft` is the reporter's, before `open`.
-`testing` is a label this contract has no use for. `reopen` is a person's word, and nothing earns it.
+The statuses are core's, and core refuses every other name (`ISSUE_STATUS_LEGACY`). Four steps of
+this flow are `in_progress` at a work step, written as the status and then the step. Of the rest,
+`draft` is the reporter's, before `open`; `reopen` is a person's word, and nothing earns it;
+`needs_info` and `on_hold` are where a park waits; and `closed` is the release's.

@@ -127,7 +127,7 @@ test("at builder-owed a successor is held out by the builder's own lease and by 
 
 /* The take and not the lease licenses the write it was taken for, the row it leaves being what says a successor answered for the builder (ISS-726). */
 test("a successor's write at builder-owed is licensed by its own take and not by the lease it holds", () => {
-  const took = { ...LIVE, history: [{ holder: "the-lander", at: AT, how: "take", status: "developed", landing: "builder-owed" }] };
+  const took = { ...LIVE, history: [{ holder: "the-lander", at: AT, how: "take", status: "in_progress:test", landing: "builder-owed" }] };
   const early = refused("builder-owed", "the-lander", LIVE);
   assert.match(early, /has taken no turn/u, early);
   assert.match(early, /forge claim ISS-673 --take$/mu, "and the take it owes first");
@@ -213,7 +213,7 @@ test("the QA turn is any session's but the builder's, whose own work it would be
    a renew or a transition that dropped it would lose the whole landing. */
 test("a claim, a renew and a transition each leave the checkpoint exactly where it was", () => {
   const held = { ...at("builder-owed", { builder: "the-builder" }), lease: LIVE };
-  const claim = claimed(held, { holder: "the-builder", at: AT, minutes: 30, how: "take", status: "developed" });
+  const claim = claimed(held, { holder: "the-builder", at: AT, minutes: 30, how: "take", status: "in_progress:test" });
   assert.deepEqual(claim.landing, held.landing, "the take writes no checkpoint of its own");
   const renewed = claimed(claim, { holder: "the-builder", at: AT, minutes: 30 });
   assert.deepEqual(renewed.landing, held.landing, "a payload write is not a transition");
@@ -224,13 +224,13 @@ test("a claim, a renew and a transition each leave the checkpoint exactly where 
 
 test("the history row a take appends names the state it was taken at", () => {
   const held = { ...at("ready"), lease: LIVE };
-  const taken = claimed(held, { holder: "the-lander", at: AT, minutes: 30, how: "take", status: "developed" });
+  const taken = claimed(held, { holder: "the-lander", at: AT, minutes: 30, how: "take", status: "in_progress:test" });
   assert.deepEqual(leaseOf(taken).history.at(-1),
-    { holder: "the-lander", at: AT, how: "take", status: "developed", next: null, landing: "ready" });
+    { holder: "the-lander", at: AT, how: "take", status: "in_progress:test", next: null, landing: "ready" });
   const plain = claimed({ lease: LIVE }, { holder: "one", at: AT, minutes: 30, how: "claim", status: "open" });
   assert.equal(leaseOf(plain).history.at(-1).landing, undefined, "an issue with no landing names no state");
   const written = claimed({ lease: LIVE }, {
-    holder: "the-builder", at: AT, minutes: 30, how: "claim", status: "developed", landing: { ...BUILT },
+    holder: "the-builder", at: AT, minutes: 30, how: "claim", status: "in_progress:test", landing: { ...BUILT },
   });
   assert.equal(leaseOf(written).history.at(-1).landing, "ready", "and the write that makes one names it too");
   assert.deepEqual(landingOf(written), landingOf(at("ready")), "the checkpoint the claim was handed");
@@ -376,7 +376,7 @@ test("the capture out of builder-owed refuses the candidate's own head and names
 /* A refusal naming only the resume sent the builder to read what the refusal already knew, so each
    state a capture cannot write over names its own way out (ISS-2406). */
 const CAPTURE = { head: NEW, base: HANDED, touched: "plugin/src/flow/claim.mjs", branch: "iss-673-6", at: AT };
-const readyAt = (state, over = {}, status = "in_progress") =>
+const readyAt = (state, over = {}, status = "in_progress:build") =>
   refusing(() => readyCheckpoint("ISS-673", "the-builder", CAPTURE, landingOf(at(state, over)), status))
     .then(() => null, (error) => error.message);
 
@@ -395,9 +395,9 @@ test("a capture refused at a turn state names the command that ends that turn", 
 /* A reopen starts a second landing of the same issue, and the first one's `done` is what it met:
    the status licenses the capture over a finished landing, and nothing licenses one over a live
    landing (ISS-2073). A status before the build licenses none, finished landing or not (ISS-2604). */
-const UNBUILT = ["open", "confirmed", "approved"];
-const REBUILT = ["reopen", "in_progress"];
-const PAST = ["developed", "testing", "awaiting_release", "closed", "on_hold", "waiting"];
+const UNBUILT = ["open", "in_progress:plan", "approved"];
+const REBUILT = ["reopen", "in_progress:build"];
+const PAST = ["in_progress:test", "in_progress:release", "awaiting_release", "closed", "on_hold", "needs_info"];
 
 test("a finished landing gives way to a capture once the issue is built again, and a live one never does", async () => {
   for (const status of [...UNBUILT, ...REBUILT, ...PAST]) {
@@ -417,7 +417,7 @@ test("a finished landing gives way to a capture once the issue is built again, a
   }
   for (const status of UNBUILT) {
     const early = await readyAt("done", first, status);
-    assert.match(early, new RegExp(`ISS-673 stands at \`${status}\`, before \`in_progress\``, "u"),
+    assert.match(early, new RegExp(`ISS-673 stands at \`${status}\`, before \`in_progress:build\``, "u"),
       `at ${status} the finished landing is no license, the build not having begun: ${early}`);
   }
 });
@@ -470,7 +470,7 @@ test("a capture over a finished landing keeps it readable, and a third landing k
 /* The repair a finding sent back and another route landed has no push left to capture at, so the
    refusal at a status past the build names the write that records it beside the reopen (ISS-2526). */
 test("a capture refused over a finished landing past the build names the late write beside the reopen", async () => {
-  const past = await readyAt("done", {}, "developed");
+  const past = await readyAt("done", {}, "in_progress:test");
   assert.ok(past.includes("Where the fix already reached the branch it lands on, record that landing over this one, "
     + "which keeps this one readable:\n  forge claim ISS-673 --rebuilt <the sha the branch carries> --deployment "
     + "<the sha the deployment reports serving>\n  forge claim ISS-673 --rebuilt <the sha the branch carries> --undeployed\n"), past);

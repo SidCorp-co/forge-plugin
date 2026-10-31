@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
-import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
+import { placeOf } from "../../../src/tracker/declared/issue-machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("moved-by").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -37,8 +37,8 @@ const state = {
     /* A question park, the tracker's announcement of the move it made, and the reporter's answer. */
     [RESUMED.documentId]: [
       comment(render("question", { reading: ["one -> the first outcome", "two -> the second outcome"] }), 1),
-      comment(render("park", { kind: "question", why: "which reading" }, "confirmed"), 2),
-      comment("❓ **Needs info** — moved from `confirmed`", 3),
+      comment(render("park", { kind: "question", why: "which reading" }, "in_progress:plan"), 2),
+      comment("❓ **Needs info** — moved from `in_progress`", 3),
       comment("the first reading", 4, { authorId: "the-reporter", authorDeviceId: null }),
     ],
   },
@@ -74,13 +74,13 @@ const claimed = async (key) => {
   assert.equal(run.status, 0, run.stderr);
 };
 
-const SAID = "  moved by its record, and by no person: confirmation is what confirmed is entered on";
+const SAID = "  moved by its record, and by no person: confirmation is what in_progress:plan is entered on";
 
 test("a plain advance into a rung below the close names the kinds that rung is entered on", async () => {
   await claimed("ISS-11");
   const run = await ranAsync(FORGE, ["advance", "ISS-11"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(run.stdout.includes(`ISS-11  open -> confirmed\n${SAID}\n`), run.stdout);
+  assert.ok(run.stdout.includes(`ISS-11  open -> in_progress:plan\n${SAID}\n`), run.stdout);
 });
 
 test("the move a record write earns says the same, on stderr under its own move line", async () => {
@@ -89,16 +89,16 @@ test("the move a record write earns says the same, on stderr under its own move 
     "--where", "ISS-1", "--finding", "holds"], ENV);
   assert.equal(run.status, 0, run.stderr);
   const moved = state.issues.find((one) => one.issueId === "ISS-12");
-  assert.equal(rungOf(moved.status, moved.workState?.step), "confirmed", run.stderr);
-  assert.ok(run.stderr.includes(`ISS-12  open -> confirmed\n${SAID}\n`), run.stderr);
+  assert.equal(placeOf(moved.status, moved.workState?.step), "in_progress:plan", run.stderr);
+  assert.ok(run.stderr.includes(`ISS-12  open -> in_progress:plan\n${SAID}\n`), run.stderr);
   assert.ok(!run.stdout.includes("moved by its record"), `the record on stdout carries the line:\n${run.stdout}`);
 });
 
 test("a set keeps the note it carries and says no record moved it", async () => {
   await claimed("ISS-13");
-  const run = await ranAsync(FORGE, ["advance", "ISS-13", "--set", "confirmed", "--why", "read by hand"], ENV);
+  const run = await ranAsync(FORGE, ["advance", "ISS-13", "--set", "in_progress:plan", "--why", "read by hand"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /ISS-13 {2}open -> confirmed {2}\(set, unearned\)/u, run.stdout);
+  assert.match(run.stdout, /ISS-13 {2}open -> in_progress:plan {2}\(set, unearned\)/u, run.stdout);
   assert.doesNotMatch(`${run.stdout}${run.stderr}`, /moved by its record/u);
 });
 
@@ -106,6 +106,6 @@ test("a move resumed from a park keeps its resumed note as what moved it, and no
   await claimed("ISS-14");
   const run = await ranAsync(FORGE, ["advance", "ISS-14"], ENV);
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.match(run.stdout, /ISS-14 {2}needs_info -> confirmed {2}\(resumed where its park left it\)/u, run.stdout);
+  assert.match(run.stdout, /ISS-14 {2}needs_info -> in_progress:plan {2}\(resumed where its park left it\)/u, run.stdout);
   assert.doesNotMatch(`${run.stdout}${run.stderr}`, /moved by its record/u);
 });

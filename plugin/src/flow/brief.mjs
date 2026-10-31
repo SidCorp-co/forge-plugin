@@ -63,7 +63,7 @@ const headlineOf = (held, kind) => {
 /* On the verdict's own row and not only on the checkpoint's line, which `rebuiltSaid` is for: a
    reader who asks for the criteria asks for verdicts and need never have read the checkpoint one
    was judged against (ISS-2045). */
-/* A verdict the entry check to `testing` would refuse is flagged through that check's own predicate,
+/* A verdict the entry check to `in_progress:release` would refuse is flagged through that check's own predicate,
    so a builder's pass under an independent judgement stops reading like a judge's (ISS-1497). */
 const markedCriteria = (view) => {
   const rebuilt = rebuiltSaid(view.landing).replace(/^ — /u, "");

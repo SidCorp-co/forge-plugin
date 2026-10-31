@@ -15,7 +15,7 @@ beside another kind is that kind's write, and meets that kind's refusal.
 **The id has to be one the caller chose**, because a verdict under an id handed down from the
 dispatching session, or kept by the machine across sessions, cannot say which run judged. That
 condition does not tell a builder under a new id from a judge it dispatched, which share a process;
-whether the judge was the builder is the contract's question at `testing`, and is asked there, and
+whether the judge was the builder is the contract's question at `in_progress:release`, and is asked there, and
 asked again at the write where the project wants a second judge.
 
 **Where a project wants a second judge, the write refuses a verdict whose writer the rung will never
@@ -34,7 +34,7 @@ id the judge read back off it on `--runtime`, and a judge that read none writes 
 what it lacked rather than a commit standing in. Asked only there: where the builder judges, or
 nothing records a deployment, there is no runtime a judge was sent to, and owing one would hold
 every such issue for ever, which is the defect ISS-1788 removed. A runtime the checkpoint stops
-naming leaves its verdict superseded, and every rung from `testing` to the close names that
+naming leaves its verdict superseded, and every rung from `in_progress:release` to the close names that
 criterion and why, whoever judges; only the checkpoint moves that reading, never a verification, a
 finding or prose (ISS-2279).
 

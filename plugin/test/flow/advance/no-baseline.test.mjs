@@ -46,7 +46,7 @@ const forge = (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: HOL
 test("--owed on an approved issue on a branch names no baseline and no gate, at every rung", async () => {
   for (const one of BUILDING) {
     const run = await forge("advance", one.issueId, "--owed");
-    assert.match(run.stdout, /in_progress is next and the record earns it/u, `${one.complexity}:\n${run.stdout}${run.stderr}`);
+    assert.match(run.stdout, /in_progress:build is next and the record earns it/u, `${one.complexity}:\n${run.stdout}${run.stderr}`);
     assert.doesNotMatch(run.stdout, /baseline/iu, `${one.complexity} names no baseline:\n${run.stdout}`);
     assert.doesNotMatch(run.stdout, /--gate|npm run check|tools\/gates|run of the gate/u,
       `${one.complexity} hands over no gate command:\n${run.stdout}`);

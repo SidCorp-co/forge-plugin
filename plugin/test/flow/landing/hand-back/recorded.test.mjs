@@ -17,8 +17,9 @@ test("a records turn whose record earns no rung leaves the checkpoint where it r
     const said = `${back.stdout}${back.stderr}`;
     assert.equal(back.status, 0, `${owed}: the hand-back is never refused on its records:\n${said}`);
     assert.equal(checkpoint().state, owed, `${owed}: the checkpoint stays where the hand-back returned it`);
-    assert.equal(state.issues[0].status, "developed", `${owed}: and no rung moved:\n${said}`);
-    assert.match(said, /The record does not earn `testing`/u, `${owed}: naming the rung it is short of:\n${said}`);
+    assert.deepEqual([state.issues[0].status, state.issues[0].workState?.step], ["in_progress", "test"],
+      `${owed}: and no rung moved:\n${said}`);
+    assert.match(said, /The record does not earn `in_progress:release`/u, `${owed}: naming the rung it is short of:\n${said}`);
     assert.match(said, /forge claim ISS-673 --take$/mu, `${owed}: and the landing's take:\n${said}`);
   }
 });

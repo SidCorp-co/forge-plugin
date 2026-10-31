@@ -105,7 +105,7 @@ const parked = (kind) => [
 ];
 const DECLARES = (screen, look) => `## Declarations\n\nScreen change: ${screen}\nUser-facing outcome: ${look}\n`;
 const at_ = (plan, comments) => viewFrom("the-uuid",
-  { plan, attachments: [{ name: "run.txt" }], releaseNotes: { section: "Fixed" } },
+  { plan, attachments: [{ name: "run.txt" }], releaseNotes: { section: "Fixed", title: "It works again" } },
   [...shipped(), ...comments], null, WAITS);
 const looks = (plan, comments = []) => deployedOwed(at_(plan, comments), "ISS-3");
 

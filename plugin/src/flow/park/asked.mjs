@@ -22,11 +22,6 @@ const measured = (reference, prompt, readings) => {
     refuse(`record question: ${reference}'s question would offer ${readings.length} readings and the question `
       + `route takes ${caps.options.self} options. Nothing was sent. Ask between fewer readings.`);
   }
-  readings.forEach((one, at) => {
-    if (!over(one, caps.label?.self)) return;
-    refuse(`record question: --reading ${at + 1} is ${one.length} characters and an option on the question `
-      + `route takes ${caps.label.self}. Nothing was sent. Say that reading and its outcome in fewer words.`);
-  });
   if (over(prompt, caps.prompt?.self)) {
     refuse(`record question: the question for ${reference} is ${prompt.length} characters and the route takes `
       + `${caps.prompt.self}. Nothing was sent. Shorten the issue's title.`);

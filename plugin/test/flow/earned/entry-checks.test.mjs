@@ -29,7 +29,7 @@ const ATTACHED = [{ name: "run.txt" }];
 const BUILT = { sessionContext: { worklog: { branch: "iss-3-the-work" } } };
 const view = (issue, comments = []) => viewFrom("the-uuid", { ...BUILT, ...issue }, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
-/* Each half of the one rung after `developed` is asked on its own, a case about the verdicts having no business answering for a verification (ISS-1022). */
+/* Each half of the one place after `in_progress:test` is asked on its own, a case about the verdicts having no business answering for a verification (ISS-1022). */
 const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
 
@@ -37,31 +37,31 @@ const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => ite
 const OLD_BASELINE = "## Baseline\n\n- **Gate:** npm run check\n- **Result:** 354 pass\n- **Commit:** 43b811e\n"
   + "- **Scope:** part\n\n`forge-record: baseline · contract 1`";
 
-test("in_progress is earned by the branch alone at every rung, with no baseline on the record", () => {
+test("in_progress:build is earned by the branch alone at every rung, with no baseline on the record", () => {
   for (const complexity of ["xs", "s", "m", "l", "xl"]) {
-    assert.deepEqual(missing("in_progress", view({ complexity, status: "approved" })), [],
-      `a \`${complexity}\` on a branch owes nothing more for in_progress`);
-    assert.equal(targetOf(view({ complexity, status: "approved" }), "ISS-3").next, "in_progress", complexity);
+    assert.deepEqual(missing("in_progress:build", view({ complexity, status: "approved" })), [],
+      `a \`${complexity}\` on a branch owes nothing more for in_progress:build`);
+    assert.equal(targetOf(view({ complexity, status: "approved" }), "ISS-3").next, "in_progress:build", complexity);
   }
   const old = view({ complexity: "s" }, [comment(OLD_BASELINE)]);
-  assert.deepEqual(missing("in_progress", old), [], "and a baseline left on the page by an earlier build refuses nothing");
+  assert.deepEqual(missing("in_progress:build", old), [], "and a baseline left on the page by an earlier build refuses nothing");
   assert.equal(old.latest.baseline, undefined, "being no kind this build reads back");
 });
 
 /* Two runs built one rename because `owed` is the same word for nothing started and a change staged and blocked. Read off the worklog, so this opens no tree either (ISS-1183). */
-test("in_progress owes the branch the change is built on, and the refusal names the capture", () => {
-  const bare = CHECKS.in_progress(viewFrom("the-uuid", { sessionContext: {} }, []), "ISS-3");
+test("in_progress:build owes the branch the change is built on, and the refusal names the capture", () => {
+  const bare = CHECKS["in_progress:build"](viewFrom("the-uuid", { sessionContext: {} }, []), "ISS-3");
   assert.equal(bare.length, 1, JSON.stringify(bare));
   assert.match(bare[0].what, /worklog names no branch/u);
   assert.match(bare[0].command, /^forge claim ISS-3 --pushed/u, "and the capture that supplies one");
   assert.match(bare[0].command, /checkout the branch is cut in/u, "read where the branch is");
-  assert.deepEqual(missing("in_progress", view({})), [], "and a worklog naming one owes nothing");
+  assert.deepEqual(missing("in_progress:build", view({})), [], "and a worklog naming one owes nothing");
   const headless = viewFrom("the-uuid", { sessionContext: { worklog: { head: "43b811e" } } }, []);
-  assert.deepEqual(CHECKS.in_progress(headless, "ISS-3").map((one) => one.what), [bare[0].what],
+  assert.deepEqual(CHECKS["in_progress:build"](headless, "ISS-3").map((one) => one.what), [bare[0].what],
     "a worklog with facts in it and no branch among them is no branch, not a branch unread");
   for (const complexity of ["xs", "s", "m"]) {
     const at = viewFrom("the-uuid", { complexity, sessionContext: {} }, []);
-    assert.equal(CHECKS.in_progress(at, "ISS-3").length, 1,
+    assert.equal(CHECKS["in_progress:build"](at, "ISS-3").length, 1,
       `${complexity} is owed the branch too: a tree the record cannot name is no judgement repeated`);
   }
 });
@@ -92,7 +92,7 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; landing moved nothing";
   const planned = { plan: "It touches plugin/src/flow/earned.mjs and nothing else.", acceptanceCriteria: CRITERIA, mergedAt: at() };
   const wrote = (clause) => [mark(`${NOTE}${clause}`), recorded("review", { reviewer: "codex", commit: "43b811e", outcome: "approved", finding: [] })];
-  const owed = (issue, comments) => CHECKS.developed(view(issue, comments), "ISS-3");
+  const owed = (issue, comments) => CHECKS["in_progress:test"](view(issue, comments), "ISS-3");
   /* The verb's own flag is where a run learns the clause exists, there being no other place it is typed. */
   assert.match(owed({ acceptanceCriteria: CRITERIA }, [])[0].command, /--wrote <the paths this change itself landed>/u);
   assert.deepEqual(owed(planned, wrote("")).map((one) => one.what), [],
@@ -147,7 +147,7 @@ test("a record whose plan field holds no text has no list to be outside of, what
   const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; landing moved nothing";
   const landed = [mark(`${NOTE}; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs`),
     recorded("review", { reviewer: "codex", commit: "43b811e", outcome: "approved", finding: [] })];
-  const owed = (issue, comments) => CHECKS.developed(view(issue, comments), "ISS-3").map((one) => one.what);
+  const owed = (issue, comments) => CHECKS["in_progress:test"](view(issue, comments), "ISS-3").map((one) => one.what);
   const blank = { acceptanceCriteria: CRITERIA, complexity: "xs", mergedAt: at() };
   const climb = recorded("correction", { moved: "Rung: trivial -> fix", why: "the work grew a second file" });
   for (const plan of [undefined, null, "", "  \n\t "]) {
@@ -213,7 +213,7 @@ test("a fitted note earns what the whole list would have earned, and refuses wha
   const seen = (named) => [mark(note(named)),
     recorded("review", { reviewer: "codex", commit: "43b811e", outcome: "approved", finding: [] })];
   const owed = (plan, named) =>
-    CHECKS.developed(view({ plan, acceptanceCriteria: CRITERIA, mergedAt: at() }, seen(named)), "ISS-3");
+    CHECKS["in_progress:test"](view({ plan, acceptanceCriteria: CRITERIA, mergedAt: at() }, seen(named)), "ISS-3");
   const whole = owed(`It touches ${cases.join(" and ")}.`, cases);
   assert.deepEqual(whole.map((one) => one.what), [], "a plan naming all 119 leaves nothing outside it");
   const grew = owed(`It touches ${cases.slice(29).join(" and ")}.`, cases.slice(29));
@@ -238,7 +238,7 @@ test("a project that deploys on its own earns released by proving the deploy, no
   const verified = (commit, evidence, contains) =>
     [mark(NOTE), recorded("verification", { where: "https://app.example", commit, contains, evidence })];
   const owed = (release, commit, evidence, contains) => deployedOwed(
-    viewFrom("the-uuid", { attachments: ATTACHED, releaseNotes: { section: "Fixed" } }, verified(commit, evidence, contains), null, release),
+    viewFrom("the-uuid", { attachments: ATTACHED, releaseNotes: { section: "Fixed", title: "It works again" } }, verified(commit, evidence, contains), null, release),
     "ISS-3",
   );
   const said = (release, commit, evidence, contains) => owed(release, commit, evidence, contains).map((one) => one.what);
@@ -275,7 +275,7 @@ test("a project that deploys on its own earns released by proving the deploy, no
 
   /* The gaps come first and alone: a payload with no commit in it has none to compare. */
   const half = deployedOwed(
-    viewFrom("the-uuid", { releaseNotes: { section: "Fixed" } },
+    viewFrom("the-uuid", { releaseNotes: { section: "Fixed", title: "It works again" } },
       [mark(NOTE), recorded("verification", { where: "https://app.example", evidence: ["43b811e"] })], null, policy(true)),
     "ISS-3",
   );
@@ -301,7 +301,7 @@ test("the release note is owed at a lighter rung, and the owed line names both f
   assert.match(none[0].command, /--section Added --title "<at most 10 words>" --user/u, "the form for a change somebody reads");
   assert.match(none[0].command, /--skip --why/u, "and the withholding, which is the form this rung most often wants");
 
-  assert.deepEqual(owed({ releaseNotes: { section: "Fixed" } }), [], "a note written clears it");
+  assert.deepEqual(owed({ releaseNotes: { section: "Fixed", title: "It works again" } }), [], "a note written clears it");
   assert.deepEqual(owed({ releaseNotes: { section: "Skip" } }), [],
     "and so does the withholding, which is a record written and not a record dropped");
 });

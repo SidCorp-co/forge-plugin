@@ -146,12 +146,12 @@ const typedProblem = (one, paths, given) => {
 export const namesPath = (named, path) =>
   new RegExp(`(?<![\\w./-])${escaped(path)}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
 
-/** The write that names a path the plan does not, spelt once: the mark's own refusal and `developed`'s shortfall both spend it, and two spellings would send a run to two commands. */
+/** The write that names a path the plan does not, spelt once: the mark's own refusal and `in_progress:test`'s shortfall both spend it, and two spellings would send a run to two commands. */
 export const correctionForm = (ref, paths) =>
   `forge record correction ${ref} --corrects plan --moved "the change also wrote ${paths.join(", ")}" `
   + `--why "<why each was needed>"`;
 
-/** The view `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse, with the reader of that text beside it. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle, and it is made once per write. */
+/** The view `in_progress:test` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse, with the reader of that text beside it. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle, and it is made once per write. */
 const viewOn = async (documentId, comments) => {
   const { viewFrom, namedIn } = await import("../earned.mjs");
   const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
@@ -192,7 +192,7 @@ const leftOut = (kept, whole, named) =>
 
 const tooLong = (over, room, owed, ref) => (owed.length
   ? `the note is ${over} code points over the ${room} the tracker takes with only the ${owed.length} `
-    + `path(s) the plan and its corrections do not name in it, and those are the paths \`developed\` `
+    + `path(s) the plan and its corrections do not name in it, and those are the paths \`in_progress:test\` `
     + `reads, so none of them may be left out: nothing was written. Name them in the correction that `
     + `status asks for and mark again — they are named then, and the note has the room to leave them `
     + `out:\n  ${correctionForm(ref, owed)}`
@@ -201,7 +201,7 @@ const tooLong = (over, room, owed, ref) => (owed.length
     + `clause is never shortened, a landing that moved this change's paths being what stands the `
     + `verdicts down. Name the directory those paths are under.`);
 
-/* Every path the plan does not name stays in the clause and the ones it names fill what room is left, so `developed` reads the set it would have read off the whole list: what is left out is what that check already passes. A change whose unnamed paths alone overrun the note is refused rather than quietly shortened, because shortening there would earn the status a change that grew has not. No plan at all is a change `developed` reads no path of against anything, so the rung that writes none is excused the check and this refusal both. The floor is measured on the shortest path and a path the room cannot take is passed over rather than ending the fill, because a long one first would blame `landing moved` for a note a shorter path fits in. */
+/* Every path the plan does not name stays in the clause and the ones it names fill what room is left, so `in_progress:test` reads the set it would have read off the whole list: what is left out is what that check already passes. A change whose unnamed paths alone overrun the note is refused rather than quietly shortened, because shortening there would earn the status a change that grew has not. No plan at all is a change `in_progress:test` reads no path of against anything, so the rung that writes none is excused the check and this refusal both. The floor is measured on the shortest path and a path the room cannot take is passed over rather than ending the fill, because a long one first would blame `landing moved` for a note a shorter path fits in. */
 const fitted = (held, named, ref) => {
   const room = roomOf();
   const whole = sentenceOf(held);

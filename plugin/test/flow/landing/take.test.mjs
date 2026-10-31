@@ -104,7 +104,7 @@ test("a second session takes the turn at ready, and the history row names the st
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(held().holder, LANDER, "the lease moved, over a lease that was still live");
   assert.deepEqual(held().history.at(-1), {
-    holder: LANDER, at: held().renewedAt, how: "take", status: "developed", next: null, landing: "ready",
+    holder: LANDER, at: held().renewedAt, how: "take", status: "in_progress:test", next: null, landing: "ready",
   });
   assert.match(run.stdout, /landing `ready`/u, run.stdout);
   assert.equal(checkpoint().state, "ready", "and the take moves the lease, not the state");
@@ -221,7 +221,7 @@ test("a successor that took the builder's dead turn writes the reconciliation un
    live, its turn is over, and the state's turn is the lander's. Spent by the take, and by the same
    take a third run's would not be. */
 test("the lease a successor reconciled under is taken back from at once, and its lander's is not", async () => {
-  const took = [{ holder: "a-successor-run", at: "2026-09-07T11:00:00.000Z", how: "take", status: "developed", next: null, landing: "builder-owed" }];
+  const took = [{ holder: "a-successor-run", at: "2026-09-07T11:00:00.000Z", how: "take", status: "in_progress:test", next: null, landing: "builder-owed" }];
   field({ ...OWED, state: "reconciled", reconciled: CANDIDATE }, { ...lease("a-successor-run"), history: took });
   const lander = await ran(["claim", "ISS-673", "--take"], LANDER);
   assert.equal(lander.status, 0, `${lander.stdout}${lander.stderr}`, "the landing carries on the moment the write lands");
@@ -245,7 +245,7 @@ test("the lease a successor reconciled under is taken back from at once, and its
    live lease of the run after it, which is that second successor's own turn. */
 test("a successor whose lease went to the run after it is refused the turn it once held", async () => {
   const gone = { ...lease("the-first-successor"), renewedAt: "2026-09-07T10:00:00.000Z" };
-  field(OWED, { ...gone, history: [{ holder: "the-first-successor", at: gone.renewedAt, how: "take", status: "developed", next: null, landing: "builder-owed" }] });
+  field(OWED, { ...gone, history: [{ holder: "the-first-successor", at: gone.renewedAt, how: "take", status: "in_progress:test", next: null, landing: "builder-owed" }] });
   const second = await ran(["claim", "ISS-673", "--take"], "the-second-successor");
   assert.equal(second.status, 0, `${second.stdout}${second.stderr}`, "the first successor's lease is dead");
   assert.equal(held().holder, "the-second-successor");
@@ -490,7 +490,7 @@ test("a capture out of head-owed opens on the head it wrote, so the review and p
   const { render } = await import("../../../src/flow/record/page.mjs");
   const head = git(CHANGED, "rev-parse", "HEAD").stdout.trim();
   field({ ...BUILT, state: "head-owed" }, null);
-  state.issues[0] = { ...state.issues[0], status: "in_progress", acceptanceCriteria: "1. The one outcome." };
+  state.issues[0] = { ...state.issues[0], status: "in_progress", workState: { step: "build" }, acceptanceCriteria: "1. The one outcome." };
   state.comments["landing-uuid"] = [
     render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: [] }),
     render("verdict", { criterion: "1", verdict: "pass", commit: head, evidence: "abc1234", why: "the case asserts it" }),

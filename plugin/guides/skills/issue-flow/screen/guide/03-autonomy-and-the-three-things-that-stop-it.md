@@ -18,7 +18,7 @@ screen change is still parked where the project's release waits for a person —
 back, the people who saw the wrong screen do not — and that park is a person's look at a change the
 judge has already exercised, never a substitute for the judging.
 
-**Ending at `developed` for a judging run is not a stop.** A stop hands the issue to a named
+**Ending at `in_progress:test` for a judging run is not a stop.** A stop hands the issue to a named
 somebody; that ending leaves the issue in nobody's hands at all — at a status any run may claim
 from, under no lease, with the record carrying everything the next one needs. Nothing is asked of a
 person and nothing is waited on, so the phase that ends there takes itself.

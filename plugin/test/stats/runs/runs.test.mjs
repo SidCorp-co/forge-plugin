@@ -226,9 +226,9 @@ test("one class per shape of work, whatever way it was typed", () => {
     ["node /w/tools/run.mjs ship --note x", "ship"],
     ["cd /w && npm run check", "gate"],
     /* Each of these was a call counted as having run what it only carried (ISS-781). */
-    ["printf '%s\\n' '; forge close ISS-45'", "shell"],
+    ["printf '%s\\n' '; forge judge ISS-45'", "shell"],
     ["printf '%s\\n' '; npm run check'", "shell"],
-    ["echo a\\;forge close ISS-45", "shell"],
+    ["echo a\\;forge judge ISS-45", "shell"],
     ["ls -l # ; npm run check", "read"],
     ["git log --format=';'", "git"],
     ["git commit -m 'forge: a subject naming npm run check'", "git"],
@@ -246,13 +246,13 @@ test("one class per shape of work, whatever way it was typed", () => {
     ['echo "done $(npm run check)"', "gate"],
     /* A `)` in a backtick pair inside one closes nothing of it, so the runner's body after it is still found. */
     ["echo \"$(bash -c 'echo '$(printf `case a in a) echo b;; esac`)'; npm run check')\"", "gate"],
-    ["'/tmp/forge;close' ISS-45", "shell"],
+    ["'/tmp/forge;judge' ISS-45", "shell"],
     ["bash -c 'echo '$(printf x)'; npm run check'", "gate"],
     ["bash -o pipefail -c 'echo ready; npm run check'", "gate"],
     ["bash -c 'echo '$( (printf x) )'; npm run check'", "gate"],
     /* A runner the gates knew and this reading did not, and the one it reached by its boundary (ISS-1836). */
-    ["eval 'true; forge close ISS-1'", "forge close"],
-    ["busybox sh -c 'true; forge close ISS-1'", "forge close"],
+    ["eval 'true; forge judge ISS-1'", "forge judge"],
+    ["busybox sh -c 'true; forge judge ISS-1'", "forge judge"],
   ]) {
     assert.equal(classOf("Bash", shellOf(command)), expected, command);
   }

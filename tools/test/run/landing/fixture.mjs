@@ -9,7 +9,7 @@ import { basename, dirname, join } from "node:path";
 import { fakeTracker, pathed, projectRecord, ranAsync, tempRoom } from "../../../../plugin/test/fixtures.mjs";
 import { render } from "../../../../plugin/src/flow/record/page.mjs";
 import { noteShown } from "../../../../plugin/src/tracker/comments.mjs";
-import { rungOf } from "../../../../plugin/src/tracker/declared/rungs.mjs";
+import { placeOf } from "../../../../plugin/src/tracker/declared/issue-machine.mjs";
 import { childRefusal, madeIn, roomBuilt } from "../../../../plugin/test/fixtures/room.mjs";
 import { developerCorepack, lendCorepack } from "./room/corepack.mjs";
 
@@ -233,7 +233,7 @@ export const state = {
         state.issues[which] = { ...state.issues[which], ...(args.data ?? {}) };
       }
       /* The tracker's own doing, stood in for: a mark is read back off the comment page, and it is
-         the tracker that stamps the field the entry check into `developed` reads. */
+         the tracker that stamps the field the entry check into `in_progress:test` reads. */
       if (args.action === "mark_merged") {
         posted(state.comments[state.issues[which].documentId], `mark_merged ${args.data.note}`);
         state.issues[which] = { ...state.issues[which], mergedAt: new Date().toISOString() };
@@ -266,7 +266,7 @@ const row = (documentId, issueId, status, landing, lease, owned) => ({
  *  the review, the judging rung and the deploying one, all judged at the head that was handed over. */
 export const earning = (head) => ({
   acceptanceCriteria: "1. it lands",
-  releaseNotes: { section: "Fixed", userFacing: "it works" },
+  releaseNotes: { section: "Fixed", title: "It works again", userFacing: "it works" },
   said: [
     render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: ["F1 accepted"] }),
     render("verdict", { criterion: "1 — it lands", verdict: "pass", commit: head, evidence: [head] }),
@@ -293,8 +293,8 @@ export const seeded = ({
 };
 
 export const issue = (documentId = UUID) => state.issues.find((one) => one.documentId === documentId);
-/** The rung an issue stands at, read off the tracker's status and work step as this CLI reads it. */
-export const rungNow = (documentId = UUID) => rungOf(issue(documentId)?.status, issue(documentId)?.workState?.step);
+/** The place an issue stands at, read off the tracker's status and work step as this CLI reads it. */
+export const rungNow = (documentId = UUID) => placeOf(issue(documentId)?.status, issue(documentId)?.workState?.step);
 /** Each rung moved to, in order: a transition is one, and so is a work step, which after a move to
  *  its status names the rung that move was for rather than a second one. */
 export const rungsMoved = () => {
@@ -305,7 +305,7 @@ export const rungsMoved = () => {
     if (args?.action === "transition") moved.push((sentTo = args.data.status));
     else if (step !== undefined) {
       if (sentTo === "in_progress") moved.pop();
-      moved.push(rungOf("in_progress", step));
+      moved.push(placeOf("in_progress", step));
       sentTo = null;
     }
   }

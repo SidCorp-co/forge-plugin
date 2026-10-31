@@ -59,13 +59,13 @@ test("--graph on one issue prints every edge it has, a mention included", async 
 });
 
 /* The status the tracker answers is the far end's, whichever end was read, so an edge whose blocker
-   is already developed orders nothing — and says so identically from either end, or the row that
+   core already reads as settled orders nothing — and says so identically from either end, or the row that
    was read first decides what a dispatch is told. */
-test("a developed blocker's edge orders nothing, read from its own end or from the end it held", async () => {
-  const done = { edgeId: "e-45", otherStatus: "developed" };
+test("a settled blocker's edge orders nothing, read from its own end or from the end it held", async () => {
+  const done = { edgeId: "e-45", otherStatus: "awaiting_release" };
   for (const order of [["ISS-4", "ISS-5"], ["ISS-5", "ISS-4"]]) {
     const rows = {
-      "ISS-4": issue("ISS-4", { title: "the blocker itself", status: "developed",
+      "ISS-4": issue("ISS-4", { title: "the blocker itself", status: "awaiting_release",
         relations: { blocks: [edge("ISS-5", { edgeId: "e-45" })], blockedBy: [] } }),
       "ISS-5": issue("ISS-5", { title: "the thing it held up",
         relations: { blocks: [], blockedBy: [edge("ISS-4", done)] } }),
@@ -74,14 +74,14 @@ test("a developed blocker's edge orders nothing, read from its own end or from t
     for (const [argv, matching] of [
       /* Focused on the blocker itself is the reading whose row carries the status: the edge is the
          blocker's own outgoing one, and the far end it names is the open issue it held up. */
-      [["next", "--graph", "ISS-4"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is developed\)$/mu],
-      [["next", "--graph", "ISS-5"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is developed\)$/mu],
+      [["next", "--graph", "ISS-4"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is awaiting_release\)$/mu],
+      [["next", "--graph", "ISS-5"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is awaiting_release\)$/mu],
       [["next", "--graph"], /^ {2}and 1 that order nothing/mu],
     ]) {
       const run = await ran(argv);
       assert.equal(run.status, 0, run.stderr);
       assert.doesNotMatch(run.stdout, /^ {2}ISS-4\s+-> ISS-5\s+blocks$/mu,
-        `${argv.join(" ")} after ${order.join(",")}: a developed blocker still ordering a dispatch`);
+        `${argv.join(" ")} after ${order.join(",")}: a settled blocker still ordering a dispatch`);
       assert.match(run.stdout, matching, `${argv.join(" ")} after ${order.join(",")}: ${run.stdout}`);
     }
   }
@@ -103,11 +103,11 @@ test("an edge the tracker named no id for is one edge where its kind has no dire
   assert.match(run.stdout, /^edges the ranking reads — 1 on this reading$/mu, run.stdout);
   assert.match(run.stdout, /^ {2}and 1 that order nothing: a relates edge/mu);
 
-  const cycle = { edgeId: null, otherStatus: "developed" };
+  const cycle = { edgeId: null, otherStatus: "awaiting_release" };
   load([
-    issue("ISS-6", { title: "one end", status: "developed",
+    issue("ISS-6", { title: "one end", status: "awaiting_release",
       relations: { blocks: [edge("ISS-7", cycle)], blockedBy: [edge("ISS-7", cycle)] } }),
-    issue("ISS-7", { title: "the other end", status: "developed",
+    issue("ISS-7", { title: "the other end", status: "awaiting_release",
       relations: { blocks: [edge("ISS-6", cycle)], blockedBy: [edge("ISS-6", cycle)] } }),
   ]);
   const both = await ran(["next", "--graph", "ISS-6"]);

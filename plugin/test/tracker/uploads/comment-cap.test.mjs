@@ -7,7 +7,7 @@ import { createServer } from "node:http";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { ranAsync, tempHome, tempRoom, wireAt } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("comment-cap").path;
@@ -25,7 +25,7 @@ const TEXT = (number) => `Outcome ${number}: ${"the thing this criterion names h
 const judging = {
   documentId: "cap-uuid",
   issueId: "ISS-9",
-  status: "testing",
+  ...wireAt("in_progress:release"),
   title: "a verdict over many criteria",
   description: "no mark here",
   acceptanceCriteria: Array.from({ length: COUNT }, (_, at) => `${at + 1}. ${TEXT(at + 1)}`).join("\n"),
@@ -136,18 +136,22 @@ test("a verdict over the comment cap sends no upload, no field write and no comm
   }
 });
 
+/* Every field of a block stands under core's 400-code-point budget, so a block over the comment cap is
+   one carrying many values of a repeated field, each within the budget and all of them over the cap. */
 test("a criterion whose own block is over the cap is named with the amount to cut from it", async () => {
-  const why = "w".repeat(CAP);
+  const link = (n) => `https://evidence.example/${String(n).padStart(4, "0")}/${"e".repeat(360)}`;
+  const links = Array.from({ length: Math.ceil(CAP / 380) + 2 }, (_, at) => link(at));
+  const carried = links.join("");
   const was = snapshot();
   const run = await ask("record", "verdict", "ISS-9", "--commit", COMMIT, "--verdict", "pass",
     "--evidence", COMMIT, "--criterion", "1", "--criterion", "3",
-    "--criterion", "2", "--verdict", "fail", "--why", why);
+    "--criterion", "2", "--verdict", "fail", "--why", "it failed", ...links.flatMap((one) => ["--evidence", one]));
   assert.equal(run.status, 1, run.stdout);
   assert.deepEqual(snapshot(), was, "nothing reached the tracker");
   const alone = /^--criterion 2 is over the cap by itself, so no split carries it: shorten its own values by (\d+) and write it alone\.$/mu
     .exec(run.stderr);
   assert.ok(alone, run.stderr);
-  assert.ok(Number(alone[1]) > 0 && Number(alone[1]) < lengthOf(why), `a cut it can make: ${alone[1]}`);
+  assert.ok(Number(alone[1]) > 0 && Number(alone[1]) < lengthOf(carried), `a cut it can make: ${alone[1]}`);
   assert.deepEqual(groupsIn(run.stderr).flatMap((group) => group.numbers), [1, 3],
     "the criteria that do fit still go in a write");
 });

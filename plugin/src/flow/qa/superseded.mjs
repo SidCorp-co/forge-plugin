@@ -1,6 +1,6 @@
 /* A verdict judged at a runtime the checkpoint no longer names as serving stops standing, and the
    rungs say which criterion and why rather than dropping the issue back with nothing named. Read at
-   `testing` and at every rung after it, whatever the project's judgement: forge-core's release sweep
+   `in_progress:release` and at every rung after it, whatever the project's judgement: forge-core's release sweep
    counts such a verdict unearned on every project alike. */
 import { need } from "../machine.mjs";
 import { judgeAsk, numbered, owesRuntime, supersededProblem } from "./verdicts.mjs";

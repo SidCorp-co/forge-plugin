@@ -11,9 +11,8 @@ import { unreadId, withRuntime } from "./earned/asks.mjs";
 import {
   BUILD_AT,
   CHECKS,
-  CLOSES_AT,
   JUDGED_AT,
-  ORDER,
+  LADDER,
   PARK_STATUS,
   SIDE,
   SILENT,
@@ -23,14 +22,17 @@ import {
   atThisReopen,
   buildsAt,
   blockersOwed,
+  closeForm,
   correctedForm,
   holdsBack,
   nextOf,
   lookAnswered,
   parkRecord,
   parkThatSet,
+  pastJudgingOwed,
   personLooks,
   relayedSince,
+  releaseSaid,
   rulingAtThisReopen,
   sameLanding,
   setForm,
@@ -46,6 +48,7 @@ import { blockedClearedBy } from "./park/blocked.mjs";
 import { draftSaid, draftTarget } from "./route/aboard.mjs";
 import { DRAFT } from "../rank/weights.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
+import { HELD } from "../tracker/declared/issue-machine.mjs";
 
 /* What a `blocked` park waits on where no edge speaks for its blocker, said beside the answer route
    every other unanswered park names. */
@@ -86,18 +89,18 @@ const resumeOwed = (view, held, ref) => {
 /* The tracker's own status for a reopen, which is no step of the flow: it is where a finding leaves
    an issue — a person's, or a judging run's — and the agent's triage of it routes what follows. */
 export const REOPEN = "reopen";
-const FALLS_TO = { "wrong-test": "developed", "not-met": "in_progress" };
+const FALLS_TO = { "wrong-test": HELD.test, "not-met": HELD.build };
 
 /** Whether the issue is being built again: at the reopen itself, or at a status of the flow below the
  *  one a build hands over at. A side status says nothing of a rebuild, so it answers no. This is what
  *  lets a second landing begin over the `done` a first one left (ISS-2073). */
-export const landsAgain = (status) => status === REOPEN || (ORDER.includes(status) && buildsAt(status));
+export const landsAgain = (status) => status === REOPEN || (LADDER.includes(status) && buildsAt(status));
 
 /* Where a reopen goes back to, read from the record: a merged mark means code landed, so this is the reopen of a close and the contract sends it to the rung merged work waits on. No mark means nothing landed, so it is the reopen of a drop and it goes back to the status the dropped park recorded. Null where the record says neither, which is the one answer both readers of this part. No status of the issue's own is read, so which rung a judging run holds when it blocks is not a fact this has to be told. */
 const landedFrom = (view) => {
   if (view.issue.mergedAt) return CLOSES_FROM;
   const left = parkRecord(view, (one) => one === "dropped")?.record.fields.left;
-  return ORDER.includes(left) ? left : null;
+  return LADDER.includes(left) ? left : null;
 };
 
 /* Said once by both: the one refusing to send an issue there, and the one finding it there already. */
@@ -170,8 +173,8 @@ const blockingOwed = (view, ref) =>
     )];
 
 /* The outcome says how far back the work goes and never how far forward, so the status the reopen
-   landed on is the ceiling: a reopened drop that landed at `approved` is not sent to `developed`. */
-const lowerOf = (one, two) => (ORDER.indexOf(one) <= ORDER.indexOf(two) ? one : two);
+   landed on is the ceiling: a reopened drop that landed at `approved` is not sent to `in_progress:test`. */
+const lowerOf = (one, two) => (LADDER.indexOf(one) <= LADDER.indexOf(two) ? one : two);
 
 const QUOTED = /^\d+\s*—\s*/u;
 
@@ -286,12 +289,12 @@ export const credentialAhead = (view, ref) => {
 /* Said to the builder, because only its capture names it: under an independent judgement every
    verdict is read against a checkpoint naming the run that built the change (`builderProblem`), the
    entry check at the judging rung is where that is found missing, and by then the capture's window
-   has closed at the merge (ISS-1798). Refusing nothing: `developed` is not earned by a checkpoint.
+   has closed at the merge (ISS-1798). Refusing nothing: `in_progress:test` is not earned by a checkpoint.
    The ship mode is not read, a `ship ready` capture being this same write and silencing the line. */
 export const checkpointAhead = (view, ref) => {
   if (!asksIndependent(view.release) || landsOutsideGit(view.issue)) return null;
-  const at = ORDER.indexOf(view.issue.status);
-  if (at < ORDER.indexOf(BUILD_AT) || at >= ORDER.indexOf(JUDGED_AT)) return null;
+  const at = LADDER.indexOf(view.issue.status);
+  if (at < LADDER.indexOf(BUILD_AT) || at >= LADDER.indexOf(JUDGED_AT)) return null;
   const problem = builderProblem(view.landing, view.holders ?? []);
   if (!problem) return null;
   const opens = `Ahead: ${JUDGED_AT} is earned here by an independent judge's verdicts, each read `
@@ -331,6 +334,16 @@ const finishedBy = (ref, status) => {
     + "Where nothing parked it, whoever";
 };
 
+/* The top of the ladder, `LADDER` saying why: the refusal names the record that is the close. */
+const closedByRelease = (view, ref) => {
+  const holding = pastJudgingOwed(view, ref);
+  return `${ref} is ${CLOSES_FROM}; nothing advances from it here: core `
+  + `closes it only by the release that ships it (CLOSE_ONLY_BY_RELEASE), so \`forge advance\` offers no `
+  + `closed. ${releaseSaid(view)}The release's record is the close:\n  ${closeForm(ref)}\nWhat sends `
+  + `work back from here is a finding:\n  ${reopenForm(ref)}`
+  + (holding.length ? `\nCore's release sweep holds it while these stand:${missingLines(holding).join("\n")}` : "");
+};
+
 export const targetOf = (view, ref) => {
   const status = view.issue.status;
   const held = SIDE.includes(status) ? parkThatSet(view, status) : null;
@@ -343,7 +356,7 @@ export const targetOf = (view, ref) => {
         + `status no entry check read:\n  ${setForm(ref, "<status>")}`);
     }
     const left = held.record.fields.left;
-    if (!ORDER.includes(left)) {
+    if (!LADDER.includes(left)) {
       const took = statusKind(left)?.replacedBy ?? null;
       refuse(`the park record on ${ref} names \`${left}\` as the status it left, which is no step of the flow. `
         + (took
@@ -356,6 +369,7 @@ export const targetOf = (view, ref) => {
   }
   if (status === REOPEN) return reopenTarget(view, ref);
   if (status === DRAFT) return draftTarget(view, ref);
+  if (status === CLOSES_FROM) refuse(closedByRelease(view, ref));
   const next = nextOf(status, view);
   if (!next) {
     refuse(`${ref} is ${status}; nothing advances from it. What sends work back from here is a `
@@ -393,13 +407,14 @@ const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   policy is fetched only where the status being entered reads it — `developed`, whose rehearsal asks
-   who judges before the checkpoint line speaks, and the three rungs at the end, one asking who
-   judges, one what deploys and one whether the release was anybody's to make. The step is
-   `stepAfter`'s, null for a status the flow does not hold. `draft` reads it too, for route/aboard.mjs. */
+   policy is fetched only where the place being entered reads it — the test, whose rehearsal asks
+   who judges before the checkpoint line speaks, and the two places at the end, one asking who judges
+   and one what deploys — or where the issue stands at the top, whose refusal says whose release
+   closes it. The step is `stepAfter`'s, null for a status the flow does not hold. `draft` reads it
+   too, for route/aboard.mjs. */
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || status === DRAFT
-    || [stepAfter(BUILD_AT), JUDGED_AT, CLOSES_FROM, CLOSES_AT].includes(stepAfter(status))
+  (personLooks(planFlags(unwrap(plan))) || status === DRAFT || status === CLOSES_FROM
+    || [stepAfter(BUILD_AT), JUDGED_AT, CLOSES_FROM].includes(stepAfter(status))
     ? releasePolicy()
     : null);
 
@@ -407,7 +422,7 @@ export const policyFor = async (plan, status = null) =>
 export const deployFor = async (plan, status = null) =>
   (credentialOwed(planFlags(unwrap(plan)), status) ? stagingDeploy() : null);
 
-const ROUTES_FROM = ORDER.slice(ORDER.indexOf(BUILD_AT), ORDER.indexOf(CLOSES_FROM));
+const ROUTES_FROM = LADDER.slice(LADDER.indexOf(BUILD_AT), LADDER.indexOf(CLOSES_FROM));
 
 /** The one kind no entry check may ask for and every reader reads: docs/cli/record-the-unwritten.md. */
 export const unaskedLines = (view, ref) => {

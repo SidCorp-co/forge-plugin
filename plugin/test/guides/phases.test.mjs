@@ -6,7 +6,7 @@ import {
   CITED, PHASE, READ_OFF_THE_RECORD, dischargedBy, finishedAtHead, indexLines, laneLines, methodOf,
   openingLines, phaseIndex, phaseNumber, workLines,
 } from "../../src/guides/phases.mjs";
-import { CHECKS, ORDER, viewFrom } from "../../src/flow/earned.mjs";
+import { CHECKS, LADDER, viewFrom } from "../../src/flow/earned.mjs";
 import { LIGHTER } from "../../src/ladder.mjs";
 import { KINDS } from "../../src/flow/record/record-rows.mjs";
 import { kindsHeld, render } from "../../src/flow/record/page.mjs";
@@ -30,9 +30,10 @@ const asked = (status, complexity = null) => [{ acceptanceCriteria: "1. The outc
 
 /* The index invents nothing: every phase, citation and waiver is another table's row. */
 test("every citation names the record the check into the next status refuses without", () => {
-  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all, `closed` asks the project rather than the record, and `in_progress` asks the worklog for its branch, the tree being the landing's gate's to measure (ISS-1918, ISS-3184) — none of them a payload a phase could be discharged by. */
+  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all, `closed` is entered by the release and by no check of this CLI's, and `in_progress:build` asks the worklog for its branch, the tree being the landing's gate's to measure (ISS-1918, ISS-3184) — none of them a payload a phase could be discharged by. */
   const terminal = Object.keys(CHECKS).filter((status) => !CITED[status]);
-  assert.deepEqual(terminal, ["in_progress", "closed", "dropped"], "the build and the two ends of the ladder ask no payload");
+  assert.deepEqual(terminal, ["in_progress:build", "dropped"],
+    "the build and the drop ask no payload, and `closed` has no entry check at all, core closing only by the release");
   for (const status of Object.keys(CHECKS).filter((one) => !terminal.includes(one))) {
     assert.ok(CITED[status], `${status} has an entry check and no record named for it, so the phase `
       + "below it would print as discharged by nothing");
@@ -70,19 +71,19 @@ test("a row's kind is the payload its status stops being asked for at a rung bel
 /* The shift, and the bug: citing its own status names the evidence for the step before. */
 test("a phase cites the record that carried it, not the one that reached its own status", () => {
   assert.equal(dischargedBy("open"), "confirmation", "Phase 1 is triage, and a confirmation ends it");
-  assert.equal(dischargedBy("confirmed"), "decision",
+  assert.equal(dischargedBy("in_progress:plan"), "decision",
     "the fold left the clarifying and the planning at one rung, and the reading is what opens what earns the next");
-  assert.equal(dischargedBy("in_progress"), "review", "and the review is what carries implementation");
+  assert.equal(dischargedBy("in_progress:build"), "review", "and the review is what carries implementation");
   assert.equal(dischargedBy("closed"), null, "the last rung has none above it to answer to");
 });
 
 /* The cells the split restored: the work at a rung is what earns the rung above it, so the judging
    rung owes the note and the ship and the deploying rung owes the ship's tail, the close (ISS-1065). */
 test("the judging rung owes 6 and 7 while the deploying rung owes the close", () => {
-  assert.equal(PHASE.developed[0], "5 Prove", "the verdicts that earn the judging rung are Phase 5");
-  assert.equal(PHASE.testing[0], "6, 7 Ship", "the note and the verification that earn the next");
+  assert.equal(PHASE["in_progress:test"][0], "5 Prove", "the verdicts that earn the judging rung are Phase 5");
+  assert.equal(PHASE["in_progress:release"][0], "6, 7 Ship", "the note and the verification that earn the next");
   assert.equal(PHASE.awaiting_release[0], "7 Ship, the close");
-  const index = phaseIndex({ status: "testing", fields: fieldsOf("m"), held: EVERY_KIND });
+  const index = phaseIndex({ status: "in_progress:release", fields: fieldsOf("m"), held: EVERY_KIND });
   assert.deepEqual(index.owed.map((one) => one.phase), ["6, 7 Ship", "7 Ship, the close"],
     "so a run at the judging rung is told both, in the order it walks them");
   assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "review", "verdict"],
@@ -121,14 +122,14 @@ test("the opening lists each phase behind with the record that discharged it, or
 /* The status is a cache of the records with fewer slots than there are facts, and `advance --set`
    writes it with no entry check reading it, so a status alone claimed phases nothing earned. */
 test("a phase is passed on the record that discharges it and not on where the status sits", () => {
-  const behind = (held) => openingLines("in_progress", held).slice(1);
+  const behind = (held) => openingLines("in_progress:build", held).slice(1);
   assert.deepEqual(behind(["confirmation", "decision"]), [
     "  passed: 1 Triage  —  confirmation",
     "  passed: 2 Clarify; 3 Plan  —  decision",
   ], "a page holding both names both, and not the branch's phase, which no record discharges");
   assert.deepEqual(behind(["confirmation"]), ["  passed: 1 Triage  —  confirmation"],
     "and a status set forward over a page holding one record claims that one rung and no other");
-  assert.deepEqual(openingLines("in_progress", []), [],
+  assert.deepEqual(openingLines("in_progress:build", []), [],
     "a status nothing earned earns no opening: every phase behind it is still owed");
   assert.deepEqual(behind(["decision"]), [
     "  passed: 2 Clarify; 3 Plan  —  decision",
@@ -142,18 +143,18 @@ test("the opening names the work the last run left, and says what can be reached
     at: "2026-09-11T08:16:19.832Z", reach: { here: true, remote: null },
   };
   const under = (status, held, one) => openingLines(status, held, one).filter((line) => /^ {2}work/u.test(line));
-  const lines = under("in_progress", EVERY_KIND, work);
+  const lines = under("in_progress:build", EVERY_KIND, work);
   assert.equal(lines.length, 1, "one pointer line, whatever the record above it holds");
   assert.match(lines[0], /ISS-979-assistant-layer/u, "the branch");
   assert.match(lines[0], /at ea3a703/u, "the head it stands at");
   assert.match(lines[0], /cut from ed861eb/u, "and what it was cut from");
-  assert.match(openingLines("in_progress", EVERY_KIND, work).at(-1), /no remote-tracking ref here contains it/u,
+  assert.match(openingLines("in_progress:build", EVERY_KIND, work).at(-1), /no remote-tracking ref here contains it/u,
     "with what can be reached of it under the pointer rather than in a footer");
-  assert.deepEqual(under("in_progress", [], work), lines,
+  assert.deepEqual(under("in_progress:build", [], work), lines,
     "a page passing no phase still names the branch: the two readings answer different questions");
   /* The other half of the promise: a phase with nothing behind it reads as it always did. */
-  assert.deepEqual(openingLines("in_progress", EVERY_KIND, null), openingLines("in_progress", EVERY_KIND));
-  assert.deepEqual(under("in_progress", EVERY_KIND, { ...work, branch: null }), []);
+  assert.deepEqual(openingLines("in_progress:build", EVERY_KIND, null), openingLines("in_progress:build", EVERY_KIND));
+  assert.deepEqual(under("in_progress:build", EVERY_KIND, { ...work, branch: null }), []);
   assert.deepEqual(under("closed", EVERY_KIND, work), [],
     "and a status owing no phase names no branch, nobody's next step being on it");
   assert.equal(workLines(work).length, 2, "the renderer is the one both verbs share");
@@ -171,7 +172,7 @@ test("a full record set at open passes no phase and still owes the triage", () =
 
 /* Off a real view and not a literal list, the join every case above skips: `forge record plan` writes a field and never a comment, so a set read off the page alone left Phase 3 never passed (ISS-1064). */
 test("the plan and the criteria count as held, being fields of the issue rather than comments", () => {
-  const body = { status: "developed", plan: PLAN, complexity: "m", acceptanceCriteria: "1. The outcome." };
+  const body = { status: "in_progress:test", plan: PLAN, complexity: "m", acceptanceCriteria: "1. The outcome." };
   const said = (kind) => ({ body: `## X\n\n\`\`\`forge-record\n${kind}\n\`\`\`\n\nforge-record: ${kind.split(":")[0]} · contract 1`, createdAt: "2026-01-01" });
   const view = viewFrom("the-uuid", body, [
     said("where: a place\nis: a thing\nfinding: holds"),
@@ -179,14 +180,14 @@ test("the plan and the criteria count as held, being fields of the issue rather 
   const held = kindsHeld(view);
   assert.ok(held.includes("plan"), `the plan field is set and the held set is ${held.join(", ")}`);
   assert.ok(held.includes("criteria"), "and so is the criteria field, the other kind kept off the page");
-  assert.deepEqual(kindsHeld(viewFrom("the-uuid", { status: "developed" }, [])), [],
+  assert.deepEqual(kindsHeld(viewFrom("the-uuid", { status: "in_progress:test" }, [])), [],
     "while an issue holding neither field and no comment holds nothing");
 });
 
 /* The two halves answer different questions — the record what was written, the status where the
    issue stands — and a phase in both lists would contradict the line that heads the block. */
 test("no phase is both named as passed and named as owed", () => {
-  for (const status of ORDER) {
+  for (const status of LADDER) {
     const index = phaseIndex({ status, fields: fieldsOf("m"), held: EVERY_KIND });
     const owed = new Set(index.owed.map((one) => one.phase));
     for (const one of index.passed) {
@@ -202,22 +203,21 @@ test("no phase is both named as passed and named as owed", () => {
 test("the lane names what earns each status ahead, and what the rung drops on the way", () => {
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s") }), [
     "Lane at `fix` — every status from where it stands, and what earns it:",
-    "  open             ← where it stands",
-    "  confirmed        confirmation",
-    "  approved         criteria; no decision, no plan at this rung",
-    "  in_progress      nothing owed at any rung",
-    "  developed        review, merged",
-    "  testing          verdict",
-    "  awaiting_release verification, note",
-    "  closed           nothing owed at any rung",
+    "  open                ← where it stands",
+    "  in_progress:plan    confirmation",
+    "  approved            criteria; no decision, no plan at this rung",
+    "  in_progress:build   nothing owed at any rung",
+    "  in_progress:test    review, merged",
+    "  in_progress:release verdict",
+    "  awaiting_release    verification, note",
     "Each name is a record kind: `forge record <kind> -h`.",
   ], "a fix reads its whole route: what it writes, what it does not, and where it ends");
   const feature = laneLines({ status: "open", fields: fieldsOf("m") });
   assert.ok(!feature.some((one) => one.includes("at this rung")),
     "a feature is waived nothing, so no line of its lane names a payload as dropped");
   assert.deepEqual(feature.filter((one) => /approved|awaiting_release/u.test(one)), [
-    "  approved         decision, plan, criteria",
-    "  awaiting_release verification, note",
+    "  approved            decision, plan, criteria",
+    "  awaiting_release    verification, note",
   ], "and the one row a lighter rung touches asks for the whole of its payload, the other reading alike at every rung");
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
     "a correction that climbed a rung prints the feature lane, the field having claimed a fix");
@@ -240,7 +240,7 @@ test("neither verb that prints the opening composes a line of it", () => {
 /* A waiver is on a transition: dropping the plan is not dropping the implementing, and an index
    reading it as the latter tells a run at the fix rung its work is done. */
 test("a rung's waiver is printed against the status it is granted from, and waives no phase", () => {
-  const owed = (complexity) => phaseIndex({ status: "confirmed", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
+  const owed = (complexity) => phaseIndex({ status: "in_progress:plan", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
   const waived = owed("s").filter((one) => one.waivers.length);
   /* The status below the one dropping it: for the reading and the plan that is the cell `confirmed` owes, both being written there (ISS-1065, ISS-1066). One cell and not two since the release note stopped being waived, the tracker refusing a close without it at every rung (ISS-1485). */
   assert.deepEqual(waived.map((one) => one.phase), ["2 Clarify; 3 Plan"],
@@ -260,7 +260,7 @@ test("a rung's waiver is printed against the status it is granted from, and waiv
 
 test("the lines say a phase is owed without a record, never that the phase is dropped", () => {
   const lines = indexLines("issue-flow", "ISS-9",
-    phaseIndex({ status: "confirmed", fields: fieldsOf("s"), held: EVERY_KIND }));
+    phaseIndex({ status: "in_progress:plan", fields: fieldsOf("s"), held: EVERY_KIND }));
   assert.equal(lines.filter((one) => one.startsWith("dropped")).length, 0,
     "no line calls a phase dropped, which is what told a fix its implementing was waived");
   const clarify = lines.filter((one) => one.startsWith("owed") && one.includes("2 Clarify; 3 Plan"));
@@ -273,7 +273,7 @@ test("the lines say a phase is owed without a record, never that the phase is dr
   assert.match(lines.at(-1), /forge guide issue-flow <phase>/u, "a reader is left with the next call");
 });
 
-/* `ORDER` is the path, not the table: a status beside it read as completion owes work silently. */
+/* `LADDER` is the path, not the table: a status beside it read as completion owes work silently. */
 test("a status off the linear path owes its own phase and is not read as finished", () => {
   const index = phaseIndex({ status: "reopen", fields: fieldsOf("s"), held: EVERY_KIND });
   assert.match(index.first, /^1 Triage/u, "a reopen owes the triage of the person's finding");
@@ -286,7 +286,7 @@ test("a status off the linear path owes its own phase and is not read as finishe
 
 /* The seam: this holds the two tables' overlap to exactly what the case above covers. */
 test("every status the flow table gives a phase is on the order or named as beside it", () => {
-  const off = Object.keys(PHASE).filter((status) => Number.isFinite(phaseNumber(status)) && !ORDER.includes(status));
+  const off = Object.keys(PHASE).filter((status) => Number.isFinite(phaseNumber(status)) && !LADDER.includes(status));
   assert.deepEqual(off, ["reopen"], "reopen alone sits outside the order, being a bounce not a rung");
   for (const status of off) {
     assert.equal(phaseIndex({ status, fields: fieldsOf("s"), held: EVERY_KIND }).aside, status, `${status} reads as finished`);
@@ -299,7 +299,7 @@ test("every status the flow table gives a phase is on the order or named as besi
 const HEAD = "c3d676c0000000000000000000000000000000aa";
 const RELEASE = "9f0e1d2000000000000000000000000000000bbb";
 const atHead = (state, reviewed, verdicts) => viewFrom("the-uuid", {
-  status: "in_progress", plan: PLAN, acceptanceCriteria: "1. The first outcome.\n2. The second outcome.",
+  status: "in_progress:build", plan: PLAN, acceptanceCriteria: "1. The first outcome.\n2. The second outcome.",
   sessionContext: { landing: { state, head: HEAD, base: "84a2d82", branch: "iss-1", files: ["a.mjs"] } },
 }, [
   { createdAt: "2026-09-24T21:01:00.000Z", body: render("review", { reviewer: "codex", commit: reviewed, outcome: "approved", finding: [] }) },
@@ -309,7 +309,7 @@ const atHead = (state, reviewed, verdicts) => viewFrom("the-uuid", {
   })),
 ]);
 const cutAt = (view) => phaseIndex({
-  status: "in_progress", fields: fieldsOf("m"), held: kindsHeld(view), finished: finishedAtHead(view),
+  status: "in_progress:build", fields: fieldsOf("m"), held: kindsHeld(view), finished: finishedAtHead(view),
 });
 const PASSING = [[1, "pass", HEAD], [2, "pass", HEAD]];
 
@@ -318,15 +318,15 @@ test("a review and every verdict at the checkpoint's head leave the landing as t
   assert.deepEqual(finishedAtHead(view), ["review", "verdict"]);
   const index = cutAt(view);
   assert.equal(index.first, "7 Ship, the landing", "the review and the proof are behind the run");
-  assert.deepEqual(index.passed.filter((one) => one.status === "in_progress").map((one) => [one.phase, one.cites]),
+  assert.deepEqual(index.passed.filter((one) => one.status === "in_progress:build").map((one) => [one.phase, one.cites]),
     [["4 Implement, to the review", "review"], ["5 Prove", "verdict"]], "each listed passed, by the kind that ended it");
-  assert.deepEqual(methodOf("in_progress", finishedAtHead(view)),
+  assert.deepEqual(methodOf("in_progress:build", finishedAtHead(view)),
     { phase: "7 Ship, the landing", reference: "forge guide issue-flow" }, "and the method is the ship's");
-  const lines = openingLines("in_progress", kindsHeld(view), null, finishedAtHead(view));
+  const lines = openingLines("in_progress:build", kindsHeld(view), null, finishedAtHead(view));
   assert.ok(lines.includes("  passed: 4 Implement, to the review  —  review"), lines.join("\n"));
   assert.ok(lines.includes("  passed: 5 Prove  —  verdict"), lines.join("\n"));
   assert.match(indexLines("issue-flow", "ISS-9", index)[0], /phase owed: 7 Ship, the landing$/u);
-  assert.equal(PHASE.in_progress[0], "4 Implement, to the review; 5 Prove; then 7's landing",
+  assert.equal(PHASE["in_progress:build"][0], "4 Implement, to the review; 5 Prove; then 7's landing",
     "while the cell itself reads as it did, every reader of its numbers reading the same phases");
 });
 
@@ -343,8 +343,8 @@ test("a review of another commit, or a head the builder owes, leaves the whole c
   for (const view of [atHead("ready", RELEASE, PASSING), atHead("head-owed", HEAD, PASSING),
     atHead("builder-owed", HEAD, PASSING), atHead("records-owed", HEAD, PASSING), atHead("done", HEAD, PASSING)]) {
     assert.deepEqual(finishedAtHead(view), [], view.landing.state);
-    assert.equal(cutAt(view).first, PHASE.in_progress[0], view.landing.state);
+    assert.equal(cutAt(view).first, PHASE["in_progress:build"][0], view.landing.state);
   }
-  const bare = viewFrom("the-uuid", { status: "in_progress", plan: PLAN, acceptanceCriteria: "1. The outcome." }, []);
+  const bare = viewFrom("the-uuid", { status: "in_progress:build", plan: PLAN, acceptanceCriteria: "1. The outcome." }, []);
   assert.deepEqual(finishedAtHead(bare), [], "and no checkpoint names no head at all");
 });

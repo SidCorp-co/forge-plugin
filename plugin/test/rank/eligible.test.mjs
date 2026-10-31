@@ -37,12 +37,12 @@ const leaseFor = (holder, minutes = 30, at = new Date().toISOString()) =>
   ({ lease: { holder, agent: "an agent", pid: "1", renewedAt: at, minutes, history: [] } });
 
 test("a status no run takes is dropped, and the sentence names the status", () => {
-  for (const status of ["in_progress", "developed", "awaiting_release", "closed", "dropped", "waiting"]) {
+  for (const status of ["in_progress:build", "in_progress:test", "awaiting_release", "closed", "dropped", "needs_info"]) {
     const held = eligibilityOf(row({ status }));
     assert.equal(held.eligible, false, status);
     assert.match(held.reason, new RegExp(`status ${status}`, "u"));
   }
-  for (const status of ["open", "confirmed", "approved", "reopen"]) {
+  for (const status of ["open", "in_progress:plan", "approved", "reopen"]) {
     assert.equal(eligibilityOf(row({ status })).eligible, true, status);
   }
 });
@@ -83,11 +83,11 @@ test("a blocker the flow would still refuse on drops the issue, and the sentence
   const held = eligibilityOf(row(), { blockers: [edge("open")] });
   assert.equal(held.eligible, false);
   assert.equal(held.reason, "blocked by ISS-9 (open)");
-  for (const status of ["developed", "awaiting_release", "closed"]) {
+  for (const status of ["awaiting_release", "closed", "dropped"]) {
     assert.equal(eligibilityOf(row(), { blockers: [edge(status)] }).eligible, true,
-      `${status} is at or past the floor the transition asks for`);
+      `${status} is where core reads a blocker as settled`);
   }
-  for (const status of ["open", "approved", "in_progress", "waiting"]) {
+  for (const status of ["open", "approved", "in_progress", "in_progress:test", "needs_info"]) {
     assert.equal(eligibilityOf(row(), { blockers: [edge(status)] }).eligible, false, status);
   }
   assert.equal(eligibilityOf(row(), { blockers: [edge("open", { gatesDispatch: false })] }).eligible, true,
@@ -130,14 +130,14 @@ test("a path is read out of a code span and matched by tree", () => {
 
 /* The judging side. Every case here is watched failing against the read as it stands: the offer
    exists on one declaration only, and a bound that reported nothing would look exactly like a
-   backlog with nothing at `developed` in it. */
-const at = (issueId, status = "developed", createdAt = "2026-01-01T00:00:00.000Z") =>
+   backlog with nothing at `in_progress:test` in it. */
+const at = (issueId, status = "in_progress:test", createdAt = "2026-01-01T00:00:00.000Z") =>
   ({ issueId, documentId: `uuid-${issueId}`, title: `${issueId} title`, status, createdAt });
 
 const free = () => Promise.resolve(null);
 
-test("an issue at developed with no live lease is offered to a judging run", async () => {
-  const held = await judgingFrom([at("ISS-1"), at("ISS-2", "open"), at("ISS-3", "testing")],
+test("an issue at in_progress:test with no live lease is offered to a judging run", async () => {
+  const held = await judgingFrom([at("ISS-1"), at("ISS-2", "open"), at("ISS-3", "in_progress:release")],
     { policy: { qa: "independent" }, leaseFor: free, cap: 12 });
   assert.deepEqual(held.offered.map((one) => one.issueId), ["ISS-1"],
     "only the status a judging run claims from, and every other status is another reading's");
@@ -145,7 +145,7 @@ test("an issue at developed with no live lease is offered to a judging run", asy
   assert.equal(held.unreached, 0);
 });
 
-test("a live lease leaves a developed issue out, and the sentence names the run holding it", async () => {
+test("a live lease leaves an in_progress:test issue out, and the sentence names the run holding it", async () => {
   const held = await judgingFrom([at("ISS-1")],
     { policy: { qa: "independent" }, leaseFor: () => leaseFor("a-builder-run"), cap: 12 });
   assert.equal(held.offered.length, 0);
@@ -161,7 +161,7 @@ test("a declaration other than independent, and none at all, offer nothing", asy
 
 /* The reading this run's own lease gets is the opposite of `eligibilityOf`'s: an issue this session
    holds is its own to carry on with, and the whole claim of an offer is that the builder let go. */
-test("a lease this session holds leaves a developed issue out too, not only another run's", async () => {
+test("a lease this session holds leaves an in_progress:test issue out too, not only another run's", async () => {
   const held = await judgingFrom([at("ISS-1")],
     { policy: { qa: "independent" }, leaseFor: () => leaseFor(sessionOf()), cap: 12 });
   assert.equal(eligibilityOf(row(), { lease: leaseFor(sessionOf()) }).eligible, true,
@@ -172,9 +172,9 @@ test("a lease this session holds leaves a developed issue out too, not only anot
 
 test("the read is oldest first, and a bound it spends says how many rows it did not reach", async () => {
   const rows = [
-    at("ISS-3", "developed", "2026-03-01T00:00:00.000Z"),
-    at("ISS-1", "developed", "2026-01-01T00:00:00.000Z"),
-    at("ISS-2", "developed", "2026-02-01T00:00:00.000Z"),
+    at("ISS-3", "in_progress:test", "2026-03-01T00:00:00.000Z"),
+    at("ISS-1", "in_progress:test", "2026-01-01T00:00:00.000Z"),
+    at("ISS-2", "in_progress:test", "2026-02-01T00:00:00.000Z"),
   ];
   const seen = [];
   const held = await judgingFrom(rows, {

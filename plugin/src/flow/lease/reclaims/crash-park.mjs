@@ -1,6 +1,7 @@
 /* The count of reclaims at one status, read off the claim history the lease carries, and the one line that history takes when a claim prints it. docs/cli/claim.md. */
 import { RECLAIM, declaresNothingWorked, stamp } from "../../lease.mjs";
 import { historyOf } from "../history.mjs";
+import { placeRead } from "../../../tracker/declared/issue-machine.mjs";
 
 /* Past this many, a claim names the park to its caller. It never writes one: the caller is the one process that knows whether it is alive, and a count cannot tell a retried dispatch, a reading lease or a job that never started from a run that died (ISS-693). */
 export const RECLAIMS_BEFORE_PARK = 2;
@@ -32,12 +33,13 @@ export const uncountedWhy = (one, prior) => reasonOf(one, prior)?.why ?? null;
 
 /* Each row beside the one before it, read off the whole history before any status filter, since the row a reclaim is measured against may stand at another status. */
 const rowsOf = (lease) => {
-  const history = historyOf(lease);
+  /* A row written before the ladder was core's names its rung, read as the place it was. */
+  const history = historyOf(lease).map((one) => (typeof one?.status === "string" ? { ...one, status: placeRead(one.status) } : one));
   return history.map((one, at) => ({ one, prior: at ? history[at - 1] : null }));
 };
 
 const reclaimsAt = (lease, status) =>
-  rowsOf(lease).filter(({ one }) => one?.how === RECLAIM && one?.status === status);
+  rowsOf(lease).filter(({ one }) => one?.how === RECLAIM && one?.status === placeRead(status));
 
 const counted = ({ one, prior }) => !reasonOf(one, prior);
 
@@ -74,7 +76,7 @@ const leftOut = (one, prior) => {
 /* One line, printed under the reclaim count once the threshold is passed; the run a row displaced is named where the row holds one, which is the take a write made and no other, that being the one pickup whose caller was shown no refusal naming whom it went over. */
 export const historyLine = (lease, status) =>
   rowsOf(lease)
-    .filter(({ one }) => !status || one?.status === status)
+    .filter(({ one }) => !status || one?.status === placeRead(status))
     .map(({ one, prior }) => `${one.how} by ${one.holder}${one.from ? ` over ${one.from}, whose lease ran out at ${one.ranOut}` : ""}`
       + ` at ${stamp(Date.parse(one.at ?? ""))}`
       + leftOut(one, prior))

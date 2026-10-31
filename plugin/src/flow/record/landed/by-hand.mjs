@@ -1,24 +1,24 @@
-/* A landing built by hand, recorded in one call in the order core's direct mode names
-   (`masters/owed.ts` DIRECT_ORDER): the lease, the merge mark at a sha the remote base carries, the
+/* A landing built by hand, recorded in one call in the order core's direct mode names (core's
+   `DIRECT_ORDER`): the lease, the merge mark at a sha the remote base carries, the
    move to `awaiting_release` with that sha as its reason, the comment, and the lease back last. Each
    step's refusal stops the call by name and says which steps already happened, since four separate
    calls failing apart (NO_HOLDER, NO_OP) is what this replaces. docs/cli/record-landed.md. */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { Refusal, fail, refusing } from "../../resolve/settings.mjs";
-import { Refused } from "../../refusal.mjs";
-import { flags } from "../../resolve/flags.mjs";
-import { usageOf } from "../../resolve/visibility.mjs";
-import { write } from "../../tracker/rest.mjs";
-import { postComment } from "../../tracker/comments.mjs";
-import { isCommit, sameCommit } from "../../tracker/evidence.mjs";
-import { releasePolicy } from "../../tracker/project-config.mjs";
-import { commitCarries } from "../../git/carries.mjs";
-import { issueOf } from "./thread/posting.mjs";
-import { markMerged } from "./merged.mjs";
-import { FIELD, HOLDING, leaseOf, oweRelease, releaseOwed, renew, stateOf } from "../lease.mjs";
-import { sessionOf } from "../../resolve/config.mjs";
+import { Refusal, fail, refusing } from "../../../resolve/settings.mjs";
+import { Refused } from "../../../refusal.mjs";
+import { flags } from "../../../resolve/flags.mjs";
+import { usageOf } from "../../../resolve/visibility.mjs";
+import { write } from "../../../tracker/rest.mjs";
+import { mustBeShown, postComment } from "../../../tracker/comments.mjs";
+import { isCommit, sameCommit } from "../../../tracker/evidence.mjs";
+import { releasePolicy } from "../../../tracker/project-config.mjs";
+import { commitCarries } from "../../../git/carries.mjs";
+import { issueOf } from "../thread/posting.mjs";
+import { markMerged } from "../merged.mjs";
+import { FIELD, HOLDING, leaseOf, oweRelease, releaseOwed, renew, stateOf } from "../../lease.mjs";
+import { sessionOf } from "../../../resolve/config.mjs";
 
 export const LANDED = "landed";
 const WHOLE_SHA = /^[0-9a-f]{40}$/u;
@@ -56,7 +56,7 @@ const stopped = (ref, step, why, done) => fail(`record landed on ${ref} stopped 
 /* The base, fetched from the remote into its tracking ref, and whether that ref carries the sha. */
 const baseCarries = (sha, base) => {
   const fetched = spawnSync("git", ["fetch", "--quiet", REMOTE, `+refs/heads/${base}:refs/remotes/${REMOTE}/${base}`],
-    { encoding: "utf8", timeout: 60_000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
+    { cwd: process.cwd(), encoding: "utf8", timeout: 60_000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
   if (fetched.error || fetched.status !== 0) {
     return { carries: null, why: `git fetch ${REMOTE} ${base} failed: ${String(fetched.stderr || fetched.error?.message || "").trim()}` };
   }
@@ -64,7 +64,7 @@ const baseCarries = (sha, base) => {
 };
 
 const subjectOf = (sha) => {
-  const run = spawnSync("git", ["log", "-1", "--format=%s", sha], { encoding: "utf8" });
+  const run = spawnSync("git", ["log", "-1", "--format=%s", sha], { cwd: process.cwd(), encoding: "utf8" });
   return run.status === 0 ? run.stdout.trim() : "";
 };
 
@@ -110,7 +110,7 @@ const plan = (ref, documentId, issue, { sha, base, reason }) => {
 const run = async (ref, given) => {
   const { documentId, body: issue } = await issueOf(ref);
   const base = (await releasePolicy())?.staging ?? null;
-  if (!base) fail(`record ${LANDED} reads the remote base branch the sha must be on, and this project names none (baseBranch). Nothing was sent.`);
+  if (!base) fail(`record ${LANDED} reads the remote base branch the sha must be on, and this project names none: its base branch is set on the tracker's project settings. Nothing was sent.`);
   const facts = { sha: given.sha, base, reason: given.reason ?? null };
   if (given.dryRun) return console.log(plan(ref, documentId, issue, facts));
   const done = [];
@@ -141,6 +141,9 @@ const run = async (ref, given) => {
   }
   if (issue.status === RESTS_AT) done.push(`already at ${RESTS_AT}`);
   else {
+    /* Read again before the move: a comment a person wrote while the mark went up is one the move
+       must not go over unread, the same check the lease made at the start. */
+    await step(`3, the move to ${RESTS_AT}`, () => mustBeShown([{ ref, documentId }]));
     const moved = await write("forge_issues", { action: "transition", documentId,
       data: { status: RESTS_AT, reason: `${facts.sha}${facts.reason ? `: ${facts.reason}` : ""}` } }, undefined, true);
     if (moved?.refused) stopped(ref, `3, the move to ${RESTS_AT}`, moved.refused, done);

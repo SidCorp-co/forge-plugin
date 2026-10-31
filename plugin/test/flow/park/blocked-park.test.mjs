@@ -8,7 +8,7 @@ import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
-import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
+import { placeOf } from "../../../src/tracker/declared/issue-machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("blocked-park").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -24,7 +24,7 @@ const comment = (body, extra = {}) =>
   ({ documentId: `comment-${clock + 1}`, createdAt: at(), authorId: "agent", body, ...extra });
 const recorded = (kind, fields, status = null) => comment(render(kind, fields, status));
 const parkedOn = (why = "waits on forge-dev ISS-1251, which no edge can name", evidence = []) =>
-  recorded("park", { kind: "blocked", why, evidence }, "confirmed");
+  recorded("park", { kind: "blocked", why, evidence }, "in_progress:plan");
 
 const HEAD = "9e24c2af0000000000000000000000000000abcd";
 const PIN = "c4890050000000000000000000000000000dcba";
@@ -48,7 +48,7 @@ const NO_EDGE = {
 test("an edgeless blocked park is not resumed, and owes the answer as the one command that clears it", () => {
   for (const [name, issue] of Object.entries(NO_EDGE)) {
     const { next, missing, resumed } = held(issue, [parkedOn()]);
-    assert.equal(next, "confirmed", name);
+    assert.equal(next, "in_progress:plan", name);
     assert.equal(resumed, true, name);
     assert.equal(missing.length, 1, `${name}: nothing earned the resume`);
     /* The answer's whole form is park.test.mjs's to pin; that it is the answer is this case's. */
@@ -79,8 +79,10 @@ test("an edgeless blocked park is resumed by another author's comment, as every 
 });
 
 test("a blocked park with gating edges resumes on the edges alone, and owes the one still holding", () => {
-  const cleared = held({ relations: { blockedBy: [gating("closed"), gating("developed")] } }, [parkedOn()]);
+  const cleared = held({ relations: { blockedBy: [gating("closed"), gating("awaiting_release"), gating("dropped")] } }, [parkedOn()]);
   assert.deepEqual(cleared.missing, [], "every edge cleared, so nothing else is asked for");
+  assert.equal(held({ relations: { blockedBy: [gating("in_progress")] } }, [parkedOn()]).missing.length, 1,
+    "a blocker still being built or judged holds");
   const holding = held({ relations: { blockedBy: [gating("open")] } }, [parkedOn()]);
   assert.equal(holding.missing.length, 1);
   assert.match(holding.missing[0].what, /^ISS-9 gates this by a blocks edge and is open/u);
@@ -93,7 +95,7 @@ const landing = (head) => ({ sessionContext: { landing: { state: "head-owed", he
    names (ISS-2449): no person is asked, and no answer would be read. */
 test("the landing's own conflict park standing over its head is taken up by the builder's step", () => {
   const { next, missing } = held(landing(HEAD), [parkedOn(conflictWhy, [HEAD, PIN])]);
-  assert.equal(next, "confirmed");
+  assert.equal(next, "in_progress:plan");
   assert.deepEqual(missing, []);
 });
 
@@ -177,13 +179,13 @@ test("an answer on an edgeless blocked park is taken, and resumes the issue wher
   const run = await answering();
   const said = `${run.stdout}${run.stderr}`;
   assert.equal(run.status, 0, said);
-  assert.match(run.stderr, /^ISS-420 {2}on_hold -> confirmed {2}\(resumed where its park left it\)$/mu, said);
-  assert.equal(rungOf(PARKED.status, PARKED.workState?.step), "confirmed");
+  assert.match(run.stderr, /^ISS-420 {2}on_hold -> in_progress:plan {2}\(resumed where its park left it\)$/mu, said);
+  assert.equal(placeOf(PARKED.status, PARKED.workState?.step), "in_progress:plan");
 });
 
 test("an answer is refused with nothing sent where the on_hold park is anything but an edgeless blocked one", async () => {
   const cases = {
-    "a park a person lifts by a set": [recorded("park", { kind: "paused", why: "w", evidence: [] }, "confirmed"), {}],
+    "a park a person lifts by a set": [recorded("park", { kind: "paused", why: "w", evidence: [] }, "in_progress:plan"), {}],
     "a blocked park with a gating edge": [parkedOn(), { relations: { blockedBy: [gating("open")] } }],
     "the landing's own conflict park over the checkpoint's head":
       [parkedOn(conflictWhy, [HEAD, PIN]), landing(HEAD)],

@@ -66,7 +66,7 @@ the failure, not the fallback for it (ISS-1617).
 the default: a lease held past the run that took it is invisible until a second run collides with
 it, while a lease released under a run still working is that run's very next write, refused by name.
 So the release follows the action and never the status — in ship mode `self` one run carries past
-`developed` and lands, and a release keyed to that rung would take the issue out from under it.
+`in_progress:test` and lands, and a release keyed to that rung would take the issue out from under it.
 
 **A run letting the issue go says so too: `--give-back`.** Not `--stopped`, which from the holder
 answers the working refusal — *that work in the tree is mine* — and as the release it would free a

@@ -7,6 +7,7 @@ import test from "node:test";
 
 import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 
 process.env.XDG_CONFIG_HOME = tempHome("unheld").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -35,10 +36,12 @@ const ISSUE = {
   complexity: "m",
 };
 
-/* Each case starts from the field it is about, so no case reads through the one before it. */
-const fieldHolds = (context, status = "in_progress") => {
+/* Each case starts from the field it is about, so no case reads through the one before it; the
+   place it stands at is written in core's words, the status and the step inside in_progress. */
+const fieldHolds = (context, place = "in_progress:build") => {
   ISSUE.sessionContext = context;
-  ISSUE.status = status;
+  ISSUE.status = statusOfPlace(place);
+  ISSUE.workState = stepOfPlace(place) ? { step: stepOfPlace(place) } : null;
 };
 
 const remnant = (next) => ({ lease: { ...(next ? { next } : {}), history: [] } });
@@ -83,7 +86,7 @@ test("a claim on an issue past the dispatch statuses with no lease at all is ref
   const before = state.calls.length;
   const refused = await claim([]);
   assert.equal(refused.status, 1, `the claim should have been refused:\n${refused.stdout}${refused.stderr}`);
-  assert.match(refused.stderr, /at `in_progress`/u, "the refusal names the status it read");
+  assert.match(refused.stderr, /at `in_progress:build`/u, "the refusal names the place it read");
   assert.match(refused.stderr, /lease field holds no lease/u, "and says the record holds none where one is expected");
   assert.match(refused.stderr, new RegExp(`The step the last write named: ${LEFT}`, "u"),
     "and the line the emptied field still carries");
@@ -115,7 +118,7 @@ test("a worklog naming no branch is said to name none rather than printed empty"
 });
 
 test("a first claim at each status a run is dispatched at is unchanged, and asks for no flag", async () => {
-  for (const status of ["open", "confirmed", "approved", "reopen"]) {
+  for (const status of ["open", "in_progress:plan", "approved", "reopen"]) {
     fieldHolds({}, status);
     const run = await claim([]);
     assert.equal(run.status, 0, `a first claim at ${status} is the ordinary case:\n${run.stdout}${run.stderr}`);

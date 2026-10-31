@@ -43,8 +43,8 @@ dispatches on it may treat as bounded, and a notice only the human form carries 
 
 ## The judging candidates are listed apart, and the lease is what costs
 
-An issue at `developed` is not a lighter case of one at `open`. Where a project declares the
-judgement between `developed` and `testing` an independent run's, that issue is a judging run's to
+An issue at `in_progress:test` is not a lighter case of one at `open`. Where a project declares the
+judgement between `in_progress:test` and `in_progress:release` an independent run's, that issue is a judging run's to
 claim, and the weights have no reading for it: priority, kind, complexity, age and the chain are
 arithmetic about what to build next, and a change already landed and waiting to be exercised scores
 against none of them. Scored among the rest it would take a place in `--count` from the building
@@ -64,7 +64,7 @@ of its own. They are read oldest first, which makes the set a bound covers the s
 and the reading stops at `windowCap`. Where it stops short the answer says how many rows it did not
 reach and names the weight that raises it: a leased front row would otherwise hide every free row
 behind it for as long as those leases renewed, and a bound whose shortfall went unsaid reads exactly
-like a backlog with nothing at `developed` in it.
+like a backlog with nothing at `in_progress:test` in it.
 
 ## What the edges cost, and where they are read
 

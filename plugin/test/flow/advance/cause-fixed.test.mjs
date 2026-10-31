@@ -16,7 +16,8 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const issue = {
   documentId: "cause-uuid",
   issueId: "ISS-7",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "the toggle does not clamp",
   description: "x",
 };
@@ -50,7 +51,7 @@ const SURVIVES = ["--survives", "the regression probe the rules ask for, judged 
 const BUILT = { sessionContext: { worklog: { branch: "iss-7-the-work" } } };
 const pageOf = (...bodies) =>
   viewFrom("cause-uuid", { ...BUILT, ...issue }, bodies.map((body, at) => ({ createdAt: `2026-09-28T10:0${at}:00.000Z`, authorId: "agent", body })));
-const confirmedOwes = (view) => CHECKS.confirmed(view, "ISS-7");
+const confirmedOwes = (view) => CHECKS["in_progress:plan"](view, "ISS-7");
 /* A confirmation as another client would post it: the fenced block keyed by flag, and the tag. */
 const byHand = (fields) => [
   "## Confirmation", "", "```forge-record",
@@ -64,9 +65,9 @@ test("a cause-fixed confirmation naming both halves is written, and takes the la
   assert.equal(run.posted.length, 1, "one comment went up");
   const body = run.posted[0].args.data?.body ?? run.posted[0].args.body;
   const view = pageOf(body);
-  assert.deepEqual(confirmedOwes(view), [], "the posted page earns confirmed");
+  assert.deepEqual(confirmedOwes(view), [], "the posted page earns in_progress:plan");
   assert.equal(dispositionOf(view), null, "a cause already fixed is no disposition");
-  assert.equal(nextOf("confirmed", view), "approved");
+  assert.equal(nextOf("in_progress:plan", view), "approved");
 });
 
 test("a cause-fixed confirmation missing a half is refused at the write, naming the flag it lacks", async () => {
@@ -87,16 +88,16 @@ test("a half given beside any other finding is refused rather than dropped", asy
   }
 });
 
-test("a cause-fixed page missing either half earns no confirmed, and the six dispositions still drop", () => {
+test("a cause-fixed page missing either half earns no in_progress:plan, and the six dispositions still drop", () => {
   const HALVES = { fixed: FIXED[1], survives: SURVIVES[1] };
   const on = (fields) => pageOf(byHand({ is: "the clamp is in", where: "src/toggle.mjs", ...fields }));
   for (const flag of Object.keys(HALVES)) {
     const half = on({ finding: "cause-fixed", ...HALVES, [flag]: undefined });
-    assert.equal(confirmedOwes(half).length, 1, `a page lacking --${flag} earns no confirmed`);
+    assert.equal(confirmedOwes(half).length, 1, `a page lacking --${flag} earns no in_progress:plan`);
     assert.equal(dispositionOf(half), null, `and drops nothing either, lacking --${flag}`);
   }
   for (const finding of ["already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded"]) {
-    assert.equal(nextOf("confirmed", on({ finding })), "dropped", finding);
+    assert.equal(nextOf("in_progress:plan", on({ finding })), "dropped", finding);
     assert.equal(dispositionOf(on({ finding })), finding, `${finding} is still the drop's reason`);
   }
 });

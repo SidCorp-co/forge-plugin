@@ -51,14 +51,14 @@ day's walk rather than eight. A day any project could not read is not read at al
 project reads as fewer closes. The minutes a close cost are those of the issue-flow runs that owned
 the issue, joined as `stats eval` joins them, and began after its previous close; a run that owned
 several issues lends each an equal share, since nothing in a transcript says which call went to which
-issue. The tracker's reopen counter does not count a closed issue moved back to testing, so a second
+issue. The tracker's reopen counter does not count a closed issue moved back to work, so a second
 close cannot be told apart from a first: it counts on its own day, and the tile says so.
 
 ## The owner wait under the scorecard
 
 **A wait on a person is time at a status a person answers.** Which statuses those are is the flow's
 own park table: the ones a park lands in when a person, and no run, owes the next move — `needs_info`
-and `waiting` today. `on_hold` waits on a run or a dependency, and `awaiting_release` is where every
+today, and on a history walked back past the rename `waiting`, a name core has since retired. `on_hold` waits on a run or a dependency, and `awaiting_release` is where every
 landed change stands whether a person owes it anything or not, so neither counts. A wait starts at
 the move into one of those statuses, or at the issue's creation where it was created at one, and
 ends at the first move out, whichever write made it; a move between the two is one wait.

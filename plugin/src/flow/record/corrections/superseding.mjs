@@ -25,13 +25,16 @@ export const EARNED = {
   note: { field: "releaseNotes", said: "release note", text: (value) => (value?.section ? noteText(value) : "") },
 };
 
+/* The status core closes an issue at, past every place of the ladder and so past every payload's. */
+const CLOSED = "closed";
+
 /* A side status says nothing about the lane by itself, so the one the latest park left is read
    instead; neither in the lane nor left by a park, nothing says what was earned, and nothing is. */
-const standingOf = (view, { ORDER, parkRecord }) => {
+const standingOf = (view, { LADDER, parkRecord }) => {
   const { status } = view.issue;
-  if (ORDER.includes(status)) return status;
+  if (LADDER.includes(status) || status === CLOSED) return status;
   const left = parkRecord(view)?.record.fields.left;
-  return ORDER.includes(left) ? left : null;
+  return LADDER.includes(left) ? left : null;
 };
 
 /* Presence and recency, never whether the words match what moved: a whole correction naming the
@@ -90,7 +93,7 @@ export const supersedingOf = async (kind, value, { reference, issue, page, plann
   const at = Object.keys(CITED).find((status) => CITED[status].includes(kind));
   const view = earned.viewFrom(documentId, body, comments, cut);
   const standing = standingOf(view, earned);
-  if (!standing || !earned.atLeast(standing, at)) return {};
+  if (!standing || !(standing === CLOSED || earned.atLeast(standing, at))) return {};
   if (lightens(at, kind, earned.rungFieldsOf(view))) return {};
   const correction = unspent(view, kind, earned.shapeGaps);
   if (!correction) refuse(refusal(kind, reference, { standing, at }, cut));

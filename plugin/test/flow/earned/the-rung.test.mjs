@@ -1,38 +1,43 @@
 /* The rung the tracker renamed, and the claims holding it: the ladder's tail, both halves of the one
-   rung, the release path's status that nothing here writes, the declared enum (ISS-1022). */
+   rung, the names core retired that nothing here writes, the declared enum (ISS-1022). The ladder is
+   core's machine now, and its tail stops at awaiting_release: core closes an issue only by its release. */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-rung").path;
-const { CHECKS, ORDER, deployedOwed, judgedOwed, nextOf, viewFrom } =
+const { CHECKS, LADDER, deployedOwed, judgedOwed, nextOf, viewFrom } =
   await import("../../../src/flow/earned.mjs");
 const { CLOSES_FROM } = await import("../../../src/flow/machine.mjs");
 const { DECLARES } = await import("../../../src/tracker/routes.mjs");
 const { declaredFor, statusKind } = await import("../../../src/tracker/rest.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
+const { Refused } = await import("../../../src/refusal.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const RUNG = "awaiting_release";
-const JUDGING = "testing";
+const JUDGING = "in_progress:release";
 const RELEASING = "releasing";
 
-/* Read off the tracker on 2026-09-10 by `forge issue --status released`, which answers the whole
-   enum. Pinned to that read, never to what the ladder ought to want. */
-const ANSWERED = ["open", "confirmed", "clarified", "waiting", "approved", "in_progress", "developed",
-  "testing", "tested", "awaiting_release", "releasing", "closed", "reopen", "on_hold", "needs_info",
-  "draft", "dropped"];
+/* Core's statuses, read off the copy of its contract the machine tests pin, never off what the
+   ladder ought to want. */
+const ANSWERED = JSON.parse(readFileSync(new URL("../../fixtures/dev-core/issue-machine.json", import.meta.url), "utf8")).statuses;
+/* What this CLI declares: core's ten, and the four places inside `in_progress` the ladder climbs. */
+const DECLARED = ["draft", "open", "reopen", "in_progress", "in_progress:plan", "approved", "in_progress:build",
+  "in_progress:test", "in_progress:release", "awaiting_release", "closed", "on_hold", "needs_info", "dropped"];
 
-test("the ladder's tail is two rungs, and developed leads to the judging one", () => {
-  assert.deepEqual(ORDER, ["open", "confirmed", "approved", "in_progress", "developed",
-    JUDGING, RUNG, "closed"], "a member added or dropped anywhere fails this");
-  assert.equal(nextOf("developed", {}), JUDGING);
+test("the ladder's tail is two places, the test leads to the judging one, and nothing climbs to closed", () => {
+  assert.deepEqual(LADDER, ["open", "in_progress:plan", "approved", "in_progress:build", "in_progress:test",
+    JUDGING, RUNG], "a member added or dropped anywhere fails this");
+  assert.equal(nextOf("in_progress:test", {}), JUDGING);
   assert.equal(nextOf(JUDGING, {}), RUNG);
-  assert.equal(ORDER.includes("tested"), false, "the rung the verdicts earned is `testing` now");
-  assert.equal(ORDER.includes("released"), false, "and the tracker holds no such status at all");
+  assert.equal(nextOf(RUNG, {}), null, "core closes it only by the release that ships it");
+  assert.equal(LADDER.includes("tested"), false, "the place the verdicts earn is `in_progress:release` now");
+  assert.equal(LADDER.includes("released"), false, "and the tracker holds no such status at all");
 });
 
 /* Each rung is entered on one half and neither may answer for the other: a rung whose check reached
@@ -48,12 +53,12 @@ test("each rung is entered on its own half, and neither check reaches the other'
 });
 
 /* ISS-1480: nine issues reached `awaiting_release` with no verification record at all, or one
-   naming a local stack rather than a deployment, and `CHECKS.closed` — which is what `--owed` and
-   the move both read — cleared every one, because it tested the same three record kinds whatever
-   put the issue on the rung asked of instead of reading what the verification itself said. */
-test("closed is entered from that rung, a verification naming the deployment, and the project's release policy", () => {
+   naming a local stack rather than a deployment, and the close cleared every one, because it tested
+   the same three record kinds whatever put the issue on the rung instead of reading what the
+   verification itself said. The verification is read where the issue enters the rung, and the close
+   is no advance at all: core makes it only by the release that ships it. */
+test("the rung is entered on a verification naming the deployment, and closed is the release's", () => {
   assert.equal(CLOSES_FROM, RUNG, "the close reads the rung's own name");
-  assert.equal(nextOf(CLOSES_FROM, {}), "closed");
   const releases = { staging: "master", model: "publish", said: "publish", live: null,
     strategy: null, autoProd: true, from: "the fixture" };
   const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
@@ -61,54 +66,68 @@ test("closed is entered from that rung, a verification naming the deployment, an
   const mark = { createdAt: "2026-09-02T10:00:00.000Z", authorId: "agent", body: `mark_merged target=base — ${NOTE}` };
   const verifiedAt = (commit, evidence = ["https://app.example/build/9"]) => ({ createdAt: "2026-09-02T10:01:00.000Z",
     authorId: "agent", body: render("verification", { where: "https://app.example", commit, evidence }) });
-  const closed = (comments) => CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, comments, null, releases), "ISS-3");
+  const NOTED = { section: "Skip", userFacing: "-" };
+  const entered = (comments) =>
+    CHECKS[RUNG](viewFrom("the-uuid", { status: JUDGING, releaseNotes: NOTED }, comments, null, releases), "ISS-3");
 
-  const bare = closed([mark]);
+  const bare = entered([mark]);
   assert.ok(bare.length, "no verification record at all still owes one, wherever the issue arrived from");
   assert.match(bare[0].what, /no verification/u);
 
-  const stale = closed([mark, verifiedAt("eee109e")]);
+  const stale = entered([mark, verifiedAt("eee109e")]);
   assert.ok(stale.length, "a verification naming a commit the merged mark does not is not the rung's answer either");
   assert.match(stale[0].what, /eee109e/u);
   assert.match(stale[0].what, /43b811e/u);
 
-  /* A sha is a citation and never the deployment itself, at this rung exactly as at the one above
-     it (codex F1 on ISS-1480's whole-set review). */
-  const shaOnly = closed([mark, verifiedAt("43b811e", ["43b811e"])]);
+  /* A sha is a citation and never the deployment itself (codex F1 on ISS-1480's whole-set review). */
+  const shaOnly = entered([mark, verifiedAt("43b811e", ["43b811e"])]);
   assert.ok(shaOnly.length, "every evidence item being a bare commit sha is not the rung's answer either");
   assert.match(shaOnly[0].what, /a sha names no deployment/u);
 
-  assert.deepEqual(closed([mark, verifiedAt("43b811e")]), [],
-    "the rung, a verification naming the deployment, and a project owing nobody an act are the whole criterion");
+  assert.deepEqual(entered([mark, verifiedAt("43b811e")]), [],
+    "the merged mark and a verification naming the deployment are the whole criterion");
+  let said = "";
+  try {
+    targetOf(viewFrom("the-uuid", { status: RUNG }, [mark, verifiedAt("43b811e")], null, releases), "ISS-3");
+  } catch (error) {
+    if (!(error instanceof Refused)) throw error;
+    said = error.message;
+  }
+  assert.match(said, /CLOSE_ONLY_BY_RELEASE/u, "and from the rung, the close is refused as no advance's");
+  assert.match(said, /forge release-batch record ISS-3 /u, "naming the release's record that makes it");
 });
 
-/* A write is checked against this list before its request is built, so it answers to the tracker
-   rather than the ladder: `releasing` belongs in it for a read to name. */
-test("the declared status list is the tracker's enum, and the ladder is a subset of it", () => {
-  assert.deepEqual(declaredFor("forge_issues", "status"), ANSWERED,
+/* A write is checked against this list before its request is built, so it answers to core rather
+   than the ladder: every declared name is a status core holds or a place inside one, and no name core
+   retired is offered. */
+test("the declared status list is core's statuses and the ladder's places, and the ladder is a subset of it", () => {
+  assert.deepEqual(declaredFor("forge_issues", "status"), DECLARED,
     "a declared set answers with values, whatever each row carries beside its name");
-  for (const status of ORDER) {
-    assert.ok(ANSWERED.includes(status), `${status} is a rung this CLI writes and the tracker has no such member`);
+  for (const name of DECLARED) {
+    assert.ok(ANSWERED.includes(name.split(":")[0]), `${name} stands at a status core does not hold`);
   }
-  assert.equal(ANSWERED.includes("released"), false, "and the name the tracker dropped is undeclared");
-  assert.ok(ANSWERED.includes(RELEASING) && !ORDER.includes(RELEASING),
-    "while the release path's own status is readable and no rung of the ladder");
+  for (const status of LADDER) {
+    assert.ok(DECLARED.includes(status), `${status} is a place this CLI writes and declares no row for`);
+  }
+  assert.equal(DECLARED.includes("released"), false, "and the name the tracker dropped is undeclared");
+  assert.ok(!DECLARED.includes(RELEASING) && !LADDER.includes(RELEASING),
+    "while the release path's old status is neither declared nor a place of the ladder");
 });
 
 /* Three facts in three files until ISS-1043, one column now: the row carrying nothing but a name is
    the fourth kind — readable, written by a park or a set, and no step of the flow. */
 test("every declared name carries its kind where it is declared, and an undeclared name has none", () => {
-  assert.deepEqual(DECLARES.forge_issues.status.map((one) => one.name), ANSWERED,
-    "one row per name the tracker takes, and no row for a name it does not");
+  assert.deepEqual(DECLARES.forge_issues.status.map((one) => one.name), DECLARED,
+    "one row per name this CLI writes, and no row for a name core does not take");
   assert.deepEqual(statusKind("tested"), { name: "tested", replacedBy: RUNG });
-  assert.equal(statusKind("developed").step, true);
-  assert.match(statusKind(RELEASING).writtenByNobody, /release batch alone leaves it/u);
+  assert.deepEqual(statusKind(RELEASING), { name: RELEASING, replacedBy: RUNG });
+  assert.equal(statusKind("in_progress:test").step, true);
   assert.deepEqual(statusKind("needs_info"), { name: "needs_info" },
     "a name that is no step and not retired carries nothing beside itself");
   assert.equal(statusKind("released"), null, "and a name off the table has no kind to read");
 });
 
-/* The column says which names are steps and `ORDER` in what order, so either edited alone fails
+/* The column says which names are steps and `LADDER` in what order, so either edited alone fails
    here. Driven over a disagreeing sequence: an equality that cannot fail covers nothing. */
 const stepNames = () => DECLARES.forge_issues.status.filter((one) => one.step).map((one) => one.name);
 const disagreeing = (order) => {
@@ -116,12 +135,12 @@ const disagreeing = (order) => {
   return [...order.filter((one) => !steps.includes(one)), ...steps.filter((one) => !order.includes(one))];
 };
 
-test("the step column and ORDER name the same rungs, and either edited alone goes red", () => {
-  assert.deepEqual(disagreeing(ORDER), [],
-    "every name whose row carries step is a rung, and every rung's row carries step");
-  assert.deepEqual(disagreeing([...ORDER, "waiting"]), ["waiting"],
+test("the step column and LADDER name the same places, and either edited alone goes red", () => {
+  assert.deepEqual(disagreeing(LADDER), [],
+    "every name whose row carries step is a place, and every place's row carries step");
+  assert.deepEqual(disagreeing([...LADDER, "needs_info"]), ["needs_info"],
     "a name joining the sequence whose row carries no step is named");
-  assert.deepEqual(disagreeing(ORDER.filter((one) => one !== "confirmed")), ["confirmed"],
+  assert.deepEqual(disagreeing(LADDER.filter((one) => one !== "in_progress:plan")), ["in_progress:plan"],
     "and so is a step row the sequence dropped");
 });
 
@@ -129,13 +148,13 @@ test("the step column and ORDER name the same rungs, and either edited alone goe
 test("a park recorded from the retired rung is refused the way back, naming what replaced it", () => {
   const at = (minute, body) => ({ createdAt: `2026-09-08T10:0${minute}:00.000Z`, authorId: "agent", body });
   /* The park sits under the tracker's announcement of the move, which is what pairs the two. */
-  const said = at(0, "⏸ **Waiting on a human decision** — moved from `tested`\n\nlook at it");
+  const said = at(0, "❓ **Needs info** — moved from `awaiting_release`\n\nlook at it");
   const park = at(1, render("park", {
     kind: "release-decision", why: "the release waits on a person", evidence: ["43b811e"] }, "tested"));
-  const view = viewFrom("the-uuid", { status: "waiting" }, [said, park]);
+  const view = viewFrom("the-uuid", { status: "needs_info" }, [said, park]);
   assert.throws(() => targetOf(view, "ISS-96"), (error) => {
     assert.match(error.message, /names `tested` as the status it left/u);
-    assert.match(error.message, /rung that took it over is `awaiting_release`/u);
+    assert.match(error.message, /took it over is `awaiting_release`/u);
     assert.match(error.message, /--set awaiting_release/u, "and the command carries the name, not `<status>`");
     return true;
   });
@@ -160,38 +179,24 @@ test.after(() => tracker.close());
 const transitions = () => state.calls.filter((one) =>
   one.name === "forge_issues" && one.args?.action === "transition");
 
-/* Declaring the name is exactly what would otherwise let `--set` through, `declaredValue` being the
-   only check a set passes, so the refusal is the verb's own and does not read the declaration
-   (consult 8736c3, F1). The read is left working: a filter is not a write. */
-test("no run writes the release path's own status, and the refusal says whose it is", async () => {
-  const set = await ranAsync(FORGE,
-    ["advance", "ISS-96", "--set", RELEASING, "--why", "the release is running"], ENV);
-  assert.equal(set.status, 1, set.stdout);
-  assert.match(set.stdout + set.stderr, /release path's own status/u);
-  assert.match(set.stdout + set.stderr, /nothing was sent/u);
-  assert.deepEqual(transitions(), [], "and no transition was requested for it");
-  const to = await ranAsync(FORGE, ["advance", "ISS-96", "--to", RELEASING], ENV);
-  assert.equal(to.status, 1, to.stdout);
-  assert.match(to.stdout + to.stderr, /closed is next, not releasing/u,
-    "the jump refusal names the status that is next, which is the clause it answers to");
-  assert.deepEqual(transitions(), [], "neither route moved anything");
-  const read = await ranAsync(FORGE, ["issue", "--status", RELEASING], ENV);
-  assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
-});
-
-/* The hole the column closes: `tested` is declared for reading and no rung holds it, and
-   `declaredValue` — membership in that list — was the only check the set passed (ISS-1043). */
-test("a retired name is refused the set, and the refusal names the rung that took it over", async () => {
-  const set = await ranAsync(FORGE,
-    ["advance", "ISS-96", "--set", "tested", "--why", "the verdicts are all in"], ENV);
-  const said = set.stdout + set.stderr;
-  assert.equal(set.status, 1, set.stdout);
-  assert.match(said, /`tested` is no step of the flow/u);
-  assert.match(said, /`awaiting_release` is the rung that took it over/u);
-  assert.match(said, /forge advance ISS-96 --set awaiting_release --why/u,
-    "the replacement is a command to run, not a name to look up");
-  assert.doesNotMatch(said, /-h\b/u, "and no caller is sent to a help text to find out what to do");
+/* A name core retired is refused by the verb before anything is sent, whichever route asks for it,
+   and the refusal names the place that took it over as a command to run (consult 8736c3, F1;
+   ISS-1043). A filter naming one is refused too: core holds no row at it. */
+test("a retired name is refused the set, the jump and the filter, naming the place that took it over", async () => {
+  for (const name of ["tested", RELEASING]) {
+    const set = await ranAsync(FORGE, ["advance", "ISS-96", "--set", name, "--why", "the verdicts are all in"], ENV);
+    const said = set.stdout + set.stderr;
+    assert.equal(set.status, 1, set.stdout);
+    assert.match(said, new RegExp(`\`${name}\` is no status core holds: it refuses the name ISSUE_STATUS_LEGACY`, "u"));
+    assert.match(said, /`awaiting_release` is the place that took it over/u);
+    assert.match(said, /forge advance ISS-96 --set awaiting_release --why/u,
+      "the replacement is a command to run, not a name to look up");
+    assert.doesNotMatch(said, /-h\b/u, "and no caller is sent to a help text to find out what to do");
+    const to = await ranAsync(FORGE, ["advance", "ISS-96", "--to", name], ENV);
+    assert.equal(to.status, 1, to.stdout);
+    const read = await ranAsync(FORGE, ["issue", "--status", name], ENV);
+    assert.equal(read.status, 1, `${read.stdout}${read.stderr}`);
+    assert.match(read.stderr, new RegExp(`No status named ${name}`, "u"));
+  }
   assert.deepEqual(transitions(), [], "nothing was sent");
-  const read = await ranAsync(FORGE, ["issue", "--status", "tested"], ENV);
-  assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
 });

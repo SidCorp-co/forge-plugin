@@ -43,26 +43,26 @@ test("the forms listing is what a run performed, keyed on the word typed", () =>
     [use(id, start, "Bash", { command }), result(id, start + 1, body, bad)];
   writeFileSync(join(tasks, "a0001.output"), `${[
     JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-97" } }),
-    ...ran("h1", 10, "forge close ISS-97", `${said("close", "advance", "ISS-97")}\nISS-97  released -> closed`),
+    ...ran("h1", 10, "forge judge ISS-97", `${said("judge", "advance", "ISS-97")}\nISS-97  in_progress:test -> in_progress:release`),
     ...ran("h2", 20, "forge list --status open", `${said("list", "issue")}\nISS-42  high  open  a title`),
     /* Through a pipe, which is how a form arrives most of the time and is still a form performed. */
     ...ran("h3", 30, "forge list --limit 5 | head -2", `${said("list", "issue")}\nISS-42  high  open  a title`),
     /* The form ran and what it ran refused: two readings of one call, each counted where it belongs. */
     ...ran("h4", 40, "forge park ISS-97",
       `${said("park", "advance", "ISS-97")}\nadvance: --park was given no value.`, true),
-    ...ran("h5", 50, "forge advance ISS-97", "ISS-97  released -> closed"),
+    ...ran("h5", 50, "forge advance ISS-97", "ISS-97  in_progress:test -> in_progress:release"),
     use("h6", 60, "Bash", { command: "cat docs/cli/the-handler.md" }),
     result("h6", 61, `The line is \`${READ_AS} <form> as forge <verb>\`, on stderr.`),
     /* A log read quoting the line exactly: nothing performed it, so the count needs the command too (F3). */
-    ...ran("h7", 70, "tail -3 /tmp/last-run.log", `${said("close", "advance", "ISS-45")}\nISS-45  released -> closed`),
+    ...ran("h7", 70, "tail -3 /tmp/last-run.log", `${said("judge", "advance", "ISS-45")}\nISS-45  in_progress:test -> in_progress:release`),
     /* And a real line whose pair the handler does not route, which is a form name invented. */
     ...ran("h8", 80, "forge show ISS-97", `${said("show", "advance", "ISS-97")}\nnothing`),
     /* Both halves quoted into one command that ran neither, which is why the third claim is position. */
-    ...ran("h9", 90, `printf '%s\\n' '${said("close", "advance", "ISS-45")}' 'forge close ISS-45'`,
-      `${said("close", "advance", "ISS-45")}\nforge close ISS-45`),
+    ...ran("h9", 90, `printf '%s\\n' '${said("judge", "advance", "ISS-45")}' 'forge judge ISS-45'`,
+      `${said("judge", "advance", "ISS-45")}\nforge judge ISS-45`),
     /* A heredoc body, stripped by the class reading before it decides, so this row inherits that repair. */
-    ...ran("h13", 130, `cat <<'EOF'\n${said("close", "advance", "ISS-45")}\nforge close ISS-45\nEOF`,
-      `${said("close", "advance", "ISS-45")}\nforge close ISS-45`),
+    ...ran("h13", 130, `cat <<'EOF'\n${said("judge", "advance", "ISS-45")}\nforge judge ISS-45\nEOF`,
+      `${said("judge", "advance", "ISS-45")}\nforge judge ISS-45`),
     /* And the shapes that must go on counting: an environment prefix, and a path to the binary. */
     ...ran("h10", 100, "FORGE_SESSION_ID=x forge get ISS-97", `${said("get", "issue", "ISS-97")}\n{}`),
     ...ran("h11", 110, "./plugin/bin/forge read ISS-97", `${said("read", "issue", "ISS-97")}\n{}`),
@@ -72,7 +72,7 @@ test("the forms listing is what a run performed, keyed on the word typed", () =>
   const out = run.stdout;
   const has = (line) => assert.ok(out.includes(line), `${line}\n--- printed ---\n${out}`);
   has("handled forms performed, by the word typed");
-  has("     1  close");
+  has("     1  judge");
   has("     2  list");
   has("     1  park");
   assert.ok(!/^ {5}\d+ {2}advance$/mu.test(out), `a verb typed as itself was counted a form:\n${out}`);
@@ -80,6 +80,6 @@ test("the forms listing is what a run performed, keyed on the word typed", () =>
   assert.ok(!/^ {5}\d+ {2}show$/mu.test(out), `a pair the handler does not route was counted:\n${out}`);
   has("     1  get");
   has("     1  read");
-  assert.ok(/^ {5}1 {2}close$/mu.test(out),
-    `the log read and the printf were counted as closes, so position is not being read:\n${out}`);
+  assert.ok(/^ {5}1 {2}judge$/mu.test(out),
+    `the log read and the printf were counted as judges, so position is not being read:\n${out}`);
 });

@@ -11,7 +11,7 @@ const { owedSaid } = await import("../../../src/flow/route.mjs");
 
 const ISSUE = "the-uuid-of-an-issue";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
-const held = { status: "in_progress", acceptanceCriteria: CRITERIA };
+const held = { status: "in_progress:build", acceptanceCriteria: CRITERIA };
 const TYPED = ["## Files touched", "a", "## Before", "a", "## After", "a", "## Deliberately unchanged",
   "a", "## Verified in code", "a", "## Conventions reversed", "a", "## Declarations",
   "Screen change: no\nSchema coupling: no\nDeploy coupling: no", "## Witnessed on screen", "none — it reaches no screen",
@@ -74,8 +74,8 @@ test("the items are said under the line, and a set that changed under an unchang
   assert.ok(under.length >= 2, `the items under it, each with the command that supplies it: ${said}`);
   assert.match(under.join("\n"), /^ {4}forge /mu, "the command is indented under what it supplies");
   /* Two readings whose lines are identical: four owed with nothing written, and four owed where a typed plan's step serves a criterion the issue does not hold. Only the items part them. */
-  const bare = { status: "confirmed" };
-  const mismatched = { status: "confirmed", acceptanceCriteria: "1. One outcome.", plan: TYPED };
+  const bare = { status: "in_progress:plan" };
+  const mismatched = { status: "in_progress:plan", acceptanceCriteria: "1. One outcome.", plan: TYPED };
   process.env.FORGE_SESSION_ID = "owed-same-count";
   const { said: first } = await owedSaid(ISSUE, bare, [], "ISS-3");
   const { said: second, changed } = await owedSaid(ISSUE, mismatched, [], "ISS-3");

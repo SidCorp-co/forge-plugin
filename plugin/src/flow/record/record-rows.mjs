@@ -14,7 +14,7 @@ import { proseHelp } from "./prose-route.mjs";
 import { bodyCap } from "../../tracker/comment-cap.mjs";
 import { NOTE_TITLE_WORDS } from "../../tracker/declared/declares.mjs";
 import { flowPinned, screensHere } from "../../guides/flow.mjs";
-import { LANDED, LANDED_BLOCKS, LANDED_ROW } from "./landed-by-hand.mjs";
+import { LANDED, LANDED_BLOCKS, LANDED_ROW } from "./landed/by-hand.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
@@ -30,12 +30,13 @@ const CAP_LEGEND = [
   "refused before the field's payload is sent.",
 ];
 
-/* What the budget a record block's field is screened at says beside the legend: the number alone
-   reads as this CLI's taste, and it is core's refusal of the whole record that the check saves. */
-const budgetLegend = (cap) => [
-  `Every field of a record block is capped at ${cap} code points, a repeated one value by value: core`,
-  "screens a record at that budget (`field-budget`) and refuses it whole, so a value over it is refused",
-  "here, naming the field, its length and the cap, before the issue is read.",
+/* The legend of a record kind whose fields core screens, in place of the cap legend and the comment's
+   cap line both: the number alone reads as this CLI's taste, and it is core's refusal of the whole
+   record that the check saves. */
+const budgetLegend = (cap, body = bodyCap()) => [
+  `(N) is a code-point cap, refused unsent: core screens each record field at ${cap} code points,`,
+  `a repeated one value by value${body === null ? "." : `, and a write whose comment is over ${body} code points`}`,
+  ...(body === null ? [] : ["is refused before any file goes up."]),
 ];
 
 /* A field a person types free text into, by its flag: a value from a closed set, a criterion's number
@@ -226,7 +227,7 @@ const VERDICT_BLOCKS = [
   "  short    it was exercised, met short of its wording, and the shortfall judged not to block:",
   "           the change releases, --why says how it fell short, --filed names the row it became",
   "  skipped  no route reached it, so nobody looked and there is nothing to cite",
-  "A later --commit carrying the merged one earns `testing`: the write records what git says of it.",
+  "A later --commit carrying the merged one earns `in_progress:release`: the write records what git says of it.",
 ];
 
 /* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.
@@ -258,11 +259,10 @@ const servesBlocks = (goals) => (goals
 /* This and each sentence under it go to the kinds whose own shape carries the field: one predicate
    over both field types promised five kinds a flag their parse refuses (ISS-835). */
 const EVIDENCE_BLOCKS = [
-  "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
-  "a readable file, which goes up under its base name and is cited by it. A name already attached is",
-  "refused rather than attached twice. A file whose bytes are text goes up as text whatever its name,",
-  "any other under the type its extension names, and the tracker judges the bytes. A file it refuses",
-  "leaves the rest going up and no record written, and the refusal names the types the tracker takes.",
+  "Evidence is an attachment name, a URL, a 7-to-40-hex commit, or a readable file's path, which",
+  "goes up under its base name, once: a name already attached is refused. A file whose",
+  "bytes are text goes up as text whatever its name, any other under its extension's type; a file the",
+  "tracker refuses leaves the rest going up, no record written, and names the types it takes.",
 ];
 
 /** The field a deferred fill reads, the first of its type: `verification` declares two commit-typed fields, the fill reads the first, and the second is promised nothing. */
@@ -400,6 +400,9 @@ export const usage = () => [
    takes: the route check `forge -h` answers to, and the kind table's own test. */
 export const USAGE = usage();
 
+/* Whether a kind's fields are measured against core's record budget, which its legend then says. */
+const budgets = (kind, caps) => Boolean(SHAPES[kind]) && typeof caps.recordField?.self === "number";
+
 const rowFor = (kind, caps) => {
   const row = kindRows(caps).find((one) => one.startsWith(`  ${kind} `));
   return row && budgeted(kind, row, caps.recordField?.self);
@@ -423,8 +426,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     "",
     row,
     ...(onePerBlocks(kind).length ? ["", ...onePerBlocks(kind)] : []),
-    ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
-    ...(SHAPES[kind] && typeof caps.recordField?.self === "number" ? budgetLegend(caps.recordField.self) : []),
+    ...(budgets(kind, caps) ? ["", ...budgetLegend(caps.recordField.self)] : HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(WHOLE_BLOCKS[kind] ? ["", ...WHOLE_BLOCKS[kind]] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS, ...screensBlocks()] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
@@ -437,7 +439,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(kind === "answer" ? ["", ...ANSWER_BLOCKS] : []),
     ...(kind === "park" ? ["", ...PARK_BLOCKS] : []),
     ...(SHAPES[kind]?.finder ? ["", ...WAVE_BLOCKS] : []),
-    ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS, ...capBlocks()] : []),
+    ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS, ...(budgets(kind, caps) ? [] : capBlocks())] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
     ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),
     ...(formsTaken(kind).length ? ["", ...formsTaken(kind)] : []),

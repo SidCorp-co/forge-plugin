@@ -43,7 +43,7 @@ parks and the blocking edges with the kind of each and whether it holds the stat
 answer, the entry check's own, never worked out a second time for the screen — the command the next
 status is owed in the same words `advance --owed` uses and from the same function, the path of
 the reference holding that phase's method, and how many typed records it read with how many of them
-it gave no line. The review is headlined because a run resuming at `in_progress` needs the head that
+it gave no line. The review is headlined because a run resuming at `in_progress:build` needs the head that
 was judged before anything else, and the count is
 there because three headlines read as the whole record to a reader nothing told otherwise. `--json` is the assembled object the screen was printed
 from, so a tool and a reader cannot be told different things.
@@ -53,7 +53,7 @@ killed by a rate limit lost everything they had judged, because nothing was writ
 was done; the judging method now writes each verdict as it goes, which is worth something only if
 the next judge can see how far the last one got. Under an independent judgement the builder's own
 passes had read exactly like a judge's, so a set nobody had judged looked finished. So a verdict the
-entry check to `testing` would refuse is tagged on its row, through that check's own predicate
+entry check to `in_progress:release` would refuse is tagged on its row, through that check's own predicate
 rather than a second reading of independence, and a set that is partial ends in one line saying how
 many criteria carry a verdict that counts and the first criterion where a judge resumes. A set
 nobody has touched and a set that is whole print no such line: neither has a remainder to point at.

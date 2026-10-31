@@ -72,7 +72,7 @@ next write and the next claim take it where an empty one is refused.
   WHEN a write that took the lease for itself has landed THEN the CLI SHALL give that lease back
   before the call ends, SHALL say on the record that it was given back rather than taken over, and
   SHALL add nothing to the claim history for it.
-- **AC-03-1-7** · Rev: 1 · Proof: plugin/test/flow/claim/released.test.mjs "an advance to developed leaves nothing holding the issue, and another run claims it with no wait and no flag"
+- **AC-03-1-7** · Rev: 1 · Proof: plugin/test/flow/claim/released.test.mjs "an advance to in_progress:test leaves nothing holding the issue, and another run claims it with no wait and no flag"
   IF the lease field records that a lease was given back THEN the CLI SHALL let the next write take
   it and the next claim be granted at whatever status the issue stands, rather than refusing as it
   does for a field no run left a lease in.
@@ -446,7 +446,7 @@ a wait no party can end.
   block saying off the record itself how the builder was read and which branch licensed the write,
   because the window the capture is taken in closes at the merge, and a run that died inside it or a
   repair that landed after it leaves the issue with no other way back.
-- **AC-03-6-16** · Rev: 2 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a builder the claim history answers for on its own is written as the builder, and the checkpoint earns testing"
+- **AC-03-6-16** · Rev: 2 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a builder the claim history answers for on its own is written as the builder, and the checkpoint earns in_progress:release"
   WHEN a checkpoint is written on a change that has already landed THEN the CLI SHALL record the run
   making that write as the writer of the reconstruction, SHALL name as the builder the one run the
   issue's claim history names as having held it while the change was being built, and SHALL leave the
@@ -483,7 +483,7 @@ a wait no party can end.
   alike whether the branch a change lands on carries that head, because one cause reaching both
   routes leaves a fix confined to either of them refusing what the other accepts.
 
-- **AC-03-6-23** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns testing against it"
+- **AC-03-6-23** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns in_progress:release against it"
   WHERE the caller states that the change a landed head carries reached no deployment, the CLI SHALL
   write the checkpoint naming no deployment identity and SHALL record that statement in the block
   the reconstruction is accounted for by, because a change that was never deployed has none to name

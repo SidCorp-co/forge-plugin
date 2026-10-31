@@ -45,8 +45,8 @@ export const GUIDE_TABLE = [
         instead: "every status is earned by the payload the contract names, and `forge advance` refuses a jump",
       },
       {
-        says: "`developed` is set by hand with `sessionContext.branch`, to enter at the review gate",
-        instead: "`developed` is earned by an approving review of the head that landed and by the merged"
+        says: "`in_progress:test` is set by hand with `sessionContext.branch`, to enter at the review gate",
+        instead: "`in_progress:test` is earned by an approving review of the head that landed and by the merged"
           + " mark, and `sessionContext` is the lease this CLI writes",
       },
       {
@@ -93,7 +93,7 @@ export const GUIDE_TABLE = [
       },
       {
         says: "non-work leaves by `closed` plus `unmark`",
-        instead: "nothing landing earns `dropped`, which is reachable only before `developed` and stamps"
+        instead: "nothing landing earns `dropped`, which is reachable only before `in_progress:test` and stamps"
           + " no mark, so `closed` stays what code that landed earns",
       },
     ],

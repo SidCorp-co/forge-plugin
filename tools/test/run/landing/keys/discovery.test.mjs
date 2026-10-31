@@ -36,7 +36,7 @@ test("an empty call lands what the checkpoints say is ready, and says the set an
   forgetInstall();
   const said = await landingRan([], work);
   assert.equal(said.includes("ISS-999"), false, `a checkpoint outside the band is not taken:\n${said}`);
-  assert.match(said, /off the checkpoints of every issue at in_progress, developed, testing, awaiting_release, needs_info, waiting, on_hold:/u,
+  assert.match(said, /off the checkpoints of every issue at in_progress:build, in_progress:test, in_progress:release, awaiting_release, needs_info, on_hold:/u,
     `the statuses it read are named, so what the bound cannot see is said:\n${said}`);
   assert.match(said, /ISS-675 {2}`builder-owed` {2}iss-675 {2}— left out: read where it is, forge resume ISS-675/u,
     `a state naming another turn is printed and left out:\n${said}`);
@@ -83,7 +83,7 @@ test("an empty call that found no checkpoint at all still says which statuses it
   }
   forgetGateRuns();
   const said = await landingRan([], work);
-  assert.match(said, /off the checkpoints of every issue at in_progress, developed, testing, awaiting_release, needs_info, waiting, on_hold:/u,
+  assert.match(said, /off the checkpoints of every issue at in_progress:build, in_progress:test, in_progress:release, awaiting_release, needs_info, on_hold:/u,
     `the bound is printed on the empty result too, where it is the only thing said:\n${said}`);
   assert.match(said, /no checkpoint at the statuses above/u,
     `and the refusal claims nothing of what it did not read:\n${said}`);

@@ -21,14 +21,14 @@ const { SLUG, partForLanding, partForRecord, partForStatus, phasePart, surfaceFo
 const { CITED, ENDS_PHASE, phaseAtLanding, phaseForRecord, phasesOwed } =
   await import("../../src/guides/phases.mjs");
 const { localGuide } = await import("../../src/guides/guides.mjs");
-const { ORDER } = await import("../../src/flow/earned.mjs");
+const { LADDER } = await import("../../src/flow/earned.mjs");
 const { owedOf } = await import("../../src/shown/ledger.mjs");
 
 /** What `forge guide issue-flow <n>` prints, through the verb's own call and not a second reader. */
 const guideSays = (phase, rung = null) =>
   localGuide(SLUG)({ part: String(phase), rung }).lines.join("\n");
 
-const rungBelow = (status) => ORDER[ORDER.indexOf(status) - 1];
+const rungBelow = (status) => LADDER[LADDER.indexOf(status) - 1];
 
 /* Every case reads what arrived through the printer the caller hands in, which is the delivery the
    credit follows: nothing here can assert on a return the callers do not print. */
@@ -84,7 +84,7 @@ test("the kinds the flow tables leave underivable are declared by number", () =>
   assert.equal(phaseForRecord("merged"), 7, "and the landing that earns the same rung is Phase 7's first step");
   assert.equal(phaseForRecord("verification"), 7, "the verification reads the change where it now runs");
   assert.equal(phaseForRecord("note"), 6, "and the note is drafted at 6, the rung it is written at spanning 6 and 7");
-  assert.equal(phaseForRecord("verdict"), 5, "while developed owes 5 alone, which is the derivation's to answer");
+  assert.equal(phaseForRecord("verdict"), 5, "while in_progress:test owes 5 alone, which is the derivation's to answer");
 });
 
 /* Pinned by number rather than against the row it is read off, which would be the implementation spelled twice: the ship is Phase 7 and the close is its tail, so the rung the close is entered from owes 7 and the landing ends 7. A row moved to any other phase fails here. */
@@ -92,7 +92,7 @@ test("the landing ends the phase the rung the close is entered from names, which
   assert.deepEqual(phasesOwed("awaiting_release"), [7],
     "the deploying rung owes the ship alone, the judging rung below it owing the note as well");
   assert.equal(phaseAtLanding(), 7, "and the landing is a step of that phase");
-  assert.deepEqual(phasesOwed("testing"), [6, 7],
+  assert.deepEqual(phasesOwed("in_progress:release"), [6, 7],
     "while the rung that spans two is the judging one, so `.at(-1)` there picks rather than repeats");
 });
 
@@ -122,9 +122,9 @@ test("a rung naming several phases carries a part for each of its own kinds", ()
 
 test("a claim carries the phase its issue's status owes, and no two statuses answer alike", () => {
   asRun("a-run-taking-a-lease");
-  assert.deepEqual(printed((say) => partForStatus("confirmed", say)), [guideSays(2)],
+  assert.deepEqual(printed((say) => partForStatus("in_progress:plan", say)), [guideSays(2)],
     "the first phase of the two that rung owes is the one a claim there arrives with");
-  assert.deepEqual(printed((say) => partForStatus("developed", say)), [guideSays(5)], "developed owes 5");
+  assert.deepEqual(printed((say) => partForStatus("in_progress:test", say)), [guideSays(5)], "in_progress:test owes 5");
   assert.notEqual(guideSays(2), guideSays(5), "which are different parts, or the case proves nothing");
 });
 

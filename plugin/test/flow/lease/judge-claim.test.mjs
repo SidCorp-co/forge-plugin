@@ -13,7 +13,8 @@ process.env.XDG_CONFIG_HOME = tempHome("judge-claim").path;
 const AWAY = projectRoom(tempRoom("judge-claim-away-"), process.env.XDG_CONFIG_HOME, OWN);
 process.chdir(AWAY);
 
-const { JUDGED_AT, ORDER } = await import("../../../src/flow/earned.mjs");
+const { JUDGED_AT, LADDER } = await import("../../../src/flow/earned.mjs");
+const { statusOfPlace, stepOfPlace } = await import("../../../src/tracker/declared/issue-machine.mjs");
 const { JUDGING_AT } = await import("../../../src/flow/lease/dispatched.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -25,7 +26,8 @@ const WAVE = "the-dispatching-session";
 const ISSUE = {
   documentId: UUID,
   issueId: "ISS-1798",
-  status: "developed",
+  status: "in_progress",
+  workState: { step: "test" },
   title: "a judge meets the builder's live lease",
   description: "no mark here",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.",
@@ -33,8 +35,10 @@ const ISSUE = {
   complexity: "s",
 };
 
-const heldBy = (holder, status) => {
-  ISSUE.status = status;
+/* Put at a place in core's words: the status, and the step where the place is inside in_progress. */
+const heldBy = (holder, place) => {
+  ISSUE.status = statusOfPlace(place);
+  ISSUE.workState = stepOfPlace(place) ? { step: stepOfPlace(place) } : null;
   ISSUE.sessionContext = {
     lease: { holder, agent: "a-test-agent", pid: "4242", renewedAt: new Date().toISOString(), minutes: 60,
       next: "the builder's own next step", history: [] },
@@ -68,8 +72,8 @@ const asked = (argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: JUDGE,
 const inherited = (argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "", CLAUDE_CODE_SESSION_ID: WAVE }, AWAY);
 const updates = () => state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "update").length;
 
-test("a judge's claim at developed or testing is refused naming the verdict's route and the owed read", async () => {
-  for (const status of ["developed", "testing"]) {
+test("a judge's claim at in_progress:test or in_progress:release is refused naming the verdict's route and the owed read", async () => {
+  for (const status of ["in_progress:test", "in_progress:release"]) {
     heldBy(BUILDER, status);
     const before = updates();
     const refused = await asked(["claim", "ISS-1798"]);
@@ -83,14 +87,14 @@ test("a judge's claim at developed or testing is refused naming the verdict's ro
 });
 
 test("where the judge's id is inherited, the command it is sent to opens with an id of its own", async () => {
-  heldBy(BUILDER, "developed");
+  heldBy(BUILDER, "in_progress:test");
   const refused = await inherited(["claim", "ISS-1798"]);
   assert.equal(refused.status, 1, `${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /\n {2}FORGE_SESSION_ID=<an id of its own> forge advance ISS-1798 --owed\n/u, refused.stderr);
 });
 
 test("at the judging rungs the refusal sends the caller to no tree", async () => {
-  for (const status of ["developed", "testing"]) {
+  for (const status of ["in_progress:test", "in_progress:release"]) {
     heldBy(BUILDER, status);
     for (const call of [asked, inherited]) {
       const refused = await call(["claim", "ISS-1798"]);
@@ -103,7 +107,7 @@ test("at the judging rungs the refusal sends the caller to no tree", async () =>
 });
 
 test("at a status a run is dispatched at, the refusal carries none of the judge's route", async () => {
-  heldBy(BUILDER, "confirmed");
+  heldBy(BUILDER, "in_progress:plan");
   const refused = await asked(["claim", "ISS-1798"]);
   assert.equal(refused.status, 1, refused.stderr);
   assert.match(refused.stderr, /which names no issue at all/u, "the id sentence it always gave");
@@ -111,18 +115,18 @@ test("at a status a run is dispatched at, the refusal carries none of the judge'
   assert.doesNotMatch(refused.stderr, /forge advance ISS-1798 --owed/u, refused.stderr);
 });
 
-/* The policy is read at in_progress for this line alone, so the CLI case is what proves the fetch. */
-test("the builder's owed read at in_progress names the capture its judge's verdicts will be read against", async () => {
-  heldBy(BUILDER, "in_progress");
+/* The policy is read at the build for this line alone, so the CLI case is what proves the fetch. */
+test("the builder's owed read at in_progress:build names the capture its judge's verdicts will be read against", async () => {
+  heldBy(BUILDER, "in_progress:build");
   const owed = await ranAsync(FORGE, ["advance", "ISS-1798", "--owed"],
     { ...ENV, FORGE_SESSION_ID: BUILDER, CLAUDE_CODE_SESSION_ID: "" }, AWAY);
   const out = `${owed.stdout}${owed.stderr}`;
-  assert.match(out, /Ahead: testing is earned here by an independent judge's verdicts/u, out);
+  assert.match(out, /Ahead: in_progress:release is earned here by an independent judge's verdicts/u, out);
   assert.match(out, /\n {2}forge claim ISS-1798 --pushed --ready\n {2}forge claim ISS-1798 --landed/u, out);
 });
 
-/* The refusal spells its two rungs rather than importing the flow's order, which a hook would pay for. */
-test("the rungs the judge's route is named at are the flow's own: the one a verdict earns and the one before it", () => {
-  const judged = ORDER.indexOf(JUDGED_AT);
-  assert.deepEqual(JUDGING_AT, [ORDER[judged - 1], JUDGED_AT]);
+/* The refusal spells its two places rather than importing the flow's ladder, which a hook would pay for. */
+test("the places the judge's route is named at are the ladder's own: the one a verdict earns and the one before it", () => {
+  const judged = LADDER.indexOf(JUDGED_AT);
+  assert.deepEqual(JUDGING_AT, [LADDER[judged - 1], JUDGED_AT]);
 });

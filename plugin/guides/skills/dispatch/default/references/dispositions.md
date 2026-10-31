@@ -29,8 +29,12 @@ halves is choosing between the rows above and *holds*.
 **An issue whose own change shipped is not already fixed either.** Where the change this issue asked
 for landed outside the flow — straight on the default branch, deployed, never marked — the finding is
 `own-landing`, naming the commit it landed as, or the place it now is where the issue lands outside
-git. It keeps the lane, so the issue walks its rungs to `closed` on the record, where a drop would
-erase that the work shipped.
+git. It keeps the lane, so the issue walks its places to `awaiting_release` on the record, where a
+drop would erase that the work shipped. One call records that walk for a landing made by hand, in
+the order core's direct mode names — the lease, the merge mark at a sha the remote base carries, the
+move with the sha as its reason, the comment, the lease handed back last:
+`forge record landed ISS-nn --sha <40-hex> [--reason R] [--comment-file F]`, and `--dry-run` prints
+the calls without sending one.
 
 **Superseded is not obsolete.** Obsolete is the subject gone — the file, the verb, the surface.
 Superseded is the subject still standing, inside a flow a later release replaced or an ask a later

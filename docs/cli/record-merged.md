@@ -13,7 +13,7 @@ which step computes each of them and how the sentence is fitted to the room the 
 Before ISS-701 no verb wrote the mark. A run composed the sentence by hand from a template a
 refusal printed, and the refusal was the only statement of the shape anywhere — so the sentence had
 one author per run. Two clauses of it hold a sha and a third holds another, and a sha in the wrong
-slot is not refused by the write: it is refused two statuses later, by `testing`, saying the verdicts
+slot is not refused by the write: it is refused two statuses later, by `in_progress:release`, saying the verdicts
 judged a head the mark does not name. The cost lands a phase away from the mistake, on whoever is
 trying to ship.
 
@@ -74,15 +74,15 @@ stamp already standing refuses a mark the tracker would not stamp: [the commit f
 
 | Clause | Read by | What it decides |
 |---|---|---|
-| `at <sha>` | `developed`, and every record that reads `--commit` off the mark, on an issue landing in git | which commit landed; a mark naming none earns nothing |
-| `reviewed head <sha>` | `developed` | the head the review judged, so a squash that changed the hash still matches an approving review |
-| `judged head <sha>`, or `judged head nothing` | `testing` | the head the verdicts were taken at, which is what lets a verdict stand across the landing; `nothing` stands none, and every verdict is then owed at the landed commit |
-| `landing moved <paths>` | `testing` | whether the landing moved a path this change touched, as git reads it; empty is what makes the verdicts stand, and *silence is not empty* |
-| `landing wrote <paths>` | `developed` | what this change itself landed, so a path neither the plan nor a correction names refuses the status |
+| `at <sha>` | `in_progress:test`, and every record that reads `--commit` off the mark, on an issue landing in git | which commit landed; a mark naming none earns nothing |
+| `reviewed head <sha>` | `in_progress:test` | the head the review judged, so a squash that changed the hash still matches an approving review |
+| `judged head <sha>`, or `judged head nothing` | `in_progress:release` | the head the verdicts were taken at, which is what lets a verdict stand across the landing; `nothing` stands none, and every verdict is then owed at the landed commit |
+| `landing moved <paths>` | `in_progress:release` | whether the landing moved a path this change touched, as git reads it; empty is what makes the verdicts stand, and *silence is not empty* |
+| `landing wrote <paths>` | `in_progress:test` | what this change itself landed, so a path neither the plan nor a correction names refuses the status |
 
 ## A judged head nobody has taken yet
 
-Where the judgement between `developed` and `testing` is another run's, the builder writes the mark
+Where the judgement between `in_progress:test` and `in_progress:release` is another run's, the builder writes the mark
 before any verdict exists, and a clause that only took a sha made it name one nobody judged: filed
 again from project after project, the duplicates folded onto ISS-1960. `--judged` takes `nothing`
 there, and the note says in words that no verdict has judged a head.

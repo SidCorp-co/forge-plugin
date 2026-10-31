@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
 import { OWN, trackerFor } from "../../../fixtures/own-project.mjs";
+import { statusOfPlace, stepOfPlace } from "../../../../src/tracker/declared/issue-machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
@@ -30,7 +31,8 @@ const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 const ISSUE = {
   documentId: UUID,
   issueId: "ISS-1091",
-  status: "confirmed",
+  status: "in_progress",
+  workState: { step: "plan" },
   title: "a runner cannot claim the issue it was dispatched to work",
   description: "no mark here",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.",
@@ -40,8 +42,10 @@ const ISSUE = {
 
 /* Each case starts from the whole session field it is about, so no case reads through the one
    before it and a landing left by one does not decide the next. */
-const heldBy = (holder, { since = 1, minutes = 60, status = "confirmed", landing = null, history = [] } = {}) => {
-  ISSUE.status = status;
+const heldBy = (holder, { since = 1, minutes = 60, status = "in_progress:plan", landing = null, history = [] } = {}) => {
+  /* The row in core's words: the status, and the step where the place is one inside in_progress. */
+  ISSUE.status = statusOfPlace(status);
+  ISSUE.workState = stepOfPlace(status) ? { step: stepOfPlace(status) } : null;
   ISSUE.sessionContext = {
     lease: { holder, agent: "a-test-agent", pid: "4242", renewedAt: ago(since), minutes, next: LEFT, history },
     ...(landing ? { landing } : {}),
@@ -96,7 +100,7 @@ test("a run dispatched to the issue takes a live lease its dispatcher is only ho
 });
 
 test("a claim handed to the run the issue was dispatched to is counted as no reclaim", async () => {
-  const handed = (at) => ({ holder: RUNNER, at, how: "handed", status: "confirmed", next: null });
+  const handed = (at) => ({ holder: RUNNER, at, how: "handed", status: "in_progress:plan", next: null });
   heldBy(DISPATCHER, { history: [handed("2026-09-11T01:00:00.000Z"), handed("2026-09-11T02:00:00.000Z")] });
   const third = await claim();
   assert.equal(third.status, 0, `a third handoff is not a third crash:\n${third.stdout}${third.stderr}`);
@@ -184,7 +188,7 @@ test("a batch the brief minted into a bare tree takes the lease on each of its i
 });
 
 test("a live lease is refused past the statuses a run is dispatched at", async () => {
-  heldBy(DISPATCHER, { status: "in_progress" });
+  heldBy(DISPATCHER, { status: "in_progress:build" });
   const refused = await claim();
   assert.equal(refused.status, 1, `a lease at in_progress is a run at work:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /past the statuses a run is dispatched at/u);
@@ -201,7 +205,7 @@ test("a live lease is refused while a landing checkpoint names a turn", async ()
 });
 
 test("the holder's own claim on its own live lease renews it, whatever the status or the checkpoint says", async () => {
-  heldBy(DISPATCHER, { status: "in_progress", landing: { state: "candidate", builder: "x", branch: "b", head: "a".repeat(40), base: "b".repeat(40), files: [], at: ago(30) } });
+  heldBy(DISPATCHER, { status: "in_progress:build", landing: { state: "candidate", builder: "x", branch: "b", head: "a".repeat(40), base: "b".repeat(40), files: [], at: ago(30) } });
   const again = await claim([], DISPATCHER);
   assert.equal(again.status, 0, `a holder is never a second run:\n${again.stdout}${again.stderr}`);
   assert.match(again.stdout, /ISS-1091 {2}renewed:/u);
@@ -245,7 +249,7 @@ test("an id minted for another issue takes nothing, and every dispatchable statu
   assert.equal(other.status, 1, `another issue's run is a second run here:\n${other.stdout}${other.stderr}`);
   assert.match(other.stderr, /iss-1084-deadbeef, the id of the run dispatched to ISS-1084, and not to ISS-1091/u,
     "said as a run bound elsewhere, which is a different fault from an id that names nothing");
-  for (const status of ["open", "confirmed", "approved", "reopen"]) {
+  for (const status of ["open", "in_progress:plan", "approved", "reopen"]) {
     heldBy(DISPATCHER, { status });
     const took = await claim();
     assert.equal(took.status, 0, `${status} is a status a run is dispatched at:\n${took.stdout}${took.stderr}`);
@@ -349,7 +353,7 @@ test("the three conditions besides identity refuse a batch caller exactly as the
   assert.equal(batched.status, 1, `a holder naming it past its head holds it too:\n${batched.stdout}${batched.stderr}`);
   assert.match(batched.stderr, /already with a run it was handed to/u);
 
-  heldBy(DISPATCHER, { status: "in_progress" });
+  heldBy(DISPATCHER, { status: "in_progress:build" });
   const past = await claim([], mine);
   assert.equal(past.status, 1, `in_progress is past the dispatch statuses:\n${past.stdout}${past.stderr}`);
   assert.match(past.stderr, /past the statuses a run is dispatched at/u);

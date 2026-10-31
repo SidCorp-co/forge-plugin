@@ -14,7 +14,7 @@ findings block, and the charter its judge writes before it maps a criterion, are
 verification reference.
 
 `default` keeps the `screen change` declaration, the park it earns and the route out of the
-attachment `testing` refuses a verdict without — because the declaration vocabulary is global and a
+attachment `in_progress:release` refuses a verdict without — because the declaration vocabulary is global and a
 refusal a run can meet under any flow owes served text under every flow. What leaves it is what only
 a screen project can act on: the screenshots, and the environment section whose every example is a
 browser.

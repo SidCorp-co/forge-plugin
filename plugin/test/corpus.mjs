@@ -40,7 +40,7 @@ const routed = (view) => {
 const refusals = () => [
   viewFrom("the-uuid", { status: "reopen", plan: "", acceptanceCriteria: CRITERIA, reopenCount: 1 }, []),
   viewFrom("the-uuid", { status: "on_hold", plan: "", acceptanceCriteria: "" },
-    [recorded("park", { kind: "unshippable", why: "the branch cannot build", left: "in_progress" })]),
+    [recorded("park", { kind: "unshippable", why: "the branch cannot build", left: "in_progress:build" })]),
 ].flatMap(routed);
 
 /* `landedOn` refuses a reopen with neither a merged mark nor a dropped park before `reopenOwed` is reached, so the reopen payload checks reach the corpus only from a reopen that landed. */
@@ -50,11 +50,11 @@ const reopenPayloads = () => routed(viewFrom("the-uuid",
 /** One entry per family: the name a failure reports, and what the CLI said in that state. */
 export const FAMILIES = {
   "an absent payload": () => [
-    ...owed("confirmed", { plan: "", acceptanceCriteria: "" }),
+    ...owed("in_progress:plan", { plan: "", acceptanceCriteria: "" }),
     ...owed("approved", { plan: "", acceptanceCriteria: "" }),
-    ...owed("in_progress", { plan: "", acceptanceCriteria: "",
+    ...owed("in_progress:build", { plan: "", acceptanceCriteria: "",
       relations: { blockedBy: [{ kind: "blocks", otherDisplayId: "ISS-2", otherStatus: "open" }] } }),
-    ...owed("developed", { plan: "", acceptanceCriteria: CRITERIA }),
+    ...owed("in_progress:test", { plan: "", acceptanceCriteria: CRITERIA }),
     ...owed("awaiting_release", { plan: "", acceptanceCriteria: CRITERIA }),
   ],
   "an untyped plan": () => owed("approved", { plan: "Some free prose.", acceptanceCriteria: CRITERIA }),
@@ -70,7 +70,7 @@ export const FAMILIES = {
     { plan: PLANNED, acceptanceCriteria: CRITERIA, mergedAt: at() },
     [marked("at 9e1f2a3; reviewed head 43b811e; judged head 43b811e; landing moved a.mjs; landing wrote a.mjs"),
       recorded("verdict", { criterion: "1. The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] })]),
-  "a landing outside the plan": () => owed("developed",
+  "a landing outside the plan": () => owed("in_progress:test",
     { plan: PLANNED, acceptanceCriteria: CRITERIA, mergedAt: at() },
     [marked(`${WHOLE}; landing wrote b.mjs`)]),
   "a route the verb refuses": refusals,

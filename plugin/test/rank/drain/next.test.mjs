@@ -1,9 +1,10 @@
-/* Whether the master a project declared drains `developed` is draining it, read off the rows standing
+/* Whether the master a project declared drains `in_progress:test` is draining it, read off the rows standing
    there: a declaration the rows do not bear out stands nobody down. docs/cli/the-drain-key.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
 import { declaring, issue, rankRoom } from "../room.mjs";
+import { wireAt } from "../../fixtures.mjs";
 import { drainOf, evidenceSaid } from "../../../src/rank/drain.mjs";
 
 const { load, ran, state, close } = await rankRoom();
@@ -18,14 +19,14 @@ const judged = (t, qa = "independent") => {
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 const DAYS = 3 * 24 * 60;
 
-const stale = (issueId, held = {}) => issue(issueId, { status: "developed", updatedAt: ago(DAYS), ...held });
+const stale = (issueId, held = {}) => issue(issueId, { ...wireAt("in_progress:test"), updatedAt: ago(DAYS), ...held });
 const leasedBy = (holder, held = {}) => ({ lease: { holder, agent: "an agent", pid: "9",
   renewedAt: new Date().toISOString(), minutes: 60, history: [], ...held } });
 const claimedBy = (holder, minutes) => ({ lease: { holder: "", released: ago(DAYS),
-  history: [{ holder, at: ago(minutes), how: "claim", status: "developed" }] } });
+  history: [{ holder, at: ago(minutes), how: "claim", status: "in_progress:test" }] } });
 
 const STANDS_DOWN = /Another master leaves these standing/u;
-const ANYONE = /any master that reads the queue takes the rows at developed/u;
+const ANYONE = /any master that reads the queue takes the rows at in_progress:test/u;
 
 test("a declared master over a row nobody has touched for days does not stand another master down", async (t) => {
   load([issue("ISS-1"), stale("ISS-5")]);
@@ -40,20 +41,20 @@ test("a declared master over a row nobody has touched for days does not stand an
   assert.match(run.stdout, /judged against `rank\.drainIdle` 60 minute\(s\)/u);
 });
 
-test("another session's live lease on a row at developed is a master draining", async (t) => {
+test("another session's live lease on a row at in_progress:test is a master draining", async (t) => {
   load([issue("ISS-1"), stale("ISS-5"), stale("ISS-6", { sessionContext: leasedBy("a-judging-run") })]);
   judged(t);
   const run = await ran(["next"], declaring("qa-master"));
-  assert.match(run.stdout, /drained by — qa-master, declared and draining: 1 of the 2 row\(s\) read at developed carry another session's live lease/u,
+  assert.match(run.stdout, /drained by — qa-master, declared and draining: 1 of the 2 row\(s\) read at in_progress:test carry another session's live lease/u,
     run.stdout);
   assert.match(run.stdout, STANDS_DOWN);
 });
 
-test("a claim another session recorded at developed inside the window is a master draining", async (t) => {
+test("a claim another session recorded at in_progress:test inside the window is a master draining", async (t) => {
   load([issue("ISS-1"), stale("ISS-5", { sessionContext: claimedBy("a-judging-run", 10) })]);
   judged(t);
   const run = await ran(["next"], declaring("qa-master"));
-  assert.match(run.stdout, /declared and draining: .*another session last claimed one at developed 10 minute\(s\) ago/u,
+  assert.match(run.stdout, /declared and draining: .*another session last claimed one at in_progress:test 10 minute\(s\) ago/u,
     run.stdout);
   assert.match(run.stdout, STANDS_DOWN);
   load([issue("ISS-1"), stale("ISS-5", { sessionContext: claimedBy("a-judging-run", DAYS) })]);
@@ -61,8 +62,8 @@ test("a claim another session recorded at developed inside the window is a maste
   assert.doesNotMatch(lapsed.stdout, STANDS_DOWN, `a claim days old is no master alive: ${lapsed.stdout}`);
 });
 
-test("a row that reached developed inside the window has not yet been missed by anybody", async (t) => {
-  load([issue("ISS-1"), issue("ISS-5", { status: "developed", updatedAt: ago(5) })]);
+test("a row that reached in_progress:test inside the window has not yet been missed by anybody", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { ...wireAt("in_progress:test"), updatedAt: ago(5) })]);
   judged(t);
   const run = await ran(["next"], declaring("qa-master"));
   assert.match(run.stdout, /declared and draining: .*the oldest offered, ISS-5, was last written 5 minute\(s\) ago/u,
@@ -82,7 +83,7 @@ test("a project that has not set the key is told no master is declared and anyon
   judged(t);
   const run = await ran(["next"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /drained by — no master — `drainedBy` is unset, so any master that reads the queue takes the rows at developed\. 0 of the 1 row\(s\) .* the oldest offered, ISS-5/u,
+  assert.match(run.stdout, /drained by — no master — `drainedBy` is unset, so any master that reads the queue takes the rows at in_progress:test\. 0 of the 1 row\(s\) .* the oldest offered, ISS-5/u,
     run.stdout);
   assert.doesNotMatch(run.stdout, /dispatcher/u, "a project that declared nothing is told of nobody");
   assert.doesNotMatch(run.stdout, STANDS_DOWN);
@@ -93,7 +94,7 @@ test("a drain key the pair does not take names no master and leaves the rows to 
   judged(t);
   const run = await ran(["next"], declaring("qa-mastre"));
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /drained by — `drainedBy` is `qa-mastre`, which is no master that drains developed: it takes dispatcher or qa-master\. No master is declared, so any master that reads the queue takes the rows at developed until it is put right/u,
+  assert.match(run.stdout, /drained by — `drainedBy` is `qa-mastre`, which is no master that drains in_progress:test: it takes dispatcher or qa-master\. No master is declared, so any master that reads the queue takes the rows at in_progress:test until it is put right/u,
     run.stdout);
   assert.match(run.stdout, /judging — 1 issue\(s\)/u,
     "and the rows are still offered: the drain says who is dispatched, never whether an issue is offered");
@@ -101,11 +102,11 @@ test("a drain key the pair does not take names no master and leaves the rows to 
 
 test("a window the read did not finish concludes nothing from it and says how much went unread", async (t) => {
   load([issue("ISS-1"), stale("ISS-5", { createdAt: "2026-09-01T00:00:00.000Z" }),
-    issue("ISS-6", { status: "developed", createdAt: "2026-09-02T00:00:00.000Z", updatedAt: ago(5) })]);
+    issue("ISS-6", { ...wireAt("in_progress:test"), createdAt: "2026-09-02T00:00:00.000Z", updatedAt: ago(5) })]);
   judged(t);
   const run = await ran(["next"], declaring("qa-master", { rank: { windowCap: 1 } }));
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /declared and not draining: 0 of the 1 row\(s\) read .*and 1 further row\(s\) at developed went unread/u,
+  assert.match(run.stdout, /declared and not draining: 0 of the 1 row\(s\) read .*and 1 further row\(s\) at in_progress:test went unread/u,
     run.stdout);
   assert.doesNotMatch(run.stdout, STANDS_DOWN, "the fresh row behind the window is not evidence nobody read");
 });
@@ -117,7 +118,7 @@ test("evidence in a window the read did not finish stands nobody down either", a
   const room = declaring("qa-master", { rank: { windowCap: 1 } });
   const run = await ran(["next"], room);
   assert.doesNotMatch(run.stdout, STANDS_DOWN, `a lease in the front window says nothing of the row behind it: ${run.stdout}`);
-  assert.match(run.stdout, /1 of the 1 row\(s\) read at developed carry another session's live lease.*1 further row\(s\) at developed went unread/u);
+  assert.match(run.stdout, /1 of the 1 row\(s\) read at in_progress:test carry another session's live lease.*1 further row\(s\) at in_progress:test went unread/u);
   const held = JSON.parse((await ran(["next", "--json"], room)).stdout).judging.drain;
   assert.deepEqual(held.evidence, ["leased"], "the evidence is still reported");
   assert.equal(held.holds, false, "and still holds nothing");
@@ -155,7 +156,7 @@ test("the asking session's own lease and claims are no evidence about another ma
   const own = "this-run";
   const row = (issueId, held) => ({ issueId, row: { issueId, updatedAt: ago(DAYS) }, ...held });
   const mine = {
-    offered: [row("ISS-5", { lease: { holder: "", history: [{ holder: own, at: ago(1), status: "developed" }] } })],
+    offered: [row("ISS-5", { lease: { holder: "", history: [{ holder: own, at: ago(1), status: "in_progress:test" }] } })],
     left: [row("ISS-6", { held: "mine", lease: { holder: own, renewedAt: ago(1), history: [] } })],
     unreached: 0,
   };
@@ -177,6 +178,6 @@ test("evidence from a listing that stopped before its end holds no declaration a
   const short = drainOf(judging, { idle: 60, whole: false, own: "this-run" });
   assert.deepEqual(short.evidence, ["leased"], "the lease is still reported");
   assert.equal(short.holds, false, "and holds nothing over rows nobody listed");
-  assert.match(evidenceSaid(short), /the listing stopped before its end, so rows at developed it never returned stand unread/u);
+  assert.match(evidenceSaid(short), /the listing stopped before its end, so rows at in_progress:test it never returned stand unread/u);
   assert.equal(drainOf(judging, { idle: 60, own: "this-run" }).whole, true, "a caller saying nothing read the whole listing");
 });

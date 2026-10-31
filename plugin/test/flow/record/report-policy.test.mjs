@@ -108,7 +108,9 @@ test("where the policy owes a person, the act is named once and on the policy's 
   const closing = await reported("ISS-4");
   assert.match(closing, /^Owed: the release,/mu, closing);
   assert.match(closing, /The line above says whose act it is/u, "the closing line points at the policy's");
-  assert.match(closing, /^ {2}forge advance ISS-4 --set closed --why "<[^"]+>"$/mu, closing);
+  assert.match(closing, /^ {2}forge release-batch record ISS-4 --commit <[^>]+> --account "<[^"]+>"$/mu,
+    `the close is the release's record, core closing an issue at awaiting_release on nothing else:\n${closing}`);
+  assert.doesNotMatch(closing, /--set closed/u, closing);
 });
 
 /* ISS-2409: a promotion whose deploy is automatic still waits for the release that moves the change

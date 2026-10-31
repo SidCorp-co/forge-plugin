@@ -1,5 +1,6 @@
 /* Which rung of the ladder an issue is at and what it stops owing; the report about it is ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
 import { DECLARING, looksTo, planFlags } from "./flow/machine.mjs";
+import { HELD } from "./tracker/declared/issue-machine.mjs";
 
 export const RUNGS = ["trivial", "fix", "feature"];
 const [TRIVIAL, FIX] = RUNGS;
@@ -129,7 +130,7 @@ export const flagsOf = (fields) => {
   return PARSED.get(fields);
 };
 
-/** Whether the plan declares that the change lands no file in the repository: the one reading of it, for the row below that waives the branch and for the `developed` check that takes the no-file record instead of the scope (ISS-2384). Only a `yes` grants it, so an empty diff is never read as one. */
+/** Whether the plan declares that the change lands no file in the repository: the one reading of it, for the row below that waives the branch and for the `in_progress:test` check that takes the no-file record instead of the scope (ISS-2384). Only a `yes` grants it, so an empty diff is never read as one. */
 export const landsNoFile = (fields) => flagsOf(fields).nofile === "yes";
 
 /* One rung, not a jump to the top: a person will look at this is one reason among several. */
@@ -146,13 +147,16 @@ export const rungOf = (fields) => {
 /* A demand a plan's own declaration drops, at any rung: a waiver of a kind `LIGHTER` cannot hold, the rung being a size and this a fact about where the change lands. `declared` is the predicate over the fields that grants the row. A row here is said as the plan's, never the rung's, by every reader of `lighterRows` (ISS-2384). */
 const DECLARED_AWAY = [
   {
-    status: "in_progress",
+    status: HELD.build,
     declared: landsNoFile,
     kind: "branch",
     drops: "the branch the worklog would name",
     because: "the plan declares the change lands no file, so there is no tree to cut a branch from",
   },
 ];
+
+/** Every status a row of either table waives something at, for a reader sizing a column to them. */
+export const WAIVED_AT = [...new Set([...LIGHTER, ...DECLARED_AWAY].map((one) => one.status))];
 
 /** The declaration rows a plan grants at a status, or at every status where none is named. */
 export const declaredRows = (fields, status = null) =>

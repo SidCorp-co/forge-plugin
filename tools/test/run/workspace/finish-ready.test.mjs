@@ -34,7 +34,7 @@ const ahead = (name, { ship, push = true, also = [] }) => {
 
 /** The issue on the tracker, carrying the checkpoint the case is about or none. */
 const onTracker = (landing) => noBacklog({ issues: [{
-  documentId: UUID, issueId: KEY, status: "developed", title: "the change", description: "a body.\n",
+  documentId: UUID, issueId: KEY, status: "in_progress", workState: { step: "test" }, title: "the change", description: "a body.\n",
   sessionContext: landing ? { landing } : {},
 }] });
 

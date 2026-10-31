@@ -1,4 +1,4 @@
-/* Whether one commit carries another, as the checkout a write stands in reads it. The `testing` rung
+/* Whether one commit carries another, as the checkout a write stands in reads it. The `in_progress:release` rung
    reads no repository, so the verdict write asks this where both commits are at hand and puts the
    answer on the record (ISS-1302). Replacements and grafts are switched off and a shallow history
    settles nothing, as `carriedByLanding` holds: a yes read over either proves only the overlay. */

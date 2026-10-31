@@ -56,7 +56,7 @@ import {
 } from "./services/doctor/showing.mjs";
 import { held, projectKeyLines } from "./services/doctor/keys.mjs";
 import { briefUndecided, undecidedKeyRows } from "./services/doctor/undecided.mjs";
-import { ORDER } from "../flow/earned.mjs";
+import { LADDER } from "../flow/earned.mjs";
 import {
   addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
 } from "../guides/contract.mjs";
@@ -205,7 +205,7 @@ const reportFlowSets = (pinned) => {
   for (const flow of FLOW_SLUGS) {
     const entries = flow === pinned.flow ? pinned.entries : contractParts({ flow });
     if (entries === null) continue;
-    const absent = unansweredIn(addressed(entries), ORDER);
+    const absent = unansweredIn(addressed(entries), LADDER);
     const said = absent.length
       ? `leaves ${absent.join(", ")} unanswered, which \`stageLine\` says at the call`
       : "every stage of the ladder answered";

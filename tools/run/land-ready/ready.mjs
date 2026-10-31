@@ -3,7 +3,7 @@
    it. Named: the keys typed, each with the batch it brings. docs/cli/the-checkpoint.md. */
 import { stop } from "../../checkout.mjs";
 import { asked } from "./member.mjs";
-import { ORDER as RUNGS, SIDE } from "../../../plugin/src/flow/earned.mjs";
+import { BUILD_AT, LADDER, SIDE } from "../../../plugin/src/flow/earned.mjs";
 import { landingOf } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { batchAgrees, membersOf } from "../../../plugin/src/flow/lease/batch.mjs";
 import { worklogOf } from "../../../plugin/src/flow/worklog.mjs";
@@ -14,7 +14,7 @@ import { scoped } from "../../../plugin/src/tracker/rest.mjs";
 /* `sessionContext` is in no list projection, so each candidate costs a get and the set is bounded
    first: a landing still owing its pin has not run its own status step, so the issue stands where the
    build left it. Printed, because a landing past its pin moves the status out of this bound. */
-const BAND = [...RUNGS.slice(RUNGS.indexOf("in_progress"), RUNGS.indexOf("closed")), ...SIDE];
+const BAND = [...LADDER.slice(LADDER.indexOf(BUILD_AT)), ...SIDE];
 
 const SHORT = (said, self) =>
   `${said}\nSo nothing here knows what this project left ready, and no batch is built on a read that `

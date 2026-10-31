@@ -43,7 +43,7 @@ const bodyOf = (answer) =>
   text(answer).split("\nRung `")[0].split("\nNo rung was named")[0].replace(/\s+$/u, "");
 
 test("a part served at a rung below the top ends with the rounds that rung buys", () => {
-  const said = text(contractAnswer({ part: "in_progress", rung: TRIVIAL }));
+  const said = text(contractAnswer({ part: "in_progress:build", rung: TRIVIAL }));
   for (const round of SPARES[TRIVIAL]) {
     assert.ok(said.includes(round), `\`${TRIVIAL}\` buys "${round}" and the part served to it says nothing of it`);
   }
@@ -52,19 +52,19 @@ test("a part served at a rung below the top ends with the rounds that rung buys"
 });
 
 test("the top rung is served none of those lines, and a call naming no rung says which rung it assumed", () => {
-  const top = text(contractAnswer({ part: "in_progress", rung: FEATURE }));
+  const top = text(contractAnswer({ part: "in_progress:build", rung: FEATURE }));
   for (const round of SPARES[TRIVIAL]) {
     assert.ok(!top.includes(round), `the top rung is offered "${round}", which is what the rungs below it buy`);
   }
-  const unstated = contractAnswer({ part: "in_progress" });
-  assert.equal(bodyOf(unstated), bodyOf(contractAnswer({ part: "in_progress", rung: FEATURE })),
+  const unstated = contractAnswer({ part: "in_progress:build" });
+  assert.equal(bodyOf(unstated), bodyOf(contractAnswer({ part: "in_progress:build", rung: FEATURE })),
     "a call naming no rung is served the top rung's text, the upward rule being what an unstated rung resolves to");
   assert.equal(text(unstated).split("\n").filter((line) => line.startsWith("No rung was named")).length, 1,
     "and one line says so, because a rung nobody was told about is a rung nobody can correct");
 });
 
 test("a rung that is no rung is refused before a part is read, on both served surfaces", () => {
-  for (const answer of [contractAnswer({ part: "in_progress", rung: "nonesuch" }),
+  for (const answer of [contractAnswer({ part: "in_progress:build", rung: "nonesuch" }),
     skillGuideAnswer("issue-flow")({ part: "verification", rung: "nonesuch" })]) {
     assert.match(answer.refusal, /`nonesuch` is no rung/u);
     assert.match(answer.refusal, new RegExp(RUNGS.join(", "), "u"), "naming what this copy does serve");
@@ -73,7 +73,7 @@ test("a rung that is no rung is refused before a part is read, on both served su
 });
 
 test("the verb refuses the same and prints no part of the contract", async () => {
-  const refused = await guided("contract", "in_progress", "--rung", "nonesuch");
+  const refused = await guided("contract", "in_progress:build", "--rung", "nonesuch");
   assert.equal(refused.status, 1, `a rung that is no rung is a refusal:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /`nonesuch` is no rung/u);
   assert.equal(refused.stdout.trim(), "", "and nothing of the contract reaches stdout beside it");
@@ -83,7 +83,7 @@ test("the verb refuses the same and prints no part of the contract", async () =>
    costs a run the very method it needs to work around one. The room holds no credential at all. */
 test("a guide call naming a rung is answered with nothing asked of the tracker", async () => {
   for (const rung of RUNGS) {
-    const said = await guided("contract", "in_progress", "--rung", rung);
+    const said = await guided("contract", "in_progress:build", "--rung", rung);
     assert.equal(said.status, 0, `${rung} was not answered off disk:\n${said.stdout}${said.stderr}`);
     assert.match(said.stdout, new RegExp(`Rung \`${rung}\``, "u"));
   }

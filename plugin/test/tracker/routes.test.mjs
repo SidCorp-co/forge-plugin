@@ -85,6 +85,11 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
      the item key it filed: a projection over either would be a second copy of a shape core owns. */
   "forge_issues.moves", "forge_feedback.submit"];
 
+/* Core's list carries no work step, so a row at `in_progress` reads back as the build, the place a
+   move to `in_progress` with no step stands at, and core's own status rides beside it. */
+const PLACED = "a row is named by its place on core's ladder, `in_progress:build` for an `in_progress` row "
+  + "the list served without a work step, and core's own status is kept beside it as trackerStatus";
+
 const PAIRS = {
   "issues-get": {
     key: "forge_issues.get",
@@ -103,6 +108,8 @@ const PAIRS = {
   "issues-list": {
     key: "forge_issues.list",
     differs: {
+      "issues.0.status": PLACED,
+      "issues.0.trackerStatus": PLACED,
       notice: "the list route sends no sentence about its own cap, and this CLI writes none in the tracker's name",
       truncated: "the tool said a second time, in a key of its own, what hasMore beside it already said; the reader that spent it was deleted and none replaced it (ISS-584)",
       truncatedBy: "the tool named the cap that bound the page, which is the limit the caller passed and already holds (ISS-584)",
@@ -111,6 +118,8 @@ const PAIRS = {
   "issues-search": {
     key: "forge_issues.list",
     differs: {
+      "issues.0.status": PLACED,
+      "issues.0.trackerStatus": PLACED,
       notice: "the search route sends no sentence about its own cap, and this CLI writes none in the tracker's name",
       truncated: "the search row answers through the same projection and drops the pair with it (ISS-584)",
       truncatedBy: "the search row answers through the same projection and drops the pair with it (ISS-584)",
@@ -593,8 +602,20 @@ describe("the request a transition makes", () => {
   });
 
   it("leaves out a field the caller did not set, so an absent needs is an absent key", () => {
-    const sent = row.requests({ documentId: "u-1", data: { status: "waiting", reason: "why it stopped" } }).page;
+    const sent = row.requests({ documentId: "u-1", data: { status: "on_hold", reason: "why it stopped" } }).page;
     assert.deepEqual(Object.keys(sent.body).sort(), ["reason", "toStatus"]);
+  });
+
+  /* Twenty-five status moves in the Agenfold sessions of 2026-10-30/31 were refused
+     ISSUE_STATUS_LEGACY: the door every move goes out through sends none, and names what took it over. */
+  it("refuses a name core retired, and a place, before any request is built", () => {
+    assert.throws(() => row.requests({ documentId: "u-1", data: { status: "developed" } }),
+      /`developed` is no status core holds[\s\S]*ISSUE_STATUS_LEGACY[\s\S]*`in_progress:test`/u);
+    assert.throws(() => row.requests({ documentId: "u-1", data: { status: "in_progress:test" } }),
+      /`in_progress:test` is no status core holds[\s\S]*`in_progress` and then its work step/u);
+    for (const status of ["confirmed", "clarified", "waiting", "testing", "tested", "releasing"]) {
+      assert.throws(() => row.requests({ documentId: "u-1", data: { status } }), /ISSUE_STATUS_LEGACY/u, status);
+    }
   });
 });
 
@@ -615,6 +636,6 @@ describe("the requests a question makes", () => {
 
   it("declares the ask route's caps as its schema states them", () => {
     assert.deepEqual(Object.fromEntries(Object.entries(declaredFor("forge_questions", "caps"))
-      .map(([name, cap]) => [name, cap.self])), { prompt: 8000, label: 500, options: 10 });
+      .map(([name, cap]) => [name, cap.self])), { prompt: 8000, options: 10 });
   });
 });

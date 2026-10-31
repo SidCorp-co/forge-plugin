@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 
 import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
-import { rungOf } from "../../../src/tracker/declared/rungs.mjs";
+import { placeOf } from "../../../src/tracker/declared/issue-machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("rebuilt").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: what
@@ -38,7 +38,7 @@ const git = (room, ...args) =>
 const ISSUE = {
   documentId: "rebuilt-uuid",
   issueId: "ISS-1784",
-  /* `developed` as the tracker holds it: in_progress at the test step. */
+  /* `in_progress:test` as the tracker holds it: in_progress at the test step. */
   status: "in_progress",
   workState: { step: "test" },
   title: "one flow: the checkpoint nobody captured",
@@ -72,7 +72,7 @@ const CHILD_HOME = ENV.HOME;
 test.after(() => tracker.close());
 
 const checkpoint = () => landingOf(state.issues[0].sessionContext);
-const rungNow = () => rungOf(state.issues[0].status, state.issues[0].workState?.step);
+const rungNow = () => placeOf(state.issues[0].status, state.issues[0].workState?.step);
 
 /* The lease is this run's own and the history is what the rule is read against: one holder across
    the whole of it names the builder, and several is a question no record here can answer. */
@@ -83,8 +83,8 @@ const held = (holders, landing = undefined, over = {}) => {
     sessionContext: {
       lease: { holder: RUN, agent: "a-test-agent", pid: "4242", renewedAt: new Date().toISOString(),
         minutes: 30, next: null,
-        history: [...holders.map((holder) => ({ holder, status: "in_progress" })),
-          { holder: RUN, status: "developed" }] },
+        history: [...holders.map((holder) => ({ holder, status: "in_progress:build" })),
+          { holder: RUN, status: "in_progress:test" }] },
       ...(landing ? { landing } : {}),
     },
   };
@@ -143,7 +143,7 @@ const declaring = async (branch, take) => {
   }
 };
 
-/* And which judgement the project asks for between `developed` and `testing`, the same way. */
+/* And which judgement the project asks for between `in_progress:test` and `in_progress:release`, the same way. */
 const declaringQa = async (qa, take) => {
   const was = state.config;
   state.config = { ...was, pipelineConfig: { ...was.pipelineConfig, qa } };
@@ -176,7 +176,7 @@ test("a landed head with no checkpoint behind it takes one written after the fac
   const verdict = { criterion: "1 — text", verdict: "pass", commit: judged, evidence: [DEPLOYED],
     judge: RUN };
   assert.equal(judgeProblem(verdict, read, ["one", "two", "three"]), null,
-    "and the checkpoint it wrote is one a verdict earns testing against");
+    "and the checkpoint it wrote is one a verdict earns in_progress:release against");
 });
 
 test("the run writing a checkpoint after the landing is recorded as its writer and never as the builder", async () => {
@@ -204,8 +204,8 @@ test("a head the branch it lands on is not proved to carry refuses the write, sa
 
 /* The row ISS-2608 was filed from: merged, one run in the claim history that held it while it was
    being built, and no checkpoint. The write refused to declare that builder unknown and had no form
-   that named it, so the issue had no route to `testing` at all. */
-test("a builder the claim history answers for on its own is written as the builder, and the checkpoint earns testing", async () => {
+   that named it, so the issue had no route to `in_progress:release` at all. */
+test("a builder the claim history answers for on its own is written as the builder, and the checkpoint earns in_progress:release", async () => {
   const { room, judged } = landedRoom("derivable");
   held(["the-only-run"], undefined, { acceptanceCriteria: "1. The one outcome.\n2. The other outcome.", plan: PLAN, mergedAt: AT });
   state.comments["rebuilt-uuid"].push(
@@ -229,24 +229,24 @@ test("a builder the claim history answers for on its own is written as the build
   assert.equal(read.handWritten.by, RUN, "while the run that made the write is still its writer and not its builder");
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.equal(rungNow(), "testing", `${moved.stdout}${moved.stderr}`);
+  assert.equal(rungNow(), "in_progress:release", `${moved.stdout}${moved.stderr}`);
 });
 
-/* sid-desk ISS-391: a judge dispatched onto an issue parked at `on_hold` from `developed` claims it
+/* sid-desk ISS-391: a judge dispatched onto an issue parked at `on_hold` from `in_progress:test` claims it
    there, and the history stamps that claim with a status the sequence does not hold. Read as itself
    it made the judge a second build holder, so the write declared the builder unknown and every
    verdict that judge wrote was refused for being inside that set (ISS-2044). */
-test("a judge that claimed an issue parked from developed is no build holder, so the write names the one that built it", async () => {
+test("a judge that claimed an issue parked from in_progress:test is no build holder, so the write names the one that built it", async () => {
   const { room, judged } = landedRoom("parked-judge");
   held([], undefined, { acceptanceCriteria: "1. The one outcome.", plan: PLAN, mergedAt: AT });
   state.issues[0].sessionContext.lease.history = [
-    { holder: "the-only-run", status: "in_progress", at: "2026-09-07T10:00:00.000Z" },
+    { holder: "the-only-run", status: "in_progress:build", at: "2026-09-07T10:00:00.000Z" },
     { holder: RUN, status: "on_hold", at: "2026-09-07T11:30:00.000Z" },
-    { holder: RUN, status: "developed", at: "2026-09-07T11:31:00.000Z" },
+    { holder: RUN, status: "in_progress:test", at: "2026-09-07T11:31:00.000Z" },
   ];
   state.comments["rebuilt-uuid"].push(
     { documentId: "c-park", createdAt: "2026-09-07T11:00:00.000Z", authorId: "agent",
-      body: render("park", { kind: "paused", why: "the deploy is not made yet" }, "developed") },
+      body: render("park", { kind: "paused", why: "the deploy is not made yet" }, "in_progress:test") },
     { documentId: "c-mark", createdAt: AT, authorId: "agent", body: `mark_merged target=base — merged to master at ${judged}` },
     { documentId: "c-verdict", createdAt: AT, authorId: "agent",
       body: render("verdict", { criterion: "1 — outcome", verdict: "pass", commit: judged, evidence: [DEPLOYED], judge: RUN }) },
@@ -258,7 +258,7 @@ test("a judge that claimed an issue parked from developed is no build holder, so
     "the claim taken at on_hold reads at the status its park left, which no build is done at");
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.equal(rungNow(), "testing", `the judge's own verdict earns it:\n${moved.stdout}${moved.stderr}`);
+  assert.equal(rungNow(), "in_progress:release", `the judge's own verdict earns it:\n${moved.stdout}${moved.stderr}`);
 });
 
 test("a history naming no run that built the change still declares the builder unrecoverable", async () => {
@@ -327,7 +327,7 @@ test("a statement about the deployment with no reconstruction to carry it is ref
    demanding an identity left its judge no route at all. What the route has to end at is the rung,
    not the write — `judgeProblem` answering `null` says nothing about the transition that spends it
    (consult F1, ISS-1993). */
-test("a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns testing against it", async () => {
+test("a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns in_progress:release against it", async () => {
   const { room, judged } = landedRoom("undeployed");
   held(["one", "two"], undefined, { acceptanceCriteria: "1. The one outcome.", plan: PLAN, mergedAt: AT });
   state.comments["rebuilt-uuid"].push(
@@ -359,15 +359,15 @@ test("a change that reached no deployment takes a checkpoint declaring that, and
   assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
   assert.doesNotMatch(owed.stdout, /landing checkpoint/u,
     `nothing about the checkpoint stands between this judge and the rung:\n${owed.stdout}`);
-  assert.match(owed.stdout, /testing is next and the record earns it/u,
+  assert.match(owed.stdout, /in_progress:release is next and the record earns it/u,
     `and the rung the judging run is dispatched to earn:\n${owed.stdout}${owed.stderr}`);
   /* What the rung would be owed and what the move does are two readings, and only the second is the
      one this issue exists for: a promotion path that refused after the checkpoint stood would leave
      the first green and the judge exactly where it was (review F1). */
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.match(moved.stdout, /developed -> testing/u, `${moved.stdout}${moved.stderr}`);
-  assert.equal(rungNow(), "testing",
+  assert.match(moved.stdout, /in_progress:test -> in_progress:release/u, `${moved.stdout}${moved.stderr}`);
+  assert.equal(rungNow(), "in_progress:release",
     "and the status the tracker holds is the one the judging run was dispatched to earn");
 });
 
@@ -492,7 +492,7 @@ test("a later landing is written over a finished checkpoint, which stays readabl
     { documentId: "c-new", createdAt: "2026-09-07T12:05:00.000Z", authorId: "agent", body: judgedAtWith(repaired, [repaired]) });
   const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
-  assert.equal(rungNow(), "testing", "verdicts citing the later landing earn the rung");
+  assert.equal(rungNow(), "in_progress:release", "verdicts citing the later landing earn the rung");
 });
 
 test("a later landing said to reach no deployment leaves none to cite, and keeps the replaced one readable", async () => {
