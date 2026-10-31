@@ -170,7 +170,7 @@ test("the gateway is reported with no translate scope set", () => {
    the report answers for this directory and says what decided it. */
 test("the copy a call through the link would run is reported, with why that one", () => {
   const outside = report(null);
-  assert.match(outside, /\[ {2}ok {2}\] copy on PATH\s+this \S+ at \S+ — no checkout at or above the working directory/u);
+  assert.match(outside, /\[ {2}ok {2}\] copy a call runs\s+this \S+ at \S+ — no checkout at or above the working directory/u);
   const home = tempRoom("doctor-home-");
   const tree = join(dirname(CLI), "..", "..");
   const inside = spawnSync(process.execPath, [CLI, "doctor"], {
@@ -178,7 +178,7 @@ test("the copy a call through the link would run is reported, with why that one"
     cwd: tree,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory/u);
+  assert.match(inside.stdout, /\[ {2}ok {2}\] copy a call runs\s+checkout \S+ at \S+ — the working directory/u);
   assert.match(inside.stdout, /\[ {2}ok {2}\] copy of the flow\s+checkout \S+ at \S+ — claim, resume, record, \S.* the working directory/u,
     "the flow's verbs get a row of their own, which with no install record is the checkout");
   assert.match(inside.stdout, /\[ {2}ok {2}\] copy the gates run\s+checkout \S+ at \S+ — the working directory/u,
@@ -186,7 +186,7 @@ test("the copy a call through the link would run is reported, with why that one"
 });
 
 /* An install holding one entry and not the other answers differently for each: only this shows it. */
-test("the copy the gates come from is reported beside the copy on PATH", () => {
+test("the copy the gates come from is reported beside the copy a call runs", () => {
   assert.match(report(null), /\[ {2}ok {2}\] copy the gates run\s+this \S+ at \S+ — no checkout at or above the working directory/u);
 });
 
@@ -198,7 +198,7 @@ test("a session started with --plugin-dir is told its gates run that copy", asyn
     await new Promise((up) => session.once("spawn", up));
     const out = report(null, { CLAUDE_PID: String(session.pid) });
     assert.match(out, /\[ {2}ok {2}\] copy the gates run\s+inline \S+ at \S+ — the session loaded \S+ by path \(--plugin-dir\)/u, out);
-    assert.match(out, /\[ {2}ok {2}\] copy on PATH\s+inline \S+ at \S+ — .*a call from it runs that copy/u, out);
+    assert.match(out, /\[ {2}ok {2}\] copy a call runs\s+inline \S+ at \S+ — .*a call from it runs that copy/u, out);
   } finally {
     session.kill();
   }

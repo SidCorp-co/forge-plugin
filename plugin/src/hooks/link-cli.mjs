@@ -1,9 +1,11 @@
-// Both CLIs on PATH, because the skills tell the agent to run them. No event, so no readEvent.
-import { lstatSync, mkdirSync, symlinkSync, unlinkSync } from "node:fs";
+// Both CLIs on PATH, because the skills tell the agent to run them, each reaching the copy of the
+// session that typed it. No event, so no readEvent.
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { installedCopy, pluginCopy } from "../tools/plugin-copy.mjs";
+import { ON_PATH, placeDispatcher, tellSession } from "../tools/copies/on-path.mjs";
 import { writeStubs } from "../tools/services/skill-stubs.mjs";
 import { hookOff } from "./hook-switch.mjs";
 import { dailyDue } from "../stats/daily/trigger.mjs";
@@ -31,32 +33,15 @@ const sayStubs = (root) => {
 export const linkCli = (root) => {
   if (!root || hookOff("link-cli")) return;
   sayStubs(root);
+  /* The session's own root, before anything that can fail: it is what its typed \`forge\` runs. */
+  tellSession(root);
   const bin = join(homedir(), ".local", "bin");
   try {
     mkdirSync(bin, { recursive: true });
   } catch {
     return;
   }
-  for (const name of ["forge", "vi-natural"]) {
-    const link = join(bin, name);
-    let held = null;
-    try {
-      held = lstatSync(link);
-    } catch {
-      /* nothing there yet */
-    }
-    // Only our own link is replaced: anything else is somebody's install, not ours to delete.
-    if (held && !held.isSymbolicLink()) {
-      process.stdout.write(`${link} exists and is not a symlink: \`${name}\` on PATH is not this plugin's.\n`);
-      continue;
-    }
-    try {
-      if (held) unlinkSync(link);
-      symlinkSync(join(root, "bin", name), link);
-    } catch {
-      /* a link we cannot write is not worth failing a session start over */
-    }
-  }
+  for (const name of ON_PATH) process.stdout.write(placeDispatcher(join(bin, name), name, root));
 
   /* Yesterday's report, where this project asked for one: started and never waited on. */
   dailyDue(root);

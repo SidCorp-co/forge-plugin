@@ -110,7 +110,7 @@ test("a subject asked for prints its own rows and no other subject's", () => {
   const said = doctor("machine");
   assert.match(said, /^\[ miss \] endpoint url/mu, "the subject's own rows");
   assert.match(said, /^\[ {2}ok {2}\] session id/mu);
-  assert.doesNotMatch(said, /^\[[^\]]+\] (jobs|copy on PATH|contract|dependencies|rest base)/mu,
+  assert.doesNotMatch(said, /^\[[^\]]+\] (jobs|dispatcher on PATH|copy a call runs|contract|dependencies|rest base)/mu,
     "and nothing of offer, copy, serves, repo or tracker");
   assert.match(said, /The rest of the reading, subject by subject: `forge doctor -h`/u,
     "a layer that cannot carry something says which one does");

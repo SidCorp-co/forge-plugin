@@ -110,14 +110,20 @@ const installedAbleToRun = (name, entry, record) => {
   return newest ? { dir: newest.installPath, version: newest.version, sha: newest.gitCommitSha ?? null } : null;
 };
 
+/** The newest installed copy of the plugin at `root` that holds `entry`, or null where no record resolves. */
+export const installedToRun = (entry, root = PLUGIN_ROOT, record = installRecord()) =>
+  installedAbleToRun(nameAt(root) ?? "", entry, record);
+
 const versionAt = (dir) => read(join(dir, ".claude-plugin", "plugin.json"))?.version ?? null;
 
 /** The copy running this, whatever any record holds: `copyToRun` answers which one the link would. */
 export const hereCopy = (root = PLUGIN_ROOT) => ({ dir: resolve(root), version: versionAt(root) });
 
-/* The copy a session loaded by path, which stands in for its install. */
-const loadedBy = ({ root, record, registered, pid }) => {
+/* The copy a session loaded by path, which stands in for its install: the root its start wrote into
+   its environment, where that names this plugin and no install, else its process's command line. */
+const loadedBy = ({ root, record, registered, pid, session }) => {
   if (registered) return installedCopy(root, record) ? null : resolve(root);
+  if (session && nameAt(session) === nameAt(root)) return installedCopy(session, record) ? null : resolve(session);
   return sessionPluginDir(pid, root);
 };
 
@@ -125,11 +131,11 @@ const loadedBy = ({ root, record, registered, pid }) => {
  *  directory sits in, else the copy the session loaded by path, else the newest installed copy that
  *  resolves, else this one. `entry` defaults to this CLI's, which is the copy doctor asks about.
  *  `registered` is a hook's caller, whose session registered the copy at `root`; `pid` the Claude
- *  Code process a call through the link came from. A session loaded by path runs that copy: the
+ *  Code process a call through the link came from, and `session` the root its start wrote. A session loaded by path runs that copy: the
  *  installed one is another version, whose gates are not the ones its registration names. */
-export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = PLUGIN_ROOT, record = installRecord(), registered = false, pid = process.env.CLAUDE_PID } = {}) => {
+export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = PLUGIN_ROOT, record = installRecord(), registered = false, pid = process.env.CLAUDE_PID, session = process.env.FORGE_PLUGIN_ROOT } = {}) => {
   const name = nameAt(root);
-  const loaded = loadedBy({ root, record, registered, pid });
+  const loaded = loadedBy({ root, record, registered, pid, session });
   const installed = loaded && existsSync(join(loaded, entry)) ? { ...hereCopy(loaded), sha: null }
     : name ? installedAbleToRun(name, entry, record) : null;
   const checkout = name ? checkoutAbove(cwd, name) : null;

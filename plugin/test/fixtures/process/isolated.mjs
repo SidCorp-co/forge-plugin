@@ -16,6 +16,9 @@ import { madeIn } from "../room.mjs";
 delete process.env.CLAUDE_CODE_SESSION_ID;
 delete process.env.FORGE_SESSION_ID;
 delete process.env.FORGE_BORROW_FROM;
+// FB-430
+delete process.env.FORGE_PLUGIN_ROOT;
+delete process.env.CLAUDE_ENV_FILE;
 
 /* The configuration home is the process's own and empty, so a case reading configuration it never
    wrote fails the same way on every machine instead of passing on the developer's credentials. It is

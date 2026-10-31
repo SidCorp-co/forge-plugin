@@ -32,8 +32,7 @@ import { everyIssue } from "../tracker/issues.mjs";
 import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
-import { copyToRun, FROZEN, sessionPluginDir } from "./plugin-copy.mjs";
-import { flowRow } from "./copies/flow-copy.mjs";
+import { copyLines } from "./copies/doctor-rows.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { scratchRow } from "../resolve/session/scratch.mjs";
@@ -577,21 +576,7 @@ export const doctor = async (argv) => {
   } else {
     line(OK, "prose language", "as written; `forge doctor --set translate=vi` to rewrite");
   }
-  /* Which copy `forge` on PATH is, from here — the answer changes with the directory and, for the
-     flow's verbs, with the verb, and the link itself names one copy for the whole machine. */
-  under("copy");
-  const dispatched = copyToRun();
-  line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
-    + ` — ${dispatched.why}`);
-  line(OK, "copy of the flow", flowRow());
-  /* The session's registration: the copy it was started with by path, where it names one. */
-  const loaded = sessionPluginDir();
-  const gating = copyToRun({ entry: join("hooks", "_hook.mjs"), ...(loaded ? { root: loaded, registered: true } : {}) });
-  line(OK, "copy the gates run", `${gating.kind} ${gating.version ?? "?"} at ${gating.dir}`
-    + ` — ${gating.why}`);
-  /* The two lines above say which copy answers a call; this one says what no call reaches. One reading, spent by the release step and by the gate that holds a write to any of them. */
-  line(OK, "restart set", `${FROZEN.join(", ")} — a session keeps these as of its start, whatever `
-    + "copy the lines above name");
+  const dispatched = copyLines();
   under("serves");
   report(stubRows(dispatched.installed));
   checkRoles(dispatched);

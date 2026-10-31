@@ -17,14 +17,24 @@ to write `2>&1` first.
 
 ## Which copy the call reaches
 
-`~/.local/bin/forge` is one symlink for the machine, written from whichever plugin root a session
-started with, so for two days every project on this machine ran one checkout: one of them died on a
-`SyntaxError` from a refactor half-finished there, and another silently ran an unreleased build. A
-call that arrives through that link picks its copy per call — the checkout the working directory sits
-in, else the copy the calling session was started with by path (`--plugin-dir`, read off that Claude
-Code process's command line), else the newest installed copy the record resolves to — so the answer
-changes with `cd` and the
-report has to answer for a directory rather than for the machine. A call that names a copy by its own
+`~/.local/bin/forge` is one file for the machine. It was a symlink each session's start wrote to its
+own plugin root, so the last session to start took every other session's calls: for two days every
+project on this machine ran one checkout, and later two sessions on two copies of the plugin flipped
+it at each other's every start (FB-430). It is now a dispatcher the start writes instead, a script
+naming no session: it runs the root in `FORGE_PLUGIN_ROOT`, which each session's start writes into
+that session's own environment (`CLAUDE_ENV_FILE`), and outside any session the newest installed copy
+it was written with. A copy loaded by path is never that fallback, since every other caller would run
+it; with no install at all, a call outside a session is refused by name, as is a root that holds no
+copy. A release before this one replaces a link and leaves any other file alone, so once a start of
+this release has written the dispatcher an older session's start no longer moves it: it says the file
+is not its own, and its typed `forge` runs the installed copy. `forge doctor` reads the copy a typed
+`forge` reaches off that file and the environment, on the row it labels "dispatcher on PATH".
+
+The dispatcher hands the call to that copy's chooser, which picks per call — the checkout the working
+directory sits in, else the copy the calling session was started with by path (`--plugin-dir`, read
+off `FORGE_PLUGIN_ROOT` or that Claude Code process's command line), else the newest installed copy
+the record resolves to — so the answer changes with `cd` and the report has to answer for a directory
+rather than for the machine, on the row it labels "copy a call runs". A call that names a copy by its own
 path still runs that copy: the probe of a worktree, the suite's own spawns and the bundled
 `vi-natural` all mean the copy they name, and a caller who typed a path was not asking.
 

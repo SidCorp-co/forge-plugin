@@ -12,10 +12,14 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
    config broke, a run's identity, and which record a process this CLI spawned of itself is settling
    — no file names a run, its kind or its pid (ISS-4, ISS-22) — and the one credential a CI run holds
    where no configuration file exists, the route `forge google` names for it (ISS-2460). A run home's
-   borrow names the file its credentials are read from and never a value (ISS-2612). */
+   borrow names the file its credentials are read from and never a value (ISS-2612). Which copy a
+   typed command reaches is the session's own root, the file its start tells it in, and PATH (FB-430). */
 const ALLOWED = new Set([
   "AI_AGENT",
   "CLAUDE_PID",
+  "CLAUDE_ENV_FILE",
+  "FORGE_PLUGIN_ROOT",
+  "PATH",
   "XDG_CONFIG_HOME",
   "CLAUDE_PROXY_ENV",
   "CLAUDE_PLUGIN_ROOT",

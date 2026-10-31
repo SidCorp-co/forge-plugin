@@ -5,11 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, readdirSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, lstatSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { FROZEN } from "../../src/tools/plugin-copy.mjs";
+import { dispatcherAt } from "../../src/tools/copies/on-path.mjs";
 import { ENTRIES_DIR } from "../../src/hooks/hook-switch.mjs";
 import { dirtyRepo, tempRoom } from "../fixtures.mjs";
 
@@ -213,18 +214,18 @@ test("a forge that is not a symlink is named and left where it is", () => {
   assert.match(run.stdout, /`forge` on PATH is not this plugin's/u);
 });
 
-test("a link an earlier session left is repointed", () => {
+/* What every earlier release wrote there, and so ours to replace: by the dispatcher, not a new link. */
+test("a link an earlier session left is replaced by the dispatcher", () => {
   const home = binRoom();
   const link = join(home, ".local", "bin", "vi-natural");
   symlinkSync(join(home, "moved-away"), link);
   linking(home);
-  assert.equal(readlinkSync(link), join(PLUGIN, "bin", "vi-natural"));
+  assert.equal(lstatSync(link).isSymbolicLink(), false);
+  assert.ok(dispatcherAt(link), "this plugin's dispatcher stands there now");
 });
 
 test("an empty bin gets both", () => {
   const home = binRoom();
   linking(home);
-  for (const name of ["forge", "vi-natural"]) {
-    assert.equal(readlinkSync(join(home, ".local", "bin", name)), join(PLUGIN, "bin", name));
-  }
+  for (const name of ["forge", "vi-natural"]) assert.ok(dispatcherAt(join(home, ".local", "bin", name)), name);
 });
