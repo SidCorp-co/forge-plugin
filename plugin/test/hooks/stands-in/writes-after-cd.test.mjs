@@ -10,7 +10,6 @@ import { dirname, join } from "node:path";
 
 import { touched } from "../../../hooks/_hook.mjs";
 import { git, tempRoom } from "../../fixtures.mjs";
-import { patience } from "../../patience.mjs";
 
 const room = tempRoom("writes-cd-");
 let NOW = Date.now();
@@ -139,11 +138,23 @@ test("a name written in one tree and only read in another is checked against the
 });
 
 /* Asked at every name, a reading that walked the command once per question made one `cd` and two
-   thousand names cost eight seconds where the same command had cost a fifth of one. */
-test("a long command after one cd is placed once, not once per name", () => {
-  const command = `cd ${room} && ${Array.from({ length: 2_000 }, (_, i) => `cat f${i}.md`).join("; ")}`;
-  const began = Date.now();
+   thousand names cost eight seconds where the same command had cost a fifth of one. What tells the two
+   apart is how the cost grows, not what a clock reads under whatever else the machine runs: four
+   times the names costs about four times as much when the command is walked once, and about sixteen
+   when it is walked per name. Each length is timed twice, interleaved, and the cheaper kept, so a
+   burst of load landing on one reading moves neither. */
+const placing = (names) => {
+  const command = `cd ${room} && ${Array.from({ length: names }, (_, i) => `cat f${i}.md`).join("; ")}`;
+  const began = performance.now();
   assert.deepEqual(touched(shellIn(room, command)), []);
-  const spent = Date.now() - began;
-  assert.ok(spent < patience(1_000), `2 000 names after one cd took ${spent} ms to place`);
+  return performance.now() - began;
+};
+
+test("a long command after one cd is placed once, not once per name", () => {
+  placing(50);
+  const [short, long] = [0, 1].reduce(([a, b]) => [Math.min(a, placing(500)), Math.min(b, placing(2_000))],
+    [Infinity, Infinity]);
+  const growth = long / short;
+  assert.ok(growth < 8, `four times the names cost ${growth.toFixed(1)} times as much `
+    + `(${Math.round(short)} ms for 500, ${Math.round(long)} ms for 2 000): the command is walked per name`);
 });
