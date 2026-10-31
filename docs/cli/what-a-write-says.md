@@ -81,3 +81,10 @@ below carries a mark of its own, an unmarked sentence stating a rule and a route
 to whoever reads it. What the line above may claim is the row and nothing further: the same field
 carries the account of a call whose other half was declined, so a reader told the whole call went
 through stops before the half that says it did not.
+
+**A refused write says first whether anything went up.** Every verb the route table reads as writing
+— a route it claims, or one it writes through (`writesThrough` on its row, the lease being `claim`'s),
+marked `writes` — leads each refusal with `<call>: nothing written.` while the transport has landed no
+write in the call, the refusal and the command that clears it following. A refusal after a write landed
+names what stands instead, and a read path inside such a verb (`advance --owed`, a listing, a thread)
+carries no lead. `test/cli/written/every-write-verb.test.mjs` walks every verb against both.

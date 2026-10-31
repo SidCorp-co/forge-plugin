@@ -40,7 +40,9 @@ export const VERBS = [
     "forge_comments", { group: BACKLOG,
       wraps: { create: "`forge comment`", list: "`forge comment ISS-45`" } }],
   ["claim", "<uuid|ISS-45> [--minutes n] [--stopped] [--unheld] [--give-back] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged] [--reconciled <sha>] [--recorded] [--landed] [--rebuilt sha --deployment sha|--undeployed]",
-    "take the issue's lease, or reclaim one a dead run left", "forge_issues", { group: FLOW }],
+    "take the issue's lease, or reclaim one a dead run left", "forge_issues", { group: FLOW,
+      /* The lease is a field of the issue, written through the route `forge issue --set` prints. */
+      writesThrough: ["forge_issues.update"] }],
   ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog",
     "forge_issues", { group: FLOW }],
   ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind",
@@ -390,6 +392,15 @@ export const wrapsOf = (row) => {
   if (!claims) return null;
   return Object.fromEntries(Object.entries(claims)
     .map(([action, line]) => [routeKey(row[3], action), line]));
+};
+
+/** Whether a verb writes to the tracker, read off the route table rather than kept beside it: a route
+ *  the verb claims, or one it writes through another verb's (`writesThrough`), that the table marks
+ *  `writes`. Every refusal such a verb ends on leads with whether anything was written. */
+export const writesVerb = (verb) => {
+  const row = VERBS.find((one) => one[0] === verb);
+  if (!row) return false;
+  return [...Object.keys(wrapsOf(row) ?? {}), ...(row[4]?.writesThrough ?? [])].some((key) => ROUTES[key]?.writes === true);
 };
 
 /* Read backwards: which verb is the route a raw call asks for, the table's silence being a decision. */

@@ -611,8 +611,9 @@ const run = async (argv, readAs, lifts) => {
 /** `lifts` is the id of a park comment the caller has already proved is the landing's own conflict
  *  park, answered by the head it just captured; no flag sets it (park/blocked.mjs). */
 export const advance = async (argv, { readAs = null, lifts = null } = {}) => {
-  /* --owed reads, and every other call writes a move, a park or a status. */
-  if (!argv.includes("--owed")) leadOnFailure(nothingWritten(`advance${argv[0] ? ` ${argv[0]}` : ""}`));
+  /* --owed reads, so it leads with where the issue stands; every other call writes a move, a park or
+     a status. */
+  leadOnFailure(argv.includes("--owed") ? null : nothingWritten(`advance${argv[0] ? ` ${argv[0]}` : ""}`));
   try {
     await run(argv, readAs, lifts);
   } catch (error) {

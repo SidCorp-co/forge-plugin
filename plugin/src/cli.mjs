@@ -4,12 +4,13 @@
 import { commands } from "./commands.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { blockedLine, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, typedRefusal,
-  verbForPluginDefect } from "./resolve/visibility.mjs";
+  verbForPluginDefect, writesVerb } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/gone/retiring.mjs";
 import { absentSaid } from "./resolve/gone/absent.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
-import { fail } from "./resolve/settings.mjs";
+import { fail, leadOnFailure } from "./resolve/settings.mjs";
+import { nothingWritten } from "./tracker/rest.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
 import { markOwed } from "./flow/lease/reclaims/mark.mjs";
 import { heldAfterMoves } from "./flow/lease/after-move.mjs";
@@ -130,12 +131,21 @@ if (needs) {
   process.exit(1);
 }
 
+/* Every refusal a writing verb ends on leads with whether anything went up, the verb being read off
+   the route table; a verb that knows its call better (`record`, a read path) registers over this. */
+const leadFor = (verb, argv) => {
+  if (!writesVerb(verb)) return;
+  const [first] = argv;
+  leadOnFailure(nothingWritten(`${verb}${first && !first.startsWith("-") ? ` ${first}` : ""}`));
+};
+
 /* The table answers with the verb rather than being it, so the one verb this call names is the only implementation loaded — and `answersHelp` is read off the handler, which is where the verb's own module declares it. */
 if (form) {
   const refused = refusedFor(command, rest);
   if (refused) fail(refused);
   console.error(saidFor(command, rest));
   const argv = argvOf(command, rest);
+  leadFor(form.verb, argv);
   const verb = await commands[form.verb]();
   if (!verb.answersHelp && wantsHelp(rest)) {
     console.log(helpOf(form.verb));
@@ -168,6 +178,7 @@ if (asked || !command || !Object.hasOwn(commands, command)) {
   process.exit(0);
 }
 
+leadFor(command, rest);
 const verb = await commands[command]();
 
 /* Before the verb sees it: every one but codex read `-h` as a filename, a uuid or a tool name. */

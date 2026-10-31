@@ -226,6 +226,8 @@ const own = {
     const { rest: argv, slug: aimed } = aimedBy(typed, "issue");
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
+      /* The listing writes nothing, so a refusal of it is no write's. */
+      leadOnFailure(null);
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
       const { limit: raw, offset: atRaw, fields: named, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
       /* A filter whose values are a declared set was judged by the parser above. These three take a shape instead, which no declared set can hold (ISS-1081). */
@@ -267,6 +269,7 @@ const own = {
       return overrideFields(reference, asked.set, why, { ask: pulled.ask });
     }
     if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
+    leadOnFailure(null);
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fieldsIn(fields).fields ?? null;
     const documentId = await documentIdOf(reference);
@@ -341,6 +344,8 @@ const own = {
     const issue = await documentIdOf(reference);
     /* No body is the read: one verb for the thread, whichever direction it is going. */
     if (!path) {
+      /* The read of the thread, which writes nothing and is not a write's refusal. */
+      leadOnFailure(null);
       if (title !== undefined) fail("comment: --title frames a body, and this call names none. Drop it to read the thread.");
       return readThread(reference, issue, (said) => console.log(said));
     }
