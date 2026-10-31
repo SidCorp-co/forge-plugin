@@ -119,7 +119,9 @@ test("a kind is shown the evidence vocabulary and the read sentence its own shap
         `${kind}: the fill reads the first commit-typed field, so no other is promised one`);
     }
   }
-  assert.doesNotMatch(kindHelp("review"), /evidence/iu, "the kind taking a commit and no evidence is told nothing of it");
+  const [thread, route] = kindHelp("review").split("Given --head");
+  assert.doesNotMatch(thread, /evidence/iu, "the kind taking a commit and no evidence is told nothing of it");
+  assert.match(route, /--criterion N --result pass\|fail --reason R --evidence E/u, "only core's review route, whose criteria cite it");
   assert.doesNotMatch(kindHelp("park"), /--commit/u, "and the kind citing evidence and no commit hears of no --commit");
 });
 
