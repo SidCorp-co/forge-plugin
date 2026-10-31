@@ -24,7 +24,8 @@ import { hereOf, logEntries, runOf } from "../codex/codex-log.mjs";
 import { readsIn, readsSaid, rowsOf } from "../codex/log/reads.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { laneLines } from "../guides/phases.mjs";
-import { lastMark, stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
+import { stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
+import { lastMark, markedCommit } from "./record/judged/mark-read.mjs";
 import { REOPEN, checkpointAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
@@ -435,7 +436,7 @@ const stampTaken = async (view, ref, answer) => {
   const stamped = (answer?.issue ?? answer)?.mergedAt;
   /* An unread page holds no mark to find, so a set that fetched none would read every stamp as false —
      including the one a walk back to `approved` leaves standing on a change that really did land. */
-  if (!stamped || view.unread || lastMark(view.comments)) return null;
+  if (!stamped || view.unread || lastMark(view.comments) || markedCommit(view)) return null;
   if (!view.whole) {
     return `${ref} came back stamped merged at ${stamped}, and whether a mark of this issue's names a `
       + `landing could not be read past the cut above. Read the thread, and where no mark names one, `

@@ -5,7 +5,7 @@
 import { commitCarries } from "../../../git/carries.mjs";
 import { isCommit, sameCommit, shortSha } from "../../../tracker/evidence.mjs";
 import { CARRIES, CARRIES_DEPLOYMENT } from "../../machine.mjs";
-import { markedCommit } from "../merged.mjs";
+import { markedCommit } from "./mark-read.mjs";
 
 /* Per commit pair and checkout, since one write's verdicts usually name one commit and git's answer
    is the same for each of them: five spawns a criterion otherwise. */
@@ -18,8 +18,8 @@ const carriesOnce = (merged, judged, cwd) => {
 
 /** Fills `got.carries` where git reads the commit judged as carrying the merged commit, and says on
  *  `say` what it read either way; a verdict at the merged commit, or before any mark, asks nothing. */
-export const carriedOnto = (got, comments, say, cwd = process.cwd()) => {
-  const merged = markedCommit(comments);
+export const carriedOnto = (got, held, say, cwd = process.cwd()) => {
+  const merged = markedCommit(held);
   const judged = got.commit;
   if (!merged || !judged || sameCommit(judged, merged)) return;
   const read = carriesOnce(merged, judged, cwd);

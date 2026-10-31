@@ -2,16 +2,14 @@
    record; these only spell what supplies it. */
 import { VERDICTS, need, valuesOf } from "../machine.mjs";
 import { typed } from "../../hooks/shell-spans.mjs";
-import { markedIdentity } from "../record/merged.mjs";
+import { markedIdentity } from "../record/judged/mark-read.mjs";
 import { RUNTIME_ASK, owesRuntime } from "../qa/verdicts.mjs";
 import { identityAsk, landsOutsideGit, markedLanding, samePlace } from "../record/judged/landing.mjs";
 
-/* The identity every ask spends: a commit in git, the mark's landing outside it (ISS-2402). */
-export const identityOf = (view) => markedIdentity(view.issue, view.comments);
 
 /** A verdict ask's identity flags, with the runtime the write owes where it owes one. */
 export const withRuntime = (view, id) => (owesRuntime(view.release, view.issue, view.landing) ? `${id} --runtime ${RUNTIME_ASK}` : id);
-export const idAsk = (view) => identityAsk(identityOf(view));
+export const idAsk = (view) => identityAsk(markedIdentity(view));
 
 /* The identity asked of a verdict whose answer has no commit on the record yet: a placeholder sha in
    git, and outside git the landing, which stands before anything is judged. */

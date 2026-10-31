@@ -11,7 +11,7 @@ process.env.XDG_CONFIG_HOME = tempHome("merged-mark").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { sameCommit } = await import("../../../src/tracker/evidence.mjs");
-const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/record/merged.mjs");
+const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/record/judged/mark-read.mjs");
 const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
 const { kindHelp } = await import("../../../src/flow/record/record-rows.mjs");
 
@@ -42,12 +42,12 @@ test("a seven-digit commit and the same forty-digit commit are one commit", () =
 
 test("the merged commit is read out of the mark's note, because the mark has no commit field", () => {
   const comments = [mark("merged to master at c8c3550 (fast-forward); reviewed head c8c3550")];
-  assert.equal(markedCommit(comments), "c8c3550");
-  assert.equal(markedCommit([mark("merged to master")]), null, "a note naming no commit earns nothing");
-  assert.equal(markedCommit([]), null);
-  assert.equal(markedCommit([comment("just a comment at all")]), null, "only the mark's own note is read");
+  assert.equal(markedCommit({ comments: comments }), "c8c3550");
+  assert.equal(markedCommit({ comments: [mark("merged to master")] }), null, "a note naming no commit earns nothing");
+  assert.equal(markedCommit({ comments: [] }), null);
+  assert.equal(markedCommit({ comments: [comment("just a comment at all")] }), null, "only the mark's own note is read");
   const twice = [...comments, mark("merged to master at 43b811e")];
-  assert.equal(markedCommit(twice), "43b811e", "the latest mark is the one that landed");
+  assert.equal(markedCommit({ comments: twice }), "43b811e", "the latest mark is the one that landed");
 });
 
 test("in_progress:test needs the mark, its commit, and an approving review of that commit", () => {
@@ -189,29 +189,29 @@ test("a verdict at the judged head stands where the landing moved none of the ch
 
 test("the mark's note answers for the judged head and what the landing moved", () => {
   const note = (text) => [mark(`merged to master at 9a4d36d; ${text}`)];
-  assert.equal(judgedHead(note("judged head bc40edc; landing moved nothing")), "bc40edc");
-  assert.equal(markedCommit(note("judged head bc40edc")), "9a4d36d", "the landed hash is still the first `at`");
-  assert.equal(judgedHead(note("reviewed head 37a0ffb")), null, "and reviewed is not judged");
-  assert.equal(judgedHead([]), null);
-  assert.deepEqual(landingMoved(note("landing moved nothing of this change")), []);
-  assert.deepEqual(landingMoved(note("landing moved nothing this change touched")), [], "any `nothing` is none");
-  assert.deepEqual(landingMoved(note("landing moved a.md, b/c.mjs")), ["a.md", "b/c.mjs"]);
-  assert.deepEqual(landingMoved(note("landing moved a.md; reviewed head 37a0ffb")), ["a.md"],
+  assert.equal(judgedHead({ comments: note("judged head bc40edc; landing moved nothing") }), "bc40edc");
+  assert.equal(markedCommit({ comments: note("judged head bc40edc") }), "9a4d36d", "the landed hash is still the first `at`");
+  assert.equal(judgedHead({ comments: note("reviewed head 37a0ffb") }), null, "and reviewed is not judged");
+  assert.equal(judgedHead({ comments: [] }), null);
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothing of this change") }), []);
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothing this change touched") }), [], "any `nothing` is none");
+  assert.deepEqual(landingMoved({ comments: note("landing moved a.md, b/c.mjs") }), ["a.md", "b/c.mjs"]);
+  assert.deepEqual(landingMoved({ comments: note("landing moved a.md; reviewed head 37a0ffb") }), ["a.md"],
     "the clause ends where the next one starts, since a path list is the one clause with commas");
-  assert.equal(landingMoved(note("judged head bc40edc")), null, "silence and none are different answers");
-  assert.equal(landingMoved([]), null);
+  assert.equal(landingMoved({ comments: note("judged head bc40edc") }), null, "silence and none are different answers");
+  assert.equal(landingMoved({ comments: [] }), null);
   /* The sentinel is enumerated, because matching it stands every verdict: read loosely, a file
      called `nothing.md` would excuse every verdict the landing moved it under. */
-  assert.deepEqual(landingMoved(note("landing moved nothing.md")), ["nothing.md"]);
-  assert.deepEqual(landingMoved(note("landing moved nothing/generated.json")), ["nothing/generated.json"]);
-  assert.deepEqual(landingMoved(note("landing moved nothingness")), ["nothingness"]);
-  assert.deepEqual(landingMoved(note("landing moved nothing generated")), ["nothing generated"]);
-  assert.deepEqual(landingMoved(note("landing moved nothing except src")), ["nothing except src"],
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothing.md") }), ["nothing.md"]);
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothing/generated.json") }), ["nothing/generated.json"]);
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothingness") }), ["nothingness"]);
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothing generated") }), ["nothing generated"]);
+  assert.deepEqual(landingMoved({ comments: note("landing moved nothing except src") }), ["nothing except src"],
     "a hedge is not the sentinel either, and refusing on it is the safe direction");
   /* A clause that parses to no path says nothing, not none: read as none it would stand every
      verdict off a note whose author typed a separator and no path. */
-  assert.equal(landingMoved(note("landing moved ,")), null);
-  assert.equal(landingMoved(note("landing moved , ,")), null);
+  assert.equal(landingMoved({ comments: note("landing moved ,") }), null);
+  assert.equal(landingMoved({ comments: note("landing moved , ,") }), null);
 });
 /* A rung no actor may reach is a rung the flow does not have (ISS-607): four runs on one real state
    recorded four statuses, because this repository earned `in_progress:test` by a merge the run itself had to
@@ -260,12 +260,12 @@ test("a mark one actor wrote earns in_progress:test for verdicts another wrote",
    itself wrote. A note carrying both is read as both, and neither answer comes off the other. */
 test("the note says what this change wrote beside what the landing moved under it", () => {
   const note = (text) => [mark(`merged to master at 9a4d36d; ${text}`)];
-  assert.deepEqual(landingWrote(note("landing wrote a.md, b/c.mjs")), ["a.md", "b/c.mjs"]);
-  assert.deepEqual(landingWrote(note("landing wrote nothing")), []);
-  assert.equal(landingWrote(note("landing moved a.md")), null, "the other clause answers nothing here");
-  assert.equal(landingWrote([]), null);
+  assert.deepEqual(landingWrote({ comments: note("landing wrote a.md, b/c.mjs") }), ["a.md", "b/c.mjs"]);
+  assert.deepEqual(landingWrote({ comments: note("landing wrote nothing") }), []);
+  assert.equal(landingWrote({ comments: note("landing moved a.md") }), null, "the other clause answers nothing here");
+  assert.equal(landingWrote({ comments: [] }), null);
   const both = note("landing moved a.md; landing wrote b.mjs, c.mjs");
-  assert.deepEqual(landingMoved(both), ["a.md"]);
-  assert.deepEqual(landingWrote(both), ["b.mjs", "c.mjs"]);
-  assert.equal(landingWrote(note("landing wrote ,")), null, "a clause that parses to no path says nothing");
+  assert.deepEqual(landingMoved({ comments: both }), ["a.md"]);
+  assert.deepEqual(landingWrote({ comments: both }), ["b.mjs", "c.mjs"]);
+  assert.equal(landingWrote({ comments: note("landing wrote ,") }), null, "a clause that parses to no path says nothing");
 });

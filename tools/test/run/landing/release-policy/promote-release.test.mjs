@@ -25,7 +25,7 @@ const { Stop } = await import("../../../../checkout.mjs");
 const { landingOf } = await import("../../../../../plugin/src/flow/landing/checkpoint.mjs");
 const { render } = await import("../../../../../plugin/src/flow/record/page.mjs");
 const { noteShown } = await import("../../../../../plugin/src/tracker/comments.mjs");
-const { markedCommit } = await import("../../../../../plugin/src/flow/record/merged.mjs");
+const { markedCommit } = await import("../../../../../plugin/src/flow/record/judged/mark-read.mjs");
 
 test.after(() => tracker.close());
 
@@ -79,7 +79,7 @@ test("a promotion the project deploys on its own rests at the rung for the relea
   seeded({ landing: ready(head, base), earned: earning(head) });
   const first = await ran([KEY], work);
   assert.equal(landing().state, "records-owed", `the mark is up and the deploying rung is not earned:\n${first}`);
-  const landed = markedCommit(comments(UUID));
+  const landed = markedCommit({ comments: comments(UUID) });
   assert.ok(landed, `the mark names the sha this landing pushed:\n${first}`);
   verified(landed);
   const took = await asBuilder(["claim", KEY, "--take"]);

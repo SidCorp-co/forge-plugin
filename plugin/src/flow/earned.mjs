@@ -8,10 +8,11 @@ import {
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
-import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
+import { correctionForm, mergedForm, namesPath, undoForm } from "./record/merged.mjs";
+import { judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, markedIdentity, reviewedHead } from "./record/judged/mark-read.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
 import { reviewOwedItems } from "./earned/core-verdicts.mjs";
-import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm, withRuntime } from "./earned/asks.mjs";
+import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOwed, landingOwed, unreadId, verificationForm, withRuntime } from "./earned/asks.mjs";
 
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
@@ -220,8 +221,8 @@ export const payloadOwed = (view, kind, what, ask) => {
 };
 
 const reviewOwed = (view, ref) => {
-  const merged = markedCommit(view.comments);
-  const reviewed = reviewedHead(view.comments);
+  const merged = markedCommit(view);
+  const reviewed = reviewedHead(view);
   const ask = `forge record review ${ref} --reviewer codex ${idAsk(view)} `
     + `--outcome ${valuesOf("review", "outcome")} --finding "F1 accepted"`;
   const owed = payloadOwed(view, "review", "no code review of the head that landed", ask);
@@ -254,7 +255,7 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
     `the landing moved ${moved.join(", ")}, which this change touched, so ${at} judged ${judged} `
       + `and the evidence was taken before those paths moved`,
     `forge record verdict ${ref} --criterion <n> --verdict ${valuesOf("verdict", "verdict")} `
-      + `${withRuntime(view, `--commit ${markedCommit(view.comments)}`)} --evidence <attachment|url|sha>`,
+      + `${withRuntime(view, `--commit ${markedCommit(view)}`)} --evidence <attachment|url|sha>`,
   );
 };
 
@@ -346,10 +347,10 @@ const landingVerdictsOwed = (view, ref) => {
 
 const verdictsOwed = (view, ref) => {
   if (landsOutsideGit(view.issue)) return landingVerdictsOwed(view, ref);
-  const merged = markedCommit(view.comments);
-  const judged = judgedHead(view.comments);
-  const moved = judged ? landingMoved(view.comments) : null;
-  const stands = judgedStands(view.comments);
+  const merged = markedCommit(view);
+  const judged = judgedHead(view);
+  const moved = judged ? landingMoved(view) : null;
+  const stands = judgedStands(view);
   const id = withRuntime(view, `--commit ${merged ?? "<sha>"}`);
   const ask = (number) => askOne(ref, number, id);
   const out = foldVerdicts(ref, view.owed, id,
@@ -472,7 +473,7 @@ const judgeOwed = (view, ref) => {
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
     const blocks = held[0].recite ? heldBlocks(held.map((one) => [one.number, one.held])) : null;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments), identityOf(view), view.holders ?? [], blocks,
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view), markedIdentity(view), view.holders ?? [], blocks,
         owesRuntime(view.release, view.issue, view.landing)));
   });
 };
@@ -483,7 +484,7 @@ const judgeOwed = (view, ref) => {
 const deployOwed = (view, ref) => {
   if (!view.release?.autoProd) return [];
   const held = view.latest.verification.record.fields;
-  const merged = markedCommit(view.comments);
+  const merged = markedCommit(view);
   const asks = (commit, tail = "") => verificationForm(ref, `--commit ${commit}`, "<the deployment's build log>", tail);
   const out = [];
   if (merged && !sameCommit(held.commit, merged) && !sameCommit(held.contains, merged)) {
@@ -515,7 +516,7 @@ export const namedIn = (view) => {
    that rung back: `namedIn` is blank there, which is no list rather than an empty one. A plan that
    exists and names no path does have a list, and every landed path is outside it. */
 const unplannedIn = (view) => {
-  const wrote = landingWrote(view.comments);
+  const wrote = landingWrote(view);
   if (!wrote) return [];
   const named = namedIn(view);
   if (!named) return [];
@@ -537,7 +538,7 @@ const scopeOwed = (view, ref) => {
    names are this item's rather than the plan-scope item's, one disagreement being one refusal. Which of
    the two is wrong the record cannot say; the plan is the one a run rewrites in the open (ISS-2384). */
 const noFileOwed = (view, ref) => {
-  const wrote = landingWrote(view.comments) ?? [];
+  const wrote = landingWrote(view) ?? [];
   return wrote.length ? [need(
     `the plan declares the change lands no file, and the merged mark says the landing wrote ${wrote.join(", ")}, `
       + "so the record says two things about one change",
@@ -677,7 +678,7 @@ export const CHECKS = {
         out.push(need("the merged mark names no landing: the tracker holds no `mergedLanding` for it, so nothing "
           + "says where the change landed outside git", `${undoForm(ref)}, then ${mergedForm(ref, view.issue)}`));
       }
-    } else if (!markedCommit(view.comments)) {
+    } else if (!markedCommit(view)) {
       out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", mergedForm(ref)));
     }
     return [...out, ...(landsNoFile(rungFieldsOf(view)) ? noFileOwed(view, ref) : scopeOwed(view, ref)), ...reviewOwed(view, ref)];

@@ -25,7 +25,8 @@ a field.
 
 **Two shapes the tracker owes.** The lease needs a compare-and-set on its field for the claim and
 for every write the lease covers, and the mark needs a commit field of its own; until those exist
-the lease is advisory (C-05) and the commit lives in the mark's note (ISS-7).
+the lease is advisory (C-05); the commit is now core's `markedCommit` on the issue record, and the
+mark's note is read for its clauses only where it names that commit (ISS-7, ISS-78).
 
 ## What it owns in the account's directory
 

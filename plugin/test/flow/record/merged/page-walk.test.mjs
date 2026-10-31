@@ -7,7 +7,7 @@ import test from "node:test";
 import { tempHome } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("merged-page-walk").path;
-const { lastMark, verdictHeads } = await import("../../../../src/flow/record/merged.mjs");
+const { lastMark, verdictHeads } = await import("../../../../src/flow/record/judged/mark-read.mjs");
 
 const LANDED = "a".repeat(40);
 const JUDGED = "b".repeat(40);
@@ -22,7 +22,7 @@ const counted = (body) => {
 
 test("verdictHeads walks one page once, however many clauses it reads", () => {
   const page = [counted("a comment"), counted(NOTE), counted("another comment")];
-  assert.deepEqual(verdictHeads(page), [LANDED, JUDGED]);
+  assert.deepEqual(verdictHeads({ comments: page }), [LANDED, JUDGED]);
   assert.deepEqual(page.map((one) => one.reads), [1, 1, 1], "each body is read by one walk");
 });
 
@@ -32,11 +32,11 @@ test("a page that gained a mark after it was read answers with the new one", () 
   const again = `mark_merged target=base — at ${"c".repeat(40)}; judged head ${JUDGED}; landing moved nothing`;
   page.push(counted(again));
   assert.equal(lastMark(page), again);
-  assert.deepEqual(verdictHeads(page), ["c".repeat(40), JUDGED]);
+  assert.deepEqual(verdictHeads({ comments: page }), ["c".repeat(40), JUDGED]);
 });
 
 test("no page reads as no mark", () => {
   assert.equal(lastMark(null), null);
   assert.equal(lastMark(undefined), null);
-  assert.deepEqual(verdictHeads(null), []);
+  assert.deepEqual(verdictHeads({ comments: null }), []);
 });

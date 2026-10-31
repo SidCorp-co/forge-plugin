@@ -85,10 +85,9 @@ export const judgedHead = (held) => standingMark(held).judged;
 export const landingMoved = (held) => standingMark(held).moved;
 export const landingWrote = (held) => standingMark(held).wrote;
 
-/** What a record of this issue names what it judged by: the landing its mark names where the tracker
- *  says the issue lands outside git, and the commit the mark names everywhere else. One answer for the
- *  fill, the entry checks and the commands they print, so none of them asks one shape for the other's
- *  flag (ISS-2402). */
+/** The flag and value a record judges by: `--landing` off the row for an issue landing outside git,
+ *  `--commit` off the standing mark for the rest. One answer for the fill, the entry checks and the
+ *  commands they print, so none asks one shape for the other's flag (ISS-2402). */
 export const markedIdentity = (held) => (landsOutsideGit(held.issue)
   ? { flag: "landing", value: markedLanding(held.issue) }
   : { flag: "commit", value: markedCommit(held) });
@@ -101,7 +100,7 @@ export const verdictHeads = (held) => [
   ...(judgedStands(held) ? [judgedHead(held)] : []),
 ].filter(Boolean);
 
-/** Said under the owed list where the mark it reads is the thread's word alone. */
+/** The line `--owed` prints when core could not name the commit, so the note answered for it. */
 export const markReadLines = (view) => {
   const mark = standingMark(view);
   return mark.from === "thread" && mark.at

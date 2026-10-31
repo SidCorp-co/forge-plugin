@@ -17,7 +17,8 @@ import { SECOND_LANDING, recaptureRefusal } from "./written.mjs";
 import { REBUILT_FORM } from "./reconstruction.mjs";
 import { commandAt } from "../machine.mjs";
 import { landsAgain } from "../route.mjs";
-import { judgedHead, markedCommit, reviewedHead, undoForm } from "../record/merged.mjs";
+import { undoForm } from "../record/merged.mjs";
+import { judgedHead, markedCommit, reviewedHead } from "../record/judged/mark-read.mjs";
 import { gitMarkForm } from "../record/judged/merged-clauses.mjs";
 
 /* The same overlay switches the ancestry reading is made under, so the tip it asks about and the
@@ -157,13 +158,13 @@ const markProof = async (ref, issue, head, { read, lands, page }) => {
       + `is owed is the landing and not this write. ${settle(reached)}  forge claim ${ref} --landed\n`
       + `${REMARK(ref, "Where the mark names the wrong commit")}`);
   }
-  const comments = (await page()).comments ?? [];
-  const at = markedCommit(comments);
+  const held = { issue, comments: (await page()).comments ?? [] };
+  const at = markedCommit(held);
   if (!sameCommit(at, commit)) {
     fail(`${lead}, and the standing mark's note names ${at ? shortSha(at) : "no commit"} at its \`at\` `
       + `clause, so which commit landed is not one answer and neither proves this landing. ${REMARK(ref)}`);
   }
-  const heads = [...new Set([reviewedHead(comments), judgedHead(comments)].filter(Boolean).map(shortSha))];
+  const heads = [...new Set([reviewedHead(held), judgedHead(held)].filter(Boolean).map(shortSha))];
   if (!heads.some((one) => sameCommit(one, head))) {
     fail(`${lead}, and its note names ${heads.join(" and ") || "no head"} as what was reviewed and `
       + `judged, not ${shortSha(head)}: it is the mark of another landing of ${ref}, and `

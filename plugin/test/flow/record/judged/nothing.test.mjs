@@ -12,7 +12,7 @@ import { escaped, git, ranAsync, tempHome, tempRoom } from "../../../fixtures.mj
 import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged-unjudged").path;
-const { judgedHead, landingMoved, lastMark } = await import("../../../../src/flow/record/merged.mjs");
+const { judgedHead, landingMoved, lastMark } = await import("../../../../src/flow/record/judged/mark-read.mjs");
 const { movedBetween } = await import("../../../../src/git/moved.mjs");
 const { render } = await import("../../../../src/flow/record/page.mjs");
 const { judgedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
@@ -100,7 +100,7 @@ test("--judged nothing writes the mark on a page with no verdict, and the note s
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const note = lastMark(page());
   assert.match(note, /; judged head nothing — no verdict has judged any head yet; landing moved /u, note);
-  assert.equal(judgedHead(page()), null, "and the reader of the head finds none there");
+  assert.equal(judgedHead({ comments: page() }), null, "and the reader of the head finds none there");
 });
 
 test("with no judged head, landing moved is git's reading between the reviewed head and --at", async () => {
@@ -109,7 +109,7 @@ test("with no judged head, landing moved is git's reading between the reviewed h
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const read = movedBetween(ROOM, REVIEWED, AT, CHANGE);
   assert.deepEqual(read, ["docs/a.md"], "the fixture moves one path of the change after the review");
-  assert.deepEqual(landingMoved(page()), read);
+  assert.deepEqual(landingMoved({ comments: page() }), read);
   assert.match(run.stdout, new RegExp(`git's reading between ${escaped(REVIEWED)} and ${escaped(AT)}: docs/a\\.md\\.`, "u"), run.stdout);
 });
 
@@ -142,9 +142,9 @@ test("--judged <sha> writes that head and reads landing moved from it", async ()
   const run = await unjudged(OTHER);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(lastMark(page()), new RegExp(`; judged head ${escaped(OTHER)}; `, "u"));
-  assert.equal(judgedHead(page()), OTHER);
-  assert.deepEqual(landingMoved(page()), movedBetween(ROOM, OTHER, AT, CHANGE));
-  assert.deepEqual(landingMoved(page()), [], "the only commit after that head moves a neighbour");
+  assert.equal(judgedHead({ comments: page() }), OTHER);
+  assert.deepEqual(landingMoved({ comments: page() }), movedBetween(ROOM, OTHER, AT, CHANGE));
+  assert.deepEqual(landingMoved({ comments: page() }), [], "the only commit after that head moves a neighbour");
 });
 
 test("a --judged that is neither a sha nor the word is refused naming both forms", async () => {

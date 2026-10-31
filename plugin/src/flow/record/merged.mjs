@@ -15,17 +15,12 @@ import { releasePolicy } from "../../tracker/project-config.mjs";
 import { escaped } from "../../markdown.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
-import { unwrap } from "../machine.mjs";
 import { commitProblem, commitTakes } from "./content.mjs";
-import { landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
+import { landingProblem, landsOutsideGit } from "./judged/landing.mjs";
 import { commitCarries } from "../../git/carries.mjs";
 import { movedBetween, unreadableIn } from "../../git/moved.mjs";
 import { CLAUSES, NOTHING, TYPED, gitMarkForm } from "./judged/merged-clauses.mjs";
-
-/* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
-const MARK = /^mark_merged\b/u;
-
-const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
+import { NONE, lastMark, pathsIn } from "./judged/mark-read.mjs";
 
 const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
 
@@ -34,64 +29,6 @@ const clause = (flag) => CLAUSES.find((one) => one.flag === flag);
    no head was judged rather than leaving the clause out. Its sha reader finds nothing there, so
    every reader of the head reads it as none. */
 const headSaid = (one, value) => (value === NOTHING ? `${NOTHING} — ${one.none}` : value);
-
-const markOf = (comments) => {
-  const marks = (comments ?? []).map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
-  return marks.length ? marks.at(-1) : null;
-};
-
-/* One walk per page, whichever clause asks: `verdictHeads` alone asks four times for each issue
-   `forge spec --status` reads. A page is a fresh array per read and nothing writes into one after,
-   but a page that has grown since is walked again rather than trusted. */
-const walked = new WeakMap();
-
-/** The note of the mark that stands: the latest, a re-mark after a second landing being the one
- *  that landed. */
-export const lastMark = (comments) => {
-  if (!Array.isArray(comments)) return markOf(comments);
-  const held = walked.get(comments);
-  if (held && held.length === comments.length && held.last === comments.at(-1)) return held.mark;
-  const mark = markOf(comments);
-  walked.set(comments, { length: comments.length, last: comments.at(-1), mark });
-  return mark;
-};
-
-/* What the standing mark says in one clause, or null where it says nothing there. */
-const readClause = (comments, flag) => clause(flag).reads.exec(lastMark(comments) ?? "")?.[1] ?? null;
-
-export const markedCommit = (comments) => readClause(comments, "at");
-
-/** What a record of this issue names what it judged by: the landing its mark names where the tracker
- *  says the issue lands outside git, and the commit its note names everywhere else. One answer for the
- *  fill, the entry checks and the commands they print, so none of them asks one shape for the other's
- *  flag (ISS-2402). */
-export const markedIdentity = (issue, comments) => (landsOutsideGit(issue)
-  ? { flag: "landing", value: markedLanding(issue) }
-  : { flag: "commit", value: markedCommit(comments) });
-
-export const reviewedHead = (comments) => readClause(comments, "reviewed");
-export const judgedHead = (comments) => readClause(comments, "judged");
-
-const pathsIn = (said) => {
-  if (!said) return null;
-  if (NONE.test(said)) return [];
-  const paths = said.split(",").map((one) => one.trim()).filter(Boolean);
-  return paths.length ? paths : null;
-};
-
-const readPaths = (comments, flag) => pathsIn(readClause(comments, flag)?.trim());
-
-export const landingMoved = (comments) => readPaths(comments, "moved");
-
-/** ISS-156's rule, spent by two readers: a landing that moved none of this change's paths judged the code that landed, so a verdict at the judged head stands and the commits below are what one may cite. */
-export const judgedStands = (comments) =>
-  Boolean(judgedHead(comments)) && landingMoved(comments)?.length === 0;
-
-export const verdictHeads = (comments) => [
-  markedCommit(comments),
-  ...(judgedStands(comments) ? [judgedHead(comments)] : []),
-].filter(Boolean);
-export const landingWrote = (comments) => readPaths(comments, "wrote");
 
 /* What the clauses are joined by, so a path holding one reads as its clause ending there and a `moved` with one path in it reads as none moved, which is the reading a status acts on. Refused wherever the note is composed, the landing task composing one too, and under its own flag where one was typed; and what no path may hold, said once for the flag that names itself and for the composer that has no flag to name. */
 const APART = /[;\n]/u;

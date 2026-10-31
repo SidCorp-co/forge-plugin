@@ -10,7 +10,8 @@ import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
 import { scoped } from "../../../plugin/src/tracker/rest.mjs";
 import { viewFrom } from "../../../plugin/src/flow/earned.mjs";
-import { markMerged, markNote, markedCommit, namedFor, stampHolds } from "../../../plugin/src/flow/record/merged.mjs";
+import { markMerged, markNote, namedFor, stampHolds } from "../../../plugin/src/flow/record/merged.mjs";
+import { markedCommit } from "../../../plugin/src/flow/record/judged/mark-read.mjs";
 import { landingSaved } from "../../../plugin/src/flow/lease.mjs";
 import { LANDING_DONE, LANDING_MARKED, LANDING_QA_OWED, LANDING_RECONCILED,
   LANDING_RECORDS_OWED, landingVoided } from "../../../plugin/src/flow/landing/checkpoint.mjs";
@@ -151,7 +152,7 @@ export const markStep = async (one) => {
   await perMemberOwed(at, async (member) => {
     const { key, documentId, landing } = member;
     const { comments } = await asked(() => commentPage(documentId));
-    if (markedCommit(comments ?? []) === landed) {
+    if (markedCommit({ comments: comments ?? [] }) === landed) {
       /* A note that went up is not a mark that stands: the row may name another commit, which the write that posted it refused, and a resume counting the note alone would save that refusal as done. */
       await asked(() => stampHolds(documentId, key, landed));
       console.log(`  the mark at ${shortly(landed)} is up already`);

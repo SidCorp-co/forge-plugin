@@ -44,7 +44,7 @@ import {
 import { asksIndependent, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 import { REBUILT_FORM, builderProblem } from "./landing/reconstruction.mjs";
 import { landsOutsideGit } from "./record/judged/landing.mjs";
-import { markedCommit } from "./record/merged.mjs";
+import { markReadLines, markedCommit } from "./record/judged/mark-read.mjs";
 import { blockedClearedBy } from "./park/blocked.mjs";
 import { draftSaid, draftTarget } from "./route/aboard.mjs";
 import { DRAFT } from "../rank/weights.mjs";
@@ -300,7 +300,7 @@ export const checkpointAhead = (view, ref) => {
   if (!problem) return null;
   const opens = `Ahead: ${JUDGED_AT} is earned here by an independent judge's verdicts, each read `
     + `against a landing checkpoint naming the run that built the change, and ${ref} ${problem}.`;
-  const merged = markedCommit(view.comments);
+  const merged = markedCommit(view);
   if (merged) {
     return `${opens} The change has landed at ${shortSha(merged)}, which closes the window a capture `
       + `is taken in, so the late write is what is left, naming the builder the claim history holds:\n`
@@ -437,7 +437,7 @@ export const unaskedLines = (view, ref) => {
 /** Where the issue stands and what stands in its way, as one set of lines for all three printers. */
 export const owedBlock = (view, ref, held) =>
   [owedLine(view, ref, held), ...(view.issue.status === DRAFT && !held.refused ? [draftSaid(view)] : []),
-    ...missingLines(held.missing), ...coreReadLines(view), ...unaskedLines(view, ref)];
+    ...missingLines(held.missing), ...coreReadLines(view), ...markReadLines(view), ...unaskedLines(view, ref)];
 
 /** That block printed, for `advance` and `resume` alike. */
 export const shortfall = (ref, view, held) => {

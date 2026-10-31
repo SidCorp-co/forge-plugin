@@ -4,9 +4,8 @@
    counts such a verdict unearned on every project alike. */
 import { need } from "../machine.mjs";
 import { judgeAsk, numbered, owesRuntime, supersededProblem } from "./verdicts.mjs";
-import { markedCommit } from "../record/merged.mjs";
+import { markedCommit, markedIdentity } from "../record/judged/mark-read.mjs";
 import { landsOutsideGit } from "../record/judged/landing.mjs";
-import { identityOf } from "../earned/asks.mjs";
 import { shapeGaps } from "../earned/shape-gaps.mjs";
 
 /** One item per reason, its criteria named together, and the ask a fresh judgement at what serves. */
@@ -22,7 +21,7 @@ export const supersededOwed = (view, ref, exclude = new Set()) => {
     const numbers = held.map(([number]) => number);
     const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
     return need(`the verdict on ${at} ${why}`,
-      judgeAsk(ref, numbers, view.landing, held[0][1], markedCommit(view.comments), identityOf(view), view.holders ?? [], null,
+      judgeAsk(ref, numbers, view.landing, held[0][1], markedCommit(view), markedIdentity(view), view.holders ?? [], null,
         owesRuntime(view.release, view.issue, view.landing)));
   });
 };

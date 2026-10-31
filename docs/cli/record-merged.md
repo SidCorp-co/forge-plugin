@@ -18,7 +18,7 @@ judged a head the mark does not name. The cost lands a phase away from the mista
 trying to ship.
 
 The clauses are a table now — flag, the words the note is written and read by, and what the clause
-holds — and `plugin/src/flow/record/merged.mjs` builds the regexes off the same rows the composer joins.
+holds — and `merged-clauses.mjs` builds the regexes off the same rows the composer joins.
 A clause cannot be spelt two ways because there is one spelling. The verb refuses every absent
 clause at once rather than one per round, because a run types four flags and learning them one
 refusal at a time is three rounds nobody gets back. The fifth, `landing moved`, is not a run's to
@@ -69,6 +69,12 @@ tracker's own "a claim Forge did not observe" line is what a reader already sees
 
 The mark sends the commit it names as the tracker's typed `commit` field beside the note, and a
 stamp already standing refuses a mark the tracker would not stamp: [the commit field](record-merged-the-commit.md).
+
+The rungs read that commit off core's issue record (`markedCommit`), never the thread alone: core's
+merge route stamps a mark with no note of ours, and a thread naming an older landing refused the
+review of the head it merged (ISS-78). The note's clauses count only where it names that commit;
+otherwise the heads are core's `mergedHead`, judged only where its tree is the landing's. A record
+carrying no `markedCommit` reads the note, and `--owed` says so.
 
 ## What each clause answers
 

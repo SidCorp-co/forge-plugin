@@ -11,7 +11,8 @@ export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
 import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
 import { parseAll } from "./page.mjs";
 import { recordFieldRefusal, renderedWithin } from "../../tracker/comment-cap.mjs";
-import { markedCommit, mergedPrepared } from "./merged.mjs";
+import { mergedPrepared } from "./merged.mjs";
+import { markedCommit } from "./judged/mark-read.mjs";
 import { landedProblem, landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, onePerRoutes, usage } from "./record-rows.mjs";
@@ -233,7 +234,7 @@ export const fromRecord = (kind, got, { comments, names, cut = null, issue = nul
   if (identities && landsOutsideGit(issue)) landingFilled(kind, got, issue, say);
   else if (identities && got.landing !== undefined) shapeRefused(kind, "landing", false);
   if (commit && got.commit === undefined && !(identities && landsOutsideGit(issue))) {
-    const marked = markedCommit(comments);
+    const marked = markedCommit({ issue, comments });
     if (!marked && cut) refuse(BEHIND(kind, "commit", cut));
     if (!marked) {
       refuse(`record ${kind} needs --commit (${commit.label.toLowerCase()}), and no merged mark on `
@@ -438,7 +439,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   }
   if (kind === "verdict") await runtimeChecked(reference, blocks, body, landingOf(body?.[SESSION]));
   /* After every refusal, so git is asked only of a write that goes up. */
-  if (shape.fields.some((one) => one.flag === CARRIES)) for (const got of blocks) carriedOnto(got, comments, say);
+  if (shape.fields.some((one) => one.flag === CARRIES)) for (const got of blocks) carriedOnto(got, { issue: body, comments }, say);
   if (shape.fields.some((one) => one.flag === CARRIES_DEPLOYMENT)) {
     const landing = landingOf(body?.[SESSION]);
     for (const got of blocks) deploymentOnto(got, landing, say);

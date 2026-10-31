@@ -12,9 +12,9 @@ import { git, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
 import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged").path;
-const {
-  judgedHead, landingMoved, landingWrote, lastMark, markNote, markedCommit, reviewedHead,
-} = await import("../../../../src/flow/record/merged.mjs");
+const { markNote } = await import("../../../../src/flow/record/merged.mjs");
+const { judgedHead, landingMoved, landingWrote, lastMark, markedCommit, reviewedHead } =
+  await import("../../../../src/flow/record/judged/mark-read.mjs");
 const { capsOf, lengthOf } = await import("../../../../src/tracker/field-write.mjs");
 const { render } = await import("../../../../src/flow/record/page.mjs");
 const { judgedOwed, viewFrom } = await import("../../../../src/flow/earned.mjs");
@@ -126,11 +126,11 @@ test("the five flags compose the note, and every reader of it parses what they w
   const sent = state.calls.find((one) => one.args.action === "mark_merged");
   assert.equal(sent.args.data.target, "base", "the target a landing takes, no flag having named another");
   const held = page();
-  assert.equal(markedCommit(held), MOVED, "the commit `developed` reads");
-  assert.equal(reviewedHead(held), REVIEWED, "the head the review is measured against");
-  assert.equal(judgedHead(held), JUDGED, "the head the verdicts are measured against");
-  assert.deepEqual(landingMoved(held), ["docs/a.md"]);
-  assert.deepEqual(landingWrote(held), ["docs/a.md", "plugin/src/flow/record/merged.mjs"]);
+  assert.equal(markedCommit({ comments: held }), MOVED, "the commit `developed` reads");
+  assert.equal(reviewedHead({ comments: held }), REVIEWED, "the head the review is measured against");
+  assert.equal(judgedHead({ comments: held }), JUDGED, "the head the verdicts are measured against");
+  assert.deepEqual(landingMoved({ comments: held }), ["docs/a.md"]);
+  assert.deepEqual(landingWrote({ comments: held }), ["docs/a.md", "plugin/src/flow/record/merged.mjs"]);
   assert.match(lastMark(held), /merged to master at /u, "and the branch it landed on opens the note");
 });
 
@@ -240,7 +240,7 @@ test("a path no tree holds is written and reads back as given", async () => {
   const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
     "--moved", "nothing", "--wrote", "plugin/src/flow/gone.mjs, docs/cli/never-was.md");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.deepEqual(landingWrote(page()), ["plugin/src/flow/gone.mjs", "docs/cli/never-was.md"],
+  assert.deepEqual(landingWrote({ comments: page() }), ["plugin/src/flow/gone.mjs", "docs/cli/never-was.md"],
     "both paths, in the order they were typed, whatever the tree holds");
 });
 
@@ -264,9 +264,9 @@ test("a clause naming nothing is written as that word, and reads back as no path
   const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
     "--moved", "nothing", "--wrote", "nothing");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.deepEqual(landingMoved(page()), [], "a landing that moved none of the change's paths says so");
-  assert.deepEqual(landingWrote(page()), []);
-  assert.equal(markedCommit(page()), AT, "and the shas beside it are read as they were written");
+  assert.deepEqual(landingMoved({ comments: page() }), [], "a landing that moved none of the change's paths says so");
+  assert.deepEqual(landingWrote({ comments: page() }), []);
+  assert.equal(markedCommit({ comments: page() }), AT, "and the shas beside it are read as they were written");
 });
 
 test("a value that is no commit is refused by the clause that wanted one", async () => {
@@ -287,13 +287,13 @@ test("a note written before this verb still answers for the clauses it does carr
     authorId: "agent",
     body: `mark_merged target=base — merged to master at ${AT} (fast-forward); reviewed head ${AT}`,
   }];
-  assert.equal(markedCommit(old), AT);
-  assert.equal(reviewedHead(old), AT, "the two clauses it has read exactly as they always did");
-  assert.equal(judgedHead(old), null, "and the three it does not are absent rather than wrong");
-  assert.equal(landingMoved(old), null, "absent, which the checks tell from a clause saying nothing moved");
-  assert.equal(landingWrote(old), null);
+  assert.equal(markedCommit({ comments: old }), AT);
+  assert.equal(reviewedHead({ comments: old }), AT, "the two clauses it has read exactly as they always did");
+  assert.equal(judgedHead({ comments: old }), null, "and the three it does not are absent rather than wrong");
+  assert.equal(landingMoved({ comments: old }), null, "absent, which the checks tell from a clause saying nothing moved");
+  assert.equal(landingWrote({ comments: old }), null);
   const said = [{ ...old[0], body: `${old[0].body}; landing moved nothing; landing wrote nothing` }];
-  assert.deepEqual([landingMoved(said), landingWrote(said)], [[], []],
+  assert.deepEqual([landingMoved({ comments: said }), landingWrote({ comments: said })], [[], []],
     "and the two readings are apart, or a mark that answered would read as one that never spoke");
 });
 
@@ -307,7 +307,7 @@ test("--undo takes the mark down and reads back the note it removed", async () =
   assert.match(run.stdout, new RegExp(`merged to master at ${MOVED}`, "u"),
     "the note goes back to whoever removed it, that being the only copy of what it claimed");
   assert.ok(state.calls.some((one) => one.args.action === "unmark"), "the route back is its own action");
-  assert.equal(markedCommit(page()), null, "and the mark is gone from the page");
+  assert.equal(markedCommit({ comments: page() }), null, "and the mark is gone from the page");
 });
 
 test("--undo on an issue carrying neither mark nor stamp refuses with the form a mark is written in", async () => {
@@ -368,18 +368,18 @@ test("a change of 119 paths composes a note the tracker takes, and says what it 
   assert.equal(room, 2000, "the room is the route table's own cap for the field, and no other number");
   assert.ok(lengthOf(note) <= room, `the note is ${lengthOf(note)} code points:\n${note}`);
   const mark = [{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }];
-  const kept = landingWrote(mark);
+  const kept = landingWrote({ comments: mark });
   assert.match(note, new RegExp(`holds ${kept.length} of this change's 119 paths and leaves out `
     + `${119 - kept.length} the plan names`, "u"), "the clause standing in for the rest counts both halves");
   assert.match(note, /whole list is the diff of the judged head above against its base/u,
     "and says where the whole list is read from, the note being no longer the record of it");
-  assert.deepEqual(landingMoved(mark), [], "while the other path clause reads as it was written");
-  assert.equal(markedCommit(mark), AT, "and no word of that clause is taken for a sha");
+  assert.deepEqual(landingMoved({ comments: mark }), [], "while the other path clause reads as it was written");
+  assert.equal(markedCommit({ comments: mark }), AT, "and no word of that clause is taken for a sha");
 });
 
 test("every path the plan does not name is in the clause, and the ones it names fill the rest", () => {
   const note = fixture();
-  const kept = landingWrote([{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }]);
+  const kept = landingWrote({ comments: [{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }] });
   assert.deepEqual(kept.slice(0, OWED.length), OWED,
     "the 29 the plan names nowhere go in first, or `developed` would pass a change that grew");
   assert.ok(kept.length > OWED.length, "and what room is left goes to the ones it does name");
@@ -420,10 +420,10 @@ test("a path the room cannot take is passed over, and the ones it can take go in
   const note = markNote({ branch: "master", at: AT, reviewed: REVIEWED, judged: JUDGED,
     moved: filler, wrote, named: wrote.join("\n"), ref: "ISS-99" });
   assert.ok(lengthOf(note) <= capsOf().note.self, `${lengthOf(note)} code points:\n${note}`);
-  const kept = landingWrote([{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }]);
+  const kept = landingWrote({ comments: [{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }] });
   assert.deepEqual(kept, thin, "the two the room takes, and neither of them the first path given");
   assert.match(note, /holds 2 of this change's 3 paths and leaves out 1 the plan names/u);
-  assert.deepEqual(landingMoved([{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }]),
+  assert.deepEqual(landingMoved({ comments: [{ documentId: "m", createdAt: "2026-09-08T10:00:00.000Z", body: `mark_merged — ${note}` }] }),
     filler, "while every path the landing moved is still named, that clause being the one never shortened");
 });
 
@@ -435,7 +435,7 @@ test("the verb itself composes the fitted note, off what the issue's own plan na
   const note = lastMark(page());
   assert.ok(lengthOf(note) <= capsOf().note.self, `the verb sent ${lengthOf(note)} code points:\n${note}`);
   assert.match(note, /that clause holds \d+ of this change's 119 paths/u);
-  assert.ok(landingWrote(page()).length > 0, "and the clause still parses as paths");
+  assert.ok(landingWrote({ comments: page() }).length > 0, "and the clause still parses as paths");
 });
 
 /* The branch is a clause of the note like the shas, and this project's own config is where it comes
@@ -515,7 +515,7 @@ test("a landing that moved only a neighbour of the change takes `nothing`", asyn
   const run = await marked("--at", NEIGHBOUR, "--reviewed", REVIEWED, "--judged", JUDGED,
     "--moved", "nothing", "--wrote", CHANGE);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.deepEqual(landingMoved(page()), [], "and the mark says no path of the change moved");
+  assert.deepEqual(landingMoved({ comments: page() }), [], "and the mark says no path of the change moved");
 });
 
 test("a commit git cannot read in this checkout refuses the mark, and names the fetch", async () => {
@@ -537,13 +537,13 @@ test("a mark written without --moved carries git's reading of the change's paths
   state.comments[ISSUE.documentId] = [];
   const run = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED, "--wrote", CHANGE);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.deepEqual(landingMoved(page()), ["docs/a.md"], "the one path of the change the landing moved");
+  assert.deepEqual(landingMoved({ comments: page() }), ["docs/a.md"], "the one path of the change the landing moved");
   assert.match(run.stdout, /`landing moved` is git's reading between [0-9a-f]{40} and [0-9a-f]{40}: docs\/a\.md\./u,
     "and the reply says so");
   state.comments[ISSUE.documentId] = [];
   const none = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED, "--wrote", CHANGE);
   assert.equal(none.status, 0, `${none.stdout}${none.stderr}`);
-  assert.deepEqual(landingMoved(page()), [], "and a merge carrying the judged head's tree reads as nothing moved");
+  assert.deepEqual(landingMoved({ comments: page() }), [], "and a merge carrying the judged head's tree reads as nothing moved");
   assert.match(none.stdout, /is git's reading between [0-9a-f]{40} and [0-9a-f]{40}: nothing\./u);
 });
 
@@ -576,7 +576,7 @@ test("a directory typed for the paths git read under it agrees with git, and one
   const run = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
     "--moved", "docs", "--wrote", CHANGE);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.deepEqual(landingMoved(page()), ["docs"]);
+  assert.deepEqual(landingMoved({ comments: page() }), ["docs"]);
   state.comments[ISSUE.documentId] = [];
   const wide = await marked("--at", MOVED, "--reviewed", REVIEWED, "--judged", JUDGED,
     "--moved", "docs, plugin/src", "--wrote", CHANGE);
