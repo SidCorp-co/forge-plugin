@@ -143,6 +143,11 @@ export const ROUTES = {
     }),
     sends: ["key"],
   },
+  /* Read raw for `flow/earned/core-verdicts.mjs`, which says why. */
+  "forge_issues.criteria": {
+    requests: (args) => ({ page: { path: `/issues/${args.documentId}/criteria` } }),
+    sends: ["documentId"],
+  },
   "forge_issues.transition": {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}/transition`, "POST",

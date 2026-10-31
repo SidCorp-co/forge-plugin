@@ -40,3 +40,10 @@ finding or prose (ISS-2279).
 
 **A judge learns this before it judges, not at the write.** The read of what an issue owes says,
 to a caller that does not hold the lease, whether its verdict would go up and under which id.
+
+**An observable criterion cites a clip, or says why not.** Core refuses a `pass`, `short` or `fail`
+on a criterion the design classes observable with `VERDICT_CLIP_REQUIRED` unless the verdict cites a
+WebM or MP4 attached to the issue, or carries a `without-clip` line saying why none was taken
+(`clip-citation.ts:clipFault`). A clip's path on `--evidence` goes up as the video it is and is cited
+by name; `--without-clip "<why>"` writes the line. `--why` says what was found and never stands in for
+it.

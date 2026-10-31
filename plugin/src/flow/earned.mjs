@@ -10,6 +10,7 @@ import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead, undoForm } from "./record/merged.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
+import { reviewOwedItems } from "./earned/core-verdicts.mjs";
 import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOf, identityOwed, landingOwed, unreadId, verificationForm, withRuntime } from "./earned/asks.mjs";
 
 export { correctedForm };
@@ -336,7 +337,7 @@ const landingVerdictsOwed = (view, ref) => {
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
     else if (record.fields.verdict !== "fail") out.push(...landingOwed(view, record.fields, `the verdict on criterion ${number} judged`, ask(number)));
   }
-  out.push(...failedOwed(view, ref));
+  out.push(...reviewOwedItems(view), ...failedOwed(view, ref));
   for (const one of view.unreadable ?? []) {
     out.push(need(`a verdict written ${one.at.slice(0, 16)} names no criterion this build can read`, ask("<n>")));
   }
@@ -369,7 +370,7 @@ const verdictsOwed = (view, ref) => {
     }
   }
   if (atJudged.length) out.push(equivalenceOwed(view, ref, judged, moved, atJudged));
-  out.push(...failedOwed(view, ref));
+  out.push(...reviewOwedItems(view), ...failedOwed(view, ref));
   /* A verdict the reader could key by nothing is named as itself: an item naming the criterion it
      does not carry is the shortfall a rewrite invented, and no command supplies it. */
   for (const one of view.unreadable ?? []) {

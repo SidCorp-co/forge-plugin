@@ -8,6 +8,7 @@ import { CLOSES_FROM, TRIAGES, atMinute, commandAt, criterionNumber, looksIn, mi
   from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { unreadId, withRuntime } from "./earned/asks.mjs";
+import { coreJudged, coreReadLines, withCoreVerdicts } from "./earned/core-verdicts.mjs";
 import {
   BUILD_AT,
   CHECKS,
@@ -436,7 +437,7 @@ export const unaskedLines = (view, ref) => {
 /** Where the issue stands and what stands in its way, as one set of lines for all three printers. */
 export const owedBlock = (view, ref, held) =>
   [owedLine(view, ref, held), ...(view.issue.status === DRAFT && !held.refused ? [draftSaid(view)] : []),
-    ...missingLines(held.missing), ...unaskedLines(view, ref)];
+    ...missingLines(held.missing), ...coreReadLines(view), ...unaskedLines(view, ref)];
 
 /** That block printed, for `advance` and `resume` alike. */
 export const shortfall = (ref, view, held) => {
@@ -447,7 +448,8 @@ export const shortfall = (ref, view, held) => {
    not the names, so a second shortfall of the same size would be deduped away whole (ISS-1103).
    Answers `{ said, changed }`, the caller printing on `changed`. */
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
-  const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));
+  const [release, judged] = await Promise.all([policyFor(issue.plan, issue.status), coreJudged(documentId)]);
+  const view = withCoreVerdicts(viewFrom(documentId, issue, comments, cut, release, () => citedClauses(issue)), judged);
   const owed = owedIn(view, ref);
   const said = owedBlock(view, ref, owed).join("\n");
   return sayIfChanged(sessionKey(), `owed-next ${documentId}`, said);

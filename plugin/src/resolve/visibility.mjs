@@ -52,7 +52,8 @@ export const VERBS = [
       "forge_questions.ask": "`forge record question`",
       "forge_questions.list": "`forge record question`" } }],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes",
-    "forge_issues", { group: FLOW, wraps: { transition: "`forge advance`", moves: "`forge advance`" } }],
+    "forge_issues", { group: FLOW, wraps: { transition: "`forge advance`", moves: "`forge advance`",
+      criteria: "`forge advance ISS-45 --owed`" } }],
   /* Another tool's route by its whole key: this verb owns none of its own. */
   ["spec", "<id>[~<rev>] [--status] | check | proofs", "one clause of the requirements tree, read by its identifier",
     null, { group: METHOD, wraps: { "forge_issues.citing": "`forge spec <id> --status`" } }],

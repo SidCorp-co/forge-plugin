@@ -333,6 +333,9 @@ export const fakeTracker = async (state) => {
     if (name === "forge_comments") return comments(args);
     if (name === "forge_questions") return questions(args);
     if (name === "forge_projects.list") return { projects: [{ ...OWN, slug: ownSlug() }] };
+    /* Core holding no verdict of its own on any criterion, which a case judging through the verdict
+       route answers in its own handler. */
+    if (name === "forge_issues.criteria") return { criteria: [], retired: [] };
     return {};
   };
 
@@ -414,6 +417,8 @@ export const fakeTracker = async (state) => {
       const walking = Object.hasOwn(held ?? {}, "nextCursor") ? { nextCursor: held.nextCursor } : {};
       return { ...asPage(rows, 0, rows.length, says), ...counted, ...walking };
     }],
+    [/^\/api\/issues\/([^/]+)\/criteria$/u, (q, sent, method, [id]) =>
+      answered("forge_issues.criteria", { documentId: id })],
     [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {
       const { toStatus, ...rest } = sent;
       return asRow(answered("forge_issues",

@@ -27,3 +27,12 @@ typed as a command is a route: it prints that record rather than moving anything
 request, naming the place that took it over; `--set` and `--to` refuse one the same way. A park record
 written before the ladder was core's names the place it left by its old rung, the same place under
 another name, and is read as that place.
+
+**Which criteria carry a verdict is core's count as well as the thread's.** A verdict written through
+core's verdict route (`POST /api/issues/:id/verdicts`) posts no comment, so the owed list also reads
+core's criteria (`GET /api/issues/:id/criteria`, each criterion's `latest`, the read whose weighing
+core's gate decides by): a criterion either source judged owes none. A criterion core routes to the
+review (`judge: review`, a code property) is no verdict's to discharge, and core refuses one on it
+(`VERDICT_JUDGED_BY_REVIEW`): the list names it as the review's, owed by a run declared `--role
+reviewer` through core's review. Where that read is refused, the list is the thread's and says so
+beneath it.

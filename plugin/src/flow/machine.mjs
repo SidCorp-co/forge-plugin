@@ -492,6 +492,9 @@ export const SHAPES = {
       FIELD(CARRIES_DEPLOYMENT, "Carries the deployment", { optional: true, stamped: CARRIES_DEPLOYMENT }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true, prose: true }),
+      /* Core's `without-clip` line (REQ-40 BC-4): why a criterion the design classes observable is
+         judged citing no screen clip, which core otherwise refuses VERDICT_CLIP_REQUIRED. */
+      FIELD("without-clip", "Without a clip", { optional: true, prose: true }),
       FIELD("filed", "Filed as", { optional: true }),
       FIELD("judge", "Judge", { written: "id", newer: true }),
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
