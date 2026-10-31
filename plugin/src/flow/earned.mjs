@@ -37,6 +37,7 @@ import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } 
 
 export { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince };
 import { BY_BATCH, judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
+import { NOTE_TITLE_WORDS } from "../tracker/declared/declares.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
@@ -560,6 +561,13 @@ export const judgedOwed = (view, ref) => {
   return view.flags.schema === "yes" ? [...out, ...classificationOwed(view, ref)] : out;
 };
 
+/* A note a user reads carries a short title, which core refuses a write without (FB-403) and holds a
+   stored note lacking off every release page, so a note written before titles existed is owed one. */
+const untitledNote = (note) => (note?.section && note.section !== "Skip" && !String(note.title ?? "").trim()
+  ? `the release note is a ${note.section} note with no title, and core holds a note a user reads with no `
+    + "short title off every release page"
+  : null);
+
 /* The verification half alone, asked again at `closed` and not only at the rung it names: whatever
    put an issue on `awaiting_release` — the entry check below, or a set this record never earned —
    is not this check's to trust, so a verification absent or naming no deployment refuses the close
@@ -588,6 +596,8 @@ export const deployedOwed = (view, ref) => {
       `forge record note ${ref} --section Added --title "<at most 10 words>" --user "<what the reporter sees>", `
       + `or --skip --why "<why the change has no user-facing half>"`));
   }
+  const untitled = untitledNote(view.issue.releaseNotes);
+  if (untitled) out.push(need(untitled, `forge record note ${ref} --section ${view.issue.releaseNotes.section} --title "<at most ${NOTE_TITLE_WORDS} words>" --user "<the one sentence a user reads>"`));
   const declared = personLooks(view.flags, view.release, view.witnessed);
   if (declared && !lookAnswered(view)) {
     out.push(need(

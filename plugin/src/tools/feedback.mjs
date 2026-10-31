@@ -3,6 +3,7 @@
 import { bodyFrom } from "../resolve/payload.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail, keepBody, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
+import { projectIdOf, write } from "../tracker/rest.mjs";
 import { pluginChannel, usageOf } from "../resolve/visibility.mjs";
 import { kindsOn } from "../tracker/filing/channel.mjs";
 import { agentOf } from "../flow/lease/holder.mjs";
@@ -31,6 +32,12 @@ const USAGE = () => [
   "              by commas; the keys the note's own body names are listed under the reply instead",
   "  --module M  its primary module, one the plugin's project defines",
   "  --new       file it even where it would have folded onto a neighbour, and say which",
+  "  --where W   where in Forge it was met, for a note core's own door files; the forge CLI absent one",
+  "",
+  `Where this credential sees no ${PROJECT} project, the note goes to the pinned core's own door for`,
+  "feedback about Forge, POST /api/forge/feedback, which files it into Forge's home from any project:",
+  `${Object.entries(DOOR_KINDS).map(([ours, core]) => `${ours} as ${core}`).join(", ")}. --with, --module and --new are refused there, that`,
+  "door taking no edge, no module and no fold.",
   "",
   CAUSE_HELP,
   "",
@@ -57,6 +64,48 @@ const whereSection = () => {
 };
 
 const lost = (what, refused) => fail(`${PROJECT} refused ${what}: ${refused}`);
+
+/* Core's kinds for a note about Forge (`@forge/contracts/feedback-terms:FEEDBACK_KINDS`), by the kind
+   the note was written against: one table, so the door and the usage say the same mapping. */
+const DOOR_KINDS = { bug: "bug", enhancement: "change_request", feature: "idea", review: "change_request" };
+
+/* What a note filed to the door says of where it was met, absent `--where`. */
+const doorWhere = () => `command forge (forge-plugin ${hereCopy().version ?? "unknown"})`;
+
+/* Whether this credential reaches the plugin's own project. A list the transport could not read is
+   the call's to refuse, never a reading that the project is absent. */
+const seesPlugin = async () => {
+  const held = await projectIdOf(PROJECT, { soft: true });
+  if (held.refused) fail(`The projects this credential sees could not be read, so where this note goes is undecided: ${held.refused}`);
+  return Boolean(held.id);
+};
+
+/* The door's flags are fewer than the backlog's, and one given here is refused rather than dropped. */
+const doorRefusal = ({ rides, module, fresh }) => {
+  const given = [rides && "--with", module && "--module", fresh && "--new"].filter(Boolean);
+  return given.length
+    ? `This credential sees no ${PROJECT} project, so the note goes to core's own feedback door, which `
+      + `takes no edge, no module and no fold: ${given.join(", ")} has nothing there to act on. Nothing was `
+      + "sent. File it without them."
+    : null;
+};
+
+/* The note into the home the pinned core names for feedback about Forge, as the caller's own
+   account, from the project the caller stands in where that one resolves. */
+const doorFiled = async ({ title, kind, body, where }) => {
+  const caller = projectScope().value;
+  const from = caller ? await projectIdOf(caller, { soft: true }) : null;
+  const data = {
+    kind: DOOR_KINDS[kind], title, body, whereSeen: where ?? doorWhere(),
+    clientVersion: `forge-plugin ${hereCopy().version ?? "unknown"}`,
+    ...(from?.id ? { from: { project: from.id } } : {}),
+  };
+  const answer = await write("forge_feedback", { action: "submit", data }, undefined, true);
+  if (answer?.refused) fail(`Core's feedback door refused the note: ${answer.refused}`);
+  const key = answer?.feedback?.key ?? answer?.key ?? null;
+  console.log(`The note is ${key ?? "an item"} on the pinned core's own feedback, filed as ${data.kind}: `
+    + `this credential sees no ${PROJECT} project, so it went to the door that files into Forge's home.`);
+};
 
 /* Aimed in both routes: the goal list a note answers to is the destination's, not the caller's. */
 const aimed = () => useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
@@ -86,7 +135,7 @@ export const feedback = async (argv) => {
   }
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
-  const { title, new: fresh, with: rides, kind: asksKind, module: named } = flags(rest, "feedback", ["--new"],
+  const { title, new: fresh, with: rides, kind: asksKind, module: named, where } = flags(rest, "feedback", ["--new"],
     { usage: usageOf("feedback") });
   if (!title) fail("A note needs --title: one line saying what is true once it is fixed.");
   const kind = kindAsked(asksKind);
@@ -104,6 +153,12 @@ export const feedback = async (argv) => {
   /* The note as it will be filed replaces the note as it was read: both kept is the note printed twice. */
   dropRead();
   const dropKept = keep(read.description);
+  if (!await seesPlugin()) {
+    const refused = doorRefusal({ rides: withKeys.length > 0, module: named, fresh });
+    if (refused) fail(refused);
+    await doorFiled({ title, kind, body: read.description, where });
+    return dropKept();
+  }
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   aimed();
   const unnamed = await servesOwed(read.description, "This note's `Serves:` line", standsInPlugin());

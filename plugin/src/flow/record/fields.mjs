@@ -21,6 +21,8 @@ import { RUN_FLAGS } from "./rung.mjs";
 import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
 import { supersedingOf } from "./corrections/superseding.mjs";
 import { REPLACE, criteriaSetChecked, planChanged } from "./corrections/criteria-set.mjs";
+import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
+import { NOTE_TITLE_WORDS } from "../../tracker/declared/declares.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -98,8 +100,8 @@ export const gateCriteriaRefused = (criteria, declared) => {
   ].join("\n"));
 };
 
-/* The tracker's own bound on a note's short title (REQ-40 BC-6), counted as it counts it. */
-const TITLE_WORDS = 10;
+/* The tracker's own bounds on a note's short title (REQ-40 BC-6), counted as it counts them. */
+const TITLE_WORDS = NOTE_TITLE_WORDS;
 
 const titleChecked = (section, title) => {
   if (!title) {
@@ -109,6 +111,12 @@ const titleChecked = (section, title) => {
   const words = title.split(/\s+/u).filter(Boolean).length;
   if (words > TITLE_WORDS) {
     refuse(`--title has ${words} words; a title is at most ${TITLE_WORDS}, and the rest belongs in --user.`);
+  }
+  const cap = capsOf().releaseNotes?.halves?.title ?? null;
+  const held = lengthOf(title);
+  if (cap !== null && held > cap) {
+    refuse(`--title is ${held} code points and its cap is ${cap}: core holds a title written without spaces `
+      + `to ${cap} characters as it holds every other to ${TITLE_WORDS} words. Nothing was sent.`);
   }
 };
 

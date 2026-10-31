@@ -79,7 +79,7 @@ test("naming a kind narrows -h to that kind's arguments rather than refusing for
 /* Both are read in the order they are typed, so both say which field leads the record (ISS-1699). */
 test("what describes the confirmation puts the sentence before the path list, on either surface", () => {
   assert.match(ask("record", "confirmation", "-h").stdout,
-    /^ {2}confirmation --is I --where W\.\.\. --finding F/mu, "the flag row, on the kind's own help");
+    /^ {2}confirmation --is I\(400\) --where W\(400\)\.\.\. --finding F/mu, "the flag row, on the kind's own help");
   assert.match(ask("record", "-h").stdout,
     /^ {2}confirmation what the issue is, where you looked, and the finding$/mu,
     "and the one phrase the list of kinds carries");

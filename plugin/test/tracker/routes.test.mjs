@@ -80,7 +80,10 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
   "forge_release_batch.finish", "forge_release_batch.record", "forge_release_batch.recorded",
   /* Core's question row, the same reason again: `forge record question` reads its id, its status and
      its options' labels off the row and nothing else (ISS-2317). */
-  "forge_questions.list", "forge_questions.ask"];
+  "forge_questions.list", "forge_questions.ask",
+  /* Core's standing of one issue, read for its `moves` alone, and core's own feedback door, read for
+     the item key it filed: a projection over either would be a second copy of a shape core owns. */
+  "forge_issues.moves", "forge_feedback.submit"];
 
 const PAIRS = {
   "issues-get": {

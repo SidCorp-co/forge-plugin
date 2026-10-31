@@ -10,6 +10,20 @@ import { refuse } from "../refusal.mjs";
 /** Null where nothing declares one, which measures nothing rather than guessing a number. */
 export const bodyCap = () => capsOf("forge_comments").body?.self ?? null;
 
+/** What core screens one field of a record block at, from the same table; null where none is declared. */
+export const recordFieldCap = () => capsOf("forge_comments").recordField?.self ?? null;
+
+/** The refusal of one value past that cap, before anything is sent: the field, its length and the
+ *  limit, and the two ways under it, since core's own refusal of the record is the round this saves. */
+export const recordFieldRefusal = (kind, flag, value, cap = recordFieldCap()) => {
+  const held = lengthOf(value);
+  if (cap === null || held <= cap) return null;
+  return `record ${kind}: --${flag} is ${held} code points and its cap is ${cap}, ${held - cap} over: core `
+    + `screens every field of a record block at ${cap} (\`field-budget\`) and refuses the record whole. `
+    + "Nothing was sent. Say less in it, or move what belongs elsewhere to the field that holds it — a "
+    + "long account goes in a comment or an attachment the record cites.";
+};
+
 const nameOf = (per, got) => String(criterionNumber(got[per]) ?? got[per]);
 
 /* In the order written, so each write is the typed command with blocks removed. A block over the

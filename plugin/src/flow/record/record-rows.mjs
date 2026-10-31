@@ -12,12 +12,14 @@ import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 import { proseHelp } from "./prose-route.mjs";
 import { bodyCap } from "../../tracker/comment-cap.mjs";
+import { NOTE_TITLE_WORDS } from "../../tracker/declared/declares.mjs";
 import { flowPinned, screensHere } from "../../guides/flow.mjs";
+import { LANDED, LANDED_BLOCKS, LANDED_ROW } from "./landed-by-hand.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
    and written by no verb, so it is no kind this verb takes. */
-export const KINDS = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), ...FIELD_KINDS];
+export const KINDS = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), ...FIELD_KINDS, LANDED];
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
 
@@ -27,6 +29,28 @@ const CAP_LEGEND = [
   "A number in parentheses after a value is that field's cap in code points. A write over one is",
   "refused before the field's payload is sent.",
 ];
+
+/* What the budget a record block's field is screened at says beside the legend: the number alone
+   reads as this CLI's taste, and it is core's refusal of the whole record that the check saves. */
+const budgetLegend = (cap) => [
+  `Every field of a record block is capped at ${cap} code points, a repeated one value by value: core`,
+  "screens a record at that budget (`field-budget`) and refuses it whole, so a value over it is refused",
+  "here, naming the field, its length and the cap, before the issue is read.",
+];
+
+/* A field a person types free text into, by its flag: a value from a closed set, a criterion's number
+   and a commit never reach the budget, so their rows stay as they are. */
+const freeText = (field) => !field.oneOf && !field.criterion && !field.commit && !field.derived
+  && !field.stamped && !field.written;
+
+/* The row of a record kind with the budget beside each free-text value, read off the shape table the
+   write measures against, so a flag the table grows is capped on its row without a second list. */
+const budgeted = (kind, row, cap) => {
+  if (typeof cap !== "number" || !SHAPES[kind]) return row;
+  const flags = new Set(SHAPES[kind].fields.filter(freeText).map((one) => one.flag));
+  return row.replace(/(--([a-z][a-z-]*) )("[^"]*"|<[^>]*>|[A-Z][A-Za-z]*)/gu,
+    (whole, lead, flag, value) => (flags.has(flag) ? `${lead}${value}(${cap})` : whole));
+};
 
 /* Wide enough for the criteria row carrying its cap, so the descriptions align either way. */
 const VALUES = 19;
@@ -53,12 +77,14 @@ const kindRows = (caps) => [
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  merged       " + CLAUSES.map((one) => (one.read ? `[--${one.flag} V]` : `--${one.flag} V`)).join(" ") + " [--to B] | --undo | --landing L",
-  "  note         --section S --title T --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
+  "  note         --section S --title " + withCap("T", caps.releaseNotes?.halves?.title)
+    + " --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
     + " [--technical " + withCap("T", caps.releaseNotes?.halves?.technical)
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
   `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
     + "numbered lines, from a file a consult has read  [--replace]",
+  LANDED_ROW,
 ];
 
 /* What each kind is for, one phrase each, because `forge record -h` is the list of kinds and a
@@ -86,6 +112,7 @@ const KIND_PHRASE = {
   fold: "the end of that wave, once its fold is posted",
   plan: "the plan itself, from a file a consult has read",
   criteria: "the numbered criteria, from a file a consult has read",
+  [LANDED]: "a landing built by hand, recorded in core's order in one call",
 };
 
 /* `forge record -h`'s own list, ordered by what a run reads it a second time to find rather than by
@@ -95,7 +122,7 @@ const KIND_PHRASE = {
    A kind absent from here would be a kind `forge record -h` no longer lists, so the row order is
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
-  "migration", "note", "declined", "finding", "triage", "confirmation", "merged", "park", "answer",
+  "migration", "note", "declined", "finding", "triage", "confirmation", "merged", LANDED, "park", "answer",
   "decision", "question", "wave", "fold", "plan", "criteria"];
 
 const phraseRows = () =>
@@ -180,6 +207,13 @@ const MERGED_BLOCKS = [
     "words, every reader of the clause takes it for no head, and `landing moved` is read between",
     "--reviewed and --at. The word is refused where the page carries a verdict.",
   ]),
+];
+
+/* The title's other bound, which a cap in parentheses cannot carry: core counts its words as well. */
+const NOTE_BLOCKS = [
+  `--title is also at most ${NOTE_TITLE_WORDS} words, core's bound on the short title a user scans, and is owed of`,
+  "every section but --skip: a note a user reads with no title is refused by core and held off every",
+  "release page, and the rung that asks for a note asks for a titled one.",
 ];
 
 /* What each value records. The set is four because the outcomes are: only `skipped` says nobody
@@ -366,7 +400,10 @@ export const usage = () => [
    takes: the route check `forge -h` answers to, and the kind table's own test. */
 export const USAGE = usage();
 
-const rowFor = (kind, caps) => kindRows(caps).find((row) => row.startsWith(`  ${kind} `));
+const rowFor = (kind, caps) => {
+  const row = kindRows(caps).find((one) => one.startsWith(`  ${kind} `));
+  return row && budgeted(kind, row, caps.recordField?.self);
+};
 
 /** What a kind's own `-h` opens with, which is the set its parse refuses a stranger against. Built
  *  once per kind: a record's parse asks for it at each of its three steps. */
@@ -387,10 +424,13 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     row,
     ...(onePerBlocks(kind).length ? ["", ...onePerBlocks(kind)] : []),
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
+    ...(SHAPES[kind] && typeof caps.recordField?.self === "number" ? budgetLegend(caps.recordField.self) : []),
     ...(WHOLE_BLOCKS[kind] ? ["", ...WHOLE_BLOCKS[kind]] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS, ...screensBlocks()] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
+    ...(kind === "note" ? ["", ...NOTE_BLOCKS] : []),
+    ...(kind === LANDED ? ["", ...LANDED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
     ...(kind === "question" ? ["", ...QUESTION_BLOCKS] : []),

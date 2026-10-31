@@ -4,7 +4,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { ROUTES } from "../tracker/routes.mjs";
+import { ROUTES, declaredFor } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
 import { STORES } from "./machine/stores.mjs";
@@ -194,13 +194,23 @@ const fieldsOwned = (row) => {
   return [...new Set(said)].filter((one) => !NAMES_NO_FIELD.has(one)).sort();
 };
 
-/** What `-h` on a verb answers: what to type, what it is for, and the fields the tracker itself
- *  takes for the routes this verb is the route for. */
+/* The cap a verb's own write is measured against, read off the table the write is measured by, so
+   the number a run drafts to is the number it would be refused at. */
+const CAPPED = {
+  comment: () => {
+    const cap = declaredFor("forge_comments", "caps").body?.self;
+    return cap ? `A body is capped at ${cap} code points, the --title heading included, and a longer one is\n`
+      + "refused before it is sent." : null;
+  },
+};
+
+/** What `-h` on a verb answers: what to type, what it is for, the fields the tracker itself takes
+ *  for the routes this verb is the route for, and the cap its write is measured against. */
 export const helpOf = (verb) => {
   const row = rowFor(verb);
   const fields = fieldsOwned(row);
   const detail = fields.length && `The fields the tracker takes: ${fields.join(", ")}.`;
-  return [usageOf(verb), blurbOf(row), detail]
+  return [usageOf(verb), blurbOf(row), detail, CAPPED[verb]?.()]
     .filter(Boolean)
     .join("\n");
 };

@@ -35,6 +35,7 @@ import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
 import { typed } from "./hooks/shell-spans.mjs";
 import { finderSaid, renew } from "./flow/lease.mjs";
+import { capRefusal, lengthOf } from "./tracker/field-write.mjs";
 import { retiredFlagIn } from "./resolve/gone/retiring.mjs";
 
 const show = (value) =>
@@ -149,6 +150,16 @@ const SET_PROSE = "`--set f=v` sends the value through this project's prose lang
   + "write that language. `forge doctor` names the language, where it was read from, and the\n"
   + "setting that stores prose unchanged.";
 
+/* The caps `--set` is measured against, off the table the write measures by: a field of the issue's own
+   row, each with its number, so a value is drafted to the cap rather than learnt from the refusal. */
+const SET_CAPPED = ["title", "description", "category", "detectorKey", "acceptanceCriteria", "plan"];
+const setCaps = () => {
+  const caps = declaredFor("forge_issues", "caps");
+  const held = SET_CAPPED.filter((name) => typeof caps[name]?.self === "number").map((name) => `${name}(${caps[name].self})`);
+  return "`--set f=v` is measured against the field's cap in code points, and a value over it is refused\n"
+    + `before the write: ${held.join(", ")}.`;
+};
+
 /* A module is a label the tracker holds as a set, so what a caller is owed is what happens to the rest of that set. */
 const SET_MODULE = "`--set module=<name>` puts the issue in one of this project's modules as its primary: the primary\n"
   + "it held before is replaced and every other label stays. `forge doctor modules` lists the names.";
@@ -211,7 +222,7 @@ const TWO_SELECTORS = "issue: --kind and --edge each name the edge --unlink remo
 const own = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (typed) => {
-    if (wantsHelp(typed)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${SET_MODULE}\n\n${REDACT}`);
+    if (wantsHelp(typed)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}\n\n${setCaps()}\n\n${SET_MODULE}\n\n${REDACT}`);
     const { rest: argv, slug: aimed } = aimedBy(typed, "issue");
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
@@ -335,8 +346,11 @@ const own = {
     }
     await mustBeShown([{ ref: reference, documentId: issue }]);
     const body = await bodyFrom(path);
+    const text = title === undefined ? body : `## ${title}\n\n${body}`;
+    const cap = declaredFor("forge_comments", "caps").body?.self ?? null;
+    if (cap !== null && lengthOf(text) > cap) fail(`comment: ${capRefusal("the body", cap, text, text)}`);
     const renewed = await renew(issue, reference, undefined, null, { finder: true });
-    const posted = await postComment(issue, title === undefined ? body : `## ${title}\n\n${body}`);
+    const posted = await postComment(issue, text);
     show(posted);
     console.log(finderSaid(reference, renewed));
     return sayLanded(await commentLanded(issue, posted, reference));

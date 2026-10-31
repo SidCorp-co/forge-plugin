@@ -337,7 +337,7 @@ const shipped = {
   title: "the change that is about to be released",
   description: "no mark here",
   acceptanceCriteria: "1. The first outcome.",
-  releaseNotes: { section: "Fixed", userFacing: "it works" },
+  releaseNotes: { section: "Fixed", title: "It works again", userFacing: "it works" },
 };
 /* And one a run has released: its criteria are judged, its note is up, and what it still owes is
    the close — which the report reads off the status, because that is all the close is earned by. */
@@ -349,7 +349,7 @@ const closing = {
   description: "no mark here",
   acceptanceCriteria: "1. The first outcome.",
   plan: typedPlan({ Steps: "1. The one step — criteria 1" }),
-  releaseNotes: { section: "Fixed", userFacing: "it works" },
+  releaseNotes: { section: "Fixed", title: "It works again", userFacing: "it works" },
 };
 /* And one nothing advances from, where the reading a write ends with refuses rather than answers. */
 const held = {

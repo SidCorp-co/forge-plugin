@@ -17,6 +17,12 @@ export const FILTERS = {
   updatedAfter: "here",
 };
 
+/* The words a release note's short title holds at most, core's `RELEASE_NOTE_TITLE_WORDS_MAX`
+   (`@forge/contracts/release-notes`, REQ-40 BC-6): a bound no code-point cap can carry, so it is
+   declared beside the caps rather than among them. Its characters are the `title` half of the
+   `releaseNotes` cap below, core's `RELEASE_NOTE_TITLE_CHARS_MAX`. */
+export const NOTE_TITLE_WORDS = 10;
+
 /* Strict: a target outside this map builds no path, and its one caller refuses one before asking. */
 export const COLLECTIONS = { issue: "issues", comment: "comments" };
 
@@ -54,7 +60,7 @@ export const DECLARES = {
       detectorKey: { self: 120, halves: {} },
       acceptanceCriteria: { self: 100000, halves: {} },
       plan: { self: 200000, halves: {} },
-      releaseNotes: { self: null, halves: { section: null, userFacing: 500, technical: 500 } },
+      releaseNotes: { self: null, halves: { section: null, title: 80, userFacing: 500, technical: 500 } },
       note: { self: 2000, halves: {} },
       taskTitle: { self: 500, halves: {} },
       taskDescription: { self: 50000, halves: {} },
@@ -66,6 +72,11 @@ export const DECLARES = {
   forge_comments: {
     caps: {
       body: { self: 10000, halves: {} },
+      /* What core screens one field of a `forge-record` block at, counted in code points as it counts
+         them (core `messaging/forge-record.ts:FORGE_RECORD_FIELD_BUDGET`): a record carrying a longer
+         value is refused whole with `field-budget`, so `forge record` measures each value against it
+         before anything is sent. */
+      recordField: { self: 400, halves: {} },
     },
   },
   forge_knowledge: {

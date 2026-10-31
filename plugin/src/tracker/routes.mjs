@@ -120,12 +120,30 @@ export const ROUTES = {
     answers: writtenRow,
     sends: ["documentId", "data", "expect"],
   },
+  /* Core's standing of one issue, read for the moves it serves from where the issue stands
+     (`moves`, `@forge/contracts/issue-machine:issueMovesFrom`): the ladder's move is checked against
+     that list before it is sent. Raw, as the tracker answers it: the one key read is `moves`. */
+  "forge_issues.moves": {
+    project: true,
+    requests: (args, project) => ({
+      page: { path: `/projects/${project}/issues/standing/${encodeURIComponent(args.key ?? "")}` },
+    }),
+    sends: ["key"],
+  },
   "forge_issues.transition": {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}/transition`, "POST",
       { toStatus: args.data?.status, ...filled({ ...args.data, status: undefined }) }),
     answers: writtenRow,
     sends: ["documentId", "data"],
+  },
+  /* Feedback about Forge itself, into the home the pinned core names (REQ-47): the door a note takes
+     where the credential sees no project of the plugin's own. Raw: the reply's item key is read. */
+  "forge_feedback.submit": {
+    writes: true,
+    account: true,
+    requests: (args) => one("/forge/feedback", "POST", args.data),
+    sends: ["data"],
   },
   "forge_issues.mark_merged": {
     writes: true,

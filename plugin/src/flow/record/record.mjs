@@ -9,7 +9,7 @@ export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
 import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
 import { parseAll } from "./page.mjs";
-import { renderedWithin } from "../../tracker/comment-cap.mjs";
+import { recordFieldRefusal, renderedWithin } from "../../tracker/comment-cap.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { landedProblem, landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
@@ -43,6 +43,7 @@ import { carriedOnto, deploymentOnto } from "./judged/carried.mjs";
 import { writerChecked } from "./judged/writer.mjs";
 import { runtimeChecked } from "./judged/runtime.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
+import { LANDED, recordLanded } from "./landed-by-hand.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -92,7 +93,21 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
     }
     if (field.criterion && !/^\d+$/u.test(value)) refuse(`--criterion takes the criterion's number, not \`${value}\`.`);
   }
+  budgetChecked(kind, shape, got);
   return got;
+};
+
+/* Every value typed for the record, one by one where the field repeats, against the budget core
+   screens a record field at: measured here, before the issue is read, so a refusal costs no call. */
+const budgetChecked = (kind, shape, got) => {
+  for (const field of shape.fields) {
+    const value = got[field.flag];
+    for (const one of field.many ? value ?? [] : [value]) {
+      if (typeof one !== "string") continue;
+      const said = recordFieldRefusal(kind, field.flag, one);
+      if (said) refuse(said);
+    }
+  }
 };
 
 export const checked = (kind, got) => {
@@ -518,8 +533,11 @@ const run = async ([kind, reference, ...argv]) => {
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   /* `record` answers its own help, so cli.mjs hands the whole tail over and `-h` in the reference
      position was spent as an issue key — the one flag its own refusal could not answer for. */
-  if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
+  if (wantsHelp([reference])) {
+    return console.log(kindHelp(kind, { ...capsOf(), ...capsOf("forge_comments") }, await briefGoals()));
+  }
   if (!reference) refuse(firstLine(USAGE));
+  if (kind === LANDED) return recordLanded(reference, argv);
   const blocks = kindBlocks(kind, argv);
   const finder = blocks.find((one) => SHAPES[one.kind]?.finder);
   if (finder) aloneChecked(finder.kind, reference, argv);
