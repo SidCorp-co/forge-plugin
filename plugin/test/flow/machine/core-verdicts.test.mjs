@@ -73,5 +73,5 @@ test("a criterion core routes to the review is owed by the review, never asked o
   assert.doesNotMatch(said, /criterion 2 has no verdict|criteria 1, 2 have no verdict/u, `a verdict is asked for criterion 2: ${said}`);
   assert.doesNotMatch(said, /record verdict ISS-92[^\n]*--criterion 2\b/u, "and no verdict command names it");
   assert.match(said, /criterion 2 is a code property core routes to the review[^\n]*the review owes it[^\n]*VERDICT_JUDGED_BY_REVIEW/u, said);
-  assert.match(said, /a run declared --role reviewer records it through its review: POST \/api\/issues\/judged-uuid\/review/u, said);
+  assert.match(said, /a run declared --role reviewer records it in its review: forge record review ISS-92 --base <sha> --head <sha> --criterion 2 --result pass\|fail/u, said);
 });

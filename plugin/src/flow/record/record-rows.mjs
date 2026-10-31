@@ -15,6 +15,7 @@ import { bodyCap } from "../../tracker/comment-cap.mjs";
 import { NOTE_TITLE_WORDS } from "../../tracker/declared/declares.mjs";
 import { flowPinned, screensHere } from "../../guides/flow.mjs";
 import { LANDED, LANDED_BLOCKS, LANDED_ROW } from "./landed/by-hand.mjs";
+import { REVIEW_ROUTE_ROW } from "./review/route.mjs";
 
 /* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
    field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
@@ -217,6 +218,15 @@ const NOTE_BLOCKS = [
   "release page, and the rung that asks for a note asks for a titled one.",
 ];
 
+/* The kind's second form, which `--head` selects: core's review rather than the thread's record. */
+const REVIEW_ROUTE_BLOCKS = [
+  "Given --head, it is core's review of the issue instead (POST /api/issues/:id/review), the diff",
+  "base..head read against the issue's design:",
+  REVIEW_ROUTE_ROW,
+  "A --criterion is one core routes to the review (a code property), a --line a checklist line of a",
+  "pattern the design chose; each opens an entry, and the flags after it are that entry's own.",
+];
+
 /* What each value records. The set is four because the outcomes are: only `skipped` says nobody
    reached the criterion, which is why it alone owes no evidence, and a reader who cannot tell it
    from a shortfall somebody released on purpose can count neither (ISS-1875). */
@@ -414,7 +424,8 @@ const rowFor = (kind, caps) => {
 const KIND_USAGE = new Map();
 export const kindUsage = (kind) => {
   if (!KIND_USAGE.has(kind)) {
-    KIND_USAGE.set(kind, [usageOf("record").replace("<kind>", kind), rowFor(kind, {}) ?? "", ...SHARED_FLAGS].join("\n"));
+    KIND_USAGE.set(kind, [usageOf("record").replace("<kind>", kind), rowFor(kind, {}) ?? "",
+      ...(kind === "review" ? [REVIEW_ROUTE_ROW] : []), ...SHARED_FLAGS].join("\n"));
   }
   return KIND_USAGE.get(kind);
 };
@@ -434,6 +445,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(kind === "note" ? ["", ...NOTE_BLOCKS] : []),
     ...(kind === LANDED ? ["", ...LANDED_BLOCKS] : []),
+    ...(kind === "review" ? ["", ...REVIEW_ROUTE_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
     ...(kind === "question" ? ["", ...QUESTION_BLOCKS] : []),

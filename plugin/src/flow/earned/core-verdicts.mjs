@@ -51,14 +51,16 @@ export const withCoreVerdicts = (view, read) => {
 };
 
 /** What a criterion core routes to the review owes, and whose it is: the review's, never a verdict. */
-export const reviewOwedItems = (view) => {
+export const reviewOwedItems = (view, ref) => {
   const numbers = view.reviewOwed ?? [];
   if (!numbers.length) return [];
   const many = numbers.length > 1;
   return [need(`${many ? "criteria" : "criterion"} ${numbers.join(", ")} ${many ? "are code properties" : "is a code property"} `
     + `core routes to the review, judged against the diff: the review owes ${many ? "them" : "it"}, and core refuses `
     + `a verdict on ${many ? "them" : "it"} (VERDICT_JUDGED_BY_REVIEW)`,
-  `a run declared --role reviewer records ${many ? "them" : "it"} through its review: POST /api/issues/${view.documentId}/review`)];
+  `a run declared --role reviewer records ${many ? "them" : "it"} in its review: forge record review ${ref} `
+    + `--base <sha> --head <sha> ${numbers.map((number) => `--criterion ${number} --result pass|fail --reason "<what held>" `
+      + "--evidence <path at head>").join(" ")}`)];
 };
 
 /** Said under the owed list where core's read could not be had, so a "no verdict" there is the thread's word alone. */

@@ -85,7 +85,8 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
   /* Core's standing of one issue, read for its `moves` alone, core's own feedback door, read for the
      item key it filed, and core's criteria, read for which carry a verdict: a projection over any of
      them would be a second copy of a shape core owns. */
-  "forge_issues.moves", "forge_feedback.submit", "forge_issues.criteria"];
+  "forge_issues.moves", "forge_feedback.submit", "forge_issues.criteria",
+  "forge_issues.review"];
 
 /* Core's list carries no work step, so a row at `in_progress` reads back as the build, the place a
    move to `in_progress` with no step stands at, and core's own status rides beside it. */

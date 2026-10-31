@@ -169,6 +169,11 @@ export const ROUTES = {
         commit: args.data?.commit, landing: args.data?.landing })),
     sends: ["data"],
   },
+  "forge_issues.review": {
+    writes: true,
+    requests: (args) => one(`/issues/${args.documentId}/review`, "POST", args.data),
+    sends: ["documentId", "data"],
+  },
   "forge_issues.unmark": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "DELETE", filled({ note: args.data?.note })),

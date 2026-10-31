@@ -45,6 +45,7 @@ import { writerChecked } from "./judged/writer.mjs";
 import { runtimeChecked } from "./judged/runtime.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
 import { LANDED, recordLanded } from "./landed/by-hand.mjs";
+import { REVIEW_ROUTE_FLAG, recordReviewRoute } from "./review/route.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -539,6 +540,7 @@ const run = async ([kind, reference, ...argv]) => {
   }
   if (!reference) refuse(firstLine(USAGE));
   if (kind === LANDED) return recordLanded(reference, argv);
+  if (kind === "review" && argv.includes(REVIEW_ROUTE_FLAG)) return recordReviewRoute(reference, argv);
   const blocks = kindBlocks(kind, argv);
   const finder = blocks.find((one) => SHAPES[one.kind]?.finder);
   if (finder) aloneChecked(finder.kind, reference, argv);

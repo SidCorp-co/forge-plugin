@@ -34,5 +34,5 @@ core's criteria (`GET /api/issues/:id/criteria`, each criterion's `latest`, the 
 core's gate decides by): a criterion either source judged owes none. A criterion core routes to the
 review (`judge: review`, a code property) is no verdict's to discharge, and core refuses one on it
 (`VERDICT_JUDGED_BY_REVIEW`): the list names it as the review's, owed by a run declared `--role
-reviewer` through core's review. Where that read is refused, the list is the thread's and says so
+reviewer` through core's review, `forge record review --head`. Where that read is refused, the list is the thread's and says so
 beneath it.

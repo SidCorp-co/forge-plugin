@@ -49,6 +49,7 @@ export const VERBS = [
     "forge_issues", { group: FLOW, wraps: {
       mark_merged: "`forge record merged`",
       unmark: "`forge record merged --undo`",
+      review: "`forge record review --head`",
       "forge_questions.ask": "`forge record question`",
       "forge_questions.list": "`forge record question`" } }],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes",

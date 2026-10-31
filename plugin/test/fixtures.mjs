@@ -417,6 +417,8 @@ export const fakeTracker = async (state) => {
       const walking = Object.hasOwn(held ?? {}, "nextCursor") ? { nextCursor: held.nextCursor } : {};
       return { ...asPage(rows, 0, rows.length, says), ...counted, ...walking };
     }],
+    [/^\/api\/issues\/([^/]+)\/review$/u, (q, sent, method, [id]) =>
+      answered("forge_issues.review", { documentId: id, data: sent })],
     [/^\/api\/issues\/([^/]+)\/criteria$/u, (q, sent, method, [id]) =>
       answered("forge_issues.criteria", { documentId: id })],
     [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {
