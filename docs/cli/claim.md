@@ -60,7 +60,7 @@ Which spelling survives what the call carries: [the granted id](the-granted-id.m
 
 Where it was not, the CLI **says so and does not refuse**. A run whose own id came from the
 dispatching session is told, where it claims and where it reads the lease, that the holder it
-matched names a wave rather than a run. Refusing that write instead would change what a claim means
+matched names the Claude Code session rather than one run. Refusing that write instead would change what a claim means
 and would stop the runs the arrangement exists to let work; the guard is the id, not the refusal.
 Holder equality is half the test, so another run's explicitly given id is never called shared —
 nothing about a holder string this reader did not write is this reader's to judge. `forge doctor`

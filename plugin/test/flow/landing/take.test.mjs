@@ -295,7 +295,7 @@ test("a reconciliation by a run the state does not license is refused, naming wh
   const wave = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE],
     "the-dispatching-session", process.cwd(), asWave);
   assert.equal(wave.status, 1, `${wave.stdout}${wave.stderr}`);
-  assert.match(wave.stderr, /names a wave and not a run/u, wave.stderr);
+  assert.match(wave.stderr, /names that session and not one run/u, wave.stderr);
   assert.equal(checkpoint().state, "builder-owed");
 });
 
@@ -332,7 +332,7 @@ test("a run carrying the wave's id is refused the builder's turn, and the field 
   const run = await ran(["claim", "ISS-673", "--take"], wave, process.cwd(), asWave);
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /reads `builder-owed`/u, run.stderr);
-  assert.match(run.stderr, /names a wave and not a run/u, "and says what the id it matched means");
+  assert.match(run.stderr, /names that session and not one run/u, "and says what the id it matched means");
   assert.equal(JSON.stringify(state.issues[0].sessionContext), before, "nothing was written before the refusal");
   const own = await ran(["claim", "ISS-673", "--take"], wave);
   assert.equal(own.status, 0, `${own.stdout}${own.stderr}`, "the same id, given as this run's own, is that run's");
@@ -349,7 +349,7 @@ test("the lander carrying the wave's id takes the turn at ready off the builder'
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(held().holder, wave, "the lease moved to the run that will land it");
   assert.equal(held().history.at(-1).landing, "ready", "and the history says where it was taken");
-  assert.match(run.stdout, /names a wave and not a run/u, "told, as every write under a shared id is");
+  assert.match(run.stdout, /names that session and not one run/u, "told, as every write under a shared id is");
 });
 
 test("the lander that already holds the lease takes its own turn again, which a re-run is", async () => {

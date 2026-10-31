@@ -15,8 +15,16 @@ import { markOwed } from "./flow/lease/reclaims/mark.mjs";
 import { heldAfterMoves } from "./flow/lease/after-move.mjs";
 import { unwrittenSaid } from "./flow/worklog.mjs";
 import { settleConfigHome } from "./resolve/session/config-home.mjs";
+import { hereCopy } from "./tools/plugin-copy.mjs";
 
 const [command, ...rest] = process.argv.slice(2);
+
+/* Ahead of the config home and every gate: a version is asked where something else is in doubt, so
+   it reads this copy's own manifest and nothing that could be the thing in doubt. */
+if (command === "--version" || command === "version") {
+  console.log(hereCopy().version);
+  process.exit(0);
+}
 
 /* What a verb that returned still owes before the call exits, in this order, at both exits below. */
 const callEnded = async () => {
@@ -74,7 +82,7 @@ const LIST_ROUTE = "`forge -h` lists the verbs.";
 
 const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema behind the tracker"
   + " fields it\ntakes, where it takes any. The write-time rules a first issue gets wrong:"
-  + " `forge -h --full`.";
+  + " `forge -h --full`.\nThis copy's version: `forge --version`.";
 
 /* Silent where the project withholds the channel: the footer is the sentence that outlives a verb. */
 const named = verbForPluginDefect();

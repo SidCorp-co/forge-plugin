@@ -2,7 +2,7 @@
    itself. The lease guards the writes that replace something — a field, a status, the lease itself —
    and a verdict replaces nothing, so a judge dispatched while its dispatcher holds the issue writes
    it without taking, renewing or waiting out that lease (ISS-1494). docs/cli/record.md. */
-import { answersByComment } from "../earned/park-status.mjs";
+import { NO_LONGER_OWES, answersByComment } from "../earned/park-status.mjs";
 import { ASKED, WORKTREE, sessionSourced } from "../../resolve/config.mjs";
 import { thisCall } from "../../resolve/flags.mjs";
 import { RUN_ID_VAR } from "../../resolve/session/run-id.mjs";
@@ -24,7 +24,11 @@ const standing = (context, held) => {
   return ANOTHERS.includes(stateOf(lease, held.id)) ? lease : null;
 };
 
-const whose = (held) => `${held.id ?? "no id"}${held.said ? `, read from ${held.said}` : ""}`;
+const whose = (held, what = "") => `${held.id ?? "no id"}${what}${held.said ? `, read from ${held.said}` : ""}`;
+
+/* A source's own words may end a sentence of their own (the inherited one names the fix), so the
+   sentence they close takes its stop only where they did not already put one. */
+const stopped = (text) => (/[.!?]$/u.test(text) ? text : `${text}.`);
 
 const again = () => `${RUN_ID_VAR}=<an id of its own> ${thisCall() ?? "forge record verdict <ref> ..."}`;
 
@@ -49,7 +53,7 @@ export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced
     return {
       refused: `${ref} is held by another run: ${describe(lease)}. A verdict is the one record `
         + `written past another run's lease, and only under an id the caller set for itself, so the `
-        + `verdict says which run judged. This call holds ${whose(held)}. Nothing was sent. Give it `
+        + `verdict says which run judged. This call holds ${stopped(whose(held))} Nothing was sent. Give it `
         + `an id of its own and send this again:\n  ${again()}`,
     };
   }
@@ -82,6 +86,9 @@ export const moveHeld = (ref, next, { lease }) =>
 /** What `advance --owed` tells a caller that does not hold the lease standing on the issue, before
  *  it judges anything rather than at the write that would refuse it. */
 export const judgeOwed = (ref, { sessionContext, status } = {}, held = sessionSourced()) => {
+  /* Nothing advances from a closed or dropped issue, so no verdict is in play and the owed read
+     leads with what the issue is. */
+  if (NO_LONGER_OWES.includes(status)) return null;
   const lease = standing(sessionContext, held);
   if (!lease) return null;
   if (OWN.includes(held.source) && answersByComment(status)) {
@@ -93,6 +100,6 @@ export const judgeOwed = (ref, { sessionContext, status } = {}, held = sessionSo
       + `from this call is written while that lease stands.`;
   }
   return `A verdict from this call would be refused: ${ref}'s lease is ${lease.holder}'s, and this `
-    + `call holds ${whose(held)}, an id it did not set for itself. Set one before judging:\n  `
+    + `call holds ${stopped(whose(held, ", an id it did not set for itself"))} Set one before judging:\n  `
     + `${RUN_ID_VAR}=<an id of its own> forge advance ${ref} --owed`;
 };

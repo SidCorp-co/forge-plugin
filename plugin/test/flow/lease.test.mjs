@@ -419,7 +419,7 @@ test("the shared-holder caveat is said for this run's own inherited id, and for 
   delete process.env.FORGE_SESSION_ID;
   assert.equal(sharedHolder({ holder: "the-harness" }), true, "and the session is read where none is passed");
   assert.equal(sharedHolder({ holder: "somebody" }), false);
-  assert.match(SHARED_HOLDER, /names a wave and not a run/u, "the words stay beside the predicate");
+  assert.match(SHARED_HOLDER, /names that session and not one run/u, "the words stay beside the predicate");
   Object.assign(process.env, env);
 });
 

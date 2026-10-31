@@ -284,7 +284,7 @@ test("a verdict whose judge id was inherited earns nothing, however that id comp
   const said = items([verdictOf(1, { judge: WAVE, [JUDGE_FROM]: "inherited" }), verdictOf(2)]);
   assert.equal(said.length, 1, `one item, for the one verdict that proves no second judge: ${said.map((one) => one.what)}`);
   assert.match(said[0].what, /carries the judge id `the-dispatching-session`/u, said[0].what);
-  assert.match(said[0].what, /names a wave and not a run/u, "in the words the lease already keeps");
+  assert.match(said[0].what, /names that session and not one run/u, "in the words the lease already keeps");
   assert.match(said[0].what, /FORGE_SESSION_ID/u, "naming what to set, or the role re-runs it unchanged");
   assert.match(said[0].command, /^FORGE_SESSION_ID=\S+ forge record verdict ISS-8 /u,
     "and the write that answers it is granted an id, which is the whole of what the item asks for");

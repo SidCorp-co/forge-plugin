@@ -81,7 +81,7 @@ const takeLease = async (asked) => {
   return null;
 };
 
-test("a run holding its dispatcher's id is told the lease it matched names a wave, not a run", async () => {
+test("a run holding its dispatcher's id is told the lease it matched names its session, not one run", async () => {
   heldBy(null);
   const run = await takeLease(null);
   assert.equal(run.status, 0, run.stderr);

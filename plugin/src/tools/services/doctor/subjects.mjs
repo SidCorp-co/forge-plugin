@@ -15,9 +15,9 @@ const MACHINE = [
   "  forge doctor --url <url>    the endpoint every call goes to. The REST base under `tracker` is",
   "                              derived from it, so there is no second setting for that.",
   "",
-  "Both are typed on the verb rather than on this subject. A session id is not written here: a run",
-  "that inherited the id of the session which dispatched it names a wave and not a run, and the row",
-  "says which of the two this is.",
+  "Both are typed on the verb rather than on this subject. A session id is not written here: one",
+  "read from the Claude Code session names that session and not one run, and the row says where",
+  "the id it prints came from.",
 ].join("\n");
 
 const OFFER = [

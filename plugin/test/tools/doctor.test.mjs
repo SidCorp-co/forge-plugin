@@ -355,7 +355,7 @@ test("the session id is reported with the source it came from", () => {
   const shared = report(null, { CLAUDE_CODE_SESSION_ID: "the-dispatching-session" });
   assert.match(shared, /\[ note \] session id\s+the-dispatching-session\s+← CLAUDE_CODE_SESSION_ID/);
   assert.match(shared, /every agent it dispatched carries the same value/, "what the value is shared by");
-  assert.match(shared, /names a wave and not a run/, "and what that costs a lease matching it");
+  assert.match(shared, /names that session and not one run/, "and what that costs a lease matching it");
   assert.match(shared, /Give each run an id of its own in FORGE_SESSION_ID/, "and the one thing that fixes it");
 });
 

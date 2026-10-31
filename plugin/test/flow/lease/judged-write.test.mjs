@@ -220,6 +220,38 @@ test("the owed read says, before any judging, whether this caller's verdict woul
     "criterion 10: with the command that sets one");
 });
 
+/* The inherited source's words end a sentence of their own, naming the fix, and a message closing on
+   them once read `FORGE_SESSION_ID., an id it did not set for itself`. A session working alone holds
+   the same variable as one that dispatched a wave, so neither is told it names a wave. */
+test("a refused verdict's id and source read as whole sentences, naming the session and no wave", async () => {
+  const owed = await asInherited("advance", "ISS-7", "--owed");
+  const verdict = await asInherited("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+    "--criterion", "1", "--verdict", "pass");
+  for (const said of [owed.stdout, verdict.stderr]) {
+    assert.doesNotMatch(said, /[.!?][.,]/u, `a stop runs into the next sentence:\n${said}`);
+    assert.doesNotMatch(said, /names a wave/u, `a session that may have dispatched nothing is told of a wave:\n${said}`);
+  }
+  assert.match(owed.stdout, /this call holds the-wave-id, an id it did not set for itself, read from CLAUDE_CODE_SESSION_ID — .* names that session and not one run\. Give each run an id of its own in FORGE_SESSION_ID\. Set one before judging:/u,
+    owed.stdout);
+});
+
+/* --owed writes nothing, and from a closed or dropped issue nothing advances, so no verdict is in play:
+   the read leads with where the issue stands and how work goes back, and no lease is mentioned. */
+test("the owed read of a closed or dropped issue leads with where it stands, warning of no verdict", async () => {
+  for (const status of ["closed", "dropped"]) {
+    Object.assign(ISSUE, { status, workState: null });
+    for (const ask of [asInherited, asJudge]) {
+      const run = await ask("advance", "ISS-7", "--owed");
+      const said = `${run.stdout}${run.stderr}`;
+      assert.doesNotMatch(said, /A verdict from this call/u, `${status}: a verdict is not in play:\n${said}`);
+      assert.match(said.trimStart(), new RegExp(`^ISS-7 is ${status}; nothing advances from it`, "u"), `${status}: it leads:\n${said}`);
+      assert.match(said, /--reopen/u, `${status}: with the way work goes back`);
+    }
+  }
+  Object.assign(ISSUE, { status: "in_progress", workState: { step: "test" } });
+  assert.deepEqual(ISSUE.sessionContext.lease, LEASE, "and the lease is as it stood");
+});
+
 /* At a park answered by a comment the tracker itself reopens the issue on any comment, so a judge's
    verdict there would move a status no lease-less write may move. */
 test("a judge's verdict at a park a comment answers is refused before anything is sent", async () => {

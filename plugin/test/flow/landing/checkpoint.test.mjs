@@ -185,7 +185,7 @@ test("the judge's spent lease is taken back from at judged alone, and its own la
 test("a wave's shared id is refused the builder's turn where the take would replace a live lease", () => {
   const shared = refused("builder-owed", "the-builder", LIVE, { source: "inherited" });
   assert.match(shared, /reads `builder-owed`/u, shared);
-  assert.match(shared, /names a wave and not a run/u, "and says what the id it matched on means");
+  assert.match(shared, /names that session and not one run/u, "and says what the id it matched on means");
   assert.match(shared, /FORGE_SESSION_ID/u, "with the one thing that gives the run an id of its own");
   assert.equal(refused("builder-owed", "the-builder", LIVE, { source: "asked" }), null,
     "a run that said which run it is takes its turn");

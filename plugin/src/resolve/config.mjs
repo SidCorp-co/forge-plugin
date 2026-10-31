@@ -140,9 +140,11 @@ const sessionSaved = () => readJson(sessionPath())?.session || null;
    of this table is how two readers disagree about whose an id is (ISS-445). */
 export const INHERITED = "inherited";
 
+/* True of a master working alone as of one that dispatched a wave: the variable is the session's
+   whichever it is, so what it costs is said without saying which. */
 export const INHERITED_MEANS =
-  "the session that dispatched this run, and every agent it dispatched carries the same value, so "
-  + "an id matching it names a wave and not a run";
+  "the Claude Code session this call runs under, and every agent it dispatched carries the same "
+  + "value, so an id matching it names that session and not one run";
 
 /** Named without a command: what sets it is a project's business, and this plugin cannot see one. */
 export const OWN_ID = `Give each run an id of its own in ${RUN_ID_VAR}.`;
