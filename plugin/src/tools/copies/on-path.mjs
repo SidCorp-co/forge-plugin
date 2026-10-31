@@ -8,6 +8,7 @@ import { appendFileSync, existsSync, lstatSync, readFileSync, realpathSync, rena
 import { delimiter, dirname, join, resolve } from "node:path";
 
 import { hereCopy, installedToRun, nameAt } from "../plugin-copy.mjs";
+import { spelled, typed } from "../../hooks/shell-spans.mjs";
 
 /** The variable a session's start sets to that session's plugin root. */
 export const ROOT_VAR = "FORGE_PLUGIN_ROOT";
@@ -17,15 +18,14 @@ const ENTRIES = { forge: "src/cli.mjs", "vi-natural": "vi-natural/cli.mjs" };
 /** The commands put on PATH, each by its own dispatcher. */
 export const ON_PATH = Object.keys(ENTRIES);
 
-const quoted = (text) => `'${text.replaceAll("'", "'\\''")}'`;
-const FALLBACK = /^FALLBACK='((?:[^']|'\\'')*)'$/mu;
+const FALLBACK = /^FALLBACK=(.*)$/mu;
 
 /** The dispatcher's text: the session's root, else `fallback`, refused by name where neither runs. */
 const dispatcherText = (name, fallback) => [
   "#!/usr/bin/env sh",
   `${MARK}, written and rewritten by this plugin's SessionStart hook; docs/cli/the-way-in.md.`,
   `# A session's start sets ${ROOT_VAR} to its own plugin root; outside one, the installed copy below.`,
-  `FALLBACK=${quoted(fallback ?? "")}`,
+  `FALLBACK=${typed(fallback ?? "")}`,
   `ROOT="\${${ROOT_VAR}:-$FALLBACK}"`,
   "FROM=\"the installed copy this dispatcher names\"",
   `[ -n "\${${ROOT_VAR}}" ] && FROM="this session's ${ROOT_VAR}"`,
@@ -55,7 +55,8 @@ const text = (path) => {
 export const dispatcherAt = (path) => {
   const held = text(path);
   if (!held?.includes(MARK)) return null;
-  const fallback = held.match(FALLBACK)?.[1].replaceAll("'\\''", "'") ?? "";
+  const said = held.match(FALLBACK)?.[1];
+  const fallback = said ? spelled(said) : "";
   return { text: held, fallback: fallback || null };
 };
 
@@ -100,7 +101,7 @@ export const placeDispatcher = (path, name, root) => {
 export const tellSession = (root, file = process.env.CLAUDE_ENV_FILE) => {
   if (!file) return;
   try {
-    appendFileSync(file, `export ${ROOT_VAR}=${quoted(resolve(root))}\n`);
+    appendFileSync(file, `export ${ROOT_VAR}=${typed(resolve(root))}\n`);
   } catch {
     /* a session we cannot tell falls back to the installed copy, which the doctor row names */
   }
