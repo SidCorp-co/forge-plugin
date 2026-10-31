@@ -20,8 +20,8 @@ A park and a set carry their own payload and are judged whole by core.
 
 **The ladder ends at `awaiting_release`, and offers no `closed`.** The close from there is the
 release's (`CLOSE_ONLY_BY_RELEASE`), so `--owed` and the plain advance answer with the record that
-makes it, `forge release-batch record`, and with the reopen that sends work back. `forge close` is a
-route that prints that record rather than a form that moves anything.
+makes it, `forge release-batch record`, and with the reopen that sends work back. The word `close`
+typed as a command is a route: it prints that record rather than moving anything.
 
 **A retired name is never sent.** The transport refuses a status core does not hold before the
 request, naming the place that took it over; `--set` and `--to` refuse one the same way. A park record
