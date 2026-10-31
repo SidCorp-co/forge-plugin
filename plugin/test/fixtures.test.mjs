@@ -286,6 +286,7 @@ const PROBES = [
   ["GET", "/api/projects/p1/release-batches/active"],
   ["GET", "/api/projects/p1/release-batches/r1/state"],
   ["POST", "/api/projects/p1/release-batches/r1/abort"],
+  ["POST", "/api/projects/p1/release-batches/r1/method"],
   ["GET", "/api/projects/p1/release-batches/roster"],
   ["GET", "/api/projects/p1/release-readiness"],
   ["POST", "/api/projects/p1/release-batches"],

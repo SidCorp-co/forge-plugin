@@ -73,9 +73,20 @@ export const refusing = async (run) => {
   }
 };
 
+/* The line a write verb puts ahead of every refusal it ends on, computed at the exit because only then
+   is it known what was written; one verb runs a call, so one is held. */
+let leading = null;
+
+/** Registers what a refusal of this call leads with: a function of the refusal, answering a line or null. */
+export const leadOnFailure = (lead) => {
+  leading = lead;
+};
+
 export const fail = (message) => {
   if (embedded) throw new Refusal(message);
   const say = (one) => (one.say ?? console.error)(one.text);
+  const lead = leading?.(String(message));
+  if (lead) console.error(lead);
   for (const one of kept) if (one.ahead) say(one);
   console.error(message);
   for (const one of kept) if (!one.ahead) say(one);

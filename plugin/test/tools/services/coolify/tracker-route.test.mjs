@@ -34,6 +34,7 @@ const state = {
       if (args.action === "cancel") return { cancelled: true };
       return state.deploy ?? { dispatched: true, pendingHumanConfirm: false, integrationIds: [BINDING.id] };
     },
+    forge_release_batch: (args) => (args.action === "active" ? state.active ?? null : null),
   },
 };
 
@@ -154,6 +155,26 @@ test("a deploy the tracker held back is reported as a refusal, not as a deploy",
   assert.match(run.stderr, /a production binding holds it until somebody confirms/u);
   assert.match(run.stderr, /confirm-prod-deploy/u, "and it names what would release it");
   assert.doesNotMatch(run.stdout, /dispatched/u, "nothing printed reads as a deploy that went");
+});
+
+/* Agenfold's ISS-28, landed by hand: `deploy --issue` answered `no-run` — the issue has no pipeline run
+   of its own — and said nothing of the release batch that was open for exactly this. */
+test("a no-run deploy names the open release batch's run to deploy under, and the method it owes first", async () => {
+  chose(null);
+  const run = "99999999-0000-4000-8000-000000000009";
+  state.deploy = { dispatched: false, pendingHumanConfirm: false, integrationIds: [], reason: "no-run" };
+  state.active = { runId: run, issueIds: [], startedAt: "2026-10-31T00:00:00.000Z" };
+  const open = await ran("deploy", "--yes");
+  state.active = null;
+  const none = await ran("deploy", "--yes");
+  state.deploy = null;
+  assert.equal(open.status, 1, open.stdout);
+  assert.match(open.stderr, /nothing was dispatched, and the tracker gave the reason `no-run`/u);
+  assert.match(open.stderr, new RegExp(`A release batch is open for this project, run ${run}: use --run ${run}`, "u"), open.stderr);
+  assert.match(open.stderr, new RegExp(`forge release-batch method ${run} --skill <name>`, "u"));
+  assert.match(open.stderr, new RegExp(`this deploy again with --run ${run} in place of --issue`, "u"));
+  assert.equal(none.status, 1, none.stdout);
+  assert.match(none.stderr, /No release batch is open for this project[\s\S]*forge release-batch start/u, none.stderr);
 });
 
 test("a write is refused without --yes, and --dry-run prints the request without sending one", async () => {

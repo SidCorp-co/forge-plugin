@@ -48,7 +48,10 @@ preview-only, a live binding waits for the release stage, a production binding a
 holding for a person. Each of those is a refusal before damage, so the verb reports it as one,
 naming what did not go and what would release it, rather than as a deploy that failed. A body saying
 nothing was dispatched, printed as an answer, reads as a deploy that happened, and that is the one
-reading that gets somebody to stop watching.
+reading that gets somebody to stop watching. A `no-run` answer is an issue with no pipeline run of
+its own, which a landing built by hand leaves; the refusal reads the open release batch and names
+its run for `--run`, with the method record that run's deploy is refused without, or, with none
+open, `forge release-batch start`.
 
 **The mask stays where a token still travels.** The instance route carries one and the rules below
 are its. The tracker route carries none of this platform's credentials, so there is nothing there to

@@ -414,16 +414,23 @@ test("the verification says who released it, in the project's own words and neve
 /* Five runs in one day read `--commit takes 7 to 40 hex digits` with a valid sha on `--commit`, and
    each spent a round on the argument that was right: the sentence was a literal and `verification`
    is the one kind declaring two commit-typed fields (ISS-833). */
+/* A record's refusal leads with whether anything was written, and the refusal itself follows. */
+const refusedUnder = (run, kind) => {
+  const [lead, ...said] = run.stderr.trim().split("\n");
+  assert.equal(lead, `record ${kind} on ISS-3: nothing written.`, run.stderr);
+  return said.join("\n");
+};
+
 test("a commit-typed field refused for its value names itself, and its own label says which commit it wanted", () => {
   const prose = "this is prose and not a sha";
   const named = ask("record", "verification", "ISS-3", "--where", "here", "--commit", "43b811e",
     "--evidence", "43b811e", "--contains", prose);
   assert.equal(named.status, 1, named.stdout);
-  assert.equal(named.stderr.trim(), "--contains takes the landed commit the head on --commit "
+  assert.equal(refusedUnder(named, "verification"), "--contains takes the landed commit the head on --commit "
     + `carries as 7 to 40 hex digits, not \`${prose}\`.`, "the flag refused is the one it was typed on");
   const commit = ask("record", "verification", "ISS-3", "--where", "here", "--commit", prose,
     "--evidence", "43b811e");
-  assert.equal(commit.stderr.trim(), `--commit takes 7 to 40 hex digits, not \`${prose}\`.`,
+  assert.equal(refusedUnder(commit, "verification"), `--commit takes 7 to 40 hex digits, not \`${prose}\`.`,
     "and a field whose label is its flag's own word is refused in the words it always was");
 });
 
@@ -455,8 +462,8 @@ test("no commit-typed field of any kind is refused under another field's name", 
       .filter((field) => !field.derived && !field.written && (!field.optional || field.flag === one.flag))
       .flatMap((field) => [`--${field.flag}`, field.flag === one.flag ? prose : fillFor(field)]);
     const run = ask("record", kind, "ISS-3", ...argv);
-    const said = run.stderr.trim();
     assert.equal(run.status, 1, `${kind}: --${one.flag} carrying prose is refused`);
+    const said = refusedUnder(run, kind);
     assert.ok(said.startsWith(`--${one.flag} takes `), `${kind}: the refusal opens on --${one.flag}: ${said}`);
     assert.ok(said.includes(`not \`${prose}\`.`), `${kind}: the value refused is quoted back: ${said}`);
     const words = one.takes ?? one.label.toLowerCase();
@@ -474,7 +481,7 @@ test("no flag puts the project's answer on a record", () => {
   assert.match(run.stderr, /No record verification flag named --promotion\./u, "refused before any call");
   /* `--review` is the run flag of that name, on every writing kind, and never this field: the rows
      the refusal offers back name the one flag a caller could mistake for the project's answer. */
-  const offered = run.stderr.split("\n").slice(1).join("\n");
+  const offered = refusedUnder(run, "verification").split("\n").slice(1).join("\n");
   assert.match(offered, /--where W --commit C --evidence E\.\.\. \[--contains C\]/u);
   assert.doesNotMatch(offered, /--promotion\b/u, "and it is on no row the kind offers");
   /* Nor by hand: a comment carrying the key, through a client no gate sits before, reads back

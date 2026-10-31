@@ -13,8 +13,11 @@ half stood.
 is sent:
 
 1. the lease: taken where nothing holds the issue, renewed where this run holds it, refused where
-   another run does — and an issue at `open`, `approved` or `reopen` is then taken to `in_progress`,
-   that being the one status core moves to `awaiting_release` from;
+   another run does — then a `draft` is opened and an issue at `open`, `approved` or `reopen` taken
+   to `in_progress`, that being the one status core moves to `awaiting_release` from. The lease is
+   written before a draft is opened, so the open issue is never one a dispatcher could take; taking
+   a draft's empty lease is the verb's own, the call recording a landing being the word that no run
+   is on it, which `forge claim --unheld` asks of a person anywhere else;
 2. the merge mark, written only after `git fetch` of the remote base branch shows that branch
    carries the sha — a commit only this disk holds is no landing;
 3. the move to `awaiting_release`, the sha its reason, and `--reason` after it;
@@ -23,14 +26,18 @@ is sent:
 
 **A refusal stops the verb by name and says what stands.** Each step's refusal ends the call
 naming the step, core's own words, and every step already done; nothing after it is sent and the
-lease stays with the run. A step already standing is said and not made again — a mark at this sha,
+lease stays with the run. A refusal before the first write leads with `nothing written`; a status
+the verb has no road from (`needs_info`, `on_hold`, `closed`, `dropped`) is one, and names
+`forge advance <ISS> --owed`. A step already standing is said and not made again — a mark at this sha,
 an issue already at `awaiting_release` — so the same call made again resumes where the last one
 stopped rather than failing on what it already wrote.
 
 **The sha is whole and the base is read, not trusted.** A short sha is refused before any request
 (`COMMIT_NOT_WHOLE`, as core's mark refuses it), and the base branch is the project's `baseBranch`,
 fetched into its remote-tracking ref before the ancestry is asked. `--dry-run` reads the issue and
-prints every call the run would make, in order, and sends none.
+prints every call the run would make, in order, and sends none. It reads the lease and the status
+the way the call does, so where the call would stop it is refused the same way: it may say less
+than the call does, and never promises a step the call refuses.
 
 **What it is not.** It does not close the issue. The close from `awaiting_release` is the release's
 own (`CLOSE_ONLY_BY_RELEASE`), recorded by `forge release-batch record`.

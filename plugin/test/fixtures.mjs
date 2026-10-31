@@ -467,6 +467,8 @@ export const fakeTracker = async (state) => {
       answered("forge_release_batch", { action: "state", runId })],
     [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/abort$/u, (q, sent, method, [runId]) =>
       answered("forge_release_batch", { action: "abort", runId, data: sent })],
+    [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/method$/u, (q, sent, method, [runId]) =>
+      answered("forge_release_batch", { action: "method", runId, data: sent })],
     [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
       method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
     [/^\/api\/projects\/[^/]+\/gates$/u, () => answered("forge_config", { action: "gates" })],

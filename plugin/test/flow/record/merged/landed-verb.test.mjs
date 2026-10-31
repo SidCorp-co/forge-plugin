@@ -166,3 +166,45 @@ test("a refused move stops the verb by name and says which steps had happened", 
   assert.match(run.stderr, /lease/u, "and the steps that happened before it");
   assert.equal(writes().filter((one) => one.args.action === "mark_merged").length, 0, "nothing after the refusal");
 });
+
+/* Agenfold's ISS-28: the dry run at `draft` promised "taken: nothing holds it", and the call then
+   stopped at the lease naming `forge claim --unheld`; getting through took a claim, an advance to
+   open and the verb again. The verb now takes a draft the whole way itself, the lease written before
+   the issue is opened, so the open issue is never one a dispatcher could take. */
+test("a draft is taken the whole way: lease first, then open, then in_progress, and the dry run says each", async () => {
+  state.issues = [{ ...fresh(), status: "draft" }];
+  state.comments["landed-verb-uuid"] = [];
+  const dry = await forge("record", "landed", "ISS-61", "--sha", LANDED, "--dry-run");
+  assert.equal(dry.status, 0, `${dry.stdout}${dry.stderr}`);
+  assert.deepEqual(writes(), [], "a dry run sends no write");
+  const planned = ["taken at draft", '"open"', '"in_progress"', "/merge", '"awaiting_release"', "/comments", "released"]
+    .map((word) => dry.stdout.indexOf(word));
+  assert.ok(planned.every((at) => at >= 0), dry.stdout);
+  assert.deepEqual([...planned].sort((a, b) => a - b), planned, `every step, in order:\n${dry.stdout}`);
+  const run = await forge("record", "landed", "ISS-61", "--sha", LANDED);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const steps = writes().map(step);
+  assert.deepEqual(steps.slice(0, 3), ["lease", "move open", "move in_progress"], `the lease before the open:\n${steps.join("\n")}`);
+  assert.deepEqual(steps.filter((one) => one !== "lease").slice(2), [`merge ${LANDED}`, "move awaiting_release", "comment"]);
+  assert.equal(steps.at(-1), "lease", "and handing it back is the last");
+  assert.equal(state.issues[0].status, "awaiting_release");
+});
+
+/* The dry run may say less than the call does, never more: where the call would stop, so does it. */
+test("where the call would be refused, the dry run is refused the same way and promises nothing", async () => {
+  const another = { holder: "another-run", agent: "a", pid: "1", renewedAt: new Date().toISOString(), minutes: 60, next: "building" };
+  for (const [issue, why] of [
+    [{ ...fresh(), status: "draft", sessionContext: { lease: another } }, /another-run/u],
+    [{ ...fresh(), status: "needs_info" }, /nothing written\. ISS-61 is at `needs_info`[\s\S]*forge advance ISS-61 --owed/u],
+  ]) {
+    for (const dry of [["--dry-run"], []]) {
+      state.issues = [issue];
+      const run = await forge("record", "landed", "ISS-61", "--sha", LANDED, ...dry);
+      assert.equal(run.status, 1, `${issue.status} ${dry}: ${run.stdout}`);
+      assert.match(run.stderr, /nothing (written|is sent)/u, `${issue.status} ${dry}: it leads with what was not sent:\n${run.stderr}`);
+      assert.match(run.stderr, why, run.stderr);
+      assert.doesNotMatch(run.stdout, /taken: nothing holds it/u, "and promises no take");
+      assert.deepEqual(writes(), [], `${issue.status} ${dry}: nothing was written`);
+    }
+  }
+});

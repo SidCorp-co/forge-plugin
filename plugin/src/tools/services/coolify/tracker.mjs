@@ -4,7 +4,7 @@
 import { fail } from "../../../resolve/settings.mjs";
 import { flags } from "../../../resolve/flags.mjs";
 import { documentIdOf } from "../../../tracker/issues.mjs";
-import { callTool } from "../../../tracker/rest.mjs";
+import { callTool, tried } from "../../../tracker/rest.mjs";
 import { rowFor } from "../../../tracker/routes.mjs";
 import { keysOf, rendered, wrapper } from "./shape.mjs";
 import {
@@ -56,13 +56,31 @@ const CONFIRM = "the tracker's own confirm-prod-deploy route, which this CLI dec
 
 /* The tracker answers a held deploy with a 200 whose body says nothing went. Printed as an answer it
    reads as a deploy that happened, which is the one reading that gets a person to stop watching. */
-const dispatchRefusal = (answer) => {
+const dispatchRefusal = (answer, way = "") => {
   const held = answer?.pendingHumanConfirm
     ? `a production binding holds it until somebody confirms — ${CONFIRM}`
     : `the tracker gave the reason \`${answer?.reason ?? "none"}\``;
   return `coolify deploy: nothing was dispatched, and ${held}.\n`
     + `  bindings dispatched: ${(answer?.integrationIds ?? []).join(", ") || "none"}\n`
-    + "  what this project is bound to: forge coolify list";
+    + "  what this project is bound to: forge coolify list"
+    + way;
+};
+
+/* `no-run` is an issue with no pipeline run of its own to deploy under, which is what a landing built
+   by hand leaves: the deploy goes under a release batch's run instead. The open one is read and named,
+   with the record core refuses that run's deploy without; with none open, the call that opens one. */
+const NO_RUN = "no-run";
+
+const runRoute = async (given) => {
+  const active = await tried("forge_release_batch.active", {});
+  const run = active && !active.refused ? active.runId : null;
+  if (run) {
+    return `\nA release batch is open for this project, run ${run}: use --run ${run}. Its deploy is refused `
+      + `until the run has recorded its method, so where it has none, that first, then this deploy again `
+      + `with --run ${run} in place of --issue:\n  forge release-batch method ${run} --skill <name>`;
+  }
+  return `\nNo release batch is open for this project. Open one over ${given.issue ?? "the issue"}, record its `
+    + `method, and deploy under its run:\n  forge release-batch start ${given.issue ?? "<ISS-nn>"}`;
 };
 
 /* The one listing the answer carries, where it carries exactly one: a table of the row the caller
@@ -92,7 +110,9 @@ export const runTracker = async (name, argv) => {
     return;
   }
   const answered = await callTool(key, args);
-  if (name === "deploy" && answered?.dispatched === false) fail(dispatchRefusal(answered));
+  if (name === "deploy" && answered?.dispatched === false) {
+    fail(dispatchRefusal(answered, answered.reason === NO_RUN ? await runRoute(given) : ""));
+  }
   const asTable = given.table || (process.stdout.isTTY && !given.json);
   const body = bodyOf(answered);
   /* The instance route's column preference is that platform's own field names, and none of them is

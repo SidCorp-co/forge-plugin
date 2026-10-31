@@ -90,6 +90,14 @@ test("a park rehearsed prints the record the park then posts, byte for byte", as
   assert.equal(shown, `${lastBody("issue-71")}\n`);
 });
 
+/* The real move's refusal leads with what it wrote, which a rehearsal, having written nothing by
+   definition, says in its own first line instead: what is compared is the refusal under that lead. */
+const underLead = (real, reference) => {
+  const [lead, ...said] = real.stderr.trim().split("\n");
+  assert.equal(lead, `advance ${reference}: nothing written.`, real.stderr);
+  return said.join("\n");
+};
+
 test("a park the real move refuses is rehearsed as refused, in the real refusal's words, exiting zero", async () => {
   Object.assign(PARKING, { status: "in_progress", workState: { step: "plan" } });
   const bare = ["--park", "code-review", "--why", "read the diff"];
@@ -100,7 +108,7 @@ test("a park the real move refuses is rehearsed as refused, in the real refusal'
   const real = await advance("ISS-71", ...bare);
   assert.equal(real.status, 1, real.stdout);
   assert.match(run.stdout, /the code-review park of ISS-71 would be refused\./u);
-  assert.ok(run.stdout.includes(real.stderr.trim()), `${run.stdout}\n---\n${real.stderr}`);
+  assert.ok(run.stdout.includes(underLead(real, "ISS-71")), `${run.stdout}\n---\n${real.stderr}`);
 });
 
 test("a drop the real move refuses is rehearsed as refused, in the real refusal's words, exiting zero", async () => {
@@ -112,7 +120,7 @@ test("a drop the real move refuses is rehearsed as refused, in the real refusal'
     const real = await advance(reference, "--drop", "--why", "nobody wants it");
     assert.equal(real.status, 1, real.stdout);
     assert.match(run.stdout, new RegExp(`the drop of ${reference} would be refused\\.`, "u"));
-    assert.ok(run.stdout.includes(real.stderr.trim()), `${run.stdout}\n---\n${real.stderr}`);
+    assert.ok(run.stdout.includes(underLead(real, reference)), `${run.stdout}\n---\n${real.stderr}`);
   }
 });
 

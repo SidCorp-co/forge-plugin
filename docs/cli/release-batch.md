@@ -57,8 +57,12 @@ issue, so an account standing alone is never read as a reading of production.
 
 `start` and `finish` are the batch's own two doors, reachable here for the same reason: a run that
 can only open a batch through a client it does not have cannot finish the release it was handed.
-`method` and `attempts` stay out. They are the release agent's ledger protocol and not something an
-operator calls.
+`method` is reachable for a third: core refuses a deploy under a run (`--run` on the coolify deploy)
+with `RELEASE_NOTHING_RECORDED` until that run has recorded what it works from, and no other verb
+records it. `forge release-batch method <runId> --skill <name>` sends that one record, `--not-loaded`
+with `--detail` being the answer for a method that would not load, and refuses locally what core's
+route would (an empty skill, a value over its bound). `attempts` stays out: it is the release
+agent's ledger protocol and not something an operator calls.
 
 ## A finish is taken, and its verdict is read afterwards
 

@@ -17,8 +17,10 @@ import { releasePolicy } from "../../../tracker/project-config.mjs";
 import { commitCarries } from "../../../git/carries.mjs";
 import { issueOf } from "../thread/posting.mjs";
 import { markMerged } from "../merged.mjs";
-import { FIELD, HOLDING, leaseOf, oweRelease, releaseOwed, renew, stateOf } from "../../lease.mjs";
+import { FIELD, HOLDING, MINUTES, claimed, describe, freeRefusal, leaseOf, oweRelease, readContext, releaseOwed, renew,
+  setLease, stateOf, takeableFree } from "../../lease.mjs";
 import { sessionOf } from "../../../resolve/config.mjs";
+import { DRAFT } from "../../../rank/weights.mjs";
 
 export const LANDED = "landed";
 const WHOLE_SHA = /^[0-9a-f]{40}$/u;
@@ -28,13 +30,59 @@ const REMOTE = "origin";
 const TAKEN_FROM = ["open", "approved", "reopen"];
 const HELD_AT = "in_progress";
 const RESTS_AT = "awaiting_release";
+const OPENED = "open";
+
+/* The moves each status this verb lands from owes before the one to `awaiting_release`: a draft is
+   opened first, under the lease, so the open issue is never one a dispatcher could take. Any other
+   status has no road this verb takes, and is refused before anything is sent. */
+const ROAD = Object.freeze({
+  [DRAFT]: [OPENED, HELD_AT],
+  ...Object.fromEntries(TAKEN_FROM.map((status) => [status, [HELD_AT]])),
+  [HELD_AT]: [],
+  [RESTS_AT]: [],
+});
+
+/* What the lease step does, read the way `renew` reads it, so the plan says what the call meets: the
+   take at a draft is this verb's own, the caller recording the landing being the word that no other
+   run is on it — the judgement `forge claim --unheld` asks of a person anywhere else. */
+const leaseStep = (ref, status, context) => {
+  const lease = leaseOf(context);
+  const state = stateOf(lease, sessionOf());
+  if (HOLDING.includes(state)) return { act: "renew", said: "renewed: this run holds it" };
+  if (state === "free" && status === DRAFT) {
+    return { act: DRAFT, said: `taken at ${DRAFT}: nothing holds it, and this call recording the landing is the word that no run is on it` };
+  }
+  if (state === "free" && takeableFree(status, context)) return { act: "renew", said: "taken: nothing holds it" };
+  if (state === "free") return { act: "refused", said: freeRefusal(ref, status, context) };
+  if (state === "gone") return { act: "renew", said: "taken: the run that held it is gone" };
+  if (state === "expired") {
+    return { act: "renew", said: `taken only where the record proves ${describe(lease)} gone, and refused otherwise` };
+  }
+  return { act: "refused", said: `${describe(lease)} holds it. Ask that run, or wait for it to hand the lease back` };
+};
+
+/* Nothing is sent from a status this verb has no road from, the dry run and the call alike. */
+const roadOf = (ref, status) => {
+  const road = ROAD[status];
+  if (road) return road;
+  return fail(`record ${LANDED} on ${ref}: nothing written. ${ref} is at \`${status}\`, and this verb lands from `
+    + `${Object.keys(ROAD).join(", ")} only. What the issue waits on there:\n  forge advance ${ref} --owed`);
+};
+
+const takeAtDraft = async (documentId, ref) => {
+  const context = await readContext(documentId);
+  const next = claimed(context, { holder: sessionOf(), minutes: MINUTES, next: "recording a landing built by hand",
+    how: "unheld", status: DRAFT });
+  await setLease(documentId, next, ref, () => context);
+};
 
 export const LANDED_ROW = "  landed       --sha <40-hex> [--reason R] [--comment-file F] [--dry-run]";
 
 export const LANDED_BLOCKS = [
   "A landing built by hand, recorded in one call in the order core's direct mode names. In order:",
   "  1. the lease: taken where nothing holds the issue, renewed where this run holds it, refused where",
-  "     another run does; an issue at open, approved or reopen is then taken to in_progress",
+  "     another run does; a draft is then opened, under the lease, and an issue at open, approved or",
+  "     reopen taken to in_progress",
   "  2. merged: the sha is read against the remote base branch, fetched first, and the mark is",
   "     written at it only where that branch carries it",
   `  3. awaiting_release: the move, with the sha as its reason (and --reason after it)`,
@@ -49,9 +97,10 @@ export const LANDED_BLOCKS = [
 /* One line per step done, so a refusal can say exactly what stands. */
 const said = (done) => (done.length ? done.map((one) => `  done: ${one}`).join("\n") : "  done: nothing");
 
-const stopped = (ref, step, why, done) => fail(`record landed on ${ref} stopped at ${step}: ${why}\n`
-  + `What already happened:\n${said(done)}\nNothing after it was sent. The lease stays with this run, `
-  + `so the same call made again resumes from here.`);
+const stopped = (ref, step, why, done) => fail(done.length
+  ? `record landed on ${ref} stopped at ${step}: ${why}\nWhat already happened:\n${said(done)}\nNothing `
+    + `after it was sent. The lease stays with this run, so the same call made again resumes from here.`
+  : `record landed on ${ref}: nothing written. It stopped at ${step}, its first write: ${why}`);
 
 /* The base, fetched from the remote into its tracking ref, and whether that ref carries the sha. */
 const baseCarries = (sha, base) => {
@@ -89,15 +138,23 @@ const readFlags = (argv, ref) => {
   return { ...given, sha, dryRun: Boolean(given["dry-run"]) };
 };
 
+const MOVE_SAID = {
+  [OPENED]: `out of ${DRAFT}, the lease already written so the open issue is no one's to dispatch`,
+  [HELD_AT]: "taken, as a claim would",
+};
+
 const plan = (ref, documentId, issue, { sha, base, reason }) => {
   const at = `/api/issues/${documentId}`;
-  const state = stateOf(leaseOf(issue?.[FIELD]), sessionOf());
-  const lease = HOLDING.includes(state) ? "renewed: this run holds it" : state === "free" ? "taken: nothing holds it"
-    : `refused: ${state}`;
+  const road = roadOf(ref, issue.status);
+  const lease = leaseStep(ref, issue.status, issue?.[FIELD]);
+  if (lease.act === "refused") {
+    return fail(`record landed ${ref} --dry-run: nothing is sent, and the call would stop at its first step, `
+      + `the lease, writing nothing:\n${lease.said}`);
+  }
   return [
     `record landed ${ref} --dry-run: nothing is sent. The calls, in order:`,
-    `  1. lease       PATCH ${at} {sessionContext.lease} — ${lease}`,
-    ...(TAKEN_FROM.includes(issue.status) ? [`     take        POST ${at}/transition {toStatus: "${HELD_AT}"} — it stands at ${issue.status}`] : []),
+    `  1. lease       PATCH ${at} {sessionContext.lease} — ${lease.said}`,
+    ...road.map((to) => `     ${to.padEnd(11)} POST ${at}/transition {toStatus: "${to}"} — ${MOVE_SAID[to]}`),
     `  2. merged      git fetch ${REMOTE} ${base}; ${sha} must be on ${REMOTE}/${base}`,
     `                 POST ${at}/merge {commit: "${sha}", target: "base", note: "${noteOf(sha, base)}"}`,
     `  3. move        POST ${at}/transition {toStatus: "${RESTS_AT}", reason: "${sha}${reason ? `: ${reason}` : ""}"}`,
@@ -122,12 +179,17 @@ const run = async (ref, given) => {
       throw error;
     }
   };
-  await step("1, the lease", () => renew(documentId, ref));
+  const road = roadOf(ref, issue.status);
+  const lease = leaseStep(ref, issue.status, issue?.[FIELD]);
+  if (lease.act === "refused") stopped(ref, "1, the lease", lease.said, done);
+  await step("1, the lease", () => (lease.act === DRAFT ? takeAtDraft(documentId, ref) : renew(documentId, ref)));
   done.push("the lease is this run's");
-  if (TAKEN_FROM.includes(issue.status)) {
-    const moved = await write("forge_issues", { action: "transition", documentId, data: { status: HELD_AT } }, undefined, true);
-    if (moved?.refused) stopped(ref, `1, the take to ${HELD_AT}`, moved.refused, done);
-    done.push(`moved ${issue.status} -> ${HELD_AT}`);
+  let from = issue.status;
+  for (const to of road) {
+    const moved = await write("forge_issues", { action: "transition", documentId, data: { status: to } }, undefined, true);
+    if (moved?.refused) stopped(ref, `1, the move to ${to}`, moved.refused, done);
+    done.push(`moved ${from} -> ${to}`);
+    from = to;
   }
   const carried = baseCarries(facts.sha, base);
   if (carried.carries !== true) {

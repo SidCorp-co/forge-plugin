@@ -1,7 +1,7 @@
-import { fail, keepBody, slugIfAny } from "./resolve/settings.mjs";
+import { fail, keepBody, leadOnFailure, slugIfAny } from "./resolve/settings.mjs";
 import { AIM_FLAG, aimedBy } from "./resolve/project/aimed.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { declaredFor, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
+import { declaredFor, nothingWritten, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
 import { EDGE_KINDS } from "./tracker/edges/kinds.mjs";
 import { wroteEdge } from "./tracker/edges/write.mjs";
 import { partsAmong } from "./tracker/routes.mjs";
@@ -344,6 +344,7 @@ const own = {
       if (title !== undefined) fail("comment: --title frames a body, and this call names none. Drop it to read the thread.");
       return readThread(reference, issue, (said) => console.log(said));
     }
+    leadOnFailure(nothingWritten(`comment on ${reference}`));
     await mustBeShown([{ ref: reference, documentId: issue }]);
     const body = await bodyFrom(path);
     const text = title === undefined ? body : `## ${title}\n\n${body}`;

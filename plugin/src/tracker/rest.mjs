@@ -238,6 +238,21 @@ const aimedAt = async (row, args, soft, held) => {
 
 const refused = (message, answer = {}) => ({ refused: message, ...answer });
 
+/* Every write this process sent, by what came back: `landed` answered ok, `unsure` got no answer and
+   may stand. A refusal reads it to say whether anything was written before it. */
+const WRITES = { landed: 0, unsure: 0 };
+
+/* Whatever refuses a write, the caller's first question is whether any of it went up: answered from
+   what was sent rather than from where the refusal sits, so no step can be missed. A refusal that
+   already says so, and one after a write landed (which names what stands), lead with nothing more. */
+const SAYS_NOTHING = /nothing (?:was )?(?:written|sent)/iu;
+
+/** The lead a write verb registers with `leadOnFailure`: `<call>: nothing written.` while nothing has. */
+export const nothingWritten = (call) => (message) => {
+  if (WRITES.landed || WRITES.unsure || SAYS_NOTHING.test(message.split("\n")[0])) return null;
+  return `${call}: nothing written.`;
+};
+
 /* Every part of a row's answer is asked for at once: three routes cost one round trip, not three. */
 const fetchedParts = async (key, row, args, soft, held) => {
   const project = await aimedAt(row, args, soft, held);
@@ -251,6 +266,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
       key,
     );
     if (spent) return [part, refused(spent)];
+    if (row.writes && (dropped || response?.ok)) WRITES[dropped ? "unsure" : "landed"] += 1;
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
       + `${onClock(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {

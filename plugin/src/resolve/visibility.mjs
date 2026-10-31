@@ -109,12 +109,13 @@ export const VERBS = [
     wraps: () => Object.fromEntries(Object.entries(TRACKER_SERVED)
       .map(([name, key]) => [key, onTracker() ? `\`forge coolify ${name}\``
         : { line: `\`forge coolify ${name}\``, first: `\`${TO_TRACKER}\`` }])) }],
-  ["release-batch", "[status | readiness | roster | start | finish | record | recorded | clear]",
+  ["release-batch", "[status | readiness | roster | start | method | finish | record | recorded | clear]",
     "this project's release: what would refuse one, what waits, a batch run, and the record of one that shipped",
     "forge_release_batch", { group: HARNESS,
       wraps: { active: "`forge release-batch`", state: "`forge release-batch`",
         abort: "`forge release-batch clear`", readiness: "`forge release-batch readiness`",
         roster: "`forge release-batch roster`", create: "`forge release-batch start`",
+        method: "`forge release-batch method`",
         finish: "`forge release-batch finish`", record: "`forge release-batch record`",
         recorded: "`forge release-batch recorded`" } }],
   ["google", "<service> <resource...> <method> | schema | auth | discovery | +<helper>",

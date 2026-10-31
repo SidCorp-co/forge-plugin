@@ -17,6 +17,7 @@ import { usageOf } from "../../resolve/visibility.mjs";
 import { sharedNow } from "../../wire/shared-clock.mjs";
 import { READINESS_USAGE, RECORDED_USAGE, ROSTER_USAGE, finishLines, readiness, recorded, roster } from "./reads.mjs";
 import { FINISH_USAGE, RECORD_USAGE, START_USAGE, finish, record, start } from "./writes.mjs";
+import { METHOD_USAGE, method } from "./method.mjs";
 
 const STATUS_USAGE = "Usage: forge release-batch [status [<runId>]]";
 const CLEAR_USAGE = 'Usage: forge release-batch clear <runId> --reason "<text>" [--force]';
@@ -34,6 +35,9 @@ const USAGE = [
   "  roster                        the issues waiting at the release gate, oldest merge first",
   "  start <ISS-nn>...             open a batch over exactly those issues; prints its runId",
   "                                 and the version it cut, a re-cut of a FAILED release included",
+  "  method <runId> --skill <name> [--not-loaded] [--detail \"<t>\"]",
+  "                                 what the run works from: its first record on the batch, which a",
+  "                                 deploy with --run is refused without",
   "  finish <runId> [--commit S]   ask the tracker to verify the deploy and close the batch's",
   "                                 issues; no --commit asks only that the deploy arrived",
   "  record <ISS-nn>... --commit <sha> --account \"<text>\" [--provider-ref <ref>]",
@@ -52,7 +56,7 @@ const USAGE = [
 ].join("\n");
 
 const SAYS = { status: STATUS_USAGE, clear: CLEAR_USAGE, readiness: READINESS_USAGE, roster: ROSTER_USAGE, recorded: RECORDED_USAGE,
-  start: START_USAGE, finish: FINISH_USAGE, record: RECORD_USAGE };
+  start: START_USAGE, finish: FINISH_USAGE, record: RECORD_USAGE, method: METHOD_USAGE };
 
 /* `now` takes a fixed instant so a case can prove this arithmetic exactly, on a constant it chose,
    rather than against the real clock a subprocess spawn's own share of the machine would move
@@ -154,7 +158,7 @@ const clear = async ([runId, ...rest]) => {
   console.log(`released   ${released.length} issue(s): ${released.join(", ") || "none"}`);
 };
 
-const SUBS = { clear, readiness, roster, start, finish, record, recorded };
+const SUBS = { clear, readiness, roster, start, method, finish, record, recorded };
 
 export const releaseBatch = async (argv) => {
   const [sub, ...rest] = argv;

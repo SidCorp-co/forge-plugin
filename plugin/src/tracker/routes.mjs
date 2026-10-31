@@ -324,8 +324,9 @@ export const ROUTES = {
   },
   /* The tracker's own release routes, raw: each answers with the shape its own REST surface already
      declares (ISS-764 in that repository) rather than one this CLI reprojects, which is the same
-     reading `forge_coolify.*` takes of the platform's own words. `method` and `attempts` stay out,
-     being the release agent's own ledger protocol; `finish` is in, because an agent that performed a
+     reading `forge_coolify.*` takes of the platform's own words. `attempts` stays out, being the
+     release agent's own ledger protocol; `method` is in, because core's deploy door refuses a run's
+     deploy until the run has recorded one (RELEASE_NOTHING_RECORDED); `finish` is in, because an agent that performed a
      release has to be able to say so (ISS-1992). `record` is the route for a release performed
      outside a batch, and the only one here that closes issues: the tracker closes them on its own
      sanctioned path, so this CLI sends no status move of its own. */
@@ -375,6 +376,13 @@ export const ROUTES = {
     project: true,
     requests: (args, project) => one(`/projects/${project}/release-batches/${args.runId}/state`),
     sends: ["runId"],
+  },
+  "forge_release_batch.method": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/release-batches/${args.runId}/method`, "POST",
+      filled({ skill: args.data?.skill, loaded: args.data?.loaded, detail: args.data?.detail })),
+    sends: ["runId", "data"],
   },
   "forge_release_batch.abort": {
     project: true,

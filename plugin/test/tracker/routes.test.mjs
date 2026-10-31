@@ -78,6 +78,7 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
   "forge_release_batch.active", "forge_release_batch.state", "forge_release_batch.abort",
   "forge_release_batch.readiness", "forge_release_batch.roster", "forge_release_batch.create",
   "forge_release_batch.finish", "forge_release_batch.record", "forge_release_batch.recorded",
+  "forge_release_batch.method",
   /* Core's question row, the same reason again: `forge record question` reads its id, its status and
      its options' labels off the row and nothing else (ISS-2317). */
   "forge_questions.list", "forge_questions.ask",
