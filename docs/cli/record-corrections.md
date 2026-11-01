@@ -26,7 +26,8 @@ a dishonest one.
 **The replaced value is put up before it is gone.** The write sends its uploads, then its fields,
 then its comments, in that order and no other, so the old value goes up as a file ahead of the field
 update, and a `Superseded payload` record posted after the field names that file and the correction
-it spent, and carries the value inline where it fits one comment. A field update that fails leaves
+it spent. The old value lives in that file alone and is never copied into the record inline, because
+core caps every record field and a held payload has no bound. A field update that fails leaves
 the correction unspent, so the same write sent again goes through; a comment that fails after the
 field was written leaves the value readable in the file already on the issue.
 

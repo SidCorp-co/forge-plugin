@@ -9,8 +9,6 @@ import { join } from "node:path";
 import { refuse } from "../../../refusal.mjs";
 import { correctedKind, handleOf, unwrap } from "../../machine.mjs";
 import { render } from "../page.mjs";
-import { bodyCap } from "../../../tracker/comment-cap.mjs";
-import { lengthOf } from "../../../tracker/field-write.mjs";
 import { attachmentNames } from "../../../tracker/evidence.mjs";
 import { lightens } from "../../../ladder.mjs";
 
@@ -70,13 +68,6 @@ const fileFor = (kind, text, taken) => {
   return { path, name };
 };
 
-/* The value inline only where the record still fits one comment; the attachment carries it either way. */
-const recordFor = (fields) => {
-  const whole = render("superseded", fields);
-  const cap = bodyCap();
-  return cap === null || lengthOf(whole) <= cap ? whole : render("superseded", { ...fields, was: undefined });
-};
-
 /**
  * What a field write owes before it replaces a value: nothing where it replaces nothing a status
  * was earned on, a refusal where no correction names the kind, and otherwise the upload and the
@@ -101,5 +92,6 @@ export const supersedingOf = async (kind, value, { reference, issue, page, plann
   const by = handleOf(correction.id);
   console.error(`The ${entry.said} this replaces goes up as ${file.name} before the field is written, `
     + `and a Superseded payload record names it, spending the correction ${by}.`);
-  return { uploads: [file], rendered: recordFor({ kind, by, attached: file.name, was: held }) };
+  // cm:guard the replaced value goes up as the attachment only, never inline in a field — core caps every forge-record field at 400 chars, and `was` held the whole old payload (FB-4, 6 reports)
+  return { uploads: [file], rendered: render("superseded", { kind, by, attached: file.name }) };
 };

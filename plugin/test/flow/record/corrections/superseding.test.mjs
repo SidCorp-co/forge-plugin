@@ -185,21 +185,21 @@ test("a correction naming the kind lets the replacement through, the old value u
   assert.match(file, /^plan-as-it-stood-\d{4}-\d{2}-\d{2}T\d{6}\.md$/u);
   const superseded = posted().find((one) => one.kind === "superseded");
   assert.ok(superseded, "and a Superseded payload record follows the field");
-  assert.deepEqual({ ...superseded.fields }, { kind: "plan", by: handleOf("named-correction-id"), attached: file, was: OLD_PLAN },
-    "naming the attachment, the correction it spent, and the value itself");
+  assert.deepEqual({ ...superseded.fields }, { kind: "plan", by: handleOf("named-correction-id"), attached: file },
+    "naming the attachment and the correction it spent, never the old value inline, whatever its length (FB-4)");
   state.calls = [];
   const again = await ask("plan", "ISS-7412", fileOf("plan.md", `${NEW_PLAN}\nA third reading.`));
   assert.equal(again.status, 1, "a second replacement owes a correction of its own");
   assert.deepEqual(named("field-write"), []);
 });
 
-test("a replaced value too long for one comment is named by the record and carried by the file alone", async () => {
+test("a replaced value past core's 400-char field budget is named by the record and carried by the file alone", async () => {
   const long = `${OLD_PLAN}\n${"a line of the older plan\n".repeat(600)}`;
   issue("ISS-7413", { status: "in_progress:build", plan: long }, [correctionOf("plan")]);
   const run = await ask("plan", "ISS-7413", fileOf("plan.md", NEW_PLAN));
   assert.equal(run.status, 0, run.stderr);
   const superseded = posted().find((one) => one.kind === "superseded");
-  assert.equal(superseded.fields.was, undefined, "no inline copy past the comment cap");
+  assert.equal(superseded.fields.was, undefined, "the old value is never inlined, so no field can exceed core's budget (FB-4)");
   const [sent] = named("upload-sent");
   assert.equal(superseded.fields.attached, sent.file, "the record names the attachment");
   assert.equal(sent.bytes, `${long.trim()}\n`, "and the attachment carries the replaced value whole");
