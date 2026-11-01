@@ -126,22 +126,23 @@ checkout's decision rather than the account's, and `README.md` says why that lev
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 
-Rev: 1 · Actors: agent · Enforces: BR-01
+Rev: 1 · Actors: agent · Status: retired (ISS-15)
 
-The reading is offered once at the end of a turn rather than at each write, for the reason
-`plugin/hooks/how/codex-turn.md` gives, and a document whose content the last consult already read
-is not offered again however recently it was touched.
+Retired under FB-44: the per-turn listing was a gate that offered a reading at the end of every turn,
+and the forced per-turn consult is gone — a second opinion is the agent's own call, not a gate that
+lists each turn's documents. What a commit still owes is UC-06-3's, where the record's own listing
+survives.
 
-- **AC-06-2-1** · Rev: 1 · Proof: plugin/test/gates/codex/codex-turn.test.mjs "a later turn is told even though the list from an earlier one is still pending"
+- **AC-06-2-1** · Rev: 1 · Status: retired (ISS-15)
   WHEN the first document of a turn is written THEN the CLI SHALL ask once, and SHALL record the
   rest of that turn's documents without asking again.
-- **AC-06-2-2** · Rev: 3 · Proof: plugin/test/codex/codex-record.test.mjs "a write at the bytes read is recorded where the index holds another copy, and cleared where it does not"
+- **AC-06-2-2** · Rev: 3 · Status: retired (ISS-15)
   IF the most recent consult shown a document read it at the content the tree holds now THEN the CLI
   SHALL hold no record of that document as unread, whether it was named, touched, or already recorded
   from a write since taken back — unless a change to it is staged whose staged copy is apart from the
   tree's, which is a reading still owed on the bytes a commit would land, asked of a path no record
   held as of one a record already did, and taken as owed wherever either of those cannot be read.
-- **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-turn.test.mjs "giving up on the lock leaves a note, and the note is not counted as a refusal"
+- **AC-06-2-3** · Rev: 1 · Status: retired (ISS-15)
   WHILE a turn is in progress the CLI SHALL never stop it for an unread document.
 
 ### UC-06-3 — A commit waits for the reading and for the verdict, where the project asks it to
@@ -155,22 +156,22 @@ commit is the one that list holds when nobody has written it — so a project th
 asked exactly what it was asked before there was a list. Nothing between commits is asked anything: a
 gate deciding per write reviewed fragments, and the trigger it decided on could not be read at all.
 
-- **AC-06-3-10** · Rev: 2 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a door the project did not name holds nothing, and the key absent holds only the commit and the ready capture"
+- **AC-06-3-10** · Rev: 2 · Status: retired (ISS-15)
   WHERE the project has not said which doors ask, the CLI SHALL ask at the commit and at the ready
   capture and at no other, the capture being where the landing's gate is next spent on the change.
-- **AC-06-3-11** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "the commit door is the same key, so a project naming only the gate is not asked twice"
+- **AC-06-3-11** · Rev: 1 · Status: retired (ISS-15)
   WHERE the project says which doors ask and the commit is not among them, the CLI SHALL let a commit
   through without asking, whatever that record holds.
 
-- **AC-06-3-1** · Rev: 3 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
+- **AC-06-3-1** · Rev: 3 · Status: retired (ISS-15)
   WHEN a commit stages a document recorded as unread THEN the gate SHALL refuse the commit and SHALL
   name the files it wants read; and it SHALL count as unread neither a document the commit carries at
   bytes a consult was shown nor one absent from the tree that the tree's own head reports no change
   of — a copy staged before the working file was put back being neither.
-- **AC-06-3-2** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit waits for a verdict on the last consult that made findings"
+- **AC-06-3-2** · Rev: 1 · Status: retired (ISS-15)
   IF the last consult made findings and heard no disposition THEN the gate SHALL refuse the commit
   and SHALL name the command that records one.
-- **AC-06-3-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
+- **AC-06-3-3** · Rev: 1 · Status: retired (ISS-15)
   WHEN a commit names another tree THEN the gate SHALL judge it by that tree rather than by the
   shell's.
 - **AC-06-3-4** · Rev: 1 · Status: retired (ISS-360)
@@ -184,7 +185,7 @@ gate deciding per write reviewed fragments, and the trigger it decided on could 
   WHERE the turn's record holds a path absent from the tree that the tree's own head reports no
   change of, the CLI SHALL take it out of the record as it lists what a commit is asked for, rather
   than name it as a write awaiting a reading that nothing can stage and no consult can reach.
-- **AC-06-3-7** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a record under one configuration home and a gate reading another are each named by the surface that answered"
+- **AC-06-3-7** · Rev: 1 · Status: retired (ISS-15)
   WHEN the gate refuses a commit THEN it SHALL name the configuration directory whose turn record and
   consult log it read, a caller with no way to tell a consult this gate cannot see from one nobody
   has made having no route out of the refusal at all.
@@ -192,7 +193,7 @@ gate deciding per write reviewed fragments, and the trigger it decided on could 
   WHEN the CLI lists what a commit is asked for THEN it SHALL name the configuration directory it
   read the turn record from, including where it holds nothing to list, so that an empty answer and a
   refusal about the same file cannot both be read as facts about one record.
-- **AC-06-3-9** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a staged copy apart from the disk is refused with a route no consult can take"
+- **AC-06-3-9** · Rev: 1 · Status: retired (ISS-15)
   WHERE a document the refusal names is staged at a copy that is not the one on disk, the refusal
   SHALL name staging that document as the route out and SHALL name no consult for it, every consult
   reading the copy on disk and none being able to reach the copy the index holds.
@@ -352,31 +353,31 @@ alone.
 
 Rev: 1 · Actors: agent · Enforces: BR-01
 
-What a commit is held for is knowable the moment a document is written, and the call that costs the
-most stands between that moment and the commit. Asked there in the commit's own words it is one
-reading and not two, so a run that meets it reaches the commit with nothing left to answer;
-`plugin/hooks/how/codex-owed.md` carries the figures and the trade.
+Retired under FB-44: the gate that held a project-named call for the reading a commit waits for is
+gone, with the forced-consult gates of UC-06-2 and UC-06-3. What survives is the resolution report's
+account of the door configuration (AC-06-7-8): `forge doctor` still names a door the project armed
+with no command.
 
-- **AC-06-7-1** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a gate the project named waits for the documents it would judge, and says what reads them"
+- **AC-06-7-1** · Rev: 1 · Status: retired (ISS-15)
   WHEN a call the project named would judge a document no consult has read THEN the CLI SHALL refuse
   that call and SHALL name the documents, the consult that reads them, the route that discards them
   unread, and the switch that stands the rule down.
-- **AC-06-7-2** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a consult read and ruled before the gate clears the gate and the commit alike"
+- **AC-06-7-2** · Rev: 1 · Status: retired (ISS-15)
   WHERE one reading satisfies a call the project named, the CLI SHALL let the commit after it through
   without asking again, both doors reading one record through one reader.
-- **AC-06-7-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a value the key does not take is refused with the key named, and nothing is guessed"
+- **AC-06-7-3** · Rev: 1 · Status: retired (ISS-15)
   IF the project lists a door this does not serve THEN the CLI SHALL refuse and SHALL name the key and
   what it takes, rather than fall back on a value nobody typed.
-- **AC-06-7-4** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a finding nobody ruled on holds the gate, with the disposition that closes it"
+- **AC-06-7-4** · Rev: 1 · Status: retired (ISS-15)
   IF the last consult made findings nobody has ruled on THEN the CLI SHALL refuse the named call and
   SHALL name the disposition that closes them.
-- **AC-06-7-5** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "the tree is where the cd in the same command left the shell, and every tree the line gates in"
+- **AC-06-7-5** · Rev: 1 · Status: retired (ISS-15)
   WHEN the call moves the shell before it runs THEN the CLI SHALL read the list, the commands and the
   record of every tree the call would judge in, rather than of the one it was made from.
-- **AC-06-7-6** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a call whose tree cannot be read is refused where this project asks at that door, and nowhere else"
+- **AC-06-7-6** · Rev: 1 · Status: retired (ISS-15)
   WHERE the call moves the shell somewhere no reading can name, the CLI SHALL refuse it and SHALL ask
   for that destination to be spelled out, rather than judge it by the tree the call was made from.
-- **AC-06-7-7** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a door a project named and armed with no command holds nothing"
+- **AC-06-7-7** · Rev: 1 · Status: retired (ISS-15)
   WHERE a door the project named has no command of that project's declared for it, the CLI SHALL
   hold nothing at that door, rather than judge the call by the commands this plugin's own repository
   runs, because a tree that never named a command never chose to be refused at one.
@@ -384,17 +385,17 @@ reading and not two, so a run that meets it reaches the commit with nothing left
   WHEN the resolution report reads a project naming a door no declared command arms THEN the report
   SHALL name that door, the key that arms it and the shape of the value it takes, and SHALL repeat
   what was written where that value is no command, a silent door having no other way to be known.
-- **AC-06-7-9** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a ready capture with a change no consult has read is held, whatever form the capture takes"
+- **AC-06-7-9** · Rev: 1 · Status: retired (ISS-15)
   WHERE the ready capture is a door the project asks at, the CLI SHALL refuse a capture that would
   hand over a change no consult has read, in whatever order its flags and whatever form its key
   take, needing no command of the project's declared for it, the capture being this plugin's own verb.
-- **AC-06-7-10** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a ready capture with a finding nobody ruled on is held, with the disposition that closes it"
+- **AC-06-7-10** · Rev: 1 · Status: retired (ISS-15)
   IF the last consult made findings nobody has ruled on THEN the CLI SHALL refuse the ready capture
   and SHALL name the disposition that closes them.
-- **AC-06-7-11** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a ready capture after a clean, ruled read goes"
+- **AC-06-7-11** · Rev: 1 · Status: retired (ISS-15)
   WHEN a consult has read what the capture would hand over and nothing it found is unruled THEN the
   CLI SHALL let the capture through.
-- **AC-06-7-12** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a project that names its doors without ready is not held at the capture"
+- **AC-06-7-12** · Rev: 1 · Status: retired (ISS-15)
   WHERE the project names its doors and the ready capture is not among them, the CLI SHALL let the
   capture through without asking.
 
@@ -496,11 +497,11 @@ was down from an agent that skipped it. Why the default stays required: `docs/cl
 - **AC-06-10-6** · Rev: 1 · Proof: plugin/test/codex/gateway/consult-row.test.mjs "a consult the gateway answered with an HTTP error logs that status in a field of its own"
   WHEN the reviewer answers a consult with an HTTP error THEN the CLI SHALL log that status in a
   field of the consult's row of its own, apart from the error's text.
-- **AC-06-10-7** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "an advisory reading lets a commit through when the gateway could not give its consult, and says what went unread"
+- **AC-06-10-7** · Rev: 1 · Status: retired (ISS-15)
   WHERE the project has declared the reading advisory, WHEN a door would hold a call only for files
   whose newest consult got no answer from the reviewer THEN the CLI SHALL let the call through and
   SHALL tell the agent which files went unread, and why.
-- **AC-06-10-8** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "an advisory reading still refuses a commit staging a file no consult was asked about, a failed one beside it included"
+- **AC-06-10-8** · Rev: 1 · Status: retired (ISS-15)
   WHERE the project has declared the reading advisory and the machine has a reviewer configured, IF
   a door's call carries a file no consult was asked about THEN the CLI SHALL refuse it as it would
   under a required reading.
