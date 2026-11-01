@@ -186,6 +186,17 @@ const WHOLE_BLOCKS = {
 /* The two kinds whose file is written from what a consult read, which is why the citation belongs on their help and not only in the entry check's refusal: by the refusal the consult has been spent. */
 const CITES = ["plan", "criteria"];
 
+/* The second demand a criteria write owes a requirements-keeping project, which core states only in
+   its refusal (CRITERIA_TRACE_DROPPED): by it a consult has read the file, so the rule belongs where
+   the file is written, beside the clause form the citation names (ISS-11). */
+const CRITERIA_TRACE_BLOCKS = [
+  "Where this issue links a requirement, each criterion keeps its trace to that requirement's",
+  "business criterion only if its line opens with the `(REQ-n BC-m)` tag it already carries; a",
+  "reworded or removed line that drops the tag is refused by core as CRITERIA_TRACE_DROPPED. The",
+  "issue's current criteria carry each line's tag, so carry it into the file and the write keeps the",
+  "trace rather than learning the rule once the refusal has spent the consult that read the file.",
+];
+
 /* The one place the note's clauses are described, from the same table that writes and reads them:
    a template a run copied by hand is how a sha reached the slot another clause is read from. */
 const MERGED_BLOCKS = [
@@ -448,6 +459,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(WHOLE_BLOCKS[kind] ? ["", ...WHOLE_BLOCKS[kind]] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS, ...screensBlocks()] : []),
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
+    ...(kind === "criteria" && cites.length ? ["", ...CRITERIA_TRACE_BLOCKS] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(kind === "note" ? ["", ...NOTE_BLOCKS] : []),
     ...(kind === LANDED ? ["", ...LANDED_BLOCKS] : []),

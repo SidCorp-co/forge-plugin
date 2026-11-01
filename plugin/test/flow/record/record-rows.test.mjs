@@ -232,6 +232,19 @@ test("both file kinds print the citation demand, and only where the project keep
   }
 });
 
+/* ISS-11: core refuses a reworded criterion that drops its `(REQ-n BC-m)` tag (CRITERIA_TRACE_DROPPED)
+   only in the refusal, after a consult has read the file, so `record criteria -h` owes the rule where
+   the file is written — and criteria alone, since only a criterion carries the per-line trace. */
+test("record criteria -h names the (REQ-n BC-m) trace rule, criteria only and only where a tree is kept", () => {
+  const kept = kindHelp("criteria", {}, null, citationBlocks(true));
+  assert.match(kept, /opens with the `\(REQ-n BC-m\)` tag/u, "names the form the trace is kept in");
+  assert.match(kept, /CRITERIA_TRACE_DROPPED/u, "and the refusal a dropped tag earns");
+  const none = kindHelp("criteria", {}, null, citationBlocks(false));
+  assert.doesNotMatch(none, /REQ-n BC-m|CRITERIA_TRACE_DROPPED/u, "a project keeping no tree is asked nothing");
+  assert.doesNotMatch(kindHelp("plan", {}, null, citationBlocks(true)), /REQ-n BC-m|CRITERIA_TRACE_DROPPED/u,
+    "the plan carries no per-line trace, so its help names none");
+});
+
 /* ISS-1444: the success line echoes what was sent, identical between an append and a replace, so the
    help is where a caller learns which one the write is before a refusal or a read-back tells it. */
 test("record criteria -h and record plan -h say the write replaces the whole field", () => {
