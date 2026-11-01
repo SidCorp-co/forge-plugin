@@ -496,8 +496,8 @@ const wroteFor = (name, args) => {
 
 const announced = new Set();
 
-export const write = async (name, args, onSent, soft = false, { stored = null, ref = null } = {}) => {
-  await refuseCredential(args.data, `The payload ${name} was about to send`, { stored, ref, id: args.documentId ?? null });
+export const write = async (name, args, onSent, soft = false, { stored = null, ref = null, credential = true } = {}) => {
+  if (credential) await refuseCredential(args.data, `The payload ${name} was about to send`, { stored, ref, id: args.documentId ?? null });
   const { target, own } = wroteFor(name, args);
   const language = own ? translateTarget() : {};
   /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700) — which is now the only sort of case that says it at all, and says it once for the command rather than once for each send the transport happened to make: docs/cli/what-a-write-says.md (ISS-1192). */

@@ -44,6 +44,7 @@ const state = {
   issues: [{ documentId: UUID, issueId: REF, status: "developed", title: "one flow: the landing",
     description: "no mark here", sessionContext: { landing: built(), lease } }],
   comments: { [UUID]: [] },
+  unasked: ["forge_config"],
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {

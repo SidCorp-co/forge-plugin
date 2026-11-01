@@ -1,7 +1,8 @@
-/* An issue whose stored record once took a test credential: every write re-sends that record, so the
-   guard must tell the copy it re-sends from what the caller supplied, and there has to be a route
-   that takes the copy off. Spawned, because the refusal and the line are what a developer reads
-   (ISS-1380). */
+/* An issue whose stored record once took a test credential: every write re-sends that record. The
+   lease write that re-sends it carries no deploy credential to guard and is not read against the
+   bindings (FB-36), so the copy goes unflagged, and the route that takes it off is `forge issue
+   --redact`. A credential a caller freshly supplies anywhere else is still refused. Spawned, because
+   the refusal and the lines are what a developer reads (ISS-1380, FB-36). */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { writeFileSync } from "node:fs";
@@ -87,17 +88,17 @@ const note = (text) => {
 const STORED_LINE = /^ISS-1: sessionContext\.reviewFeedback\.1 carries this project's test credentials · password as the tracker already stores it\. This write re-sent the stored copy unchanged and added nothing to it, so it went\./mu;
 
 /* A comment is a finder's write and takes no lease, so it never re-sent the record: a record is the
-   write whose renewal does, and the one sid-desk ISS-64 was refused on. */
-test("a record on an issue whose stored record holds a credential is sent, the lease write included", async () => {
+   write whose renewal does, and the one sid-desk ISS-64 was refused on. The lease write re-sends the
+   stored copy and is not guarded, so it goes and nothing is said of the copy (FB-36). */
+test("a record on an issue whose stored record holds a credential is sent, the lease write unguarded", async () => {
   fresh();
   const run = await ask("record", "decision", "ISS-1", "--none", "nothing ambiguous here");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(created().length, 1, "the record went up");
   assert.ok(updates().some((one) => JSON.stringify(one.args.data.sessionContext ?? {}).includes(PASSWORD)),
     "and the lease write that re-sent the stored copy went too");
-  assert.match(run.stderr, STORED_LINE, "the copy is named as the tracker's stored one");
-  assert.match(run.stderr, /The stored copy is taken off with:\n {2}forge issue ISS-1 --redact$/mu,
-    "and the line carries the one command that takes it off");
+  assert.doesNotMatch(run.stderr, STORED_LINE, "the lease write does not pass the guard, so no copy is named");
+  assert.doesNotMatch(run.stderr, /The stored copy is taken off with/u, "nor the route to take it off on every write");
   assert.doesNotMatch(run.stderr, /Take the value out/u, "no caller is told to remove what is not in their input");
 });
 

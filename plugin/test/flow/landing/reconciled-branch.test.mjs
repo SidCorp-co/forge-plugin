@@ -39,6 +39,7 @@ const state = {
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { "landing-uuid": [] },
+  unasked: ["forge_config"],
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {

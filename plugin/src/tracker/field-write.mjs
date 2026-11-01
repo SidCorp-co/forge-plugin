@@ -73,7 +73,7 @@ const fields = () => (rows ??= {
   },
   acceptanceCriteria: { same: landedAs },
   releaseNotes: { same: noteLandedAs, halves: NOTE_HALVES },
-  sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false, expects: true },
+  sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false, expects: true, credential: false },
   /* The set is replaced whole and moved by a module's removal over issues nobody holds for it, so it
      takes no lease and reads no thread: docs/cli/modules.md. */
   /* Written after the move that renewed the lease and read the thread, so it takes neither. */
@@ -169,6 +169,7 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   }
   const asks = rows.some((one) => one.row.expects) && Boolean(expect);
   const held = asks ? await expect() : renewed;
+  const credential = rows.some((one) => one.row.credential !== false);
   const send = (given, soft) => write(
     "forge_issues",
     { action: "update", documentId, data, ...(given ? { expect: given } : {}) },
@@ -181,7 +182,7 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
     soft,
     /* The context the write is conditional on is the one the tracker stores, so what the value
        re-sends from it is told apart from what the caller supplied (ISS-1380). */
-    { stored: asks && held ? { sessionContext: held } : null, ref },
+    { stored: asks && held ? { sessionContext: held } : null, ref, credential },
   );
   const asked = asks && enforcementOf() === null ? await establish((one) => send(one, true)) : null;
   if (asked?.refused) refuse(asked.refused);

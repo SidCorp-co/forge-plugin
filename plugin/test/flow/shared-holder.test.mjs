@@ -28,6 +28,7 @@ const state = {
     description: "no mark here",
   }],
   comments: { "wave-uuid": [] },
+  unasked: ["forge_config"],
   answer: {
     forge_config: () => ({ config: state.config }),
     /* A lease is read back after it is written, so the fixture keeps what a claim put on the issue. */

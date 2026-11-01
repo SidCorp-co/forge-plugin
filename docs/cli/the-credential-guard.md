@@ -8,6 +8,14 @@ so every payload with a `data` object passes it. The attachment holds the second
 bytes ride beside the payload and never reach the boundary — and every file of a write is judged before the first
 request of it goes, since there is no delete for an upload.
 
+**The one payload the seat does not judge is the lease.** The `sessionContext` field a claim or a
+renewal writes is the CLI's own session state — a holder, a pid, times, a history and the next run's
+line — not an author's payload, and it carries no deploy credential. So a write that is only that
+field is not read against the project's bindings (FB-36): a lease write has nothing to do with the
+deploy, and a core that serves the bindings on neither the row nor the document would otherwise refuse
+`forge claim` before a run could take the lease it needs to do anything. What still finds a credential
+a run once stored in that field is below.
+
 **The guarantee has a stated edge, and the edge is the point.** A value long enough to be a secret is
 refused wherever a payload holds it. A shorter one is refused only where a field *is* it, quoting and
 surrounding punctuation aside. A credential field plausibly holds a word like `admin`, and the only
@@ -25,16 +33,17 @@ alone does not decide: a value holding an address anywhere — any scheme, in an
 user-info, a query or a fragment is guarded whatever it is filed under. The report still withholds the label —
 what is printed is that document's rule, not this one's.
 
-**What the tracker already stores is re-sent, not supplied, and it goes.** Every write that renews
-the lease re-sends an issue's stored `sessionContext` whole, because the lease is a field of it. Judging the whole payload
-made one credential a run once wrote into that field refuse every later write to the issue, and it
-told a caller who had typed none to take it out (ISS-1380). So the seat is told what the record held
-when the payload was built from it. A string that record holds word for word in the same field tells
-the tracker nothing it has not taken already, so it passes, and a line names it as the stored copy
-along with `forge issue <ref> --redact`, the one write to that field that is not the lease's. Any other
-string is the caller's and is judged as before. The redaction masks exactly what the guard would
-refuse. It cannot reach a copy the tracker may keep of an earlier value, and it says so rather than
-leave a reader looking for the command that does.
+**A credential a run once stored in `sessionContext` goes, and the route off it is `--redact`.** Every
+write that renews the lease re-sends an issue's stored `sessionContext` whole, because the lease is a
+field of it; judging the whole payload once made one credential a run had written into that field
+refuse every later write to the issue, and told a caller who had typed none to take it out (ISS-1380).
+The lease write leaving the seat (above) is the cleaner form of that guarantee: the re-send is never
+judged, so a stored copy is never a refusal and never a per-write line either. The copy still goes —
+as it did — and `forge doctor --credentials` names where it sits while `forge issue <ref> --redact`
+takes it off, masking exactly what the guard would refuse and saying plainly that a copy the tracker
+may keep of an earlier value, or one in a comment or the description, is out of that flag's reach. A
+credential a caller supplies fresh in any payload that is *not* the lease — a plan, a comment, a
+knowledge entry, an attachment — is judged exactly as before.
 
 **A refusal says where in the author's own words the hit sits**, every guarded value in that text
 masked before the text is cut, so a false positive is recognisable from the refusal itself and the

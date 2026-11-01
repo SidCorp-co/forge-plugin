@@ -32,6 +32,7 @@ const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   comments: {},
+  unasked: ["forge_config"],
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {

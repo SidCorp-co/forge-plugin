@@ -59,6 +59,7 @@ const state = {
     [PARKED.documentId]: [{ documentId: "the-park", createdAt: ago(150), authorId: "agent",
       body: render("park", { kind: "crashed", why: "three reclaims of in_progress:build" }, "in_progress:build") }],
   },
+  unasked: ["forge_config"],
   answer: {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
