@@ -83,7 +83,7 @@ test("a gate switched off on the line is skipped, and one that is not still answ
   writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ hooksOff: ["bash-guard"] }));
   try {
     const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g2" };
-    const held = run(["bash-guard", "../../test/note-gate"], ev);
+    const held = run(["bash-guard", "../../test/fixtures/gates/note-gate"], ev);
     assert.match(held.stderr, /^forge hooks: bash-guard was skipped: the switch is off$/mu,
       `a gate the switch turned off says so where the caller reads it:\n${held.stderr}`);
     assert.equal(answered(held, { skipped: ["bash-guard"] }), null, "and the switched-off gate refuses nothing");
@@ -103,7 +103,7 @@ test("after a call, every gate's block and context travel together", () => {
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Bash", tool_input: { command: "touch scripts/check-things.mjs docs/PLAN.md" }, cwd: room, session_id: `g3-${Date.now()}` };
-  const held = answered(run(["derive-dont-list", "../../test/note-gate"], ev));
+  const held = answered(run(["derive-dont-list", "../../test/fixtures/gates/note-gate"], ev));
   assert.equal(held.decision, "block", "derive-dont-list blocked");
   assert.match(held.reason, /hard-code 3 constants/u);
   assert.match(held.hookSpecificOutput.additionalContext, /You changed a document this turn/u, "and the note gate still spoke");
@@ -143,7 +143,7 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Write", tool_input: { file_path: join(room, "docs", "PLAN.md") }, cwd: room, session_id: `g4-${Date.now()}` };
-  const held = run(["post", "../../test/boom-gate", "../../test/note-gate"], ev);
+  const held = run(["post", "../../test/boom-gate", "../../test/fixtures/gates/note-gate"], ev);
   assert.match(held.stderr, /boom-gate failed and was skipped: boom/u);
   const told = answered(held, { skipped: ["../../test/boom-gate"] }).hookSpecificOutput.additionalContext;
   assert.match(told, /You changed a document/u, "the gate after it still spoke");
