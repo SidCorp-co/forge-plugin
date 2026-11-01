@@ -1,6 +1,8 @@
-/* The brief a judging run is sent: the deployment it judges, the criteria it judges there, and no
-   tree. A judge handed a tree's lines read them as where to work and ran a builder's suites in it,
-   and a judge handed no URL brought up a local stack instead (ISS-3145). docs/cli/brief.md. */
+/* The brief a judging run is sent: where it judges — a deployment it drives (--url) or an installed
+   command-line program it runs (--program) — and the criteria. A judge driving a deployment is given
+   no tree; one handed a tree's lines read them as where to work and ran a builder's suites in it, and
+   one handed no deployment brought up a local stack instead (ISS-3145). A CLI judge is the exception:
+   it names the program and, where it needs one, the directory to run it in (FB-26). docs/cli/brief.md. */
 import { fail } from "../resolve/settings.mjs";
 
 /** The role a judging run is dispatched as, which the hook holds to this form. */
@@ -12,7 +14,7 @@ export const JUDGE_FORM = "judge";
 /** The judge's form aimed at a requirement's criteria rather than an issue's, kept apart for the same reason. */
 export const REQUIREMENT_FORM = "requirement";
 
-const OWN_FLAGS = ["url", "criteria", "identity", "requirement", "criterion"];
+const OWN_FLAGS = ["url", "program", "criteria", "identity", "requirement", "criterion"];
 
 const REQUIREMENT = /^REQ-\d+$/u;
 const CLAUSE = /^BC-\d+$/u;
@@ -61,6 +63,28 @@ const identityOf = (raw) => {
   return identity;
 };
 
+/* One token and no whitespace, for the same reason --url is: the value is printed into the brief, and a
+   space or a control character would carry a line of its own into it. */
+const programOf = (raw) => {
+  const program = String(raw).trim();
+  if (!program || /[\s\p{Cc}]/u.test(program)) {
+    fail(`brief: --program takes the path or name of the installed command-line program to judge, one token with no `
+      + `spaces, and \`${raw}\` is none. A judge runs it to judge a CLI criterion, as --url drives a deployment.`);
+  }
+  return program;
+};
+
+/* The directory a CLI judge runs the program in: a path, printed on its own line, so a newline or a
+   control character is refused as it is for --url. A space is left, since a directory may hold one. */
+const runDirOf = (raw) => {
+  if (raw === undefined) return null;
+  const dir = String(raw).trim();
+  if (!dir || /[\n\r\p{Cc}]/u.test(dir)) {
+    fail(`brief: --tree takes the one directory a CLI judge runs the program in, and \`${raw}\` is not a usable path.`);
+  }
+  return dir;
+};
+
 /** Refuses the judge form's flags on a builder's brief, where nothing would print them. */
 export const refuseJudgeFlags = (key, asked) => {
   const stray = OWN_FLAGS.filter((name) => asked[name] !== undefined).map((name) => `--${name}`);
@@ -69,17 +93,33 @@ export const refuseJudgeFlags = (key, asked) => {
     + `without it nothing would carry ${stray.length > 1 ? "them" : "it"} to the run:\n  ${callFor(key)}`);
 };
 
-/** The judge's readings off its flags, each refused where it cannot be read. */
+/** The judge's readings off its flags, each refused where it cannot be read. A judge aims at a
+ *  deployment (--url) or an installed program (--program), or both; a tree reads only beside --program,
+ *  the directory that judge runs it in, since a judge driving a deployment is given none (ISS-3145). */
 export const judgeOf = (key, asked) => {
-  const given = ["tree", "batch"].filter((name) => asked[name] !== undefined).map((name) => `--${name}`);
-  if (given.length) {
-    fail(`brief: a judge is given no tree and judges one issue, so --judge takes no ${given.join(" or ")}: `
-      + `what it judges is what the deployment serves. Brief it as:\n  ${callFor(key)}`);
+  const hasUrl = asked.url !== undefined;
+  const hasProgram = asked.program !== undefined;
+  if (asked.batch !== undefined) fail(`brief: a judge judges one issue, so --judge takes no --batch. Brief it as:\n  ${callFor(key)}`);
+  if (asked.tree !== undefined && !hasProgram) {
+    fail("brief: a judge driving a deployment is given no tree — it judges what the deployment serves, and a tree "
+      + `reads as where to work. A tree is read only beside --program, the directory a CLI judge runs the program in:\n  ${callFor(key)}`);
   }
-  const missing = [key ? null : "the issue key", ...["url", "criteria"].map((name) => (asked[name] === undefined ? `--${name}` : null))]
-    .filter(Boolean);
-  if (missing.length) fail(`brief: a judge's brief names the issue, where it is deployed and which criteria to judge, and this one lacks ${missing.join(" and ")}:\n  ${callFor(key)}`);
-  return { urls: urlsOf(asked.url, key), criteria: criteriaOf(asked.criteria), identity: identityOf(asked.identity) };
+  const missing = [
+    key ? null : "the issue key",
+    hasUrl || hasProgram ? null : "--url or --program",
+    asked.criteria === undefined ? "--criteria" : null,
+  ].filter(Boolean);
+  if (missing.length) {
+    fail("brief: a judge's brief names the issue, where to judge it — a deployment (--url) or an installed program "
+      + `(--program) — and which criteria, and this one lacks ${missing.join(" and ")}:\n  ${callFor(key)}`);
+  }
+  return {
+    urls: hasUrl ? urlsOf(asked.url, key) : [],
+    program: hasProgram ? programOf(asked.program) : null,
+    tree: runDirOf(asked.tree),
+    criteria: criteriaOf(asked.criteria),
+    identity: identityOf(asked.identity),
+  };
 };
 
 const NOTHING_ELSE = "judge these and write nothing else";
@@ -88,13 +128,14 @@ const NOTHING_ELSE = "judge these and write nothing else";
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured
    readings a free-form note could otherwise run into. A note naming a requirement is left out — the
    gate holds that dispatch back, so this issue brief never reaches a run. */
-export const judgeText = (key, { urls, criteria, identity }, facts = null) => [
+export const judgeText = (key, { urls, program, tree, criteria, identity }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   "Role: judge",
-  `Deployed at: ${urls.join(", ")}`,
+  ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
+  ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
   `Criteria: ${criteria.join(", ")}`,
-  "Tree: none",
+  program && tree ? `Run the program in: ${tree}` : "Tree: none",
   ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),
 ].join("\n");
 

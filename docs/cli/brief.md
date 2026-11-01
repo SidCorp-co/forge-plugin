@@ -55,6 +55,14 @@ one message the hook lets through named the deployment (ISS-3145). The record th
 which form was printed, so the judging role is held to its form without the prompt's words being
 read.
 
+Not every criterion is a deployment's, though. A criterion about a command-line program's behaviour
+has no URL to drive, and a judge sent for one was refused a brief and judged with a general-purpose
+agent instead (ISS-791). So a judge aims at either a deployment (`--url`) or an installed program
+(`--program`, the path or name it is reached by, with the version or sha it reports in `--identity`).
+The program is the one case that takes a tree — `--tree`, the directory to run it in — because a CLI
+is run somewhere, where a deployment is driven from nowhere; the brief names it "Run the program in"
+rather than a builder's tree, and a judge driving a deployment still takes none.
+
 A judge's target is its brief's first line because nothing else carries it: three judges sent for a
 requirement's criterion (REQ-79 BC-6) under an issue's brief judged the issue's own criteria, the
 requirement having reached them only in the lease's facts. Those facts are the tracker's, so the

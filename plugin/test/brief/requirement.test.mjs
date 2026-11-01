@@ -146,3 +146,14 @@ test("FB-30: a judge's brief carries no facts line where the lease cannot be rea
   assert.equal(run.status, 0, run.stderr);
   assert.doesNotMatch(run.stdout, /Dispatcher facts:/u);
 });
+
+/* FB-26: a qa run sent to judge a CLI criterion (ISS-791, forge-runner 0.18.0) was refused a judge's
+   brief and judged with a general-purpose agent instead. A judge aimed at a program is a judge's form,
+   so the gate takes it for forge:qa as it does a deployment judge's. */
+test("FB-26: the gate takes a CLI judge's brief, aimed at a program, for the judge", async () => {
+  state.issues = issues();
+  const sent = printed(["ISS-7", "--judge", "--program", "/usr/local/bin/forge-runner", "--identity", "de70833e", "--criteria", "1", "--tree", repo.main]);
+  assert.match(sent, /^Program: \/usr\/local\/bin\/forge-runner$/mu, sent);
+  assert.ok(sent.split("\n").includes(`Run the program in: ${repo.main}`), sent);
+  assert.equal((await dispatch(sent, "forge:qa")).allowed, true);
+});

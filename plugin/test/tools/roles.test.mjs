@@ -296,7 +296,10 @@ test("the masters that dispatch a judge name the judge's brief, and set down a c
 });
 
 test("the brief's help, its hook page and its document name the judge's form", () => {
-  assert.match(helpOf("brief"), /--judge --url/u, "-h names no judge form");
+  const help = helpOf("brief");
+  assert.match(help, /--judge\b/u, "-h names no judge form");
+  assert.match(help, /--url/u, "-h names no deployment aim");
+  assert.match(help, /--program/u, "-h names no program aim for a CLI judge");
   assert.match(readFileSync(join(PLUGIN, "hooks", "how", "brief.md"), "utf8"), /--judge --url/u,
     "the hook's page names no way to brief a judge");
   assert.match(readFileSync(join(PLUGIN, "..", "docs", "cli", "brief.md"), "utf8"), /## The judge's form/u,
