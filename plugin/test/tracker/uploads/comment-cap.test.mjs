@@ -15,7 +15,7 @@ const { bodyCap } = await import("../../../src/tracker/comment-cap.mjs");
 const { lengthOf } = await import("../../../src/tracker/field-write.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const CAP = bodyCap();
 const COUNT = 26;
 /* Long enough that the verdicts over every criterion need two or more comments, short enough that one

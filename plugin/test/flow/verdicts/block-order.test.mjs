@@ -12,7 +12,7 @@ const { parseAll } = await import("../../../src/flow/record/page.mjs");
 const { blockOrderChecked } = await import("../../../src/flow/machine/block-order.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const OWN = "9a4d36d";
 const CRITERIA = [1, 2, 3, 4, 5, 6, 7].map((one) => `${one}. Outcome ${one}.`).join("\n");
 

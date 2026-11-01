@@ -9,7 +9,7 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("content").path;
-const { DECISION_PARTS, decisionProblem, eachProblem, whereProblem } =
+const { DECISION_PARTS, commitProblem, decisionProblem, eachProblem, isFullCommit, memberProblem, whereProblem } =
   await import("../../../src/flow/record/content.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
@@ -77,13 +77,15 @@ test("a where naming somewhere a reader can open is accepted, in every form the 
     "mark_merged",
     "foldOnto()",
     "docs/cli/record.md and the shape beside it",
+    "hop-expected-next-state rev 2",
   ]) {
     assert.equal(whereProblem(said), null, `\`${said}\` names something to open and was refused`);
   }
 });
 
 test("a where naming nothing to open is refused, and the refusal says what one takes", () => {
-  for (const said of ["in the code", "everywhere", "the tracker", "", "all over the place"]) {
+  for (const said of ["in the code", "everywhere", "the tracker", "", "all over the place",
+    "a bare sentence that opens nothing"]) {
     const problem = whereProblem(said);
     assert.ok(problem, `\`${said}\` names nothing and was accepted`);
     assert.match(problem, /takes a path or an identifier/u);
@@ -154,5 +156,33 @@ test("the same three rules are owed off a record the verb never wrote", () => {
   const verdict = { criterion: "1 the outcome", verdict: "fail", commit: "c8c3550", evidence: ["c8c3550"] };
   assert.deepEqual(gapsIn("verdict", verdict), ["--why, naming what the criterion did instead: a `fail` is what another run acts on"]);
   assert.deepEqual(gapsIn("verdict", { ...verdict, why: "the screen never rendered" }), []);
+});
+
+/* Core reads a wave's member by the issue uuid; the issue key is the same one a person types, so both
+   read and nothing around either does (ISS-17). */
+test("a --member is read by an issue uuid or its key, and the refusal names both forms", () => {
+  assert.equal(memberProblem("4b9c1e2a-7d3f-4a1b-9c6d-0e1f2a3b4c5d"), null, "the uuid core takes");
+  assert.equal(memberProblem("ISS-45"), null, "the key hand-typed for the same one");
+  for (const junk of ["ISS-45 and the next", "not-a-member", "wave two", ""]) {
+    const problem = memberProblem(junk);
+    assert.ok(problem, `\`${junk}\` is no member and was accepted`);
+    assert.match(problem, /an issue key.*or an issue uuid/u, "and the refusal names both forms it takes");
+  }
+});
+
+/* A verdict's commit is what core judged, and core refuses an abbreviation of it (VERDICT_COMMIT_NOT_FULL),
+   so the plugin takes only a whole sha of either width and tells a shorter one the rule (ISS-20). */
+test("a verdict --commit takes a whole sha of either width, and a shorter one is refused naming the rule", () => {
+  const forty = "0123456789abcdef0123456789abcdef01234567";
+  const sixtyFour = `${forty}${forty}`.slice(0, 64);
+  assert.ok(isFullCommit(forty), "a 40-hex git sha-1");
+  assert.ok(isFullCommit(sixtyFour), "a 64-hex sha-256");
+  for (let width = 7; width < 40; width += 1) {
+    assert.equal(isFullCommit(forty.slice(0, width)), false, `a ${width}-hex sha is not whole`);
+  }
+  const field = SHAPES.verdict.fields.find((one) => one.flag === "commit");
+  const refusal = commitProblem(field, forty.slice(0, 12));
+  assert.match(refusal, /a full sha/u, "the refusal names the rule");
+  assert.match(refusal, /git rev-parse HEAD/u, "and where a whole object id comes from");
 });
 

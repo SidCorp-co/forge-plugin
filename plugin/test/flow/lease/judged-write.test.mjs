@@ -20,7 +20,7 @@ const { parseAll } = await import("../../../src/flow/record/page.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "judged-write-uuid";
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const DISPATCHER = "the-session-that-dispatched-the-judge";
 const JUDGE = "iss-7-0a1b2c3d";
 

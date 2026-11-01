@@ -17,7 +17,7 @@ const { render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, judgedOwed, viewFrom, correctedForm } = await import("../../../src/flow/earned.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 
 let clock = 0;
@@ -55,7 +55,7 @@ test("the item a skipped verdict raises past the judging carries the verdict wri
   const page = [mark(), pass(1), skip(2)];
   for (const status of ["awaiting_release"]) {
     const [item] = naming(status, page, 2);
-    assert.match(item?.command ?? "", /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
+    assert.match(item?.command ?? "", /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 0123456789abcdef0123456789abcdef01234567 /u,
       `${status}: the one write that answers it, at the commit the mark names`);
   }
 });
@@ -117,7 +117,7 @@ test("the need names both routes clear of a skip: a fresh verdict, or correcting
   for (const status of ["awaiting_release"]) {
     const [item] = naming(status, page, 2);
     assert.match(item?.command ?? "",
-      /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 43b811e /u,
+      /^forge record verdict ISS-7 --criterion 2 --verdict <pass\|fail\|skipped\|short> --commit 0123456789abcdef0123456789abcdef01234567 /u,
       `${status}: the fresh verdict, checked against the known form independently of correctedForm`);
     assert.equal(item?.command, `${item.command.split("\n")[0]}\n  or, where no route ever reaches it: ${correctedForm("ISS-7", 2)}`,
       `${status}: the correction route is the exact string the shared correctedForm returns, not a caller's own wording, beside the fresh verdict`);

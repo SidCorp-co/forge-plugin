@@ -19,7 +19,7 @@ const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.\n3. The third outcome.";
 
 let clock = 0;
@@ -137,7 +137,7 @@ test("several criteria with no verdict are one owed item carrying one write", ()
     + " --verdict <pass|fail|skipped|short> --criterion 1 --criterion 2 --criterion 3");
   const one = judgedOwed(viewFrom("the-uuid", issue, [mark, comment(render("verdict", [verdictOf(1), verdictOf(2)]))]), "ISS-7");
   assert.deepEqual(one.map((held) => held.what), ["criterion 3 has no verdict"], "and one owed criterion reads as it did");
-  assert.match(one[0].command, /--criterion 3 --verdict <pass\|fail\|skipped\|short> --commit 43b811e/u);
+  assert.match(one[0].command, /--criterion 3 --verdict <pass\|fail\|skipped\|short> --commit 0123456789abcdef0123456789abcdef01234567/u);
 });
 
 /* Spawned from here down: the count of writes is the whole point, and only the tracker counts them. */

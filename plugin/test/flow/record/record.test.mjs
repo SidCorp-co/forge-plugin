@@ -394,7 +394,7 @@ test.after(() => tracker.close());
 for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3", "--unheld"], ENV));
 const verify = (env = ENV) =>
   ranAsync(FORGE, ["record", "verification", "ISS-3", "--where", "the installed plugin",
-    "--commit", "43b811e", "--evidence", "43b811e"], env);
+    "--commit", "0123456789abcdef0123456789abcdef01234567", "--evidence", "43b811e"], env);
 
 test("the verification says who released it, in the project's own words and never the author's", async () => {
   const kept = await verify();
@@ -411,7 +411,7 @@ test("the verification says who released it, in the project's own words and neve
   assert.match(automatic.stdout, /^promotion: to master, automatic$/mu, "and the config says whether anyone owes it");
 });
 
-/* Five runs in one day read `--commit takes 7 to 40 hex digits` with a valid sha on `--commit`, and
+/* Five runs in one day read `--commit takes <a full sha>` with a valid sha on `--commit`, and
    each spent a round on the argument that was right: the sentence was a literal and `verification`
    is the one kind declaring two commit-typed fields (ISS-833). */
 /* A record's refusal leads with whether anything was written, and the refusal itself follows. */
@@ -423,14 +423,14 @@ const refusedUnder = (run, kind) => {
 
 test("a commit-typed field refused for its value names itself, and its own label says which commit it wanted", () => {
   const prose = "this is prose and not a sha";
-  const named = ask("record", "verification", "ISS-3", "--where", "here", "--commit", "43b811e",
+  const named = ask("record", "verification", "ISS-3", "--where", "here", "--commit", "0123456789abcdef0123456789abcdef01234567",
     "--evidence", "43b811e", "--contains", prose);
   assert.equal(named.status, 1, named.stdout);
   assert.equal(refusedUnder(named, "verification"), "--contains takes the landed commit the head on --commit "
     + `carries as 7 to 40 hex digits, not \`${prose}\`.`, "the flag refused is the one it was typed on");
   const commit = ask("record", "verification", "ISS-3", "--where", "here", "--commit", prose,
     "--evidence", "43b811e");
-  assert.equal(refusedUnder(commit, "verification"), `--commit takes 7 to 40 hex digits, not \`${prose}\`.`,
+  assert.equal(refusedUnder(commit, "verification"), `--commit takes a full sha — 40 hex digits (git sha-1) or 64 (sha-256), the whole object id \`$(git rev-parse HEAD)\` gives, not \`${prose}\`.`,
     "and a field whose label is its flag's own word is refused in the words it always was");
 });
 
@@ -582,7 +582,7 @@ test("the record route's collision refusal carries the one sentence evidence.mjs
   const path = join(tempRoom("crowded-"), "shot.png");
   writeFileSync(path, "not really a screenshot");
   const run = await ranAsync(FORGE, ["record", "verdict", "ISS-3", "--criterion", "1",
-    "--verdict", "pass", "--commit", "43b811e", "--evidence", path], ENV);
+    "--verdict", "pass", "--commit", "0123456789abcdef0123456789abcdef01234567", "--evidence", path], ENV);
   delete shipped.attachments;
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /shot\.png is already on this issue/u, run.stderr);

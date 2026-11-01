@@ -17,7 +17,7 @@ const { unreadNames } = await import("../../../src/tracker/evidence.mjs");
 const { cutLine } = await import("../../../src/tracker/comments.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 
 const judging = {
   documentId: "cut-uuid",

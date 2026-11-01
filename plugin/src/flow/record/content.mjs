@@ -4,17 +4,31 @@
 export const eachProblem = (field, values) =>
   (values ?? []).map((one) => field.each?.(one)).find(Boolean) ?? null;
 
-const HEX = "7 to 40 hex digits";
+/* An identity commit names what a verdict judged or what a deployment is, and core refuses an
+   abbreviation of it the same words its runtime is (VERDICT_COMMIT_NOT_FULL), so an `identity` field
+   takes only a whole object id — the two widths `machine/identity.mjs`'s WHOLE_ID reads. A commit that
+   is not an identity — a merged clause's landing sha, a landed commit a head contains — is matched by
+   its short head through `sameCommit`, so it keeps the 7-to-40-hex form, as `isCommit` does (ISS-20). */
+const FULL_COMMIT = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/iu;
 
-/** What a commit-typed field takes, and the refusal a value that is no sha earns, both in that field's own words: its `takes` where it declares one, else its label, and neither where those words are the flag's own, since `takes commit as ...` hands a caller back the word it typed. The sentence is composed after `--<flag>` by whichever table holds the field. One home, because two tables refuse such a value and `-h` describes it, and a flag name written as a literal in any of them refuses the kind's second commit-typed field in the first's name (ISS-833). */
+export const isFullCommit = (value) => FULL_COMMIT.test(String(value ?? "").trim());
+
+const HEX = "7 to 40 hex digits";
+const WHOLE_SHA = "a full sha — 40 hex digits (git sha-1) or 64 (sha-256), the whole object id "
+  + "`$(git rev-parse HEAD)` gives";
+
+/** What a commit-typed field takes, and the refusal a value that is no sha earns, both in that field's own words: its `takes` where it declares one, else its label, and neither where those words are the flag's own, since `takes commit as ...` hands a caller back the word it typed. An `identity` commit must be whole, so its width is the full sha; any other is matched by its head, so it reads the short form. The sentence is composed after `--<flag>` by whichever table holds the field. One home, because two tables refuse such a value and `-h` describes it, and a flag name written as a literal in any of them refuses the kind's second commit-typed field in the first's name (ISS-833). */
 export const commitTakes = (field) => {
   const said = field.takes ?? String(field.label ?? "").toLowerCase();
-  return said === field.flag ? HEX : `${said} as ${HEX}`;
+  const width = field.identity ? WHOLE_SHA : HEX;
+  return said === field.flag ? width : `${said} as ${width}`;
 };
 
 export const commitProblem = (field, value) => `takes ${commitTakes(field)}, not \`${value}\`.`;
 
-/* A place a reader can open: a path by separator or extension, a backticked span, a code name in any of the three casings this tree writes, or a clause or issue key. */
+/* A place a reader can open: a path by separator or extension, a backticked span, a code name in any of
+   the three casings this tree writes, a clause or issue key, or a design flow's state by its kebab name
+   and revision — `hop-expected-next-state rev 2` (ISS-27). */
 const OPENABLE = [
   /[\w.@-]+\/[\w./@-]+/u,
   /\b[\w-]+\.[A-Za-z]{2,5}\b/u,
@@ -23,6 +37,7 @@ const OPENABLE = [
   /\b[a-z][a-z0-9]*[A-Z]\w*\b/u,
   /\b[a-z][a-z0-9]*_[a-z0-9_]+\b/u,
   /\b[A-Za-z_]\w*\(\)/u,
+  /\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+ rev \d+\b/u,
 ];
 
 /** What the field takes, in the words its own refusal opens with and its kind's help prints: a form
@@ -38,12 +53,19 @@ export const whereProblem = (value) => {
     + "names nothing is one nobody can check.";
 };
 
-/* A wave's member is read live by this value alone, so anything around the key is a member the resume cannot find (ISS-818). */
-export const MEMBER_TAKES = "an issue key, `ISS-45`, one per --member";
+/* A wave's member is read live by this value alone, so anything around it is a member the resume cannot
+   find (ISS-818). Core takes the member as a uuid; the issue key is the hand-typed form of the same one,
+   so both read, and nothing around either does (ISS-17). */
+const MEMBER_KEY = /^[A-Z][A-Z0-9]*-\d+$/u;
+const MEMBER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+export const MEMBER_TAKES = "an issue key, `ISS-45`, or an issue uuid, one per --member";
 
-export const memberProblem = (value) => (/^[A-Z][A-Z0-9]*-\d+$/u.test(String(value ?? ""))
-  ? null
-  : `takes ${MEMBER_TAKES}; \`${value}\` is not one, and a member the resume cannot read by its key is one it cannot report.`);
+export const memberProblem = (value) => {
+  const said = String(value ?? "");
+  return MEMBER_KEY.test(said) || MEMBER_UUID.test(said)
+    ? null
+    : `takes ${MEMBER_TAKES}; \`${value}\` is not one, and a member the resume cannot read by its key or its uuid is one it cannot report.`;
+};
 
 /* The reading, the assumption it was taken under, and the line that reverses it; the third is what a decision record exists for. */
 export const DECISION_PARTS = ["reading", "assumption", "undo"];

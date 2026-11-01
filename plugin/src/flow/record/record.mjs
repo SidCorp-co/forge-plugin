@@ -14,7 +14,7 @@ import { recordFieldRefusal, renderedWithin } from "../../tracker/comment-cap.mj
 import { mergedPrepared } from "./merged.mjs";
 import { markedCommit } from "./judged/mark-read.mjs";
 import { landedProblem, landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
-import { commitProblem, eachProblem } from "./content.mjs";
+import { commitProblem, eachProblem, isFullCommit } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, onePerRoutes, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
 import { RUN_FLAGS, kindBlocks, pullRun } from "./rung.mjs";
@@ -90,7 +90,9 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
     if (field.oneOf && !field.oneOf.includes(value)) {
       refuse(`--${field.flag} takes one of ${field.oneOf.join(", ")}, not \`${value}\`.`);
     }
-    if (field.commit && !isCommit(value)) refuse(`--${field.flag} ${commitProblem(field, value)}`);
+    if (field.commit && !(field.identity ? isFullCommit(value) : isCommit(value))) {
+      refuse(`--${field.flag} ${commitProblem(field, value)}`);
+    }
     if (field.landing) {
       const place = landingProblem(value);
       if (place) refuse(`--${field.flag} ${place}.`);

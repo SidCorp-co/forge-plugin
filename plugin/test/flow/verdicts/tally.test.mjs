@@ -12,7 +12,7 @@ const { parseAll } = await import("../../../src/flow/record/page.mjs");
 const { tallied } = await import("../../../src/flow/record/thread/tally.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const CRITERIA = [1, 2, 3, 4, 5, 6, 7].map((one) => `${one}. Outcome ${one}.`).join("\n");
 
 let clock = 0;
@@ -120,7 +120,7 @@ test("a shared --why over passes is named the same way", async () => {
   const run = await verdict("--verdict", "pass", "--why", "not run", "--criterion", "7");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^--why rode onto criterion 7, recorded `pass`\./mu, run.stderr);
-  assert.match(run.stderr, /^ {2}forge record verdict ISS-9 --commit 43b811e --criterion 7 --verdict skipped --why 'not run'$/mu);
+  assert.match(run.stderr, /^ {2}forge record verdict ISS-9 --commit 0123456789abcdef0123456789abcdef01234567 --criterion 7 --verdict skipped --why 'not run'$/mu);
 });
 
 test("a write refused before anything is posted prints no count", async () => {

@@ -15,7 +15,7 @@ process.env.XDG_CONFIG_HOME = tempHome("refused-verdict-carries").path;
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "carries-uuid";
-const COMMIT = "43b811e";
+const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 
 const ISSUE = {
   documentId: UUID,

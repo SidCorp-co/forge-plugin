@@ -132,7 +132,7 @@ test("a reopen is refused where nothing on the record says what the work got to"
 test("a failing verdict moves no status, the reopen being an act of its own", async () => {
   Object.assign(JUDGED, { status: "developed", reopenCount: 0 });
   const run = await ran(["record", "verdict", "ISS-90", "--criterion", "1", "--verdict", "fail",
-    "--commit", "43b811e", "--evidence", "shot.png", "--why", "the order is the one it was filed in"]);
+    "--commit", "0123456789abcdef0123456789abcdef01234567", "--evidence", "shot.png", "--why", "the order is the one it was filed in"]);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(JUDGED.status, "developed", "the verdict is a refusal of the advance and not a move");
 });
@@ -153,7 +153,7 @@ test("a judge's reopen, finding and triage carry the issue down to a building ru
   assert.equal(ruled.status, 0, `${ruled.stdout}${ruled.stderr}`);
   /* A reopen judges again, so the verdict that supersedes is the one written after the ruling. */
   const judged = await ran(["record", "verdict", "ISS-90", "--criterion", "1", "--verdict", "fail",
-    "--commit", "43b811e", "--evidence", "shot.png", "--why", "the order is the one it was filed in"]);
+    "--commit", "0123456789abcdef0123456789abcdef01234567", "--evidence", "shot.png", "--why", "the order is the one it was filed in"]);
   assert.equal(judged.status, 0, `${judged.stdout}${judged.stderr}`);
   const moved = await ran(["advance", "ISS-90"]);
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
