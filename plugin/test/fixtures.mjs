@@ -51,6 +51,9 @@ export { pathed, typed } from "../src/hooks/shell-spans.mjs";
 
 export const jsonlOf = (rows) => Buffer.from(rows.map((one) => `${JSON.stringify(one)}\n`).join(""));
 
+// cm:why copyToRun reads session (FORGE_PLUGIN_ROOT) and pid (CLAUDE_PID) off env; an in-process chooser call in a --plugin-dir session (the resident master pane) reads that pane's live tree instead of the world the test built, so a case pins both to its own world (ISS-12)
+export const SEALED = Object.freeze({ session: null, pid: null });
+
 export { agentRefusal, answered, callHook, callHookAsync } from "./fixtures/answered.mjs";
 
 export { neutralCheckout, neutralRoom } from "./fixtures/rooms/neutral.mjs";

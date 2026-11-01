@@ -8,7 +8,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } f
 import { join } from "node:path";
 
 import { copyToRun } from "../../../src/tools/plugin-copy.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { SEALED, tempRoom } from "../../fixtures.mjs";
 
 const BIN = new URL("../../../bin/", import.meta.url).pathname;
 const PLUGIN = new URL("../../..", import.meta.url).pathname;
@@ -177,7 +177,7 @@ test("a refusal the CLI wrote itself is not a crash", () => {
 test("the chosen copy carries why it was chosen", () => {
   inRoom(undefined, ({ room, home, checkout, newest, outside }) => {
     const entry = join("src", "cli.mjs");
-    const at = (cwd) => copyToRun({ cwd, entry, root: PLUGIN, record: join(home, ".claude", "plugins", "installed_plugins.json") });
+    const at = (cwd) => copyToRun({ cwd, entry, root: PLUGIN, record: join(home, ".claude", "plugins", "installed_plugins.json"), ...SEALED });
     const inside = at(checkout);
     assert.equal(inside.dir, checkout);
     assert.equal(inside.kind, "checkout");
@@ -187,7 +187,7 @@ test("the chosen copy carries why it was chosen", () => {
     assert.equal(out.dir, newest);
     assert.equal(out.kind, "installed");
     assert.equal(out.version, "1.2.3");
-    const none = copyToRun({ cwd: outside, entry, root: PLUGIN, record: join(room, "no-record.json") });
+    const none = copyToRun({ cwd: outside, entry, root: PLUGIN, record: join(room, "no-record.json"), ...SEALED });
     assert.equal(none.kind, "this");
     assert.equal(none.dir, PLUGIN.replace(/\/$/u, ""));
   });

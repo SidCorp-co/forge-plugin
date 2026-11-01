@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { FLOW_VERBS, copyForVerb, flowRow } from "../../../src/tools/copies/flow-copy.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
-import { escaped, tempRoom } from "../../fixtures.mjs";
+import { SEALED, escaped, tempRoom } from "../../fixtures.mjs";
 
 const BIN = new URL("../../../bin/", import.meta.url).pathname;
 const PLUGIN = new URL("../../..", import.meta.url).pathname;
@@ -132,13 +132,13 @@ test("a module the flow imports and the checkout deleted is a change to what the
     git(repo, "rm", "-q", join("plugin", "src", "flow.mjs"));
     const run = ran(join(room, "bin", "forge"), { cwd: checkout, home }, "claim", "ISS-1");
     assert.ok(run.stderr.includes("this checkout changes what it runs (src/flow.mjs)"), `the deletion is named:\n${run.stderr}`);
-    assert.match(flowRow({ cwd: checkout, root: PLUGIN, record }), /this checkout changes what they load \(src\/flow\.mjs\)/u);
+    assert.match(flowRow({ cwd: checkout, root: PLUGIN, record, ...SEALED }), /this checkout changes what they load \(src\/flow\.mjs\)/u);
   });
 });
 
 test("doctor's row for the flow names the copy, why that one, and a change it would not run", () => {
   inWorld({}, ({ checkout, installed, record }) => {
-    const where = { cwd: checkout, root: PLUGIN, record };
+    const where = { cwd: checkout, root: PLUGIN, record, ...SEALED };
     assert.equal(copyForVerb({ verb: "record", ...where }).dir, installed);
     const clean = flowRow(where);
     assert.match(clean, new RegExp(`^installed 2\\.0\\.0 at ${escaped(installed)} — ${FLOW_VERBS.join(", ")}: a flow verb runs the flow the installed copy serves`, "u"));
