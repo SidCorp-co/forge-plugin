@@ -3,20 +3,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { COMMITS, WRITES, committing, shellText, startsAt, writtenPaths } from "../../../hooks/_hook.mjs";
+import { WRITES, shellText, startsAt, writtenPaths } from "../../../hooks/_hook.mjs";
 import { struck, ticksOpened } from "../../../src/hooks/shell-spans.mjs";
 
 test("an exec starts a command at the head of one and behind any other start", () => {
   for (const lead of ["", "true; ", "(", "A=1 ", "sudo ", "then "]) {
     assert.equal(WRITES.test(`${lead}exec touch f`), true, `${JSON.stringify(lead)} then exec`);
-    assert.equal(COMMITS.test(`${lead}exec git commit -m x`), true, `${JSON.stringify(lead)} then exec, a commit`);
   }
 });
 
 test("an exec another program takes as its argument starts nothing", () => {
   for (const one of ["docker exec ctr", "podman exec ctr", "kubectl exec pod --", "echo exec"]) {
     assert.equal(WRITES.test(`${one} touch f`), false, one);
-    assert.equal(COMMITS.test(`${one} git commit -m x`), false, `${one}, a commit`);
   }
 });
 
@@ -26,7 +24,6 @@ test("an exec another program takes as its argument starts nothing", () => {
 test("a command opening with a blank starts where the same command without it does", () => {
   for (const lead of [" ", "\t", "  "]) {
     assert.equal(WRITES.test(`${lead}cp a.md b.md`), true, `${JSON.stringify(lead)} then a copy`);
-    assert.equal(COMMITS.test(`${lead}git commit -m x`), true, `${JSON.stringify(lead)} then a commit`);
   }
   for (const one of [" echo x", " git status", " printf cp"]) assert.equal(WRITES.test(one), false, one);
 });
@@ -75,15 +72,8 @@ test("a runner's option value holding an escaped space is one word, and the verb
    closing one starts nothing (ISS-3069). */
 const TICK = "\x60";
 const pair = (body) => `${TICK}${body}${TICK}`;
-const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
 const ran = (text) => startsAt(shellText(text)).map((one) => one.said);
 const opensWith = (text, verb) => ran(text).some((one) => one.startsWith(verb));
-
-test("a commit standing at an opening backtick is a commit, bare or under a double quote", () => {
-  assert.equal(committing(ev(`echo ${pair("git commit -m x")}`)), true, "bare");
-  assert.equal(committing(ev(`echo "${pair("git commit -m x")}"`)), true, "under a double quote");
-  assert.equal(committing(ev(`x=${pair("git commit -m x")}`)), true, "as an assignment's value");
-});
 
 test("a write verb standing at an opening backtick names its target", () => {
   const named = (text) => writtenPaths(text, "/w", undefined, { unplaceable: "keep" }).map((one) => one.token);
@@ -98,9 +88,7 @@ test("a command starts at an opening backtick, bare and under a double quote", (
 
 test("the word after a closing backtick starts nothing", () => {
   const text = `echo ${pair("date")} git commit`;
-  assert.equal(committing(ev(text)), false);
   assert.ok(!opensWith(text, "git commit"), JSON.stringify(ran(text)));
-  assert.equal(committing(ev(`echo ${pair("")} git commit`)), false, "nor after an empty pair");
 });
 
 /* An operator inside the pair cuts the span after it, and that span holds the closer without its opener: walked alone it would read the closer as one. */
@@ -114,14 +102,8 @@ test("a closer cut off from its opener by an operator inside the pair opens no w
 /* A quote's data and a here-document's body are taken out before any backtick is asked about; these two stand in the text a reader tests, so only the walk keeps them from opening a pair. */
 test("a backtick a backslash escapes or a comment holds is text", () => {
   for (const text of [`echo \\${TICK}git commit -m x\\${TICK}`, `# ${pair("git commit -m x")}\necho ok`]) {
-    assert.equal(committing(ev(text)), false, JSON.stringify(text));
     assert.ok(!opensWith(text, "git commit"), JSON.stringify(ran(text)));
   }
-});
-
-test("a shell runner's body opened at a backtick is that shell's commands", () => {
-  assert.equal(committing(ev(`echo ${pair('bash -c "git commit -m x"')}`)), true);
-  assert.equal(committing(ev(`echo ${pair('bash -c "echo git commit"')}`)), false, "and its own arguments stay arguments");
 });
 
 /* The walk is the only place an opener is told from a closer: the respelling answers from it, so a pattern needs no rule of its own. */

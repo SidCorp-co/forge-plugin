@@ -106,7 +106,7 @@ test("each document opens with its claim, argues briefly, and points nowhere unr
 test("a page that hands out its own gate's switch says it is account-wide and names the way back on", () => {
   const handing = documented.filter((name) =>
     readFileSync(join(HOW, `${name}.md`), "utf8").includes(`forge hooks --off ${name}`));
-  assert.ok(handing.length >= 4, `${handing.length} pages hand out their switch`);
+  assert.ok(handing.length >= 3, `${handing.length} pages hand out their switch`);
   for (const name of handing) {
     const text = readFileSync(join(HOW, `${name}.md`), "utf8").replace(/\s+/gu, " ");
     assert.match(text, /account-wide until `--on`/u, `how/${name}.md names no reach and no undo`);
@@ -124,23 +124,23 @@ test("the reasoning is what --how prints, and a near miss is named", () => {
     readFileSync(join(HOW, "polling.md"), "utf8").trimEnd(),
     "the file itself, so the argument has one home, and a topic no gate is named for carries nothing more",
   );
-  const missed = forge("--how", "codex-secnod");
+  const missed = forge("--how", "landing-gte");
   assert.equal(missed.status, 1);
-  assert.match(missed.stderr, /No hook named codex-secnod\. Did you mean: codex-second/u);
+  assert.match(missed.stderr, /No hook named landing-gte\. Did you mean: landing-gate/u);
 });
 
 /* AC-07-3-5. The line is the printer's and not the page's: every page sits at the ceiling above, and a
    sentence twenty pages carried would be twenty copies of one rule. */
 test("a gate's page is printed with the line saying its refusal is the route", () => {
-  const refusing = forge("--how", "codex-second");
+  const refusing = forge("--how", "landing-gate");
   assert.equal(refusing.status, 0, refusing.stderr);
   assert.equal(
     refusing.stdout.trimEnd(),
-    `${readFileSync(join(HOW, "codex-second.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`,
+    `${readFileSync(join(HOW, "landing-gate.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`,
     "the page whole, and then the line",
   );
   assert.match(ROUTE_NOT_VERDICT, /the route to take, not a verdict on the call/u);
-  const speaking = forge("--how", "codex-turn");
+  const speaking = forge("--how", "ask-precedent");
   assert.equal(speaking.status, 0, speaking.stderr);
   assert.doesNotMatch(speaking.stdout, /not a verdict/u, "a gate that refuses nothing is not told its refusal is a route");
 });

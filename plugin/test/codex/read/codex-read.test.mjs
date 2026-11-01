@@ -347,17 +347,13 @@ test("a newer consult that answered speaks for the bytes, so an older failure le
   assert.doesNotMatch(refusal, /gateway unavailable/u);
 });
 
-/* Criterion 20: one reading of a row, not four. Asked of the sources, since every behavioural case
+/* Criterion 20: one reading of a row, not four. Asked of the source, since every behavioural case
    here would stay green over a caller that kept a copy of its own. */
-test("the writes and both doors judge a file's consult through the one classifier", () => {
+test("the write path judges a file's consult through the one classifier", () => {
   const src = (rel) => readFileSync(new URL(`../../../${rel}`, import.meta.url), "utf8");
-  for (const rel of ["src/codex/codex-read.mjs", "src/codex/log/owed-refusal.mjs"]) {
+  for (const rel of ["src/codex/codex-read.mjs"]) {
     assert.match(src(rel), /import \{[^}]*\bconsultState\b[^}]*\} from "\.\/(log\/)?unavailable\.mjs"/u, `${rel} imports the classifier`);
     assert.match(src(rel), /consultState\(\{/u, `${rel} calls it`);
-  }
-  for (const rel of ["hooks/gates/codex/codex-second.mjs", "hooks/gates/codex/codex-owed.mjs"]) {
-    assert.match(src(rel), /unreadApart\(/u, `${rel} judges through the shared split`);
-    assert.doesNotMatch(src(rel), /gatewayFailed|isAnswered/u, `${rel} reads no row for itself`);
   }
 });
 

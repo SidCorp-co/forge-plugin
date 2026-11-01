@@ -180,7 +180,7 @@ const entryFile = (name) => {
 };
 
 test("the solo entries still run this checkout's own gate text, so the suite is unaffected", () => {
-  for (const name of ["bash-guard", "codex-turn"]) {
+  for (const name of ["bash-guard", "landing-gate"]) {
     const text = readFileSync(entryFile(name), "utf8");
     assert.match(text, /from "(?:\.\.\/)+_hook\.mjs"/u, `${name} no longer loads the harness beside it`);
     assert.doesNotMatch(text, /plugin-copy/u, `${name} hops, and the suite would then test the installed copy`);

@@ -10,7 +10,8 @@ was held and the other five passed unasked. It refuses nothing now, and neither 
 what the advisor said is yours to act on as you plan, and where it changes a decision the decision
 record already carries the decision and its undo.
 
-The same reading inside codex-second went with it, so no write between commits is held for advice
-either. What codex-second still asks for is on its own page.
+The writes that once waited on a consult — a commit, a project's named gate, a per-turn reminder —
+wait on nothing now: those gates are gone too, and a second opinion is the agent's to ask for with
+`forge codex`, not a gate's to force.
 
 Not judged: nothing. There is no gate here to over-comply with.

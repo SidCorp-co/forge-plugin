@@ -79,7 +79,7 @@ test("naming both refusals asks for either, and an empty answer is not an empty 
       cwd: room,
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
-  for (const [decision, hook] of [["deny", "bash-guard"], ["block", "claude-md"], ["note", "codex-turn"]]) {
+  for (const [decision, hook] of [["deny", "bash-guard"], ["block", "claude-md"], ["note", "ask-precedent"]]) {
     appendFileSync(
       hookLogPath(),
       `${JSON.stringify({ at: new Date().toISOString(), hook, decision, tool: "Bash", target: "x", reason: "r", session: "s" })}\n`,
@@ -88,7 +88,7 @@ test("naming both refusals asks for either, and an empty answer is not an empty 
   const both = forge("--deny", "--block");
   assert.match(both.stdout, /bash-guard/u, "the deny");
   assert.match(both.stdout, /claude-md/u, "and the block, which ANDing dropped");
-  assert.doesNotMatch(both.stdout, /codex-turn/u, "a note is neither");
+  assert.doesNotMatch(both.stdout, /ask-precedent/u, "a note is neither");
   const none = forge("--hook", "link-cli");
   assert.match(none.stdout, /match nothing asked for/u);
   assert.doesNotMatch(none.stdout, /appears on the first one/u, "the log is right there");
@@ -143,7 +143,7 @@ test("the rounds count is per session, per refused write, and says which write r
   assert.equal(mcp[0].writes, 1, "one write, refused twice");
   assert.equal(mcp[0].per, 2, "which is the loop the number exists to show");
   const read = roundsBy([
-    { ...entry("four", "deny", "", "2026-09-03T10:00:00.000Z", "mcp__forge__forge_issues"), hook: "codex-second" },
+    { ...entry("four", "deny", "", "2026-09-03T10:00:00.000Z", "mcp__forge__forge_issues"), hook: "bash-guard" },
     entry("four", "deny", "forge issue ISS-65", "2026-09-03T10:01:00.000Z"),
   ]);
   assert.equal(read[0].writes, 0,

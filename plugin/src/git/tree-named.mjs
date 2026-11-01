@@ -1,5 +1,5 @@
 /* The tree a git command runs in, which is its `-C` taken from where the shell stands, not the shell's
-   directory alone. Two gates read it: bash-guard and codex-second. */
+   directory alone. The bash-guard gate reads it. */
 import { isAbsolute, join, resolve } from "node:path";
 
 import { NOWHERE } from "../hooks/shell-spans.mjs";

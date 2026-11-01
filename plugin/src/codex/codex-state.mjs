@@ -11,7 +11,7 @@ import { changedAgainst, digest } from "./codex-api.mjs";
 import { logBytes } from "./codex-log.mjs";
 import { sentShaOf } from "./log/asked.mjs";
 
-export const statePath = () => join(configDir("forge"), "codex.json");
+const statePath = () => join(configDir("forge"), "codex.json");
 
 export const readState = () => readJson(statePath()) ?? {};
 
@@ -32,7 +32,7 @@ const lockPath = () => `${statePath()}.lock`;
 const underLock = (fn) => holdingFile(lockPath(), fn);
 
 /* The change is a function of the state read inside the lock, never of an earlier read. */
-export const updateState = (change) =>
+const updateState = (change) =>
   underLock(() => {
     const before = readState();
     const after = change(before);
@@ -48,33 +48,14 @@ export const updateState = (change) =>
 
 
 /* Keyed by root: paths are relative, and two checkouts would otherwise trade files. */
-export const turnsOf = (held) => held.turns ?? {};
+const turnsOf = (held) => held.turns ?? {};
 
 export const pendingIn = (held, root) => turnsOf(held)[root]?.files ?? [];
 
-export const pendingState = (root) => {
-  const held = turnsOf(readState())[root];
-  return { files: held?.files ?? [], at: held?.at ?? null };
-};
-
 const turnAt = (files, since) => (files.length ? since ?? Date.now() : Date.now());
 
-/* A turn's second write must not repeat the first one's instruction, so the hook needs `first`; and a
-   write leaving the bytes a consult was shown clears a standing entry, nothing else being able to. */
-export const afterTouch = (held, root, rel, read = false) => {
-  const files = pendingIn(held, root);
-  const has = files.includes(rel);
-  const since = turnsOf(held)[root]?.at ?? null;
-  if (read) {
-    const left = files.filter((one) => one !== rel);
-    return { files: left, at: turnAt(left, since), added: false, first: false, cleared: has };
-  }
-  if (has) return { files, at: turnAt(files, since), added: false, first: false, cleared: false };
-  return { files: [...files, rel], at: Date.now(), added: true, first: files.length === 0, cleared: false };
-};
-
 /* Content codex has read is not owed a second reading: the digest of what went up is the log's. */
-export const readByCodex = (root, rel, log) => {
+const readByCodex = (root, rel, log) => {
   let text;
   try {
     text = readFileSync(join(root, rel), "utf8");
@@ -99,8 +80,8 @@ export const settledIn = (root, record, base = "HEAD", ms) => {
     && !differing.includes(rel) && !staged.includes(rel));
 };
 
-/** The four classes a recorded path can be in, one home, so the gate and `pending` cannot differ. */
-export const pendingNow = (root, files, log = logBytes, { apart = [], ms } = {}) => {
+/** The four classes a recorded path can be in, read by the `pending` verb off one home. */
+const pendingNow = (root, files, log = logBytes, { apart = [], ms } = {}) => {
   let entries = null;
   const read = () => (entries ??= log());
   const gone = goneFrom(root, files, "HEAD", false, ms);
@@ -195,15 +176,6 @@ export const heldSaid = (held) => `${held.length} file(s) this consult sent stay
   + `commit would carry for them is not what went up — ${held.join(", ")}. Stage the copy that was read `
   + "with `git add`, since the next consult reads that same working copy, or drop them with `forge "
   + "codex pending --drop`.";
-
-/** One index read per checkout, for a caller asking about several paths of it: git answers the same for every path of one checkout, and a memo any longer-lived than the caller would answer from an index that had moved. */
-export const stagedReader = () => {
-  const held = new Map();
-  return (root, ms) => {
-    if (!held.has(root)) held.set(root, stagedIn(root, {}, ms));
-    return held.get(root);
-  };
-};
 
 /* `lstat` not `stat`, so a dangling link is present; and only ENOENT, so an EACCES file stays. */
 export const absentFrom = (root, rel) => {

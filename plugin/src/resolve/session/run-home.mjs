@@ -20,7 +20,7 @@ export const runHomeAt = (path) => {
 /** `read` run with the variable pointed at `home` for the length of the call, and as it stands where
  *  there is none. Every home-rooted path is read where it is used, so the variable reaches them all; it
  *  is put back after, a thrown decision included, since one process runs every gate of an event. */
-export const inHome = (home, read) => {
+const inHome = (home, read) => {
   if (!home) return read();
   const was = process.env.XDG_CONFIG_HOME;
   process.env.XDG_CONFIG_HOME = home;

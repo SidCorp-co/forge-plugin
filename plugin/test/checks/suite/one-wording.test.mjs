@@ -70,7 +70,7 @@ test("the walk reaches the suite's test files, so no pairs is a clean suite and 
   const tests = all.filter((one) => /^(?:plugin|tools)\/test\/.*\.test\.mjs$/u.test(one.rel));
   assert.ok(tests.length > 300, `the walk found ${tests.length} test files, and this suite has hundreds`);
   for (const one of ["plugin/test/flow/park/park.test.mjs", "tools/test/run/run-script.test.mjs",
-    "plugin/src/flow/route.mjs", "plugin/hooks/gates/codex/codex-second.mjs", "tools/run/land-ready.mjs"]) {
+    "plugin/src/flow/route.mjs", "plugin/hooks/gates/bash-guard.mjs", "tools/run/land-ready.mjs"]) {
     assert.ok(all.some((each) => each.rel === one), `${one} is in the walk`);
   }
   assert.ok(all.flatMap((one) => (/\.test\.mjs$/u.test(one.rel) ? pinnedIn(one.text) : [])).length > 100,

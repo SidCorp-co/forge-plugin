@@ -4,12 +4,11 @@
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and its
    eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and the
    hook halves. */
-export { afterTouch, ageOf, apartFrom, demandIn, pendingIn, pendingNow, pendingState, stagedIn, statePath }
-  from "./codex-state.mjs";
+export { ageOf } from "./codex-state.mjs";
 export { reviewed, rounds } from "./codex-rounds.mjs";
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { isAbsolute } from "node:path";
 
 import { HUMAN_REF } from "../tracker/issues.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
@@ -19,8 +18,8 @@ import { budgetMs, codexCheck, compiles, fail, projectRecordPattern } from "../r
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { anglesRefusal } from "./angles/refusal.mjs";
-import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
-  readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
+import { PENDING_USAGE, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
+  readState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, scopeFor, specFor } from "./codex-tools.mjs";
 import { consultSet, digestsAt, shownOf, unchangedAll } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
@@ -33,7 +32,6 @@ import {
   bundle,
   cannotCarry,
   divergedFrom,
-  inside,
   promptMark,
   withDiffs,
   openingFor, goalsFor,
@@ -48,7 +46,6 @@ import {
   logPath,
   consults,
   hereOf,
-  logBytes,
   logConsult,
   logEntries,
   loggedWithMark,
@@ -140,8 +137,6 @@ const recordPattern = () => {
   const held = asked.find((one) => one.value && compiles(one.value));
   return held ?? { value: DEFAULT_PATH_RE, from: "the built-in default" };
 };
-
-export const recordable = (rel) => new RegExp(recordPattern().value).test(rel);
 
 /* A head logged days ago may be gone: a worktree branch deleted, a rebase, another checkout. An
    unreadable one is not an error — the recheck simply carries no diff. */
@@ -502,45 +497,6 @@ const show = (rest = []) => {
   /* The record whole and not a commit's demand, which `pending` prints: one word had two answers (ISS-45). */
   console.log(`recorded  : ${waiting.length ? `${waiting.join(", ")} — \`forge codex pending\` says which of them a commit is asked for` : "nothing"}`);
   console.log(`log       : ${logPath()}  (${consults(entries).length} consult(s))`);
-};
-
-/* The hook records; it never reviews. It asks for one consult at the end of the turn with the intent
-   attached, and the caller decides what a turn is: a pending list spans sessions. */
-
-export const hookRecord = (event, paths, told = () => false, log = logBytes) => {
-  if (process.env.FORGE_CODEX_DISABLE === "1") return null;
-  let announce = null;
-  /* The whole log, read at most once for the invocation and not at all where no path gets as far as asking:
-     `readByCodex` wants every entry, so one PostToolUse over three documents was paying for three parses of the
-     same file. Scoped to the call and not the module, since a memo outliving it would answer from a log that had moved. */
-  let held = null;
-  const read = () => (held ??= log());
-  const stagedFor = stagedReader();
-  for (const path of paths) {
-    const root = repoRoot(dirname(resolve(path)));
-    if (!root) continue;
-    const rel = inside(root, path);
-    if (!rel || !recordable(rel)) continue;
-    /* Asked of a path the record does not hold as of one it does, an exact revert having owed a consult: a write at the bytes read is a reading still owed while the index holds another copy, that copy being what a commit lands (ISS-952, ISS-1005). */
-    const known = readByCodex(root, rel, read) && !stagedApart(root, rel, { staged: stagedFor(root) });
-    let added = false;
-    updateState((held) => {
-      const step = afterTouch(held, root, rel, known);
-      added = step.added;
-      if (!step.added && !step.cleared) return held;
-      return { ...held, turns: { ...turnsOf(held), [root]: { files: step.files, at: step.at } } };
-    });
-    /* Asked only while there is something to say, because asking is what marks the turn told. */
-    if (added && !announce && !told(root)) announce = rel;
-  }
-  /* The two new values are named by where they are read, never by what to write: a check list from memory is one the gate contradicts. */
-  return announce
-    ? `You changed a document this turn (${announce}). Before you finish, once over everything changed: `
-      + `\`echo "<what you were doing, and what the advisor said>" | forge codex consult --diff --only `
-      + `blocker,major --out-of-scope "<the issue's Out of scope text>" --checks "<the codex.check `
-      + `\`forge codex show\` prints, else the gate command>"\`, then \`forge codex verdict\`. `
-      + "Why: `forge hooks --how codex-turn`."
-    : null;
 };
 
 const SUBS = {

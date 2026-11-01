@@ -411,9 +411,6 @@ export const listed = (rels) => {
   return rels.length > SHOWN ? `${shown} and ${rels.length - SHOWN} more` : shown;
 };
 
-/** The command half of the same pair: every path, so the route it offers clears the whole of what is refused for. */
-export const allPathed = (rels) => rels.map(pathed).join(" ");
-
 const some = (items) => (items.length > SHOWN
   ? `${items.slice(0, SHOWN).join(", ")} and ${items.length - SHOWN} more`
   : items.join(", "));

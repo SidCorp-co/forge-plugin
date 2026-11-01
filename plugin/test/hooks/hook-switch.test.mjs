@@ -53,7 +53,7 @@ const forge = (home, ...argv) => forgeIn(home, {}, ...argv);
 
 test("a hook named in hooksOff does not fire, and one not named does", () => {
   assert.equal(refused(room('{"hooksOff":["bash-guard"]}'), {}, ["bash-guard"]), false);
-  assert.equal(refused(room('{"hooksOff":["codex-second"]}')), true, "another hook's switch is not this one's");
+  assert.equal(refused(room('{"hooksOff":["landing-gate"]}')), true, "another hook's switch is not this one's");
   assert.equal(refused(room("{}")), true);
   assert.equal(refused(room()), true, "no config at all is every gate on");
 });
@@ -117,7 +117,7 @@ const hookFiles = () => {
 
 test("the switch audit reads the entries a folder holds", () => {
   const read = hookFiles().map((path) => basename(path));
-  for (const nested of ["learning-gate.mjs", "learning-landed.mjs", "codex-owed.mjs", "stop-check.mjs"]) {
+  for (const nested of ["learning-gate.mjs", "learning-landed.mjs", "ask-decide.mjs", "stop-check.mjs"]) {
     assert.ok(read.includes(nested), `${nested} sits in a folder under hooks/entries/ and the audit must read it`);
   }
 });
@@ -149,21 +149,6 @@ test("the switch reads no environment variable", () => {
   assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "off" }), true);
 });
 
-/* A hook holding a switch of its own is not a second answer to hooksOff — it is its own decision —
-   but a report printing one undo while another variable holds the gate down is worse than silence.
-   The pairs are read from the hooks, so a gate that gains one is reported without an edit here. */
-test("doctor reports a gate its own variable holds down", () => {
-  const out = forgeIn(room("{}"), { FORGE_CODEX_DISABLE: "1" }, "doctor").stdout;
-  const found = /hooks off\s+(.+?) — `unset FORGE_CODEX_DISABLE`/u.exec(out);
-  assert.ok(found, `no line for a variable that stands gates down:\n${out}`);
-  const named = found[1].split(", ").map((one) => one.replace(/ \(.+\)$/u, ""));
-  assert.ok(named.length > 0);
-  for (const name of named) {
-    const source = readFileSync(gateFile(name), "utf8");
-    assert.match(source, /FORGE_CODEX_DISABLE/u, `${name} does not read the variable it is listed under`);
-  }
-});
-
 /* One name switches one hook type only while that stays true, and a file registered on no event is
    worse than a missing one: `forge hooks` lists it and switching it changes nothing. */
 test("the gate line names every gate it runs, and a lone script names itself", () => {
@@ -193,8 +178,8 @@ test("each hook is registered on exactly one event, or on the stop pair", () => 
 });
 
 test("doctor names the event it stood down and the one undo for it", () => {
-  const out = forge(room('{"hooksOff":["codex-turn"]}'), "doctor").stdout;
-  assert.match(out, /hooks off\s+codex-turn \(PostToolUse\) — `forge hooks --on codex-turn`/);
+  const out = forge(room('{"hooksOff":["code-quality"]}'), "doctor").stdout;
+  assert.match(out, /hooks off\s+code-quality \(PostToolUse\) — `forge hooks --on code-quality`/);
 });
 
 

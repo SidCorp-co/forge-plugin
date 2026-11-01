@@ -1,6 +1,6 @@
 /* What the reviewer may do for itself: read, list, search, and see a diff — over the checkouts under
    review and nothing else. The gateway answers with real `tool_use` blocks, so the alternative to
-   this is the reviewer guessing at a file it was not handed. hooks/how/codex-second.md, and
+   this is the reviewer guessing at a file it was not handed.
    docs/cli/codex-the-request.md for the scope. */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";

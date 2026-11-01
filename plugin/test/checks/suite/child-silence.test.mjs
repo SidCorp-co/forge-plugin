@@ -34,7 +34,7 @@ const said = (text, rel = "plugin/test/one.test.mjs") => silencesIn(text, rel);
 test("the walk reaches every test tree, so a clean answer is not an empty selector", () => {
   const walked = files();
   assert.ok(walked.length > 200, `the walk found ${walked.length} files, and this suite has hundreds`);
-  for (const one of [READER, "plugin/test/gates/codex/codex-owed.test.mjs",
+  for (const one of [READER, "plugin/test/codex/codex.test.mjs",
     "plugin/test/hooks/gate.test.mjs", "plugin/test/git/reviewed.test.mjs", "tools/test/gates/scratch.mjs",
     "packages/code-quality/test/cli/lint-edited-file.test.js"]) {
     assert.ok(walked.some((each) => each.rel === one), `${one} is in the walk`);

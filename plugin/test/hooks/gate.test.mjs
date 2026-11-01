@@ -63,7 +63,7 @@ test("a git that never answers costs neither the refusal nor the line about fili
 test("before a call, the first gate to refuse is the answer and the rest are not asked", () => {
   const cwd = dirtyRepo();
   const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g1" };
-  const held = answered(run(["bash-guard", "codex-second", "learning-gate", "issue-read-first"], ev, { FORGE_SESSION_ID: "g1" }));
+  const held = answered(run(["bash-guard", "learning-gate", "issue-read-first"], ev, { FORGE_SESSION_ID: "g1" }));
   assert.equal(held.hookSpecificOutput.permissionDecision, "deny");
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /git stash silently reverts/u);
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /forge hooks --how bash-guard/u, "the refusal names its own gate");
@@ -83,7 +83,7 @@ test("a gate switched off on the line is skipped, and one that is not still answ
   writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ hooksOff: ["bash-guard"] }));
   try {
     const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g2" };
-    const held = run(["bash-guard", "codex-turn"], ev);
+    const held = run(["bash-guard", "../../test/note-gate"], ev);
     assert.match(held.stderr, /^forge hooks: bash-guard was skipped: the switch is off$/mu,
       `a gate the switch turned off says so where the caller reads it:\n${held.stderr}`);
     assert.equal(answered(held, { skipped: ["bash-guard"] }), null, "and the switched-off gate refuses nothing");
@@ -103,10 +103,10 @@ test("after a call, every gate's block and context travel together", () => {
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Bash", tool_input: { command: "touch scripts/check-things.mjs docs/PLAN.md" }, cwd: room, session_id: `g3-${Date.now()}` };
-  const held = answered(run(["derive-dont-list", "codex-turn"], ev));
+  const held = answered(run(["derive-dont-list", "../../test/note-gate"], ev));
   assert.equal(held.decision, "block", "derive-dont-list blocked");
   assert.match(held.reason, /hard-code 3 constants/u);
-  assert.match(held.hookSpecificOutput.additionalContext, /You changed a document this turn/u, "and codex-turn still spoke");
+  assert.match(held.hookSpecificOutput.additionalContext, /You changed a document this turn/u, "and the note gate still spoke");
 });
 
 function mkdirIfNeeded(dir) {
@@ -130,7 +130,7 @@ test("the deadline runs from the process start, and the last gate reads what is 
   const text = readFileSync(gateFile("code-quality"), "utf8");
   assert.match(text, /remaining\(\)/u, "code-quality budgets from the shared clock");
   assert.doesNotMatch(text, /BUDGET_MS/u, "and not from a clock of its own");
-  for (const gate of ["bash-guard", "codex-second"]) {
+  for (const gate of ["bash-guard", "claude-md"]) {
     const source = readFileSync(gateFile(gate), "utf8");
     assert.doesNotMatch(source, /timeout: \d+,/u, `${gate} spawns nothing on a clock of its own`);
     assert.match(source, /remaining\(\)/u, `${gate} budgets from the shared clock`);
@@ -143,7 +143,7 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Write", tool_input: { file_path: join(room, "docs", "PLAN.md") }, cwd: room, session_id: `g4-${Date.now()}` };
-  const held = run(["post", "../../test/boom-gate", "codex-turn"], ev);
+  const held = run(["post", "../../test/boom-gate", "../../test/note-gate"], ev);
   assert.match(held.stderr, /boom-gate failed and was skipped: boom/u);
   const told = answered(held, { skipped: ["../../test/boom-gate"] }).hookSpecificOutput.additionalContext;
   assert.match(told, /You changed a document/u, "the gate after it still spoke");
@@ -178,14 +178,14 @@ test("out of time before a call refuses it, and after one is a line in the log",
   try {
     const cwd = dirtyRepo();
     await dispatch(["pre", "bash-guard"], { tool_name: "Bash", tool_input: { command: "git stash list" }, cwd, session_id: "g5" });
-    await dispatch(["post", "codex-turn"], { tool_name: "Bash", tool_input: { command: "true" }, cwd, session_id: "g5" });
+    await dispatch(["post", "code-quality"], { tool_name: "Bash", tool_input: { command: "true" }, cwd, session_id: "g5" });
   } finally {
     DEADLINES.pre = pre;
     DEADLINES.post = post;
   }
   const log = readFileSync(join(HOME, "forge", "hook-log.jsonl"), "utf8").trim().split("\n").map((one) => JSON.parse(one));
   assert.ok(log.some((one) => one.decision === "deny" && /ran out of time before bash-guard could decide/u.test(one.reason)), "a call nobody could judge is refused, not waved through");
-  assert.ok(log.some((one) => one.decision === "error" && /codex-turn skipped: the post clock ran out/u.test(one.reason)));
+  assert.ok(log.some((one) => one.decision === "error" && /code-quality skipped: the post clock ran out/u.test(one.reason)));
 });
 
 /* A gate the clock skipped writes no answer and exits zero, and so does a gate that allowed: one
@@ -195,13 +195,13 @@ test("a post gate the clock skipped says so where the caller reads it, and leave
   const harness = new URL("../../hooks/_hook.mjs", import.meta.url).href;
   const probe = `const { DEADLINES, dispatch } = await import(${JSON.stringify(harness)});\n`
     + `DEADLINES.post = -1;\n`
-    + `await dispatch(["post", "codex-turn"], { tool_name: "Bash", tool_input: { command: "true" },`
+    + `await dispatch(["post", "code-quality"], { tool_name: "Bash", tool_input: { command: "true" },`
     + ` cwd: process.cwd(), session_id: "clock" });\n`;
   const held = spawnSync(process.execPath, ["--input-type=module", "-e", probe],
     { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME } });
   assert.equal(held.status, 0, held.stderr);
   assert.equal(held.stdout, "", "the call still goes: a gate that did not run refuses nothing");
-  assert.match(held.stderr, /^forge hooks: codex-turn was skipped: the post clock ran out before it$/mu,
+  assert.match(held.stderr, /^forge hooks: code-quality was skipped: the post clock ran out before it$/mu,
     `the skip is only in the log, which the caller does not hold:\n${held.stderr}`);
 });
 

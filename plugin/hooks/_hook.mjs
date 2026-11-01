@@ -11,7 +11,7 @@ import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { Refusal, refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
-import { ESCAPED_IN_DOUBLE, NOWHERE, REDIRECT, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOut, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, ticksOpened, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
+import { ESCAPED_IN_DOUBLE, NOWHERE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, ticksOpened, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
 import { folded, gluedQuoted, unplacedIn } from "../src/hooks/program/assembled.mjs";
 import { fileCalls } from "../src/hooks/program/call-writes.mjs";
 import { INTERPRETER } from "../src/hooks/program/spoken.mjs";
@@ -25,8 +25,8 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
-export { MOVE_WORD, directoryAt, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, REDIRECT, WRITES, namesOf, quotedOut, spans, standsIn, withoutBodies, wordsIn };
+export { MOVE_WORD, directoryAt, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { NOWHERE, WRITES, namesOf, standsIn, withoutBodies };
 export { LITERALS, RUNS, SHELL, handedIn, literal };
 export { isSubagent, ownTranscript, transcriptOf };
 export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
@@ -480,7 +480,7 @@ const inline = (all, runner, body) => {
   return `${runnerOf(all, body)}${kept}${given && `${given}\n:`}`;
 };
 
-/** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. A heredoc body and an inline one are folded alike, or a run held on one spelling learns the other. `forge hooks --how writes`. */
+/** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is*. A heredoc body and an inline one are folded alike, or a run held on one spelling learns the other. `forge hooks --how writes`. */
 export const shellWrites = (command) => {
   const said = String(command ?? "");
   return memo(writesOf, said, () => shellText(said, (body, at, runner) => programmed(body, runner))
@@ -507,12 +507,6 @@ export const unseenWrites = (command) => {
 const GIT_VALUE = shellWord(";&|()<>");
 export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))${BLANKS}+`
   + GIT_VALUE + String.raw`${BLANKS}+|-[A-Za-z-]+(?:=` + GIT_VALUE + String.raw`)?${BLANKS}+)*`;
-
-/** Where a draft stops being one, in command position only: a message quoting the word is not one. */
-export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-])`, "u");
-
-export const committing = (ev) =>
-  ev.tool_name === "Bash" && COMMITS.test(quotedOut(shellText((ev.tool_input ?? {}).command)));
 
 /** The work tree a git command names: `--work-tree` outranks `-C` outranks what `--git-dir` implies.
  *  A repeated `-C` is a chain git composes and `--work-tree` is read from where it left; what a `--git-dir` implies answers only where neither named a tree, because git takes the current directory as the top of the working tree and `-C` is what sets that. A relative answer stays relative for the caller to place against its own event's cwd. */
