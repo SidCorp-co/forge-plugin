@@ -84,14 +84,18 @@ export const judgeOf = (key, asked) => {
 
 const NOTHING_ELSE = "judge these and write nothing else";
 
-/** The judge's brief, every line a reading, the first naming what it judges. */
-export const judgeText = (key, { urls, criteria, identity }) => [
+/* The dispatcher's facts for a judge ride the lease, so a judge reading only this brief would miss them
+   and judge at commit alone (FB-30): the note is carried as the last line, below the structured
+   readings a free-form note could otherwise run into. A note naming a requirement is left out — the
+   gate holds that dispatch back, so this issue brief never reaches a run. */
+export const judgeText = (key, { urls, criteria, identity }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   "Role: judge",
   `Deployed at: ${urls.join(", ")}`,
   `Identity: ${identity ?? "none given"}`,
   `Criteria: ${criteria.join(", ")}`,
   "Tree: none",
+  ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),
 ].join("\n");
 
 const requirementCall = (requirement) => `forge brief --requirement ${requirement ?? "REQ-79"} [--criterion BC-6] `

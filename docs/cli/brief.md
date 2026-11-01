@@ -60,6 +60,14 @@ requirement's criterion (REQ-79 BC-6) under an issue's brief judged the issue's 
 requirement having reached them only in the lease's facts. Those facts are the tracker's, so the
 hook reads them where it can and says so where it cannot, rather than passing a check it never made.
 
+The dispatcher's other facts for the judge — what the deployment reports serving, which criteria to
+judge at runtime, the testing-profile run — ride the issue's lease too, left there by
+`forge claim --next`. A judge that read only the brief missed them and judged at the commit alone, so
+the issue judge's brief now reads the lease at the dispatch and carries the note as its last line,
+below the structured readings a free-form note could otherwise run into. A note that names a
+requirement is left out: the hook holds that dispatch back, so the issue brief it would sit in never
+reaches a run.
+
 ## Why a digest and a window
 
 The hook compares a digest of the whole prompt with the ones the verb recorded in the repository's

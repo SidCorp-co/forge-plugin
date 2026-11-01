@@ -10,6 +10,7 @@ import { helpOf } from "../resolve/visibility.mjs";
 import { mintRunId, runIdAt, runNames, runsFor, scratchMinted } from "../resolve/session/run-id.mjs";
 import { copiesFor } from "./copies.mjs";
 import { JUDGE_FORM, REQUIREMENT_FORM, judgeOf, judgeText, refuseJudgeFlags, requirementOf, requirementText } from "./judge.mjs";
+import { leaseFacts } from "./facts.mjs";
 import { keepBrief } from "./record.mjs";
 import { defaultRef, heldBy, recordsOf, treesOf } from "./trees.mjs";
 
@@ -138,7 +139,10 @@ export const brief = async (argv) => {
   const asked = flags(key ? rest : argv, "brief", ["--judge"], { usage: helpOf("brief") });
   if (asked.requirement !== undefined) return send(requirementText(requirementOf(key, asked)), REQUIREMENT_FORM);
   if (asked.criterion !== undefined) fail("brief: --criterion names a requirement's criteria, so it is read only with --requirement REQ-n.");
-  if (asked.judge) return send(judgeText(key, judgeOf(key, asked)), JUDGE_FORM);
+  if (asked.judge) {
+    const readings = judgeOf(key, asked);
+    return send(judgeText(key, readings, await leaseFacts(key, process.cwd())), JUDGE_FORM);
+  }
   refuseJudgeFlags(key, asked);
   const here = process.cwd();
   const trees = treesOf(here);

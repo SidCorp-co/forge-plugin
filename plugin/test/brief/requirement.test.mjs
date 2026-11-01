@@ -5,9 +5,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { answered, callHookAsync } from "../fixtures.mjs";
+import { answered, callHookAsync, ranAsync } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
-import { HOOK, brief, homeFor, repository } from "./fixture.mjs";
+import { CLI, HOOK, brief, homeFor, repository } from "./fixture.mjs";
 
 const repo = repository();
 const URL_AT = "https://staging.example.com";
@@ -113,4 +113,36 @@ test("where the facts cannot be read, the judge's brief passes and the session i
   const answer = answered(run)?.hookSpecificOutput ?? {};
   assert.notEqual(answer.permissionDecision, "deny");
   assert.match(answer.additionalContext ?? "", /^Not checked: whether the facts left on ISS-7 name a requirement/u);
+});
+
+/* FB-30: two adminhub judges (ISS-90, ISS-80) judged behaviour at commit only, missing the dispatcher's
+   facts, because those rode the lease and the judge read only the brief. The issue judge's brief now
+   reads the lease at the dispatch and carries the note as its last line, below the structured readings.
+   Run async (not the spawnSync `brief` fixture): the fakeTracker serves from this test's own event
+   loop, which a blocking child would hold, so the subprocess's lease read could never be answered. */
+const judgedFacts = async (argv) => {
+  const run = await ranAsync(process.execPath, [CLI, "brief", ...argv], SESSION, repo.main);
+  assert.equal(run.status, 0, run.stderr);
+  return run.stdout;
+};
+
+test("FB-30: an issue judge's brief carries the dispatcher's lease facts as its last line", async () => {
+  state.issues = issues("served 3.36.652 de70833e; testing-profile run 9f2c; judge criteria 1,2 at staging");
+  const lines = (await judgedFacts(["ISS-7", "--judge", "--url", URL_AT, "--criteria", "1,2"])).trim().split("\n");
+  assert.equal(lines.at(-1), "Dispatcher facts: served 3.36.652 de70833e; testing-profile run 9f2c; judge criteria 1,2 at staging");
+  assert.equal(lines[0], "Target: ISS-7, criteria 1, 2 — judge these and write nothing else.", "the target still leads");
+});
+
+test("FB-30: the facts line is left out where the lease names a requirement or carries no note", async () => {
+  for (const next of ["judge REQ-79 BC-6 at staging", undefined]) {
+    state.issues = issues(next);
+    assert.doesNotMatch(await judgedFacts(["ISS-7", "--judge", "--url", URL_AT, "--criteria", "1"]), /Dispatcher facts:/u,
+      `${next}: a requirement note is the gate's to catch, and no note carries nothing to the brief`);
+  }
+});
+
+test("FB-30: a judge's brief carries no facts line where the lease cannot be read", () => {
+  const run = brief(["ISS-7", "--judge", "--url", URL_AT, "--criteria", "1"], repo.main, homeFor().env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /Dispatcher facts:/u);
 });
