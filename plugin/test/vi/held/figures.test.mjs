@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { ranAsync } from "../../fixtures.mjs";
 import { gatewayOn, translatedIn } from "../fake-gateway.mjs";
+import { diff } from "../../../vi-natural/text/figures.mjs";
 
 const BUNDLED = fileURLToPath(new URL("../../../bin/vi-natural", import.meta.url));
 const NOTE = "The converted quantity and the metre total both read 12.371 at 4.85 kilograms per metre.";
@@ -54,6 +55,23 @@ test("a tracker write whose rewrite adds a figure posts nothing and names the fi
     assert.equal(run.stdout, "", "no payload came out to be posted");
     assert.match(run.stderr, /carries the figure\(s\) 1, which the source does not/u, `the refusal names it:\n${run.stderr}`);
   }
+});
+
+/* ISS-8 (FB-32): a hex id (9153cef5) or an issue key (ISS-26, AC-14-4-5) is one token, not the digits
+   inside it, so a rewrite repeating one is not inventing the figure the id contains. */
+test("an identifier the rewrite repeats is not read as an invented figure", () => {
+  assert.equal(diff("Fixed in 9153cef5 for ISS-26.", "ISS-26 is fixed in 9153cef5."), null,
+    "a hex id and an issue key the source carries are not figures the rewrite invented");
+  assert.equal(diff("See AC-14-4-5 and FB-32.", "FB-32, and AC-14-4-5 again."), null,
+    "a multi-segment issue key is one token, not the figures inside it");
+  assert.equal(diff("Version v3 of VI12.", "VI12 shipped as v3."), null, "letter-and-digit tokens are opaque");
+});
+
+test("a genuine added or respelled figure is still named, beside an identifier the rewrite keeps", () => {
+  assert.match(diff("ISS-26 records 12.371 items.", "ISS-26 records 1000 items.") ?? "",
+    /carries the figure\(s\) 1000, which the source does not/u, "the invented figure is named, the id ignored");
+  assert.equal(diff("ISS-26 records 12.371 items.", "12.371 items under ISS-26."), null,
+    "a real figure the source carries, repeated, passes");
 });
 
 const ran = (room, argv) => ranAsync(BUNDLED, argv, { ...process.env, XDG_CONFIG_HOME: room }, room);

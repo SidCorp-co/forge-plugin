@@ -14,9 +14,17 @@ export const FIGURE_SPELLING = String.raw`\d+(?:[-.,:/]\d+)*`;
 /* A digit run glued to a letter is part of a name or a sentinel (`v3`, `⟦VI12⟧`), not a figure. */
 const FIGURE = new RegExp(String.raw`(?<![\p{L}\p{N}_])${FIGURE_SPELLING}`, "gu");
 
+/* An identifier the figure check must read as one token, not as the digits inside it: an issue key,
+   whose letters and hyphen-joined digit groups make `AC-14-4-5` one id and not the figures 14 and 4-5;
+   and any run mixing letters and digits — a hex id `9153cef5`, a sentinel `VI12`, a version `v3`. The
+   lookbehind above catches a digit run a letter precedes, but not one a letter or a key follows, so a
+   rewrite repeating an id was read as inventing the figure inside it (ISS-8). Blanked before the tally. */
+const IDENTIFIER = new RegExp(
+  String.raw`\b\p{L}{2,}-\d+(?:-\d+)*\b|\b(?=[\p{L}\d_]*\p{L})(?=[\p{L}\d_]*\d)[\p{L}\d_]+\b`, "gu");
+
 const tally = (text) => {
   const counts = new Map();
-  for (const [figure] of text.matchAll(FIGURE)) counts.set(figure, (counts.get(figure) ?? 0) + 1);
+  for (const [figure] of text.replace(IDENTIFIER, " ").matchAll(FIGURE)) counts.set(figure, (counts.get(figure) ?? 0) + 1);
   return counts;
 };
 
