@@ -4,6 +4,7 @@
    counts such a verdict unearned on every project alike. */
 import { need } from "../machine.mjs";
 import { judgeAsk, numbered, owesRuntime, supersededProblem } from "./verdicts.mjs";
+import { weighable } from "../earned/core-verdicts.mjs";
 import { markedCommit, markedIdentity } from "../record/judged/mark-read.mjs";
 import { landsOutsideGit } from "../record/judged/landing.mjs";
 import { shapeGaps } from "../earned/shape-gaps.mjs";
@@ -12,7 +13,7 @@ import { shapeGaps } from "../earned/shape-gaps.mjs";
 export const supersededOwed = (view, ref, exclude = new Set()) => {
   if (landsOutsideGit(view.issue)) return [];
   const each = new Map();
-  for (const [number, { record }] of numbered(view.verdicts)) {
+  for (const [number, { record }] of numbered(weighable(view))) {
     if (exclude.has(number) || shapeGaps("verdict", record, view.names).length) continue;
     const why = supersededProblem(record.fields, view.landing);
     if (why) each.set(why, [...each.get(why) ?? [], [number, record.fields]]);

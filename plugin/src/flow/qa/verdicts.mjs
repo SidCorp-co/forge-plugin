@@ -5,6 +5,7 @@ import { QA_MODES, asksIndependent } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 import { HAND_WRITTEN, REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
 import { identityAsk, landsOutsideGit } from "../record/judged/landing.mjs";
+import { weighable } from "../earned/core-verdicts.mjs";
 
 export const [INDEPENDENT] = QA_MODES;
 
@@ -108,7 +109,7 @@ export const judgeProblems = (view) => {
   if (!asksIndependent(view.release)) return [];
   const holders = view.holders ?? [];
   const outside = landsOutsideGit(view.issue);
-  return numbered(view.verdicts).flatMap(([number, { record }]) => {
+  return numbered(weighable(view)).flatMap(([number, { record }]) => {
     const who = outside ? outsideProblem(record.fields, holders) : whoProblem(record.fields, view.landing, holders);
     /* A superseded verdict is `supersededOwed`'s to name, in every judgement mode, and once. */
     const why = who ?? (outside || supersededProblem(record.fields, view.landing) ? null : citedProblem(record.fields, view.landing));

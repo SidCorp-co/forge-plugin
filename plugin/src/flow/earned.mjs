@@ -11,7 +11,7 @@ import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding }
 import { correctionForm, mergedForm, namesPath, undoForm } from "./record/merged.mjs";
 import { judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, markedIdentity, reviewedHead } from "./record/judged/mark-read.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
-import { reviewOwedItems } from "./earned/core-verdicts.mjs";
+import { reviewOwedItems, weighable } from "./earned/core-verdicts.mjs";
 import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOwed, landingOwed, unreadId, verificationForm, withRuntime } from "./earned/asks.mjs";
 
 export { correctedForm };
@@ -295,7 +295,7 @@ const HELD_VERDICTS = {
 const heldOwed = (view, ref, verdict, exclude = EMPTY_SET) => {
   const { what, or } = HELD_VERDICTS[verdict];
   const current = new Set(view.criteria.map((one) => one.number));
-  return numbered(view.verdicts)
+  return numbered(weighable(view))
     .filter(([number, { record }]) => record.fields.verdict === verdict
       && !exclude.has(number)
       && !shapeGaps("verdict", record, view.names).length
@@ -332,7 +332,7 @@ const landingVerdictsOwed = (view, ref) => {
   const out = foldVerdicts(ref, view.owed, idAsk(view),
     (number) => `criterion ${number} has no verdict`,
     (listed) => `criteria ${listed} have no verdict`);
-  for (const [number, { record }] of numbered(view.verdicts)) {
+  for (const [number, { record }] of numbered(weighable(view))) {
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
     else if (record.fields.verdict !== "fail") out.push(...landingOwed(view, record.fields, `the verdict on criterion ${number} judged`, ask(number)));
@@ -356,7 +356,7 @@ const verdictsOwed = (view, ref) => {
     (number) => `criterion ${number} has no verdict`,
     (listed) => `criteria ${listed} have no verdict`);
   const atJudged = [];
-  for (const [number, { record }] of numbered(view.verdicts)) {
+  for (const [number, { record }] of numbered(weighable(view))) {
     const held = record.fields;
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
@@ -419,7 +419,7 @@ const staleCriteria = (view) => {
   const outcome = held?.record.fields.outcome;
   if (!outcome || outcome === TRIAGES[2]) return EMPTY_SET;
   const current = new Set(view.criteria.map((one) => one.number));
-  return new Set(numbered(view.verdicts)
+  return new Set(numbered(weighable(view))
     .filter(([number, one]) => current.has(number) && one.at < held.at)
     .map(([number]) => number));
 };
@@ -444,7 +444,7 @@ const shownOwed = (view, ref) => {
   if (view.flags.screen !== "yes") return [];
   /* Current criteria only, as `judgedSince` reads: asked for again on a dropped number, the write refuses. */
   const current = new Set(view.criteria.map((one) => one.number));
-  const numbers = [...view.verdicts]
+  const numbers = [...weighable(view)]
     .filter(([number]) => current.has(number))
     .filter(([, one]) => somebodyLooked(one.record.fields.verdict))
     .filter(([, one]) => !(one.record.fields.evidence ?? []).some((cited) => view.names.includes(cited)))

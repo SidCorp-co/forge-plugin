@@ -65,17 +65,23 @@ const headlineOf = (held, kind) => {
    was judged against (ISS-2045). */
 /* A verdict the entry check to `in_progress:release` would refuse is flagged through that check's own predicate,
    so a builder's pass under an independent judgement stops reading like a judge's (ISS-1497). */
+/* Core's own weighing where it was read, the thread's row elsewhere: a criterion core holds a latest
+   verdict on is earned by that verdict whatever an older thread row says, so the mark and the count
+   read off core and never the superseded row, and `judgeProblems` weighing the same set refuses no such criterion (FB-19). */
 const markedCriteria = (view) => {
   const rebuilt = rebuiltSaid(view.landing).replace(/^ — /u, "");
   const refused = new Set(judgeProblems(view).map((one) => one.number));
+  const core = view.coreVerdicts?.verdicts;
   return view.criteria.map((one) => {
     const held = view.verdicts.get(one.number);
+    const earned = core?.get(one.number);
+    const fields = earned ?? held?.record.fields;
     return {
       number: one.number,
       text: one.text,
-      mark: held ? MARK[held.record.fields.verdict] ?? `? ${held.record.fields.verdict ?? "unreadable"}` : NONE,
-      ...(held ? { commit: held.record.fields.commit } : {}),
-      ...(held && rebuilt ? { judgedAgainst: `a checkpoint ${rebuilt}` } : {}),
+      mark: fields ? MARK[fields.verdict] ?? `? ${fields.verdict ?? "unreadable"}` : NONE,
+      ...(fields?.commit ? { commit: fields.commit } : {}),
+      ...(held && rebuilt && !earned ? { judgedAgainst: `a checkpoint ${rebuilt}` } : {}),
       ...(refused.has(one.number) ? { counts: false } : {}),
     };
   });

@@ -10,6 +10,7 @@ import { tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("resume-coverage").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { viewFrom } = await import("../../../src/flow/earned.mjs");
+const { withCoreVerdicts } = await import("../../../src/flow/earned/core-verdicts.mjs");
 const { briefOf } = await import("../../../src/flow/brief.mjs");
 const { criteriaLines } = await import("../../../src/flow/resume.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
@@ -38,10 +39,12 @@ const verdict = (number, judge, over = {}) => ({
     evidence: [DEPLOYED], judge, ...over }]),
 });
 
-const briefFrom = (comments, policy) => briefOf(viewFrom("the-uuid", {
+const viewOf = (comments, policy) => viewFrom("the-uuid", {
   status: "developed", acceptanceCriteria: CRITERIA, plan: "Screen change: no.\nSchema coupling: no.",
   mergedAt: "2026-09-07T12:00:00.000Z", attachments: [], sessionContext: { landing: CHECKPOINT },
-}, comments, null, policy), "ISS-8");
+}, comments, null, policy);
+const briefFrom = (comments, policy) => briefOf(viewOf(comments, policy), "ISS-8");
+const coreBriefFrom = (comments, policy, core) => briefOf(withCoreVerdicts(viewOf(comments, policy), core), "ISS-8");
 
 const row = (lines, number) => lines.find((one) => one.includes(` ${number}. `));
 const coverageLine = (lines) => lines.find((one) => / criteria carry a verdict that counts/u.test(one)) ?? null;
@@ -79,6 +82,18 @@ test("no coverage line is printed where nothing is judged yet or every verdict c
   const whole = briefFrom([verdict(1, QA), verdict(2, QA), verdict(3, QA)], INDEPENDENT);
   assert.equal(coverageLine(criteriaLines(whole)), null, "criterion 6: a finished judgement reads as one");
   assert.equal(whole.coverage, null, "criterion 8: and the JSON carries no coverage either");
+});
+
+/* FB-19: core judged criteria 1 and 2 through its own route, which posts no comment, so the thread
+   carries no verdict for them. Reading the thread alone, resume counted none and undercounted the set;
+   it now takes core's weighing, counting what core earned and resuming at the one it has not. */
+test("resume counts a criterion core judged through its route though the thread carries no verdict", () => {
+  const core = { judged: new Set([1, 2]), earned: new Set([1, 2]), review: new Set(),
+    verdicts: new Map([[1, { verdict: "pass" }], [2, { verdict: "pass" }]]), refused: null };
+  const brief = coreBriefFrom([], INDEPENDENT, core);
+  assert.equal(coverageLine(criteriaLines(brief)),
+    "2 of 3 criteria carry a verdict that counts; a judge resumes at criterion 3, the first carrying none that does.");
+  assert.deepEqual(brief.coverage, { counted: 2, of: 3, next: 3 });
 });
 
 test("the JSON carries the flag on each criterion and the coverage the line is printed from", () => {

@@ -23,17 +23,35 @@ const REVIEW = "review";
 
 const numbersOf = (rows, keep) => new Set(rows.filter(keep).map((one) => Number(one.n)));
 
-/** `{ judged, review }`, sets of criterion numbers, or `{ refused }` naming why the read failed. */
+/* Core's own weighing, keyed so a brief reads the mark off it rather than the thread's superseded row (FB-19). */
+const verdictsOf = (rows) => new Map(rows.filter((one) => one?.latest).map((one) => [Number(one.n), one.latest]));
+
+/** `{ judged, earned, review, verdicts }` — criteria core holds any latest verdict on, criteria its
+ *  weighing counts earned, criteria the review owes, and core's latest verdict per criterion — or
+ *  `{ refused }` naming why the read failed. `judged` trims the "no verdict" list (a fail is a verdict),
+ *  `earned` is what the thread is no longer weighed for (a fail core counts unearned still is). */
 export const coreJudged = async (documentId) => {
   const answer = await read(documentId);
-  if (answer?.refused) return { judged: null, review: null, refused: answer.refused };
+  if (answer?.refused) return { judged: null, earned: null, review: null, verdicts: null, refused: answer.refused };
   const rows = answer?.criteria;
-  if (!Array.isArray(rows)) return { judged: null, review: null, refused: "the criteria read answered no list of criteria" };
+  if (!Array.isArray(rows)) return { judged: null, earned: null, review: null, verdicts: null, refused: "the criteria read answered no list of criteria" };
   return {
     judged: numbersOf(rows, (one) => one?.latest),
+    earned: numbersOf(rows, (one) => one?.weighing?.earned),
     review: numbersOf(rows, (one) => !one?.latest && one?.judge === REVIEW),
+    verdicts: verdictsOf(rows),
     refused: null,
   };
+};
+
+/** The thread's verdicts core's weighing has not earned, by the `earned` set above: a row for a
+ *  criterion core counts earned is superseded whatever it says, and not the CLI's to weigh again
+ *  (FB-19). A no-op wherever core's read was not had — `view.coreVerdicts` is set only by
+ *  `withCoreVerdicts`, which `advance --owed` and `resume` alone apply. */
+export const weighable = (view) => {
+  const earned = view.coreVerdicts?.earned;
+  if (!earned?.size) return view.verdicts;
+  return new Map([...view.verdicts].filter(([number]) => !earned.has(number)));
 };
 
 /** The view with core's verdicts counted, a criterion either source judged owing none, and the
