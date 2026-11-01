@@ -389,6 +389,7 @@ const commandOf = (stage, from) => {
 };
 
 /** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Every reading below wants the shell's spelling, which is each word's `said`. */
+const BINDING = /^[A-Za-z_]\w*=/u;
 const readsIn = (stage, from, strict, whole) => {
   const { words, program, rest } = commandOf(stage, from);
   if (RELOCATES.test(program)) return [];
@@ -397,7 +398,9 @@ const readsIn = (stage, from, strict, whole) => {
   const aims = aimsOf(program, operands, stage, said, targetOf(program, rest), { whole, from });
   if (strict && AIMS[program] === "last" && optionsIn(program, rest)?.some((one) => targets(program, one.name))) return null;
   const spare = strict && AIMS[program] !== "none" ? afterFlagIn(program, rest) : [];
-  return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
+  // cm:why a leading NAME=value is an env binding the verb skips, neither its target nor an operand, so the name reader took its value as a written path (ISS-34)
+  const bindings = words.slice(0, Math.max(0, words.length - rest.length - 1)).filter((one) => BINDING.test(one.said));
+  return aims && [...bindings, ...spare, ...operands.filter((one) => !aims.includes(one))];
 };
 
 /** The command text with every operand a write does not land on struck out, space for space so a relative name still resolves against the trees it did.

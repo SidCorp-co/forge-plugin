@@ -47,6 +47,14 @@ test("a write behind a list operator is struck as one at the start is", () => {
   assert.deepEqual(read("cp a.md ')'"), [], "a quoted parenthesis is a file the copy writes");
 });
 
+/* A leading NAME=value is an env binding the command runs under, neither its target nor an operand;
+   its value leaked as a written path when it held a `://`, and plan-scope held the write (ISS-34). */
+test("a leading env binding is no written path, whatever its value holds", () => {
+  assert.deepEqual(read("S3_ENDPOINT=https://ex.com/x cp a.txt b.txt"), ["b.txt"]);
+  assert.deepEqual(read("FOO=x BAR=y install -m644 src.txt dst.txt"), ["dst.txt"]);
+  assert.deepEqual(read("A=1 touch f.txt"), ["f.txt"]);
+});
+
 test("the keep reading leaves a span whose destination is handed over whole", () => {
   assert.deepEqual(read("cat a.md | xargs -I{} cp {} b.md", "keep"), ["a.md", "b.md"]);
   assert.deepEqual(read("find . -name a.md -exec cp {} b.md \;", "keep"), ["a.md", "b.md"]);
