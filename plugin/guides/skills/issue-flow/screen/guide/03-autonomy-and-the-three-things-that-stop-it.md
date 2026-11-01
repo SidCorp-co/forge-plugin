@@ -12,6 +12,15 @@ Exactly three:
 Everything else proceeds unasked: plan, comments, evidence, branch, commits, push, deploy, status,
 release note, close.
 
+**An ambiguity you can decide is not a stop.** Take the reading cheaper to reverse and record the
+decision on the item it shapes (`forge record decision`); the tracker refuses a person a question the
+run may decide itself off a `strict` project (`QUESTION_AGENT_DECIDES`). A stop that asks is addressed
+to the master (`--to master`, `blockerKind: master_or_peer`) on any project; a person is asked only
+where this project is `strict` **and** the decision is serious — it cannot be undone, spends real
+money, touches credentials, or sets product direction — in which case the question carries
+`--serious`. The destructive migration and the no-way-back failure are serious by their nature, so
+each asks that way; everything else decides and records.
+
 **A stop sets the issue down, never the run.** Each of the three is taken as a park, which records
 the reason on that one issue and moves you to the next; `forge record park -h` lists the kinds. A
 screen change is still parked where the project's release waits for a person — the deploy rolls

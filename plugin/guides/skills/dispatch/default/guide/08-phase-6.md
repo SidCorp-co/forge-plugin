@@ -58,6 +58,14 @@ messaged to continue from the phase its park named; its reading, confirmation an
 already in its context, and a fresh dispatch pays Phase 0 and Phase 1 again to re-derive them. A new
 agent goes out on a parked issue only when the parked one no longer answers, and the fold says so.
 
+**A parked question is the master's to answer before the run resumes.** A run parks on a `question`
+only where it may not decide for itself — a serious decision on a `strict` project, or one it
+addressed to the master (`master_or_peer`); off `strict` the tracker would have refused it a person
+(`QUESTION_AGENT_DECIDES`). So the block clears when the master answers, not when a person wanders
+past: answer through REST `questions/<id>/answer` or the `forge_questions` tool, the reason in `note`
+(`forge_requirements answer` carries none), and a paired box's token answers as the agent's. Only then
+is the run messaged to continue.
+
 The wave's own cost is measured against what it saved — the dispatcher's minutes and calls against
 the readings the executors did not repeat and the dispositions taken before a run was ever spent. A
 net cost asserted rather than counted is the thing this skill was built to stop doing.

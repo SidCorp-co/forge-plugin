@@ -26,6 +26,13 @@ one cheaper to reverse — so the number is there to give, and a default of the 
 a recommendation in front of the person that nobody made. The field is asked for at the write and
 excused at the read-back, so a question record from before it still satisfies a park.
 
+**A question is the exception, not the way out of a hard call.** Core leaves an agent-decidable choice
+to the run (`QUESTION_AGENT_DECIDES`), so the verb reads the project's gate profile and raises the
+refusal where the caps are raised — before anything is written, and here rather than from core's bare
+code, so the route out of it travels with it. The profile is read only where a block would put a
+serious decision to a person, the one case whose answer turns on it; the flags that shape the ask, and
+what counts as serious, are `forge record question -h`.
+
 **Asking moves nothing.** The tracker's ask leaves the issue at its status, and a park on an issue
 that already waits on a person asks nothing twice, so `forge advance --park question` is unchanged:
 it still builds what would settle the question from the readings, and never reads the recommendation.

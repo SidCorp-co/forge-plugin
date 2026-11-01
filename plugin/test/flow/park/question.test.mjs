@@ -32,7 +32,7 @@ const state = {
   comments: {},
   questions: [],
   answer: {
-    forge_config: () => ({ config: state.config }),
+    forge_config: (args) => (args.action === "gates" ? { profile: state.profile ?? null } : { config: state.config }),
     forge_issues: (args) => {
       if (args.action === "transition") {
         ASKING.status = args.data.status;
@@ -58,13 +58,18 @@ test.after(() => tracker.close());
 await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], ENV);
 
 const READINGS = ["keep the name -> nothing moves", "rename it -> every caller changes"];
+/* The default question addresses the master, which is taken on any project (`blockerKind:
+   master_or_peer`); a question to a person is `toPerson`, refused off a strict project. */
 const record = (...extra) => ranAsync(FORGE, ["record", "question", "ISS-99",
+  ...READINGS.flatMap((one) => ["--reading", one]), "--to", "master", ...extra], ENV);
+const toPerson = (...extra) => ranAsync(FORGE, ["record", "question", "ISS-99",
   ...READINGS.flatMap((one) => ["--reading", one]), ...extra], ENV);
 
 const fresh = () => {
   Object.assign(ASKING, { status: "in_progress", workState: { step: "plan" } });
   state.comments["asking-uuid"] = [];
   state.questions = [];
+  state.profile = null;
   state.calls.length = 0;
 };
 const asks = () => state.calls.filter((one) => one.name === "forge_questions" && one.args.action === "ask");
@@ -77,6 +82,8 @@ test("a question record asks on the issue first, its readings the options and th
   assert.equal(asks().length, 1, "one question is asked");
   const sent = asks()[0].args.data;
   assert.equal(sent.issueId, "asking-uuid");
+  assert.equal(sent.blockerKind, "master_or_peer", "--to master rides the ask as blockerKind");
+  assert.equal(sent.serious, undefined, "and nothing marks it serious");
   assert.deepEqual(sent.options.map((one) => one.label), READINGS, "each reading is an option, in order");
   assert.equal(sent.recommendedOptionId, sent.options[1].id, "the second reading is the recommended one");
   const asked = state.calls.findIndex((one) => one.name === "forge_questions" && one.args.action === "ask");
@@ -207,4 +214,82 @@ test("a question record on an issue this run holds writes the lease before it as
   const leases = state.calls.slice(0, wrote).filter((one) => one.name === "forge_issues" && one.args.action === "update"
     && one.args.data?.sessionContext);
   assert.equal(leases.length, 1, "and that write stands for the comment's own renewal");
+});
+
+/* Core refuses a person a question the run may decide itself (QUESTION_AGENT_DECIDES); the verb reads
+   the project's profile and refuses before the ask, naming the decision record and the master route. */
+test("a question to a person the run may decide is refused before the ask, naming the way out", async () => {
+  fresh();
+  const run = await toPerson("--recommend", "1");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /QUESTION_AGENT_DECIDES/u, run.stderr);
+  assert.match(run.stderr, /forge record decision ISS-99/u, "the decision record is named");
+  assert.match(run.stderr, /--to master/u, "and so is the master route");
+  assert.equal(asks().length + posted().length, 0, "nothing was sent");
+});
+
+test("--to master is taken on a non-strict project and rides the ask as blockerKind", async () => {
+  fresh();
+  const run = await record("--recommend", "1");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(asks()[0].args.data.blockerKind, "master_or_peer");
+  assert.equal(state.calls.some((one) => one.name === "forge_config" && one.args.action === "gates"), false,
+    "and the profile is not read where no block is a serious one to a person");
+});
+
+test("a serious question to a person is taken on a strict project and marked serious", async () => {
+  fresh();
+  state.profile = "strict";
+  const run = await toPerson("--serious", "--recommend", "1");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(asks().length, 1, "the ask goes up");
+  assert.equal(asks()[0].args.data.serious, true, "and carries serious");
+  assert.equal(asks()[0].args.data.blockerKind, undefined, "to a person, not the master");
+});
+
+test("a serious question to a person off a strict project is refused", async () => {
+  fresh();
+  state.profile = "standard";
+  const run = await toPerson("--serious", "--recommend", "1");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /QUESTION_AGENT_DECIDES/u, run.stderr);
+  assert.match(run.stderr, /not strict/u, "the profile it read is why");
+  assert.equal(asks().length + posted().length, 0, "nothing was sent");
+});
+
+/* Readings and the recommendation alone matched a person-directed open question to a `--to master`
+   retry, recording a recipient no question held (codex F1). The retry now refuses the mismatch. */
+test("a retry that changes an open question's recipient is refused, both directions, writing nothing", async () => {
+  fresh();
+  state.profile = "strict";
+  state.refuseComment = "INTERNAL_ERROR: the comment was not stored";
+  const toPersonFirst = await toPerson("--serious", "--recommend", "1");
+  assert.equal(toPersonFirst.status, 1, toPersonFirst.stdout);
+  assert.equal(state.questions.length, 1, "the person-directed question was asked");
+  state.calls.length = 0;
+  const toMasterNext = await record("--recommend", "1");
+  assert.equal(toMasterNext.status, 1, toMasterNext.stdout);
+  assert.match(toMasterNext.stderr, /addressed to a person.*asks the master/su, toMasterNext.stderr);
+  assert.equal(asks().length + posted().length, 0, "nothing was sent on the forward mismatch");
+
+  fresh();
+  state.profile = "strict";
+  state.refuseComment = "INTERNAL_ERROR: the comment was not stored";
+  const toMasterFirst = await record("--recommend", "1");
+  assert.equal(toMasterFirst.status, 1, toMasterFirst.stdout);
+  assert.equal(state.questions.length, 1, "the master-directed question was asked");
+  state.calls.length = 0;
+  const toPersonNext = await toPerson("--serious", "--recommend", "1");
+  delete state.refuseComment;
+  assert.equal(toPersonNext.status, 1, toPersonNext.stdout);
+  assert.match(toPersonNext.stderr, /addressed to the master.*asks a person, marked serious/su, toPersonNext.stderr);
+  assert.equal(asks().length + posted().length, 0, "nothing was sent on the reverse mismatch");
+});
+
+test("the kind's help names the agent-decides refusal and the two routes out", async () => {
+  const run = await ranAsync(FORGE, ["record", "question", "-h"], ENV);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /QUESTION_AGENT_DECIDES/u);
+  assert.match(run.stdout, /--to master/u);
+  assert.match(run.stdout, /--serious/u);
 });

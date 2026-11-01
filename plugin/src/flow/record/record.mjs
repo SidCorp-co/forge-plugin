@@ -63,8 +63,10 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
     got[field.flag] = pulled.values;
     rest = pulled.rest;
   }
-  const single = flags(rest, `record ${kind}`, [], { usage, again: onePerRoutes(kind, reference) });
+  const bool = shape.fields.filter((one) => one.bool).map((one) => `--${one.flag}`);
+  const single = flags(rest, `record ${kind}`, bool, { usage, again: onePerRoutes(kind, reference) });
   Object.assign(got, single, writtenBy(shape), stampedNow(shape));
+  for (const field of shape.fields) if (field.bool && got[field.flag] === true) got[field.flag] = "yes";
   /* Its own pass and first, so a route typed at one field is named before whichever field is missing. */
   for (const field of shape.fields) fieldChecked(kind, field, got[field.flag]);
   for (const field of shape.fields) {
@@ -452,7 +454,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
   return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: renderedWithin(kind, blocks, stamp, { reference, uploads: plan?.upload }),
-    tallied: tallied(kind, reference, blocks), ask: askPrepared(kind, blocks, { documentId, title: body.title, reference }) };
+    tallied: tallied(kind, reference, blocks), ask: await askPrepared(kind, blocks, { documentId, title: body.title, reference }) };
 };
 
 const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };

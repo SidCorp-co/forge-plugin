@@ -9,3 +9,8 @@
 - Whether an issue is already open twice: `forge alike`.
 - What a dispatched run is owed that it has no way to look up: `forge brief`.
 - Where a wave stands, asked of its headline: `forge resume`.
+- What a run addressed to the master rather than to a person, which this pass owes an answer before it
+  resumes the run that asked: the pass's nudge lists the open `master_or_peer` questions. Answer each
+  through REST `questions/<id>/answer` or the `forge_questions` tool — not `forge_requirements answer`,
+  which carries no reason — with the reason in `note`. A paired box's token answers as the agent's,
+  so the master need not be a person to settle one.

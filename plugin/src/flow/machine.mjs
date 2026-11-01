@@ -293,7 +293,7 @@ export const OUTCOMES = ["approved", "changes-requested"];
    rule and lives with the others of its sort in `record/content.mjs`. */
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
-/* `many` flags repeat; `oneOf` names the values; `each` is the rule over every one of them and `form` the words it and the kind's own help both state, so a caller reads the grammar before composing rather than out of the refusal (ISS-457); `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it; `prose` is a value made of sentences, which a blank and a route to its text are both refused at, and a field naming a place does not carry it (record/prose-route.mjs).
+/* `many` flags repeat; `oneOf` names the values; `each` is the rule over every one of them and `form` the words it and the kind's own help both state, so a caller reads the grammar before composing rather than out of the refusal (ISS-457); `least` is the smallest count that is a payload; `bool` is a flag taking no value, present reading `yes`; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it; `prose` is a value made of sentences, which a blank and a route to its text are both refused at, and a field naming a place does not carry it (record/prose-route.mjs).
    `takes` is what a sentence about the field says it holds where the label cannot say it: the label is the read key of `labelledIn` in `machine/block.mjs`, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
@@ -414,7 +414,9 @@ export const SHAPES = {
      asked without one (docs/cli/record-question.md); `newer`, so a record from before it still reads. */
   question: {
     heading: "Question",
-    fields: [FIELD("reading", "Reading", { many: true, least: 2, prose: true }), FIELD("to", "To", { optional: true }),
+    fields: [FIELD("reading", "Reading", { many: true, least: 2, prose: true }),
+      FIELD("to", "To", { optional: true, oneOf: ["master"] }),
+      FIELD("serious", "Serious", { optional: true, bool: true }),
       FIELD("recommend", "Recommended", { newer: true, form: RECOMMEND_TAKES })],
     repeats: true,
     check: (got) => recommendProblem(got.recommend, got.reading.length),

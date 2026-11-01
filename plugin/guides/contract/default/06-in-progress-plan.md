@@ -1,8 +1,8 @@
 ### `in_progress:plan` — reads the confirmation and the code behind it
 
 This place promises that somebody read the code. Leave it by deciding every ambiguity or by saying
-*none found*. Ask a person about one that is expensive to reverse. A rung drops payloads, never the
-right to ask.
+*none found*; a decision the run may make is recorded, not asked. Who else may be asked: `forge
+record question -h`. A rung drops payloads, never the right to ask.
 
 The next status promises *object to the plan now, not after*, so the plan and the criteria are
 written here too, before the code, and a second reader reads them before the issue takes them. Never

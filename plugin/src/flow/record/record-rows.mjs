@@ -63,7 +63,7 @@ const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "")
 const kindRows = (caps) => [
   "  confirmation --is I --where W... --finding F [--detail D] [--fixed X --survives S] [--landed L]   F: " + FINDINGS.join("|"),
   `  decision     --decision "${DECISION_PARTS.join(" | ")}"... | --none <why>` + servesOn("decision"),
-  "  question     --reading \"reading -> outcome\" (two or more) --recommend N [--to who]",
+  "  question     --reading \"reading -> outcome\" (two or more) --recommend N [--to master] [--serious]",
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
@@ -345,6 +345,12 @@ const readsOff = (kind) => {
 };
 
 const QUESTION_BLOCKS = [
+  "A question asks a person to decide, and the tracker refuses one the run may decide itself",
+  "(QUESTION_AGENT_DECIDES). So by default take the reading cheaper to reverse and record it with",
+  "`forge record decision`. --to master addresses the master rather than a person (blockerKind",
+  "master_or_peer) and is taken on any project; --serious marks a decision that cannot be undone,",
+  "spends real money, touches credentials or sets product direction, and a person is asked only where",
+  "the project is strict and the question is serious.",
   "The write asks a person on the issue's own screen before the record goes up: one question whose",
   "options are the readings in order, the one --recommend names marked as recommended. An open",
   "question there offering the same readings is the one an earlier call asked, and is not asked",

@@ -300,7 +300,8 @@ test("a needs_info park writes its record first, because a record under the move
   Object.assign(MOVING, { status: "in_progress", workState: { step: "plan" } });
   state.comments["moving-uuid"] = [];
   const asked = await ranAsync(FORGE, ["record", "question", "ISS-98", "--reading",
-    "the park set the status -> resume by its left", "--reading", "an earlier move set it -> refuse", "--recommend", "1"], ENV);
+    "the park set the status -> resume by its left", "--reading", "an earlier move set it -> refuse",
+    "--recommend", "1", "--to", "master"], ENV);
   assert.equal(asked.status, 0, `${asked.stdout}${asked.stderr}`);
   state.calls.length = 0;
   const run = await ranAsync(FORGE, ["advance", "ISS-98", "--park", "question", "--why",
@@ -327,7 +328,7 @@ const readied = async (...readings) => {
   const held = readings.length ? readings
     : ["the park set the status -> resume by its left", "an earlier move set it -> refuse"];
   const run = await ranAsync(FORGE, ["record", "question", "ISS-98",
-    ...held.flatMap((one) => ["--reading", one]), "--recommend", "1"], ENV);
+    ...held.flatMap((one) => ["--reading", one]), "--recommend", "1", "--to", "master"], ENV);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   state.calls.length = 0;
 };

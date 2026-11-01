@@ -5,6 +5,7 @@
 import { capsOf } from "../../tracker/field-write.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { refuse } from "../../refusal.mjs";
+import { ONE_READ } from "../../brief/waived.mjs";
 import { ASKS } from "./compose.mjs";
 
 /* The run asked it and the run acts on the answer, which is the binding `forge-runner question ask`
@@ -28,20 +29,67 @@ const measured = (reference, prompt, readings) => {
   }
 };
 
-/** The question one record asks, refused here on anything the route's declared caps would refuse. */
-const askOf = (got, { documentId, title, reference }) => {
+/* The project's agent-gating profile, off the tracker for the reason `brief/waived.mjs` reads it there
+   (REQ-76). `known` is false where the read did not answer, so a question core alone can judge is left
+   for core rather than refused on a profile nobody read. */
+const strictOf = async () => {
+  const gates = await scoped("forge_config", { action: "gates" }, true, ONE_READ);
+  return gates?.refused ? { known: false, strict: false } : { known: true, strict: gates?.profile === "strict" };
+};
+
+/* Core refuses a question an agent may decide for itself where the project is not strict, or where it
+   is strict and the question is not serious (QUESTION_AGENT_DECIDES, REQ-79 BC-14/BC-18). A question
+   addressed to the master waits on no person and is taken on any project; a decision the run may make
+   is recorded, not asked. Refused here, before the ask writes anything, so the route out is the one a
+   run reads rather than core's bare code. */
+const DECIDE = (reference) => `  forge record decision ${reference} --decision "reading | assumption | undo"`;
+const MASTER = (reference) => `  forge record question ${reference} --reading "<reading -> outcome>" `
+  + "--reading \"<reading -> outcome>\" --recommend <n> --to master";
+
+const agentDecides = (got, reference, strict) => {
+  if (got.to === "master") return;
+  if (!got.serious) {
+    refuse(`record question: ${reference} asks a person to decide what this run may decide itself, which `
+      + `the tracker refuses (QUESTION_AGENT_DECIDES). Nothing was sent. Take the reading cheaper to `
+      + `reverse and record it on the item it shapes, or add --serious and ask on a strict project where `
+      + `the decision cannot be undone:\n${DECIDE(reference)}\nAsk the master instead where the call is `
+      + `the master's and not this run's:\n${MASTER(reference)}`);
+  }
+  if (strict.known && !strict.strict) {
+    refuse(`record question: ${reference} is marked --serious, and on a project that is not strict even a `
+      + `serious decision is this run's to make or the master's to take, never a person's `
+      + `(QUESTION_AGENT_DECIDES). Nothing was sent. Record the decision, or ask the master with `
+      + `--to master:\n${DECIDE(reference)}`);
+  }
+};
+
+/** The question one record asks, refused here on anything the route's declared caps would refuse, and
+ *  on a decision core leaves to the agent rather than a person. */
+const askOf = (got, { documentId, title, reference }, strict) => {
   const prompt = `${reference}: ${title}. ${ASKS}`;
   measured(reference, prompt, got.reading);
+  agentDecides(got, reference, strict);
   return {
     issueId: documentId,
     prompt,
     options: got.reading.map((label, at) => ({ id: optionId(at + 1), label, ...OPTION })),
     recommendedOptionId: optionId(Number(got.recommend)),
+    ...(got.serious ? { serious: true } : {}),
+    ...(got.to === "master" ? { blockerKind: "master_or_peer" } : {}),
   };
 };
 
 const sameReadings = (held, options) => (held ?? []).length === options.length
   && options.every((one, at) => held[at]?.label === one.label);
+
+/* Who an ask is put to and how, off either the open row or this call's payload, so the retry that
+   reuses a standing question is the one that would ask the same person the same way. Readings and the
+   recommendation alone matched a person-directed question to a `--to master` retry, which recorded a
+   recipient no question held (codex F1). */
+const addressed = (one) => `${one.blockerKind === "master_or_peer" ? "the master" : "a person"}`
+  + `${one.serious ? ", marked serious" : ""}`;
+const sameAddress = (held, data) =>
+  (held.blockerKind ?? null) === (data.blockerKind ?? null) && Boolean(held.serious) === Boolean(data.serious);
 
 /** Sent, unless an open question on the issue already offers these readings in this order: that is
  *  the one a call before this one asked before its comment failed, and asking again would put two in
@@ -51,6 +99,12 @@ const asked = async (data, reference) => {
   const standing = (listed?.questions ?? [])
     .find((one) => one.status === "open" && sameReadings(one.options, data.options));
   if (standing) {
+    if (!sameAddress(standing, data)) {
+      refuse(`record question: question ${standing.id} is open on ${reference} offering these readings `
+        + `addressed to ${addressed(standing)}, and this call asks ${addressed(data)}. Nothing was sent: a `
+        + `retry reuses the open question, so it would record a recipient no question holds. Match the open `
+        + `one, or answer it before you ask it a different way.`);
+    }
     const held = standing.options.findIndex((one) => one.id === standing.recommendedOptionId) + 1;
     const wanted = data.options.findIndex((one) => one.id === data.recommendedOptionId) + 1;
     if (held !== wanted) {
@@ -68,9 +122,13 @@ const asked = async (data, reference) => {
 
 /** What a shaped write sends ahead of its comments: every question its blocks ask, built and measured
  *  now, sent when called. Any other kind asks nothing. */
-export const askPrepared = (kind, blocks, issue) => {
+export const askPrepared = async (kind, blocks, issue) => {
   if (kind !== "question") return null;
-  const questions = blocks.map((got) => askOf(got, issue));
+  /* Read only where a block asks a person a serious decision, the one case whose refusal turns on it:
+     a question the run may decide is refused without it, and one addressed to the master needs none. */
+  const needsStrict = blocks.some((got) => got.serious && got.to !== "master");
+  const strict = needsStrict ? await strictOf() : { known: false, strict: false };
+  const questions = blocks.map((got) => askOf(got, issue, strict));
   return async () => {
     for (const one of questions) await asked(one, issue.reference);
   };
