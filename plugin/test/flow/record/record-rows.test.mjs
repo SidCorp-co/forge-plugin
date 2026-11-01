@@ -12,9 +12,24 @@ const { DISPLAY_ORDER } = await import("../../../src/flow/record/record-rows.mjs
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { eachProblem } = await import("../../../src/flow/record/content.mjs");
 const { CITED_IN, citationBlocks } = await import("../../../src/spec/checked.mjs");
+const { absentSaid } = await import("../../../src/resolve/gone/absent.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", cwd: neutralRoom(), env: process.env });
+
+/* ISS-10: `migration` was offered as a record kind forge-core never kept, so the write it typed was
+   refused. The offered set and the gone set must stay disjoint, or the gap reopens: a kind listed here
+   and marked gone through absent is a kind the plugin asks for and core will refuse. */
+test("no kind forge record offers is one marked gone through absent, and migration is one that is gone", () => {
+  for (const kind of [...KINDS, ...DISPLAY_ORDER]) {
+    assert.equal(absentSaid("kind", kind), null,
+      `${kind} is offered by forge record yet marked gone through absent — a kind core will not keep`);
+  }
+  assert.equal(KINDS.includes("migration"), false, "migration is no longer a kind forge record offers");
+  assert.equal(DISPLAY_ORDER.includes("migration"), false, "nor does its -h list it");
+  assert.match(absentSaid("kind", "migration") ?? "", /core keeps no migration record/u,
+    "and forge record migration is answered through absent, saying why it was taken out");
+});
 
 test("every kind is on the usage line, and -h prints it without touching the tracker", () => {
   for (const kind of KINDS) assert.match(USAGE, new RegExp(`^  ${kind}\\b`, "mu"), kind);
@@ -176,7 +191,7 @@ test("a field its own rule refuses is told in its kind's help what it takes, and
         `${kind}: --${field.flag} is refused for no form and its help states one anyway`);
     }
   }
-  assert.equal(told, 13, "and the fields carrying a form are the ones the shapes declare, `wave`'s --member the fourth (ISS-818), `declined`'s --finding the fifth (ISS-167), `correction`'s --corrects the sixth (ISS-74), `confirmation`'s --fixed and --survives the seventh and eighth (ISS-406), its --finding and --landed the ninth and tenth (ISS-1693), `migration`'s --statement the eleventh (ISS-2196), `question`'s --recommend the twelfth (ISS-2317) and `verdict`'s --runtime the thirteenth (ISS-2279)");
+  assert.equal(told, 12, "and the fields carrying a form are the ones the shapes declare, `wave`'s --member the fourth (ISS-818), `declined`'s --finding the fifth (ISS-167), `correction`'s --corrects the sixth (ISS-74), `confirmation`'s --fixed and --survives the seventh and eighth (ISS-406), its --finding and --landed the ninth and tenth (ISS-1693), `question`'s --recommend the eleventh (ISS-2317) and `verdict`'s --runtime the twelfth (ISS-2279); `migration`'s --statement was removed with the kind core never kept (ISS-10)");
 });
 
 /* The form and the refusal are one string or they are two copies, and the second is the one nobody

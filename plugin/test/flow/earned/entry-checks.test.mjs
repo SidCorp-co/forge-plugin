@@ -548,5 +548,5 @@ test("a declaration a plan quotes inside a code span is not one it makes", () =>
     recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit: "c8c3550", evidence: ["c8c3550"] }));
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z", acceptanceCriteria: CRITERIA, plan: quoted };
   assert.deepEqual(judging(view(stamped, [landed, ...verdicts])), [],
-    "and no migration risk classification is asked of a plan whose only coupling line is a quotation");
+    "and a plan whose only coupling line is a quotation declares nothing, so the judged plan owes nothing more");
 });

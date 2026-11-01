@@ -33,7 +33,6 @@ import { holdersOf } from "./landing/reconstruction.mjs";
 import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered, owesRuntime } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/fields.mjs";
-import { MIGRATION_CLASSES } from "./record/content.mjs";
 import { assemble } from "./record/page.mjs";
 import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } from "./park/read.mjs";
 
@@ -546,25 +545,13 @@ const noFileOwed = (view, ref) => {
   )] : [];
 };
 
-/* Read off the record that carries the classification and never off the issue's attachments, which
-   any log or screenshot fills: counting them let a file nobody classified anything in discharge a
-   demand naming the classification (ISS-2196). */
-const classificationOwed = (view, ref) => payloadOwed(
-  view,
-  "migration",
-  "the plan declares schema coupling, and no migration risk classification is on the record",
-  `forge record migration ${ref} --reaches "<how the migration reaches the deployment>" `
-    + `--statement "<statement> | ${MIGRATION_CLASSES.join("|")}"...`,
-);
-
 /* The whole of what `in_progress:release` is entered on: the judge's half of the end of a run, and the rung a project asking for an independent judgement hands its turn over at. Kept a function of its own beside the other half, so a case holds each to its own refusals rather than to the union two rungs would make (ISS-1022, consult 8736c3 F2; ISS-1065). */
 export const judgedOwed = (view, ref) => {
   if (!view.criteria.length) {
     return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
   }
-  const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref),
+  return [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref),
     ...supersededOwed(view, ref)];
-  return view.flags.schema === "yes" ? [...out, ...classificationOwed(view, ref)] : out;
 };
 
 /* A note a user reads carries a short title, which core refuses a write without (FB-403) and holds a

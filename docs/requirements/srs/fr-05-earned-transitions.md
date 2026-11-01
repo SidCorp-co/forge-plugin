@@ -337,22 +337,25 @@ superseded history and the check simply stops being met.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 
-Rev: 2 · Actors: agent · Enforces: BR-01, BR-02
+Rev: 3 · Actors: agent · Enforces: BR-01, BR-02
 
 Which declarations a plan must answer is decided in one place, and the plan write and `approved`
 both read it, so a typed plan the write accepts is never one `approved` refuses for a missing
 declaration; today it holds whether this is a screen change, whether it couples to a schema and
 whether it couples to a deploy. What a screen change and schema coupling declare is read at the
 ship steps rather than at the write. Entering `in_progress:release`, a screen change owes an attachment on every
-verdict and schema coupling owes the migration risk classification. Entering
-`awaiting_release`, a screen change owes a person's answer instead. Whether that
+verdict. Schema coupling declares a fact the plan carries but owes no record of its own: core keeps no
+migration record, so the migration's risk is carried in the verification or a decision (ISS-10, FB-23).
+Entering `awaiting_release`, a screen change owes a person's answer instead. Whether that
 person is owed at all is the project's to decide in its own configuration, because a project whose
 release lands where a person can still look at it afterwards is not the product the rule was written
 for.
 
-- **AC-05-7-1** · Rev: 2 · Proof: plugin/test/flow/earned/declarations/schema-classification.test.mjs "a schema-coupled change owes the classification record, whatever else the issue carries"
-  IF the plan declares schema coupling and no whole record classifies the migration's risk THEN the
-  CLI SHALL refuse `in_progress:release` and name the record it wants, whatever attachments the issue carries.
+- **AC-05-7-1** · Rev: 3 · Proof: plugin/test/flow/earned/declarations/schema-classification.test.mjs "a fully-judged schema-coupled change owes no migration classification — the kind core never kept is gone"
+  IF the plan declares schema coupling THEN the CLI SHALL earn `in_progress:release` on its verdicts
+  alone, owing no separate migration risk classification: forge-core keeps no migration record (ISS-10,
+  FB-23), so the record verb no longer offers that kind and the risk is carried in the verification or
+  a decision.
 - **AC-05-7-2** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "a user-facing outcome owes a person's look, and --owed says so first"
   IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
   for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL

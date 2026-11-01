@@ -299,13 +299,11 @@ test("what a rung drops and the rounds it spares are the rung report's, and no g
 /* A rung's claim is that the work is small, never a claim about what the gate found: the tree is
    measured by the landing's gate at every rung alike, so no rung owes a measurement of its own and
    none is spared one (ISS-3184). */
-test("no rung buys a judgement: the migration classification costs every rung alike, and none owes a baseline", () => {
+test("no rung buys a judgement: the tree is the landing's gate's, and no rung owes a baseline", () => {
   for (const rung of RUNGS) {
     const held = weighed(rung, { plan: "Schema coupling: yes" });
     assert.equal(missing("in_progress:build", held).some((one) => /baseline|gate/u.test(one)), false,
       `a ${rung} is asked for a measurement of the tree, which is the landing's gate's`);
-    assert.ok(missing("awaiting_release", { ...held, acceptanceCriteria: "" }).length,
-      `a ${rung} declaring schema coupling earns the rung with nothing said about the migration`);
   }
   assert.equal(LIGHTER.some((row) => row.status === "in_progress:build"), false,
     "and no row lightens in_progress:build, so the demand is the table's and not this case's");

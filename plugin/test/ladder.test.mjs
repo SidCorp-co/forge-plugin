@@ -200,7 +200,7 @@ test("a plan declaring a name twice is at the answer that owes more, whichever o
     assert.equal(escalatedBy({ plan }), 1, `\`${plan.replaceAll("\n", " / ")}\` declares a screen change`);
   }
   assert.equal(planFlags("Schema coupling: no\nSchema coupling: yes").schema, "yes",
-    "and the migration classification is owed by the same reading, which no rung drops");
+    "and a plan naming schema coupling twice reads as declaring it, by the same reading");
   assert.equal(rungOf({ complexity: complexityFor(middle), plan: "User-facing outcome: no\nUser-facing outcome: yes", moved: [], whole: true }),
     top, "so a plan that names an outcome anywhere in it has named one");
   assert.equal(escalatedBy({ plan: "Screen change: no\nUser-facing outcome: no" }), 0,

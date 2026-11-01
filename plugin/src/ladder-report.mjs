@@ -67,8 +67,7 @@ export const rungReport = (fields, ref) => {
     ...splitAsk(fields.complexity),
     "Every other demand below stands as a feature's does — the confirmation with its where, the",
     "criteria, the merged mark, the review of the head that landed, a verdict on every",
-    "criterion, the verification, and the migration classification where a plan declares schema",
-    "coupling, which no rung drops.",
+    "criterion, and the verification, which no rung drops.",
     ...routesOff(rung, ref),
   ].join("\n");
 };

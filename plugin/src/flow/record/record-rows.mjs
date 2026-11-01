@@ -73,7 +73,6 @@ const kindRows = (caps) => [
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C] | --where W --landing L --evidence E...",
-  "  migration    --reaches R --statement \"S | additive|tightening|destructive\"... [--evidence E]...",
   "  wave         --member K... --role R --session S [--tree T]     one dispatch, on the wave's headline",
   "  fold         --summary S                                      the wave's end, once its fold is posted",
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
@@ -105,7 +104,6 @@ const KIND_PHRASE = {
   declined: "a folded finding not fixed here, and why",
   gap: "where the method did not answer, and what the run did instead",
   verification: "the change read where it now runs, with the evidence",
-  migration: "each schema statement and its risk class",
   finding: "expected, seen, and the evidence or the quote",
   triage: "a reopen judged: which of three, and what would have caught it",
   merged: "the tracker's own mark, its note in five clauses",
@@ -124,7 +122,7 @@ const KIND_PHRASE = {
    A kind absent from here would be a kind `forge record -h` no longer lists, so the row order is
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
-  "migration", "note", "declined", "finding", "triage", "confirmation", "merged", LANDED, "park", "answer",
+  "note", "declined", "finding", "triage", "confirmation", "merged", LANDED, "park", "answer",
   "decision", "question", "wave", "fold", "plan", "criteria"];
 
 const phraseRows = () =>
