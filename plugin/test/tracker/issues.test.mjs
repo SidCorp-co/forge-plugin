@@ -1,6 +1,6 @@
-/* A human reference is resolved by searching the offsets of the set ordered oldest first, and the
-   whole set is read by paging that same order — so what is judged here is the arithmetic on both:
-   how many requests a key costs, and that a walk ends where the route says there is nothing behind. */
+/* A human reference is resolved off the tracker's own exact key filter, and the whole set is read by
+   paging it oldest first — so what is judged here is that a key costs one request and reads the right
+   row whatever its number, and that a walk ends where the route says there is nothing behind. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -39,7 +39,8 @@ const paged = (url) => {
   const offset = Number(query.get("offset") ?? 0);
   const limit = Math.min(Number(query.get("limit") ?? 200), FITS);
   const rows = query.get("sort") === "createdAt:asc" ? SET : [...SET].reverse();
-  const filtered = rows.filter((one) => !query.get("status") || one.status === query.get("status"));
+  const onStatus = rows.filter((one) => !query.get("status") || one.status === query.get("status"));
+  const filtered = query.get("key") ? onStatus.filter((one) => one.displayId === query.get("key")) : onStatus;
   const page = filtered.slice(offset, offset + limit);
   return {
     items: page,
@@ -117,29 +118,33 @@ test("a declaration carrying no set leaves the page exactly as it arrived", () =
   assert.deepEqual(queued(rows, []), rows, "and the rows themselves are the ones handed in");
 });
 
-/* Where nothing below a key was removed, its number is the offset it sits at, and the arithmetic is
-   what makes the lookup one request rather than a walk of the backlog. */
+/* A key is resolved off the tracker's own exact key filter, so the lookup is one request and reads
+   the right row whatever page it would sit on. */
 const WHOLE = Array.from({ length: 40 }, (unused, index) => row(index + 1));
 
-test("a key on a backlog with no gaps costs one request, whatever page it would be on", async () => {
+test("a key is resolved in one request, whatever page it would be on", async () => {
   SET = WHOLE;
   FITS = 2;
   asked.length = 0;
   assert.equal(await documentIdOf("ISS-37"), "u-37");
-  assert.equal(lookups(), 1, `${lookups()} request(s) for a key nineteen pages down`);
+  assert.equal(lookups(), 1, `${lookups()} request(s) for one key`);
+  assert.equal(asked.at(-1).query.key, "ISS-37", "the key went to the tracker's own filter");
 });
 
-/* Rows deleted below the key move the answer earlier than its number, which is the case the search
-   exists for; it has to end, and to cost less than reading the backlog. */
-const GAPPED = [row(2), row(5), row(11), row(12), row(30)];
+/* The bug: a batch creates keys out of createdAt order, so a key's number is not the row's age-rank
+   and the offset bisect this took read the wrong row. The key filter reads the row by its key (ISS-16). */
+const BATCH = [
+  { ...row(50), createdAt: "2026-02-01T00:00:00.000Z" },
+  { ...row(48), createdAt: "2026-02-01T00:00:01.000Z" },
+  { ...row(49), createdAt: "2026-02-01T00:00:02.000Z" },
+];
 
-test("a key with rows deleted below it is found by searching the offsets", async () => {
-  SET = GAPPED;
+test("a key out of createdAt order is still resolved to its own row", async () => {
+  SET = BATCH;
   FITS = 200;
   asked.length = 0;
-  assert.equal(await documentIdOf("ISS-30"), "u-30");
-  assert.ok(lookups() > 1, "the offset the key implies was past the end");
-  assert.ok(lookups() <= GAPPED.length, `${lookups()} request(s) for ${GAPPED.length} rows`);
+  assert.equal(await documentIdOf("ISS-48"), "u-48");
+  assert.equal(lookups(), 1, "and it still costs one request");
 });
 
 /* A key nothing holds exits the process rather than throwing, so both refusals are judged where a

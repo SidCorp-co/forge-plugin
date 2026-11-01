@@ -96,7 +96,9 @@ const ownSlug = () => OWN_KEYS.slug;
  *  whole and `fits` is how many of them one request serves, binding below whatever a caller asked. */
 export const pageOf = (rows, fits) => (args) => {
   const wanted = String(args.filters?.search ?? "").toLowerCase();
-  const matched = rows.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+  const found = rows.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+  const matched = args.filters?.key
+    ? found.filter((one) => (one.issueId ?? one.displayId) === args.filters.key) : found;
   return { issues: matched, returned: matched.length, hasMore: false, fits };
 };
 
@@ -247,7 +249,8 @@ export const fakeTracker = async (state) => {
   const listed = (filters = {}) => {
     const wanted = String(filters.search ?? "").toLowerCase();
     const pool = wanted ? [...(state.issues ?? []), ...(state.hidden ?? [])] : (state.issues ?? []);
-    const rows = pool.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+    const narrowed = pool.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+    const rows = filters.key ? narrowed.filter((one) => one.issueId === filters.key) : narrowed;
     return { issues: rows, returned: rows.length, hasMore: false };
   };
   const { attributed, relabel, labels } = labelsOf(state);
@@ -591,7 +594,7 @@ export const fakeTracker = async (state) => {
 const rowsFrom = (payload, key = "issues") =>
   payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
 
-const FILTERS = ["status", "priority", "category"];
+const FILTERS = ["status", "priority", "category", "key"];
 
 const filtersFrom = (query) =>
   Object.fromEntries(FILTERS.map((name) => [name, query.get(name) ?? undefined])

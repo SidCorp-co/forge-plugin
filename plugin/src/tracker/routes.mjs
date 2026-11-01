@@ -109,6 +109,16 @@ export const ROUTES = {
     }),
     sends: ["offset"],
   },
+  /* The key's own document, read off the tracker's exact `key` filter: no assumption that a key's
+     number is the row's age-rank, which a batch creates keys out of (ISS-16). */
+  "forge_issues.by_key": {
+    project: true,
+    requests: (args, project) => ({
+      page: { path: `/projects/${project}/issues${query({ key: args.key, limit: 1 })}` },
+    }),
+    answers: ({ page }) => ({ row: rowsIn(page, "items").map(browseOf)[0] ?? null }),
+    sends: ["key"],
+  },
   "forge_issues.get": {
     requests: (args) => filled({
       issue: { path: `/issues/${args.documentId}` },

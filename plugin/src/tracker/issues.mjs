@@ -201,29 +201,16 @@ export const isReference = (value) => typeof value === "string" && (UUID.test(va
 
 export const notAReference = (reference) => (isReference(reference) ? null : notAKey(reference));
 
-/* The key's number rises with the row's age, so the set ordered oldest first is sorted by it and an
-   offset can be searched. Read off the key the row prints: the browse projection carries no other. */
-const seqOf = (row) => Number(String(row?.issueId ?? "").replace(/\D+/gu, "")) || null;
-
-/** One request where nothing below the key was ever deleted, else a search of the offsets. */
+/** The key's document, read off the tracker's own exact key filter: one request, and no assumption
+ *  that the key's number is the row's age-rank — a batch creates keys out of createdAt order, which
+ *  the offset bisect this took read the wrong row for (ISS-16). On a miss the backlog's own count is
+ *  read for the message, the key filter's own total being 0 when nothing matched. */
 const resolvedKey = async (reference, soft, held) => {
-  const at = (offset) => scoped("forge_issues", { action: "at", offset }, soft, held);
-  const wanted = Number(reference.replace(/\D+/gu, ""));
-  const guess = await at(Math.max(wanted - 1, 0));
-  if (guess?.refused) return guess;
-  if (seqOf(guess.row) === wanted) return { id: guess.row.documentId };
-  let low = 0;
-  let high = Math.min(guess.total - 1, Math.max(wanted - 2, 0));
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const row = mid === Math.max(wanted - 1, 0) ? guess : await at(mid);
-    if (row?.refused) return row;
-    const seq = seqOf(row.row);
-    if (seq === wanted) return { id: row.row.documentId };
-    if (seq === null || seq > wanted) high = mid - 1;
-    else low = mid + 1;
-  }
-  return { refused: missing(reference, guess.total) };
+  const found = await scoped("forge_issues", { action: "by_key", key: reference.toUpperCase() }, soft, held);
+  if (found?.refused) return found;
+  if (found.row?.documentId) return { id: found.row.documentId };
+  const all = await scoped("forge_issues", { action: "at", offset: 0 }, soft, held);
+  return all?.refused ? all : { refused: missing(reference, all.total ?? 0) };
 };
 
 /** A key's document, refused where this run claimed the key on another document. Soft, and every

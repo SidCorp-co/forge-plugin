@@ -162,6 +162,9 @@ const PAIRS = {
    projection produces from a captured body. */
 const SHAPES = {
   "issues-at": { key: "forge_issues.at", keys: ["row", "total"] },
+  /* The key lookup's own row. No pair: the MCP surface never had this action, and what is pinned is
+     that the one row core's exact key filter answers with survives the projection (ISS-16). */
+  "issues-by-key": { key: "forge_issues.by_key", keys: ["row"] },
   /* The reverse read's own row. No pair: the MCP surface never had this action, so there is no
      answer to compare with, and what is pinned is that the three fields a citation may sit in and
      the field the search matched all survive the projection. */
@@ -214,11 +217,11 @@ describe("the route table answers with the shape the tool answered with", () => 
   }
 });
 
-/* The lookup guesses an offset from the key's own number and searches from there, so it reads two
-   things off this envelope: the row's key, to say whether the guess landed, and the count, which
-   bounds the search and is what a refusal names. A body carrying neither would loop or lie. */
-describe("the offset lookup's two reads", () => {
-  it("the captured body carries the key the guess is compared against, and the count that bounds it", () => {
+/* A key the lookup matched none of reads the backlog's own count off this envelope for its refusal,
+   the key filter's own total being 0 when nothing matched (ISS-16); the row the route still carries
+   beside that count survives the projection too. A body carrying neither would lie. */
+describe("the miss path's count read", () => {
+  it("the captured body carries the count a refusal names, and the row beside it", () => {
     const { row, total } = ROUTES["forge_issues.at"].answers({ page: held("issues-at").rest.answer }, {});
     assert.match(row.issueId, /^ISS-\d+$/u);
     assert.match(row.documentId, /^[0-9a-f-]{36}$/u);

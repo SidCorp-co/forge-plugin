@@ -1,0 +1,36 @@
+{
+  "taken": "2026-11-01",
+  "tool": "forge_issues",
+  "action": "by_key",
+  "routes": {
+    "page": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/issues?key=ISS-16&limit=1"
+  },
+  "note": "No tool answered this: the key lookup replaces the offset bisect, so what is pinned here is the envelope the projection reads its one row off (ISS-16).",
+  "secretsDropped": ["apiKey", "webhookSecret"],
+  "rest": {
+    "answer": {
+      "items": [
+        {
+          "id": "ede0d97f-c1bf-4fc7-9d82-6fe56a827706",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 16,
+          "title": "Key resolver bisects createdAt order instead of a core key lookup",
+          "status": "open",
+          "priority": "high",
+          "category": "bug",
+          "complexity": "m",
+          "assigneeId": null,
+          "reopenCount": 0,
+          "mergedAt": null,
+          "createdAt": "2026-11-01T07:00:00.000Z",
+          "updatedAt": "2026-11-01T07:00:00.000Z"
+        }
+      ],
+      "returned": 1,
+      "total": 1,
+      "limit": 1,
+      "offset": 0,
+      "hasMore": false
+    }
+  }
+}

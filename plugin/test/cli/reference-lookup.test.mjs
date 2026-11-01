@@ -21,10 +21,11 @@ const at = (number, touched) => ({
   touched,
 });
 
-/* Six issues in a page that carries two: the lookup reaches the rest by offset. */
+/* Six issues in a page that carries two: the lookup reaches any of them by its key, whatever page it
+   would sit on. */
 const BACKLOG = [at(1, 1), at(2, 2), at(3, 3), at(4, 6), at(5, 4), at(6, 5)];
-/* The same backlog with rows deleted below the key wanted, so the offset a key implies is wrong by
-   as many as were removed and the search is what finds it. */
+/* The same backlog with rows deleted below the key wanted, so a key's number is not its row's
+   offset — the case the offset bisect read the wrong row for (ISS-16). */
 const GAPPED = [at(2, 1), at(5, 2), at(6, 3), at(9, 4)];
 
 const state = { issues: BACKLOG, comments: {}, calls: [], answer: {} };
@@ -105,8 +106,8 @@ test("a refusal over a covered backlog routes to the keys the tracker does hold"
   assert.doesNotMatch(run.stderr, /words from its title/u, "which a reader holding only a key has not got");
 });
 
-/* A key's number is the offset it would sit at only where nothing below it was ever removed. Every
-   row deleted below it moves the answer earlier, which is the whole reason the offset is searched. */
+/* A key whose row sits earlier than its number implies — rows removed below it — still resolves, the
+   tracker's own key filter reading it by its key rather than by a guessed offset (ISS-16). */
 test("a key with rows deleted below it still resolves", async () => {
   cutTo(GAPPED, 2);
   const run = await ran(["issue", "ISS-9"]);
@@ -194,8 +195,7 @@ test("the lowercase form of a key still resolves, and to the same issue", async 
   assert.equal(lower.stdout, upper.stdout, "the lookup upper-cases, and nothing covered this before");
 });
 
-/* Where nothing below the key was removed, the offset the key implies is the answer and one request
-   finds it, however many pages the backlog would take to walk. */
+/* The key filter answers in one request, however many pages the backlog would take to walk. */
 test("a key on a backlog with no gaps costs one lookup request", async () => {
   cutTo(BACKLOG, 2);
   state.calls = [];
@@ -204,11 +204,12 @@ test("a key on a backlog with no gaps costs one lookup request", async () => {
   assert.equal(lookups(), 1, `${lookups()} lookup request(s) — the offset a key implies was right`);
 });
 
-test("a key with gaps below it costs a search, and fewer requests than the backlog has rows", async () => {
+/* A key whose number is not its row's offset — rows removed below it, or a batch that created it out
+   of order — is no longer a search: the tracker's own key filter answers it in one request (ISS-16). */
+test("a key with gaps below it still costs one lookup request", async () => {
   cutTo(GAPPED, 2);
   state.calls = [];
   const run = await ran(["issue", "ISS-9"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(lookups() > 1, "the implied offset missed, so the offsets were searched");
-  assert.ok(lookups() <= GAPPED.length, `${lookups()} request(s) for ${GAPPED.length} rows`);
+  assert.equal(lookups(), 1, `${lookups()} lookup request(s) — the key filter answers in one`);
 });
