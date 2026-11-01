@@ -1,7 +1,8 @@
 # codex — the unavailable gateway
 
-What a consult is owed and when a write asks for one: [the consult](codex-the-consult.md). What a
-door holds: `forge hooks --how codex-second` and `forge hooks --how codex-owed`.
+What a consult is owed and when a write asks for one: [the consult](codex-the-consult.md). The
+consult is the agent's own to run; the rule below is what the plan and criteria writes read, not a
+per-turn gate.
 
 **A reviewer that could not answer is not an agent that did not ask.** The reviewer is a service
 outside the flow, and a precondition it cannot meet holds every run behind it: on 2026-09-30 every
@@ -13,10 +14,10 @@ off — is named by the first line of its error instead.
 
 **What that state costs is the project's, in `codex.consult`.** `required` is the default because a
 project that has not decided keeps what G-06 asks for, the reading before landing: the plan and
-criteria writes and both doors hold such a file exactly as they hold one nobody consulted on, and the
+criteria writes hold such a file exactly as they hold one nobody consulted on, and the
 refusal says what the gateway answered and names the setting that lets it through. `advisory` lets
-the file through and says so where it lands — a comment on the issue for a plan or criteria write, a
-note beside the call at a door. A machine with no gateway configured is the same case under
+the file through and says so where it lands — a comment on the issue for a plan or criteria write.
+A machine with no gateway configured is the same case under
 `advisory`, since no consult can be asked for there.
 
 **A consult that read these bytes stands; short of one, the newest consult that carried them
@@ -28,7 +29,7 @@ answered; the judgement of what the row means is one function both call, so the 
 drift into four readings of one row.
 
 **A consult nobody asked for is held under both values.** On a machine with a gateway, an advisory
-reading still refuses a file no consult was asked about, a door included where the same call also
+reading still refuses a file no consult was asked about, even where the same call also
 carries a file whose consult failed. That is what lets the record tell a reviewer that was down from a
 consult the agent skipped, and it costs one call: asked while the gateway is down, the consult fails
 fast and the write goes through on the row it leaves. `FORGE_CODEX_DISABLE=1` is the third reason a

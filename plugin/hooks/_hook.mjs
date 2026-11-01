@@ -29,7 +29,7 @@ export { MOVE_WORD, directoryAt, typed, waitsIn } from "../src/hooks/shell-spans
 export { NOWHERE, WRITES, namesOf, standsIn, withoutBodies };
 export { LITERALS, RUNS, SHELL, handedIn, literal };
 export { isSubagent, ownTranscript, transcriptOf };
-export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
+export { calledAt, lastRecords, sinceTurn, turnAt, turnRecords }
   from "../src/hooks/transcripts.mjs";
 
 /** How long after a call a file's mtime still answers for it. */

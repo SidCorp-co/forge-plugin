@@ -1,7 +1,7 @@
 // Which transcript an event means and what it says, once for both sides of the hook boundary,
 // since a check under src/ cannot import the harness. Memory is one project's, so memoryDir is
 // never transcriptOf.
-import { closeSync, openSync, readFileSync, readSync, statSync } from "node:fs";
+import { closeSync, openSync, readSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { agentTranscript, isAgentsDir } from "../host/layout.mjs";
@@ -218,12 +218,3 @@ export function lastRecords(path, span = TAIL) {
   }
 }
 
-/** Null and not an empty list: a gate that reads "no advice" from a transcript it could not open
- *  would stop the work it exists to order. */
-export function transcript(path) {
-  try {
-    return parsed(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}

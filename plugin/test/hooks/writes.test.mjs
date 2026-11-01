@@ -12,7 +12,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { FRESH_MS, callAt, namesOf, promptIndex, shellWrites, touched, turnRecords, writtenPaths } from "../../hooks/_hook.mjs";
+import { FRESH_MS, namesOf, shellWrites, touched, turnRecords, writtenPaths } from "../../hooks/_hook.mjs";
+import { callAt, promptIndex } from "../../src/hooks/transcripts.mjs";
 import { glued } from "../../src/hooks/program/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { redirectsIn } from "../../src/hooks/shell-spans.mjs";

@@ -5,7 +5,8 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callAt, turnAt, turnRecords } from "../../../hooks/_hook.mjs";
+import { turnAt, turnRecords } from "../../../hooks/_hook.mjs";
+import { callAt } from "../../../src/hooks/transcripts.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { patience } from "../../patience.mjs";
 
