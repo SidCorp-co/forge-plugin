@@ -6,7 +6,7 @@ import { SPAN, blanked, fenceMarked } from "../prose.mjs";
 import { MARKUP_PATTERN } from "../markdown.mjs";
 import { entriesIn, firstKindIn } from "./machine/block.mjs";
 import { heldOut } from "./machine/held.mjs";
-import { JUDGED_COMMIT, JUDGED_LANDING, RUNTIME_TAKES, identityProblem, runtimeProblem } from "./machine/identity.mjs";
+import { JUDGED_COMMIT, JUDGED_LANDING, RUNTIME_TAKES, identityProblem, verdictIdentityProblem } from "./machine/identity.mjs";
 
 export { blockOf, readRecords, tagFor } from "./machine/block.mjs";
 
@@ -484,6 +484,8 @@ export const SHAPES = {
       FIELD("commit", "Commit", JUDGED_COMMIT),
       FIELD("landing", "Landing judged", JUDGED_LANDING),
       FIELD("runtime", "Runtime exercised", { optional: true, form: RUNTIME_TAKES }),
+      FIELD("contract", "Contract", { optional: true }),
+      FIELD("environment", "Environment", { optional: true }),
       /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
       FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
       FIELD(CARRIES_DEPLOYMENT, "Carries the deployment", { optional: true, stamped: CARRIES_DEPLOYMENT }),
@@ -500,7 +502,7 @@ export const SHAPES = {
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
     ],
     check: (got) => {
-      const identity = identityProblem(got) ?? runtimeProblem(got.runtime);
+      const identity = verdictIdentityProblem(got);
       if (identity) return identity;
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
       /* A failing verdict is the one another run acts on, and one saying only `fail` sends them back to run it again to find out what. */

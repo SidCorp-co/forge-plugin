@@ -6,6 +6,7 @@
    docs/cli/record.md. ISS-7. */
 import { refuse } from "../../../refusal.mjs";
 import { PROBE_TAKES, SHORT, criterionNumber } from "../../machine.mjs";
+import { draftRuntimeOf } from "../../machine/identity.mjs";
 import { render } from "../page.mjs";
 import { runOf } from "../../../codex/codex-log.mjs";
 
@@ -66,11 +67,14 @@ const probeParsed = (text) => {
    field here — the door attributes the verdict to the credential it is sent on. */
 const doorDraft = (got, probe, run) => {
   const criterion = criterionNumber(got.criterion);
-  const identity = got.runtime !== undefined
-    ? { kind: "runtime", ref: got.runtime }
-    : got.commit !== undefined
-      ? { kind: "commit", sha: got.commit }
-      : null;
+  const draft = draftRuntimeOf(got.runtime);
+  const identity = draft !== null
+    ? { kind: "storefront_draft", workflowId: draft.workflowId, draftVersion: draft.draftVersion, environment: got.environment }
+    : got.runtime !== undefined
+      ? { kind: "runtime", ref: got.runtime }
+      : got.commit !== undefined
+        ? { kind: "commit", sha: got.commit }
+        : null;
   const payload = {
     criterion,
     verdict: got.verdict,
