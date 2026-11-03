@@ -13,10 +13,12 @@ const git = (args, cwd) => {
 
 const lines = (text) => String(text ?? "").split("\n").map((one) => one.trim()).filter(Boolean);
 
-/** The remote's own default first; the two common names only where it names none. */
+// cm:why the checkout's own upstream comes before refs/remotes/origin/HEAD: origin's global default can point at a non-base branch, so a brief run from the integration branch (e.g. dev) would diff every sibling against origin's default (e.g. master) rather than the base it was cut from (ISS-33).
+/** The checkout's own upstream first, then the remote's default, then the two common names. */
 export const defaultRef = (from) => {
+  const upstream = git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], from)?.trim();
   const named = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], from)?.trim();
-  return [named, ...REMOTES].filter(Boolean)
+  return [upstream, named, ...REMOTES].filter(Boolean)
     .find((ref) => git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], from) !== null) ?? null;
 };
 
