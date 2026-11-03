@@ -302,6 +302,11 @@ const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 export const CARRIES = "carries";
 export const CARRIES_DEPLOYMENT = "carries-deployment";
 
+/* The probe a verdict keeps on an observable criterion (REQ-36 BC-6, ISS-469); where it is recorded is
+   `record/verdict/door.mjs`'s. `offRecord` keeps it off the comment and its budget: the value travels
+   to that door, which caps the stored probe, rather than being screened as a comment field. */
+export const PROBE_TAKES = "a request or command probe as JSON, for the verdict door";
+
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
    for the reason there is none, never half of one, so an absent record and an unasked question stop
    reading the same. Here rather than in the field loop, which cannot see one flag excusing three. */
@@ -487,6 +492,9 @@ export const SHAPES = {
       /* Core's `without-clip` line (REQ-40 BC-4): why a criterion the design classes observable is
          judged citing no screen clip, which core otherwise refuses VERDICT_CLIP_REQUIRED. */
       FIELD("without-clip", "Without a clip", { optional: true, prose: true }),
+      /* `offRecord` keeps it off the comment and its budget; what it takes is `PROBE_TAKES`, said in the
+         door's own refusal rather than in the kind's help, which is at its cap (ISS-7). */
+      FIELD("probe", "Probe", { optional: true, offRecord: true }),
       FIELD("filed", "Filed as", { optional: true }),
       FIELD("judge", "Judge", { written: "id", newer: true }),
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),

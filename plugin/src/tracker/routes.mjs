@@ -184,6 +184,9 @@ export const ROUTES = {
     requests: (args) => one(`/issues/${args.documentId}/review`, "POST", args.data),
     sends: ["documentId", "data"],
   },
+  /* The verdict door `forge record verdict --probe` writes through; why is `flow/record/verdict/door.mjs`'s
+     (ISS-7). Raw: `duplicate` and `notCounted` are read off the body, as `review` reads none. */
+  "forge_issues.verdicts": { writes: true, requests: (args) => one(`/issues/${args.documentId}/verdicts`, "POST", args.data), sends: ["documentId", "data"] },
   "forge_issues.unmark": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "DELETE", filled({ note: args.data?.note })),

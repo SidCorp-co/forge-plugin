@@ -43,7 +43,7 @@ const budgetLegend = (cap, body = bodyCap()) => [
 /* A field a person types free text into, by its flag: a value from a closed set, a criterion's number
    and a commit never reach the budget, so their rows stay as they are. */
 const freeText = (field) => !field.oneOf && !field.criterion && !field.commit && !field.derived
-  && !field.stamped && !field.written;
+  && !field.stamped && !field.written && !field.offRecord;
 
 /* The row of a record kind with the budget beside each free-text value, read off the shape table the
    write measures against, so a flag the table grows is capped on its row without a second list. */
@@ -67,7 +67,7 @@ const kindRows = (caps) => [
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L [--runtime R] --evidence E... [--why W] [--without-clip W] [--filed R]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L [--runtime R] --evidence E... [--why W] [--without-clip W] [--probe P] [--filed R]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
@@ -247,7 +247,8 @@ const VERDICT_BLOCKS = [
   "           --why says how it fell short, --filed names the row it became",
   "  skipped  no route reached it: nobody looked, so nothing is cited",
   "A later --commit carrying the merged one earns `in_progress:release`: the write records what git says of it.",
-  "An observable criterion cites a clip (--evidence x.webm|.mp4), or --without-clip says why not.",
+  "An observable criterion cites a clip (--evidence x.webm|.mp4), or --without-clip says why not, and a "
+    + "pass or short keeps a probe (--probe).",
 ];
 
 /* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.
@@ -258,13 +259,12 @@ const capBlocks = (cap = bodyCap()) => (cap === null ? [] : [
 ]);
 
 const CRITERION_BLOCKS = [
-  "--criterion repeats: one write judges every criterion it names, each opening a block. What",
-  "stands before the first is every block's: a block's own value replaces it, a repeatable flag",
-  "adds to it. A flag that part names is restated only in the last block, which no",
+  "--criterion repeats: one write judges every criterion it names, each a block. What stands before",
+  "the first is every block's: its own value replaces it, a repeatable flag adds to it.",
+  "A flag that part names is restated only in the last block, which no",
   "block follows to be read as; in any other block it is refused. Restated last, it is taken:",
   "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
   "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
-  "A file two criteria cite goes up once.",
 ];
 
 /** Which kinds carry a `Serves:`, off the table that gives them the field: one derivation, so a second kind growing it is a row in `SHAPES` and nothing typed anywhere. */

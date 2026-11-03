@@ -7,6 +7,7 @@ import { CONTRACT } from "../../guides/contract.mjs";
 export const render = (kind, blocks, status = null) => {
   const shape = SHAPES[kind];
   const entries = (Array.isArray(blocks) ? blocks : [blocks]).flatMap((fields) => shape.fields
+    .filter((field) => !field.offRecord)
     .map((field) => [field.flag, fields[field.flag]])
     .filter(([, value]) => !(value === undefined || value === null || (Array.isArray(value) && !value.length))));
   if (shape.stamp && status) entries.push([shape.stamp.flag, status]);

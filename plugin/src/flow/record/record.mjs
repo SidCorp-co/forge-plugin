@@ -47,6 +47,8 @@ import { runtimeChecked } from "./judged/runtime.mjs";
 import { landingOf } from "../landing/checkpoint.mjs";
 import { LANDED, recordLanded } from "./landed/by-hand.mjs";
 import { REVIEW_ROUTE_FLAG, recordReviewRoute } from "./review/route.mjs";
+import { coreClasses } from "../earned/core-verdicts.mjs";
+import { verdictDoorPrepared } from "./verdict/door.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -108,6 +110,7 @@ const gather = (kind, argv, defer = [], reference = undefined) => {
    screens a record field at: measured here, before the issue is read, so a refusal costs no call. */
 const budgetChecked = (kind, shape, got) => {
   for (const field of shape.fields) {
+    if (field.offRecord) continue;
     const value = got[field.flag];
     for (const one of field.many ? value ?? [] : [value]) {
       if (typeof one !== "string") continue;
@@ -451,11 +454,21 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   await derive(kind, blocks, body, { say, reference });
   await servesChecked(kind, blocks);
   quoteCriteria(kind, blocks, body, reference);
+  /* Verdict blocks routed, `verdict/door.mjs`'s to decide: the probe-carrying ones to the door and the
+     rest to the comment, every refusal it owes raised here before a byte is uploaded (ISS-7). */
+  const door = kind === "verdict"
+    ? verdictDoorPrepared(blocks, { reference, classes: (await coreClasses(documentId)).classes })
+    : { drafts: [], commentBlocks: blocks };
   const stamp = shape.stamp ? await stampOf(kind, { documentId, body, comments, names: onIssue }, shape, reference) : null;
+  /* The comment this write posts, or none where every block went to the door. */
+  const rendered = door.commentBlocks.length
+    ? renderedWithin(kind, door.commentBlocks, stamp, { reference, uploads: plan?.upload })
+    : undefined;
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
-     evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
-  refuseIfGated("forge_comments");
-  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered: renderedWithin(kind, blocks, stamp, { reference, uploads: plan?.upload }),
+     evidence up: the two calls are one refusal a caller can act on and one nothing may skip. Only where
+     a comment is rendered, the capability it needs being the comment's. */
+  if (rendered !== undefined) refuseIfGated("forge_comments");
+  return { uploads: plan?.upload ?? [], said: plan?.said ?? null, rendered, verdicts: door.drafts,
     tallied: tallied(kind, reference, blocks), ask: await askPrepared(kind, blocks, { documentId, title: body.title, reference }) };
 };
 

@@ -5,6 +5,7 @@ import { refuse } from "../../../refusal.mjs";
 import { SHAPES } from "../../machine.mjs";
 import { askedInSource } from "../../../resolve/flags.mjs";
 import { batchRefusal, strandedLine, uploadAll } from "../../../tracker/evidence.mjs";
+import { write } from "../../../tracker/rest.mjs";
 import { writeFields } from "../../../tracker/field-write.mjs";
 import { repoRoot } from "../../../git/repo-root.mjs";
 import { scopeFrom, scopePath } from "../plan-scope.mjs";
@@ -32,8 +33,20 @@ const scopeNoted = async (documentId, reference, issue, comments) => {
   } catch {}
 };
 
+/* What a verdict recorded through the door says on stderr, stdout carrying the record itself: that it
+   kept its probe, and core's reading of a duplicate or a verdict that will not count (ISS-7, ISS-475). */
+const verdictDoorSaid = (reference, draft, answer) => {
+  const dup = answer?.duplicate
+    ? "; this run's latest verdict on it, sent again word for word, so nothing was written" : "";
+  const notCounted = answer?.notCounted
+    ? `\n  ${typeof answer.notCounted === "string" ? answer.notCounted : JSON.stringify(answer.notCounted)}` : "";
+  return `criterion ${draft.criterion} ${draft.verdict} recorded on ${reference} through the verdict `
+    + `door, keeping its probe${dup}.${notCounted}`;
+};
+
 export const postRung = async (prepared, { reference, documentId, body, comments, next, patch, judged = null }) => {
   const uploads = prepared.flatMap((one) => one.uploads ?? []);
+  const verdicts = prepared.flatMap((one) => one.verdicts ?? []);
   const sent = [];
   /* Named from the line before the PUT: a file the tracker took with the answer lost is up all the same. */
   const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
@@ -59,14 +72,33 @@ export const postRung = async (prepared, { reference, documentId, body, comments
      claiming it; and the lease is renewed before the ask, so a run the record would be refused for
      asks nobody either (ISS-3101). That renewal stands for the first comment's own. */
   let renewed = false;
-  if (prepared.some((one) => one.ask) && !finder && !judged) {
+  if ((prepared.some((one) => one.ask) || verdicts.length) && !finder && !judged) {
     await renew(documentId, reference, next, patch);
     renewed = true;
   }
   for (const one of prepared) await one.ask?.();
+  /* The verdicts that keep a probe, recorded through the door after the uploads so the clip they cite is
+     up: a refusal there leads with the names already up rather than letting core's "nothing written"
+     stand alone (ISS-7). No comment is posted for one, so none joins `posted`; core's criteria read is
+     where the status move below counts it. */
+  for (const draft of verdicts) {
+    const answer = await write("forge_issues.verdicts", { documentId, data: draft.payload }, undefined, true);
+    if (answer?.refused) {
+      process.off("exit", stranded);
+      fail(sent.length ? `${strandedLine(sent, reference)}\n\n${answer.refused}` : answer.refused);
+    }
+    console.log(draft.rendered);
+    console.error(verdictDoorSaid(reference, draft, answer));
+  }
   /* A payload's record, then its note — a comment of its own, which no record's parse has to read past. */
   for (const body of prepared.flatMap((one) => [one.rendered, one.noted]).filter((said) => said !== undefined)) {
-    const answer = await post(documentId, body, { ref: reference, next, patch, finder, judged: Boolean(judged), renewed });
+    /* Soft where files are up, so core's refusal of the comment comes back here to lead with their
+       names rather than exiting bare beneath the stranded line (ISS-7). */
+    const answer = await post(documentId, body, { ref: reference, next, patch, finder, judged: Boolean(judged), renewed, soft: sent.length > 0 });
+    if (answer?.refused) {
+      process.off("exit", stranded);
+      fail(`${strandedLine(sent, reference)}\n\n${answer.refused}`);
+    }
     renewed = false;
     /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
     posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body,
@@ -82,7 +114,7 @@ export const postRung = async (prepared, { reference, documentId, body, comments
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
      exit, and the notice would be gone for every route but `fail()`'s. */
   process.off("exit", stranded);
-  return { issue, posted, again: uploads.length > 0 || prepared.some((one) => one.write)
+  return { issue, posted, again: uploads.length > 0 || verdicts.length > 0 || prepared.some((one) => one.write)
     || posted.some((one) => !one.authorDeviceId) };
 };
 

@@ -89,7 +89,10 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
      item key it filed, and core's criteria, read for which carry a verdict: a projection over any of
      them would be a second copy of a shape core owns. */
   "forge_issues.moves", "forge_feedback.submit", "forge_issues.criteria",
-  "forge_issues.review"];
+  "forge_issues.review",
+  /* Core's verdict door, read for the `duplicate` and `notCounted` it answers, the same reason `review`
+     beside it declares none. */
+  "forge_issues.verdicts"];
 
 /* Core's list carries no work step, so a row at `in_progress` reads back as the build, the place a
    move to `in_progress` with no step stands at, and core's own status rides beside it. */
