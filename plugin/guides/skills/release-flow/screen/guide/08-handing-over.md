@@ -23,6 +23,19 @@ The handoff is written where the work is tracked, and it names four things:
 4. **The fallback** — what to do if that act cannot be taken, including *nothing, and here is who
    decides* where that is the honest answer.
 
+**Ending the release goes through the abort route the job prompt names, and it is owed a reason.** The
+handoff note above is for the next owner; the release itself ends by calling that route (`POST
+…/releases/<version>/abort`) with a `reason` that names the step the run stopped at and the cause — the
+hand-over condition and the reading behind it. An abort with no reason records only "aborted by agent",
+and the aborted release then says nothing about why it stopped. A CLI verb for it refuses an abort with
+no reason, the way `forge release-batch clear` does.
+
+**A roster already shipped in an earlier version closes on the abort, rather than being held.** Where
+the cut aborts because every issue in the roster is already in a released version V, send
+`shippedIn: {version: V, evidence: <the git ancestry you checked>}` on the abort: the release records
+the roster as shipped in V and closes each issue. Without it each roster issue is held for the agent
+and the unattended sweep will not re-cut them.
+
 Hand over what you found and take nothing away. A judgement somebody else earned against an earlier
 reading stays theirs; this run does not unearn it on its way past, and a run that thinks it should be
 unearned says so in the account and leaves the deciding to whoever owns that judgement.
