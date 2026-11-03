@@ -105,9 +105,14 @@ state you could not take.
 the change was meant to support: the task cannot be completed, its result is materially wrong, work
 is lost, or the only way round it is one nobody would find. It carries the steps that reproduce it,
 the behaviour expected and what that expectation rests on — the criterion, or a rule of the product,
-and never taste — the harm observed, and the deployment identity it was seen at. A finding no harm
-was demonstrated from, and a defect that stood before this change, are both real and neither is this
-issue's: they are their own rows.
+and never taste — the harm observed, and the deployment identity it was seen at.
+
+**A criterion is judged on what it states, at the product as served.** Where what the criterion
+itself states does not hold on the running deployment, the criterion fails — whichever change caused
+the break. The verdict names the cause and its owner in its reason and leaves the fix to the run that
+owns it, but it does not pass. "Their own rows" is for a defect outside what the criterion states — a
+finding no harm was demonstrated from, or a pre-existing fault the criterion does not speak to: those
+are real, neither is this issue's, and they are their own rows.
 
 ## What you do not do
 

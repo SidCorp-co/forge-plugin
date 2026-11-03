@@ -139,9 +139,16 @@ before you count on it, and say it is absent rather than reporting a state you c
 the change is meant to support: the task cannot be completed, its result is materially wrong, work is
 lost, or an accessibility barrier stands with no reasonable way round it. It carries the steps that
 reproduce it, the behaviour expected and what that expectation rests on — the task, or a rule of the
-product, and never taste — the harm observed, and the deployment identity it was seen at. A preference
-about a layout no harm was demonstrated from, and a defect that was there before this change, are both
-real and neither is this issue's: they go on the backlog as their own rows.
+product, and never taste — the harm observed, and the deployment identity it was seen at.
+
+**A criterion is judged on what it states, at the product as served.** Where what the criterion
+itself states does not hold on the running deployment, the criterion fails — whichever change caused
+the break. The verdict names the cause and its owner in its reason and leaves the fix to the run that
+owns it, but it does not pass: a criterion that a page's rows read as short rows is not met when every
+row is cut off mid-word, even where another change is what cuts them. "Their own rows" is for a defect
+outside what the criterion states — a preference about a layout no harm was demonstrated from, or a
+pre-existing fault the criterion does not speak to: those are real, neither is this issue's, and they
+go on the backlog as their own rows.
 
 ## What you do not do
 
