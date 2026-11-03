@@ -155,6 +155,15 @@ const bodiesFor = async (window) =>
     await scoped("forge_issues", { action: "get", documentId: one.row.documentId, fields: ["relations"] }),
   ])));
 
+/* The paths the project's last landing left warm, read off its body, so a candidate naming one ranks
+   as a tree already open. Empty where nothing has landed. */
+const warmPathsOf = async (rows) => {
+  const landed = lastLanded(rows);
+  if (!landed) return [];
+  const body = await scoped("forge_issues", { action: "get", documentId: landed.documentId, fields: [] });
+  return pathsNamed(body?.description ?? "");
+};
+
 const drainJson = (drain) => ({
   declared: drain.declared,
   holds: drain.holds,
@@ -349,9 +358,7 @@ export const next = async (argv) => {
     { policy: await releasePolicy(), leaseFor: leaseOn, weights, whole: read.whole });
   const runs = measuredRuns(rootFor(asked.checkout ?? process.cwd()));
   const complexities = complexitiesOf(rows);
-  const landed = lastLanded(rows);
-  const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
-    action: "get", documentId: landed.documentId, fields: [] }))?.description ?? "") : [];
+  const warmPaths = await warmPathsOf(rows);
   /* The body's own lines are read when it lands, not in `judge`: `judge` is re-run over the whole read prefix on every
      pass — up to five under the caps below — and the body does not change between them, so they ride on its own entry. */
   const bodies = new Map();
@@ -368,6 +375,8 @@ export const next = async (argv) => {
       lease: body?.sessionContext,
       body: read ? text : null,
       held,
+      contractWait: read ? body?.contractWait : null,
+      patterns: read ? body?.patterns : null,
     });
     return {
       ...one,

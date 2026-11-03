@@ -36,7 +36,7 @@ export const heldPaths = (plans) =>
 /** One row's verdict and the reason with it. `body` is null where the window did not read it, and
  *  the filter that needs one then says nothing rather than guessing. */
 export const eligibilityOf = (row,
-  { blockers = [], unresolved = [], lease = null, body = null, held = [] } = {}) => {
+  { blockers = [], unresolved = [], lease = null, body = null, held = [], contractWait = null, patterns = null } = {}) => {
   const status = String(row?.status ?? "");
   if (!TAKEABLE.includes(status)) {
     return { eligible: false, soft: false, reason: `status ${status || "(none)"} is not one a run takes` };
@@ -52,6 +52,14 @@ export const eligibilityOf = (row,
       soft: false,
       reason: stuck.map((one) => `blocked by ${one.otherDisplayId} (${one.otherStatus})`).join(", "),
     };
+  }
+  /* Core gates dispatch on a contract wait and a design or pattern hold, each a `{dispatchable,
+     refusal}` core answers on the issue; a run the ranker offers that core then refuses is a backlog
+     that moved and did not (ISS-24). Both default dispatchable, so a row the window never read is
+     offered, as it was. */
+  const refused = [contractWait, patterns].find((one) => one && one.dispatchable === false);
+  if (refused) {
+    return { eligible: false, soft: false, reason: refused.refusal ?? "core will not dispatch it yet (a contract wait or a design hold)" };
   }
   if (unresolved.length) {
     return {

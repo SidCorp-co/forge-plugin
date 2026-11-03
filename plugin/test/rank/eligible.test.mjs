@@ -94,6 +94,25 @@ test("a blocker the flow would still refuse on drops the issue, and the sentence
     "a mention is not an ordering edge, and the tracker says which on the edge itself");
 });
 
+/* Core gates dispatch on a contract wait and a design or pattern hold; the ranker reads each one's
+   `{dispatchable, refusal}` off the issue so a row core will refuse is not offered as ready (ISS-24).
+   Both default dispatchable, and a window that never read the body has neither to read. */
+test("a contract wait or a design hold core will refuse on drops the issue, with core's own reason", () => {
+  const wait = eligibilityOf(row(), { contractWait: { dispatchable: false, refusal: "waits on forge-api 7.0.0" } });
+  assert.equal(wait.eligible, false);
+  assert.equal(wait.soft, false, "a core hold is a rule, not a collision");
+  assert.equal(wait.reason, "waits on forge-api 7.0.0");
+  const design = eligibilityOf(row(), { patterns: { dispatchable: false, refusal: "a design revision awaits approval" } });
+  assert.equal(design.eligible, false);
+  assert.equal(design.reason, "a design revision awaits approval");
+  assert.equal(eligibilityOf(row(), { contractWait: { dispatchable: false, refusal: null } }).reason,
+    "core will not dispatch it yet (a contract wait or a design hold)", "a hold with no reason still drops it");
+  assert.equal(eligibilityOf(row(), { contractWait: { dispatchable: true, refusal: null }, patterns: { dispatchable: true, refusal: null } }).eligible,
+    true, "dispatchable on both is offered");
+  assert.equal(eligibilityOf(row(), { contractWait: null, patterns: null }).eligible, true,
+    "a body the window never read has no hold to read");
+});
+
 /* A body naming a blocker that matches no title is evidence, not silence: treating it as absence
    ranks the issue as ready on a dependency nobody could identify. */
 test("a blocker phrase matching no title leaves the issue out, and the line quotes it", () => {
