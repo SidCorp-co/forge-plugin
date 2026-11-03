@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
    set the gates' routes open with. A route opening with a verb not in it is added here, once. */
 const ROUTE_VERBS = new Set([
   "change", "clear", "copy", "correct", "cut", "derive", "find", "fix", "keep", "name", "post", "read",
-  "re-send", "replace", "reset", "run", "say", "set", "spell", "stage", "type", "use", "wait", "write",
+  "record", "re-send", "replace", "reset", "run", "say", "set", "spell", "stage", "type", "use", "wait", "write",
 ]);
 
 /* The stop word a refusal may open with, and the dash that keeps it from being a sentence alone. */

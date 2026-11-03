@@ -124,6 +124,18 @@ export const judgeOf = (key, asked) => {
 
 const NOTHING_ELSE = "judge these and write nothing else";
 
+/* The line every judge brief carries beside NOTHING_ELSE, named once so the gate that refuses a
+   judge's writes reads the same marker both texts emit rather than a copy of it. */
+const ROLE_LINE = "Role: judge";
+
+/** Whether `text` is a judge's brief, by the two markers judgeText and requirementText both emit: a
+ *  `Role: judge` line and the phrase that closes the target line. A builder's brief carries neither,
+ *  so the gate keyed on this does nothing in a run that is not a judge. */
+export const isJudgeBrief = (text) => {
+  const said = String(text ?? "");
+  return said.includes(ROLE_LINE) && said.includes(NOTHING_ELSE);
+};
+
 /* The judge logs in with a testing-profile secret, and one judge printed a 16-character password
    because it masked only longer values (FB-45): the brief says never to print one at all, of any
    length, since core scrubs what a secret route returns but not what the judge types back. The route
@@ -137,7 +149,7 @@ const SECRETS = "Secrets: never print or write a secret value, of any length —
    gate holds that dispatch back, so this issue brief never reaches a run. */
 export const judgeText = (key, { urls, program, tree, criteria, identity }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
-  "Role: judge",
+  ROLE_LINE,
   SECRETS,
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
@@ -177,7 +189,7 @@ export const requirementOf = (key, asked) => {
 export const requirementText = ({ requirement, clauses, urls, identity }) => [
   `Target: ${requirement}, ${clauses.length ? `criteria ${clauses.join(", ")}` : "every criterion"} — ${NOTHING_ELSE}: `
     + "no issue's criteria, no other record.",
-  "Role: judge",
+  ROLE_LINE,
   SECRETS,
   `Deployed at: ${urls.join(", ")}`,
   `Identity: ${identity ?? "none given"}`,

@@ -25,7 +25,7 @@ import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } fr
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
-export { MOVE_WORD, directoryAt, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { MOVE_WORD, directoryAt, typed, unquote, waitsIn, wordsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, WRITES, namesOf, standsIn, withoutBodies };
 export { LITERALS, RUNS, SHELL, handedIn, literal };
 export { isSubagent, ownTranscript, transcriptOf };
