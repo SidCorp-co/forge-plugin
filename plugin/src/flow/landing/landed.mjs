@@ -7,6 +7,7 @@ import { asksIndependent, landsOn, releasePolicy } from "../../tracker/project-c
 import { commentPage } from "../../tracker/comments.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { commitCarries } from "../../git/carries.mjs";
+import { remoteFor } from "../../git/remote.mjs";
 import { viewFrom } from "../earned.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { landingSaved } from "../lease.mjs";
@@ -32,7 +33,7 @@ const git = (args) => {
 
 /* Read as `tipOf` in worklog.mjs reads the landing branch, and for its reason. */
 const branchTip = (branch) => {
-  const hash = git(["show-ref", "--verify", "--hash", `refs/remotes/origin/${branch}`]);
+  const hash = git(["show-ref", "--verify", "--hash", `refs/remotes/${remoteFor(branch)}/${branch}`]);
   return hash ? git(["rev-parse", "--verify", `${hash}^{commit}`]) : null;
 };
 
@@ -41,10 +42,11 @@ const branchTip = (branch) => {
 const answeredHead = (ref, landing) => {
   const tip = landing.branch ? branchTip(landing.branch) : null;
   if (tip) return tip;
+  const remote = remoteFor(landing.branch);
   return fail(`claim --landed out of \`${LANDING_HEAD_OWED}\` ends the landing at the head the builder `
     + `pushed in answer, the tip of ${landing.branch || "the checkpoint's branch"}, and this checkout `
-    + `holds no ref of origin/${landing.branch || "<branch>"} to read it off. Fetch it, then ask again:\n`
-    + `  git fetch origin ${landing.branch || "<branch>"}\n  forge claim ${ref} --landed`);
+    + `holds no ref of ${remote}/${landing.branch || "<branch>"} to read it off. Fetch it, then ask again:\n`
+    + `  git fetch ${remote} ${landing.branch || "<branch>"}\n  forge claim ${ref} --landed`);
 };
 
 const settle = (read) => `${read.route

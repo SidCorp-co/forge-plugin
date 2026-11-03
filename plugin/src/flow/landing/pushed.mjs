@@ -1,12 +1,12 @@
-/* Whether the head a ready capture names is the one origin holds for its branch, asked of origin
-   itself. The capture is the one read that goes to the remote: a landing fetches the branch it names
-   from there, and a head only this disk has armed a landing whose first step then failed, reading
-   as a network fault (ISS-2662). docs/cli/claim.md. */
+/* Whether the head a ready capture names is the one the branch's own remote holds for it, asked of
+   that remote itself — the branch's tracked remote and not an assumed origin (ISS-31). The capture is
+   the one read that goes to the remote: a landing fetches the branch it names from there, and a head
+   only this disk has armed a landing whose first step then failed, reading as a network fault
+   (ISS-2662). docs/cli/claim.md. */
 import { spawnSync } from "node:child_process";
 
 import { shortSha } from "../../tracker/evidence.mjs";
-
-const REMOTE = "origin";
+import { remoteFor } from "../../git/remote.mjs";
 
 /* git's first fatal line is its reason; what follows it is advice about access rights. */
 const reasonOf = (text) => {
@@ -22,7 +22,7 @@ const again = (ref) => `forge claim ${ref} --pushed --ready`;
 const REMOTE_MS = 30_000;
 
 export const remoteTip = (branch, { cwd = process.cwd(), ms = REMOTE_MS } = {}) => {
-  const run = spawnSync("git", ["ls-remote", REMOTE, `refs/heads/${branch}`],
+  const run = spawnSync("git", ["ls-remote", remoteFor(branch, { cwd }), `refs/heads/${branch}`],
     { cwd, encoding: "utf8", timeout: ms, killSignal: "SIGKILL", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
   if (run.error?.code === "ETIMEDOUT") return { failed: `no answer inside ${ms / 1000}s` };
   if (run.error) return { failed: run.error.message };
@@ -33,23 +33,24 @@ export const remoteTip = (branch, { cwd = process.cwd(), ms = REMOTE_MS } = {}) 
 
 /** The refusal for a ready capture whose head origin does not hold at its branch, or null where it does. */
 export const unpushedRefusal = (ref, { branch, head }) => {
+  const remote = remoteFor(branch);
   if (!branch || branch === "detached" || branch === "HEAD") {
-    return `claim --ready names a branch the landing fetches from ${REMOTE}, and this checkout stands `
+    return `claim --ready names a branch the landing fetches from ${remote}, and this checkout stands `
       + `on no branch. Put the head on one and push it, then capture again:\n`
-      + `  git switch -c <branch>\n  git push -u ${REMOTE} <branch>\n  ${again(ref)}`;
+      + `  git switch -c <branch>\n  git push -u ${remote} <branch>\n  ${again(ref)}`;
   }
-  const push = `  git push -u ${REMOTE} ${branch}\n  ${again(ref)}`;
+  const push = `  git push -u ${remote} ${branch}\n  ${again(ref)}`;
   const { tip, failed } = remoteTip(branch);
   if (failed !== undefined) {
-    return `claim --ready asks ${REMOTE} whether it holds \`${branch}\` at ${shortSha(head)}, and it did `
-      + `not answer: ${failed}. Nothing was written. Once ${REMOTE} answers:\n  ${again(ref)}`;
+    return `claim --ready asks ${remote} whether it holds \`${branch}\` at ${shortSha(head)}, and it did `
+      + `not answer: ${failed}. Nothing was written. Once ${remote} answers:\n  ${again(ref)}`;
   }
   if (!tip) {
-    return `claim --ready names \`${branch}\` at ${shortSha(head)}, and ${REMOTE} holds no branch of that `
+    return `claim --ready names \`${branch}\` at ${shortSha(head)}, and ${remote} holds no branch of that `
       + `name, so the landing would find nothing to fetch. Nothing was written. Push it, then capture again:\n${push}`;
   }
   if (tip !== head) {
-    return `claim --ready names \`${branch}\` at ${shortSha(head)}, and ${REMOTE} holds it at `
+    return `claim --ready names \`${branch}\` at ${shortSha(head)}, and ${remote} holds it at `
       + `${shortSha(tip)}, so the landing would fetch a head this capture did not name. Nothing was `
       + `written. Push this head, then capture again:\n${push}`;
   }
