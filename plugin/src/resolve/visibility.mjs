@@ -30,7 +30,7 @@ export const VERBS = [
   ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--full] [--project <slug>] [--set f=v... --why W] [--propose] [--redact] [--blocks|--relates|--unlink ISS-46 --kind k|--edge id]",
     "every matching issue with no key, or one body and the edges on it with one",
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
-      at: "`forge issue ISS-45`",
+      at: "`forge issue ISS-45`", by_key: "`forge issue ISS-45`",
       update: "`forge issue --set`", link: "`forge issue --blocks`", unlink_edge: "`forge issue --unlink`" } }],
   ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--module M] [--new]",
     "file one, read against the shape its category needs",

@@ -33,7 +33,7 @@ read prints it under and the column the tracker grows next is askable the day it
 is meaningful: a field with nothing in it is left out rather than returned as an empty value that
 says only that the field exists.
 
-- **AC-02-1-1** · Rev: 2 · Proof: plugin/test/tracker/issues.test.mjs "a key on a backlog with no gaps costs one request, whatever page it would be on"
+- **AC-02-1-1** · Rev: 2 · Proof: plugin/test/tracker/issues.test.mjs "a key is resolved in one request, whatever page it would be on"
   WHEN a reference naming an issue by its key is resolved THEN the CLI SHALL ask the tracker for the
   one record that key names rather than reading the backlog to find it.
 - **AC-02-1-2** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs "a uuid is its own answer and asks for no list"

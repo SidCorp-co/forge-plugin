@@ -368,7 +368,11 @@ export const fakeTracker = async (state) => {
   /* One page of a handler's whole answer, by the offset and limit the caller sent: `fits` binds
      below whatever was asked for, and `beyond` is a count the route reports and will not serve. */
   const windowOn = (q, held, sort) => {
-    const rows = ordered(rowsFrom(held).map(asRow), sort);
+    /* The key filter is the route's, not a handler's: core narrows `/issues?key=` server-side, so the
+       boundary applies it over whatever rows a handler answered, a custom one included (ISS-16). */
+    const key = q.get("key");
+    const kept = rowsFrom(held).filter((one) => !key || (one.issueId ?? one.displayId) === key);
+    const rows = ordered(kept.map(asRow), sort);
     const offset = Number(q.get("offset") ?? 0);
     const limit = Math.min(Number(q.get("limit") ?? 200), held.fits ?? state.page ?? Infinity);
     const page = rows.slice(offset, offset + limit);

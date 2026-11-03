@@ -201,10 +201,9 @@ export const isReference = (value) => typeof value === "string" && (UUID.test(va
 
 export const notAReference = (reference) => (isReference(reference) ? null : notAKey(reference));
 
-/** The key's document, read off the tracker's own exact key filter: one request, and no assumption
- *  that the key's number is the row's age-rank — a batch creates keys out of createdAt order, which
- *  the offset bisect this took read the wrong row for (ISS-16). On a miss the backlog's own count is
- *  read for the message, the key filter's own total being 0 when nothing matched. */
+/** A key's document through the `forge_issues.by_key` route, whose own comment says why a filter and
+ *  not an offset bisect. On a miss the backlog's count is read for the message, the key filter's own
+ *  total being 0 when nothing matched. */
 const resolvedKey = async (reference, soft, held) => {
   const found = await scoped("forge_issues", { action: "by_key", key: reference.toUpperCase() }, soft, held);
   if (found?.refused) return found;

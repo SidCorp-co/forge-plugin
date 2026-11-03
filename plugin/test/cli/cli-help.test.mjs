@@ -206,7 +206,7 @@ test("an action the verb has not got is a refusal, and a later help word is a va
    `[contract [part]|slug]` leaves an empty alternative behind, and neither shows in a sample. */
 /* Every verb and the fields the tracker takes for the routes it is the route for, spelled here rather than derived: read off the tables the code reads, this case would agree with a generator that had lost half the routes. A verb owning no route names none — `claim` and `resume` spend `forge_issues` and own nothing of it, so what they send is `forge issue`'s to declare. */
 const FIELDS_OF = {
-  issue: "documentId, edgeId, fields, filters, limit, offset",
+  issue: "documentId, edgeId, fields, filters, key, limit, offset",
   new: null,
   comment: "filters",
   claim: null,
