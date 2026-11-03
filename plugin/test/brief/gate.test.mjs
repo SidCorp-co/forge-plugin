@@ -60,6 +60,17 @@ test("a paraphrase of the printed brief is refused", () => {
   assert.equal(dispatch(who, printed(who).replace("Held by the other trees", "Held by other trees")).allowed, false);
 });
 
+/* A sibling tree's held files are read now and move when it commits; the pin is taken without those
+   lines, so a brief printed before a sibling moved still passes after, while the header and every
+   other line still pin it (ISS-30). */
+test("a sibling tree moving under the printed brief does not refuse it (ISS-30)", () => {
+  const who = homeFor();
+  const generated = printed(who);
+  const moved = generated.replace("committed: landed.txt", "committed: landed.txt, more.txt");
+  assert.notEqual(moved, generated, "the fixture prints a sibling's committed file, which this moves");
+  assert.equal(dispatch(who, moved).allowed, true);
+});
+
 test("a brief past its ten minutes is refused", () => {
   const who = homeFor();
   const generated = printed(who);

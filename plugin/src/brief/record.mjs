@@ -15,7 +15,10 @@ export const FRESH_MS = 10 * 60_000;
 
 const NO_SESSION = "none";
 
-const digestOf = (text) => createHash("sha256").update(String(text ?? "").trim()).digest("hex");
+// cm:why the pin ignores the two-space-indented heldLine readings — the other trees' held files, read now, that moved and refused an as-printed brief — so a sibling moving, added or removed leaves it whole; only those lines, so a line added anywhere else still breaks it (ISS-30)
+const INDENTED = /^ {2}\S/u;
+const stable = (text) => String(text ?? "").split("\n").filter((line) => !INDENTED.test(line)).join("\n");
+const digestOf = (text) => createHash("sha256").update(stable(text).trim()).digest("hex");
 
 // cm:guard the brief store roots at HOME, never XDG_CONFIG_HOME or TMPDIR — a borrow resets XDG and the scratch system resets TMPDIR, HOME neither, so verb and hook agree where either had the hook miss a byte-identical brief (ISS-29); reaped, so .cache fits it.
 const briefRoot = () => join(homedir(), ".cache", "forge", "briefs");
