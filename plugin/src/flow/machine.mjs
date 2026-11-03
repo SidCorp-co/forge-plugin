@@ -282,8 +282,9 @@ export const JUDGE_FROM = "judge-from";
 
 export { commandAt, missingLines, need } from "./machine/owed.mjs";
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
-   criterion was not met, or nothing in the specification ever promised what the person expected. */
-export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
+   criterion was not met, nothing in the specification ever promised what the person expected, or the
+   verdicts were read against a commit other than the one that landed (ISS-32). */
+export const TRIAGES = ["wrong-test", "not-met", "not-in-spec", "wrong-commit"];
 export const OUTCOMES = ["approved", "changes-requested"];
 /* A finding's identifier is unique only inside the consult that raised it, and the method mandates
    several reads of one change, so one review holds several F1s sharing nothing but a number

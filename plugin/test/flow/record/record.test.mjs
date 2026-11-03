@@ -103,8 +103,8 @@ test("a finding renders, reads back and is stamped with the reopen it belongs to
   assert.equal(SHAPES.park.stamp.from, undefined, "and a park's stamp is still the status it left");
 });
 
-test("a triage rules on one of three outcomes and says what would have caught it", () => {
-  assert.deepEqual(TRIAGES, ["wrong-test", "not-met", "not-in-spec"]);
+test("a triage rules on one of four outcomes and says what would have caught it", () => {
+  assert.deepEqual(TRIAGES, ["wrong-test", "not-met", "not-in-spec", "wrong-commit"]);
   const body = render("triage", { outcome: "not-met", "would-have-caught": "a verdict judged against the list" });
   assert.match(body, /^outcome: not-met$/mu);
   assert.match(body, /^would-have-caught: a verdict judged against the list$/mu);
@@ -115,7 +115,7 @@ test("a triage rules on one of three outcomes and says what would have caught it
   assert.ok(repeats);
   const run = ask("record", "triage", "ISS-43", "--outcome", "nope", "--would-have-caught", "a criterion");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /--outcome takes one of wrong-test, not-met, not-in-spec/u, run.stderr);
+  assert.match(run.stderr, /--outcome takes one of wrong-test, not-met, not-in-spec, wrong-commit/u, run.stderr);
   assert.equal(run.stdout, "", "and it is refused before anything is fetched");
 });
 

@@ -90,7 +90,8 @@ const resumeOwed = (view, held, ref) => {
 /* The tracker's own status for a reopen, which is no step of the flow: it is where a finding leaves
    an issue — a person's, or a judging run's — and the agent's triage of it routes what follows. */
 export const REOPEN = "reopen";
-const FALLS_TO = { "wrong-test": HELD.test, "not-met": HELD.build };
+// cm:why wrong-commit falls to the judging rung, not the build one: the verdicts named a commit other than the one that landed, so the answer is fresh verdicts at the landing and never a fail or a criterion rewrite — the code was never in question (ISS-32).
+const FALLS_TO = { "wrong-test": HELD.test, "not-met": HELD.build, "wrong-commit": HELD.test };
 
 /** Whether the issue is being built again: at the reopen itself, or at a status of the flow below the
  *  one a build hands over at. A side status says nothing of a rebuild, so it answers no. This is what
@@ -221,6 +222,19 @@ const OUTCOME_OWED = {
       "the triage rules the criterion not met, and no failing verdict since it"
         + `${named ? ` on criterion ${named}, which the finding names,` : ""} supersedes the passing one`,
       `forge record verdict ${ref} --criterion ${named || "<n>"} --verdict fail ${withRuntime(view, unreadId(view))} --evidence <attachment|url|sha>`,
+    )];
+  },
+  /* Every criterion that carries a verdict is owed a new whole one since the triage; whether that
+     verdict names the landing is the reopen rule's to judge — it bounced the issue — so this reads
+     presence and recency alone, as the others here do (ISS-32). */
+  "wrong-commit": (view, ref, since) => {
+    const stale = [...view.verdicts]
+      .filter(([, one]) => !(one.at >= since) || shapeGaps("verdict", one.record, view.names).length)
+      .map(([number]) => number);
+    if (view.verdicts.size && !stale.length) return [];
+    return [need(
+      "the triage rules the verdicts named the wrong commit, and not every criterion has a fresh verdict since it at the landed commit",
+      `forge record verdict ${ref} --criterion ${stale[0] ?? "<n>"} --verdict pass ${withRuntime(view, unreadId(view))} --evidence <attachment|url|sha>`,
     )];
   },
 };

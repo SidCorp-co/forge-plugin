@@ -11,8 +11,13 @@ const { render } = await import("../../../src/flow/record/page.mjs");
 const { viewFrom } = await import("../../../src/flow/earned.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
 
+/* Spread into hours past the sixtieth tick: a flat minute field made minute 60 an Invalid Date, so a
+   file that crossed it stopped ordering its comments the moment a case was added (ISS-32). */
 let clock = 0;
-const at = () => `2026-09-03T11:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
+const at = () => {
+  clock += 1;
+  return `2026-09-03T${String(11 + Math.floor(clock / 60)).padStart(2, "0")}:${String(clock % 60).padStart(2, "0")}:00.000Z`;
+};
 const comment = (body, extra = {}) => ({ createdAt: at(), authorId: "agent", body, ...extra });
 const recorded = (kind, fields, status = null) => comment(render(kind, fields, status));
 const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
@@ -132,7 +137,7 @@ test("a reopen with no finding or no triage names both writes", () => {
   assert.deepEqual(bare.missing.map((one) => one.what), [
     "no finding: what was expected, what was seen, and either the words of whoever reported it or "
       + "the evidence this run captured when it saw the defect itself",
-    "no triage of the finding: one of wrong-test, not-met, not-in-spec, and what would have caught it",
+    "no triage of the finding: one of wrong-test, not-met, not-in-spec, wrong-commit, and what would have caught it",
   ]);
   assert.match(bare.missing[0].command, /^forge record finding ISS-3 --expected/u);
   assert.match(bare.missing[1].command, /^forge record triage ISS-3 --outcome not-met --would-have-caught/u);
@@ -254,6 +259,21 @@ test("not-in-spec parks the issue behind the edge that gates it", () => {
   });
   const satisfied = targetOf(edged({ otherDisplayId: "ISS-9", otherStatus: "closed", kind: "blocks", gatesDispatch: false }), "ISS-3");
   assert.equal(satisfied.missing.length, 1, "an edge that gates nothing is no blocker here either");
+});
+
+/* The reopen was the verdicts naming a commit other than the one that landed, with the behaviour
+   never in question: the answer is fresh verdicts at the landing, and the triage asks for neither a
+   fail verdict nobody observed nor a correction of a criterion nobody disputes (ISS-32). */
+test("a wrong-commit triage re-judges at the landed commit, owing neither a fail nor a correction", () => {
+  const WRONG_COMMIT = { outcome: "wrong-commit", "would-have-caught": "the verdicts named the branch head, not the merge" };
+  const owed = targetOf(reopened(WRONG_COMMIT), "ISS-3");
+  assert.match(owed.missing[0].what, /the verdicts named the wrong commit, and not every criterion has a fresh verdict/u);
+  assert.match(owed.missing[0].command, /^forge record verdict ISS-3 .*--verdict pass/u, "a fresh verdict, offered as a pass");
+  assert.doesNotMatch(owed.missing[0].command, /--verdict fail/u, "it asks for no fail nobody observed");
+  assert.doesNotMatch(owed.missing[0].command, /record correction/u, "and no correction of an undisputed criterion");
+  const answered = targetOf(reopened(WRONG_COMMIT, {}, () => [judged("pass")]), "ISS-3");
+  assert.deepEqual(answered.missing, [], "a fresh verdict since the triage earns the fall");
+  assert.equal(answered.next, "in_progress:test", "the verdicts are re-judged, so it falls to the judging rung");
 });
 
 test("where a reopen lands is read from the mark", () => {
