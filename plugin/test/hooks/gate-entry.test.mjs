@@ -125,7 +125,7 @@ test("a registration naming a gate the chosen copy has not got loses that gate a
   });
   assert.match(run.stdout, /"permissionDecision":"deny"/u,
     `the gate after the missing one did not decide:\n${run.stdout}${run.stderr}`);
-  assert.match(run.stderr, /no-such-gate failed and was skipped/u, `the miss is not reported:\n${run.stderr}`);
+  assert.match(run.stderr, /no-such-gate was skipped: it is not a gate in this plugin copy/u, `the miss is not reported:\n${run.stderr}`);
 });
 
 test("the deadline runs from the process, so a hop and a fallback buy no time back", () => {

@@ -153,6 +153,25 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
   assert.ok(log.some((one) => one.decision === "error" && /boom/u.test(one.reason)), "the crash is a line in the log");
 });
 
+/* A running session registered its hooks from an earlier copy that had a gate this copy has since
+   retired: the stale registration fires it on every call, and the words say restart rather than that
+   this plugin is broken or that `forge doctor` would help, which it cannot (ISS-42). */
+test("a gate retired since a running session registered it says restart, not defect or forge doctor", () => {
+  const room = tempRoom("gate-retired-");
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
+  mkdirIfNeeded(join(room, "docs"));
+  writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
+  const ev = { tool_name: "Write", tool_input: { file_path: join(room, "docs", "PLAN.md") }, cwd: room, session_id: `g-retired-${Date.now()}` };
+  const held = run(["post", "codex-second", "../../test/fixtures/gates/note-gate"], ev);
+  assert.match(held.stderr, /codex-second was skipped: it is not a gate in this plugin copy; restart the session/u);
+  const told = answered(held, { skipped: ["codex-second"] }).hookSpecificOutput.additionalContext;
+  assert.match(told, /You changed a document/u, "the gate after the retired one still spoke");
+  assert.match(told, /codex-second is not a gate in this plugin copy/u, "the words name the retired gate");
+  assert.match(told, /Restart the session/u, "and the act that clears it");
+  assert.doesNotMatch(told, /defect in this plugin/u, "a stale registration is not this plugin's defect");
+  assert.doesNotMatch(told, /forge doctor/u, "nor a token or endpoint forge doctor would change");
+});
+
 test("the clock is the event's kind: before a call it is short, after one it is long", async () => {
   const { DEADLINES, dispatch, remaining } = await import("../../hooks/_hook.mjs");
   /* Which ceiling is in force, read as the one the spend accounts against: after a pre the spend

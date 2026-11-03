@@ -5,7 +5,8 @@ import { readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 
 import { once, readJson, saveConfig, userConfig } from "../resolve/config.mjs";
-import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
+import { PLUGIN_ROOT, pluginCopy } from "../tools/plugin-copy.mjs";
+import { Refusal } from "../resolve/settings.mjs";
 
 export const HOOKS_DIR = join(PLUGIN_ROOT, "hooks");
 export const ENTRIES_DIR = join(HOOKS_DIR, "entries");
@@ -132,4 +133,22 @@ export const offNow = () =>
 export const strandedSwitches = () => {
   const real = new Set(hookNames());
   return [...offIn(userConfig())].filter((name) => !real.has(name));
+};
+
+/* The words a gate that could not judge leaves on the channel the session reads, never on stderr
+   alone — how/stood-down.md says why the call still goes through. Here, beside the gate resolution
+   `RETIRED_GATE` reads, so the harness `_hook.mjs` stays under its line budget. A `fail()` refusal
+   already carries its own route; a crash is this plugin's defect, and the same two commands start either. */
+export const STOOD_DOWN = (name, error) => `forge hooks: ${name} could not judge this call and did not hold it: `
+  + `${String(error.message).trim()}\n${error instanceof Refusal ? "" : "That is a defect in this plugin, not in the call. "}`
+  + "`forge doctor` checks the endpoint, the token and the project a gate reads, and `forge doctor --token <pat>` "
+  + "replaces a token the tracker refused. Why the call went through: `forge hooks --how stood-down`.";
+
+// cm:why a gate name this copy does not register, invoked anyway, is a running session's stale hooks.json naming a gate this copy retired — not this plugin broken, so the words send the reader to restart and never to `forge doctor`, whose token and endpoint are not what is wrong (ISS-42); `pluginCopy().running` is the only version this call can name, the registering copy being gone from the cache.
+export const RETIRED_GATE = (name) => {
+  const running = pluginCopy()?.running;
+  return `forge hooks: ${name} is not a gate in this plugin copy${running ? ` (${running})` : ""}. `
+    + `A running session registered its hooks from an earlier copy that still had ${name}, and this copy has retired it, so the stale registration fires it on every call. `
+    + "Restart the session to load this copy's hooks. This is not a defect in the call or in this plugin. "
+    + "Why the call went through: `forge hooks --how stood-down`.";
 };

@@ -8,7 +8,7 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { logHook } from "../src/hooks/log/hook-log-file.mjs";
-import { Refusal, refusing } from "../src/resolve/settings.mjs";
+import { refusing } from "../src/resolve/settings.mjs";
 import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { ESCAPED_IN_DOUBLE, NOWHERE, RUNNER, SHELL_OPTION, SHELL_WORD, SPLITS, STARTS, WRITES, landedIn, namesOf, placeable, quotedOver, redirectsIn, respelled, BLANKS, shellWord, spacedSpans, spans, spelled as shellSpelled, standsIn, struck, ticksOpened, typed, unquote, unseenNames, wordsIn } from "../src/hooks/shell-spans.mjs";
@@ -19,7 +19,7 @@ import { LITERALS, RUNS, SHELL, handedIn, literal } from "../src/hooks/program/h
 import { bodiesOut, withoutBodies } from "../src/resolve/session/here-doc.mjs";
 import { FILES_IT, WHOLE, howPage } from "../src/refusal.mjs";
 import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
-import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
+import { DEADLINES, RETIRED_GATE, STOOD_DOWN, gateFile, hookEvents, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } from "../src/hooks/transcripts.mjs";
 
@@ -104,12 +104,6 @@ const refusal = (reason, ev) => {
   return filed(`${reason}${String(reason).includes("\n") ? "\n\n" : " "}${WHOLE}`, ev);
 };
 
-/* A gate that could not judge lets the call through and says so on the channel the session reads, never on stderr alone; how/stood-down.md says why. A refusal `fail()` raised already carries its own route; a crash is this plugin's defect, and the same two commands are where either starts. */
-const STOOD_DOWN = (name, error) => `forge hooks: ${name} could not judge this call and did not hold it: `
-  + `${String(error.message).trim()}\n${error instanceof Refusal ? "" : "That is a defect in this plugin, not in the call. "}`
-  + "`forge doctor` checks the endpoint, the token and the project a gate reads, and `forge doctor --token <pat>` "
-  + `replaces a token the tracker refused. Why the call went through: \`forge hooks --how stood-down\`.`;
-
 /* Where the session reads a hook's words: a tool event's own context, and a warning on any other. */
 const TOOL_EVENTS = { pre: "PreToolUse", post: "PostToolUse", ask: "PreToolUse" };
 const toolEventOf = (kind, ev) => {
@@ -152,8 +146,15 @@ export const dispatch = async (given, ev = readEvent()) => {
       process.stderr.write(`forge hooks: ${name} was skipped: the post clock ran out before it\n`);
       continue;
     }
+    const file = gateFile(name);
+    /* gateFile found none: RETIRED_GATE answers a name this copy never registered and lets the call through (how/stood-down.md says why), leaving the throw below for the packaging defect of a registered name whose file is missing. */
+    if (!file && !(name in hookEvents())) {
+      logged("error", `${name} skipped: not a gate in this copy; a stale session registration fired it`);
+      process.stderr.write(`forge hooks: ${name} was skipped: it is not a gate in this plugin copy; restart the session\n`);
+      stoodDown.push(RETIRED_GATE(name));
+      continue;
+    }
     try {
-      const file = gateFile(name);
       if (!file) throw new Error(`no gates/${name}.mjs in this copy`);
       const gate = await import(pathToFileURL(file).href);
       /* Inside `refusing`, `fail()` throws rather than exiting, so a gate that meets one is caught here like any other and the gates after it still answer. */
