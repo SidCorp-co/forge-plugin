@@ -62,7 +62,12 @@ export const state = {
   issues: [ISSUE],
   comments: { "landing-uuid": [] },
   answer: {
-    forge_config: () => ({ config: state.config }),
+    /* The pipeline read reaches the policy document now (ISS-21), its qa off the seed's
+       `pipelineConfig.qa`; every other forge_config action still answers the project config. */
+    forge_config: (args) => (args.action === "pipeline"
+      ? { declared: true, revision: 1,
+        document: state.config?.pipelineConfig?.qa === undefined ? {} : { qa: state.config.pipelineConfig.qa } }
+      : { config: state.config }),
     forge_issues: (args) => {
       if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
       if (args.action === "update" || args.action === "transition") {

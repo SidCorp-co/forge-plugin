@@ -50,8 +50,8 @@ arithmetic about what to build next, and a change already landed and waiting to 
 against none of them. Scored among the rest it would take a place in `--count` from the building
 work that count was asked for, and a wave needing two answers would get one list to re-sort.
 
-Silence is the answer where a project has declared nothing. Who judges is `pipelineConfig.qa`, the
-project's own key; the `screen` flow asks for `independent` and does not decide it, so a project
+Silence is the answer where a project has declared nothing. Who judges is the policy document's `qa`, the
+project's own setting; the `screen` flow asks for `independent` and does not decide it, so a project
 that declared neither is offered nothing rather than handed a guess about whose its landed work is.
 
 A declaration this verb could not read is not that silence, and the section says so instead of

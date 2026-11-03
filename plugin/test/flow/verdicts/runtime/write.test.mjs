@@ -20,7 +20,7 @@ const AT = "2026-10-03T08:00:00.000Z";
 const PLAN = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 const INDEPENDENT = { autoProdDeploy: true, qa: "independent" };
-const BUILDER_JUDGES = { autoProdDeploy: true, qa: "builder" };
+const BUILDER_JUDGES = { autoProdDeploy: true, qa: "self" };
 
 let clock = 0;
 const at = () => `2026-10-03T09:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

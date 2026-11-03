@@ -26,10 +26,10 @@ const CHECKPOINT = {
   files: ["plugin/src/flow/brief.mjs"], at: "2026-09-07T12:00:00.000Z",
 };
 const release = (qa) => releaseFrom({
-  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa },
-});
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true },
+}, undefined, qa);
 const INDEPENDENT = release("independent");
-const BUILDER_JUDGES = release("builder");
+const BUILDER_JUDGES = release("self");
 
 let clock = 0;
 const at = () => `2026-09-07T13:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

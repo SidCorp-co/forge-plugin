@@ -17,10 +17,10 @@ const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 const MERGED = "c8c35500000000000000000000000000000000ab";
 const PLAN = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.";
 const released = (qa) => releaseFrom({
-  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false, qa },
-});
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false },
+}, undefined, qa);
 const JUDGED_APART = released("independent");
-const BUILDER_JUDGES = released("builder");
+const BUILDER_JUDGES = released("self");
 const READY = {
   state: "ready", builder: "the-builder", branch: "iss-8", head: "a".repeat(40), base: "b".repeat(40),
   files: ["one.mjs"], at: "2026-09-07T12:00:00.000Z",

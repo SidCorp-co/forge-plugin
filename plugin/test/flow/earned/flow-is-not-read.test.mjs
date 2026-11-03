@@ -108,7 +108,7 @@ test("a flow requiring a look the release policy waives is a reported conflict, 
 });
 
 const JUDGED = { qa: "independent" };
-const BUILT = { qa: "builder" };
+const BUILT = { qa: "self" };
 
 /* The same shape for the other thing a flow may ask the project for. Who judges is one key, and a
    flow that decided it a second time would be a precedence rule with nothing to settle it, so the
@@ -116,7 +116,7 @@ const BUILT = { qa: "builder" };
 test("a flow asking for a judgement the project's key does not name is a reported conflict", () => {
   const said = flowJudgeConflict("erp-flow", "independent", BUILT);
   assert.match(said, /flow erp-flow asks for independent judgement between in_progress:test and in_progress:release/u);
-  assert.match(said, /this project's configuration says builder/u, "and the other source, in its own value");
+  assert.match(said, /this project's configuration says self/u, "and the other source, in its own value");
   assert.match(said, /change the flow, or the project's qa configuration/u, "and both ways out");
   assert.match(flowJudgeConflict("erp-flow", "independent", {}), /says not stated/u,
     "a project that has answered nothing is a conflict too, and is told which answer is missing");

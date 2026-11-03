@@ -36,8 +36,8 @@ const CHECKPOINT = {
   files: ["plugin/src/flow/earned.mjs"], at: AT,
 };
 const INDEPENDENT = releaseFrom({
-  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" },
-});
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true },
+}, undefined, "independent");
 
 let clock = 0;
 const at = () => `2026-09-07T13:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

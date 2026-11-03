@@ -221,11 +221,6 @@ const edgesOf = (issue) => ({
   incoming: (issue?.relations?.blockedBy ?? []).map((edge) => sided(edge, "from")),
 });
 
-/* Which resource each configuration action reads or merges: one route, one key, one answer. */
-const SETTINGS = {
-  pipeline: "pipelineConfig",
-  set_pipeline: "pipelineConfig",
-};
 
 const MERGE_ROUTE = /^\/api\/issues\/[^/]+\/merge$/u;
 
@@ -318,21 +313,43 @@ export const fakeTracker = async (state) => {
     return held;
   };
 
-  /* Merged per key, as the tracker's own PATCH is. `state.stripped` models a key its schema does not
-     declare: the write is taken and the key is not there after, the only signal a caller gets. */
-  const settings = (which, args) => {
-    const held = (state.settings ??= { pipelineConfig: { ...(state.config?.pipelineConfig ?? {}) } });
-    for (const [key, value] of Object.entries(args.data ?? {})) {
-      if (!(state.stripped ?? []).includes(key)) held[which][key] = value;
+  /* The policy document the pipeline read and write reach now (/projects/:id/policy, ISS-21): the read
+     is { declared, revision, document }, the write replaces the whole document under its `baseRevision`.
+     `qa` is the one key `forge doctor` sets, kept in `state.settings.pipelineConfig.qa` (seeded off the
+     `pipelineConfig.qa` a test sets) and projected into the document, so a project seeded independent
+     reads independent through the new route and a test can read or move it by that store. `state.stripped`
+     models a key the schema does not keep, the only signal a caller gets that a write took and kept it not. */
+  const policyDoc = () => {
+    const qa = (state.settings ?? { pipelineConfig: state.config?.pipelineConfig ?? {} }).pipelineConfig?.qa;
+    return { $schema: "https://forge.sidcorp.co/schemas/policy-v1.json", version: 1,
+      ...(qa === undefined ? {} : { qa }), intake: { mode: "auto" },
+      permissions: { driver: { deny: [] } }, states: { open: { model: "opus", permissions: "driver" } } };
+  };
+  const policy = (args) => {
+    if (args.action === "set_pipeline") {
+      state.policyWrite = args.data;
+      const store = (state.settings ??= { pipelineConfig: { ...(state.config?.pipelineConfig ?? {}) } });
+      for (const [key, value] of Object.entries(args.data?.document ?? {})) {
+        if (key === "qa" && !(state.stripped ?? []).includes("qa")) store.pipelineConfig.qa = value;
+      }
+      state.policyRevision = (state.policyRevision ?? 1) + 1;
     }
-    return { pipelineConfig: held.pipelineConfig };
+    return { declared: true, revision: state.policyRevision ?? 1, document: policyDoc() };
   };
   const builtIn = (name, args) => {
     reach.asked(name);
     const own = (state.answer ?? {})[name];
     const said = own ? own(args) : undefined;
+    /* The policy read and write are their own resource (ISS-21): a test overriding forge_config
+       answers the config read, so the policy actions fall through to the policy model unless that
+       override itself returned a policy-shaped answer (a document, a declaration, or a refusal). */
+    if (name === "forge_config" && (args.action === "pipeline" || args.action === "set_pipeline")) {
+      return said !== undefined
+        && (failed(said) || said.document !== undefined || said.declared !== undefined)
+        ? said
+        : policy(args);
+    }
     if (said !== undefined) return said;
-    if (name === "forge_config" && SETTINGS[args.action]) return settings(SETTINGS[args.action], args);
     if (name === "forge_memory.search") return { hits: memory(args) };
     if (name === "forge_issues") return issues(args);
     if (name === "forge_labels") return labels(args);
@@ -488,8 +505,8 @@ export const fakeTracker = async (state) => {
       answered("forge_release_batch", { action: "abort", runId, data: sent })],
     [/^\/api\/projects\/[^/]+\/release-batches\/([^/]+)\/method$/u, (q, sent, method, [runId]) =>
       answered("forge_release_batch", { action: "method", runId, data: sent })],
-    [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
-      method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
+    [/^\/api\/projects\/[^/]+\/policy$/u, (q, sent, method) => answered("forge_config",
+      method === "PUT" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
     [/^\/api\/projects\/[^/]+\/gates$/u, () => answered("forge_config", { action: "gates" })],
     [/^\/api\/projects\/[^/]+\/config$/u, () => answered("forge_config", { action: "document" })],
     [/^\/api\/projects\/([^/]+)\/(archive|unarchive)$/u, (q, sent, method, [id, act]) =>

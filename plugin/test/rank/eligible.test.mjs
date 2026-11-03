@@ -172,7 +172,7 @@ test("a live lease leaves an in_progress:test issue out, and the sentence names 
 });
 
 test("a declaration other than independent, and none at all, offer nothing", async () => {
-  for (const policy of [{ qa: "builder" }, {}, null]) {
+  for (const policy of [{ qa: "self" }, {}, null]) {
     assert.equal(await judgingFrom([at("ISS-1")], { policy, leaseFor: free, cap: 12 }), null,
       `${JSON.stringify(policy)} names nobody to hand a landed issue to, so nothing is offered`);
   }

@@ -49,7 +49,7 @@ const fresh = (drain, qa = "independent") => {
 };
 
 const ask = (...argv) => ranAsync(FORGE, ["doctor", ...argv], tracker.env, room.path);
-const sent = () => (state.calls ?? []).filter((one) => one.method === "PATCH");
+const sent = () => (state.calls ?? []).filter((one) => one.method === "PUT");
 const held = () => JSON.parse(readFileSync(file, "utf8"));
 /* Root passes a mode check every other user fails, so the two unwritable cases say so rather than
    reporting a refusal nobody produced. */
@@ -150,10 +150,10 @@ test("a value the key does not take names no master and is a miss", async () => 
 });
 
 test("a master named while the judgement is not independent is the clash, reported and not reconciled", async () => {
-  fresh("qa-master", "builder");
+  fresh("qa-master", "self");
   const run = await ask();
   assert.match(run.stdout,
-    /^\[ miss \] drained by\s+`drainedBy` names qa-master and the judgement between in_progress:test and in_progress:release is builder/mu,
+    /^\[ miss \] drained by\s+`drainedBy` names qa-master and the judgement between in_progress:test and in_progress:release is self/mu,
     run.stdout);
   assert.match(run.stdout, /nothing is offered at that status for it to drain/u,
     "the sentence says why the combination cannot mean anything");
@@ -163,7 +163,7 @@ test("a master named while the judgement is not independent is the clash, report
 
 test("the write that moves the judgement off independent clears the drain key with it", async () => {
   fresh("qa-master");
-  const run = await ask("--set", "pipeline.qa=builder");
+  const run = await ask("--set", "pipeline.qa=self");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^drainedBy: cleared, the judgement it named a master for having moved {2}← /mu,
     run.stdout);
@@ -173,10 +173,10 @@ test("the write that moves the judgement off independent clears the drain key wi
 
 test("a write that moves no judgement leaves the key standing", async () => {
   fresh("qa-master");
-  const run = await ask("--set", "pipeline.autoProdDeploy=true");
+  const run = await ask("--set", "pipeline.qa=independent");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(held().drainedBy, "qa-master",
-    "the judgement the key answers to did not move, so undoing a declaration nobody touched would be a loss");
+    "the judgement the key answers to did not move off independent, so undoing a declaration nobody touched would be a loss");
   assert.doesNotMatch(run.stdout, /drainedBy: cleared/u);
 });
 
@@ -192,7 +192,7 @@ test("selecting a flow that asks for no judgement leaves the key standing", asyn
 test("a project file that cannot be rewritten refuses the write before the tracker is sent anything", { skip: asRoot }, async () => {
   fresh("qa-master");
   chmodSync(file, 0o444);
-  const run = await ask("--set", "pipeline.qa=builder");
+  const run = await ask("--set", "pipeline.qa=self");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /could not be read and rewritten, so that half is out of reach and nothing was sent/u,
     run.stderr);
@@ -203,7 +203,7 @@ test("a project file that cannot be rewritten refuses the write before the track
 test("a directory the replacement cannot write in refuses the write too, the file itself being writable", { skip: asRoot }, async () => {
   fresh("qa-master");
   chmodSync(where, 0o555);
-  const run = await ask("--set", "pipeline.qa=builder");
+  const run = await ask("--set", "pipeline.qa=self");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /could not be read and rewritten, so that half is out of reach and nothing was sent/u,
     "the replacement writes a sibling and renames it, so the file's own mode answers half the question");
@@ -214,7 +214,7 @@ test("a key declared twice is cleared out of the file entirely, not down to the 
   fresh("qa-master");
   writeFileSync(file,
     `{\n  "slug": "forge-plugin",\n  "drainedBy": "dispatcher",\n  "drainedBy": "qa-master",\n  "runs": 2\n}\n`);
-  const run = await ask("--set", "pipeline.qa=builder");
+  const run = await ask("--set", "pipeline.qa=self");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(Object.hasOwn(held(), "drainedBy"), false,
     "a document declaring one key twice parses to the last of them, so clearing the first clears nothing");
@@ -228,11 +228,11 @@ test("a file made unreadable under the call gets the same account as one that co
     if (args.action === "set_pipeline") chmodSync(file, 0o000);
     return held0(args);
   };
-  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+  const run = await ask("--set", "pipeline.qa=self").finally(() => {
     state.answer.forge_config = held0;
   });
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /pipeline\.qa is "builder" on the tracker now and .* could not be read back and written/u,
+  assert.match(run.stderr, /pipeline\.qa is "self" on the tracker now and .* could not be read back and written/u,
     "a read that throws leaves the caller as uninformed as a write that does");
   assert.match(run.stderr, /Send the same command again once that file can be written/u);
   chmodSync(file, 0o644);
@@ -246,7 +246,7 @@ test("a send that never answered names the key it left standing rather than the 
     if (args.action === "set_pipeline") return { refused: "the tracker would not answer" };
     return held0(args);
   };
-  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+  const run = await ask("--set", "pipeline.qa=self").finally(() => {
     state.answer.forge_config = held0;
   });
   assert.equal(run.status, 1, run.stdout);
@@ -261,9 +261,9 @@ test("a read back that kept nothing names the key still on the file beside what 
   fresh("qa-master");
   const held0 = state.answer.forge_config;
   state.answer.forge_config = (args) => (args.action === "pipeline"
-    ? { pipelineConfig: { autoProdDeploy: false } }
+    ? { declared: true, revision: 1, document: {} }
     : held0(args));
-  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+  const run = await ask("--set", "pipeline.qa=self").finally(() => {
     state.answer.forge_config = held0;
   });
   assert.equal(run.status, 1, run.stdout);
@@ -283,7 +283,7 @@ test("a project file another session moved under the call is refused rather than
     return held0(args);
   };
   try {
-    const run = await ask("--set", "pipeline.qa=builder");
+    const run = await ask("--set", "pipeline.qa=self");
     assert.equal(run.status, 1, run.stdout);
     assert.match(run.stderr, /changed while that write was in flight/u, run.stderr);
     assert.equal(held().runs, 4, "the other session's edit stands, which writing the snapshot back would have lost");
@@ -300,11 +300,11 @@ test("a file that fails after the tracker kept the judgement names what stands a
     if (args.action === "set_pipeline") chmodSync(where, 0o555);
     return held0(args);
   };
-  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+  const run = await ask("--set", "pipeline.qa=self").finally(() => {
     state.answer.forge_config = held0;
   });
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /pipeline\.qa is "builder" on the tracker now and .* could not be read back and written/u,
+  assert.match(run.stderr, /pipeline\.qa is "self" on the tracker now and .* could not be read back and written/u,
     run.stderr);
   assert.match(run.stderr, /a master named for a judgement nobody asked for/u);
   assert.match(run.stderr, /Send the same command again once that file can be written/u,

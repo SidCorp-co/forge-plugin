@@ -1,16 +1,16 @@
 # The drain key, and why it is not the tracker's
 
-Two adjacent decisions, two keys, two homes. `pipelineConfig.qa` says whether the judgement between
+Two adjacent decisions, two keys, two homes. The policy document's `qa` says whether the judgement between
 `in_progress:test` and `in_progress:release` is an independent run's — a fact about the product, the same for every
 checkout, and the tracker's. `drainedBy` says which master claims what that judgement offers, and it
 is a key of the project's own file beside `flow` and `landing`.
 
-**The split is the schema's doing rather than a preference.** The tracker's pipeline configuration
-strips a key it does not declare, silently, on the way in. A live write of a drain key to that
-resource on 2026-09-17 answered and read back null, which is the read-back's whole purpose and is
-the one signal a caller gets. So the second key could not be stored beside the first by any call
-this CLI has, and the file that already holds how this checkout is worked is where it went. If the
-tracker ever declares the key, the home moves and the row's source line moves with it — the reading
+**The split is the schema's doing rather than a preference.** The policy document qa lives on declares
+a fixed set of keys and refuses a write naming one it does not (SCHEMA_VIOLATION, nothing written). A
+live write of a drain key to that resource on 2026-09-17 read back null, which is the read-back's whole
+purpose and is the one signal a caller gets. So the second key could not be stored beside the first by
+any call this CLI has, and the file that already holds how this checkout is worked is where it went. If
+the tracker ever declares the key, the home moves and the row's source line moves with it — the reading
 is one module's.
 
 **Two keys for adjacent decisions cost an undo, and that is paid rather than argued away.** The

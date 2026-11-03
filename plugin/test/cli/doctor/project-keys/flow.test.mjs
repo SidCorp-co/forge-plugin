@@ -30,8 +30,14 @@ const state = {
     forge_guide: () => ({ guides: [] }),
     forge_config: (args) => {
       if (state.dead?.includes(args.action)) return { refused: "Error: the tracker would not answer" };
-      /* The report reads the policy through `get`, so what the write left has to be visible there
-         or the clash row would answer for a project this case never configured. */
+      /* The readback is a second policy read after the write; failing only it models a write whose
+         answer is lost, the pre-read the read-modify-write makes first still succeeding (ISS-21). */
+      if (args.action === "pipeline" && state.wrote && state.deadReadback) {
+        return { refused: "Error: the tracker would not answer" };
+      }
+      if (args.action === "set_pipeline") state.wrote = true;
+      /* The report reads qa through the policy route (builtIn, off `state.settings`) and the release
+         through `get`; `get` carries what the write left so the autoProd reading sees it too. */
       if (args.action === "get") {
         return { config: { baseBranch: "master", releaseModel: "publish",
           pipelineConfig: state.settings?.pipelineConfig ?? {} } };
@@ -39,7 +45,7 @@ const state = {
       return undefined;
     },
   },
-  config: { pipelineConfig: { autoProdDeploy: false, qa: "builder" } },
+  config: { pipelineConfig: { autoProdDeploy: false, qa: "self" } },
 };
 
 const tracker = await fakeTracker(state);
@@ -57,13 +63,15 @@ const where = dirname(file);
  *  about what one call left behind and a case reading another's leftovers proves neither. */
 const fresh = () => {
   writeFileSync(file, HELD);
-  state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" } };
+  state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "self" } };
   state.dead = [];
+  state.wrote = false;
+  state.deadReadback = false;
   state.calls = [];
 };
 
 const ask = (...argv) => ranAsync(FORGE, ["doctor", ...argv], tracker.env, room.path);
-const sent = () => (state.calls ?? []).filter((one) => one.method === "PATCH");
+const sent = () => (state.calls ?? []).filter((one) => one.method === "PUT");
 
 test("one call sets the flow in the project's file and the judgement that flow asks for", async () => {
   fresh();
@@ -99,7 +107,7 @@ test("the default flow writes the file alone and says it asks for nothing furthe
   assert.equal(JSON.parse(readFileSync(file, "utf8")).flow, "default");
   assert.match(run.stdout, /^flow default asks this project for nothing further$/mu);
   assert.equal(sent().length, 0, "and the tracker was sent nothing at all");
-  assert.equal(state.settings.pipelineConfig.qa, "builder", "so the key it held is the key it holds");
+  assert.equal(state.settings.pipelineConfig.qa, "self", "so the key it held is the key it holds");
 });
 
 /* The case the read back exists for, now reached with a file already written: the tracker takes the
@@ -111,7 +119,7 @@ test("a tracker that takes the key and keeps it not is refused, and the file goe
     const run = await ask("--flow", "screen");
     assert.equal(run.status, 1);
     assert.match(run.stderr, /flow screen asks this project for the judgement between in_progress:test and in_progress:release/u);
-    assert.match(run.stderr, /pipeline\.qa was sent as "independent" and the tracker's pipeline configuration reads back "builder"/u);
+    assert.match(run.stderr, /pipeline\.qa was sent as "independent" and the tracker's pipeline configuration reads back "self"/u);
     assert.match(run.stderr, /The project file is as it was, so this project is on the flow it had/u);
     assert.equal(readFileSync(file, "utf8"), HELD);
   } finally {
@@ -127,7 +135,7 @@ test("a tracker that declines the write is read back all the same, and the file 
   const run = await ask("--flow", "screen");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /declined the write/u, run.stderr);
-  assert.match(run.stderr, /pipeline\.qa reads back "builder"/u, "which is what decided it");
+  assert.match(run.stderr, /pipeline\.qa reads back "self"/u, "which is what decided it");
   assert.equal(readFileSync(file, "utf8"), HELD);
 });
 
@@ -174,7 +182,7 @@ test("a file this cannot write is refused with that file untouched", async () =>
 /* Neither restoring nor reporting success: the write may have landed and nothing here can say. */
 test("a read back that will not answer leaves the flow standing and names the setting unconfirmed", async () => {
   fresh();
-  state.dead = ["pipeline"];
+  state.deadReadback = true;
   const run = await ask("--flow", "screen");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /pipeline\.qa was sent as "independent" and the tracker's pipeline configuration would not say what it now holds/u, run.stderr);
@@ -186,14 +194,14 @@ test("a read back that will not answer leaves the flow standing and names the se
 /* The two outcomes that refusal cannot tell apart, each read off the report it leaves. */
 test("the report after an unread write says which of the two outcomes it was, and one call ends either", async () => {
   fresh();
-  state.dead = ["pipeline"];
+  state.deadReadback = true;
   await ask("--flow", "screen");
-  state.dead = [];
+  state.deadReadback = false;
   assert.equal(state.settings.pipelineConfig.qa, "independent", "the write the read back could not confirm");
   const kept = await ask();
   assert.doesNotMatch(kept.stdout, /\[ miss \] flow/u, "a write that landed leaves nothing to report");
 
-  state.settings.pipelineConfig.qa = "builder";
+  state.settings.pipelineConfig.qa = "self";
   const dropped = await ask();
   assert.match(dropped.stdout, /\[ miss \] flow {2,}flow screen asks for independent judgement/u,
     "and one that did not is the clash row, which is what says so");
@@ -215,7 +223,7 @@ test("a project record that is a link is followed, and the link survives the wri
     const entry = projectEntry(linked.path, tracker.env.XDG_CONFIG_HOME);
     rmSync(entry);
     symlinkSync(target, entry);
-    state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" } };
+    state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "self" } };
     const run = await ranAsync(FORGE, ["doctor", "--flow", "screen"], tracker.env, linked.path);
     assert.equal(run.status, 0, run.stderr);
     assert.ok(lstatSync(entry).isSymbolicLink(), "the link is still a link");
@@ -235,7 +243,7 @@ test("the project file keeps the mode it had, umask or no umask", async () => {
   assert.equal(statSync(file).mode & 0o777, 0o664, "after the write that kept");
   writeFileSync(file, HELD);
   chmodSync(file, 0o664);
-  state.settings.pipelineConfig.qa = "builder";
+  state.settings.pipelineConfig.qa = "self";
   state.stripped = ["qa"];
   try {
     await ask("--flow", "screen");
@@ -276,7 +284,7 @@ test("a directory belonging to no checkout is refused before anything reaches th
 /* All three write one thing of the project's record and the first returns before the report, so a
    second in the same call would be dropped in silence (ISS-2174). */
 test("two of --set, --flow and --ship in one call are refused rather than one of them preferred", async () => {
-  for (const pair of [["--set", "pipeline.qa=builder", "--flow", "screen"],
+  for (const pair of [["--set", "pipeline.qa=self", "--flow", "screen"],
     ["--set", "ship=ready", "--ship", "self"], ["--flow", "screen", "--ship", "ready"]]) {
     fresh();
     const run = await ask(...pair);

@@ -42,8 +42,18 @@ const RESOURCES = {
     said: "the tracker's pipeline configuration",
     read: "pipeline",
     written: "set_pipeline",
-    keysIn: (answer) => answer?.pipelineConfig ?? {},
-    bodyFor: (key, value) => ({ [key]: value }),
+    keysIn: (answer) => (answer?.document?.qa === undefined ? {} : { qa: answer.document.qa }),
+    /* The policy write replaces the whole document (ISS-21), so the one key is merged into the current
+       one read here and sent back with its `baseRevision`: a partial document drops the keys it omits,
+       and core refuses a write whose revision moved under it. */
+    bodyFor: async (key, value) => {
+      const now = await scoped("forge_config", { action: "pipeline" }, true);
+      if (now?.refused || !now?.document) {
+        throw new Error(`the policy document could not be read to set ${key}, so nothing was sent: `
+          + `${now?.refused ?? "the policy read carried no document"}`);
+      }
+      return { baseRevision: now.revision, document: { ...now.document, [key]: value } };
+    },
     shown,
   },
   project: {
@@ -257,7 +267,7 @@ const clearedDrain = (file, kept) => {
    whether that send landed is exactly what nobody can say afterwards. `writeFlow` sends the same way
    for the same reason. */
 const sent = async (resource, route, value, file) => {
-  const data = resource.bodyFor(route.key, value);
+  const data = await resource.bodyFor(route.key, value);
   if (!file) return write("forge_config", { action: resource.written, data });
   const said = await write("forge_config", { action: resource.written, data }, undefined, true)
     .catch((error) => ({ refused: error.message }));
@@ -433,7 +443,7 @@ export const writeFlow = async (slug) => {
     const resource = RESOURCES[route.name];
     /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws before the call goes out, and a throw walking past here would leave the file written. */
     const sent = await write("forge_config",
-      { action: resource.written, data: resource.bodyFor(route.key, ask.value) }, undefined, true)
+      { action: resource.written, data: await resource.bodyFor(route.key, ask.value) }, undefined, true)
       .catch((error) => ({ refused: error.message }));
     /* Read back even where the send said it failed, and decide on the read: a write whose response was lost is reported exactly as one the tracker declined, and restoring on that word alone would put the flow back over a judgement that did land. */
     const now = await scoped("forge_config", { action: resource.read }, true)

@@ -48,7 +48,7 @@ record are the same code.
 
 ## A verdict names its judge
 
-`pipelineConfig.qa` takes `independent`: the run that wrote the change may not be the run that says
+The policy document's `qa` takes `independent`: the run that wrote the change may not be the run that says
 it works. Nothing here tells two agents apart by watching them, so the claim goes on the record.
 `forge record verdict` writes the writer's session id as a `judge:` line and where that id came from
 as `judge-from:`, off the session the CLI resolved and never off a flag — `--judge` is refused, for

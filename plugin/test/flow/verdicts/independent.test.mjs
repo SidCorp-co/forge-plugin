@@ -46,11 +46,11 @@ const CHECKPOINT = {
   at: AT,
 };
 const INDEPENDENT = releaseFrom({
-  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" },
-});
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true },
+}, undefined, "independent");
 const BUILDER_JUDGES = releaseFrom({
-  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "builder" },
-});
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true },
+}, undefined, "self");
 
 let clock = 0;
 const at = () => `2026-09-07T13:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -231,8 +231,8 @@ test("an identity the checkpoint does hold is still cited, and a verdict citing 
    whatever it declared is the verification record itself — which is the whole no-deployment route,
    its `--where` naming the branch on a project with no running host (ISS-1788). */
 const MANUAL = releaseFrom({
-  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false, qa: "independent" },
-});
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false },
+}, undefined, "independent");
 
 test("the rung above still owes the verification where the project declares no automatic deploy", () => {
   const view = viewFrom("the-uuid", issueOf({ releaseNotes: { section: "Added", title: "The new page" } }),

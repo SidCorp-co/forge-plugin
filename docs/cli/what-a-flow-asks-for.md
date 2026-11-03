@@ -39,7 +39,7 @@ and a plan forced to declare a screen buys a judging round with nothing to judge
 holds the refusal plants its flow.
 
 **A flow may also ask the project for a judgement**, and asking is the whole of what it may do:
-`judge: "independent"` on the declaration, against `pipelineConfig.qa`, which is the one thing that
+`judge: "independent"` on the declaration, against the policy document's `qa`, which is the one thing that
 decides. A flow asking for what the key does not name is `forge doctor`'s conflict line naming both
 sources and exiting on it, beside the release-policy one — never a reconciliation, and never a
 refusal at a rung, which would be an entry check reading the flow. Whether a project has a screen and

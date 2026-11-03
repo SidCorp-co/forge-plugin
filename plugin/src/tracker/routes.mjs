@@ -420,18 +420,19 @@ export const ROUTES = {
     answers: ({ page }) => configOf(page),
     sends: [],
   },
-  /* The typed resource a project's own settings live in, rather than the whole-`agentConfig` patch
-     on `/projects/:id`: that one replaces the document, so two writers to different keys of it
-     clobber each other. This one merges per key. Project prose is the knowledge store's, above. */
+  /* `qa` lives on the policy document now, `/pipeline-config` having left core with the rest of
+     `pipelineConfig` (ISS-21). The read is `{ declared, revision, document }`; the write replaces the
+     whole document, so its caller reads the current one, merges its one key and sends it back with the
+     `baseRevision` core refuses a stale write against (project-settings.mjs `bodyFor`). */
   "forge_config.pipeline": {
     project: true,
-    requests: (args, project) => one(`/projects/${project}/pipeline-config`),
+    requests: (args, project) => one(`/projects/${project}/policy`),
     sends: [],
   },
   "forge_config.set_pipeline": {
     project: true,
     writes: true,
-    requests: (args, project) => one(`/projects/${project}/pipeline-config`, "PATCH", args.data),
+    requests: (args, project) => one(`/projects/${project}/policy`, "PUT", args.data),
     sends: ["data"],
   },
   /* How tightly the tracker gates this project's agents (REQ-76): `profile` is strict, standard or

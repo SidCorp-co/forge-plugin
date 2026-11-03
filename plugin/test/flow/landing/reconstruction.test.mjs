@@ -76,7 +76,7 @@ test("a reconstruction is disclosed on the checkpoint line and on every verdict 
   const verdict = { criterion: "1 — text", verdict: "pass", commit: HEAD, evidence: [DEPLOYED],
     judge: "the-judging-session" };
   const release = releaseFrom({ baseBranch: "master", releaseModel: "publish",
-    pipelineConfig: { autoProdDeploy: true, qa: "independent" } });
+    pipelineConfig: { autoProdDeploy: true } }, undefined, "independent");
   const issue = { acceptanceCriteria: "1. The first outcome.", plan: "Screen change: no.",
     attachments: [], sessionContext: { landing: REBUILT } };
   const comments = [{ createdAt: "2026-09-21T09:00:00.000Z", authorId: "agent",

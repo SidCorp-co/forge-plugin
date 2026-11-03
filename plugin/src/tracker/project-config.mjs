@@ -52,16 +52,21 @@ const switchOf = (config, release) => (release.value
    belongs to whichever checkout the process stands in, which is not the project `config` came from. */
 const UNDECLARED = { value: null, from: null };
 
-export const releaseFrom = (config, release = UNDECLARED) => ({
+export const releaseFrom = (config, release = UNDECLARED, qa = null) => ({
   staging: config?.baseBranch ?? null,
   model: MODELS.includes(config?.releaseModel) ? config.releaseModel : null,
   said: config?.releaseModel ?? null,
   live: config?.releaseModel === PROMOTE ? config?.liveBranch ?? null : null,
   strategy: config?.releaseModel === PROMOTE ? config?.releaseStrategy ?? null : null,
   ...switchOf(config, release),
-  qa: config?.pipelineConfig?.qa ?? null,
+  qa,
   from: CONFIG_SOURCE,
 });
+
+/* The qa word off the policy document core serves it on now (GET /:id/policy), not the project row
+   where `pipelineConfig.qa` once sat (ISS-21); null where the read did not answer, and judgementOf
+   normalises it against QA_MODES. */
+const qaDeclared = (answer) => answer?.document?.qa ?? null;
 
 /* A policy is read when it declares a model this CLI knows and, where that model promotes, names the
    branch it promotes to. Nothing else is asked for: two of the three models declare no such branch,
@@ -110,7 +115,8 @@ export const landsOn = (policy) => {
     : { branch: null, from: RECORDED_DEFAULT, unsettled: null, route: null };
 };
 
-export const QA_MODES = ["independent", "builder"];
+// cm:guard core's policy qa enum is self|independent (GET /projects/:id/policy); a word not in this list reads as not-independent — keep in step with forge-core's policy schema (ISS-21)
+export const QA_MODES = ["independent", "self"];
 
 /* Derived, never asked for again: a model that moves no ref at the release and deploys production on
    its own means a push IS the deploy, so the candidate is judged before it. Promotion lands first
@@ -283,8 +289,11 @@ export const releaseConflict = (policy) => {
 const policies = new Map();
 
 const readPolicy = async (at) => {
-  const answer = await scoped("forge_config", { action: "get" }, true);
-  if (answer?.config) return releaseFrom(answer.config, releaseScope(at));
+  const [answer, policy] = await Promise.all([
+    scoped("forge_config", { action: "get" }, true),
+    scoped("forge_config", { action: "pipeline" }, true),
+  ]);
+  if (answer?.config) return releaseFrom(answer.config, releaseScope(at), qaDeclared(policy));
   const why = answer?.refused ?? "the tracker answered for this project with no config on it";
   console.error(`release policy: ${UNREAD_CONFIG}, so every reading of it this command makes is of a `
     + `project that has declared nothing — which this one may not be: ${firstLine(why)}`);

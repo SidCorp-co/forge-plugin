@@ -552,7 +552,7 @@ test("an eval with pairs and no credential to read them with prints unavailable 
   assert.match(held.stdout, /unread now: no Forge endpoint is configured/u, "and says why it read nothing");
 });
 
-test("stats runs asks the tracker for this project's release model and for nothing else", async () => {
+test("stats runs asks the tracker for this project's policy and for nothing else", async () => {
   const room = corpusOf(4);
   state.calls = [];
   const held = await ranAsync(FORGE, ["stats", "runs", "--checkout", PROJECT, "--json"],
@@ -562,13 +562,11 @@ test("stats runs asks the tracker for this project's release model and for nothi
   assert.equal(read.runs, 4);
   assert.equal(read.outcomes, undefined, "the profile computes no outcome");
   assert.equal(JSON.stringify(read).includes("reopened"), false);
-  /* One request, and the one that decides which rows the table holds: a rung here is still the run's
-     own record, so no issue and no comment is read on this path (ISS-1975). */
-  assert.deepEqual(state.calls.map((one) => one.name), ["forge_config"],
-    "the release model, and no issue read behind it");
-  /* The help makes the same promise this asserts, so the two move together: a verb that says it
-     reads nothing the tracker holds and then reads one thing is wrong where a caller looks first. */
-  assert.match(RUNS_USAGE, /the tracker is asked only for this project's release model/u);
+  // cm:guard stats reads the project's policy (config for the release model, policy for judgement — two config reads) and no issue or comment: this path measures the flow, not the backlog (ISS-1975)
+  assert.deepEqual(state.calls.map((one) => one.name), ["forge_config", "forge_config"],
+    "the project's policy, and no issue read behind it");
+  // cm:guard RUNS_USAGE makes the same promise this asserts, so help and assertion move together
+  assert.match(RUNS_USAGE, /the tracker is asked only for this project's policy/u);
   assert.equal(RUNS_USAGE.includes("nothing the tracker holds is read"), false);
 });
 

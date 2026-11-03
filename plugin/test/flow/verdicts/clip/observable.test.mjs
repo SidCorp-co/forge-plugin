@@ -30,7 +30,7 @@ const ISSUE = {
   sessionContext: { lease: { holder: JUDGE, renewedAt: new Date().toISOString(), minutes: 60, history: [] } },
 };
 const state = {
-  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "builder" } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "self" } },
   issues: [ISSUE],
   comments: { "observable-uuid": [] },
   answer: {},

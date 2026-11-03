@@ -17,7 +17,7 @@ const state = {
   answer: {
     forge_guide: () => ({ guides: [] }),
   },
-  config: { pipelineConfig: { autoProdDeploy: false } },
+  config: { pipelineConfig: { qa: "self" } },
 };
 
 const tracker = await fakeTracker(state);
@@ -30,36 +30,48 @@ const ask = (...argv) => ranAsync(FORGE, ["doctor", ...argv], tracker.env, ROOT)
 /* The tracker answers this route 410 since project prose moved to the knowledge store (ISS-1650). */
 const factsAsked = () => state.calls.filter((one) => /\/project-facts$/u.test(one.path ?? ""));
 
-test("each pipeline key is reported with the resource it was read from, and no retired facts are read", async () => {
+test("the pipeline's qa key is reported with the resource it was read from, and no retired facts are read", async () => {
   state.calls = [];
   const run = await ask();
-  assert.match(run.stdout, /\[ {2}ok {2}\] pipeline\.autoProdDeploy\s+false {2}← the tracker's pipeline configuration/u,
+  assert.match(run.stdout, /\[ {2}ok {2}\] pipeline\.qa\s+self {2}← the tracker's pipeline configuration/u,
     run.stdout);
   assert.doesNotMatch(run.stdout, /^\[[^\]]*\] fact\b/mu, "no row for a resource the tracker retired");
   assert.deepEqual(factsAsked(), [], "and no request went to its route");
 });
 
-test("a key the pipeline already holds is routed by that and reported set, with no facts read to route it", async () => {
+test("the qa key the pipeline already holds is routed by that and reported set, with no facts read to route it", async () => {
   state.calls = [];
-  const run = await ask("--set", "autoProdDeploy=true");
+  const run = await ask("--set", "qa=independent");
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^pipeline\.autoProdDeploy: true {2}← the tracker's pipeline configuration$/mu);
-  assert.equal(state.settings.pipelineConfig.autoProdDeploy, true,
-    "sent as a boolean and not as the string the shell handed over");
+  assert.match(run.stdout, /^pipeline\.qa: independent {2}← the tracker's pipeline configuration$/mu);
+  assert.equal(state.settings.pipelineConfig.qa, "independent",
+    "merged into the policy document the write replaces whole, not a string the shell handed over");
   assert.deepEqual(factsAsked(), []);
-  await ask("--set", "autoProdDeploy=false");
+  await ask("--set", "qa=self");
 });
 
-test("a prefixed key names its resource outright, which is how one it does not hold is created", async () => {
-  try {
-    const run = await ask("--set", "pipeline.maxRetries=3");
-    assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, /^pipeline\.maxRetries: 3 {2}← the tracker's pipeline configuration$/mu,
-      "the value back off the resource's own route, which is what was read and not what was typed");
-    assert.equal(state.settings.pipelineConfig.maxRetries, 3);
-  } finally {
-    delete state.settings.pipelineConfig.maxRetries;
+/* The policy write replaces the whole document, so the one key rides on the rest of it: a partial
+   document would wipe the keys it omits (intake, permissions, states) in a repo this never sees, and
+   core refuses a write whose `baseRevision` moved under it (ISS-21). */
+test("the qa write carries the whole policy document and its baseRevision, not qa alone", async () => {
+  state.settings = { pipelineConfig: { qa: "self" } };
+  const run = await ask("--set", "pipeline.qa=independent");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(typeof state.policyWrite.baseRevision, "number", "the revision core refuses a stale write against");
+  assert.equal(state.policyWrite.document.qa, "independent", "the one key it moved");
+  for (const key of ["intake", "permissions", "states"]) {
+    assert.notEqual(state.policyWrite.document[key], undefined, `and ${key}, which a partial write would wipe`);
   }
+  await ask("--set", "pipeline.qa=self");
+});
+
+test("the qa key named by its resource outright is routed by the prefix and set", async () => {
+  const run = await ask("--set", "pipeline.qa=independent");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^pipeline\.qa: independent {2}← the tracker's pipeline configuration$/mu,
+    "the value back off the resource's own route, which is what was read and not what was typed");
+  assert.equal(state.settings.pipelineConfig.qa, "independent");
+  await ask("--set", "pipeline.qa=self");
 });
 
 /* Prose is a knowledge entry, whose kind, title and injection a `key=value` has no slot for, so the
@@ -75,23 +87,24 @@ test("a key under the retired facts prefix is refused naming the knowledge store
 
 test("a key no resource holds is refused with every key set, and nothing is sent", async () => {
   state.calls = [];
-  const run = await ask("--set", "qa=independent");
+  const run = await ask("--set", "autoProdDeploy=true");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /`qa` is no key any of this project's configuration resources holds/u);
-  assert.match(run.stderr, /^ {2}pipeline: autoProdDeploy$/mu);
+  assert.match(run.stderr, /`autoProdDeploy` is no key any of this project's configuration resources holds/u);
+  assert.match(run.stderr, /^ {2}pipeline: qa$/mu);
   assert.doesNotMatch(run.stderr, /^ {2}fact:/mu, "no key set is listed for a resource the tracker retired");
   assert.match(run.stderr, /^ {2}project: slug, translate, runs, /mu,
     "the third resource lists the keys this plugin READS out of that file, not the ones it holds");
-  assert.match(run.stderr, /Name the resource to write a key the tracker does not hold yet: --set pipeline\.qa=<value>$/mu);
+  assert.match(run.stderr, /Name the resource to write a key the tracker does not hold yet: --set pipeline\.autoProdDeploy=<value>$/mu);
   assert.doesNotMatch(run.stderr, /fact\./u, "and no route into the retired facts");
   assert.doesNotMatch(run.stderr, /--set project\.qa=<value>/u,
     "and no route is offered into a file where nothing would read the key (ISS-1643)");
   assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
 });
 
-/* The whole reason the write reads back. The tracker's own schema drops a key it does not declare,
-   and the write answers 200 either way, so a run told *set* would act on a value nothing holds. */
+/* The whole reason the write reads back. Where the tracker does not keep a key the write sent, the
+   read back is the one signal, so a run told *set* would otherwise act on a value nothing holds. */
 test("a key the tracker takes and does not keep is refused, naming the strip", async () => {
+  state.settings = { pipelineConfig: {} };
   state.stripped = ["qa"];
   try {
     const run = await ask("--set", "pipeline.qa=independent");

@@ -549,12 +549,12 @@ test("the report mints no session id to have one to report", () => {
    disagree and changes neither — ISS-1088, and `flowJudgeConflict`'s own case carries the wording. */
 test("a flow asking for a judge the project's configuration does not name is a miss, and nothing is rewritten", async () => {
   const { out, status, entry } = await whole(
-    { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "builder" } },
+    { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "self" } },
     { project: { flow: "screen" } },
   );
   assert.match(out, /\[ miss \] flow\s+flow screen asks for independent judgement/u,
     "the conflict is a miss and names the flow that asked");
-  assert.match(out, /this project's configuration says builder/u, "beside the key that answered otherwise");
+  assert.match(out, /this project's configuration says self/u, "beside the key that answered otherwise");
   assert.match(out, /change the flow, or/u, "and both ways out");
   assert.equal(status, 1, "a report holding a miss exits on it");
   assert.match(out, row(OK, "flow", "screen", entry),

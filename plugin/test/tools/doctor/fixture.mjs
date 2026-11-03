@@ -17,7 +17,12 @@ export const whole = async (config, { environments = null, saved = {}, project =
   const tracker = await fakeTracker({
     answer: {
       "forge_projects.list": () => ({ projects: [{ slug: "release-fixture", id: "1e1c1a1e-0000-4000-8000-000000000001" }] }),
-      forge_config: () => ({ config }),
+      /* The pipeline read reaches the policy document now (ISS-21), its qa off the seed's
+         `pipelineConfig.qa`; every other forge_config action still answers the project config. */
+      forge_config: (args) => (args.action === "pipeline"
+        ? { declared: true, revision: 1,
+          document: config?.pipelineConfig?.qa === undefined ? {} : { qa: config.pipelineConfig.qa } }
+        : { config }),
       "forge_projects.get": () => ({ project: { environments } }),
       forge_guide: () => ({ refused: "this credential may not read guides" }),
     },
