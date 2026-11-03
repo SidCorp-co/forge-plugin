@@ -35,7 +35,8 @@ const idPattern = (prefixes) => `\\b(${prefixes.join("|")})-(\\d+(?:-\\d+)*)\\b`
 
 const IDENT = new RegExp(`^${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}$`, "u");
 const HEADING_ID = new RegExp(idPattern(HEADED), "u");
-const BOLD_ID = new RegExp(`^\\*\\*${idPattern(PREFIXES)}\\*\\*\\s*(.*)$`, "u");
+// cm:why the leading `[^\w*]*` lets a deviation mark sit before the bold identifier of a defining row — a project marks one `▲ **NFR-17**` or `🔸 **NFR-17**`, and the mark is the tree's own, not fixed here, so the cell resolves like an unmarked one rather than missing (ISS-41); `*` stays excluded so the bold still delimits, which is what tells a defining row from a plain reference.
+const BOLD_ID = new RegExp(`^[^\\w*]*\\*\\*${idPattern(PREFIXES)}\\*\\*\\s*(.*)$`, "u");
 const REFERENCE = `${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}(?:~(\\d+))?(?![\\w-])`;
 const ANY_ID = new RegExp(REFERENCE, "gu");
 const OPENING = new RegExp(`^\\s*${REFERENCE}\\s*:`, "u");

@@ -174,6 +174,28 @@ test("a table row defines a clause where its identifier is emphasised, and a pla
   assert.deepEqual(held(index, "BR-02").enforcedBy, ["FR-01"]);
 });
 
+/* A deviation mark before the bold identifier of a defining row is the tree's own, not the parser's
+   to know: the row resolves like an unmarked one, and the mark is no part of the clause (ISS-41). */
+const MARKED_ROWS = `# §17 — Non-functional requirements
+
+| Req | Rev | Name |
+|---|---|---|
+| 🔸 **NFR-17** | 1 | a row an emoji marks as deviating |
+| ▲ **NFR-18** | 2 | a row the canonical mark deviates |
+| **NFR-19** | 1 | a row no mark touches |
+| NFR-20 | 1 | a plain cell that only references one |
+`;
+
+test("a defining row resolves through its bold identifier even when a deviation mark precedes it", () => {
+  const clauses = clausesOf(MARKED_ROWS);
+  assert.deepEqual(clauses.map((one) => one.id), ["NFR-17", "NFR-18", "NFR-19"],
+    "the marked rows define their clauses, and the plain cell references rather than defines");
+  assert.equal(clauses[0].title, "a row an emoji marks as deviating");
+  assert.equal(clauses[0].rev, 1);
+  assert.equal(clauses[1].rev, 2);
+  assert.ok(!clauses[0].text.includes("🔸"), "the mark is no part of the clause text");
+});
+
 test("a sequence whose table has no revision column carries none, rather than a revision of zero", () => {
   const index = tree();
   assert.equal(held(index, "G-01").rev, null);
