@@ -159,10 +159,9 @@ test("outside any checkout the brief still prints, and says no trees were read",
 
 test("a record that cannot be written prints no brief and names what failed", () => {
   const { env, home } = homeFor();
-  const blocked = join(home, "not-a-directory");
-  writeFileSync(blocked, "");
-  const run = brief(["ISS-7"], repo.main, { ...env, XDG_CONFIG_HOME: blocked });
+  writeFileSync(join(home, ".cache"), "");
+  const run = brief(["ISS-7"], repo.main, env);
   assert.notEqual(run.status, 0);
   assert.equal(run.stdout, "");
-  assert.match(run.stderr, /could not be written \(.*not-a-directory/u);
+  assert.match(run.stderr, /could not be written \(.*\.cache/u);
 });

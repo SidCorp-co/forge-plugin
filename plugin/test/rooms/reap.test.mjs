@@ -13,6 +13,7 @@ import { aged, reap } from "../../src/rooms/reap.mjs";
 
 const ROOT = tempHome("reap").path;
 process.env.TMPDIR = ROOT;
+process.env.HOME = ROOT;
 process.env.XDG_CONFIG_HOME = join(ROOT, "config");
 
 const { FRESH_MS, keepBrief } = await import("../../src/brief/record.mjs");
@@ -82,7 +83,7 @@ test("a sweep told which names are its own judges no other and answers for none 
 
 /* Real time: `keepBrief` takes a clock, so the store's entries are planted against the one it is handed. */
 test("keeping a brief removes a session's directory past ten minutes, with what it holds", () => {
-  const briefs = join(process.env.XDG_CONFIG_HOME, "forge", "briefs");
+  const briefs = join(ROOT, ".cache", "forge", "briefs");
   const old = join(briefs, "gone-session");
   planted(old, "a-brief", FRESH_MS);
   aging(old, FRESH_MS);

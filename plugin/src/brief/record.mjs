@@ -1,12 +1,12 @@
-/* What the brief verb printed, kept as a digest per session in the config directory `configDir` names, so the
-   hook can tell a message the verb generated from one somebody typed. A match on the whole text is the
-   one reading no added sentence survives; a reading of its words was refused (ISS-2147). Nothing here
-   needs a checkout, so the hook holds wherever a dispatch is made. */
+/* What the brief verb printed, kept as a digest per session so the hook can tell a message the verb
+   generated from one somebody typed. A match on the whole text is the one reading no added sentence
+   survives; a reading of its words was refused (ISS-2147). Nothing here needs a checkout, so the hook
+   holds wherever a dispatch is made. */
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { configDir } from "../resolve/config.mjs";
 import { reap } from "../rooms/reap.mjs";
 
 /* A brief is readings taken now: ten minutes is long enough to send one, and short enough that what
@@ -17,9 +17,12 @@ const NO_SESSION = "none";
 
 const digestOf = (text) => createHash("sha256").update(String(text ?? "").trim()).digest("hex");
 
+// cm:guard the brief store roots at HOME, never XDG_CONFIG_HOME or TMPDIR — a borrow resets XDG and the scratch system resets TMPDIR, HOME neither, so verb and hook agree where either had the hook miss a byte-identical brief (ISS-29); reaped, so .cache fits it.
+const briefRoot = () => join(homedir(), ".cache", "forge", "briefs");
+
 /* A session id is a path segment here, so anything but its own alphabet is refused as none. */
 const storeOf = (session) =>
-  join(configDir("forge"), "briefs", /^[\w-]+$/u.test(String(session ?? "")) ? session : NO_SESSION);
+  join(briefRoot(), /^[\w-]+$/u.test(String(session ?? "")) ? session : NO_SESSION);
 
 const ageOf = (path, now) => {
   try {

@@ -63,7 +63,7 @@ test("a paraphrase of the printed brief is refused", () => {
 test("a brief past its ten minutes is refused", () => {
   const who = homeFor();
   const generated = printed(who);
-  const store = join(who.config, "forge", "briefs", who.session);
+  const store = join(who.home, ".cache", "forge", "briefs", who.session);
   const old = new Date(Date.now() - 11 * 60_000);
   for (const one of readdirSync(store)) utimesSync(join(store, one), old, old);
   assert.equal(dispatch(who, generated).allowed, false);
@@ -72,6 +72,13 @@ test("a brief past its ten minutes is refused", () => {
 test("a brief printed for one session is refused when another dispatches it", () => {
   const who = homeFor();
   assert.equal(dispatch(who, printed(who), { session: "session-two" }).allowed, false);
+});
+
+test("the brief passes though the hook reads a different XDG home than the verb wrote (ISS-29)", () => {
+  const who = homeFor();
+  const generated = printed(who);
+  const elsewhere = { ...who, env: { ...who.env, XDG_CONFIG_HOME: join(who.home, "hook-config") } };
+  assert.equal(dispatch(elsewhere, generated).allowed, true);
 });
 
 test("another plugin's role, a general agent and any other tool pass untouched", () => {

@@ -78,8 +78,11 @@ reaches a run.
 
 ## Why a digest and a window
 
-The hook compares a digest of the whole prompt with the ones the verb recorded in the repository's
-git directory. An added sentence changes the digest, so none survives. Reading the message's words
-was refused in ISS-2147, since no list of method phrases is ever complete. The window is ten minutes
-because the readings are taken at a moment: ten minutes is long enough to send one, and a brief older
-than that is taken again rather than trusted.
+The hook compares a digest of the whole prompt with the ones the verb recorded in a per-session store
+under the caller's home. An added sentence changes the digest, so none survives. Reading the message's
+words was refused in ISS-2147, since no list of method phrases is ever complete. The store sits at the
+home rather than in a checkout, so a dispatch made outside any repository still matches, and at the
+home rather than under `XDG_CONFIG_HOME` or `TMPDIR`, which a borrow and the scratch system each reset
+between the verb and the hook — so a store keyed on either had the hook miss a brief the verb wrote
+(ISS-29). The window is ten minutes because the readings are taken at a moment: ten minutes is long
+enough to send one, and a brief older than that is taken again rather than trusted.
