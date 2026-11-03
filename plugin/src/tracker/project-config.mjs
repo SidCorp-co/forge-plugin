@@ -425,6 +425,25 @@ export const stagingDeploy = once(async () => {
   return documentDeploy(await scoped("forge_config", { action: "document" }, true));
 });
 
+const NO_PROFILES = "the testing-profiles read answered with no profiles list";
+
+/** The `forge_config.testing_profiles` answer in this CLI's words, {id, route} per profile. A read
+ *  that did not answer carries `refused`; a project declaring none carries an empty list. */
+const profilesOf = (answer) => {
+  if (answer?.refused) return { refused: answer.refused };
+  const list = answer?.profiles;
+  if (!Array.isArray(list)) return { refused: NO_PROFILES };
+  return { list: list.map((one) => ({ id: one.profileId, route: one.valueDoor?.route ?? null })) };
+};
+
+/** Read apart from the deploy: a project declares a testing profile with no staging deploy of its
+ *  own, and a judge reading the credentials row's `none` skipped a login it could have read at the
+ *  profile's door (FB-45). Null is a checkout naming no project. */
+export const testingProfiles = once(async () => {
+  if (!slugIfAny()) return null;
+  return profilesOf(await scoped("forge_config.testing_profiles", {}, true));
+});
+
 const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `awaiting_release` asks the "
   + "verification to name the deployment that built the commit this change landed at";
 
@@ -534,19 +553,31 @@ const policyRows = (policy, landing, drained) => {
 export const deployRows = (deploy) =>
   deploy.urls.map((one) => ({ level: "ok", label: one.label, detail: one.url }));
 
+const LOGIN_AT = "a judging run reads its login here, and the value leaves core at no other route";
+
+/** One row per declared testing profile, naming the door its login is read at. No rows where none is
+ *  declared; a read that did not answer is a note of its own, as the credentials row is. */
+const profileRows = (profiles) => {
+  if (!profiles) return [];
+  if (profiles.refused) return [{ level: "note", label: "testing profiles", detail: `not read — ${firstLine(profiles.refused)}` }];
+  return profiles.list.map((one) => ({ level: "ok", label: "testing profile",
+    detail: one.route ? `${one.id} — ${LOGIN_AT}: ${one.route}` : one.id }));
+};
+
 /** The project's answer in this CLI's words, one row each with where it was read, in the shape the
  *  one verb reporting every level of configuration prints its own keys in. `drained` comes built by
  *  `drainRows` in rank/drain.mjs, which words the drain for `forge next` too and imports this module,
  *  so the rows are placed here and never worded here. */
-export const projectRows = ({ policy, deploy, credentials, drained = [], landing = landingScope() }) => {
+export const projectRows = ({ policy, deploy, credentials, drained = [], profiles = null, landing = landingScope() }) => {
   const out = policyRows(policy, landing, drained);
+  const login = profileRows(profiles);
   if (deploy?.refused) {
     /* Said on a row of its own rather than left to the deploy note: a judging run reads this row to
        decide whether a login exists, and silence there read as none (ISS-2050). */
     return [...out, { level: "note", label: "staging deploy", detail: UNREAD_DEPLOY },
-      { level: "note", label: "test credentials", detail: `not read — ${firstLine(deploy.refused)}` }];
+      { level: "note", label: "test credentials", detail: `not read — ${firstLine(deploy.refused)}` }, ...login];
   }
-  if (!deploy) return [...out, { level: "ok", label: "staging deploy", detail: NO_DEPLOY }];
+  if (!deploy) return [...out, { level: "ok", label: "staging deploy", detail: NO_DEPLOY }, ...login];
   const held = deploy.withheld;
   const asked = Boolean(credentials && held.length);
   const ending = credentialRows(held, asked);
@@ -555,8 +586,8 @@ export const projectRows = ({ policy, deploy, credentials, drained = [], landing
       ? "none on record while the staging branch is named, so the verification the rung owes cites"
         + " the branch and no running host. A host is added on the tracker's own project settings"
         + " screen: this CLI declares no route that writes one"
-      : NO_DEPLOY }, ...ending];
+      : NO_DEPLOY }, ...ending, ...login];
   }
   out.push({ level: "ok", label: "staging deploy", detail: `${deploy.urls.length} host(s)  ← ${deploy.from}` });
-  return [...out, ...deployRows(deploy), ...ending];
+  return [...out, ...deployRows(deploy), ...ending, ...login];
 };

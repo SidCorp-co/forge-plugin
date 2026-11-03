@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { runIdAt } from "../../src/resolve/session/run-id.mjs";
-import { brief, homeFor, repository } from "./fixture.mjs";
+import { SECRETS, brief, homeFor, repository } from "./fixture.mjs";
 
 const repo = repository();
 
@@ -21,11 +21,21 @@ test("the judge's brief names the issue, its role, every deployed address, the i
   assert.deepEqual(run.stdout.trim().split("\n"), [
     "Target: ISS-7, criteria 1, 3 — judge these and write nothing else.",
     "Role: judge",
+    SECRETS,
     "Deployed at: https://staging.example.com, https://api.example.com",
     "Identity: 794dc78",
     "Criteria: 1, 3",
     "Tree: none",
   ]);
+});
+
+/* FB-45: a judge printed a 16-character password because it masked only values of 20+ characters;
+   the brief now says never to print a secret value of any length, and points at the one route. */
+test("the judge brief forbids printing a secret value of any length (ISS-35)", () => {
+  const run = judged(["--url", "https://staging.example.com", "--criteria", "1"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /never print or write a secret value, of any length/u);
+  assert.match(run.stdout, /secrets route forge doctor names/u);
 });
 
 test("a judge's brief given no identity says none was given", () => {
@@ -82,6 +92,7 @@ test("FB-26: a judge's brief can aim at an installed program and the directory t
   assert.deepEqual(run.stdout.trim().split("\n"), [
     "Target: ISS-7, criteria 1, 2 — judge these and write nothing else.",
     "Role: judge",
+    SECRETS,
     "Program: /usr/local/bin/forge-runner",
     "Identity: de70833e",
     "Criteria: 1, 2",

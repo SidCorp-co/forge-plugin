@@ -18,7 +18,7 @@ import {
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
-import { asksIndependent, policyUnread, projectRows, QA_MODES, releasePolicy, stagingDeploy }
+import { asksIndependent, policyUnread, projectRows, QA_MODES, releasePolicy, stagingDeploy, testingProfiles }
   from "../tracker/project-config.mjs";
 import { drainHere, drainRows } from "../rank/drain.mjs";
 import { weightsFrom } from "../rank/weights.mjs";
@@ -512,8 +512,8 @@ const drainRead = (policy) => {
  *  the read behind it, which the reading of what nobody decided asks its own question of. The
  *  reads go together — one report is one round trip's worth of waiting, not six. */
 export const projectReport = async ({ credentials, graph = null } = {}) => {
-  const [policy, deploy, settings, brief, snapshot, load, gates] = await Promise.all([
-    releasePolicy(), stagingDeploy(), readSettings(), readBrief(),
+  const [policy, deploy, profiles, settings, brief, snapshot, load, gates] = await Promise.all([
+    releasePolicy(), stagingDeploy(), testingProfiles(), readSettings(), readBrief(),
     scoped("forge_project_pm.snapshot", {}, true), scoped("forge_project_pm.runner_load", {}, true),
     gatesOf(),
   ]);
@@ -524,7 +524,7 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
     flowJudgeConflict(flow, judgeOf(flow), policy),
   ].filter(Boolean);
   return {
-    rows: [...projectRows({ policy, deploy, credentials, drained }), gatesRow(gates),
+    rows: [...projectRows({ policy, deploy, credentials, drained, profiles }), gatesRow(gates),
       ...clashes.map((detail) => ({ level: "miss", label: "flow", detail })),
       ...settingRows(settings), ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),

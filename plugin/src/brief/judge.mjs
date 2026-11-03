@@ -124,6 +124,13 @@ export const judgeOf = (key, asked) => {
 
 const NOTHING_ELSE = "judge these and write nothing else";
 
+/* The judge logs in with a testing-profile secret, and one judge printed a 16-character password
+   because it masked only longer values (FB-45): the brief says never to print one at all, of any
+   length, since core scrubs what a secret route returns but not what the judge types back. The route
+   is `forge doctor`'s to name, so the brief points there rather than restating it. */
+const SECRETS = "Secrets: never print or write a secret value, of any length — not in output, a "
+  + "comment or a commit. Read a login only at the secrets route forge doctor names for the profile.";
+
 /* The dispatcher's facts for a judge ride the lease, so a judge reading only this brief would miss them
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured
    readings a free-form note could otherwise run into. A note naming a requirement is left out — the
@@ -131,6 +138,7 @@ const NOTHING_ELSE = "judge these and write nothing else";
 export const judgeText = (key, { urls, program, tree, criteria, identity }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   "Role: judge",
+  SECRETS,
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
@@ -170,6 +178,7 @@ export const requirementText = ({ requirement, clauses, urls, identity }) => [
   `Target: ${requirement}, ${clauses.length ? `criteria ${clauses.join(", ")}` : "every criterion"} — ${NOTHING_ELSE}: `
     + "no issue's criteria, no other record.",
   "Role: judge",
+  SECRETS,
   `Deployed at: ${urls.join(", ")}`,
   `Identity: ${identity ?? "none given"}`,
   "Tree: none",

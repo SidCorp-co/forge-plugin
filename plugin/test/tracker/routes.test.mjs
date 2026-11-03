@@ -67,6 +67,9 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
   /* The gates and the project document as the tracker keeps them: `src/brief/waived.mjs` reads two
      keys and a projection here would be a second list of them. */
   "forge_config.gates", "forge_config.document",
+  /* The declared testing profiles as the tracker keeps them: doctor reads the list and each profile's
+     `valueDoor.route`, so a projection here would be a second copy of that shape. */
+  "forge_config.testing_profiles",
   /* A label's delete answers 204 and nothing: `forge doctor modules` reads the list back instead. */
   "forge_labels.delete",
   /* The deployment platform's own words, which this CLI does not own and does not rename: a

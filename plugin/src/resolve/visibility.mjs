@@ -155,6 +155,7 @@ export const VERBS = [
         set_pipeline: "`forge doctor --set`",
         gates: "`forge doctor`",
         document: "`forge doctor`",
+        testing_profiles: "`forge doctor`",
         "forge_project_pm.graph": "`forge doctor`",
         "forge_project_pm.snapshot": "`forge doctor`",
         "forge_project_pm.runner_load": "`forge doctor`" } }],

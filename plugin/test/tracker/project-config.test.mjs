@@ -217,6 +217,21 @@ test("the report withholds a credential and names the one command that prints it
   assert.doesNotMatch(out, /qa@example\.test/u);
 });
 
+/* FB-45: a judge read the credentials row's `none` and skipped a login it could have read at a
+   declared testing profile's door. The profile is a row of its own, naming that door. */
+test("a declared testing profile is a row naming the door its login is read at (ISS-35)", () => {
+  const route = "GET /api/jobs/<run id>/testing-profiles/dev/secrets?ref=secret://dev/admin";
+  const out = said({ profiles: { list: [{ id: "dev", route }] } });
+  assert.match(out, /^testing profile: dev — .*GET \/api\/jobs\/<run id>\/testing-profiles\/dev\/secrets/mu);
+});
+
+test("no profile row where none is declared, and an unread profiles read is a note (ISS-35)", () => {
+  assert.doesNotMatch(said({ profiles: { list: [] } }), /testing profile/u);
+  assert.doesNotMatch(said({}), /testing profile/u, "profiles unread is no row at all");
+  assert.match(said({ profiles: { refused: "the tracker did not answer" } }),
+    /^testing profiles: not read — the tracker did not answer$/mu);
+});
+
 test("the flag prints the values, and nothing else moves", () => {
   const out = said({ credentials: true });
   assert.match(out, /^test credentials · password: correct-horse-battery$/mu);

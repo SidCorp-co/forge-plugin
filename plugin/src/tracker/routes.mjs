@@ -445,6 +445,14 @@ export const ROUTES = {
     requests: (args, project) => one(`/projects/${project}/config`),
     sends: [],
   },
+  /* The project's declared testing profiles, `{ profiles: [{ profileId, …, valueDoor: { route } }] }`:
+     each profile's `valueDoor.route` is the one door a login's value is read at, which doctor names so
+     a judge does not read the credentials row's `none` and skip (FB-45). */
+  "forge_config.testing_profiles": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/testing-profiles`),
+    sends: [],
+  },
   "forge_guide.list": {
     requests: () => one(`/guides`),
     sends: [],

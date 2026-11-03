@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { answered, callHookAsync, ranAsync } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
-import { CLI, HOOK, brief, homeFor, repository } from "./fixture.mjs";
+import { CLI, HOOK, SECRETS, brief, homeFor, repository } from "./fixture.mjs";
 
 const repo = repository();
 const URL_AT = "https://staging.example.com";
@@ -25,6 +25,7 @@ test("a requirement's brief names its target on the first line, and the judge's 
   assert.deepEqual(run.stdout.trim().split("\n"), [
     "Target: REQ-79, criteria BC-6 — judge these and write nothing else: no issue's criteria, no other record.",
     "Role: judge",
+    SECRETS,
     `Deployed at: ${URL_AT}`,
     "Identity: 794dc78",
     "Tree: none",
