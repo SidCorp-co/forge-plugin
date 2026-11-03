@@ -28,7 +28,7 @@ import { stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { lastMark, markedCommit } from "./record/judged/mark-read.mjs";
 import { REOPEN, checkpointAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
-import { FIELD, anothersHold, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
+import { FIELD, anothersHold, expiryOf, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
 import { judgeOwed } from "./lease/judged.mjs";
 import { movedHere } from "./lease/after-move.mjs";
 import { movedBySaid } from "./earned/moved-by.mjs";
@@ -195,7 +195,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   heard?.(answer);
   const landed = held ?? status;
   const spelt = landed === status ? "" : `  (asked for ${status}, which this tracker spells ${landed})`;
-  scopeFrom(landed, ref, namedIn(view));
+  scopeFrom(landed, ref, namedIn(view), { leaseUntil: expiryOf(leaseOf(view.issue?.[FIELD])) || undefined });
   say(`${ref}  ${view.issue.status} -> ${landed}${note}${spelt}`);
   await movedHere(view.documentId, ref, say);
   /* `by` is what an earned move says moved it, which only the two earned callers pass: earned/moved-by.mjs. */

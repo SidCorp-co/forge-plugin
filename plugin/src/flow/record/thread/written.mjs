@@ -8,7 +8,7 @@ import { batchRefusal, strandedLine, uploadAll } from "../../../tracker/evidence
 import { writeFields } from "../../../tracker/field-write.mjs";
 import { repoRoot } from "../../../git/repo-root.mjs";
 import { scopeFrom, scopePath } from "../plan-scope.mjs";
-import { renew } from "../../lease.mjs";
+import { FIELD, expiryOf, leaseOf, renew } from "../../lease.mjs";
 import { post, sayStored } from "./posting.mjs";
 
 /* Stamped by the tracker or no earlier than the newest row it sorts under, so the ladder read at the end of a call counts the record that call made (ISS-285). */
@@ -26,7 +26,7 @@ const scopeNoted = async (documentId, reference, issue, comments) => {
   try {
     const { namedIn, viewFrom } = await import("../../earned.mjs");
     const named = namedIn(viewFrom(documentId, issue, comments));
-    if (scopeFrom(issue.status, issue.issueId ?? reference, named, { tree })) return;
+    if (scopeFrom(issue.status, issue.issueId ?? reference, named, { tree, leaseUntil: expiryOf(leaseOf(issue[FIELD])) || undefined })) return;
     console.error(`this record landed and ${scopePath(tree, issue.issueId ?? reference)} could not be written or removed, so a `
       + `write it clears may still be refused: \`forge hooks --off plan-scope\``);
   } catch {}

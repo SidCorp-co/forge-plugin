@@ -11,6 +11,9 @@ import { NO_LONGER_OWES } from "../earned/park-status.mjs";
 /** How long an entry answers for. A lease outlives no window and no window outlives a day: past it a plan neither refuses a path nor admits one, which is the same answer as a tree nobody has claimed in. */
 export const SCOPE_KEPT_MS = 86_400_000;
 
+/* The statuses past which a tree stops owing this issue's scope: the ladder's two ends and `awaiting_release`, a building run's last move. Past it the lease is handed back and the plan must not refuse a sibling issue's writes from the same worktree (ISS-38). A set of this module's own, kept off `NO_LONGER_OWES` because its ten other readers still owe at `awaiting_release`. */
+const SCOPE_DROPPED_AT = [...NO_LONGER_OWES, "awaiting_release"];
+
 export const scopeDir = () => join(configDir("forge"), "plan-scope");
 
 /** One file per issue per tree, so no writer ever reads a set it then writes back: a whole-file rewrite is how a later save puts back a scope an earlier one had already corrected, and a writer that touches only its own issue's file has no such window to lose. */
@@ -40,10 +43,11 @@ const saved = (tree, ref, row) => {
 };
 
 /** What `namedIn` gave for one issue, against the tree it is being worked in — the caller's own directory, since a run's writes and its records stand in one tree. A tree this cannot name writes nothing, and so does a call with no reference. */
-export const noteScope = (ref, text, { tree = repoRoot(process.cwd()), now = Date.now() } = {}) => {
+export const noteScope = (ref, text, { tree = repoRoot(process.cwd()), now = Date.now(), leaseUntil } = {}) => {
   if (!tree || !ref) return true;
   filesFor(tree, now);
-  return saved(tree, ref, { tree, ref: String(ref).toUpperCase(), at: new Date(now).toISOString(), named: String(text ?? "") });
+  return saved(tree, ref, { tree, ref: String(ref).toUpperCase(), at: new Date(now).toISOString(), named: String(text ?? ""),
+    ...(Number.isFinite(leaseUntil) && leaseUntil > 0 ? { leaseUntil } : {}) });
 };
 
 /** An issue this tree no longer holds. The entry goes rather than emptying, an issue with no plan and an issue that is gone being two different silences. Nothing to remove is this call's success and not its failure: the entry the record wanted gone is gone, and so is one the sweep already owns. */
@@ -60,11 +64,13 @@ export const scopeHeld = (tree, now = Date.now()) => {
   return filesFor(tree, now)
     .map((at) => readJson(at))
     .filter((one) => one && typeof one === "object" && one.ref)
-    .map((one) => ({ ref: String(one.ref), named: String(one.named ?? ""), at: String(one.at ?? "") }))
     .filter((one) => now - (Date.parse(one.at) || 0) < SCOPE_KEPT_MS)
+    /* A lapsed lease reads as no plan: a move made outside the plugin — through `forge-runner api` — drops no entry, so the lease the entry recorded is what says the run working this issue is gone (ISS-38). An entry with no lease recorded keeps the day-long window. */
+    .filter((one) => !(Number(one.leaseUntil) > 0 && Number(one.leaseUntil) <= now))
+    .map((one) => ({ ref: String(one.ref), named: String(one.named ?? ""), at: String(one.at ?? "") }))
     .sort((one, two) => (one.at > two.at ? -1 : Number(one.at < two.at)));
 };
 
 /** One issue's scope as its record now stands: the text where the issue is still being worked, and no entry at all where it has left the ladder. */
 export const scopeFrom = (status, ref, text, options) =>
-  (NO_LONGER_OWES.includes(status) ? dropScope(ref, options) : noteScope(ref, text, options));
+  (SCOPE_DROPPED_AT.includes(status) ? dropScope(ref, options) : noteScope(ref, text, options));

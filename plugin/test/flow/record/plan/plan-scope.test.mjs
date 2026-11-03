@@ -98,6 +98,31 @@ test("a status off the ladder drops the entry and every other status writes it",
   assert.deepEqual(refs("/ladder"), []);
 });
 
+/* A building run's last move through the plugin is to awaiting_release, never closed, so the entry
+   has to go there too or a landed issue's plan refuses every sibling's writes in the one worktree. */
+test("awaiting_release drops the entry, so a landed issue's plan stops refusing a sibling's writes", () => {
+  scopeFrom("in_progress", "ISS-910", "live.mjs", { tree: "/landed", now: NOW });
+  assert.deepEqual(refs("/landed"), ["ISS-910"]);
+  scopeFrom("awaiting_release", "ISS-910", "live.mjs", { tree: "/landed", now: NOW });
+  assert.deepEqual(refs("/landed"), [], "the building run's last move drops the scope");
+});
+
+/* A move made outside the plugin — through `forge-runner api` — drops no entry, so the lease the
+   entry recorded is the backstop: past its expiry the plan is nobody's and refuses nothing. */
+test("an entry whose recorded lease has lapsed reads as no plan, so a move outside the plugin stops refusing", () => {
+  noteScope("ISS-920", "live.mjs", { tree: "/lapsed", now: NOW, leaseUntil: NOW + 1000 });
+  assert.deepEqual(refs("/lapsed", NOW + 500), ["ISS-920"], "a live lease still holds the plan");
+  assert.deepEqual(refs("/lapsed", NOW + 1000), [], "at the expiry the plan is no longer held");
+  assert.deepEqual(refs("/lapsed", NOW + 2000), []);
+});
+
+/* No lease recorded is the old shape, and it keeps the day-long window rather than lapsing at once. */
+test("an entry with no recorded lease keeps the day-long window", () => {
+  noteScope("ISS-921", "live.mjs", { tree: "/nolease", now: NOW });
+  assert.deepEqual(refs("/nolease", NOW + 1000), ["ISS-921"]);
+  assert.deepEqual(refs("/nolease", NOW + SCOPE_KEPT_MS - 1), ["ISS-921"]);
+});
+
 test("a call naming no tree and a call naming no reference write nothing", () => {
   const before = readdirSync(scopeDir()).length;
   noteScope("ISS-411", "a.mjs", { tree: null, now: NOW });
@@ -275,6 +300,44 @@ test("a record written while the issue is off the ladder says nothing where the 
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.doesNotMatch(wrote.stderr, /could not be written or removed/u);
     assert.doesNotMatch(wrote.stderr, /hooks --off plan-scope/u);
+  } finally {
+    tracker.close();
+  }
+});
+
+/* The lease handed back by name ends the run's turn on the issue, so its plan must stop refusing a
+   sibling's writes from the same worktree at once, not a day later (ISS-38). Driven through the CLI
+   because the drop rides `giveBack`, after the release write. */
+test("a lease handed back drops the plan scope, so a sibling's writes are no longer refused", async () => {
+  const at = tempRoom("plan-scope-giveback-");
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
+  const issue = { documentId: "giveback-uuid", issueId: "ISS-97", status: "in_progress",
+    title: "a run that hands its lease back", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
+  issue.plan = `${issue.plan}\n\n- \`${PLANNED}\`\n`;
+  const project = {
+    issues: [issue],
+    comments: { "giveback-uuid": [] },
+    answer: {
+      forge_issues: (args) => {
+        if (args.action === "list") return { issues: [issue], returned: 1, hasMore: false };
+        if (args.action === "get") return issue;
+        if (args.action === "update") return Object.assign(issue, args.data);
+        return { documentId: args.documentId, ...(args.data ?? {}) };
+      },
+      forge_comments: (args) => {
+        if (args.action === "list") return { comments: project.comments["giveback-uuid"], returned: 0, hasMore: false };
+        return { documentId: "comment-1", authorDeviceId: "a-fake-device", ...(args.data ?? {}) };
+      },
+    },
+  };
+  const tracker = await fakeTracker(project);
+  const worked = workedUnder(at, tracker);
+  try {
+    assert.equal((await ranAsync(FORGE, ["claim", "ISS-97", "--unheld"], childEnv(tracker), worked)).status, 0);
+    assert.deepEqual(scopeHeldUnder(tracker, worked).map((one) => one.ref), ["ISS-97"], "the claim holds the scope");
+    const back = await ranAsync(FORGE, ["claim", "ISS-97", "--give-back"], childEnv(tracker), worked);
+    assert.equal(back.status, 0, back.stderr);
+    assert.deepEqual(scopeHeldUnder(tracker, worked), [], "the hand-back dropped it");
   } finally {
     tracker.close();
   }

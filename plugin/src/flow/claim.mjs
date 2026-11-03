@@ -18,7 +18,7 @@ import { SIDE, namedIn, parkThatSet, rungFieldsOf, viewFrom } from "./earned.mjs
 import { isConflictPark } from "./landing/conflict-park.mjs";
 import { owedBlock, owedIn, policyFor } from "./route.mjs";
 import { DRAFT } from "../rank/weights.mjs";
-import { scopeFrom } from "./record/plan-scope.mjs";
+import { dropScope, scopeFrom } from "./record/plan-scope.mjs";
 import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld } from "./record/page.mjs";
@@ -117,7 +117,7 @@ const advise = async (documentId, fetched, held = null, landing = undefined) => 
   }
   const drafted = issue.status === DRAFT;
   const view = viewFrom(documentId, issue, page.comments, cutIn(page), drafted ? await policyFor(issue.plan, issue.status) : null);
-  scopeFrom(issue.status, issue.issueId, namedIn(view));
+  scopeFrom(issue.status, issue.issueId, namedIn(view), { leaseUntil: expiryOf(leaseOf(issue[FIELD])) || undefined });
   advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view), leaseSaid);
   /* At a side status the lane above is empty, so where the way back is refused the refusal is what
      the claimant acts on: it names the record that finishes a park whose record did not go up. At
@@ -450,7 +450,11 @@ export const claim = async (argv) => {
     if (untold) console.error(untold);
   }
   if (given["give-back"]) {
-    return advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })));
+    const out = await advise(documentId, issue, worklogOf(await giveBack(documentId, ref, context, { state, lease, line, patch })));
+    /* `advise` re-notes the scope from the issue's status, which is still a working one, so the drop the hand-back owes (why: `scopeFrom` in record/plan-scope.mjs) comes after it, never inside `giveBack` (ISS-38). Both trees, since the entry is keyed by the one the claim wrote it from — this call's own where the run hands its lease back, the lease's recorded one where another session hands a dispatched run's back. */
+    dropScope(ref);
+    if (lease?.tree) dropScope(ref, { tree: lease.tree });
+    return out;
   }
   /* Every lease refusal below names a flag it did not read (ISS-2533). */
   const refuse = (said) => fail(unreadSaid(given, state, lease) + said);
