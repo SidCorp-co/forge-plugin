@@ -81,20 +81,33 @@ const forgeBreaks = (rest) => {
   return null;
 };
 
+/* A requirement-aimed judge's verdicts go to core's requirement verdicts route (ISS-588); there is no
+   verb for them as `forge record verdict` is the issue's, so the raw POST is the judge's own verdict
+   write and allowed, exactly as the verb is — a bare `requirements` POST is not (FB-53, ISS-57). */
+const REQUIREMENT_VERDICTS = /(?:^|\/)requirements\/[^/]+\/verdicts\/?$/u;
+
+/* The first positional after `api` is the path; a value-taking flag's own value never precedes it, so
+   the first token with no leading dash is it. */
+const apiPath = (rest) => rest.slice(rest.indexOf("api") + 1).find((one) => !one.startsWith("-")) ?? null;
+
 /* `forge-runner api <path>` with a mutating method, written curl's way: `-X POST`, `-XPOST`, or
    `--request POST`. A bare GET names no method and writes nothing. */
 const runnerBreaks = (rest) => {
   if (firstWord(rest) !== "api") return null;
-  for (let at = 0; at < rest.length; at += 1) {
+  let mutates = false;
+  for (let at = 0; at < rest.length && !mutates; at += 1) {
     const token = rest[at];
-    if (/^-X(?:POST|PUT|PATCH|DELETE)$/iu.test(token)) return "api";
+    if (/^-X(?:POST|PUT|PATCH|DELETE)$/iu.test(token)) mutates = true;
     const name = flagName(token);
     if (name === "-X" || name === "--request") {
       const value = token.includes("=") ? token.split("=")[1] : rest[at + 1];
-      if (value && METHOD.test(value)) return "api";
+      if (value && METHOD.test(value)) mutates = true;
     }
   }
-  return null;
+  if (!mutates) return null;
+  const path = apiPath(rest);
+  if (path && REQUIREMENT_VERDICTS.test(path)) return null;
+  return "api";
 };
 
 const breaksFor = (said) => {

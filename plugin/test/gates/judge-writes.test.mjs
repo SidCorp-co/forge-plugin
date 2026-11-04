@@ -80,6 +80,7 @@ const ALLOWED = [
   "forge doctor project",
   "forge guide issue-flow verification",
   "forge-runner api issues/ISS-45",
+  "forge-runner api projects/932d2e55/requirements/REQ-79/verdicts -X POST -d '{\"criterion\":\"BC-6\",\"verdict\":\"pass\"}'",
   "FORGE_SESSION_ID=the-run forge record verdict ISS-45 --criterion 2 --verdict pass --why ok",
   "grep -rn probe plugin/src",
 ];
