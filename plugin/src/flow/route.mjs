@@ -9,6 +9,7 @@ import { CLOSES_FROM, TRIAGES, atMinute, commandAt, criterionNumber, looksIn, mi
 import { statusKind } from "../tracker/rest.mjs";
 import { unreadId, withRuntime } from "./earned/asks.mjs";
 import { coreJudged, coreReadLines, withCoreVerdicts } from "./earned/core-verdicts.mjs";
+import { designReadLines } from "./earned/core-design.mjs";
 import {
   BUILD_AT,
   CHECKS,
@@ -452,7 +453,7 @@ export const unaskedLines = (view, ref) => {
 /** Where the issue stands and what stands in its way, as one set of lines for all three printers. */
 export const owedBlock = (view, ref, held) =>
   [owedLine(view, ref, held), ...(view.issue.status === DRAFT && !held.refused ? [draftSaid(view)] : []),
-    ...missingLines(held.missing), ...coreReadLines(view), ...markReadLines(view), ...unaskedLines(view, ref)];
+    ...missingLines(held.missing), ...coreReadLines(view), ...designReadLines(view), ...markReadLines(view), ...unaskedLines(view, ref)];
 
 /** That block printed, for `advance` and `resume` alike. */
 export const shortfall = (ref, view, held) => {

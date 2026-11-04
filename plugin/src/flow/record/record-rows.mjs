@@ -1,8 +1,8 @@
 /* The kinds, the table `forge record -h` prints of them, and the help rendered from that table —
    each capped field's cap on the row of the field it caps, so a note is drafted against the number
    rather than learning it from the refusal (ISS-46). */
-import { DECLARING, FIELD_KINDS, PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
-  sectionOwedBy } from "../machine.mjs";
+import { DECLARING, DESIGN_CLASSES, FIELD_KINDS, PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES,
+  TRIAGES, VERDICTS, sectionOwedBy } from "../machine.mjs";
 import { EARNED } from "./corrections/superseding.mjs";
 import { CLAUSES, NOTHING } from "./judged/merged-clauses.mjs";
 import { citationBlocks } from "../../spec/checked.mjs";
@@ -85,6 +85,8 @@ const kindRows = (caps) => [
   `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
     + "numbered lines, from a file a consult has read  [--replace]",
+  "  design       --criterion N --class " + DESIGN_CLASSES.join("|")
+    + " [--pattern S] --proof P [--module M]... [--contract C]...",
   LANDED_ROW,
 ];
 
@@ -112,6 +114,7 @@ const KIND_PHRASE = {
   fold: "the end of that wave, once its fold is posted",
   plan: "the plan itself, from a file a consult has read",
   criteria: "the numbered criteria, from a file a consult has read",
+  design: "criteria classed, proven, with modules and contracts",
   [LANDED]: "a landing built by hand, recorded in core's order in one call",
 };
 
@@ -123,7 +126,7 @@ const KIND_PHRASE = {
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
   "note", "declined", "finding", "triage", "confirmation", "merged", LANDED, "park", "answer",
-  "decision", "question", "wave", "fold", "plan", "criteria"];
+  "decision", "question", "wave", "fold", "design", "plan", "criteria"];
 
 const phraseRows = () =>
   DISPLAY_ORDER.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
@@ -218,6 +221,24 @@ const MERGED_BLOCKS = [
     "words, every reader of the clause takes it for no head, and `landing moved` is read between",
     "--reviewed and --at. The word is refused where the page carries a verdict.",
   ]),
+];
+
+/* The design's payload, from the same class set the record is checked against: a run writing one
+   against this rather than learning the shape from core's DESIGN_REFUSED (ISS-28, FB-33). */
+const DESIGN_BLOCKS = [
+  "A design classes each of the issue's criteria and says how it is proven, and names the modules the",
+  "change touches and the contracts it depends on. The write replaces the whole design the issue held",
+  "and bumps its revision. A project whose design gate is on enforce holds the move into build until a",
+  "design is recorded, and `forge advance --owed` names the hold before core refuses the move.",
+  "  --criterion N   opens a block, the flags below it that criterion's own; repeat per criterion",
+  `  --class C       one of ${DESIGN_CLASSES.join(", ")} — who proves the criterion: a judge at the`,
+  "                  running product, a check of the server's own state, or the review reading the code",
+  "  --pattern S     the pattern slug the criterion follows, where it follows one",
+  "  --proof P       the probe, capture or review line that proves the criterion",
+  "  --module M      a module the change touches, repeatable; a project that labels modules owes one",
+  "  --contract C    a contract the change depends on, repeatable",
+  "--module and --contract are the call's, named anywhere; everything else stands under a --criterion.",
+  "Core refuses a payload its module or trace rule turns away (DESIGN_REFUSED).",
 ];
 
 /* The title's other bound, which a cap in parentheses cannot carry: core counts its words as well. */
@@ -459,6 +480,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "criteria" && cites.length ? ["", ...CRITERIA_TRACE_BLOCKS] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
+    ...(kind === "design" ? ["", ...DESIGN_BLOCKS] : []),
     ...(kind === "note" ? ["", ...NOTE_BLOCKS] : []),
     ...(kind === LANDED ? ["", ...LANDED_BLOCKS] : []),
     ...(kind === "review" ? ["", ...REVIEW_ROUTE_BLOCKS] : []),

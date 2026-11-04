@@ -12,6 +12,7 @@ import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap 
 import { parseAll } from "./page.mjs";
 import { recordFieldRefusal, renderedWithin } from "../../tracker/comment-cap.mjs";
 import { mergedPrepared } from "./merged.mjs";
+import { designPrepared } from "./design/kind.mjs";
 import { markedCommit } from "./judged/mark-read.mjs";
 import { landedProblem, landingProblem, landsOutsideGit, markedLanding } from "./judged/landing.mjs";
 import { commitProblem, eachProblem, isFullCommit } from "./content.mjs";
@@ -465,7 +466,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     tallied: tallied(kind, reference, blocks), ask: await askPrepared(kind, blocks, { documentId, title: body.title, reference }) };
 };
 
-const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
+const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared, design: designPrepared };
 
 /* Read at the first prepare that asks and never before it: a flag error must cost no call (ISS-65). */
 const once = (make) => {

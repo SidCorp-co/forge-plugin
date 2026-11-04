@@ -363,7 +363,12 @@ const HANDLE_TAKES = `the finding's handle, the ${HANDLE_LENGTH} hex characters 
 /* What a correction may name beyond the shapes: `FIELD_KINDS`, whose reason is given where `KINDS`
    joins them in record-rows.mjs. `issue` names a field of the issue itself that no record holds — its status, its
    complexity — which the CLI's own corrections move as often as they move a record. */
-export const FIELD_KINDS = ["merged", "note", "criteria", "plan"];
+export const FIELD_KINDS = ["merged", "note", "criteria", "plan", "design"];
+
+/* How a design criterion earns its verdict, which the record classes each criterion by and core's
+   `@forge/contracts/issue-design` holds the set of: a judge at the running product, a check against
+   the server's own state, or the review reading the code. */
+export const DESIGN_CLASSES = ["observable", "server_side", "code_property"];
 const ISSUE_TARGET = "issue";
 const CORRECTS_TAKES = "a record kind, or `issue:<field>` for a field of the issue no record holds, "
   + "either followed by `:<occasion>` where one record of the kind is meant — `plan`, `criteria:3`, "

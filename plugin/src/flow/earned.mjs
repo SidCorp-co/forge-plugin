@@ -12,6 +12,7 @@ import { correctionForm, mergedForm, namesPath, undoForm } from "./record/merged
 import { judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, markedIdentity, reviewedHead } from "./record/judged/mark-read.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
 import { observableOwed, reviewOwedItems, weighable } from "./earned/core-verdicts.mjs";
+import { designOwed } from "./earned/core-design.mjs";
 import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, identityOwed, landingOwed, unreadId, verificationForm, withRuntime } from "./earned/asks.mjs";
 
 export { correctedForm };
@@ -656,7 +657,7 @@ export const CHECKS = {
   },
   /* No measurement of the tree: the landing's gate measures it, and every commit reaches the default branch through that gate, so a run's own reading before the first edit would say nothing the landing does not. A plan declaring the change lands no file drops the branch, there being no tree to cut one from (ISS-2384). */
   [HELD.build]: (view, ref) =>
-    [...blockersOwed(view), ...(lightPath(view, BUILD_AT, "branch") ? [] : branchOwed(view, ref))],
+    [...blockersOwed(view), ...designOwed(view, ref), ...(lightPath(view, BUILD_AT, "branch") ? [] : branchOwed(view, ref))],
   [HELD.test]: (view, ref) => {
     const out = [];
     if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", mergedForm(ref, view.issue)));

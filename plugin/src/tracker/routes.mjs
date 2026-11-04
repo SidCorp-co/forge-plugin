@@ -159,6 +159,20 @@ export const ROUTES = {
     requests: (args) => ({ page: { path: `/issues/${args.documentId}/criteria` } }),
     sends: ["documentId"],
   },
+  /* The issue's design and core's standing check on it: `{ design, check: { passed, code, gaps:
+     [{ part }], detail }, moduleScope }`, read by `flow/earned/core-design.mjs`, which says why. */
+  "forge_issues.design": {
+    requests: (args) => ({ page: { path: `/issues/${args.documentId}/design` } }),
+    sends: ["documentId"],
+  },
+  /* What `forge record design` writes to replace the whole design (its revision bumps core-side),
+     `@forge/contracts/issue-design:recordDesignRequestSchema` its shape; `flow/record/design/kind.mjs`
+     holds the kind and its refusals. */
+  "forge_issues.record_design": {
+    writes: true,
+    requests: (args) => one(`/issues/${args.documentId}/design`, "PUT", args.data),
+    sends: ["documentId", "data"],
+  },
   "forge_issues.transition": {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}/transition`, "POST",

@@ -448,6 +448,9 @@ export const fakeTracker = async (state) => {
       answered("forge_issues.review", { documentId: id, data: sent })],
     [/^\/api\/issues\/([^/]+)\/criteria$/u, (q, sent, method, [id]) =>
       answered("forge_issues.criteria", { documentId: id })],
+    [/^\/api\/issues\/([^/]+)\/design$/u, (q, sent, method, [id]) => (method === "PUT"
+      ? answered("forge_issues.record_design", { documentId: id, data: sent })
+      : answered("forge_issues.design", { documentId: id }))],
     [/^\/api\/issues\/([^/]+)\/verdicts$/u, (q, sent, method, [id]) =>
       answered("forge_issues.verdicts", { documentId: id, data: sent })],
     [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {

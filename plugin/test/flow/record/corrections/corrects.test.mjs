@@ -31,7 +31,7 @@ test("--corrects takes a kind this verb writes or a field of the issue, either w
     assert.match(check({ corrects: bad }), new RegExp(`^--corrects as a record kind, or \`issue:<field>\`.*, not \`${bad.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}\``, "u"),
       `${bad} is refused with the form it takes`);
   }
-  assert.match(check({ corrects: "plans" }), /the kinds are confirmation, .*, plan$/u, "an unknown kind is answered with the kinds");
+  assert.match(check({ corrects: "plans" }), /the kinds are confirmation, .*, plan, design$/u, "an unknown kind is answered with the kinds");
   assert.equal(correctedKind("criteria:3"), "criteria", "the kind is read with the occasion dropped");
 });
 

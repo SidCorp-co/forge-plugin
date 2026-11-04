@@ -26,6 +26,7 @@ import { atMinute, heldSaid } from "./machine.mjs";
 import { waveLines, waveLive, waveOf } from "./record/wave.mjs";
 import { batchLine, batchLive } from "./lease/batch.mjs";
 import { coreJudged, withCoreVerdicts } from "./earned/core-verdicts.mjs";
+import { coreDesign, withCoreDesign } from "./earned/core-design.mjs";
 
 export const USAGE = [
   usageOf("resume"),
@@ -232,8 +233,8 @@ const run = async (argv) => {
   if (given.report) return recordReport(ref);
   const { documentId, body } = await issueOf(ref);
   const page = await commentPage(documentId);
-  const [release, judged] = await Promise.all([policyFor(body.plan, body.status), coreJudged(documentId)]);
-  const view = withCoreVerdicts(viewFrom(documentId, body, page.comments, cutIn(page), release, () => citedClauses(body)), judged);
+  const [release, judged, design] = await Promise.all([policyFor(body.plan, body.status), coreJudged(documentId), coreDesign(documentId, body.status)]);
+  const view = withCoreDesign(withCoreVerdicts(viewFrom(documentId, body, page.comments, cutIn(page), release, () => citedClauses(body)), judged), design);
   const brief = briefOf(view, ref);
   const wave = await waveLive(waveOf(page.comments));
   if (wave) brief.wave = wave;

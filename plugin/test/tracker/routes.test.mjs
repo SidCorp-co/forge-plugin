@@ -89,10 +89,14 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
      its options' labels off the row and nothing else (ISS-2317). */
   "forge_questions.list", "forge_questions.ask",
   /* Core's standing of one issue, read for its `moves` alone, core's own feedback door, read for the
-     item key it filed, and core's criteria, read for which carry a verdict: a projection over any of
+     item key it filed, and core's criteria and design, read raw for which criterion carries a verdict
+     and whether the design gate's check passes (`flow/earned/core-*.mjs`): a projection over any of
      them would be a second copy of a shape core owns. */
-  "forge_issues.moves", "forge_feedback.submit", "forge_issues.criteria",
+  "forge_issues.moves", "forge_feedback.submit", "forge_issues.criteria", "forge_issues.design",
   "forge_issues.review",
+  /* The design write, whose answer `record design` does not read — it writes the whole design and
+     the status move earns off core's own check, so there is no projection to judge. */
+  "forge_issues.record_design",
   /* Core's verdict door, read for the `duplicate` and `notCounted` it answers, the same reason `review`
      beside it declares none. */
   "forge_issues.verdicts"];

@@ -250,7 +250,8 @@ const TOOLS = [
   "forge_guide", "forge_project_pm", "forge_config", "forge_projects.list", "forge_projects.create",
   "forge_projects.update", "forge_projects.read", "forge_projects.get", "forge_projects.archive",
   "forge_projects.unarchive", "forge_coolify", "forge_release_batch", "forge_labels", "forge_questions", "forge_feedback",
-  "forge_issues.criteria", "forge_issues.verdicts", "forge_issues.review",
+  "forge_issues.criteria", "forge_issues.design", "forge_issues.record_design",
+  "forge_issues.verdicts", "forge_issues.review",
 ];
 
 const failing = (answer) => Object.fromEntries(TOOLS.map((name) => [name, () => ({ ...answer })]));
@@ -262,6 +263,8 @@ const PROBES = [
   ["GET", "/api/projects/p1/issues"],
   ["GET", "/api/projects/p1/issues/standing/ISS-1"],
   ["GET", "/api/issues/u1/criteria"],
+  ["GET", "/api/issues/u1/design"],
+  ["PUT", "/api/issues/u1/design"],
   ["POST", "/api/issues/u1/verdicts"],
   ["POST", "/api/issues/u1/review"],
   ["POST", "/api/forge/feedback"],

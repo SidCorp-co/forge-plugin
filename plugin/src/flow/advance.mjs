@@ -33,6 +33,7 @@ import { judgeOwed } from "./lease/judged.mjs";
 import { movedHere } from "./lease/after-move.mjs";
 import { movedBySaid } from "./earned/moved-by.mjs";
 import { coreJudged, withCoreVerdicts } from "./earned/core-verdicts.mjs";
+import { coreDesign, withCoreDesign } from "./earned/core-design.mjs";
 import { citedOn } from "./route/aboard.mjs";
 import { DRAFT } from "../rank/weights.mjs";
 import { VOID_FLAG, typedAgain, voidRoute, voidsChecked, voidsInto } from "./park/void-questions.mjs";
@@ -94,14 +95,15 @@ const viewOf = async (reference, given) => {
   if (!readsTheRecord(body, given)) return { ...viewFrom(documentId, body, [], null, null, cited), unread: true };
   const page = await commentPage(documentId);
   /* Only the rehearsal prints the line, so only the rehearsal reads it; and neither read feeds the other. */
-  const [deploy, release, judged] = await Promise.all([
+  const [deploy, release, judged, design] = await Promise.all([
     given.owed && !given.park && !given.drop ? deployFor(body.plan, body.status) : null,
     policyFor(body.plan, body.status),
     coreJudged(documentId),
+    coreDesign(documentId, body.status),
   ]);
   /* Off `cut`, which sizes the issue: a count nobody here can account for is said and sizes nothing. */
   return {
-    ...withCoreVerdicts(viewFrom(documentId, body, page.comments, cutIn(page), release, cited, deploy), judged),
+    ...withCoreDesign(withCoreVerdicts(viewFrom(documentId, body, page.comments, cutIn(page), release, cited, deploy), judged), design),
     counted: countedShort(page),
   };
 };
