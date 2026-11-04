@@ -128,12 +128,16 @@ test("a title already open there does not take the note, which is filed as its o
   assert.equal(run.said, undefined, "and nothing was posted on the issue that shared the words");
 });
 
-/* The finder's own route to relating: `forge new`'s flag, on the verb that files without a lease. */
-test("a note names the issue it belongs to with --with, resolved on this plugin's project", async () => {
-  const held = { documentId: OPEN, issueId: "ISS-9", status: "open", title: "an issue this note belongs under" };
+/* `--with` from a checkout that is not the plugin's refuses rather than relating a same-numbered issue
+   of the plugin's own backlog (ISS-48): a bare key means the caller's project's issue, and an edge on a
+   plugin issue is written from a plugin checkout (ISS-571). */
+test("--with from another project refuses, naming it, and relates no same-numbered plugin issue", async () => {
+  const held = { documentId: OPEN, issueId: "ISS-9", status: "open", title: "the plugin's own ISS-9, which must not be related" };
   const run = await send(["feedback", note(), "--title", TITLE, "--with", "ISS-9"], { issues: [held] });
-  assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(run.filed.args.data.relations, [{ kind: "relates", blocksId: OPEN }]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--with ISS-9 names an issue of somewhere-else, not of forge-plugin/u);
+  assert.match(run.stderr, /forge issue <the note> --relates ISS-9/u, "the route that writes the edge from a plugin checkout");
+  assert.equal(run.filed, undefined, "nothing filed, and no relates edge to the plugin's own ISS-9");
 });
 
 test("--with naming nothing is refused with the two shapes it takes", async () => {

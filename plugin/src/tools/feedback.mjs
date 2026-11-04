@@ -139,6 +139,19 @@ export const feedback = async (argv) => {
   const kind = kindAsked(asksKind);
   const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
   if (badKeys) fail(badKeys);
+  /* A `--with` key means an issue of the checkout it was typed in. The note lands on the plugin's
+     project, so only where the caller stands in the plugin's own checkout does that key name the issue
+     the edge would relate; from any other project it would relate a same-numbered one of the plugin's,
+     somebody else's (ISS-48). Refused before any call, naming the project it meant and the route that
+     writes a plugin edge from a plugin checkout (ISS-571), rather than linking the wrong issue. */
+  const caller = projectScope().value;
+  if (withKeys.length && caller !== PROJECT) {
+    fail(`--with ${withKeys.join(", ")} names ${withKeys.length > 1 ? "issues" : "an issue"} of `
+      + `${caller ?? "the checkout you are in"}, not of ${PROJECT}, where this note lands — and a bare `
+      + `key is read in the project it was typed in, so relating it here would link a same-numbered `
+      + `${PROJECT} issue, not the one you meant. File the note without --with, then write the edge from `
+      + `a ${PROJECT} checkout: forge issue <the note> --relates ${withKeys[0]}.`);
+  }
   /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What it claims, and the one refusal above this line it cannot reach: docs/cli/feedback.md. */
   const written = await bodyFrom(path);
   const keep = (text) => keepBody("note", text);
@@ -164,8 +177,7 @@ export const feedback = async (argv) => {
   /* Resolved against the plugin's own modules, the project being aimed by now. */
   const { module, refusal: unknownModule } = await moduleForFiling(named, "feedback");
   if (unknownModule) fail(unknownModule);
-  /* After the project is aimed, and not before: a key names an issue of the plugin's backlog, and
-     the same key resolved against the caller's project would relate somebody else's issue. */
+  /* Resolved against the plugin's backlog, which the guard above has made the caller's own project. */
   const relations = withKeys.length
     ? await Promise.all(withKeys.map(async (one) =>
       ({ kind: "relates", blocksId: await documentIdOf(one) })))
