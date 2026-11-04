@@ -40,6 +40,29 @@ test("the judge brief forbids printing a secret value of any length (ISS-35)", (
   assert.match(run.stdout, /never the whole profile/u);
 });
 
+/* ISS-4: the dispatcher declares the run before the brief (forge-runner run declare) and hands the
+   uuid over with --run; the brief prints it and carries it into the judge-login line, so the judge
+   reads its testing secret with `judge-login <profile> <actor> --run <uuid>` on dev (core ISS-788). */
+test("a judge brief given --run prints the run and carries it into the judge-login line (ISS-4)", () => {
+  const uuid = "4a1f2c3d-5e6f-7a8b-9c0d-1e2f3a4b5c6d";
+  const run = judged(["--url", "https://staging.example.com", "--criteria", "1", "--run", uuid]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, new RegExp(`^Run: ${uuid}$`, "mu"));
+  assert.match(run.stdout, new RegExp(`forge-runner judge-login <profile> <actor> --run ${uuid} —`, "u"));
+});
+
+test("a judge brief with no --run names no run and leaves the judge-login line bare", () => {
+  const run = judged(["--url", "https://staging.example.com", "--criteria", "1"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /^Run: /mu);
+  assert.match(run.stdout, /forge-runner judge-login <profile> <actor> —/u);
+});
+
+test("a judge brief whose --run is blank is refused with nothing to send", () => {
+  refused(judged(["--url", "https://staging.example.com", "--criteria", "1", "--run", "  "]),
+    /--run takes the one run uuid/u);
+});
+
 test("a judge's brief given no identity says none was given", () => {
   const run = judged(["--url", "https://staging.example.com", "--criteria", "2"]);
   assert.equal(run.status, 0, run.stderr);

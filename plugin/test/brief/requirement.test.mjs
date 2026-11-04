@@ -34,6 +34,14 @@ test("a requirement's brief names its target on the first line, and the judge's 
   assert.match(whole.stdout, /^Target: REQ-79, every criterion — judge these and write nothing else/u, whole.stderr);
 });
 
+test("a requirement judge's brief given --run prints it and carries it into the judge-login line (ISS-4)", () => {
+  const uuid = "4a1f2c3d-5e6f-7a8b-9c0d-1e2f3a4b5c6d";
+  const run = brief(["--requirement", "REQ-79", "--url", URL_AT, "--run", uuid], repo.main, homeFor().env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, new RegExp(`^Run: ${uuid}$`, "mu"));
+  assert.match(run.stdout, new RegExp(`forge-runner judge-login <profile> <actor> --run ${uuid} —`, "u"));
+});
+
 test("an issue judge's brief leads with its target too", () => {
   const run = brief(["ISS-7", "--judge", "--url", URL_AT, "--criteria", "1,3"], repo.main, homeFor().env);
   assert.equal(run.status, 0, run.stderr);

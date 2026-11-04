@@ -69,7 +69,7 @@ export const VERBS = [
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG, wraps: { attributed: "`forge next`" } }],
   /* Reads git and the plugin cache and no tracker route, so no credential withholds it. */
-  ["brief", "[ISS-45] [--batch ISS-46,ISS-47] [--tree <dir>] [--judge (--url <url,...> | --program <path> [--tree <dir>]) --criteria 1,2 [--identity <id>]] | --requirement REQ-79 [--criterion BC-6,...] --url <url,...> [--identity <id>]",
+  ["brief", "[ISS-45] [--batch ISS-46,ISS-47] [--tree <dir>] [--judge (--url <url,...> | --program <path> [--tree <dir>]) --criteria 1,2 [--identity <id>] [--run <uuid>]] | --requirement REQ-79 [--criterion BC-6,...] --url <url,...> [--identity <id>] [--run <uuid>]",
     "the message a dispatch sends: the readings a run cannot take itself, generated, never typed, and the run id a tree it names lacks; --judge, a judging run's, names the criteria and where to judge — a deployment (--url) or an installed program (--program, which may take --tree, the directory to run it in); --requirement aims that judge at a requirement's criteria",
     null, { group: FLOW }],
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */

@@ -14,7 +14,7 @@ export const JUDGE_FORM = "judge";
 /** The judge's form aimed at a requirement's criteria rather than an issue's, kept apart for the same reason. */
 export const REQUIREMENT_FORM = "requirement";
 
-const OWN_FLAGS = ["url", "program", "criteria", "identity", "requirement", "criterion"];
+const OWN_FLAGS = ["url", "program", "criteria", "identity", "requirement", "criterion", "run"];
 
 const REQUIREMENT = /^REQ-\d+$/u;
 const CLAUSE = /^BC-\d+$/u;
@@ -61,6 +61,16 @@ const identityOf = (raw) => {
   const identity = String(raw).trim();
   if (!/^\S+$/u.test(identity)) fail(`brief: --identity takes the one value the deployment reports serving, and \`${raw}\` is not one word.`);
   return identity;
+};
+
+/* The run the dispatcher declared before this brief (forge-runner run declare prints it): one token, so
+   the judge-login line it is printed into carries no line of its own. The brief never declares a run —
+   that is the runner's verb — so it is printed only where the dispatcher hands it over (ISS-4). */
+const runOf = (raw) => {
+  if (raw === undefined) return null;
+  const run = String(raw).trim();
+  if (!/^\S+$/u.test(run)) fail(`brief: --run takes the one run uuid the dispatcher declared (forge-runner run declare prints it), and \`${raw}\` is not one token.`);
+  return run;
 };
 
 /* One token and no whitespace, for the same reason --url is: the value is printed into the brief, and a
@@ -119,6 +129,7 @@ export const judgeOf = (key, asked) => {
     tree: runDirOf(asked.tree),
     criteria: criteriaOf(asked.criteria),
     identity: identityOf(asked.identity),
+    run: runOf(asked.run),
   };
 };
 
@@ -136,19 +147,20 @@ export const isJudgeBrief = (text) => {
   return said.includes(ROLE_LINE) && said.includes(NOTHING_ELSE);
 };
 
-// cm:why never print a secret of any length, and read a login one actor/service at a time (FB-45 masked only longer values; FB-47 the secret route now refuses a read with no actor or service chosen)
-const SECRETS = "Secrets: never print or write a secret value, of any length — not in output, a "
+// cm:why never print a secret of any length, and read a login one actor/service at a time (FB-45 masked only longer values; FB-47 the secret route now refuses a read with no actor or service chosen); --run carries the declared run uuid the secret route takes on dev (ISS-4, core ISS-788)
+const secretsLine = (run) => "Secrets: never print or write a secret value, of any length — not in output, a "
   + "comment or a commit. Read a login one actor or service at a time — forge-runner judge-login "
-  + "<profile> <actor> — never the whole profile; forge doctor names the profile's secret route.";
+  + `<profile> <actor>${run ? ` --run ${run}` : ""} — never the whole profile; forge doctor names the profile's secret route.`;
 
 /* The dispatcher's facts for a judge ride the lease, so a judge reading only this brief would miss them
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured
    readings a free-form note could otherwise run into. A note naming a requirement is left out — the
    gate holds that dispatch back, so this issue brief never reaches a run. */
-export const judgeText = (key, { urls, program, tree, criteria, identity }, facts = null) => [
+export const judgeText = (key, { urls, program, tree, criteria, identity, run = null }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   ROLE_LINE,
-  SECRETS,
+  secretsLine(run),
+  ...(run ? [`Run: ${run}`] : []),
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
@@ -180,15 +192,16 @@ export const requirementOf = (key, asked) => {
   const bad = clauses.filter((one) => !CLAUSE.test(one));
   if (bad.length) fail(`brief: --criterion takes the requirement's criteria as BC-6, joined by commas, and ${none(bad)}.`);
   if (new Set(clauses).size !== clauses.length) fail("brief: --criterion names one criterion twice. Name each one time.");
-  return { requirement, clauses, urls: urlsOf(asked.url, null), identity: identityOf(asked.identity) };
+  return { requirement, clauses, urls: urlsOf(asked.url, null), identity: identityOf(asked.identity), run: runOf(asked.run) };
 };
 
 /** The requirement judge's brief: the target first, so nothing below it reads as a second one. */
-export const requirementText = ({ requirement, clauses, urls, identity }) => [
+export const requirementText = ({ requirement, clauses, urls, identity, run = null }) => [
   `Target: ${requirement}, ${clauses.length ? `criteria ${clauses.join(", ")}` : "every criterion"} — ${NOTHING_ELSE}: `
     + "no issue's criteria, no other record.",
   ROLE_LINE,
-  SECRETS,
+  secretsLine(run),
+  ...(run ? [`Run: ${run}`] : []),
   `Deployed at: ${urls.join(", ")}`,
   `Identity: ${identity ?? "none given"}`,
   "Tree: none",
