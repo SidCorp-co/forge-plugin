@@ -50,6 +50,19 @@ test("a red check refuses the capture, names it with its exit and its last lines
   assert.match(logged(), /^one$/mu);
 });
 
+test("a red check's whole output is kept in a named file, so the red job above the last lines is read (ISS-52)", async () => {
+  const red = "printf 'RED-JOB-MARKER\\n'; for i in $(seq 1 60); do printf 'ok line %s\\n' \"$i\"; done; exit 1";
+  declared(CHANGED, { ready: { checks: [red] } });
+  field({ ...BUILT }, null);
+  const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED);
+  assert.notEqual(run.status, 0, run.stdout);
+  const tail = run.stderr.split("Its last lines:")[1]?.split("Its whole output is at")[0] ?? "";
+  assert.doesNotMatch(tail, /RED-JOB-MARKER/u, "the marker sits above the last lines the refusal prints");
+  const named = run.stderr.match(/Its whole output is at (\S+) —/u);
+  assert.ok(named, run.stderr);
+  assert.match(readFileSync(named[1], "utf8"), /RED-JOB-MARKER/u, "the kept file carries the red job the tail dropped");
+});
+
 for (const [red, said] of [["false", "It wrote no output."], ["printf ' \\n\\t\\n'; exit 1", "It wrote only whitespace."]]) {
   test(`a red check \`${red}\` is refused saying \`${said}\` and prints no blank tail line (ISS-2558)`, async () => {
     declared(CHANGED, { ready: { checks: [red] } });

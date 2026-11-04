@@ -70,12 +70,32 @@ const changedFiles = (base, head, root) => {
 /* A batch's members captured at one head ask one question, so a green answer is kept where every
    worktree of the checkout reads it, keyed by the head, the base and the checks as declared; any one
    of the three moving is another question (ISS-3191). */
-const recordAt = (root, head, base, checks) => {
+const readyDir = (root) => {
   const common = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
   if (common.status !== 0) return null;
   const dir = common.stdout.trim();
+  return join(isAbsolute(dir) ? dir : join(root, dir), "forge", "ready-checks");
+};
+
+const recordAt = (root, head, base, checks) => {
+  const dir = readyDir(root);
+  if (!dir) return null;
   const key = createHash("sha256").update(JSON.stringify({ head, base, checks })).digest("hex").slice(0, 16);
-  return join(isAbsolute(dir) ? dir : join(root, dir), "forge", "ready-checks", `${head}-${key}.json`);
+  return join(dir, `${head}-${key}.json`);
+};
+
+// cm:why save the whole output and name it: a check reports its red where it ran, which can sit far above the last lines the refusal prints, and the tail was the only copy kept (ISS-52)
+const savedOutput = (root, head, declaredCheck, whole) => {
+  const dir = readyDir(root);
+  if (!dir || !whole.trim()) return null;
+  const at = join(dir, `${head}-fail-${createHash("sha256").update(declaredCheck).digest("hex").slice(0, 16)}.log`);
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(at, whole);
+    return at;
+  } catch {
+    return null;
+  }
 };
 
 const greenBefore = (path) => {
@@ -148,9 +168,11 @@ export const runReadyChecks = (ref, declared, head, base = null) => {
     /* One stream, so the tail printed is the order the check wrote it in. */
     const run = spawnSync("/bin/sh", ["-c", `exec 2>&1\n${check}`], { cwd: root, encoding: "utf8", maxBuffer: BUFFER });
     if (run.status === 0) continue;
+    const saved = savedOutput(root, head, declaredCheck, String(run.stdout ?? ""));
     fail([`claim --ready runs the checks this project declares (\`${READY_CHECKS}\` in ${declared.from}) `
       + `before it writes the checkpoint, and \`${declaredCheck}\` ${exitSaid(run)} in ${root}, so no checkpoint `
       + `was written and none after it was run. ${outputSaid(run.stdout).join("\n")}`,
+    ...(saved ? [`Its whole output is at ${saved} — the red job above the last lines is read there.`] : []),
     `Make it pass, then run it again and capture:\n  ${check}\n  ${arming(ref)}`].join("\n"));
   }
   if (record) {
