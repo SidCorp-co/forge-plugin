@@ -19,7 +19,7 @@ process.env.XDG_CONFIG_HOME = HOME;
 const { userConfig } = await import("../../../../src/resolve/config.mjs");
 const route = await import("../../../../src/tools/services/coolify/chosen-route.mjs");
 const rows = route;
-const { TRACKER_SAYS, TRACKER_USAGE } = await import("../../../../src/tools/services/coolify/tracker.mjs");
+const { TRACKER_SAYS, TRACKER_USAGE } = await import("../../../../src/tools/services/coolify/tracker/tracker.mjs");
 const { SAYS, USAGE } = await import("../../../../src/tools/services/coolify/coolify.mjs");
 const { usageOf } = await import("../../../../src/resolve/visibility.mjs");
 const { ROUTES } = await import("../../../../src/tracker/routes.mjs");
@@ -56,11 +56,15 @@ test("each tracker row names a route the table holds, and the served map is the 
 });
 
 test("the tracker route's names, usage and per-subcommand help are the rows'", () => {
-  assert.deepEqual(route.TAKEN_HERE, [...rows.TRACKER_BOTH, ...rows.TRACKER_ROWS].map((row) => row.name));
-  assert.deepEqual(TRACKER_SAYS, Object.fromEntries(rows.TRACKER_ROWS.map((row) => [row.name, row.usage])));
+  /* The group rows (`env`) stand beside the single rows here: a name, a usage line and a help text,
+     all off one row, with the group's own dispatch the only thing not derived from it (ISS-47). */
+  const all = [...rows.TRACKER_BOTH, ...rows.TRACKER_ROWS, ...rows.TRACKER_GROUPS];
+  assert.deepEqual(route.TAKEN_HERE, all.map((row) => row.name));
+  assert.deepEqual(TRACKER_SAYS,
+    Object.fromEntries([...rows.TRACKER_ROWS, ...rows.TRACKER_GROUPS].map((row) => [row.name, row.usage])));
   const [first, ...rest] = TRACKER_USAGE.split("\n");
   assert.equal(first, `Usage: forge coolify <${route.TAKEN_HERE.join("|")}> [args]`);
-  for (const line of rows.summaryLines([...rows.TRACKER_BOTH, ...rows.TRACKER_ROWS])) {
+  for (const line of rows.summaryLines(all)) {
     assert.ok(rest.includes(line), `the tracker usage lacks the row's own line: ${line}`);
   }
   assert.ok(TRACKER_USAGE.includes(`${rows.listed(route.REFUSED_HERE)} are refused here`),

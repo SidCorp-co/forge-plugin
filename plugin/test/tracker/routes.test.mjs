@@ -76,6 +76,9 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
      projection over them would be this file's guess at a shape the tracker is free to grow. */
   "forge_coolify.list", "forge_coolify.targets", "forge_coolify.status",
   "forge_coolify.rollback_images", "forge_coolify.deploy", "forge_coolify.cancel",
+  /* The env door's three, CLI-only and read nowhere this CLI reprojects: the same reason the six
+     above declare no projection (ISS-47). */
+  "forge_coolify.env_list", "forge_coolify.env_set", "forge_coolify.env_delete",
   /* The tracker's own release-batch record, the same reason: `forge release-batch` reads named
      fields off the row it gets rather than pinning a transport-level shape (ISS-1484). */
   "forge_release_batch.active", "forge_release_batch.state", "forge_release_batch.abort",

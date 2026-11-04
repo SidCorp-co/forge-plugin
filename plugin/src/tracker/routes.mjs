@@ -4,6 +4,7 @@
 
 import { mimeFor } from "../wire/upload-mimes.mjs";
 import { COLLECTIONS, DECLARES, FILTERS, declaredFor } from "./declared/declares.mjs";
+import { coolifyRoutes } from "./declared/coolify-routes.mjs";
 import { ISSUE_STATUSES, LEGACY_STATUSES, statusOfPlace } from "./declared/issue-machine.mjs";
 import { refuse } from "../refusal.mjs";
 import { PROJECT_ROW, attachmentOf, attributedOf, browseOf, citingOf, commentOf, configOf, eventsOf,
@@ -296,50 +297,7 @@ export const ROUTES = {
     requests: (args, project) => one(`/projects/${project}/knowledge/${args.slug}`, "DELETE"),
     sends: ["slug"],
   },
-  /* The tracker's own binding of the deployment platform to this project, which is the scope: the
-     path names the project and nothing here names a Coolify instance or reads a file this checkout
-     carries. Six rows and no seventh — three actions that tool has are on no project-scoped route,
-     and the rollback whose own listing read does not answer is refused before it reaches here. The
-     two that act declare `writes`, so a transient answer is not sent again under them. */
-  "forge_coolify.list": {
-    project: true,
-    requests: (args, project) => one(`/projects/${project}/integrations/coolify`),
-    sends: [],
-  },
-  "forge_coolify.targets": {
-    project: true,
-    requests: (args, project) =>
-      one(`/projects/${project}/integrations/coolify/targets${query({ integrationId: args.integrationId })}`),
-    sends: ["integrationId"],
-  },
-  "forge_coolify.status": {
-    project: true,
-    requests: (args, project) =>
-      one(`/projects/${project}/integrations/coolify/status${query({ integrationId: args.integrationId })}`),
-    sends: ["integrationId"],
-  },
-  "forge_coolify.rollback_images": {
-    project: true,
-    requests: (args, project) => one(`/projects/${project}/integrations/coolify/rollback-images`
-      + query({ integrationId: args.integrationId, resourceUuid: args.resourceUuid })),
-    sends: ["integrationId", "resourceUuid"],
-  },
-  /* The body is the route's own strict object: a key it does not declare refuses the whole call at
-     its end, so `filled` is what keeps an argument nobody gave out of it. */
-  "forge_coolify.deploy": {
-    project: true,
-    writes: true,
-    requests: (args, project) => one(`/projects/${project}/integrations/coolify/deploy`, "POST",
-      filled({ issueId: args.issueId, pipelineRunId: args.pipelineRunId, integrationId: args.integrationId })),
-    sends: ["issueId", "pipelineRunId", "integrationId"],
-  },
-  "forge_coolify.cancel": {
-    project: true,
-    writes: true,
-    requests: (args, project) => one(`/projects/${project}/integrations/coolify/cancel`, "POST",
-      filled({ integrationId: args.integrationId, deploymentUuid: args.deploymentUuid })),
-    sends: ["integrationId", "deploymentUuid"],
-  },
+  ...coolifyRoutes({ one, query }),
   "forge_memory.search": {
     project: true,
     requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
@@ -573,6 +531,7 @@ const SAMPLE = {
   edgeId: ":edgeId",
   labelId: ":labelId",
   slug: ":slug",
+  key: ":key",
   offset: ":offset",
   filters: { issue: ":issue" },
   data: { issueId: ":issueId", issue: ":issue", targetId: ":targetId", name: ":name" },

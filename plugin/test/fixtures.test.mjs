@@ -286,6 +286,7 @@ const PROBES = [
   ["GET", "/api/projects/p1/pm/runner-load"],
   ["GET", "/api/projects/p1/integrations/coolify/status"],
   ["POST", "/api/projects/p1/integrations/coolify/deploy"],
+  ["PUT", "/api/projects/p1/integrations/coolify/env/DATABASE_URL"],
   ["GET", "/api/projects/p1/integrations/coolify"],
   ["GET", "/api/projects/p1/release-batches/active"],
   ["GET", "/api/projects/p1/release-batches/r1/state"],

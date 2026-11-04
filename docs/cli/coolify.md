@@ -53,6 +53,14 @@ its own, which a landing built by hand leaves; the refusal reads the open releas
 its run for `--run`, with the method record that run's deploy is refused without, or, with none
 open, `forge release-batch start`.
 
+**The env group takes its value off stdin, never off the command line.** `env set` reads the value
+to store from stdin or `--value-file`, because a secret typed as an argument lands in a shell
+history; there is no `--value` flag, and a value found on argv is refused rather than sent. What `env
+list` reads back is masked by the platform at its own end, so it is rendered as it arrived and there
+is no flag here to unmask it. The group is reached only from this CLI and carries no MCP action of
+its own: env delivery is REST, which `MCP_DELIVERY_IS_REST` names the env route for, so a raw call to
+it is redirected to `forge coolify env` rather than answered.
+
 **The mask stays where a token still travels.** The instance route carries one and the rules below
 are its. The tracker route carries none of this platform's credentials, so there is nothing there to
 strike; what the tracker's own log routes return is redacted at its end, and would be neither

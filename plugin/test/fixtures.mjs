@@ -477,7 +477,11 @@ export const fakeTracker = async (state) => {
     [/^\/api\/projects\/[^/]+\/pm\/([a-z-]+)$/u, (q, sent, method, [what]) =>
       answered("forge_project_pm", { action: what === "runner-load" ? "runner_load" : what })],
     /* The tracker's binding of the deployment platform to this project. One row per shape the CLI
-       may send: the listing at the root, and one action segment under it either way round. */
+       may send: the listing at the root, one action segment under it either way round, and the env
+       door's keyed path, whose KEY is a second segment the segment row cannot match (ISS-47). */
+    [/^\/api\/projects\/[^/]+\/integrations\/coolify\/env\/([^/]+)$/u, (q, sent, method, [key]) =>
+      answered("forge_coolify", { action: method === "PUT" ? "env_set" : "env_delete",
+        key: decodeURIComponent(key), ...Object.fromEntries(q), ...sent })],
     [/^\/api\/projects\/[^/]+\/integrations\/coolify\/([a-z-]+)$/u, (q, sent, method, [what]) =>
       answered("forge_coolify", { action: what, ...Object.fromEntries(q), ...sent })],
     [/^\/api\/projects\/[^/]+\/integrations\/coolify$/u, () =>

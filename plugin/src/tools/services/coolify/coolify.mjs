@@ -15,8 +15,8 @@ import { active, applicationIds, check, environmentIds, filterList, label, makeS
 import { hiddenNames, normalize, redact, rendered, secretsIn, striking, summarize } from "./shape.mjs";
 import { readArgs } from "./args.mjs";
 import {
-  BOTH_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_ROWS, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE,
-  consentRefusal, onTracker, summaryLines, trackerName, trackerRouteLines,
+  BOTH_KIND, GROUP_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_ROWS, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND,
+  TAKEN_HERE, consentRefusal, onTracker, summaryLines, trackerName, trackerRouteLines,
 } from "./chosen-route.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
@@ -187,7 +187,7 @@ const refuseOffTracker = (found) => {
 };
 
 const answerOverTracker = async ([sub, ...rest]) => {
-  const { TRACKER_SAYS, TRACKER_USAGE, runTracker } = await import("./tracker.mjs");
+  const { TRACKER_SAYS, TRACKER_USAGE, runTracker } = await import("./tracker/tracker.mjs");
   const help = helpAskedOf([sub, ...rest], TAKEN_HERE);
   if (help?.subject) {
     console.log(TRACKER_SAYS[help.subject] ?? SAYS[help.subject] ?? TRACKER_USAGE);
@@ -196,6 +196,10 @@ const answerOverTracker = async ([sub, ...rest]) => {
   if (sub === undefined) fail(TRACKER_USAGE);
   const found = trackerName(sub);
   if (found.kind === BOTH_KIND) return BUILTIN[sub](rest);
+  if (found.kind === GROUP_KIND) {
+    const { runEnv } = await import("./tracker/env.mjs");
+    return runEnv(rest);
+  }
   if (found.kind !== SERVED_KIND) refuseOffTracker(found);
   await runTracker(found.name, rest);
 };

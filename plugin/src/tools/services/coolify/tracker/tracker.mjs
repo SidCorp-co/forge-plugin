@@ -1,23 +1,23 @@
 /* The tracker route's own surface: what each of its six subcommands takes, the one call it makes
    through the transport every other capability goes through, and the reading that turns a deploy the
    tracker held back into a refusal rather than a deploy that was sent. docs/cli/coolify.md. */
-import { fail } from "../../../resolve/settings.mjs";
-import { flags } from "../../../resolve/flags.mjs";
-import { documentIdOf } from "../../../tracker/issues.mjs";
-import { callTool, tried } from "../../../tracker/rest.mjs";
-import { rowFor } from "../../../tracker/routes.mjs";
-import { keysOf, rendered, wrapper } from "./shape.mjs";
+import { fail } from "../../../../resolve/settings.mjs";
+import { flags } from "../../../../resolve/flags.mjs";
+import { documentIdOf } from "../../../../tracker/issues.mjs";
+import { callTool, tried } from "../../../../tracker/rest.mjs";
+import { rowFor } from "../../../../tracker/routes.mjs";
+import { keysOf, rendered, wrapper } from "../shape.mjs";
 import {
-  REFUSED_HERE, TAKEN_HERE, TO_INSTANCE, TRACKER_BOTH, TRACKER_ROWS, TRACKER_SCOPE, consentRefusal, listed, summaryLines,
-  trackerRouteLines,
-} from "./chosen-route.mjs";
+  REFUSED_HERE, TAKEN_HERE, TO_INSTANCE, TRACKER_BOTH, TRACKER_GROUPS, TRACKER_ROWS, TRACKER_SCOPE, consentRefusal,
+  listed, summaryLines, trackerRouteLines,
+} from "../chosen-route.mjs";
 
 export const TRACKER_USAGE = [
   `Usage: forge coolify <${TAKEN_HERE.join("|")}> [args]`,
   "The Coolify bindings of the project this CLI already names, on the credential it already holds.",
   "There is no instance to save, no token to save and no file for this checkout to carry.",
   "",
-  ...summaryLines([...TRACKER_BOTH, ...TRACKER_ROWS]),
+  ...summaryLines([...TRACKER_BOTH, ...TRACKER_ROWS, ...TRACKER_GROUPS]),
   "",
   `  ${listed(REFUSED_HERE)} are refused here, each saying what reaches it.`,
   `  The saved instance and the commands that are its own: \`${TO_INSTANCE}\`.`,
@@ -27,7 +27,10 @@ export const TRACKER_USAGE = [
 
 const ROWS = Object.fromEntries(TRACKER_ROWS.map((row) => [row.name, row]));
 
-export const TRACKER_SAYS = Object.fromEntries(TRACKER_ROWS.map((row) => [row.name, row.usage]));
+/* The group rows carry their own usage beside the single rows', so a help ask resolves `env` the way
+   it resolves every other name the route takes. */
+export const TRACKER_SAYS = Object.fromEntries(
+  [...TRACKER_ROWS, ...TRACKER_GROUPS].map((row) => [row.name, row.usage]));
 
 /* An issue is named the way every other verb takes one and turned into the identifier the route
    wants here, because the route takes a uuid and nobody types one. */

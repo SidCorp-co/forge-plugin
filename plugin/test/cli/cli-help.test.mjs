@@ -223,7 +223,7 @@ const FIELDS_OF = {
   knowledge: "authoredBy, body, confidence, injection, injectionFilter, kind, kindFilter, metadata,"
     + " query, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
-  coolify: "deploymentUuid, integrationId, issueId, pipelineRunId, resourceUuid",
+  coolify: "deploymentUuid, integrationId, issueId, key, pipelineRunId, redeploy, resourceUuid, value",
   "release-batch": "runId",
   google: null,
   codex: null,

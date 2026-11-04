@@ -10,7 +10,7 @@ import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs"
 import { STORES } from "./machine/stores.mjs";
 import { ENUM_FLAGS, valuesOf } from "./project/enum-keys.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
-import { INSTANCE_NAMES, TAKEN_HERE, TO_TRACKER, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
+import { INSTANCE_NAMES, TAKEN_HERE, TO_TRACKER, TRACKER_GROUP_SERVED, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
 import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
@@ -111,9 +111,15 @@ export const VERBS = [
   /* The routes claimed are the tracker's on either way, so which verb owns one does not turn on whose
      machine asks; what the redirect names does, the instance's commands making none of these calls. */
   { group: HARNESS,
-    wraps: () => Object.fromEntries(Object.entries(TRACKER_SERVED)
-      .map(([name, key]) => [key, onTracker() ? `\`forge coolify ${name}\``
-        : { line: `\`forge coolify ${name}\``, first: `\`${TO_TRACKER}\`` }])) }],
+    wraps: () => {
+      const named = (name) => (onTracker() ? `\`forge coolify ${name}\``
+        : { line: `\`forge coolify ${name}\``, first: `\`${TO_TRACKER}\`` });
+      return {
+        ...Object.fromEntries(Object.entries(TRACKER_SERVED).map(([name, key]) => [key, named(name)])),
+        /* The group's routes join the single rows here, the env group's among them (ISS-47). */
+        ...Object.fromEntries(Object.entries(TRACKER_GROUP_SERVED).map(([key, name]) => [key, named(name)])),
+      };
+    } }],
   ["release-batch", "[status | readiness | roster | start | method | finish | record | recorded | clear]",
     "this project's release: what would refuse one, what waits, a batch run, and the record of one that shipped",
     "forge_release_batch", { group: HARNESS,

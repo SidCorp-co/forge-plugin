@@ -105,6 +105,43 @@ export const TRACKER_BOTH = [
   ACCOUNTS,
 ];
 
+/* A subcommand group, not a single row: `env` carries three of core's env routes (ISS-47), a
+   positional KEY the generic dispatcher has no slot for, and a value `env set` reads from stdin and
+   never from argv. So it is dispatched by a module of its own rather than by `runTracker`, and stands
+   here only to be named — in the usage summary, the help ask and the refusal list — off one row like
+   every other name. */
+const ENV_ONE_TARGET = "one bound target";
+export const ENV_USAGE = [
+  "Usage: forge coolify env <list | set KEY | delete KEY> [--integration I] [--resource R]",
+  `The environment variables of ${ENV_ONE_TARGET}, through the tracker's own door: the project's own`,
+  "binding, on the credential it already holds. Values come back masked ******** and are not unmasked",
+  "here, the platform masking them server-side.",
+  "",
+  "  list             every key, each value masked ********",
+  "  set KEY          create or update KEY; its value is read from stdin, or --value-file FILE, and",
+  "                   never from the command line, so a secret stays out of shell history",
+  "  delete KEY       drop KEY",
+  "",
+  "  --integration I  which binding, where the project has more than one",
+  "  --resource R     which target, where the binding holds more than one",
+  "  --value-file F   read set's value from F rather than from stdin",
+  "  --redeploy       redeploy the target after the write",
+  "  --yes            carry out a write; without it set and delete are refused",
+  "  --dry-run        print the request that would be sent, its value masked, and send nothing",
+].join("\n");
+
+export const TRACKER_GROUPS = [
+  { name: "env", actions: ["list", "set", "delete"],
+    line: `the env of ${ENV_ONE_TARGET}: list, set KEY, delete KEY`, usage: ENV_USAGE },
+];
+
+/* A group's own routes, keyed as the transport holds them and named as the CLI reaches them, so the
+   coolify verb owns them and a raw call to one is redirected to the CLI rather than left a route no
+   verb names. Apart from `TRACKER_SERVED` because a group is not one route the generic dispatch runs;
+   not an MCP action either, env delivery being REST. */
+export const TRACKER_GROUP_SERVED = Object.fromEntries(TRACKER_GROUPS.flatMap((group) =>
+  group.actions.map((action) => [`forge_coolify.${group.name}_${action}`, `${group.name} ${action}`])));
+
 export const PIN_USAGE = [
   "Usage: forge coolify pin [--app A | --project P [--environment E]] [--yes] [--dry-run]",
   "Pin this checkout to a project of the saved instance, looked up by name, in this machine's",
@@ -215,10 +252,13 @@ const HELD_BACK = {
 /** The names both ways answer, off the rows above. */
 const BOTH_WAYS = TRACKER_BOTH.map((row) => row.name);
 
+/** The groups the tracker route dispatches to a module of their own, by name, off the rows above. */
+const GROUPS = Object.fromEntries(TRACKER_GROUPS.map((row) => [row.name, row]));
+
 /** What the tracker's way answers to, which is what its usage row offers, what a help ask resolves
  *  against and what a refusal lists. One list, because a usage row built apart from the refusal's is
  *  how a verb comes to offer a name it turns away. */
-export const TAKEN_HERE = [...BOTH_WAYS, ...Object.keys(TRACKER_SERVED)];
+export const TAKEN_HERE = [...BOTH_WAYS, ...Object.keys(TRACKER_SERVED), ...Object.keys(GROUPS)];
 
 /** What the tracker's way turns away by name, in the order a usage row lists them. */
 export const REFUSED_HERE = [...Object.keys(ROUTELESS), ...Object.keys(HELD_BACK)];
@@ -249,6 +289,7 @@ export const SERVED_KIND = "served";
 export const ROUTELESS_KIND = "routeless";
 export const HELD_BACK_KIND = "held-back";
 export const BOTH_KIND = "both";
+export const GROUP_KIND = "group";
 const ELSEWHERE_KIND = "elsewhere";
 
 /** What one name is on the tracker route. Every name lands in exactly one kind, which is what lets a
@@ -257,6 +298,7 @@ const ELSEWHERE_KIND = "elsewhere";
  *  to the saved instance. */
 export const trackerName = (name) => {
   if (BOTH_WAYS.includes(name)) return { kind: BOTH_KIND, name };
+  if (Object.hasOwn(GROUPS, name)) return { kind: GROUP_KIND, name };
   if (Object.hasOwn(TRACKER_SERVED, name)) return { kind: SERVED_KIND, name };
   if (Object.hasOwn(ROUTELESS, name)) return { kind: ROUTELESS_KIND, name, key: ROUTELESS[name] };
   if (Object.hasOwn(HELD_BACK, name)) return { kind: HELD_BACK_KIND, name, ...HELD_BACK[name] };

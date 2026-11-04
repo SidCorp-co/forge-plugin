@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
-import { TRACKER_SERVED } from "../../src/tools/services/coolify/chosen-route.mjs";
+import { TRACKER_GROUP_SERVED, TRACKER_SERVED } from "../../src/tools/services/coolify/chosen-route.mjs";
 import { noRouteRefusal } from "../../src/tracker/declared/no-route.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
 import { answered, callHookAsync, fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom }
@@ -356,5 +356,7 @@ test("a raw coolify call is redirected to a command the route this machine chose
       tracked[at].startsWith(`Type \`forge coolify ${name}\` instead.`), `${mode}: ${tracked[at]}`));
     assert.equal(await claimed(), onInstance, "the routes the row claims are the same on either route");
   }
-  assert.deepEqual(JSON.parse(onInstance), Object.values(TRACKER_SERVED));
+  assert.deepEqual(JSON.parse(onInstance),
+    [...Object.values(TRACKER_SERVED), ...Object.keys(TRACKER_GROUP_SERVED)],
+    "the verb owns its single rows and its group's routes, the env group's among them (ISS-47)");
 });
