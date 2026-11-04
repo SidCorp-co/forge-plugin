@@ -407,7 +407,7 @@ found stale, and why the sentence behind either verdict is kept beside it.
 - **AC-02-12-2** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a list still carrying a slug the table holds is a finding"
   WHERE a reading found a rule its own method replaces, the product SHALL leave that page out of what
   it offers, whether the reading replaced every rule of the page or some of them.
-- **AC-02-12-3** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a slug this plugin stands behind is served by name, the standing said only under --tracker"
+- **AC-02-12-3** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "--tracker's first line tells a page the plugin stands behind from one it holds back"
   WHEN a maintainer asks for a served guide together with the reading of it THEN the first line SHALL
   say whether the product stands behind that page or holds it back.
 - **AC-02-12-4** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a served guide the table never reviewed is named, and judged by nobody"

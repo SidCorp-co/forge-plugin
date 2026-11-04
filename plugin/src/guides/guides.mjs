@@ -223,15 +223,6 @@ export const GUIDE_TABLE = [
     by: ["forge record", "forge advance"],
   },
   {
-    slug: "google-sheets",
-    disposition: "stands",
-    why: "it documents the sheets capability alone — which spreadsheet a call resolves to, what an"
-      + " overwrite leaves behind, what each refusal asks for — and states no rule about a status, a"
-      + " record or a filing, so no part of the contract reaches it",
-    replaced: [],
-    by: [],
-  },
-  {
     slug: "module-taxonomy-migration",
     disposition: "partly",
     why: "the dry run, the two idempotency keys, creating the modules with a plain label promoted"
@@ -262,7 +253,6 @@ export const REVIEWED = [
   "attachments-and-uploads",
   "conformance-and-verify",
   "deploy-safety",
-  "google-sheets",
   "issue-dependencies",
   "memory-and-knowledge",
   "module-taxonomy-migration",
