@@ -319,8 +319,8 @@ test("a verb taking no flag at all says what it does take", async () => {
 test("a verb taking one flag names the set and the row it read the set off", async () => {
   const run = await ran("comment", "ISS-1", "--body", "a finding");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --body\. The set is --title, --project\./u);
-  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> \[<file\.md\|@file\|->\] \[--title T\] \[--project <slug>\]$/mu,
+  assert.match(run.stderr, /No comment flag named --body\. The set is --title, --parent, --project\./u);
+  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> \[<file\.md\|@file\|->\] \[--title T\] \[--parent <comment-uuid>\] \[--project <slug>\]$/mu,
     "the row, which is where the body slot the caller wanted is spelled");
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });

@@ -244,7 +244,7 @@ test("a retired name is in no row, and the row that took its write over says wha
     const offering = VERB_NAMES.filter((verb) => rowOf(verb)?.includes(`--${name}`));
     assert.deepEqual(offering, [], `--${name} is retired and still offered by: ${offering.join(", ")}`);
   }
-  assert.match(rowOf("comment"), /\[--title T\] \[--project <slug>\] the thread whole with no body, or post one/u);
+  assert.match(rowOf("comment"), /\[--title T\] \[--parent <comment-uuid>\] \[--project <slug>\] the thread whole with no body, or post one/u);
   assert.match(rowOf("feedback"), /`forge new` with the kind, the project and the Where filled in/u,
     "and the verb kept as a name says what it expands to");
 });

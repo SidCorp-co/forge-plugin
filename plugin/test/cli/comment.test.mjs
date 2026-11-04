@@ -163,5 +163,22 @@ test("a flag that belongs to a filing is this verb's own unknown flag", async ()
   heldBy(null);
   const run = await ranAsync(FORGE, ["comment", "ISS-348", bodyAt(), "--kind", "bug"], env());
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --kind\. The set is --title, --project\./u);
+  assert.match(run.stderr, /No comment flag named --kind\. The set is --title, --parent, --project\./u);
+});
+
+/* FB-10: only a threaded reply (parentId) clears a comment owed a reply, and before ISS-22 the one
+   sanctioned route — `forge comment` — could not carry it, so the owed reply had no route at all. */
+test("--parent carries the comment id to the create as parentId", async () => {
+  heldBy(null);
+  const run = await posted(MINE, "--parent", "c-root-42");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(lastComment().parentId, "c-root-42", "the reply is threaded under the comment it names");
+  assert.equal(lastComment().body.trim(), BODY, "and its body is the file's own");
+});
+
+test("--parent with no body is refused, as the thread read takes no reply", async () => {
+  heldBy(null);
+  const run = await ranAsync(FORGE, ["comment", "ISS-348", "--parent", "c-root-42"], env());
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /--parent replies under a comment, and this call names no body/u);
 });

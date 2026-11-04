@@ -340,13 +340,14 @@ const own = {
     const { positionals, flagArgv } = partition(argv, [], { verb: "comment", usage });
     const [reference, path] = positionals;
     if (!reference) fail(usage);
-    const { title } = flags(flagArgv, "comment", [], { usage });
+    const { title, parent } = flags(flagArgv, "comment", [], { usage });
     const issue = await documentIdOf(reference);
     /* No body is the read: one verb for the thread, whichever direction it is going. */
     if (!path) {
       /* The read of the thread, which writes nothing and is not a write's refusal. */
       leadOnFailure(null);
       if (title !== undefined) fail("comment: --title frames a body, and this call names none. Drop it to read the thread.");
+      if (parent !== undefined) fail("comment: --parent replies under a comment, and this call names no body. Drop it to read the thread.");
       return readThread(reference, issue, (said) => console.log(said));
     }
     leadOnFailure(nothingWritten(`comment on ${reference}`));
@@ -356,7 +357,7 @@ const own = {
     const cap = declaredFor("forge_comments", "caps").body?.self ?? null;
     if (cap !== null && lengthOf(text) > cap) fail(`comment: ${capRefusal("the body", cap, text, text)}`);
     const renewed = await renew(issue, reference, undefined, null, { finder: true });
-    const posted = await postComment(issue, text);
+    const posted = await postComment(issue, text, null, false, parent ?? null);
     show(posted);
     console.log(finderSaid(reference, renewed));
     return sayLanded(await commentLanded(issue, posted, reference));
