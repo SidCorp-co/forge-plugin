@@ -269,7 +269,9 @@ async function formatted(require, file, source) {
     // No config is a project that has not chosen a style, and prettier's defaults are not its.
     const options = await prettier.resolveConfig(file);
     if (options === null) return null;
-    const text = await prettier.format(source, { ...options, filepath: file });
+    // cm:why "auto" preserves a CRLF file's endings (ISS-25)
+    const ending = options.endOfLine ? {} : { endOfLine: "auto" };
+    const text = await prettier.format(source, { ...options, ...ending, filepath: file });
     return text === source ? null : text;
   } catch {
     return null;
@@ -412,7 +414,62 @@ function failing({ stdout }) {
 const refuse = (result, note = "") =>
   fail(`${path.relative(projectRoot, editedFile)}\n${formatLintOutput(result.stdout, result.stderr)}${note}`);
 
-const settle = (result, note) => (result.status === 0 ? process.exit(0) : refuse(result, note));
+/* The file before this edit, rebuilt from the event so a finding that predates the edit is told from
+   one it made; null where it cannot be rebuilt (a Write or a notebook edit names no prior text) and
+   every finding then blocks, as before. oldString returns through a replacer so a `$&` in it stays
+   literal (ISS-25). */
+function priorText(ev, after) {
+  const input = ev?.tool_input;
+  if (!input || typeof input !== "object") return null;
+  const back = (held, was, now, all) =>
+    held === null || typeof was !== "string" || typeof now !== "string" || now === "" || !held.includes(now)
+      ? null
+      : all ? held.split(now).join(was) : held.replace(now, () => was);
+  if (ev?.tool_name === "Edit") return back(after, input.old_string, input.new_string, input.replace_all === true);
+  if (ev?.tool_name === "MultiEdit" && Array.isArray(input.edits)) {
+    return input.edits.reduceRight((held, e) => back(held, e?.old_string, e?.new_string, e?.replace_all === true), after);
+  }
+  return null;
+}
+
+// cm:why key a finding by rule and the text of its line, never its number, so it survives the edit shifting that line (ISS-25)
+const findingKey = (message, lines) =>
+  `${message.ruleId ?? "parsing"}\u0000${(lines[(message.line ?? 1) - 1] ?? "").trim()}`;
+
+const severe = (result, each) => {
+  let reports;
+  try { reports = JSON.parse(result.stdout); } catch { return null; }
+  return Array.isArray(reports) ? reports.map(each) : null;
+};
+
+const prior = priorText(event, source);
+let predating;
+const predatingKeys = () => {
+  if (predating === undefined) {
+    const lines = prior === null ? null : prior.split("\n");
+    const rows = lines === null ? null : severe(lint(prior),
+      (report) => report.messages.filter((m) => m.severity === 2).map((m) => findingKey(m, lines)));
+    predating = rows === null ? null : new Set(rows.flat());
+  }
+  return predating;
+};
+
+// cm:why drop findings that predate the edit so only the edit's own block; no prior text keeps them all (ISS-25)
+const editOwned = (result, lines) => {
+  const keys = predatingKeys();
+  if (keys === null) return result;
+  const kept = severe(result,
+    (report) => ({ ...report, messages: report.messages.filter((m) => m.severity !== 2 || !keys.has(findingKey(m, lines))) }));
+  return kept === null ? result : { ...result, stdout: JSON.stringify(kept) };
+};
+
+const settle = (result, note, linted = text) => {
+  if (result.status === 0) process.exit(0);
+  const mine = editOwned(result, linted.split("\n"));
+  const left = failing(mine);
+  if (left !== null && left.size === 0) process.exit(0);
+  refuse(mine, note);
+};
 
 const result = lint(text);
 if (text === source) settle(result);
@@ -431,6 +488,7 @@ if (own && created.length > 0) {
     own,
     `\n\nNot reformatted: the project's prettier output fails ${created.join(", ")}, which the text ` +
       "the edit wrote passes, so the file stands as the edit wrote it and the findings above are that text's.",
+    source,
   );
 }
 
@@ -442,6 +500,7 @@ if (unwritten !== null) {
     own ?? lint(source),
     `\n\nNot reformatted: the project's prettier output could not be written back (${unwritten}), so ` +
       "the findings above are of the text the edit wrote.",
+    source,
   );
 }
 settle(
