@@ -64,7 +64,7 @@ test("every disposition is one the verb acts on", () => {
     assert.ok(row.why.length > 20, `${row.slug} says nothing about why`);
     assert.ok(Array.isArray(row.by), `${row.slug} names no replacement list`);
   }
-  assert.equal(supersededSlugs().size, 5, "five of the fifteen, which is what the reading found");
+  assert.equal(supersededSlugs().size, 4, "four of the fourteen, which is what the reading found");
   assert.equal(heldSlugs().size, GUIDE_TABLE.filter((row) => withholds(row)).length, "the rows that withhold");
   assert.ok(heldSlugs().size < GUIDE_TABLE.length, "and not every row, a read having cleared some page");
 });
@@ -119,8 +119,8 @@ test("nothing resolves by default", () => {
    follow whole either, and ISS-85 hides it on the same reasoning. */
 test("a list still carrying a slug the table holds is a finding", () => {
   assert.deepEqual(review().leaked, [], "the projection is what the verb prints");
-  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 10, "and the raw list is what it must not");
-  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 10);
+  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 9, "and the raw list is what it must not");
+  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 9);
   assert.equal(visibleGuides(REVIEWED).includes("memory-and-knowledge"), false, "the partly rows too");
   assert.equal(visibleGuides(REVIEWED).includes("module-taxonomy-migration"), false,
     "and the page whose Pass 2 writes with no lease");

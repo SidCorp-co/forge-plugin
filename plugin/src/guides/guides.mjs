@@ -122,13 +122,6 @@ export const GUIDE_TABLE = [
     by: ["forge resume", "forge guide contract"],
   },
   {
-    slug: "update-pipeline-reconcile",
-    disposition: "superseded",
-    why: "it is the field dictionary for the Master agent and its verifiers, a stage no session here runs",
-    replaced: [],
-    by: [],
-  },
-  {
     slug: "memory-and-knowledge",
     disposition: "partly",
     why: "memory, knowledge and projectFacts are the tracker's own three and stand; of the verbs its recall discipline names, one is wrapped here and two are served by no route",
@@ -276,7 +269,6 @@ export const REVIEWED = [
   "pipeline-and-issue-lifecycle",
   "project-settings-and-test-credentials",
   "records-and-comments",
-  "update-pipeline-reconcile",
   "what-is-an-issue",
   "writing-an-issue",
 ];
