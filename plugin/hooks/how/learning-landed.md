@@ -15,6 +15,6 @@ session's memory directory or the repository's skill directories. A tracked file
 was restamped, not written. What is left can be somebody else's edit, or a file the call only read
 while something else restamped it: say which, and it is not asked again.
 
-Not judged: whether the fact is true or useful; a file outside `memory/` or `skills/`; an installed
-copy of this plugin, where the host's install record places one — an update rewrites it whole, so
-no run records learning there.
+Not judged: whether the fact is true or useful; a file outside `memory/` or `skills/`; a shipped
+skill, tracked or marketplace-named; an installed copy of this plugin, where the host's install
+record places one — an update rewrites it whole, so no run records learning there.

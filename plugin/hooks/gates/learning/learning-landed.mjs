@@ -1,9 +1,21 @@
 // The half no list of shapes reaches: a guarded file that changed with the question never put.
 
+import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { FRESH_MS, askedAlready, askedByAnyone, block, how, named, settled, touched } from "../../_hook.mjs";
-import { BRIEF, guarded, installedCopy, swept } from "../../../src/checks/learning.mjs";
+import { BRIEF, guarded, installedCopy, shippedSkill, swept } from "../../../src/checks/learning.mjs";
+import { digestOf } from "../../../src/keys/digest.mjs";
+
+/* Keyed by the bytes that landed, not the name alone, so this gate's question tracks content as the
+   pre-write gate's askOnce does (ISS-58). Unreadable, the name alone. */
+const bodyKey = (file) => {
+  try {
+    return `${file}\0${digestOf(readFileSync(file, "utf8"))}`;
+  } catch {
+    return file;
+  }
+};
 
 export const run = (ev) => {
   /* A link out of a guarded directory answers as its target, and that target is the key the gate
@@ -19,9 +31,10 @@ export const run = (ev) => {
     const names = [spelling, spelled.find((one) => settled(one) === file), file].filter(Boolean);
     if (!names.some((one) => guarded(one))) continue;
     if (installedCopy(file)) continue;
+    if (shippedSkill(file, ev.cwd)) continue;
     if (askedByAnyone(ev, file, "learning-gate", { set: false })) continue;
     if (askedAlready(ev, file, "learning-gate", { set: false })) continue;
-    if (askedByAnyone(ev, file, "learning-landed")) continue;
+    if (askedByAnyone(ev, bodyKey(file), "learning-landed")) continue;
     asked.push(basename(names.find((one) => guarded(one)) ?? spelling));
   }
 

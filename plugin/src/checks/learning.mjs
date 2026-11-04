@@ -1,6 +1,6 @@
 /* Two entry points ask one question — before a write, and after one no check could read. */
 import { spawnSync } from "node:child_process";
-import { readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
@@ -78,6 +78,41 @@ const guardedDirs = (ev, root) => {
 const repoRoot = (from) => {
   const said = git(from, ["rev-parse", "--show-toplevel"]).trim();
   return said ? canonical(said) : "";
+};
+
+const trackedIn = (root, rel) =>
+  spawnSync("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: root, encoding: "utf8", timeout: GIT_MS })
+    .status === 0;
+
+/* The marketplace lists each plugin the repo ships by a `source` directory; a skill under one is shipped
+   however the tree spells it. `source` is a string path or an object carrying one. */
+const marketplaceShips = (root, full) => {
+  let plugins = [];
+  try {
+    plugins = JSON.parse(readFileSync(join(root, ".claude-plugin", "marketplace.json"), "utf8"))?.plugins ?? [];
+  } catch {
+    return false;
+  }
+  return plugins.some((one) => {
+    const src = typeof one?.source === "string" ? one.source : one?.source?.path;
+    if (typeof src !== "string" || !src) return false;
+    const rel = relative(canonical(join(root, src)), full);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  });
+};
+
+/** A skill the project ships, so its text is the product and not a learning: one committed in the
+ *  project's own tree, or one the marketplace names. The gate's question — is this a note about one
+ *  repository that should not exist — has no honest answer there, and it was asked on every edit of a
+ *  user-facing skill shipped in source (ISS-58). A memory file is never a shipped skill. */
+export const shippedSkill = (path, from) => {
+  if (!path.includes("/skills/") || path.includes("/memory/") || !path.endsWith(".md")) return false;
+  const root = repoRoot(from || process.cwd());
+  if (!root) return false;
+  const full = canonical(landing(path));
+  const rel = relative(root, full);
+  if (rel.startsWith("..") || isAbsolute(rel)) return false;
+  return trackedIn(root, rel) || marketplaceShips(root, full);
 };
 
 const freshIn = (dir, since, depth = DEPTH) => {

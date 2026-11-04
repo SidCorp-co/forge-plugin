@@ -7,7 +7,18 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../../_hook.mjs";
 import { readerKey, sayOnce } from "../../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../../src/checks/duplication.mjs";
-import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill } from "../../../src/checks/learning.mjs";
+import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill, shippedSkill } from "../../../src/checks/learning.mjs";
+import { digestOf } from "../../../src/keys/digest.mjs";
+
+/* Asked once per file and per content this session: a re-send of the same text passes, and a real
+   learning is asked afresh when its content changes (ISS-58). The path-only stamp is project-wide, so
+   the post-write gate reads that this path was already put to its author here. */
+const askOnce = (ev, path, content) => {
+  const key = `${settled(path)}\0${digestOf(content)}`;
+  if (askedAlready(ev, key, "learning-gate")) return true;
+  askedByAnyone(ev, settled(path), "learning-gate");
+  return false;
+};
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The reading is `_hook.mjs`'s, so a name it would read is a name this reads. */
 const MD_ONLY = "md";
 
@@ -130,6 +141,7 @@ export const run = (ev) => {
       const judged = spelt ? guarded : guardedShape;
       const resolved = placed.find(judged);
       if (resolved) {
+        if (shippedSkill(resolved, ev.cwd)) continue;
         const memory = resolved.includes("/memory/");
         const kind = memory ? "a memory file" : "a skill's own text";
         const doubt = placed.every(judged) ? "" : UNSURE;
@@ -160,13 +172,13 @@ export const run = (ev) => {
   if (!["Write", "Edit", "MultiEdit"].includes(tool)) done();
   const path = ti.file_path ?? "";
   if (projectSkill(path)) done();
+  if (shippedSkill(path, ev.cwd)) done();
 
   // --- a memory file: project knowledge ---
   // MEMORY.md is the index, not a memory: it carries pointers and no frontmatter.
   if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEMORY.md") {
-    // Once per file: a refusal that also refuses the re-send forbids the write outright.
-    if (askedAlready(ev, settled(path), "learning-gate")) done();
-    askedByAnyone(ev, settled(path), "learning-gate");
+    // Once per file and content: a refusal that also refuses the re-send forbids the write outright.
+    if (askOnce(ev, path, ti.content ?? ti.new_string ?? "")) done();
     const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
     const held = existsSync(path);
     const fresh = !twin && !held;
@@ -208,8 +220,7 @@ export const run = (ev) => {
         }));
       }
     }
-    if (askedAlready(ev, settled(path), "learning-gate")) done();
-    askedByAnyone(ev, settled(path), "learning-gate");
+    if (askOnce(ev, path, proposed)) done();
     deny(
       "Hold — change nothing unless the test below holds. If it does, re-send and answer three things " +
         `in your reply — which category (${SKILL_CATEGORIES.join(" | ")}), whether a ` +

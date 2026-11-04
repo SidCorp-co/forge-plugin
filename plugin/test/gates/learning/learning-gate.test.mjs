@@ -16,8 +16,8 @@ const HOME = homeEnv("learning-gate");
 /* A fixture path, not this machine's: the Bash cases need only a string holding /memory/, and
    the ones that judge content build a real directory below. */
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
-const SKILL = "plugin/skills/issue-flow/SKILL.md";
 const SKILL_DIR = "/home/dev/app/plugin/skills/issue-flow";
+const SKILL = `${SKILL_DIR}/SKILL.md`;
 
 /* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a
    re-run for the wrong reason. Every call gets its own session. */
@@ -39,7 +39,7 @@ test("an answer carrying no decision is malformed, and only silence is this gate
   assert.throws(() => decided({ status: 0, stdout: "null", stderr: "" }));
 });
 
-const decide = (command) => decided(ask({ tool_name: "Bash", tool_input: { command } }));
+const decide = (command) => decided(ask({ tool_name: "Bash", tool_input: { command }, cwd: "/home/dev/app" }));
 const at = (cwd, command) => decided(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
 /* The endpoint's one route: a connected client's own tool call, with its arguments already parsed. */
 const called = (input) => decided(ask({ tool_name: `mcp__forge__forge${"_"}memory${"_"}write`, tool_input: input }));

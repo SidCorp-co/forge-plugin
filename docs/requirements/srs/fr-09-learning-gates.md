@@ -72,9 +72,12 @@ why asking late is still worth it.
   condition it meets.
 - **AC-09-3-2** · Rev: 1 · Proof: plugin/test/gates/learning/learning-landed.test.mjs "a write the gate asked about before it landed is not asked about after"
   IF a write already passed the stop before it THEN the file SHALL not be asked about again.
-- **AC-09-3-3** · Rev: 1 · Proof: plugin/test/gates/learning/learning-landed.test.mjs "a tracked skill file the tree agrees with was not written here"
+- **AC-09-3-3** · Rev: 1 · Proof: plugin/test/gates/learning/learning-landed.test.mjs "a tracked skill is the tree's shipped product, so neither a restamp nor a change is asked"
   IF a tracked file matches what the tree already holds THEN it SHALL be read as restamped rather
   than written, so restoring a file is not answered for.
+- **AC-09-3-4** · Rev: 1 · Proof: plugin/test/gates/learning/shipped-skill.test.mjs "the gate leaves a shipped skill alone and still stops before a home skill"
+  IF a skill is one the project ships — tracked in its source tree, or named by its marketplace —
+  THEN the gate SHALL NOT ask about it, since its text is the product and not a learning.
 
 ### UC-09-4 — A checker that types out what it could derive
 

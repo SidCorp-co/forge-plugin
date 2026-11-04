@@ -343,9 +343,10 @@ test("a served skill body under guides/skills is swept like the stub", () => {
   assert.match(JSON.parse(run.stdout).reason, /guide\.md/u, "the served body changed and nothing asked");
 });
 
-/* A fresh mtime is not authorship: `git pull` restamps every skill file it carries, and asking the
-   agent to justify those is a refusal about somebody else's commit. The tree is asked instead. */
-test("a tracked skill file the tree agrees with was not written here", () => {
+/* A tracked skill is the tree's own shipped product, not a learning to justify: it is left alone
+   whether a checkout restamps it or a commit changes it (ISS-58). A fresh mtime was never authorship
+   either — `git pull` restamps every file it carries — but now the change itself is the tree's. */
+test("a tracked skill is the tree's shipped product, so neither a restamp nor a change is asked", () => {
   const session = randomUUID();
   const repo = tempRoom("landed-repo-");
   const skill = join(repo, "skills", "deploy");
@@ -360,7 +361,7 @@ test("a tracked skill file the tree agrees with was not written here", () => {
     );
   assert.equal(pulled().stdout.trim(), "", "restamped, and the tree says it is unchanged");
   writeFileSync(join(skill, "SKILL.md"), "the method, rewritten\n");
-  assert.match(JSON.parse(pulled().stdout).reason, /SKILL\.md/u, "changed, and nothing asked");
+  assert.equal(pulled().stdout.trim(), "", "and changed, it is the tree's shipped skill, not a learning");
 });
 
 test("a file nobody just wrote is somebody else's business", () => {
