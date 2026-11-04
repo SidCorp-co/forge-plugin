@@ -57,6 +57,7 @@ const project = {
   issues: ISSUES,
   comments: {
     "uuid-1": two,
+    "uuid-7": [dispatch(["ISS-2"], "parked-run")],
     "uuid-8": [...two, posted("fold", { summary: "two runs landed" })],
     "uuid-9": [dispatch(["ISS-2"], "old"), posted("fold", { summary: "the first wave" }), dispatch(["ISS-4", "ISS-5"], "new")],
     "uuid-11": [dispatch(["ISS-2"], "only"), posted("fold", { summary: "done" })],
@@ -167,18 +168,16 @@ test("--also and every run flag beside a wave or a fold are refused before any c
   assert.deepEqual(askedSince(before), [], "not one of them asked the tracker anything");
 });
 
-test("a wave or a fold on a headline a comment would answer is refused before anything is posted", async () => {
-  const before = project.calls.length;
-  for (const [ref, kind, rest] of [
-    ["ISS-3", "wave", ["--member", "ISS-2", "--role", "r", "--session", "s"]],
-    ["ISS-7", "fold", ["--summary", "s"]],
-  ]) {
-    const run = await forge("record", kind, ref, ...rest);
-    assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /reads a comment as the reply to its park and reopens the issue/u);
-    assert.match(run.stderr, /Nothing was sent\./u);
-  }
-  assert.ok(!askedSince(before).some((one) => one.startsWith("forge_comments create")), "and nothing was posted");
+/* ISS-26: core resumes a park through its question row, not by reading a comment as the reply, so a
+   finder's wave or fold on a parked headline no longer reopens it and is no longer refused. */
+test("a wave or a fold on a parked headline posts, the park being answered by a question not a comment", async () => {
+  const wave = await write("record", "wave", "ISS-3", "--member", "ISS-2", "--role", "forge:runner", "--session", "s");
+  assert.equal(wave.status, 0, wave.stderr);
+  assert.doesNotMatch(wave.stderr, /reads a comment as the reply/u);
+
+  const fold = await write("record", "fold", "ISS-7", "--summary", "the parked wave landed");
+  assert.equal(fold.status, 0, fold.stderr);
+  assert.doesNotMatch(fold.stderr, /reads a comment as the reply/u);
 });
 
 test("a fold closing no dispatch is refused, and a cut page says it is cut", async () => {

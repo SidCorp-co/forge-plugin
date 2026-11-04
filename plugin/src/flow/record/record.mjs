@@ -4,7 +4,7 @@ import { fail, leadOnFailure } from "../../resolve/settings.mjs";
 import { nothingWritten } from "../../tracker/rest.mjs";
 import { absentSaid } from "../../resolve/gone/absent.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
-import { NO_LONGER_OWES, SIDE, answersByComment } from "../earned/park-status.mjs";
+import { NO_LONGER_OWES, SIDE } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
@@ -148,15 +148,8 @@ const aloneChecked = (kind, reference, argv) => {
     + `Send the ${kind} by itself:\n  forge record ${kind} ${reference} ${kindUsage(kind).split("\n")[1].trim().replace(/^\S+\s+/u, "")}`);
 };
 
-/* At waiting or needs_info the tracker reads any comment as the reply to the park and reopens the
-   issue, so a finder's record there would move a status nothing earned. */
-const finderChecked = (kind, reference, body, read) => {
+const finderChecked = (kind, reference, read) => {
   if (!SHAPES[kind].finder) return;
-  if (answersByComment(body.status)) {
-    refuse(`record ${kind}: ${reference} is ${body.status}, where the tracker reads a comment as the `
-      + "reply to its park and reopens the issue, so this record would move a status no record earned. "
-      + `Nothing was sent. Head the wave on an issue no park holds, or write this once the park is answered:\n  forge advance ${reference} --owed`);
-  }
   const said = foldProblem(kind, reference, read);
   if (said) refuse(said);
 };
@@ -417,7 +410,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   const { documentId, body } = await issue();
   await answerChecked(kind, reference, { documentId, body }, page);
   const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
-  finderChecked(kind, reference, body, { comments, cut });
+  finderChecked(kind, reference, { comments, cut });
   await finishedChecked(kind, reference, blocks, { documentId, body, comments });
   const onIssue = attachmentNames(body, comments);
   const held = [...onIssue, ...planned];
