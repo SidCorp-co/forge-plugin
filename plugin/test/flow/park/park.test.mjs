@@ -86,9 +86,8 @@ const state = {
       if (args.action !== "list") {
         const one = comment(args.data.body.replace(/^⟦[^⟧]*⟧\n|\n⟦[^⟧]*⟧$/gu, ""));
         (state.comments[args.data.issue] ??= []).push(one);
-        const on = state.issues.find((issue) => issue.documentId === args.data.issue);
-        /* The tracker reads a comment on a `needs_info` issue as the answer, and says nothing. */
-        if (on?.status === "needs_info") on.status = "open";
+        /* A comment on a `needs_info` issue moves nothing: the park resumes through the question row
+           core transitions on when it is answered, never by a posted comment (ISS-26, ISS-51). */
         return { documentId: one.documentId };
       }
       const held = state.comments[args.filters?.issue] ?? [];
@@ -238,14 +237,11 @@ test("a person's answer relayed on the record resumes a park no comment on the p
     "--quoted", "ship it"], ENV);
   assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
   assert.equal(state.comments["parking-uuid"].at(-1).authorId, "agent", "the answer is on the parker's own credential too");
-  assert.match(answer.stderr, /^ISS-97 {2}open -> awaiting_release {2}\(resumed where its park left it\)$/mu, answer.stderr);
+  assert.match(answer.stderr, /^ISS-97 {2}needs_info -> awaiting_release {2}\(resumed where its park left it\)$/mu, answer.stderr);
   assert.equal(PARKING.status, "awaiting_release", "the write that carries the answer is the resume");
 });
 
-/* The tracker reads any comment at needs_info as the reply and puts the issue back to `open`, so the
-   answer's own comment moves the status before anything reads it; the resume is judged at the
-   status the write found, or it would start from `open` and never find the park. */
-test("a question park answered on the record resumes where it left, though the answer's comment reopened it", async () => {
+test("a question park answered on the record resumes where it left, from the needs_info the park set", async () => {
   await readied();
   const park = await asked("ISS-98");
   assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
@@ -253,7 +249,7 @@ test("a question park answered on the record resumes where it left, though the a
   const answer = await ranAsync(FORGE, ["record", "answer", "ISS-98", "--from", "the reporter, through the dispatcher",
     "--quoted", "the first reading"], ENV);
   assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
-  assert.match(answer.stderr, /ISS-98 {2}open -> in_progress:plan {2}\(resumed where its park left it\)/u, answer.stderr);
+  assert.match(answer.stderr, /ISS-98 {2}needs_info -> in_progress:plan {2}\(resumed where its park left it\)/u, answer.stderr);
   assert.equal(placeOf(MOVING.status, MOVING.workState?.step), "in_progress:plan", "back where the park left, not at open");
 });
 
