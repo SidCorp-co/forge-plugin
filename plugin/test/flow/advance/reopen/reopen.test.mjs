@@ -64,6 +64,9 @@ const state = {
       if (args.action === "get") return found ?? {};
       if (args.action === "update" && found) return Object.assign(found, args.data);
       if (args.action === "transition" && found) {
+        /* A refusal core would raise — a defect reopen with no evidence, say — relayed by the verb
+           exactly as the transport hands it back (ISS-45). */
+        if (state.refuses) return { refused: state.refuses, ...(state.code ? { code: state.code } : {}) };
         /* The tracker's own count, which is what stamps the pair a reopen is routed by. */
         if (args.data.status === "reopen") found.reopenCount = (found.reopenCount ?? 0) + 1;
         found.status = args.data.status;
@@ -94,6 +97,9 @@ await ranAsync(FORGE, ["claim", "ISS-91", "--unheld"], ENV);
 const ran = (argv) => ranAsync(FORGE, argv, ENV);
 const bodies = (id) => (state.comments[id] ?? []).map((one) => one.body);
 const holds = (id, kind) => bodies(id).filter((one) => one.includes(`forge-record: ${kind}`)).length;
+const lastReopenData = () => state.calls
+  .filter((one) => one.name === "forge_issues" && one.args.action === "transition" && one.args.data?.status === "reopen")
+  .at(-1)?.args.data;
 
 test("a reopen moves the status and writes no correction for it", async () => {
   const before = holds("judged-uuid", "correction");
@@ -207,4 +213,60 @@ test("a finding that quotes nobody and captured nothing is refused, naming both 
   const said = SHAPES.finding.check({ ...WHOLE, quoted: undefined, evidence: [] });
   assert.match(said, /quotes nobody and captured nothing/u);
   assert.match(said, /--quoted .+ or --evidence /u);
+});
+
+/* ISS-45: a live defect fixed forward reopens its own issue with `--cause defect` and one form of
+   evidence, which the reopen transition carries beside its reason so core starts the defect stall. */
+for (const [flag, value, field] of [
+  ["--live-read", "the list sorts by id on the running build", "liveRead"],
+  ["--verdict", "verdict-uuid-1", "verdictId"],
+  ["--attachment", "attachment-uuid-1", "attachmentId"],
+]) {
+  test(`a defect reopen with ${flag} sends the cause and that one evidence (ISS-45)`, async () => {
+    Object.assign(JUDGED, { status: "developed", reopenCount: 0 });
+    const run = await ran(["advance", "ISS-90", "--reopen", "--why", "a live defect, fixed forward",
+      "--cause", "defect", flag, value]);
+    assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+    const data = lastReopenData();
+    assert.equal(data.cause, "defect");
+    assert.deepEqual(data.evidence, { [field]: value });
+    assert.equal(data.reason, "a live defect, fixed forward", "the reopen's own reason rides beside the cause");
+  });
+}
+
+test("two forms of evidence for one defect reopen are refused, nothing sent (ISS-45)", async () => {
+  Object.assign(JUDGED, { status: "developed", reopenCount: 0 });
+  const run = await ran(["advance", "ISS-90", "--reopen", "--why", "a live defect", "--cause", "defect",
+    "--verdict", "v-1", "--attachment", "a-1"]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--verdict and --attachment are separate/u, run.stderr);
+  assert.equal(JUDGED.status, "developed", "and nothing moved");
+});
+
+test("evidence with no --cause is refused, naming the cause it belongs to (ISS-45)", async () => {
+  Object.assign(JUDGED, { status: "developed", reopenCount: 0 });
+  const run = await ran(["advance", "ISS-90", "--reopen", "--why", "w", "--live-read", "it broke"]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--live-read is evidence for `--cause`/u, run.stderr);
+});
+
+test("--cause on a move that is not a reopen is refused (ISS-45)", async () => {
+  Object.assign(JUDGED, { status: "developed", reopenCount: 0 });
+  const run = await ran(["advance", "ISS-90", "--cause", "defect", "--live-read", "x"]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--cause rides a --reopen/u, run.stderr);
+});
+
+test("core's refusal of a defect reopen is relayed by name, the cause having been sent (ISS-45)", async () => {
+  Object.assign(JUDGED, { status: "developed", reopenCount: 0 });
+  state.refuses = "defect evidence is required";
+  state.code = "DEFECT_EVIDENCE_REQUIRED";
+  try {
+    const run = await ran(["advance", "ISS-90", "--reopen", "--why", "a live defect", "--cause", "defect"]);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /DEFECT_EVIDENCE_REQUIRED: defect evidence is required/u, run.stderr);
+  } finally {
+    state.refuses = null;
+    state.code = null;
+  }
 });

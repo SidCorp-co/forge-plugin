@@ -112,6 +112,8 @@ const behindTheCut = (view) => (view.cut ? `${view.cut} The record that would sa
 
 export const reopenForm = (ref) => `forge advance ${ref} --reopen --why "<what the finding is>"`;
 
+export const reopenDefectForm = (ref) => `${reopenForm(ref)} --cause defect --live-read "<what the running product did>"`;
+
 /** Why one may not be written, before the status moves: what cannot be routed out of is never entered. */
 export const reopenProblem = (view, ref) => {
   if (landedFrom(view)) return null;

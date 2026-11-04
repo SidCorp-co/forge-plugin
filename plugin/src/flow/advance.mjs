@@ -26,7 +26,7 @@ import { repoRoot } from "../git/repo-root.mjs";
 import { laneLines } from "../guides/phases.mjs";
 import { stampRemoved, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { lastMark, markedCommit } from "./record/judged/mark-read.mjs";
-import { REOPEN, checkpointAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, shortfall,
+import { REOPEN, checkpointAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenDefectForm, reopenProblem, shortfall,
   targetOf, undecidedSaid } from "./route.mjs";
 import { FIELD, anothersHold, expiryOf, leaseOf, nextLine, oweRelease, renew } from "./lease.mjs";
 import { judgeOwed } from "./lease/judged.mjs";
@@ -50,6 +50,7 @@ export const USAGE = [
   "  --drop --why W          park as dropped; refused once the merged mark is set",
   `  --reopen --why W        the tracker's \`${REOPEN}\`, where a finding blocks the change; the finding`,
   "                          and its triage route where the work goes back to",
+  "  --cause defect          with --reopen; one of --verdict/--attachment <id> or --live-read <read>",
   "  --set <status> --why W [--needs N]  the status outright, no entry check read, said in the reply",
   "                          and in a correction; refused where the record earns a place already.",
   "                          A place inside in_progress is named whole (in_progress:test). Core's",
@@ -389,12 +390,12 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null, 
 };
 
 /* An ordinary outcome and so no override; the reading is spent before the status moves, not after. */
-const reopenTo = async (view, ref, why) => {
+const reopenTo = async (view, ref, why, cause = null) => {
   const bad = reopenProblem(view, ref);
   if (bad) refuse(bad);
   let count;
   await moveTo(view, ref, REOPEN, {
-    said: { reason: whyChecked("advance --reopen", why) },
+    said: { reason: whyChecked("advance --reopen", why), ...(cause ?? {}) },
     credit: "the reopen transition",
     heard: (answer) => { count = (answer?.issue ?? answer)?.reopenCount; },
   });
@@ -542,6 +543,26 @@ const needsChecked = (given, ref) => {
   return text;
 };
 
+const DEFECT_EVIDENCE = { verdict: "verdictId", attachment: "attachmentId", "live-read": "liveRead" };
+
+/* The cause and evidence a reopen carries, built here so a shape the CLI can judge — evidence without
+   a cause, two forms of it, a cause on no reopen — is refused before a credential is spent, and the
+   rest (the cause's own value, whether evidence is owed, an id core cannot resolve) rides to core,
+   whose refusals the transition relays by name (ISS-45). */
+const causeOf = (given, ref) => {
+  const picked = exclusive(given, Object.keys(DEFECT_EVIDENCE), "advance",
+    `forms of evidence for --cause: one names a verdict, one an attachment, one what was read live. ${reopenDefectForm(ref)}`);
+  if (given.cause === undefined) {
+    if (picked.length) {
+      refuse(`--${picked[0]} is evidence for \`--cause\`, which this call did not give. Name the cause:\n  ${reopenDefectForm(ref)}`);
+    }
+    return null;
+  }
+  if (!given.reopen) refuse(`--cause rides a --reopen; no other move here records one.\n  ${reopenDefectForm(ref)}`);
+  const evidence = picked.length ? { [DEFECT_EVIDENCE[picked[0]]]: given[picked[0]] } : null;
+  return { cause: given.cause, ...(evidence ? { evidence } : {}) };
+};
+
 const readFlags = (rest, ref) => {
   const pulled = pullRepeated(rest, "--evidence", "advance", { usage: USAGE });
   const given = flags(pulled.rest, "advance", ["--owed", "--drop", "--reopen"], { usage: USAGE });
@@ -560,7 +581,7 @@ const readFlags = (rest, ref) => {
   const asked = given.next !== undefined;
   if (asked && given.owed) refuse("--owed moves nothing and --next is a write. Ask for one.");
   if (asked && writes) refuse("a park says what it waits for in --why; the claim that resumes it sets --next.");
-  return { ...given, evidence, needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
+  return { ...given, evidence, cause: causeOf(given, ref), needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
 };
 
 const run = async (argv, readAs, lifts) => {
@@ -576,7 +597,7 @@ const run = async (argv, readAs, lifts) => {
   if (!view.whole) console.log(cutSays(view.cut, ref));
   if (view.counted) console.log(countSays(view.counted));
   if (given.set) return setStatus(view, ref, given.set, given.why, given.needs);
-  if (given.reopen) return reopenTo(view, ref, given.why);
+  if (given.reopen) return reopenTo(view, ref, given.why, given.cause);
   if ((given.park || given.drop) && given.owed) {
     return rehearsePark(view, ref, given.park ?? "dropped", given.why, given.evidence, given.needs);
   }
