@@ -7,7 +7,6 @@ import { lengthOf, ownsField, rowOf, writeFields } from "../tracker/field-write.
 import { valueOutsideSet } from "../tracker/declared/value-sets.mjs";
 import { moduleDefinition, moduleNamed, primaryLabels } from "../tracker/modules/definition.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
-import { ANSWERED_BY_COMMENT } from "./earned.mjs";
 import { issueOf, post } from "./record/thread/posting.mjs";
 import { render } from "./record/page.mjs";
 
@@ -90,8 +89,6 @@ const setPair = (given, ref) => {
 /* The tracker moves a status on a route of its own and refuses one sent to `update`. Refused by name here rather than by the tracker after the send, because the fields of one call go up together: one name the tracker will not take costs every name beside it. */
 const MOVED_ELSEWHERE = { status: (ref, value) => `forge advance ${ref} --set ${value} --why <w>` };
 
-const setForm = (pairs) => pairs.map(({ field, value }) => `--set ${field}=${value}`).join(" ");
-
 const pairsOf = (given, ref) => {
   const pairs = pairsFrom(given, "--set", { each: (one) => setPair(one, ref), refusing: refuse });
   const moved = pairs.find(({ field }) => MOVED_ELSEWHERE[field]);
@@ -134,14 +131,6 @@ export const overrideFields = async (reference, given, why, { next, patch, ask }
   const said = whyChecked("issue --set", why);
   const pairs = pairsOf(given, reference);
   const { documentId, body } = await issueOf(reference);
-  /* A record whose write moves a status is the one thing an override is for the opposite of, so the field set is refused here rather than followed by a move nobody asked for. */
-  if (body?.status === ANSWERED_BY_COMMENT) {
-    refuse(`${reference} waits for an answer, and the correction an override leaves is a comment: the `
-      + "tracker reads one on this status as that answer and puts the issue back to `open`, leaving a "
-      + "field set by hand and a status moved by nobody. Move the status yourself first, and the "
-      + `fields after it:\n  forge advance ${reference} --set <status> --why <w>\n`
-      + `  forge issue ${reference} ${setForm(pairs)} --why <w>`);
-  }
   const told = async (moved, read) => {
     for (const { field, value } of moved) console.log(`${reference}  ${field} is ${read?.[field] ?? value}`);
     console.log(UNREAD);

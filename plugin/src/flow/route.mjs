@@ -18,7 +18,6 @@ import {
   SIDE,
   SILENT,
   announcedAt,
-  answersByComment,
   atLeast,
   atThisReopen,
   buildsAt,
@@ -341,9 +340,9 @@ const unpaired = (view, status) => {
 };
 
 /* Where a park's move landed and its record did not, the record alone finishes it, stamped from the
-   tracker's history; only where a comment is not read as the answer, which would unpark the issue. */
+   tracker's history. The record is a comment and core reads nothing from it to move the status, so
+   this route is offered at `needs_info` as at every other park landing (ISS-51). */
 const finishedBy = (ref, status) => {
-  if (answersByComment(status)) return null;
   const kinds = Object.keys(PARK_STATUS).filter((one) => sameLanding(PARK_STATUS[one], status));
   return `Where a park moved it and its record is what did not go up, write that record: it names the `
     + `status the tracker's history says ${ref} left, and the advance after it reads it:\n`

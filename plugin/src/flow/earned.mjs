@@ -7,7 +7,7 @@ import {
   somebodyLooked, unwrap, valuesOf, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
+import { NEEDS_INFO, PARK_STATUS, SIDE, onNeedsInfo, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, mergedForm, namesPath, undoForm } from "./record/merged.mjs";
 import { judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, markedIdentity, reviewedHead } from "./record/judged/mark-read.mjs";
 import { landsOutsideGit, markedLanding } from "./record/judged/landing.mjs";
@@ -56,7 +56,7 @@ export const BUILD_AT = LADDER[LADDER.indexOf(HELD.test) - 1];
 /* A default nothing ever mutates, for a call that owes no number the exclusion after it. */
 const EMPTY_SET = new Set();
 
-export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
+export { NEEDS_INFO, PARK_STATUS, SIDE, onNeedsInfo, sameLanding };
 export { blockersOwed, holdsBack, holdsBackFrom, ordersSaid };
 
 /** Four shortfalls a caller compares whole, named so a case holding an exact list names them rather

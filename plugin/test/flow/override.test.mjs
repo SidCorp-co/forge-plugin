@@ -88,8 +88,8 @@ const state = {
         if (state.dropsRecord) return { refused: state.dropsRecord };
         const one = { documentId: `c-${clock + 1}`, createdAt: stamped(), authorId: "agent", body: args.data.body };
         (state.comments[args.data.issue] ??= []).push(one);
-        /* Modelled here because two cases below turn on it, and the tracker says nothing when it happens (ISS-429). */
-        if (ISSUE.status === "needs_info") ISSUE.status = "open";
+        /* Core moves no status on a posted comment, needs_info included (ISS-26, ISS-51): the status
+           is left where it stood. */
         /* A run's own write is where it learns the issue changed hands, which is the window one case is about. */
         if (state.takesLease) {
           ISSUE.sessionContext = { lease: { holder: state.takesLease, agent: "another-agent", pid: "9", renewedAt: new Date().toISOString(), minutes: 30, next: null, history: [] } };
@@ -270,18 +270,20 @@ test("an override with no reason is refused, and nothing at all is sent", async 
   assert.deepEqual(posted(), [], "and no correction for a write that did not happen");
 });
 
-/* The correction is what makes an override an override, and on this one status the tracker reads it
-   as the reporter's answer: written, it would move the status with nothing on the record saying a run
-   did. So the field write is refused rather than followed by a move nobody asked for. */
-test("a field override is refused where the correction would be read as an answer", async () => {
+/* needs_info is a park core resumes through the question row it transitions on when the park is
+   answered, never by reading a posted comment as the reply, so the correction an override leaves
+   reopens nothing: a field set by hand goes up at needs_info like any other status, said to be unread
+   and left with its correction (ISS-26, ISS-51). */
+test("a field override at needs_info is written like any other, with its correction", async () => {
   before("needs_info");
   const run = await setField("--set", "priority=high", "--why", WHY);
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /waits for an answer/u);
-  assert.match(run.stderr, /forge advance ISS-96 --set <status> --why <w>/u, "and the route is the move made in the open");
-  assert.equal(state.calls.some((one) => one.args.data?.priority !== undefined), false, "the field never moved");
-  assert.deepEqual(posted(), [], "and no correction, which is what would have answered the question");
-  assert.equal(ISSUE.status, "needs_info", "so the issue still waits for the person it waits on");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(sent("update", "priority").priority, "high", "the value reaches the field it named");
+  assert.ok(run.stdout.includes(UNREAD), "with the line that says no entry check read it");
+  const [correction] = posted();
+  assert.match(correction, /priority set to `high` by `forge issue --set`[\s\S]*^corrects: issue:priority$/mu,
+    "naming the field, the value, the verb and what it corrects");
+  assert.equal(ISSUE.status, "needs_info", "the override moved no status");
 });
 
 test("a field a record writes is refused by name, the override being no route round a payload", async () => {
@@ -373,9 +375,9 @@ test("a status that waits on a person carries the kind the tracker demands of on
   assert.equal(sent("transition").waitingKind, "needs_decision", "set with no question, a wait on a decision");
 });
 
-/* The order this one is written in is not a preference: the tracker reads any comment on a
-   `needs_info` issue as the reporter's answer and puts the issue back, so a correction written
-   after the move would be read as that answer and undo it. */
+/* The order this one is written in is not a preference: needs_info is off the ladder, so no stamp of
+   it can repair the record from the status afterwards, and the record is written against the status
+   it left before the move follows it. */
 test("into needs_info the correction goes first, so the move cannot be undone by it", async () => {
   before("in_progress:plan");
   const run = await setStatus("--set", "needs_info", "--why", WHY);

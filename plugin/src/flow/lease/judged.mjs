@@ -2,7 +2,7 @@
    itself. The lease guards the writes that replace something — a field, a status, the lease itself —
    and a verdict replaces nothing, so a judge dispatched while its dispatcher holds the issue writes
    it without taking, renewing or waiting out that lease (ISS-1494). docs/cli/record.md. */
-import { NO_LONGER_OWES, answersByComment } from "../earned/park-status.mjs";
+import { NO_LONGER_OWES } from "../earned/park-status.mjs";
 import { ASKED, WORKTREE, sessionSourced } from "../../resolve/config.mjs";
 import { thisCall } from "../../resolve/flags.mjs";
 import { RUN_ID_VAR } from "../../resolve/session/run-id.mjs";
@@ -32,19 +32,11 @@ const stopped = (text) => (/[.!?]$/u.test(text) ? text : `${text}.`);
 
 const again = () => `${RUN_ID_VAR}=<an id of its own> ${thisCall() ?? "forge record verdict <ref> ..."}`;
 
-/* The reason `finderChecked` in record.mjs gives for a finder's record, which a judge's verdict meets
-   the same way. */
-const parkReopens = (ref, status, lease) =>
-  `${ref} is ${status} under another run's lease, and at that status the tracker reads a comment `
-  + `as the reply to its park and reopens the issue, so a judge's verdict would move a status a `
-  + `judge's write may not. The park is the holder's to answer, ${lease.holder}'s`;
-
 /** The lease a judge's write goes past, or null where the write is an ordinary one. Only a write
  *  of verdicts alone is a judge's: a verdict beside another kind rides that kind's lease, and meets
  *  its refusal. A verdict under an id the caller did not set is refused here rather than written
- *  under a name that proves nothing, and so are a run flag, which writes onto a lease this takes
- *  none of, and one at a park a comment answers. The id is asked first, being the one refusal
- *  whose way out is the caller's own. */
+ *  under a name that proves nothing, and so is a run flag, which writes onto a lease this takes
+ *  none of. The id is asked first, being the one refusal whose way out is the caller's own. */
 export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced() } = {}) => {
   if (!kinds.length || kinds.some((kind) => kind !== VERDICT)) return null;
   const lease = standing(body?.sessionContext, held);
@@ -62,12 +54,6 @@ export const judgedPast = (ref, kinds, body, { flags = [], held = sessionSourced
       refused: `record verdict: ${ref}'s lease is another run's, so this verdict is a judge's write `
         + `and takes no lease, and ${flags.join(", ")} writes onto the lease: nothing here would act `
         + `on it. Nothing was sent. Send the verdict without it.`,
-    };
-  }
-  if (answersByComment(body?.status)) {
-    return {
-      refused: `record verdict: ${parkReopens(ref, body.status, lease)}. Nothing was sent. What the `
-        + `park waits on:\n  forge advance ${ref} --owed`,
     };
   }
   return { lease, held };
@@ -91,9 +77,6 @@ export const judgeOwed = (ref, { sessionContext, status } = {}, held = sessionSo
   if (NO_LONGER_OWES.includes(status)) return null;
   const lease = standing(sessionContext, held);
   if (!lease) return null;
-  if (OWN.includes(held.source) && answersByComment(status)) {
-    return `A verdict from this call would be refused: ${parkReopens(ref, status, lease)}.`;
-  }
   if (OWN.includes(held.source)) {
     return `A verdict from this call is a judge's write: ${ref}'s lease is ${lease.holder}'s, and `
       + `\`forge record verdict\` posts past it under ${held.id} without taking it. No other record `

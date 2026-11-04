@@ -16,7 +16,7 @@ import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/thread/posting.mjs";
 import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, waitsFor } from "./park/compose.mjs";
-import { ANSWERED_BY_COMMENT, LADDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
+import { NEEDS_INFO, LADDER, SIDE, onNeedsInfo, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
 import { finishes, parkLeft } from "./park/left.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
@@ -65,7 +65,7 @@ export const USAGE = [
   "closed: core closes an issue only by its release (CLOSE_ONLY_BY_RELEASE), recorded by",
   "`forge release-batch record`.",
   "",
-  `Only a move to ${ANSWERED_BY_COMMENT} takes --needs, what would settle the question; --why is why the`,
+  `Only a move to ${NEEDS_INFO} takes --needs, what would settle the question; --why is why the`,
   "work stopped. A question park given no --needs carries its question record's readings.",
   "",
   `A park kind: ${PARKS.join("|")}.`,
@@ -211,11 +211,11 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
 
 /* The two writes of one park: the typed `why` travels with the move, which the tracker refuses
    without one (ISS-157), and the status goes first so a refused move leaves no record to disagree
-   with it — except where it lands where a comment is read as an answer, which is
-   `answersByComment` and is docs/cli/advance-what-it-sends.md. What that order costs, said by the
-   one route both writers of it spend: a move refused after the record went up leaves a page
-   reading as a status the issue does not hold, and the transition's own refusal says nothing about
-   the record above it. */
+   with it — except at `needs_info`, which the ladder does not hold, so no stamp of it can repair the
+   record from the status afterwards and the record is written first (`onNeedsInfo`,
+   docs/cli/advance-what-it-sends.md). What that order costs, said by the one route both writers of
+   it spend: a move refused after the record went up leaves a page reading as a status the issue does
+   not hold, and the transition's own refusal says nothing about the record above it. */
 const movedAfterRecord = async (view, ref, status, move) => {
   /* The record's write renewed the lease, so the move does not renew it again — but a handoff between the two is still a handoff, and the move must not be the write that learns it. Asked rather than asserted, and asked softly, because a read that exits here reports a transport and never the record standing above it. */
   const held = await anothersHold(view.documentId, ref);
@@ -258,7 +258,7 @@ export const parkAs = async (view, ref, kind, why, evidence = [], { left = null,
   const { status, said, body } = parkPayload(view, ref, kind, why, evidence, { left: standing.left, asked });
   const move = (soft = false) =>
     moveTo(view, ref, status, { said, credit: "the park's transition" }, soft);
-  if (answersByComment(status)) {
+  if (onNeedsInfo(status)) {
     await post(view.documentId, body, { ref });
     await movedAfterRecord(view, ref, status, move);
     return;
@@ -517,7 +517,7 @@ const setStatus = async (view, ref, status, why, asked) => {
   /* The route that writes its record first is the one route no repair can follow: its status is
      `needs_info`, which the lane does not hold, so `couldBeEarned` is false there and no stamp of it is
      ever this verb's to read. */
-  if (answersByComment(status)) {
+  if (onNeedsInfo(status)) {
     await correctionFor(view.documentId, ref, moved, said, { done: false, corrects: STATUS_CORRECTED });
     return movedAfterRecord(view, ref, status, move);
   }
@@ -531,11 +531,11 @@ export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;
 /* Both names are in argv, so a --needs the tracker would mint nothing from is turned away in the parse — before an endpoint is resolved and before a credential is spent — rather than dropped on the way to a payload. */
 const needsChecked = (given, ref) => {
   if (given.needs === undefined) return null;
-  if (given.park !== ASKS_A_QUESTION && given.set !== ANSWERED_BY_COMMENT) {
-    refuse(`--needs is what would settle the question, and only a move to ${ANSWERED_BY_COMMENT} mints `
+  if (given.park !== ASKS_A_QUESTION && given.set !== NEEDS_INFO) {
+    refuse(`--needs is what would settle the question, and only a move to ${NEEDS_INFO} mints `
       + `the answer box that carries it. The two calls that reach it:\n`
       + `  forge advance ${ref} --park ${ASKS_A_QUESTION} --why "<why>" --needs "<what would settle it>"\n`
-      + `  ${setForm(ref, ANSWERED_BY_COMMENT)} --needs "<what would settle it>"`);
+      + `  ${setForm(ref, NEEDS_INFO)} --needs "<what would settle it>"`);
   }
   const text = given.needs.trim();
   const bad = needsProblem(text);

@@ -1,6 +1,6 @@
 /* Where a relayed answer is a write something reads, asked before anything of the call is sent. */
 import { refuse } from "../../refusal.mjs";
-import { answersByComment } from "../earned/park-status.mjs";
+import { onNeedsInfo } from "../earned/park-status.mjs";
 import { SILENT, parkThatSet } from "./read.mjs";
 import { blockedClearedBy } from "./blocked.mjs";
 
@@ -9,7 +9,7 @@ import { blockedClearedBy } from "./blocked.mjs";
    nothing reads: every other `on_hold` is lifted by a person's set, by its blockers or by the
    landing's own capture, never by one. */
 export const answerChecked = async (kind, reference, { documentId, body }, page) => {
-  if (kind !== "answer" || answersByComment(body.status)) return;
+  if (kind !== "answer" || onNeedsInfo(body.status)) return;
   if (body.status === SILENT) {
     const { comments, cut } = await page();
     const { viewFrom } = await import("../earned.mjs");

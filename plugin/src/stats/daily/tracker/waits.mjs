@@ -3,7 +3,7 @@
    wait's two ends are read and why the open ones stand apart: docs/cli/stats-the-reading.md. */
 import { boundsOf, weekBefore } from "../day.mjs";
 import { MOVED, NO_ENDPOINT, TRACKER, endpointHeld, firstLine, oncePerSlug, walkBack } from "./history.mjs";
-import { PARK_STATUS, answersByComment } from "../../../flow/earned/park-status.mjs";
+import { PARK_STATUS, onNeedsInfo } from "../../../flow/earned/park-status.mjs";
 import { shortOf } from "../../../tracker/issues.mjs";
 import { RETIRED_STATUS } from "../../../tracker/declared/declares.mjs";
 import { refusing, useProject } from "../../../resolve/settings.mjs";
@@ -16,7 +16,7 @@ const AHEAD = 60_000;
 const NO_READING = "no tracker reading was made for this page";
 const NO_START = "its history holds no creation to start the wait it began at";
 
-const PARKED = Object.values(PARK_STATUS).filter(answersByComment);
+const PARKED = Object.values(PARK_STATUS).filter(onNeedsInfo);
 
 /** The statuses a park answered by a person lands an issue in, read off the flow's own table, and
  *  each retired name one of them took over: a history walked back past the rename still holds moves

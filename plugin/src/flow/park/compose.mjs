@@ -5,7 +5,7 @@ import { attachmentNames, evidenceProblem } from "../../tracker/evidence.mjs";
 import { SHOWS_EVIDENCE, commandAt } from "../machine.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { parse, render } from "../record/page.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm, shapeGaps } from "../earned.mjs";
+import { NEEDS_INFO, PARK_STATUS, onNeedsInfo, atLeast, payloadOwed, setForm, shapeGaps } from "../earned.mjs";
 import { undoForm } from "../record/merged.mjs";
 import { finishes, parkLeft } from "./left.mjs";
 import { HELD } from "../../tracker/declared/issue-machine.mjs";
@@ -17,7 +17,7 @@ const ASKED_AT = ["open", HELD.plan];
 /* A move to `needs_info` says what it is stopped on, and the tracker refuses it otherwise
    (WAITING_KIND_REQUIRED): a question asks for an answer, and every other park there asks a person
    to decide. One that waited on a thing would need a row of its own. */
-export const waitsFor = (status, asking = false) => (status === ANSWERED_BY_COMMENT
+export const waitsFor = (status, asking = false) => (status === NEEDS_INFO
   ? { waitingKind: asking ? "needs_answer" : "needs_decision" } : {});
 
 /* The one field of this payload the tracker mints an answer box from, where `reason` is why the work stopped: neither is ever written from the other, and a text over the endpoint's cap is refused here rather than sent to take the status write down with it — docs/cli/advance-what-it-sends.md. */
@@ -132,6 +132,6 @@ export const rehearsePark = async (view, ref, kind, why, evidence, asked) => {
   console.log(`  ${ref}  ${view.issue.status} -> ${status}`);
   console.log("Sent with the move:");
   for (const [field, value] of Object.entries(said)) console.log(`  ${field}: ${commandAt(value, "    ")}`);
-  const when = answersByComment(status) ? "before the move, a comment there being read as the answer" : "after the move";
+  const when = onNeedsInfo(status) ? "before the move, since needs_info is off the ladder and the record cannot be stamped from it afterwards" : "after the move";
   console.log(`The park record, posted ${when}:\n\n${body}`);
 };
