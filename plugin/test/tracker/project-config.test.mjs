@@ -221,11 +221,13 @@ test("the report withholds a credential and names the one command that prints it
 });
 
 /* FB-45: a judge read the credentials row's `none` and skipped a login it could have read at a
-   declared testing profile's door. The profile is a row of its own, naming that door. */
+   declared testing profile's door. The profile is a row of its own, naming that door. FB-47: the row
+   reads one actor or service at a time, so it names judge-login, not a whole-profile read (ISS-36). */
 test("a declared testing profile is a row naming the door its login is read at (ISS-35)", () => {
   const route = "GET /api/jobs/<run id>/testing-profiles/dev/secrets?ref=secret://dev/admin";
   const out = said({ profiles: { list: [{ id: "dev", route }] } });
   assert.match(out, /^testing profile: dev — .*GET \/api\/jobs\/<run id>\/testing-profiles\/dev\/secrets/mu);
+  assert.match(out, /forge-runner judge-login <profile> <actor>/u);
 });
 
 test("no profile row where none is declared, and an unread profiles read is a note (ISS-35)", () => {

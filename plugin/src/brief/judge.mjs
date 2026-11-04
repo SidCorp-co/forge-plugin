@@ -136,12 +136,10 @@ export const isJudgeBrief = (text) => {
   return said.includes(ROLE_LINE) && said.includes(NOTHING_ELSE);
 };
 
-/* The judge logs in with a testing-profile secret, and one judge printed a 16-character password
-   because it masked only longer values (FB-45): the brief says never to print one at all, of any
-   length, since core scrubs what a secret route returns but not what the judge types back. The route
-   is `forge doctor`'s to name, so the brief points there rather than restating it. */
+// cm:why never print a secret of any length, and read a login one actor/service at a time (FB-45 masked only longer values; FB-47 the secret route now refuses a read with no actor or service chosen)
 const SECRETS = "Secrets: never print or write a secret value, of any length — not in output, a "
-  + "comment or a commit. Read a login only at the secrets route forge doctor names for the profile.";
+  + "comment or a commit. Read a login one actor or service at a time — forge-runner judge-login "
+  + "<profile> <actor> — never the whole profile; forge doctor names the profile's secret route.";
 
 /* The dispatcher's facts for a judge ride the lease, so a judge reading only this brief would miss them
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured

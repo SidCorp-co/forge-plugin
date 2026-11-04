@@ -16,7 +16,8 @@ export const RUN = "iss-7-0123abcd";
 /* The judge brief's secrets line, verbatim: both judge forms carry it, so the two files that assert
    the brief's exact lines read it from one place (ISS-35). It mirrors `SECRETS` in src/brief/judge.mjs. */
 export const SECRETS = "Secrets: never print or write a secret value, of any length — not in output, a "
-  + "comment or a commit. Read a login only at the secrets route forge doctor names for the profile.";
+  + "comment or a commit. Read a login one actor or service at a time — forge-runner judge-login "
+  + "<profile> <actor> — never the whole profile; forge doctor names the profile's secret route.";
 
 const gitDirOf = (tree) =>
   spawnSync("git", ["rev-parse", "--absolute-git-dir"], { cwd: tree, encoding: "utf8" }).stdout.trim();
