@@ -16,7 +16,7 @@ import { hiddenNames, normalize, redact, rendered, secretsIn, striking, summariz
 import { readArgs } from "./args.mjs";
 import {
   BOTH_KIND, GROUP_KIND, HELD_BACK_KIND, INSTANCE_NAMES, INSTANCE_ROWS, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND,
-  TAKEN_HERE, consentRefusal, onTracker, summaryLines, trackerName, trackerRouteLines,
+  TAKEN_HERE, TO_TRACKER, consentRefusal, onTracker, summaryLines, trackerName, trackerRouteLines,
 } from "./chosen-route.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
@@ -37,7 +37,9 @@ export const SAYS = Object.fromEntries(INSTANCE_ROWS.map((row) => [row.name, row
 const noPin = (from) =>
   `coolify: no project is pinned for ${from}, and there is no unscoped mode.\n`
   + "  every resource command runs inside the project this machine's record of the checkout pins\n"
-  + `  pin one:\n${PIN_WAYS.join("\n")}`;
+  + `  pin one:\n${PIN_WAYS.join("\n")}\n`
+  + "  or, where Forge holds this project's Coolify as a binding, deploy it with no pin of your own\n"
+  + `  by taking the tracker route:\n    ${TO_TRACKER}`;
 
 const SWITCHES = ["--dry-run", "--yes", "--full", "--reveal", "--json", "--table"];
 

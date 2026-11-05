@@ -145,6 +145,8 @@ test("with nothing pinned every route-index command refuses and names the comman
   assert.match(answer.stderr, /there is no unscoped mode/u);
   assert.match(answer.stderr, /forge coolify pin --app <name\|uuid>/u);
   assert.match(answer.stderr, /forge coolify pin --project <name\|uuid>/u);
+  assert.match(answer.stderr, /forge doctor --coolify-route tracker/u,
+    "and the no-pin alternative: the project's binding deploys on the tracker route (FB-55)");
   assert.doesNotMatch(answer.stderr, /\.coolify\.json|write one|"project_uuid"/u);
   assert.deepEqual(asked.map((one) => one.path), [], "an unpinned call sent something");
 });
