@@ -65,6 +65,10 @@ const coreMark = (at, head) => {
 
 const NO_MARK = { at: null, reviewed: null, judged: null, moved: null, wrote: null };
 
+// cm:why core can serve the merged commit under any of these; a mark its own route stamped leaves markedCommit/mergedCommitSha empty while mergedPaths/landedIn still carry it, so all are read before the rung refuses "names no commit" (FB-54)
+const commitOf = (issue) =>
+  issue.markedCommit?.sha ?? issue.mergedCommitSha ?? issue.mergedPaths?.commit ?? issue.landedIn?.commit ?? null;
+
 /** The mark that stands on `{ issue, comments }`: `from` says whose word it is, and `why` why it is
  *  the thread's where core's record could not answer. */
 const standingMark = ({ issue, comments }) => {
@@ -72,7 +76,7 @@ const standingMark = ({ issue, comments }) => {
   if (!issue || !("markedCommit" in issue)) {
     return { ...thread, from: "thread", why: "core's issue record carries no markedCommit" };
   }
-  const core = issue.markedCommit?.sha ?? issue.mergedCommitSha ?? null;
+  const core = commitOf(issue);
   if (!core && issue.mergedAt) return { ...thread, from: "thread", why: "core's mark names no commit" };
   if (!core) return { ...NO_MARK, from: "core" };
   if (thread.at && sameCommit(thread.at, core)) return { ...thread, at: core, from: "core" };

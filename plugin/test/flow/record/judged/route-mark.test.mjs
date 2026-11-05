@@ -67,3 +67,13 @@ test("where core's record carries no mark field, the thread answers and the owed
   const unclaimed = { issue: { mergedAt: "2026-10-31T09:00:00.000Z", markedCommit: null, mergedCommitSha: null }, comments: [oldMark] };
   assert.match(markReadLines(unclaimed)[0], /since core's mark names no commit/u);
 });
+
+test("the commit a route-stamped mark leaves only in mergedPaths or landedIn is read, not refused as none (FB-54)", () => {
+  const base = { mergedAt: "2026-10-31T09:00:00.000Z", markedCommit: null, mergedCommitSha: null };
+  assert.equal(markedCommit({ issue: { ...base, mergedPaths: { commit: ROUTE_AT } }, comments: [] }), ROUTE_AT,
+    "the commit the tracker holds in mergedPaths.commit answers the test rung");
+  assert.equal(markedCommit({ issue: { ...base, landedIn: { commit: ROUTE_AT } }, comments: [] }), ROUTE_AT,
+    "and the same held in landedIn.commit");
+  assert.equal(markedCommit({ issue: { ...base }, comments: [] }), null,
+    "but a record holding the commit in no field core serves still reads none");
+});
