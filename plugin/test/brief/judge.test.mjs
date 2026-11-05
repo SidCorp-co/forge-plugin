@@ -30,14 +30,14 @@ test("the judge's brief names the issue, its role, every deployed address, the i
 });
 
 /* FB-45: a judge printed a 16-character password because it masked only values of 20+ characters;
-   the brief says never to print a secret value of any length. FB-47: the secret route now refuses a
-   read with no actor or service chosen, so the brief reads one at a time via judge-login. */
+   the brief says never to print a secret value of any length. ISS-59: after core ISS-959 judge-login
+   signs in and hands back a session, so the brief says to never open, print or measure it. */
 test("the judge brief forbids printing a secret value of any length (ISS-35)", () => {
   const run = judged(["--url", "https://staging.example.com", "--criteria", "1"]);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /never print or write a secret value, of any length/u);
   assert.match(run.stdout, /forge-runner judge-login <profile> <actor>/u);
-  assert.match(run.stdout, /never the whole profile/u);
+  assert.match(run.stdout, /signs in and hands back a session; never open, print or measure it/u);
 });
 
 /* ISS-4: the dispatcher declares the run before the brief (forge-runner run declare) and hands the

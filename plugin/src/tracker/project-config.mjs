@@ -562,8 +562,8 @@ const policyRows = (policy, landing, drained) => {
 export const deployRows = (deploy) =>
   deploy.urls.map((one) => ({ level: "ok", label: one.label, detail: one.url }));
 
-const LOGIN_AT = "a judging run reads its login one actor or service at a time "
-  + "(forge-runner judge-login <profile> <actor>), and the value leaves core at no other door than";
+const LOGIN_AT = "a judging run signs in with forge-runner judge-login <profile> <actor>, which hands back "
+  + "a session and writes no secret value, and the login leaves core at no other door than";
 
 /** One row per declared testing profile, naming the door its login is read at. No rows where none is
  *  declared; a read that did not answer is a note of its own, as the credentials row is. */

@@ -147,10 +147,10 @@ export const isJudgeBrief = (text) => {
   return said.includes(ROLE_LINE) && said.includes(NOTHING_ELSE);
 };
 
-// cm:why never print a secret of any length, and read a login one actor/service at a time (FB-45 masked only longer values; FB-47 the secret route now refuses a read with no actor or service chosen); --run carries the declared run uuid the secret route takes on dev (ISS-4, core ISS-788)
+// cm:why judge-login signs in and hands back a session, so the brief says never to open, print or measure it, and never to print a secret of any length (ISS-59, core ISS-959; FB-45 masked only longer values); --run carries the declared run uuid judge-login takes on dev (ISS-4, core ISS-788)
 const secretsLine = (run) => "Secrets: never print or write a secret value, of any length — not in output, a "
-  + "comment or a commit. Read a login one actor or service at a time — forge-runner judge-login "
-  + `<profile> <actor>${run ? ` --run ${run}` : ""} — never the whole profile; forge doctor names the profile's secret route.`;
+  + "comment or a commit. forge-runner judge-login "
+  + `<profile> <actor>${run ? ` --run ${run}` : ""} — signs in and hands back a session; never open, print or measure it.`;
 
 /* The dispatcher's facts for a judge ride the lease, so a judge reading only this brief would miss them
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured
