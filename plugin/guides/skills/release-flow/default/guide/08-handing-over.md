@@ -6,7 +6,7 @@ Four conditions, and any one of them ends this run's authority rather than its u
 - **A state you cannot determine.** Where the world will not tell you what it is, no action taken
   against it is better than a guess with consequences.
 - **Several causes of equal weight.** The grading says name them; the boundary says do not pick.
-- **A decision that is a person's to make.** Cost, risk to people, a trade nobody delegated.
+- **A decision that is a person's to make.** Irreversible, real money, credentials or product direction.
 
 **A failed production observation ends the success path, and never in a close.** The release is not
 announced, the status is not moved past the rung, and nothing is marked done on the strength of a
@@ -27,7 +27,7 @@ The handoff is written where the work is tracked, and it names four things:
 handoff note above is for the next owner; the release itself ends by calling that route (`POST
 …/releases/<version>/abort`) with a `reason` that names the step the run stopped at and the cause — the
 hand-over condition and the reading behind it. An abort with no reason records only "aborted by agent",
-and the aborted release then says nothing about why it stopped. A CLI verb for it refuses an abort with
+which says nothing about why it stopped. A CLI verb for it refuses an abort with
 no reason, the way `forge release-batch clear` does.
 
 **A roster already shipped in an earlier version closes on the abort, rather than being held.** Where

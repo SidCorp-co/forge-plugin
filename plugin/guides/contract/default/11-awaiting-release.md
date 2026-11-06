@@ -1,8 +1,8 @@
 ### `awaiting_release` — reads the verification, against the plan's flags and the release note field
 
-The rung promises *the change is running where it landed*, and it is the deploying actor's: the
-verification is of code already out, which is why it is a rung of its own and not something the
-judge's record can answer for.
+On the direct path this rung reads the recorded merge alone, and the release reads the deployment.
+On the ladder it promises *the change is running where it landed*, and it is the deploying actor's:
+the verification is of code already out, which the judge's record cannot answer for.
 
 **Which deployment answers that promise is the route's own.** Where the default branch's landing
 deploys to production, it is the deployment that landing built; where production is a separate branch
@@ -19,11 +19,9 @@ rests here until they make it. Where it promotes to a live branch that deploys o
 an act and the release is still owed: the batch moving the change onto that branch is cut only for an
 issue resting here, so the close is refused to a run as well, and that batch makes it. Where neither
 holds, the close is still no run's move: core closes an issue that ships code only by a release that
-claimed it (`CLOSE_ONLY_BY_RELEASE`), so `forge advance` offers no `closed` from here, and recording
-that release is the close: `forge release-batch record <ISS-nn> --commit <sha> --account "<how it was
-released>"`. The
-policy is read at the move itself, so the answer a rehearsal gives and the answer the write gives
-are one answer.
+claimed it (`CLOSE_ONLY_BY_RELEASE`), and recording that release is the close: `forge release-batch
+record <ISS-nn> --commit <sha> --account "<how it was released>"`. The policy is read at the move
+itself, so a rehearsal and the write give one answer.
 
 **A failed reading is the release actor's to repair forward.** The actor that promotes and deploys
 takes no way back from here: it repairs in the same direction, or hands the release over carrying

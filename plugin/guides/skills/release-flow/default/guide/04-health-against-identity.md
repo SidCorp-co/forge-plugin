@@ -31,7 +31,7 @@ landed* depends on the route:
   promotion built. A green reading of the staging deployment says nothing about this rung: it was
   already read, by somebody else, for something else.
 
-**A judgement of the change is not a reading of the deployment.** Somebody judged each criterion
-before this run began, against whatever they were pointed at, and that work stands. What is owed here
-is that the code is out and running where it landed — which no judgement of the change can say,
+**A judgement of the change is not a reading of the deployment.** Where a judge read the change
+before this run, that work stands; the batch's live judging comes after this run. What is owed
+here is that the code is out and running where it landed — which no judgement of the change can say,
 however green it was. A release announced on judgements alone is a release nobody looked at.

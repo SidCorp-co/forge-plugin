@@ -6,8 +6,8 @@ repository state at transition time. A check that read the working tree would an
 every machine.
 
 **A later change unearns.** A moved merged commit unearns `in_progress:test` and above; moved
-criteria unearn `in_progress:release` and above. The run that moved it is who notices. Old reviews and verdicts stay as
-superseded history, and the new ones are written beside them.
+criteria unearn `in_progress:release` and above. Whoever moved it notices. Old reviews and verdicts stay as superseded
+history beside the new ones.
 
 **A later commit can earn, too.** Where a criterion comes true only after the landing, because some
 other change's landing followed it, judge it where it is true and cite that commit, never the merged
@@ -19,5 +19,6 @@ which way: the criteria, the code, or neither. Delete nothing. A defect found in
 change goes to the nearest open issue that owns it, or to a new filing, and the closed issue gets one
 note saying where.
 
-**A batch is a relation, written when the branch is cut.** Every member earns each status on its own
-record. A member that fails parks while the rest advance, and erases nobody else's evidence.
+**A batch is a relation, written when the branch is cut**, of whole issues, none split across
+releases. Each member earns each status on its own record; one that fails waits while the rest
+advance, erasing nobody's evidence.

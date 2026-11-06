@@ -1,9 +1,9 @@
 ---
 name: issue-flow
 description: >-
-  Implement a tracker issue end to end — plan it, build it, prove it, ship it. Invoke when
-  an issue has to become deployed code: verifying what it claims, writing the plan the
-  tracker holds, implementing, proving by running, and taking it to done. For reading,
+  Implement a tracker issue end to end — verify it, build it, land it with its batch. Invoke
+  when an issue has to become deployed code: verifying what it claims, implementing, checking
+  what it reaches, and landing it until its release closes it. For reading,
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".

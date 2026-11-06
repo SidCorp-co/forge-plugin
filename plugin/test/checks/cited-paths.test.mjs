@@ -217,10 +217,11 @@ test("a vector figure is text, and the path its link names is judged", () => {
   assert.match(found[0], /^docs\/diagrams\/one\.svg:1 cites docs\/diagrams\/gone\.md/u);
 });
 
-/* The class the filter hid, counted so a figure added and never walked cannot read as covered. */
-test("every figure under the documents directory is in the population", () => {
-  const figures = TREE.filter((one) => one.startsWith("docs/") && one.endsWith(".html"));
-  assert.ok(figures.length >= 2, `${figures.length} figure(s) tracked; the tree is read too narrowly`);
+/* The class the filter hid, counted so a file that is not markdown, a figure among them, cannot be
+   added, never walked, and read as covered. */
+test("every file under the documents directory is in the population, markdown or not", () => {
+  const figures = TREE.filter((one) => one.startsWith("docs/") && !one.endsWith(".md"));
+  assert.ok(figures.length >= 1, `${figures.length} non-markdown file(s) tracked; the tree is read too narrowly`);
   assert.deepEqual(figures.filter((one) => !POPULATION.includes(one)), [],
     "a file class the population declares in and the selector leaves out reads as a clean tree");
 });

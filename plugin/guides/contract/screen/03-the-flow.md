@@ -1,25 +1,25 @@
 ## The flow
 
-| Status | Promise to the next reader | Phase owed while held |
+**The default path is the direct one.** Claim the issue, build it in its batch, land the batch,
+record the merge and move the issue to `awaiting_release`; the release that claims it closes it.
+Nobody stands between the build and the base branch: the criteria are judged once per batch, live,
+after the release, and one red there goes into the next batch.
+
+| Status | Promise to the next reader | Walked |
 |---|---|---|
-| `open` | someone filed this | 1 Triage |
-| `in_progress:plan` | we read the code; the problem is real and it is this | 2 Clarify; 3 Plan |
-| `approved` | object to the plan now, not after | 4 Implement, to the branch |
-| `in_progress:build` | code is being written against this plan | 4 Implement, to the review; 5 Prove; then 7's landing |
-| `in_progress:test` | the change was reviewed and is on the default branch | 5 Prove |
-| `in_progress:release` | the evidence is here to be judged | 6, 7 Ship |
-| `awaiting_release` | the change is running where it landed, and you can see it now | 7 Ship, the close |
-| `closed` | nothing more happens unless reopened; code landed; only the release enters it | none |
-| `reopen` | a finding sent the work back: a person disagreeing with a close or a drop, or the run sent to judge a landed change blocking it before either | 1 Triage, of that finding |
+| `open` | someone filed this | always |
+| `in_progress` | a run holds it; its step says how far the work got | always |
+| `approved` | the plan and criteria were approved before the code | where `plan_approval` or `design_record` is enforced |
+| `in_progress:test` | the change is on the base branch | reviewed first where `merge_review` is enforced |
+| `in_progress:release` | the evidence is here to be judged | on the ladder, by a judge other than the builder where `independent_qa` or the flow asks one |
+| `awaiting_release` | the change landed and its merge is recorded | always |
+| `closed` | the release that claimed it shipped it | only that release enters it |
+| `reopen` | a finding sent the work back: a person disputing a close or a drop, or a red criterion | on a finding |
 
-Ask `forge advance <ref> --owed` what a row is earned by. The phase a status owes produces the
-payload that earns the next row, with one break: the landing that earns `in_progress:test` is a step
-of Phase 7, so the judging that earns `in_progress:release` happens while the issue is still at
-`in_progress:build`, and both places move on records written before the mark.
-
-The last two rows are one end of a run split by the actor whose record earns each: a judge's verdicts
-earn `in_progress:release`, and the deploying actor's verification earns `awaiting_release`. One rung asking for
-both could not say whose record it was short of.
+The gates are `forge-runner api projects/<id>/gates`. `forge advance` walks every rung, `--owed`
+saying what the next costs; with none on, take the direct path, where core's kernel still refuses
+`awaiting_release` without the merge and any close but the release's. On the ladder the judge's
+verdicts earn `in_progress:release` and the deployer's verification `awaiting_release`.
 
 A park is a message to a person, and who lifts it is who was asked. `dropped` always means no code
 landed. Abandon code that did land by reverting it, never by dropping the issue.

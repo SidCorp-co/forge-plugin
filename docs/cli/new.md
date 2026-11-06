@@ -1,9 +1,9 @@
 # `new` — the shape is read before the tracker sees the body
 
-What the flow charges per issue barely moves with the work: ten payloads and eight transitions
-whether the change is a line or a feature. What varies is whether the issue can carry that, and both
-halves of the answer are legible at the filing. A body with no outcome and no rule gives the
-confirmation nothing to confirm, so the same shortfall is paid again at every status; and a filing
+On the full ladder the toll barely moves with the work: ten payloads and eight transitions whether
+the change is a line or a feature. What varies is whether the issue can carry that, and both halves
+of the answer are legible at the filing. A body with no outcome and no rule gives the confirmation
+nothing to confirm, so the same shortfall is paid again at every status; and a filing
 whose whole subject is one verb was never going to repay the toll. `forge hooks --how issue-shape`
 carries the count behind the second half.
 

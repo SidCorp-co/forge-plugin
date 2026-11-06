@@ -10,8 +10,8 @@ ended the attempt.
   changed, a health check that flipped, a log line that appeared. Attempts made are not progress, and
   neither is a hypothesis refined without an observation behind it.
 - **Regression.** Health that passed before an attempt and fails after it. This one stops the run on
-  the spot, whatever the other two clocks say: the world is now worse than it was, and the next
-  action is a person's.
+  the spot, whatever the other two clocks say: the world is now worse than it was, and the run
+  hands over.
 
 **The two clocks have limits, and they are not yours to choose.** How long is too long, and how long
 without a reading is too long, are the job's own policy. Read both before you act on either clock. A
