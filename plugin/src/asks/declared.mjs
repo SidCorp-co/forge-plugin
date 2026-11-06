@@ -143,10 +143,16 @@ export const namedCategories = (question, categories) => {
   return categories.filter((one) => one.pattern.test(text) || one.unaccented?.test(plain)).map((one) => one.name);
 };
 
+/** Why a question is the owner's whatever was declared: a subject that is always theirs, or text the
+ *  screen cannot read. Null where neither holds. */
+export const ownersAlways = (question, categories) => {
+  const named = namedCategories(question, categories);
+  return named.length ? `it names ${named.join(", ")}` : unreadable(textOf(question));
+};
+
 /** Why a question is the owner's before any precedent is read, or null where it may be judged. */
 export const ownersBefore = (question, categories) => {
   if (!reversalOf(question)) return "it declares no reversal";
   if (!Array.isArray(question?.options) || question.options.length < 2) return "it offers no options to choose between";
-  const named = namedCategories(question, categories);
-  return named.length ? `it names ${named.join(", ")}` : unreadable(textOf(question));
+  return ownersAlways(question, categories);
 };

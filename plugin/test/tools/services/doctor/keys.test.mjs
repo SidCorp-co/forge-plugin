@@ -233,8 +233,8 @@ test("the angles row says debt and simplify are on by default, and tells a proje
   assert.match(kept, /codex\.angles +tech {2}← codex\.angles in \S+ — debt is available and off here: `forge doctor --set project\.codex\.angles=tech,debt` adds it; simplify is available and off here: `forge doctor --set project\.codex\.angles=tech,simplify` adds it$/u, kept);
 });
 
-/* The ask rows: the mode and where it was read, and under `decide` the layer's size and the categories
-   the gate holds for the owner, the project's own terms after the built-in ones. */
+/* The ask rows: the mode and where it was read, the categories the gate holds for the owner with the
+   project's own terms after the built-in ones, and under `decide` the layer's size. */
 const asksRows = async (name, keys, precedents = 0) => {
   const room = tempRoom(`asks-row-${name}-`);
   const env = homeEnv(`asks-row-${name}`);
@@ -252,8 +252,11 @@ const asksRows = async (name, keys, precedents = 0) => {
 
 test("the ask rows print the mode with its source, the layer's count and the categories in force", async () => {
   const unset = await asksRows("asks-unset", {});
-  assert.match(unset.rows, /asks\.mode +off — every question a session asks goes to the owner {2}← the plugin's default$/u);
+  assert.match(unset.rows, /asks\.mode +record — off a strict project, a question naming no owner subject is decided by the session and recorded {2}← the plugin's default$/mu);
+  assert.match(unset.rows, /asks\.owner +a secret or credential; spend; /u, "the default reads the owner's subjects");
   assert.doesNotMatch(unset.rows, /asks\.precedents/u, "a project that has not opted in has no layer to count");
+  const off = await asksRows("asks-off", { asks: { mode: "off" } });
+  assert.doesNotMatch(off.rows, /asks\.(?:precedents|owner)/u, "off reads nothing past the mode");
   const on = await asksRows("asks-on", { asks: { mode: "decide", owner: ["pricing"] } }, 2);
   assert.match(on.rows, new RegExp(`asks\\.mode +decide — a question declared reversible may be answered from the owner's own earlier answers {2}← ${escaped(on.record)}`, "u"));
   assert.match(on.rows, /asks\.precedents +2 in this project's layer; outcomes logged in \S+decided\.jsonl/u);
@@ -267,7 +270,7 @@ test("the mode is written by --set into the project's record, and a mode the key
   assert.equal(JSON.parse(readFileSync(held.record, "utf8")).asks.mode, "decide");
   const refused = await ranAsync(FORGE, ["doctor", "--set", "asks.mode=sometimes"], held.env, held.room);
   assert.notEqual(refused.status, 0);
-  assert.match(`${refused.stdout}${refused.stderr}`, /asks\.mode.*is one of off, decide, not `"sometimes"`/u);
+  assert.match(`${refused.stdout}${refused.stderr}`, /asks\.mode.*is one of record, decide, off, not `"sometimes"`/u);
   assert.equal(JSON.parse(readFileSync(held.record, "utf8")).asks.mode, "decide", "and the record is as it was");
 });
 

@@ -177,9 +177,11 @@ The device's own `report` table in config.json sets that page's score: `score.fo
 `attribute-then-split`, the default, hands back the members the failing cases name and halves what
 they do not, and `one-by-one` lands every member alone. `node tools/run.mjs -h` says the rest.
 
-`asks.mode` is `decide` where a question this project's sessions declare reversible may be answered
-from the owner's own earlier answers instead of stopping the session, and `off` unless set — any
-other value reads as `off` too, and then nothing is read, built or logged. `asks.owner` adds terms to
+`asks.mode` is `record` unless set, and any other value reads as `record` too: off a project the
+tracker gates `strict`, a question naming none of the owner's subjects is refused, for the session to
+decide and record. `decide` answers a question this project's sessions declare reversible from the
+owner's own earlier answers instead of stopping the session; `off` sends every question to the owner,
+and then nothing is read, built or logged. `asks.owner` adds terms to
 the subjects that always go to the owner; it cannot remove the built-in ones, which are read in
 English and Vietnamese, and a question with no common word of either, or a letter of another
 alphabet, goes to the owner. `forge hooks --how ask-decide` says how a question declares itself and

@@ -54,15 +54,16 @@ export const ENUM_KEYS = {
     fallback: "self",
     flag: "how far a run in this checkout goes",
   },
-  /* Whether a question this project's sessions declare reversible may be decided without the owner.
-     `off` where unset or unreadable, because this plugin runs in repositories whose owners have not
-     decided: plugin/hooks/how/ask-decide.md. */
+  /* Which questions a session may put to the owner. `record` where unset: the tracker's gate profile
+     decides, and a profile it cannot read sends every question to the owner, so a repository whose
+     owner has not decided still stops nothing: plugin/hooks/how/ask-decide.md. */
   "asks.mode": {
     values: {
-      off: "every question a session asks goes to the owner",
+      record: "off a strict project, a question naming no owner subject is decided by the session and recorded",
       decide: "a question declared reversible may be answered from the owner's own earlier answers",
+      off: "every question a session asks goes to the owner",
     },
-    fallback: "off",
+    fallback: "record",
   },
   /* Whether a change goes out without a person's look. Absent here is not `manual`: `releaseFrom`
      in tracker/project-config.mjs decides what an absence resolves to, one level down, so a project

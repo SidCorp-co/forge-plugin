@@ -8,8 +8,8 @@ What it keeps: each question of the call with the owner's answer, their own word
 some, and whether the answer took the session's recommendation.
 
 What it never keeps: a question the ask-decide gate answered itself, since a layer that learned from
-its own decisions would only ever agree with itself. A project with `asks.mode` unset or `off` keeps
-nothing at all.
+its own decisions would only ever agree with itself. A project with `asks.mode` other than `decide`
+keeps nothing at all.
 
 Nothing to clear: this gate refuses nothing and says nothing.
 

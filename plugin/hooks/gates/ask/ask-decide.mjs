@@ -1,11 +1,13 @@
-// Answer a question the session declared reversible from the owner's own precedent, where the project
-// opted in, and leave every other question to the owner. how/ask-decide.md.
+// Off a strict project, deny a question that names no owner subject, so the session decides and
+// records it; under `asks.mode=decide`, answer a question declared reversible from the owner's own
+// precedent. Every other question goes to the owner. how/ask-decide.md.
 
-import { answer, askedAlready, context, remaining } from "../../_hook.mjs";
+import { answer, askedAlready, context, deny, how, remaining } from "../../_hook.mjs";
 import { howPage } from "../../../src/refusal.mjs";
 import { asksOwnerTerms, asksScope } from "../../../src/resolve/settings.mjs";
 import { gateway } from "../../../src/resolve/machine/stores.mjs";
-import { DECLARE_FORM, ownerCategories, ownersBefore, reversalOf } from "../../../src/asks/declared.mjs";
+import { DECLARE_FORM, ownerCategories, ownersAlways, ownersBefore, reversalOf } from "../../../src/asks/declared.mjs";
+import { STRICT, aimAt, profileOf } from "../../../src/brief/waived.mjs";
 import { DECIDED, OWNER, asksRoom, decidedIds, decidedPath, logOutcome } from "../../../src/asks/decided.mjs";
 import { OWNER_KIND, layerPaths, refreshLayer, shortlister } from "../../../src/asks/layer.mjs";
 
@@ -96,11 +98,32 @@ const decide = async (ev, questions, room) => {
   return answer({ ...ev.tool_input, answers, annotations }, "The ask-decide gate answered this from the owner's precedent");
 };
 
+const routine = (slug, profile, categories) => deny(
+  `Decide it and carry on — ${slug} is gated \`${profile}\`, so a question naming none of the owner's subjects is the `
+    + "session's to settle. Take the reading cheapest to reverse and record it on the item it shapes:\n"
+    + '  forge record decision ISS-nn --decision "reading | assumption | undo"\n\n'
+    + `Still the owner's here: ${categories.map((one) => one.name).join("; ")}. Name the subject in the question `
+    + "and ask again where it is one of these." + how(),
+);
+
+/* One short read per question: a profile nobody read sends the question to the owner. */
+const recorded = async (ev, questions) => {
+  const aimed = aimAt(ev.cwd || process.cwd(), "question");
+  if (aimed.unread) return;
+  const read = await profileOf();
+  if (read.unread || read.profile === STRICT) return;
+  const categories = ownerCategories(asksOwnerTerms());
+  if (questions.some((one) => ownersAlways(one, categories))) return;
+  routine(aimed.slug, read.profile, categories);
+};
+
 export const run = async (ev) => {
   if (ev.tool_name !== ASKS) return;
-  if (asksScope().value !== "decide") return;
+  const mode = asksScope().value;
+  if (mode === "off") return;
   const questions = ev.tool_input?.questions;
   if (!Array.isArray(questions) || !questions.length) return;
+  if (mode !== "decide") return recorded(ev, questions);
   const room = asksRoom();
   if (!room) return;
   await decide(ev, questions, room);

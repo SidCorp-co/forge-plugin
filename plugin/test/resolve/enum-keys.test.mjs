@@ -25,7 +25,7 @@ const BEFORE = {
   landing: { values: ["after-merge", "before-merge"], fallback: null },
   redBatch: { values: ["attribute-then-split", "one-by-one"], fallback: "attribute-then-split" },
   ship: { values: ["self", "ready"], fallback: "self" },
-  "asks.mode": { values: ["off", "decide"], fallback: "off" },
+  "asks.mode": { values: ["record", "decide", "off"], fallback: "record" },
   release: { values: ["auto", "manual"], fallback: null },
   report: { values: ["off", "daily"], fallback: "off" },
   /* Added by ISS-2932 with no "before": `required` is what every door and write did with no key. */

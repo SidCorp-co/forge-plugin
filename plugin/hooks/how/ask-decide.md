@@ -1,23 +1,22 @@
-# ask-decide — a question the owner's own answers already settle
+# ask-decide — a question that is not the owner's
 
-Why: a question stops the session until the owner answers. Where the owner has answered the same
-question before and the choice undoes in one step, the stop buys nothing.
+Why: a question stops the session until the owner answers. Off a strict project the agent decides and
+the record follows, so a routine question only spends the owner's time.
 
-Off unless the project opts in: `forge doctor --set asks.mode=decide`. Otherwise nothing is read,
-built or logged.
+What it does by default (`asks.mode` unset or `record`): reads the project's gate profile once per
+question. Off `strict`, a question naming none of the owner's subjects is refused. Decide it, record
+it on the item it shapes with `forge record decision ISS-nn --decision "reading | assumption | undo"`,
+and carry on.
 
-How to have a question decided: end it with `[reversible: <the one command or correction that undoes
-the choice>]`. Without it the question goes to the owner, and the session is told once.
+Still the owner's: every question on a `strict` project, every question when the profile cannot be
+read, and a question naming a secret, spend, a production or outward write, discarding the owner's
+work, filing or dropping product work, or a contract others build against. `asks.owner` adds terms,
+never removes these. The screen reads English and Vietnamese; text it cannot read goes to the owner.
 
-What decides it: this project's earlier answers and decisions. A consult picks the option the
-closest of them point to; where none is close, they disagree, or anything fails, the owner is asked.
-A call is decided whole or not at all.
+`asks.mode=decide`: a question ending `[reversible: <the one command or correction that undoes the
+choice>]` is answered from the owner's earlier answers where they are close and agree; anything else
+goes to the owner. Each outcome is a line in `decided.jsonl`, which `forge doctor` names.
 
-Always the owner's: a secret, spend, a production or outward write, discarding the owner's work,
-filing or dropping product work, a contract others build against. `asks.owner` adds terms, never
-removes these. The screen reads English and Vietnamese, diacritics or not; a question with no
-common word of either, or another alphabet's letter, goes to the owner.
+`asks.mode=off`: every question goes to the owner.
 
-Review: each outcome is a line in `decided.jsonl`; `forge doctor` names it.
-
-Not judged: whether the declared reversal really undoes the choice.
+Not judged: whether a refused question was really routine, or a declared reversal really undoes.

@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { basename, dirname, join } from "node:path";
 
-import { answered, callHookAsync, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { answered, callHookAsync, fakeTracker, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { OWN } from "../../fixtures/own-keys.mjs";
 import { OWNER_OVERRIDES } from "../../asks/owner-overrides.mjs";
 import { checkoutKey } from "../../../src/asks/decided.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
@@ -97,7 +98,7 @@ const reportQuestion = (text = REPORT) => ({ question: text, header: "Delivery",
 const log = (held) => (existsSync(join(held.room, "decided.jsonl"))
   ? readFileSync(join(held.room, "decided.jsonl"), "utf8").split("\n").filter(Boolean).map((one) => JSON.parse(one)) : []);
 
-test("unset, off and an unknown mode each leave the call alone and write nothing under the project's state", async () => {
+test("unset, off and an unknown mode, with no profile to read, each leave the call alone and write nothing under the project's state", async () => {
   for (const keys of [{}, { asks: { mode: "off" } }, { asks: { mode: "sometimes" } }]) {
     const held = await project(keys);
     const said = await ask(held, [reportQuestion()]);
@@ -106,6 +107,69 @@ test("unset, off and an unknown mode each leave the call alone and write nothing
     assert.equal(existsSync(dirname(held.room)), false, `${JSON.stringify(keys)} writes nothing: no layer, no log`);
     assert.equal(held.gateway.asked.length, 0, "and asks no judge");
   }
+});
+
+const ROUTINE = { question: "Which colour for the chart?", header: "Colour", options: [{ label: "Red" }, { label: "Blue" }] };
+const OWNERS = { question: "Should this deploy to production now?", header: "Deploy", options: [{ label: "Yes" }, { label: "No" }] };
+
+/* A project the tracker answers for, gated `profile`, or refusing the read where `profile` is null. */
+const gated = async (profile, asks = {}, { unasked = [] } = {}) => {
+  const state = { unasked, answer: { forge_config: (args) => {
+    if (args.action !== "gates") return undefined;
+    return profile === null ? { refused: "the tracker is down" } : { profile, overrides: {}, gates: [] };
+  } } };
+  const tracker = await fakeTracker(state);
+  const held = await project({ ...OWN, ...asks }, { within: { config: tracker.env.XDG_CONFIG_HOME } });
+  const read = () => (state.calls ?? []).filter((one) => one.name === "forge_config" && one.args?.action === "gates").length;
+  return { held, read, close: () => {
+    held.gateway.close();
+    tracker.close();
+  } };
+};
+
+test("off a strict project, a routine question is refused with the decision to record and the how link", async () => {
+  for (const profile of ["standard", "yolo"]) {
+    const { held, close } = await gated(profile);
+    const said = await ask(held, [ROUTINE]);
+    close();
+    assert.equal(said?.permissionDecision, "deny", `${profile}: ${JSON.stringify(said)}`);
+    assert.match(said.permissionDecisionReason, new RegExp(`^Decide it and carry on — forge-plugin is gated \`${profile}\``, "u"));
+    assert.match(said.permissionDecisionReason, /\n {2}forge record decision ISS-nn --decision "reading \| assumption \| undo"\n/u);
+    assert.match(said.permissionDecisionReason, /forge hooks --how ask-decide/u);
+    assert.equal(held.gateway.asked.length, 0, "no judge is asked");
+    assert.equal(existsSync(dirname(held.room)), false, "and no layer or log is written");
+  }
+});
+
+test("off a strict project, a question naming an owner subject still reaches the owner", async () => {
+  const { held, close } = await gated("standard", { asks: { owner: ["colour"] } });
+  assert.equal(await ask(held, [OWNERS]), null, "a built-in subject");
+  assert.equal(await ask(held, [ROUTINE]), null, "a subject the project added");
+  assert.equal(await ask(held, [ROUTINE, OWNERS]), null, "one owner question in the call keeps the whole call");
+  close();
+});
+
+test("a strict project, and a profile the tracker did not give, send every question to the owner", async () => {
+  for (const profile of ["strict", null]) {
+    const { held, read, close } = await gated(profile);
+    const said = await ask(held, [ROUTINE]);
+    const reads = read();
+    close();
+    assert.equal(said, null, `${profile}: ${JSON.stringify(said)}`);
+    assert.equal(reads, 1, "the profile is read once for the question");
+  }
+});
+
+test("asks.mode=off reads no profile, and decide keeps its precedent consult off strict", async () => {
+  const off = await gated("standard", { asks: { mode: "off" } }, { unasked: ["forge_config"] });
+  assert.equal(await ask(off.held, [ROUTINE]), null);
+  const offReads = off.read();
+  off.close();
+  assert.equal(offReads, 0);
+  const decide = await gated("standard", { asks: { mode: "decide" } }, { unasked: ["forge_config"] });
+  assert.equal((await ask(decide.held, [reportQuestion()]))?.permissionDecision, "allow", "decided from precedent");
+  assert.equal((await ask(decide.held, [ROUTINE], { session: "s-decide" }))?.permissionDecision, undefined, "undeclared goes to the owner");
+  decide.close();
 });
 
 test("a declared question the judge decides from precedent is allowed with the chosen label as its answer", async () => {

@@ -182,17 +182,19 @@ const reviewRow = async () => {
     + `reading of what has landed${owed ? await holding(mark) : ""}  ← ${whereFrom(standing)}` };
 };
 
-/* Under `decide`, what the gate reads beside the mode: nothing past the mode is read under `off`,
-   where the layer does not exist and a count of it would be a number about nothing. `mode` is what
-   the key's own row just resolved. */
+/* What the gate reads beside the mode: the owner's subjects under `record` and `decide`, and the
+   layer under `decide` alone. Nothing past the mode is read under `off`, where a count would be a
+   number about nothing. `mode` is what the key's own row just resolved. */
 const asksDetail = (mode) => {
-  if (mode.value !== "decide") return [];
-  const room = asksRoom();
+  if (mode.value === "off") return [];
   const terms = asksOwnerTerms();
+  const owner = { label: "asks.owner", detail: `${OWNER_CATEGORIES.map((one) => one.name).join("; ")}`
+    + `${terms.length ? `; and this project's own: ${terms.join(", ")}` : ""}` };
+  if (mode.value !== "decide") return [owner];
+  const room = asksRoom();
   return [
     { label: "asks.precedents", detail: `${precedentCount(layerPaths(room))} in this project's layer; outcomes logged in ${decidedPath(room)}` },
-    { label: "asks.owner", detail: `${OWNER_CATEGORIES.map((one) => one.name).join("; ")}`
-      + `${terms.length ? `; and this project's own: ${terms.join(", ")}` : ""}` },
+    owner,
   ];
 };
 
