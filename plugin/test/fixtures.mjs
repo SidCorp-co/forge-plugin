@@ -127,6 +127,9 @@ export const fakeStore = () => {
     confidence: held.confidence ?? "inferred",
     authoredBy: "agent",
     metadata: held.metadata ?? {},
+    source: held.source ?? null,
+    scope: held.scope ?? null,
+    recheckWhen: held.recheckWhen ?? null,
     updatedAt: "2026-09-04T21:00:00.000Z",
   });
   const knowledge = (args) => {

@@ -84,6 +84,16 @@ where its writer reads it, the generated reading body and this verb's own help, 
 finds the overlap is the one who refuses the entry. A checker for it, if one is ever wanted, is its
 own issue.
 
+## Provenance is core's rule, passed through
+
+A reference, guide, workflow or rule entry carries `source`, `scope` and `recheckWhen` (forge
+ISS-1064), and core refuses a write missing one, naming each. The verb sends what `--source`,
+`--scope` and `--recheck-when` give and requires none of them itself: core's refusal already names
+the field and its shape, and a local copy of that rule would be a second authority. The three ride
+the same carry as every other field, so a body correction keeps them. The one copy held here is the
+list of kinds, used only to mark an entry in `list` that owes a field; it changes with core's
+`KNOWLEDGE_PROVENANCE_KINDS`.
+
 ## Two smaller decisions
 
 **An empty store is answered with the route out of it.** Until the first reading writes, every run

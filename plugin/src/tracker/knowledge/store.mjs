@@ -84,6 +84,9 @@ const carried = (given, stored) => {
   return { payload: out, kept };
 };
 
+/* Named for every writer, so a caller that never heard of provenance carries the stored fields rather than wiping them (forge ISS-1064). */
+const UNNAMED_PROVENANCE = { source: undefined, scope: undefined, recheckWhen: undefined };
+
 /** One home for the write, spent by the `knowledge` verb and by the project verb's brief: the not-found reading, the carry, the credential seat and the read-back are the store's rules, not a caller's. */
 export const upsertEntry = async ({ slug, body, meta = {}, dropKept = () => {}, ...given }) => {
   const stored = await entryAt(slug);
@@ -91,7 +94,7 @@ export const upsertEntry = async ({ slug, body, meta = {}, dropKept = () => {}, 
   if (!stored && !given.title) fail("a new entry needs --title; the tracker refuses an untitled one.");
   if (!body.trim()) fail("an empty body would store nothing; pass the entry itself.");
   const metadata = Object.keys(meta).length ? { ...(stored?.metadata ?? {}), ...meta } : undefined;
-  const { payload, kept } = carried({ ...given, metadata }, stored);
+  const { payload, kept } = carried({ ...UNNAMED_PROVENANCE, ...given, metadata }, stored);
   await refuseCredential({ slug, ...payload, body }, "The knowledge entry this write was about to send");
   const sent = { body, ...payload };
   await write("forge_knowledge", { action: "upsert", slug, ...sent });

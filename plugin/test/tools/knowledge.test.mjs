@@ -435,3 +435,30 @@ test("a write over an archived slug carries none of its fields and is a create",
   assert.equal(sent.args.confidence, undefined, "and its confidence");
   assert.equal(sent.args.metadata, undefined, "and its metadata");
 });
+
+test("provenance flags are sent as typed, printed by get, and carried by a write naming none", async () => {
+  const first = await ran(["knowledge", "write", "module-knowledge", "-", "--kind", "rule", "--title", "T",
+    "--source", "plugin/src/tools/knowledge.mjs:written, ISS-71", "--scope", "every knowledge write",
+    "--recheck-when", "core's provenance kinds change"], BODY);
+  assert.equal(first.status, 0, first.stderr);
+  const [sent] = upserts();
+  assert.deepEqual(
+    { source: sent.args.source, scope: sent.args.scope, recheckWhen: sent.args.recheckWhen },
+    { source: "plugin/src/tools/knowledge.mjs:written, ISS-71", scope: "every knowledge write",
+      recheckWhen: "core's provenance kinds change" },
+  );
+  const got = await ran(["knowledge", "get", "module-knowledge"]);
+  assert.match(got.stdout, /^recheckWhen: core's provenance kinds change$/mu, got.stdout);
+  state.calls.length = 0;
+  const later = await ran(["knowledge", "write", "module-knowledge", "-"], "a later body\n");
+  assert.equal(later.status, 0, later.stderr);
+  assert.equal(upserts()[0].args.scope, "every knowledge write", "a write naming no provenance wiped it");
+});
+
+test("list names a provenance kind's missing fields and says nothing of an overview", async () => {
+  await ran(["knowledge", "write", "bare-rule", "-", "--kind", "rule", "--title", "T"], BODY);
+  await ran(["knowledge", "write", "an-overview", "-", "--kind", "overview", "--title", "T"], BODY);
+  const run = await ran(["knowledge", "list"]);
+  assert.match(run.stdout, /^bare-rule .*\(no source, scope, recheckWhen\)$/mu, run.stdout);
+  assert.doesNotMatch(run.stdout, /^an-overview .*\(no /mu, run.stdout);
+});

@@ -11,7 +11,12 @@ import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
 const HITS = 10;
+
 const MAX_HITS = 50;
+
+// cm:why core's KNOWLEDGE_PROVENANCE_KINDS (forge ISS-1064), mirrored: no contract package reaches this plugin
+const PROVENANCE_KINDS = ["reference", "guide", "workflow", "rule"];
+const PROVENANCE = ["source", "scope", "recheckWhen"];
 
 /* Derived, never copied: this help is the authority on what the store takes, so the sets come off the declaration the refusal cites and a value the tracker grows is added in one place. */
 const setOf = (field) => declaredFor("forge_knowledge", field).join(" | ");
@@ -24,7 +29,8 @@ export const USAGE = [
   "  list [--kind K] [--injection I]        one line per entry, newest first; no bodies",
   "  get <slug>                             the entry's fields, then its body as markdown",
   "  write <slug> <file.md|@file|-> --kind K [--title T] [--injection I] [--confidence C]",
-  "                                         [--meta k=v]...  upsert by slug, read back after",
+  "        [--source S] [--scope S] [--recheck-when W] [--meta k=v]...",
+  "                                         upsert by slug, read back after",
   "  search <query> [--limit n]             the records this project holds, by meaning, nearest first;",
   "                                         n rows at most, and the count says whether more may be held",
   "  delete <slug>                          remove it, and say whether there was one",
@@ -34,6 +40,12 @@ export const USAGE = [
   `  --confidence    ${setOf("confidence")}`,
   "These are the tracker's own values, and one outside a set is refused with the set before anything",
   "is sent.",
+  "",
+  "  --source        what the entry rests on: `file.mjs:symbol` anchors, an issue or requirement key, a URL",
+  "  --scope         where it applies",
+  "  --recheck-when  the change that means it needs re-checking",
+  `The tracker asks all three of a ${PROVENANCE_KINDS.join(", ")} entry and refuses a write missing one,`,
+  "naming each; an update that names none carries the stored ones.",
   "",
   "An entry says what is, and cites where it was read: a path, a commit, an issue key. A rule two",
   "runs each half-followed is an entry only with the two places that show it, named in the body.",
@@ -50,6 +62,12 @@ const noSuchEntry = async (slug) =>
   fail(didYouMean("entry", slug, await slugsHere(),
     "`forge knowledge list` prints what this project's store holds."));
 
+const owedLine = (row) => {
+  if (!PROVENANCE_KINDS.includes(row.kind)) return "";
+  const owed = PROVENANCE.filter((field) => !row[field]);
+  return owed.length ? `  (no ${owed.join(", ")})` : "";
+};
+
 const LIST_USAGE = "Usage: forge knowledge list [--kind K] [--injection I]";
 
 /* An empty store printed as nothing reads as a call that failed, and until the first reading writes
@@ -64,7 +82,7 @@ const list = async (argv) => {
     ...(injectionFilter ? { injectionFilter } : {}),
   });
   const rows = liveRows(page);
-  for (const row of rows) console.log(entryLine(row));
+  for (const row of rows) console.log(`${entryLine(row)}${owedLine(row)}`);
   console.log(`\n${rows.length} entr${rows.length === 1 ? "y" : "ies"}`);
   if (!rows.length && !filtered) {
     console.log("Nothing has been written to this project's store yet: forge knowledge write "
@@ -72,7 +90,7 @@ const list = async (argv) => {
   }
 };
 
-const FIELDS = ["slug", "kind", "injection", "confidence", "authoredBy", "updatedAt"];
+const FIELDS = ["slug", "kind", "injection", "confidence", "authoredBy", "updatedAt", ...PROVENANCE];
 
 const GET_USAGE = "Usage: forge knowledge get <slug>";
 
@@ -92,7 +110,7 @@ const get = async ([slug, ...rest]) => {
 };
 
 const WRITE_USAGE = "Usage: forge knowledge write <slug> <file.md|@file|-> --kind K [--title T] "
-  + "[--injection I] [--confidence C] [--meta k=v]...";
+  + "[--injection I] [--confidence C] [--source S] [--scope S] [--recheck-when W] [--meta k=v]...";
 
 const written = async (argv) => {
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "knowledge write", { usage: WRITE_USAGE });
@@ -109,6 +127,7 @@ const written = async (argv) => {
   const dropKept = path === "-" ? keepBody("entry", body) : undefined;
   const wrote = await upsertEntry({
     slug, body, kind, title: given.title, injection, confidence, meta: metaFrom(pairs), dropKept,
+    source: given.source, scope: given.scope, recheckWhen: given["recheck-when"],
   });
   for (const said of wroteLines(wrote)) console.log(said);
 };

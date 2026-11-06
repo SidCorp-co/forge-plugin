@@ -166,7 +166,7 @@ const RETIRED_FACTS = "fact";
 const proseRefused = (key) =>
   fail(`--set: \`${RETIRED_FACTS}.${key}\` names the tracker's project facts, which it retired: project prose `
     + "is a knowledge entry now, and one writer owns those. Nothing was sent. Run "
-    + `\`forge knowledge write ${key || "<slug>"} <file.md> --kind K --title T --injection always|on_demand|none\`, `
+    + `\`forge knowledge write ${key || "<slug>"} <file.md> --kind K --title T --injection always|on_demand|none --source S --scope S --recheck-when W\`, `
     + "and `forge knowledge -h` for the sets each flag takes.");
 
 /* A prefixed key names its resource outright and costs no read, which is the only way to write a key

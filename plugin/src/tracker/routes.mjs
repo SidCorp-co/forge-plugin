@@ -303,7 +303,8 @@ export const ROUTES = {
     writes: true,
     requests: (args, project) => one(`/projects/${project}/knowledge/${args.slug}`, "PUT",
       filled({ ...args, action: undefined, slug: undefined, projectId: undefined })),
-    sends: ["slug", "title", "body", "kind", "injection", "confidence", "authoredBy", "metadata"],
+    sends: ["slug", "title", "body", "kind", "injection", "confidence", "authoredBy", "metadata",
+      "source", "scope", "recheckWhen"],
   },
   "forge_knowledge.delete": {
     project: true,
