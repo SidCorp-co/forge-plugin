@@ -219,9 +219,6 @@ test("the judge reads the credentials the project holds before any skip for want
     assert.match(text, /a skip for want of a credential is written only after that read has said none is held/iu,
       `${flow}: a credential skip is written before anybody looked`);
   }
-  const master = flat(skillGuideAnswer("qa", PLUGIN, "screen")({}).lines.join("\n"));
-  assert.match(master, /judge's own read, at `forge doctor project`, and never a value copied into the message/u,
-    "the screen master points the judge at the read that is silent where credentials are held");
 });
 
 /* ISS-1813: the method said how to capture and never what a person opens a screen to answer. */
@@ -282,16 +279,10 @@ test("the judging method keeps the judge on the deployment and off a checkout's 
   }
 });
 
-test("the masters that dispatch a judge name the judge's brief, and set down a change nothing serves", () => {
+test("the section a master dispatches by names the judge's brief, with the address it judges at", () => {
   for (const flow of FLOWS) {
-    for (const slug of ["qa", "dispatch"]) {
-      const text = skillGuideAnswer(slug, PLUGIN, flow)({}).lines.join("\n");
-      assert.match(text, /`forge brief[\s\S]{0,20}--judge --url/u, `${slug} under ${flow} sends a judge no address`);
-    }
-    const master = skillGuideAnswer("qa", PLUGIN, flow)({}).lines.join("\n");
-    assert.match(master, /whose change the deployment does not yet serve is that case, set down/u,
-      `qa under ${flow} judges at a commit nothing serves`);
-    assert.doesNotMatch(master, /judged at the commit its verdicts carry/u, `qa under ${flow} still licenses a local build`);
+    const text = skillGuideAnswer("dispatch", PLUGIN, flow)({ part: "briefs" }).lines.join("\n");
+    assert.match(text, /`forge brief[\s\S]{0,20}--judge --url/u, `dispatch under ${flow} sends a judge no address`);
   }
 });
 

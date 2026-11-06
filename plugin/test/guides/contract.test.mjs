@@ -24,7 +24,6 @@ const {
   stageLine,
   statesContract,
 } = await import("../../src/guides/contract.mjs");
-const { servedBody } = await import("../../src/guides/skill-guides.mjs");
 const { CHECKS, NO_CRITERIA, NO_DECISION, NO_NOTE, LADDER, deployedOwed, judgedOwed, viewFrom }
   = await import("../../src/flow/earned.mjs");
 const { DEFAULT, FLOW_SLUGS, SCREEN, servedFor } = await import("../../src/guides/flow.mjs");
@@ -39,7 +38,6 @@ const PARTS = partsOf(TEXT);
 const STAGED = [...LADDER, "closed", "dropped"];
 const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
   .trim().split("\n").filter(Boolean);
-const SKILL = servedBody("issue-flow", PLUGIN);
 const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", DEFAULT, "references", "verification.md");
 /* The rendered state and the login that reaches one are a screen's, so they are read off the flow whose projects have one: the other copy stopped carrying them when `default` stopped describing a product with a screen (ISS-1694). */
 const SCREEN_VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", SCREEN, "references", "verification.md");
@@ -389,9 +387,6 @@ test("the checks point back from the guides, and the evidence table keeps the ki
   for (const kind of ["An API", "A CLI", "A library", "A batch or data job", "Generated output", "Infrastructure"]) {
     assert.ok(held.includes(`| ${kind} |`), `the evidence table no longer names ${kind}, which no check replaced`);
   }
-  const guide = flat(SKILL);
-  assert.ok(guide.includes("`in_progress:test` refuses a path in it that neither the plan nor a correction"),
-    "Phase 4 no longer names the check that refuses a file the plan does not name");
 });
 
 /* The fallback is prose about a refusal, so it can drift from the refusal without failing anything.

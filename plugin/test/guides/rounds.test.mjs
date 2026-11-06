@@ -1,13 +1,12 @@
 /* The rung reaches the served method: `forge guide` renders a part for the rung it was given and
-   ends by saying which rounds that rung buys, and the verbs that act carry the same text for the
-   issue in hand. Each case is watched failing on a planted tree or a planted issue, a walker over a
+   ends by saying which rounds that rung buys. Each case is watched failing on a planted tree or a planted issue, a walker over a
    copy that happens to hold no fence looking exactly like a walker over nothing. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { neutralRoom, projectRecord, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("rounds").path;
@@ -18,7 +17,6 @@ const { roundLines, rungRefusal, rungServed } = await import("../../src/guides/r
 const { FEATURE, FIX, RUNGS, SPARES, WRITE_READ_OWED, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { DEFAULT, SCREEN } = await import("../../src/guides/flow.mjs");
-const { render } = await import("../../src/flow/record/page.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
@@ -144,7 +142,7 @@ test("no rung is served a gate run, and every rung is told the whole gate is the
 test("the order the cheap checks are spent in is served at both lighter rungs, in both flows", () => {
   /* The lead whole, not its opening: a lead putting the comparison before the checks contradicts the
      body two lines under it, and a run repairing a cheap check adds the file the comparison is for. */
-  const ORDER = "The checks that answer in seconds are spent before a landing is armed, and the file set is put\nbeside the review's after them.";
+  const ORDER = "**The checks that answer in seconds are spent before a landing is armed.**";
   const COMPARE = "put the paths this change touched beside the file list the review read";
   const TIMING = "settle any difference before the arming";
   for (const flow of [DEFAULT, SCREEN]) {
@@ -222,103 +220,4 @@ test("the rung a caller names decides nothing else about the answer", () => {
   assert.equal(rungServed(TRIVIAL), TRIVIAL);
   assert.equal(rungRefusal(null), null, "a call naming no rung is not a refusal");
   assert.deepEqual(roundLines(FEATURE).filter((line) => SPARES[TRIVIAL].includes(line.trim())), []);
-});
-
-/* And the other half: the verbs that act carry the part for the act, so the rung they carry has to
-   be the effective one the lane is printed at rather than the complexity field it starts from. */
-const CLIMBED = render("correction", { moved: "Rung: trivial -> feature", why: "the work turned out larger" });
-
-/* One run per issue, each holding its own lease: the part is delivered once per phase per run, so
-   three claims under one id would read a suppressed delivery as a rung-blind one. */
-const runFor = (key) => `run-${key.toLowerCase()}`;
-
-const issue = (key, complexity) => ({
-  documentId: `uuid-${key}`, issueId: key, status: "open", title: `${key} title`,
-  description: "what it is", complexity,
-  sessionContext: { lease: { holder: runFor(key), agent: "a-test-agent", pid: "4242",
-    renewedAt: new Date().toISOString(), minutes: 30, next: null, history: [] } },
-});
-
-const state = {
-  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
-  issues: [issue("ISS-3001", "xs"), issue("ISS-3002", "m"), issue("ISS-3003", "xs"), issue("ISS-3004", "xs")],
-  comments: { "uuid-ISS-3003": [{ documentId: "c-1", createdAt: "2026-09-11T00:00:00.000Z", authorId: "agent", body: CLIMBED }] },
-  minted: 0,
-  answer: {
-    forge_config: () => ({ config: state.config }),
-    forge_issues: (args) => {
-      const held = state.issues.find((one) => one.documentId === args.documentId);
-      if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
-      if (args.action === "update") Object.assign(held, args.data);
-      if (args.action === "transition") Object.assign(held, { status: args.data.status });
-      return held;
-    },
-    forge_comments: (args) => {
-      const key = args.filters?.issue ?? args.data?.issue;
-      if (args.action === "list") {
-        const rows = state.comments[key] ?? [];
-        return { comments: rows, returned: rows.length, limit: rows.length, hasMore: false };
-      }
-      const row = { documentId: `c-${state.minted += 1}`, createdAt: new Date().toISOString(), ...args.data };
-      (state.comments[key] ??= []).push(row);
-      return row;
-    },
-  },
-};
-
-const tracker = await fakeTracker(state);
-test.after(() => tracker.close());
-
-/* The account half of that one home: the fixture writes its url and token into a home of its own,
-   and the children read both halves out of this one. */
-writeFileSync(join(HOME, "forge", "config.json"),
-  readFileSync(join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json"), "utf8"));
-
-const env = (who) => homed({ AI_AGENT: "a-test-agent", CLAUDE_PID: "4242",
-  FORGE_SESSION_ID: who, FORGE_CODEX_DISABLE: "1" });
-
-const claimed = (ref) => ranAsync(FORGE, ["claim", ref], env(runFor(ref)));
-
-test("the part a claim prints carries the rounds the issue's own rung buys", async () => {
-  const light = await claimed("ISS-3001");
-  assert.equal(light.status, 0, `the claim did not land:\n${light.stdout}${light.stderr}`);
-  for (const round of SPARES[TRIVIAL]) {
-    assert.ok(light.stdout.includes(round),
-      `an \`xs\` issue is claimed and the phase part says nothing of "${round}"`);
-  }
-  assert.ok(light.stdout.includes(WRITE_READ_OWED),
-    "an `xs` issue is claimed and not told the read a plan or a criteria write still owes");
-});
-
-test("and the top rung is claimed with none of them", async () => {
-  const heavy = await claimed("ISS-3002");
-  assert.equal(heavy.status, 0, `the claim did not land:\n${heavy.stdout}${heavy.stderr}`);
-  for (const round of SPARES[TRIVIAL]) {
-    assert.ok(!heavy.stdout.includes(round), `an \`m\` issue is offered "${round}"`);
-  }
-});
-
-/* The rung is read off the record and not the field, which is the whole reason the lane and the part
-   are printed at one answer: a climbed `xs` shown the lighter rounds would spend a ceiling it lost. */
-test("an issue corrected upward is claimed at the rung it climbed to", async () => {
-  /* Twice: the correction is a comment this session has not been shown, and the first write is held
-     back until it has been. The second is the claim, and the rung it prints is what this asks. */
-  await claimed("ISS-3003");
-  const climbed = await claimed("ISS-3003");
-  assert.equal(climbed.status, 0, `the claim did not land:\n${climbed.stdout}${climbed.stderr}`);
-  assert.match(climbed.stdout, /Lane at `feature`/u, "the lane reads the correction");
-  for (const round of SPARES[TRIVIAL]) {
-    assert.ok(!climbed.stdout.includes(round),
-      `a climbed \`xs\` is offered "${round}", so the part read the field the lane did not`);
-  }
-});
-
-test("a record write carries the same part the guide verb answers for that phase at that rung", async () => {
-  const wrote = await ranAsync(FORGE, ["record", "confirmation", "ISS-3004", "--where", "a.mjs:1",
-    "--is", "what it is in the code's own terms", "--finding", "holds"], env(runFor("ISS-3004")));
-  assert.equal(wrote.status, 0, `the record did not land:\n${wrote.stdout}${wrote.stderr}`);
-  const served = await guided("issue-flow", "1", "--rung", TRIVIAL);
-  assert.equal(served.status, 0, `the phase did not serve:\n${served.stdout}${served.stderr}`);
-  assert.ok(wrote.stderr.includes(served.stdout.trim()),
-    "the part a record write prints is the guide verb's own answer for that phase at that rung");
 });

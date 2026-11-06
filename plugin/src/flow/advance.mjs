@@ -387,8 +387,7 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null, 
       transitionTo(now, next, ref, { soft, note, say: console.error, by }));
   }
   await owedAfter(documentId, moves ? { ...issue, status: next } : issue, ref, page);
-  /* The effective rung of the view this already built, for the phase part the caller prints. */
-  return { moved: moves ? next : null, rung: rungOf(rungFieldsOf(view)) };
+  return { moved: moves ? next : null };
 };
 
 /* An ordinary outcome and so no override; the reading is spent before the status moves, not after. */

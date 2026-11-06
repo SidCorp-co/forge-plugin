@@ -31,7 +31,6 @@ import { NONE_STATED, SERVES_FLAG, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
 import { capsOf } from "../../tracker/field-write.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
-import { partForRecord } from "../../guides/served.mjs";
 import { FIELD as SESSION, oweRelease, writtenBy } from "../lease.mjs";
 import { judgedPast, judgedSaid, moveHeld } from "../lease/judged.mjs";
 import { issueOf } from "./thread/posting.mjs";
@@ -182,9 +181,6 @@ const declinedChecked = (kind, reference, blocks, read) => {
     got.finding = handleOf(got.finding);
   }
 };
-
-/* On stderr, beside what the write owes and not on the stream carrying the record: a caller reading a payload back is not reading the method. A record ends its phase's work, so the part is that phase's. */
-const sayPart = (kind, rung) => partForRecord(kind, (part) => console.error(`\n${part}`), rung);
 
 /* Off the record and not the issue: whoever wrote the first of the kind cited it, and the rest of a
    loop inherit that rather than a guess. Not per criterion — one document answers twenty. */
@@ -525,11 +521,10 @@ const writeRung = async (reference, blocks, { next, patch, flags = [] }) => {
   });
   const { movedByRecord } = await import("../advance.mjs");
   const holds = judged ? (to) => console.error(moveHeld(reference, to, judged)) : null;
-  const { rung } = await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page,
+  await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page,
     body.status, { holds });
   /* A park ends the turn here as it does through advance, whose `park` says why. */
   if (blocks.some((one) => one.kind === "park")) oweRelease(documentId, reference);
-  for (const one of blocks) sayPart(one.kind, rung);
 };
 
 const criteriaCount = (body) => {

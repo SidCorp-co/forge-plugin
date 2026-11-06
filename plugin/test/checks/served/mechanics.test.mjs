@@ -202,8 +202,8 @@ test("the walk reaches the served text, so a clean answer is a clean corpus and 
   assert.ok(found.length > 100, `${found.length} file(s) walked; the selector matches too little`);
   for (const rel of [
     "contract/default/01-the-issue-flow-contract.md",
-    "skills/issue-flow/default/guide/07-phase-3.md",
-    "skills/dispatch/default/guide/03-phase-1.md",
+    "skills/issue-flow/default/references/verification.md",
+    "skills/master/default/guide/01-master.md",
   ]) {
     assert.ok(found.some((one) => one.rel === rel), `${rel} is not reached`);
   }

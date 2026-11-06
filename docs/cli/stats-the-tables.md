@@ -9,8 +9,8 @@ refusals listing that shares that classifier: [`stats-rows.md`](stats-rows.md) a
 
 ## The phase table
 
-**The rows are the method's phases, as `forge guide issue-flow` numbers them, and that table is the
-only one.** Phase boundaries are read off the first call of each kind, because no run writes a phase into its own
+**The rows are the phases `forge resume` names as owed, numbered as it numbers them, and that table
+is the only one.** Phase boundaries are read off the first call of each kind, because no run writes a phase into its own
 transcript — and off the **class** the call already carries, so two readings of one call cannot
 disagree about what it was. A phase already passed cannot pull a run backwards, and
 the review does not open before the build has — the plan is consulted before it is written, and that

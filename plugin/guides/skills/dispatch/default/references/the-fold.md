@@ -47,7 +47,7 @@ and not one per member. On one side, the dispatcher's own minutes and calls. On 
 readings the executors did not have to repeat and the runs that were never spent because triage
 disposed of the issue first. Both halves go in the fold, including when the wave lost.
 
-Where the run-cost record can be read per phase, the wave's own opening cost goes in beside the
+Where the run-cost record can be read per step, the wave's own opening cost goes in beside the
 figure it is meant to be reducing. A skill that claims a saving it has not measured is the habit this
 one replaces.
 

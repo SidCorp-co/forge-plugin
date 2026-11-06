@@ -270,7 +270,7 @@ test("the lines say a phase is owed without a record, never that the phase is dr
   assert.match(lines[lines.indexOf(clarify[0]) + 1], /^ +without the plan field/u,
     "and the second is under it, indented past the phase rather than repeating it");
   assert.match(lines[0], /^issue-flow for ISS-9 — phase owed: 2 /u);
-  assert.match(lines.at(-1), /forge guide issue-flow <phase>/u, "a reader is left with the next call");
+  assert.match(lines.at(-1), /core's page: `forge guide issue-flow`/u, "a reader is left with the next call");
 });
 
 /* `LADDER` is the path, not the table: a status beside it read as completion owes work silently. */

@@ -30,6 +30,15 @@ where the defect comes from rather than where it showed.
   what prices fixing it. Filed as an issue of its own it reads as a request to build the workaround,
   which is the one outcome nobody wants.
 <!-- forge:end -->
+<!-- forge:when feedback.plugin bugs -->
+A defect is the only shape this project sends, so what a run met that is not one — a verb worth
+having, a step that reads wrong and held anyway — goes in the run's report and no further.
+<!-- forge:end -->
+<!-- forge:when feedback.plugin all -->
+What a run met that is not a defect goes the same way and as the shape it is: this project sends
+every shape, and one filed as a bug because that is the shape a defect takes is ranked as a bug for
+the rest of its life.
+<!-- forge:end -->
 
 ## What the gate asks
 
@@ -37,8 +46,9 @@ The conditions a record has to meet, the categories a skill edit is typed by, an
 through the refusal: `forge hooks --how learning-gate`. Where project knowledge goes and what an
 entry owes: `forge knowledge -h`, which names the values it classifies by too.
 
-**Type the gap where you met it, before deciding what it earns**: a phase with no branch for what
-happened, a reference that sent the run the wrong way, a rule that contradicted the tracker's own.
+**Type the gap where you met it, before deciding what it earns**: a step of the method with no
+branch for what happened, a section that sent the run the wrong way, a rule that contradicted the
+tracker's own.
 `forge record gap` has a kind for it, and for the run that met none.
 
 ## Where a skill learning lands
@@ -46,8 +56,9 @@ happened, a reference that sent the run the wrong way, a rule that contradicted 
 1. **Into the plugin's code**, wherever the wrong state has a shape: a command matching a pattern, a
    field absent, a file missing, an ordering violated. A check fires whether or not anyone remembered.
 2. **Into the skill's own text, in the place its category belongs**, never appended to a general
-   pile: a reference for its category, or the body only when a rule or a phase's shape changed. A
-   sentence in both is a correction waiting to be missed in one.
+   pile: the section for its category. A learning about the method itself is core's page's, and goes
+   to core as feedback rather than into a copy here. A sentence in two places is a correction
+   waiting to be missed in one.
 3. **Nowhere**, which is the most common answer.
 
 A rule that turns out to have been one project's convention is deleted, and the change says what
@@ -71,8 +82,8 @@ When a round records something, ask what it displaces.
 
 ## Changing the workflow itself
 
-A phase skipped three times is evidence about the phase. Record the pattern first and change the
-phase once it has recurred; a workflow rewritten from a single bad round is fitted to that round.
+A step skipped three times is evidence about the step. Record the pattern first and change the
+step once it has recurred; a workflow rewritten from a single bad round is fitted to that round.
 
 ## Where a rule goes, and why a hook is the last place
 

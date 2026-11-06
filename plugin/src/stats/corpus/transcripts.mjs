@@ -209,7 +209,7 @@ export const MARKERS = [
   /* The three ways a change reaches production, which is what a landing is: a command the project
      declares, a checkpoint another actor lands, and — where the release reaches production on its
      own and the project commands nothing — the record that verifies the change where it now runs,
-     which `ENDS_PHASE` already calls this phase's. Not the landing mark and not the `deploy` row:
+     which ends this phase. Not the landing mark and not the `deploy` row:
      where the merge sits before the judging both fall in phases 4 and 5, and either as a marker
      would take those phases' calls into this one (ISS-1975). */
   { phase: 7, classes: ["ship", READY_CLASS, "forge record verification"], landing: true },

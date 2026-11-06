@@ -11,12 +11,14 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("guides").path;
 const {
+  CORE_METHODS,
   GUIDE_TABLE,
   REVIEWED,
+  coreFirstFor,
   dispositionOf,
   heldSlugs,
   localGuide,
-  localRows,
+  localListing,
   localSlugs,
   reviewGuideTable,
   supersededSlugs,
@@ -49,13 +51,19 @@ test("a local guide is answered from this copy, and nothing else is", async () =
   const lines = answer({ part: "in_progress:plan" }).lines;
   assert.match(lines[0], /^### `in_progress:plan`/u, "and its part comes back as one body");
   assert.match(lines.at(-1), /^Flow \S+, which this project runs/u, "under the flow it was served for");
-  for (const slug of [...REVIEWED, "", "contracts", undefined]) {
+  for (const slug of [...REVIEWED.filter((one) => !CORE_METHODS.includes(one)), "", "contracts", undefined]) {
     assert.equal(localGuide(slug), null, `${slug} is the tracker's, and this copy holds no page of it`);
   }
+  for (const slug of CORE_METHODS) {
+    assert.equal(typeof localGuide(slug), "function", `${slug}'s sections are this copy's`);
+    assert.equal(coreFirstFor(slug), true, `and its whole page is core's, asked for first: ${slug}`);
+  }
+  assert.equal(coreFirstFor("contract"), false, "the contract has no page at core to ask for");
+  assert.equal(coreFirstFor("master"), false, "nor has the master's method");
   const { skillGuideSlugs } = await import("../../src/guides/skill-guides.mjs");
   assert.deepEqual(localSlugs(), ["contract", ...skillGuideSlugs()], "the contract, then every skill this copy serves");
   assert.ok(skillGuideSlugs().includes("issue-flow"), "the issue-flow method is served from this copy");
-  assert.equal(localRows().length, localSlugs().length, "a local guide the listing would not print is hidden");
+  assert.equal(localListing().length, localSlugs().length, "a local guide the listing would not print is hidden");
 });
 
 test("every disposition is one the verb acts on", () => {
@@ -64,7 +72,7 @@ test("every disposition is one the verb acts on", () => {
     assert.ok(row.why.length > 20, `${row.slug} says nothing about why`);
     assert.ok(Array.isArray(row.by), `${row.slug} names no replacement list`);
   }
-  assert.equal(supersededSlugs().size, 4, "four of the thirteen, which is what the reading found");
+  assert.equal(supersededSlugs().size, 1, "one of the sixteen, which is what the 2026-11-07 reading found");
   assert.equal(heldSlugs().size, GUIDE_TABLE.filter((row) => withholds(row)).length, "the rows that withhold");
 });
 
@@ -117,9 +125,11 @@ test("nothing resolves by default", () => {
    follow whole either, and ISS-85 hides it on the same reasoning. */
 test("a list still carrying a slug the table holds is a finding", () => {
   assert.deepEqual(review().leaked, [], "the projection is what the verb prints");
-  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 9, "and the raw list is what it must not");
-  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 9);
-  assert.equal(visibleGuides(REVIEWED).includes("memory-and-knowledge"), false, "the partly rows too");
+  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 3, "and the raw list is what it must not");
+  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 3);
+  assert.equal(visibleGuides(REVIEWED).includes("records-and-comments"), false, "the partly rows too");
+  assert.equal(visibleGuides(REVIEWED).includes("pipeline-and-issue-lifecycle"), true,
+    "while the lifecycle page core brought in line is served");
   assert.equal(visibleGuides(REVIEWED).includes("module-taxonomy-migration"), false,
     "and the page whose Pass 2 writes with no lease");
 });
@@ -164,10 +174,10 @@ test("a warning is answered where the page's frame opens and closes the line, an
 });
 
 test("--tracker's header says whose text follows and every rule the contract replaces", () => {
-  const header = trackerHeader(dispositionOf("pipeline-and-issue-lifecycle"));
+  const header = trackerHeader(dispositionOf("writing-an-issue"));
   assert.match(header[0], /the tracker's own guide/u);
-  assert.equal(header.length, 6, "the opening and one entry per replaced rule");
-  assert.match(header.join("\n"), /sessionContext/u, "named in the guide's own terms");
+  assert.equal(header.length, 2, "the opening and one entry per replaced rule");
+  assert.match(header.join("\n"), /six blocks chosen from three shapes/u, "named in the guide's own terms");
   assert.match(trackerHeader(null)[0], /no disposition/u, "and a guide with no row says so");
 });
 
@@ -178,8 +188,10 @@ test("--tracker's header says whose text follows and every rule the contract rep
 test("--tracker's first line tells a page the plugin stands behind from one it holds back", () => {
   const cleared = { slug: "x", disposition: "stands", why: "x".repeat(30), replaced: [], by: [] };
   assert.match(trackerHeader(cleared)[0], /stands behind it/u, "a cleared page reads as stood behind");
-  assert.match(trackerHeader(dispositionOf("pipeline-and-issue-lifecycle"))[0], /the tracker's own guide/u,
+  assert.match(trackerHeader(dispositionOf("writing-an-issue"))[0], /^This is the tracker's own guide\. The contract replaces/u,
     "and a held page reads as the tracker's, held back");
+  assert.match(trackerHeader(dispositionOf("pipeline-and-issue-lifecycle"))[0], /stands behind it/u,
+    "and the lifecycle page core brought in line reads as stood behind");
 });
 
 
@@ -190,6 +202,8 @@ const state = {
   answer: {
     forge_guide: (args) => {
       if (args.action === "list") return { guides: GUIDES };
+      if (args.slug === "qa") return { refused: "the tracker fell over for this case" };
+      if (args.slug === "dispatch") return { http: 404 };
       if (!REVIEWED.includes(args.slug)) return { refused: `No guide named ${args.slug}` };
       return { guide: { body: BODY } };
     },
@@ -223,12 +237,15 @@ test("the listing carries the four the plugin stands behind, under the contract 
 
 /* Exactly as an unknown slug, which is the rule: an answer that says the slug exists elsewhere is
    what makes an agent go and read it. Both dispositions, since both hide the same way now. */
-for (const slug of ["what-is-an-issue", "memory-and-knowledge", "module-taxonomy-migration"]) {
+for (const slug of ["writing-an-issue", "records-and-comments", "module-taxonomy-migration"]) {
   test(`a held slug is refused as the tracker's unknown, without asking for it: ${slug}`, async () => {
     const run = await asked(slug);
     const unknown = await asked("no-such-guide-here");
     assert.equal(run.status, 1, run.stdout);
-    assert.equal(run.stderr, unknown.stderr.replace("no-such-guide-here", slug), run.stderr);
+    const opening = (said, typed) => said.replace(typed, "<slug>").split(". ")[0];
+    assert.equal(opening(run.stderr, slug), opening(unknown.stderr, "no-such-guide-here"), run.stderr);
+    const offered = run.stderr.split("Did you mean:")[1] ?? "";
+    for (const held of heldSlugs()) assert.equal(offered.includes(held), false, `${held} is offered: ${run.stderr}`);
     assert.equal(run.stdout, "", "and nothing on stdout");
     assert.doesNotMatch(run.stderr, /supersede|kept as the tracker's|--tracker/u, "no trace of the row");
     assert.deepEqual(run.guideCalls.filter((one) => one.args.action === "get"), [], "no get for a body it hides");
@@ -242,7 +259,7 @@ test("--tracker on the module migration names Pass 2's lease-less write and the 
   const header = trackerHeader(dispositionOf("module-taxonomy-migration"));
   assert.match(header[0], /The contract replaces 1 of its rules, and instead run `forge issue`:$/u, header[0]);
   assert.equal(header.length, 2, "the opening and the one replaced rule");
-  assert.match(header[1], /it says Pass 2 attributes an issue by sending `forge_issues\.update` its whole `labels` set over MCP or REST, a write that takes no lease/u);
+  assert.match(header[1], /it says Pass 2 attributes an issue by sending `PATCH \/api\/issues\/:id` its whole `labels` set, a write that takes no lease/u);
   assert.match(header[1], /instead `forge issue <ref> --set module=<name> --why <w>`/u);
   assert.match(header[1], /refused while another run's live lease holds the issue/u);
   assert.match(header[1], /keeps every\s+other label the issue carries/u);
@@ -250,17 +267,24 @@ test("--tracker on the module migration names Pass 2's lease-less write and the 
 });
 
 test("--tracker prints the body, under the header that says what it replaces", async () => {
-  const run = await asked("what-is-an-issue", "--tracker");
+  const run = await asked("writing-an-issue", "--tracker");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /the tracker's own guide/u);
   assert.ok(run.stdout.includes(BODY), run.stdout);
   assert.equal(run.guideCalls.length, 1, "one get, and no list behind it");
 });
 
-test("a guide with no row prints what the tracker returned and nothing else", async () => {
+test("a guide with no row prints what the tracker returned under a first line saying whose it is", async () => {
   const run = await asked("deploy-safety");
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(run.stdout.trim(), BODY, run.stdout);
+  assert.equal(run.stdout.trim(), `${trackerHeader(null)[0]}\n\n${BODY}`, run.stdout);
+});
+
+test("a page core brought in line is served under the line saying this plugin stands behind it", async () => {
+  const run = await asked("pipeline-and-issue-lifecycle");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^This is the tracker's own guide and this plugin stands behind it/u, run.stdout);
+  assert.ok(run.stdout.includes(BODY), run.stdout);
 });
 
 /* A suggestion is output too, so a typo of a held slug must not name it — the `partly` rows are the
@@ -268,7 +292,7 @@ test("a guide with no row prints what the tracker returned and nothing else", as
    suppression was actually asked about: a typo that has stopped ranking against anything held would
    run the loop over an answer the verb never had to withhold, and pass. */
 test("a near miss is offered from the guides that stand", async () => {
-  for (const typo of ["pipeline-and-issue-lifecycl", "memory-and-knowledg", "issue-dependencie"]) {
+  for (const typo of ["writing-an-issu", "records-and-comment", "module-taxonomy-migratio"]) {
     assert.ok(suggest(typo, REVIEWED).some((slug) => heldSlugs().has(slug)), `${typo} misses nothing held`);
     const run = await asked(typo);
     assert.equal(run.status, 1);
@@ -326,4 +350,63 @@ test("a second positional and a bare --tracker are refused, never dropped", asyn
   assert.equal(bare.status, 1);
   assert.match(bare.stderr, /--tracker names no guide/u);
   assert.deepEqual(bare.guideCalls, [], "and it does not fall back to the listing");
+});
+
+/* The method moved to core, so the whole page is core's and this copy's text is its sections: a core
+   deploy reaches every session on its next read, and a tracker that does not answer still leaves
+   the sections readable, said to be a fallback (ISS-69). */
+test("a skill whose method is core's prints core's page under a line naming it, and its sections at the foot", async () => {
+  const run = await asked("issue-flow");
+  assert.equal(run.status, 0, run.stderr);
+  const [first, blank, ...rest] = run.stdout.split("\n");
+  assert.match(first, /^This is core's served guide `issue-flow`, read from the tracker now; the sections listed at its foot are this plugin's CLI mechanics/u);
+  assert.equal(blank, "");
+  assert.ok(rest.join("\n").startsWith(BODY), run.stdout);
+  assert.match(run.stdout, /References, each `forge guide issue-flow <reference>`:\n {2}landing /u, "the sections stay listed");
+  assert.deepEqual(run.guideCalls.map((one) => one.args), [{ action: "get", slug: "issue-flow" }], "one get, and no list");
+});
+
+test("a section of such a skill is this copy's own and costs no call", async () => {
+  const run = await asked("issue-flow", "verbs");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^# The verb for each act of core's method/u);
+  assert.deepEqual(run.guideCalls, [], "nothing asked of the tracker for a section it does not serve");
+  const tracked = await asked("issue-flow", "verbs", "--tracker");
+  assert.equal(tracked.status, 1);
+  assert.match(tracked.stderr, /`verbs` is a section of issue-flow this plugin holds, and the tracker serves none/u);
+});
+
+test("a tracker that does not answer leaves the bundled sections, said to be a fallback that may be stale", async () => {
+  const run = await asked("qa");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout.split("\n")[0],
+    /^Core's guide `qa` did not answer \(.*the tracker fell over for this case\), so what follows is the copy bundled with this plugin: a fallback, and it may be stale\.$/u);
+  assert.match(run.stdout, /References, each `forge guide qa <reference>`:\n {2}judging /u);
+  const strict = await asked("qa", "--tracker");
+  assert.equal(strict.status, 1, "--tracker asks for core's page and takes no fallback");
+  assert.match(strict.stderr, /core's guide `qa` did not answer/u);
+});
+
+test("a skill core serves no page of is answered from this copy with no fallback line", async () => {
+  const run = await asked("dispatch");
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /fallback|core's served guide/u, run.stdout);
+  assert.match(run.stdout, /References, each `forge guide dispatch <reference>`:/u);
+});
+
+test("a skill whose method is this copy's own is never asked of the tracker", async () => {
+  const run = await asked("master");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^# Master: /u);
+  assert.deepEqual(run.guideCalls, [], "the master's method has no page at core");
+  const tracked = await asked("master", "--tracker");
+  assert.equal(tracked.status, 1);
+  assert.match(tracked.stderr, /--tracker does not apply to master, which is this plugin's own/u);
+});
+
+test("the listing names core's summary on the skill whose method is core's, and lists it once", async () => {
+  const run = await asked();
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /\nissue-flow\n {2}core's: what issue-flow is about\n {2}`forge guide issue-flow` prints core's page/u);
+  assert.equal(run.stdout.split("\n").filter((one) => one === "issue-flow").length, 1, run.stdout);
 });

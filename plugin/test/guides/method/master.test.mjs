@@ -12,7 +12,7 @@ const { DEFAULT, SCREEN, servedFor } = await import("../../../src/guides/flow.mj
 const { skillGuideAnswer, skillGuideSlugs } = await import("../../../src/guides/skill-guides.mjs");
 const { roundLines } = await import("../../../src/guides/rounds.mjs");
 const { VERB_NAMES } = await import("../../../src/resolve/visibility.mjs");
-const { localRows, localSlugs } = await import("../../../src/guides/guides.mjs");
+const { localListing, localSlugs } = await import("../../../src/guides/guides.mjs");
 const { SAYS } = await import("../../../src/stats/stats.mjs");
 const { SUBJECT_SLUGS } = await import("../../../src/tools/services/doctor/subjects.mjs");
 
@@ -117,7 +117,7 @@ test("criterion 13: the caveat on forge stats waves is said", () => {
 /* The bare verb reads the tracker's own pages beside these, so the half this copy answers is read directly. */
 test("criterion 14: the bare listing offers the master page", () => {
   assert.ok(localSlugs().includes("master"), "the listing leaves the page out");
-  assert.ok(localRows().some((row) => row.startsWith("master\n  ")), "and prints no row for it");
+  assert.ok(localListing().some(({ row }) => row.startsWith("master\n  ")), "and prints no row for it");
 });
 
 test("criterion 15: every command the page routes to is served, down to the subject", () => {

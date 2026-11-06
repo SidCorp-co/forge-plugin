@@ -15,13 +15,13 @@ notice says a process ended, and a log with no verdict in it cannot tell a check
 one that died at a step or one that never started. Where a check writes no verdict, its log is read
 once the notice arrives and never before.
 
-**The checks that answer in seconds are spent before a landing is armed, and the file set is put
-beside the review's after them.** A fault the landing is the first thing to meet is paid for at the
-landing's price and paid again at that price after the fix, where the changed file's own suite and
-the cheap checkers standing in the tree would have answered while the run was still editing. So
-those go first; then put the paths this change touched beside the file list the review read — `git
-diff --name-only <base>...HEAD` — and settle any difference before the arming rather than leaving it
-for the landing to find, because a review earned over one file set is not a review of another.
+**The checks that answer in seconds are spent before a landing is armed.** A fault the landing is
+the first thing to meet is paid for at the landing's price and paid again at that price after the
+fix, where the changed file's own suite and the cheap checkers standing in the tree would have
+answered while the run was still editing. So those go first. Where the project asks for a review,
+put the paths this change touched beside the file list the review read — `git diff --name-only
+<base>...HEAD` — and settle any difference before the arming, because a review earned over one file
+set is not a review of another.
 
 ## A measurement does not race what it reads
 
@@ -79,12 +79,13 @@ it is measuring.
 said.** A library has no deployment; a CLI has no screen. Silence about a skipped step
 reads as a step that passed.
 
-## One run of the evidence, at the head Phase 4's last two steps left
+## One run of the evidence, at the head that lands
 
 The evidence is the change's own — the suites of the files it touched and the cases each criterion
 names, never the whole gate — run once at that head and attached once. A suite re-run per criterion proves nothing the first
-run did not. The verdicts go up together, all criteria in a single record (`forge record verdict -h`),
-and the suite runs again only for a criterion whose evidence is its own.
+run did not. Where the project asks for verdicts, they go up together, every criterion a block of one
+write (`forge record verdict -h`), and the suite runs again only for a criterion whose evidence is its
+own.
 
 ## What each kind of change owes as evidence
 
@@ -101,8 +102,8 @@ and the suite runs again only for a criterion whose evidence is its own.
 
 ## When no login reaches the rendered state
 
-Phase 0 read the credential line and Phase 2 asked; the answer has not come, or there is none to
-give. The run is not stopped and the issue is not parked for it — a missing credential is a
+The project's credential line was read before building (`forge doctor project`) and a person was
+asked where it held none; the answer has not come, or there is none to give. The run is not stopped and the issue is not parked for it — a missing credential is a
 qualification on the record, not a reason to set the work down.
 
 What still stands. The deployed build, identified by the routes it answers and the version it

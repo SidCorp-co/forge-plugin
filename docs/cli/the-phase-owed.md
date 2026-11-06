@@ -55,7 +55,7 @@ refuses on. A review of any other commit — the release a records turn reads, a
 handed back — ends nothing here, and a builder's turn keeps the whole cell, since the builder owes a
 head or a reading there.
 
-`--for` is the only part of a guide's answer that is not on this disk. So it is answered where the
-tracker is already reached and not by the guide registry, which stays offline: asking for a slug's
-text still costs no call at all, and the cut costs the issue and its comments — the same reads
+`--for` is not on this disk, like the whole page of a skill whose method is core's. So it is answered
+where the tracker is already reached and not by the guide registry: asking for a section still costs
+no call at all, and the cut costs the issue and its comments — the same reads
 `forge resume` already makes, which is why it is assembled there rather than twice.

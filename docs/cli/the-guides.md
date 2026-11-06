@@ -1,13 +1,11 @@
-# The guides are the tracker's, and ten of them are not this flow's
+# The guides are the tracker's, and this copy holds back only what its own verbs refuse
 
-Read guide by guide — twelve on 2026-09-04 and the fifteen served on 2026-09-21 — five
-state a rule this plugin's contract has replaced whole, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
-`dropped` for anything discarded, and three paragraphs later, the recommended discard for non-work is
-`closed` plus `unmark`. None of it is the tracker's fault — those pages describe the pipeline runner
-it ships. The cost is what a passthrough did to agents in another project the same week: one wrote a
-body to `writing-an-issue`'s six blocks and the filing lint refused it heading by heading, and the
-same agent paid four calls taking non-work down the `closed`-plus-`unmark` route. An agent reads the
-guides on its first call of a run, and two contracts at that moment cost a round every time.
+A guide the tracker serves is read through this plugin before it reaches an agent, because two
+contracts at the first read of a run cost a round every time: a body written to `writing-an-issue`'s
+six blocks is refused heading by heading by the filing lint. Core's guides were brought in line with
+the owner's 2026-11-07 overhaul, and the reading taken that day found one page still contradicting
+this CLI's own mechanics whole, `writing-an-issue`, and two in part, `records-and-comments` and
+`module-taxonomy-migration`. Every other page stands, `pipeline-and-issue-lifecycle` among them.
 
 So the verb reads them through a disposition of its own, one row per guide in
 `plugin/src/guides/guides.mjs`: a slug, why, the rules replaced in the guide's own words beside
@@ -15,17 +13,12 @@ what holds instead, and where to go — a verb this CLI has, or a file the insta
 code and not a project setting because it is this plugin's reading of the tracker, and a
 contradiction is not a thing a project can rightly turn back on.
 
-**A row is the read, and the disposition is what withholds the guide.** `memory-and-knowledge` and
-`issue-dependencies` are the tracker's in one part and the runner's in the other, and for two
-releases the verb served them whole under a first line withdrawing the part that does not apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
-follow whole, so neither is listed, and `answering-as-the-assistant` and `records-and-comments` are
-the same shape read later, as is `module-taxonomy-migration`, whose Pass 2 alone writes with no
-lease. `stands` is the third word, and it withholds nothing: a read that found no
-rule for the contract to replace has to land somewhere, or a page nobody has judged and a page judged
-sound sit in the table identically, and the clause behind that verdict has no other home. Absence of a
-row is not the unread state — what `forge doctor` notes is a slug the list beside the table does not
-name, and four pages read on 2026-09-04 are on that list carrying no row, which is the clause ISS-2069
-owes. `superseded` still means itself
+**A row is the read, and the disposition is what withholds the guide.** A page part of which this
+CLI refuses is not one an agent can follow whole, so a `partly` row withholds it as a `superseded` one
+does. `stands` is the third word, and it withholds nothing: a read that found no rule to replace has to
+land somewhere, or a page nobody has judged and a page judged sound sit in the table identically, and
+the clause behind that verdict has no other home. Absence of a row is not the unread state — what
+`forge doctor` notes is a slug the list beside the table does not name. `superseded` still means itself
 exactly, because the overlap measure in [doctor](doctor.md) asks whether a
 project's own file restates a guide's authority, not whether this verb serves the page. What a
 maintainer's read prints is decided by the rules the row enumerates and by whether it withholds.
@@ -33,8 +26,7 @@ maintainer's read prints is decided by the rules the row enumerates and by wheth
 Nothing the CLI volunteers names a withheld guide — not the listing, not a count of what it left
 out, not a near miss, not `-h`. Asking for one by slug echoes the slug the caller typed and answers
 in the words a slug the tracker never served gets, from the same line of code, so the answer carries
-no evidence that the guide is anywhere. ISS-66 hid the five and left four traces; the rule that took
-them out is the user's, 2026-09-04, and [*Withholding a verb*](withholding-a-verb.md) states it once for the whole CLI.
+no evidence that the guide is anywhere. The rule that took the traces out is the user's, 2026-09-04, and [*Withholding a verb*](withholding-a-verb.md) states it once for the whole CLI.
 
 A maintainer reviewing the table still has to read what it hides, and that read belongs under
 `forge doctor`, which is the surface for everything this copy or this credential cannot use. It is
@@ -52,7 +44,7 @@ decompose half had moved to what the contract says, and its new closing paragrap
 so a row carried over would have replaced a rule the page no longer states and served one it now
 does.
 
-The list of fifteen beside the table is not a copy of names the server publishes in the sense the rule
+The list beside the table is not a copy of names the server publishes in the sense the rule
 in [what the projections leave out](the-projections.md) forbids: nothing answers a guide from it, its whole purpose is to differ from the live list
 when the tracker moves, and a row this record lacks fails the suite, so the change that notices a
 retirement is the change that answers it — by dropping the row, or by earning it again on the page
@@ -74,10 +66,19 @@ saying only that a copy arrived incomplete, which is the finding rather than the
 The overlap measure has the same premise the verb just abandoned — the guide is the authority, the
 project's own file the copy — so it no longer scores a superseded guide. It would otherwise ask a
 developer to delete their line and defer to the rule the CLI stopped serving. An `overrides:` marker
-still resolves against all fifteen: a waiver names a guide, and which of them this plugin stands
+still resolves against every guide the tracker serves: a waiver names a guide, and which of them this plugin stands
 behind is not the waiver's business.
 
 ## The skills' own text is served the same way
+
+**A skill whose method moved to core is served core's page first.** `issue-flow`, `dispatch` and `qa`
+are core's served guides, and a copy bundled here is the one a core deploy never reaches. So
+`forge guide <skill>` reads core's page and says so in its first line; this copy keeps only what core's
+REST page cannot carry, the `forge` verb each act takes, as sections at the page's foot. Where the
+tracker does not answer, the bundled sections are printed under a line calling them a stale
+fallback: a reader offline still needs the verbs, and must not take them for the method.
+Which skills those are is a list in code, not a probe: a probe pays a call on every read, and offline
+it cannot tell `master` from `issue-flow`.
 
 A skill's text is placed by how often a reading needs it, and README states the rule. What every
 invocation needs is inline in `SKILL.md`; what a run of a long method needs once is the body

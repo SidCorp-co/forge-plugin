@@ -242,11 +242,11 @@ text the session it is in is holding.
 - **AC-01-4-33** · Rev: 1 · Proof: plugin/test/cli/doctor/machine/skills.test.mjs "a job naming a skill this copy does not ship is refused before anything is written"
   IF a declared job names a method this copy does not ship THEN the CLI SHALL refuse to turn that job
   on and SHALL write neither the verbs it withholds nor the methods.
-- **AC-01-4-34** · Rev: 1 · Proof: plugin/test/cli/doctor/machine/skills.test.mjs "a withheld skill is unlisted, refused by name, and its phase part is served all the same"
+- **AC-01-4-34** · Rev: 1 · Proof: plugin/test/cli/doctor/machine/skills.test.mjs "a withheld skill is unlisted and refused by name"
   WHERE this machine withholds a method, the listing of this product's own guides SHALL leave it out
   and asking for it by name SHALL be refused in a line naming the method, the state it is in and the
   command that offers it again.
-- **AC-01-4-35** · Rev: 1 · Proof: plugin/test/cli/doctor/machine/skills.test.mjs "a withheld skill is unlisted, refused by name, and its phase part is served all the same"
+- **AC-01-4-35** · Rev: 1 · Status: retired (ISS-69)
   WHERE this machine withholds a method a verb that acts prints part of, that verb SHALL go on
   printing it.
 - **AC-01-4-36** · Rev: 1 · Proof: plugin/test/cli/doctor/machine/skills.test.mjs "the report names every shipped skill under its state, and which withheld one it offers nowhere"

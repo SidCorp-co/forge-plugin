@@ -114,6 +114,9 @@ const referenceLines = (slug, dir, rung) => {
     `  ${one.padEnd(width)}  ${String(sizeOf(join(dir, REFERENCES, `${one}.md`))).padStart(6)}`)];
 };
 
+export const sectionLines = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
+  referenceLines(slug, skillFlowDir(slug, root, flow), null);
+
 const read = (path) => readFileSync(path, "utf8").replace(/\s+$/u, "");
 
 const served = (slug, text, tail, rung) => {
@@ -126,8 +129,11 @@ const served = (slug, text, tail, rung) => {
  *  phase of the method, or a refusal. Every answer ends by naming the flow it was rendered for. */
 export const skillGuideAnswer = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) => ({ part = null, tracker = false, extra = [], rung = null } = {}) => {
   if (tracker) {
-    return { refusal: `--tracker does not apply to ${slug}, which is this plugin's own, not the tracker's.`
-      + ` \`forge guide ${slug}\` prints it.` };
+    return { refusal: part
+      ? `\`${part}\` is a section of ${slug} this plugin holds, and the tracker serves none:`
+        + ` \`forge guide ${slug} ${part}\` prints it.`
+      : `--tracker does not apply to ${slug}, which is this plugin's own, not the tracker's.`
+        + ` \`forge guide ${slug}\` prints it.` };
   }
   if (extra.length) {
     return { refusal: `${slug} takes one reference, not \`${[part, ...extra].join(" ")}\`.`

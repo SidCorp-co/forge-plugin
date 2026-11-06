@@ -1,9 +1,7 @@
-/* This plugin's disposition of the tracker's own guides. The tracker serves the lifecycle rules of
-   its pipeline runner, and no session under this plugin is that runner: five of the fifteen state a
-   rule the contract has replaced, five more state one in part, and one it stands behind, so a
-   passthrough hands every agent two contracts on its first read. The disposition is code and not configuration because it is this plugin's reading of the
-   tracker, and a project cannot rightly turn a contradiction back on. docs/cli/the-guides.md
-   carries what the stale rules cost; `forge guide contract` prints what holds instead. */
+/* This plugin's disposition of the tracker's own guides: a page is served unless a rule of it is one
+   this CLI's own mechanics refuse, and then the row names that rule and what holds instead. The
+   disposition is code and not configuration because it is this plugin's reading of the tracker.
+   docs/cli/the-guides.md carries what a stale rule costs. */
 
 import { once } from "../resolve/config.mjs";
 import { skillWithheld } from "../resolve/visibility.mjs";
@@ -19,16 +17,18 @@ const LOCAL = once(() => [
 ]);
 const offered = () => LOCAL().filter((one) => !skillWithheld(one.slug));
 export const localSlugs = () => offered().map((one) => one.slug);
-export const localRows = () => offered().map((one) => one.row);
+export const localListing = () => offered().map(({ slug, row }) => ({ slug, row }));
 export const localGuide = (slug) => LOCAL().find((one) => one.slug === slug)?.answer ?? null;
+export const CORE_METHODS = ["issue-flow", "dispatch", "qa"];
+export const coreFirstFor = (slug) => CORE_METHODS.includes(slug) && localGuide(slug) !== null;
 
 /* A row is the read, and the disposition decides whether the page is served: neither a page the
    contract replaced nor a page part of which is the runner's is one an agent can follow whole, and
    naming a stale guide is how an agent comes to weigh two sources. A page the read cleared is served
    under a row saying so — `stands`, which withholds nothing — because a read that found nothing to
    replace and a read nobody made must not leave the table in the same state, and the clause behind
-   the verdict has nowhere else to live. Which slug has been read is `REVIEWED` and never this table:
-   four pages on that list carry no row, and ISS-2069 owes each of them its clause.
+   the verdict has nowhere else to live. Which slug has been read is `REVIEWED` and never this table,
+   and a page on that list may carry no row.
 
    `supersededSlugs`, which `forge doctor` alone calls, keeps meaning `superseded` exactly, because
    the overlap measure asks whether a project's own file restates a guide's authority — a different
@@ -37,34 +37,11 @@ export const localGuide = (slug) => LOCAL().find((one) => one.slug === slug)?.an
 export const GUIDE_TABLE = [
   {
     slug: "pipeline-and-issue-lifecycle",
-    disposition: "superseded",
-    why: "it is the tracker's own pipeline runner, whose steps set the statuses this contract earns",
-    replaced: [
-      {
-        says: "any status may move to any status, and the ladder is a happy path rather than a constraint",
-        instead: "every status is earned by the payload the contract names, and `forge advance` refuses a jump",
-      },
-      {
-        says: "`in_progress:test` is set by hand with `sessionContext.branch`, to enter at the review gate",
-        instead: "`in_progress:test` is earned by an approving review of the head that landed and by the merged"
-          + " mark, and `sessionContext` is the lease this CLI writes",
-      },
-      {
-        says: "`reopen` is a bounce for a regression or a failed check",
-        instead: "a regression is a new issue, and `reopen` is a person's word that owes their finding"
-          + " and a triage of it before anything falls",
-      },
-      {
-        says: "`plan` and `acceptanceCriteria` are written by the clarify and plan steps",
-        instead: "the agent writes both at `approved`, through `forge record plan` and `forge record criteria`",
-      },
-      {
-        says: "the recommended discard for non-work is `closed` plus `unmark`, a paragraph after the"
-          + " one saying `dropped` is for anything discarded",
-        instead: "nothing landing earns `dropped`, which stamps no mark and needs no undo",
-      },
-    ],
-    by: ["forge guide contract", "forge advance --owed"],
+    disposition: "stands",
+    why: "its statuses, guards and parks are the ones `forge advance` moves through, and a failed"
+      + " check going to `reopen` is what `forge advance --reopen` sends",
+    replaced: [],
+    by: [],
   },
   {
     slug: "writing-an-issue",
@@ -74,122 +51,51 @@ export const GUIDE_TABLE = [
       {
         says: "six blocks chosen from three shapes: an opening blockquote, a who-it-hurts table, one"
           + " diagram, what-to-do, decisions, evidence",
-        instead: "an outcome, a rule or an invariant, and an out-of-scope, matched by heading, which is"
-          + " what `forge new` reads a body against and what the tracker's own `forge_issues`"
-          + " description asks a description to be",
+        instead: "the sections `forge new -h` names for the filing's category, matched by heading,"
+          + " which is what `forge new` reads a body against and refuses a filing without",
       },
     ],
     by: ["forge new", "forge hooks --how issue-shape"],
   },
   {
     slug: "what-is-an-issue",
-    disposition: "superseded",
-    why: "its routing forbids the filing this flow runs on, and closes what nothing landed for",
-    replaced: [
-      {
-        says: "filing a new issue is never the route for a residual",
-        instead: "a defect found while building is a new issue, related or blocking, and"
-          + " `forge comment` posts a finding on an issue already open, renewing no lease that is not yours",
-      },
-      {
-        says: "non-work leaves by `closed` plus `unmark`",
-        instead: "nothing landing earns `dropped`, which is reachable only before `in_progress:test` and stamps"
-          + " no mark, so `closed` stays what code that landed earns",
-      },
-    ],
-    by: ["forge new", "forge guide contract"],
+    disposition: "stands",
+    why: "the four gates, the two lanes, residuals given an owner and non-work leaving by `dropped`"
+      + " are how this CLI files and drops",
+    replaced: [],
+    by: [],
   },
   {
     slug: "agent-setup",
-    disposition: "superseded",
-    why: "it orients an agent inside the runner, in verbs and stages this CLI does not have",
-    replaced: [
-      {
-        says: "recall first, through `forge_memory_search`",
-        instead: "no verb here calls it, and what a run is owed is on the issue's own record, which"
-          + " `forge resume` re-mints",
-      },
-      {
-        says: "`draft` versus `open` decides whether a runner slot is burned",
-        instead: "nothing here dispatches: an issue is worked by the run that takes its lease",
-      },
-      {
-        says: "`plan-by-hand` is a red flag, because a staged project's clarify step or an autonomous"
-          + " driver's planning phase writes those fields",
-        instead: "the agent writes them itself, at `approved`, and a status with no payload is unearned",
-      },
-    ],
-    by: ["forge resume", "forge guide contract"],
+    disposition: "stands",
+    why: "recall first, `draft` against `open` and the routes for each kind of write hold for a run"
+      + " under this plugin too",
+    replaced: [],
+    by: [],
   },
   {
     slug: "memory-and-knowledge",
-    disposition: "partly",
-    why: "memory, knowledge and projectFacts are the tracker's own three and stand; of the verbs its recall discipline names, one is wrapped here and two are served by no route",
-    replaced: [
-      {
-        says: "recall, write and confirm through `forge_memory.search`, `forge_memory.write` and"
-          + " `forge_memory.feedback`",
-        instead: "recall is `forge knowledge search`, which reads that route; the declared table serves"
-          + " no route for the write or the confirmation, so neither is reachable from here, and what"
-          + " one run owes the next is on the issue's record rather than in memory",
-      },
-    ],
-    by: ["forge knowledge search", "forge resume"],
+    disposition: "stands",
+    why: "memory, knowledge and the verify-at-recall loop are named by their REST routes, which a run"
+      + " reaches as it reaches any other",
+    replaced: [],
+    by: [],
   },
   {
     slug: "issue-dependencies",
-    disposition: "partly",
-    why: "the relation kinds and the merged_at signal are the tracker's and stand; the runner's half"
-      + " is what it says about filing — a note at `draft` rather than `open`, and an edge set in a"
-      + " second call as a race",
-    replaced: [
-      {
-        says: "a note is created at `draft` and never at `open`, because `open` auto-triages and"
-          + " spawns a pipeline run, burning a runner slot",
-        instead: "`draft` is the reporter's status before `open` and `advance` never enters it;"
-          + " nothing here dispatches, so `open` costs no slot, and what would have been that note"
-          + " is a finding on an issue already open through `forge comment`",
-      },
-      {
-        says: "filing the issue and setting its blocks edge in a second call is a red flag, because"
-          + " it can dispatch in the gap between the two",
-        instead: "nothing here dispatches, so the gap holds nothing back; `--with` on the filing"
-          + " writes a `relates` edge and never a `blocks` one, and a `blocks` edge is set by a write"
-          + " not every credential carries, which `forge doctor` reports",
-      },
-    ],
-    by: ["forge new"],
+    disposition: "stands",
+    why: "the relation kinds, what releases a `blocks` edge and the create-then-block race hold,"
+      + " a master dispatching from `open`",
+    replaced: [],
+    by: [],
   },
   {
     slug: "answering-as-the-assistant",
-    disposition: "partly",
-    why: "investigating before answering, and owning a request rather than handing it back, are this"
-      + " flow's too; the tracker section under them is the assistant's at a chat door, and four of its"
-      + " rules are ones an agent here would follow into an unearned status or a refused filing",
-    replaced: [
-      {
-        says: "a filing always enters at `draft`, and a person moves it on later",
-        instead: "`forge new` files at `open`, and `draft` is the reporter's status before that, so"
-          + " nothing here waits on a person to start work it has just filed",
-      },
-      {
-        says: "an issue waiting on more information is at `needs_info`",
-        instead: "a run waiting on a person parks, the park's kind saying who it waits on, and the"
-          + " status stays where its record left it",
-      },
-      {
-        says: "a title is the kind and the affected feature, as `[Bug] <what is wrong>`",
-        instead: "a title is what is true once the issue is fixed, one line, which is what `forge new`"
-          + " asks a filing for",
-      },
-      {
-        says: "`-h` is for a form the tool's own description does not carry, and costs a round-trip"
-          + " nothing else pays",
-        instead: "the verb is the document: `forge -h` and then the verb's own `-h` are where any write"
-          + " here is looked up, and a guessed flag pays the refusal instead",
-      },
-    ],
-    by: ["forge new", "forge record"],
+    disposition: "stands",
+    why: "investigating before answering, owning a request and routing a report or a wish to Feedback"
+      + " are this flow's too, and none of its rules is one this CLI refuses",
+    replaced: [],
+    by: [],
   },
   {
     slug: "records-and-comments",
@@ -197,12 +103,6 @@ export const GUIDE_TABLE = [
     why: "an attachment for a log, the knowledge store for the project's prose and a transition that"
       + " writes rather than narrates are the tracker's own and stand; what it rules about a run's own"
       + " records is written against a store this flow does not write to",
-    /* The tracker hangs one warning on every write that carries a record, and that one sentence
-       asserts both rules below, so it is held here and not on a rule: no rule of it owns the
-       sentence alone. The frame and not the sentence, because the sentence is not one — measured
-       2026-09-21, a `confirmation` is told no store holds it and a `verdict` is told which route
-       its store is, each between these same two clauses. Naming the sentences instead would answer
-       the kinds a run happened to meet and leave the rest warning, which is the defect again. */
     warns: {
       opens: "a `forge-record` fence is not comment content",
       closes: "The store each kind belongs in: guide `records-and-comments`",
@@ -214,10 +114,10 @@ export const GUIDE_TABLE = [
           + " `forge advance` reads a status off",
       },
       {
-        says: "a decision, a correction, a park and a merged mark belong at the issue's"
-          + " attributes route under a registered key, the sentence left behind in the comment",
-        instead: "each of those four is a kind `forge record` writes whole in one typed comment, and an"
-          + " assertion split off into a second row earns no status here",
+        says: "a run's own record — a review, a decision, a baseline, a correction, a finding — goes"
+          + " to the issue's events route as a typed record event",
+        instead: "each of those is a kind `forge record` writes whole in one typed comment, and a"
+          + " record sent to another store earns no status here",
       },
     ],
     by: ["forge record", "forge advance"],
@@ -231,8 +131,8 @@ export const GUIDE_TABLE = [
       + " project, so a run holding one of them loses its label change with nothing refused",
     replaced: [
       {
-        says: "Pass 2 attributes an issue by sending `forge_issues.update` its whole `labels` set over"
-          + " MCP or REST, a write that takes no lease",
+        says: "Pass 2 attributes an issue by sending `PATCH /api/issues/:id` its whole `labels` set,"
+          + " a write that takes no lease",
         instead: "`forge issue <ref> --set module=<name> --why <w>` sends that set under this run's own"
           + " lease, so it is refused while another run's live lease holds the issue, and it keeps every"
           + " other label the issue carries",
@@ -246,18 +146,21 @@ export const GUIDE_TABLE = [
    a record for comparing, never a list this CLI answers a guide from: `forge doctor` reads the live
    list and reports where the two have diverged, and the test refuses a table row this record lacks,
    so a guide the tracker retires takes its row out in the same change that notices. */
-export const REVIEWED_AT = "2026-09-21";
+export const REVIEWED_AT = "2026-11-07";
 export const REVIEWED = [
   "agent-setup",
   "answering-as-the-assistant",
   "attachments-and-uploads",
   "conformance-and-verify",
   "deploy-safety",
+  "dispatch",
   "issue-dependencies",
+  "issue-flow",
   "memory-and-knowledge",
   "module-taxonomy-migration",
   "pipeline-and-issue-lifecycle",
   "project-settings-and-test-credentials",
+  "qa",
   "records-and-comments",
   "what-is-an-issue",
   "writing-an-issue",

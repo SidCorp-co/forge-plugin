@@ -7,7 +7,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { fakeTracker, flat, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { flat, projectRoom, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("qa-flow").path;
 const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
@@ -36,86 +36,7 @@ const served = (flow, ...argv) => {
   return flat(run.stdout);
 };
 
-/* The bare listing reaches for the tracker's own guides beside this copy's, so that one case needs
-   an endpoint where every other here needs only the directory. */
-const tracker = await fakeTracker({ answer: { forge_guide: () => ({ guides: [] }) } });
-test.after(() => tracker.close());
-
-const method = (flow) => served(flow, "guide", "qa");
 const judging = (flow) => served(flow, "guide", "qa", "judging");
-
-test("the skill is listed, and its method is phased under either flow", async () => {
-  const home = tracker.env.XDG_CONFIG_HOME;
-  const dir = projectRoom(tempRoom("qa-listing-"), home, { slug: "qa-fixture" });
-  const listed = await ranAsync(FORGE, ["guide"], { ...tracker.env, HOME: home }, dir);
-  assert.equal(listed.status, 0, listed.stderr);
-  assert.match(listed.stdout, /^qa$/mu, "criterion 12: the copy ships the skill and offers it nowhere");
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = method(flow);
-    assert.match(held, /# Skill: qa/u, `criteria 13 and 14: ${flow} serves no body for this skill`);
-    for (const at of ["Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 5"]) {
-      assert.match(held, new RegExp(`## ${at} —`, "u"), `criteria 13 and 14: ${flow} serves no ${at}`);
-    }
-    assert.match(held, new RegExp(`Flow ${flow}, which this project runs`, "u"),
-      "and the answer names the flow it was rendered for");
-  }
-});
-
-test("the drain ends on a read that offered nothing, and on neither of the two that look like it", () => {
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = method(flow);
-    assert.match(held, /ends on an answer that offered nothing and reported no shortfall, and on nothing else/u,
-      `criterion 18: ${flow} states no stopping condition, so a drain ends wherever it likes`);
-    assert.match(held, /raising the bound the shortfall names/u,
-      `criterion 19: ${flow} recognises a shortfall without a route past it, which reads the same window twice`);
-    assert.match(held, /whose every row is held by another run has work standing with somebody else/u,
-      `criterion 20: ${flow} lets a fully leased queue be reported as a status drained`);
-    assert.match(held, /Ask the queue again once the issue in hand is finished/u,
-      `criterion 21: ${flow} lets the drain work from a list it took at the start`);
-  }
-});
-
-test("a repair voids the verdicts taken at the identity it replaced, and an unjudgeable issue is set down once", () => {
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = method(flow);
-    assert.match(held, /every criterion is judged again — not only the ones that failed/u,
-      `criterion 22: ${flow} carries a pass forward onto an artifact nobody checked it against`);
-    assert.match(held, /Set down means set down — an issue re-offered on every read is a queue that never drains/u,
-      `criterion 25: ${flow} lets an issue it cannot judge come back on every pass`);
-  }
-});
-
-test("the witnessed section is read as it stands, and answered where it is absent", () => {
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = method(flow);
-    assert.match(held, /Where it answers `none`, no judging run is dispatched/u,
-      `criterion 23: ${flow} spends a judging run on an issue whose plan says nobody has to look`);
-    assert.match(held, /carries no such section at all[\s\S]*answers the question itself rather than defaulting/u,
-      `criterion 24: ${flow} defaults on the legacy plans, which is either unjudged screen work or a run per issue`);
-  }
-});
-
-/* The master keeps its lease through the judging, because the judge's verdicts are written past it
-   rather than under one of the judge's own: a master giving the lease up is an issue any third run
-   may take while its judgement is out (ISS-1494). */
-test("the master keeps the issue while a judging run works on it, and the judge claims nothing", () => {
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = method(flow);
-    assert.match(held, /Take a lease for as long as this session writes to the issue, the judging included/u,
-      `criterion 12: ${flow} has the master take a lease that ends before the judging does`);
-    assert.match(held, /The issue stays this session's while that run works, and nothing is handed over/u,
-      `criterion 12: ${flow} has the master give its lease up before dispatching`);
-    assert.doesNotMatch(held, /lets it go before dispatching/u,
-      `criterion 12: ${flow} still tells the master to let the issue go`);
-    assert.match(held, /Claim the issue again first where a judging run has just reported/u,
-      `${flow} writes the rungs under a lease it has not renewed`);
-    const judge = judging(flow);
-    assert.match(judge, /Work under an identity of your own, and claim no lease/u,
-      `criterion 11: ${flow} tells the judge to take a lease`);
-    assert.match(judge, /verdicts go up past whoever holds the issue, under that id and with their hold untouched/u,
-      `criterion 11: ${flow} leaves the judge not knowing its verdicts go past the holder's lease`);
-  }
-});
 
 test("the judging reference is the dispatched run's method and not the builder's", () => {
   for (const flow of [DEFAULT, SCREEN]) {
@@ -166,29 +87,5 @@ test("the judge writes each verdict as it is judged, and a restart judges only t
       `criterion 2: ${flow} sends a restarted judge back over criteria a stopped run already judged`);
     assert.match(held, /`forge resume <the issue>` marks every criterion with its verdict/u,
       `criterion 2: ${flow} names no reading a restarted judge sees the coverage in`);
-  }
-});
-
-/* A declaration stands a master down only where the queue shows the declared master at work, since one
-   nobody acts on otherwise leaves the rows with nobody: docs/cli/the-drain-key.md. */
-test("a wave stands back from the judging candidates only where another master is shown draining them", () => {
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = served(flow, "guide", "dispatch");
-    assert.match(held, /names the dispatcher, no master, a value that is neither master, or a declaration that does not hold,\s+take them ahead of the ranked work/u,
-      `criterion 26: ${flow} leaves a wave standing back from a queue nobody is draining`);
-    assert.match(held, /a master of the project's own is\s+declared and draining, leave them standing/u,
-      `criterion 27: ${flow} lets a wave dispatch a judge into another master's queue`);
-    assert.doesNotMatch(held, /leaves this wave nothing to act on/u,
-      `${flow} still leaves the rows of a key nobody can read to nobody`);
-  }
-});
-
-test("a drain stops on another master's declaration only where the queue shows that master draining", () => {
-  for (const flow of [DEFAULT, SCREEN]) {
-    const held = served(flow, "guide", "qa");
-    assert.match(held, /only another master shown draining ends the run here/u,
-      `${flow} stands a drain down on a name alone`);
-    assert.match(held, /no master is declared, that the key names neither master,\s+or that the declaration does not hold, the rows are this session's to take/u,
-      `${flow} leaves an undeclared or unheld queue to nobody`);
   }
 });

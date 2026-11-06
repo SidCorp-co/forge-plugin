@@ -3,7 +3,7 @@
    at a rung answers to the rung above. docs/cli/the-phase-owed.md. */
 import { LADDER, stepAfter } from "../flow/earned.mjs";
 import { HELD } from "../tracker/declared/issue-machine.mjs";
-import { CLOSES_FROM, atMinute } from "../flow/machine.mjs";
+import { atMinute } from "../flow/machine.mjs";
 import { POINTER } from "../flow/worklog.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { LIGHTER, lighterRows, rungOf } from "../ladder.mjs";
@@ -88,29 +88,6 @@ export const CITED = {
 };
 
 export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
-
-/** Two readings of one row: every phase it names, and the phase the landing ends — the last its own row names, that row abbreviating the note and the ship into one cell. docs/cli/addressing-a-part.md. */
-const EVERY_NUMBER = /\d+/gu;
-
-export const phasesOwed = (status) =>
-  [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
-
-/* Which phase each cited record ends, declared per kind rather than derived from where its rung sits in the order. A rung naming several phases holds records that end different ones and no table says which, so the derivation answered nothing for four of these ten (ISS-1064) and answers nothing for seven of them now that the fold gave the plan two phases (ISS-1066). Keyed by the kind, so merging two rungs moves no row of this: every row below outlived the fold unedited, which is what the column was for. */
-export const ENDS_PHASE = {
-  confirmation: 1,
-  decision: 2,
-  plan: 3,
-  criteria: 3,
-  review: 4,
-  merged: 7,
-  verdict: 5,
-  verification: 7,
-  note: 6,
-};
-
-export const phaseForRecord = (kind) => ENDS_PHASE[kind] ?? null;
-
-export const phaseAtLanding = () => phasesOwed(CLOSES_FROM).at(-1) ?? null;
 
 /** Every waiver a rung grants on the way out of a status, each named by what it drops and why. A list, because one status may drop several payloads and the first of them is not the whole of what the rung bought; the plural name is what makes a reader testing this for one waiver fail rather than read an empty list as a granted one (ISS-1066). */
 const waiversFor = (status, fields) => {
@@ -327,5 +304,5 @@ export const indexLines = (slug, ref, index) => [
   ...index.passed.filter((one) => one.cites).map((one) => `passed   ${one.phase}  —  ${one.cites}`),
   ...index.owed.flatMap(owedLines),
   "",
-  `The phase itself: \`forge guide ${slug} <phase>\`.`,
+  `The method for each phase is core's page: \`forge guide ${slug}\`.`,
 ];

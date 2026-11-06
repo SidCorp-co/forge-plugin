@@ -108,13 +108,12 @@ anyone has for where the line belongs when both sides are already open.
 
 ## Posting it
 
-How a disposition is posted and what earns the status move are the executor's, stated in the
-disposition paragraph of `forge guide issue-flow`. A wave takes one for the same reasons and by the
-same route.
+A disposition is posted as step 4 of the walk above says: `forge record confirmation`, then
+`forge advance`, which moves only the status the record earns. A wave takes one for the same reasons
+and by the same route as a run would.
 
-The lease these writes take is not a disposition's and is not stated here. Which of this phase's
-writes need one at all is the method's Phase 2, and the refusal a write with no lease meets prints
-the command in full.
+The lease these writes take is not a disposition's and is not stated here: a write that needs one
+and holds none is refused with the command that takes it, in full.
 
 A disposition taken here is counted in the fold against the run it did not cost.
 

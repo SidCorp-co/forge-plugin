@@ -115,7 +115,7 @@ test("a retired directory is held, and only its path form is a mention", () => {
 test("a retired verb is refused on the help, the skills, the topics and the contract", () => {
   const found = problems(files, [AS_IF]);
   for (const surface of [
-    "plugin/guides/skills/issue-flow/default/guide/",
+    "plugin/guides/skills/issue-flow/default/references/",
     "docs/cli/advance.md",
     "plugin/guides/contract/default/",
     "plugin/src/resolve/visibility.mjs",

@@ -20,8 +20,7 @@ writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({
 }));
 process.env.XDG_CONFIG_HOME = HOME.path;
 
-const { localRows, localSlugs, visibleGuides } = await import("../../../../src/guides/guides.mjs");
-const { partForStatus } = await import("../../../../src/guides/served.mjs");
+const { localListing, localSlugs, visibleGuides } = await import("../../../../src/guides/guides.mjs");
 const { skillRefusal } = await import("../../../../src/resolve/visibility.mjs");
 
 const VERBS = ["issue", "new", "comment", "next"];
@@ -125,16 +124,12 @@ test("a shipped skill every declared job leaves out is reported as offered to no
     "one job still declaring nothing offers every skill, so nothing is yet offered to nobody");
 });
 
-test("a withheld skill is unlisted, refused by name, and its phase part is served all the same", () => {
+test("a withheld skill is unlisted and refused by name", () => {
   assert.ok(!localSlugs().includes("issue-flow"), "`forge guide` offers no withheld skill");
   assert.ok(localSlugs().includes("contract"), "the contract is not a skill and is untouched");
-  assert.ok(!localRows().some((row) => row.startsWith("issue-flow")), "and prints no row for one");
+  assert.ok(!localListing().some(({ row }) => row.startsWith("issue-flow")), "and prints no row for one");
   assert.match(skillRefusal("issue-flow"),
     /^the issue-flow skill is off on this machine.*`forge doctor --job all` offers it again\.$/u);
   assert.deepEqual(visibleGuides(["issue-flow", "deploy-safety"]), ["deploy-safety"],
     "the tracker's own listing drops the name too, the verb refusing that word whatever would answer it");
-  const said = [];
-  partForStatus("approved", (part) => said.push(part));
-  assert.equal(said.length, 1,
-    "the part a verb that acts prints belongs to a verb the job granted, and a job withholds a method rather than half-breaking one");
 });

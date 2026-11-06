@@ -20,25 +20,6 @@ const served = (slug, flow, part) => {
   return flat(answer.lines.join("\n"));
 };
 
-test("dispatch Phase 4 gives each run of a wave a scratch directory of its own, and says why", () => {
-  for (const flow of FLOWS) {
-    const said = served("dispatch", flow, "4");
-    for (const [what, phrase] of [
-      ["one directory per run where the wave holds more than one", "one scratch directory per run where the wave holds more than one"],
-      ["the inherited id as the cause", "each run a dispatcher sends carries the dispatcher's own"],
-      ["the host's scratchpad as keyed on it", "The host keys its scratchpad on the session id"],
-      ["whose that makes it", "is the wave's and not the run's"],
-      ["the route a project's own directory takes", "The brief prints a run's own directory as `TMPDIR` where the project mints one"],
-      ["a wave of one", "A wave of one shares nothing and needs neither"],
-      ["that a judging run writes files", "It still writes files — its captures"],
-    ]) {
-      assert.ok(said.includes(flat(phrase)), `dispatch Phase 4 under \`${flow}\` says nothing of ${what}: "${phrase}"`);
-    }
-    assert.ok(!said.includes("writes no file"),
-      `dispatch Phase 4 under \`${flow}\` still says a judging run writes no file, which the judging reference contradicts`);
-  }
-});
-
 test("the judging reference sends captures to a directory the run makes where it was handed none", () => {
   for (const flow of FLOWS) {
     const said = served("qa", flow, "judging");
@@ -48,5 +29,15 @@ test("the judging reference sends captures to a directory the run makes where it
     ]) {
       assert.ok(said.includes(flat(phrase)), `the judging reference under \`${flow}\` says nothing of ${what}: "${phrase}"`);
     }
+  }
+});
+
+test("the briefs section gives a judge of a wave a directory of its own, and names where the brief prints one", () => {
+  for (const flow of FLOWS) {
+    const said = served("dispatch", flow, "briefs");
+    assert.ok(said.includes("in a wave of more than one they go to a directory of its own"),
+      `${flow}: a judge of a wave is not told its captures need a directory of their own`);
+    assert.ok(said.includes("The brief prints a run's own directory as `TMPDIR`"),
+      `${flow}: nothing says where the brief hands a run its directory`);
   }
 });

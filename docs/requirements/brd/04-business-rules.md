@@ -40,7 +40,7 @@ citation that does.
 | **BR-12** | 1 | the source, not the gate | `CLAUDE.md`, "Verifying" |
 | **BR-13** | 1 | a checker watched to fire | `plugin/guides/skills/issue-flow/default/references/verification.md` |
 | **BR-14** | 1 | an input used or refused | `CLAUDE.md`, the refusal paragraph |
-| **BR-15** | 1 | a stop only for the irreversible | `plugin/guides/skills/issue-flow/default/guide/03-autonomy-and-the-three-things-that-stop-it.md` |
+| **BR-15** | 1 | a stop only for the irreversible | core's served guide, `forge guide issue-flow`, "Four rules" |
 | **BR-16** | 1 | the half no gate reaches | `CLAUDE.md`, "The half no gate reaches" |
 | **BR-17** | 2 | never the developer's own machine | `CLAUDE.md`, "Nothing a run touches is the developer's own" |
 | **BR-18** | 1 | a wait that does not ask again | `plugin/hooks/how/polling.md` |

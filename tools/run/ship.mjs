@@ -22,7 +22,6 @@ import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { releaseReadings } from "./release/readings.mjs";
-import { partForLanding } from "../../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /* The gate the ship keeps, the one whole-tree run a release spends before it pushes. */
@@ -286,8 +285,6 @@ const shipSteps = (tree, root, base, note, attempt) => {
       await releaseReadings(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
         issues: keysHere(tree) });
       await checkpointsFinished({ tree, base, copy, resume: again(), installs: installs(), ships: SELF + " ship" });
-      /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
-      partForLanding((phase) => console.log(`\n${phase}`));
     }],
   ];
   return rows;

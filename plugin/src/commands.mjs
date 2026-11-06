@@ -1,4 +1,4 @@
-import { fail, keepBody, leadOnFailure, slugIfAny } from "./resolve/settings.mjs";
+import { accountCredentials, fail, keepBody, leadOnFailure, slugIfAny } from "./resolve/settings.mjs";
 import { AIM_FLAG, aimedBy } from "./resolve/project/aimed.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, nothingWritten, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
@@ -30,7 +30,7 @@ import { COMPLEXITY_NAMES } from "./ladder.mjs";
 import { helpOf, isGated, refuseIfGated, skillRefusal, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
-import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides, withholds } from "./guides/guides.mjs";
+import { coreFirstFor, dispositionOf, localGuide, localListing, localSlugs, trackerHeader, visibleGuides, withholds } from "./guides/guides.mjs";
 import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
 import { typed } from "./hooks/shell-spans.mjs";
@@ -407,11 +407,16 @@ const own = {
       const { indexFor } = await import("./flow/resume.mjs");
       return console.log((await indexFor(slug, asked.for)).join("\n"));
     }
-    /* This copy's own guides — the contract and each skill's method — answer off disk through one
-       registry, so the verb compares no slug against a constant of its own. */
     const local = localGuide(slug);
     if (local) {
       const [part, ...rest] = extra;
+      if (!part && coreFirstFor(slug) && (asked.tracker || !asked.rung)) {
+        if (asked.rung) fail(`guide: --rung renders this plugin's sections of ${slug} and --tracker reads core's whole page, so the two ask for different texts. Drop one, or name the section: \`forge guide ${slug} <section> --rung ${asked.rung}\`.`);
+        const { coreFirst } = await import("./guides/core-first.mjs");
+        const whole = await coreFirst(slug, { strict: Boolean(asked.tracker) });
+        if (whole.refusal) fail(`guide: ${whole.refusal}`);
+        return console.log(whole.lines.join("\n"));
+      }
       const answer = local({ part, extra: rest, tracker: asked.tracker, rung: asked.rung });
       if (answer.refusal) fail(`guide: ${answer.refusal}`);
       return console.log(answer.lines.join("\n"));
@@ -421,15 +426,21 @@ const own = {
     /* Echoing back a flag the caller typed, and saying nothing about what it does: what a copy or a
        credential cannot use is shown under `forge doctor` and nowhere else. */
     if (!slug && asked.tracker) fail(`guide: --tracker names no guide. ${usageOf("guide")}`);
-    const listed = async () => {
-      const rows = rowsOf(await scoped("forge_guide", { action: "list" }), "guides");
+    const standing = (rows) => {
       const shown = new Set(visibleGuides(rows.map((one) => one.slug)));
       return rows.filter((one) => shown.has(one.slug));
     };
+    const listed = async () => standing(rowsOf(await scoped("forge_guide", { action: "list" }), "guides"));
     if (!slug) {
-      for (const row of localRows()) console.log(row);
-      if (isGated("forge_guide")) return console.log("The tracker's guides are withheld from this credential: `forge doctor`.");
-      for (const guide of await listed()) console.log(`${guide.slug}\n  ${guide.summary}`);
+      const { listingRows } = await import("./guides/core-first.mjs");
+      const gated = isGated("forge_guide");
+      const { url, token } = accountCredentials();
+      const answer = gated || !url.value || !token.value ? null : await scoped("forge_guide", { action: "list" }, true);
+      const core = answer && !answer.refused ? standing(rowsOf(answer, "guides")) : [];
+      for (const row of listingRows(localListing(), core)) console.log(row);
+      if (gated) return console.log("The tracker's guides are withheld from this credential: `forge doctor`.");
+      if (!answer) return listed();
+      if (answer.refused) fail(answer.refused);
       return;
     }
     refuseIfGated("forge_guide");
@@ -442,8 +453,7 @@ const own = {
     if (withholds(row) && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);
     if (answer?.refused) await noSuchGuide();
-    /* `trackerHeader` answers on every path, a row or none, so --tracker alone decides the header. */
-    if (asked.tracker) console.log(`${trackerHeader(row).join("\n")}\n`);
+    console.log(`${trackerHeader(row).join("\n")}\n`);
     /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);
   },

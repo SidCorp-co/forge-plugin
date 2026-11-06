@@ -97,7 +97,7 @@ test("a claim takes the lease though the deploy reading did not answer, the leas
     issues: [issue],
     /* The guard's two deploy readings, registered to refuse so that a lease write that reached the seat
        would both fail and trip this allowance — which proves the lease write never reaches it (FB-36). */
-    unasked: ["forge_projects.read", "forge_config"],
+    unasked: ["forge_projects.read"],
     answer: {
       "forge_projects.read": () => ({ ...ROW, id: OWN.id, slug: OWN.slug }),
       forge_config: (args) => (args.action === "document"

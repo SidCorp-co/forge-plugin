@@ -1,8 +1,7 @@
-/* The three readings the triage phase takes beyond a disposition — whether the ground moved under an
-   issue, what it costs the workflow, and whether it belongs with others as one change. Read off the
+/* The dispositions section a wave takes an issue off by, and the triage role's own text. Read off the
    served answer rather than off the source, because what a project gets is what the renderer
-   produces; and read at both flows, because a statement carried by one of them is two methods rather
-   than one (ISS-2081). */
+   produces; and read at both flows, because a statement carried by one of them is two sections
+   rather than one (ISS-2081). */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -76,72 +75,6 @@ test("a reading the method does not have is filed rather than supplied by hand",
   ]);
 });
 
-test("a surviving candidate carries where it sits, in three values earned by an act", () => {
-  carries("2", [
-    ["the reading", "A candidate that survives also carries a reading of where it sits"],
-    ["the ordinary run", "Core, where the surface it names is met by a run doing nothing unusual"],
-    ["the declared route", "edge, where it is met on a route the project itself declares or chooses"],
-    ["the investigation", "peripheral, where no run reaches it unless somebody is investigating"],
-    ["what earns it", "earned by naming the act that meets the issue, never by asserting a tier"],
-  ]);
-});
-
-test("where two tiers fit, the higher is the reading", () => {
-  carries("2", [
-    ["the rule", "where two would both fit the higher one is the reading"],
-    ["the configured surface", "is edge, however rarely that configuration is chosen"],
-  ]);
-});
-
-test("the priority is read from the reach rather than held apart from it", () => {
-  carries("2", [
-    ["the ground", "That reading is what the priority is read from"],
-    ["what a priority is", "A priority here is a reading of what the issue costs this plugin"],
-    ["the reach as that ground", "the reach is its ground"],
-    ["the bands still apart", "The two stay different bands, because where an issue sits is not an instruction to work it"],
-    ["the band that sits against the reach", "a band that sits against the reach carries the reason it does or it carries nothing"],
-  ]);
-});
-
-test("a defect with no way round it outranks one a run can detour", () => {
-  carries("2", [
-    ["the ordering", "A defect with no way round it outranks one with a workaround, at equal reach and equal size"],
-    ["the detour written beside the band", "The detour is what earned the lower band, so it is written on the issue in the same breath"],
-  ]);
-});
-
-test("the top band names itself and what reaches it, being the whole of the table's spread", () => {
-  carries("2", [
-    ["which band", "`critical` is the whole of the table's spread, and what reaches it is an issue that leaves a run no route to its outcome at all"],
-    ["what it is not", "not one slowed and not one detoured"],
-    ["read by somebody who did not file it", "Somebody who did not file the issue has to be able to see that in the body"],
-    ["the band nobody can see", "a band nobody can see it from is one this phase reads down"],
-  ]);
-});
-
-test("the priority is one of this phase's writes, and a reading leaving neither band is unfinished", () => {
-  carries("2", [
-    ["the write and its field", "The priority goes with it, by the same reader and into the tracker's `priority` field"],
-    ["what the why names", "the why naming what the issue costs and the act that meets it"],
-    ["the writes", "This phase's writes — the confirmation, the candidate line, the complexity, the priority and,"
-      + " where the project defines modules, the module — belong to whoever did the reading"],
-    ["neither band", "A reading that leaves its issue holding neither band has not finished"],
-    ["what neither band means", "it is one nobody read, and nothing downstream can tell those two apart"],
-    ["the unreadable body with no slot waiting", "Where the body gives the reader nothing to judge a cost from and no slot is waiting on it, that inability is itself the finding"],
-    ["what is written with it", "it is recorded, and the band written with it is the one that reading supports, rather than the write being left off"],
-  ]);
-});
-
-/* The module is decided by the reading that was already open on the issue, and only where the project
-   defines modules, so a project that has not decided is told nothing (ISS-1331). */
-test("the triage reader writes the module where the project defines modules, or says the body decided none", () => {
-  carries("2", [
-    ["the write and its condition", "Where this project defines modules, the same reader puts the candidate in one."],
-    ["the call", "`forge issue ISS-nn --set module=<name> --why <w>`"],
-    ["the undecided body", "A body that does not decide one is left without one, and the reading says so in its confirmation"],
-  ]);
-});
-
 /* The served method reaches a dispatcher; a role dispatched to one issue reads its own file and may
    read nothing else, so the ownership, the ground and the route to the rest are pinned there as well
    (ISS-2131). The role file has no flow, so it is read directly rather than through a served answer. */
@@ -159,24 +92,6 @@ test("the triage role is told the priority is its own, and where the bands' rule
   }
 });
 
-test("a family of symptoms over one cause is a cluster whose members survive whole", () => {
-  carries("2", [
-    ["the cluster", "distinct symptoms of one cause, the reading is a cluster"],
-    ["the relation", "members are related to one another on the tracker"],
-    ["what each keeps", "each keeps its own key, its own evidence and its own disposition"],
-    ["the cause naming no key", "The cause goes in one sentence naming no issue key"],
-  ]);
-});
-
-test("a shared file is not a cause, and the proposal is triage's while the filing is not", () => {
-  carries("2", [
-    ["the neighbour rule", "Two issues sharing a file are neighbours, not a cluster"],
-    ["what makes a cluster", "What makes one is a shared cause"],
-    ["whose the proposal is", "this phase's to propose and the owner's to decide"],
-    ["the filing withheld", "does not file the grouping issue"],
-  ]);
-});
-
 /* The readings this change leaves alone, each asserted whole rather than by its opening: a row that
    quietly lost its evidence bar would pass a prefix and is exactly the regression this guards. */
 test("the five standing dispositions keep their evidence bars whole", () => {
@@ -190,21 +105,6 @@ test("the five standing dispositions keep their evidence bars whole", () => {
     ["obsolete", "| obsolete | what the issue was about, gone: the file, the verb, the surface it names |"],
     ["premise false", "| premise false | the line of the body that is wrong, and what the code says instead |"],
     ["holding as the ordinary answer", "Anything else *holds*, and holding is the ordinary answer"],
-  ]);
-});
-
-test("the complexity reading is untouched, and stays what a rung is claimed from", () => {
-  carries("2", [
-    /* Whole, not by phrase: the sentence most easily lost is the one saying the field is the only
-       place it goes, and a selective assertion passes without it. */
-    ["the paragraph whole", "**A candidate that survives also carries a complexity, and the tracker's"
-      + " `complexity` field is where.** Setting it is this phase's, because it is the same reading"
-      + " triage has just done: `forge issue ISS-nn --set complexity=<value> --why <w>`, the why"
-      + " naming what was read to judge it — the files the change would touch, whether a person sees"
-      + " the result, whether a rule changes. Which value claims which rung, and what a rung then"
-      + " buys, is the contract's. The write goes on the issue and nowhere else, so the brief carries"
-      + " no rung and there is nothing for a run to find disagreeing with the field."],
-    ["no run on an unsized issue", "no run is dispatched on an issue holding none"],
   ]);
 });
 

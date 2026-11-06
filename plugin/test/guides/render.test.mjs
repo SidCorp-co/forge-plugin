@@ -5,13 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { flat, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const { blocksOf, openersOf, phasesOf, render } = await import("../../src/guides/render.mjs");
-const { servedBody } = await import("../../src/guides/skill-guides.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const PLUGIN = new URL("../../", import.meta.url).pathname;
@@ -54,7 +53,7 @@ const room = (plugin, home = HOME) => {
 /* The project's option, beside the channel above and in the same record: its own config home, never
    the live one. Flat, so a phrase pattern over the answer asserts the rule and not the wrap it was
    written under. */
-const shipping = (ship, slug = "issue-flow", part = "7") => {
+const shipping = (ship, slug = "issue-flow", part = "landing") => {
   const env = homeEnv("render-ship");
   const home = env.XDG_CONFIG_HOME;
   mkdirSync(join(home, "forge"), { recursive: true });
@@ -62,8 +61,7 @@ const shipping = (ship, slug = "issue-flow", part = "7") => {
     JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0 }));
   const cwd = projectRoom(tempRoom("render-ship-"), home,
     { slug: "render-fixture", feedback: { plugin: "bugs" }, ship });
-  const argv = slug === "issue-flow" ? ["guide", slug, part] : ["guide", slug];
-  return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd }).stdout);
+  return flat(spawnSync(FORGE, ["guide", slug, part], { encoding: "utf8", env, cwd }).stdout);
 };
 
 /* The paragraph is the unit a reader sees, so equal-elsewhere is asserted over paragraphs: a
@@ -97,38 +95,34 @@ test("an opener nothing closes names its condition, and a quoted one names nothi
 });
 
 /* AC-02-8-1. The readings come from one source, so the case reads the shipped text rather than a
-   fixture: a fence that stopped matching the real body would pass on invented lines. Three of them
-   and not two — a run learning from the refusal which shapes it sends has already spent the turn. */
-test("the Phase 5 part this copy ships answers each of the channel's three values with its own text", () => {
-  const body = servedBody("issue-flow", PLUGIN);
-  const phase = phasesOf(body).find((one) => one.number === "5");
-  assert.ok(phase, "the method's phases are addressed by number, and 5 is one of them");
-  const marked = blocksOf(phase.text).filter((one) => one.condition === CONDITION);
-  assert.deepEqual(marked.map((one) => one.values.join(" ")), ["bugs all", "bugs", "all"],
-    "the filing both open channels share, then one block per channel for what only it sends");
-  assert.ok(blocksOf(body).filter((one) => one.condition === CONDITION).length >= marked.length,
-    "and the whole method's answers to the key are watched by the channel suite, not counted here");
-  const [shared, ...only] = marked.map((one) => one.body.join("\n").trim());
-  const seen = Object.fromEntries(FEEDBACK_CHANNELS.map((one) => [one, render(phase.text, answering(one))]));
+   fixture: a fence that stopped matching the real section would pass on invented lines. */
+const LEARNING = join(PLUGIN, "guides", "skills", "issue-flow", "default", "references", "learning.md");
+
+test("the learning section this copy ships answers each of the channel's values with its own text", () => {
+  const held = readFileSync(LEARNING, "utf8");
+  const marked = blocksOf(held).filter((one) => one.condition === CONDITION);
+  assert.deepEqual(marked.map((one) => one.values.join(" ")), ["off", "bugs all", "bugs", "all"],
+    "what a closed channel owes, the filing both open channels share, then one block per channel");
+  const [closed, shared, ...only] = marked.map((one) => one.body.join("\n").trim());
+  const seen = Object.fromEntries(FEEDBACK_CHANNELS.map((one) => [one, render(held, answering(one))]));
   for (const [value, out] of Object.entries(seen)) assert.deepEqual(out.problems, [], value);
-  assert.equal(seen.off.text.includes(shared), false, "a project that closed the channel is shown none of it");
+  assert.equal(seen.off.text.includes(closed), true, "a project that closed the channel is told what it owes instead");
+  assert.equal(seen.off.text.includes(shared), false, "and is shown no filing");
   for (const [at, value] of ["bugs", "all"].entries()) {
     assert.equal(seen[value].text.includes(shared), true, `${value} is shown the filing itself`);
     assert.equal(seen[value].text.includes(only[at]), true, `${value} is shown what only it sends`);
     assert.equal(seen[value].text.includes(only[1 - at]), false, `${value} is not shown the other channel's`);
+    assert.equal(seen[value].text.includes(closed), false, `${value} is not shown the closed channel's`);
   }
-  assert.deepEqual(paragraphs(seen.off.text),
-    paragraphs(seen.bugs.text).filter((one) => one !== shared && one !== only[0]),
-    "and the three are one part everywhere else");
 });
 
 /* AC-02-8-1, through the key rather than through an argument: the blocks travel to a project's own
    answer, which is a resolver reading the project and not a value a case can hand the renderer. */
-test("the phase the verb serves a project carries the branch its own key names", () => {
-  const marked = blocksOf(servedBody("issue-flow", PLUGIN)).filter((one) => one.condition === CONDITION);
-  const [shared, bugsOnly, allOnly] = marked.map((one) => one.body.join("\n").trim());
+test("the section the verb serves a project carries the branch its own key names", () => {
+  const marked = blocksOf(readFileSync(LEARNING, "utf8")).filter((one) => one.condition === CONDITION);
+  const [, shared, bugsOnly, allOnly] = marked.map((one) => one.body.join("\n").trim());
   const out = Object.fromEntries(
-    FEEDBACK_CHANNELS.map((one) => [one, asked(room(one), "guide", "issue-flow", "5")]));
+    FEEDBACK_CHANNELS.map((one) => [one, asked(room(one), "guide", "issue-flow", "learning")]));
   for (const [value, one] of Object.entries(out)) assert.equal(one.status, 0, `${value}: ${one.stderr}`);
   assert.equal(out.off.stdout.includes(shared), false, "`feedback.plugin: off` is shown no filing at all");
   assert.equal(out.bugs.stdout.includes(shared), true, "`feedback.plugin: bugs` is shown the filing block");
@@ -136,9 +130,6 @@ test("the phase the verb serves a project carries the branch its own key names",
   assert.equal(out.bugs.stdout.includes(allOnly), false, "never the other channel's answer");
   assert.equal(out.all.stdout.includes(allOnly), true, "`feedback.plugin: all` is shown to send the shape it met");
   assert.equal(out.all.stdout.includes(bugsOnly), false, "and not the narrower channel's answer");
-  assert.deepEqual(paragraphs(out.off.stdout.trimEnd()),
-    paragraphs(out.bugs.stdout.trimEnd()).filter((one) => one !== shared && one !== bugsOnly),
-    "and the part is otherwise the same part");
   assert.equal(out.bugs.stdout.includes("forge:when"), false, "a fence is never served to a reader");
 });
 
@@ -227,59 +218,42 @@ test("a marker inside a literal context is served, and one indented outside it s
 
 /* The other condition, whose two answers are both text rather than a block and its absence: a run
    reading the wrong half is told to land a change the mode stops at a pushed branch. Off the shipped
-   bodies, because a fence that stopped matching either would pass on a fixture (ISS-673). */
-test("Phase 7 and the fold are served in the mode's own text, one branch of each per reader", () => {
+   sections, because a fence that stopped matching either would pass on a fixture (ISS-673). */
+test("the landing sections are served in the mode's own text, one branch of each per reader", () => {
   const modes = ["self", "ready"];
   const both = modes.map((one) => shipping(one));
   for (const [at, said] of both.entries()) {
     assert.equal(said.includes("forge:when"), false, `${modes[at]}: a fence is never served to a reader`);
-    assert.match(said, /^## Phase 7 — Ship/u, `${modes[at]}: the part opens on the phase`);
+    assert.match(said, /^# The landing, as this CLI runs it/u, `${modes[at]}: the section opens on its heading`);
   }
   const [self, ready] = both;
-  assert.match(self, /The landing is this phase's first step/u, "self mode lands its own change");
+  assert.match(self, /`ship self`: the run lands its own change/u, "self mode lands its own change");
   assert.doesNotMatch(self, /ends at ready-to-land/u, "and is told nothing about a landing it does not make");
-  assert.match(ready, /ends at ready-to-land and lands nothing/u, "ready mode stops at the checkpoint");
+  assert.match(ready, /`ship ready`: the run ends at ready-to-land/u, "ready mode stops at the checkpoint");
   assert.match(ready, /forge claim ISS-nn --pushed --ready/u, "with the command that writes one");
-  assert.doesNotMatch(ready, /The landing is this phase's first step/u,
+  assert.doesNotMatch(ready, /the run lands its own change/u,
     "and is not also told to merge, which is the contradiction the mode used to serve");
-  /* The fold is the other half: under `ready` the landing is the dispatcher's step, and nothing in
-     the shipped text said so, so a wave read a Phase 6 that folded reports and landed nothing. */
   const folds = modes.map((one) => shipping(one, "dispatch"));
   assert.doesNotMatch(folds[0], /ready-to-land/u, "self mode's fold lands nothing extra");
-  assert.match(folds[1], /the landing is this phase's and it is one actor's/u, "ready mode's fold lands them");
-  assert.match(folds[1], /never the run that built the change/u, "and dispatches the judge where one is asked for");
+  assert.match(folds[1], /the fold lands the runs' branches/u, "ready mode's fold lands them");
+  assert.match(folds[1], /`awaiting_release`, where the close is the release's record/u,
+    "and says where the landing stops and whose the close is");
 });
 
 /* One box, two projects, two answers: the whole of what moving the key to the project's record buys,
    asserted where a reader meets it rather than only at the report that prints the value. */
-test("two projects under one configuration home are served the two branches of the same phase", () => {
+test("two projects under one configuration home are served the two branches of the same section", () => {
   const env = homeEnv("render-ship-two");
   const home = env.XDG_CONFIG_HOME;
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
     JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0 }));
-  const argv = ["guide", "issue-flow", "7"];
+  const argv = ["guide", "issue-flow", "landing"];
   const at = (slug, ship) => flat(spawnSync(FORGE, argv, { encoding: "utf8", env,
     cwd: projectRoom(tempRoom(`render-two-${ship}-`), home, { slug, ship }) }).stdout);
-  assert.match(at("lands-its-own", "self"), /The landing is this phase's first step/u);
-  assert.match(at("leaves-it-ready", "ready"), /ends at ready-to-land and lands nothing/u,
+  assert.match(at("lands-its-own", "self"), /the run lands its own change/u);
+  assert.match(at("leaves-it-ready", "ready"), /the run ends at ready-to-land/u,
     "the second checkout answers out of its own record and not out of the file they share");
-});
-
-/* What a fence takes with it: the `self` branch carried the note, the release rung and the close, so fencing it left a `ready` reader two statuses short of the end state. Over the union served, either half may own it and neither may drop it (ISS-673). */
-test("a ready reader is told somewhere who moves the release rung, which the mode's own half no longer does", () => {
-  const phase = shipping("ready");
-  const fold = shipping("ready", "dispatch");
-  assert.match(`${phase} ${fold}`, /`awaiting_release`/u,
-    "the rung past the judging is named to a reader whose own phase stops at a pushed branch");
-  assert.match(fold, /A status the landing could not reach is this phase's/u,
-    "and the fold, whose landing it follows, is where it is owned");
-  assert.match(phase, /are the landing's, not this run's/u,
-    "the phase says whose it is rather than leaving the run to assume it is nobody's");
-  assert.doesNotMatch(phase, /Then close it, in this phase/u,
-    "and does not also claim the close, which under this mode it cannot make");
-  assert.match(shipping("self"), /Then close it, in this phase/u,
-    "while the mode that does land its own change still closes it there");
 });
 
 /* The shape the reader above exists to remove: the pattern is the phrase a reader reads, the fixture the wrap it arrived under. */
@@ -311,22 +285,20 @@ test("a phase answers its number with every heading subordinate to it, and none 
     "and a subordinate heading is no phase of its own");
 });
 
-/* A wave is a record on its headline, so the method a dispatcher reads says where each half of it is
+/* A wave is a record on its headline, so the section a dispatcher reads says where each half of it is
    written and where a restart reads it back, in both flows, since either may be the one a project runs (ISS-818). */
-test("the dispatch method writes the wave onto its headline and reads it back there, in both flows", async () => {
+test("the dispatch sections write the wave onto its headline and read it back there, in both flows", async () => {
   const { skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
   for (const flow of ["default", "screen"]) {
     const part = (name) => flat(skillGuideAnswer("dispatch", PLUGIN, flow)({ part: name }).lines.join("\n"));
-    assert.match(part("1"), /A wave already under way is resumed before any order is read\.\*\* `forge resume <headline>`/u,
-      `${flow}: Phase 1 resumes a wave the headline shows open`);
-    assert.match(part("1"), /filled as a further dispatch of the same wave rather than as the first of another/u,
-      `${flow}: rather than starting another`);
-    assert.match(part("5"), /\*\*Each dispatch is written onto the wave's headline before the call that dispatches it\*\*/u,
-      `${flow}: Phase 5 writes the record before the dispatch`);
-    assert.match(part("5"), /`forge record wave <headline> --member <key>\.\.\. --role <role> --session/u,
+    assert.match(part("landing"), /A wave already under way is resumed before any order is read\*\*: `forge resume <headline>`/u,
+      `${flow}: a wave the headline shows open is resumed`);
+    assert.match(part("landing"), /\*\*Each dispatch is written onto the wave's headline before the call that dispatches it\*\*/u,
+      `${flow}: the record is written before the dispatch`);
+    assert.match(part("landing"), /`forge record wave <headline> --member <key>\.\.\. --role <role> --session/u,
       `${flow}: with the command that writes it`);
-    assert.match(part("6"), /The fold's last step is its record\.\*\*[^]*`forge record fold <headline> --summary/u,
-      `${flow}: Phase 6 ends on the fold record`);
+    assert.match(part("landing"), /The fold's last step is its record\*\*: `forge record fold <headline> --summary/u,
+      `${flow}: the fold ends on its record`);
     assert.match(part("the-fold"), /The set is read off the headline rather than recalled: `forge resume <headline>`/u,
       `${flow}: the fold reads its set off the resume`);
     assert.match(part("the-fold"), /The runs are the dispatch count that same reading prints, one per dispatch and not one per member/u,

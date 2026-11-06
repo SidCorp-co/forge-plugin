@@ -13,7 +13,7 @@ import { tempRoom } from "../fixtures.mjs";
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const GUIDES = join(PLUGIN, "src", "guides");
 const SERVED = join(PLUGIN, "guides");
-const METHOD = join(SERVED, "skills", "issue-flow", "default", "guide");
+const METHOD = join(SERVED, "skills", "harness-eval", "default", "guide");
 const CONTRACT = join(SERVED, "contract", "default");
 
 /* Loaded ahead of the measured code, it records every markdown file read once `globalThis.counting`
@@ -66,7 +66,7 @@ const onceEach = (reads, dir, what) => {
 
 /* Criterion 1. */
 test("building the guide listing reads no markdown file", () => {
-  const { reads, said } = readsOf({ guides: "guides.mjs" }, "return guides.localRows().length;");
+  const { reads, said } = readsOf({ guides: "guides.mjs" }, "return guides.localListing().length;");
   assert.ok(said > 1, "the listing came back empty, so there was nothing to read");
   assert.deepEqual(reads, [], `the listing read ${reads.length} markdown file(s)`);
 });
@@ -74,7 +74,7 @@ test("building the guide listing reads no markdown file", () => {
 /* Criterion 2. */
 test("whether a skill serves a method body is answered from names", () => {
   const { reads, said } = readsOf({ skills: "skill-guides.mjs" },
-    'return [skills.hasBody("issue-flow"), skills.hasBody("forge")];');
+    'return [skills.hasBody("harness-eval"), skills.hasBody("forge")];');
   assert.deepEqual(said, [true, false]);
   assert.deepEqual(reads, [], `hasBody read ${reads.length} markdown file(s)`);
 });
@@ -82,17 +82,9 @@ test("whether a skill serves a method body is answered from names", () => {
 /* Criterion 3. */
 test("one phase of the method reads each part of the flow's guide once", () => {
   const { reads, said } = readsOf({ skills: "skill-guides.mjs" },
-    'return skills.skillGuideAnswer("issue-flow")({ part: "5" }).lines?.[0] ?? null;');
-  assert.match(said, /^## Phase 5/u);
+    'return skills.skillGuideAnswer("harness-eval")({ part: "1" }).lines?.[0] ?? null;');
+  assert.match(said, /^## Phase 1/u);
   onceEach(reads, METHOD, "one phase");
-});
-
-/* Criterion 4. */
-test("the part a record carries reads each part of the method once and no other skill's", () => {
-  const { reads, said } = readsOf({ served: "served.mjs" },
-    'let printed = ""; served.partForRecord("note", (text) => { printed = text; }); return printed;');
-  assert.match(said, /^## Phase \d/u, "the record carried no part, so nothing was measured");
-  onceEach(reads, METHOD, "the part a record carries");
 });
 
 /* Criterion 5. */

@@ -1,7 +1,7 @@
 /* The two tables a run's time is divided by; what one call is read as is `runs.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/guides/phases.mjs";
@@ -154,17 +154,6 @@ test("a run that made no landing call reaches the last phase through none of its
     assert.deepEqual(phasesOf([...opened, command, "cat plugin/src/cli.mjs"]), [1, 4, 4, 4],
       `${what} before any landing is the phase the run was already in, and opens nothing`);
   }
-});
-
-/* The label is held to the method's own heading rather than typed beside it: `8 Learn` named the
-   second half of a phase whose first half is the cleanup, and the bucket it labelled held neither
-   (ISS-1714). */
-test("the last phase is labelled for the work the method defines at that number", () => {
-  const part = readFileSync(new URL("../../guides/skills/issue-flow/default/guide/12-phase-8.md",
-    import.meta.url), "utf8");
-  const heading = /^## Phase (\d+) — (.+)$/mu.exec(part);
-  assert.equal(Number(heading[1]), PHASES.length - 1, "which is the number the last row carries");
-  assert.equal(PHASES.at(-1), `${heading[1]} ${heading[2].split(",")[0]}`, heading[2]);
 });
 
 /* One table for the method and the miner, or a brief that says "start at phase 5" and a row that

@@ -59,7 +59,7 @@
     },
     "BR-15": {
       "rev": 1,
-      "digest": "5e4053dfbf8ab4bcba74475bd067e2e500be4d1eb0ecf24203f5205e05ffedfb"
+      "digest": "9fecad0328920e937d0ad386ea5d365a123bfa21e7e29e6434d78653e48e6cf0"
     },
     "BR-16": {
       "rev": 1,
@@ -1802,8 +1802,8 @@
       "digest": "ba13ef359e19b6cbd9186d4b61fb7e26e07f7809e3b8c629dd374e0c0f9c79a6"
     },
     "UC-02-8": {
-      "rev": 2,
-      "digest": "29734b589ec2d9c6a60a1aa7422e5a9bf1b9efa639a7d34318f87b1dcc16dcc2"
+      "rev": 3,
+      "digest": "0df05d6a33ceedb73b3edbf04bb8cc89a10fd7745bdbfb85cdfb4731b204f07c"
     },
     "AC-02-8-1": {
       "rev": 2,

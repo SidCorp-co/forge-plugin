@@ -70,10 +70,10 @@ test("the served method carries every rule the issue named load-bearing", () => 
   }
 });
 
-/* A pattern that also matches the issue method is matching the register both are written in rather
-   than the rule, and would go on passing over a body with the rule cut out of it. */
-test("no rule's pattern is loose enough to match the issue method instead", () => {
-  const other = flat(servedBody("issue-flow", undefined, DEFAULT));
+/* A pattern that also matches another served method is matching the register both are written in
+   rather than the rule, and would go on passing over a body with the rule cut out of it. */
+test("no rule's pattern is loose enough to match the master's method instead", () => {
+  const other = flat(servedBody("master", undefined, DEFAULT));
   for (const [said, pattern] of RULES) {
     assert.doesNotMatch(other, pattern, `${said} matches prose, not the rule it stands for`);
   }

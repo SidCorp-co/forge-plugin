@@ -73,7 +73,5 @@ does not have. And the list a session is handed is built by the host off each sk
 before any of this code runs, so a job's withholding does not reach it — the same surface
 [an unconfigured tool](an-unconfigured-tool.md) cannot reach, and ISS-1428's to answer.
 
-**The serving of a phase part is not the offer.** `forge record` and `forge advance` print the part
-of the method the act is in, and that print belongs to a verb the job granted. A job withholds a
-method rather than half-breaking a verb it offers, so that text is served whatever the skills list
-says.
+A job withholds a method rather than half-breaking a verb it offers: what a granted verb prints is
+printed whatever the skills list says.

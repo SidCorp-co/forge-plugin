@@ -11,8 +11,7 @@ conventions, reasons, and to delegate the rest: a script prints its own interfac
 shape and the remedy of its rule, environment specifics resolve at runtime. A danger is stated as a
 rule with the fact resolved at runtime, not as the fact.
 
-**A project that decided otherwise wins** (Rule 4). If its file holds the command list, use the
-command list.
+**A project that decided otherwise wins.** If its file holds the command list, use the command list.
 
 ## What each line has to establish
 
@@ -24,15 +23,16 @@ One line per item, carrying where it was read:
   found rather than deciding cause-or-surface on its own taste.
 - How to build, test and lint, and which of those the project treats as the gate.
 - How to run something locally, and whether the project provides that.
-- **How a change reaches the default branch, and how it reaches production**: review, gates, merge
-  policy, deploy trigger. This is the path Phase 7 follows.
+- **How a change reaches the default branch, and how it reaches production**: gates, merge
+  policy, deploy trigger, and any review or judge the project asks for. This is the path the
+  landing follows.
 - **The way back from each step of that path**: how a deploy is rolled back, whether the previous
   artefact is reachable, what a rollback does not undo. Established before the step, not looked for
   once something is wrong.
 - What is dangerous and fails silently.
 - Where credentials and environment settings come from. **Ask rather than assume.** A credential is
-  established here and not at Phase 7, where the criteria it was needed for have already gone
-  unjudged.
+  established before building and not at the landing, where the criteria it was needed for have
+  already gone unproved.
 - **The prose language, which is a project setting and not a default.** A project whose config
   declares one gets its prose translated on the way out; one that declares none gets plain English
   and no translation step. Read the config; never infer the language from the code, the repository
@@ -54,7 +54,8 @@ tracker decision or a product rule decides that. When sources disagree, name the
 
 ## When the root file is missing
 
-Say so. Offer to write one from what Phase 0 found; it is repository policy, so it lands by proposal.
+Say so. Offer to write one from what this discovery found; it is repository policy, so it lands by
+proposal.
 Keep it short: an invariant whose violation is a defect regardless of tests, a danger whose failure
 mode is silent, a reason a reader cannot recover from the code beside it. Not a restatement of what
 a checker already refuses.

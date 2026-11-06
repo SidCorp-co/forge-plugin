@@ -17,6 +17,7 @@ const {
 } = await import("../../src/guides/skill-guides.mjs");
 const { DEFAULT, servedFor } = await import("../../src/guides/flow.mjs");
 const { phasesOf } = await import("../../src/guides/render.mjs");
+const { CORE_METHODS } = await import("../../src/guides/guides.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const STUBS = join(PLUGIN, "skills");
@@ -117,13 +118,14 @@ test("a citation dangling in a flow the checkout is not pinned to is named, and 
    resolve between two of them. The listing reads the flow's own directory: a slug the flow holds no
    text for is not offered, and one it holds is offered whole. */
 test("a skill's text is served out of its flow's own directory, and the path is the answer", () => {
-  assert.ok(skillGuideSlugs().includes("issue-flow"), "the method is a row like every other skill's");
+  assert.ok(skillGuideSlugs().includes("master"), "the method is a row like every other skill's");
   assert.equal(skillGuidesRoot(PLUGIN), join(PLUGIN, "guides", "skills"));
-  assert.equal(skillFlowDir("issue-flow", PLUGIN, DEFAULT),
-    join(PLUGIN, "guides", "skills", "issue-flow", DEFAULT));
-  assert.equal(hasBody("issue-flow", PLUGIN), true);
+  assert.equal(skillFlowDir("master", PLUGIN, DEFAULT),
+    join(PLUGIN, "guides", "skills", "master", DEFAULT));
+  assert.equal(hasBody("master", PLUGIN), true);
   assert.equal(hasBody("forge", PLUGIN), false, "and a skill whose method is inline has none to serve");
-  assert.equal(guideParts("issue-flow", PLUGIN).length, 13,
+  assert.equal(hasBody("issue-flow", PLUGIN), false, "nor one whose method is core's page");
+  assert.equal(guideParts("master", PLUGIN).length, 6,
     "the method is served as its own parts, one file per heading");
   const root = planted();
   assert.deepEqual(skillGuideSlugs(root), ["alpha", "beta"]);
@@ -177,19 +179,16 @@ test("a method part carrying no heading, or carrying two, is a finding naming th
    reader cannot compare against the flow their project runs. */
 test("a phase of the method is served whole and ends by naming the flow it was rendered for", () => {
   const room = declaring({});
-  const run = asked(room, "guide", "issue-flow", "5");
+  const run = asked(room, "guide", "harness-eval", "2");
   assert.equal(run.status, 0, run.stderr);
   const lines = run.stdout.trimEnd().split("\n");
   assert.equal(lines.at(-1), servedFor(DEFAULT)[0],
     "the last line names the flow this project runs");
-  const phase = phasesOf(servedBody("issue-flow", PLUGIN)).find((one) => one.number === "5");
+  const phase = phasesOf(servedBody("harness-eval", PLUGIN)).find((one) => one.number === "2");
   assert.equal(lines[0], phase.text.split("\n")[0], "and the part opens on that phase's own heading");
-  const wrong = asked(room, "guide", "issue-flow", "99");
+  const wrong = asked(room, "guide", "harness-eval", "99");
   assert.equal(wrong.status, 1);
-  assert.match(wrong.stderr, /named 99\. Did you mean: 0, 1, 2/u, "a number no phase has is offered the ones that exist");
-  assert.match(asked(room, "guide", "issue-flow", "zzzzzz").stderr,
-    /lists every reference, and each phase of the method is its number/u,
-    "and a miss near nothing is told both ways a part is addressed");
+  assert.match(wrong.stderr, /named 99\. Did you mean: 1, 2, 3/u, "a number no phase has is offered the ones that exist");
   assert.equal(asked(room, "guide", "issue-flow", "verification").status, 0,
     "and a reference is still addressed by its name, which the flow's own text cites");
 });
@@ -210,7 +209,7 @@ test("a SKILL.md is under the ceiling, and names the verb only where a body is s
     assert.ok(bytes <= CEILING, `${name}/SKILL.md body is ${bytes} bytes; the ceiling is ${CEILING}`);
     assert.equal(existsSync(join(STUBS, name, "references")), false, `${name}'s references are served, not loaded`);
     assert.doesNotMatch(body, /references\//u, "a skill cites no file it does not carry");
-    const served = hasBody(name, PLUGIN);
+    const served = hasBody(name, PLUGIN) || CORE_METHODS.includes(name);
     if (served) {
       assert.match(body, new RegExp(`\`forge guide ${name}\``, "u"), `${name}'s stub names the verb that serves it`);
     } else {

@@ -11,7 +11,7 @@ import { ENV_TOKEN, googleHeld } from "./google/auth/configured.mjs";
 
 const CONFIGURED = "configured";
 export const UNCONFIGURED = "unconfigured";
-export const TOOL_STATES = [CONFIGURED, UNCONFIGURED];
+const TOOL_STATES = [CONFIGURED, UNCONFIGURED];
 
 const CLOUDFLARE_LOGIN =
   "forge cloudflare login --name <label> --account-id <id> --token <api-token>";

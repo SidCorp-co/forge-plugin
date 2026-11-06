@@ -320,14 +320,13 @@ project's scope, and each key is reported with its source (BR-08).
 
 ### UC-02-8 — The method arrives with the verb that acts, rendered for the flow
 
-Rev: 2 · Actors: agent · Enforces: BR-07, BR-09
+Rev: 3 · Actors: agent · Enforces: BR-07, BR-09
 
-A method served as a static file is read by the agent choosing which part to read, and a part
-chosen can be the wrong one, one the issue's rung does not owe, or one read too early to be held when
-needed; a static part also cannot say what this project, this complexity and this status make true. The
-verbs that perform the acts know all three. So a part is rendered at the call from one source text
-per part (BR-09), for the project's keys and the flow it names (BR-07), and the verb that acts
-carries the part for its act.
+A static part cannot say what this project, this complexity and this status make true. So a part
+this product serves is rendered at the call from one source text per part (BR-09), for the
+project's keys and the flow it names (BR-07). Where the method itself is the tracker's own served
+page, the verb that acts carries no part of it, since cutting a page this product does not own by a
+numbering of its own would be a second index over that page.
 
 - **AC-02-8-1** · Rev: 2 · Proof: plugin/test/guides/rounds.test.mjs "a part fenced on the rung is served to the rung it names and to no other"
   WHEN a part of the method is served THEN the CLI SHALL render it for the project's keys, the issue's
@@ -340,7 +339,7 @@ carries the part for its act.
 - **AC-02-8-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the method's index is cut for one issue THEN it SHALL list only the phases that issue's
   complexity, status and project keys leave it owing.
-- **AC-02-8-5** · Rev: 1 · Proof: none yet — ISS-2123
+- **AC-02-8-5** · Rev: 1 · Status: retired (ISS-69)
   WHEN a verb first acts on an issue in a session THEN its reply SHALL carry the phase part for that
   act, identical to what the guide verb prints for it, and a later act of the same kind in that
   session SHALL carry none.
