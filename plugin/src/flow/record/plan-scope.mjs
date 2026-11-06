@@ -42,12 +42,15 @@ const saved = (tree, ref, row) => {
   }
 };
 
-/** What `namedIn` gave for one issue, against the tree it is being worked in — the caller's own directory, since a run's writes and its records stand in one tree. A tree this cannot name writes nothing, and so does a call with no reference. */
-export const noteScope = (ref, text, { tree = repoRoot(process.cwd()), now = Date.now(), leaseUntil } = {}) => {
+const profileIn = (row) => (typeof row?.profile === "string" && row.profile ? row.profile : null);
+
+/** What `namedIn` gave for one issue, against the tree it is being worked in — the caller's own directory, since a run's writes and its records stand in one tree. A tree this cannot name writes nothing, and so does a call with no reference. `profile` is the project's gate profile as the claim read it; a writer that read none keeps the one already recorded, and a profile nobody read is left out, which the gate reads as `strict`. */
+export const noteScope = (ref, text, { tree = repoRoot(process.cwd()), now = Date.now(), leaseUntil, profile } = {}) => {
   if (!tree || !ref) return true;
   filesFor(tree, now);
+  const kept = profile === undefined ? profileIn(readJson(scopePath(tree, ref))) : profileIn({ profile });
   return saved(tree, ref, { tree, ref: String(ref).toUpperCase(), at: new Date(now).toISOString(), named: String(text ?? ""),
-    ...(Number.isFinite(leaseUntil) && leaseUntil > 0 ? { leaseUntil } : {}) });
+    ...(Number.isFinite(leaseUntil) && leaseUntil > 0 ? { leaseUntil } : {}), ...(kept ? { profile: kept } : {}) });
 };
 
 /** An issue this tree no longer holds. The entry goes rather than emptying, an issue with no plan and an issue that is gone being two different silences. Nothing to remove is this call's success and not its failure: the entry the record wanted gone is gone, and so is one the sweep already owns. */
@@ -58,7 +61,7 @@ export const dropScope = (ref, { tree = repoRoot(process.cwd()), now = Date.now(
   return saved(tree, ref, null);
 };
 
-/** Every issue this tree holds, newest first, each with the text `namedIn` gave for it. */
+/** Every issue this tree holds, newest first, each with the text `namedIn` gave for it and the gate profile recorded beside it, where one was. */
 export const scopeHeld = (tree, now = Date.now()) => {
   if (!tree) return [];
   return filesFor(tree, now)
@@ -67,7 +70,8 @@ export const scopeHeld = (tree, now = Date.now()) => {
     .filter((one) => now - (Date.parse(one.at) || 0) < SCOPE_KEPT_MS)
     /* A lapsed lease reads as no plan: a move made outside the plugin — through `forge-runner api` — drops no entry, so the lease the entry recorded is what says the run working this issue is gone (ISS-38). An entry with no lease recorded keeps the day-long window. */
     .filter((one) => !(Number(one.leaseUntil) > 0 && Number(one.leaseUntil) <= now))
-    .map((one) => ({ ref: String(one.ref), named: String(one.named ?? ""), at: String(one.at ?? "") }))
+    .map((one) => ({ ref: String(one.ref), named: String(one.named ?? ""), at: String(one.at ?? ""),
+      ...(profileIn(one) ? { profile: profileIn(one) } : {}) }))
     .sort((one, two) => (one.at > two.at ? -1 : Number(one.at < two.at)));
 };
 

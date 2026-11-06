@@ -1,5 +1,5 @@
-/* The brief is a ceremony a project can decline: gated `yolo` on fast delivery, its agents act first
-   and the record follows. Exercised against a tracker answering the two reads the gate makes. */
+/* The brief is a ceremony only a strict project asks for: off `strict` on fast delivery, its agents act
+   first and the record follows. Exercised against a tracker answering the two reads the gate makes. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -16,7 +16,7 @@ const answering = ({ profile, fast }) => {
   state.calls = [];
   state.answer = {
     forge_config: (args) => {
-      if (args.action === "gates") return { profile, overrides: {}, gates: [] };
+      if (args.action === "gates") return profile === null ? { refused: "the tracker is down" } : { profile, overrides: {}, gates: [] };
       if (args.action === "document") {
         return { declared: true, revision: 3, document: fast === undefined ? {} : { delivery: { fast } } };
       }
@@ -57,19 +57,33 @@ test("yolo with fast delivery turned off still asks for the brief, naming why", 
   assert.match(said.reason, /Not waived: forge-plugin is gated `yolo` with fast delivery off/u);
 });
 
-test("a standard or strict project still asks for the brief", async () => {
-  for (const profile of ["standard", "strict"]) {
+test("a standard project on fast delivery is waived too, named by its own profile", async () => {
+  answering({ profile: "standard" });
+  const said = await dispatch("ISS-7: fix the parser and land it.");
+  assert.equal(said.allowed, true, said.reason);
+  assert.match(said.context, /No brief asked: forge-plugin is gated `standard` on fast delivery/u);
+});
+
+test("a strict project still asks for the brief", async () => {
+  answering({ profile: "strict" });
+  const said = await dispatch("ISS-7: fix the parser and land it.");
+  assert.equal(said.allowed, false);
+  assert.match(said.reason, /Not waived: forge-plugin is gated `strict`/u);
+});
+
+test("a profile the tracker did not give keeps the brief", async () => {
+  for (const profile of [null, undefined]) {
     answering({ profile });
     const said = await dispatch("ISS-7: fix the parser and land it.");
-    assert.equal(said.allowed, false, profile);
-    assert.match(said.reason, new RegExp(`Not waived: forge-plugin is gated \`${profile}\``, "u"));
+    assert.equal(said.allowed, false, String(profile));
+    assert.match(said.reason, /Not waived: the tracker did not answer for forge-plugin/u);
   }
 });
 
 test("the profile is read from the tracker on each dispatch, never remembered", async () => {
   answering({ profile: "yolo" });
   assert.equal((await dispatch("ISS-7: one.")).allowed, true);
-  answering({ profile: "standard" });
+  answering({ profile: "strict" });
   assert.equal((await dispatch("ISS-7: two.")).allowed, false);
   assert.ok(state.calls.some((one) => one.name === "forge_config" && one.args.action === "gates"));
 });

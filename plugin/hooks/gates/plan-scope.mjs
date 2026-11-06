@@ -1,5 +1,5 @@
 // Refuse a write to a file the plan does not name, so the correction is posted before the file
-// rather than read off the mark after the ship. how/plan-scope.md.
+// rather than read off the mark after the ship, on a project gated `strict`. how/plan-scope.md.
 
 import { statSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
@@ -7,6 +7,7 @@ import { isAbsolute, join, relative } from "node:path";
 import { deny, done, how, named, shellWrites, writtenPaths } from "../_hook.mjs";
 import { repoRoot } from "../../src/git/repo-root.mjs";
 import { scopeHeld } from "../../src/flow/record/plan-scope.mjs";
+import { STRICT } from "../../src/brief/waived.mjs";
 import { correctionForm, namesPath } from "../../src/flow/record/merged.mjs";
 
 /* Every path the call means to write, absolute. The shell reading is the strict one: a gate that must not invent a target takes nothing from a command whose destination it cannot place, and a relative name after a move this cannot follow — a `cd -`, a `cd "$(mktemp -d)"` — is one of those, where resolving it against the event's own directory would name a file in a tree the command never meant to stand in. That holds on its own line too, where the event's directory is only what a failed move leaves (ISS-2766). */
@@ -27,10 +28,11 @@ const judged = (path, root) => {
   return statSync(path, { throwIfNoEntry: false })?.isDirectory() ? null : rel;
 };
 
-/** The scope the tree holds, or null where nothing may be refused against it: no issue claimed here, and an issue whose plan field is empty, which is the rung that writes no plan and takes no list back from it. Several issues on one tree are one branch and one change, so their texts read together, and the refusal names the one claimed last. */
+/** The scope the tree holds, or null where nothing may be refused against it: no issue claimed here, an issue whose plan field is empty, which is the rung that writes no plan and takes no list back from it, and a project the claim read as gated other than `strict`. Several issues on one tree are one branch and one change, so their texts read together, and the refusal names the one claimed last. */
 const scopeOf = (root) => {
   const held = scopeHeld(root);
   if (!held.length || held.some((one) => !one.named.trim())) return null;
+  if (held.every((one) => one.profile && one.profile !== STRICT)) return null;
   return { ref: held[0].ref, named: held.map((one) => one.named).join("\n") };
 };
 

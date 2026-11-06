@@ -13,9 +13,9 @@ printed in the last ten minutes, and a judge's by whether it is the judge's form
 deployment or an installed program and, except for a program judge, no tree (ISS-3145). A line the
 verb writes to standard error is not the brief.
 
-Not asked: under a project the tracker gates `yolo` while it delivers fast. The message goes as
-typed and the session is told why; both are read per dispatch, and a failed read keeps the gate.
-`forge doctor` prints the `gates` row.
+On only where the tracker gates the project `strict`, or fast delivery is off. Any other profile on
+fast delivery asks for no brief: the message goes as typed and the session is told why. Both are read
+per dispatch, and a failed read keeps the gate. `forge doctor` prints the `gates` row.
 
 Not judged: a role another plugin ships, and a general agent. Words are never read: a digest of the
 whole is compared (ISS-2147).

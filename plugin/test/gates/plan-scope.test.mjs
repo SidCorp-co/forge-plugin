@@ -40,7 +40,7 @@ const scope = async (rows) => {
   const { dropScope, noteScope } = await import("../../src/flow/record/plan-scope.mjs");
   process.env.XDG_CONFIG_HOME = ENV.XDG_CONFIG_HOME;
   for (const one of await held()) dropScope(one.ref, { tree: one.tree });
-  for (const [ref, named, at] of rows) noteScope(ref, named, { tree: at ?? tree });
+  for (const [ref, named, at, profile] of rows) noteScope(ref, named, { tree: at ?? tree, profile });
 };
 
 const held = async () => {
@@ -69,6 +69,19 @@ test("a write the plan does not name is refused, naming the path, the issue and 
   assert.match(held.reason, /ISS-411's plan/u);
   assert.match(held.reason, /forge record correction ISS-411 --corrects plan --moved "the change also wrote plugin\/src\/unplanned\.mjs"/u);
   assert.match(held.reason, /forge hooks --how plan-scope/u);
+});
+
+test("only a project the claim read as strict is refused; a cache with no profile is held as strict", async () => {
+  for (const profile of ["standard", "yolo"]) {
+    await scope([["ISS-411", PLAN, undefined, profile]]);
+    assert.equal(writes("plugin/src/unplanned.mjs").allowed, true, profile);
+  }
+  await scope([["ISS-411", PLAN, undefined, "strict"]]);
+  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false);
+  await scope([["ISS-411", PLAN]]);
+  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false, "no profile recorded");
+  await scope([["ISS-411", PLAN, undefined, "standard"], ["ISS-412", PLAN]]);
+  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false, "one issue held with no profile");
 });
 
 test("a write the plan names, and one a correction names, both pass", async () => {

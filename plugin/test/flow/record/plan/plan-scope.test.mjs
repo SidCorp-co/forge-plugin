@@ -123,6 +123,19 @@ test("an entry with no recorded lease keeps the day-long window", () => {
   assert.deepEqual(refs("/nolease", NOW + SCOPE_KEPT_MS - 1), ["ISS-921"]);
 });
 
+test("the gate profile the claim read is held beside the plan, kept by a writer that read none, and left out where nobody read one", () => {
+  const profileOf = (tree, now) => scopeHeld(tree, now).map((one) => one.profile ?? null);
+  noteScope("ISS-930", "live.mjs", { tree: "/profiled", now: NOW, profile: "standard" });
+  assert.deepEqual(profileOf("/profiled", NOW), ["standard"]);
+  noteScope("ISS-930", "live.mjs\nmore.mjs", { tree: "/profiled", now: NOW + 1000 });
+  assert.deepEqual(profileOf("/profiled", NOW + 1000), ["standard"], "a record landing after the claim keeps the profile");
+  noteScope("ISS-930", "live.mjs", { tree: "/profiled", now: NOW + 2000, profile: null });
+  assert.deepEqual(profileOf("/profiled", NOW + 2000), [null], "a claim whose read failed records none");
+  dropScope("ISS-930", { tree: "/profiled", now: NOW + 3000 });
+  noteScope("ISS-930", "live.mjs", { tree: "/profiled", now: NOW + 3000 });
+  assert.deepEqual(profileOf("/profiled", NOW + 3000), [null], "a dropped entry hands no profile to the next one");
+});
+
 test("a call naming no tree and a call naming no reference write nothing", () => {
   const before = readdirSync(scopeDir()).length;
   noteScope("ISS-411", "a.mjs", { tree: null, now: NOW });
@@ -300,6 +313,44 @@ test("a record written while the issue is off the ladder says nothing where the 
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.doesNotMatch(wrote.stderr, /could not be written or removed/u);
     assert.doesNotMatch(wrote.stderr, /hooks --off plan-scope/u);
+  } finally {
+    tracker.close();
+  }
+});
+
+/* The hook reads no tracker, so the claim is where the profile is read and the cache is where the gate finds it. */
+test("a claim records the project's gate profile in the scope, and a failed read records none", async () => {
+  const at = tempRoom("plan-scope-profile-");
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
+  const issue = { documentId: "profile-uuid", issueId: "ISS-98", status: "in_progress",
+    title: "a run on a project gated by profile", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
+  issue.plan = `${issue.plan}\n\n- \`${PLANNED}\`\n`;
+  const project = {
+    issues: [issue],
+    comments: { "profile-uuid": [] },
+    answer: {
+      forge_issues: (args) => {
+        if (args.action === "list") return { issues: [issue], returned: 1, hasMore: false };
+        if (args.action === "get") return issue;
+        if (args.action === "update") return Object.assign(issue, args.data);
+        return { documentId: args.documentId, ...(args.data ?? {}) };
+      },
+      forge_comments: () => ({ comments: [], returned: 0, hasMore: false }),
+      forge_config: (args) => {
+        if (args.action !== "gates") return undefined;
+        return project.profile ? { profile: project.profile, overrides: {}, gates: [] } : { refused: "the tracker is down" };
+      },
+    },
+  };
+  const tracker = await fakeTracker(project);
+  const worked = workedUnder(at, tracker);
+  try {
+    project.profile = "standard";
+    assert.equal((await ranAsync(FORGE, ["claim", "ISS-98", "--unheld"], childEnv(tracker), worked)).status, 0);
+    assert.equal(scopeHeldUnder(tracker, worked)[0]?.profile, "standard");
+    project.profile = null;
+    assert.equal((await ranAsync(FORGE, ["claim", "ISS-98", "--unheld"], childEnv(tracker), worked)).status, 0);
+    assert.equal(scopeHeldUnder(tracker, worked)[0]?.profile, undefined, "a profile nobody read is not carried from the last claim");
   } finally {
     tracker.close();
   }

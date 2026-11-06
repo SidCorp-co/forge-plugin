@@ -1,7 +1,7 @@
 // Refuse a dispatch to one of this plugin's roles whose message `forge brief` did not print, and a
 // dispatch to the judging role whose message is not the judge's form: a typed brief is where a
 // dispatcher's method reached a run, and a judge handed a tree works in it. how/brief.md says why.
-// A project gated `yolo` on fast delivery asked for neither: its agents act first and record after.
+// A project not gated `strict`, on fast delivery, asked for neither: its agents act first and record after.
 
 import { context, deny, how } from "../_hook.mjs";
 import { JUDGE_FORM, JUDGE_ROLE, REQUIREMENT_FORM } from "../../src/brief/judge.mjs";
@@ -68,7 +68,7 @@ export const run = async (ev) => {
   if (form === JUDGE_FORM) return factsChecked(ev, role, key);
   const waiver = await briefWaived(ev.cwd || process.cwd());
   if (waiver.waived) {
-    context(`No brief asked: ${waiver.slug} is gated \`yolo\` on fast delivery, so \`${role}\` takes this message as `
+    context(`No brief asked: ${waiver.slug} is gated \`${waiver.profile}\` on fast delivery, so \`${role}\` takes this message as `
       + "it stands. What the run did is recorded on the issue afterwards.");
     return;
   }

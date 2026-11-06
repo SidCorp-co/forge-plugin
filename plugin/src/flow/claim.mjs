@@ -13,14 +13,13 @@ import { scoped } from "../tracker/rest.mjs";
 import { asksIndependent, landsOn, releasePolicy } from "../tracker/project-config.mjs";
 import { commentPage, cutIn, mustBeShown } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
-import { rungOf } from "../ladder.mjs";
 import { SIDE, namedIn, parkThatSet, rungFieldsOf, viewFrom } from "./earned.mjs";
 import { isConflictPark } from "./landing/conflict-park.mjs";
 import { owedBlock, owedIn, policyFor } from "./route.mjs";
 import { DRAFT } from "../rank/weights.mjs";
 import { dropScope, scopeFrom } from "./record/plan-scope.mjs";
+import { profileOf } from "../brief/waived.mjs";
 import { finishedAtHead, laneLines, openingLines, workLines } from "../guides/phases.mjs";
-import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld } from "./record/page.mjs";
 import { OPEN_KEPT, droppedHead, merged, patchFrom, saidWritten, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import { batchPatch, batchSaid } from "./lease/batch.mjs";
@@ -90,14 +89,12 @@ import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-c
 
 const MAX_MINUTES = 24 * 60;
 
-/* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
-/* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
+/* The opening above the lane, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
 export const advisory = (status, fields, held, work = null, finished = [], leaseSaid = heldBy()) => {
   for (const line of openingLines(status, held, work, finished)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
   console.log(`\n${MECHANISM} ${leaseSaid}`);
-  partForStatus(status, (part) => console.log(`\n${part}`), rungOf(fields));
 };
 
 /* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes and softly: a hard read's own failure exits the process, which would take a claim that had already landed down with it, and a page that does not read back is owed a line and not the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */
@@ -109,7 +106,7 @@ const advise = async (documentId, fetched, held = null, landing = undefined) => 
   const issue = landing === undefined ? fetched : { ...fetched, [FIELD]: { ...fetched[FIELD], [LANDING]: landing } };
   const work = await workNow(held);
   const leaseSaid = heldBy(documentId);
-  const page = await commentPage(documentId, true);
+  const [page, gated] = await Promise.all([commentPage(documentId, true), profileOf()]);
   if (page?.refused) {
     console.log(`This issue's comment page did not read back, so no phase is named as passed and the `
       + `lane below is printed at the rung an unread page owes: ${page.refused}`);
@@ -117,7 +114,8 @@ const advise = async (documentId, fetched, held = null, landing = undefined) => 
   }
   const drafted = issue.status === DRAFT;
   const view = viewFrom(documentId, issue, page.comments, cutIn(page), drafted ? await policyFor(issue.plan, issue.status) : null);
-  scopeFrom(issue.status, issue.issueId, namedIn(view), { leaseUntil: expiryOf(leaseOf(issue[FIELD])) || undefined });
+  scopeFrom(issue.status, issue.issueId, namedIn(view), { leaseUntil: expiryOf(leaseOf(issue[FIELD])) || undefined,
+    profile: gated.profile ?? null });
   advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work, finishedAtHead(view), leaseSaid);
   /* At a side status the lane above is empty, so where the way back is refused the refusal is what
      the claimant acts on: it names the record that finishes a park whose record did not go up. At
