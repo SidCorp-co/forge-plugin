@@ -44,8 +44,7 @@ import { HELD } from "../tracker/declared/issue-machine.mjs";
 
 /* Core's issue machine climbed in its own order, each place a status core holds or `in_progress` at
    a work step (`tracker/declared/issue-machine.mjs`): the sequence is the rule, so listing it is the
-   point. It stops at `awaiting_release`: the close from there is met in scope, every unmet criterion
-   moved out first, and is the holder's move (forge ISS-1062), so no record earns `closed`. */
+   point. It stops at `awaiting_release`, so no record earns `closed`: `flow/route/close.mjs` says why. */
 export const LADDER = ["open", HELD.plan, "approved", HELD.build, HELD.test, HELD.release, CLOSES_FROM];
 
 /** The place the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a place free to disagree with this order. */
@@ -190,9 +189,7 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
-/** The close at `awaiting_release`, the holder's once the criteria are met in scope: each unmet or
- *  failing criterion is named with where it goes, or core refuses CLOSE_CRITERION_UNPLACED (forge
- *  ISS-1062). Whether it is live is the release record's, which carries a closed issue unmoved. */
+/** The flag a close places its unmet criteria in, which `flow/route/close.mjs` reads and every reply names. */
 export const UNMET_FORM = `--unmet '[{"criterion":<n>,"to":{"issue":"ISS-<n>"}}]'`;
 export const closeForm = (ref) => `forge advance ${ref}   (or, where a criterion is unmet: forge advance ${ref} ${UNMET_FORM})`;
 

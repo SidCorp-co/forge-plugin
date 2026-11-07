@@ -374,7 +374,7 @@ export const targetOf = (view, ref) => {
   }
   if (status === REOPEN) return reopenTarget(view, ref);
   if (status === DRAFT) return draftTarget(view, ref);
-  // cm:why the close from awaiting_release is the holder's once met in scope, every unmet criterion moved out in --unmet; core judges the placement (forge ISS-1062, plugin ISS-72)
+  // cm:edge contract -> plugin/src/flow/route/close.mjs — the close's shortfall and its --unmet are read there
   if (status === CLOSES_FROM) return { next: "closed", missing: closeHeld(view, ref), resumed: false };
   const next = nextOf(status, view);
   if (!next) {

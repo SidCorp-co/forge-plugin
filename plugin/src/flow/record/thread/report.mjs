@@ -92,11 +92,10 @@ export const recordReport = async (reference) => {
   /* Wherever the issue stands, because this report is where the method sends a run for the policy's answer, and one that first reads it at the rung it is already standing on has read it a phase late. Printed in the answer that owes nobody too: a run told only that the close is owed cannot tell a policy this CLI read from one it never consulted, and a run holding this line beside `forge doctor`'s own rows can settle which of them moved (ISS-1656). */
   const policy = await releasePolicy();
   console.log(`\nRelease policy  ${releaseAnswer(policy)}`);
-  /* The close is the holder's once met in scope (forge ISS-1062, ISS-72); the release line above says only when it is live. */
   if (body.status === CLOSES_FROM) console.log(closingSaid(releaseOwedOf(policy), reference));
 };
 
-/* The closing rung's line: the close is the holder's either way, and a release still owed is only when it goes live. */
+/* The closing rung's line, `flow/route/close.mjs` holding the rule; the release line above it says only when it is live. */
 const closingSaid = (held, reference) => `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}, and the `
   + `close is the holder's once the criteria are met in scope, each unmet one moved out first:\n  ${closeForm(reference)}`
   + (held ? `\nThe release is still ${held.by === BY_BATCH ? "the release batch's" : "a person's"}, as the line above says: `
