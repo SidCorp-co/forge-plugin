@@ -320,3 +320,21 @@ test("the kinds table a filing needs comes before the goals list most filings ne
   assert.ok(kinds >= 0 && goals >= 0, run.stdout);
   assert.ok(kinds < goals, "the kinds table is read before a filing has any goal to name");
 });
+
+/* ISS-78: core takes criteria on the create door (forge ISS-1080), so a filing that knows them sends them there. */
+test("--criteria files the numbered lines as acceptanceCriteria, and a line that is not one is refused unsent", async () => {
+  const criteria = join(room, "criteria.md");
+  writeFileSync(criteria, "1. A filing carries its criteria.\n2. A bad line is refused.\n");
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", "a filing carries its criteria to the create door", "--criteria", criteria, "--new");
+  assert.equal(run.status, 0, run.stderr);
+  const create = state.calls.find((one) => one.args.action === "create");
+  assert.equal(create.args.data.acceptanceCriteria, "1. A filing carries its criteria.\n2. A bad line is refused.");
+  assert.equal(Object.hasOwn(create.args.data, "criteria"), false, "the flag's own name was sent as a field");
+  writeFileSync(criteria, "- not numbered\n");
+  state.calls = [];
+  const bad = await filed(WHOLE, "--title", "a filing with a loose criterion", "--criteria", criteria, "--new");
+  assert.equal(bad.status, 1, bad.stdout);
+  assert.match(bad.stderr, /Every criterion is a numbered line/u, bad.stderr);
+  assert.equal(state.calls.some((one) => one.args.action === "create"), false, "a bad list reached the tracker");
+});

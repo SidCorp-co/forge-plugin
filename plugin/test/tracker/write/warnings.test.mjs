@@ -201,3 +201,23 @@ test("a read carrying the same key says nothing, and a write carrying none says 
   assert.equal(Object.hasOwn(bare.answer, "status"), false,
     "the status it moved to being the one it was asked for, which the caller already held");
 });
+
+/* Core's words whole, then the plugin verb that does what they ask (ISS-78, forge ISS-1080). */
+const UNRECORDED = "criteria-list-in-description: the description lists 2 items under \"Outcome\", and this issue "
+  + "has 0 criteria on the record, so no verdict can attach to them, and they lock once the issue reaches "
+  + "`awaiting_release`. Record them now: `PUT /api/issues/x/criteria` with `{ \"criteria\": [{ \"statement\": \"…\" }] }`; "
+  + "a filing takes them as `acceptanceCriteria`, numbered lines (`1. …`).";
+
+test("a lease-take answered with the criteria-list warning names the record write that clears it, once", async () => {
+  const { said } = await heard(() => answering(
+    [ok({ documentId: ISSUE_ID, issueId: "ISS-78", status: "open", warnings: [UNRECORDED, UNRECORDED] })],
+    () => callTool("forge_issues", { action: "update", documentId: ISSUE_ID, data: { sessionContext: {} } })));
+  assert.ok(said.includes(`  warning from the tracker — ${UNRECORDED}`), `core's words were not passed whole: ${said.join(" | ")}`);
+  assert.deepEqual(said.filter((line) => line.startsWith("  what clears it:")),
+    ["  what clears it: forge record criteria ISS-78 <criteria.md>"], said.join(" | "));
+});
+
+test("a warning no route is kept for names no command", async () => {
+  const { said } = await declining([DECLINED]);
+  assert.equal(said.some((line) => line.includes("what clears it")), false, said.join(" | "));
+});

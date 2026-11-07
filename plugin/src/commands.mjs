@@ -180,6 +180,14 @@ const WHICH_SURFACE = "The rows a call prints with no `--fields` are for a perso
   + "`--project <slug>` reads another project's issues for this call alone and saves nothing; beside a\n"
   + "write it is refused, an issue's fields and edges being written from a checkout of its own project.";
 
+/* Read off the same grammar `forge record criteria` writes, so a filing refuses what the record write would. */
+const criteriaFiled = async (path) => {
+  const text = (await bodyFrom(path)).trim();
+  const { criteriaLines } = await import("./flow/record/fields.mjs");
+  criteriaLines(text, "the filing");
+  return text;
+};
+
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
   "  --title T      what is true once this is fixed, one line",
@@ -189,6 +197,7 @@ const NEW_FLAGS = [
   `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
   "  --with ISS-45  a `relates` edge to that issue, or to several, comma-separated",
   "  --module M     its primary module, which `forge doctor modules` lists",
+  "  --criteria F   its acceptance criteria, a file of numbered lines `N. outcome`, filed as criteria",
   "  --new          file it past the duplicate hold and the fold, and say which",
 ].join("\n");
 
@@ -289,7 +298,8 @@ const own = {
     /* Before the unknown-flag route, whose nearest live name answers a question nobody asked. */
     const retired = retiredFlagIn("new", rest);
     if (retired) fail(retired);
-    const { with: rides, complexity, category, priority, new: fresh, module: named, ...given } = flags(rest, "new", ["--new"], row);
+    const { with: rides, complexity, category, priority, new: fresh, module: named, criteria, ...given } = flags(rest, "new", ["--new"], row);
+    if (criteria === "-" && path === "-") fail("The body and --criteria cannot both be read from stdin; give the criteria a file.");
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);
@@ -310,7 +320,9 @@ const own = {
     const dropKept = path === "-" ? keepBody("body", body) : undefined;
     const unnamed = await servesOwed(body, "This body's `Serves:` line");
     if (unnamed) fail(unnamed);
-    const { title, ...carried } = given;
+    const acceptanceCriteria = criteria === undefined ? undefined : await criteriaFiled(criteria);
+    const { title, ...typed } = given;
+    const carried = acceptanceCriteria === undefined ? typed : { ...typed, acceptanceCriteria };
     /* Asked of the flags and never of the tracker: a field the filer typed is theirs, and only an absent one is the model's. */
     const absent = [priority === undefined && "priority", complexity === undefined && "complexity"].filter(Boolean);
     const after = absent.length

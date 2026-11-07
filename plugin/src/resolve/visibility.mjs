@@ -32,7 +32,7 @@ export const VERBS = [
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
       at: "`forge issue ISS-45`", by_key: "`forge issue ISS-45`",
       update: "`forge issue --set`", link: "`forge issue --blocks`", unlink_edge: "`forge issue --unlink`" } }],
-  ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--module M] [--new]",
+  ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--module M] [--criteria F] [--new]",
     "file one, read against the shape its category needs",
     "forge_issues", { group: BACKLOG, channel: "project", wraps: { create: "`forge new`" } }],
   ["comment", "<uuid|ISS-45> [<file.md|@file|->] [--title T] [--parent <comment-uuid>] [--project <slug>]",

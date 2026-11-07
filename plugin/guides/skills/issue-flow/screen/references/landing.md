@@ -3,6 +3,10 @@
 What a landing owes is core's page. How far a run takes it is the project's ship mode, which
 `forge doctor project` prints, and each mode is a different set of verbs.
 
+The criteria are recorded before the landing, since core locks them once the issue reaches
+`awaiting_release`: `forge record criteria ISS-nn <criteria.md>`, or `forge new --criteria` at filing.
+When, and the warning a list left in the description draws, are core's page (`forge guide issue-flow`).
+
 <!-- forge:when ship self -->
 ## `ship self`: the run lands its own change
 

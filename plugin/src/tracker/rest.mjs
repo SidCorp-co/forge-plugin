@@ -348,6 +348,11 @@ const sayDeclined = async (key, bodies) => {
     + `${said.length === 1 ? "one warning" : `${said.length} warnings`} to the call; do not send `
     + "that row again, and read below for whatever part of the call it did not do.");
   for (const line of said.flat().map(marked)) console.error(line);
+  const { clearedBy, issueRefOf } = await import("./warning-routes.mjs");
+  const ref = issueRefOf(bodies);
+  for (const route of new Set(said.flat().map((line) => clearedBy(line, ref)).filter(Boolean))) {
+    console.error(`  what clears it: ${route}`);
+  }
 };
 
 /** The bodies a read row's own routes answered, before any projection reads them. The one caller is
