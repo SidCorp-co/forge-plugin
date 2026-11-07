@@ -197,7 +197,7 @@ const NEW_FLAGS = [
   `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
   "  --with ISS-45  a `relates` edge to that issue, or to several, comma-separated",
   "  --module M     its primary module, which `forge doctor modules` lists",
-  "  --criteria F   its acceptance criteria, a file of numbered lines `N. outcome`, filed as criteria",
+  "  --criteria F   a file of numbered lines `N. outcome`, its criteria",
   "  --new          file it past the duplicate hold and the fold, and say which",
 ].join("\n");
 

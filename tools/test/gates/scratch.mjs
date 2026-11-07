@@ -38,15 +38,16 @@ export const reachedFrom = (roots) => {
 export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs"),
   join("plugin", "test", "fixtures", "process", "isolated.mjs")];
 
-// `recurrence.mjs`'s own, and `project-config.mjs` and `guides.mjs`, which every `write()` reaches
-// the same way — the first to resolve the project, the second to read what the tracker warned about
-// against this copy's disposition of the page it came off.
+// `recurrence.mjs`'s own, and `project-config.mjs`, `guides.mjs` and `warning-routes.mjs`, which every
+// `write()` reaches the same way — the first to resolve the project, the others to read what the tracker
+// warned about against this copy's disposition of the page it came off and the command that clears it.
 export const ROUTE_ROOTS = [
   join("plugin", "src", "tracker", "filing", "route.mjs"),
   join("plugin", "src", "tracker", "comments.mjs"),
   join("plugin", "src", "tracker", "issues.mjs"),
   join("plugin", "src", "tracker", "project-config.mjs"),
   join("plugin", "src", "guides", "guides.mjs"),
+  join("plugin", "src", "tracker", "answers", "warning-routes.mjs"),
   join("plugin", "src", "resolve", "settings.mjs"),
   join("plugin", "src", "resolve", "flags.mjs"),
 ];
