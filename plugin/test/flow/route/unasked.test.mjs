@@ -67,6 +67,7 @@ const working = {
   documentId: "working-uuid",
   issueId: "ISS-7",
   status: "in_progress",
+  workState: { step: "build" },
   title: "a change being written",
   acceptanceCriteria: CRITERIA,
   plan: "## Files touched\n\na.mjs\n",

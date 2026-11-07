@@ -255,6 +255,7 @@ const row = (documentId, issueId, status, landing, lease, owned) => ({
   documentId,
   issueId,
   status,
+  workState: { step: null },
   title: "one flow: the landing",
   description: "a body.\n\nSize: feature.\n",
   plan: `Screen change: no\nSchema coupling: no\nUser-facing outcome: no\n\nIt edits ${owned}.\n\n1. it lands\n`,

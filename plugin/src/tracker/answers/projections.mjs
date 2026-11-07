@@ -2,7 +2,7 @@
    reads. Pure, as that table is. */
 
 import { relationsOf } from "../edges/kinds.mjs";
-import { placeOf } from "../declared/issue-machine.mjs";
+import { WORK_STEPS, placeOf } from "../declared/issue-machine.mjs";
 
 export const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));
@@ -31,9 +31,11 @@ const columns = (row) =>
 
 /* Named by its place on the way back, the tracker's own status beside it where the two differ; a
    row carrying no status is left as it is. */
-const placed = (row) => {
+const placed = (row, { whole = false } = {}) => {
   if (row?.status === undefined || row?.status === null) return {};
-  const place = placeOf(row.status, row.step ?? row.workState?.step);
+  // cm:guard a whole issue read with no workState column is a tracker that holds no step (forge-beta), so its in_progress reads at the earliest place, never past a plan it did not earn (FB-71); a list row may omit the column on any tracker
+  const unstepped = whole && row.step === undefined && row.workState === undefined;
+  const place = placeOf(row.status, unstepped ? WORK_STEPS[0] : row.step ?? row.workState?.step);
   return place === row.status ? { status: place } : { status: place, trackerStatus: row.status };
 };
 
@@ -74,7 +76,7 @@ export const projectOf = (row) => {
 export const issueOf = ({ issue, dependencies, attachments }) => ({
   ...named(issue),
   ...columns(issue),
-  ...placed(issue),
+  ...placed(issue, { whole: true }),
   labels: issue?.labels ?? [],
   ...(attachments === undefined ? {} : { attachments: rowsIn(attachments, "items") }),
   ...(dependencies === undefined ? {} : { relations: relationsOf(dependencies) }),

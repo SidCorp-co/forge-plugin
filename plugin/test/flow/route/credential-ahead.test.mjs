@@ -69,6 +69,7 @@ const SCREENING = {
   documentId: "screen-uuid",
   issueId: "ISS-97",
   status: "in_progress",
+  workState: { step: "build" },
   title: "the change somebody has to look at",
   description: "no mark here",
   plan: SCREEN,

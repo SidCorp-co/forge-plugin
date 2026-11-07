@@ -42,10 +42,10 @@ const REFUSED = "the tracker will not read uuid-15";
 const ISSUES = Array.from({ length: 21 }, (_, at) => row(at + 1, "open"));
 Object.assign(ISSUES[2], { sessionContext: worklog({ batch: "ISS-3, ISS-4" }) });
 Object.assign(ISSUES[4], { sessionContext: worklog({ batch: "ISS-5, ISS-6" }) });
-Object.assign(ISSUES[9], { status: "in_progress", acceptanceCriteria: "1. The first outcome.", sessionContext: worklog({ batch: ALL }) });
-Object.assign(ISSUES[10], { status: "in_progress", sessionContext: worklog({ head: HEAD_11, batch: ALL }) });
+Object.assign(ISSUES[9], { status: "in_progress", workState: { step: "build" }, acceptanceCriteria: "1. The first outcome.", sessionContext: worklog({ batch: ALL }) });
+Object.assign(ISSUES[10], { status: "in_progress", workState: { step: "build" }, sessionContext: worklog({ head: HEAD_11, batch: ALL }) });
 Object.assign(ISSUES[12], { status: "in_progress", workState: { step: "test" }, sessionContext: worklog({ head: HEAD_13, batch: "ISS-13, ISS-14" }) });
-Object.assign(ISSUES[19], { status: "in_progress", sessionContext: worklog({}) });
+Object.assign(ISSUES[19], { status: "in_progress", workState: { step: "build" }, sessionContext: worklog({}) });
 
 const project = {
   calls: [],
@@ -126,7 +126,7 @@ test("each sibling is read at the moment of the resume, never off the member's o
     const run = await forgeIn(neutralRoom(), "resume", "ISS-10");
     assert.match(lineOf(run.stdout), /^batch {7}with ISS-11 in_progress:test at abc1234; /u);
   } finally {
-    delete ISSUES[10].workState;
+    ISSUES[10].workState = { step: "build" };
   }
 });
 
