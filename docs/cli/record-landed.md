@@ -39,5 +39,5 @@ prints every call the run would make, in order, and sends none. It reads the lea
 the way the call does, so where the call would stop it is refused the same way: it may say less
 than the call does, and never promises a step the call refuses.
 
-**What it is not.** It does not close the issue. The close from `awaiting_release` is the holder's
-once the criteria are met in scope, `forge advance <ISS-nn> [--unmet '<json>']` (forge ISS-1062).
+**What it is not.** It does not close the issue: that is a later `forge advance`, whose own page,
+`docs/cli/advance-the-ladder.md`, says when.
