@@ -1,8 +1,8 @@
 /* The close from `awaiting_release`, the holder's once its criteria are met in scope (forge ISS-1062):
    the shape of --unmet judged before a credential is spent, and the flag a refusal of it names. */
-import { refuse } from "../refusal.mjs";
-import { UNMET_FORM, pastJudgingOwed } from "./earned.mjs";
-import { CLOSES_FROM } from "./machine.mjs";
+import { refuse } from "../../refusal.mjs";
+import { UNMET_FORM, pastJudgingOwed } from "../earned.mjs";
+import { CLOSES_FROM } from "../machine.mjs";
 
 /* The shape a close can be judged on before a credential is spent; where each criterion may go is core's. */
 export const unmetOf = (raw) => {

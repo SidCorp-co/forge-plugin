@@ -8,7 +8,7 @@ import { CLOSES_FROM, TRIAGES, atMinute, commandAt, criterionNumber, looksIn, mi
   from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { unreadId, withRuntime } from "./earned/asks.mjs";
-import { closeHeld } from "./close.mjs";
+import { closeHeld } from "./route/close.mjs";
 import { coreJudged, coreReadLines, withCoreVerdicts } from "./earned/core-verdicts.mjs";
 import { designReadLines } from "./earned/core-design.mjs";
 import {
