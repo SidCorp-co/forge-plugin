@@ -3,10 +3,9 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { FRESH_MS, askedAlready, askedByAnyone, block, how, named, settled, touched } from "../../_hook.mjs";
+import { FRESH_MS, askedAlready, askedByAnyone, block, calledAt, how, named, ownTranscript, settled, touched } from "../../_hook.mjs";
 import { BRIEF, guarded, installedCopy, shippedSkill, swept } from "../../../src/checks/learning.mjs";
 import { digestOf } from "../../../src/keys/digest.mjs";
-import { calledAt, ownTranscript } from "../../../src/hooks/transcripts.mjs";
 
 /* Keyed by the bytes that landed, not the name alone, so this gate's question tracks content as the
    pre-write gate's askOnce does (ISS-58). Unreadable, the name alone. */
