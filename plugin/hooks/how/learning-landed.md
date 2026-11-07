@@ -10,10 +10,10 @@ conditions are against.
 How to avoid it: write a memory with `Write` and a skill's text with `Edit`, where the question comes
 first and is stamped, so it is never asked twice.
 
-What it sees: a guarded file changed in the last two minutes — one a command named, and any in this
-session's memory directory or the repository's skill directories. A tracked file the tree agrees with
-was restamped, not written. What is left can be somebody else's edit, or a file the call only read
-while something else restamped it: say which, and it is not asked again.
+What it sees: a guarded file changed in the last two minutes that a command named, and any in the
+memory or skill directories changed since this call began (none where the transcript cannot say). A
+tracked file the tree agrees with was restamped, not written. What is left may still be another's:
+say which, and it is not asked again.
 
 Not judged: whether the fact is true or useful; a file outside `memory/` or `skills/`; a shipped
 skill, tracked or marketplace-named; an installed copy of this plugin, where the host's install

@@ -31,6 +31,12 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
   return answer === null ? null : answer.reason;
 };
 
+/* The session's own call, as its transcript records it: the sweep reads back to the call's start and no further. */
+const called = (path, at = Date.now() - 1000) => {
+  writeFileSync(path, `${JSON.stringify({ type: "assistant", timestamp: new Date(at).toISOString() })}\n`);
+  return path;
+};
+
 const committed = (repo, what) => {
   for (const args of [["init", "-q"], ["add", what], ["commit", "-qm", "first"]]) {
     const run = spawnSync("git", ["-C", repo, ...args], { cwd: repo,
@@ -122,7 +128,7 @@ test("a memory file no call named at all is found by reading the directory", () 
       tool_name: "Bash",
       tool_input: { command: "node build-notes.mjs" },
       cwd: project,
-      transcript_path: join(project, `${session}.jsonl`),
+      transcript_path: called(join(project, `${session}.jsonl`)),
     },
     HOME,
   );
@@ -146,7 +152,7 @@ test("a delegated run's sweep reads the project's memory and not its own transcr
       tool_name: "Bash",
       tool_input: { command: "node build-notes.mjs" },
       cwd: project,
-      transcript_path: join(project, `${session}.jsonl`),
+      transcript_path: called(join(project, `${session}.jsonl`)),
       agent_transcript_path: join(project, session, "subagents", "agent-b2c.jsonl"),
     },
     HOME,
@@ -154,6 +160,43 @@ test("a delegated run's sweep reads the project's memory and not its own transcr
   assert.equal(run.status, 0, run.stderr);
   assert.match(answered(run)?.reason ?? "", /by-a-delegated-script\.md/u,
     "the sweep looked beside the agent's transcript, where the host keeps no memory");
+});
+
+/* Memory is the project's and every session of it writes there, so a file that landed before this
+   call began is another's, however fresh (ISS-74). */
+test("a memory file written before this call began is another session's and is not asked about", () => {
+  const session = randomUUID();
+  const project = tempRoom("landed-other-session-");
+  mkdirSync(join(project, "memory"));
+  const theirs = join(project, "memory", "box-lease-holder-is-shared.md");
+  writeFileSync(theirs, "a line\n");
+  utimesSync(theirs, new Date(Date.now() - 30_000), new Date(Date.now() - 30_000));
+  const run = callHook(
+    HOOK,
+    {
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: called(join(project, `${session}.jsonl`), Date.now() - 5_000),
+    },
+    HOME,
+  );
+  assert.equal(run.stdout.trim(), "", "a file another session wrote within the window was asked about");
+});
+
+/* Where this session's call cannot be read, nothing tells its writes from another's, so the sweep says nothing. */
+test("a session whose transcript cannot be read sweeps nothing", () => {
+  const project = tempRoom("landed-no-transcript-");
+  mkdirSync(join(project, "memory"));
+  writeFileSync(join(project, "memory", "unknown-author.md"), "a line\n");
+  const run = callHook(
+    HOOK,
+    { session_id: randomUUID(), tool_name: "Bash", tool_input: { command: "node build-notes.mjs" }, cwd: project,
+      transcript_path: join(project, "absent.jsonl") },
+    HOME,
+  );
+  assert.equal(run.stdout.trim(), "");
 });
 
 test("a file the directory has held for a day is not this call's", () => {
@@ -170,7 +213,7 @@ test("a file the directory has held for a day is not this call's", () => {
       tool_name: "Bash",
       tool_input: { command: "node build-notes.mjs" },
       cwd: project,
-      transcript_path: join(project, `${session}.jsonl`),
+      transcript_path: called(join(project, `${session}.jsonl`)),
     },
     HOME,
   );
@@ -192,7 +235,7 @@ test("every file that landed is named in one refusal", () => {
       tool_name: "Bash",
       tool_input: { command: "node build-notes.mjs" },
       cwd: project,
-      transcript_path: join(project, `${session}.jsonl`),
+      transcript_path: called(join(project, `${session}.jsonl`)),
     },
     HOME,
   );
@@ -236,7 +279,7 @@ test("a guarded name that links out of the tree is swept as itself", () => {
       tool_name: "Bash",
       tool_input: { command: "node build-notes.mjs" },
       cwd: project,
-      transcript_path: join(project, `${session}.jsonl`),
+      transcript_path: called(join(project, `${session}.jsonl`)),
     },
     HOME,
   );
@@ -264,7 +307,7 @@ test("a swept link the gate already asked about is not asked again", () => {
       tool_name: "Bash",
       tool_input: { command: "node build-notes.mjs" },
       cwd: project,
-      transcript_path: join(project, `${session}.jsonl`),
+      transcript_path: called(join(project, `${session}.jsonl`)),
     },
     HOME,
   );
@@ -284,7 +327,7 @@ test("a file one session was asked about is not asked again in another", () => {
         tool_name: "Bash",
         tool_input: { command: "node build-notes.mjs" },
         cwd: project,
-        transcript_path: join(project, `${session}.jsonl`),
+        transcript_path: called(join(project, `${session}.jsonl`)),
       },
       HOME,
     ).stdout.trim();
@@ -304,7 +347,8 @@ test("a skill directory the tree has never tracked is swept too", () => {
   writeFileSync(join(repo, "skills", "brand-new", "SKILL.md"), "the method\n");
   const run = callHook(
     HOOK,
-    { session_id: session, tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo },
+    { session_id: session, tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo,
+      transcript_path: called(join(tempRoom("landed-untracked-session-"), `${session}.jsonl`)) },
     HOME,
   );
   assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "nothing named it and nothing tracked it");
@@ -337,7 +381,8 @@ test("a served skill body under guides/skills is swept like the stub", () => {
   writeFileSync(join(repo, "guides", "skills", "deploy", "guide.md"), "the method\n");
   const run = callHook(
     HOOK,
-    { session_id: session, tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo },
+    { session_id: session, tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo,
+      transcript_path: called(join(tempRoom("landed-session-"), "call.jsonl")) },
     HOME,
   );
   assert.match(JSON.parse(run.stdout).reason, /guide\.md/u, "the served body changed and nothing asked");
@@ -423,7 +468,8 @@ test("a tracked link is judged by what it points at, not by its own name", () =>
   writeFileSync(target, "the method, rewritten\n");
   const run = callHook(
     HOOK,
-    { session_id: randomUUID(), tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo },
+    { session_id: randomUUID(), tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo,
+      transcript_path: called(join(tempRoom("landed-session-"), "call.jsonl")) },
     HOME,
   );
   assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "the link is clean; the write is not");

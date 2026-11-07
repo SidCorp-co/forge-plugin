@@ -152,8 +152,9 @@ const changedIn = (root, files) => {
 /** The guarded files written lately that no call named: a script writing one is invisible to a check
  *  reading the command, so the directories it could have written are read instead. Git answers about
  *  what a name resolves to, so the target decides inside and changed, and the name is what is said. */
-export const swept = (ev, freshMs) => {
-  const since = Date.now() - freshMs;
+// cm:guard `began` is this session's own call start: the guarded directories are shared by every session, so a window reaching before it asks one session about another's file (ISS-74)
+export const swept = (ev, freshMs, began) => {
+  const since = Math.max(Date.now() - freshMs, began);
   const root = repoRoot(ev.cwd || process.cwd());
   const found = [...new Set(guardedDirs(ev, root).flatMap((dir) => freshIn(dir, since)))].sort();
   const target = new Map(found.map((one) => [one, canonical(one)]));
