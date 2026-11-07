@@ -21,7 +21,7 @@ export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
 /** The host process every agent of a dispatched wave shares, and never the process doing the work. */
 export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
 
-export const SESSION_CHARS = 100;
+const SESSION_CHARS = 100;
 
 let named = null;
 

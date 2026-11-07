@@ -100,7 +100,7 @@ const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?(\+[0
 const MANIFEST = fileURLToPath(new URL("../../.claude-plugin/plugin.json", import.meta.url));
 
 // cm:guard core refuses a malformed x-forge-plugin 400 PLUGIN_VERSION_MALFORMED, so a version off this shape is not sent (forge ISS-1104)
-export const pluginVersion = once(() => {
+const pluginVersion = once(() => {
   const version = String(readJson(MANIFEST)?.version ?? "");
   return version.length <= 64 && SEMVER.test(version) ? version : null;
 });
@@ -120,7 +120,7 @@ const authorized = (json) => {
 const warned = new Set();
 
 /* Core answers a call it let through a narrowing with `x-forge-warning: <CODE>: <detail>` (forge ISS-1104); said once per code, since every later call carries the same one. */
-export const sawWarning = (headers) => {
+const sawWarning = (headers) => {
   const said = headers.get("x-forge-warning");
   if (!said) return;
   const code = said.split(":")[0].trim();
