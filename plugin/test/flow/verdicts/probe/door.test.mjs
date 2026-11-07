@@ -172,3 +172,40 @@ test("the probe and clip owed are carried in the judging rung's owed list", () =
   assert.ok(owed.some((one) => /criterion 1 is observable[\s\S]*VERDICT_PROBE_REQUIRED/u.test(one.what)),
     "the rung the verdicts are owed at carries the observable lines");
 });
+
+test("a verdict naming --release or --judged-by goes to the door with that identity and that judge", async () => {
+  const before = comments();
+  const from = state.calls.length;
+  const run = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", "skipped",
+    "--why", "the release is not reachable from this box", "--release", "3.36.690", "--judged-by", "review");
+  assert.equal(run.status, 0, run.stderr);
+  const posts = called("forge_issues.verdicts", from);
+  assert.equal(posts.length, 1, `one verdict-door write:\n${run.stderr}`);
+  assert.deepEqual(posts[0].args.data.identity, { kind: "release", version: "3.36.690" });
+  assert.equal(posts[0].args.data.judge, "review");
+  assert.equal(comments(), before, "and no comment was posted for it");
+});
+
+test("--release beside --commit or --runtime is refused by name, and nothing is sent", async () => {
+  for (const beside of [["--commit", COMMIT], ["--runtime", COMMIT]]) {
+    const from = state.calls.length;
+    const run = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", "skipped",
+      "--why", "x", "--release", "3.36.690", ...beside);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /--release/u, run.stderr);
+    assert.equal(called("forge_issues.verdicts", from).length, 0, "nothing reached the door");
+  }
+});
+
+test("a judge core refuses as not the run's role is told which --judged-by to send", async () => {
+  state.verdictAnswer = { refused: "VERDICT_JUDGE_NOT_RUN_ROLE: the run is declared reviewer", status: 422 };
+  try {
+    const run = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", "skipped",
+      "--why", "x", "--commit", COMMIT, "--judged-by", "qa");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /VERDICT_JUDGE_NOT_RUN_ROLE/u, run.stderr);
+    assert.match(run.stderr, /--role reviewer records its verdict with --judged-by review/u, run.stderr);
+  } finally {
+    state.verdictAnswer = { verdictId: "v-1", duplicate: false, criterion: 1, notCounted: null };
+  }
+});

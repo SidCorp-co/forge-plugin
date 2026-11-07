@@ -54,6 +54,7 @@ const ask = (command, { brief = JUDGE, agent = randomUUID() } = {}) => {
 const REFUSED = [
   ["forge doctor --set translate=vi", "config", /local configuration/u],
   ["forge-runner api requirements -X POST -d '{}'", "api", /raw tracker or configuration write/u],
+  ["forge-runner api issues/ISS-45/transition -X POST -d '{}'", "api", /raw tracker or configuration write/u],
   ["forge record plan ISS-45 --section x", "record", /record other than a verdict/u],
   ["forge advance ISS-45 --set open --why x", "advance", /moves the issue's status/u],
   ["forge new 'a probe issue'", "new", /creates a tracker record/u],
@@ -81,6 +82,8 @@ const ALLOWED = [
   "forge guide issue-flow verification",
   "forge-runner api issues/ISS-45",
   "forge-runner api projects/932d2e55/requirements/REQ-79/verdicts -X POST -d '{\"criterion\":\"BC-6\",\"verdict\":\"pass\"}'",
+  "forge-runner api issues/ISS-45/verdicts -X POST -d '{\"criterion\":1,\"verdict\":\"pass\",\"judge\":\"qa\",\"identity\":{\"kind\":\"release\",\"version\":\"1.2.3\"}}'",
+  "forge record verdict ISS-45 --criterion 1 --verdict pass --release 1.2.3 --judged-by qa --evidence x.webm",
   "FORGE_SESSION_ID=the-run forge record verdict ISS-45 --criterion 2 --verdict pass --why ok",
   "grep -rn probe plugin/src",
 ];

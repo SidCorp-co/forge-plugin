@@ -24,6 +24,16 @@ const hasClip = (evidence) => (evidence ?? []).some((one) => CLIP.test(String(on
 const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 const CALLERS = new Set(["anonymous", "replayer"]);
 
+/* cm:why a probe, a release identity and a named judge are fields only the door takes; a comment verdict carries none of them */
+const doorOnly = (got) => got.probe !== undefined || got.release !== undefined || got["judged-by"] !== undefined;
+
+const JUDGE_NOT_ROLE = "VERDICT_JUDGE_NOT_RUN_ROLE";
+/** The refusal core gave a verdict write, with the flag that answers it where core refused its judge. */
+export const judgeHinted = (refused) => (String(refused).includes(JUDGE_NOT_ROLE)
+  ? `${refused}\nA run declared --role reviewer records its verdict with --judged-by review, and one declared `
+    + "--role qa with --judged-by qa: send the same command with the one this run's role takes."
+  : refused);
+
 const bad = (why) => ({ refusal: `${why} (VERDICT_PROBE_SHAPE). A probe is ${PROBE_TAKES}` });
 
 /** The probe a `--probe` value stands for, or `{ refusal }` where its shape is wrong: the two forms
@@ -68,7 +78,9 @@ const probeParsed = (text) => {
 const doorDraft = (got, probe, run) => {
   const criterion = criterionNumber(got.criterion);
   const draft = draftRuntimeOf(got.runtime);
-  const identity = draft !== null
+  const identity = got.release !== undefined
+    ? { kind: "release", version: got.release }
+    : draft !== null
     ? { kind: "storefront_draft", workflowId: draft.workflowId, draftVersion: draft.draftVersion, environment: got.environment }
     : got.runtime !== undefined
       ? { kind: "runtime", ref: got.runtime }
@@ -83,6 +95,7 @@ const doorDraft = (got, probe, run) => {
     ...(got.evidence?.length ? { evidence: got.evidence } : {}),
     probe,
     ...(got["without-clip"] !== undefined ? { withoutClip: got["without-clip"] } : {}),
+    ...(got["judged-by"] !== undefined ? { judge: got["judged-by"] } : {}),
     ...(run ? { run } : {}),
   };
   return { criterion, verdict: got.verdict, payload, rendered: render("verdict", [got], null) };
@@ -150,7 +163,7 @@ export const verdictDoorPrepared = (blocks, { reference, classes, refused = null
       + "\nFix every block named and send the write again.");
   }
   return {
-    drafts: blocks.filter((got) => got.probe !== undefined).map((got) => doorDraft(got, parsed.get(got), run)),
-    commentBlocks: blocks.filter((got) => got.probe === undefined),
+    drafts: blocks.filter(doorOnly).map((got) => doorDraft(got, parsed.get(got), run)),
+    commentBlocks: blocks.filter((got) => !doorOnly(got)),
   };
 };

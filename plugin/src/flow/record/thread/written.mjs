@@ -11,6 +11,7 @@ import { repoRoot } from "../../../git/repo-root.mjs";
 import { scopeFrom, scopePath } from "../plan-scope.mjs";
 import { FIELD, expiryOf, leaseOf, renew } from "../../lease.mjs";
 import { post, sayStored } from "./posting.mjs";
+import { judgeHinted } from "../verdict/door.mjs";
 
 /* Stamped by the tracker or no earlier than the newest row it sorts under, so the ladder read at the end of a call counts the record that call made (ISS-285). */
 const stampedLast = (comments, written) => String(written?.createdAt
@@ -85,7 +86,7 @@ export const postRung = async (prepared, { reference, documentId, body, comments
     const answer = await write("forge_issues.verdicts", { documentId, data: draft.payload }, undefined, true);
     if (answer?.refused) {
       process.off("exit", stranded);
-      fail(sent.length ? `${strandedLine(sent, reference)}\n\n${answer.refused}` : answer.refused);
+      fail(judgeHinted(sent.length ? `${strandedLine(sent, reference)}\n\n${answer.refused}` : answer.refused));
     }
     console.log(draft.rendered);
     console.error(verdictDoorSaid(reference, draft, answer));
@@ -97,7 +98,7 @@ export const postRung = async (prepared, { reference, documentId, body, comments
     const answer = await post(documentId, body, { ref: reference, next, patch, finder, judged: Boolean(judged), renewed, soft: sent.length > 0 });
     if (answer?.refused) {
       process.off("exit", stranded);
-      fail(`${strandedLine(sent, reference)}\n\n${answer.refused}`);
+      fail(judgeHinted(`${strandedLine(sent, reference)}\n\n${answer.refused}`));
     }
     renewed = false;
     /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */

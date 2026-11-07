@@ -85,6 +85,8 @@ const forgeBreaks = (rest) => {
    verb for them as `forge record verdict` is the issue's, so the raw POST is the judge's own verdict
    write and allowed, exactly as the verb is — a bare `requirements` POST is not (FB-53, ISS-57). */
 const REQUIREMENT_VERDICTS = /(?:^|\/)requirements\/[^/]+\/verdicts\/?$/u;
+// cm:why the issue's own verdict door is the one route that takes a release identity, so a judge's raw POST there is its verdict write as the verb is (FB-64)
+const ISSUE_VERDICTS = /(?:^|\/)issues\/[^/]+\/verdicts\/?$/u;
 
 /* The first positional after `api` is the path; a value-taking flag's own value never precedes it, so
    the first token with no leading dash is it. */
@@ -106,7 +108,7 @@ const runnerBreaks = (rest) => {
   }
   if (!mutates) return null;
   const path = apiPath(rest);
-  if (path && REQUIREMENT_VERDICTS.test(path)) return null;
+  if (path && (REQUIREMENT_VERDICTS.test(path) || ISSUE_VERDICTS.test(path))) return null;
   return "api";
 };
 

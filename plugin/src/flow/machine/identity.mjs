@@ -66,7 +66,11 @@ export const identityProblem = (got) => {
 export const verdictIdentityProblem = (got) => {
   const draft = draftRuntimeOf(got.runtime) !== null;
   const hasContract = got.contract !== undefined;
+  const hasRelease = got.release !== undefined;
   const hasCommitOrLanding = got.commit !== undefined || got.landing !== undefined;
+  if (hasRelease && got.runtime !== undefined) {
+    return "one identity: --release names the shipped version judged, so it takes no --runtime beside it";
+  }
   if (got.environment !== undefined && !draft) {
     return "--environment names the environment a storefront draft `--runtime <workflow>@draft:<version>` "
       + "was judged on, so it is given only beside that runtime";
@@ -77,11 +81,12 @@ export const verdictIdentityProblem = (got) => {
   }
   const contractBad = contractProblem(got.contract);
   if (contractBad) return `--contract ${contractBad}`;
-  const families = [hasCommitOrLanding, draft, hasContract].filter(Boolean).length;
+  const families = [hasCommitOrLanding, draft, hasContract, hasRelease].filter(Boolean).length;
   if (families > 1) {
     return "one identity: a verdict names what it judged by one of --commit/--landing, a storefront draft "
-      + "(--runtime <workflow>@draft:<version> with --environment), or --contract <project>/<contract>@<version> — not several";
+      + "(--runtime <workflow>@draft:<version> with --environment), --contract <project>/<contract>@<version>, "
+      + "or --release <version> — not several";
   }
-  if (draft || hasContract) return null;
+  if (draft || hasContract || hasRelease) return null;
   return identityProblem(got) ?? runtimeProblem(got.runtime);
 };

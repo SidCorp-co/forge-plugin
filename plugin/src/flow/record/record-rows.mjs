@@ -67,7 +67,7 @@ const kindRows = (caps) => [
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--filed R]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--judged-by qa|review] [--filed R]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
@@ -264,12 +264,11 @@ const VERDICT_BLOCKS = [
   "What each value records:",
   "  pass     the criterion was met as it is written",
   "  fail     exercised and not met: the shortfall holds the rung until answered",
-  "  short    exercised, met short of its wording, judged not to block: the change releases,",
-  "           --why says how it fell short, --filed names the row it became",
-  "  skipped  no route reached it: nobody looked, nothing cited",
+  "  short    met short of its wording, judged not to block: the change releases,",
+  "           --why says how, --filed names the row it became",
+  "  skipped  no route reached it, nothing cited",
   "A later --commit carrying the merged one earns `in_progress:release`: the write records what git says of it.",
-  "An observable criterion cites a clip (--evidence x.webm|.mp4) or --without-clip, and a "
-    + "pass or short keeps a probe (--probe).",
+  "An observable criterion cites a clip (--evidence x.webm|.mp4) or --without-clip; a pass or short keeps a --probe.",
 ];
 
 /* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.

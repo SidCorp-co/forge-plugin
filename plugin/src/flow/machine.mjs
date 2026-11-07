@@ -274,6 +274,8 @@ export const SHORT = "short";
    block is a decision, where a `skipped` one is a gap in equipment, and a set that spells both the
    same way cannot be counted or chased either way (ISS-1875). */
 export const VERDICTS = ["pass", FAIL, "skipped", SHORT];
+// cm:edge contract -> plugin/src/flow/record/verdict/door.mjs — core's verdict door takes judge: qa | review, and a run declared --role reviewer is refused VERDICT_JUDGE_NOT_RUN_ROLE without review (FB-61)
+const JUDGED_BY = ["qa", "review"];
 /** Whether anybody exercised the criterion, which is the one question both evidence obligations
  *  answer to — the write's and the screen check's. Here rather than spelled at each, so a value
  *  added to the set cannot be exempt from one of them and not the other. */
@@ -490,7 +492,9 @@ export const SHAPES = {
       FIELD("landing", "Landing judged", JUDGED_LANDING),
       FIELD("runtime", "Runtime exercised", { optional: true, form: RUNTIME_TAKES }),
       FIELD("contract", "Contract", { optional: true }),
+      FIELD("release", "Release judged", { optional: true }),
       FIELD("environment", "Environment", { optional: true }),
+      FIELD("judged-by", "Judged by", { optional: true, oneOf: JUDGED_BY }),
       /* In no usage row, so no flag reaches it; stamped by its own writer, which needs the page. */
       FIELD(CARRIES, "Carries the merged commit", { optional: true, stamped: CARRIES }),
       FIELD(CARRIES_DEPLOYMENT, "Carries the deployment", { optional: true, stamped: CARRIES_DEPLOYMENT }),

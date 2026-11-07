@@ -230,7 +230,8 @@ export const fromRecord = (kind, got, { comments, names, cut = null, issue = nul
   const identities = shape.fields.some((one) => one.landing);
   if (identities && landsOutsideGit(issue)) landingFilled(kind, got, issue, say);
   else if (identities && got.landing !== undefined) shapeRefused(kind, "landing", false);
-  if (commit && got.commit === undefined && !(identities && landsOutsideGit(issue))) {
+  // cm:guard a --release verdict names the shipped version as its one identity, so no commit is read in beside it
+  if (commit && got.commit === undefined && got.release === undefined && !(identities && landsOutsideGit(issue))) {
     const marked = markedCommit({ issue, comments });
     if (!marked && cut) refuse(BEHIND(kind, "commit", cut));
     if (!marked) {
