@@ -4,6 +4,7 @@
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   callRoom, ceilingFrom, ceilingLeft, clockFor, clockSpentSaid, deadlineOf, parsedOr, ranOut, sawHeadersAfter, secondsGiven,
@@ -95,9 +96,37 @@ const declaredRun = () => {
   return /^\S+$/u.test(run) ? { "x-forge-run": run } : {};
 };
 
+const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
+const MANIFEST = fileURLToPath(new URL("../../.claude-plugin/plugin.json", import.meta.url));
+
+// cm:guard core refuses a malformed x-forge-plugin 400 PLUGIN_VERSION_MALFORMED, so a version off this shape is not sent (forge ISS-1104)
+export const pluginVersion = once(() => {
+  const version = String(readJson(MANIFEST)?.version ?? "");
+  return version.length <= 64 && SEMVER.test(version) ? version : null;
+});
+
+const versioned = () => {
+  const version = pluginVersion();
+  return version ? { "x-forge-plugin": version } : {};
+};
+
 const authorized = (json) => {
   const { token } = settings();
-  return { Authorization: token, ...declaredRun(), ...(json ? { "Content-Type": "application/json" } : {}) };
+  return {
+    Authorization: token, ...versioned(), ...declaredRun(), ...(json ? { "Content-Type": "application/json" } : {}),
+  };
+};
+
+const warned = new Set();
+
+/* Core answers a call it let through a narrowing with `x-forge-warning: <CODE>: <detail>` (forge ISS-1104); said once per code, since every later call carries the same one. */
+export const sawWarning = (headers) => {
+  const said = headers.get("x-forge-warning");
+  if (!said) return;
+  const code = said.split(":")[0].trim();
+  if (warned.has(code)) return;
+  warned.add(code);
+  console.error(`Forge warns: ${said}`);
 };
 
 /* Per attempt and never kept: a rate limit is sent again whatever the row declares. */
@@ -174,6 +203,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
       sawAnswer(response.headers, sentAt, gotAt);
       sawHeadersAfter(gotAt - sentAt);
       sawBudget(key, response.headers);
+      sawWarning(response.headers);
       text = await textWithin(response, clock);
     } catch (error) {
       dropped = error;

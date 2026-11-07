@@ -562,6 +562,7 @@ export const fakeTracker = async (state) => {
       response.end(JSON.stringify({ code: "BAD_REQUEST", message: "Malformed JSON in request body" }));
       return;
     }
+    if (state.warn) response.setHeader("x-forge-warning", state.warn);
     const sent = request.method === "GET" ? {} : await body(request);
     pending = {
       path: url.pathname,
@@ -570,6 +571,7 @@ export const fakeTracker = async (state) => {
       sent,
       slug: SLUGS.get(url.pathname.split("/")[3]) ?? null,
       run: request.headers["x-forge-run"] ?? null,
+      plugin: request.headers["x-forge-plugin"] ?? null,
     };
     mine.call = pending;
     const row = ROUTES.find(([pattern]) => pattern.test(url.pathname));

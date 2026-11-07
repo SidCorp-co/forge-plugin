@@ -2,6 +2,7 @@
    omitted `--injection` moved a stored `always` to `on_demand` and an omitted `--kind` labelled a
    reference entry `guide` — so the cases below are mostly about what a write KEEPS. */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { fakeStore, ranAsync } from "../fixtures.mjs";
@@ -465,6 +466,19 @@ test("list names a provenance kind's missing fields and says nothing of an overv
 
 /* Core attributes a read to the run x-forge-run names (forge ISS-1065), and only the id the box
    declared, which reaches a run through FORGE_RUN in its brief (ISS-70). */
+/* Core records which plugin made a call and warns one a narrowing let through (forge ISS-1104, ISS-80). */
+test("every request names the plugin version the manifest holds, and a warning core answers is said once", async () => {
+  state.calls = [];
+  state.warn = "PLUGIN_NARROWED: this plugin predates the narrowing";
+  const run = await ranAsync(FORGE, ["knowledge", "list"], env);
+  state.warn = null;
+  assert.equal(run.status, 0, run.stderr);
+  const { version } = JSON.parse(readFileSync(new URL("../../.claude-plugin/plugin.json", import.meta.url), "utf8"));
+  assert.deepEqual([...new Set(state.calls.map((one) => one.plugin))], [version]);
+  const said = run.stderr.split("\n").filter((line) => line.startsWith("Forge warns: "));
+  assert.deepEqual(said, ["Forge warns: PLUGIN_NARROWED: this plugin predates the narrowing"], run.stderr);
+});
+
 test("a read made under FORGE_RUN names that run on every request, and one made without it names none", async () => {
   state.calls = [];
   const named = await ranAsync(FORGE, ["knowledge", "list"], { ...env, FORGE_RUN: "run-7f3a" });
