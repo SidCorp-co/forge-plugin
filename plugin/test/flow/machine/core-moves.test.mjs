@@ -35,6 +35,9 @@ state.answer.forge_issues = (args) => {
   if (args.action === "moves") return { key: args.key, status: ISSUE.status, moves: state.served.map((to) => ({ to })) };
   if (args.action === "get") return args.documentId === ISSUE.documentId ? ISSUE : {};
   if (args.action === "transition") return Object.assign(ISSUE, { status: args.data.status });
+  if (args.action === "update" && args.data?.workState && state.noStep) {
+    return { refused: "BAD_REQUEST: The field workState is not one this call takes. No fields to update." };
+  }
   if (args.action === "update") return Object.assign(ISSUE, args.data);
   return { documentId: args.documentId, ...(args.data ?? {}) };
 };
@@ -68,4 +71,19 @@ test("a move core serves goes out in its words: the status, then the work step",
   assert.deepEqual(stepped?.args.data.workState, { step: "build" }, "and the step is core's work step");
   assert.match(run.stdout, /approved -> in_progress:build/u, "the reply names the place in core's words");
   assert.doesNotMatch(run.stdout + run.stderr, /\b(confirmed|developed|testing)\b/u, "and no legacy status");
+});
+
+/* A tracker taking no `workState` refused the step after the move landed, and the transport printed its refusal bare, so the run could not tell the move had landed (FB-57, ISS-84). */
+test("a step the tracker refuses after the move landed is framed by the status the move landed at", async () => {
+  Object.assign(ISSUE, { status: "approved", workState: null });
+  state.served = ["in_progress", "needs_info", "on_hold", "dropped"];
+  state.noStep = true;
+  state.calls = [];
+  const run = await forge("advance", "ISS-91");
+  state.noStep = false;
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.equal(ISSUE.status, "in_progress", "the move landed");
+  assert.match(run.stderr, /ISS-91 on .* moved from approved to in_progress, and the work step `build`/u, run.stderr);
+  assert.match(run.stderr, /workState is not a field the tracker's update route takes/u, run.stderr);
+  assert.doesNotMatch(run.stderr.split("\n")[0], /^BAD_REQUEST/u, "and it does not open on the bare transport line");
 });

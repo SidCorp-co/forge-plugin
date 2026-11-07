@@ -136,12 +136,12 @@ const stepped = async (view, ref, status, moved) => {
   if (moved?.refused || !step || (answered !== undefined && answered !== to)) return moved;
   try {
     await writeFields(view.documentId, [{ field: "workState", value: { step } }],
-      { ref, refuse, ask: askedInSource(ref, "workState") });
+      { ref, refuse, soft: true, ask: askedInSource(ref, "workState") });
     return { ...(moved ?? {}), status };
   } catch (error) {
     if (!(error instanceof Refused)) throw error;
-    return { refused: `${to ? `the move to ${to} landed and ` : ""}the work step \`${step}\` that makes it `
-      + `${status} did not come back as written: ${error.message}`, landed: to };
+    return { refused: `the work step \`${step}\` that makes it ${status} did not come back as written: `
+      + error.message, landed: to };
   }
 };
 

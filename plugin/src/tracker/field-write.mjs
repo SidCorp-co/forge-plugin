@@ -126,10 +126,11 @@ export const capChecked = (field, caps, sent, given, refuse, row) => {
 
 /* Which names the update route takes is the tracker's and is declared nowhere here, so a name it has
    no column for is judged on the way back, where its answer is two reasons and neither is ours (ISS-931). */
-const UNRECOGNISED = /Unrecognized key: "([^"]+)"/u;
+const UNRECOGNISED = /Unrecognized key: "([^"]+)"|The field (\S+) is not one this call takes/u;
 
 const unrecognisedRefusal = (refused, ref) => {
-  const name = UNRECOGNISED.exec(String(refused ?? ""))?.[1];
+  const found = UNRECOGNISED.exec(String(refused ?? ""));
+  const name = found?.[1] ?? found?.[2];
   if (!name) return null;
   return `${name} is not a field the tracker's update route takes, so it refused the call and `
     + `nothing of it was written. Which names it does take is the tracker's and is declared nowhere `
@@ -143,7 +144,7 @@ export const rowOf = (field) => fields()[field];
 export const ownsField = (field) => Boolean(rowOf(field));
 
 /** Every field of one write, in one update, so a caller naming several either writes all of them or names none as written. The gate and the renewal are the write's rather than each field's, and the read-back reports per field because a `PATCH` the tracker refuses for one key documents nothing about the others. */
-export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, ask, expect, override = false, settling = false }) => {
+export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, ask, expect, override = false, settling = false, soft = false }) => {
   /* An override row keeps the comparator of a field that has one, a label set being compared as a set;
      `typed` is the pair as the caller spelt it, where what is written is not that pair. */
   const rows = given.map(({ field, value, typed }) => {
@@ -187,9 +188,9 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   const asked = asks && enforcementOf() === null ? await establish((one) => send(one, true)) : null;
   if (asked?.refused) refuse(asked.refused);
   const covered = enforcementOf() === true && (asks || Boolean(held));
-  /* Soft on the override arm alone, the one caller sending a name no row above declares. */
+  /* Soft on the override arm, the one caller sending a name no row above declares, and for a caller that words the tracker's refusal around a write that already landed. */
   if (!asked) {
-    const answer = await send(covered ? expecting(held ?? null) : null, override || settling);
+    const answer = await send(covered ? expecting(held ?? null) : null, override || settling || soft);
     if (answer?.refused) refuse(unrecognisedRefusal(answer.refused, ref) ?? answer.refused);
   }
   /* The lease's own field is the one place a claim lands, so it is where the key's document is held,
