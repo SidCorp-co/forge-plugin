@@ -8,7 +8,8 @@ ended the attempt.
   too long is a release people are already asking about.
 - **Time since the last evidence of progress.** Evidence means a reading that moved: an identity that
   changed, a health check that flipped, a log line that appeared. Attempts made are not progress, and
-  neither is a hypothesis refined without an observation behind it.
+  neither is a hypothesis refined without an observation behind it. A wait on a gate a person owes
+  is neither: that clock does not run against it, and the run waits open rather than ending.
 - **Regression.** Health that passed before an attempt and fails after it. This one stops the run on
   the spot, whatever the other two clocks say: the world is now worse than it was, and the run
   hands over.
