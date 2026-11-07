@@ -3,7 +3,7 @@
 /* One row per place something advances to, `open` having none, each spelt as core's machine names it
    (`tracker/declared/issue-machine.mjs`, which a case holds this to); this file imports nothing,
    because the near-miss reader reads it and the order table's own tree reads that. No row reaches
-   `closed` (`flow/earned.mjs` LADDER), and `close` is a route below. */
+   `closed`, which is no rung of `flow/earned.mjs` LADDER; `close` is a form of its own below. */
 export const MOVES = {
   "in_progress:plan": "confirm",
   approved: "approve",
@@ -19,6 +19,8 @@ const moved = Object.fromEntries(Object.entries(MOVES)
 
 export const FORMS = {
   ...moved,
+  /* `--to closed` so a close typed at any other rung is refused by the target check rather than read as that rung's move. */
+  close: { verb: "advance", to: "closed" },
   drop: { verb: "advance", insert: ["--drop"] },
   /* `--kind` is what every other verb asks a kind by, so the form translates the word rather than teaching a second spelling; `unless` is what carries a bare `forge park` to advance's own refusal instead of an ordinary move. */
   park: { verb: "advance", insert: ["--park"], rename: ["--kind", "--park"], unless: "--park" },
@@ -35,8 +37,6 @@ export const handledBy = (word) => (Object.hasOwn(FORMS, word) ? FORMS[word] : n
 
 export const ROUTES = {
   search: { verb: "issue", call: "forge issue --search <query>", does: "reads the backlog by a query" },
-  close: { verb: "advance", call: "forge advance <ISS-nn> [--unmet '<json>']",
-    does: "closes an issue at awaiting_release once its criteria are met in scope, each unmet one moved out in --unmet" },
 };
 
 export const routeSaid = (word, verbs) => {

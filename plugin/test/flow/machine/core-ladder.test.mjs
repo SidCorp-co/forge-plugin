@@ -69,10 +69,10 @@ test("advance offers closed from awaiting_release, the holder's once the criteri
 });
 
 test("every verb form moves to a place on the ladder, and none of them to closed", async () => {
-  const { MOVES, ROUTES } = await import("../../../src/resolve/handler.mjs");
+  const { FORMS, MOVES } = await import("../../../src/resolve/handler.mjs");
   for (const place of Object.keys(MOVES)) {
     assert.ok(earned.LADDER.includes(place), `the form ${MOVES[place]} moves to ${place}, which is no place on the ladder`);
   }
-  assert.ok(!Object.keys(MOVES).includes("closed"), "a form names a close whose --unmet a form cannot carry");
-  assert.match(ROUTES.close?.call ?? "", /^forge advance <ISS-nn> \[--unmet '<json>'\]$/u, "and `close` names the advance that makes it");
+  assert.ok(!Object.keys(MOVES).includes("closed"), "closed is no rung, so no rung's form reaches it");
+  assert.deepEqual(FORMS.close, { verb: "advance", to: "closed" }, "and `close` is the advance's own target");
 });

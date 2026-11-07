@@ -22,7 +22,7 @@ A park and a set carry their own payload and are judged whole by core.
 every criterion was met in scope (forge ISS-1062), so a fail or a skip still standing is refused
 before anything is sent unless `--unmet` moves it out, and where each one goes is core's to judge
 (`CLOSE_CRITERION_UNPLACED`). Liveness is not the close's: the release record says it. The word
-`close` typed as a command is a route: it prints that advance rather than moving anything.
+`close` typed as a command is a form, `--to closed` included, so typed below the rung it moves nothing.
 
 **A retired name is never sent.** The transport refuses a status core does not hold before the
 request, naming the place that took it over; `--set` and `--to` refuse one the same way. A park record

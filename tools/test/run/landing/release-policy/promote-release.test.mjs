@@ -1,7 +1,7 @@
 /* The landing under a project that promotes to its live branch and deploys production on its own:
    nobody owes the release an act, and the release is still owed, by the batch the tracker cuts only
-   for an issue resting at `awaiting_release`. So the walk stops there and names the batch, and the
-   close is the batch's (ISS-2409). Its own file because the policy is read once per process. */
+   for an issue resting at `awaiting_release` (ISS-2409). So the walk stops there and names the batch
+   as what makes it live; the close is the holder's (forge ISS-1062). Its own file because the policy is read once per process. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -87,13 +87,13 @@ test("a promotion the project deploys on its own rests at the rung for the relea
   const back = await asBuilder(["claim", KEY, "--recorded"]);
   const said = `${back.stdout}${back.stderr}`;
   assert.equal(back.status, 0, said);
-  assert.equal(issue().status, "awaiting_release", `the walk took the close the release batch is owed:\n${said}`);
+  assert.equal(issue().status, "awaiting_release", `the walk went past the rung, whose close no landing judges:\n${said}`);
   assert.deepEqual(moves(), ["in_progress:test", "in_progress:release", "awaiting_release"],
     `the walk stops at the rung and no further:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
-  assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the promotion from ${BASE} to production is the release batch's`, "u"),
-    `the rest names the batch it waits for:\n${said}`);
-  assert.match(said, new RegExp(`forge release-batch record ${KEY} --commit `, "u"),
-    `and the record that closes it after a promotion outside a batch:\n${said}`);
+  assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the close is the holder's`, "u"), said);
+  assert.match(said, new RegExp(`The release is the release batch's: the promotion from ${BASE} to production is the release batch's`, "u"),
+    `the rest names the batch the change waits for to go live:\n${said}`);
+  assert.match(said, new RegExp(`forge advance ${KEY} `, "u"), `and the advance that closes it:\n${said}`);
   assert.doesNotMatch(said, /--set closed/u, `a person's set is offered where nobody owes one:\n${said}`);
 });

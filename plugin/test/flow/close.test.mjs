@@ -47,9 +47,10 @@ const UNMET = shippedAs("unmet-uuid", "ISS-99");
 const REFUSED = shippedAs("unplaced-uuid", "ISS-100");
 const MALFORMED = shippedAs("malformed-uuid", "ISS-102");
 const APPROVED = shippedAs("approved-uuid", "ISS-103", { status: "approved" });
+const FORMED = shippedAs("formed-uuid", "ISS-104");
 const verification = render("verification",
   { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] });
-const ISSUES = [SHIPPED, PARKING, CLOSING, UNMET, REFUSED, MALFORMED, APPROVED];
+const ISSUES = [SHIPPED, PARKING, CLOSING, UNMET, REFUSED, MALFORMED, APPROVED, FORMED];
 const state = {
   calls: [],
   config: RELEASES_ITSELF,
@@ -106,13 +107,15 @@ test("--owed at the rung names the close as next and moves nothing", async () =>
   assert.deepEqual(moved("shipped-uuid"), [], "a rehearsal moves nothing");
 });
 
-test("`forge close` is no verb, and its refusal routes to the advance that closes", async () => {
-  const run = await ranAsync(FORGE, ["close", "ISS-96"], ENV);
-  assert.notEqual(run.status, 0, run.stdout);
-  assert.match(run.stderr, /forge advance <ISS-nn> \[--unmet '<json>'\]/u, run.stderr);
-  assert.doesNotMatch(run.stderr, /CLOSE_ONLY_BY_RELEASE|release-batch record/u, run.stderr);
-  assert.deepEqual(wrote("shipped-uuid"), [], "nothing is written");
-  assert.deepEqual(moved("shipped-uuid"), [], "and nothing is moved");
+test("`forge close` performs the close through advance, and at any other rung moves nothing", async () => {
+  await claimed("ISS-104");
+  const run = await ranAsync(FORGE, ["close", "ISS-104"], ENV);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /read close as forge advance ISS-104/u, run.stderr);
+  assert.deepEqual(moved("formed-uuid").map((one) => one.args.data.status), ["closed"]);
+  const early = await ranAsync(FORGE, ["close", "ISS-103"], ENV);
+  assert.equal(early.status, 1, early.stdout);
+  assert.deepEqual(moved("approved-uuid"), [], "a close typed below the rung was read as that rung's move");
 });
 
 test("a plain advance at the rung closes it, sending no unmet", async () => {
