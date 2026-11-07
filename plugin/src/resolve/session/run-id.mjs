@@ -75,7 +75,15 @@ export const scratchAt = (path) => {
  *  for with it. `failed` is the reason where that happened, naming the path the system refused, with `at` the directory. */
 export const scratchMinted = (path, id) => {
   const held = scratchAt(path);
-  if (held && basename(held) === `${SCRATCH}${id}`) return { at: held, failed: null };
+  // cm:why the runner reaps a scratch idle past 48h while its record stays, so a resumed pane's brief re-makes the recorded directory rather than printing a gone one (ISS-76)
+  if (held && basename(held) === `${SCRATCH}${id}`) {
+    try {
+      mkdirSync(held, { recursive: true });
+    } catch (error) {
+      return { at: held, failed: error.message };
+    }
+    return { at: held, failed: null };
+  }
   const at = join(tmpdir(), `${SCRATCH}${id}`);
   const record = besideGit(path, SCRATCH_AT);
   if (!record) return { at, failed: "the tree has no git directory to record it in" };

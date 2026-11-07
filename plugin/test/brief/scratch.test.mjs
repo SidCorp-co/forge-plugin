@@ -2,7 +2,7 @@
    whatever outlives the run can say whose that directory is (ISS-2524). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, tempRoom } from "../fixtures.mjs";
@@ -125,4 +125,18 @@ test("a record that cannot be staged leaves the record it would have replaced by
   assert.notEqual(run.status, 0, "a record the directory refuses was written in place");
   assert.equal(recordOf(fresh.idle), stale);
   assert.ok(!existsSync(join(temp, `forge-run-${RUN}`)));
+});
+
+test("a recorded scratch directory the runner reaped is made again at the same path, so a resumed pane's brief prints one that exists", () => {
+  const fresh = repository();
+  const { env } = rooted();
+  assert.equal(brief(["ISS-7", "--tree", fresh.idle], fresh.main, env).status, 0);
+  const kept = recordOf(fresh.idle);
+  const reaped = scratchAt(fresh.idle);
+  rmSync(reaped, { recursive: true });
+  const again = brief(["ISS-7", "--tree", fresh.idle], fresh.main, env);
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(recordOf(fresh.idle), kept, "the record moved");
+  assert.ok(existsSync(reaped), `${reaped} is printed and gone`);
+  assert.match(again.stdout, new RegExp(`^TMPDIR=${escaped(reaped)}$`, "mu"));
 });
