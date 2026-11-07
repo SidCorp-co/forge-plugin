@@ -3,7 +3,7 @@ import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { DRAFT, TAKEABLE } from "../rank/weights.mjs";
 import {
-  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere, workUnder, writtenHere,
+  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, sessionNameOf, treeHere, workUnder, writtenHere,
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
 import { historyOf } from "./lease/history.mjs";
@@ -117,6 +117,7 @@ export const leaseOf = (context) => {
     pid: held.pid === undefined || held.pid === null || held.pid === "" ? UNKNOWN : String(held.pid),
     place: typeof held.place === "string" && held.place ? held.place : "",
     tree: typeof held.tree === "string" && held.tree ? held.tree : "",
+    session: typeof held.session === "string" && held.session ? held.session : "",
     renewedAt: String(held.renewedAt ?? ""),
     minutes: Number.isFinite(minutes) && minutes > 0 ? minutes : MINUTES,
     slack: Number.isFinite(Number(held.clock)) && Number(held.clock) >= 0 ? Number(held.clock) : null,
@@ -289,6 +290,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       pid: pidOf(),
       ...(placeOf() ? { place: placeOf() } : {}),
       ...(treeHere() ? { tree: treeHere() } : {}),
+      ...(sessionNameOf() ? { session: sessionNameOf() } : {}),
       renewedAt: at,
       ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,

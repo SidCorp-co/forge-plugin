@@ -40,7 +40,7 @@ const held = (holder, at = AT, minutes = 30, history = []) =>
 
 test("a lease is read out of the field, and anything else in it is no lease", () => {
   assert.deepEqual(leaseOf(field(held("a-run"))), {
-    holder: "a-run", agent: "a-test-agent", pid: "4242", place: "", tree: "", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
+    holder: "a-run", agent: "a-test-agent", pid: "4242", place: "", tree: "", session: "", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
   });
   assert.equal(leaseOf(field({ ...held("a-run"), clock: 517 })).slack, 517,
     "the error the stamp was taken under, which a reader adds to its own");
@@ -51,6 +51,22 @@ test("a lease is read out of the field, and anything else in it is no lease", ()
   assert.equal(leaseOf(field({ holder: "" })), null);
   assert.equal(leaseOf(field(held("a-run", AT, 0))).minutes, MINUTES, "a duration of nothing is the default");
   assert.deepEqual(leaseOf(field(held("a-run", AT, 30, "not a list"))).history, []);
+});
+
+/* Core judges a shared holder per holder and session, and reads a session outside 1..100 characters as malformed (forge ISS-1104, ISS-81). */
+test("a lease names the pane's tmux session, cut to 100 characters, and no session where nothing names one", () => {
+  const bin = tempRoom("lease-tmux-");
+  const tmux = join(bin, "tmux");
+  writeFileSync(tmux, `#!/bin/sh\n[ "$4" = "%9" ] && [ "$5" = "#S" ] && printf '%s\\n' "${"m".repeat(120)}"\n`, { mode: 0o755 });
+  const holder = new URL("../../src/flow/lease/holder.mjs", import.meta.url).href;
+  const named = (env) => spawnSync(process.execPath,
+    ["--input-type=module", "-e", `const { sessionNameOf } = await import(${JSON.stringify(holder)}); process.stdout.write(sessionNameOf());`],
+    { encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, ...env } }).stdout;
+  assert.equal(named({ TMUX: "/tmp/sock,1,2", TMUX_PANE: "%9" }), "m".repeat(100));
+  assert.equal(named({ CLAUDE_CODE_SESSION_ID: "a-session" }), "a-session", "no tmux: the Claude Code session");
+  assert.equal(named({}), "", "nothing names one");
+  const lease = claimed({}, { holder: "one", at: AT, minutes: 30 }).lease;
+  assert.equal(leaseOf({ lease: { ...lease, session: "pane-7" } }).session, "pane-7", "read back as written");
 });
 
 test("the states the clock decides, and a lease past its duration is another run's to take", () => {

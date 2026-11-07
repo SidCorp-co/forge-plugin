@@ -1,6 +1,7 @@
 /* What the record proves about the run behind a lease, which the clock never could: the recorded
    process id absent in the place that id was issued, and nothing the project calls a run's own work
    standing in the tree that lease was claimed in. docs/cli/the-dead-holder.md carries every why. */
+import { spawnSync } from "node:child_process";
 import { lstatSync, readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -19,6 +20,22 @@ export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
 
 /** The host process every agent of a dispatched wave shares, and never the process doing the work. */
 export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
+
+export const SESSION_CHARS = 100;
+
+let named = null;
+
+/* The pane's tmux session where there is one, the Claude Code session id where there is not: core judges a shared holder per holder and session, and refuses a value outside 1..100 characters as malformed (forge ISS-1104). */
+export const sessionNameOf = () => {
+  if (named === null) {
+    const pane = process.env.TMUX && process.env.TMUX_PANE
+      ? spawnSync("tmux", ["display-message", "-p", "-t", process.env.TMUX_PANE, "#S"], { encoding: "utf8", timeout: 2000 })
+      : null;
+    const tmux = pane?.status === 0 ? pane.stdout.trim() : "";
+    named = (tmux || String(process.env.CLAUDE_CODE_SESSION_ID ?? "").trim()).slice(0, SESSION_CHARS);
+  }
+  return named;
+};
 
 const read = (how, path) => {
   try {
