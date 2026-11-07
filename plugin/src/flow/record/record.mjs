@@ -446,8 +446,9 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   quoteCriteria(kind, blocks, body, reference);
   /* Verdict blocks routed, `verdict/door.mjs`'s to decide: the probe-carrying ones to the door and the
      rest to the comment, every refusal it owes raised here before a byte is uploaded (ISS-7). */
+  const criteriaRead = kind === "verdict" ? await coreClasses(documentId) : null;
   const door = kind === "verdict"
-    ? verdictDoorPrepared(blocks, { reference, classes: (await coreClasses(documentId)).classes })
+    ? verdictDoorPrepared(blocks, { reference, classes: criteriaRead.classes, refused: criteriaRead.refused })
     : { drafts: [], commentBlocks: blocks };
   const stamp = shape.stamp ? await stampOf(kind, { documentId, body, comments, names: onIssue }, shape, reference) : null;
   /* The comment this write posts, or none where every block went to the door. */

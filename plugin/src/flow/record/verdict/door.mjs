@@ -121,13 +121,24 @@ const faultsOf = (blocks, classes, parsed) => {
   return out;
 };
 
+// cm:why beta answers a route it lacks ROUTE_ABSENT and dev answers NOT_FOUND naming no route, and the criteria read shares the verdict door's routes (ISS-62)
+const NO_DOOR = /^(?:ROUTE_ABSENT:|NOT_FOUND:.*no route serves)/isu;
+
+const refuseProbeWithoutDoor = (blocks, refused, reference) => {
+  if (!refused || !NO_DOOR.test(refused) || !blocks.some((got) => got.probe !== undefined)) return;
+  refuse(`record verdict on ${reference}: this tracker serves no verdict door, so a --probe cannot be kept `
+    + "there, and nothing was sent and nothing went up. Its criteria read answered: "
+    + `${refused.split("\n")[0]}\nSend the same command without --probe to record the verdict as a comment.`);
+};
+
 /** The door drafts a verdict write sends and the blocks that stay a comment, after refusing locally —
  *  all of them in one message — every block core would refuse once its evidence was up. One write is
  *  all-or-nothing, so a single faulty block turns the whole write back with nothing sent, every block
  *  at fault named so the caller fixes them in one retry (ISS-7). `classes` is null where the criteria
  *  read could not be had: the clip and probe-required rules are then core's to apply, and only a
  *  malformed probe and a missing identity are still refused here. */
-export const verdictDoorPrepared = (blocks, { reference, classes, run = runOf() }) => {
+export const verdictDoorPrepared = (blocks, { reference, classes, refused = null, run = runOf() }) => {
+  refuseProbeWithoutDoor(blocks, refused, reference);
   const parsed = new Map();
   const faults = faultsOf(blocks, classes, parsed);
   if (faults.length) {
