@@ -11,4 +11,5 @@ findings, and never rewrites the author's rulings.
 **The reviewer read what it was shown.** A consult shown a diff judges the diff. Earn an
 approving review with one read of every file the change touched, and end the review when every
 finding it raised has its verdict. Scope is causal, not positional: a finding on an untouched line is
-in scope when it names the changed line that breaks it, and else goes to its own issue.
+in scope when it names the changed line that breaks it. Otherwise a user-facing one is Feedback and a
+technical one is debt, never an issue the run files (core guide `what-is-an-issue`).
