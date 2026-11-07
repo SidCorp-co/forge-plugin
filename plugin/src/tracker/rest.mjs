@@ -91,7 +91,7 @@ export const RUN_VAR = "FORGE_RUN";
 
 // cm:edge contract -> plugin/src/brief/brief.mjs — the brief prints FORGE_RUN=<declared id>, and core attributes a read to the run x-forge-run names (forge ISS-1065, plugin ISS-70)
 const declaredRun = () => {
-  const run = String(process.env[RUN_VAR] ?? "").trim();
+  const run = String(process.env.FORGE_RUN ?? "").trim();
   return /^\S+$/u.test(run) ? { "x-forge-run": run } : {};
 };
 

@@ -9,7 +9,7 @@ import test from "node:test";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /* Decided, not derived: where config lives, what the platform passes in, a kill switch for when
-   config broke, a run's identity, and which record a process this CLI spawned of itself is settling
+   config broke, a run's identity and the declared run it acts for (ISS-70), and which record a process this CLI spawned of itself is settling
    — no file names a run, its kind or its pid (ISS-4, ISS-22) — and the one credential a CI run holds
    where no configuration file exists, the route `forge google` names for it (ISS-2460). A run home's
    borrow names the file its credentials are read from and never a value (ISS-2612). Which copy a
@@ -30,6 +30,7 @@ const ALLOWED = new Set([
   "FORGE_CHATGPT_TURN",
   "FORGE_CODEX_DISABLE",
   "FORGE_GOOGLE_ACCESS_TOKEN",
+  "FORGE_RUN",
   "FORGE_SESSION_ID",
   "FORGE_STOP_DISABLE",
 ]);
