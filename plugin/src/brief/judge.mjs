@@ -14,7 +14,7 @@ export const JUDGE_FORM = "judge";
 /** The judge's form aimed at a requirement's criteria rather than an issue's, kept apart for the same reason. */
 export const REQUIREMENT_FORM = "requirement";
 
-const OWN_FLAGS = ["url", "program", "criteria", "identity", "requirement", "criterion", "run"];
+const OWN_FLAGS = ["url", "program", "criteria", "identity", "requirement", "criterion"];
 
 const REQUIREMENT = /^REQ-\d+$/u;
 const CLAUSE = /^BC-\d+$/u;
@@ -66,7 +66,7 @@ const identityOf = (raw) => {
 /* The run the dispatcher declared before this brief (forge-runner run declare prints it): one token, so
    the judge-login line it is printed into carries no line of its own. The brief never declares a run —
    that is the runner's verb — so it is printed only where the dispatcher hands it over (ISS-4). */
-const runOf = (raw) => {
+export const runOf = (raw) => {
   if (raw === undefined) return null;
   const run = String(raw).trim();
   if (!/^\S+$/u.test(run)) fail(`brief: --run takes the one run uuid the dispatcher declared (forge-runner run declare prints it), and \`${raw}\` is not one token.`);

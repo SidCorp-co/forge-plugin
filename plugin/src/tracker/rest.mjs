@@ -87,9 +87,17 @@ export const unfencedIn = (value) => {
 export const restBase = () => settings().url.replace(/\/mcp\/?$/u, "") + "/api";
 
 /* Declared where a JSON body follows it and nowhere else — docs/cli/one-transport.md says what a header over an empty body cost, and why a multipart one's boundary is the runtime's. */
+export const RUN_VAR = "FORGE_RUN";
+
+// cm:edge contract -> plugin/src/brief/brief.mjs — the brief prints FORGE_RUN=<declared id>, and core attributes a read to the run x-forge-run names (forge ISS-1065, plugin ISS-70)
+const declaredRun = () => {
+  const run = String(process.env[RUN_VAR] ?? "").trim();
+  return /^\S+$/u.test(run) ? { "x-forge-run": run } : {};
+};
+
 const authorized = (json) => {
   const { token } = settings();
-  return { Authorization: token, ...(json ? { "Content-Type": "application/json" } : {}) };
+  return { Authorization: token, ...declaredRun(), ...(json ? { "Content-Type": "application/json" } : {}) };
 };
 
 /* Per attempt and never kept: a rate limit is sent again whatever the row declares. */

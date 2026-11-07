@@ -165,3 +165,15 @@ test("a record that cannot be written prints no brief and names what failed", ()
   assert.equal(run.stdout, "");
   assert.match(run.stderr, /could not be written \(.*\.cache/u);
 });
+
+/* The declared run id reaches the run only through its brief: the runner prints it to the master
+   alone, and the plugin never invents one (ISS-70). */
+test("--run prints the declared run id as FORGE_RUN beside the tree, and is refused without a tree to print it beside", () => {
+  const home = homeFor();
+  const run = brief(["ISS-7", "--tree", repo.mine, "--run", "3c1e9a40-0000-4000-8000-000000000070"], repo.main, home.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^FORGE_RUN=3c1e9a40-0000-4000-8000-000000000070$/mu);
+  const loose = brief(["ISS-7", "--run", "3c1e9a40-0000-4000-8000-000000000070"], repo.main, home.env);
+  assert.notEqual(loose.status, 0, "a --run with no tree was printed nowhere and taken");
+  assert.match(loose.stderr, /read only with a key and --tree/u);
+});

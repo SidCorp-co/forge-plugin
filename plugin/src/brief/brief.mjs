@@ -9,7 +9,8 @@ import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { helpOf } from "../resolve/visibility.mjs";
 import { mintRunId, runIdAt, runNames, runsFor, scratchMinted } from "../resolve/session/run-id.mjs";
 import { copiesFor } from "./copies.mjs";
-import { JUDGE_FORM, REQUIREMENT_FORM, judgeOf, judgeText, refuseJudgeFlags, requirementOf, requirementText } from "./judge.mjs";
+import { JUDGE_FORM, REQUIREMENT_FORM, judgeOf, judgeText, refuseJudgeFlags, requirementOf, requirementText, runOf } from "./judge.mjs";
+import { RUN_VAR } from "../tracker/rest.mjs";
 import { leaseFacts } from "./facts.mjs";
 import { keepBrief } from "./record.mjs";
 import { defaultRef, heldBy, recordsOf, treesOf } from "./trees.mjs";
@@ -100,12 +101,13 @@ const heldLine = (tree, held) => {
   return `  ${tree.path} (${who}): ${parts.length ? parts.join("; ") : "reads empty"}`;
 };
 
-const treeLines = (tree, dispatch) => {
+const treeLines = (tree, dispatch, run) => {
   const { id, scratch } = recordsOf(tree.path);
   return [
     `Tree: ${tree.path} · branch ${tree.branch ?? "detached"} · head ${tree.head?.slice(0, 7) ?? "none"}`,
     id ? `FORGE_SESSION_ID=${id}` : null,
     scratch ? `TMPDIR=${dispatch ?? scratch}` : null,
+    run ? `${RUN_VAR}=${run}` : null,
     /* A run dispatched with no route to borrow by copies the credential into its scratch, which is
        what the borrow ended (ISS-2619). */
     scratch ? borrowRoute(scratch) : null,
@@ -125,9 +127,9 @@ const restartLine = (copies) => (copies.frozen?.length
   : null);
 
 /** The brief itself, off readings already taken, so a case can hand it any it likes. */
-const briefText = ({ members, target, others, base, dispatch }) => [
+const briefText = ({ members, target, others, base, dispatch, run }) => [
   ...(members.length ? [listed(members)] : []),
-  ...(target ? treeLines(target, dispatch) : []),
+  ...(target ? treeLines(target, dispatch, run) : []),
   ...(others
     ? [`Held by the other trees, read now: uncommitted, and committed against ${base ?? "no default branch"}:`,
       ...others.map(({ tree, held }) => heldLine(tree, held))]
@@ -171,7 +173,11 @@ export const brief = async (argv) => {
   const batch = batchOf(asked.batch, key, target);
   const members = key && target ? bindTree(target.path, [key, ...batch]) : key ? [key] : [];
   const dispatch = key && target ? scratchFor(target.path) : undefined;
+  const run = runOf(asked.run);
+  if (run && !dispatch) {
+    fail("brief: --run names the run a dispatched builder works for, and is printed beside its tree, so it is read only with a key and --tree:\n  forge brief ISS-45 --tree <dir> --run <the id forge-runner run declare printed>");
+  }
   const base = trees ? defaultRef(here) : null;
   const others = trees?.filter((one) => one !== target).map((tree) => ({ tree, held: heldBy(tree.path, base) })) ?? null;
-  send(briefText({ members, target, others, base, dispatch }), "");
+  send(briefText({ members, target, others, base, dispatch, run }), "");
 };

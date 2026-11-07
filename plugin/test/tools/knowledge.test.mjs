@@ -462,3 +462,17 @@ test("list names a provenance kind's missing fields and says nothing of an overv
   assert.match(run.stdout, /^bare-rule .*\(no source, scope, recheckWhen\)$/mu, run.stdout);
   assert.doesNotMatch(run.stdout, /^an-overview .*\(no /mu, run.stdout);
 });
+
+/* Core attributes a read to the run x-forge-run names (forge ISS-1065), and only the id the box
+   declared, which reaches a run through FORGE_RUN in its brief (ISS-70). */
+test("a read made under FORGE_RUN names that run on every request, and one made without it names none", async () => {
+  state.calls = [];
+  const named = await ranAsync(FORGE, ["knowledge", "list"], { ...env, FORGE_RUN: "run-7f3a" });
+  assert.equal(named.status, 0, named.stderr);
+  assert.ok(state.calls.length, "nothing reached the tracker");
+  assert.deepEqual([...new Set(state.calls.map((one) => one.run))], ["run-7f3a"]);
+  state.calls = [];
+  const bare = await ranAsync(FORGE, ["knowledge", "list"], { ...env, FORGE_RUN: "" });
+  assert.equal(bare.status, 0, bare.stderr);
+  assert.deepEqual([...new Set(state.calls.map((one) => one.run))], [null]);
+});

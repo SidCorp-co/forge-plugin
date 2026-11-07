@@ -37,6 +37,14 @@ dispatcher sends, so the fix removes it there.
   shares its id, and two in one TMPDIR collided on fixed file names, one posting the other's verdict
   (ISS-75). A recorded directory the runner reaped is made again at its recorded path (ISS-76). The
   record still names the tree's directory alone, so `finish` ends every dispatch with it.
+- **The declared run, where the dispatcher names one**: `--run <id>` prints `FORGE_RUN=<id>`
+  beside the tree, and every tracker request the CLI then makes sends `x-forge-run` with it.
+  This lets core attribute a run's knowledge and memory reads to that run (forge ISS-1065). The
+  runner prints the id to the master alone, and the plugin never mints one, so the brief the
+  dispatcher already sends whole is the one route to the run. A stale id is core's to refuse or
+  ignore, and the call is never retried without it. Hooks run in the host process rather than the
+  run's shell, so their reads go unnamed and core attributes them by its single-live-session rule.
+  (ISS-70)
 - **What the other trees hold**: both readings for each tree, the uncommitted files and what is
   committed against the remote's default branch. Commits alone answer empty for a tree with twenty
   files open in it, and that empty looks exactly like an idle tree.

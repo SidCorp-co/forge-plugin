@@ -569,6 +569,7 @@ export const fakeTracker = async (state) => {
       query: Object.fromEntries(url.searchParams),
       sent,
       slug: SLUGS.get(url.pathname.split("/")[3]) ?? null,
+      run: request.headers["x-forge-run"] ?? null,
     };
     mine.call = pending;
     const row = ROUTES.find(([pattern]) => pattern.test(url.pathname));
