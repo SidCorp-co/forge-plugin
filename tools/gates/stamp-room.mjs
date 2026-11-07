@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
@@ -11,14 +11,66 @@ const rootLeftSaid = (dir, error) => `This process could not remove its temporar
   + `${error.code ?? error.message}. Something may still be writing into it, or a directory in it refuses the removal. `
   + `Once nothing is, remove it:\n  rm -rf ${dir}\n`;
 
+export const ROOT_PREFIX = "forge-gate-tmp-";
+export const OWNER = "forge-gate-owner.pid";
+// cm:why no gate runs a day, so a root that old is a killed run's whatever pid its owner file names, a reused pid included
+export const ORPHANED_AFTER_MS = 24 * 60 * 60 * 1000;
+
+const alive = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+};
+
+const ownerOf = (dir) => {
+  try {
+    return Number(readFileSync(join(dir, OWNER), "utf8"));
+  } catch {
+    return Number.NaN;
+  }
+};
+
+const orphaned = (dir, now) => {
+  const pid = ownerOf(dir);
+  return (Number.isInteger(pid) && pid > 0 && !alive(pid)) || now - statSync(dir).mtimeMs > ORPHANED_AFTER_MS;
+};
+
+/** The roots a killed run left, which its exit handler never reached (ISS-65); returns the ones removed. */
+export const sweepOrphans = (tmp = tmpdir(), now = Date.now()) => {
+  let names;
+  try {
+    names = readdirSync(tmp).filter((one) => one.startsWith(ROOT_PREFIX));
+  } catch {
+    return [];
+  }
+  const swept = [];
+  for (const name of names) {
+    const dir = join(tmp, name);
+    try {
+      if (!orphaned(dir, now)) continue;
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      swept.push(dir);
+    } catch {
+      // cm:why a root another user owns, or one a concurrent sweep removed first, is not this run's to report
+    }
+  }
+  return swept;
+};
+
 /** One temp root per run, every step spawned under it. Removed however the run ends, since a throw from a step or the
- *  ledger exits past every verdict, and nothing else sweeps one; a SIGKILL leaves it, and `KEEP_TEST_ROOMS` keeps it.
+ *  ledger exits past every verdict; a SIGKILL leaves it for the next run's sweep, and `KEEP_TEST_ROOMS` keeps it a day.
  *  Node's own retries cover a worker still dying into it; past them the root is named rather than thrown about. */
 export const gateTmp = () => {
-  const at = join(tmpdir(), "forge-gate-tmp-");
+  const swept = sweepOrphans();
+  if (swept.length) process.stderr.write(`removed ${swept.length} temp root(s) a killed gate left under ${tmpdir()}\n`);
+  const at = join(tmpdir(), ROOT_PREFIX);
   const dir = madeIn(at, () => mkdtempSync(at));
   if (process.env.KEEP_TEST_ROOMS === "1") process.stderr.write(`keeping this gate's temp root: ${dir}\n`);
   else {
+    writeFileSync(join(dir, OWNER), String(process.pid));
     process.on("exit", () => {
       try {
         rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
