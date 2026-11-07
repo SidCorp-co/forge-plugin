@@ -31,8 +31,17 @@ const TRANSIENT = [408, 425, 500, 502, 503, 504];
 export const AMBIGUOUS = "This call may have been processed and is not sent again: idempotence is "
   + "documented for the merged mark alone, so a repeat could write twice. Read the record first.";
 
-export const retryOf = (status, repeatable) => {
+/* cm:why a deploy's stop-then-start window answers these before any handler runs, so a write is as safe to send again as a read, for about as long as the window lasts (FB-62) */
+const DRAINING = 503;
+const DRAINING_CODES = new Set(["CORE_DRAINING", "DB_CONNECTIONS_EXHAUSTED"]);
+const DRAINING_PROXY = /no available server/iu;
+const DRAINING_ATTEMPTS = 5;
+const draining = (status, text) => status === DRAINING
+  && (DRAINING_CODES.has(parsedOr(text)?.code ?? parsedOr(text)?.error?.code) || DRAINING_PROXY.test(String(text ?? "")));
+
+export const retryOf = (status, repeatable, text = "") => {
   if (status === RATE_LIMITED) return "rate-limited";
+  if (draining(status, text)) return "draining";
   return (status === null || TRANSIENT.includes(status)) && repeatable ? "transient" : null;
 };
 
@@ -181,7 +190,8 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
   let response = null;
   let dropped = null;
   let bound = deadline;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  let ceiling = attempts;
+  for (let attempt = 1; attempt <= ceiling; attempt += 1) {
     const stop = spend?.() ?? (ceilingLeft() > 0 ? null : `Nothing was sent: ${ceilingFrom()} had no time left. ${clockSpentSaid()}`);
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
@@ -213,8 +223,9 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     }
     /* An attempt whose body dropped is a dropped attempt, whatever its headers said: those describe a request the server answered and `dropped` the connection dying before the answer arrived, so a 200 whose body stalled is no success and a 429's is judged no differently. What the rule costs rather than exempts: a 429 whose body stalls waits the ladder's number instead of the one the server sent (ISS-828). */
     if (response?.ok && !dropped) break;
-    const again = retryOf(dropped ? null : response.status, repeatable);
-    if (!again || attempt === attempts) break;
+    const again = retryOf(dropped ? null : response.status, repeatable, text);
+    ceiling = again === "draining" && !once ? DRAINING_ATTEMPTS : attempts;
+    if (!again || attempt >= ceiling) break;
     const limited = again === "rate-limited";
     const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
     const answered = dropped ? ranOut(dropped, bound) : `answered ${response.status}`;
@@ -227,7 +238,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
       return { response, text, dropped, deadline: bound, spent };
     }
     const resting = spending("retry");
-    console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
+    console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${ceiling}).`);
     await sleep(wait);
     resting();
   }
@@ -309,7 +320,8 @@ const fetchedParts = async (key, row, args, soft, held) => {
       + `${onClock(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) {
       const body = parsedOr(text);
-      return [part, refused(said(body, response.status, args),
+      const proxy = !body?.message && draining(response.status, text) ? `\n${String(text).trim().slice(0, 200)}` : "";
+      return [part, refused(said(body, response.status, args) + proxy,
         { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
     }
     const body = text ? parsedOr(text) : null;

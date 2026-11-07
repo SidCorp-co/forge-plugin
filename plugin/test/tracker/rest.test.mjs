@@ -99,7 +99,7 @@ const answering = async (bodies, call) => {
   globalThis.fetch = async () => {
     asks += 1;
     const [status, body] = queued.length > 1 ? queued.shift() : queued[0];
-    return { ok: status < 400, status, headers: new Map(), text: async () => JSON.stringify(body) };
+    return { ok: status < 400, status, headers: new Map(), text: async () => (typeof body === "string" ? body : JSON.stringify(body)) };
   };
   try {
     return await call();
@@ -427,6 +427,22 @@ test("an attempt whose body ran out is a dropped attempt whatever its headers sa
 
   await stalling(400, read);
   assert.equal(asks, 4, "and a read is sent again whatever the status those headers carried");
+});
+
+test("a deploy window's 503 is sent again, read or write, five times, and any other 5xx on a write is not", async () => {
+  for (const said of [{ code: "CORE_DRAINING", message: "core is draining" }, { code: "DB_CONNECTIONS_EXHAUSTED", message: "no connection" }, "no available server"]) {
+    const wrote = await answering([[503, said]], update);
+    assert.equal(asks, 5, `a write answered ${JSON.stringify(said)} was sent ${asks} time(s), not five`);
+    assert.match(wrote.refused, /CORE_DRAINING|DB_CONNECTIONS_EXHAUSTED|no available server/u, "and fails naming the last answer");
+  }
+  const back = await answering([[503, { code: "CORE_DRAINING" }], ok({ id: "u-1", priority: "high" })], update);
+  assert.equal(asks, 2, "the write that comes back is not sent a third time");
+  assert.equal(back.refused, undefined, JSON.stringify(back));
+  await answering([[503, { code: "SOMETHING_ELSE" }]], update);
+  assert.equal(asks, 1, "a 503 that names no deploy window may have been processed");
+  await answering([[502, { code: "BAD_GATEWAY" }]], update);
+  assert.equal(asks, 1);
+  assert.equal(retryOf(503, false, JSON.stringify({ error: { code: "CORE_DRAINING" } })), "draining", "the code nested under error counts too");
 });
 
 /* One number spent on the timer and printed to the caller: `AbortSignal.timeout` takes whole milliseconds, so a fractional deadline is rounded where it is read and never refused where the request should go (consult 6b1ac4, F1). */
