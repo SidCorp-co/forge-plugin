@@ -207,7 +207,7 @@ reports.
 - **AC-12-7-2** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "every file in the tree is read, or left out for a reason named here"
   WHEN the check chooses what to read THEN it SHALL take every file of each part it declares in,
   whatever the class of that file, and SHALL leave a part unread only where a reason stands beside it.
-- **AC-12-7-3** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "every figure under the documents directory is in the population"
+- **AC-12-7-3** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "every file under the documents directory is in the population, markdown or not"
   WHERE a declared part holds a class of file the check would otherwise walk past, the case SHALL
   name that class and SHALL hold every member of it to being in the population walked.
 - **AC-12-7-4** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "an unplaced file no commit put here is refused as the run's own and named the way out"
