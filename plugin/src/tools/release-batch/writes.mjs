@@ -2,14 +2,15 @@
    release somebody already performed outside a batch. None of them moves a status itself: the
    tracker closes what a release carried on its own sanctioned path, and a status this CLI set would
    be the second route around that gate ISS-1992 rules out. docs/cli/release-batch.md. */
-import { flags } from "../../resolve/flags.mjs";
+import { flags, pullRepeated } from "../../resolve/flags.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { write } from "../../tracker/rest.mjs";
 import { IN_FLIGHT, finishLines, verifiedLine } from "./reads.mjs";
 import { answeredOr, reasonSaid } from "./refused.mjs";
 
-export const START_USAGE = "Usage: forge release-batch start <ISS-nn>...";
+export const START_USAGE = "Usage: forge release-batch start <ISS-nn>... [--version V] [--name N] [--summary S] "
+  + "[--promotion <request>] [--change-request <n>]...";
 export const FINISH_USAGE = "Usage: forge release-batch finish <runId> [--commit <sha>]";
 export const RECORD_USAGE = 'Usage: forge release-batch record <ISS-nn>... --commit <sha> --account "<text>" '
   + "[--provider-ref <ref>]";
@@ -49,6 +50,26 @@ const filledOr = (verb, usage, given, flag) => {
 
 const keyOf = (byId, id) => byId.get(String(id).toLowerCase()) ?? id;
 
+const requestNumber = (flag, value) => {
+  if (!/^[1-9]\d*$/u.test(value) || !Number.isSafeInteger(Number(value))) {
+    owed("start", START_USAGE, `a whole request number for --${flag}, not \`${value}\`,`);
+  }
+  return Number(value);
+};
+
+// cm:why every field the cut body takes is a flag, so an owner-named version or a promotion cut needs no REST detour (ISS-73)
+const cutFields = (given, requests) => {
+  const fields = {};
+  for (const flag of ["version", "name", "summary"]) {
+    const value = filledOr("start", START_USAGE, given, flag);
+    if (value !== undefined) fields[flag] = value;
+  }
+  const promotion = filledOr("start", START_USAGE, given, "promotion");
+  if (promotion !== undefined) fields.promotion = { request: requestNumber("promotion", promotion) };
+  if (requests.length) fields.changeRequests = requests.map((one) => requestNumber("change-request", one));
+  return fields;
+};
+
 export const start = async (argv) => {
   const [keys, rest] = keysThen(argv);
   /* Named rather than left to the parser's "no such flag": the tracker reads a batch over a failed
@@ -57,11 +78,14 @@ export const start = async (argv) => {
     fail("release-batch start: --recut-of is no longer sent, and nothing was sent. The tracker derives a re-cut of a "
       + `failed release from the issues it carries: start the batch over those issues with no --recut-of.\n${START_USAGE}`);
   }
-  flags(rest, "release-batch start", [], { usage: START_USAGE });
+  const { values: requests, rest: flagArgv } = pullRepeated(rest, "--change-request", "release-batch start",
+    { usage: START_USAGE });
+  const given = flags(flagArgv, "release-batch start", [], { usage: START_USAGE });
   if (!keys.length) owed("start", START_USAGE, "at least one issue key");
+  const fields = cutFields(given, requests);
   const byId = await idsOf("start", keys);
   const opened = answeredOr("start", await write("forge_release_batch.create",
-    { data: { issueIds: [...byId.keys()] } }, undefined, true));
+    { data: { issueIds: [...byId.keys()], ...fields } }, undefined, true));
   console.log(`runId      ${opened.runId}`);
   console.log(`version    ${opened.version ?? "unread"}`);
   console.log(`roster     ${(opened.issueIds ?? []).map((id) => keyOf(byId, id)).join(", ") || "none"}`);

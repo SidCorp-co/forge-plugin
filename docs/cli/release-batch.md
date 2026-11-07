@@ -87,3 +87,13 @@ The tracker refuses a release with the first reason it found and lists every oth
 beside it. A run told only the first clears it and meets the second on its next call, one round trip
 per reason, which is what ISS-1127 in the tracker's repository recorded. So a refused write prints the
 whole list, and `readiness` prints the same list before anything is sent.
+
+## `start` forwards every field the cut takes
+
+Until ISS-73, `start` sent the roster alone. An owner-named version (adminhub-fe 1.15.0, 2026-11-06)
+or a promotion cut therefore had to go around the verb over REST, and a flag for one would have been
+read and dropped. The cut body's fields (version, name, summary, the promotion request and the change
+requests) are each a flag, and each is sent as typed. The tracker judges a version: one taken, behind
+the last release, or misshapen is refused by its code, and the verb keeps no copy of that rule. The
+only check made here is that a request number is a whole number, since a body the tracker cannot parse
+would be refused without naming the flag.

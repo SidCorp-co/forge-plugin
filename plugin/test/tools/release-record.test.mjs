@@ -193,6 +193,25 @@ test("13. start sends exactly the named issues' ids to batch create and prints t
   assert.match(run.stdout, /^version\s+1\.5\.0$/mu);
 });
 
+test("13b. start forwards every field the cut body takes: version, name, summary, promotion and each change request", async () => {
+  state.release.create = { runId: RUN_ID, jobId: "j", issueIds: [ONE], gateStatus: "awaiting_release", version: "1.15.0" };
+  const run = await ran("start", "ISS-1", "--version", "1.15.0", "--name", "Owner cut", "--summary", "Two fixes.",
+    "--promotion", "12", "--change-request", "7", "--change-request", "9");
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(run.released[0].args.data, { issueIds: [ONE], version: "1.15.0", name: "Owner cut",
+    summary: "Two fixes.", promotion: { request: 12 }, changeRequests: [7, 9] });
+  assert.match(run.stdout, /^version\s+1\.15\.0$/mu);
+});
+
+test("13c. start refuses a request number that is not whole, and a flag the cut body does not take, before anything is sent", async () => {
+  for (const argv of [["--promotion", "twelve"], ["--change-request", "0"], ["--channel", "beta"]]) {
+    const run = await ran("start", "ISS-1", ...argv);
+    assert.notEqual(run.status, 0, `${argv.join(" ")} was taken`);
+    assert.deepEqual(run.routes, [], `${argv.join(" ")} reached the tracker`);
+    assert.ok(run.stderr.includes(argv[0]), run.stderr);
+  }
+});
+
 test("14. finish sends the commit to that run's finish route and prints the state the tracker answered", async () => {
   state.release.finish = { runId: RUN_ID, finish: { state: "verifying", commit: SHA } };
   const run = await ran("finish", RUN_ID, "--commit", SHA);

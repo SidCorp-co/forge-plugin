@@ -340,7 +340,8 @@ export const ROUTES = {
     project: true,
     writes: true,
     requests: (args, project) => one(`/projects/${project}/release-batches`, "POST",
-      filled({ issueIds: args.data?.issueIds })),
+      filled({ issueIds: args.data?.issueIds, version: args.data?.version, name: args.data?.name,
+        summary: args.data?.summary, changeRequests: args.data?.changeRequests, promotion: args.data?.promotion })),
     sends: ["data"],
   },
   "forge_release_batch.finish": {
