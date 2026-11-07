@@ -236,7 +236,7 @@ test("the landing sections are served in the mode's own text, one branch of each
   const folds = modes.map((one) => shipping(one, "dispatch"));
   assert.doesNotMatch(folds[0], /ready-to-land/u, "self mode's fold lands nothing extra");
   assert.match(folds[1], /the fold lands the runs' branches/u, "ready mode's fold lands them");
-  assert.match(folds[1], /`awaiting_release`, where the close is the release's record/u,
+  assert.match(folds[1], /`awaiting_release`: the close is the holder's once the criteria are met in scope/u,
     "and says where the landing stops and whose the close is");
 });
 
