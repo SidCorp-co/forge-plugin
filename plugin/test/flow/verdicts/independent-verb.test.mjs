@@ -141,10 +141,10 @@ test("once the QA session has judged every criterion against the deployment, adv
     "--also", "note", "--section", "Fixed", "--title", "The change in a few words", "--user", "it works");
   assert.equal(proved.status, 0, proved.stderr);
   assert.match(proved.stderr, /^ISS-8 {2}in_progress:release -> awaiting_release$/mu, "both records, one call, one move");
-  const run = await qa("advance", "ISS-8");
-  assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
-  assert.match(run.stderr, /CLOSE_ONLY_BY_RELEASE/u, "every place moved on the call that earned it, and the close is the release's");
-  assert.equal(judging.status, "awaiting_release", "so the advance moved nothing past the top of the ladder");
+  const run = await qa("advance", "ISS-8", "--owed");
+  assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
+  assert.match(`${run.stdout}${run.stderr}`, /closed is next/u, "every place moved on the call that earned it, and the close is all that is left");
+  assert.equal(judging.status, "awaiting_release", "and a rehearsal moved nothing");
 });
 
 /* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,

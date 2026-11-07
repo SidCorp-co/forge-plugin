@@ -18,10 +18,11 @@ here, naming the ones that are. A standing that cannot be read leaves the move t
 transition, which refuses it by name either way: the read is the earlier answer, never the only one.
 A park and a set carry their own payload and are judged whole by core.
 
-**The ladder ends at `awaiting_release`, and offers no `closed`.** The close from there is the
-release's (`CLOSE_ONLY_BY_RELEASE`), so `--owed` and the plain advance answer with the record that
-makes it, `forge release-batch record`, and with the reopen that sends work back. The word `close`
-typed as a command is a route: it prints that record rather than moving anything.
+**The ladder ends at `awaiting_release`, and the close from there is the holder's.** A close claims
+every criterion was met in scope (forge ISS-1062), so a fail or a skip still standing is refused
+before anything is sent unless `--unmet` moves it out, and where each one goes is core's to judge
+(`CLOSE_CRITERION_UNPLACED`). Liveness is not the close's: the release record says it. The word
+`close` typed as a command is a route: it prints that advance rather than moving anything.
 
 **A retired name is never sent.** The transport refuses a status core does not hold before the
 request, naming the place that took it over; `--set` and `--to` refuse one the same way. A park record

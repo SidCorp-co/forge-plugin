@@ -41,8 +41,7 @@ nothing there for a person's own judgement to stand in for either.
 
 ## A release that shipped is recorded, never moved
 
-The close from `awaiting_release` belongs to the release, and the tracker refuses a run's own move
-there (`CLOSE_ONLY_BY_RELEASE`). A run that deployed by hand, because the batch machinery was refused, was left with no
+Whether a change is live is the release's to say, whoever closed the issue. A run that deployed by hand, because the batch machinery was refused, was left with no
 command that could say it had (ISS-1992). Twenty issues read as waiting for a release that was
 already serving, and the only writes a run could make were a status it was not entitled to or
 nothing.

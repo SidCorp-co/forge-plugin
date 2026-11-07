@@ -106,25 +106,22 @@ test("where the policy owes a person, the act is named once and on the policy's 
     assert.ok(policyLines(out)[0].includes(act), out);
   }
   const closing = await reported("ISS-4");
-  assert.match(closing, /^Owed: the release,/mu, closing);
-  assert.match(closing, /The line above says whose act it is/u, "the closing line points at the policy's");
-  assert.match(closing, /^ {2}forge release-batch record ISS-4 --commit <[^>]+> --account "<[^"]+>"$/mu,
-    `the close is the release's record, core closing an issue at awaiting_release on nothing else:\n${closing}`);
-  assert.doesNotMatch(closing, /--set closed/u, closing);
+  assert.match(closing, /^Owed: the close\./mu, closing);
+  assert.match(closing, /^The release is still a person's, as the line above says/mu, "the closing line points at the policy's");
+  assert.match(closing, /^ {2}forge advance ISS-4 /mu, `the close is the holder's advance (forge ISS-1062):\n${closing}`);
+  assert.doesNotMatch(closing, /--set closed|release-batch record ISS-4/u, closing);
 });
 
-/* ISS-2409: a promotion whose deploy is automatic still waits for the release that moves the change
-   onto the live branch, and that release is the batch's, which closes the issue itself. A run reading
-   `Owed: the close` there closed every issue the batch would have shipped. */
-test("on a promotion the project deploys on its own, the report hands the close to the release batch", async () => {
+/* A promotion whose deploy is automatic still waits for the batch that moves the change onto the live
+   branch (ISS-2409), but that release only says when it is live: the close is the holder's (forge ISS-1062). */
+test("on a promotion the project deploys on its own, the report names the batch's release beside the holder's close", async () => {
   project.config = PROMOTES_ITSELF;
   const line = await policyLine("ISS-3");
   assert.match(line, /the promotion from staging to master is the release batch's/u, line);
   assert.doesNotMatch(line, /nobody owes this release an act/u, line);
   const closing = await reported("ISS-4");
-  assert.match(closing, /^Owed: the release, which is the release batch's and not a person's\./mu, closing);
-  assert.match(closing, /this run ends at awaiting_release and the close is the batch's/u, closing);
-  assert.doesNotMatch(closing, /^Owed: the close\./mu, `the run is told to close what the batch closes:\n${closing}`);
-  assert.match(closing, /^ {2}forge release-batch record ISS-4 --commit <[^>]+> --account "<[^"]+>"$/mu, closing);
-  assert.doesNotMatch(closing, /--set closed/u, closing);
+  assert.match(closing, /^Owed: the close\./mu, closing);
+  assert.match(closing, /^The release is still the release batch's/mu, closing);
+  assert.match(closing, /^ {2}forge advance ISS-4 /mu, closing);
+  assert.doesNotMatch(closing, /--set closed|release-batch record ISS-4/u, closing);
 });

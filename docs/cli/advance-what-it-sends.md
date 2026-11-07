@@ -68,8 +68,7 @@ open, and the tracker voids each such question with a sentence when the move car
 that was in the tracker's refusal and in no flag, so a close the landing walked stopped there until
 a person answered (ISS-3104). `--void-questions` is that field. The tracker takes it on any move and
 voids the open questions whichever status the move enters; this CLI sends it only on a move into
-`dropped` or a set to `closed` (the plain advance offers no `closed`, core closing an issue at
-`awaiting_release` only by its release), because a park or a step up the lane that also ended a person's question is
+`closed` or `dropped`, because a park or a step up the lane that also ended a person's question is
 the one outcome a caller could not tell from the move it asked for. Whether a question should be voided is the caller's to decide, which is
 why the field goes only where the flag was typed; the refusal names both ways past it, the person
 answering and the same command again with the flag, and leaves the choice there.

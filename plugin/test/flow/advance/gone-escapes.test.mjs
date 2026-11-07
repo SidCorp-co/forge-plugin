@@ -124,8 +124,7 @@ const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const ENV = { ...tracker.env, FORGE_SESSION_ID: HOLDER };
 projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
-/* The act through this verb that ends an owing: a drop. `forge advance` offers no close, core closing
-   an issue at awaiting_release only by the release that ships it (CLOSE_ONLY_BY_RELEASE). */
+/* The act through this verb that ends an owing: a drop. */
 const dropping = (at) => {
   READY.status = "open";
   return ranAsync(FORGE, ["advance", KEY, "--drop", "--why", "the work is not wanted"], ENV, at);

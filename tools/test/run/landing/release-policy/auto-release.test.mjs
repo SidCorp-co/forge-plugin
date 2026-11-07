@@ -1,5 +1,5 @@
 /* The landing under a project whose release owes a person nothing: it walks to `awaiting_release`
-   and rests there, core closing an issue only by the release that ships it. Its own file because the policy is read once per process
+   and rests there, the close being the holder's once the criteria are met. Its own file because the policy is read once per process
    and every other case here runs a branch deploying nothing, so they prove the other ceiling. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -73,7 +73,7 @@ const verified = (at) => {
   noteShown(LANDER, UUID, comments(UUID));
 };
 
-test("a release the project makes without a person rests at the release rung, the record of it being the close", async () => {
+test("a release the project makes without a person rests at the release rung, and names the holder's close", async () => {
   const { work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base), earned: earning(head) });
   /* It stops at the judging rung first: the fixture's verification cites the head, not what shipped. */
@@ -89,14 +89,14 @@ test("a release the project makes without a person rests at the release rung, th
   const back = await asBuilder(["claim", KEY, "--recorded"]);
   const said = `${back.stdout}${back.stderr}`;
   assert.equal(back.status, 0, said);
-  /* The tracker closes an issue that ships code only by a release that claimed it, so no walk moves it there. */
+  /* The close claims every criterion met in scope, which no landing walk judges. */
   assert.equal(issue().status, "awaiting_release", `the hand-back walks to the release rung and no further:\n${said}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
   assert.deepEqual(moves(), ["in_progress:test", "in_progress:release", "awaiting_release"],
     `one move per rung of the tail, in the table's order, and no jump:\n${said}`);
   assert.match(said, /no landing call is owed/u, `so the hand-back says none is:\n${said}`);
   assert.doesNotMatch(said, new RegExp(`forge claim ${KEY} --take`, "u"), `and names no take of a landing that is over:\n${said}`);
-  assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the tracker closes an issue that ships code only by a release that claimed it \\(CLOSE_ONLY_BY_RELEASE\\)`, "u"), said);
-  assert.match(said, new RegExp(`forge release-batch record ${KEY} --commit <the sha that shipped>`, "u"),
-    `naming the record that closes it:\n${said}`);
+  assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\`: the close is the holder's once the criteria are met in scope`, "u"), said);
+  assert.match(said, new RegExp(`forge advance ${KEY} `, "u"), `naming the advance that closes it:\n${said}`);
+  assert.doesNotMatch(said, /The release is/u, `a release made without a person owes nobody the act:\n${said}`);
 });

@@ -500,9 +500,9 @@ test("the report says the close is owed on an issue a run has released", async (
   const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], project.env ?? ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
-  assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at awaiting_release, and core closes an issue there only by the release that ships it \(CLOSE_ONLY_BY_RELEASE\)/mu, run.stdout);
-  assert.match(run.stdout, /^ {2}forge release-batch record ISS-4 --commit </mu, "with the one record that makes it");
-  assert.doesNotMatch(run.stdout, /^ {2}forge advance ISS-4$/mu, "and never an advance, which offers no close");
+  assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at awaiting_release, and the close is the holder's once the criteria are met in scope/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}forge advance ISS-4 /mu, "with the advance that makes it");
+  assert.doesNotMatch(run.stdout, /release-batch record ISS-4|The release is still/u, "and a release owing nobody is not named");
   assert.match(run.stdout, /^Plan {2}\(typed\)$/mu, "the plan is on the report, as every other payload is");
   assert.match(run.stdout, /^## Files touched$/mu, "and whole: it is what every later phase was built against");
   const quiet = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], ENV);
@@ -517,14 +517,12 @@ test("what the report says is owed at the deploying rung is the release policy's
   project.config = { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } };
   const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], ENV);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^Owed: the release, which is a person's\./mu, run.stdout);
+  assert.match(run.stdout, /^Owed: the close\./mu, run.stdout);
   assert.match(run.stdout, /the release is an act/u,
     "named in the project's own terms, so the reader knows which setting says so");
-  assert.match(run.stdout, /close is theirs, made once it is out and with the release named:$/mu, run.stdout);
-  assert.match(run.stdout, /^ {2}forge release-batch record ISS-4 --commit <[^>]+> --account "<[^"]+>"$/mu,
-    "the route printed is the release's record, the one move core closes an issue on (ISS-1918)");
-  assert.doesNotMatch(run.stdout, /--set closed/u, "and never a set, which core refuses at awaiting_release");
-  assert.doesNotMatch(run.stdout, /^Owed: the close\./mu, "the two lines are one line, never both");
+  assert.match(run.stdout, /^The release is still a person's, as the line above says: its record says when the change is live/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}forge advance ISS-4 /mu, "the close is the holder's advance (forge ISS-1062)");
+  assert.doesNotMatch(run.stdout, /--set closed|release-batch record ISS-4/u, run.stdout);
   /* The model, not the branch pair: the promotion is named where the model is the one that has one. */
   project.config = { baseBranch: "staging", releaseModel: "promote", liveBranch: "master", pipelineConfig: { autoProdDeploy: false } };
   const promoted = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], ENV);
@@ -543,10 +541,8 @@ test("a record write ends with the line advance --owed would print, and never fa
   assert.equal(earned.status, 0, earned.stderr);
   assert.match(earned.stderr, /^ISS-3 {2}in_progress:release -> awaiting_release$/mu, "the move is reported, never silent");
   assert.doesNotMatch(earned.stdout, /in_progress:release -> awaiting_release/u, "on stderr, stdout being the record");
-  assert.match(earned.stderr,
-    /^ISS-3 is awaiting_release; nothing advances from it here: core closes it only by the release that ships it \(CLOSE_ONLY_BY_RELEASE\)/mu,
-    "the line advance --owed would print for the status the call left it at, which offers no close");
-  assert.match(earned.stderr, /The release is a person's/u, "and the policy's answer on it");
+  assert.match(earned.stderr, /^ISS-3 is awaiting_release; closed is next and the record earns it\. `forge advance ISS-3` moves it\.$/mu,
+    "the line advance --owed would print for the status the call left it at");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
   await ranAsync(FORGE, ["claim", "ISS-5", "--unheld"], ENV);
   const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], ENV);

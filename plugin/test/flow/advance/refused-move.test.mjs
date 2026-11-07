@@ -74,16 +74,15 @@ test("a refused move names the status the issue holds and the status it was aske
 /* Core closes from awaiting_release only on its own release path, and its answer to a run's own set
    there is about the status alone (ISS-1992). `forge advance` offers no close, so a set is the one
    route that asks for one. */
-const CLOSE_ONLY = "CLOSE_ONLY_BY_RELEASE: an issue that ships code closes only through the release that claimed it";
-test("a refused close from awaiting_release names the release record as the route, above the tracker's own words", async () => {
-  state.refuses = CLOSE_ONLY;
+const UNPLACED = "CLOSE_CRITERION_UNPLACED: criterion 2 is not met and names nowhere it goes";
+test("a refused close from awaiting_release names the --unmet form, above the tracker's own words", async () => {
+  state.refuses = UNPLACED;
   Object.assign(PARKED, { status: "awaiting_release", workState: null });
   const run = await advance("--set", "closed", "--why", "it shipped");
   assert.equal(run.status, 1, run.stdout);
   const [above, under = ""] = run.stderr.split("What refused it:\n");
-  assert.match(above, /forge release-batch record ISS-99 --commit <sha> --account "<how it was released>"/u, run.stderr);
-  assert.match(above, /`forge release-batch readiness`/u, run.stderr);
-  assert.ok(under.trimEnd().endsWith(CLOSE_ONLY), `the tracker's words stay last: ${run.stderr}`);
+  assert.match(above, /forge advance ISS-99 --unmet '\[\{"criterion":<n>,"to":\{"issue":"ISS-<n>"\}\}\]'/u, run.stderr);
+  assert.ok(under.trimEnd().endsWith(UNPLACED), `the tracker's words stay last: ${run.stderr}`);
 });
 
 test("a move the tracker takes prints the pair it moved between and nothing about a refusal", async () => {

@@ -129,8 +129,8 @@ test("the rung the close is taken from is asked nothing, and its rehearsal reads
   project.comments["working-uuid"] = [];
   const before = listed();
   const owed = await ranAsync(FORGE, ["advance", "ISS-7", "--owed"], inSession("unasked-end-owed"));
-  assert.equal(owed.status, 1, owed.stdout);
-  assert.match(owed.stderr, /CLOSE_ONLY_BY_RELEASE/u, "the close is the release's, and the rehearsal says so");
+  assert.equal(owed.status, 0, owed.stderr);
+  assert.match(owed.stdout + owed.stderr, /closed is next/u, "the close is the holder's, and the rehearsal says so");
   assert.equal(promptIn(owed.stdout + owed.stderr), "", `nothing is asked at this rung: ${owed.stdout}`);
   assert.equal(listed(), before + 1, "and the one page fetched is the entry check's");
 });

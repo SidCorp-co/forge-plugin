@@ -1,6 +1,6 @@
 /* The rung the tracker renamed, and the claims holding it: the ladder's tail, both halves of the one
    rung, the names core retired that nothing here writes, the declared enum (ISS-1022). The ladder is
-   core's machine now, and its tail stops at awaiting_release: core closes an issue only by its release. */
+   core's machine now, and its tail stops at awaiting_release, the close from there being no rung. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -16,7 +16,6 @@ const { DECLARES } = await import("../../../src/tracker/routes.mjs");
 const { declaredFor, statusKind } = await import("../../../src/tracker/rest.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
-const { Refused } = await import("../../../src/refusal.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const RUNG = "awaiting_release";
@@ -35,7 +34,7 @@ test("the ladder's tail is two places, the test leads to the judging one, and no
     JUDGING, RUNG], "a member added or dropped anywhere fails this");
   assert.equal(nextOf("in_progress:test", {}), JUDGING);
   assert.equal(nextOf(JUDGING, {}), RUNG);
-  assert.equal(nextOf(RUNG, {}), null, "core closes it only by the release that ships it");
+  assert.equal(nextOf(RUNG, {}), null, "the close is no rung of the ladder");
   assert.equal(LADDER.includes("tested"), false, "the place the verdicts earn is `in_progress:release` now");
   assert.equal(LADDER.includes("released"), false, "and the tracker holds no such status at all");
 });
@@ -56,8 +55,8 @@ test("each rung is entered on its own half, and neither check reaches the other'
    naming a local stack rather than a deployment, and the close cleared every one, because it tested
    the same three record kinds whatever put the issue on the rung instead of reading what the
    verification itself said. The verification is read where the issue enters the rung, and the close
-   is no advance at all: core makes it only by the release that ships it. */
-test("the rung is entered on a verification naming the deployment, and closed is the release's", () => {
+   from it asks no entry check of this CLI's. */
+test("the rung is entered on a verification naming the deployment, and closed is the holder's advance from it", () => {
   assert.equal(CLOSES_FROM, RUNG, "the close reads the rung's own name");
   const releases = { staging: "master", model: "publish", said: "publish", live: null,
     strategy: null, autoProd: true, from: "the fixture" };
@@ -86,15 +85,8 @@ test("the rung is entered on a verification naming the deployment, and closed is
 
   assert.deepEqual(entered([mark, verifiedAt("43b811e")]), [],
     "the merged mark and a verification naming the deployment are the whole criterion");
-  let said = "";
-  try {
-    targetOf(viewFrom("the-uuid", { status: RUNG }, [mark, verifiedAt("43b811e")], null, releases), "ISS-3");
-  } catch (error) {
-    if (!(error instanceof Refused)) throw error;
-    said = error.message;
-  }
-  assert.match(said, /CLOSE_ONLY_BY_RELEASE/u, "and from the rung, the close is refused as no advance's");
-  assert.match(said, /forge release-batch record ISS-3 /u, "naming the release's record that makes it");
+  const next = targetOf(viewFrom("the-uuid", { status: RUNG }, [mark, verifiedAt("43b811e")], null, releases), "ISS-3");
+  assert.equal(next.next, "closed", "and from the rung, the close is the holder's advance");
 });
 
 /* A write is checked against this list before its request is built, so it answers to core rather

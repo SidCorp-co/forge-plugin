@@ -28,7 +28,7 @@ const ISSUE = {
   sessionContext: { lease: LEASE },
 };
 /* A whole confirmation whose finding is a disposition: the plain advance from the plan is then the
-   drop, the one terminal move a plain advance makes now that core closes an issue only by its release. */
+   drop. */
 const DISPOSED = [{ createdAt: "2026-09-04T10:00:00.000Z", authorId: "agent",
   body: render("confirmation",
     { is: "the asked-about defect", where: ["plugin/src/flow/advance.mjs"], finding: "already-fixed", detail: "ISS-98 fixed it" }) }];
@@ -72,13 +72,12 @@ test("a plain advance into dropped carries the sentence, trimmed, and the issue 
   assert.equal(ISSUE.status, "dropped");
 });
 
-test("a plain advance at awaiting_release offers no close to carry the sentence on, and sends nothing", async () => {
+test("a plain advance at awaiting_release carries the sentence on the close it makes", async () => {
   state.asked = true;
   const run = await advance("awaiting_release", "--void-questions", "the work it asked about shipped");
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /CLOSE_ONLY_BY_RELEASE/u, run.stderr);
-  assert.deepEqual(state.sent, [], "no move was sent");
-  assert.equal(ISSUE.status, "awaiting_release");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(voided(), ["the work it asked about shipped"], JSON.stringify(state.sent));
+  assert.equal(ISSUE.status, "closed");
 });
 
 test("a set into closed or dropped carries the sentence on its move", async () => {

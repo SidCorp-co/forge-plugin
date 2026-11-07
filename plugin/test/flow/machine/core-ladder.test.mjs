@@ -15,7 +15,6 @@ const issueMachine = await import("../../../src/tracker/declared/issue-machine.m
 const earned = await import("../../../src/flow/earned.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
 const { declaredFor, statusKind } = await import("../../../src/tracker/rest.mjs");
-const { Refused } = await import("../../../src/refusal.mjs");
 
 const edge = (from, to) => machine.edges.some((one) => one.from === from && one.to === to && !one.recovery);
 
@@ -62,19 +61,11 @@ test("no legacy status is a value this CLI writes, and each is refused naming th
   }
 });
 
-test("advance offers no closed: an issue at awaiting_release has nothing next, and the refusal names the release", () => {
+test("advance offers closed from awaiting_release, the holder's once the criteria are met in scope", () => {
   const view = earned.viewFrom("the-uuid", { status: "awaiting_release", mergedAt: "2026-10-31T00:00:00.000Z" }, []);
-  let said = null;
-  try {
-    const held = targetOf(view, "ISS-3");
-    said = `next is ${held.next}`;
-  } catch (error) {
-    if (!(error instanceof Refused)) throw error;
-    said = error.message;
-  }
-  assert.doesNotMatch(said, /next is closed/u, "closed was offered as the next status");
-  assert.match(said, /release/u, "and the refusal names the release that closes it");
-  assert.match(said, /CLOSE_ONLY_BY_RELEASE/u);
+  const held = targetOf(view, "ISS-3");
+  assert.equal(held.next, "closed", "the close is not the next move");
+  assert.deepEqual(held.missing, [], "core judges the placement of an unmet criterion, not an entry check here");
 });
 
 test("every verb form moves to a place on the ladder, and none of them to closed", async () => {
@@ -82,6 +73,6 @@ test("every verb form moves to a place on the ladder, and none of them to closed
   for (const place of Object.keys(MOVES)) {
     assert.ok(earned.LADDER.includes(place), `the form ${MOVES[place]} moves to ${place}, which is no place on the ladder`);
   }
-  assert.ok(!Object.keys(MOVES).includes("closed"), "a form closes an issue core closes only by its release");
-  assert.match(ROUTES.close?.call ?? "", /release-batch record/u, "and `close` names the release's record instead");
+  assert.ok(!Object.keys(MOVES).includes("closed"), "a form names a close whose --unmet a form cannot carry");
+  assert.match(ROUTES.close?.call ?? "", /^forge advance <ISS-nn> \[--unmet '<json>'\]$/u, "and `close` names the advance that makes it");
 });

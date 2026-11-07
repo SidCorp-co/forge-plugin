@@ -14,6 +14,7 @@ import { CLOSES_FROM, PARKS } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
+import { closeIsPlaced, unmetOf } from "./close.mjs";
 import { issueOf, post } from "./record/thread/posting.mjs";
 import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, waitsFor } from "./park/compose.mjs";
 import { NEEDS_INFO, LADDER, SIDE, onNeedsInfo, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
@@ -52,6 +53,8 @@ export const USAGE = [
   `  --reopen --why W        the tracker's \`${REOPEN}\`, where a finding blocks the change; the finding`,
   "                          and its triage route where the work goes back to",
   "  --cause defect          with --reopen; one of --verdict/--attachment <id> or --live-read <read>",
+  "  --unmet <json>          with the close from awaiting_release: where each unmet or failing",
+  "                          criterion goes, [{\"criterion\":2,\"to\":{\"issue\":\"ISS-9\"}}] or \"to\":\"requirement\"",
   "  --set <status> --why W [--needs N]  the status outright, no entry check read, said in the reply",
   "                          and in a correction; refused where the record earns a place already.",
   "                          A place inside in_progress is named whole (in_progress:test). Core's",
@@ -62,9 +65,9 @@ export const USAGE = [
   "",
   "The ladder is core's; each in_progress:<step> is in_progress at that work step:",
   `  ${LADDER.join(" -> ")}`,
-  "A move core does not serve from where the issue stands is refused before it is sent. It offers no",
-  "closed: core closes an issue only by its release (CLOSE_ONLY_BY_RELEASE), recorded by",
-  "`forge release-batch record`.",
+  "A move core does not serve from where the issue stands is refused before it is sent. From",
+  "awaiting_release it advances to closed once the criteria are met in scope, each unmet one moved",
+  "out in --unmet first; whether it is live is the release record's.",
   "",
   `Only a move to ${NEEDS_INFO} takes --needs, what would settle the question; --why is why the`,
   "work stopped. A question park given no --needs carries its question record's readings.",
@@ -107,13 +110,6 @@ const viewOf = async (reference, given) => {
     counted: countedShort(page),
   };
 };
-
-/* Core makes the close from awaiting_release itself, on its release path (CLOSE_ONLY_BY_RELEASE), and
-   answers a set there with words about the status alone (ISS-1992). */
-const closeIsARelease = (view, status, ref) => (status !== "closed" || view.issue.status !== CLOSES_FROM ? ""
-  : ` Core closes an issue at ${CLOSES_FROM} only by the release that shipped it (CLOSE_ONLY_BY_RELEASE), `
-    + `and that release's record is the close:\n  forge release-batch record ${ref} --commit <sha> --account "<how it `
-    + `was released>"\nand \`forge release-batch readiness\` names whatever would refuse that.`);
 
 /* The move, then the step, through the field writer: a refused move leaves the step where it was,
    and an issue already at the status sends its step alone, the tracker refusing a move to the status
@@ -182,7 +178,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     /* The project too: a move refused on another project's row read as a success when the refusal
        named none (ISS-2910), and the tracker's words below stay whole and last. */
     refuse(`${ref} on ${aimSaid()} is ${view.issue.status} and the move to ${status} was refused, so `
-      + `nothing was written.${closeIsARelease(view, status, ref)}${route} What refused it:\n${answer.refused}`);
+      + `nothing was written.${closeIsPlaced(view, status, ref)}${route} What refused it:\n${answer.refused}`);
   }
   /* The write landed, so what comes back is the tracker's answer and not a failure to detect: the
      branch above is what catches one that did not take. Outside the landing it still refuses. */
@@ -582,7 +578,10 @@ const readFlags = (rest, ref) => {
   const asked = given.next !== undefined;
   if (asked && given.owed) refuse("--owed moves nothing and --next is a write. Ask for one.");
   if (asked && writes) refuse("a park says what it waits for in --why; the claim that resumes it sets --next.");
-  return { ...given, evidence, cause: causeOf(given, ref), needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
+  if (given.unmet !== undefined && (writes || given.owed)) {
+    refuse("--unmet rides the close a plain advance makes from awaiting_release, and nothing else here sends it.");
+  }
+  return { ...given, unmet: unmetOf(given.unmet), evidence, cause: causeOf(given, ref), needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
 };
 
 const run = async (argv, readAs, lifts) => {
@@ -607,8 +606,12 @@ const run = async (argv, readAs, lifts) => {
   }
   const { next, missing, resumed, park: routed, undecided = false } = targetOf(view, ref);
   checkTarget(given.to, next, view, ref);
+  if (given.unmet && next !== "closed") {
+    refuse(`--unmet rides the close from ${CLOSES_FROM}, and ${ref} is ${view.issue.status}, so ${next} is next. Nothing was sent.`);
+  }
   voidsInto(view, next, routed);
-  if (missing.length) {
+  // cm:why an --unmet close places the criteria the shortfall names, and core judges whether it placed each one (forge ISS-1062)
+  if (missing.length && !(given.unmet && next === "closed")) {
     shortfall(ref, view, { next, missing, undecided });
     /* Asked what is owed, the answer is the answer; asked to move, the same list is a refusal. */
     if (!given.owed) {
@@ -630,7 +633,8 @@ const run = async (argv, readAs, lifts) => {
      facts, and dropping either leaves the line answering a question nobody asked. */
   const note = `${resumed ? "  (resumed where its park left it)" : ""}`
     + `${readAs ? `  (read as ${readAs} ${ref})` : ""}`;
-  return transitionTo(view, next, ref, { note, next: given.next ?? null, by: resumed ? null : movedBySaid(view, next) });
+  return transitionTo(view, next, ref, { note, next: given.next ?? null, by: resumed ? null : movedBySaid(view, next),
+    said: given.unmet ? { unmet: given.unmet } : null });
 };
 
 /** `lifts` is the id of a park comment the caller has already proved is the landing's own conflict

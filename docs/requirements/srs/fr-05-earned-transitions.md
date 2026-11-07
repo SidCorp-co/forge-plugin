@@ -384,20 +384,19 @@ for.
 - **AC-05-7-9** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a declaration a plan quotes inside a code span is not one it makes"
   WHERE a declaration sits inside an inline code span, the CLI SHALL read it as a value the plan
   names rather than one it declares, because only what a plan leaves bare is what it commits to.
-- **AC-05-7-10** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "what the report says is owed at the deploying rung is the release policy's answer"
+- **AC-05-7-10** · Rev: 2 · Proof: plugin/test/flow/record/record.test.mjs "what the report says is owed at the deploying rung is the release policy's answer"
   WHERE the project's configuration leaves a person an act to make before the release is out, the
-  CLI SHALL report that act as what the deploying rung owes rather than the close, because a run
-  told to close is one that closes an issue whose release nobody has made.
-- **AC-05-7-11** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "a policy that leaves a person the release says so in the refusal, in the report's own words"
-  IF the project's configuration leaves a person an act to make before the release is out THEN the
-  CLI SHALL offer no `closed` from `awaiting_release` and SHALL name that act in the words it reports
-  it in, because a rule a careful run obeys and a careless one cannot detect is no rule.
-- **AC-05-7-12** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "a project declaring no release step owes nobody the release, and the close is still its record"
-  WHERE the project declares that its release model is that there is no release step, the CLI SHALL
-  name no act of a person at `awaiting_release` and SHALL name the release record as the write that
-  closes the issue, because the tracker closes an issue there only by the release that shipped it and
-  a rung that waits for a person the project has declared it does not ask is a keystroke asked of
-  somebody for nothing (G-11).
+  CLI SHALL report the close at the deploying rung as the holder's and that act as what says when the
+  change is live, because a close judges the criteria and liveness is the release record's (forge
+  ISS-1062).
+- **AC-05-7-11** · Rev: 3 · Proof: plugin/test/flow/close.test.mjs "--unmet rides the close whole, as core's own unmet field"
+  WHEN the holder advances an issue at `awaiting_release` THEN the CLI SHALL send the move to
+  `closed`, carrying each criterion `--unmet` places, whole, as the tracker's `unmet` field, because
+  where each unmet criterion goes is the tracker's to judge (G-12).
+- **AC-05-7-12** · Rev: 3 · Proof: plugin/test/flow/verdicts/fail-holds.test.mjs "a plain close past the fail is refused before it is sent, and one placing it in --unmet is sent whole"
+  IF a criterion's standing verdict is a fail or a skip and the close names no `--unmet` THEN the CLI
+  SHALL refuse the close before it is sent, naming that criterion and the `--unmet` form that moves it
+  out, because a close is a claim that every criterion was met in scope.
 - **AC-05-7-13** · Rev: 1 · Proof: plugin/test/flow/record/report-policy.test.mjs "the report names the policy it read wherever the issue stands"
   WHERE an issue's whole record is reported, the CLI SHALL name what the project's release policy
   declares, whatever status the issue stands at and whether or not that policy leaves anybody an
@@ -407,16 +406,13 @@ for.
   WHERE a plan answers every required declaration and leaves the user-facing outcome unanswered, the
   CLI SHALL not refuse `approved` for it, because only a change with such a result has a reason to
   answer it.
-- **AC-05-7-15** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "a promotion the project deploys on its own waits for the release batch, and names the record that closes it"
-  IF the project promotes to a live branch whose production deploys on its own THEN the CLI SHALL
-  offer no `closed` from `awaiting_release`, SHALL name the release batch rather than a person as
-  what the rung waits for, and SHALL name the record of a promotion made outside a batch as the write that closes it, because the
-  deploy moves no code onto the live branch and the batch that does is cut only for an issue still
-  resting at the rung.
-- **AC-05-7-16** · Rev: 1 · Proof: plugin/test/flow/record/report-policy.test.mjs "on a promotion the project deploys on its own, the report hands the close to the release batch"
+- **AC-05-7-15** · Rev: 3 · Proof: plugin/test/flow/close.test.mjs "an --unmet that is not a placed list is refused before anything is sent"
+  IF `--unmet` is not a non-empty JSON list whose every entry names a criterion and where it goes THEN
+  the CLI SHALL refuse the close before it is sent and SHALL print the form a placed list takes.
+- **AC-05-7-16** · Rev: 2 · Proof: plugin/test/flow/record/report-policy.test.mjs "on a promotion the project deploys on its own, the report names the batch's release beside the holder's close"
   WHERE the project promotes to a live branch whose production deploys on its own, the CLI SHALL
-  report the release batch as what the deploying rung owes and SHALL not report the close as the
-  run's, because a run told to close takes the issue out of the release that would ship it.
+  report the close as the holder's and the release batch as what makes the change live, because the
+  batch moving the change onto that branch is a release, not a judgement of its criteria.
 
 ### UC-05-8 — A record too large to read whole
 

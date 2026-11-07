@@ -199,7 +199,7 @@ const statusNow = () => placeOf(SHIPPED.status, SHIPPED.workState?.step);
    is held to deliver it again. */
 const walking = (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "the-walk" });
 
-test("the verb walks the test to the judging place and on to the deploying one, refuses the jump, and offers no close", async () => {
+test("the verb walks the test to the judging place and on to the deploying one, refuses the jump, and closes from the top", async () => {
   const jump = await walking("advance", "ISS-96", "--to", CLOSES_FROM);
   assert.equal(jump.status, 1, jump.stdout);
   assert.match(jump.stdout + jump.stderr,
@@ -216,10 +216,7 @@ test("the verb walks the test to the judging place and on to the deploying one, 
   const second = await walking("advance", "ISS-96");
   assert.equal(second.status, 0, `${second.stdout}${second.stderr}`);
   assert.equal(statusNow(), CLOSES_FROM, second.stdout);
-  /* Core closes it only by the release that ships it, so the verb offers no close and says whose it is. */
   const close = await walking("advance", "ISS-96");
-  assert.equal(close.status, 1, `${close.stdout}${close.stderr}`);
-  assert.match(close.stdout + close.stderr, /CLOSE_ONLY_BY_RELEASE/u);
-  assert.match(close.stdout + close.stderr, /forge release-batch record ISS-96/u);
-  assert.equal(statusNow(), CLOSES_FROM, "and nothing moved");
+  assert.equal(close.status, 0, `${close.stdout}${close.stderr}`);
+  assert.equal(statusNow(), "closed", "the close is the holder's once met in scope (forge ISS-1062)");
 });

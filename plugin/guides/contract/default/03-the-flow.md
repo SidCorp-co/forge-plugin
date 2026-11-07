@@ -1,7 +1,8 @@
 ## The flow
 
 **The default path is the direct one.** Claim the issue, build it in its batch, land the batch,
-record the merge and move the issue to `awaiting_release`; the release that claims it closes it.
+record the merge and move the issue to `awaiting_release`; close it once its criteria are met in
+scope, and the release's record says when it is live.
 Nobody stands between the build and the base branch: the criteria are judged once per batch, live,
 after the release, and one red there goes into the next batch.
 
@@ -13,7 +14,7 @@ after the release, and one red there goes into the next batch.
 | `in_progress:test` | the change is on the base branch | reviewed first where `merge_review` is enforced |
 | `in_progress:release` | the evidence is here to be judged | on the ladder, by a judge other than the builder where `independent_qa` or the flow asks one |
 | `awaiting_release` | the change landed and its merge is recorded | always |
-| `closed` | the release that claimed it shipped it | only that release enters it |
+| `closed` | its criteria were met in scope, each unmet one moved out | the holder, from `awaiting_release` |
 | `reopen` | a finding sent the work back: a person disputing a close or a drop, or a red criterion | on a finding |
 
 The gates are `forge-runner api projects/<id>/gates`. `forge advance` walks every rung, `--owed`

@@ -406,17 +406,15 @@ test("the owed section is what advance would say, and a refusal becomes the line
   assert.equal(brief({ status: "closed" }).owed.next, null);
 });
 
-/* A run's end is measured by `closed`, so a brief re-minted on an issue at the release rung says whose
-   the close is rather than leaving the phase's name to imply that somebody else might make it
-   (ISS-105). Core closes it there only by the release that ships it, so that release's record is named. */
-test("a brief on an issue at the release rung names the release's record as the close, and the phase that makes it", () => {
+/* A run's end is measured by `closed`, so a brief re-minted on an issue at the release rung names the
+   close as next: the holder's once met in scope (forge ISS-1062). */
+test("a brief on an issue at the release rung names the close as next, and the phase that makes it", () => {
   const verified = recorded("verification",
     { where: "the installed plugin", commit: "43b811e", evidence: ["https://app.example/build/9"] });
   const one = brief({ status: "awaiting_release" }, [verified]);
   assert.equal(one.phase, "7 Ship, the close", "the deploying rung names the ship and its tail");
-  assert.equal(one.owed.next, null, "no advance closes it");
-  assert.match(one.owed.refused, /CLOSE_ONLY_BY_RELEASE/u, "the brief says why, rather than exiting");
-  assert.match(one.owed.refused, /forge release-batch record ISS-44 /u, "and names the record that closes it");
+  assert.equal(one.owed.next, "closed", "the advance closes it");
+  assert.deepEqual(one.owed.missing, [], "and owes no entry check");
   assert.equal(one.ahead, null, "and nothing is ahead of it");
 });
 

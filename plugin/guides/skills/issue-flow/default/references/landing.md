@@ -10,10 +10,11 @@ The change goes onto the default branch from the run, `forge record merged` mark
 `forge advance` moves the status the record earns; `forge advance ISS-nn --owed` names anything the
 move is still owed.
 
-Where the release reaches production with nothing more owed, the close is that release's record:
-`forge release-batch record ISS-nn --commit <sha> --account "<how it was released>"`. Whether this
-project's release owes a person or a batch instead is its release policy's answer, and
-`forge resume ISS-nn --report` prints it.
+The close is the holder's once the criteria are met in scope: `forge advance ISS-nn`, each criterion
+not met first moved out in `--unmet '[{"criterion":<n>,"to":{"issue":"ISS-<n>"}}]'`. Whether the change
+is live is the release's record: `forge release-batch record ISS-nn --commit <sha> --account "<how it
+was released>"` where nothing more is owed. Whether this project's release owes a person or a batch
+instead is its release policy's answer, and `forge resume ISS-nn --report` prints it.
 <!-- forge:end -->
 <!-- forge:when ship ready -->
 ## `ship ready`: the run ends at ready-to-land

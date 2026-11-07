@@ -112,10 +112,10 @@ test("the landing walks the judging rung and the deploying one, and rests at don
   assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\``, "u"), said);
   assert.match(said, /the release is an act/u,
     `the reason is the project's own, so a reader knows which setting said so:\n${said}`);
-  assert.match(said, new RegExp(`the close is theirs and not this landing's`, "u"), said);
-  assert.match(said, new RegExp(`forge release-batch record ${KEY}`, "u"),
-    `with the record that closes it once the release is out, core closing it only by the release:\n${said}`);
-  assert.doesNotMatch(said, /--set closed/u, `and never a set core refuses (CLOSE_ONLY_BY_RELEASE):\n${said}`);
+  assert.match(said, /The release is a person's: .*Its record says when the change is live\./u, said);
+  assert.match(said, new RegExp(`the close is the holder's once the criteria are met in scope`, "u"), said);
+  assert.match(said, new RegExp(`forge advance ${KEY} `, "u"), `with the advance that closes it (forge ISS-1062):\n${said}`);
+  assert.doesNotMatch(said, /--set closed|release-batch record/u, said);
 });
 
 /* And the other way: a record earning the judging rung and not the deploying one stops there rather
@@ -287,8 +287,8 @@ test("the builder writes the records the landing stops for, and the landing fini
   assert.equal(back.status, 0, after);
   assert.equal(issue().status, "awaiting_release", `the hand-back walks every rung the landing stopped short of:\n${after}`);
   assert.equal(landing().state, "done", `and nothing of the landing is left:\n${after}`);
-  assert.match(after, /rests at `awaiting_release`/u, `the close being a person's, which it says:\n${after}`);
-  assert.match(after, new RegExp(`forge release-batch record ${KEY}`, "u"), `with the record that closes it:\n${after}`);
+  assert.match(after, /rests at `awaiting_release`/u, `the landing judges no criterion, so it stops short of the close:\n${after}`);
+  assert.match(after, new RegExp(`forge advance ${KEY} `, "u"), `with the advance that closes it:\n${after}`);
   assert.equal(marks().length, 1, `over the release it already made:\n${after}`);
   assert.doesNotMatch(after, /records-owed/u, `with no second hand-back:\n${after}`);
 });

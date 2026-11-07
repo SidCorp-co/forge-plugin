@@ -1,5 +1,5 @@
-/* A failed verdict holds every place from the judging one to the top of the ladder, past which only
-   core's release closes the issue (CLOSE_ONLY_BY_RELEASE). The builder's records turn writes its
+/* A failed verdict holds every place from the judging one to the close, which a fail reaches only
+   moved out in --unmet (forge ISS-1062). The builder's records turn writes its
    verdicts after the landing has already entered `in_progress:release`, and a fail read by that rung
    alone was judged by nothing once the issue had passed it: ISS-2507 went on to `awaiting_release`
    with a failed criterion on its page (ISS-2511). */
@@ -175,7 +175,7 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
-test("an issue at awaiting_release keeps that status when a fail is written, and advance offers no close", async () => {
+test("an issue at awaiting_release keeps that status when a fail is written, and the close names that criterion", async () => {
   const run = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
     "--criterion", "2", "--verdict", "fail", "--why", "35 test files against a ceiling of 30");
   assert.equal(run.status, 0, run.stderr);
@@ -183,7 +183,19 @@ test("an issue at awaiting_release keeps that status when a fail is written, and
   const moves = state.calls.filter((one) => one.name === "forge_issues" && one.args?.data?.status);
   assert.deepEqual(moves.map((one) => one.args.data.status), [], "and no status was sent at all");
   const next = await ask("advance", "ISS-7", "--owed");
-  assert.match(`${next.stdout}${next.stderr}`, /nothing advances from it here: core closes it only by the release that ships it \(CLOSE_ONLY_BY_RELEASE\)/u,
-    `${next.stdout}${next.stderr}`);
-  assert.match(`${next.stdout}${next.stderr}`, /forge release-batch record ISS-7 /u, "the close it names is the release's record");
+  assert.match(`${next.stdout}${next.stderr}`, /criterion 2 failed its verdict/u, `${next.stdout}${next.stderr}`);
+  assert.match(`${next.stdout}${next.stderr}`, /forge advance ISS-7 --unmet '/u, "and names the close that moves it out");
+});
+
+/* The fail is placed, so the shortfall is not this CLI's to hold: core judges whether --unmet placed it (forge ISS-1062). */
+test("a plain close past the fail is refused before it is sent, and one placing it in --unmet is sent whole", async () => {
+  const sent = () => state.calls.filter((one) => one.name === "forge_issues" && one.args?.data?.status === "closed");
+  const plain = await ask("advance", "ISS-7");
+  assert.equal(plain.status, 1, plain.stdout);
+  assert.match(`${plain.stdout}${plain.stderr}`, /criterion 2 failed its verdict/u, plain.stderr);
+  assert.deepEqual(sent(), [], "the close was sent over a fail nothing placed");
+  const unmet = [{ criterion: 2, to: { issue: "ISS-9" } }];
+  const placed = await ask("advance", "ISS-7", "--unmet", JSON.stringify(unmet));
+  assert.equal(placed.status, 0, placed.stderr);
+  assert.deepEqual(sent().map((one) => one.args.data), [{ status: "closed", unmet }]);
 });

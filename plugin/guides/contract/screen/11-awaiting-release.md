@@ -13,15 +13,11 @@ and a stale or unrelated identity leaves the rung unearned.
 The rung is where merged work waits for production, so the verification is read against what landed.
 Where the production branch is a different one, promotion is a step outside this ladder.
 
-**The close is entered on the project's release policy, and on nothing a record could carry.** Where
-that policy leaves a person an act before the release is out, the close is refused and the issue
-rests here until they make it. Where it promotes to a live branch that deploys on its own, nobody owes
-an act and the release is still owed: the batch moving the change onto that branch is cut only for an
-issue resting here, so the close is refused to a run as well, and that batch makes it. Where neither
-holds, the close is still no run's move: core closes an issue that ships code only by a release that
-claimed it (`CLOSE_ONLY_BY_RELEASE`), and recording that release is the close: `forge release-batch
-record <ISS-nn> --commit <sha> --account "<how it was released>"`. The policy is read at the move
-itself, so a rehearsal and the write give one answer.
+**The close is the holder's once the criteria are met in scope.** `forge advance <ISS-nn>` makes it.
+A criterion unmet or failed is moved out first, each named with where it goes in `--unmet`, and core
+refuses a close that leaves one unplaced (`CLOSE_CRITERION_UNPLACED`). The release policy decides only
+when the change is live: where it leaves a person or the release batch the act, that release's record
+says so.
 
 **A failed reading is the release actor's to repair forward.** The actor that promotes and deploys
 takes no way back from here: it repairs in the same direction, or hands the release over carrying

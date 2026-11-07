@@ -25,7 +25,6 @@ and the run that built it is resumed from there. A branch that will not merge at
 its conflict list, and the fold carries on.
 
 A status the landing could not reach is the fold's, and `forge resume ISS-nn` says which one. The
-landing walks no further than `awaiting_release`, where the close is the release's record:
-`forge release-batch record ISS-nn --commit <sha> --account "<how it was released>"`, once the
-release is out and owes nothing more.
+landing walks no further than `awaiting_release`: the close is the holder's once the criteria are met
+in scope, `forge advance ISS-nn [--unmet '<json>']`, and the release's record says when it is live.
 <!-- forge:end -->

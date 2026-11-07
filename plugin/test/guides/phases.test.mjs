@@ -30,10 +30,10 @@ const asked = (status, complexity = null) => [{ acceptanceCriteria: "1. The outc
 
 /* The index invents nothing: every phase, citation and waiver is another table's row. */
 test("every citation names the record the check into the next status refuses without", () => {
-  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all, `closed` is entered by the release and by no check of this CLI's, and `in_progress:build` asks the worklog for its branch, the tree being the landing's gate's to measure (ISS-1918, ISS-3184) — none of them a payload a phase could be discharged by. */
+  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all, `closed` is entered by the holder and by no check of this CLI's, and `in_progress:build` asks the worklog for its branch, the tree being the landing's gate's to measure (ISS-1918, ISS-3184) — none of them a payload a phase could be discharged by. */
   const terminal = Object.keys(CHECKS).filter((status) => !CITED[status]);
   assert.deepEqual(terminal, ["in_progress:build", "dropped"],
-    "the build and the drop ask no payload, and `closed` has no entry check at all, core closing only by the release");
+    "the build and the drop ask no payload, and `closed` has no entry check at all");
   for (const status of Object.keys(CHECKS).filter((one) => !terminal.includes(one))) {
     assert.ok(CITED[status], `${status} has an entry check and no record named for it, so the phase `
       + "below it would print as discharged by nothing");

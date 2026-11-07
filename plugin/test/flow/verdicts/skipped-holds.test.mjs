@@ -1,7 +1,7 @@
 /* A skipped verdict holds every place from the judging one to the top of the ladder, the same shape a
    fail already holds (ISS-2511), and so does a verdict a reopen's triage already moved past
-   (`judgedSince`). The close past `awaiting_release` is core's release alone (CLOSE_ONLY_BY_RELEASE),
-   whose sweep refuses a skip the same way. ISS-1192 reached `in_progress:release` with criterion 18 skipped, and the issue would have
+   (`judgedSince`). The close past `awaiting_release` holds a skip the same way,
+   unless --unmet moves it out. ISS-1192 reached `in_progress:release` with criterion 18 skipped, and the issue would have
    closed over a criterion nobody ever exercised (ISS-2430); core's own release sweep already refuses
    a skip and a stale verdict the same way it refuses a fail. A never-judged criterion is left alone:
    `the-rung.test.mjs` (ISS-1065) holds the judging half and the deploying half apart on that one, and
@@ -183,7 +183,7 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
-test("an issue at awaiting_release keeps that status when a skip is written, and advance offers no close", async () => {
+test("an issue at awaiting_release keeps that status when a skip is written, and the close names that criterion", async () => {
   const run = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
     "--criterion", "2", "--verdict", "skipped", "--why", "no route in the fixture suite reaches this criterion");
   assert.equal(run.status, 0, run.stderr);
@@ -191,7 +191,6 @@ test("an issue at awaiting_release keeps that status when a skip is written, and
   const moves = state.calls.filter((one) => one.name === "forge_issues" && one.args?.data?.status);
   assert.deepEqual(moves.map((one) => one.args.data.status), [], "and no status was sent at all");
   const next = await ask("advance", "ISS-7", "--owed");
-  assert.match(`${next.stdout}${next.stderr}`, /nothing advances from it here: core closes it only by the release that ships it \(CLOSE_ONLY_BY_RELEASE\)/u,
-    `${next.stdout}${next.stderr}`);
-  assert.match(`${next.stdout}${next.stderr}`, /forge release-batch record ISS-7 /u, "the close it names is the release's record");
+  assert.match(`${next.stdout}${next.stderr}`, /criterion 2 was skipped/u, `${next.stdout}${next.stderr}`);
+  assert.match(`${next.stdout}${next.stderr}`, /forge advance ISS-7 --unmet '/u, "and names the close that moves it out");
 });

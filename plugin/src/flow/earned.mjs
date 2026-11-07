@@ -38,14 +38,14 @@ import { assemble } from "./record/page.mjs";
 import { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince } from "./park/read.mjs";
 
 export { SILENT, announcedAt, answered, parkRecord, parkThatSet, relayedSince };
-import { BY_BATCH, judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
+import { BY_BATCH, judgementOf, waitsForPerson } from "../tracker/project-config.mjs";
 import { NOTE_TITLE_WORDS } from "../tracker/declared/declares.mjs";
 import { HELD } from "../tracker/declared/issue-machine.mjs";
 
 /* Core's issue machine climbed in its own order, each place a status core holds or `in_progress` at
    a work step (`tracker/declared/issue-machine.mjs`): the sequence is the rule, so listing it is the
-   point. It stops at `awaiting_release`, core closing an issue from there only by the release that
-   ships it (CLOSE_ONLY_BY_RELEASE), so nothing here climbs to `closed`. */
+   point. It stops at `awaiting_release`: the close from there is met in scope, every unmet criterion
+   moved out first, and is the holder's move (forge ISS-1062), so no record earns `closed`. */
 export const LADDER = ["open", HELD.plan, "approved", HELD.build, HELD.test, HELD.release, CLOSES_FROM];
 
 /** The place the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a place free to disagree with this order. */
@@ -88,8 +88,7 @@ const clauseOwed = (cited, ref) => {
 
 export const NO_CRITERIA = "the criteria field holds no numbered line `N. outcome`";
 
-/* How far up the ladder a status stands: `closed` is no place a run climbs to, core closing an issue
-   only by its release, and it stands past every one of them all the same. */
+/* How far up the ladder a status stands: `closed` is past every place on it, the close being no rung's entry check. */
 const heightOf = (status) => (status === "closed" ? LADDER.length : LADDER.indexOf(status));
 
 export const atLeast = (status, floor) =>
@@ -191,11 +190,11 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
-/** The one write that closes an issue at `awaiting_release`, whoever made the release: core closes
- *  it from there only by recording the release that shipped it (CLOSE_ONLY_BY_RELEASE), and that
- *  record names the release it followed (ISS-2409). */
-export const closeForm = (ref) => `forge release-batch record ${ref} --commit <the sha the live branch serves> `
-  + `--account "<how it was released>"`;
+/** The close at `awaiting_release`, the holder's once the criteria are met in scope: each unmet or
+ *  failing criterion is named with where it goes, or core refuses CLOSE_CRITERION_UNPLACED (forge
+ *  ISS-1062). Whether it is live is the release record's, which carries a closed issue unmoved. */
+export const UNMET_FORM = `--unmet '[{"criterion":<n>,"to":{"issue":"ISS-<n>"}}]'`;
+export const closeForm = (ref) => `forge advance ${ref}   (or, where a criterion is unmet: forge advance ${ref} ${UNMET_FORM})`;
 
 /** The possessive a refusal, a report and a landing's rest each print for `held.by`. */
 export const whoseRelease = (held) => (held.by === BY_BATCH ? "the release batch's" : "a person's");
@@ -608,15 +607,6 @@ const branchOwed = (view, ref) => (view.work?.branch ? [] : [need(
     + "against, and a run resuming this issue cannot tell work already done from none",
   `forge claim ${ref} --pushed, from the checkout the branch is cut in`,
 )]);
-
-/* The one status entered on the project rather than on the record, and so said rather than checked:
-   core closes an issue at `awaiting_release` only by the release that ships it, and where the release
-   policy leaves a person the act, a run that closed it would have taken the keystroke the report
-   already told it was theirs (ISS-1918). The sentence is the report's own derivation, not a second one. */
-export const releaseSaid = (view) => {
-  const held = releaseOwedOf(view.release);
-  return held ? `The release is ${whoseRelease(held)}: ${held.owed} — ${held.clears}. ` : "";
-};
 
 /* Every folded finding answered, at the rung the criteria are written and at each from the one they
    are judged at to the close: a finding can land on an issue at any of them (ISS-167). */

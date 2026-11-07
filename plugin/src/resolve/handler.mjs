@@ -35,8 +35,8 @@ export const handledBy = (word) => (Object.hasOwn(FORMS, word) ? FORMS[word] : n
 
 export const ROUTES = {
   search: { verb: "issue", call: "forge issue --search <query>", does: "reads the backlog by a query" },
-  close: { verb: "release-batch", call: "forge release-batch record <ISS-nn> --commit <sha> --account \"<how it was released>\"",
-    does: "closes an issue at awaiting_release: core closes one only by the release that ships it (CLOSE_ONLY_BY_RELEASE)" },
+  close: { verb: "advance", call: "forge advance <ISS-nn> [--unmet '<json>']",
+    does: "closes an issue at awaiting_release once its criteria are met in scope, each unmet one moved out in --unmet" },
 };
 
 export const routeSaid = (word, verbs) => {

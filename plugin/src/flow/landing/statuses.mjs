@@ -7,7 +7,7 @@ import { Refusal, landingScope, refusing } from "../../resolve/settings.mjs";
 import { Refused } from "../../refusal.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
-import { BY_BATCH, judgementOf, landingRoute, releaseOwedOf, releasePolicy } from "../../tracker/project-config.mjs";
+import { judgementOf, landingRoute, releaseOwedOf, releasePolicy } from "../../tracker/project-config.mjs";
 import { LADDER, atLeast, closeForm, whoseRelease } from "../earned.mjs";
 import { HELD } from "../../tracker/declared/issue-machine.mjs";
 import { CLOSES_FROM } from "../machine.mjs";
@@ -87,17 +87,9 @@ export const OWED_TO_QA = (key, landing, what) =>
   + `    ... the verdicts, then: forge claim ${key} --judged`;
 
 /** What a walk that stopped at the rung says, by whose act the policy's answer `held` waits for. */
-export const restsSaid = (key, held) => (!held
-  ? `  ${key} rests at \`${CLOSES_FROM}\`: the tracker closes an issue that ships code only by a release `
-    + `that claimed it (CLOSE_ONLY_BY_RELEASE), so the close is that release's record and not this `
-    + `landing's:\n    forge release-batch record ${key} --commit <the sha that shipped> --account "<how it was released>"`
-  : held.by === BY_BATCH
-  ? `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is ${whoseRelease(held)} and not `
-    + `this landing's, made by the release that promotes the change. A promotion made outside a batch `
-    + `is recorded instead, and the record closes it:\n    ${closeForm(key)}`
-  : `  ${key} rests at \`${CLOSES_FROM}\`: ${held.owed}, so the close is theirs and not this landing's. `
-    + `Once the release is out, its record is the close, core closing an issue here only by the release `
-    + `that shipped it (CLOSE_ONLY_BY_RELEASE):\n    ${closeForm(key)}`);
+export const restsSaid = (key, held) => `  ${key} rests at \`${CLOSES_FROM}\`: the close is the holder's once the `
+  + `criteria are met in scope, each unmet one moved out first:\n    ${closeForm(key)}`
+  + (held ? `\n    The release is ${whoseRelease(held)}: ${held.owed}. Its record says when the change is live.` : "");
 
 /** The walk a records turn ends on, off the checkpoint the hand-back just wrote: the landing's own
  *  status step would run nothing else, so where the record earns every rung left the landing ends

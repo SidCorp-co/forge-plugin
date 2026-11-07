@@ -8,6 +8,7 @@ import { CLOSES_FROM, TRIAGES, atMinute, commandAt, criterionNumber, looksIn, mi
   from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { unreadId, withRuntime } from "./earned/asks.mjs";
+import { closeHeld } from "./close.mjs";
 import { coreJudged, coreReadLines, withCoreVerdicts } from "./earned/core-verdicts.mjs";
 import { designReadLines } from "./earned/core-design.mjs";
 import {
@@ -23,17 +24,14 @@ import {
   atThisReopen,
   buildsAt,
   blockersOwed,
-  closeForm,
   correctedForm,
   holdsBack,
   nextOf,
   lookAnswered,
   parkRecord,
   parkThatSet,
-  pastJudgingOwed,
   personLooks,
   relayedSince,
-  releaseSaid,
   rulingAtThisReopen,
   sameLanding,
   setForm,
@@ -351,16 +349,6 @@ const finishedBy = (ref, status) => {
     + "Where nothing parked it, whoever";
 };
 
-/* The top of the ladder, `LADDER` saying why: the refusal names the record that is the close. */
-const closedByRelease = (view, ref) => {
-  const holding = pastJudgingOwed(view, ref);
-  return `${ref} is ${CLOSES_FROM}; nothing advances from it here: core `
-  + `closes it only by the release that ships it (CLOSE_ONLY_BY_RELEASE), so \`forge advance\` offers no `
-  + `closed. ${releaseSaid(view)}The release's record is the close:\n  ${closeForm(ref)}\nWhat sends `
-  + `work back from here is a finding:\n  ${reopenForm(ref)}`
-  + (holding.length ? `\nCore's release sweep holds it while these stand:${missingLines(holding).join("\n")}` : "");
-};
-
 export const targetOf = (view, ref) => {
   const status = view.issue.status;
   const held = SIDE.includes(status) ? parkThatSet(view, status) : null;
@@ -386,7 +374,8 @@ export const targetOf = (view, ref) => {
   }
   if (status === REOPEN) return reopenTarget(view, ref);
   if (status === DRAFT) return draftTarget(view, ref);
-  if (status === CLOSES_FROM) refuse(closedByRelease(view, ref));
+  // cm:why the close from awaiting_release is the holder's once met in scope, every unmet criterion moved out in --unmet; core judges the placement (forge ISS-1062, plugin ISS-72)
+  if (status === CLOSES_FROM) return { next: "closed", missing: closeHeld(view, ref), resumed: false };
   const next = nextOf(status, view);
   if (!next) {
     refuse(`${ref} is ${status}; nothing advances from it. What sends work back from here is a `
