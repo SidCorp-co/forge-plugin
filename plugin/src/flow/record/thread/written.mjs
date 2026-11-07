@@ -1,7 +1,7 @@
 /* What goes up once `record.mjs` has prepared and judged every payload of a rung, sent in the order
    its `writeRung` states: apart because the verb's own file is the judging. docs/cli/record.md. */
 import { fail } from "../../../resolve/settings.mjs";
-import { refuse } from "../../../refusal.mjs";
+import { Refused, refuse } from "../../../refusal.mjs";
 import { SHAPES } from "../../machine.mjs";
 import { askedInSource } from "../../../resolve/flags.mjs";
 import { batchRefusal, strandedLine, uploadAll } from "../../../tracker/evidence.mjs";
@@ -118,12 +118,30 @@ export const postRung = async (prepared, { reference, documentId, body, comments
     || posted.some((one) => !one.authorDeviceId) };
 };
 
+const UNTITLED = /\breleaseNotes\.title is not (?:one this call takes|a field the tracker's update route takes)/u;
+
+/* A tracker whose note takes no title refuses the whole write over it (FB-59, ISS-83), so the note goes up once more without one and the run is told; any other refusal stands as the tracker worded it. */
+const untitled = (fields, error) => {
+  const note = fields.find((one) => one.field === "releaseNotes" && one.value?.title);
+  if (!note || !(error instanceof Refused) || !UNTITLED.test(error.message)) throw error;
+  const { title, ...rest } = note.value;
+  console.error(`This tracker takes no releaseNotes.title, so the note was written without its title "${title}".`);
+  return fields.map((one) => (one === note ? { ...one, value: rest, shown: JSON.stringify(rest, null, 2) } : one));
+};
+
 const fieldsWritten = async (prepared, { reference, documentId, next, patch }) => {
-  const fields = prepared.filter((one) => one.field);
+  let fields = prepared.filter((one) => one.field);
   if (!fields.length) return {};
   for (const one of fields) sayStored(one.kind);
-  const back = await writeFields(documentId, fields.map((one) => ({ field: one.field, value: one.value })),
-    { ref: reference, next, patch, refuse, ask: askedFor(reference, fields) });
+  const sent = (soft) => writeFields(documentId, fields.map((one) => ({ field: one.field, value: one.value })),
+    { ref: reference, next, patch, refuse, soft, ask: askedFor(reference, fields) });
+  let back;
+  try {
+    back = await sent(true);
+  } catch (error) {
+    fields = untitled(fields, error);
+    back = await sent(false);
+  }
   const out = {};
   for (const one of fields) {
     console.log(one.shown);
