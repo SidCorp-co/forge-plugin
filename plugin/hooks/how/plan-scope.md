@@ -1,15 +1,13 @@
 # plan-scope — a file the plan does not name
 
-Why: two runs in two days wrote seven files their plans did not name and posted the correction only
-when the merged mark refused, after the ship. The record then says where the change grew, never that
-it was said first, which is the whole of the rule.
+Why: two runs in two days wrote seven files their plans did not name and corrected only when the
+merged mark refused, after the ship. The rule is that the growth is said first.
 
 On only where the project is gated `strict`: the claim reads the profile and caches it with the
-plan. Any other profile is silent; a cache with no profile recorded is held as `strict`.
+plan. Any other profile is silent; a cache with no profile is held as `strict`.
 
 How to clear it: post the correction naming the path, then re-send the write. The command is in the
-refusal; once it lands, that path and every later write to it pass. It is owed from inside the tree
-the write lands in.
+refusal; once it lands, that path passes. Post it from the tree the write lands in.
 
 Not building the issue — judging it, or probing: post no correction, since it would record a write
 the change never made. Make the edit in a copy outside the checkout, under your run's scratch.
