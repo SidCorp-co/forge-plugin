@@ -32,7 +32,11 @@ dispatcher sends, so the fix removes it there.
   the tree holds no record naming that id's directory. A run told to make its own with `mktemp -d`
   made one nothing named, and nothing could say whose it was once the run had died; such directories
   filled a box to `ENOSPC` (ISS-2524). The record is what makes a directory reapable, so the two are
-  written together or not at all, and a brief that cannot write both is not printed.
+  written together or not at all, and a brief that cannot write both is not printed. Each brief then
+  hands its run `dispatch-<n>` inside that directory as `TMPDIR`. Every run briefed into one tree
+  shares its id, and two in one TMPDIR collided on fixed file names, one posting the other's verdict
+  (ISS-75). A recorded directory the runner reaped is made again at its recorded path (ISS-76). The
+  record still names the tree's directory alone, so `finish` ends every dispatch with it.
 - **What the other trees hold**: both readings for each tree, the uncommitted files and what is
   committed against the remote's default branch. Commits alone answer empty for a tree with twenty
   files open in it, and that empty looks exactly like an idle tree.

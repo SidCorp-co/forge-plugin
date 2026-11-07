@@ -20,9 +20,9 @@ test("with --tree, the brief names that tree's branch, head, run id, scratch dir
   assert.match(run.stdout, /^ISS-7\nTree: .*mine · branch mine · head [0-9a-f]{7}$/mu);
   assert.equal(run.stdout.split("\n")[0], "ISS-7", "a tree minted for the key alone is briefed with that key alone");
   assert.match(run.stdout, new RegExp(`^FORGE_SESSION_ID=${RUN}$`, "mu"));
-  assert.match(run.stdout, new RegExp(`^TMPDIR=/tmp/forge-run-${RUN}$`, "mu"));
+  assert.match(run.stdout, new RegExp(`^TMPDIR=${escaped(repo.scratch)}/dispatch-1$`, "mu"));
   /* The line `run.mjs start` prints, so a dispatched run borrows rather than copying the credential. */
-  assert.match(run.stdout, new RegExp(`^XDG_CONFIG_HOME=/tmp/forge-run-${RUN}/home FORGE_BORROW_FROM=${
+  assert.match(run.stdout, new RegExp(`^XDG_CONFIG_HOME=${escaped(repo.scratch)}/home FORGE_BORROW_FROM=${
     escaped(join(home.config, "forge", "config.json"))}$`, "mu"));
 });
 

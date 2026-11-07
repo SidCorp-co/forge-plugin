@@ -47,8 +47,9 @@ export const repository = () => {
   writeFileSync(join(trees.busy, "open.txt"), "open\n");
   const records = gitDirOf(trees.mine);
   writeFileSync(join(records, "forge-run-id"), `${RUN}\n`);
-  writeFileSync(join(records, "forge-run-scratch"), `/tmp/forge-run-${RUN}\n`);
-  return { main, ...trees };
+  const scratch = join(tempRoom("brief-scratch-"), `forge-run-${RUN}`);
+  writeFileSync(join(records, "forge-run-scratch"), `${scratch}\n`);
+  return { main, scratch, ...trees };
 };
 
 /** A home and config directory of the case's own, and the session the verb writes for. */

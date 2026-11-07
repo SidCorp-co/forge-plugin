@@ -30,7 +30,7 @@ test("a tree the brief mints an id for is given that id's scratch directory, mad
   assert.equal(recordOf(fresh.idle), `${want}\n`, "the record names the id's directory under the brief's temporary root");
   assert.equal(scratchAt(fresh.idle), want, "and is the record a run's doctor reads");
   assert.ok(existsSync(want), `${want} was recorded and not made`);
-  assert.match(run.stdout, new RegExp(`^TMPDIR=${escaped(want)}$`, "mu"), "and the brief hands the run that directory");
+  assert.match(run.stdout, new RegExp(`^TMPDIR=${escaped(join(want, "dispatch-1"))}$`, "mu"), "and the brief hands the run a directory of its own inside it");
 });
 
 test("a tree holding an id and no scratch is given the scratch of that id, its id record left as it was", () => {
@@ -138,5 +138,19 @@ test("a recorded scratch directory the runner reaped is made again at the same p
   assert.equal(again.status, 0, again.stderr);
   assert.equal(recordOf(fresh.idle), kept, "the record moved");
   assert.ok(existsSync(reaped), `${reaped} is printed and gone`);
-  assert.match(again.stdout, new RegExp(`^TMPDIR=${escaped(reaped)}$`, "mu"));
+  assert.match(again.stdout, new RegExp(`^TMPDIR=${escaped(join(reaped, "dispatch-1"))}$`, "mu"));
+});
+
+test("two briefs into one tree hand each run a TMPDIR of its own under the tree's one scratch, so fixed file names cannot collide", () => {
+  const fresh = repository();
+  const { env } = rooted();
+  const first = brief(["ISS-7", "--tree", fresh.idle], fresh.main, env);
+  const second = brief(["ISS-7", "--tree", fresh.idle], fresh.main, env);
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(second.status, 0, second.stderr);
+  const tmpOf = (run) => /^TMPDIR=(.+)$/mu.exec(run.stdout)?.[1];
+  const scratch = scratchAt(fresh.idle);
+  assert.equal(tmpOf(first), join(scratch, "dispatch-1"));
+  assert.equal(tmpOf(second), join(scratch, "dispatch-2"));
+  assert.ok(existsSync(tmpOf(second)), "the second dispatch's directory was printed and not made");
 });

@@ -1,7 +1,7 @@
 /* The message a dispatch sends, generated rather than written: the readings a run cannot take for
    itself at the moment it starts, and nothing a dispatcher typed. docs/cli/brief.md. */
-import { realpathSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, realpathSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import { borrowRoute } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -67,9 +67,25 @@ const bindTree = (tree, keys) => {
 /* The scratch directory goes with the id, under it and recorded beside it, so whatever outlives the run can say whose a
    directory under the temporary root is (ISS-2524). A tree whose id was minted before the brief made scratch is given it
    here too. A brief whose run would write where nothing records it is not printed. */
+// cm:why every subagent briefed into one tree shares its run id, and two in one TMPDIR collided on fixed file names, one posting the other's verdict (ISS-75)
+const dispatchIn = (scratch) => {
+  for (let n = 1; ; n += 1) {
+    const at = join(scratch, `dispatch-${n}`);
+    try {
+      mkdirSync(at);
+      return at;
+    } catch (error) {
+      if (error.code !== "EEXIST") {
+        fail(`brief: the dispatch directory ${at} could not be made (${error.message}), so no brief is printed. `
+          + "Make the scratch directory writable and brief again.");
+      }
+    }
+  }
+};
+
 const scratchFor = (tree) => {
   const { at, failed } = scratchMinted(tree, runIdAt(tree));
-  if (!failed) return;
+  if (!failed) return dispatchIn(at);
   fail(`brief: the scratch directory ${at} could not be made and recorded (${failed}), so no brief is printed: a run `
     + "sent now would write where nothing records it. Make the path that reason names writable — the temporary root "
     + "TMPDIR names, or the git directory of the tree — and brief again.");
@@ -84,12 +100,12 @@ const heldLine = (tree, held) => {
   return `  ${tree.path} (${who}): ${parts.length ? parts.join("; ") : "reads empty"}`;
 };
 
-const treeLines = (tree) => {
+const treeLines = (tree, dispatch) => {
   const { id, scratch } = recordsOf(tree.path);
   return [
     `Tree: ${tree.path} · branch ${tree.branch ?? "detached"} · head ${tree.head?.slice(0, 7) ?? "none"}`,
     id ? `FORGE_SESSION_ID=${id}` : null,
-    scratch ? `TMPDIR=${scratch}` : null,
+    scratch ? `TMPDIR=${dispatch ?? scratch}` : null,
     /* A run dispatched with no route to borrow by copies the credential into its scratch, which is
        what the borrow ended (ISS-2619). */
     scratch ? borrowRoute(scratch) : null,
@@ -109,9 +125,9 @@ const restartLine = (copies) => (copies.frozen?.length
   : null);
 
 /** The brief itself, off readings already taken, so a case can hand it any it likes. */
-const briefText = ({ members, target, others, base }) => [
+const briefText = ({ members, target, others, base, dispatch }) => [
   ...(members.length ? [listed(members)] : []),
-  ...(target ? treeLines(target) : []),
+  ...(target ? treeLines(target, dispatch) : []),
   ...(others
     ? [`Held by the other trees, read now: uncommitted, and committed against ${base ?? "no default branch"}:`,
       ...others.map(({ tree, held }) => heldLine(tree, held))]
@@ -154,8 +170,8 @@ export const brief = async (argv) => {
   }
   const batch = batchOf(asked.batch, key, target);
   const members = key && target ? bindTree(target.path, [key, ...batch]) : key ? [key] : [];
-  if (key && target) scratchFor(target.path);
+  const dispatch = key && target ? scratchFor(target.path) : undefined;
   const base = trees ? defaultRef(here) : null;
   const others = trees?.filter((one) => one !== target).map((tree) => ({ tree, held: heldBy(tree.path, base) })) ?? null;
-  send(briefText({ members, target, others, base }), "");
+  send(briefText({ members, target, others, base, dispatch }), "");
 };
