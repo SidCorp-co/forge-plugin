@@ -74,6 +74,18 @@ test("a genuine added or respelled figure is still named, beside an identifier t
     "a real figure the source carries, repeated, passes");
 });
 
+/* FB-68: "zeros" rendered as "các số 0" was refused as an invented 0, and the refusal never said a source word was the cause. */
+test("a number the source names in words may come back as its figure, save the pronoun one", () => {
+  assert.equal(diff("with the trailing zeros after the decimal point dropped",
+    "bỏ các số 0 ở cuối sau dấu thập phân"), null, "zeros written as 0 is faithful");
+  assert.equal(diff("Three retries, then twelve.", "3 lần thử lại, rồi 12."), null);
+  assert.match(diff("Records the weight as one the system worked out", "Ghi cân nặng là 1 mà hệ thống tính ra") ?? "",
+    /figure\(s\) 1, which the source does not/u, "the pronoun one is still no figure");
+  assert.match(diff("12.371 and zero", "12,371 và 0") ?? "", /figure\(s\) 12,371,/u, "a respelled figure is still named");
+  assert.match(diff("Records one result.", "Ghi 1 kết quả.") ?? "", /that word is the one to reword/u,
+    "and the refusal points at a number word in the source");
+});
+
 const ran = (room, argv) => ranAsync(BUNDLED, argv, { ...process.env, XDG_CONFIG_HOME: room }, room);
 
 test("translate --kind prose refuses a translation that respells or adds a figure, naming it", async (t) => {

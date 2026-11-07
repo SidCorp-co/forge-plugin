@@ -28,12 +28,30 @@ const tally = (text) => {
   return counts;
 };
 
+/* A number the source names in words is one it carries: "zeros" written as "các số 0" is faithful
+   (FB-68). "one" is left out, being as often the pronoun that came back as `1` (ISS-2104). */
+const NUMBER_WORDS = new Map(Object.entries({
+  zero: "0", zeros: "0", zeroes: "0", two: "2", three: "3", four: "4", five: "5", six: "6",
+  seven: "7", eight: "8", nine: "9", ten: "10", eleven: "11", twelve: "12",
+}));
+const NUMBER_WORD = new RegExp(String.raw`\b(?:${[...NUMBER_WORDS.keys()].join("|")})\b`, "giu");
+
+const named = (text, counts) => {
+  for (const [word] of text.matchAll(NUMBER_WORD)) {
+    const figure = NUMBER_WORDS.get(word.toLowerCase());
+    counts.set(figure, (counts.get(figure) ?? 0) + 1);
+  }
+  return counts;
+};
+
 /** The figures a candidate carries that its source does not, named, or null. */
 export function diff(source, candidate) {
   if (typeof source !== "string" || typeof candidate !== "string") return null;
-  const had = tally(source);
+  const had = named(source, tally(source));
   const added = [...tally(candidate)].filter(([figure, count]) => count > (had.get(figure) ?? 0)).map(([figure]) => figure);
   if (!added.length) return null;
   const sent = [...had.keys()];
-  return `the rewrite carries the figure(s) ${added.join(", ")}, which the source does not (it carries ${sent.length ? sent.join(", ") : "none"}): a figure is copied exactly as it was written, never respelled, converted or written for a word`;
+  return `the rewrite carries the figure(s) ${added.join(", ")}, which the source does not (it carries ${sent.length ? sent.join(", ") : "none"}): a figure is copied exactly as it was written, never respelled, converted or written for a word. `
+    + "Where the source names a number in a word this check does not count (\"one\", \"a hundred\"), that word is "
+    + "the one to reword, or to write as its figure in the source";
 }
