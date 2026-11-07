@@ -4,7 +4,6 @@
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   callRoom, ceilingFrom, ceilingLeft, clockFor, clockSpentSaid, deadlineOf, parsedOr, ranOut, sawHeadersAfter, secondsGiven,
@@ -21,6 +20,7 @@ import { DECLARES, ROUTES, answersOf, declaredFor, keyOf, rowFor } from "./route
 import { RETIRED_STATUS } from "./declared/declares.mjs";
 import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
 import { gitMarkForm } from "../flow/record/judged/merged-clauses.mjs";
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
@@ -97,7 +97,7 @@ const declaredRun = () => {
 };
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
-const MANIFEST = fileURLToPath(new URL("../../.claude-plugin/plugin.json", import.meta.url));
+const MANIFEST = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 
 // cm:guard core refuses a malformed x-forge-plugin 400 PLUGIN_VERSION_MALFORMED, so a version off this shape is not sent (forge ISS-1104)
 const pluginVersion = once(() => {
