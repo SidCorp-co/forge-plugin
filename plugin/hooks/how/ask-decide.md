@@ -1,12 +1,11 @@
 # ask-decide — a question that is not the owner's
 
-Why: a question stops the session until the owner answers. Off a strict project the agent decides and
-the record follows, so a routine question only spends the owner's time.
+Why: a question stops the session until the owner answers. Off a strict project the agent decides
+and records instead.
 
-What it does by default (`asks.mode` unset or `record`): reads the project's gate profile once per
-question. Off `strict`, a question naming none of the owner's subjects is refused. Decide it, record
-it on the item it shapes with `forge record decision ISS-nn --decision "reading | assumption | undo"`,
-and carry on.
+What it does by default (`asks.mode` unset or `record`): reads the project's gate profile. Off
+`strict`, a question naming none of the owner's subjects is refused. Decide it, record
+it on the item it shapes with `forge record decision ISS-nn --decision "reading | assumption | undo"`.
 
 Still the owner's: every question on a `strict` project, every question when the profile cannot be
 read, and a question naming a secret, spend, a production or outward write, discarding the owner's

@@ -409,7 +409,7 @@ and answers it in the owner's place only when they point at one offered option; 
 the owner's, as before. `plugin/hooks/how/ask-decide.md` carries the argument and the subjects that
 are always the owner's.
 
-- **AC-06-8-1** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "unset, off and an unknown mode each leave the call alone and write nothing under the project's state"
+- **AC-06-8-1** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "unset, off and an unknown mode, with no profile to read, each leave the call alone and write nothing under the project's state"
   WHERE a project has not set the ask mode to decide, the CLI SHALL leave every question to the owner
   and SHALL read, build and log nothing for it.
 - **AC-06-8-2** · Rev: 1 · Proof: plugin/test/gates/ask/ask-decide.test.mjs "a declared question the judge decides from precedent is allowed with the chosen label as its answer"
