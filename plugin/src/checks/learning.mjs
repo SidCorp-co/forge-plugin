@@ -107,9 +107,10 @@ const marketplaceShips = (root, full) => {
  *  user-facing skill shipped in source (ISS-58). A memory file is never a shipped skill. */
 export const shippedSkill = (path, from) => {
   if (!path.includes("/skills/") || path.includes("/memory/") || !path.endsWith(".md")) return false;
-  const root = repoRoot(from || process.cwd());
-  if (!root) return false;
   const full = canonical(landing(path));
+  // cm:why the file's own repository decides, since a run edits a worktree beside the checkout its session stands in (FB-70)
+  const root = repoRoot(dirname(full)) ?? repoRoot(from || process.cwd());
+  if (!root) return false;
   const rel = relative(root, full);
   if (rel.startsWith("..") || isAbsolute(rel)) return false;
   return trackedIn(root, rel) || marketplaceShips(root, full);

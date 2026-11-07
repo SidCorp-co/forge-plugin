@@ -43,6 +43,17 @@ test("a committed skill is shipped; one nobody committed, a memory file and one 
   assert.equal(shippedSkill("/home/dev/elsewhere/skills/x/SKILL.md", repo), false, "a skill outside the tree is not the tree's");
 });
 
+test("a committed skill is shipped judged from its own repository, whatever tree the session stands in", () => {
+  const repo = repoWith({ "cli/skills/cli/SKILL.md": "| a |\n" });
+  git(repo, ["add", "cli/skills/cli/SKILL.md"]);
+  git(repo, ["commit", "-qm", "first"]);
+  const beside = `${repo}-iss982`;
+  git(repo, ["worktree", "add", "-q", beside, "-b", "iss982"]);
+  const file = join(beside, "cli/skills/cli/SKILL.md");
+  assert.equal(shippedSkill(file, repo), true, "from the checkout the worktree sits beside (FB-70)");
+  assert.equal(shippedSkill(file, tempRoom("shipped-skill-elsewhere-")), true, "and from a tree that is no repository");
+});
+
 test("a skill under a source the marketplace names is shipped, committed or not", () => {
   const repo = repoWith({
     ".claude-plugin/marketplace.json": JSON.stringify({ plugins: [{ name: "mod", source: "./mod" }] }),
