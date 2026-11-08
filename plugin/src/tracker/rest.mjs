@@ -322,7 +322,8 @@ const fetchedParts = async (key, row, args, soft, held) => {
       const body = parsedOr(text);
       const proxy = !body?.message && draining(response.status, text) ? `\n${String(text).trim().slice(0, 200)}` : "";
       return [part, refused(said(body, response.status, args) + proxy,
-        { status: response.status, ...(body?.details ? { details: body.details } : {}) })];
+        { status: response.status, ...(body?.code ? { code: body.code } : {}),
+          ...(body?.details ? { details: body.details } : {}) })];
     }
     const body = text ? parsedOr(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the

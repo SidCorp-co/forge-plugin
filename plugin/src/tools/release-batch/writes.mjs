@@ -2,7 +2,7 @@
    release somebody already performed outside a batch. None of them moves a status itself: the
    tracker closes what a release carried on its own sanctioned path, and a status this CLI set would
    be the second route around that gate ISS-1992 rules out. docs/cli/release-batch.md. */
-import { flags, pullRepeated } from "../../resolve/flags.mjs";
+import { flags, pairOf, pullRepeated } from "../../resolve/flags.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { write } from "../../tracker/rest.mjs";
@@ -11,9 +11,9 @@ import { answeredOr, reasonSaid } from "./refused.mjs";
 
 export const START_USAGE = "Usage: forge release-batch start <ISS-nn>... [--version V] [--name N] [--summary S] "
   + "[--promotion <request>] [--change-request <n>]...";
-export const FINISH_USAGE = "Usage: forge release-batch finish <runId> [--commit <sha>]";
+export const FINISH_USAGE = "Usage: forge release-batch finish <runId> [--commit <sha>] [--site <name>=<serves>]...";
 export const RECORD_USAGE = 'Usage: forge release-batch record <ISS-nn>... --commit <sha> --account "<text>" '
-  + "[--provider-ref <ref>]";
+  + "[--provider-ref <ref>] [--site <name>=<serves>]...";
 
 /* The keys come first and the flags after, so a key is any word before the first flag. */
 const keysThen = (argv) => {
@@ -70,6 +70,19 @@ const cutFields = (given, requests) => {
   return fields;
 };
 
+// cm:why a production of two or more sites is refused a finish or a record that does not name each one, with what its runtime read serves (FB-73)
+const sitesOf = (verb, usage, given) => {
+  const byName = new Map();
+  const refusing = (said) => fail(`release-batch ${verb}: ${said} Nothing was sent.\n${usage}`);
+  for (const one of given) {
+    const { key: name, value: serves } = pairOf(one, "--site", { refusing });
+    if (!serves.trim()) refusing(`--site ${name} names no version or commit it serves.`);
+    if (byName.has(name)) refusing(`--site ${name} is given twice; name each site once.`);
+    byName.set(name, serves);
+  }
+  return byName.size ? { sites: [...byName].map(([name, serves]) => ({ name, serves })) } : {};
+};
+
 export const start = async (argv) => {
   const [keys, rest] = keysThen(argv);
   /* Named rather than left to the parser's "no such flag": the tracker reads a batch over a failed
@@ -95,10 +108,11 @@ export const start = async (argv) => {
 
 export const finish = async ([runId, ...rest]) => {
   if (!runId || runId.startsWith("--")) owed("finish", FINISH_USAGE, "the runId `forge release-batch start` printed");
-  const commit = filledOr("finish", FINISH_USAGE, flags(rest, "release-batch finish", [], { usage: FINISH_USAGE }),
+  const { values: sites, rest: flagArgv } = pullRepeated(rest, "--site", "release-batch finish", { usage: FINISH_USAGE });
+  const commit = filledOr("finish", FINISH_USAGE, flags(flagArgv, "release-batch finish", [], { usage: FINISH_USAGE }),
     "commit");
-  const answer = answeredOr("finish", await write("forge_release_batch.finish",
-    { runId, data: commit === undefined ? {} : { commit } }, undefined, true));
+  const data = { ...(commit === undefined ? {} : { commit }), ...sitesOf("finish", FINISH_USAGE, sites) };
+  const answer = answeredOr("finish", await write("forge_release_batch.finish", { runId, data }, undefined, true));
   const id = answer.runId ?? runId;
   console.log(`runId      ${id}`);
   for (const line of finishLines(answer.finish)) console.log(line);
@@ -131,14 +145,15 @@ const finishOutcome = (id, done, commit) => {
 
 export const record = async (argv) => {
   const [keys, rest] = keysThen(argv);
-  const given = flags(rest, "release-batch record", [], { usage: RECORD_USAGE });
+  const { values: sites, rest: flagArgv } = pullRepeated(rest, "--site", "release-batch record", { usage: RECORD_USAGE });
+  const given = flags(flagArgv, "release-batch record", [], { usage: RECORD_USAGE });
   if (!keys.length) owed("record", RECORD_USAGE, "at least one issue key");
   if (!given.commit?.trim()) owed("record", RECORD_USAGE, "--commit, the whole sha production is serving,");
   if (!given.account?.trim()) owed("record", RECORD_USAGE, "--account, how the release was performed and why not by a batch,");
   const providerRef = filledOr("record", RECORD_USAGE, given, "provider-ref");
   const byId = await idsOf("record", keys);
   const data = { issueIds: [...byId.keys()], commit: given.commit, account: given.account,
-    ...(providerRef === undefined ? {} : { providerRef }) };
+    ...(providerRef === undefined ? {} : { providerRef }), ...sitesOf("record", RECORD_USAGE, sites) };
   const done = answeredOr("record", await write("forge_release_batch.record", { data }, undefined, true));
   console.log(`runId      ${done.runId}`);
   console.log(`commit     ${done.commit}`);

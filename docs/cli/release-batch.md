@@ -96,3 +96,12 @@ requests) are each a flag, and each is sent as typed. The tracker judges a versi
 the last release, or misshapen is refused by its code, and the verb keeps no copy of that rule. The
 only check made here is that a request number is a whole number, since a body the tracker cannot parse
 would be refused without naming the flag.
+
+## `finish` and `record` name every site
+
+A production of two or more sites (core ISS-1077) is refused a finish or a record that does not
+account for each site, so both take a repeatable `--site <name>=<serves>`. A finish that could not
+name them would have no route but REST around the verb. The verb checks only that each site has a
+name and a value and is named once; which sites production counts, and whether each serves the
+release, is the tracker's to judge. Its `RELEASE_SITE_NOT_SHIPPED` refusal is printed with the route
+out, because a run reading only the exit could take a site not yet out for a release that shipped.

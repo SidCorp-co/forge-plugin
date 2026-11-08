@@ -228,6 +228,36 @@ test("15. finish without --commit sends a body carrying no commit", async () => 
   assert.ok(!("commit" in (run.released[0].args.data ?? {})), JSON.stringify(run.released[0].args.data));
 });
 
+test("15b. finish and record send each --site as sites [{name, serves}], and a body without one carries none", async () => {
+  state.release.finish = { runId: RUN_ID, finish: { state: "verifying", commit: SHA } };
+  const finished = await ran("finish", RUN_ID, "--commit", SHA, "--site", "mail.sidcorp.co=1.4.0", "--site", "webmail=1.4.0");
+  assert.equal(finished.status, 0, finished.stderr);
+  assert.deepEqual(finished.released[0].args.data, { commit: SHA,
+    sites: [{ name: "mail.sidcorp.co", serves: "1.4.0" }, { name: "webmail", serves: "1.4.0" }] });
+  state.release.record = recorded();
+  const recordedRun = await ran("record", "ISS-1", "--commit", SHA, "--account", ACCOUNT, "--site", "webmail=" + SHA);
+  assert.equal(recordedRun.status, 0, recordedRun.stderr);
+  assert.deepEqual(recordedRun.released[0].args.data.sites, [{ name: "webmail", serves: SHA }]);
+  assert.ok(!("sites" in (await ran("finish", RUN_ID)).released[0].args.data));
+});
+
+test("15c. a --site with no name or nothing served, or one named twice, is refused before anything is sent", async () => {
+  for (const site of [["webmail"], ["=1.4.0"], ["webmail="], ["webmail=1", "--site", "webmail=2"]]) {
+    const run = await ran("finish", RUN_ID, "--site", ...site);
+    assert.equal(run.status, 1, site.join(" "));
+    assert.deepEqual(run.routes, [], `${site.join(" ")} reached the tracker`);
+    assert.match(run.stderr, /--site/u);
+  }
+});
+
+test("15d. RELEASE_SITE_NOT_SHIPPED is said as a release that has not shipped, with the deploy, confirm or abort route", async () => {
+  state.release.finish = { refused: "webmail serves 1.3.0, not 1.4.0", code: "RELEASE_SITE_NOT_SHIPPED" };
+  const run = await ran("finish", RUN_ID, "--site", "mail.sidcorp.co=1.4.0");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /RELEASE_SITE_NOT_SHIPPED: webmail serves 1\.3\.0/u);
+  assert.match(run.stderr, /deploy that site or press its confirm.*--site <name>=<serves>; or abort the release/su);
+});
+
 const STATE_ROUTE = `GET /api/projects/:id/release-batches/${RUN_ID}/state`;
 const finishBlock = (stdout) => stdout.split("\n").filter((line) => /^(finish|closed|failed|refused) /u.test(line));
 const RED = { state: "failed", commit: SHA, closed: null, failed: null,

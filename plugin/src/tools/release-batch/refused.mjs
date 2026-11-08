@@ -5,6 +5,9 @@
 import { fail } from "../../resolve/settings.mjs";
 
 const READINESS = "forge release-batch readiness";
+const SITE_NOT_SHIPPED = "RELEASE_SITE_NOT_SHIPPED";
+const SITE_NOT_SHIPPED_ROUTE = "A site production counts has not shipped, so this release has not: deploy that site or press "
+  + "its confirm, then send it again naming every site with --site <name>=<serves>; or abort the release.";
 
 /* The subcommands that ask the tracker to release something, whose refusal readiness explains; a
    refused read is about the read, and is pointed nowhere else. */
@@ -25,7 +28,8 @@ const refusedRelease = (verb, answer) => {
     ? `\nAlso standing, by the tracker's own list:\n${also.map(reasonLine).join("\n")}`
     : "";
   const route = RELEASING.has(verb) ? `\nEvery reason a release would be refused now: ${READINESS}` : "";
-  fail(`release-batch ${verb}: the tracker refused it.\n${answer.refused}${beside}${route}`);
+  const site = answer.code === SITE_NOT_SHIPPED ? `\n${SITE_NOT_SHIPPED_ROUTE}` : "";
+  fail(`release-batch ${verb}: the tracker refused it.\n${answer.refused}${site}${beside}${route}`);
 };
 
 /** One soft call's answer, or the refusal above. */

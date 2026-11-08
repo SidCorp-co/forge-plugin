@@ -348,7 +348,7 @@ export const ROUTES = {
     project: true,
     writes: true,
     requests: (args, project) => one(`/projects/${project}/release-batches/${args.runId}/finish`, "POST",
-      filled({ commit: args.data?.commit })),
+      filled({ commit: args.data?.commit, sites: args.data?.sites })),
     sends: ["runId", "data"],
   },
   "forge_release_batch.record": {
@@ -356,7 +356,7 @@ export const ROUTES = {
     writes: true,
     requests: (args, project) => one(`/projects/${project}/release-records`, "POST",
       filled({ issueIds: args.data?.issueIds, commit: args.data?.commit, account: args.data?.account,
-        providerRef: args.data?.providerRef })),
+        providerRef: args.data?.providerRef, sites: args.data?.sites })),
     sends: ["data"],
   },
   "forge_release_batch.recorded": {

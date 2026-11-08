@@ -31,6 +31,13 @@ landed* depends on the route:
   promotion built. A green reading of the staging deployment says nothing about this rung: it was
   already read, by somebody else, for something else.
 
+**A production of two or more sites is read site by site.** Each site has its own identity, and the
+release is out only when every one serves it. The finish names each site with what its own reading
+serves (`forge release-batch finish <runId> --site <name>=<serves>`, one per site, and the same on
+`record`). A `RELEASE_SITE_NOT_SHIPPED` refusal is a site not yet out, never a success: deploy it or
+wait on its confirm, then finish again naming every site, or abort. A site parked on a person's confirm
+is the hold in *Where it hands over*, per site. A single-site production names no site.
+
 **A judgement of the change is not a reading of the deployment.** Where a judge read the change
 before this run, that work stands; the batch's live judging comes after this run. What is owed
 here is that the code is out and running where it landed — which no judgement of the change can say,
