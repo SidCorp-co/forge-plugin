@@ -8,11 +8,14 @@ ended the attempt.
   too long is a release people are already asking about.
 - **Time since the last evidence of progress.** Evidence means a reading that moved: an identity that
   changed, a health check that flipped, a log line that appeared. Attempts made are not progress, and
-  neither is a hypothesis refined without an observation behind it. A wait on a gate a person owes
-  is neither: that clock does not run against it, and the run waits open rather than ending.
+  neither is a hypothesis refined without an observation behind it.
 - **Regression.** Health that passed before an attempt and fails after it. This one stops the run on
   the spot, whatever the other two clocks say: the world is now worse than it was, and the run
   hands over.
+
+**A gate a person owes stops both clocks.** While the deploy answer names a person in `waitsOn`, or
+a blocker owes a human, neither the elapsed clock nor the progress clock runs: the run is waiting on
+an act that is not its own, and nothing it could read would move. Regression still stops it.
 
 **The two clocks have limits, and they are not yours to choose.** How long is too long, and how long
 without a reading is too long, are the job's own policy. Read both before you act on either clock. A

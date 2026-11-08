@@ -23,15 +23,15 @@ The handoff is written where the work is tracked, and it names four things:
 4. **The fallback** — what to do if that act cannot be taken, including *nothing, and here is who
    decides* where that is the honest answer.
 
-**A gate a person owes holds the run open, and is never a reason to abort it.** Where the release
-answers that it waits on a person's act — a production deploy pending a person's confirm, or any
-blocker whose `owes` is a human — the run is waiting, not stopped. Write who owes the act, the act, and
-the door it is taken at, from the blocker's own `waitingFor`, where the work is tracked, then end the
-turn with the run still open. It resumes once the act lands. An abort here would carry the cut tag,
-and a version that left with its tag is never cut again (`RELEASE_CUT_VERSION_BEHIND`), so each wait
-on a person would cost a version.
+**A gate a person owes holds the run open, and is never a reason to abort it.** Where the deploy
+answer names a person in `waitsOn` (a production deploy pending an admin's confirm), or a blocker's
+`owes` is a human, the run is waiting, not stopped. Write who owes the act, the act and the door it is
+taken at, from `waitsOn` or the blocker's `waitingFor`, where the work is tracked, then end the turn
+with the run still open. Only two things end it: the confirm, which carries the same run on with no
+re-cut, or a person's explicit cancel. Your abort is not one of them: it would carry the cut tag, and a
+version that left with its tag is never cut again (`RELEASE_CUT_VERSION_BEHIND`).
 
-**Ending the release goes through the abort route the job prompt names, and it is owed a reason.** The
+**Any other end goes through the abort route the job prompt names, and it is owed a reason.** The
 handoff note above is for the next owner; the release itself ends by calling that route (`POST
 …/releases/<version>/abort`) with a `reason` that names the step the run stopped at and the cause — the
 hand-over condition and the reading behind it. An abort with no reason records only "aborted by agent",
