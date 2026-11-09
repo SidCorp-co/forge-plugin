@@ -268,7 +268,7 @@ const VERDICT_BLOCKS = [
   "           --why says how, --filed names the row it became",
   "  skipped  no route reached it, nothing cited",
   "A later --commit carrying the merged one earns `in_progress:release`: the write records what git says of it.",
-  "An observable criterion cites a clip (--evidence x.webm|.mp4) or --without-clip; a pass or short keeps a --probe.",
+  "An observable criterion cites a clip (--evidence x.webm|.mp4) or --without-clip; a pass or short keeps a --probe ('{}' prints its forms).",
 ];
 
 /* The cap beside the one-write rule, since the rule is what steers a long verdict into one comment.
@@ -281,8 +281,8 @@ const capBlocks = (cap = bodyCap()) => (cap === null ? [] : [
 const CRITERION_BLOCKS = [
   "--criterion repeats: one write judges every criterion it names, each a block. What stands before",
   "the first is every block's: its own value replaces it, a repeatable flag adds to it.",
-  "A flag that part names is restated only in the last block, which no",
-  "block follows to be read as; in any other block it is refused. Restated last, it is taken:",
+  "A flag that part names is restated only in the last block; in any other block it is refused.",
+  "Restated last, it is taken:",
   "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
   "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
 ];

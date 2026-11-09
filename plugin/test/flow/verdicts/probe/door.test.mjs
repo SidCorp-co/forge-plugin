@@ -24,6 +24,8 @@ const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const PROBE = JSON.stringify({ kind: "request", request: { method: "GET", path: "/health", as: "anonymous" }, expect: { status: 200 } });
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
+const PROBE_COMMAND_FORM = '{"kind":"command","command":{"argv":["npm","test"]},"expect":{"exitCode":0}}';
+const PROBE_REQUEST_FORM = '{"kind":"request","request":{"method":"GET","path":"/health","as":"anonymous|replayer"},"expect":{"status":200}}';
 
 const CLIP = join(HOME.path, "run.webm");
 const NOTE = join(HOME.path, "run.txt");
@@ -111,6 +113,17 @@ test("an observable pass with no probe and no clip is refused locally before any
   assert.equal(called("forge_uploads", from).length, 0, "nothing was uploaded for a verdict core would refuse");
   assert.equal(called("forge_issues.verdicts", from).length, 0, "and nothing reached the door");
   assert.equal(comments(), before, "and no comment was posted");
+});
+
+test("a --probe that is no probe is refused before any upload, printing both forms it takes (ISS-98)", async () => {
+  const from = state.calls.length;
+  const run = await ask("record", "verdict", "ISS-77", "--criterion", "2", "--verdict", "pass",
+    "--commit", COMMIT, "--evidence", CLIP, "--probe", "{}");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /VERDICT_PROBE_SHAPE/u, run.stderr);
+  for (const form of [PROBE_COMMAND_FORM, PROBE_REQUEST_FORM]) assert.ok(run.stderr.includes(form), run.stderr);
+  assert.equal(called("forge_uploads", from).length, 0, "nothing went up for a probe the door would refuse");
+  assert.equal(called("forge_issues.verdicts", from).length, 0);
 });
 
 test("a write with one faulty block is all-or-nothing, every faulty block named in one message", async () => {

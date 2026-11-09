@@ -154,7 +154,7 @@ test("the verdict help states the refused position and the placement taken inste
   const help = await ask("record", "verdict", "-h");
   assert.equal(help.status, 0, help.stderr);
   const text = help.stdout.replace(/\s+/gu, " ");
-  assert.match(text, /A flag that part names is restated only in the last block, which no block follows to be read as; in any other block it is refused\. Restated last, it is taken: record verdict ISS-45 --commit <sha> --evidence run\.txt --verdict pass \\ --criterion 1 --criterion 2 --criterion 3 --verdict fail --why "<what failed>"/u,
+  assert.match(text, /A flag that part names is restated only in the last block; in any other block it is refused\. Restated last, it is taken: record verdict ISS-45 --commit <sha> --evidence run\.txt --verdict pass \\ --criterion 1 --criterion 2 --criterion 3 --verdict fail --why "<what failed>"/u,
     help.stdout);
   assert.doesNotMatch(text, /directly after/u, "the position ISS-2151 stopped taking is not offered as taken");
 });
