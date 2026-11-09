@@ -171,7 +171,7 @@ test("the lease sentence says the endpoint's answer of a lease left standing, an
   assert.match(heldBy(ISSUE), /this run's until it lapses/u, "while another issue's lease is still said as held");
   const before = field;
   await writeRelease(ISSUE, releasedWrite(before), "ISS-9", () => before);
-  assert.equal(field.lease.holder, "", "the release landed on the field");
+  assert.equal(field.lease, null, "the release landed on the field");
   assert.match(heldBy(ISSUE), /^This call gave the lease back, so this run holds nothing on the issue/u,
     "a lease the call wrote back is said as given back, with no flag passed");
 });

@@ -4,6 +4,7 @@
    (ISS-2045). Nothing here reaches git or the tracker: it reads the block and the holders it is
    handed, which is what lets both the gate and the write call it. docs/cli/the-reconstruction.md. */
 import { historyOf } from "../lease/history.mjs";
+import { leaseRecordOf } from "../lease.mjs";
 
 export const HAND_WRITTEN = "handWritten";
 
@@ -32,7 +33,7 @@ export const handWrittenOf = (held) => {
  *  record proposes as the builder. A status this predicate cannot place counts as a build, which
  *  leaves the declaration standing rather than deriving a builder off a reading nobody made. */
 export const holdersOf = (context, builds = () => true) => [...new Set(
-  historyOf(context?.lease)
+  historyOf(leaseRecordOf(context))
     .filter((one) => builds(one?.status, one))
     .map((one) => String(one?.holder ?? "").trim())
     .filter(Boolean),

@@ -111,7 +111,7 @@ test.after(() => tracker.close());
 const ran = (argv, who = OURS) =>
   ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who, CLAUDE_PID: String(process.pid) });
 /* Read off the tracker after the call and not out of its output: the field is what a later run has. */
-const onTheRecord = () => ISSUE.sessionContext.lease;
+const onTheRecord = () => ISSUE.sessionContext.lease ?? ISSUE.sessionContext.leaseLeft;
 
 /* The state sits above both clock readings rather than inside either, because what it answers is the
    question a duration cannot: not when the lease ran out but whether anything is still holding it. */
@@ -236,7 +236,7 @@ test("and takes it as that same handoff where it writes a payload instead of typ
   const wrote = await ran(["record", "correction", "ISS-919", "--corrects", "plan", "--moved", "the probe", "--why", "the holder is gone"],
     "iss-919-3ec73d70");
   assert.equal(wrote.status, 0, `the write should carry the turn through:\n${wrote.stdout}${wrote.stderr}`);
-  assert.equal(ISSUE.sessionContext.lease.history.at(-1).how, "handed",
+  assert.equal(onTheRecord().history.at(-1).how, "handed",
     "the word the typed claim writes, so neither route charges a crash the other would not");
   assert.match(wrote.stderr, /took the turn it was dispatched for/u, "and the notice says which of the two it was");
   assert.equal(ISSUE.status, "approved", "with nothing parked for a person");

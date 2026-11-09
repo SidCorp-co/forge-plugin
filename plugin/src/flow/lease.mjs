@@ -207,20 +207,32 @@ export const UNHELD = "--unheld";
 
 /** The line a lease left, off a field `leaseOf` reads as no lease at all: whatever emptied it took the holder and may have left the rest, and that line is the last thing the record says about the run that is gone. */
 export const nextLeft = (context) => {
-  const held = context?.[KEY];
+  const held = leaseRecordOf(context);
   return typeof held?.next === "string" && held.next ? held.next : null;
 };
 
 /* What the field keeps once the holder comes off, and the mark saying the holder came off on purpose. Without the mark a field a release emptied is the field a run that died leaves — three readings a person has to pick between rather than one write's own doing — so a take reaches a released field wherever the issue stands, while an unmarked empty one is refused past the dispatch statuses exactly as it was. A holder back on the row means a later take wrote over the mark, which is why the two are read together and never apart (ISS-1617). */
-const remnantOf = (context) => {
-  const held = context?.[KEY];
-  return held && typeof held === "object" ? held : null;
+const asRecord = (held) => (held && typeof held === "object" && !Array.isArray(held) ? held : null);
+
+/* cm:why core refuses a sessionContext.lease that is not { holder, renewedAt, minutes } and takes null (core ISS-995), so a given-back lease is null and what it kept moves to LEFT (ISS-99) */
+export const LEFT = "leaseLeft";
+
+/** The lease the field holds, or else the remnant a release left beside it: what the claim history, the line left and the release mark are read from. */
+export const leaseRecordOf = (context) => asRecord(context?.[KEY]) ?? asRecord(context?.[LEFT]);
+
+const without = (record, key) => Object.fromEntries(Object.entries(record ?? {}).filter(([name]) => name !== key));
+
+/** The value as core takes it: a lease naming no holder, which an older release wrote in place, moves to LEFT and leaves null. */
+export const leaseShaped = (value) => {
+  const held = asRecord(value?.[KEY]);
+  if (!held || (typeof held.holder === "string" && held.holder)) return value;
+  return { ...value, [KEY]: null, [LEFT]: without(held, "holder") };
 };
 
 const RELEASED = "released";
 
 export const releasedIn = (context) => {
-  const held = remnantOf(context);
+  const held = leaseRecordOf(context);
   if (typeof held?.holder === "string" && held.holder) return "";
   return typeof held?.[RELEASED] === "string" ? held[RELEASED] : "";
 };
@@ -262,7 +274,7 @@ export const unheldRefusal = (ref, status, { next = null, work = null } = {}) =>
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
 export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null, over = null }) => {
   /* The remnant and not the lease: a field a release emptied answers `null` to `leaseOf`, so reading through it would drop every earlier row at the next take and the line the release left with them. What the remnant holds is unjudged, hence the two guards below — a history that is not a list spreads into a throw. The row this builds carries no release mark, the field being held again. */
-  const held = remnantOf(context);
+  const held = leaseRecordOf(context);
   const history = [...historyOf(held)];
   const line = typeof held?.next === "string" && held.next ? held.next : null;
   const state = landing?.state ?? landingOf(context)?.state ?? null;
@@ -281,7 +293,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
   /* Written by `markOwed` once a payload landed and kept across its holder's own renewals; a take starts the new holder's lease unmarked, the row above keeping the mark of the lease it went over (ISS-2531). */
   const marked = !how && held?.holder === holder && held?.[WROTE] === true;
   return {
-    ...(context && typeof context === "object" ? context : {}),
+    ...without(asRecord(context), LEFT),
     ...(worklog ? { [WORKLOG]: worklog } : {}),
     ...(landing ? { [LANDING]: landing } : {}),
     [KEY]: {
@@ -448,7 +460,7 @@ export const leaseMismatch = (ref, back) => {
 
 /* `on` answers with the context the value was built from, which is what the write is conditional on: a function rather than the value itself because the two writes whose value is built inside the write's own callback read that context there, after this call was made. A caller naming none conditions nothing — the safe way for a call site to be missed, where an expectation of `null` would read as *the field is empty* and refuse every write to an issue that has a lease. */
 export const setLease = async (documentId, value, ref, on, said = {}) =>
-  writeField(documentId, FIELD, value, { ref, refuse: fail, expect: on, ...said });
+  writeField(documentId, FIELD, leaseShaped(value), { ref, refuse: fail, expect: on, ...said });
 
 /* An edge touches two issues and one of them is being worked: the other is only checked, so a blocker just filed, holding no lease at all, can still be named. */
 export const notAnothers = async (documentId, ref) => {
@@ -517,8 +529,9 @@ export const writeRelease = async (documentId, value, ref, on, said = {}) => {
 };
 
 export const releasedWrite = (context, at = sharedStamp()) => ({
-  ...(context && typeof context === "object" ? context : {}),
-  [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
+  ...(asRecord(context) ?? {}),
+  [KEY]: null,
+  [LEFT]: { ...without(leaseRecordOf(context), "holder"), [RELEASED]: at },
 });
 
 /** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. Its write is the writer's settling one, which no other lease write is: everything the call was asked for is already on the tracker by the time this runs, and `writeFields` carries what that buys. */

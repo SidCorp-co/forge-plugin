@@ -70,7 +70,7 @@ test.after(() => tracker.close());
 
 const ran = (argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: OURS });
 const note = () => ran(["record", "note", "ISS-42", "--section", "Fixed", "--title", "The change in a few words", "--user", "The swipe gesture is gone."]);
-const onTheRecord = () => ISSUE.sessionContext.lease;
+const onTheRecord = () => ISSUE.sessionContext.lease ?? ISSUE.sessionContext.leaseLeft;
 
 test("a note written to a closed issue under another run's live lease lands, and the lease is reclaimed by name and given back", async () => {
   heldAt("closed", 5);
@@ -86,7 +86,7 @@ test("a note written to a closed issue under another run's live lease lands, and
   assert.match(wrote.stderr, /held by a lease on an issue at `closed` and this write reclaimed it/u,
     "the caller is told the settled status is why");
   assert.match(wrote.stderr, new RegExp(`came off session ${THEIRS}`, "u"), "and which run the lease came off");
-  assert.equal(onTheRecord().holder, "", "and the lease the write took went back once the write had landed");
+  assert.equal(ISSUE.sessionContext.lease, null, "and the lease the write took went back once the write had landed");
 });
 
 test("a dropped issue's live lease, and a closed issue's lease lapsed inside its own duration, both give way to the write", async () => {

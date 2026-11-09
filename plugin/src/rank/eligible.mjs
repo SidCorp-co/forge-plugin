@@ -1,7 +1,7 @@
 /* Which open issues a run may take, and the sentence for every one it may not. A filter dropping a
    row in silence is a backlog that shrank for no stated reason: docs/cli/next.md. */
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
-import { describe, leaseOf, stateOf } from "../flow/lease.mjs";
+import { describe, leaseOf, leaseRecordOf, stateOf } from "../flow/lease.mjs";
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
@@ -103,7 +103,7 @@ export const judgingFrom = async (rows, { policy, leaseFor, cap }) => {
      history and release stamp are what says when a judging run last stood on the row. */
   const judged = await Promise.all(window.map(async (row) => {
     const context = await leaseFor(row);
-    return { row, issueId: row.issueId, lease: context?.lease ?? null, ...judgingVerdict(context) };
+    return { row, issueId: row.issueId, lease: leaseRecordOf(context), ...judgingVerdict(context) };
   }));
   return {
     offered: judged.filter((one) => one.offerable),

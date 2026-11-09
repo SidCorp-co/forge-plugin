@@ -186,7 +186,7 @@ const ran = (argv, at = TREE, host = HOST, who = OURS) =>
 /* A caller the issue was never dispatched to, so what it meets is the lease's own state and not the
    handoff a dispatched run is granted whatever the record says of the holder. */
 const A_STRANGER = "a-dispatching-session";
-const onTheRecord = () => ISSUE.sessionContext.lease;
+const onTheRecord = () => ISSUE.sessionContext.lease ?? ISSUE.sessionContext.leaseLeft;
 
 /* The lease ISS-1903 is about: another run's, inside its own duration, naming a host that has exited
    and the tree that run took it in. Nothing but the tree can say whether that run is still working. */

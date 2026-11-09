@@ -18,11 +18,12 @@ export const leaseFacts = async (key, directory) => {
   useProject({ slug, from: `the directory the dispatch was made from, ${directory}` });
   const { documentIdIfAny } = await import("../tracker/issues.mjs");
   const { callTool } = await import("../tracker/rest.mjs");
+  const { leaseRecordOf } = await import("../flow/lease.mjs");
   const found = await documentIdIfAny(key, { soft: true, ...ONE_READ });
   if (found.refused) return { unread: String(found.refused).split("\n")[0] };
   const issue = await callTool("forge_issues", { action: "get", documentId: found.id, fields: [] }, true, ONE_READ);
   if (issue?.refused) return { unread: String(issue.refused).split("\n")[0] };
-  const raw = issue?.sessionContext?.lease?.next;
+  const raw = leaseRecordOf(issue?.sessionContext)?.next;
   const next = typeof raw === "string" && raw.trim() ? raw : null;
   return { next, named: next ? NAMED.exec(next)?.[0] ?? null : null };
 };

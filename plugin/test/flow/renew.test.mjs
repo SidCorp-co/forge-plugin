@@ -437,9 +437,9 @@ test("the lease a write took for itself is given back once the write has landed,
   assert.equal(leaseOf(field), null, "and afterwards the field holds no lease at all");
   assert.ok(releasedIn(field), "read as a lease given back rather than as a field something emptied");
   assert.match(releasedIn(field), /^20\d\d-\d\d-\d\dT/u, "which names the moment it happened");
-  assert.deepEqual(field.lease.history.map((one) => one.how), ["write"],
+  assert.deepEqual(field.leaseLeft.history.map((one) => one.how), ["write"],
     "and the row the take wrote stands alone: releasing is not a reclaim and adds none");
-  assert.equal(field.lease.next, NOTHING_WORKED, "the line the write left is kept");
+  assert.equal(field.leaseLeft.next, NOTHING_WORKED, "the line the write left is kept");
   const notice = lines.find((one) => one.includes("is free again"));
   assert.ok(notice, `nothing said the lease went back: ${lines.join(" | ")}`);
   assert.match(notice, /claims with no wait/u, "which is what the give-back buys the run after it");

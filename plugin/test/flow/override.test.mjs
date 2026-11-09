@@ -308,9 +308,9 @@ test("a holding verdict's complexity write with no lease takes the short lease a
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /ISS-96 carried no lease and this write took one/u, "and the take is said, never silent");
   assert.equal(sent("update", "complexity").complexity, "s", "the field the reading judged is written in the one call");
-  const took = ISSUE.sessionContext.lease;
+  const took = ISSUE.sessionContext.leaseLeft;
   assert.equal(took.history[0].holder, MINE.lease.holder, "taken by the run that made the write and by nobody else");
-  assert.equal(took.holder, "", "and given back with the write, a triage pass's reading being the whole of what it does");
+  assert.equal(ISSUE.sessionContext.lease, null, "and given back with the write, a triage pass's reading being the whole of what it does");
   assert.match(run.stderr, /ISS-96 is free again/u, "which is said rather than left for the next run to find");
   assert.equal(took.next, NOTHING_WORKED, "with the line the record owes on it");
 });
@@ -359,11 +359,11 @@ test("a status set on an issue nobody holds moves in the one call, the write tak
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(ISSUE.status, "on_hold", "the move the caller asked for landed, with no claim typed before it");
   assert.match(run.stderr, /ISS-96 carried no lease and this write took one/u, "and the take is on the caller's screen");
-  const took = ISSUE.sessionContext.lease;
+  const took = ISSUE.sessionContext.leaseLeft;
   assert.deepEqual(took.history.map((one) => one.how), ["write"], "under the word only a write's take writes");
   assert.equal(took.history[0].holder, MINE.lease.holder,
     "by the run that made the write, which is the whole of what a take is for");
-  assert.equal(took.holder, "", "and the field holds nobody after it, the lease having covered the write");
+  assert.equal(ISSUE.sessionContext.lease, null, "and the field holds nobody after it, the lease having covered the write");
   assert.equal(took.next, NOTHING_WORKED, "carrying the line the record owes");
 });
 

@@ -75,14 +75,14 @@ const heldBy = (holder) => {
 const WHY = "blocked on the change the other issue is landing";
 const parkedByAdvance = (extra = []) =>
   ran(["advance", "ISS-2679", "--park", "blocked", "--why", WHY, ...extra], PARKER);
-const lease = () => ISSUE.sessionContext.lease;
+const lease = () => ISSUE.sessionContext.lease ?? ISSUE.sessionContext.leaseLeft;
 
 test("a park through advance gives the parking run's lease back as the call ends", async () => {
   heldBy(PARKER);
   const parked = await parkedByAdvance();
   assert.equal(parked.status, 0, `the park should have gone through:\n${parked.stdout}${parked.stderr}`);
   assert.equal(ISSUE.status, "on_hold", "the park moved the status");
-  assert.equal(lease().holder, "", "and nothing holds the issue afterwards");
+  assert.equal(ISSUE.sessionContext.lease, null, "and nothing holds the issue afterwards");
   assert.ok(lease().released, "the field records that the lease was given back rather than lost");
   assert.match(parked.stderr, /ISS-2679 is free again: the turn this run held is over, and the lease it was held under went back with it/u,
     "and the parking call says so to its caller");
@@ -93,7 +93,7 @@ test("a park record through record gives the parking run's lease back as the cal
   const parked = await ran(["record", "park", "ISS-2679", "--kind", "blocked", "--why", WHY], PARKER);
   assert.equal(parked.status, 0, `the park record should have gone up:\n${parked.stdout}${parked.stderr}`);
   assert.ok(state.comments[UUID].some((one) => /forge-record: park/u.test(one.body)), "the record is on the page");
-  assert.equal(lease().holder, "", "and nothing holds the issue afterwards");
+  assert.equal(ISSUE.sessionContext.lease, null, "and nothing holds the issue afterwards");
   assert.ok(lease().released, "the field records that the lease was given back");
   assert.match(parked.stderr, /ISS-2679 is free again: the turn this run held is over/u);
 });
@@ -165,6 +165,6 @@ test("the park a triage routes a plain advance into gives the lease back too", a
   const parked = await ran(["advance", "ISS-2679"], PARKER);
   assert.equal(parked.status, 0, `the routed park should have gone through:\n${parked.stdout}${parked.stderr}`);
   assert.equal(ISSUE.status, "on_hold", "the triage's route parked it");
-  assert.equal(lease().holder, "", "and nothing holds the issue afterwards");
+  assert.equal(ISSUE.sessionContext.lease, null, "and nothing holds the issue afterwards");
   assert.match(parked.stderr, /ISS-2679 is free again: the turn this run held is over/u);
 });

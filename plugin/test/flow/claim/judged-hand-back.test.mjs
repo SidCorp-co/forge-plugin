@@ -83,8 +83,8 @@ test("a judge standing at no checkpoint hands back, and the run after it claims 
     `said beside the mechanism as going back:\n${done.stdout}`);
   assert.doesNotMatch(done.stdout, /the lease is this run's|the lease is advisory/u, "and never as this run's (ISS-3099)");
   assert.equal(ISSUE.sessionContext.landing, undefined, "an absent checkpoint stays absent");
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "so nothing holds the issue");
-  assert.deepEqual(ISSUE.sessionContext.lease.history.map((one) => one.how), ["claim"],
+  assert.equal(ISSUE.sessionContext.lease, null, "so nothing holds the issue");
+  assert.deepEqual(ISSUE.sessionContext.leaseLeft.history.map((one) => one.how), ["claim"],
     "and the release is not a reclaim, so it adds no row of its own");
 
   const next = await ran(["claim", "ISS-1429"], AFTER);
@@ -104,7 +104,7 @@ test("a hand-back at qa-owed moves the checkpoint to judged and gives the lease 
   assert.ok(done.stdout.includes(`only refuses to build on it. This run's lease`),
     `said beside the mechanism as going back:\n${done.stdout}`);
   assert.doesNotMatch(done.stdout, /the lease is this run's|the lease is advisory/u, "and never as this run's (ISS-3099)");
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "so nothing holds the issue");
+  assert.equal(ISSUE.sessionContext.lease, null, "so nothing holds the issue");
 });
 
 /* A release is a write, and a write on another run's issue is that run's. */

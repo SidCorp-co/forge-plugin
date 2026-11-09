@@ -10,7 +10,7 @@ import { cacheRoot, copyAt, installedCopies } from "../versions.mjs";
 import { readMember, wavesOf } from "../../flow/record/wave.mjs";
 import { DISPOSITIONS } from "../../flow/machine.mjs";
 import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";
-import { FIELD, HISTORY_KEPT } from "../../flow/lease.mjs";
+import { FIELD, HISTORY_KEPT, leaseRecordOf } from "../../flow/lease.mjs";
 import { historyOf } from "../../flow/lease/history.mjs";
 import { LANDING_BUILDER_OWED, LANDING_HEAD_OWED } from "../../flow/landing/checkpoint.mjs";
 import { commentPage } from "../../tracker/comments.mjs";
@@ -51,7 +51,7 @@ const spanOf = (wave, before, ref, sessions) => {
 
 /** A member's hand-backs inside the span, and whether its kept history may have lost some. */
 export const handBacksOf = (member, from, to) => {
-  const history = historyOf(member.body?.[FIELD]?.lease);
+  const history = historyOf(leaseRecordOf(member.body?.[FIELD]));
   const within = history.filter((row) => HANDED_BACK.includes(row.landing)
     && (stampOf(row.at) ?? 0) >= from && (stampOf(row.at) ?? 0) <= to);
   const cut = history.length >= HISTORY_KEPT && (stampOf(history[0]?.at) ?? 0) > from;

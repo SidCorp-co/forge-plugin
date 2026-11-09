@@ -3,7 +3,7 @@
    the refusal that stops `--stopped` from renewing in its place. docs/cli/the-short-lease.md. */
 import { fail } from "../../resolve/settings.mjs";
 import { KEY as WORKLOG, saidWritten, worklogFor } from "../worklog.mjs";
-import { HOLDING, KEY, STOPPED, describe, releasedWrite, writeRefusal, writeRelease } from "../lease.mjs";
+import { HOLDING, LEFT, STOPPED, describe, releasedWrite, writeRefusal, writeRelease } from "../lease.mjs";
 
 export const GIVE_BACK = "--give-back";
 
@@ -48,11 +48,11 @@ export const giveBack = async (documentId, ref, context, { state, lease, line, p
   const value = releasedWrite(context);
   const worklog = worklogFor(context, patch);
   if (worklog) value[WORKLOG] = worklog;
-  if (line !== undefined) value[KEY].next = line;
+  if (line !== undefined) value[LEFT].next = line;
   await writeRelease(documentId, value, ref, () => context);
   saidWritten(patch);
   console.log(`${ref} is free again: this run gave back the lease it held, so nothing holds the `
     + "issue and the run after it claims with no wait.");
-  if (value[KEY].next) console.log(`Next: ${value[KEY].next}`);
+  if (value[LEFT].next) console.log(`Next: ${value[LEFT].next}`);
   return value;
 };

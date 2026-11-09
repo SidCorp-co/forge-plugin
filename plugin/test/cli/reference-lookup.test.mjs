@@ -75,10 +75,10 @@ test("the holder's verbs reach it too, the lookup being one, and the lease they 
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const held = BACKLOG.find((one) => one.documentId === "u-1");
   assert.ok(held.releaseNotes, "the record the caller asked for is on the issue, written in the one call");
-  const took = held.sessionContext.lease;
+  const took = held.sessionContext.lease ?? held.sessionContext.leaseLeft;
   assert.deepEqual(took.history.map((one) => one.how), ["write"], "under the word only a write's take writes");
   assert.equal(took.history[0].holder, WRITER, "by the run that made the write and by nobody else");
-  assert.equal(took.holder, "", "and given back once the write had landed, the lease covering the write");
+  assert.equal(held.sessionContext.lease, null, "and given back once the write had landed, the lease covering the write");
   assert.match(run.stderr, /ISS-1 is free again/u, "which the caller is told on the same screen");
   assert.equal(took.next, NOTHING_WORKED, "the line the record owes where no work followed");
 });

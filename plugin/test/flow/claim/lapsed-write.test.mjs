@@ -84,7 +84,7 @@ test.after(() => tracker.close());
 const ran = (argv, who = OURS) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who });
 /* Read off the tracker after the call rather than out of its output: what a later reader has is the
    field, and the terminal the write printed to is gone by then. */
-const onTheRecord = () => ISSUE.sessionContext.lease;
+const onTheRecord = () => ISSUE.sessionContext.lease ?? ISSUE.sessionContext.leaseLeft;
 
 test("a write meeting a lease the record proves dead reclaims it and lands, in one call", async () => {
   /* 121 minutes of a 60-minute lease: 61 past expiry, which outlasts the duration the holder named,
@@ -109,7 +109,7 @@ test("a write meeting a lease the record proves dead reclaims it and lands, in o
   assert.equal(row.from, THEIRS, "and names the run it went over, which no earlier row has to survive for");
   assert.equal(row.ranOut, ranOutOf(),
     "and when that lease ran out, off its own renew time and duration, which nothing else on the record holds");
-  assert.equal(onTheRecord().holder, "",
+  assert.equal(ISSUE.sessionContext.lease, null,
     "and the lease the write took for itself went back once the write had landed");
 });
 

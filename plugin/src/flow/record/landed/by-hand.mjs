@@ -159,7 +159,7 @@ const plan = (ref, documentId, issue, { sha, base, reason }) => {
     `                 POST ${at}/merge {commit: "${sha}", target: "base", note: "${noteOf(sha, base)}"}`,
     `  3. move        POST ${at}/transition {toStatus: "${RESTS_AT}", reason: "${sha}${reason ? `: ${reason}` : ""}"}`,
     `  4. comment     POST ${at}/comments {body}`,
-    `  5. lease back  PATCH ${at} {sessionContext.lease released, holder emptied} — the last write`,
+    `  5. lease back  PATCH ${at} {sessionContext.lease null, leaseLeft released} — the last write`,
   ].join("\n");
 };
 

@@ -18,7 +18,7 @@ const {
   MECHANISM, MINUTES, MINUTES_ASKS, READING_MINUTES, RENEWED_BY_WRITING,
   canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
   leaseOf, nextLine, nothingWorked, idsHere, reclaimRefusal,
-  stateOf, writeRefusal, writtenBy,
+  stateOf, writeRefusal, writtenBy, LEFT, leaseShaped, nextLeft, releasedIn, releasedWrite,
 } = await import("../../src/flow/lease.mjs");
 const { historyLine, reclaimsOf } = await import("../../src/flow/lease/reclaims/crash-park.mjs");
 const { agentOf, pidOf } = await import("../../src/flow/lease/holder.mjs");
@@ -51,6 +51,25 @@ test("a lease is read out of the field, and anything else in it is no lease", ()
   assert.equal(leaseOf(field({ holder: "" })), null);
   assert.equal(leaseOf(field(held("a-run", AT, 0))).minutes, MINUTES, "a duration of nothing is the default");
   assert.deepEqual(leaseOf(field(held("a-run", AT, 30, "not a list"))).history, []);
+});
+
+/* Core refuses a sessionContext.lease that is not { holder, renewedAt, minutes } and takes null (core ISS-995, ISS-99). */
+test("a lease given back is null, what it kept stands beside it, and the next take carries it on", () => {
+  const before = field(held("a-run", AT, 30, [{ holder: "a-run", at: AT, how: "claim", status: "open" }]), { worklog: { branch: "b" } });
+  before.lease.next = "fold F1";
+  const back = releasedWrite(before, AT);
+  assert.equal(back.lease, null, "the field core takes as no lease");
+  assert.equal(back[LEFT].holder, undefined, "naming nobody");
+  assert.equal(releasedIn(back), AT, "read as given back");
+  assert.equal(nextLeft(back), "fold F1", "with the line the next run starts on");
+  assert.deepEqual(back.worklog, { branch: "b" }, "and the rest of the field untouched");
+  const again = claimed(back, { holder: "b-run", at: AT, minutes: 30, how: "claim", status: "open" });
+  assert.equal(again[LEFT], undefined, "a take leaves no remnant beside the lease it writes");
+  assert.deepEqual(again.lease.history.map((one) => one.holder), ["a-run", "b-run"], "and keeps the history it carried");
+  const old = { lease: { holder: "", released: AT, next: "fold F1", history: [] }, worklog: {} };
+  assert.deepEqual(leaseShaped(old), { lease: null, [LEFT]: { released: AT, next: "fold F1", history: [] }, worklog: {} },
+    "an older release's holder-less lease is moved before any write sends it");
+  assert.equal(leaseShaped(before), before, "and a held lease is sent as it is");
 });
 
 /* Core judges a shared holder per holder and session, and reads a session outside 1..100 characters as malformed (forge ISS-1104, ISS-81). */

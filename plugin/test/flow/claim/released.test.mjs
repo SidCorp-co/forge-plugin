@@ -77,14 +77,14 @@ test("an advance to in_progress:test leaves nothing holding the issue, and anoth
   assert.equal(started.status, 0, `the first move should have gone through:\n${started.stdout}${started.stderr}`);
   assert.match(started.stderr, /carried no lease/u, "taking the lease as it writes");
   assert.match(started.stderr, /ISS-1617 is free again/u, "and giving it back once the write has landed");
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "so the field names no holder");
+  assert.equal(ISSUE.sessionContext.lease, null, "so the field names no holder");
 
   /* The write that earns the next status takes the lease on a field the release left, at a status an empty field is refused at. */
   const developed = await setTo("in_progress:test", BUILDER);
   assert.equal(developed.status, 0, `and so should the second:\n${developed.stdout}${developed.stderr}`);
   assert.deepEqual([ISSUE.status, ISSUE.workState?.step], ["in_progress", "test"],
     "the issue is where the next run claims from, in_progress at the test step");
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "and nothing holds it");
+  assert.equal(ISSUE.sessionContext.lease, null, "and nothing holds it");
 
   const judge = await ran(["claim", "ISS-1617"], JUDGE);
   assert.equal(judge.status, 0, `the next run should have claimed it:\n${judge.stdout}${judge.stderr}`);
@@ -155,7 +155,7 @@ test("a verb reached through a form gives the lease back on the form's own route
   assert.equal(parked.status, 0, `the park should have gone through:\n${parked.stdout}${parked.stderr}`);
   assert.match(parked.stderr, /carried no lease/u, "the form's verb took the lease");
   assert.match(parked.stderr, /ISS-1617 is free again/u, "and the form's own route out gave it back");
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "so nothing holds the issue");
+  assert.equal(ISSUE.sessionContext.lease, null, "so nothing holds the issue");
 });
 
 /* The other side of the same boundary: a field with no lease and no release in it is still the anomaly it was, refused in the same words. */
@@ -176,8 +176,8 @@ test("a holder's own --give-back leaves nothing holding the issue, and the next 
   heldBy(BUILDER);
   const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
   assert.equal(gave.status, 0, `the give-back should have gone through:\n${gave.stdout}${gave.stderr}`);
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "the field names no holder");
-  assert.ok(ISSUE.sessionContext.lease.released, "and carries the mark a release writes");
+  assert.equal(ISSUE.sessionContext.lease, null, "the field names no holder");
+  assert.ok(ISSUE.sessionContext.leaseLeft.released, "and carries the mark a release writes");
   assert.match(gave.stdout, /ISS-1617 is free again: this run gave back the lease it held/u, "said as a release");
   assert.doesNotMatch(gave.stdout, /renewed/u, "and never as a renewal");
 
@@ -208,16 +208,16 @@ test("a holder's --give-back on its own lapsed lease gives it back too", async (
   heldBy(BUILDER, { minutesAgo: 90 });
   const gave = await ran(["claim", "ISS-1617", "--give-back"], BUILDER);
   assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "the field names no holder");
-  assert.ok(ISSUE.sessionContext.lease.released, "and carries the release mark");
+  assert.equal(ISSUE.sessionContext.lease, null, "the field names no holder");
+  assert.ok(ISSUE.sessionContext.leaseLeft.released, "and carries the release mark");
 });
 
 test("a give-back carries the line it is given onto the released field", async () => {
   heldBy(BUILDER, { next: "an older line" });
   const gave = await ran(["claim", "ISS-1617", "--give-back", "--next", LEFT], BUILDER);
   assert.equal(gave.status, 0, `${gave.stdout}${gave.stderr}`);
-  assert.equal(ISSUE.sessionContext.lease.next, LEFT, "the line the next run starts on");
-  assert.equal(ISSUE.sessionContext.lease.holder, "", "on a field nobody holds");
+  assert.equal(ISSUE.sessionContext.leaseLeft.next, LEFT, "the line the next run starts on");
+  assert.equal(ISSUE.sessionContext.lease, null, "on a field nobody holds");
 });
 
 for (const beside of [["--minutes", "30"], ["--unheld"], ["--stopped"], ["--take"], ["--judged"]]) {

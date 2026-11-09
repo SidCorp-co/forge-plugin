@@ -53,7 +53,9 @@ judgement a person is asked for rather than one a write may make quietly.
 The same construction that derives the duration derives the end of it. A call that had to take its
 own lease is the whole of what that call does to the issue, so the lease covers the write and not
 the run that made it: when the write has landed, the holder comes off the field before the call
-ends. The duration is what stands if the call does not finish, and nothing more.
+ends. The duration is what stands if the call does not finish, and nothing more. The field goes to
+null, the one lease-less value core takes (core ISS-995), and what it kept — the moment of the
+release, the line left, the claim history — stands beside it under `leaseLeft` (ISS-99).
 
 **The measurement again.** On project `erp` an issue stood still for 1h58m over a judge that had
 already finished: its lease was live, no verb released it, and the builder's escape was to message a
