@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { runIdAt } from "../../src/resolve/session/run-id.mjs";
 import { SECRETS, brief, homeFor, repository } from "./fixture.mjs";
+import { projectRecord } from "../fixtures.mjs";
 
 const repo = repository();
 
@@ -27,6 +28,15 @@ test("the judge's brief names the issue, its role, every deployed address, the i
     "Criteria: 1, 3",
     "Tree: none",
   ]);
+});
+
+/* A judge often stands in no checkout of the project, so its brief carries the slug it aims a verdict with (ISS-102). */
+test("a judge's brief briefed where a project is set names it and the flag that aims a verdict at it", () => {
+  const home = homeFor();
+  projectRecord(repo.main, home.config, { slug: "judged-project" });
+  const run = brief(["ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1"], repo.main, home.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^Project: judged-project — record each verdict with `--project judged-project` where you stand in no checkout of it$/mu);
 });
 
 /* FB-45: a judge printed a 16-character password because it masked only values of 20+ characters;

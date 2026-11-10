@@ -156,9 +156,13 @@ const secretsLine = (run) => "Secrets: never print or write a secret value, of a
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured
    readings a free-form note could otherwise run into. A note naming a requirement is left out — the
    gate holds that dispatch back, so this issue brief never reaches a run. */
-export const judgeText = (key, { urls, program, tree, criteria, identity, run = null }, facts = null) => [
+// cm:why a judge often stands in no checkout of the project, and `forge record verdict` aims only through --project there (ISS-102)
+const projectLine = (project) => `Project: ${project} — record each verdict with \`--project ${project}\` where you stand in no checkout of it`;
+
+export const judgeText = (key, { urls, program, tree, criteria, identity, run = null, project = null }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   ROLE_LINE,
+  ...(project ? [projectLine(project)] : []),
   secretsLine(run),
   ...(run ? [`Run: ${run}`] : []),
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),

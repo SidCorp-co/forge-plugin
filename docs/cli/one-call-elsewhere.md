@@ -13,11 +13,13 @@ dispatch starts, which is the shared state this exists to remove under another n
 typed on the one call it aims and nothing inherits it. The aim is `useProject` in this process's
 memory, the seam [`feedback`](feedback.md) already aims through, so nothing is written to disk.
 
-**Reads and comments only.** `forge issue` takes it for a read by key, the listing and `--search`,
-and `forge comment` for the thread and a post. Beside an issue write it is refused, and the lease,
-record and status verbs do not take it: a lease and a worklog are this tree's, and a status moved
-from a checkout of another project is the incident above. A post takes no lease on the far issue,
-the finder's route already taking none.
+**Reads, comments and a judge's verdict.** `forge issue` takes it for a read by key, the listing and
+`--search`, and `forge comment` for the thread and a post. `forge record verdict` takes it too: a
+judge is briefed with the project and often stands in no checkout of it, and the one route out it was
+offered, `forge doctor --set slug=`, is a write a judge may not make (ISS-102). Beside an issue write
+it is refused, and the lease, status and every other record verb do not take it: a lease and a
+worklog are this tree's, and a status moved from a checkout of another project is the incident
+above. A post takes no lease on the far issue, the finder's route already taking none.
 
 **What a key resolved to says which project it was.** A key missing from the aimed project, and a
 status move the tracker refuses, name the project and where the aim came from — the flag, a

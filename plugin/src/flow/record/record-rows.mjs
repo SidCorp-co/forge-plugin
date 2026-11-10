@@ -67,7 +67,7 @@ const kindRows = (caps) => [
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--judged-by qa|review] [--filed R]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--judged-by qa|review] [--filed R] [--project P]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",

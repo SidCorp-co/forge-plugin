@@ -4,7 +4,7 @@ import { mkdirSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { borrowRoute } from "../resolve/config.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { fail, projectTarget } from "../resolve/settings.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { helpOf } from "../resolve/visibility.mjs";
 import { mintRunId, runIdAt, runNames, runsFor, scratchMinted } from "../resolve/session/run-id.mjs";
@@ -158,7 +158,7 @@ export const brief = async (argv) => {
   if (asked.requirement !== undefined) return send(requirementText(requirementOf(key, asked)), REQUIREMENT_FORM);
   if (asked.criterion !== undefined) fail("brief: --criterion names a requirement's criteria, so it is read only with --requirement REQ-n.");
   if (asked.judge) {
-    const readings = judgeOf(key, asked);
+    const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null };
     return send(judgeText(key, readings, await leaseFacts(key, process.cwd())), JUDGE_FORM);
   }
   refuseJudgeFlags(key, asked);
