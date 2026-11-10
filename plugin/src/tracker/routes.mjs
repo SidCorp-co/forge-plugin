@@ -528,6 +528,15 @@ export const ROUTES = {
     bytes: true,
     sends: ["data"],
   },
+  /* The plugin archive Forge designates, read by `forge doctor` where the copy has no git origin to ask (ISS-101). */
+  "forge_install.plugin": {
+    requests: () => ({ page: { path: "/install/plugin.tar.gz" } }),
+    bytes: true,
+  },
+  /* An account route: a token fenced to projects is refused it 403 PAT_ACCOUNT_ROUTE, which still says the token authenticates (ISS-101). */
+  "forge_auth.me": {
+    requests: () => ({ page: { path: "/auth/me" } }),
+  },
 };
 
 /* Wherever a route wants an issue uuid, a raw call may carry `ISS-45` and the caller resolves it. */

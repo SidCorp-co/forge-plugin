@@ -69,7 +69,7 @@ test("a run home holding no token reports the token set, read from the file it b
   const home = runHome();
   const run = cli(home, borrowed, ["doctor"]);
   const row = run.stdout.split("\n").find((line) => /\] token {2,}/u.test(line)) ?? "";
-  assert.match(row, new RegExp(`set \\(${TOKEN.length} chars\\) {2}← ${escaped(borrowed)}$`, "u"),
+  assert.match(row, new RegExp(`set \\(${TOKEN.length} chars\\) {2}← ${escaped(borrowed)}( — .*)?$`, "u"),
     `the token row names the borrowed file after its arrow:\n${run.stdout}${run.stderr}`);
   assert.doesNotMatch(everything(home), new RegExp(TOKEN, "u"), "and the report wrote the token nowhere under the run home");
 });

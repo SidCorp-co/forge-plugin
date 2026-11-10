@@ -1,10 +1,12 @@
 /* Which copies are installed is a fact about one box, so a box nobody has updated agrees with itself and reads green — sixteen filings over three days against defects already released (ISS-1324). The newest released version is therefore asked of the remote a release publishes to, never of anything on this machine, and every way that ask can fail is said by name: an unknown that reads as agreement is the defect, not a quieter version of it. docs/cli/doctor.md. */
 import { spawn } from "node:child_process";
+import { gunzipSync } from "node:zlib";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { readJson } from "../../../resolve/config.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
+import { accountCredentials } from "../../../resolve/settings.mjs";
 import { hereCopy, PLUGIN_ROOT, pluginCopy } from "../../plugin-copy.mjs";
 
 const LABEL = "newest release";
@@ -13,6 +15,8 @@ const REMOTE = "origin";
 const MS = 5000;
 
 const OWN = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
+/* git's two wordings for a tree that is no checkout or has no such remote: what an install from Forge's archive is (ISS-101). */
+const NO_ORIGIN = /not a git repository|does not appear to be a git repository/iu;
 
 const note = (detail) => [{ level: "note", label: LABEL, detail }];
 const said = (detail) => [{ level: "ok", label: LABEL, detail }];
@@ -82,7 +86,10 @@ const answered = (ask, ms) => new Promise((settle) => {
 const releasedVersions = (run, ms) => {
   if (run.late) return { problem: `the remote did not answer inside ${ms / 1000}s` };
   if (run.error) return { problem: `git could not be run: ${run.error.message}` };
-  if (run.status !== 0) return { problem: `git ls-remote origin exited ${run.status}: ${firstLine(String(run.stderr ?? "").trim()) || "no output"}` };
+  if (run.status !== 0) {
+    const said = firstLine(String(run.stderr ?? "").trim());
+    return { problem: `git ls-remote origin exited ${run.status}: ${said || "no output"}`, noOrigin: NO_ORIGIN.test(said) };
+  }
   const held = [...String(run.stdout).matchAll(/refs\/tags\/(\S+?)(?:\^\{\})?$/gmu)]
     .map((one) => triple(one[1]))
     .filter(Boolean);
@@ -90,6 +97,43 @@ const releasedVersions = (run, ms) => {
   const once = [...new Map(held.map((one) => [one.join("."), one])).values()];
   if (!once.length) return { problem: "the remote carries no version tag" };
   return { versions: once.sort((one, two) => (above(one, two) ? 1 : -1)) };
+};
+
+// cm:edge contract -> plugin/.claude-plugin/plugin.json — the archive core serves lays the plugin out under plugin/, as the install script reads it
+const MANIFEST = "plugin/.claude-plugin/plugin.json";
+const BLOCK = 512;
+
+const fieldOf = (head, from, length) => head.subarray(from, from + length).toString("utf8").replace(/\0.*$/su, "");
+
+/** Walks the tar headers to the entry named `wanted` and hands back its body. */
+const fileInTar = (tar, wanted) => {
+  for (let at = 0; at + BLOCK <= tar.length;) {
+    const head = tar.subarray(at, at + BLOCK);
+    if (head.every((byte) => byte === 0)) return null;
+    const prefix = fieldOf(head, 345, 155);
+    const name = `${prefix ? `${prefix}/` : ""}${fieldOf(head, 0, 100)}`.replace(/^\.\//u, "");
+    const size = Number.parseInt(fieldOf(head, 124, 12).trim() || "0", 8);
+    const body = at + BLOCK;
+    if (name === wanted) return tar.subarray(body, body + size);
+    at = body + Math.ceil(size / BLOCK) * BLOCK;
+  }
+  return null;
+};
+
+/** The version of the plugin Forge designates, read off the archive its install serves, or the step that could not say. */
+const designatedVersion = async (ms) => {
+  const { url, token } = accountCredentials();
+  if (!url.value || !token.value) return { problem: "no endpoint credential is saved to ask Forge which plugin it designates" };
+  const { callTool } = await import("../../../tracker/rest.mjs");
+  const bytes = await callTool("forge_install.plugin", {}, true, { waits: ms / 1000, once: true });
+  if (bytes?.refused) return { problem: `Forge did not serve its plugin archive: ${firstLine(bytes.refused)}` };
+  try {
+    const manifest = fileInTar(gunzipSync(bytes), MANIFEST);
+    const version = manifest ? JSON.parse(manifest.toString("utf8"))?.version : null;
+    return typeof version === "string" ? { version } : { problem: `the archive Forge serves carries no ${MANIFEST} naming a version` };
+  } catch (error) {
+    return { problem: `the archive Forge serves could not be read: ${error.message}` };
+  }
 };
 
 /** The ask, started before the checks it overlaps so it costs the report only what it is slower than
@@ -126,7 +170,8 @@ export const releaseRows = async (started = startRelease()) => {
       + "installed from, so nothing here can say whether the copy running is the current one");
   }
   if (!mine) return note(`not read: the running copy states no version, so there is nothing to compare  ← ${source.at}`);
-  const { versions, problem } = releasedVersions(await answered(answer, ms), ms);
+  const { versions, problem, noOrigin } = releasedVersions(await answered(answer, ms), ms);
+  if (noOrigin) return designatedRows(await designatedVersion(ms), running, mine, source);
   if (problem) {
     return note(`not read: ${problem}  ← git ls-remote ${REMOTE} in ${source.tree} — this box cannot tell `
       + "whether the copy it runs is current, which is not the same as it being current");
@@ -142,6 +187,21 @@ export const releaseRows = async (started = startRelease()) => {
   }
   return note(`${running} running, ${newest.join(".")} released — ${behindBy(versions, mine)}. `
     + `${wayOut(source, newest)}  ${where}`);
+};
+
+/* An archive install updates by running Forge's install again, not through a marketplace update. */
+const designatedRows = ({ version, problem }, running, mine, source) => {
+  const where = `← the plugin archive Forge serves, ${source.tree} having no git origin`;
+  if (problem) {
+    return note(`not read: ${problem}  ${where} — this box cannot tell whether the copy it runs is current, `
+      + "which is not the same as it being current");
+  }
+  const given = triple(version);
+  if (!given) return note(`not read: Forge designates \`${version}\`, which is no version to compare  ${where}`);
+  if (given.join(".") === mine.join(".")) return said(`${version} — the version Forge designates, and the one running  ${where}`);
+  if (above(mine, given)) return said(`${running} running, ${version} designated by Forge — this copy is ahead of it  ${where}`);
+  return note(`${running} running, ${version} designated by Forge, which is newer. Run Forge's plugin install `
+    + `again, then restart the session  ${where}`);
 };
 
 /* Two readings of one subject, in the order they go wrong: a session that has not restarted since the last install, then a box on which nothing installed is current. */

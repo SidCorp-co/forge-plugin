@@ -9,12 +9,14 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { releaseRows, startRelease } from "../../../../src/tools/services/doctor/release.mjs";
-import { escaped, projectRoom, tempRoom } from "../../../fixtures.mjs";
+import { escaped, projectRoom, ranAsync, tempRoom } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 import { patience, reached } from "../../../patience.mjs";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const NAME = JSON.parse(readFileSync(join(SRC, ".claude-plugin", "plugin.json"), "utf8")).name;
 const CLI = join(SRC, "src", "cli.mjs");
+const FORGE = join(SRC, "bin", "forge");
 
 const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 
@@ -129,14 +131,43 @@ test("no marketplace registration for this plugin is said by name, never as agre
   assert.match(only(await releaseRows(startRelease({ home: other, running: "1.0.0" }))).detail, /no marketplace registration/u);
 });
 
-test("a registered directory with no remote is said by name, never as agreement", async () => {
+/* What an install from Forge's archive is: no checkout, so Forge's designation is asked instead (ISS-101), and with no credential saved that ask is the unknown named. */
+test("a registered directory with no git origin asks Forge, and with no credential says it could not", async () => {
   const home = tempRoom("release-home-no-remote-");
   const at = tempRoom("release-no-remote-");
   registered(home, at, "1.0.0");
   const row = only(await releaseRows(startRelease({ home, running: "1.0.0" })));
   assert.equal(row.level, "note");
-  assert.match(row.detail, /not read: git ls-remote origin exited/u);
+  assert.match(row.detail, /not read: no endpoint credential is saved/u);
+  assert.match(row.detail, /having no git origin/u);
   assert.doesNotMatch(row.detail, /and the one running/u);
+});
+
+/* The archive core serves, built as its install unpacks it: the manifest under plugin/. */
+const archived = (version) => {
+  const room = tempRoom("release-archive-");
+  wrote(room, join("plugin", ".claude-plugin", "plugin.json"), { name: NAME, version });
+  const made = spawnSync("tar", ["-czf", "plugin.tar.gz", "plugin"], { cwd: room });
+  assert.equal(made.status, 0, String(made.stderr));
+  return readFileSync(join(room, "plugin.tar.gz"));
+};
+
+test("an archive install is compared with the plugin Forge designates, and a newer one is named", async () => {
+  const running = JSON.parse(readFileSync(join(SRC, ".claude-plugin", "plugin.json"), "utf8")).version;
+  const state = { answer: { "forge_install.plugin": () => archived("999.0.0") } };
+  const { tracker, env } = await trackerFor(state);
+  try {
+    const at = tempRoom("release-archive-install-");
+    registered(env.HOME, at, running);
+    const run = await ranAsync(FORGE, ["doctor", "copy"], env);
+    assert.match(run.stdout, new RegExp(`${escaped(running)} running, 999\\.0\\.0 designated by Forge, which is newer`, "u"), run.stdout);
+    assert.match(run.stdout, /Run Forge's plugin install again/u);
+    state.answer["forge_install.plugin"] = () => archived(running);
+    const same = await ranAsync(FORGE, ["doctor", "copy"], env);
+    assert.match(same.stdout, /the version Forge designates, and the one running/u, same.stdout);
+  } finally {
+    tracker.close();
+  }
 });
 
 /* A transport that answers nothing at all, which is what a bound is for. `ext` is off by default, so

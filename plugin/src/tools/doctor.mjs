@@ -25,7 +25,7 @@ import {
 } from "../resolve/settings.mjs";
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
-import { harnessLines, startBindings } from "./services/doctor/harness.mjs";
+import { harnessLines, startBindings, startWhoami, tokenRow } from "./services/doctor/harness.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { owingEscapeRows, owingEscapesFrom } from "../checks/docs/owing-escapes.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
@@ -437,6 +437,7 @@ const startedReads = async (url, token) => {
   return {
     owing: (!asking() || shown("repo")) && held ? everyIssue({}, { soft: true }).catch(() => null) : null,
     bindings: shown("services") ? startBindings(held) : null,
+    who: startWhoami(held && shown("machine")),
   };
 };
 
@@ -489,10 +490,10 @@ export const doctor = async (argv) => {
   const release = shown("copy") ? startRelease() : null;
   under("machine");
   const { url, token } = accountCredentials();
-  const { owing, bindings } = await startedReads(url, token);
+  const { owing, bindings, who } = await startedReads(url, token);
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
-  if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
+  if (token.value) report([tokenRow(masked(token.value, full), token.from, await who)]);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
   checkRun();
 

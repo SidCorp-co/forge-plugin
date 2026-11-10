@@ -133,3 +133,36 @@ export const harnessLines = async (full, required = [], bindings = null) => [
   ...(await Promise.all(CONFIGURABLE.map((verb) => toolRow(verb, full, bindings)))).filter(Boolean),
   ...machineRows().map((row) => keyRow(row, full, required)),
 ];
+
+/** Whom the saved token authenticates as, asked of the endpoint and started beside the report's other reads (ISS-101). */
+export const startWhoami = (held) => (held
+  ? import("../../../tracker/rest.mjs")
+    .then(({ callTool }) => callTool("forge_auth.me", {}, true, { once: true }))
+    .catch((error) => ({ refused: error.message }))
+  : null);
+
+const nameOf = (body) => {
+  const one = body?.user ?? body?.account ?? body;
+  return [one?.name, one?.displayName, one?.username].find((held) => typeof held === "string" && held) ?? null;
+};
+
+// cm:edge contract -> plugin/src/tracker/routes.mjs — core refuses an account route to a token fenced to projects 403 PAT_ACCOUNT_ROUTE, which a dead token never earns
+const FENCED = "PAT_ACCOUNT_ROUTE";
+
+/** The token row: present, then whether the endpoint takes it and as whom, never its value. */
+export const tokenRow = (shown, from, who) => {
+  const base = `${shown}  ← ${from}`;
+  if (!who) return { label: "token", level: "ok", detail: base };
+  const said = firstLineOf(who.refused);
+  if (who.refused && who.code === FENCED) {
+    return { label: "token", level: "ok", detail: `${base} — authenticates; fenced to projects, so its account is not readable through it` };
+  }
+  if (who.refused && who.status === 401) {
+    return { label: "token", level: "miss", detail: `${base} — the endpoint refuses it: ${said} — \`forge doctor --token <pat>\`` };
+  }
+  if (who.refused) return { label: "token", level: "note", detail: `${base} — whom it authenticates as was not read: ${said}` };
+  const name = nameOf(who);
+  return { label: "token", level: "ok", detail: `${base} — authenticates as ${name ?? "an account that answers with no name"}` };
+};
+
+const firstLineOf = (text) => String(text ?? "").split("\n").find((one) => one.trim()) ?? "";

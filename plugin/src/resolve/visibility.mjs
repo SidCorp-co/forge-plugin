@@ -160,6 +160,8 @@ export const VERBS = [
         "forge_labels.create": "`forge doctor modules`",
         "forge_labels.update": "`forge doctor modules`",
         "forge_labels.delete": "`forge doctor modules`",
+        "forge_install.plugin": "`forge doctor copy`",
+        "forge_auth.me": "`forge doctor machine`",
         pipeline: "`forge doctor`",
         set_pipeline: "`forge doctor --set`",
         gates: "`forge doctor`",
