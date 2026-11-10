@@ -87,9 +87,9 @@ The identifier column of a browse was a fifth of its bytes and bought nothing; a
 empty collection were a tenth of an issue's bytes and said only that the field exists. Absence
 means absence.
 
-- **AC-17-5-1** · Rev: 1 · Proof: plugin/test/cli/commands.test.mjs "an attachment collapses to the url that fetches it"
+- **AC-17-5-1** · Rev: 2 · Proof: plugin/test/cli/commands.test.mjs "an attachment collapses to the name a record cites it by and the url that fetches it (ISS-100)"
   WHEN a record is projected THEN a field with nothing in it SHALL be left out, and an attachment
-  SHALL collapse to the reference that fetches it.
+  SHALL collapse to the name a record cites it by and the reference that fetches it.
 
 ### NFR-06 — Nothing about a run is remembered outside the record
 

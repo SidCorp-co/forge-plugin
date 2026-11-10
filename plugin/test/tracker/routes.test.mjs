@@ -70,8 +70,9 @@ const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config
   /* The declared testing profiles as the tracker keeps them: doctor reads the list and each profile's
      `valueDoor.route`, so a projection here would be a second copy of that shape. */
   "forge_config.testing_profiles",
-  /* A label's delete answers 204 and nothing: `forge doctor modules` reads the list back instead. */
-  "forge_labels.delete",
+  /* A label's delete answers 204 and nothing, `forge doctor modules` reading the list back instead;
+     a download answers a document's bytes, which are no record (ISS-100). */
+  "forge_labels.delete", "forge_uploads.download",
   /* The deployment platform's own words, which this CLI does not own and does not rename: a
      projection over them would be this file's guess at a shape the tracker is free to grow. */
   "forge_coolify.list", "forge_coolify.targets", "forge_coolify.status",

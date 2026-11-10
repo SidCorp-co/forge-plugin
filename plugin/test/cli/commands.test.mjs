@@ -24,8 +24,9 @@ const ATTACHMENT = {
 
 const bytes = (value) => JSON.stringify(value).length;
 
-test("an attachment collapses to the url that fetches it", () => {
-  assert.deepEqual(terse({ attachments: [ATTACHMENT] }), { attachments: [ATTACHMENT.url] });
+test("an attachment collapses to the name a record cites it by and the url that fetches it (ISS-100)", () => {
+  assert.deepEqual(terse({ attachments: [ATTACHMENT] }), { attachments: [`image.png  ${ATTACHMENT.url}`] });
+  assert.deepEqual(terse({ attachments: [{ url: ATTACHMENT.url }] }), { attachments: [ATTACHMENT.url] });
 });
 
 test("collapsing an attachment costs less than carrying it", () => {

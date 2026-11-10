@@ -6,8 +6,8 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  callRoom, ceilingFrom, ceilingLeft, clockFor, clockSpentSaid, deadlineOf, parsedOr, ranOut, sawHeadersAfter, secondsGiven,
-  spending, textWithin, within,
+  bytesWithin, callRoom, ceilingFrom, ceilingLeft, clockFor, clockSpentSaid, deadlineOf, parsedOr, ranOut, sawHeadersAfter,
+  secondsGiven, spending, textWithin, within,
 } from "../wire/request.mjs";
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
@@ -183,10 +183,11 @@ const paced = async (key, clock, left) => {
   return false;
 };
 
-const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}, key = null) => {
+const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}, key = null, raw = false) => {
   const deadline = deadlineOf(waits);
   const attempts = once ? 1 : RETRY_ATTEMPTS;
   let text = "";
+  let bytes = null;
   let response = null;
   let dropped = null;
   let bound = deadline;
@@ -194,7 +195,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
   for (let attempt = 1; attempt <= ceiling; attempt += 1) {
     const stop = spend?.() ?? (ceilingLeft() > 0 ? null : `Nothing was sent: ${ceilingFrom()} had no time left. ${clockSpentSaid()}`);
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
-    [text, response, dropped] = ["", null, null];
+    [text, bytes, response, dropped] = ["", null, null, null];
     /* Only a reservation this attempt took is its to retire: one an abort ended before it took any
        would retire another call's, and the next window would lend that call's room twice. */
     let took = false;
@@ -214,7 +215,10 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
       sawHeadersAfter(gotAt - sentAt);
       sawBudget(key, response.headers);
       sawWarning(response.headers);
-      text = await textWithin(response, clock);
+      if (raw) {
+        bytes = await bytesWithin(response, clock);
+        text = response.ok ? "" : bytes.toString("utf8");
+      } else text = await textWithin(response, clock);
     } catch (error) {
       dropped = error;
     } finally {
@@ -242,7 +246,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     await sleep(wait);
     resting();
   }
-  return { response, text, dropped, deadline: bound };
+  return { response, text, bytes, dropped, deadline: bound };
 };
 
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is
@@ -308,11 +312,12 @@ const fetchedParts = async (key, row, args, soft, held) => {
   if (project.refused) return [["page", refused(project.refused)]];
   const requests = row.requests(args, project.id);
   const parts = await Promise.all(Object.entries(requests).map(async ([part, request]) => {
-    const { response, text, dropped, spent, deadline } = await attempted(
+    const { response, text, bytes, dropped, spent, deadline } = await attempted(
       (signal) => send(request, signal),
       !row.writes,
       held,
       key,
+      row.bytes === true,
     );
     if (spent) return [part, refused(spent)];
     if (row.writes && (dropped || response?.ok)) WRITES[dropped ? "unsure" : "landed"] += 1;
@@ -325,6 +330,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
         { status: response.status, ...(body?.code ? { code: body.code } : {}),
           ...(body?.details ? { details: body.details } : {}) })];
     }
+    if (row.bytes) return [part, { body: bytes }];
     const body = text ? parsedOr(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
        tracker saying the row is not there. `parsedOr` answers `null` both for that and for a body
@@ -426,6 +432,7 @@ export const callTool = async (name, args, soft = false, held = {}) => {
     return stop(message, answer);
   }
   if (row.writes) await sayDeclined(key, parts.map(([, held]) => held.body));
+  if (row.bytes) return parts[0][1].body;
   return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };
 

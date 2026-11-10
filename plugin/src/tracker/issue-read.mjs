@@ -60,7 +60,8 @@ const positionalsIn = (args) =>
 const VERBS = {
   comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1, own: true, aims: true },
   claim: { at: () => [0], own: true },
-  attach: { at: () => [1], when: (args) => args[0] === "issue", own: true },
+  /* With no file to send, or with --get, the verb reads, and a read is not held for one. */
+  attach: { at: () => [1], when: (args) => args[0] === "issue" && positionalsIn(args).length > 2 && !args.includes("--get"), own: true },
   /* An edge write is taken against one end, so that end is the read owed, and the verb delivers it before the write (ISS-1724). Which word names that end comes off the kind's own row: a kind written on the other end puts it after its flag, and every other call of this verb — `--relates`, `--unlink` — writes on the subject at 0. */
   issue: {
     when: (args) => args.some((one) => EDGE_FLAGS.includes(one)),

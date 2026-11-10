@@ -362,6 +362,8 @@ export const fakeTracker = async (state) => {
     /* Core holding no verdict of its own on any criterion, which a case judging through the verdict
        route answers in its own handler. */
     if (name === "forge_issues.criteria") return { criteria: [], retired: [] };
+    /* A document's bytes, out of `state.files` by attachment id. */
+    if (name === "forge_uploads" && args.action === "download") return Buffer.from(state.files?.[args.data.id] ?? "");
     return {};
   };
 
@@ -434,6 +436,8 @@ export const fakeTracker = async (state) => {
       if (method !== "POST") return answered("forge_issues", { action: "get", documentId: id })?.attachments ?? [];
       return asAttachment(answered("forge_uploads", uploadAsk("issue", id, sent)), sent.multipart);
     }],
+    [/^\/api\/attachments\/([^/]+)\/download$/u, (q, sent, method, [id]) =>
+      answered("forge_uploads", { action: "download", data: { id } })],
     [/^\/api\/comments\/([^/]+)\/attachments$/u, (q, sent, method, [id]) =>
       asAttachment(answered("forge_uploads", uploadAsk("comment", id, sent)), sent.multipart)],
     [/^\/api\/issues\/([^/]+)\/comments$/u, (q, sent, method, [id]) => {
@@ -603,6 +607,11 @@ export const fakeTracker = async (state) => {
     if (answer?.notARecord) {
       response.writeHead(200, { "Content-Type": "text/plain" });
       response.end(answer.notARecord);
+      return;
+    }
+    if (Buffer.isBuffer(answer)) {
+      response.writeHead(200, { "Content-Type": "application/octet-stream" });
+      response.end(answer);
       return;
     }
     response.writeHead(200, { "Content-Type": "application/json" });

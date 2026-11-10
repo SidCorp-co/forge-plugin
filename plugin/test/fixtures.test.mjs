@@ -273,6 +273,7 @@ const PROBES = [
   ["GET", "/api/issues/u1/dependencies"],
   ["POST", "/api/issues/u1/dependencies"],
   ["GET", "/api/issues/u1/attachments"],
+  ["GET", "/api/attachments/a1/download"],
   ["POST", "/api/comments/c1/attachments"],
   ["GET", "/api/issues/u1/comments"],
   ["POST", "/api/issues/u1/comments"],

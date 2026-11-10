@@ -60,8 +60,9 @@ export const VERBS = [
   /* Another tool's route by its whole key: this verb owns none of its own. */
   ["spec", "<id>[~<rev>] [--status] | check | proofs", "one clause of the requirements tree, read by its identifier",
     null, { group: METHOD, wraps: { "forge_issues.citing": "`forge spec <id> --status`" } }],
-  ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
-    "forge_uploads", { group: BACKLOG, wraps: { request: "`forge attach`" } }],
+  ["attach", "<issue|comment> <uuid|ISS-45> <file>... | issue <uuid|ISS-45> [--get <name|url> [--output F]]",
+    "upload; with no file, an issue's attachments by name, and --get writes one's bytes to a file; no base64 through context",
+    "forge_uploads", { group: BACKLOG, wraps: { request: "`forge attach`", download: "`forge attach --get`" } }],
   /* Owns no route: the search it spends is the knowledge verb's to declare. */
   ["alike", "",
     "every open issue measured against every other, and what reads alike grouped; writes nothing",

@@ -3,7 +3,7 @@
    is no delete for an upload — so spawned: the refusal has to land before `forge_uploads`. */
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ranAsync, tempHome } from "../fixtures.mjs";
@@ -43,6 +43,7 @@ after(() => tracker.close());
    what arrived: the order the whole set went in is what ISS-577's two cases are about. */
 const order = [];
 state.answer.forge_uploads = (args) => {
+  if (args.action === "download") return Buffer.from(state.files?.[args.data.id] ?? "");
   const name = args?.data?.name ?? "unnamed";
   order.push(`sent ${name}`);
   return { id: `up-${order.length}`, url: "/api/attachments/up/download" };
@@ -273,4 +274,40 @@ test("a credential in the last file is refused before the first of them is sent"
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /carries this project's/u, "the leak is named");
   assert.deepEqual(order, [], "and the file before it was never sent, its request never made");
+});
+
+/* A run reads the evidence a record cites by the name it cites, through the CLI's own credential (ISS-100). */
+test("with no file the verb lists the issue's and its comments' attachments by name, and --get writes one's bytes", async () => {
+  state.comments[ISSUE] = [{ documentId: COMMENT, body: "one", attachments: [{ name: "base-runs.txt", url: "/api/attachments/two/download" }] }];
+  state.files = { two: "reading 1\nreading 2\n" };
+  const listing = await ask("attach", "issue", "ISS-1");
+  assert.equal(listing.status, 0, listing.stderr);
+  assert.match(listing.stdout, /^gate-at-merge\.txt {2}\/api\/attachments\/one\/download$/mu);
+  assert.match(listing.stdout, /^base-runs\.txt {2}\/api\/attachments\/two\/download$/mu, "a comment's too");
+  const output = join(room.path, "got.txt");
+  const got = await ask("attach", "issue", "ISS-1", "--get", "base-runs.txt", "--output", output);
+  assert.equal(got.status, 0, got.stderr);
+  assert.equal(readFileSync(output, "utf8"), "reading 1\nreading 2\n");
+  const again = await ask("attach", "issue", "ISS-1", "--get", "base-runs.txt", "--output", output);
+  assert.equal(again.status, 1, again.stdout);
+  assert.match(again.stderr, /already exists, and nothing was read/u, "a file already there is never written over");
+  state.comments[ISSUE] = [];
+});
+
+test("--get with a name no attachment carries, or one two carry, is refused naming what the issue holds", async () => {
+  const missing = await ask("attach", "issue", "ISS-1", "--get", "head-runs.txt");
+  assert.equal(missing.status, 1, missing.stdout);
+  assert.match(missing.stderr, /no attachment on ISS-1 is named head-runs\.txt/u);
+  assert.match(missing.stderr, /^ {2}gate-at-merge\.txt {2}\/api\/attachments\/one\/download$/mu, "the ones it carries");
+  state.comments[ISSUE] = [{ documentId: COMMENT, body: "one", attachments: [{ name: "gate-at-merge.txt", url: "/api/attachments/three/download" }] }];
+  const twice = await ask("attach", "issue", "ISS-1", "--get", "gate-at-merge.txt");
+  assert.equal(twice.status, 1, twice.stdout);
+  assert.match(twice.stderr, /names 2 documents on ISS-1/u);
+  assert.match(twice.stderr, /\/api\/attachments\/three\/download/u, "each by the url that asks for it alone");
+  state.files = { three: "the comment's" };
+  const output = join(room.path, "by-url.txt");
+  const byUrl = await ask("attach", "issue", "ISS-1", "--get", "/api/attachments/three/download", "--output", output);
+  assert.equal(byUrl.status, 0, byUrl.stderr);
+  assert.equal(readFileSync(output, "utf8"), "the comment's");
+  state.comments[ISSUE] = [];
 });

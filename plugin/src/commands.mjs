@@ -18,6 +18,7 @@ import {
 } from "./tracker/issues.mjs";
 import { commentPage, cutIn, mustBeShown, postComment, readThread } from "./tracker/comments.mjs";
 import { attachmentNames, batchRefusal, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
+import { attachmentsOn, downloadAttachment, showAttachments } from "./tracker/attachments/read.mjs";
 import { KINDS_HELP, kindNeeded } from "./tracker/issue-shape.mjs";
 import { KIND_NAMES } from "./tracker/declared/kinds.mjs";
 import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
@@ -55,12 +56,24 @@ const filled = (record) => {
   );
 };
 
-/* An attachment answers with its id, name, mime, size and timestamp, and a reader acts on none
-   of them: the url is what gets fetched. Keyed on carrying a url rather than on the field being
-   called `attachments`, so a payload that grows another such list is covered. */
+/* Reads never take the lease: a run reads the evidence an issue cites whoever holds it. */
+const readAttachments = async (target, targetRef, paths, asked, usage) => {
+  if (target !== "issue" || paths.length) {
+    fail(`attach: ${paths.length ? "--get reads, so it takes no file to send" : "a read lists an issue's attachments, not a comment's"}. ${usage}`);
+  }
+  const read = await attachmentsOn(await documentIdOf(targetRef));
+  return asked.get ? downloadAttachment(read, asked.get, asked.output, targetRef) : showAttachments(read, targetRef);
+};
+
+/* An attachment answers with its id, name, mime, size and timestamp: the name is what a record
+   cites it by and the url what fetches it, so those two are kept, in the line `forge attach` prints
+   (ISS-100). Keyed on carrying a url rather than on the field being called `attachments`, so a
+   payload that grows another such list is covered. */
+const named = (item) => (typeof item.name === "string" && item.name ? `${item.name}  ${item.url}` : item.url);
+
 export const terse = (value) => {
   if (Array.isArray(value)) {
-    return value.map((item) => (urlBearing(item) ? item.url : terse(item)));
+    return value.map((item) => (urlBearing(item) ? named(item) : terse(item)));
   }
   if (value && typeof value === "object") {
     return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, terse(held)]));
@@ -375,9 +388,13 @@ const own = {
     return sayLanded(await commentLanded(issue, posted, reference));
   },
   attach: async (argv) => {
-    const { positionals } = partition(argv, [], { verb: "attach", usage: usageOf("attach") });
+    const usage = usageOf("attach");
+    const { positionals, flagArgv } = partition(argv, [], { verb: "attach", usage });
+    const asked = flags(flagArgv, "attach", [], { usage });
     const [target, targetRef, ...paths] = positionals;
-    if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
+    if (!target || !targetRef) fail(usage);
+    if (asked.output && !asked.get) fail(`attach: --output names where --get writes, and no --get was given. ${usage}`);
+    if (!paths.length || asked.get) return readAttachments(target, targetRef, paths, asked, usage);
     /* The two names off the table that holds the routes they name, which is what `evidence.mjs` refuses on: here for the suggestion, since a caller who mistyped one is owed the nearest. */
     const targets = declaredFor("forge_uploads", "targets");
     if (!targets.includes(target)) fail(didYouMean("attach target", target, targets));

@@ -522,6 +522,12 @@ export const ROUTES = {
     answers: ({ page }) => attachmentOf(page),
     sends: ["data", "bytes"],
   },
+  /* The answer is the document's bytes and no record, so the transport hands them back unparsed. */
+  "forge_uploads.download": {
+    requests: (args) => ({ page: { path: `/attachments/${args.data?.id}/download` } }),
+    bytes: true,
+    sends: ["data"],
+  },
 };
 
 /* Wherever a route wants an issue uuid, a raw call may carry `ISS-45` and the caller resolves it. */
@@ -550,7 +556,7 @@ const SAMPLE = {
   key: ":key",
   offset: ":offset",
   filters: { issue: ":issue" },
-  data: { issueId: ":issueId", issue: ":issue", targetId: ":targetId", name: ":name" },
+  data: { issueId: ":issueId", issue: ":issue", targetId: ":targetId", name: ":name", id: ":id" },
 };
 
 export const served = () => Object.entries(ROUTES).map(([key, row]) => {
