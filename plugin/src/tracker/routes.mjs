@@ -154,6 +154,11 @@ export const ROUTES = {
     }),
     sends: ["key"],
   },
+  /* The build a verdict on the issue counts on, `{ sha, source, version, basis }`, read raw by the judge brief (ISS-103). */
+  "forge_issues.judged_build": {
+    requests: (args) => ({ page: { path: `/issues/${args.documentId}/judged-build` } }),
+    sends: ["documentId"],
+  },
   /* Read raw for `flow/earned/core-verdicts.mjs`, which says why. */
   "forge_issues.criteria": {
     requests: (args) => ({ page: { path: `/issues/${args.documentId}/criteria` } }),

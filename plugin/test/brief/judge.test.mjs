@@ -10,6 +10,13 @@ const repo = repository();
 
 const judged = (args) => brief(["ISS-7", "--judge", ...args], repo.main, homeFor().env);
 
+/* Off a tracker no case here stands up, the verdict-kind line is the one that says it was not read (ISS-103). */
+const withoutKind = (run) => {
+  const lines = run.stdout.trim().split("\n");
+  assert.match(lines.find((line) => line.startsWith("Verdict kind: ")) ?? "", /^Verdict kind: not read \(.+\) — ask the dispatcher which build the release counts before recording$/u);
+  return lines.filter((line) => !line.startsWith("Verdict kind: "));
+};
+
 const refused = (run, pattern) => {
   assert.notEqual(run.status, 0, run.stdout);
   assert.equal(run.stdout, "", "a refused brief prints nothing to send");
@@ -19,7 +26,7 @@ const refused = (run, pattern) => {
 test("the judge's brief names the issue, its role, every deployed address, the identity and the criteria", () => {
   const run = judged(["--url", "https://staging.example.com,https://api.example.com", "--criteria", "1,3", "--identity", "794dc78"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(run.stdout.trim().split("\n"), [
+  assert.deepEqual(withoutKind(run), [
     "Target: ISS-7, criteria 1, 3 — judge these and write nothing else.",
     "Role: judge",
     SECRETS,
@@ -124,7 +131,7 @@ test("the judge's flags without --judge are refused rather than dropped", () => 
 test("FB-26: a judge's brief can aim at an installed program and the directory to run it in", () => {
   const run = judged(["--program", "/usr/local/bin/forge-runner", "--identity", "de70833e", "--criteria", "1,2", "--tree", repo.mine]);
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(run.stdout.trim().split("\n"), [
+  assert.deepEqual(withoutKind(run), [
     "Target: ISS-7, criteria 1, 2 — judge these and write nothing else.",
     "Role: judge",
     SECRETS,
@@ -155,4 +162,22 @@ test("FB-26: a tree is refused on a judge that drives a deployment, and read bes
 
 test("FB-26: a --program that is no single token is refused naming it", () => {
   refused(judged(["--program", "forge runner", "--criteria", "1"]), /--program takes the path or name/u);
+});
+
+/* A judge given a bare sha cannot tell which verdict the release counts, so the brief reads it off core's judged-build (FB-78). Spawned apart: a synchronous spawn would hold the tracker this process answers from. */
+test("a judge's brief names the verdict kind and build core says the release counts", async () => {
+  const { ranAsync } = await import("../fixtures.mjs");
+  const { trackerFor } = await import("../fixtures/own-project.mjs");
+  const state = { issues: [{ documentId: "uuid-7", issueId: "ISS-7", status: "in_progress", title: "t" }], answer: {} };
+  const { tracker, env } = await trackerFor(state, [repo.main]);
+  try {
+    const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+    const ask = () => ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1"], env, repo.main);
+    state.answer["forge_issues.judged_build"] = () => ({ sha: "a".repeat(40), source: "judged-on", basis: "staging serves it" });
+    assert.match((await ask()).stdout, new RegExp(`^Verdict kind: runtime, at ${"a".repeat(40)} — staging serves it$`, "mu"));
+    state.answer["forge_issues.judged_build"] = () => ({ sha: "b".repeat(40), source: "landed", basis: "the landing is the build" });
+    assert.match((await ask()).stdout, new RegExp(`^Verdict kind: commit, at ${"b".repeat(40)} — the landing is the build$`, "mu"));
+  } finally {
+    tracker.close();
+  }
 });

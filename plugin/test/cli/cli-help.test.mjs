@@ -217,7 +217,7 @@ const FIELDS_OF = {
   attach: "bytes",
   alike: null,
   next: "limit, module, offset, statusNot, statuses",
-  brief: null,
+  brief: "documentId",
   guide: "slug",
   project: "archived, projectRef",
   knowledge: "authoredBy, body, confidence, injection, injectionFilter, kind, kindFilter, metadata,"

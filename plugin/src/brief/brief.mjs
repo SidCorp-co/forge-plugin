@@ -158,8 +158,10 @@ export const brief = async (argv) => {
   if (asked.requirement !== undefined) return send(requirementText(requirementOf(key, asked)), REQUIREMENT_FORM);
   if (asked.criterion !== undefined) fail("brief: --criterion names a requirement's criteria, so it is read only with --requirement REQ-n.");
   if (asked.judge) {
-    const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null };
-    return send(judgeText(key, readings, await leaseFacts(key, process.cwd())), JUDGE_FORM);
+    const facts = await leaseFacts(key, process.cwd(), { withJudged: true });
+    const judged = facts.unread ? { refused: facts.unread } : facts.judged;
+    const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null, judged };
+    return send(judgeText(key, readings, facts), JUDGE_FORM);
   }
   refuseJudgeFlags(key, asked);
   const here = process.cwd();

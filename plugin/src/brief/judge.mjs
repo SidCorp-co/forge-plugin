@@ -159,7 +159,20 @@ const secretsLine = (run) => "Secrets: never print or write a secret value, of a
 // cm:why a judge often stands in no checkout of the project, and `forge record verdict` aims only through --project there (ISS-102)
 const projectLine = (project) => `Project: ${project} — record each verdict with \`--project ${project}\` where you stand in no checkout of it`;
 
-export const judgeText = (key, { urls, program, tree, criteria, identity, run = null, project = null }, facts = null) => [
+// cm:edge contract -> plugin/src/tracker/routes.mjs — core's judged-build names `judged-on` where the project's testing environment is the judged build, judged there as a runtime verdict; every other source counts a commit verdict (FB-78)
+const JUDGED_ON = "judged-on";
+
+/** The verdict kind and build a release counts for the issue, off core's judged-build, or why it could not be read. */
+const judgedBuildLine = (read) => {
+  if (!read || read.refused) {
+    const why = String(read?.refused ?? "no answer").split("\n")[0];
+    return `Verdict kind: not read (${why}) — ask the dispatcher which build the release counts before recording`;
+  }
+  const kind = read.source === JUDGED_ON ? "runtime" : "commit";
+  return `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${read.basis ?? "core gave no basis"}`;
+};
+
+export const judgeText = (key, { urls, program, tree, criteria, identity, run = null, project = null, judged = undefined }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   ROLE_LINE,
   ...(project ? [projectLine(project)] : []),
@@ -168,6 +181,7 @@ export const judgeText = (key, { urls, program, tree, criteria, identity, run = 
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
+  ...(judged === undefined ? [] : [judgedBuildLine(judged)]),
   `Criteria: ${criteria.join(", ")}`,
   program && tree ? `Run the program in: ${tree}` : "Tree: none",
   ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),

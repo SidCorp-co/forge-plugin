@@ -10,7 +10,7 @@ const NAMED = /\bREQ-\d+\b/u;
 
 /** `{ next, named }` — the dispatcher's note off the issue's lease and the requirement it names if any,
  *  each `null` where absent — or `{ unread }` saying why nothing could be read. */
-export const leaseFacts = async (key, directory) => {
+export const leaseFacts = async (key, directory, { withJudged = false } = {}) => {
   const slug = directory ? projectAt(directory) : null;
   if (!slug) return { unread: `${directory ?? "this directory"} is in no checkout of a Forge project` };
   const { url, token } = accountCredentials();
@@ -25,7 +25,8 @@ export const leaseFacts = async (key, directory) => {
   if (issue?.refused) return { unread: String(issue.refused).split("\n")[0] };
   const raw = leaseRecordOf(issue?.sessionContext)?.next;
   const next = typeof raw === "string" && raw.trim() ? raw : null;
-  return { next, named: next ? NAMED.exec(next)?.[0] ?? null : null };
+  const judged = withJudged ? await callTool("forge_issues.judged_build", { documentId: found.id }, true, ONE_READ) : undefined;
+  return { next, named: next ? NAMED.exec(next)?.[0] ?? null : null, judged };
 };
 
 /** The requirement guard's view of the lease: `{ named, next }`, `{ none: true }`, or `{ unread }`. */

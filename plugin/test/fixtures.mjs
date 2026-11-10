@@ -440,6 +440,7 @@ export const fakeTracker = async (state) => {
       answered("forge_uploads", { action: "download", data: { id } })],
     [/^\/api\/install\/plugin\.tar\.gz$/u, () => answered("forge_install.plugin", {})],
     [/^\/api\/auth\/me$/u, () => answered("forge_auth.me", {})],
+    [/^\/api\/issues\/([^/]+)\/judged-build$/u, (q, sent, method, [id]) => answered("forge_issues.judged_build", { documentId: id })],
     [/^\/api\/comments\/([^/]+)\/attachments$/u, (q, sent, method, [id]) =>
       asAttachment(answered("forge_uploads", uploadAsk("comment", id, sent)), sent.multipart)],
     [/^\/api\/issues\/([^/]+)\/comments$/u, (q, sent, method, [id]) => {
