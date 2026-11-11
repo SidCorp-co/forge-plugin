@@ -10,12 +10,13 @@ const NAMED = /\bREQ-\d+\b/u;
 
 /** `{ next, named }` — the dispatcher's note off the issue's lease and the requirement it names if any,
  *  each `null` where absent — or `{ unread }` saying why nothing could be read. */
-export const leaseFacts = async (key, directory, { withJudged = false } = {}) => {
-  const slug = directory ? projectAt(directory) : null;
+export const leaseFacts = async (key, directory, { withJudged = false, aimed = null } = {}) => {
+  const slug = aimed ?? (directory ? projectAt(directory) : null);
   if (!slug) return { unread: `${directory ?? "this directory"} is in no checkout of a Forge project` };
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) return { unread: "no Forge endpoint is saved" };
-  useProject({ slug, from: `the directory the dispatch was made from, ${directory}` });
+  // cm:guard an aimed brief keeps the aim `aimedBy` set; re-aiming at the directory here reads the wrong project's issue (FB-81)
+  if (!aimed) useProject({ slug, from: `the directory the dispatch was made from, ${directory}` });
   const { documentIdIfAny } = await import("../tracker/issues.mjs");
   const { callTool } = await import("../tracker/rest.mjs");
   const { leaseRecordOf } = await import("../flow/lease.mjs");

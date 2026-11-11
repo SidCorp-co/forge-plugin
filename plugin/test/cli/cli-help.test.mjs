@@ -264,13 +264,14 @@ test("each verb's -h names the fields the tracker takes for the routes that verb
 });
 
 /* Two places answering *which project* is a precedence rule, so it is written once: the checkout
-   answers, and a read or a comment may name another for itself alone, the flag outranking the record
-   for that call and nothing after it (docs/cli/one-call-elsewhere.md). No other verb takes one. */
+   answers, and a read, a comment or a judge's brief may name another for itself alone, the flag
+   outranking the record for that call and nothing after it (docs/cli/one-call-elsewhere.md). No other
+   verb takes one. */
 const NAMES_A_PROJECT = /--project\b|--slug\b|<slug>|projectRef|project[- ]id/iu;
 
-test("no row of the table but project, issue and comment names a project, its slug or its identifier", () => {
+test("no row of the table but project, issue, comment and brief names a project, its slug or its identifier", () => {
   const found = VERBS.filter((row) => NAMES_A_PROJECT.test(spanOf(row) ?? "")).map((row) => row[0]).sort();
-  assert.deepEqual(found, ["comment", "issue", "project"],
+  assert.deepEqual(found, ["brief", "comment", "issue", "project"],
     "a verb naming a project takes one from the caller, which the checkout already answered");
   assert.ok(NAMES_A_PROJECT.test(usageOf("project")), "and the one that does still says so");
 });

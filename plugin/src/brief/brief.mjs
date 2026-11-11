@@ -14,6 +14,7 @@ import { RUN_VAR } from "../tracker/rest.mjs";
 import { leaseFacts } from "./facts.mjs";
 import { keepBrief } from "./record.mjs";
 import { defaultRef, heldBy, recordsOf, treesOf } from "./trees.mjs";
+import { AIM_FLAG, aimIn, aimedBy } from "../resolve/project/aimed.mjs";
 
 const KEY = /^[A-Z][A-Z0-9]*-\d+$/u;
 
@@ -149,8 +150,18 @@ const send = (text, form) => {
   console.log(text);
 };
 
-export const brief = async (argv) => {
-  if (wantsHelp(argv)) return console.log(helpOf("brief"));
+/* Only a judge's brief reads the tracker, so an aim anywhere else would be read and dropped. */
+const unaimed = (argv) => {
+  if (!aimIn(argv).rest.includes("--judge") && argv.includes(AIM_FLAG)) {
+    fail(`brief: ${AIM_FLAG} aims a judge's brief at another project's issue, and no other brief reads the `
+      + "tracker, so it is read only with --judge:\n  forge brief ISS-45 --judge --project <slug> --url <url> --criteria 1");
+  }
+  return aimedBy(argv, "brief");
+};
+
+export const brief = async (words) => {
+  if (wantsHelp(words)) return console.log(helpOf("brief"));
+  const { rest: argv, slug: aimed } = unaimed(words);
   const [first, ...rest] = argv;
   const key = first && !first.startsWith("--") ? first : null;
   if (key && !KEY.test(key)) fail(`brief: \`${key}\` is no issue key. Name one as ISS-45, or none for a run that is given no tree.`);
@@ -158,7 +169,7 @@ export const brief = async (argv) => {
   if (asked.requirement !== undefined) return send(requirementText(requirementOf(key, asked)), REQUIREMENT_FORM);
   if (asked.criterion !== undefined) fail("brief: --criterion names a requirement's criteria, so it is read only with --requirement REQ-n.");
   if (asked.judge) {
-    const facts = await leaseFacts(key, process.cwd(), { withJudged: true });
+    const facts = await leaseFacts(key, process.cwd(), { withJudged: true, aimed });
     const judged = facts.unread ? { refused: facts.unread } : facts.judged;
     const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null, judged };
     return send(judgeText(key, readings, facts), JUDGE_FORM);

@@ -160,6 +160,13 @@ test("FB-26: a tree is refused on a judge that drives a deployment, and read bes
   assert.equal(judged(["--program", "forge-runner", "--criteria", "1", "--tree", repo.mine]).status, 0);
 });
 
+test("FB-81: --project on a brief that reads no tracker is refused, printing nothing", () => {
+  const run = brief(["ISS-7", "--project", "far-7"], repo.main, homeFor().env);
+  assert.notEqual(run.status, 0, run.stdout);
+  assert.equal(run.stdout, "");
+  assert.match(run.stderr, /brief: --project aims a judge's brief at another project's issue/u);
+});
+
 test("FB-26: a --program that is no single token is refused naming it", () => {
   refused(judged(["--program", "forge runner", "--criteria", "1"]), /--program takes the path or name/u);
 });
@@ -177,6 +184,16 @@ test("a judge's brief names the verdict kind and build core says the release cou
     assert.match((await ask()).stdout, new RegExp(`^Verdict kind: runtime, at ${"a".repeat(40)} — staging serves it$`, "mu"));
     state.answer["forge_issues.judged_build"] = () => ({ sha: "b".repeat(40), source: "landed", basis: "the landing is the build" });
     assert.match((await ask()).stdout, new RegExp(`^Verdict kind: commit, at ${"b".repeat(40)} — the landing is the build$`, "mu"));
+    const { tempHome } = await import("../fixtures.mjs");
+    const { OWN } = await import("../fixtures/own-project.mjs");
+    const elsewhere = tempHome("brief-aimed").path;
+    state.issues[0].sessionContext = { lease: { holder: "dispatcher", minutes: 1, next: "served de70833e at staging" } };
+    const aimed = await ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--project", OWN.slug, "--url", "https://staging.example.com", "--criteria", "1"], env, elsewhere);
+    assert.equal(aimed.status, 0, aimed.stderr);
+    assert.match(aimed.stdout, new RegExp(`^Verdict kind: commit, at ${"b".repeat(40)} — the landing is the build$`, "mu"), "FB-81: read off the aimed project, from no checkout");
+    assert.match(aimed.stdout, /^Dispatcher facts: served de70833e at staging$/mu);
+    assert.match(aimed.stdout, new RegExp(`^Project: ${OWN.slug} — `, "mu"));
+    assert.match(aimed.stderr, new RegExp(`brief: aimed at project ${OWN.slug} for this call alone; nothing saved was changed\\.`, "u"));
   } finally {
     tracker.close();
   }

@@ -16,7 +16,9 @@ memory, the seam [`feedback`](feedback.md) already aims through, so nothing is w
 **Reads, comments and a judge's verdict.** `forge issue` takes it for a read by key, the listing and
 `--search`, and `forge comment` for the thread and a post. `forge record verdict` takes it too: a
 judge is briefed with the project and often stands in no checkout of it, and the one route out it was
-offered, `forge doctor --set slug=`, is a write a judge may not make (ISS-102). Beside an issue write
+offered, `forge doctor --set slug=`, is a write a judge may not make (ISS-102). `forge brief --judge`
+takes it for the same judge, since its lease facts and verdict kind are that project's issue's
+(FB-81). Beside an issue write
 it is refused, and the lease, status and every other record verb do not take it: a lease and a
 worklog are this tree's, and a status moved from a checkout of another project is the incident
 above. A post takes no lease on the far issue, the finder's route already taking none.
