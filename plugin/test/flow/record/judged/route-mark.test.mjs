@@ -77,3 +77,13 @@ test("the commit a route-stamped mark leaves only in mergedPaths or landedIn is 
   assert.equal(markedCommit({ issue: { ...base }, comments: [] }), null,
     "but a record holding the commit in no field core serves still reads none");
 });
+
+test("a record with mergedCommitSha and no markedCommit key is core's mark, and the rung owes no commit (FB-79)", () => {
+  const issue = { mergedAt: "2026-11-10T13:37:55.000Z", mergedCommitSha: ROUTE_AT };
+  const held = { issue, comments: [] };
+  assert.equal(markedCommit(held), ROUTE_AT);
+  assert.deepEqual(markReadLines(held), [], "core answered, so nothing is said about the thread");
+  assert.ok(!owed(issue, []).some((what) => /names no commit/u.test(what)), owed(issue, []).join("\n"));
+  assert.ok(owed({ mergedAt: issue.mergedAt }, []).some((what) => /names no commit/u.test(what)),
+    "a record with no commit anywhere and no thread note is still refused");
+});

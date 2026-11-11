@@ -19,7 +19,7 @@ import { REBUILT_FORM } from "./reconstruction.mjs";
 import { commandAt } from "../machine.mjs";
 import { landsAgain } from "../route.mjs";
 import { undoForm } from "../record/merged.mjs";
-import { judgedHead, markedCommit, reviewedHead } from "../record/judged/mark-read.mjs";
+import { judgedHead, noteCommit, reviewedHead } from "../record/judged/mark-read.mjs";
 import { gitMarkForm } from "../record/judged/merged-clauses.mjs";
 
 /* The same overlay switches the ancestry reading is made under, so the tip it asks about and the
@@ -161,7 +161,7 @@ const markProof = async (ref, issue, head, { read, lands, page }) => {
       + `${REMARK(ref, "Where the mark names the wrong commit")}`);
   }
   const held = { issue, comments: (await page()).comments ?? [] };
-  const at = markedCommit(held);
+  const at = noteCommit(held);
   if (!sameCommit(at, commit)) {
     fail(`${lead}, and the standing mark's note names ${at ? shortSha(at) : "no commit"} at its \`at\` `
       + `clause, so which commit landed is not one answer and neither proves this landing. ${REMARK(ref)}`);

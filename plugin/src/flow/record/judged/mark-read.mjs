@@ -73,10 +73,11 @@ const commitOf = (issue) =>
  *  the thread's where core's record could not answer. */
 const standingMark = ({ issue, comments }) => {
   const thread = threadMark(comments);
-  if (!issue || !("markedCommit" in issue)) {
+  // cm:guard commitOf is read before the markedCommit key is: a record that carries mergedCommitSha with no markedCommit key is core's mark, not the thread's (FB-79)
+  const core = issue ? commitOf(issue) : null;
+  if (!core && !(issue && "markedCommit" in issue)) {
     return { ...thread, from: "thread", why: "core's issue record carries no markedCommit" };
   }
-  const core = commitOf(issue);
   if (!core && issue.mergedAt) return { ...thread, from: "thread", why: "core's mark names no commit" };
   if (!core) return { ...NO_MARK, from: "core" };
   if (thread.at && sameCommit(thread.at, core)) return { ...thread, at: core, from: "core" };
@@ -84,6 +85,8 @@ const standingMark = ({ issue, comments }) => {
 };
 
 export const markedCommit = (held) => standingMark(held).at;
+// cm:edge contract -> plugin/src/flow/landing/landed.mjs — markProof compares this, the note's own claim, with mergedCommitSha; markedCommit would answer the row back to itself
+export const noteCommit = (held) => (held.issue && "markedCommit" in held.issue ? markedCommit(held) : readClause(held.comments, "at"));
 export const reviewedHead = (held) => standingMark(held).reviewed;
 export const judgedHead = (held) => standingMark(held).judged;
 export const landingMoved = (held) => standingMark(held).moved;
