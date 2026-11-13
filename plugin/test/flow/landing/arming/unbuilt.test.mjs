@@ -43,3 +43,15 @@ test("a ready capture at in_progress:build writes the checkpoint", async () => {
   assert.equal(run.status, 0, said(run));
   assert.equal(checkpoint().state, "ready", said(run));
 });
+
+test("FB-85: a ready capture owed both the advance and the review names both in one refusal, advances first", async () => {
+  at("approved");
+  const run = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, CHANGED, undefined, { reviewed: false });
+  assert.equal(run.status, 1, said(run));
+  assert.equal(checkpoint(), null, "no checkpoint was written");
+  const advance = run.stderr.indexOf("  forge advance ISS-673 --to in_progress:build");
+  const review = run.stderr.indexOf("ISS-673 carries no review");
+  assert.ok(advance > 0 && review > advance, `the advance, then the review:\n${run.stderr}`);
+  assert.equal(run.stderr.split("forge claim ISS-673 --pushed --ready").length - 1, 1,
+    `the capture is asked for once, at the end:\n${run.stderr}`);
+});

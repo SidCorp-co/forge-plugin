@@ -38,7 +38,7 @@ import {
 } from "./landing/checkpoint.mjs";
 import { commandAt } from "./machine.mjs";
 import { REBUILT_FORM, handWrittenOf } from "./landing/reconstruction.mjs";
-import { answerRefusal, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
+import { answerRefusal, bothOwed, readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal, unbuiltRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
 import { recordsWalked } from "./landing/statuses.mjs";
 import { readyChecks, readyChecksLines, runReadyChecks } from "./landing/ready-checks.mjs";
@@ -530,6 +530,9 @@ export const claim = async (argv) => {
   const left = lease?.next ?? nextLeft(context);
   /* A gone holder is a reclaim like any other, so the count of reclaims at one status keeps counting the runs that stopped there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
   const how = howsFor({ unheld, handed })[state];
+  const unbuilt = given.ready ? unbuiltRefusal(ref, issue.status) : null;
+  const owedReview = unbuilt && patch?.head && readyView ? reviewReadyRefusal(ref, patch.head, readyView) : null;
+  if (owedReview) fail(bothOwed(ref, unbuilt, owedReview));
   const checkpoint = given.ready
     ? readyCheckpoint(ref, holder, patch, landingOf(context), issue.status)
     : (given.rebuilt

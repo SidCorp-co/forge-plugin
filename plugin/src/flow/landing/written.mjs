@@ -206,7 +206,7 @@ const againRefused = (ref, head, landing, status) => {
    taken before it arms a merge whose status nothing can then move, and a resume reads a phase this
    checkpoint calls over (ISS-2604). Off the flow's own order: a status it does not place, a reopen or
    a park, is left to the checks that read it. */
-const unbuiltRefusal = (ref, status) => {
+export const unbuiltRefusal = (ref, status) => {
   const at = LADDER.indexOf(status);
   const built = LADDER.indexOf(BUILD_AT);
   if (at < 0 || at >= built) return null;
@@ -215,6 +215,14 @@ const unbuiltRefusal = (ref, status) => {
     + `it, and a resume would name a phase this checkpoint says is over. Advance it, then capture `
     + `again:\n${LADDER.slice(at + 1, built + 1).map((to) => `  forge advance ${ref} --to ${to}\n`).join("")}`
     + `  forge claim ${ref} --pushed --ready`;
+};
+
+/** The status refusal and the review refusal of one capture as one message, the advances before the
+ *  review and the capture once at the end, so one round of fixes clears both (FB-85). */
+export const bothOwed = (ref, unbuilt, unreviewed) => {
+  const again = `\n  forge claim ${ref} --pushed --ready`;
+  const first = unbuilt.endsWith(again) ? unbuilt.slice(0, -again.length) : unbuilt;
+  return `${first}\nThe same capture is refused for its review as well, so take that before capturing again: ${unreviewed}`;
 };
 
 /* The opening both refusals of a head the landing branch already holds share. */
