@@ -1,8 +1,7 @@
 # bash-guard — the shapes that lose work you cannot get back
 
-Why: every refused shape takes something with nothing behind it — a process running for days,
-uncommitted changes. `--fix` takes nothing, so it runs and is taught once a session: it answers the
-checker instead of the code, and each finding is fixed at its source.
+Why: each refused shape takes something with nothing behind it — a process running for days,
+uncommitted changes. `--fix` takes nothing, so it runs, taught once: it answers the checker, not the code.
 
 Writing *about* a refused command: a rule is read where a command starts, so a phrase in an
 argument — `echo "…"`, a `grep` pattern — is prose. At a start quotes come off as a shell takes
