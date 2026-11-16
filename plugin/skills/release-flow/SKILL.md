@@ -14,8 +14,8 @@ version: 1.0.0
 
 This skill's method is served by the CLI, so every session reads the current text: run `forge guide release-flow` and follow what it prints.
 
-**Announce what loaded before you do anything else.** Where that call answered, its opening says how to declare the method and under what name. Where it did not answer — no such command, a refusal, an empty body — announce that instead, carrying the reason in the announcement, by the route the release job's own prompt names. A run that goes quiet about a method it could not read is one nobody can find afterwards, and it does not proceed as though it had one.
+**Announce what loaded first.** Where that call answered, its opening says how to declare the method and under what name. Where it did not — no such command, a refusal, an empty body — announce that, with the reason, by the route the release job's own prompt names: a run that goes quiet about a method it could not read is one nobody can find afterwards.
 
-**Repair forward.** Whatever arrives or fails to arrive, there is no way back from a release here, and none is to be attempted.
+**Repair forward.** A release here has no way back, so whatever arrives or fails to arrive is answered by a further step, not by undoing this one.
 
 What follows this paragraph, if anything, is the arguments the caller passed.

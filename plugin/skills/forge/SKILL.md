@@ -18,12 +18,14 @@ description: >-
 
 - `forge -h` lists the verbs this credential can use, and `forge <verb> -h` owns the arguments.
   Nothing about a payload's shape is repeated here.
-- Pass a path when the file exists. Never write a file to have one to pass.
+- Pass a path when the file exists; where it does not, pass the text itself rather than writing a
+  file to have one to pass.
 - Read one field of one body before the whole: `forge issue ISS-45 --fields status,plan`.
 - `ISS-45` works wherever a uuid does, inside a raw `call` payload too.
 - Write English. A tracker that reads Vietnamese says so in its config, and the CLI rewrites what
   you hand it.
-- Never pass a project id, a slug or a token on the command line.
+- The project and the credential come from this checkout's configuration, so none goes on the
+  command line, where a token lands in shell history and process listings.
 - A verb you expected and cannot see is withheld on purpose, or needs something this machine has
   not saved: `forge doctor` says which, and the one command or file that puts it back.
 - When this plugin is the problem, report it before working around it. Where it goes is the
@@ -40,5 +42,5 @@ description: >-
 | what blocks what | `forge next --graph`; the two stores of an edge: `forge guide forge dependencies` |
 | a harness tool — zones and DNS, a deploy, a second opinion | `forge -h` lists the ones this machine configured, and `forge guide forge <reference>` reads one's method |
 | a first call in a project, a missing verb | `forge doctor`; then `forge guide forge configuration` |
-| what a gate refused and why | `forge hooks -h` |
+| what a hook said and why | `forge hooks -h` |
 | the fields the tracker takes for a verb's own routes | that verb's `-h` |

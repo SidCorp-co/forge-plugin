@@ -7,8 +7,8 @@ comes back to the run that built the change with the failing cases named, and a 
 before the landing measured a base the landing measures again. So a run takes no baseline and spends no gate: what it
 spends is the suites that exercise the files it touched and the checks that answer in seconds.
 Where the landing is the run's own ship, that ship is the one place the gate is spent. Where it is
-another actor's, the gate typed in a session is refused, and `forge hooks --how landing-gate` says
-why.
+another actor's, a gate typed in a session spends again what that landing will spend, and
+`forge hooks --how landing-gate` says why.
 
 **What is read is a check's own verdict, never its log or the notice that it ended.** A completion
 notice says a process ended, and a log with no verdict in it cannot tell a check still running from
@@ -169,7 +169,7 @@ range the user's stack owns.
 - **A stack script may override outer environment variables.** Exporting a variable before
   calling it does nothing if the script sets its own inside the process it spawns; the
   override belongs inside the invocation the script actually executes.
-- **Wait for long work, never poll it.** The routes that ask nothing, and what asking again costs:
+- **Wait for long work rather than poll it.** The routes that ask nothing, and what asking again costs:
   `forge hooks --how polling`.
 - **After stopping anything, confirm the user's own stack still answers** — no guard can tell you
   that you aimed correctly.

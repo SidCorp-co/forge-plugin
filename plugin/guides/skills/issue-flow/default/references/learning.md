@@ -11,10 +11,10 @@ past it, in the report. A report saying only that something was awkward prices n
 next round pays that cost again with no more evidence than this one had.
 <!-- forge:end -->
 <!-- forge:when feedback.plugin bugs all -->
-## The one filing that is never optional, and the four things it carries
+## A defect in the tooling, and the four things its filing carries
 
-A defect in the tooling is filed the moment it is met, and what makes that filing worth its round is
-where the defect comes from rather than where it showed.
+File a tooling defect when you meet it, while its cause is still in front of you; what makes the
+filing worth its round is where the defect comes from rather than where it showed.
 
 - **The cause, at its line.** A verb, a clause, a condition — something a reader can open. Where the
   search found none, that is the answer and it says what was looked at: a cause nobody hunted for
@@ -40,10 +40,10 @@ every shape, and one filed as a bug because that is the shape a defect takes is 
 the rest of its life.
 <!-- forge:end -->
 
-## What the gate asks
+## What the learning gate reads
 
-The conditions a record has to meet, the categories a skill edit is typed by, and how to write
-through the refusal: `forge hooks --how learning-gate`. Where project knowledge goes and what an
+What it looks for in a record, and the categories a skill edit is typed by:
+`forge hooks --how learning-gate`. Where project knowledge goes and what an
 entry owes: `forge knowledge -h`, which names the values it classifies by too.
 
 **Type the gap where you met it, before deciding what it earns**: a step of the method with no
@@ -53,8 +53,9 @@ tracker's own.
 
 ## Where a skill learning lands
 
-1. **Into the plugin's code**, wherever the wrong state has a shape: a command matching a pattern, a
-   field absent, a file missing, an ordering violated. A check fires whether or not anyone remembered.
+1. **Into a tool**, wherever the wrong state has a shape: a command matching a pattern, a field
+   absent, a file missing, an ordering violated. A check that prints what it found and the next step
+   shows the run its mistake whether or not anyone remembered the rule.
 2. **Into the skill's own text, in the place its category belongs**, never appended to a general
    pile: the section for its category. A learning about the method itself is core's page's, and goes
    to core as feedback rather than into a copy here. A sentence in two places is a correction
@@ -67,14 +68,15 @@ agreed to, and the skill repeats the mistake in the next repository.
 
 ## The second occurrence is the promotion trigger
 
-A trap that fires twice while living in prose moves into code; the second occurrence is not a reason
-to word the sentence more firmly. If it cannot be made into a check, say why in the same change.
+A trap that fires twice is evidence about the text the run followed: quote it, then fix that text
+or give the run the tool it lacked. Wording the sentence more firmly is not a fix. If no tool can
+show it, say why in the same change.
 
 ## Pruning is half of learning
 
 Three things earn deletion from a skill:
 
-- a rule the plugin now enforces, deleted the day the check lands
+- a rule a tool now shows, deleted the day that tool lands
 - a rule the tool now documents itself, in a `-h`, a schema or an error message
 - a rule whose reason expired
 
@@ -94,6 +96,8 @@ Push a rule as far down this list as it will go:
    that reimplements one has created the second definition. It derives its cases rather than
    listing them: `forge hooks --how derive-dont-list`.
 3. **A hook.** One tool call, tight timeout, near-zero tolerance for noise. Reserved for an action
-   that leaves no tree to scan, and a write whose decision has to happen before the file exists.
+   that leaves no tree to scan, and a write whose decision has to happen before the file exists. It
+   teaches with a warning and the next step; a refusal is for kernel input alone — a write the
+   tracker would refuse, a lease another holds, a destructive command, a secret leaving the box.
    What counts as a write for every gate that asks: `forge hooks --how writes`.
 4. **Prose.** Last, because it is read only by someone who chose to read it.

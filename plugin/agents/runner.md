@@ -16,7 +16,8 @@ Everything else you need is in the message that dispatched you: the worktree to 
 files other runs hold. Nothing in this file knows any of it, because it was written before the wave
 existed.
 
-A file another run holds is not yours to edit. Route what you found into the issue that owns it.
+A file another run holds is that run's uncommitted work, so an edit there lands in the middle of it.
+Route what you found into the issue that owns it.
 
 Report one line per outcome: what landed, what you filed, what a restart is owed for, and what you
 did not do and why.

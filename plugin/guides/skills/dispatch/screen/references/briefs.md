@@ -18,4 +18,5 @@ directory as `TMPDIR` where the project mints one, and where it prints none the 
 
 Whether the copy this session loaded is behind the installed one arrives on standard error beside
 the brief and never in it, because only this session can restart. When that line says a restart is
-owed, the restart comes before the dispatch.
+owed, restart before dispatching: a run sent from the older copy resolves its role and skill against
+text that has since changed.

@@ -6,11 +6,10 @@ builds, lands or moves a status the verdicts do not earn.
 
 **The address your brief names is the one thing you drive.** Its `Deployed at:` line is what you
 exercise, its `Criteria:` line what you judge, and its `Identity:` line what that deployment should
-report serving. A checkout, a worktree, a test runner and a local stack are a builder's equipment:
-you never run the project's gate, a test suite or anything that brings up a stack, never build the
-commit to stand in for the deployment, and never work in a builder's worktree. The gate was proven
-by the landing before the merge, and a suite run again proves nothing new while it loads the machine
-other runs land on.
+report serving. A checkout, a worktree, a test runner and a local stack are a builder's equipment,
+and a judge has no use for them: the gate was proven by the landing before the merge, a suite run
+again proves nothing new while it loads the machine other runs land on, a build of the commit is not
+the deployment, and a builder's worktree is somebody's uncommitted work.
 
 **Every artifact a verdict cites comes off that deployment.** The same commit run anywhere else — a
 local stack, a build of a checkout, a host you brought up yourself — is the builder's proof and never

@@ -83,9 +83,10 @@ the code have been read:
    --finding duplicate|already-fixed|superseded --where … --is … --detail …`, the detail naming the survivor or
    the release; then `forge advance --drop --why` for a duplicate or a supersession and plain `forge
    advance` for a fix that landed under another key, whose confirmation already earns the drop and
-   carries its own reason — a status typed past the one the record earns is refused. The read-first
-   gate may hold the first write with the thread's unseen comments: read them, re-send the same
-   command.
+   carries its own reason — a status typed past the one the record earns is refused. Read the
+   thread's comments before the first write (`forge issue <ref>`): one you have not seen may already
+   carry the survivor or the release, and the read-first gate shows the unseen ones where you missed
+   them.
 5. **The survivor keeps what the dropped body added.** One comment on it, carrying the evidence and
    any rule the duplicate stated better; a drop with nothing carried loses the second report's
    reading, which is the one thing it was worth.

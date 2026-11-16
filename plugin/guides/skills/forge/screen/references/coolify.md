@@ -27,9 +27,9 @@ a project this checkout does not own, so list what is in scope and act on that i
 flag, variable or key that widens it, and looking for one is looking for the defect the guard exists
 to prevent.
 
-**A call that changes something is refused until it is asked for in as many words**, on either
-route. `--dry-run` prints the request and sends nothing, which is how to see what a deploy would do
-before committing to it; the instance route's scope guard still runs while nothing is being sent.
+**A call that changes something is worth seeing before it is sent**, on either route. `--dry-run`
+prints the request and sends nothing, which is how to see what a deploy would do before committing to
+it; the instance route's scope guard still runs while nothing is being sent.
 
 **A deploy the tracker declined to dispatch is reported as a refusal, not as a deploy.** The refusal
 names what did not go and what would release it. Act on that; sending the same call again does not

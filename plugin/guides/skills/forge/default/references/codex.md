@@ -2,8 +2,8 @@
 # `forge codex` answers as a different model, and it can be wrong
 
 Read this before asking for a second opinion, and again before acting on one. What to type is
-`forge codex -h`; when a gate asks for one and how to clear it is that gate's own page. What is
-here is neither.
+`forge codex -h`; when a hook asks for one, and why, is that hook's own page. What is here is
+neither.
 
 It is a genuinely different provider, which is the only reason a second opinion is worth its
 tokens — `consult` refuses outright if the model slot resolves to this model's own family, so a
