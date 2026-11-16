@@ -55,6 +55,7 @@ const spanOf = (said) => {
   return one.length > SPAN_CAP ? `${one.slice(0, SPAN_CAP - 1)}\u2026` : one;
 };
 
+// cm:why kernel: each rule but lint-fix and sleep-in-wait takes processes or uncommitted work nothing restores (FR-08); those two are policy kept while AC-08-1-2 and NFR-11 say refuse (ISS-109)
 const RULES = [
   {
     name: "lint-fix",
@@ -272,6 +273,7 @@ export const run = (ev) => {
     deny(sayOnce(readerKey(ev), "bash-guard", full, { route: topic || "bash-guard", shape, cause: `bash-guard/${name}` }));
   }
 
+  // cm:why kernel: a ref moved under a checked-out tree loses commits and uncommitted work nothing restores (FR-08)
   /* A ref moved under a checked-out tree: judged per tree the call could run in, since each is its own repository. */
   for (const one of run) {
     const rest = UPDATE_REF.exec(one.said)?.[1];
@@ -283,6 +285,7 @@ export const run = (ev) => {
     deny(sayOnce(readerKey(ev), "bash-guard", full, { route: "bash-guard", shape, cause: "bash-guard/ref-move" }));
   }
 
+  // cm:why policy kept as a refusal while NFR-11 still says refuse; it passes on the second send, ISS-109 lists it for teaching
   const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");
   if (again) {
     deny(

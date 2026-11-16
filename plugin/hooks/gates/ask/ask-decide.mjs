@@ -98,6 +98,7 @@ const decide = async (ev, questions, room) => {
   return answer({ ...ev.tool_input, answers, annotations }, "The ask-decide gate answered this from the owner's precedent");
 };
 
+// cm:why kernel: a question to the owner is an escalation, and one naming no owner subject is refused as escalation input off a strict project
 const routine = (slug, profile, categories) => deny(
   `Decide it and carry on — ${slug} is gated \`${profile}\`, so a question naming none of the owner's subjects is the `
     + "session's to settle. Take the reading cheapest to reverse and record it on the item it shapes:\n"

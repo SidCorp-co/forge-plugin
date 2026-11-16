@@ -137,6 +137,7 @@ const ROUTE = "Record this criterion `skipped` with `--why` naming what would se
 const STANDS = "A qa judge writes only its verdicts (`forge record verdict`) and its report comment "
   + "(`forge comment`).";
 
+// cm:why kernel: a judge writing past its verdicts moves a status, claims a lease or writes evidence it has not earned
 export const run = (ev) => {
   if (ev.tool_name !== "Bash") done();
   if (!judgeSession(ev)) done();
