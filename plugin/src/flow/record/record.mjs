@@ -8,7 +8,7 @@ import { Refused, refuse } from "../../refusal.mjs";
 import { NO_LONGER_OWES, SIDE } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
-export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
+export { compoundTaught, criteriaLines, noteFrom } from "./fields.mjs";
 import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
 import { parseAll } from "./page.mjs";
 import { recordFieldRefusal, renderedWithin } from "../../tracker/comment-cap.mjs";

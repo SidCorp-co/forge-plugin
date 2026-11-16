@@ -118,13 +118,10 @@ test("the frozen corpus of sixty criteria is read as three compound lines and no
   assert.equal(CRITERIA_CORPUS.length, 60);
 });
 
-/* The round the refusal exists to save: a file no consult has read is refused for the grammar, not
-   sent to a consult that would judge a line about to be split anyway (ISS-483). */
-test("a compound line is refused before the consult the write asks for", () => {
+test("a compound line is taught with its halves on stderr, ahead of anything else the write says", () => {
   const file = join(tempRoom("criteria-"), "criteria.md");
   writeFileSync(file, "1. An empty list shows the empty state and hides the export.\n");
   const run = ask("record", "criteria", "ISS-1", file);
-  assert.equal(run.status, 1);
   assert.match(run.stderr, /one outcome: An empty list shows the empty state/u);
-  assert.doesNotMatch(run.stderr, /No consult has read/u);
+  assert.match(run.stderr, /it does not hold the write/u);
 });

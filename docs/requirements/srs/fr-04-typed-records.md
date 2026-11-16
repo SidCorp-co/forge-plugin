@@ -150,37 +150,37 @@ after approval is refused without one, so criteria cannot be relaxed to fit what
   WHEN a report is assembled THEN it SHALL show every instance of a kind that repeats rather than
   the latest one.
 
-### UC-04-5 — The criteria are numbered lines, and a line carrying two outcomes is refused
+### UC-04-5 — The criteria are numbered lines, and a line carrying two outcomes is taught
 
-Rev: 2 · Actors: agent · Enforces: BR-01
+Rev: 3 · Actors: agent · Enforces: BR-01
 
 A criterion is a line opening with its number, which is what a verdict names. A line carrying two
-outcomes is two criteria and is refused before the write, with each half named, because a verdict
-judges one outcome. What is refused is an outcome on each side of the coordinator and never the
-coordinator itself: a reading that cannot prove both halves are outcomes writes the line, since a
-miss costs one review round and a wrong refusal costs the write. The refusal comes before the
-consult the write asks for, or the round it saves is the round it spends.
+outcomes reads as two criteria, because a verdict judges one outcome, and the write names each half
+and how to split it without holding the write: the shape is a way of working the plugin teaches, not
+input the tracker refuses (ISS-109). What is named is an outcome on each side of the coordinator and
+never the coordinator itself: a reading that cannot prove both halves are outcomes says nothing. The
+teaching comes before the consult the write asks for, or the round it saves is the round it spends.
 
 - **AC-04-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the criteria field is read off its numbered lines, and unnumbered prose is no criteria"
   WHEN the criteria field is read THEN prose without numbered lines SHALL be read as no criteria.
-- **AC-04-5-2** · Rev: 2 · Proof: plugin/test/flow/record/record.test.mjs "criteria are numbered lines, and a line carrying two outcomes is refused with the halves"
-  IF a criterion carries two outcomes THEN the CLI SHALL refuse the write and SHALL name each half it read.
+- **AC-04-5-2** · Rev: 3 · Proof: plugin/test/flow/record/record.test.mjs "criteria are numbered lines, and a line carrying two outcomes is taught with the halves, not refused"
+  IF a criterion carries two outcomes THEN the CLI SHALL name each half it read on stderr and SHALL NOT hold the write for it.
 - **AC-04-5-3** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the compound reading refuses a second clause and lets a second noun phrase write"
   WHERE a coordinator joins two noun phrases, joins two subjects under one verb, joins conditions to one outcome, sits inside a word, or sits inside a code span, the CLI SHALL write the criterion.
 - **AC-04-5-4** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the compound reading refuses a second clause and lets a second noun phrase write"
   WHERE the project's prose language is one the criteria grammar does not carry, the CLI SHALL write every criterion.
-- **AC-04-5-5** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the frozen corpus of sixty criteria is read as three compound lines and no more"
-  WHILE a set of criteria written before this reading existed is read, the CLI SHALL refuse only the lines carrying two outcomes.
-- **AC-04-5-6** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "a compound line is refused before the consult the write asks for"
-  IF a criterion carries two outcomes THEN the CLI SHALL raise its refusal before asking for a review of the file.
+- **AC-04-5-5** · Rev: 2 · Proof: plugin/test/flow/criteria.test.mjs "the frozen corpus of sixty criteria is read as three compound lines and no more"
+  WHILE a set of criteria written before this reading existed is read, the CLI SHALL name only the lines carrying two outcomes.
+- **AC-04-5-6** · Rev: 2 · Proof: plugin/test/flow/criteria.test.mjs "a compound line is taught with its halves on stderr, ahead of anything else the write says"
+  IF a criterion carries two outcomes THEN the CLI SHALL print its halves before asking for a review of the file.
 - **AC-04-5-7** · Rev: 1 · Proof: plugin/test/flow/record/criteria/whole-set.test.mjs "a criteria file leaving out held numbers is refused, naming both counts, each dropped number and both routes"
   IF a criteria write leaves out a number the field holds, or its set does not open at one, THEN the CLI SHALL refuse the write unless the caller asks for the replacement, and SHALL name both counts and each number the write would drop.
 - **AC-04-5-8** · Rev: 1 · Proof: plugin/test/flow/record/criteria/whole-set.test.mjs "--replace stores a set that drops held numbers, and stderr names the counts and what was dropped"
   WHEN a criteria write lands THEN the CLI SHALL say how many criteria the field held and how many it holds now, and SHALL name each number the write dropped.
-- **AC-04-5-9** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "a criterion that the declared gate passes is refused by number, with what to write instead"
-  IF a criterion's whole outcome is the project's declared gate command passing, with no condition, flag or step qualifying it, THEN the CLI SHALL refuse the write, SHALL name that criterion by its number, and SHALL say that a criterion names the outcome the issue changes and the case that shows it, because the landing gates the whole tree on every change.
-- **AC-04-5-10** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "the generic forms of the whole suite passing are refused whatever the project declared"
-  IF a criterion's outcome is the whole gate or the whole suite passing, said in so many words THEN the CLI SHALL refuse the write whether or not the project declares a gate command.
+- **AC-04-5-9** · Rev: 2 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "a criterion that the declared gate passes is taught by number, with what to write instead"
+  IF a criterion's whole outcome is the project's declared gate command passing, with no condition, flag or step qualifying it, THEN the CLI SHALL NOT hold the write for it, SHALL name that criterion by its number on stderr, and SHALL say that a criterion names the outcome the issue changes and the case that shows it, because the landing gates the whole tree on every change.
+- **AC-04-5-10** · Rev: 2 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "the generic forms of the whole suite passing are taught whatever the project declared"
+  IF a criterion's outcome is the whole gate or the whole suite passing, said in so many words THEN the CLI SHALL name it on stderr whether or not the project declares a gate command.
 - **AC-04-5-11** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "a criterion about the gate's own behaviour, or one file's suite, is written"
   WHERE a criterion names the gate's own behaviour, or the suite of one file, as its outcome, the CLI SHALL write it.
 - **AC-04-5-12** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "where the project declares no gate, its command passing is not read as the gate"

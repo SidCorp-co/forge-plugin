@@ -52,19 +52,20 @@ export const criteriaLines = (text, ref = "<ref>") => {
 };
 
 /* The grammar's own reading, in the language the project writes its prose in: `machine.mjs` says
-   which shapes it can prove and which it lets through. The refusal carries the halves — a line named without them is a second reading the author has to make. */
-export const compoundRefused = (criteria, language = translateTo()) => {
+   which shapes it can prove and which it lets through. The teaching carries the halves — a line named without them is a second reading the author has to make. */
+export const compoundTaught = (criteria, language = translateTo()) => {
   const found = compoundCriteria(criteria, language);
-  if (!found.length) return;
-  refuse([
+  if (!found.length) return null;
+  return [
     `${found.length === 1 ? "One criterion carries" : `${found.length} criteria carry`} two outcomes,`
-      + " which is two criteria, so nothing was written:",
+      + " which reads as two criteria; it does not hold the write:",
     ...found.flatMap((one) => [
       `  ${one.number}. one outcome: ${one.first}`,
       `  ${String(one.number).replace(/./gu, " ")}  another: ${one.second}`,
     ]),
-    "Split each into two numbered lines, renumber what follows, and send the file one consult reads.",
-  ].join("\n"));
+    "A verdict judges one outcome per number, so split each into two numbered lines, renumber what follows, "
+      + "and send the file again with --replace.",
+  ].join("\n");
 };
 
 /* What a pass is said as, after the command or the suite it is said of. */
@@ -86,18 +87,18 @@ export const gateCriteria = (criteria, declared = projectFileHere()?.stats?.comm
 };
 
 /* The landing gates every change, so a criterion that the gate passes is met by every change and shows nothing. */
-export const gateCriteriaRefused = (criteria, declared) => {
+export const gateCriteriaTaught = (criteria, declared) => {
   const found = gateCriteria(criteria, declared);
-  if (!found.length) return;
+  if (!found.length) return null;
   const numbers = found.map((one) => one.number).join(", ");
-  refuse([
+  return [
     `${found.length === 1 ? `Criterion ${numbers} names` : `Criteria ${numbers} name`} the whole-tree gate passing `
-      + "as the outcome, so nothing was written:",
+      + "as the outcome; it does not hold the write:",
     ...found.map((one) => `  ${one.number}. ${one.text}`),
     "The landing gates the whole tree on every change; a criterion names the outcome this issue changes and the "
       + `case that shows it. Rewrite ${numbers} as that, or drop ${found.length === 1 ? "it" : "them"}, and send the `
-      + "file one consult reads.",
-  ].join("\n"));
+      + "file again with --replace.",
+  ].join("\n");
 };
 
 /* The tracker's own bounds on a note's short title (REQ-40 BC-6), counted as it counts them. */
@@ -315,8 +316,7 @@ export const criteriaPrepared = async (argv, at) => {
   if (refusal && text === null) refuse(refusal);
   const criteria = criteriaLines(text ?? await bodyFrom(file[0]), at.reference);
   criteriaChecked(criteria, refuse);
-  compoundRefused(criteria);
-  gateCriteriaRefused(criteria);
+  for (const one of [compoundTaught(criteria), gateCriteriaTaught(criteria)].filter(Boolean)) console.error(one);
   /* Before the consult's refusal, for ISS-483's reason: a file this refuses is one no review round
      should be spent on, and the read of the issue it costs is one the write makes anyway. */
   const held = unwrap((await at.issue()).body.acceptanceCriteria);

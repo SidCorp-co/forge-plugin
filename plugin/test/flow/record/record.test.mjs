@@ -12,7 +12,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
-  checked, compoundRefused, criteriaLines, fromRecord, noteFrom,
+  checked, compoundTaught, criteriaLines, fromRecord, noteFrom,
 } = await import("../../../src/flow/record/record.mjs");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
@@ -133,12 +133,14 @@ test("a park records the status it left, and free text is no record", () => {
   assert.equal(parse("`forge-record: nonsense · contract 1`"), null, "an unknown kind is no record");
 });
 
-test("criteria are numbered lines, and a line carrying two outcomes is refused with the halves", () => {
+test("criteria are numbered lines, and a line carrying two outcomes is taught with the halves, not refused", () => {
   const criteria = criteriaLines("1. The list is sorted by name.\n\n2. An empty list shows the empty state and hides the export.\n");
   assert.deepEqual(criteria.map((one) => one.number), [1, 2]);
-  assert.throws(() => compoundRefused(criteria, "en"), /2\. one outcome: An empty list shows the empty state/u);
-  assert.throws(() => compoundRefused(criteria, "en"), /another: hides the export\./u);
-  assert.doesNotThrow(() => compoundRefused(criteria, "vi"), "another prose language, no grammar and no refusal");
+  const taught = compoundTaught(criteria, "en");
+  assert.match(taught, /2\. one outcome: An empty list shows the empty state/u);
+  assert.match(taught, /another: hides the export\./u);
+  assert.match(taught, /it does not hold the write/u, "the write is not held for it");
+  assert.equal(compoundTaught(criteria, "vi"), null, "another prose language, no grammar and no teaching");
   assert.throws(() => criteriaLines("The list is sorted.\n"), /numbered line/u);
   assert.throws(() => criteriaLines("\n"), /No criteria/u);
   assert.throws(() => criteriaLines("1. A.\n1. B.\n"), /Two criteria are numbered 1/u);
