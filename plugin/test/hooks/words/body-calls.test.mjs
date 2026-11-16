@@ -161,5 +161,5 @@ test("the learning gate refuses a skill write behind a python body that opens a 
   const command = `${python("x = [[1], [2] ]")}\necho x > ${skill}`;
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(answered(run)?.hookSpecificOutput?.permissionDecision, "deny", run.stdout);
+  assert.equal(Boolean(answered(run)?.hookSpecificOutput?.additionalContext), true, run.stdout);
 });

@@ -94,7 +94,7 @@ const HOME = homeEnv("redirect-data");
 const refused = (command) => {
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
-  return answered(run)?.hookSpecificOutput?.permissionDecision === "deny";
+  return answered(run)?.hookSpecificOutput?.additionalContext !== undefined;
 };
 
 test("the learning gate lets a node -e program compare against a memory path, and refuses a redirect to one", () => {

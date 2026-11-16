@@ -28,7 +28,7 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
   );
   assert.equal(run.status, 0, run.stderr);
   const answer = answered(run);
-  return answer === null ? null : answer.reason;
+  return answer === null ? null : answer.hookSpecificOutput.additionalContext;
 };
 
 /* The session's own call, as its transcript records it: the sweep reads back to the call's start and no further. */
@@ -91,7 +91,7 @@ test("a guarded name reached through a cd is still named by the link the call us
     cwd: tempRoom("landed-elsewhere-"),
   }, HOME);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(answered(run)?.reason ?? "", /points-away-by-cd\.md/u, "named by the link the call used");
+  assert.match(answered(run)?.hookSpecificOutput?.additionalContext ?? "", /points-away-by-cd\.md/u, "named by the link the call used");
 });
 
 /* The other direction, and the only case where no name the call used is guarded: the file is not there
@@ -111,7 +111,7 @@ test("a new file named through a directory link into the tree is a guarded write
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  assert.match(JSON.parse(run.stdout).reason, /through-a-link\.md/u);
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext, /through-a-link\.md/u);
 });
 
 /* The route both halves miss: a script writes the file and the command names nothing to check. The
@@ -133,7 +133,7 @@ test("a memory file no call named at all is found by reading the directory", () 
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  assert.match(JSON.parse(run.stdout).reason, /by-a-script\.md/u, "nothing in the command names it");
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext, /by-a-script\.md/u, "nothing in the command names it");
 });
 
 /* The one shape where the two readings disagree: a delegated run names its own transcript beside the
@@ -158,7 +158,7 @@ test("a delegated run's sweep reads the project's memory and not its own transcr
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  assert.match(answered(run)?.reason ?? "", /by-a-delegated-script\.md/u,
+  assert.match(answered(run)?.systemMessage ?? "", /by-a-delegated-script\.md/u,
     "the sweep looked beside the agent's transcript, where the host keeps no memory");
 });
 
@@ -221,7 +221,7 @@ test("a file the directory has held for a day is not this call's", () => {
 });
 
 /* Blocking on the first left the rest unmentioned: a script writing four was answered for one. */
-test("every file that landed is named in one refusal", () => {
+test("every file that landed is named in one teaching", () => {
   const session = randomUUID();
   const project = tempRoom("landed-batch-");
   mkdirSync(join(project, "memory"));
@@ -239,7 +239,7 @@ test("every file that landed is named in one refusal", () => {
     },
     HOME,
   );
-  const said = JSON.parse(run.stdout).reason;
+  const said = JSON.parse(run.stdout).hookSpecificOutput.additionalContext;
   for (const name of ["one.md", "two.md", "three.md"]) assert.match(said, new RegExp(escaped(name), "u"), said);
   assert.match(said, /they should/u, "and asked of them together");
 });
@@ -283,7 +283,7 @@ test("a guarded name that links out of the tree is swept as itself", () => {
     },
     HOME,
   );
-  assert.match(JSON.parse(run.stdout).reason, /points-out\.md/u, "named by the guarded name");
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext, /points-out\.md/u, "named by the guarded name");
 });
 
 /* The gate stamps what the name resolves to, and the sweep answers with the name: keyed apart, a file
@@ -298,7 +298,7 @@ test("a swept link the gate already asked about is not asked again", () => {
   const link = join(project, "memory", "asked-then-swept.md");
   symlinkSync(outside, link);
   const asking = callHook(gate, { session_id: session, tool_name: "Write", tool_input: { file_path: link, content: "a fact" } }, HOME);
-  assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
+  assert.equal(Boolean(JSON.parse(asking.stdout).hookSpecificOutput.additionalContext), true, "asked first");
   writeFileSync(outside, "the fact, written\n");
   const run = callHook(
     HOOK,
@@ -351,7 +351,7 @@ test("a skill directory the tree has never tracked is swept too", () => {
       transcript_path: called(join(tempRoom("landed-untracked-session-"), `${session}.jsonl`)) },
     HOME,
   );
-  assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "nothing named it and nothing tracked it");
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext, /SKILL\.md/u, "nothing named it and nothing tracked it");
 });
 
 /* The gate lets a project's own runbook through, so this half asking about it afterwards would be the same refusal a call later (ISS-379). */
@@ -385,7 +385,7 @@ test("a served skill body under guides/skills is swept like the stub", () => {
       transcript_path: called(join(tempRoom("landed-session-"), "call.jsonl")) },
     HOME,
   );
-  assert.match(JSON.parse(run.stdout).reason, /guide\.md/u, "the served body changed and nothing asked");
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext, /guide\.md/u, "the served body changed and nothing asked");
 });
 
 /* A tracked skill is the tree's own shipped product, not a learning to justify: it is left alone
@@ -430,7 +430,7 @@ test("a write the gate asked about before it landed is not asked about after", (
     { session_id: session, tool_name: "Write", tool_input: { file_path: join(via, "asked-first.md"), content: "a fact" } },
     HOME,
   );
-  assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
+  assert.equal(Boolean(JSON.parse(asking.stdout).hookSpecificOutput.additionalContext), true, "asked first");
   assert.equal(landed(session, "asked-first.md"), null);
 });
 
@@ -451,7 +451,7 @@ test("a link to the file itself is the same file to both halves", () => {
     },
     HOME,
   );
-  assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
+  assert.equal(Boolean(JSON.parse(asking.stdout).hookSpecificOutput.additionalContext), true, "asked first");
   assert.equal(landed(session, "by-a-link.md"), null, "and not asked again through the link");
 });
 
@@ -472,11 +472,11 @@ test("a tracked link is judged by what it points at, not by its own name", () =>
       transcript_path: called(join(tempRoom("landed-session-"), "call.jsonl")) },
     HOME,
   );
-  assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "the link is clean; the write is not");
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext, /SKILL\.md/u, "the link is clean; the write is not");
 });
 
-/* AC-07-3-4. One refusal, the files it names and the bar coming after the route. */
-test("every refusal this gate writes leads with its route", () => {
+/* AC-07-3-4. One teaching, the files it names and the bar coming after the route. */
+test("every teaching this gate writes leads with its route", () => {
   assertRouteFirst(landed(randomUUID(), "arrived-in-order.md"), "a memory no route asked about");
 });
 
@@ -510,7 +510,7 @@ const reading = (file, { before = "", transcript } = {}) => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  return answered(run)?.reason ?? null;
+  return answered(run)?.hookSpecificOutput?.additionalContext ?? null;
 };
 
 test("a read of the installed copy is not a write, even in the call that restamped it", () => {

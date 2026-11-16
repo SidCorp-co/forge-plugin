@@ -13,12 +13,12 @@ const HOME = homeEnv("learning-gate-new-skill");
 /* Sentences long enough for the duplicate reading to compare, which is the reading that met the missing directory. */
 const FIRST = "# Fresh\n\nA master reads which command answers the question a pass is asking before it reaches for one.\n";
 
-test("the first part of a new served skill is held like any other part", () => {
+test("the first part of a new served skill is taught like any other part", () => {
   const file = join(tempRoom("skill-gate-first-"), "plugin", "guides", "skills", "fresh", "default", "guide", "01-fresh.md");
   const run = callHook(HOOK, { session_id: randomUUID(), tool_name: "Write",
     tool_input: { file_path: file, content: FIRST } }, HOME);
   assert.equal(run.status, 0, run.stderr);
   assert.doesNotMatch(run.stdout, /could not judge/u, "the gate stood down on a directory not yet made");
-  assert.match(JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason,
-    /trap \| method \| invariant \| discovery \| boundary/u, "the write is held on the skill-text question");
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.additionalContext,
+    /trap \| method \| invariant \| discovery \| boundary/u, "the write is taught the skill-text question");
 });

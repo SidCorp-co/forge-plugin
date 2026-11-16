@@ -64,7 +64,7 @@ test("a skill under a source the marketplace names is shipped, committed or not"
 
 const decided = (run) => {
   const said = answered(run);
-  return said === null ? { allowed: true } : { allowed: said.hookSpecificOutput.permissionDecision !== "deny" };
+  return said === null ? { quiet: true } : { quiet: !said.hookSpecificOutput.additionalContext };
 };
 const edit = (session, file, content, cwd) =>
   decided(callHook(HOOK, { session_id: session, tool_name: "Edit",
@@ -74,15 +74,15 @@ test("the gate leaves a shipped skill alone and still stops before a home skill"
   const repo = repoWith({ "src/skills/deploy/SKILL.md": "the method\n" });
   git(repo, ["add", "-A"]);
   git(repo, ["commit", "-qm", "first"]);
-  assert.equal(edit(randomUUID(), join(repo, "src/skills/deploy/SKILL.md"), "more", repo).allowed, true, "the tree's own shipped skill");
-  assert.equal(edit(randomUUID(), join(HOME.HOME, ".claude/skills/demo/SKILL.md"), "more", repo).allowed, false, "a home skill is a learning");
+  assert.equal(edit(randomUUID(), join(repo, "src/skills/deploy/SKILL.md"), "more", repo).quiet, true, "the tree's own shipped skill");
+  assert.equal(edit(randomUUID(), join(HOME.HOME, ".claude/skills/demo/SKILL.md"), "more", repo).quiet, false, "a home skill is a learning");
 });
 
 test("a home skill is asked once per content: a re-send passes, a changed one is asked afresh", () => {
   const session = randomUUID();
   const repo = repoWith({ "src/skills/deploy/SKILL.md": "the method\n" });
   const home = join(HOME.HOME, ".claude/skills/learned/SKILL.md");
-  assert.equal(edit(session, home, "first draft", repo).allowed, false, "first seen, so asked");
-  assert.equal(edit(session, home, "first draft", repo).allowed, true, "the same text re-sent passes");
-  assert.equal(edit(session, home, "second draft", repo).allowed, false, "changed, so asked again");
+  assert.equal(edit(session, home, "first draft", repo).quiet, false, "first seen, so asked");
+  assert.equal(edit(session, home, "first draft", repo).quiet, true, "the same text re-sent passes");
+  assert.equal(edit(session, home, "second draft", repo).quiet, false, "changed, so asked again");
 });

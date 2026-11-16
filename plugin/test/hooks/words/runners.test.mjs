@@ -57,14 +57,14 @@ const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 /* A shell reads a heredoc on its stdin as its program, whatever word names it (ISS-2928). */
 const fed = (shell, line) => `${shell} <<'EOF'\n${line}\nEOF`;
 
-test("a write inside a body the gates did not open before is refused by learning-gate", () => {
+test("a write inside a body the gates did not open before is taught by learning-gate", () => {
   const write = `cp a ${MEMORY}/trap.md`;
   const inline = ["/bin/bash -c", "ash -c", "bash -o pipefail -c", "/bin/busybox ash -c", "bash --norc -c", "bash -ce"]
     .map((runner) => `${runner} '${write}'`);
   const stdin = ["bash", "/bin/bash", "dash", "ash", "bash -o pipefail", "bash +O extglob"].map((shell) => fed(shell, write));
   for (const command of [...inline, ...stdin]) {
     const said = answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME));
-    assert.equal(said?.hookSpecificOutput?.permissionDecision, "deny", command);
+    assert.equal(Boolean(said?.hookSpecificOutput?.additionalContext), true, command);
   }
 });
 
@@ -130,9 +130,9 @@ test("env's \\_ is the blank between two arguments of its split string, and a do
 });
 
 const refused = (command) => answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME))
-  ?.hookSpecificOutput?.permissionDecision === "deny";
+  ?.hookSpecificOutput?.additionalContext !== undefined;
 
-test("a write env runs from its split string is refused by learning-gate, and one only quoted is not", () => {
+test("a write env runs from its split string is taught by learning-gate, and one only quoted is not", () => {
   const write = `touch ${MEMORY}/trap.md`;
   for (const runner of ["env -S ", "env -S", "env -iS ", "env -u X -S ", "env --split-string=", "env --split-string ", "env --split=", "/usr/bin/env -S "]) {
     for (const quote of ["'", '"']) assert.equal(refused(`${runner}${quote}${write}${quote}`), true, `${runner}${quote}`);

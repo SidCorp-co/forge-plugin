@@ -1,9 +1,9 @@
-// The half no list of shapes reaches: a guarded file that changed with the question never put.
+// The half no list of shapes reaches: a guarded file that changed with the question never put, taught after the call.
 
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { FRESH_MS, askedAlready, askedByAnyone, block, calledAt, how, named, ownTranscript, settled, touched } from "../../_hook.mjs";
+import { FRESH_MS, askedAlready, askedByAnyone, calledAt, context, how, named, ownTranscript, settled, touched } from "../../_hook.mjs";
 import { BRIEF, guarded, installedCopy, shippedSkill, swept } from "../../../src/checks/learning.mjs";
 import { digestOf } from "../../../src/keys/digest.mjs";
 
@@ -40,7 +40,7 @@ export const run = (ev) => {
   }
 
   if (asked.length) {
-    block(
+    context(
       "Say in one line which of the five conditions below each file meets. If none does, remove it. If "
         + "this run did not write it — somebody else's edit, or a file the call only read — say which, "
         + "and it is not asked again. Reach for Write or Edit next time, where the question comes first."

@@ -1,16 +1,18 @@
-// Stop once between deciding to record something and recording it: a memory row is project
+// Teach once between deciding to record something and recording it: a memory row is project
 // knowledge, a skill edit develops the method, and how/learning-gate.md says why they must not merge.
+// The write goes ahead; what it owes is said beside it.
 
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, settled, shellWrites, writtenPaths, done } from "../../_hook.mjs";
+import { askedAlready, askedByAnyone, context, how, settled, shellWrites, writtenPaths, done } from "../../_hook.mjs";
 import { readerKey, sayOnce } from "../../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, SKILL_CATEGORIES, guarded, guardedShape, projectSkill, shippedSkill } from "../../../src/checks/learning.mjs";
 import { digestOf } from "../../../src/keys/digest.mjs";
+import { howPage } from "../../../src/refusal.mjs";
 
-/* Asked once per file and per content this session: a re-send of the same text passes, and a real
+/* Taught once per file and per content this session: the same text again is told nothing, and a real
    learning is asked afresh when its content changes (ISS-58). The path-only stamp is project-wide, so
    the post-write gate reads that this path was already put to its author here. */
 const askOnce = (ev, path, content) => {
@@ -22,7 +24,7 @@ const askOnce = (ev, path, content) => {
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The reading is `_hook.mjs`'s, so a name it would read is a name this reads. */
 const MD_ONLY = "md";
 
-/* One name per refusal, so the harness report counts a refusal met on many files as one cause: the file's name is in the wording, and a refusal naming no cause is keyed on its wording. */
+/* One name per teaching, so the harness report counts one met on many files as one cause: the file's name is in the wording, and a message naming no cause is keyed on its wording. */
 const CAUSE = {
   tracker: "tracker-memory",
   shellHeld: "shell-existing",
@@ -35,7 +37,7 @@ const CAUSE = {
 /* Doubt is an action, and the one branch with a tree to name is where this gate can be one. */
 const UNSURE =
   " This command could run in more than one tree — a `cd` before `;` or `||` may have failed — and in "
-  + "one of them that is the file this write lands on. Join them with `&&` to say which.";
+  + "one of them that is the file this write lands on. Join them with `&&` next time to say which.";
 
 const SHAPE =
   "One file, one fact: `name`, a `description` saying when it applies, `metadata.type` "
@@ -93,18 +95,19 @@ const action = (twin, exists) => {
     /* One line: a sentence can run from a frontmatter description into the next key. */
     const quoted = twin.sentence.split("\n")[0].replace(/^\w+:\s*"?/u, "").trim();
     return {
-      route: `fix \`${twin.file}\` if its rule is wrong. Re-send only if this fact is a different one.`,
+      route: `fix \`${twin.file}\` if its rule is wrong, and remove this file unless its fact is a different one.`,
       found: `Already in \`${twin.file}\` (${twin.score.toFixed(2)}): "${quoted.slice(0, 100)}"`,
     };
   }
   if (exists) {
     return {
       route: "replace the wrong rule in place, or delete the file if it no longer holds — never append a "
-        + "second version. Otherwise re-send.",
+        + "second version.",
       found: null,
     };
   }
-  return { route: "fix the memory that already states this, if one does. Otherwise re-send.", found: null };
+  return { route: "say in one line which of the five conditions below makes it worth keeping, or remove it. "
+    + "Fix the memory that already states this instead, if one does.", found: null };
 };
 
 export const run = (ev) => {
@@ -115,10 +118,11 @@ export const run = (ev) => {
   const TRACKER = /forge[_.]memory[_.]write/;
 
   const tracker = (src) =>
-    deny(
-      `Hold — re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
-        "and say in one line which of the five conditions below made it worth keeping.\n\n" +
-        `This is project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}${how(null, CAUSE.tracker)}`,
+    context(
+      "Say in one line which of the five conditions below made it worth keeping, and next time set "
+        + `metadata.checked to the category it belongs in (${FORGE_SOURCES.join(" | ")}).\n\n`
+        + `This is project memory${src ? `, written as \`${src}\`` : ""}, and nothing said why it should exist.`
+        + `\n\n${BRIEF}${how(null, CAUSE.tracker)}`,
     );
 
   const decide = (payload) => {
@@ -131,7 +135,7 @@ export const run = (ev) => {
 
   if (TRACKER.test(tool)) decide(ti);
 
-  // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
+  // Through the shell the content cannot be read — `sed -i` carries none — so the question is put beside the write, and stamped so the post-call gate does not put it again.
   if (tool === "Bash") {
     const written = writtenPaths(shellWrites(ti.command), ev.cwd || process.cwd(), MD_ONLY, { unplaceable: "keep" });
     if (written.length === 0) done();
@@ -145,23 +149,25 @@ export const run = (ev) => {
         const memory = resolved.includes("/memory/");
         const kind = memory ? "a memory file" : "a skill's own text";
         const doubt = placed.every(judged) ? "" : UNSURE;
+        if (askedAlready(ev, settled(resolved), "learning-gate")) continue;
         /* A file that exists is a correction, and Edit is where that file's own question is asked: the new-file bar here would read as "write nothing" to a run fixing a wrong line. */
         if (existsSync(resolved)) {
-          deny(
-            `Hold — re-send this change with Edit, which asks what a change to this file owes.${doubt}\n\n`
-              + `\`${basename(resolved)}\` is ${kind} that already exists, written through the shell, which `
+          context(
+            `Use Edit for the next change to this file, which asks what a change to it owes.${doubt}\n\n`
+              + `\`${basename(resolved)}\` is ${kind} that already exists, changed through the shell, which `
               + "carries no content for that question to be asked of."
               + how(null, CAUSE.shellHeld),
           );
         }
         // Being sent to another tool teaches nothing about whether a new fact belongs in a file at all.
-        deny(
+        context(
           (memory
-            ? `Hold — write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")} — if all five `
-              + "conditions below hold. Otherwise write nothing."
-            : `Hold — write it with Write and name the kind — ${SKILL_CATEGORIES.join(" | ")} — if all five `
-              + "conditions below hold. Otherwise change nothing.")
-            + `${doubt}\n\n\`${basename(resolved)}\` would be ${kind}, new, written through the shell.\n\n${BRIEF}`
+            ? `Keep it only if all five conditions below hold, with \`type:\` declared — ${FILE_TYPES.join(" | ")} — `
+              + "and say which in one line. Otherwise remove it."
+            : `Keep it only if all five conditions below hold, and name the kind — ${SKILL_CATEGORIES.join(" | ")}. `
+              + "Otherwise remove it.")
+            + `${doubt}\n\n\`${basename(resolved)}\` is ${kind}, new, written through the shell, where nothing `
+            + `asked first.\n\n${BRIEF}`
             + how(null, CAUSE.shellNew),
         );
       }
@@ -177,14 +183,15 @@ export const run = (ev) => {
   // --- a memory file: project knowledge ---
   // MEMORY.md is the index, not a memory: it carries pointers and no frontmatter.
   if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEMORY.md") {
-    // Once per file and content: a refusal that also refuses the re-send forbids the write outright.
+    // Once per file and content: the same text again is told nothing.
     if (askOnce(ev, path, ti.content ?? ti.new_string ?? "")) done();
     const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
     const held = existsSync(path);
     const fresh = !twin && !held;
     const { route, found } = action(twin, held);
-    deny(
-      `Hold — ${route}\n\n`
+    const lead = `${route[0].toUpperCase()}${route.slice(1)}`;
+    context(
+      `${lead}\n\n`
         + `\`${basename(path)}\`${fresh ? " is a new memory. Why should it exist, and will it still matter later?" : " is a memory."}`
         + `${found ? `\n\n${found}` : ""}\n\n${BRIEF}${fresh ? `\n\n${SHAPE}` : ""}`
         + how(null, CAUSE.memory),
@@ -206,25 +213,24 @@ export const run = (ev) => {
               `        ${lb} already says: ${b.slice(0, 140)}`,
           )
           .join("\n");
-        const full = {
+        // cm:why advice to the ledger, not a refusal: an unchanged repeat costs nothing, a changed one its new pair beside the lead and the route
+        const said = sayOnce(readerKey(ev), "learning-gate", {
           lead: "Keep it in one place and cite it from the other. If the existing wording is "
-            + "the worse one, replace it rather than adding beside it.",
+            + "the worse one, replace it rather than leaving both.",
           body: "This repeats what the skill already says — that is a defect, not a style "
             + "preference: two authorities for one rule diverge the first time someone corrects only "
             + `the copy they found.\n\n${joined}`,
-        };
-        deny(sayOnce(readerKey(ev), "learning-gate", full, {
-          route: "learning-gate",
-          shape: `\`${basename(path)}\` repeats what the skill already says: keep it in one place and cite it from the other.`,
-          cause: `learning-gate/${CAUSE.restated}`,
-        }));
+          how: `How: ${howPage("learning-gate", `learning-gate/${CAUSE.restated}`)}`,
+        });
+        if (said) context(said);
+        done();
       }
     }
     if (askOnce(ev, path, proposed)) done();
-    deny(
-      "Hold — change nothing unless the test below holds. If it does, re-send and answer three things " +
+    context(
+      "Keep this change only if the test below holds, and answer three things " +
         `in your reply — which category (${SKILL_CATEGORIES.join(" | ")}), whether a ` +
-        "check in the plugin could enforce it instead, and what it displaces.\n\n" +
+        "check in the plugin could enforce it instead, and what it displaces. Otherwise revert it.\n\n" +
         `\`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
         `a note about this one repository.\n\n${BRIEF}` +
         how(null, CAUSE.skill),

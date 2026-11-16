@@ -16,16 +16,17 @@ const decide = (command) => {
   const run = callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
   const said = answered(run)?.hookSpecificOutput;
-  return { allowed: !said || said.permissionDecision !== "deny", reason: said?.permissionDecisionReason ?? "" };
+  assert.equal(said?.permissionDecision, undefined, "a teaching gate decided a permission");
+  return { quiet: !said?.additionalContext, reason: said?.additionalContext ?? "" };
 };
 
 /* A glob bracket a backslash made literal is the directory's own character, so the write it spells is the
    memory write the plain spelling is, and it went through unasked (ISS-2867). */
-test("a memory write through an escaped glob bracket is refused as the plain spelling is", () => {
+test("a memory write through an escaped glob bracket is taught as the plain spelling is", () => {
   const plain = decide("echo x | tee /home/dev/.claude/projects/-a1/memory/trap.md");
   const escaped = decide(String.raw`echo x | tee /home/dev/.claude/projects/-a\[1\]/memory/trap.md`);
   for (const [one, said] of [[plain, "plain"], [escaped, "escaped"]]) {
-    assert.equal(one.allowed, false, said);
+    assert.equal(one.quiet, false, said);
     assert.match(one.reason, /Record only what cost a cycle/u, `${said}, with the conditions the answer has to meet`);
   }
   assert.equal(escaped.reason, plain.reason, "and the two refusals are one");

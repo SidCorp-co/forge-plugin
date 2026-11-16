@@ -20,26 +20,26 @@ const decide = (command) => {
   const run = callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
   const said = answered(run);
-  return { allowed: said === null || said.hookSpecificOutput.permissionDecision !== "deny" };
+  return { quiet: said === null || !said.hookSpecificOutput.additionalContext };
 };
 
 /* Into a `-t` directory the file written is the directory joined with the source's name, which the command never spells, so a new skill file went through unasked (ISS-2684). */
 test("a copy, a move or an install into a guarded directory is a write to the file it lands on", () => {
-  for (const dir of [SKILL_DIR, MEMORY]) assert.equal(decide(`cp -t ${dir} /tmp/new.md`).allowed, false, dir);
-  assert.equal(decide(`cp -t ${SKILL_DIR} /tmp/one.md /tmp/two.txt`).allowed, false, "the first of several sources");
-  assert.equal(decide(`cp -t ${SKILL_DIR} /tmp/one.txt /tmp/two.md`).allowed, false, "and the last");
+  for (const dir of [SKILL_DIR, MEMORY]) assert.equal(decide(`cp -t ${dir} /tmp/new.md`).quiet, false, dir);
+  assert.equal(decide(`cp -t ${SKILL_DIR} /tmp/one.md /tmp/two.txt`).quiet, false, "the first of several sources");
+  assert.equal(decide(`cp -t ${SKILL_DIR} /tmp/one.txt /tmp/two.md`).quiet, false, "and the last");
   for (const spelling of [`mv -t ${SKILL_DIR}`, `install -t ${SKILL_DIR}`, `cp --target-directory ${SKILL_DIR}`,
     `cp --target-directory=${SKILL_DIR}`, `cp -t${SKILL_DIR}`, `cp -vt ${SKILL_DIR}`]) {
-    assert.equal(decide(`${spelling} /tmp/new.md`).allowed, false, spelling);
+    assert.equal(decide(`${spelling} /tmp/new.md`).quiet, false, spelling);
   }
-  assert.equal(decide("cp -t /tmp/elsewhere /tmp/new.md").allowed, true, "a directory nothing guards");
-  assert.equal(decide(`cp -t /tmp ${SKILL}`).allowed, true, "and a guarded file copied out is only read");
+  assert.equal(decide("cp -t /tmp/elsewhere /tmp/new.md").quiet, true, "a directory nothing guards");
+  assert.equal(decide(`cp -t /tmp ${SKILL}`).quiet, true, "and a guarded file copied out is only read");
 });
 
 /* The walk placed only a substitution a double quote opened, so the whole-name reading stopped at the first bare one and a quoted target after it was cut at its bracket (ISS-3087). */
 test("a substitution closed in an earlier command does not hide the next command's quoted target", () => {
   for (const opened of ["$(date)", "`date`", '"$(date)"', "$\\\n(date)"]) {
-    assert.equal(decide(`x=${opened}; touch '${MEMORY}/r(1).md'`).allowed, false, opened);
-    assert.equal(decide(`x=${opened}; cp notes.md '${MEMORY}/r (1).md'`).allowed, false, opened);
+    assert.equal(decide(`x=${opened}; touch '${MEMORY}/r(1).md'`).quiet, false, opened);
+    assert.equal(decide(`x=${opened}; cp notes.md '${MEMORY}/r (1).md'`).quiet, false, opened);
   }
 });

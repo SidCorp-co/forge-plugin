@@ -64,5 +64,5 @@ test("the learning gate refuses a memory write a python program sends through th
   const command = `python3 -c "import os; print('[[ x'); os.system('echo hi > ${memory}')"`;
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(answered(run)?.hookSpecificOutput?.permissionDecision, "deny", run.stdout);
+  assert.equal(Boolean(answered(run)?.hookSpecificOutput?.additionalContext), true, run.stdout);
 });

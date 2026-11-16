@@ -3,9 +3,9 @@
 Why: the gate before a write reads shapes, and a shape list is silent on the route nobody thought of.
 This one reads the disk instead, so a memory or a skill file that appeared unasked is answered for.
 
-How to clear it: say in one line which of the five conditions the file meets. If none holds, remove
-it: this fires after the write, and a file kept because deleting it felt wasteful is what the five
-conditions are against.
+It teaches after the write and refuses nothing. What it asks: one line saying which of the five
+conditions the file meets. If none holds, remove it — a file kept because deleting it felt wasteful
+is what the five conditions are against.
 
 How to avoid it: write a memory with `Write` and a skill's text with `Edit`, where the question comes
 first and is stamped, so it is never asked twice.

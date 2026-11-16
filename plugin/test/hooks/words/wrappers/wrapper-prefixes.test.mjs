@@ -16,7 +16,7 @@ const GATE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..
 const HOME = homeEnv("wrapper-prefixes");
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 const refused = (command) => answered(callHook(GATE, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME))
-  ?.hookSpecificOutput?.permissionDecision === "deny";
+  ?.hookSpecificOutput?.additionalContext !== undefined;
 
 /* Each value-taking long option and the shortest prefix of it its program accepts, read off sudo.ws
    1.9.17's, uutils env 0.8's and GNU time 1.9's own tables rather than off the reader under test. */
@@ -27,7 +27,7 @@ const SHORTEST = {
   time: { format: "f", "output-file": "o" },
 };
 
-test("learning-gate refuses a memory write behind a wrapper's value-taking option cut to a prefix", () => {
+test("learning-gate teaches a memory write behind a wrapper's value-taking option cut to a prefix", () => {
   const write = `touch ${MEMORY}/trap.md`;
   for (const lead of ["env --ch /tmp", "sudo --us root", "env --chdir /tmp", "sudo --user root"]) {
     assert.equal(refused(`${lead} ${write}`), true, lead);

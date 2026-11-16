@@ -76,7 +76,7 @@ test("the learning gate refuses a skill write a python body spells with an escap
   const command = python(String.raw`open("/home/dev/app/plugin/skills/it\'s/SKILL.md", "w")`);
   const run = callHook(LEARNING, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, HOME);
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(answered(run)?.hookSpecificOutput?.permissionDecision, "deny", run.stdout);
+  assert.equal(Boolean(answered(run)?.hookSpecificOutput?.additionalContext), true, run.stdout);
 });
 
 test("a bound value folded into a node template keeps its escapes", () => {

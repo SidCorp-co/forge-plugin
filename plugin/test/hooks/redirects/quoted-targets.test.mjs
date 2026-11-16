@@ -58,5 +58,5 @@ test("the learning gate refuses a redirect into memory whose name holds an apost
   const command = `echo x > "/home/dev/.claude/projects/-home-dev-app/memory/author's.md"`;
   const run = callHook(hook, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command } }, homeEnv("quoted-targets"));
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(answered(run)?.hookSpecificOutput?.permissionDecision, "deny");
+  assert.equal(Boolean(answered(run)?.hookSpecificOutput?.additionalContext), true);
 });

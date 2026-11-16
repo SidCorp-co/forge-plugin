@@ -17,9 +17,10 @@ const PROJECT_SKILL = "/home/dev/app/.claude/skills/uat/SKILL.md";
 
 const decided = (run) => {
   const said = answered(run);
-  if (said === null) return { allowed: true };
+  if (said === null) return { quiet: true };
   const answer = said.hookSpecificOutput;
-  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
+  assert.equal(answer.permissionDecision, undefined, `a teaching gate decided a permission: ${answer.permissionDecisionReason}`);
+  return { quiet: !answer.additionalContext, reason: answer.additionalContext };
 };
 const ask = (event, env = HOME) => decided(callHook(HOOK, { session_id: randomUUID(), ...event }, env));
 const decide = (command, env) => ask({ tool_name: "Bash", tool_input: { command } }, env);
@@ -27,38 +28,38 @@ const at = (cwd, command) => ask({ tool_name: "Bash", tool_input: { command }, c
 const edit = (file_path) => ask({ tool_name: "Edit", tool_input: { file_path, old_string: "a", new_string: "b" } });
 
 test("a project's own skill is not a skill's own text", () => {
-  assert.equal(edit(PROJECT_SKILL).allowed, true);
-  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: PROJECT_SKILL, content: "x" } }).allowed, true, "written whole too");
-  assert.equal(decide(`sed -i s/a/b/ ${PROJECT_SKILL}`).allowed, true, "and through the shell");
-  assert.equal(at("/home/dev/app", "echo x > .claude/skills/uat/references/run.md").allowed, true, "spelt from the project's own tree");
-  assert.equal(edit(`${SKILL_DIR}/SKILL.md`).allowed, false, "while a plugin's skill still is");
+  assert.equal(edit(PROJECT_SKILL).quiet, true);
+  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: PROJECT_SKILL, content: "x" } }).quiet, true, "written whole too");
+  assert.equal(decide(`sed -i s/a/b/ ${PROJECT_SKILL}`).quiet, true, "and through the shell");
+  assert.equal(at("/home/dev/app", "echo x > .claude/skills/uat/references/run.md").quiet, true, "spelt from the project's own tree");
+  assert.equal(edit(`${SKILL_DIR}/SKILL.md`).quiet, false, "while a plugin's skill still is");
 });
 
 const home = HOME.HOME;
 const [parent, user] = [dirname(home), home.split("/").pop()];
 
 test("the home's skills are still guarded, however the path reaches them", () => {
-  assert.equal(edit(join(home, ".claude", "skills", "demo", "SKILL.md")).allowed, false, "the home's serve every project");
-  assert.equal(at(home, "echo x > .claude/skills/demo/SKILL.md").allowed, false, "spelt from the home as well");
-  assert.equal(decide("echo x > ~/.claude/skills/demo/SKILL.md").allowed, false, "and `~` is");
-  assert.equal(decide("echo x > ~/app/.claude/skills/demo/SKILL.md").allowed, true, "while a project under it is not");
-  assert.equal(decide(`echo x > ~/../${user}/.claude/skills/demo/SKILL.md`).allowed, false, "and a `..` back into the home is the home");
-  assert.equal(edit("/home/dev/app/.claude/skills/../../plugin/skills/issue-flow/SKILL.md").allowed, false, "or out into a plugin");
+  assert.equal(edit(join(home, ".claude", "skills", "demo", "SKILL.md")).quiet, false, "the home's serve every project");
+  assert.equal(at(home, "echo x > .claude/skills/demo/SKILL.md").quiet, false, "spelt from the home as well");
+  assert.equal(decide("echo x > ~/.claude/skills/demo/SKILL.md").quiet, false, "and `~` is");
+  assert.equal(decide("echo x > ~/app/.claude/skills/demo/SKILL.md").quiet, true, "while a project under it is not");
+  assert.equal(decide(`echo x > ~/../${user}/.claude/skills/demo/SKILL.md`).quiet, false, "and a `..` back into the home is the home");
+  assert.equal(edit("/home/dev/app/.claude/skills/../../plugin/skills/issue-flow/SKILL.md").quiet, false, "or out into a plugin");
   const project = tempRoom("project-linked-skills-");
   mkdirSync(join(home, ".claude", "skills", "demo"), { recursive: true });
   mkdirSync(join(project, ".claude"), { recursive: true });
   symlinkSync(join(home, ".claude", "skills"), join(project, ".claude", "skills"));
-  assert.equal(edit(join(project, ".claude", "skills", "demo", "SKILL.md")).allowed, false, "and a project's link to the home's is the home's");
+  assert.equal(edit(join(project, ".claude", "skills", "demo", "SKILL.md")).quiet, false, "and a project's link to the home's is the home's");
   const fresh = join(project, ".claude", "skills", "not-made-yet", "SKILL.md");
-  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: fresh, content: "x" } }).allowed, false, "for a skill it has not made yet too");
+  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: fresh, content: "x" } }).quiet, false, "for a skill it has not made yet too");
 });
 
 test("an owner the command built rather than spelt is no project's", () => {
   const env = { ...HOME, BASE: parent };
   const tail = `${user}/.claude/skills/demo/SKILL.md`;
-  assert.equal(decide("echo x > $HOME/.claude/skills/demo/SKILL.md").allowed, false, "a variable nobody resolved may be the home");
-  assert.equal(decide(`echo x > \${BASE}/${tail}`, env).allowed, false, "and so may the rooted tail one leaves behind");
-  assert.equal(decide(`echo x > "\${BASE}"/${tail}`, env).allowed, false, "with the substitution quoted apart from it too");
-  assert.equal(decide(`touch \${BASE}\\\n/${tail}`, env).allowed, false, "or a line continued onto it");
-  assert.equal(decide(`echo x > "/home/dev/app/.claude/skills/demo/SKILL.md"`, env).allowed, true, "while a quoted owner spelt whole is one");
+  assert.equal(decide("echo x > $HOME/.claude/skills/demo/SKILL.md").quiet, false, "a variable nobody resolved may be the home");
+  assert.equal(decide(`echo x > \${BASE}/${tail}`, env).quiet, false, "and so may the rooted tail one leaves behind");
+  assert.equal(decide(`echo x > "\${BASE}"/${tail}`, env).quiet, false, "with the substitution quoted apart from it too");
+  assert.equal(decide(`touch \${BASE}\\\n/${tail}`, env).quiet, false, "or a line continued onto it");
+  assert.equal(decide(`echo x > "/home/dev/app/.claude/skills/demo/SKILL.md"`, env).quiet, true, "while a quoted owner spelt whole is one");
 });
