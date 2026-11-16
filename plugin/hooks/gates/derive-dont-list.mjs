@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { askedAlready, block, touched, how } from "../_hook.mjs";
+import { askedAlready, context, touched, how } from "../_hook.mjs";
 
 // Only files whose job is to check something; nudging every array literal earns an ignore list. Not a
 // test: half its real fires were a case table, which is a test enumerating on purpose.
@@ -45,7 +45,7 @@ export const run = (ev) => {
     const found = offending(contentOf(path));
     if (found.length < 3 || askedAlready(ev, path, "derive-dont-list")) continue;
     const sample = found.slice(0, 4).join(", ") + (found.length > 4 ? "…" : "");
-    block(
+    context(
       "Derive these constants from the source — read the enum, parse the switch, key on the declared " +
         "type. If enumerating IS the point, say so in a comment above the list.\n\n" +
         `${basename(path)} is a checker about to hard-code ${found.length} constants (${sample}). A list ` +

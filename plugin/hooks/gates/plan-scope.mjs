@@ -1,10 +1,10 @@
-// Refuse a write to a file the plan does not name, so the correction is posted before the file
-// rather than read off the mark after the ship, on a project gated `strict`. how/plan-scope.md.
+// Teach, once per path, the correction a write to a file the plan does not name owes, so it is posted
+// beside the file rather than read off the mark after the ship, on a project gated `strict`. how/plan-scope.md.
 
 import { statSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 
-import { deny, done, how, named, shellWrites, writtenPaths } from "../_hook.mjs";
+import { askedAlready, context, done, how, named, shellWrites, writtenPaths } from "../_hook.mjs";
 import { repoRoot } from "../../src/git/repo-root.mjs";
 import { scopeHeld } from "../../src/flow/record/plan-scope.mjs";
 import { STRICT } from "../../src/brief/waived.mjs";
@@ -36,12 +36,12 @@ const scopeOf = (root) => {
   return { ref: held[0].ref, named: held.map((one) => one.named).join("\n") };
 };
 
-/* Nothing a hook sees says who is writing, so a judge's or a probe's scratch edit is held here too, and the last paragraph is that run's: a correction from it would record a write the change never made (ISS-2818). */
-const hold = (rel, ref) =>
-  deny(
-    `Hold — post the correction if you are building ${ref}, then re-send.\n  ${correctionForm(ref, [rel])}\n\n`
+/* Nothing a hook sees says who is writing, so a judge's or a probe's scratch edit is told too, and the last paragraph is that run's: a correction from it would record a write the change never made (ISS-2818). */
+const teach = (rel, ref) =>
+  context(
+    `Post the correction if you are building ${ref}:\n  ${correctionForm(ref, [rel])}\n\n`
       + `\`${rel}\` is outside ${ref}'s plan: neither the plan nor a correction on it names that `
-      + "path, and a change that grew says where before it grows.\n\n"
+      + "path, and a change that grew says where, or the merged mark finds it after the ship.\n\n"
       + `Not building ${ref} — judging it, or probing with an edit you will throw away? The correction is `
       + "not yours to post: make the write in a copy outside this checkout, under your run's own scratch directory."
       + how(),
@@ -56,7 +56,8 @@ export const run = (ev) => {
     if (!rel) continue;
     if (!roots.has(root)) roots.set(root, scopeOf(root));
     const scope = roots.get(root);
-    if (scope && !namesPath(scope.named, rel)) hold(rel, scope.ref);
+    if (!scope || namesPath(scope.named, rel)) continue;
+    if (!askedAlready(ev, `${scope.ref}\0${rel}`, "plan-scope")) teach(rel, scope.ref);
   }
   done();
 };

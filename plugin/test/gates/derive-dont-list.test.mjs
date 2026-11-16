@@ -27,7 +27,9 @@ const nudge = (name, content, session = randomUUID()) => {
   );
   assert.equal(run.status, 0, run.stderr);
   const answer = answered(run);
-  return answer === null ? null : answer.reason;
+  if (answer === null) return null;
+  assert.equal(answer.decision, undefined, "a nudge refuses nothing");
+  return answer.hookSpecificOutput.additionalContext;
 };
 
 test("a checker hard-coding what it could derive is asked once, and told where to look", () => {
@@ -59,7 +61,7 @@ test("a test file's case table is the point, so it is not a checker", () => {
   assert.equal(nudge("status.test.mjs", LIST), null);
 });
 
-/* AC-07-3-4. One refusal, and the checker it names comes after the route. */
-test("every refusal this gate writes leads with its route", () => {
+/* AC-07-3-4. One nudge, and the checker it names comes after the route. */
+test("every nudge this gate writes leads with its route", () => {
   assertRouteFirst(nudge("check-kinds.mjs", LIST), "a hard-coded list");
 });

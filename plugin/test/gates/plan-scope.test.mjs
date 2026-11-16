@@ -1,5 +1,5 @@
-/* The gate is a decision, so it is exercised the way Claude Code calls it: the event on stdin and
-   the permission decision on stdout. The config directory is this suite's own and holds no
+/* The gate teaches and never refuses, so it is exercised the way Claude Code calls it: the event on
+   stdin and the context it adds on stdout. The config directory is this suite's own and holds no
    credential, which is also what proves the gate asks the tracker nothing. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -52,43 +52,49 @@ const held = async () => {
 
 const answered = (run) => {
   assert.equal(run.status, 0, run.stderr);
-  if (!run.stdout.trim()) return { allowed: true, reason: "" };
+  if (!run.stdout.trim()) return { quiet: true, reason: "" };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
-  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason ?? "" };
+  assert.equal(answer.permissionDecision, undefined, "a policy gate lets the call through");
+  return { quiet: !answer.additionalContext, reason: answer.additionalContext ?? "" };
 };
 
 const ask = (event) => answered(callHook(HOOK, { session_id: randomUUID(), cwd: tree, ...event }, ENV));
 const writes = (path) => ask({ tool_name: "Write", tool_input: { file_path: join(tree, path) } });
 const runs = (command) => ask({ tool_name: "Bash", tool_input: { command } });
 
-test("a write the plan does not name is refused, naming the path, the issue and the correction", async () => {
+test("a write the plan does not name is taught, naming the path, the issue and the correction", async () => {
   await scope([["ISS-411", PLAN]]);
   const held = writes("plugin/src/unplanned.mjs");
-  assert.equal(held.allowed, false);
+  assert.equal(held.quiet, false);
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs`/u);
   assert.match(held.reason, /ISS-411's plan/u);
   assert.match(held.reason, /forge record correction ISS-411 --corrects plan --moved "the change also wrote plugin\/src\/unplanned\.mjs"/u);
   assert.match(held.reason, /forge hooks --how plan-scope/u);
+  const session = randomUUID();
+  const again = (one) => answered(callHook(HOOK, { session_id: session, cwd: tree, tool_name: "Write",
+    tool_input: { file_path: join(tree, one) } }, ENV));
+  assert.equal(again("plugin/src/unplanned.mjs").quiet, false);
+  assert.equal(again("plugin/src/unplanned.mjs").quiet, true, "told once per path per session");
 });
 
-test("only a project the claim read as strict is refused; a cache with no profile is held as strict", async () => {
+test("only a project the claim read as strict is taught; a cache with no profile is held as strict", async () => {
   for (const profile of ["standard", "yolo"]) {
     await scope([["ISS-411", PLAN, undefined, profile]]);
-    assert.equal(writes("plugin/src/unplanned.mjs").allowed, true, profile);
+    assert.equal(writes("plugin/src/unplanned.mjs").quiet, true, profile);
   }
   await scope([["ISS-411", PLAN, undefined, "strict"]]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, false);
   await scope([["ISS-411", PLAN]]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false, "no profile recorded");
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, false, "no profile recorded");
   await scope([["ISS-411", PLAN, undefined, "standard"], ["ISS-412", PLAN]]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false, "one issue held with no profile");
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, false, "one issue held with no profile");
 });
 
 test("a write the plan names, and one a correction names, both pass", async () => {
   await scope([["ISS-411", PLAN]]);
-  assert.equal(writes("plugin/src/planned.mjs").allowed, true);
+  assert.equal(writes("plugin/src/planned.mjs").quiet, true);
   await scope([["ISS-411", `${PLAN}\nmoved: the change also wrote plugin/src/unplanned.mjs\n`]]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, true);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, true);
 });
 
 test("the gate and the check at developed hold one path outside the plan and never two", async () => {
@@ -96,57 +102,57 @@ test("the gate and the check at developed hold one path outside the plan and nev
   const paths = ["plugin/src/planned.mjs", "plugin/src/unplanned.mjs", "plugin/src/planned.mjs.bak",
     "plugin/src/sub/planned.mjs", "elsewhere/planned.mjs"];
   for (const one of paths) {
-    assert.equal(writes(one).allowed, namesPath(PLAN, one), `the two readings disagree about ${one}`);
+    assert.equal(writes(one).quiet, namesPath(PLAN, one), `the two readings disagree about ${one}`);
   }
 });
 
-test("a shell write outside the plan is refused and the file that command reads is not", async () => {
+test("a shell write outside the plan is taught and the file that command reads is not", async () => {
   await scope([["ISS-411", PLAN]]);
-  assert.equal(runs("sed -i s/a/b/ plugin/src/unplanned.mjs").allowed, false);
-  assert.equal(runs("cp plugin/src/unplanned.mjs plugin/src/planned.mjs").allowed, true);
-  assert.equal(runs("grep -n x plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("cp -v plugin/src/unplanned.mjs plugin/src/planned.mjs").allowed, true);
-  assert.equal(runs("cp -v plugin/src/planned.mjs plugin/src/unplanned.mjs").allowed, false);
+  assert.equal(runs("sed -i s/a/b/ plugin/src/unplanned.mjs").quiet, false);
+  assert.equal(runs("cp plugin/src/unplanned.mjs plugin/src/planned.mjs").quiet, true);
+  assert.equal(runs("grep -n x plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("cp -v plugin/src/unplanned.mjs plugin/src/planned.mjs").quiet, true);
+  assert.equal(runs("cp -v plugin/src/planned.mjs plugin/src/unplanned.mjs").quiet, false);
 });
 
-test("a write the command placed in no tree is refused for no path", async () => {
+test("a write the command placed in no tree teaches for no path", async () => {
   await scope([["ISS-411", PLAN]]);
-  assert.equal(runs("cd - && touch plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("touch plugin/src/unplanned.mjs").allowed, false);
+  assert.equal(runs("cd - && touch plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("touch plugin/src/unplanned.mjs").quiet, false);
 });
 
-test("a command this cannot aim, and one aimed at a directory, are refused for no path", async () => {
+test("a command this cannot aim, and one aimed at a directory, teach for no path", async () => {
   await scope([["ISS-411", PLAN]]);
-  assert.equal(runs("cat plugin/src/unplanned.mjs | xargs -I{} touch {}").allowed, true);
-  assert.equal(runs("cp -t elsewhere plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("cp --target-directory elsewhere plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("cp --target-directory=elsewhere plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("cp -telsewhere plugin/src/planned.mjs plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("cp -vtelsewhere plugin/src/planned.mjs plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(runs("cp plugin/src/planned.mjs plugin/src/held.dir").allowed, true);
+  assert.equal(runs("cat plugin/src/unplanned.mjs | xargs -I{} touch {}").quiet, true);
+  assert.equal(runs("cp -t elsewhere plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("cp --target-directory elsewhere plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("cp --target-directory=elsewhere plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("cp -telsewhere plugin/src/planned.mjs plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("cp -vtelsewhere plugin/src/planned.mjs plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(runs("cp plugin/src/planned.mjs plugin/src/held.dir").quiet, true);
 });
 
-test("a tree holding no issue, and one whose issue holds no plan, refuse nothing", async () => {
+test("a tree holding no issue, and one whose issue holds no plan, teach nothing", async () => {
   await scope([]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, true);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, true);
   await scope([["ISS-411", ""]]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, true);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, true);
   await scope([["ISS-411", PLAN], ["ISS-412", ""]]);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, true);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, true);
 });
 
-test("where a tree holds two plans, a path either one names passes and a path neither names is refused", async () => {
+test("where a tree holds two plans, a path either one names passes and a path neither names is taught", async () => {
   await scope([["ISS-411", PLAN], ["ISS-412", "- `plugin/src/unplanned.mjs`\n"]]);
-  assert.equal(writes("plugin/src/planned.mjs").allowed, true);
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, true);
-  assert.equal(writes("plugin/src/third.mjs").allowed, false);
+  assert.equal(writes("plugin/src/planned.mjs").quiet, true);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, true);
+  assert.equal(writes("plugin/src/third.mjs").quiet, false);
 });
 
 test("a write in another repository is judged against that tree's scope and not this one's", async () => {
   await scope([["ISS-411", PLAN]]);
   const away = tempRoom("plan-scope-away-");
   execFileSync("git", ["init", "-q", away], { cwd: dirname(away) });
-  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: join(realpathSync(away), "anything.mjs") } }).allowed, true);
+  assert.equal(ask({ tool_name: "Write", tool_input: { file_path: join(realpathSync(away), "anything.mjs") } }).quiet, true);
 });
 
 /* A credential pointed at a closed port: a gate that asked the tracker anything would stand down
@@ -157,23 +163,23 @@ test("the gate decides with the tracker unreachable, so it asks the tracker noth
   mkdirSync(join(ENV.XDG_CONFIG_HOME, "forge"), { recursive: true });
   writeFileSync(join(ENV.XDG_CONFIG_HOME, "forge", "config.json"),
     JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
-  assert.equal(writes("plugin/src/unplanned.mjs").allowed, false);
-  assert.equal(writes("plugin/src/planned.mjs").allowed, true);
+  assert.equal(writes("plugin/src/unplanned.mjs").quiet, false);
+  assert.equal(writes("plugin/src/planned.mjs").quiet, true);
 });
 
-/* AC-07-3-4. One refusal: the correction is the route and the path outside the plan comes after it. */
-test("every refusal this gate writes leads with its route", async () => {
+/* AC-07-3-4. One teaching: the correction is the route and the path outside the plan comes after it. */
+test("every teaching this gate writes leads with its route", async () => {
   await scope([["ISS-411", PLAN]]);
   const said = writes("plugin/src/unplanned.mjs");
-  assert.match(said.reason, /^Hold — post the correction if you are building ISS-411, then re-send\.\n {2}forge record correction/u);
+  assert.match(said.reason, /^Post the correction if you are building ISS-411:\n {2}forge record correction/u);
   assertRouteFirst(said.reason, "a write outside the plan");
 });
 
-/* ISS-2818: a judge's or a probe's scratch edit is held like a builder's, since no hook knows who is writing, so the same refusal tells that run the correction is not its own and where the edit goes instead. */
-test("a refusal tells a run not building the issue to post no correction and to write in a copy outside the checkout", async () => {
+/* ISS-2818: a judge's or a probe's scratch edit is told like a builder's, since no hook knows who is writing, so the same teaching tells that run the correction is not its own and where the edit goes instead. */
+test("the teaching tells a run not building the issue to post no correction and to write in a copy outside the checkout", async () => {
   await scope([["ISS-411", PLAN]]);
   const held = runs("sed -i s/a/b/ plugin/src/unplanned.mjs");
-  assert.equal(held.allowed, false);
+  assert.equal(held.quiet, false);
   const [, , theirs] = held.reason.split("\n\n");
   assert.match(theirs, /^Not building ISS-411 — judging it, or probing/u);
   assert.match(theirs, /The correction is not yours to post/u);
@@ -191,15 +197,15 @@ test("a refusal tells a run not building the issue to post no correction and to 
 test("a > in an interpreter's heredoc body is no write, and a redirect on its own line is one", async () => {
   await scope([["ISS-411", PLAN]]);
   const body = ["if n > buf.len():", "    pass", "PY"].join("\n");
-  assert.equal(runs(`cd plugin/src && python3 - <<'PY'\n${body}`).allowed, true);
+  assert.equal(runs(`cd plugin/src && python3 - <<'PY'\n${body}`).quiet, true);
   const held = runs(`cd plugin/src && python3 - <<'PY' > unplanned.mjs\n${body}`);
-  assert.equal(held.allowed, false);
+  assert.equal(held.quiet, false);
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
 });
 
 /* ISS-2010: a body writes through its own file calls, each at the argument its API writes, and a
    body that only assigns names nothing; a read operand beside the write is no refusal either. */
-test("a file call in an interpreter's heredoc is refused outside the plan, at the argument it writes", async () => {
+test("a file call in an interpreter's heredoc is taught outside the plan, at the argument it writes", async () => {
   await scope([["ISS-411", PLAN]]);
   const py = (...lines) => `cd plugin/src && python3 - <<'PY'\n${lines.join("\n")}\nPY`;
   const node = (line) => `cd plugin/src && node - <<'JS'\n${line}\nJS`;
@@ -225,76 +231,76 @@ test("a file call in an interpreter's heredoc is refused outside the plan, at th
     [`cd plugin/src && python3 -c "open('unplanned.mjs','w')"`, "an inline body"],
   ]) {
     const held = runs(command);
-    assert.equal(held.allowed, false, why);
+    assert.equal(held.quiet, false, why);
     assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u, why);
   }
-  assert.equal(runs(py("shutil.copy('unplanned.mjs', 'planned.mjs')")).allowed, true, "a copy's source is only read");
-  assert.equal(runs(py("open('planned.mjs','w').write(open('unplanned.mjs').read())")).allowed, true, "an open that reads");
-  assert.equal(runs(py("open(os.path.join(base, 'unplanned.mjs'), 'w')")).allowed, true, "a target the program computes");
-  assert.equal(runs(py("writer = Path('unplanned.mjs').write_text")).allowed, true, "a method named and not called");
-  assert.equal(runs(node("const s = `${\"writeFileSync('unplanned.mjs', 'x')\"}`;")).allowed, true, "a string inside an interpolation");
-  assert.equal(runs(node("const s = `\\${writeFileSync('unplanned.mjs', 'x')}`;")).allowed, true, "an escaped interpolation");
-  assert.equal(runs(node("const re = /writeFileSync('unplanned.mjs', 'x')/;")).allowed, true, "a regular expression");
+  assert.equal(runs(py("shutil.copy('unplanned.mjs', 'planned.mjs')")).quiet, true, "a copy's source is only read");
+  assert.equal(runs(py("open('planned.mjs','w').write(open('unplanned.mjs').read())")).quiet, true, "an open that reads");
+  assert.equal(runs(py("open(os.path.join(base, 'unplanned.mjs'), 'w')")).quiet, true, "a target the program computes");
+  assert.equal(runs(py("writer = Path('unplanned.mjs').write_text")).quiet, true, "a method named and not called");
+  assert.equal(runs(node("const s = `${\"writeFileSync('unplanned.mjs', 'x')\"}`;")).quiet, true, "a string inside an interpolation");
+  assert.equal(runs(node("const s = `\\${writeFileSync('unplanned.mjs', 'x')}`;")).quiet, true, "an escaped interpolation");
+  assert.equal(runs(node("const re = /writeFileSync('unplanned.mjs', 'x')/;")).quiet, true, "a regular expression");
   for (const call of ["pick('unplanned.mjs')", "pick ('unplanned.mjs')"]) {
-    assert.equal(runs(py(`${call}.write_text('x')`)).allowed, true, `a receiver another call returns: ${call}`);
+    assert.equal(runs(py(`${call}.write_text('x')`)).quiet, true, `a receiver another call returns: ${call}`);
   }
-  assert.equal(runs(py("n=re.search('a', b)", "s=s.replace('x', 'y')")).allowed, true, "assignments name nothing");
+  assert.equal(runs(py("n=re.search('a', b)", "s=s.replace('x', 'y')")).quiet, true, "assignments name nothing");
 });
 
 /* ISS-3038: nothing a body leaves open in shell terms reaches the redirect after the heredoc. */
-test("a write after an interpreter's heredoc is refused whatever its body left open", async () => {
+test("a write after an interpreter's heredoc is taught whatever its body left open", async () => {
   await scope([["ISS-411", PLAN]]);
   for (const line of ["x = [[1], [2] ]", "s = '''don't'''"]) {
-    assert.equal(runs(`python3 - <<'PY'\n${line}\nPY\necho x > plugin/src/unplanned.mjs`).allowed, false, line);
+    assert.equal(runs(`python3 - <<'PY'\n${line}\nPY\necho x > plugin/src/unplanned.mjs`).quiet, false, line);
   }
 });
 
 /* ISS-2928: a shell reads a heredoc on its stdin as its program, whichever word names it, so a write there is one the plan answers for. */
-test("a write in a heredoc a shell reads is refused outside the plan, whatever word names the shell", async () => {
+test("a write in a heredoc a shell reads is taught outside the plan, whatever word names the shell", async () => {
   await scope([["ISS-411", PLAN]]);
   for (const shell of ["bash", "/bin/bash", "dash", "ash"]) {
-    assert.equal(runs(`${shell} <<'EOF'\necho x > plugin/src/unplanned.mjs\nEOF`).allowed, false, shell);
+    assert.equal(runs(`${shell} <<'EOF'\necho x > plugin/src/unplanned.mjs\nEOF`).quiet, false, shell);
   }
 });
 
 /* ISS-2766: a shell fixture moves into a directory it made and writes there. On its own line that
    move leaves the shell in the call's cwd only where it failed, so the write is placed nowhere this
    can read, as it is behind `&&`; a move the text spells still leaves the call's own tree a candidate. */
-test("a write after a cd this cannot follow is refused for no path on its own line too", async () => {
+test("a write after a cd this cannot follow teaches for no path on its own line too", async () => {
   await scope([["ISS-411", PLAN]]);
   const fixture = `cd "$(mktemp -d)"\necho x > plugin/src/unplanned.mjs`;
-  assert.equal(runs(fixture).allowed, true);
-  assert.equal(runs(`bash <<'EOF'\n${fixture}\nEOF`).allowed, true);
-  assert.equal(runs(`bash <<EOF\n${fixture}\nEOF`).allowed, true);
+  assert.equal(runs(fixture).quiet, true);
+  assert.equal(runs(`bash <<'EOF'\n${fixture}\nEOF`).quiet, true);
+  assert.equal(runs(`bash <<EOF\n${fixture}\nEOF`).quiet, true);
 });
 
-test("a write after a cd the text spells, on its own line, is still refused in the call's own tree", async () => {
+test("a write after a cd the text spells, on its own line, is still taught in the call's own tree", async () => {
   await scope([["ISS-411", PLAN]]);
   const away = tempRoom("plan-scope-cd-");
   const moved = runs(`cd ${away}\necho x > plugin/src/unplanned.mjs`);
-  assert.equal(moved.allowed, false);
+  assert.equal(moved.quiet, false);
   assert.match(moved.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
   const stayed = runs("echo x > plugin/src/unplanned.mjs");
-  assert.equal(stayed.allowed, false);
+  assert.equal(stayed.quiet, false);
   assert.match(stayed.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
 });
 
 /* ISS-2427: a revision range a read-only stage takes after a flag is read, and a refusal naming it
    asks for a correction naming a path nothing wrote; the `tee` target beside it is still judged. */
-test("a read-only stage piped into tee is refused only for the tee's own target", async () => {
+test("a read-only stage piped into tee is taught only for the tee's own target", async () => {
   await scope([["ISS-411", PLAN]]);
   const away = join(ENV.TMPDIR, "files.txt");
-  assert.equal(runs(`git diff --name-only origin/main...HEAD | tee ${away} | wc -l`).allowed, true);
+  assert.equal(runs(`git diff --name-only origin/main...HEAD | tee ${away} | wc -l`).quiet, true);
   const held = runs("git diff --name-only origin/main...HEAD | tee plugin/src/unplanned.mjs");
-  assert.equal(held.allowed, false);
+  assert.equal(held.quiet, false);
   assert.match(held.reason, /`plugin\/src\/unplanned\.mjs` is outside ISS-411's plan/u);
   assert.doesNotMatch(held.reason, /origin\/main/u);
 });
 
 /* A backtick under a single quote is a character of the redirect's one filename, which was read as no name at all and so let the write through (ISS-3052). */
-test("a redirect to an unplanned file whose name holds a backtick is refused, naming that file", async () => {
+test("a redirect to an unplanned file whose name holds a backtick is taught, naming that file", async () => {
   await scope([["ISS-411", PLAN]]);
   const held = runs("echo x > 'plugin/src/un`x`planned.mjs'");
-  assert.equal(held.allowed, false);
+  assert.equal(held.quiet, false);
   assert.match(held.reason, /`plugin\/src\/un`x`planned\.mjs` is outside ISS-411's plan/u);
 });
